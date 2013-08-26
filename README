@@ -1,0 +1,51 @@
+
+libde265 - open h.265 codec implementation
+==========================================
+
+libde265 is an open source implementation of the h.265 video codec.
+It is written from scratch in plain C for simplicity and efficiency.
+Its simple API makes it easy to integrate it into other software.
+
+Currently, libde265 only decodes intra frames, inter-frame decoding
+is under construction. Encoding is planned to be added afterwards.
+
+
+The library comes with two example programs:
+
+- dec265, a simple player for raw h.265 bitstreams.
+          It serves nicely as an example program how to use libde265.
+
+- sherlock265, a Qt-based video player with the additional capability
+          to overlay some graphical representations of the h.265
+          bitstream (like CU-trees, intra-prediction modes).
+
+
+
+Building
+========
+
+libde265 has no dependencies on other libraries, but both example programs
+require that you install the libvideogfx library, which you can get from
+  http://www.dirk-farin.net/software/libvideogfx/index.html
+or
+  http://sourceforge.net/p/libvideogfx/code/260/tree/trunk/libvideogfx/
+
+You can disable building of the example programs by running ./configure with
+  --disable-dec265        Do not dec265 decoder program.
+  --disable-sherlock265   Do not build sherlock265 visual inspection program.
+
+Additional logging information can be turned on and off using these ./configure flags:
+  --enable-log-error      turn on logging at error level (default=yes)
+  --enable-log-info       turn on logging at info level (default=no)
+  --enable-log-trace      turn on logging at trace level (default=no)
+
+
+
+License
+=======
+
+libde265 is distributed under the terms of the GNU Lesser General Public License.
+See COPYRIGHT for more details.
+
+Copyright (c) 2013 Struktur AG
+contact: Dirk Farin <farin@struktur.de>
