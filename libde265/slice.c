@@ -203,6 +203,7 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
       }
 
       shdr->five_minus_max_num_merge_cand = get_uvlc(br);
+      shdr->MaxNumMergeCand = 5-shdr->five_minus_max_num_merge_cand;
     }
     
     shdr->slice_qp_delta = get_svlc(br);
@@ -540,18 +541,12 @@ static const int initValue_coeff_abs_level_greater2_flag[18] = {
     138,153,136,167,152,152,107,167, 91,122,107,167,
     107,167, 91,107,107,167
   };
-static const int initValue_sao_merge_leftUp_flag[3] = {
-    153,153,153
-  };
-static const int initValue_sao_type_idx_lumaChroma_flag[3] = {
-  200,185,160
-  };
-static const int initValue_cu_qp_delta_abs[6] = {
-  154,154,154,154,154,154
-  };
-static const int initValue_transform_skip_flag[6] = {
-  139,139,139,139,139,139
-  };
+static const int initValue_sao_merge_leftUp_flag[3] = { 153,153,153 };
+static const int initValue_sao_type_idx_lumaChroma_flag[3] = { 200,185,160 };
+static const int initValue_cu_qp_delta_abs[6] = { 154,154,154,154,154,154 };
+static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
+static const int initValue_merge_flag[2] = { 110,154 };
+static const int initValue_merge_idx[2] = { 122,137 };
 
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
@@ -740,6 +735,22 @@ void init_coeff_abs_level_greater2_flag(decoder_context* ctx, slice_segment_head
     {
       set_initValue(ctx,shdr, &shdr->coeff_abs_level_greater2_flag_model[i],
                     initValue_coeff_abs_level_greater2_flag[i]);
+    }
+}
+
+void init_merge_flag(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<2;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->merge_flag_model[i], initValue_merge_flag[i]);
+    }
+}
+
+void init_merge_idx(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<2;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->merge_idx_model[i], initValue_merge_idx[i]);
     }
 }
 
@@ -1343,6 +1354,32 @@ int decode_coeff_abs_level_remaining_HM(decoder_context* ctx,
 }
 
 
+int decode_merge_flag(decoder_context* ctx,
+                      slice_segment_header* shdr)
+{
+  logtrace(LogSlice,"# merge_flag\n");
+
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->merge_flag_model[shdr->initType-1]);
+
+  return bit;
+}
+
+
+int decode_merge_idx(decoder_context* ctx,
+                     slice_segment_header* shdr)
+{
+  logtrace(LogSlice,"# merge_idx\n");
+
+  int bit = decode_CABAC_TU(&shdr->cabac_decoder,
+                            shdr->MaxNumMergeCand-1,
+                            &shdr->merge_idx_model[shdr->initType-1]);
+
+  return bit;
+}
+
+
+
 int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
 {
   init_sao_merge_leftUp_flag_context(ctx, shdr);
@@ -1362,6 +1399,9 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_coeff_abs_level_greater2_flag(ctx, shdr);
   init_cu_qp_delta_abs(ctx, shdr);
   init_transform_skip_flag(ctx, shdr);
+  init_merge_flag(ctx, shdr);
+  init_merge_idx(ctx, shdr);
+
 
   int end_of_slice_segment_flag;
 
@@ -2228,6 +2268,28 @@ void read_transform_tree(decoder_context* ctx,
 }
 
 
+void read_prediction_unit_SKIP(decoder_context* ctx,
+                               slice_segment_header* shdr,
+                               int x0, int y0,
+                               int nPbW, int nPbH)
+{
+  int merge_idx = 0;
+  if (shdr->MaxNumMergeCand>1) {
+    merge_idx = decode_merge_idx(ctx,shdr);
+  }
+
+  logtrace(LogSlice,"prediction skip 2Nx2N, merge_idx: %d\n",merge_idx);
+}
+
+
+void read_prediction_unit(decoder_context* ctx,
+                          slice_segment_header* shdr,
+                          int x0, int y0,
+                          int nPbW, int nPbH)
+{
+}
+
+
 void read_coding_unit(decoder_context* ctx,
                       slice_segment_header* shdr,
                       int x0, int y0,
@@ -2240,7 +2302,6 @@ void read_coding_unit(decoder_context* ctx,
 
 
   enum PredMode PredMode = MODE_INTRA; // TODO: HACK for intra only decoder
-
   set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // HACK, TODO: decode and set correct values
 
 
@@ -2264,10 +2325,18 @@ void read_coding_unit(decoder_context* ctx,
   int IntraSplitFlag = 0;
 
   if (cu_skip_flag) {
-    assert(false);
+    read_prediction_unit_SKIP(ctx,shdr,x0,y0,nCbS,nCbS);
+
+    set_PartMode(ctx, x0,y0, PART_2Nx2N); // TODO: not sure if we need this
+    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
   }
-  else {
-    // TODO: slice != I
+  else /* not skipped */ {
+    if (shdr->slice_type != SLICE_TYPE_I) {
+      // TODO: decode pred_mode_flag
+    }
+
+    // TODO: set_pred_mode(ctx,x0,y0,log2CbSize, MODE_I....);
+
 
     enum PartMode PartMode;
 
@@ -2502,14 +2571,14 @@ void read_coding_unit(decoder_context* ctx,
 
   int nS = 1 << log2CbSize;
 
-  // (4.1) decoding process for CUs coded in intra prediction mode
+  // (8.4.1) decoding process for CUs coded in intra prediction mode
 
   if (true) {
 
     decode_quantization_parameters(ctx,shdr, x0,y0);
 
 
-    if (false) { // pcm_flag (4.1)
+    if (false) { // pcm_flag (8.4.1)
       // TODO
     } else {
       if (IntraSplitFlag==0) {

@@ -138,6 +138,7 @@ typedef struct {
   int cu_transquant_bypass_flag;
 
   int CurrRpsIdx;
+  int MaxNumMergeCand;
 
 
   // --- decoder runtime data ---
@@ -167,6 +168,8 @@ typedef struct {
   context_model coeff_abs_level_greater2_flag_model[18];
   context_model cu_qp_delta_abs_model[6];
   context_model transform_skip_flag_model[6];
+  context_model merge_flag_model[2];
+  context_model merge_idx_model[2];
 
 } slice_segment_header;
 
