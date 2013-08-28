@@ -131,8 +131,10 @@ void logtrace(enum LogModule module, const char* string, ...)
 {
   va_list va;
 
+  int noPrefix = (string[0]=='*');
+  if (!noPrefix) { } // fprintf(stderr, "ERR: ");
   va_start(va, string);
-  vfprintf(stderr, string, va);
+  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
   va_end(va);
 }
 #endif
