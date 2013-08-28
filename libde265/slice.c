@@ -505,6 +505,7 @@ void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
 
 
 static const int initValue_split_cu_flag[9] = { 139,141,157, 107,139,126, 107,139,126 };
+static const int initValue_cu_skip_flag[6] = { 197,185,201, 197,185,201 };
 static const int initValue_part_mode[9] = { 184,154,139, 154,154,154, 139,154,154 };
 static const int initValue_prev_intra_luma_pred_flag[3] = { 184,154,183 };
 static const int initValue_intra_chroma_pred_mode[3] = { 63,152,152 };
@@ -618,6 +619,18 @@ void init_split_cu_context(decoder_context* ctx, slice_segment_header* shdr)
 
       logtrace(LogSlice,"split_cu_flag context[%d] = state:%d MPS:%d\n",
              i,shdr->split_flag_model[i].state,shdr->split_flag_model[i].MPSbit);
+    }
+}
+
+
+void init_cu_skip_flag_context(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<6;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->cu_skip_flag_model[i], initValue_cu_skip_flag[i]);
+
+      logtrace(LogSlice,"cu_skip_flag context[%d] = state:%d MPS:%d\n",
+             i,shdr->cu_skip_flag_model[i].state,shdr->cu_skip_flag_model[i].MPSbit);
     }
 }
 
@@ -832,7 +845,7 @@ int decode_split_cu_flag(decoder_context* ctx,
   if (availableA && get_ctDepth(ctx,x0,y0-1) > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
-  int context = 0 + contextOffset; // TODO
+  int context = 3*shdr->initType + contextOffset;
 
   // decode bit
 
@@ -841,6 +854,36 @@ int decode_split_cu_flag(decoder_context* ctx,
   int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->split_flag_model[context]);
 
   logtrace(LogSlice,"> split_cu_flag R=%x, ctx=%d, bit=%d\n", shdr->cabac_decoder.range,context,bit);
+
+  return bit;
+}
+
+
+int decode_cu_skip_flag(decoder_context* ctx,
+                        slice_segment_header* shdr,
+                        int x0, int y0, int ctDepth)
+{
+  // check if neighbors are available
+
+  int availableL = check_CTB_available(ctx,shdr, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ctx,shdr, x0,y0, x0,y0-1);
+
+  int condL = 0;
+  int condA = 0;
+
+  if (availableL && get_ctDepth(ctx,x0-1,y0) > ctDepth) condL=1;
+  if (availableA && get_ctDepth(ctx,x0,y0-1) > ctDepth) condA=1;
+
+  int contextOffset = condL + condA;
+  int context = 3*(shdr->initType-1) + contextOffset;
+
+  // decode bit
+
+  logtrace(LogSlice,"# cu_skip_flag context=%d R=%x\n", context, shdr->cabac_decoder.range);
+
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->cu_skip_flag_model[context]);
+
+  logtrace(LogSlice,"> cu_skip_flag R=%x, ctx=%d, bit=%d\n", shdr->cabac_decoder.range,context,bit);
 
   return bit;
 }
@@ -1305,6 +1348,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_sao_merge_leftUp_flag_context(ctx, shdr);
   init_sao_type_idx_lumaChroma_context(ctx, shdr);
   init_split_cu_context(ctx, shdr);
+  init_cu_skip_flag_context(ctx, shdr);
   init_part_mode_context(ctx, shdr);
   init_prev_intra_luma_pred_flag(ctx, shdr);
   init_intra_chroma_pred_mode(ctx, shdr);
@@ -2187,7 +2231,8 @@ void read_transform_tree(decoder_context* ctx,
 void read_coding_unit(decoder_context* ctx,
                       slice_segment_header* shdr,
                       int x0, int y0,
-                      int log2CbSize)
+                      int log2CbSize,
+                      int ctDepth)
 {
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
@@ -2207,16 +2252,18 @@ void read_coding_unit(decoder_context* ctx,
       assert(false); // TODO
     }
 
-  // TODO: slice type != I
+  uint8_t cu_skip_flag = 0;
+  if (shdr->slice_type != SLICE_TYPE_I) {
+    cu_skip_flag = decode_cu_skip_flag(ctx,shdr,x0,y0,ctDepth);
+  }
 
-  int skip_flag=0;
-  // TODO: set skip_flag to CU
+  set_cu_skip_flag(ctx,x0,y0,cu_skip_flag);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
   int IntraSplitFlag = 0;
 
-  if (skip_flag) {
+  if (cu_skip_flag) {
     assert(false);
   }
   else {
@@ -2583,7 +2630,7 @@ void read_coding_quadtree(decoder_context* ctx,
 
     set_ctDepth(ctx, x0,y0, log2CbSize, ctDepth);
 
-    read_coding_unit(ctx,shdr, x0,y0, log2CbSize);
+    read_coding_unit(ctx,shdr, x0,y0, log2CbSize, ctDepth);
   }
 
   logtrace(LogSlice,"-\n");

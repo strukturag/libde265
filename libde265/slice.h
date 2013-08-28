@@ -152,6 +152,7 @@ typedef struct {
   context_model sao_merge_flag_model[3];
   context_model sao_type_idx_model[3];
   context_model split_flag_model[9];
+  context_model cu_skip_flag_model[6];
   context_model part_mode_model[9];
   context_model prev_intra_luma_pred_flag_model[3];
   context_model intra_chroma_pred_mode_model[3];
