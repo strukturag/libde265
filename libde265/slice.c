@@ -100,11 +100,15 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
         read_short_term_ref_pic_set(br, ctx->ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets);
+
+        shdr->CurrRpsIdx = sps->num_short_term_ref_pic_sets;
       }
       else {
         int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
         if (nBits>0) shdr->short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         shdr->short_term_ref_pic_set_idx = 0;
+
+        shdr->CurrRpsIdx = shdr->short_term_ref_pic_set_idx;
       }
 
       if (sps->long_term_ref_pics_present_flag) {
@@ -132,6 +136,7 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
       }
     }
 
+
     if (sps->sample_adaptive_offset_enabled_flag) {
       shdr->slice_sao_luma_flag   = get_bits(br,1);
       shdr->slice_sao_chroma_flag = get_bits(br,1);
@@ -143,37 +148,63 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
     if (shdr->slice_type == SLICE_TYPE_P  ||
         shdr->slice_type == SLICE_TYPE_B) {
-      assert(false);
-      /*
-        num_ref_idx_active_override_flag
-        if( num_ref_idx_active_override_flag ) {
-        num_ref_idx_l0_active_minus1
-        if( slice_type  ==  B )
-        num_ref_idx_l1_active_minus1
+      int num_ref_idx_active_override_flag = get_bits(br,1);
+      if (num_ref_idx_active_override_flag) {
+        shdr->num_ref_idx_l0_active = get_uvlc(br) +1;
+        if (shdr->slice_type == SLICE_TYPE_B) {
+          shdr->num_ref_idx_l1_active = get_uvlc(br) +1;
         }
-        if( lists_modification_present_flag  &&  NumPocTotalCurr > 1 )
-        ref_pic_lists_modification()
-        if( slice_type == B )
-        mvd_l1_zero_flag
-        if( cabac_init_present_flag )
-        cabac_init_flag
-        if( slice_temporal_mvp_enabled_flag ) {
-        if( slice_type  ==  B )
-        collocated_from_l0_flag
-        if( ( collocated_from_l0_flag  &&  num_ref_idx_l0_active_minus1 > 0 )
-        ||  ( !collocated_from_l0_flag  &&
-        num_ref_idx_l1_active_minus1 > 0 ) )
-        [Ed. (GJS): Does the logic of this condition check make sense when the slice is not a B slice?]
-        collocated_ref_idx
-        }
-        if( ( weighted_pred_flag  &&   slice_type == P)  | |
-        ( weighted_bipred_flag  &&  slice_type  ==  B ) )
-        pred_weight_table()
-        five_minus_max_num_merge_cand
-        }
-      */
-    }
+      }
+      else {
+        shdr->num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
+        shdr->num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
+      }
 
+      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPoc_withoutLongterm;
+      // TODO: add number of longterm images
+
+      if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
+        assert(false);
+        /*
+          ref_pic_lists_modification()
+        */
+      }
+
+      if (shdr->slice_type == SLICE_TYPE_B) {
+        shdr->mvd_l1_zero_flag = get_bits(br,1);
+      }
+
+      if (pps->cabac_init_present_flag) {
+        shdr->cabac_init_flag = get_bits(br,1);
+      }
+      else {
+        shdr->cabac_init_flag = 0;
+      }
+
+      if (shdr->slice_temporal_mvp_enabled_flag) {
+        if (shdr->slice_type == SLICE_TYPE_B)
+          shdr->collocated_from_l0_flag = get_bits(br,1);
+        else
+          shdr->collocated_from_l0_flag = 1;
+
+        if (( shdr->collocated_from_l0_flag && shdr->num_ref_idx_l0_active > 1) ||
+            (!shdr->collocated_from_l0_flag && shdr->num_ref_idx_l1_active > 1)) {
+          shdr->collocated_ref_idx = get_uvlc(br);
+        }
+        else {
+          shdr->collocated_ref_idx = 0;
+        }
+      }
+
+      if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
+          (pps->weighted_bipred_flag && shdr->slice_type == SLICE_TYPE_B)) {
+        //pred_weight_table()
+        assert(false);
+      }
+
+      shdr->five_minus_max_num_merge_cand = get_uvlc(br);
+    }
+    
     shdr->slice_qp_delta = get_svlc(br);
     //logtrace(LogSlice,"slice_qp_delta: %d\n",shdr->slice_qp_delta);
 
@@ -318,7 +349,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         // TODO: DUMP short_term_ref_pic_set(num_short_term_ref_pic_sets)
       }
       else if (sps->num_short_term_ref_pic_sets > 1) {
-        LOG("short_term_ref_pic_set_idx               : %d\n", shdr->short_term_ref_pic_set_idx);
+        LOG("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
       }
 
       if (sps->long_term_ref_pics_present_flag) {
@@ -366,25 +397,34 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         }
       }
 
-      /* TODO
-      if (pps->lists_modification_present_flag && NumPocTotalCurr > 1 )
-        ref_pic_lists_modification()
-          if( slice_type  ==  B )
-            mvd_l1_zero_flag
-              if( cabac_init_present_flag )
-                cabac_init_flag
-                  if( slice_temporal_mvp_enabled_flag ) {
-                    if( slice_type  ==  B )
-                      collocated_from_l0_flag
-                        if( ( collocated_from_l0_flag  &&  num_ref_idx_l0_active_minus1 > 0 )  ||
-                            ( !collocated_from_l0_flag  &&  num_ref_idx_l1_active_minus1 > 0 ) )
-                          collocated_ref_idx
-                            }
-      if( ( weighted_pred_flag  &&  slice_type  ==  P )  ||
-          ( weighted_bipred_flag  &&  slice_type  ==  B ) )
-        pred_weight_table()
-          five_minus_max_num_merge_cand
-      */
+      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPoc_withoutLongterm;
+      // TODO: add number of longterm images
+
+      if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)
+        {
+          assert(false);
+          //ref_pic_lists_modification()
+        }
+
+      if (shdr->slice_type == SLICE_TYPE_B) {
+        LOG("mvd_l1_zero_flag               : %d\n", shdr->mvd_l1_zero_flag);
+      }
+      
+      LOG("cabac_init_flag                : %d\n", shdr->cabac_init_flag);
+
+      if (shdr->slice_temporal_mvp_enabled_flag) {
+        LOG("collocated_from_l0_flag        : %d\n", shdr->collocated_from_l0_flag);
+        LOG("collocated_ref_idx             : %d\n", shdr->collocated_ref_idx);
+      }
+
+      if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
+          (pps->weighted_bipred_flag && shdr->slice_type == SLICE_TYPE_B))
+        {
+          assert(false);
+          //pred_weight_table()
+        }
+
+      LOG("five_minus_max_num_merge_cand  : %d\n", shdr->five_minus_max_num_merge_cand);
     }
 
 

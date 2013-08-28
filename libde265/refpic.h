@@ -36,6 +36,8 @@ typedef struct {
 
   char UsedByCurrPicS0[MAX_NUM_REF_PICS];
   char UsedByCurrPicS1[MAX_NUM_REF_PICS];
+
+  int NumPoc_withoutLongterm;
 } ref_pic_set;
 
 //void alloc_ref_pic_set(ref_pic_set*, int max_dec_pic_buffering);

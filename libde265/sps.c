@@ -101,9 +101,10 @@ void read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
 
   sps->num_short_term_ref_pic_sets = get_uvlc(br);
 
-  // allocate reference pic set
+  // --- allocate reference pic set ---
 
-  *ref_pic_sets = calloc(sizeof(ref_pic_set), sps->num_short_term_ref_pic_sets);
+  // allocate one more for the ref-pic-set that may be sent in the slice header
+  *ref_pic_sets = calloc(sizeof(ref_pic_set), sps->num_short_term_ref_pic_sets + 1);
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
 

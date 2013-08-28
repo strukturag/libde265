@@ -137,6 +137,8 @@ typedef struct {
 
   int cu_transquant_bypass_flag;
 
+  int CurrRpsIdx;
+
 
   // --- decoder runtime data ---
 

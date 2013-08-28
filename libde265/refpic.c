@@ -25,6 +25,27 @@
 #include <stdlib.h>
 
 
+static void compute_NumPoc(ref_pic_set* rpset)
+{
+  rpset->NumPoc_withoutLongterm = 0;
+  
+  for (int i=0; i<rpset->NumNegativePics; i++)
+    if (rpset->UsedByCurrPicS0[i])
+      rpset->NumPoc_withoutLongterm++;
+
+  for (int i=0; i<rpset->NumPositivePics; i++)
+    if (rpset->UsedByCurrPicS1[i])
+      rpset->NumPoc_withoutLongterm++;
+
+  /*
+  for (int i = 0; i < num_long_term_sps + num_long_term_pics; i++ )
+            if( UsedByCurrPicLt[i] )
+              NumPocTotalCurr++
+                }
+  */
+}
+
+
 void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, int num_short_term_ref_pic_sets)
 {
   char inter_ref_pic_set_prediction_flag=0;
@@ -175,6 +196,9 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
       lastPocS = sets[idxRps].DeltaPocS1[i];
     }
   }
+
+
+  compute_NumPoc(&sets[idxRps]);
 }
 
 
