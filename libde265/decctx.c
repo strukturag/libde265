@@ -589,6 +589,32 @@ bool available_zscan(const decoder_context* ctx,
 }
 
 
+bool available_pred_blk(const decoder_context* ctx,
+                        int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
+                        int xN,int yN)
+{
+  int sameCb = (xC <= xN && xN < xC+nCbS &&
+                yC <= yN && yN < yC+nCbS);
+
+  bool availableN;
+
+  if (!sameCb) {
+    availableN = available_zscan(ctx,xP,yP,xN,yN);
+  }
+  else {
+    availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
+                   partIdx==1 &&
+                   yN >= yC+nPbH && xN < xC+nPbW);
+  }
+
+  if (availableN && get_pred_mode(ctx,xN,yN) == MODE_INTRA) {
+    availableN = false;
+  }
+
+  return availableN;
+}
+
+
 void write_picture(const decoder_context* ctx)
 {
   static FILE* fh = NULL;

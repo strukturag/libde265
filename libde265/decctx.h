@@ -243,6 +243,10 @@ const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN);
 
+bool available_pred_blk(const decoder_context* ctx,
+                        int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
+                        int xN,int yN);
+
 // --- debug ---
 
 void write_picture(const decoder_context* ctx);
