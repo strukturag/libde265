@@ -169,7 +169,7 @@ void process_nal_hdr(decoder_context*, nal_header*);
 void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);
 void process_pps(decoder_context*, pic_parameter_set*);
-void process_slice_segment_header(decoder_context*, slice_segment_header*);
+de265_error process_slice_segment_header(decoder_context*, slice_segment_header*);
 
 int get_next_slice_index(decoder_context* ctx);
 

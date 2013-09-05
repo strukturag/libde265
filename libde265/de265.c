@@ -48,6 +48,7 @@ const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS: return "coefficient out of image bounds";
   case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
   case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
+  case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
   default: return "unknown error";
   }
 }
@@ -65,6 +66,8 @@ void de265_init()
 de265_decoder_context* de265_new_decoder()
 {
   decoder_context* ctx = calloc(sizeof(decoder_context),1);
+  if (!ctx) { return NULL; }
+
   init_decoder_context(ctx);
   return (de265_decoder_context*)ctx;
 }
@@ -226,7 +229,8 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     read_slice_segment_header(&reader,hdr,ctx);
     dump_slice_segment_header(hdr, ctx);
 
-    process_slice_segment_header(ctx, hdr);
+    if ((err = process_slice_segment_header(ctx, hdr)) != DE265_OK)
+      { return err; }
 
     skip_bits(&reader,1); // TODO: why?
     prepare_for_CABAC(&reader);

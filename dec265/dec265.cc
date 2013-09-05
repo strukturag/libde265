@@ -69,6 +69,10 @@ int main(int argc, char** argv)
   de265_decoder_context* ctx = de265_new_decoder();
 
   FILE* fh = fopen(argv[1], "rb");
+  if (fh==NULL) {
+    fprintf(stderr,"cannot open file %s!\n", argv[1]);
+    exit(10);
+  }
 
   de265_error err =DE265_OK;
   for (;;)

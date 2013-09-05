@@ -77,7 +77,7 @@ void free_info_arrays(decoder_context* ctx)
 }
 
 
-void allocate_info_arrays(decoder_context* ctx)
+de265_error allocate_info_arrays(decoder_context* ctx)
 {
   seq_parameter_set* sps = ctx->current_sps;
 
@@ -103,7 +103,13 @@ void allocate_info_arrays(decoder_context* ctx)
       ctx->cb_info    = malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
       ctx->tu_info    = malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
       ctx->deblk_info = malloc( sizeof(deblock_info) * ctx->deblk_info_size);
+
+      if (ctx->ctb_info==NULL || ctx->cb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
+	return DE265_ERROR_OUT_OF_MEMORY;
+      }
     }
+
+  return DE265_OK;
 }
 
 
@@ -175,7 +181,7 @@ int get_next_slice_index(decoder_context* ctx)
   return ctx->next_free_slice_index++;
 }
 
-void process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
+de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
 
@@ -195,7 +201,8 @@ void process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
     // allocate info arrays
 
-    allocate_info_arrays(ctx);
+    de265_error err = allocate_info_arrays(ctx);
+    if (err != DE265_OK) { return err; }
 
     seq_parameter_set* sps = ctx->current_sps;
 
@@ -239,6 +246,8 @@ void process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
   // TODO: only when starting new image...
   // fill_image(&ctx->intra_pred_available, 0,-1,-1);
+
+  return DE265_OK;
 }
 
 
