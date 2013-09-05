@@ -27,6 +27,7 @@
 #include "libde265/nal.h"
 #include "libde265/slice.h"
 #include "libde265/image.h"
+#include "libde265/motion.h"
 #include "libde265/de265.h"
 
 #define DE265_MAX_VPS_SETS 16
@@ -74,6 +75,12 @@ typedef struct {
 
   uint8_t PredMode; // (enum PredMode)
 } CB_info;
+
+
+typedef struct {
+  PredVectorInfo pred_vector;
+  uint8_t merge_idx;
+} PB_info;
 
 
 typedef struct {
@@ -137,11 +144,13 @@ typedef struct {
   CTB_info* ctb_info; // in raster scan
   CB_info*  cb_info; // in raster scan
   TU_info*  tu_info; // in raster scan
+  PB_info*  pb_info; // in raster scan
   deblock_info* deblk_info;
 
   int ctb_info_size;
   int cb_info_size;
   int tu_info_size;
+  int pb_info_size;
   int deblk_info_size;
 
   int deblk_width;
@@ -238,6 +247,13 @@ uint8_t get_deblk_bS(const decoder_context*, int x0,int y0);
 
 void            set_sao_info(decoder_context*, int ctbX,int ctbY,const sao_info* sao_info);
 const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
+
+
+const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
+void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
+
+int  get_merge_idx(const decoder_context* ctx,int xP,int yP);
+void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int merge_idx);
 
 
 bool available_zscan(const decoder_context* ctx,

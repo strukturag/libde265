@@ -60,6 +60,7 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
   memset(ctx->cb_info,  0,sizeof(CB_info)  * ctx->cb_info_size);
   memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
+  memset(ctx->pb_info,  0,sizeof(PB_info)  * ctx->pb_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   de265_fill_image(&ctx->coeff, 0,0,0);
@@ -73,6 +74,7 @@ void free_info_arrays(decoder_context* ctx)
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
   if (ctx->cb_info)  { free(ctx->cb_info);  ctx->cb_info =NULL; }
   if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
+  if (ctx->pb_info)  { free(ctx->pb_info);  ctx->pb_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
@@ -93,6 +95,7 @@ void allocate_info_arrays(decoder_context* ctx)
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
       ctx->cb_info_size   = sps->PicSizeInMinCbsY;
+      ctx->pb_info_size   = sps->PicSizeInMinCbsY*4*4;
       ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
@@ -101,6 +104,7 @@ void allocate_info_arrays(decoder_context* ctx)
       // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
       ctx->ctb_info   = malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
       ctx->cb_info    = malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
+      ctx->pb_info    = malloc( sizeof(PB_info)    * ctx->pb_info_size  *1);
       ctx->tu_info    = malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
       ctx->deblk_info = malloc( sizeof(deblock_info) * ctx->deblk_info_size);
     }
@@ -549,6 +553,45 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
 {
   assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
   return &ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].saoInfo;
+}
+
+
+
+#define PIXEL2PB(x) (x >> (ctx->current_sps->Log2MinCbSizeY-2))
+#define PB_IDX(x0,y0) (PIXEL2PB(x0) + PIXEL2PB(y0)*ctx->current_sps->PicWidthInMinCbsY*4)
+#define GET_PB_BLK(x,y) ctx->pb_info[PB_IDX(x,y)]
+#define SET_PB_BLK(x,y,nPbW,nPbH, Field, value)                         \
+  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
+  for (int pby=y;pby<y+nPbW;pby+=blksize)                               \
+    for (int pbx=x;pbx<x+nPbH;pbx+=blksize)                             \
+      {                                                                 \
+        ctx->pb_info[PB_IDX(pbx,pby)].Field = value;                    \
+      }
+
+
+const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
+{
+  int idx = PB_IDX(x,y);
+
+  return &ctx->pb_info[idx].pred_vector;
+}
+
+
+void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
+{
+  SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv);
+}
+
+
+int get_merge_idx(const decoder_context* ctx,int xP,int yP)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].merge_idx;
+}
+
+void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int new_merge_idx)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_idx, new_merge_idx);
 }
 
 

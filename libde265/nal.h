@@ -45,12 +45,12 @@ typedef struct {
 #define NAL_UNIT_RSV_VCL_R11  11
 #define NAL_UNIT_RSV_VCL_R13  13
 #define NAL_UNIT_RSV_VCL_R15  15
-#define NAL_UNIT_BLA_W_LP   16
+#define NAL_UNIT_BLA_W_LP   16     // BLA = broken link access
 #define NAL_UNIT_BLA_W_RADL 17
 #define NAL_UNIT_BLA_N_LP   18
 #define NAL_UNIT_IDR_W_RADL 19
 #define NAL_UNIT_IDR_N_LP   20
-#define NAL_UNIT_CRA_NUT    21
+#define NAL_UNIT_CRA_NUT    21     // CRA = clean random access
 #define NAL_UNIT_RSV_IRAP_VCL22 22
 #define NAL_UNIT_RSV_IRAP_VCL23 23
 #define NAL_UNIT_RSV_VCL24     24

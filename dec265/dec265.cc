@@ -47,6 +47,7 @@ void display_image(const struct de265_image* img, X11Win& win)
   }
 
   win.Display(visu);
+  win.WaitForKeypress();
 }
 
 

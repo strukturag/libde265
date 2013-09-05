@@ -2324,11 +2324,15 @@ void read_coding_unit(decoder_context* ctx,
 
   int IntraSplitFlag = 0;
 
+  enum PredMode cuPredMode;
+
   if (cu_skip_flag) {
     read_prediction_unit_SKIP(ctx,shdr,x0,y0,nCbS,nCbS);
 
     set_PartMode(ctx, x0,y0, PART_2Nx2N); // TODO: not sure if we need this
     set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
+    set_merge_idx(ctx,x0,y0, 1<<log2CbSize,1<<log2CbSize, 0);
+    cuPredMode = MODE_SKIP;
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {
@@ -2336,6 +2340,8 @@ void read_coding_unit(decoder_context* ctx,
     }
 
     // TODO: set_pred_mode(ctx,x0,y0,log2CbSize, MODE_I....);
+    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // TODO: not INTRA only ...
+    cuPredMode = MODE_INTRA;
 
 
     enum PartMode PartMode;
@@ -2573,10 +2579,8 @@ void read_coding_unit(decoder_context* ctx,
 
   // (8.4.1) decoding process for CUs coded in intra prediction mode
 
-  if (true) {
-
+  if (cuPredMode == MODE_INTRA) {
     decode_quantization_parameters(ctx,shdr, x0,y0);
-
 
     if (false) { // pcm_flag (8.4.1)
       // TODO
@@ -2620,6 +2624,11 @@ void read_coding_unit(decoder_context* ctx,
                          get_IntraPredModeC(ctx,x0,y0));
     }
 
+  }
+  else { // cuPredMode == MODE_INTER / MODE_SKIP
+    decode_quantization_parameters(ctx,shdr, x0,y0);
+
+    inter_prediction(ctx,shdr, x0,y0, log2CbSize);
   }
 
 
