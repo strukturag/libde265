@@ -2540,7 +2540,6 @@ LIBDE265_AGE=0
 
 
 
-
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
   if test -f "$ac_dir/install-sh"; then
@@ -15113,7 +15112,6 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
 $as_echo "no, using $LN_S" >&6; }
 fi
-
 
 
 # Initialize automake stuff
