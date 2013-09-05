@@ -82,7 +82,12 @@ int main(int argc, char** argv)
       int n = fread(buf,1,BUFFER_SIZE,fh);
 
       // decode input data
-      err = de265_decode_data(ctx, buf, n);
+      if (n) {
+	err = de265_decode_data(ctx, buf, n);
+	if (err != DE265_OK) {
+	  break;
+	}
+      }
 
       if (feof(fh)) {
         err = de265_decode_data(ctx, NULL, 0); // indicate end of stream

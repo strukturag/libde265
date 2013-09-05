@@ -105,6 +105,7 @@ de265_error allocate_info_arrays(decoder_context* ctx)
       ctx->deblk_info = malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
       if (ctx->ctb_info==NULL || ctx->cb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
+	free_info_arrays(ctx);
 	return DE265_ERROR_OUT_OF_MEMORY;
       }
     }
