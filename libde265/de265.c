@@ -49,6 +49,7 @@ const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
   case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
   case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
+  case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   default: return "unknown error";
   }
 }
@@ -279,7 +280,9 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         seq_parameter_set sps;
 
-        read_sps(&reader,&sps, &ctx->ref_pic_sets);
+        if ((err=read_sps(&reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
+          break;
+        }
         dump_sps(&sps, ctx->ref_pic_sets);
 
         process_sps(ctx, &sps);
