@@ -24,7 +24,8 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <malloc.h>
+#include <malloc.h>  // deprecated, do we really need this for VisualStudio ?
+#include <alloca.h>
 
 
 void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)

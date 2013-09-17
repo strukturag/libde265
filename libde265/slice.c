@@ -28,7 +28,9 @@
 
 #include <assert.h>
 #include <string.h>
-#include <malloc.h>
+#include <malloc.h>  // deprecated, do we really need this for VisualStudio ?
+#include <alloca.h>
+
 
 void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr);
 
@@ -1791,7 +1793,7 @@ int residual_coding(decoder_context* ctx,
                                        */
 
   int16_t TransCoeffLevel[32][32];
-  memset(TransCoeffLevel,0, sizeof(uint16_t)*(1<<(2*log2TrafoSize)) );
+  memset(TransCoeffLevel,0, sizeof(uint16_t)*32*32); // actually, we only need [1<<log2TrafoSize][1<<log2TrafoSize] = (1<<(2*log2TrafoSize))
 
 
   int  lastInvocation_greater1Ctx;

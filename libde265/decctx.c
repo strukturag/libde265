@@ -337,7 +337,7 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return (PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
+  return (enum PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
 }
 
 
@@ -348,7 +348,7 @@ void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum Pre
 
 enum PredMode get_pred_mode(const decoder_context* ctx, int x,int y)
 {
-  return (PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
+  return (enum PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
 void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode)
@@ -404,7 +404,7 @@ void set_IntraPredMode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum
 
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, int x,int y)
 {
-  return (IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
+  return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
 }
 
 void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enum IntraPredMode mode)
@@ -414,7 +414,7 @@ void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enu
 
 enum IntraPredMode get_IntraPredModeC(const decoder_context* ctx, int x,int y)
 {
-  return (IntraPredMode)GET_TU_BLK(x,y).IntraPredModeC;
+  return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredModeC;
 }
 
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
