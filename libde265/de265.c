@@ -66,7 +66,7 @@ void de265_init()
 
 de265_decoder_context* de265_new_decoder()
 {
-  decoder_context* ctx = calloc(sizeof(decoder_context),1);
+  decoder_context* ctx = (decoder_context*)calloc(sizeof(decoder_context),1);
   if (!ctx) { return NULL; }
 
   init_decoder_context(ctx);

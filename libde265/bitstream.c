@@ -42,7 +42,7 @@ static void init_context(input_context* ctx)
 void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size)
 {
   if (buffer->capacity < new_size) {
-    unsigned char* newbuffer = malloc(new_size);
+    unsigned char* newbuffer = (unsigned char*)malloc(new_size);
 
     if (buffer->data != NULL) {
       memcpy(newbuffer, buffer->data, buffer->size);

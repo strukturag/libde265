@@ -102,11 +102,11 @@ de265_error allocate_info_arrays(decoder_context* ctx)
       ctx->deblk_height   = deblk_h;
 
       // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
-      ctx->ctb_info   = malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
-      ctx->cb_info    = malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
-      ctx->pb_info    = malloc( sizeof(PB_info)    * ctx->pb_info_size  *1);
-      ctx->tu_info    = malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
-      ctx->deblk_info = malloc( sizeof(deblock_info) * ctx->deblk_info_size);
+      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
+      ctx->cb_info    = (CB_info  *)malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
+      ctx->pb_info    = (PB_info  *)malloc( sizeof(PB_info)    * ctx->pb_info_size  *1);
+      ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
+      ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
       if (ctx->ctb_info==NULL || ctx->cb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
 	free_info_arrays(ctx);
@@ -337,7 +337,7 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
+  return (PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
 }
 
 
@@ -348,7 +348,7 @@ void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum Pre
 
 enum PredMode get_pred_mode(const decoder_context* ctx, int x,int y)
 {
-  return ctx->cb_info[ CB_IDX(x,y) ].PredMode;
+  return (PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
 void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode)
@@ -404,7 +404,7 @@ void set_IntraPredMode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum
 
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, int x,int y)
 {
-  return GET_TU_BLK(x,y).IntraPredMode;
+  return (IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
 }
 
 void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enum IntraPredMode mode)
@@ -414,7 +414,7 @@ void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enu
 
 enum IntraPredMode get_IntraPredModeC(const decoder_context* ctx, int x,int y)
 {
-  return GET_TU_BLK(x,y).IntraPredModeC;
+  return (IntraPredMode)GET_TU_BLK(x,y).IntraPredModeC;
 }
 
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)

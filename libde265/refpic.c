@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 
 static void compute_NumPoc(ref_pic_set* rpset)
@@ -77,8 +78,8 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
 
     logtrace(LogHeaders,"predicted from %d with delta %d\n",RIdx,DeltaRPS);
 
-    char used_by_curr_pic_flag[ sets[RIdx].NumDeltaPocs ];
-    char use_delta_flag[ sets[RIdx].NumDeltaPocs ];
+    char *const used_by_curr_pic_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
+    char *const use_delta_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
 
     for (int j=0;j<=sets[RIdx].NumDeltaPocs;j++) {
       used_by_curr_pic_flag[j] = get_bits(br,1);
@@ -250,7 +251,7 @@ void dump_short_term_ref_pic_set(ref_pic_set* set)
 
 void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
 {
-  char log[range+1+range+1];
+  char *const log = (char *)alloca((range+1+range+1) * sizeof(char));
   log[2*range+1] = 0;
   for (int i=0;i<2*range+1;i++) log[i]='.';
   log[range]='|';

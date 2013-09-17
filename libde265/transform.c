@@ -256,9 +256,9 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 
   } else {
 
-    int16_t g[nT][nT];
-    int16_t col[nT];
-    int32_t out[nT];
+    int16_t g[32][32];
+    int16_t col[32];
+    int32_t out[32];
 
     for (int c=0;c<nT;c++) {
       for (int y=0;y<nT;y++) {

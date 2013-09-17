@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 
 void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
@@ -106,7 +107,7 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
     // set columns widths
 
-    int colPos[pps->num_tile_columns+1];
+    int *const colPos = (int *)alloca((pps->num_tile_columns+1) * sizeof(int));
 
     for (int i=0;i<=pps->num_tile_columns;i++) {
       colPos[i] = i*sps->PicWidthInCtbsY / pps->num_tile_columns;
@@ -117,7 +118,7 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
     // set row heights
 
-    int rowPos[pps->num_tile_rows+1];
+    int *const rowPos = (int *)alloca((pps->num_tile_rows+1) * sizeof(int));
 
     for (int i=0;i<=pps->num_tile_rows;i++) {
       rowPos[i] = i*sps->PicHeightInCtbsY / pps->num_tile_rows;
@@ -149,10 +150,10 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   if (pps->TileId) { free(pps->TileId); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
 
-  pps->CtbAddrRStoTS = malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->CtbAddrTStoRS = malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->TileId        = malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->MinTbAddrZS   = malloc( sizeof(int) * sps->PicSizeInTbsY  );
+  pps->CtbAddrRStoTS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  pps->CtbAddrTStoRS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  pps->TileId        = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  pps->MinTbAddrZS   = (int *)malloc( sizeof(int) * sps->PicSizeInTbsY  );
 
 
   // raster scan (RS) <-> tile scan (TS) conversion

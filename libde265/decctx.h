@@ -235,6 +235,7 @@ void get_coeff_plane(const decoder_context*, int cIdx, int16_t** image, int* str
 
 void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);
+void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize);
 
 // coordinates in CB units
 int  get_log2CbSize_cbUnits(const decoder_context* ctx, int x0, int y0);

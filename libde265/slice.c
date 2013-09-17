@@ -20,6 +20,7 @@
 
 #include "slice.h"
 #include "slice_func.h"
+#include "motion_func.h"
 #include "util.h"
 #include "scan.h"
 #include "intrapred.h"
@@ -27,6 +28,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <malloc.h>
 
 void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr);
 
@@ -35,6 +37,11 @@ void read_coding_quadtree(decoder_context* ctx,
                           int xCtb, int yCtb, 
                           int Log2CtbSizeY,
                           int ctDepth);
+
+int check_CTB_available(decoder_context* ctx,
+                        slice_segment_header* shdr,
+                        int xC,int yC, int xN,int yN);
+
 
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
@@ -1774,7 +1781,7 @@ int residual_coding(decoder_context* ctx,
 
 
   int sbWidth = 1<<(log2TrafoSize-2);
-  uint8_t coded_sub_block_flag[sbWidth*sbWidth];
+  uint8_t *const coded_sub_block_flag = (uint8_t *)alloca((sbWidth*sbWidth) * sizeof(uint8_t));
   memset(coded_sub_block_flag,0,sbWidth*sbWidth);
 
   int  c1 = 1;
@@ -1783,7 +1790,7 @@ int residual_coding(decoder_context* ctx,
                                           (initialization not strictly needed)
                                        */
 
-  int16_t TransCoeffLevel[1<<log2TrafoSize][1<<log2TrafoSize];
+  int16_t TransCoeffLevel[32][32];
   memset(TransCoeffLevel,0, sizeof(uint16_t)*(1<<(2*log2TrafoSize)) );
 
 
@@ -2499,7 +2506,7 @@ void read_coding_unit(decoder_context* ctx,
 
               logtrace(LogSlice,"IntraPredMode[%d][%d] = %d (log2blk:%d)\n",x,y,IntraPredMode, log2IntraPredSize);
 
-              set_IntraPredMode(ctx,x,y, log2IntraPredSize,IntraPredMode);
+              set_IntraPredMode(ctx,x,y, log2IntraPredSize,(enum IntraPredMode)IntraPredMode);
               
               idx++;
             }
@@ -2532,7 +2539,7 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
 
-        set_IntraPredModeC(ctx,x0,y0, log2CbSize, IntraPredModeC);
+        set_IntraPredModeC(ctx,x0,y0, log2CbSize, (enum IntraPredMode)IntraPredModeC);
       }
     }
     else {

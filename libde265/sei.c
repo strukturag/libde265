@@ -30,7 +30,7 @@ static void read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
 {
   sei_decoded_picture_hash* seihash = &sei->decoded_picture_hash;
 
-  seihash->hash_type = get_bits(reader,8);
+  seihash->hash_type = (sei_decoded_picture_hash_type)get_bits(reader,8);
 
   int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {

@@ -162,7 +162,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
   // --- allocate reference pic set ---
 
   // allocate one more for the ref-pic-set that may be sent in the slice header
-  *ref_pic_sets = calloc(sizeof(ref_pic_set), sps->num_short_term_ref_pic_sets + 1);
+  *ref_pic_sets = (ref_pic_set *)calloc(sizeof(ref_pic_set), sps->num_short_term_ref_pic_sets + 1);
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
 
