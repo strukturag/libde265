@@ -16219,10 +16219,12 @@ fi
     VIDEOGFX_LIBS=`libvideogfx-config --libs`
 
 
+
+$as_echo "#define HAVE_VIDEOGFX 1" >>confdefs.h
+
   else
     echo "Did not find libvideogfx (is libvideogfx-config in your PATH ?)."
-    echo "... Disabling building of dec265 and sherlock265 ..."
-    enable_dec265="no"
+    echo "... Disabling building of sherlock265 ..."
     enable_sherlock265="no"
   fi
 fi

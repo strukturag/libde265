@@ -19,14 +19,38 @@
  */
 
 #include "de265.h"
+#include "config.h"
+#include <stdio.h>
+#include <stdlib.h>
 
+extern "C" {
+#include "libde265/decctx.h"
+}
 
+#if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 using namespace videogfx;
+#endif
 
 
-void display_image(const struct de265_image* img, X11Win& win)
+#if HAVE_VIDEOGFX
+void display_image(const struct de265_image* img)
 {
+  static X11Win win;
+
+  // display picture
+
+  static bool first=true;
+
+  if (first) {
+    first=false;
+    win.Create(de265_get_image_width(img,0),
+               de265_get_image_height(img,0),
+               "de265 output");
+  }
+
+
+
   int width  = de265_get_image_width(img,0);
   int height = de265_get_image_height(img,0);
 
@@ -42,14 +66,14 @@ void display_image(const struct de265_image* img, X11Win& win)
     height = de265_get_image_height(img,ch);
 
     for (int y=0;y<height;y++) {
-        memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+      memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
     }
   }
 
   win.Display(visu);
   win.WaitForKeypress();
 }
-
+#endif
 
 
 #define BUFFER_SIZE 4096
@@ -57,8 +81,6 @@ void display_image(const struct de265_image* img, X11Win& win)
 
 int main(int argc, char** argv)
 {
-  X11Win win;
-
   if (argc != 2) {
     fprintf(stderr,"usage: dec265 videofile.bin\n");
     fprintf(stderr,"The video file must be a raw h.265 bitstream (e.g. HM-10.0 output)\n");
@@ -100,18 +122,11 @@ int main(int argc, char** argv)
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
 
-        // display picture
-
-        static bool first=true;
-
-        if (first) {
-          first=false;
-          win.Create(de265_get_image_width(img,0),
-                     de265_get_image_height(img,0),
-                     "de265 output");
-        }
-
-        display_image(img, win);
+#if HAVE_VIDEOGFX
+        display_image(img);
+#else
+        write_picture((const decoder_context*)ctx);
+#endif
       }
     }
 

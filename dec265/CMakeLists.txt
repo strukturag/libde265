@@ -65,14 +65,14 @@ endif(GCC)
 
 file(GLOB LIBSRC ../libde265/*.c)
 file(GLOB LIBINC ../libde265/*.h)
-file(GLOB APPSRC dec265_c.c)
+file(GLOB APPSRC dec265.cc)
 
 source_group(INC  FILES ${LIBINC})
 source_group(SRC  FILES ${LIBSRC})
 source_group(APP  FILES ${APPSRC})
 
 add_executable(dec265
-    dec265_c.c ${EXTRAS} ${LIBSRC} ${LIBINC}
+    dec265.cc ${EXTRAS} ${LIBSRC} ${LIBINC}
 )
 
 target_link_libraries(dec265 ${PLATFORM_LIBS})

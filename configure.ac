@@ -106,10 +106,10 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
     VIDEOGFX_LIBS=`libvideogfx-config --libs`
     AC_SUBST(VIDEOGFX_CFLAGS)
     AC_SUBST(VIDEOGFX_LIBS)
+    AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
   else
     echo "Did not find libvideogfx (is libvideogfx-config in your PATH ?)."
-    echo "... Disabling building of dec265 and sherlock265 ..."
-    enable_dec265="no"
+    echo "... Disabling building of sherlock265 ..."
     enable_sherlock265="no"
   fi
 fi
