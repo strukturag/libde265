@@ -55,6 +55,7 @@ void init_decoder_context(decoder_context* ctx)
   ctx->img = NULL;
   ctx->image_output_queue_length = 0;
   ctx->first_decoded_picture = true;
+  ctx->PicOrderCntMsb = 0;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->img);
@@ -223,10 +224,38 @@ int get_next_slice_index(decoder_context* ctx)
  */
 void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
 {
-  if (isIDR(ctx->nal_unit_type) ||
-      isBLA(ctx->nal_unit_type) ||
-      (isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture))
+  if (isIRAP(ctx->nal_unit_type) &&
+      ctx->NoRaslOutputFlag)
     {
+      ctx->PicOrderCntMsb=0;
+    }
+  else
+    {
+      int MaxPicOrderCntLsb = ctx->current_sps->MaxPicOrderCntLsb;
+
+      if ((hdr->slice_pic_order_cnt_lsb < ctx->prevPicOrderCntLsb) &&
+          (ctx->prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) > MaxPicOrderCntLsb/2) {
+        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb + MaxPicOrderCntLsb;
+      }
+      else if ((hdr->slice_pic_order_cnt_lsb > ctx->prevPicOrderCntLsb) &&
+               (hdr->slice_pic_order_cnt_lsb - ctx->prevPicOrderCntLsb) > MaxPicOrderCntLsb/2) {
+        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb - MaxPicOrderCntLsb;
+      }
+      else {
+        // leave PicOrderCntMsb unchanged
+      }
+    }
+
+  ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
+
+
+  if (1 /* TemporalID==0 */ && // TODO
+      !isRASL(ctx->nal_unit_type) &&
+      !isRADL(ctx->nal_unit_type) &&
+      1 /* sub-layer non-reference picture */) // TODO
+    {
+      ctx->prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
+      ctx->prevPicOrderCntMsb = ctx->PicOrderCntMsb;
     }
 }
 

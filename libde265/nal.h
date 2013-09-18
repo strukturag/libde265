@@ -91,5 +91,6 @@ bool isCRA(uint8_t unit_type);
 bool isRAP(uint8_t unit_type);
 bool isRASL(uint8_t unit_type);
 bool isIRAP(uint8_t unit_type);
+bool isRADL(uint8_t unit_type);
 
 #endif

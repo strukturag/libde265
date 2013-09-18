@@ -153,6 +153,10 @@ typedef struct {
   bool NoRaslOutputFlag;
   bool HandleCraAsBlaFlag;
 
+  int  PicOrderCntMsb;
+  int prevPicOrderCntLsb;  // at precTid0Pic
+  int prevPicOrderCntMsb;  // at precTid0Pic
+
   //uint8_t last_RAP_picture_NAL_type;
   //uint8_t last_RAP_was_CRA_and_first_image_of_sequence;
 
