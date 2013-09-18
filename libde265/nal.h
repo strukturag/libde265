@@ -21,6 +21,9 @@
 #ifndef DE265_NAL_H
 #define DE265_NAL_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "libde265/bitstream.h"
 
 typedef struct {
@@ -78,6 +81,14 @@ typedef struct {
 #define NAL_UNIT_RSV_NVCL46     46
 #define NAL_UNIT_RSV_NVCL47     47
 
+#define NAL_UNIT_UNDEFINED    255
+
 void nal_read_header(bitreader* reader, nal_header*);
+
+bool isIDR(uint8_t unit_type);
+bool isBLA(uint8_t unit_type);
+bool isCRA(uint8_t unit_type);
+bool isRAP(uint8_t unit_type);
+bool isRASL(uint8_t unit_type);
 
 #endif

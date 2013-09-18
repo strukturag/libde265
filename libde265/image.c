@@ -106,6 +106,7 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
   img->chroma_stride= 0;
 
   img->picture_order_cnt_lsb = -1; // undefined
+  img->PicOrderCntVal = -1; // undefined
   img->PicOutputFlag = 0;
   img->PicState = UnusedForReference;
 }

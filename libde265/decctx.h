@@ -138,12 +138,14 @@ typedef struct {
 
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
-  //de265_image image_buffers[DE265_IMAGE_OUTPUT_QUEUE_LEN];
   de265_image* image_output_queue[DE265_DPB_SIZE];
   int          image_output_queue_length;
-  //int8_t image_ref_count   [DE265_IMAGE_OUTPUT_QUEUE_LEN]; // 0: unused
 
   int current_image_poc_lsb;
+  bool first_decoded_picture;
+  uint8_t last_RAP_picture_NAL_type;
+  uint8_t last_RAP_was_CRA_and_first_image_of_sequence;
+
   de265_image* img;
 
   // --- decoded image data ---

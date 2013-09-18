@@ -52,6 +52,8 @@ void init_decoder_context(decoder_context* ctx)
 
   ctx->img = NULL;
   ctx->image_output_queue_length = 0;
+  ctx->first_decoded_picture = true;
+  ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->img);
   de265_init_image(&ctx->coeff);
@@ -211,6 +213,19 @@ int get_next_slice_index(decoder_context* ctx)
   return sliceID;
 }
 
+
+/* 8.3.1
+ */
+void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
+{
+  if (isIDR(ctx->nal_unit_type) ||
+      isBLA(ctx->nal_unit_type) ||
+      (isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture))
+    {
+    }
+}
+
+
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
@@ -247,6 +262,18 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       }
 
       ctx->img = NULL;
+
+      if (isRAP(ctx->nal_unit_type)) {
+        ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
+
+        ctx->last_RAP_was_CRA_and_first_image_of_sequence =
+          isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
+      }
+
+
+      // next image is not the first anymore
+
+      ctx->first_decoded_picture = false;
     }
 
     ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
@@ -301,7 +328,18 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     reset_decoder_context_for_new_picture(ctx);
 
-    ctx->img->PicOutputFlag = hdr->pic_output_flag;
+    if (isRASL(ctx->nal_unit_type) &&
+        (isBLA(ctx->last_RAP_picture_NAL_type) ||
+         ctx->last_RAP_was_CRA_and_first_image_of_sequence))
+      {
+        ctx->img->PicOutputFlag = false;
+      }
+    else
+      {
+        ctx->img->PicOutputFlag = hdr->pic_output_flag;
+      }
+
+    process_picture_order_count(ctx,hdr);
   }
 
   return DE265_OK;

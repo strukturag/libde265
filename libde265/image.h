@@ -56,6 +56,7 @@ typedef struct de265_image {
   // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
 
   int  picture_order_cnt_lsb;
+  int  PicOrderCntVal;
   bool PicOutputFlag;
   enum PictureState PicState;
 

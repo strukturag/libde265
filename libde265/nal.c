@@ -27,3 +27,33 @@ void nal_read_header(bitreader* reader, nal_header* hdr)
   hdr->nuh_layer_id  = get_bits(reader,6);
   hdr->nuh_temporal_id = get_bits(reader,3) -1;
 }
+
+
+bool isIDR(uint8_t unit_type)
+{
+  return (unit_type == NAL_UNIT_IDR_W_RADL ||
+          unit_type == NAL_UNIT_IDR_N_LP);
+}
+
+bool isBLA(uint8_t unit_type)
+{
+  return (unit_type == NAL_UNIT_BLA_W_LP ||
+          unit_type == NAL_UNIT_BLA_W_RADL ||
+          unit_type == NAL_UNIT_BLA_N_LP);
+}
+
+bool isCRA(uint8_t unit_type)
+{
+  return unit_type == NAL_UNIT_CRA_NUT;
+}
+
+bool isRAP(uint8_t unit_type)
+{
+  return isIDR(unit_type) || isBLA(unit_type) || isCRA(unit_type);
+}
+
+bool isRASL(uint8_t unit_type)
+{
+  return (unit_type == NAL_UNIT_RASL_N ||
+          unit_type == NAL_UNIT_RASL_R);
+}
