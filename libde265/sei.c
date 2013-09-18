@@ -155,22 +155,22 @@ static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_cont
 
     switch (i) {
     case 0:
-      w = ctx->img.width;
-      h = ctx->img.height;
-      stride = ctx->img.stride;
+      w = ctx->img->width;
+      h = ctx->img->height;
+      stride = ctx->img->stride;
       break;
 
     case 1:
     case 2:
-      w = ctx->img.chroma_width;
-      h = ctx->img.chroma_height;
-      stride = ctx->img.chroma_stride;
+      w = ctx->img->chroma_width;
+      h = ctx->img->chroma_height;
+      stride = ctx->img->chroma_stride;
       break;
     }
 
-    /**/ if (i==0) data = ctx->img.y;
-    else if (i==1) data = ctx->img.cb;
-    else           data = ctx->img.cr;
+    /**/ if (i==0) data = ctx->img->y;
+    else if (i==1) data = ctx->img->cb;
+    else           data = ctx->img->cr;
 
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:

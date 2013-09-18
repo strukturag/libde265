@@ -2100,7 +2100,7 @@ int residual_coding(decoder_context* ctx,
   int      coeffStride;
   get_coeff_plane(ctx,cIdx, &coeff,&coeffStride);
 
-  if ((1<<log2TrafoSize)+yB > ctx->img.height) {
+  if ((1<<log2TrafoSize)+yB > ctx->img->height) {
     return DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS;
   }
 

@@ -26,6 +26,13 @@ static const int alignment = 16;
 
 void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border)
 {
+  // check if we can reuse old image buffer
+
+  if (img->width==w && img->height==h && img->chroma_format==c && img->border==border) {
+    return;
+  }
+
+
   int chroma_width = w;
   int chroma_height= h;
 
@@ -43,6 +50,7 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int b
 
   img->width = w;
   img->height= h;
+  img->border=border;
   img->chroma_width = chroma_width;
   img->chroma_height= chroma_height;
 
@@ -92,9 +100,14 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
   img->width = 0;
   img->height= 0;
   img->stride= 0;
+  img->border= 0;
   img->chroma_width = 0;
   img->chroma_height= 0;
   img->chroma_stride= 0;
+
+  img->picture_order_cnt_lsb = -1; // undefined
+  img->PicOutputFlag = 0;
+  img->PicState = UnusedForReference;
 }
 
 

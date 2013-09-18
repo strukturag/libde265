@@ -21,6 +21,8 @@
 #include "decctx.h"
 #include "util.h"
 #include "pps_func.h"
+#include "sao.h"
+#include "sei.h"
 
 #include <string.h>
 #include <assert.h>
@@ -44,14 +46,24 @@ void init_decoder_context(decoder_context* ctx)
 
   ctx->ref_pic_sets = NULL;
 
-  de265_init_image(&ctx->img);
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    de265_init_image(&ctx->dpb[i]);
+  }
+
+  ctx->img = NULL;
+  ctx->image_output_queue_length = 0;
+
+  //de265_init_image(&ctx->img);
   de265_init_image(&ctx->coeff);
   //init_image(&ctx->intra_pred_available);
 
-  for (int i=0;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++) {
-    ctx->image_output_queue[i] = -1;
-    ctx->image_ref_count[i]    =  0;
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    ctx->image_output_queue[i] = NULL;
   }
+
+  // --- decoded picture buffer ---
+
+  ctx->current_image_poc_lsb = -1; // any invalid number
 }
 
 
@@ -123,8 +135,13 @@ void free_decoder_context(decoder_context* ctx)
   rbsp_buffer_free(&ctx->nal_data);
 
   free_ref_pic_sets(&ctx->ref_pic_sets);
-  de265_free_image(&ctx->img);
+
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    de265_free_image(&ctx->dpb[i]);
+  }
+  //de265_free_image(&ctx->img);
   de265_free_image(&ctx->coeff);
+
   free_info_arrays(ctx);
   //free_image(&ctx->intra_pred_available);
 
@@ -180,10 +197,18 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
   return &ctx->sps[id];
 }
 
+
+/* The returned index rotates through [0;DE265_MAX_SLICES) and is not reset at each new picture.
+ */
 int get_next_slice_index(decoder_context* ctx)
 {
   assert(ctx->next_free_slice_index < DE265_MAX_SLICES);
-  return ctx->next_free_slice_index++;
+
+  int sliceID = ctx->next_free_slice_index;
+
+  ctx->next_free_slice_index = ((ctx->next_free_slice_index+1) % DE265_MAX_SLICES);
+
+  return sliceID;
 }
 
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
@@ -202,7 +227,30 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
   
   // --- prepare decoding of new picture ---
 
-  if (hdr->first_slice_segment_in_pic_flag) {
+  if (hdr->slice_pic_order_cnt_lsb != ctx->current_image_poc_lsb) {
+
+    // previous picture has been completely decoded
+
+    if (ctx->img) {
+      ctx->img->PicState = UnusedForReference; // UsedForReference; TODO
+
+      // post-process image
+
+      apply_deblocking_filter(ctx);
+      apply_sample_adaptive_offset(ctx);
+
+      // push image into output queue
+
+      if (ctx->img->PicOutputFlag) {
+        assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
+        ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
+      }
+
+      ctx->img = NULL;
+    }
+
+    ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
+
 
     // allocate info arrays
 
@@ -212,45 +260,49 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     seq_parameter_set* sps = ctx->current_sps;
 
 
-    // --- allocate image buffer for decoding ---
+    // --- find and allocate image buffer for decoding ---
 
-    if (ctx->img.y == NULL) {
-      int w = sps->pic_width_in_luma_samples;
-      int h = sps->pic_height_in_luma_samples;
-
-      enum de265_chroma chroma;
-      switch (sps->chroma_format_idc) {
-      case 0: chroma = de265_chroma_mono; break;
-      case 1: chroma = de265_chroma_420;  break;
-      case 2: chroma = de265_chroma_422;  break;
-      case 3: chroma = de265_chroma_444;  break;
-      default: chroma = de265_chroma_420; assert(0); break; // should never happen
+    int free_image_buffer_idx = -1;
+    for (int i=0;i<DE265_DPB_SIZE;i++) {
+      if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
+        free_image_buffer_idx = i;
+        break;
       }
-
-      de265_alloc_image(&ctx->img,
-                        w,h,
-                        chroma,
-                        0 /* border */); // border large enough for intra prediction
-
-      de265_alloc_image(&ctx->coeff,
-                        w*2,h,  // 2 bytes per pixel
-                        chroma,
-                        0 /* border */); // border large enough for intra prediction
-
-#if 0
-      alloc_image(&ctx->intra_pred_available,
-                  w,h,
-                  chroma_mono,
-                  64 /* border */); // border large enough for intra prediction
-#endif
     }
 
+    if (free_image_buffer_idx == -1) {
+      return DE265_ERROR_IMAGE_BUFFER_FULL;
+    }
+
+    ctx->img = &ctx->dpb[free_image_buffer_idx];
+
+
+    int w = sps->pic_width_in_luma_samples;
+    int h = sps->pic_height_in_luma_samples;
+
+    enum de265_chroma chroma;
+    switch (sps->chroma_format_idc) {
+    case 0: chroma = de265_chroma_mono; break;
+    case 1: chroma = de265_chroma_420;  break;
+    case 2: chroma = de265_chroma_422;  break;
+    case 3: chroma = de265_chroma_444;  break;
+    default: chroma = de265_chroma_420; assert(0); break; // should never happen
+    }
+
+    de265_alloc_image(ctx->img,
+                      w,h,
+                      chroma,
+                      0 /* border */); // border large enough for intra prediction
+
+    de265_alloc_image(&ctx->coeff,
+                      w*2,h,  // 2 bytes per pixel
+                      chroma,
+                      0 /* border */); // border large enough for intra prediction
+
     reset_decoder_context_for_new_picture(ctx);
+
+    ctx->img->PicOutputFlag = hdr->pic_output_flag;
   }
-
-
-  // TODO: only when starting new image...
-  // fill_image(&ctx->intra_pred_available, 0,-1,-1);
 
   return DE265_OK;
 }
@@ -495,9 +547,9 @@ int  get_QPY(const decoder_context* ctx,int x,int y)
 void get_image_plane(const decoder_context* ctx, int cIdx, uint8_t** image, int* stride)
 {
   switch (cIdx) {
-  case 0: *image = ctx->img.y;  *stride = ctx->img.stride; break;
-  case 1: *image = ctx->img.cb; *stride = ctx->img.chroma_stride; break;
-  case 2: *image = ctx->img.cr; *stride = ctx->img.chroma_stride; break;
+  case 0: *image = ctx->img->y;  *stride = ctx->img->stride; break;
+  case 1: *image = ctx->img->cb; *stride = ctx->img->chroma_stride; break;
+  case 2: *image = ctx->img->cr; *stride = ctx->img->chroma_stride; break;
   }
 }
 
@@ -673,7 +725,7 @@ void write_picture(const decoder_context* ctx)
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen("out.yuv","wb"); }
 
-  const de265_image* img = &ctx->img;
+  const de265_image* img = ctx->img;
   for (int y=0;y<img->height;y++)
     fwrite(img->y + y*img->stride, img->width, 1, fh);
 

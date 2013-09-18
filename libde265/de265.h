@@ -41,6 +41,7 @@ typedef enum {
   DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA,
   DE265_ERROR_OUT_OF_MEMORY,
   DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE,
+  DE265_ERROR_IMAGE_BUFFER_FULL,
 } de265_error;
 
 const char* de265_get_error_text(de265_error err);

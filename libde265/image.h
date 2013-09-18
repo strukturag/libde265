@@ -22,7 +22,15 @@
 #define DE265_IMAGE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "libde265/de265.h"
+
+
+enum PictureState {
+  UnusedForReference,
+  UsedForReference,
+  UsedForLongTermReference
+};
 
 
 typedef struct de265_image {
@@ -41,7 +49,18 @@ typedef struct de265_image {
   int stride, chroma_stride;
 
   int border;
+
+
+  // --- decoding info ---
+
+  // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
+
+  int  picture_order_cnt_lsb;
+  bool PicOutputFlag;
+  enum PictureState PicState;
+
 } de265_image;
+
 
 void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
 void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border);

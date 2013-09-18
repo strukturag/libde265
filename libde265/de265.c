@@ -23,11 +23,10 @@
 #include "slice_func.h"
 #include "pps_func.h"
 #include "deblock.h"
-#include "sao.h"
-#include "sei.h"
 #include "util.h"
 #include "scan.h"
 #include "image.h"
+#include "sei.h"
 
 #include <assert.h>
 #include <string.h>
@@ -50,6 +49,7 @@ const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
   case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
   case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
+  case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   default: return "unknown error";
   }
 }
@@ -224,6 +224,7 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
   if (nal_hdr.nal_unit_type<32) {
     logdebug(LogHeaders,"---> read slice segment header\n");
+
     int sliceIndex = get_next_slice_index(ctx);
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     hdr->slice_index = sliceIndex;
@@ -239,27 +240,6 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
     if ((err=read_slice_segment_data(ctx, hdr)) != DE265_OK)
       { return err; }
-
-
-    // TODO: the following are probably at the wrong place (only to be called in last slice)
-    apply_deblocking_filter(ctx);
-    apply_sample_adaptive_offset(ctx);
-
-
-    // mark image as ready ...
-
-    bool queueWasFull = true;
-    for (int i=0;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++)
-      {
-        if (ctx->image_output_queue[i] == -1) {
-          queueWasFull=false;
-          ctx->image_output_queue[i] = 0; // TODO (replace =0) ...
-          ctx->image_ref_count[0] = 1; // TODO (0)
-          break;
-        }
-      }
-
-    assert(!queueWasFull);
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
@@ -335,18 +315,13 @@ const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ct
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  for (int i=0;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++) {
-    logdebug(LogHighlevel,"q%d : %d\n", i, ctx->image_output_queue[i]);
-  }
-
   // check for empty queue -> return NULL
 
-  if (ctx->image_output_queue[0] == -1) {
+  if (ctx->image_output_queue_length==0) {
     return NULL;
   }
 
-  struct de265_image* img = &ctx->img; // TODO
-  return img;
+  return ctx->image_output_queue[0];
 }
 
 
@@ -356,25 +331,21 @@ void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   // no active output picture -> ignore release request
 
-  if (ctx->image_output_queue[0]<0) { return; }
+  if (ctx->image_output_queue_length==0) { return; }
 
 
-  // release reference
-
-  ctx->image_ref_count[ ctx->image_output_queue[0] ]--;
+  ctx->image_output_queue[0]->PicOutputFlag = false;
 
   // pop output queue
 
-  for (int i=1;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++)
+  ctx->image_output_queue_length--;
+
+  for (int i=1;i<ctx->image_output_queue_length;i++)
     {
       ctx->image_output_queue[i-1] = ctx->image_output_queue[i];
     }
 
-  ctx->image_output_queue[DE265_IMAGE_OUTPUT_QUEUE_LEN-1] = -1;
-
-  for (int i=0;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++) {
-    logdebug(LogHighlevel,"q'%d : %d\n", i, ctx->image_output_queue[i]);
-  }
+  ctx->image_output_queue[ ctx->image_output_queue_length ] = NULL;
 }
 
 

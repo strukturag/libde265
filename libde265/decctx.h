@@ -36,6 +36,8 @@
 #define DE265_MAX_SLICES   64
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
+#define DE265_DPB_SIZE  20  // TODO: check required value
+
 
 // split_cu_flag             CB (MinCbSizeY)
 // skip_flag                 CB
@@ -132,13 +134,20 @@ typedef struct {
   seq_parameter_set* current_sps;
   pic_parameter_set* current_pps;
 
-  // --- currently decoded picture ---
+  // --- decoded picture buffer ---
 
-  de265_image image_buffers[DE265_IMAGE_OUTPUT_QUEUE_LEN];
-  int8_t image_output_queue[DE265_IMAGE_OUTPUT_QUEUE_LEN]; // -1: unused
-  int8_t image_ref_count   [DE265_IMAGE_OUTPUT_QUEUE_LEN]; // 0: unused
+  de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
-  de265_image img; // TODO: make pointer inter image_buffers
+  //de265_image image_buffers[DE265_IMAGE_OUTPUT_QUEUE_LEN];
+  de265_image* image_output_queue[DE265_DPB_SIZE];
+  int          image_output_queue_length;
+  //int8_t image_ref_count   [DE265_IMAGE_OUTPUT_QUEUE_LEN]; // 0: unused
+
+  int current_image_poc_lsb;
+  de265_image* img;
+
+  // --- decoded image data ---
+
   de265_image coeff; // transform coefficients
 
   CTB_info* ctb_info; // in raster scan
@@ -181,6 +190,8 @@ void process_pps(decoder_context*, pic_parameter_set*);
 de265_error process_slice_segment_header(decoder_context*, slice_segment_header*);
 
 int get_next_slice_index(decoder_context* ctx);
+
+// TODO void free_currently_unused_memory(decoder_context* ctx); // system is low on memory, free some (e.g. unused images in the DPB)
 
 
 // --- decoder 2D data arrays ---

@@ -165,7 +165,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
 
-  const int stride = ctx->img.stride;
+  const int stride = ctx->img->stride;
 
 
   for (int y=0;y<ctx->deblk_height;y+=yIncr)
@@ -180,7 +180,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
 
         // 8.7.2.4.3
 
-        uint8_t* ptr = ctx->img.y + stride*yDi + xDi;
+        uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
 
         uint8_t q[4][4], p[4][4];
         for (int i=0;i<4;i++)
@@ -381,7 +381,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
   int xIncr = vertical ? 4 : 2;
   int yIncr = vertical ? 2 : 4;
 
-  const int stride = ctx->img.chroma_stride;
+  const int stride = ctx->img->chroma_stride;
 
 
   for (int y=0;y<ctx->deblk_height;y+=yIncr)
@@ -399,8 +399,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
                               ctx->current_pps->pic_cr_qp_offset);
 
           uint8_t* ptr = (cplane==0 ?
-                          ctx->img.cb + stride*yDi + xDi :
-                          ctx->img.cr + stride*yDi + xDi);
+                          ctx->img->cb + stride*yDi + xDi :
+                          ctx->img->cr + stride*yDi + xDi);
 
           uint8_t p[2][4];
           uint8_t q[2][4];
