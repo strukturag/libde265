@@ -28,7 +28,7 @@
 
 enum PictureState {
   UnusedForReference,
-  UsedForReference,
+  UsedForShortTermReference,
   UsedForLongTermReference
 };
 

@@ -260,6 +260,13 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 }
 
 
+/* 8.3.2
+ */
+void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
+{
+}
+
+
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
@@ -281,7 +288,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     // previous picture has been completely decoded
 
     if (ctx->img) {
-      ctx->img->PicState = UnusedForReference; // UsedForReference; TODO
+      ctx->img->PicState = UnusedForReference; // UsedForShortTermReference; TODO
 
       // post-process image
 
@@ -394,6 +401,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       }
 
     process_picture_order_count(ctx,hdr);
+    process_reference_picture_set(ctx,hdr);
   }
 
   return DE265_OK;
