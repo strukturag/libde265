@@ -116,6 +116,7 @@ typedef struct {
   // --- parameters ---
 
   bool param_sei_check_hash;
+  int  param_HighestTid;
 
 
   // --- internal data ---
@@ -134,6 +135,12 @@ typedef struct {
   seq_parameter_set* current_sps;
   pic_parameter_set* current_pps;
 
+
+  // --- sequence level ---
+
+  int HighestTid;
+
+
   // --- decoded picture buffer ---
 
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
@@ -143,8 +150,11 @@ typedef struct {
 
   int current_image_poc_lsb;
   bool first_decoded_picture;
-  uint8_t last_RAP_picture_NAL_type;
-  uint8_t last_RAP_was_CRA_and_first_image_of_sequence;
+  bool NoRaslOutputFlag;
+  bool HandleCraAsBlaFlag;
+
+  //uint8_t last_RAP_picture_NAL_type;
+  //uint8_t last_RAP_was_CRA_and_first_image_of_sequence;
 
   de265_image* img;
 

@@ -57,3 +57,10 @@ bool isRASL(uint8_t unit_type)
   return (unit_type == NAL_UNIT_RASL_N ||
           unit_type == NAL_UNIT_RASL_R);
 }
+
+bool isIRAP(uint8_t unit_type)
+{
+  return (unit_type >= NAL_UNIT_BLA_W_LP &&
+          unit_type <= NAL_UNIT_RSV_IRAP_VCL23);
+}
+

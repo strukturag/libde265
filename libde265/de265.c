@@ -22,7 +22,6 @@
 #include "decctx.h"
 #include "slice_func.h"
 #include "pps_func.h"
-#include "deblock.h"
 #include "util.h"
 #include "scan.h"
 #include "image.h"

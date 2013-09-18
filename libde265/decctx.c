@@ -23,6 +23,7 @@
 #include "pps_func.h"
 #include "sao.h"
 #include "sei.h"
+#include "deblock.h"
 
 #include <string.h>
 #include <assert.h>
@@ -36,6 +37,7 @@ void init_decoder_context(decoder_context* ctx)
   // --- parameters ---
 
   ctx->param_sei_check_hash = true;
+  ctx->param_HighestTid = 999; // unlimited
 
   // --- internal data ---
 
@@ -53,7 +55,7 @@ void init_decoder_context(decoder_context* ctx)
   ctx->img = NULL;
   ctx->image_output_queue_length = 0;
   ctx->first_decoded_picture = true;
-  ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
+  //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->img);
   de265_init_image(&ctx->coeff);
@@ -179,6 +181,9 @@ void process_vps(decoder_context* ctx, video_parameter_set* vps)
 void process_sps(decoder_context* ctx, seq_parameter_set* sps)
 {
   memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
+
+
+  ctx->HighestTid = min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
 
@@ -263,13 +268,14 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
       ctx->img = NULL;
 
+      /*
       if (isRAP(ctx->nal_unit_type)) {
         ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
 
         ctx->last_RAP_was_CRA_and_first_image_of_sequence =
           isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
       }
-
+      */
 
       // next image is not the first anymore
 
@@ -328,9 +334,28 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     reset_decoder_context_for_new_picture(ctx);
 
+
+    if (isIRAP(ctx->nal_unit_type)) {
+      if (isIDR(ctx->nal_unit_type) ||
+          isBLA(ctx->nal_unit_type) ||
+          ctx->first_decoded_picture ||
+          0 /* first after EndOfSequence NAL */)
+        {
+          ctx->NoRaslOutputFlag = true;
+        }
+      else if (0) // TODO: set HandleCraAsBlaFlag by external means
+        {
+        }
+      else
+        {
+          ctx->NoRaslOutputFlag   = false;
+          ctx->HandleCraAsBlaFlag = false;
+        }
+    }
+
+
     if (isRASL(ctx->nal_unit_type) &&
-        (isBLA(ctx->last_RAP_picture_NAL_type) ||
-         ctx->last_RAP_was_CRA_and_first_image_of_sequence))
+        ctx->NoRaslOutputFlag)
       {
         ctx->img->PicOutputFlag = false;
       }
