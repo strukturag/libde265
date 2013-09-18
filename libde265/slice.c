@@ -98,6 +98,9 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
     if (pps->output_flag_present_flag) {
       shdr->pic_output_flag = get_bits(br,1);
     }
+    else {
+      shdr->pic_output_flag = 1;
+    }
 
     if (sps->separate_colour_plane_flag == 1) {
       shdr->colour_plane_id = get_bits(br,1);
@@ -145,6 +148,9 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
       if (sps->sps_temporal_mvp_enabled_flag) {
         shdr->slice_temporal_mvp_enabled_flag = get_bits(br,1);
+      }
+      else {
+        shdr->slice_temporal_mvp_enabled_flag = 0;
       }
     }
 
