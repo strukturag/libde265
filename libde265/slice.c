@@ -29,8 +29,9 @@
 #include <assert.h>
 #include <string.h>
 #include <malloc.h>  // deprecated, do we really need this for VisualStudio ?
+#ifndef _MSC_VER
 #include <alloca.h>
-
+#endif
 
 void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr);
 

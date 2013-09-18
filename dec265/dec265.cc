@@ -19,13 +19,20 @@
  */
 
 #include "de265.h"
+#ifndef _MSC_VER
 #include "config.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef _MSC_VER
 extern "C" {
 #include "libde265/decctx.h"
 }
+#else
+// VS2008 didn't support C99, so I compile all of .c as .cpp
+#include "libde265/decctx.h"
+#endif
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>

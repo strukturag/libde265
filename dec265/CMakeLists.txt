@@ -1,3 +1,5 @@
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "Configurations" FORCE)
+
 if(NOT CMAKE_BUILD_TYPE)
     # default to Release build for GCC builds
     set(CMAKE_BUILD_TYPE Release CACHE STRING
@@ -20,8 +22,8 @@ if(MSVC)
     add_definitions(/W4 /D_CRT_SECURE_NO_WARNINGS)
     add_definitions(/Ob2) # always inline
     add_definitions(/Oi)  # enable intrinsics
-    add_definitions(/MP)  # multithreaded build
-    add_definitions(/TP)  # all files as cpp
+#    add_definitions(/MP)  # multithreaded build
+#    add_definitions(/TP)  # all files as cpp
 
     include_directories(../extra)
 endif(MSVC)
@@ -41,11 +43,26 @@ else(USE_ASM)
     add_definitions(-DUSE_ASM=ASM_NONE)
 endif(USE_ASM)
 
+option(USE_VIDEOGFX "Use of VIDEOGFX" OFF)
+if(USE_VIDEOGFX)
+    add_definitions(-D HAVE_VIDEOGFX=1)
+else(USE_VIDEOGFX)
+    add_definitions(-D HAVE_VIDEOGFX=0)
+endif(USE_VIDEOGFX)
+
 if(UNIX)
     SET(PLATFORM_LIBS pthread rt m)
 endif(UNIX)
 
 include_directories(../ ../libde265)
+
+file(GLOB LIBSRC ../libde265/*.c)
+file(GLOB LIBINC ../libde265/*.h)
+file(GLOB APPSRC dec265.cc)
+
+source_group(INC  FILES ${LIBINC})
+source_group(SRC  FILES ${LIBSRC})
+source_group(APP  FILES ${APPSRC})
 
 # Main CLI application
 if(MSVC)
@@ -56,20 +73,15 @@ if(MSVC)
     add_definitions(/wd4127) # conditional expression is constant
 #    add_definitions(/wd4018) # signed/unsigned mismatch
     add_definitions(/wd4189) # local variable is initialized but not referenced
+    add_definitions(/wd4715) # not all control paths return a value
+
+    set_source_files_properties(${LIBSRC} PROPERTIES LANGUAGE CXX)
 endif(MSVC)
 if(GCC)
     add_definitions(-Wno-sign-compare)
     add_definitions(-Wno-unused-parameter)
 endif(GCC)
 
-
-file(GLOB LIBSRC ../libde265/*.c)
-file(GLOB LIBINC ../libde265/*.h)
-file(GLOB APPSRC dec265.cc)
-
-source_group(INC  FILES ${LIBINC})
-source_group(SRC  FILES ${LIBSRC})
-source_group(APP  FILES ${APPSRC})
 
 add_executable(dec265
     dec265.cc ${EXTRAS} ${LIBSRC} ${LIBINC}
