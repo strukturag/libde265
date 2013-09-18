@@ -30,7 +30,7 @@ extern "C" {
 #include "libde265/decctx.h"
 }
 #else
-// VS2008 didn't support C99, so I compile all of .c as .cpp
+// VS2008 didn't support C99, compile all everything as C++
 #include "libde265/decctx.h"
 #endif
 

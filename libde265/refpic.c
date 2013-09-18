@@ -23,10 +23,12 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <malloc.h>  // deprecated, do we really need this for VisualStudio ?
-#ifndef _MSC_VER
-#include <alloca.h>
+#ifdef _MSC_VER
+# include <malloc.h>
+#else
+# include <alloca.h>
 #endif
+
 
 static void compute_NumPoc(ref_pic_set* rpset)
 {
