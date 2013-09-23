@@ -32,15 +32,15 @@
 
 static void compute_NumPoc(ref_pic_set* rpset)
 {
-  rpset->NumPoc_withoutLongterm = 0;
+  rpset->NumPocTotalCurr = 0;
   
   for (int i=0; i<rpset->NumNegativePics; i++)
     if (rpset->UsedByCurrPicS0[i])
-      rpset->NumPoc_withoutLongterm++;
+      rpset->NumPocTotalCurr++;
 
   for (int i=0; i<rpset->NumPositivePics; i++)
     if (rpset->UsedByCurrPicS1[i])
-      rpset->NumPoc_withoutLongterm++;
+      rpset->NumPocTotalCurr++;
 
   /*
   for (int i = 0; i < num_long_term_sps + num_long_term_pics; i++ )

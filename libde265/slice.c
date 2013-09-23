@@ -178,7 +178,7 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
         shdr->num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPoc_withoutLongterm;
+      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
@@ -186,6 +186,10 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
         /*
           ref_pic_lists_modification()
         */
+      }
+      else {
+        shdr->ref_pic_list_modification_flag_l0 = 0;
+        shdr->ref_pic_list_modification_flag_l1 = 0;
       }
 
       if (shdr->slice_type == SLICE_TYPE_B) {
@@ -416,7 +420,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         }
       }
 
-      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPoc_withoutLongterm;
+      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)

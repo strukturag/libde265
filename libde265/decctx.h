@@ -181,6 +181,8 @@ typedef struct {
   int RefPicSetStCurrBefore[DE265_DPB_SIZE];
   int RefPicSetStCurrAfter[DE265_DPB_SIZE];
   int RefPicSetStFoll[DE265_DPB_SIZE];
+  int RefPicSetLtCurr[DE265_DPB_SIZE];
+  int RefPicSetLtFoll[DE265_DPB_SIZE];
 
 
   // --- decoded image data ---

@@ -27,6 +27,7 @@
 #define Sign(value) (((value)>0) ? 1 : ((value)<0) ? -1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))
 #define min(a,b) (((a)<(b)) ? (a) : (b))
+#define max(a,b) (((a)>(b)) ? (a) : (b))
 
 int ceil_div(int num,int denom);
 int ceil_log2(int val);

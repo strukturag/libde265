@@ -96,6 +96,12 @@ typedef struct {
   int  num_ref_idx_l1_active;
 
   //ref_pic_lists_modification()
+
+  char ref_pic_list_modification_flag_l0;
+  char ref_pic_list_modification_flag_l1;
+  int list_entry_l0[1]; // TODO
+  int list_entry_l1[1]; // TODO
+
   char mvd_l1_zero_flag;
   char cabac_init_flag;
   char collocated_from_l0_flag;
@@ -139,6 +145,9 @@ typedef struct {
 
   int CurrRpsIdx;
   int MaxNumMergeCand;
+
+  int RefPicList0[14+1];
+  int RefPicList1[14+1];
 
 
   // --- decoder runtime data ---

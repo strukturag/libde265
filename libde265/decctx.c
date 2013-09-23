@@ -391,6 +391,65 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 }
 
 
+// 8.3.3
+void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment_header* hdr)
+{
+  // TODO
+}
+
+
+// 8.3.4
+void construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
+{
+  int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
+  int NumRpsCurrTempList0 = max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
+
+  int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
+  int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
+
+  int rIdx=0;
+  while (rIdx < NumRpsCurrTempList0) {
+    for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrBefore[i];
+
+    for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
+
+    for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
+  }
+
+  assert(hdr->num_ref_idx_l0_active <= 15);
+  for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
+    hdr->RefPicList0[rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
+      RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
+  }
+
+
+  if (hdr->slice_type == SLICE_TYPE_B) {
+    int NumRpsCurrTempList1 = max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
+
+    int rIdx=0;
+    while (rIdx < NumRpsCurrTempList1) {
+      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
+
+      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+
+      for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
+    }
+
+    assert(hdr->num_ref_idx_l1_active <= 15);
+    for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
+      hdr->RefPicList1[rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
+        RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
+    }
+  }
+}
+
+
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
@@ -526,6 +585,13 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     process_picture_order_count(ctx,hdr);
     process_reference_picture_set(ctx,hdr);
+    generate_unavailable_reference_pictures(ctx,hdr);
+
+    if (hdr->slice_type == SLICE_TYPE_B ||
+        hdr->slice_type == SLICE_TYPE_P)
+      {
+        construct_reference_picture_lists(ctx,hdr);
+      }
   }
 
   return DE265_OK;
