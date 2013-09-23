@@ -260,10 +260,134 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 }
 
 
+static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
+{
+  for (int k=0;k<DE265_DPB_SIZE;k++) {
+    if (ctx->dpb[k].PicOrderCntVal == poc &&
+        ctx->dpb[k].PicState == UsedForShortTermReference) {
+      return k;
+    }
+  }
+
+  return -1;
+}
+
+
 /* 8.3.2
  */
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
+  if (isRASL(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
+    // reset DPB
+
+    for (int i=0;i<DE265_DPB_SIZE;i++) {
+      ctx->dpb[i].PicState = UnusedForReference;
+    }
+  }
+
+
+  if (isIDR(ctx->nal_unit_type)) {
+    ctx->NumPocStCurrBefore = 0;
+    ctx->NumPocStCurrAfter = 0;
+    ctx->NumPocStFoll = 0;
+    ctx->NumPocLtCurr = 0;
+    ctx->NumPocLtFoll = 0;
+  }
+  else {
+    const ref_pic_set* rps = &ctx->ref_pic_sets[hdr->CurrRpsIdx];
+
+    // (8-98)
+
+    int i,j,k;
+
+    for (i=0, j=0, k=0;
+         i<rps->NumNegativePics;
+         i++)
+      {
+        if (rps->UsedByCurrPicS0[i]) {
+          ctx->PocStCurrBefore[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+        }
+        else {
+          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+        }
+      }
+
+    ctx->NumPocStCurrBefore = j;
+
+    for (i=0, j=0;
+         i<rps->NumPositivePics;
+         i++)
+      {
+        if (rps->UsedByCurrPicS1[i]) {
+          ctx->PocStCurrAfter[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+        }
+        else {
+          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+        }
+      }
+
+    ctx->NumPocStCurrAfter = j;
+    ctx->NumPocStFoll = k;
+
+    for (i=0, j=0, k=0;
+         i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
+         i++)
+      {
+        //int pocLt = 
+        assert(false);
+      }
+
+    ctx->NumPocLtCurr = j;
+    ctx->NumPocLtFoll = k;
+  }
+
+
+  // (8-99)
+  // 1.
+
+  for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    assert(false); // TODO
+  }
+
+  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    assert(false); // TODO
+  }
+
+
+  bool picInAnyList[DE265_DPB_SIZE];
+  memset(picInAnyList,0, DE265_DPB_SIZE*sizeof(bool));
+
+  // TODO: 2.
+
+  // 3.
+
+  for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
+
+    ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+
+    ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  for (int i=0;i<ctx->NumPocStFoll;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
+
+    ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  // 4.
+
+  for (int i=0;i<DE265_DPB_SIZE;i++)
+    if (!picInAnyList[i]) {
+      ctx->dpb[i].PicState = UnusedForReference;
+    }
 }
 
 

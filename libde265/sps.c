@@ -188,6 +188,9 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
       sps->used_by_curr_pic_lt_sps_flag[i] = get_bits(br,1);
     }
   }
+  else {
+    sps->num_long_term_ref_pics_sps = 0; // NOTE: missing definition in standard !
+  }
 
   sps->sps_temporal_mvp_enabled_flag = get_bits(br,1);
   sps->strong_intra_smoothing_enable_flag = get_bits(br,1);

@@ -162,6 +162,27 @@ typedef struct {
 
   de265_image* img;
 
+
+  // --- motion compensation ---
+
+  int NumPocStCurrBefore;
+  int NumPocStCurrAfter;
+  int NumPocStFoll;
+  int NumPocLtCurr;
+  int NumPocLtFoll;
+
+  // TODO: what are the actual maximum array sizes? This is just a first upper bound.
+  int PocStCurrBefore[DE265_DPB_SIZE];
+  int PocStCurrAfter[DE265_DPB_SIZE];
+  int PocStFoll[DE265_DPB_SIZE];
+  int PocLtCutt[DE265_DPB_SIZE];
+  int PocLtFoll[DE265_DPB_SIZE];
+
+  int RefPicSetStCurrBefore[DE265_DPB_SIZE];
+  int RefPicSetStCurrAfter[DE265_DPB_SIZE];
+  int RefPicSetStFoll[DE265_DPB_SIZE];
+
+
   // --- decoded image data ---
 
   de265_image coeff; // transform coefficients
