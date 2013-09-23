@@ -265,7 +265,7 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n>=-range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { logtrace(LogHeaders,"*%d ",n); }
+    } else { loginfo(LogHeaders,"*%d ",n); }
   }
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
@@ -273,8 +273,8 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { logtrace(LogHeaders,"*%d ",n); }
+    } else { loginfo(LogHeaders,"*%d ",n); }
   }
 
-  logtrace(LogHeaders,"*%s\n",log);
+  loginfo(LogHeaders,"*%s\n",log);
 }
