@@ -412,7 +412,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     // previous picture has been completely decoded
 
     if (ctx->img) {
-      ctx->img->PicState = UnusedForReference; // UsedForShortTermReference; TODO
+      ctx->img->PicState = UsedForShortTermReference;
 
       // post-process image
 
