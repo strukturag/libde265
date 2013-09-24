@@ -28,7 +28,7 @@
 static void read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
                                           const decoder_context* ctx)
 {
-  sei_decoded_picture_hash* seihash = &sei->decoded_picture_hash;
+  sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   seihash->hash_type = get_bits(reader,8);
 
@@ -54,7 +54,7 @@ static void read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
 static void dump_sei_decoded_picture_hash(const sei_message* sei,
                                           const decoder_context* ctx)
 {
-  const sei_decoded_picture_hash* seihash = &sei->decoded_picture_hash;
+  const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   logdebug(LogSEI,"  hash_type: ");
   switch (seihash->hash_type) {
@@ -146,7 +146,7 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
 
 static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
 {
-  const sei_decoded_picture_hash* seihash = &sei->decoded_picture_hash;
+  const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
