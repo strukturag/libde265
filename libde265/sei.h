@@ -51,7 +51,7 @@ typedef struct {
 
   union {
     sei_decoded_picture_hash decoded_picture_hash;
-  };
+  } data;
 } sei_message;
 
 
