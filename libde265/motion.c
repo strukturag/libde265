@@ -60,6 +60,7 @@ void reset_pred_vector(PredVectorInfo* pvec)
 }
 
 
+// 8.5.3.2
 void generate_inter_prediction_samples(decoder_context* ctx,
                                        int xC,int yC,
                                        int xB,int yB,
@@ -125,9 +126,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 // 8.5.3.1.4
 void derive_zero_motion_vector_candidates(decoder_context* ctx,
                                           slice_segment_header* shdr,
-                                          int* inout_mergeCandList,
-                                          int* inout_numMergeCand,
-                                          MergingCandidates* inout_mergeCand)
+                                          PredVectorInfo* inout_mergeCandList,
+                                          int* inout_numMergeCand)
 {
   int numRefIdx;
 
@@ -146,7 +146,7 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
   while (*inout_numMergeCand < shdr->MaxNumMergeCand) {
     // 1.
 
-    PredVectorInfo* newCand = &inout_mergeCand->pred_vector[*inout_numMergeCand];
+    PredVectorInfo* newCand = &inout_mergeCandList[*inout_numMergeCand];
 
     if (shdr->slice_type==SLICE_TYPE_P) {
       newCand->refIdx[0] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
@@ -312,18 +312,17 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 4.
 
-  int mergeCandList[7];
+  PredVectorInfo mergeCandList[5];
   int numMergeCand=0;
 
   for (int i=0;i<5;i++) {
     if (mergeCand.available[i]) {
-      mergeCandList[numMergeCand++] = i;
+      mergeCandList[numMergeCand++] = mergeCand.pred_vector[i];
     }
   }
 
   if (availableFlagCol) {
-    mergeCandList[numMergeCand++] = PRED_COL;
-
+    // TODO: save in mergeCand directly...
     mergeCand.available[PRED_COL] = availableFlagCol;
     mergeCand.pred_vector[PRED_COL].mv[0] = mvCol[0];
     mergeCand.pred_vector[PRED_COL].mv[1] = mvCol[1];
@@ -331,6 +330,8 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
     mergeCand.pred_vector[PRED_COL].predFlag[1] = predFlagLCol[1];
     mergeCand.pred_vector[PRED_COL].refIdx[0] = refIdxCol[0];
     mergeCand.pred_vector[PRED_COL].refIdx[1] = refIdxCol[1];
+
+    mergeCandList[numMergeCand++] = mergeCand.pred_vector[PRED_COL];
   }
 
   // 5.
@@ -350,12 +351,12 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   // 7.
 
   derive_zero_motion_vector_candidates(ctx, shdr,
-                                       mergeCandList, &numMergeCand, &mergeCand);
+                                       mergeCandList, &numMergeCand);
 
   // 8.
 
   int merge_idx = get_merge_idx(ctx,xP,yP);
-  out_vi->lum = mergeCand.pred_vector[mergeCandList[merge_idx]];
+  out_vi->lum = mergeCandList[merge_idx];
 
   // 9.
 
