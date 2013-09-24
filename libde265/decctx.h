@@ -256,6 +256,8 @@ enum PartMode get_PartMode(const decoder_context*, int x,int y);
 
 void          set_pred_mode(      decoder_context*, int x,int y, int log2BlkWidth, enum PredMode mode);
 enum PredMode get_pred_mode(const decoder_context*, int x,int y);
+enum PredMode get_img_pred_mode(const decoder_context* ctx,
+                                const de265_image* img, int x,int y);
 
 void set_IntraPredMode(decoder_context*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
 enum IntraPredMode get_IntraPredMode(const decoder_context*, int x,int y);

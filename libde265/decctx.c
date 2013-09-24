@@ -546,10 +546,14 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
                       chroma,
                       0 /* border */); // border large enough for intra prediction
 
+    ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
+    ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
+
+
     de265_alloc_image(&ctx->coeff,
                       w*2,h,  // 2 bytes per pixel
                       chroma,
-                      0 /* border */); // border large enough for intra prediction
+                      0 /* border */);
 
     reset_decoder_context_for_new_picture(ctx);
 
@@ -614,6 +618,7 @@ void debug_dump_cb_info(const decoder_context* ctx)
 #define PIXEL2CB(x) (x >> ctx->current_sps->Log2MinCbSizeY)
 #define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*ctx->current_sps->PicWidthInMinCbsY)
 #define GET_CB_BLK(x,y) ctx->cb_info[CB_IDX(x,y)]
+
 //#define GET_CB_BLK(x,y) (assert(CB_IDX(x,y) < ctx->cb_info_size) , ctx->cb_info[CB_IDX(x,y)])
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
@@ -624,6 +629,17 @@ void debug_dump_cb_info(const decoder_context* ctx)
       {                                                                 \
         { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
         ctx->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
+      }
+
+#define SET_IMG_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
+  int cbX = PIXEL2CB(x);                                                \
+  int cbY = PIXEL2CB(y);                                                \
+  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinCbSizeY);   \
+  for (int cby=cbY;cby<cbY+width;cby++)                                 \
+    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+      {                                                                 \
+        { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
+        ctx->img->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
       }
 
 #define SET_CB_BLK_SAVE(x,y,log2BlkWidth,  Field,value)                 \
@@ -685,12 +701,19 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
 
 void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum PredMode mode)
 {
-  SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+  { SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
+  { SET_IMG_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
 }
 
 enum PredMode get_pred_mode(const decoder_context* ctx, int x,int y)
 {
   return (enum PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
+}
+
+enum PredMode get_img_pred_mode(const decoder_context* ctx,
+                                const de265_image* img, int x,int y)
+{
+  return (enum PredMode)img->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
 void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode)

@@ -33,6 +33,13 @@ enum PictureState {
 };
 
 
+typedef struct {
+  uint8_t PredMode; // (enum PredMode)
+  // predFlagLXCol[x][y]
+  // mvLXCol[x][y]
+  // refIdxLXCol[x][y]
+} CB_ref_info;
+
 typedef struct de265_image {
   uint8_t* y;   // pointer to pixel at (0,0), which is inside the optional image borders
   uint8_t* cb;
@@ -59,6 +66,9 @@ typedef struct de265_image {
   int  PicOrderCntVal;
   bool PicOutputFlag;
   enum PictureState PicState;
+
+  CB_ref_info* cb_info;
+  int cb_info_size;
 
 } de265_image;
 

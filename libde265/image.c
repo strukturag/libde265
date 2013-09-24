@@ -86,6 +86,10 @@ void de265_free_image(de265_image* img)
   img->y_mem  = NULL;
   img->cb_mem = NULL;
   img->cr_mem = NULL;
+
+
+  if (img->cb_info) free(img->cb_info);
+  img->cb_info = NULL;
 }
 
 
@@ -109,6 +113,9 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
   img->PicOrderCntVal = -1; // undefined
   img->PicOutputFlag = 0;
   img->PicState = UnusedForReference;
+
+  img->cb_info = NULL;
+  img->cb_info_size = 0;
 }
 
 
