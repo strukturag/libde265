@@ -353,7 +353,9 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     //for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
     //slice_reserved_flag[i]
 
-    LOG("slice_type                           : %d\n", shdr->slice_type);
+    LOG("slice_type                           : %c\n",
+        shdr->slice_type == 0 ? 'B' :
+        shdr->slice_type == 1 ? 'P' : 'I');
 
     if (pps->output_flag_present_flag) {
       LOG("pic_output_flag                      : %d\n", shdr->pic_output_flag);
