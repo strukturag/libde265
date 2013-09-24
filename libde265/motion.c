@@ -175,19 +175,111 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
 }
 
 
+// (L1003) 8.5.3.2.8
+
+void derive_collocated_motion_vectors(decoder_context* ctx,
+                                      slice_segment_header* shdr,
+                                      int xP,int yP,
+                                      int colPic,
+                                      int xColPb,int yColPb,
+                                      int* refIdxL,
+                                      MotionVector* out_mvLXCol,
+                                      uint8_t* out_availableFlagLXCol)
+{
+  // TODO: has to get pred_mode from reference picture
+  enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xP,yP);
+
+  if (predMode == MODE_INTRA) {
+    out_mvLXCol[0].x = 0;
+    out_mvLXCol[0].y = 0;
+    out_mvLXCol[1].x = 0;
+    out_mvLXCol[1].y = 0;
+    *out_availableFlagLXCol = 0;
+    return;
+  }
+  else {
+    assert(0); // TODO
+
+    // P.136
+  }
+}
+
+
 // 8.5.3.1.7
 void derive_temporal_luma_vector_prediction(decoder_context* ctx,
+                                            slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
-                                            int* refIdxCol,
-                                            MotionVector* out_mvCol,
-                                            uint8_t*      out_availableFlagCol)
+                                            int* refIdxL,
+                                            MotionVector* out_mvLXCol,
+                                            uint8_t*      out_availableFlagLXCol)
 {
+
+  if (shdr->slice_temporal_mvp_enabled_flag == 0) {
+    out_mvLXCol[0].x = 0;
+    out_mvLXCol[0].y = 0;
+    out_mvLXCol[1].x = 0;
+    out_mvLXCol[1].y = 0;
+    *out_availableFlagLXCol = 0;
+    return;
+  }
+
+  int Log2CtbSizeY = ctx->current_sps->Log2CtbSizeY;
+
+  int colPic;
+
+  if (shdr->slice_type == SLICE_TYPE_B &&
+      shdr->collocated_from_l0_flag == 0)
+    {
+      colPic = shdr->RefPicList1[ shdr->collocated_ref_idx ];
+    }
+  else
+    {
+      colPic = shdr->RefPicList0[ shdr->collocated_ref_idx ];
+    }
+
+
+  int xColPb,yColPb;
+  int yColBr = yP + nPbH; // bottom right collocated motion vector position
+  int xColBr = xP + nPbW;
+
+  if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
+      xColBr < ctx->current_sps->pic_width_in_luma_samples &&
+      yColBr < ctx->current_sps->pic_height_in_luma_samples)
+    {
+      xColPb = xColBr & ~0x0F;
+      yColPb = yColBr & ~0x0F;
+
+      derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL,
+                                       out_mvLXCol, out_availableFlagLXCol);
+    }
+  else
+    {
+      out_mvLXCol[0].x = 0;
+      out_mvLXCol[0].y = 0;
+      out_mvLXCol[1].x = 0;
+      out_mvLXCol[1].y = 0;
+      *out_availableFlagLXCol = 0;
+    }
+
+
+  if (*out_availableFlagLXCol==0) {
+
+    int xColCtr = xP+(nPbW>>1);
+    int yColCtr = yP+(nPbH>>1);
+
+    xColPb = xColCtr & ~0x0F;
+    yColPb = yColCtr & ~0x0F;
+
+    derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL,
+                                     out_mvLXCol, out_availableFlagLXCol);
+  }
 }
 
 
 // 8.5.3.1.1
 void derive_luma_motion_merge_mode(decoder_context* ctx,
+                                   slice_segment_header* shdr,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
                                    VectorInfo* out_vi)
@@ -209,11 +301,14 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int refIdxCol[2] = { 0,0 };
 
   MotionVector mvCol[2];
-  uint8_t availableFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,xP,yP,nPbW,nPbH, refIdxCol, mvCol, availableFlagLCol);
+  uint8_t availableFlagLCol;
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol, mvCol,
+                                         &availableFlagLCol);
 
-  int availableFlagCol = availableFlagLCol[0] || availableFlagLCol[1];
-  uint8_t* predFlagLCol = availableFlagLCol;
+  int availableFlagCol = availableFlagLCol;
+  uint8_t predFlagLCol[2];
+  predFlagLCol[0] = availableFlagLCol;
+  predFlagLCol[1] = 0;
 
   // 4.
 
@@ -246,7 +341,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   int numCombMergeCand = 0; // TODO
 
-  slice_segment_header* shdr = get_SliceHeader(ctx,xC,yC);
+  //slice_segment_header* shdr = get_SliceHeader(ctx,xC,yC);
   if (shdr->slice_type == SLICE_TYPE_B) {
     assert(false); // TODO
   }
@@ -273,6 +368,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
 // 8.5.3.1
 void motion_vectors_indices(decoder_context* ctx,
+                            slice_segment_header* shdr,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
                             VectorInfo* out_vi)
 {
@@ -280,7 +376,7 @@ void motion_vectors_indices(decoder_context* ctx,
   int yP = yC+yB;
 
   if (get_pred_mode(ctx, xC,yC) == MODE_SKIP) {
-    derive_luma_motion_merge_mode(ctx, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+    derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
   }
 }
 
@@ -295,7 +391,7 @@ void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
   // 1.
 
   VectorInfo vi;
-  motion_vectors_indices(ctx, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
+  motion_vectors_indices(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 
   // 2.
 
