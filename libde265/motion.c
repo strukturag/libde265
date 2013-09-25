@@ -758,7 +758,42 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
     decode_prediction_unit(ctx,shdr,xC,yC, 0,0, nCS_L, nCS_L,nCS_L, 0);
     break;
 
-  // ...
+  case PART_2NxN:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,     nCS_L, nCS_L,nCS1L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L, nCS_L, nCS_L,nCS1L, 1);
+    break;
+
+  case PART_Nx2N:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0, nCS_L, nCS_L,nCS_L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0, nCS_L, nCS_L,nCS_L, 1);
+    break;
+
+  case PART_2NxnU:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,        nCS_L, nCS_L,nCS1L>>1, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L>>1, nCS_L, nCS_L,nCS1L + (nCS1L>>1), 1);
+    break;
+
+  case PART_2NxnD:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,                  nCS_L, nCS_L,nCS1L + (nCS1L>>1), 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L + (nCS1L>>1), nCS_L, nCS_L,nCS1L>>1, 1);
+    break;
+
+  case PART_nLx2N:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,       0, nCS_L, nCS1L>>1,          nCS1L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L>>1,0, nCS_L, nCS1L + (nCS1L>>1),nCS_L, 1);
+    break;
+
+  case PART_nRx2N:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,                 0, nCS_L, nCS1L + (nCS1L>>1),nCS_L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L + (nCS1L>>1),0, nCS_L, nCS1L>>1,nCS_L, 1);
+    break;
+
+  case PART_NxN:
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0,     nCS_L, nCS1L,nCS1L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0,     nCS_L, nCS1L,nCS1L, 1);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,    nCS1L, nCS_L, nCS1L,nCS1L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,nCS1L, nCS_L, nCS1L,nCS1L, 1);
+    break;
 
   default:
     assert(false); // TODO
