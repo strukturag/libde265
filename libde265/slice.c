@@ -166,8 +166,8 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
     if (shdr->slice_type == SLICE_TYPE_P  ||
         shdr->slice_type == SLICE_TYPE_B) {
-      int num_ref_idx_active_override_flag = get_bits(br,1);
-      if (num_ref_idx_active_override_flag) {
+      shdr->num_ref_idx_active_override_flag = get_bits(br,1);
+      if (shdr->num_ref_idx_active_override_flag) {
         shdr->num_ref_idx_l0_active = get_uvlc(br) +1;
         if (shdr->slice_type == SLICE_TYPE_B) {
           shdr->num_ref_idx_l1_active = get_uvlc(br) +1;
@@ -414,12 +414,10 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     if (shdr->slice_type == SLICE_TYPE_P || shdr->slice_type == SLICE_TYPE_B) {
       LOG("num_ref_idx_active_override_flag : %d\n", shdr->num_ref_idx_active_override_flag);
 
-      if (shdr->num_ref_idx_active_override_flag) {
-        LOG("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
+      LOG("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
 
-        if (shdr->slice_type == SLICE_TYPE_B) {
-          LOG("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
-        }
+      if (shdr->slice_type == SLICE_TYPE_B) {
+        LOG("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
       }
 
       int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
@@ -464,8 +462,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     }
 
     LOG("slice_deblocking_filter_disabled_flag : %d %s\n",
-           shdr->slice_deblocking_filter_disabled_flag,
-           (shdr->deblocking_filter_override_flag ? "(override)" : "(from pps)"));
+        shdr->slice_deblocking_filter_disabled_flag,
+        (shdr->deblocking_filter_override_flag ? "(override)" : "(from pps)"));
 
     if (shdr->deblocking_filter_override_flag) {
 
@@ -479,7 +477,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag ||
          !shdr->slice_deblocking_filter_disabled_flag)) {
       LOG("slice_loop_filter_across_slices_enabled_flag : %d\n",
-             shdr->slice_loop_filter_across_slices_enabled_flag);
+          shdr->slice_loop_filter_across_slices_enabled_flag);
     }
   }
 
@@ -496,12 +494,12 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
   }
 
   /*
-  if( slice_segment_header_extension_present_flag ) {
+    if( slice_segment_header_extension_present_flag ) {
     slice_segment_header_extension_length
-      for( i = 0; i < slice_segment_header_extension_length; i++) 
-        slice_segment_header_extension_data_byte[i]
-        }
-        byte_alignment()
+    for( i = 0; i < slice_segment_header_extension_length; i++) 
+    slice_segment_header_extension_data_byte[i]
+    }
+    byte_alignment()
     }
   */
 
@@ -572,6 +570,9 @@ static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
 static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
 static const int initValue_pred_mode_flag[2] = { 149,134 };
+static const int initValue_abs_mvd_greater01_flag[2] = { 140,198,169,198 };
+static const int initValue_mvp_lx_flag[2] = { 168,168 };
+static const int initValue_no_residual_syntax_flag[2] = { 79,79 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -786,6 +787,33 @@ void init_pred_mode_flag(decoder_context* ctx, slice_segment_header* shdr)
     }
 }
 
+void init_abs_mvd_greater01_flag(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<4;i++)
+    {
+      set_initValue(ctx,shdr,
+                    &shdr->abs_mvd_greater01_flag_model[i],
+                    initValue_abs_mvd_greater01_flag[i]);
+    }
+}
+
+void init_mvp_lx_flag(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<2;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->mvp_lx_flag_model[i], initValue_mvp_lx_flag[i]);
+    }
+}
+
+void init_no_residual_syntax_flag(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<2;i++)
+    {
+      set_initValue(ctx,shdr,
+                    &shdr->no_residual_syntax_flag_model[i],
+                    initValue_no_residual_syntax_flag[i]);
+    }
+}
 
 
 int decode_transform_skip_flag(decoder_context* ctx,
@@ -1457,6 +1485,28 @@ int decode_pred_mode_flag(decoder_context* ctx,
   return bit;
 }
 
+int decode_mvp_lx_flag(decoder_context* ctx,
+                       slice_segment_header* shdr)
+{
+  logtrace(LogSlice,"# mvp_lx_flag\n");
+
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->mvp_lx_flag_model[shdr->initType-1]);
+
+  return bit;
+}
+
+int decode_no_residual_syntax_flag(decoder_context* ctx,
+                                   slice_segment_header* shdr)
+{
+  logtrace(LogSlice,"# no_residual_syntax_flag\n");
+
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->no_residual_syntax_flag_model[shdr->initType-1]);
+
+  return bit;
+}
+
 
 
 int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
@@ -1481,6 +1531,9 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_merge_flag(ctx, shdr);
   init_merge_idx(ctx, shdr);
   init_pred_mode_flag(ctx, shdr);
+  init_abs_mvd_greater01_flag(ctx, shdr);
+  init_mvp_lx_flag(ctx,shdr);
+  init_no_residual_syntax_flag(ctx,shdr);
 
 
   int end_of_slice_segment_flag;
@@ -2348,6 +2401,80 @@ void read_transform_tree(decoder_context* ctx,
 }
 
 
+static const char* part_mode_name(enum PartMode pm)
+{
+  switch (pm) {
+  case PART_2Nx2N: return "2Nx2N";
+  case PART_2NxN:  return "2NxN";
+  case PART_Nx2N:  return "2Nx2N";
+  case PART_NxN:   return "NxN";
+  case PART_2NxnU: return "2NxnU";
+  case PART_2NxnD: return "2NxnD";
+  case PART_nLx2N: return "nLx2N";
+  case PART_nRx2N: return "nRx2N";
+  }
+}
+
+
+void read_mvd_coding(decoder_context* ctx,
+                     slice_segment_header* shdr,
+                     int x0,int y0, int refList)
+{
+  int ctxIdxOffset = (shdr->slice_type == SLICE_TYPE_P) ? 0 : 2;
+
+  int abs_mvd_greater0_flag[2];
+  abs_mvd_greater0_flag[0] = decode_CABAC_bit(&shdr->cabac_decoder,
+                                              &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+0]);
+  abs_mvd_greater0_flag[1] = decode_CABAC_bit(&shdr->cabac_decoder,
+                                              &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+0]);
+
+  int abs_mvd_greater1_flag[2];
+  if (abs_mvd_greater0_flag[0]) {
+    abs_mvd_greater1_flag[0] = decode_CABAC_bit(&shdr->cabac_decoder,
+                                                &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+1]);
+  }
+  else {
+    abs_mvd_greater1_flag[0]=0;
+  }
+
+  if (abs_mvd_greater0_flag[1]) {
+    abs_mvd_greater1_flag[1] = decode_CABAC_bit(&shdr->cabac_decoder,
+                                                &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+1]);
+  }
+  else {
+    abs_mvd_greater1_flag[1]=0;
+  }
+
+
+  int abs_mvd_minus2[2];
+  int mvd_sign_flag[2];
+  int value[2];
+
+  for (int c=0;c<2;c++) {
+    if (abs_mvd_greater0_flag[c]) {
+      if (abs_mvd_greater1_flag[c]) {
+        abs_mvd_minus2[c] = decode_CABAC_EGk_bypass(&shdr->cabac_decoder, 1);
+      }
+      else {
+        abs_mvd_minus2[c] = abs_mvd_greater1_flag[c] -1;
+      }
+
+      mvd_sign_flag[c] = decode_CABAC_bypass(&shdr->cabac_decoder);
+
+      value[c] = abs_mvd_minus2[c]+2;
+      if (mvd_sign_flag[c]) { value[c] = -value[c]; }
+    }
+    else {
+      value[c] = 0;
+    }
+  }
+
+  // TODO: save MVD
+
+  logtrace(LogSlice, "MVD[%d] = %d;%d\n",refList, value[0],value[1]);
+}
+
+
 void read_prediction_unit_SKIP(decoder_context* ctx,
                                slice_segment_header* shdr,
                                int x0, int y0,
@@ -2358,6 +2485,8 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
     merge_idx = decode_merge_idx(ctx,shdr);
   }
 
+  set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
+
   logtrace(LogSlice,"prediction skip 2Nx2N, merge_idx: %d\n",merge_idx);
 }
 
@@ -2367,6 +2496,44 @@ void read_prediction_unit(decoder_context* ctx,
                           int x0, int y0,
                           int nPbW, int nPbH)
 {
+  int merge_flag = decode_merge_flag(ctx,shdr);
+  // TODO: save to image data
+  if (merge_flag) {
+    int merge_idx = 0;
+
+    if (shdr->MaxNumMergeCand>1) {
+      merge_idx = decode_merge_idx(ctx,shdr);
+    }
+
+    set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
+  }
+  else { // no merge flag
+    enum InterPredIdc inter_pred_idc;
+
+    if (shdr->slice_type==SLICE_TYPE_B) {
+      assert(0); // TODO: inter_pred_idc
+    }
+    else {
+      inter_pred_idc = PRED_L0;
+    }
+
+    // TODO: save inter_pred_idc to image data
+
+    if (inter_pred_idc != PRED_L1) {
+      if (shdr->num_ref_idx_l0_active > 1) {
+        assert(0); // TODO
+      }
+
+      read_mvd_coding(ctx,shdr,x0,y0, 0);
+
+      int mvp_l0_flag = decode_mvp_lx_flag(ctx,shdr); // l0
+      // TODO: save to memory (x0,y0)
+    }
+
+    if (inter_pred_idc != PRED_L0) {
+      assert(0);
+    }
+  }
 }
 
 
@@ -2411,7 +2578,6 @@ void read_coding_unit(decoder_context* ctx,
 
     set_PartMode(ctx, x0,y0, PART_2Nx2N); // TODO: not sure if we need this
     set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
-    set_merge_idx(ctx,x0,y0, 1<<log2CbSize,1<<log2CbSize, 0);
     cuPredMode = MODE_SKIP;
 
     logtrace(LogSlice,"CU pred mode: SKIP\n");
@@ -2444,6 +2610,8 @@ void read_coding_unit(decoder_context* ctx,
     }
 
     set_PartMode(ctx, x0,y0, PartMode);  // currently not required for decoding (but for visualization)
+
+    logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
 
 
     if (cuPredMode == MODE_INTRA) {
@@ -2622,18 +2790,53 @@ void read_coding_unit(decoder_context* ctx,
       }
     }
     else {
-      assert(0); // ! MODE_INTRA
+      if (PartMode == PART_2Nx2N) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS);
+      }
+      else if (PartMode == PART_2NxN) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS,nCbS/2);
+      }
+      else if (PartMode == PART_Nx2N) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS);
+      }
+      else if (PartMode == PART_2NxnU) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/4);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/4,nCbS,nCbS*3/4);
+      }
+      else if (PartMode == PART_2NxnD) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS*3/4);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS*3/4,nCbS,nCbS/4);
+      }
+      else if (PartMode == PART_nLx2N) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/4,nCbS);
+        read_prediction_unit(ctx,shdr,x0+nCbS/4,y0,nCbS*3/4,nCbS);
+      }
+      else if (PartMode == PART_nRx2N) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS*3/4,nCbS);
+        read_prediction_unit(ctx,shdr,x0+nCbS*3/4,y0,nCbS/4,nCbS);
+      }
+      else if (PartMode == PART_NxN) {
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS/2,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0+nCbS/2,nCbS/2,nCbS/2);
+      }
+      else {
+        assert(0); // undefined PartMode
+      }
     }
 
-    bool merge_flag=false; // TODO
+    bool merge_flag=false; // TODO: read from memory
 
     if (!false) { // !pcm
       bool no_residual_syntax_flag;
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
-        //no_residual_syntax_flag = false;
-        assert(false); // TODO
+
+        no_residual_syntax_flag = decode_no_residual_syntax_flag(ctx,shdr);
       }
       else {
         no_residual_syntax_flag = false;

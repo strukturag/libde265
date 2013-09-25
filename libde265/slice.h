@@ -79,6 +79,11 @@ enum IntraPredMode
     INTRA_CHROMA_EQ_LUMA = 100  // chroma := luma
   };
 
+enum InterPredIdc
+  {
+    PRED_L0, PRED_L1, PRED_BI
+  };
+
 typedef struct {
   int slice_index; // index through all slices in a picture
 
@@ -197,6 +202,9 @@ typedef struct {
   context_model merge_flag_model[2];
   context_model merge_idx_model[2];
   context_model pred_mode_flag_model[2];
+  context_model abs_mvd_greater01_flag_model[4];
+  context_model mvp_lx_flag_model[2];
+  context_model no_residual_syntax_flag_model[2];
 
 } slice_segment_header;
 
