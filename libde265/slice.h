@@ -196,6 +196,7 @@ typedef struct {
   context_model transform_skip_flag_model[6];
   context_model merge_flag_model[2];
   context_model merge_idx_model[2];
+  context_model pred_mode_flag_model[2];
 
 } slice_segment_header;
 

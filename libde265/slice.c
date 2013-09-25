@@ -571,7 +571,7 @@ static const int initValue_cu_qp_delta_abs[6] = { 154,154,154,154,154,154 };
 static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
 static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
-
+static const int initValue_pred_mode_flag[2] = { 149,134 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -778,6 +778,14 @@ void init_merge_idx(decoder_context* ctx, slice_segment_header* shdr)
     }
 }
 
+void init_pred_mode_flag(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<2;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->pred_mode_flag_model[i], initValue_pred_mode_flag[i]);
+    }
+}
+
 
 
 int decode_transform_skip_flag(decoder_context* ctx,
@@ -938,7 +946,42 @@ enum PartMode decode_part_mode(decoder_context* ctx,
     return bit ? PART_2Nx2N : PART_NxN;
   }
   else {
-    assert(false); // TODO
+    int ctxIdxOffset = (shdr->slice_type==SLICE_TYPE_P) ? 1 : 5;
+
+    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
+    if (bit) { return PART_2Nx2N; }
+
+    if (cLog2CbSize > ctx->current_sps->Log2MinCbSizeY) {
+      if (!ctx->current_sps->amp_enabled_flag) {
+        bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        return bit ? PART_2NxN : PART_Nx2N;
+      }
+      else {
+        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        int bit3 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
+        if (bit3 &&  bit2) return PART_2NxN;
+        if (bit3 && !bit2) return PART_Nx2N;
+
+        int bit4 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+3]);
+        if ( bit2 &&  bit4) return PART_2NxnD;
+        if ( bit2 && !bit4) return PART_2NxnU;
+        if (!bit2 && !bit4) return PART_nLx2N;
+        if (!bit2 &&  bit4) return PART_nRx2N;
+      }
+    }
+    else {
+      if (cLog2CbSize==3) {
+        bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        return bit ? PART_2NxN : PART_Nx2N;
+      }
+      else {
+        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
+        if (bit2) return PART_2NxN;
+
+        int bit3 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+3]);
+        return bit3 ? PART_Nx2N : PART_NxN;
+      }
+    }
   }
 }
 
@@ -1403,6 +1446,18 @@ int decode_merge_idx(decoder_context* ctx,
 }
 
 
+int decode_pred_mode_flag(decoder_context* ctx,
+                          slice_segment_header* shdr)
+{
+  logtrace(LogSlice,"# pred_mode_flag\n");
+
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->pred_mode_flag_model[shdr->initType-1]);
+
+  return bit;
+}
+
+
 
 int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -1425,6 +1480,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_transform_skip_flag(ctx, shdr);
   init_merge_flag(ctx, shdr);
   init_merge_idx(ctx, shdr);
+  init_pred_mode_flag(ctx, shdr);
 
 
   int end_of_slice_segment_flag;
@@ -2324,9 +2380,11 @@ void read_coding_unit(decoder_context* ctx,
 
   set_log2CbSize(ctx, x0,y0, log2CbSize);
 
+  int nCbS = 1<<log2CbSize; // number of coding block samples
 
-  enum PredMode PredMode = MODE_INTRA; // TODO: HACK for intra only decoder
-  set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // HACK, TODO: decode and set correct values
+
+  //enum PredMode PredMode = MODE_INTRA; // TODO: HACK for intra only decoder
+  //set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // HACK, TODO: decode and set correct values
 
 
   const seq_parameter_set* sps = ctx->current_sps;
@@ -2344,8 +2402,6 @@ void read_coding_unit(decoder_context* ctx,
 
   set_cu_skip_flag(ctx,x0,y0,log2CbSize, cu_skip_flag);
 
-  int nCbS = 1<<log2CbSize; // number of coding block samples
-
   int IntraSplitFlag = 0;
 
   enum PredMode cuPredMode;
@@ -2357,24 +2413,30 @@ void read_coding_unit(decoder_context* ctx,
     set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
     set_merge_idx(ctx,x0,y0, 1<<log2CbSize,1<<log2CbSize, 0);
     cuPredMode = MODE_SKIP;
+
+    logtrace(LogSlice,"CU pred mode: SKIP\n");
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {
-      // TODO: decode pred_mode_flag
+      int pred_mode_flag = decode_pred_mode_flag(ctx,shdr);
+      cuPredMode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
+    }
+    else {
+      cuPredMode = MODE_INTRA;
     }
 
-    // TODO: set_pred_mode(ctx,x0,y0,log2CbSize, MODE_I....);
-    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // TODO: not INTRA only ...
-    cuPredMode = MODE_INTRA;
+    set_pred_mode(ctx,x0,y0,log2CbSize, cuPredMode);
+
+    logtrace(LogSlice,"CU pred mode: %s\n", cuPredMode==MODE_INTRA ? "INTRA" : "INTER");
 
 
     enum PartMode PartMode;
 
-    if (PredMode != MODE_INTRA ||
+    if (cuPredMode != MODE_INTRA ||
         log2CbSize == sps->Log2MinCbSizeY) {
-      PartMode = decode_part_mode(ctx,shdr, MODE_INTRA /* TODO */, log2CbSize);
+      PartMode = decode_part_mode(ctx,shdr, cuPredMode, log2CbSize);
 
-      if (PartMode==PART_NxN && PredMode==MODE_INTRA) {
+      if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
         IntraSplitFlag=1;
       }
     } else {
@@ -2384,7 +2446,7 @@ void read_coding_unit(decoder_context* ctx,
     set_PartMode(ctx, x0,y0, PartMode);  // currently not required for decoding (but for visualization)
 
 
-    if (PredMode == MODE_INTRA) {
+    if (cuPredMode == MODE_INTRA) {
       assert(!sps->pcm_enabled_flag); // TODO
 
       if (false) {
@@ -2568,7 +2630,7 @@ void read_coding_unit(decoder_context* ctx,
     if (!false) { // !pcm
       bool no_residual_syntax_flag;
 
-      if (PredMode != MODE_INTRA &&
+      if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
         //no_residual_syntax_flag = false;
         assert(false); // TODO
@@ -2580,7 +2642,7 @@ void read_coding_unit(decoder_context* ctx,
       if (!no_residual_syntax_flag) {
         int MaxTrafoDepth;
 
-        if (PredMode==MODE_INTRA) {
+        if (cuPredMode==MODE_INTRA) {
           MaxTrafoDepth = ctx->current_sps->max_transform_hierarchy_depth_intra + IntraSplitFlag;
         }
         else {
