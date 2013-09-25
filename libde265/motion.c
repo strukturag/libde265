@@ -198,6 +198,27 @@ void logmvcand(PredVectorInfo p)
 }
 
 
+
+
+/*
+     +--+                +--+--+
+     |B2|                |B1|B0|
+     +--+----------------+--+--+
+        |                   |
+        |                   |
+        |                   |
+        |                   |
+        |                   |
+        |                   |
+        |                   |
+     +--+                   |
+     |A1|                   |
+     +--+-------------------+
+     |A0|
+     +--+
+*/
+
+
 // 8.5.3.1.2
 void derive_spatial_merging_candidates(const decoder_context* ctx,
                                        int xC, int yC, int nCS, int xP, int yP,
@@ -213,6 +234,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   // --- A1 ---
 
+  // a pixel within A1
   int xA1 = xP-1;
   int yA1 = yP+nPbH-1;
 
