@@ -146,8 +146,7 @@ typedef struct {
   int CurrRpsIdx;
   int MaxNumMergeCand;
 
-  int RefPicList0[14+1];
-  int RefPicList1[14+1];
+  int RefPicList[2][14+1];
 
 
   // --- decoder runtime data ---

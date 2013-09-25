@@ -60,13 +60,141 @@ void reset_pred_vector(PredVectorInfo* pvec)
 }
 
 
+#define MAX_CU_SIZE 64
+
 // 8.5.3.2
+// NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(decoder_context* ctx,
+                                       slice_segment_header* shdr,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
                                        const VectorInfo* vi)
 {
+  int nCbSL = nCS;
+  int nCbSC = nCS>>1;
+
+  const seq_parameter_set* sps = ctx->current_sps;
+
+  uint16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  uint16_t predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+
+  int xP = xC+xB;
+  int yP = yC+yB;
+
+  for (int l=0;l<2;l++) {
+    if (vi->lum.predFlag[l]) {
+      // 8.5.3.2.1
+
+      de265_image* refPic;
+      refPic = &ctx->dpb[ shdr->RefPicList[l][vi->lum.refIdx[l]] ];
+
+      assert(refPic->PicState != UnusedForReference);
+
+
+      // 8.5.3.2.2
+
+      int xFracL = vi->lum.mv[l].x & 3;
+      int yFracL = vi->lum.mv[l].y & 3;
+
+      int xIntOffsL = xP + (vi->lum.mv[l].x>>2);
+      int yIntOffsL = yP + (vi->lum.mv[l].y>>2);
+
+      // luma sample interpolation process (8.5.3.2.2.1)
+
+      const int shift1 = sps->BitDepth_Y-8;
+      const int shift2 = 6;
+      const int shift3 = 14 - sps->BitDepth_Y;
+
+      assert(xFracL==0 && yFracL==0); // TODO...
+
+      int w = sps->pic_width_in_luma_samples;
+      int h = sps->pic_height_in_luma_samples;
+
+      for (int y=0;y<nPbH;y++)
+        for (int x=0;x<nPbW;x++) {
+
+          int xA = Clip3(0,w-1,x + xIntOffsL);
+          int yA = Clip3(0,h-1,y + yIntOffsL);
+
+          predSamplesL[l][y*nCS+x] = refPic->y[ x+xA + yA*refPic->stride ] << shift3;
+        }
+
+
+      // chroma sample interpolation process (8.5.3.2.2.2)
+
+      const int shiftC1 = sps->BitDepth_C-8;
+      const int shiftC2 = 6;
+      const int shiftC3 = 14 - sps->BitDepth_C;
+
+      int wC = sps->pic_width_in_luma_samples /sps->SubWidthC;
+      int hC = sps->pic_height_in_luma_samples/sps->SubHeightC;
+
+      int xFracC = vi->lum.mv[l].x & 7;
+      int yFracC = vi->lum.mv[l].y & 7;
+
+      int xIntOffsC = xP/2 + (vi->lum.mv[l].x>>3);
+      int yIntOffsC = yP/2 + (vi->lum.mv[l].y>>3);
+
+      assert(xFracC == 0 && yFracC == 0);
+
+      for (int y=0;y<nPbH/2;y++)
+        for (int x=0;x<nPbW/2;x++) {
+
+          int xB = Clip3(0,wC-1,x + xIntOffsC);
+          int yB = Clip3(0,hC-1,y + yIntOffsC);
+
+          predSamplesC[0][l][y*nCS+x] = refPic->cb[ x+xB + yB*refPic->stride ] << shiftC3;
+          predSamplesC[1][l][y*nCS+x] = refPic->cr[ x+xB + yB*refPic->stride ] << shiftC3;
+        }
+    }
+  }
+
+
+  // weighted sample prediction  (8.5.3.2.3)
+
+  const int shift1 = 6; // TODO
+  const int offset1= 1<<(shift1-1);
+
+  if (shdr->slice_type == SLICE_TYPE_P) {
+    if (ctx->current_pps->weighted_pred_flag==0) {
+      if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==0) {
+        for (int y=0;y<nPbH;y++)
+          for (int x=0;x<nPbW;x++) {
+            // TODO: clip to real bit depth
+            ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
+              Clip1_8bit((predSamplesL[0][x+y*nCS] + offset1)>>shift1);
+          }
+
+        for (int y=0;y<nPbH/2;y++)
+          for (int x=0;x<nPbW/2;x++) {
+            // TODO: clip to real bit depth
+            ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+              Clip1_8bit((predSamplesC[0][0][x+y*nCS] + offset1)>>shift1);
+            ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+              Clip1_8bit((predSamplesC[1][0][x+y*nCS] + offset1)>>shift1);
+          }
+      }
+      else {
+        assert(false); // TODO
+      }
+    }
+    else {
+        assert(false); // TODO
+    }
+  }
+  else {
+        assert(false); // TODO
+  }
+}
+
+
+void logmvcand(PredVectorInfo p)
+{
+  for (int v=0;v<2;v++) {
+    logtrace(LogMotion,"  %d: %s  %d;%d ref=%d\n", v, p.predFlag[v] ? "yes":"no ",
+             p.mv[v].x,p.mv[v].y, p.refIdx[v]);
+  }
 }
 
 
@@ -108,10 +236,15 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   if (!availableA1) {
     out_cand->available[PRED_A1] = 0;
     reset_pred_vector(&out_cand->pred_vector[PRED_A1]);
+
+    logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
   else {
     out_cand->available[PRED_A1] = 1;
     out_cand->pred_vector[PRED_A1] = *get_mv_info(ctx,xA1,yA1);
+
+    logtrace(LogMotion,"spatial merging candidate A1:\n");
+    logmvcand(out_cand->pred_vector[PRED_A1]);
   }
 
   // TODO...
@@ -231,11 +364,11 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
   if (shdr->slice_type == SLICE_TYPE_B &&
       shdr->collocated_from_l0_flag == 0)
     {
-      colPic = shdr->RefPicList1[ shdr->collocated_ref_idx ];
+      colPic = shdr->RefPicList[1][ shdr->collocated_ref_idx ];
     }
   else
     {
-      colPic = shdr->RefPicList0[ shdr->collocated_ref_idx ];
+      colPic = shdr->RefPicList[0][ shdr->collocated_ref_idx ];
     }
 
 
@@ -396,7 +529,7 @@ void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
 
   // 2.
 
-  generate_inter_prediction_samples(ctx, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
   set_mv_info(ctx,xB,yB,nPbW,nPbH, &vi.lum);

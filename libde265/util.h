@@ -41,6 +41,7 @@ enum LogModule {
   LogHighlevel,
   LogHeaders,
   LogSlice,
+  LogMotion,
   LogTransform,
   LogDeblock,
   LogSAO,

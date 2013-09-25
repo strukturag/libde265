@@ -404,6 +404,8 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
   int NumRpsCurrTempList0 = max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
+  // TODO: fold code for both lists together
+
   int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
   int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
 
@@ -421,7 +423,7 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   assert(hdr->num_ref_idx_l0_active <= 15);
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    hdr->RefPicList0[rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
+    hdr->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
       RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
   }
 
@@ -443,7 +445,7 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
     assert(hdr->num_ref_idx_l1_active <= 15);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-      hdr->RefPicList1[rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
+      hdr->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
         RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
     }
   }
@@ -666,12 +668,9 @@ int get_ctDepth(const decoder_context* ctx, int x,int y)
 }
 
 
-void    set_cu_skip_flag(decoder_context* ctx, int x,int y, uint8_t flag)
+void    set_cu_skip_flag(decoder_context* ctx, int x,int y, int log2BlkWidth, uint8_t flag)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].cu_skip_flag = flag;
+  SET_CB_BLK(x,y,log2BlkWidth, cu_skip_flag, flag);
 }
 
 uint8_t get_cu_skip_flag(const decoder_context* ctx, int x,int y)

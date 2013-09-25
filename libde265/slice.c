@@ -906,8 +906,8 @@ int decode_cu_skip_flag(decoder_context* ctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && get_ctDepth(ctx,x0-1,y0) > ctDepth) condL=1;
-  if (availableA && get_ctDepth(ctx,x0,y0-1) > ctDepth) condA=1;
+  if (availableL && get_cu_skip_flag(ctx,x0-1,y0)) condL=1;
+  if (availableA && get_cu_skip_flag(ctx,x0,y0-1)) condA=1;
 
   int contextOffset = condL + condA;
   int context = 3*(shdr->initType-1) + contextOffset;
@@ -2342,7 +2342,7 @@ void read_coding_unit(decoder_context* ctx,
     cu_skip_flag = decode_cu_skip_flag(ctx,shdr,x0,y0,ctDepth);
   }
 
-  set_cu_skip_flag(ctx,x0,y0,cu_skip_flag);
+  set_cu_skip_flag(ctx,x0,y0,log2CbSize, cu_skip_flag);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
@@ -2597,7 +2597,7 @@ void read_coding_unit(decoder_context* ctx,
 
   // --- decode CU ---
 
-  logtrace(LogSlice,"--- decodeCU ---\n");
+  logtrace(LogSlice,"--- decodeCU (%d;%d size %d) ---\n",x0,y0,1<<log2CbSize);
 
   int nS = 1 << log2CbSize;
 

@@ -248,7 +248,7 @@ void set_cbf_cr(decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cb(const decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cr(const decoder_context*, int x0,int y0, int depth);
 
-void    set_cu_skip_flag(      decoder_context*, int x,int y, uint8_t flag);
+void    set_cu_skip_flag(      decoder_context*, int x,int y, int log2BlkWidth, uint8_t flag);
 uint8_t get_cu_skip_flag(const decoder_context*, int x,int y);
 
 void          set_PartMode(      decoder_context*, int x,int y, enum PartMode);
