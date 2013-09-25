@@ -413,7 +413,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   bool availableB2;
 
-  if (availableA0 && availableA1 && availableB0 && availableB1) {
+  if (out_cand->available[PRED_A0] && out_cand->available[PRED_A1] &&
+      out_cand->available[PRED_B0] && out_cand->available[PRED_B1]) {
     availableB2 = false;
     logtrace(LogMotion,"spatial merging candidate B2: ignore\n");
   }
@@ -690,6 +691,14 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int merge_idx = get_merge_idx(ctx,xP,yP);
   out_vi->lum = mergeCandList[merge_idx];
 
+
+  logtrace(LogMotion,"mergeCandList:\n");
+  for (int i=0;i<shdr->MaxNumMergeCand;i++)
+    {
+      logtrace(LogMotion, " %d:%s\n", i, i==merge_idx ? " SELECTED":"");
+      logmvcand(mergeCandList[i]);
+    }
+
   // 9.
 
   if (out_vi->lum.predFlag[0] && out_vi->lum.predFlag[1] && nPbW+nPbH==12) {
@@ -731,7 +740,7 @@ void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
   generate_inter_prediction_samples(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
-  set_mv_info(ctx,xB,yB,nPbW,nPbH, &vi.lum);
+  set_mv_info(ctx,xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
 }
 
 
