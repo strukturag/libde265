@@ -53,7 +53,7 @@ enum PartMode
     PART_Nx2N  = 2,
     PART_NxN   = 3,
     PART_2NxnU = 4,
-    PART_2NXnD = 5,
+    PART_2NxnD = 5,
     PART_nLx2N = 6,
     PART_nRx2N = 7
   };

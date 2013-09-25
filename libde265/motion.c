@@ -198,6 +198,18 @@ void logmvcand(PredVectorInfo p)
 }
 
 
+bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
+{
+  // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
+
+  for (int i=0;i<2;i++) {
+    if (a->mv[i].x != b->mv[i].x) return false;
+    if (a->mv[i].y != b->mv[i].y) return false;
+    if (a->refIdx[i] != b->refIdx[i]) return false;
+  }
+
+  return true;
+}
 
 
 /*
@@ -220,6 +232,7 @@ void logmvcand(PredVectorInfo p)
 
 
 // 8.5.3.1.2
+// TODO: check: can we fill the candidate list directly in this function and omit to copy later
 void derive_spatial_merging_candidates(const decoder_context* ctx,
                                        int xC, int yC, int nCS, int xP, int yP,
                                        uint8_t singleMCLFlag,
@@ -243,6 +256,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   if (xP>>log2_parallel_merge_level == xA1>>log2_parallel_merge_level &&
       yP>>log2_parallel_merge_level == yA1>>log2_parallel_merge_level) {
     availableA1 = false;
+    logtrace(LogMotion,"spatial merging candidate A1: below parallel merge level\n");
   }
   else if (!singleMCLFlag &&
            partIdx==1 &&
@@ -250,16 +264,16 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
             PartMode==PART_nLx2N ||
             PartMode==PART_nRx2N)) {
     availableA1 = false;
+    logtrace(LogMotion,"spatial merging candidate A1: second part ignore\n");
   }
   else {
     availableA1 = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
+    if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
 
   if (!availableA1) {
     out_cand->available[PRED_A1] = 0;
     reset_pred_vector(&out_cand->pred_vector[PRED_A1]);
-
-    logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
   else {
     out_cand->available[PRED_A1] = 1;
@@ -269,12 +283,175 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logmvcand(out_cand->pred_vector[PRED_A1]);
   }
 
-  // TODO...
-  out_cand->available[PRED_A0] = 0;
-  out_cand->available[PRED_B0] = 0;
-  out_cand->available[PRED_B1] = 0;
-  out_cand->available[PRED_B2] = 0;
-  //assert(false);
+
+  // --- B1 ---
+
+  int xB1 = xP+nPbW-1;
+  int yB1 = yP-1;
+
+  bool availableB1;
+
+  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
+      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+    availableB1 = false;
+    logtrace(LogMotion,"spatial merging candidate B1: below parallel merge level\n");
+  }
+  else if (!singleMCLFlag &&
+           partIdx==1 &&
+           (PartMode==PART_2NxN ||
+            PartMode==PART_2NxnU ||
+            PartMode==PART_2NxnD)) {
+    availableB1 = false;
+    logtrace(LogMotion,"spatial merging candidate B1: second part ignore\n");
+  }
+  else {
+    availableB1 = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
+    if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
+  }
+
+  if (!availableB1) {
+    out_cand->available[PRED_B1] = 0;
+    reset_pred_vector(&out_cand->pred_vector[PRED_B1]);
+  }
+  else {
+    out_cand->available[PRED_B1] = 1;
+    out_cand->pred_vector[PRED_B1] = *get_mv_info(ctx,xB1,yB1);
+
+    if (availableA1 &&
+        equal_cand_MV(&out_cand->pred_vector[PRED_A1],
+                      &out_cand->pred_vector[PRED_B1])) {
+      out_cand->available[PRED_B1] = 0;
+      logtrace(LogMotion,"spatial merging candidate B1: redundant to A1\n");
+    }
+    else {
+      logtrace(LogMotion,"spatial merging candidate B1:\n");
+      logmvcand(out_cand->pred_vector[PRED_B1]);
+    }
+  }
+
+
+  // --- B0 ---
+
+  int xB0 = xP+nPbW;
+  int yB0 = yP-1;
+
+  bool availableB0;
+
+  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
+      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+    availableB0 = false;
+    logtrace(LogMotion,"spatial merging candidate B0: below parallel merge level\n");
+  }
+  else {
+    availableB0 = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
+    if (!availableB0) logtrace(LogMotion,"spatial merging candidate B0: unavailable\n");
+  }
+
+  if (!availableB0) {
+    out_cand->available[PRED_B0] = 0;
+    reset_pred_vector(&out_cand->pred_vector[PRED_B0]);
+  }
+  else {
+    out_cand->available[PRED_B0] = 1;
+    out_cand->pred_vector[PRED_B0] = *get_mv_info(ctx,xB0,yB0);
+
+    if (availableB1 &&
+        equal_cand_MV(&out_cand->pred_vector[PRED_B1],
+                      &out_cand->pred_vector[PRED_B0])) {
+      out_cand->available[PRED_B0] = 0;
+      logtrace(LogMotion,"spatial merging candidate B0: redundant to B1\n");
+    }
+    else {
+      logtrace(LogMotion,"spatial merging candidate B0:\n");
+      logmvcand(out_cand->pred_vector[PRED_B0]);
+    }
+  }
+
+
+  // --- A0 ---
+
+  int xA0 = xP-1;
+  int yA0 = yP+nPbH;
+
+  bool availableA0;
+
+  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
+      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+    availableA0 = false;
+    logtrace(LogMotion,"spatial merging candidate A0: below parallel merge level\n");
+  }
+  else {
+    availableA0 = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
+    if (!availableA0) logtrace(LogMotion,"spatial merging candidate A0: unavailable\n");
+  }
+
+  if (!availableA0) {
+    out_cand->available[PRED_A0] = 0;
+    reset_pred_vector(&out_cand->pred_vector[PRED_A0]);
+  }
+  else {
+    out_cand->available[PRED_A0] = 1;
+    out_cand->pred_vector[PRED_A0] = *get_mv_info(ctx,xA0,yA0);
+
+    if (availableA1 &&
+        equal_cand_MV(&out_cand->pred_vector[PRED_A1],
+                      &out_cand->pred_vector[PRED_A0])) {
+      out_cand->available[PRED_A0] = 0;
+      logtrace(LogMotion,"spatial merging candidate A0: redundant to A1\n");
+    }
+    else {
+      logtrace(LogMotion,"spatial merging candidate A0:\n");
+      logmvcand(out_cand->pred_vector[PRED_A0]);
+    }
+  }
+
+
+  // --- B2 ---
+
+  int xB2 = xP-1;
+  int yB2 = yP-1;
+
+  bool availableB2;
+
+  if (availableA0 && availableA1 && availableB0 && availableB1) {
+    availableB2 = false;
+    logtrace(LogMotion,"spatial merging candidate B2: ignore\n");
+  }
+  else if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
+           yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+    availableB2 = false;
+    logtrace(LogMotion,"spatial merging candidate B2: below parallel merge level\n");
+  }
+  else {
+    availableB2 = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
+    if (!availableB2) logtrace(LogMotion,"spatial merging candidate B2: unavailable\n");
+  }
+
+  if (!availableB2) {
+    out_cand->available[PRED_B2] = 0;
+    reset_pred_vector(&out_cand->pred_vector[PRED_B2]);
+  }
+  else {
+    out_cand->available[PRED_B2] = 1;
+    out_cand->pred_vector[PRED_B2] = *get_mv_info(ctx,xB2,yB2);
+
+    if (availableB1 &&
+        equal_cand_MV(&out_cand->pred_vector[PRED_B1],
+                      &out_cand->pred_vector[PRED_B2])) {
+      out_cand->available[PRED_B2] = 0;
+      logtrace(LogMotion,"spatial merging candidate B2: redundant to B1\n");
+    }
+    else if (availableA1 &&
+             equal_cand_MV(&out_cand->pred_vector[PRED_A1],
+                           &out_cand->pred_vector[PRED_B2])) {
+      out_cand->available[PRED_B2] = 0;
+      logtrace(LogMotion,"spatial merging candidate B2: redundant to A1\n");
+    }
+    else {
+      logtrace(LogMotion,"spatial merging candidate B0:\n");
+      logmvcand(out_cand->pred_vector[PRED_B0]);
+    }
+  }
 }
 
 
