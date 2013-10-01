@@ -572,7 +572,7 @@ static const int initValue_merge_idx[2] = { 122,137 };
 static const int initValue_pred_mode_flag[2] = { 149,134 };
 static const int initValue_abs_mvd_greater01_flag[2] = { 140,198,169,198 };
 static const int initValue_mvp_lx_flag[2] = { 168,168 };
-static const int initValue_no_residual_syntax_flag[2] = { 79,79 };
+static const int initValue_rqt_root_cbf[2] = { 79,79 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -805,13 +805,13 @@ void init_mvp_lx_flag(decoder_context* ctx, slice_segment_header* shdr)
     }
 }
 
-void init_no_residual_syntax_flag(decoder_context* ctx, slice_segment_header* shdr)
+void init_rqt_root_cbf(decoder_context* ctx, slice_segment_header* shdr)
 {
   for (int i=0;i<2;i++)
     {
       set_initValue(ctx,shdr,
-                    &shdr->no_residual_syntax_flag_model[i],
-                    initValue_no_residual_syntax_flag[i]);
+                    &shdr->rqt_root_cbf_model[i],
+                    initValue_rqt_root_cbf[i]);
     }
 }
 
@@ -1496,13 +1496,13 @@ int decode_mvp_lx_flag(decoder_context* ctx,
   return bit;
 }
 
-int decode_no_residual_syntax_flag(decoder_context* ctx,
-                                   slice_segment_header* shdr)
+int decode_rqt_root_cbf(decoder_context* ctx,
+                        slice_segment_header* shdr)
 {
-  logtrace(LogSlice,"# no_residual_syntax_flag\n");
+  logtrace(LogSlice,"# rqt_root_cbf\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->no_residual_syntax_flag_model[shdr->initType-1]);
+                             &shdr->rqt_root_cbf_model[shdr->initType-1]);
 
   return bit;
 }
@@ -1533,7 +1533,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_pred_mode_flag(ctx, shdr);
   init_abs_mvd_greater01_flag(ctx, shdr);
   init_mvp_lx_flag(ctx,shdr);
-  init_no_residual_syntax_flag(ctx,shdr);
+  init_rqt_root_cbf(ctx,shdr);
 
 
   int end_of_slice_segment_flag;
@@ -2841,20 +2841,20 @@ void read_coding_unit(decoder_context* ctx,
 
 
     if (!false) { // !pcm
-      bool no_residual_syntax_flag;
+      bool rqt_root_cbf;
 
       bool merge_flag=get_merge_flag(ctx,x0,y0);
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
 
-        no_residual_syntax_flag = decode_no_residual_syntax_flag(ctx,shdr);
+        rqt_root_cbf = decode_rqt_root_cbf(ctx,shdr);
       }
       else {
-        no_residual_syntax_flag = false;
+        rqt_root_cbf = true;
       }
 
-      if (!no_residual_syntax_flag) {
+      if (rqt_root_cbf) {
         int MaxTrafoDepth;
 
         if (cuPredMode==MODE_INTRA) {
