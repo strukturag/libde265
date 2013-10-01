@@ -79,9 +79,18 @@ typedef struct {
 } CB_info;
 
 
+//#define PB_FLAG_MERGE 1
+//#define PB_FLAG_MVP_L0_FLAG 2
+//#define PB_FLAG_MVP_L1_FLAG 4
+
 typedef struct {
   PredVectorInfo pred_vector;
+  int16_t mvd[2][2]; // only in top left position
   uint8_t merge_idx;
+  uint8_t merge_flag;
+  uint8_t mvp_lX_flag[2];
+  //uint8_t ref_idx[2];        // defined in whole PB
+  uint8_t inter_pred_idc[2]; // enum InterPredIdc
 } PB_info;
 
 
@@ -307,6 +316,23 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
 
 int  get_merge_idx(const decoder_context* ctx,int xP,int yP);
 void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int merge_idx);
+
+uint8_t get_merge_flag(const decoder_context* ctx,int xP,int yP);
+void    set_merge_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, uint8_t merge_flag);
+
+uint8_t get_mvp_flag(const decoder_context* ctx,int xP,int yP, int l);
+void set_mvp_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,
+                  int l, uint8_t new_flag);
+
+void    set_mvd(decoder_context* ctx,int x0,int y0,int reflist, int16_t dx,int16_t dy);
+int16_t get_mvd_x(const decoder_context* ctx,int x0,int y0,int reflist);
+int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist);
+
+void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx);
+uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
+
+void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc);
+enum InterPredIdc get_inter_pred_idx(const decoder_context* ctx,int x0,int y0,int l);
 
 
 bool available_zscan(const decoder_context* ctx,

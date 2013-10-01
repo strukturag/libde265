@@ -969,6 +969,75 @@ void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int new
 }
 
 
+uint8_t get_merge_flag(const decoder_context* ctx,int xP,int yP)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].merge_flag;
+}
+
+void set_merge_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, uint8_t new_merge_flag)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_flag, new_merge_flag);
+}
+
+
+uint8_t get_mvp_flag(const decoder_context* ctx,int xP,int yP, int l)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].mvp_lX_flag[l];
+}
+
+void set_mvp_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,
+                  int l, uint8_t new_flag)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,mvp_lX_flag[l], new_flag);
+}
+
+
+void    set_mvd(decoder_context* ctx,int x0,int y0,int reflist, int16_t dx,int16_t dy)
+{
+  int idx = PB_IDX(x0,y0);
+  ctx->pb_info[idx].mvd[reflist][0] = dx;
+  ctx->pb_info[idx].mvd[reflist][1] = dy;
+}
+
+int16_t get_mvd_x(const decoder_context* ctx,int x0,int y0,int reflist)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].mvd[reflist][0];
+}
+
+int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].mvd[reflist][1];
+}
+
+void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH, pred_vector.refIdx[l], ref_idx);
+}
+
+uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].pred_vector.refIdx[l];
+}
+
+
+void set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc)
+{
+  int idx = PB_IDX(x0,y0);
+  ctx->pb_info[idx].inter_pred_idc[l] = (uint8_t)idc;
+}
+
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0, int l)
+{
+  int idx = PB_IDX(x0,y0);
+  return (enum InterPredIdc)(ctx->pb_info[idx].inter_pred_idc[l]);
+}
+
+
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN)
 {

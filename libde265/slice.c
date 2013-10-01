@@ -2469,9 +2469,9 @@ void read_mvd_coding(decoder_context* ctx,
     }
   }
 
-  // TODO: save MVD
+  set_mvd(ctx, x0,y0, refList, value[0],value[1]);
 
-  logtrace(LogSlice, "MVD[%d] = %d;%d\n",refList, value[0],value[1]);
+  logtrace(LogSlice, "MVD[%d;%d|%d] = %d;%d\n",x0,y0,refList, value[0],value[1]);
 }
 
 
@@ -2486,6 +2486,7 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
   }
 
   set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
+  set_merge_flag(ctx,x0,y0,nPbW,nPbH, true);
 
   logtrace(LogSlice,"prediction skip 2Nx2N, merge_idx: %d\n",merge_idx);
 }
@@ -2497,13 +2498,16 @@ void read_prediction_unit(decoder_context* ctx,
                           int nPbW, int nPbH)
 {
   int merge_flag = decode_merge_flag(ctx,shdr);
-  // TODO: save to image data
+  set_merge_flag(ctx,x0,y0,nPbW,nPbH, merge_flag);
+
   if (merge_flag) {
     int merge_idx = 0;
 
     if (shdr->MaxNumMergeCand>1) {
       merge_idx = decode_merge_idx(ctx,shdr);
     }
+
+    logtrace(LogSlice,"prediction unit %d,%d, merge mode, index: %d\n",x0,y0,merge_idx);
 
     set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
   }
@@ -2517,17 +2521,24 @@ void read_prediction_unit(decoder_context* ctx,
       inter_pred_idc = PRED_L0;
     }
 
-    // TODO: save inter_pred_idc to image data
+    set_inter_pred_idc(ctx,x0,y0,0, inter_pred_idc);
 
     if (inter_pred_idc != PRED_L1) {
       if (shdr->num_ref_idx_l0_active > 1) {
         assert(0); // TODO
+        //set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, ???);
+      }
+      else {
+        set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, 0);
       }
 
       read_mvd_coding(ctx,shdr,x0,y0, 0);
 
       int mvp_l0_flag = decode_mvp_lx_flag(ctx,shdr); // l0
-      // TODO: save to memory (x0,y0)
+      set_mvp_flag(ctx,x0,y0,nPbW,nPbH,0, mvp_l0_flag);
+
+      logtrace(LogSlice,"prediction unit %d,%d, L0, MVD: %d,%d mvp_l0_flag:%d\n",
+               x0,y0,mvp_l0_flag);
     }
 
     if (inter_pred_idc != PRED_L0) {
@@ -2828,10 +2839,11 @@ void read_coding_unit(decoder_context* ctx,
       }
     }
 
-    bool merge_flag=false; // TODO: read from memory
 
     if (!false) { // !pcm
       bool no_residual_syntax_flag;
+
+      bool merge_flag=get_merge_flag(ctx,x0,y0);
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {

@@ -89,6 +89,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       de265_image* refPic;
       refPic = &ctx->dpb[ shdr->RefPicList[l][vi->lum.refIdx[l]] ];
 
+      logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->lum.refIdx[l], shdr->RefPicList[l][vi->lum.refIdx[l]]);
+
       assert(refPic->PicState != UnusedForReference);
 
 
@@ -105,6 +107,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       const int shift1 = sps->BitDepth_Y-8;
       const int shift2 = 6;
       const int shift3 = 14 - sps->BitDepth_Y;
+
+      xFracL = yFracL=0; // TODO: TMP HACK
 
       assert(xFracL==0 && yFracL==0); // TODO...
 
@@ -133,6 +137,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       int xFracC = vi->lum.mv[l].x & 7;
       int yFracC = vi->lum.mv[l].y & 7;
 
+      xFracC = yFracC=0; // TODO: TMP HACK
+
       int xIntOffsC = xP/2 + (vi->lum.mv[l].x>>3);
       int yIntOffsC = yP/2 + (vi->lum.mv[l].y>>3);
 
@@ -155,6 +161,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
   const int shift1 = 6; // TODO
   const int offset1= 1<<(shift1-1);
+
+  logtrace(LogMotion,"predFlags: %d %d\n", vi->lum.predFlag[0], vi->lum.predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {
     if (ctx->current_pps->weighted_pred_flag==0) {
@@ -708,17 +716,292 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 }
 
 
+// 8.5.3.1.6
+MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
+                                                   const slice_segment_header* shdr,
+                                                   int xC,int yC,int nCS,int xP,int yP,
+                                                   int nPbW,int nPbH, int X,
+                                                   int refIdxLX, int partIdx,
+                                                   uint8_t out_availableFlagLXN[2],
+                                                   MotionVector out_mvLXN[2])
+{
+  int isScaledFlagLX = 0;
+
+  const int A=0;
+  const int B=1;
+
+  // --- A ---
+
+  // 1.
+
+  int xA[2], yA[2];
+  xA[0] = xP-1;
+  yA[0] = yP + nPbH;
+  xA[1] = xA[0];
+  yA[1] = yA[0]-1;
+
+  // 2.
+
+  out_availableFlagLXN[A] = 0;
+  out_mvLXN[A].x = 0;
+  out_mvLXN[A].y = 0;
+
+  // 3. / 4.
+
+  bool availableA[2];
+  availableA[0] = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
+  availableA[1] = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
+
+  // 5.
+
+  if (availableA[0] || availableA[1]) {
+    isScaledFlagLX = 1;
+  }
+
+  // 6.  test A0 and A1  (Ak)
+
+  int refIdxA;
+
+  for (int k=0;k<=1;k++) {
+    if (availableA[k] &&
+        out_availableFlagLXN[A]==0 &&
+        get_pred_mode(ctx,xA[k],yA[k]) != MODE_INTRA) {
+
+      int Y=1-X;
+      
+      const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
+      if (vi->predFlag[X] &&
+          vi->refIdx[X] == refIdxLX) {
+        out_availableFlagLXN[A]=1;
+        out_mvLXN[A] = vi->mv[X];
+        refIdxA = vi->refIdx[X];
+      }
+      else if (vi->predFlag[Y] &&
+               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal ==
+               ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+        out_availableFlagLXN[A]=1;
+        out_mvLXN[A] = vi->mv[Y];
+        refIdxA = vi->refIdx[Y];
+      }
+    }
+  }
+
+  // 7. // TODO: long-term references
+
+  for (int k=0 ; k<=1 && out_availableFlagLXN[A]==0 ; k++) {
+    if (availableA[k] &&
+        get_pred_mode(ctx,xA[k],yA[k]) != MODE_INTRA) {
+
+      int Y=1-X;
+      
+      const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
+      //if (vi->predFlag[X]==1 &&
+
+      // TODO: long-term references
+    }
+
+    // if (availableFlagLXN[X][A]==1 &&
+  }
+
+
+
+  // --- B ---
+
+  // 1.
+
+  int xB[3], yB[3];
+  xB[0] = xP+nPbW;
+  yB[0] = yP-1;
+  xB[1] = xB[0]-1;
+  yB[1] = yP-1;
+  xB[2] = xP-1;
+  yB[2] = yP-1;
+
+  // 2.
+
+  out_availableFlagLXN[B] = 0;
+  out_mvLXN[B].x = 0;
+  out_mvLXN[B].y = 0;
+
+  // 3. test B0,B1,B2 (Bk)
+
+  int refIdxB;
+
+  bool availableB[3];
+  for (int k=0;k<3;k++) {
+    availableB[k] = available_pred_blk(ctx, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
+
+    if (availableB[k] && out_availableFlagLXN[B]==0) {
+      
+      int Y=1-X;
+      
+      const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
+      if (vi->predFlag[X] &&
+          vi->refIdx[X] == refIdxLX) {
+        out_availableFlagLXN[B]=1;
+        out_mvLXN[B] = vi->mv[X];
+        refIdxB = vi->refIdx[X];
+      }
+      else if (vi->predFlag[Y] &&
+               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal ==
+               ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+        out_availableFlagLXN[B]=1;
+        out_mvLXN[B] = vi->mv[Y];
+        refIdxB = vi->refIdx[Y];
+      }
+    }
+  }
+
+  // 4.
+
+  if (isScaledFlagLX==0 &&
+      out_availableFlagLXN[B]==1 &&
+      out_availableFlagLXN[A]==1) {
+    out_mvLXN[A] = out_mvLXN[B];
+    refIdxA = refIdxB;
+  }
+
+  // 5.
+
+  if (isScaledFlagLX==0 &&
+      out_availableFlagLXN[B]==0) {
+    for (int k=0;k<=2 && out_availableFlagLXN[B]==0;k++) {
+      assert(0); // TODO, long term prediction
+    }
+  }
+}
+
+
+// 8.5.3.1.5
+MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
+                                           const slice_segment_header* shdr,
+                                           int xC,int yC,int nCS,int xP,int yP,
+                                           int nPbW,int nPbH, int l,
+                                           int refIdx, int partIdx)
+{
+  // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
+
+  bool availableFlagLXN[2];
+  MotionVector mvLXN[2];
+
+  derive_spatial_luma_vector_prediction(ctx, shdr, xC,yC, nCS, xP,yP, nPbW,nPbH, l, refIdx, partIdx,
+                                        availableFlagLXN, mvLXN);
+  
+  // 8.5.3.1.7: if we only have one spatial vector or both spatial vectors are the same,
+  // derive a temporal predictor
+
+  bool availableFlagLXCol;
+  MotionVector mvLXCol;
+
+
+  if (availableFlagLXN[0] &&
+      availableFlagLXN[1] &&
+      (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y)) {
+    availableFlagLXCol = 0;
+  }
+  else {
+    derive_temporal_luma_vector_prediction(ctx, shdr, xP,yP, nPbW,nPbH, refIdx,
+                                           &mvLXCol, &availableFlagLXCol);
+  }
+
+
+  // --- build candidate vector list with exactly two entries ---
+
+  int numMVPCandLX=0;
+
+  // spatial predictor A
+
+  MotionVector mvpList[3];
+  if (availableFlagLXN[0])
+    {
+      mvpList[numMVPCandLX++] = mvLXN[0];
+    }
+
+  // spatial predictor B (if not same as A)
+
+  if (availableFlagLXN[1] &&
+      (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y))
+    {
+      mvpList[numMVPCandLX++] = mvLXN[1];
+    }
+
+  // temporal predictor
+
+  if (availableFlagLXCol)
+    {
+      mvpList[numMVPCandLX++] = mvLXCol;
+    }
+
+  // fill with zero predictors
+
+  while (numMVPCandLX<2) {
+    mvpList[numMVPCandLX].x = 0;
+    mvpList[numMVPCandLX].y = 0;
+    numMVPCandLX++;
+  }
+
+
+  // select predictor according to mvp_lX_flag
+
+  return mvpList[ get_mvp_flag(ctx,xP,yP,l) ];
+}
+
+
 // 8.5.3.1
-void motion_vectors_indices(decoder_context* ctx,
-                            slice_segment_header* shdr,
-                            int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
-                            VectorInfo* out_vi)
+void motion_vectors_and_ref_indices(decoder_context* ctx,
+                                    slice_segment_header* shdr,
+                                    int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
+                                    VectorInfo* out_vi)
 {
   int xP = xC+xB;
   int yP = yC+yB;
 
-  if (get_pred_mode(ctx, xC,yC) == MODE_SKIP) {
+  enum PredMode predMode = get_pred_mode(ctx, xC,yC);
+
+  if (predMode == MODE_SKIP) {
     derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+  }
+  else if (predMode == MODE_INTER && get_merge_flag(ctx, xP,yP)) {
+    derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+  }
+  else {
+    int mvdL[2][2];
+    MotionVector mvpL[2];
+
+    for (int l=0;l<2;l++) {
+      // 1.
+
+      enum InterPredIdc inter_pred_idc = get_inter_pred_idc(ctx,xP,yP,l);
+
+      if (inter_pred_idc == PRED_BI ||
+          (inter_pred_idc == PRED_L0 && l==0) ||
+          (inter_pred_idc == PRED_L1 && l==1)) {
+        out_vi->lum.refIdx[l] = get_ref_idx(ctx,xP,yP,l);
+        out_vi->lum.predFlag[l] = 1;
+      }
+      else {
+        out_vi->lum.refIdx[l] = -1;
+        out_vi->lum.predFlag[l] = 0;
+      }
+
+      // 2.
+
+      mvdL[l][0] = get_mvd_x(ctx,xP,yP,l);
+      mvdL[l][1] = get_mvd_y(ctx,xP,yP,l);
+
+
+      if (out_vi->lum.predFlag[l]) {
+        // 3.
+
+        mvpL[l] = luma_motion_vector_prediction(ctx,shdr,xC,yC,nCS,xP,yP, nPbW,nPbH, l,
+                                                out_vi->lum.refIdx[l], partIdx);
+
+        // 4.
+
+        out_vi->lum.mv[l].x = -999; // TODO
+        out_vi->lum.mv[l].y = -999; // TODO
+      }
+    }
   }
 }
 
@@ -733,7 +1016,7 @@ void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
   // 1.
 
   VectorInfo vi;
-  motion_vectors_indices(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
+  motion_vectors_and_ref_indices(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 
   // 2.
 
