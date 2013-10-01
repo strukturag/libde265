@@ -967,7 +967,15 @@ enum PartMode decode_part_mode(decoder_context* ctx,
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
 
-    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[0]);
+    int ctxIdxOffset;
+    switch (shdr->slice_type) {
+    case SLICE_TYPE_I: ctxIdxOffset=0; break;
+    case SLICE_TYPE_P: ctxIdxOffset=1; break;
+    case SLICE_TYPE_B:
+    default:           ctxIdxOffset=1; break;
+    }
+
+    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
 
     logtrace(LogSlice,"> %s\n",bit ? "2Nx2N" : "NxN");
 
@@ -990,7 +998,7 @@ enum PartMode decode_part_mode(decoder_context* ctx,
         if (bit3 &&  bit2) return PART_2NxN;
         if (bit3 && !bit2) return PART_Nx2N;
 
-        int bit4 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+3]);
+        int bit4 = decode_CABAC_bypass(&shdr->cabac_decoder);
         if ( bit2 &&  bit4) return PART_2NxnD;
         if ( bit2 && !bit4) return PART_2NxnU;
         if (!bit2 && !bit4) return PART_nLx2N;
@@ -998,16 +1006,19 @@ enum PartMode decode_part_mode(decoder_context* ctx,
       }
     }
     else {
+      // TODO, we could save one if here when first decoding the next bin and then
+      // checkcLog2CbSize==3 when it is '0'
+
       if (cLog2CbSize==3) {
         bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
         return bit ? PART_2NxN : PART_Nx2N;
       }
       else {
-        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
-        if (bit2) return PART_2NxN;
+        int bit1 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        if (bit1) return PART_2NxN;
 
-        int bit3 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+3]);
-        return bit3 ? PART_Nx2N : PART_NxN;
+        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
+        return bit2 ? PART_Nx2N : PART_NxN;
       }
     }
   }
@@ -1466,11 +1477,27 @@ int decode_merge_idx(decoder_context* ctx,
 {
   logtrace(LogSlice,"# merge_idx\n");
 
-  int bit = decode_CABAC_TU(&shdr->cabac_decoder,
-                            shdr->MaxNumMergeCand-1,
-                            &shdr->merge_idx_model[shdr->initType-1]);
+  int idx = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->merge_idx_model[shdr->initType-1]);
 
-  return bit;
+  if (idx==0) {
+    // nothing
+  }
+  else {
+    idx=1;
+
+    while (decode_CABAC_bypass(&shdr->cabac_decoder)) {
+      idx++;
+
+      if (idx==shdr->MaxNumMergeCand-1) {
+        break;
+      }
+    }
+  }
+
+  logtrace(LogSlice,"> merge_idx = %d\n",idx);
+
+  return idx;
 }
 
 
@@ -2302,7 +2329,7 @@ void read_transform_tree(decoder_context* ctx,
          "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
          x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth);
 
-  enum PredMode PredMode = MODE_INTRA; // HACK (TODO: take from decctx)
+  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
 
   int split_transform_flag;
   
@@ -2406,7 +2433,7 @@ static const char* part_mode_name(enum PartMode pm)
   switch (pm) {
   case PART_2Nx2N: return "2Nx2N";
   case PART_2NxN:  return "2NxN";
-  case PART_Nx2N:  return "2Nx2N";
+  case PART_Nx2N:  return "Nx2N";
   case PART_NxN:   return "NxN";
   case PART_2NxnU: return "2NxnU";
   case PART_2NxnD: return "2NxnD";
@@ -2497,6 +2524,8 @@ void read_prediction_unit(decoder_context* ctx,
                           int x0, int y0,
                           int nPbW, int nPbH)
 {
+  logtrace(LogSlice,"read_prediction_unit %d;%d %dx%d\n",x0,y0,nPbW,nPbH);
+
   int merge_flag = decode_merge_flag(ctx,shdr);
   set_merge_flag(ctx,x0,y0,nPbW,nPbH, merge_flag);
 

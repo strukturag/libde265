@@ -936,8 +936,8 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
 #define GET_PB_BLK(x,y) ctx->pb_info[PB_IDX(x,y)]
 #define SET_PB_BLK(x,y,nPbW,nPbH, Field, value)                         \
   int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
-  for (int pby=y;pby<y+nPbW;pby+=blksize)                               \
-    for (int pbx=x;pbx<x+nPbH;pbx+=blksize)                             \
+  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
+    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
       {                                                                 \
         ctx->pb_info[PB_IDX(pbx,pby)].Field = value;                    \
       }

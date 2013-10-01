@@ -946,6 +946,15 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
   return mvpList[ get_mvp_flag(ctx,xP,yP,l) ];
 }
 
+void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
+{
+  fprintf(stderr,
+          "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
+          mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0],
+          mv->lum.predFlag[1], mv->lum.mv[1].x,mv->lum.mv[1].y, mv->lum.refIdx[1]);
+}
+
+
 
 // 8.5.3.1
 void motion_vectors_and_ref_indices(decoder_context* ctx,
@@ -958,12 +967,13 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
   enum PredMode predMode = get_pred_mode(ctx, xC,yC);
 
-  if (predMode == MODE_SKIP) {
-    derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
-  }
-  else if (predMode == MODE_INTER && get_merge_flag(ctx, xP,yP)) {
-    derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
-  }
+  if (predMode == MODE_SKIP ||
+      (predMode == MODE_INTER && get_merge_flag(ctx, xP,yP)))
+    {
+      derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+
+      logMV(xP,yP,nPbW,nPbH, "merge_mode", out_vi);
+    }
   else {
     int mvdL[2][2];
     MotionVector mvpL[2];
@@ -998,10 +1008,15 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
         // 4.
 
-        out_vi->lum.mv[l].x = -999; // TODO
-        out_vi->lum.mv[l].y = -999; // TODO
+        int32_t x = (mvpL[l].x + mvdL[l][0] + 0x10000) & 0xFFFF;
+        int32_t y = (mvpL[l].y + mvdL[l][1] + 0x10000) & 0xFFFF;
+
+        out_vi->lum.mv[l].x = (x>=0x8000) ? x-0x10000 : x;
+        out_vi->lum.mv[l].y = (y>=0x8000) ? y-0x10000 : y;
       }
     }
+
+    logMV(xP,yP,nPbW,nPbH, "mvp", out_vi);
   }
 }
 
@@ -1047,8 +1062,8 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
     break;
 
   case PART_Nx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0, nCS_L, nCS_L,nCS_L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0, nCS_L, nCS_L,nCS_L, 1);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0, nCS_L, nCS1L,nCS_L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0, nCS_L, nCS1L,nCS_L, 1);
     break;
 
   case PART_2NxnU:
@@ -1062,7 +1077,7 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
     break;
 
   case PART_nLx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,       0, nCS_L, nCS1L>>1,          nCS1L, 0);
+    decode_prediction_unit(ctx,shdr,xC,yC, 0,       0, nCS_L, nCS1L>>1,          nCS_L, 0);
     decode_prediction_unit(ctx,shdr,xC,yC, nCS1L>>1,0, nCS_L, nCS1L + (nCS1L>>1),nCS_L, 1);
     break;
 
