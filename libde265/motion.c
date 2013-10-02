@@ -211,9 +211,11 @@ bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
   // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
 
   for (int i=0;i<2;i++) {
-    if (a->mv[i].x != b->mv[i].x) return false;
-    if (a->mv[i].y != b->mv[i].y) return false;
-    if (a->refIdx[i] != b->refIdx[i]) return false;
+    if (a->predFlag[i]) {
+      if (a->mv[i].x != b->mv[i].x) return false;
+      if (a->mv[i].y != b->mv[i].y) return false;
+      if (a->refIdx[i] != b->refIdx[i]) return false;
+    }
   }
 
   return true;
@@ -544,7 +546,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
   fprintf(stderr,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
   // TODO: has to get pred_mode from reference picture
-  enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xP,yP);
+  enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
     out_mvLXCol->x = 0;
@@ -589,7 +591,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
     int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[listCol][refIdxLX];
 
-    printf("COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
+    fprintf(stderr,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
            colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
            ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[listCol][refIdxLX]
            );
@@ -696,6 +698,10 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
                                     nPbW,nPbH,partIdx, &mergeCand);
 
   int refIdxCol[2] = { 0,0 };
+
+  if (xP==112 && yP==96) {
+    //raise(SIGINT);
+  }
 
   MotionVector mvCol[2];
   uint8_t availableFlagLCol;
@@ -831,7 +837,9 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
       
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
       if (vi->predFlag[X] &&
-          vi->refIdx[X] == refIdxLX) {
+          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal ==
+          ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+        //vi->refIdx[X] == refIdxLX) {
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[X];
         refIdxA = vi->refIdx[X];
@@ -920,7 +928,9 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
       
       const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
       if (vi->predFlag[X] &&
-          vi->refIdx[X] == refIdxLX) {
+          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal ==
+          ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+        //vi->refIdx[X] == refIdxLX) {
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[X];
         refIdxB = vi->refIdx[X];
@@ -1002,7 +1012,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
   bool availableFlagLXN[2];
   MotionVector mvLXN[2];
 
-  if (xP==112 && yP==96) {
+  if (xP==256 && yP==176 && ctx->img->PicOrderCntVal==12) {
     //raise(SIGINT);
   }
 

@@ -2973,7 +2973,8 @@ void read_coding_unit(decoder_context* ctx,
 
   // --- decode CU ---
 
-  logtrace(LogSlice,"--- decodeCU (%d;%d size %d) ---\n",x0,y0,1<<log2CbSize);
+  logtrace(LogSlice,"--- decodeCU (%d;%d size %d) POC:%d ---\n",x0,y0,1<<log2CbSize,
+           ctx->img->PicOrderCntVal);
 
   int nS = 1 << log2CbSize;
 
