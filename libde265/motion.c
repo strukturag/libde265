@@ -523,7 +523,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
                                       int xP,int yP,
                                       int colPic,
                                       int xColPb,int yColPb,
-                                      int* refIdxL,
+                                      int refIdxLX, int X,
                                       MotionVector* out_mvLXCol,
                                       uint8_t* out_availableFlagLXCol)
 {
@@ -531,17 +531,46 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
   enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xP,yP);
 
   if (predMode == MODE_INTRA) {
-    out_mvLXCol[0].x = 0;
-    out_mvLXCol[0].y = 0;
-    out_mvLXCol[1].x = 0;
-    out_mvLXCol[1].y = 0;
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
     return;
   }
   else {
-    assert(0); // TODO
+    const de265_image* colPic = &ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ];
+    const PredVectorInfo* mvi = get_img_mv_info(ctx,colPic,xP,yP);
+    int listCol;
+    int refIdxCol;
+    MotionVector mvCol;
 
-    // P.136
+    if (mvi->predFlag[0]==0) {
+      mvCol = mvi->mv[1];
+      refIdxCol = mvi->refIdx[1];
+      listCol = 1;
+    }
+    else {
+      if (mvi->predFlag[1]==0) {
+        mvCol = mvi->mv[0];
+        refIdxCol = mvi->refIdx[0];
+        listCol = 0;
+      }
+      else {
+        assert(0); // both predFlag[]s are 1
+      }
+    }
+
+    *out_availableFlagLXCol = 1;
+
+    bool isLongTerm = false; // TODO
+    int colDist  = colPic->PicOrderCntVal - colPic->RefPicList_POC[listCol][refIdxCol];
+    int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[listCol][refIdxLX];
+
+    if (isLongTerm || colDist == currDist) {
+      *out_mvLXCol = mvCol;
+    }
+    else {
+      assert(0); // TODO
+    }
   }
 }
 
@@ -551,16 +580,14 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
                                             slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
-                                            int* refIdxL,
+                                            int refIdxL, int X,
                                             MotionVector* out_mvLXCol,
                                             uint8_t*      out_availableFlagLXCol)
 {
 
   if (shdr->slice_temporal_mvp_enabled_flag == 0) {
-    out_mvLXCol[0].x = 0;
-    out_mvLXCol[0].y = 0;
-    out_mvLXCol[1].x = 0;
-    out_mvLXCol[1].y = 0;
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
     return;
   }
@@ -591,15 +618,13 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
       xColPb = xColBr & ~0x0F;
       yColPb = yColBr & ~0x0F;
 
-      derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL,
+      derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
                                        out_mvLXCol, out_availableFlagLXCol);
     }
   else
     {
-      out_mvLXCol[0].x = 0;
-      out_mvLXCol[0].y = 0;
-      out_mvLXCol[1].x = 0;
-      out_mvLXCol[1].y = 0;
+      out_mvLXCol->x = 0;
+      out_mvLXCol->y = 0;
       *out_availableFlagLXCol = 0;
     }
 
@@ -612,7 +637,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     xColPb = xColCtr & ~0x0F;
     yColPb = yColCtr & ~0x0F;
 
-    derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL,
+    derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
                                      out_mvLXCol, out_availableFlagLXCol);
   }
 }
@@ -643,8 +668,12 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   MotionVector mvCol[2];
   uint8_t availableFlagLCol;
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol, mvCol,
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
                                          &availableFlagLCol);
+  /*
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
+                                         &availableFlagLCol);
+  */
 
   int availableFlagCol = availableFlagLCol;
   uint8_t predFlagLCol[2];
@@ -900,7 +929,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
     availableFlagLXCol = 0;
   }
   else {
-    derive_temporal_luma_vector_prediction(ctx, shdr, xP,yP, nPbW,nPbH, refIdx,
+    derive_temporal_luma_vector_prediction(ctx, shdr, xP,yP, nPbW,nPbH, refIdx,l,
                                            &mvLXCol, &availableFlagLXCol);
   }
 

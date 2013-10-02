@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "libde265/de265.h"
+#include "libde265/motion.h"
 
 
 enum PictureState {
@@ -35,10 +36,12 @@ enum PictureState {
 
 typedef struct {
   uint8_t PredMode; // (enum PredMode)
-  // predFlagLXCol[x][y]
-  // mvLXCol[x][y]
-  // refIdxLXCol[x][y]
 } CB_ref_info;
+
+typedef struct {
+  PredVectorInfo mvi;
+} PB_ref_info;
+
 
 typedef struct de265_image {
   uint8_t* y;   // pointer to pixel at (0,0), which is inside the optional image borders
@@ -69,6 +72,11 @@ typedef struct de265_image {
 
   CB_ref_info* cb_info;
   int cb_info_size;
+
+  PB_ref_info* pb_info;
+  int pb_info_size;
+
+  int RefPicList_POC[2][14+1];
 
 } de265_image;
 

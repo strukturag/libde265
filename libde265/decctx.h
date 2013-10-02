@@ -312,6 +312,8 @@ const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
 
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
+const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
+                                      const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
 int  get_merge_idx(const decoder_context* ctx,int xP,int yP);

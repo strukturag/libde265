@@ -425,6 +425,9 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     hdr->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
       RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
+
+    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+    ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ hdr->RefPicList[0][rIdx] ].PicOrderCntVal;
   }
 
 
@@ -447,6 +450,9 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       hdr->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
         RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
+
+    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+      ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ hdr->RefPicList[1][rIdx] ].PicOrderCntVal;
     }
   }
 }
@@ -550,6 +556,9 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
     ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
+
+    ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
+    ctx->img->pb_info = (CB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
 
 
     de265_alloc_image(&ctx->coeff,
@@ -942,6 +951,14 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
         ctx->pb_info[PB_IDX(pbx,pby)].Field = value;                    \
       }
 
+#define SET_IMG_PB_BLK(x,y,nPbW,nPbH,  Field,value)                     \
+  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
+  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
+    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
+      {                                                                 \
+        ctx->img->pb_info[PB_IDX(pbx,pby)].Field = value;               \
+      }
+
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 {
@@ -951,9 +968,17 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 }
 
 
+const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
+                                      const de265_image* img, int x,int y)
+{
+  return &img->pb_info[ CB_IDX(x,y) ].mvi;
+}
+
+
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
-  SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv);
+  { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
+  { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
 }
 
 
