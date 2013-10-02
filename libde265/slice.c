@@ -1550,7 +1550,10 @@ int decode_ref_idx_lX(decoder_context* ctx,
 
   int cMax = numRefIdxLXActive-1;
 
-  if (cMax==0) { return 0; } // do check for single reference frame here
+  if (cMax==0) {
+    logtrace(LogSlice,"> ref_idx = 0 (cMax==0)\n");
+    return 0;
+  } // do check for single reference frame here
 
   int ctxIdxOffset = (shdr->initType-1)*2;
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
@@ -1598,7 +1601,7 @@ int decode_ref_idx_lX(decoder_context* ctx,
   }
   */
 
-  logtrace(LogSlice,"> merge_idx = %d\n",idx);
+  logtrace(LogSlice,"> ref_idx = %d\n",idx);
 
   return idx;
 }
@@ -2633,8 +2636,8 @@ void read_prediction_unit(decoder_context* ctx,
       int mvp_l0_flag = decode_mvp_lx_flag(ctx,shdr); // l0
       set_mvp_flag(ctx,x0,y0,nPbW,nPbH,0, mvp_l0_flag);
 
-      logtrace(LogSlice,"prediction unit %d,%d, L0, MVD: %d,%d mvp_l0_flag:%d\n",
-               x0,y0,mvp_l0_flag);
+      logtrace(LogSlice,"prediction unit %d,%d, L0, mvp_l0_flag:%d\n",
+               x0,y0, mvp_l0_flag);
     }
 
     if (inter_pred_idc != PRED_L0) {

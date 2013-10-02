@@ -516,6 +516,20 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
 }
 
 
+void scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
+{
+  int td = Clip3(-128,127, colDist);
+  int tb = Clip3(-128,127, currDist);
+
+  int tx = (16384 + (abs_value(td)>>1)) / td;
+  int distScaleFactor = Clip3(-4096,4095, (tb*tx+32)>>6);
+  out_mv->x = Clip3(-32768,32767,
+                    Sign(distScaleFactor*mv.x)*((abs_value(distScaleFactor*mv.x)+127)>>8));
+  out_mv->y = Clip3(-32768,32767,
+                    Sign(distScaleFactor*mv.y)*((abs_value(distScaleFactor*mv.y)+127)>>8));
+}
+
+
 // (L1003) 8.5.3.2.8
 
 void derive_collocated_motion_vectors(decoder_context* ctx,
@@ -527,6 +541,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
                                       MotionVector* out_mvLXCol,
                                       uint8_t* out_availableFlagLXCol)
 {
+  fprintf(stderr,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
+
   // TODO: has to get pred_mode from reference picture
   enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xP,yP);
 
@@ -537,11 +553,19 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     return;
   }
   else {
-    const de265_image* colPic = &ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ];
-    const PredVectorInfo* mvi = get_img_mv_info(ctx,colPic,xP,yP);
+    fprintf(stderr,"colPic:%d (POC=%d) X:%d refIdxLX:%d refpiclist:%d\n",
+            colPic,
+            ctx->dpb[colPic].PicOrderCntVal,
+            X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
+
+    const de265_image* colImg = &ctx->dpb[colPic];
+    const PredVectorInfo* mvi = get_img_mv_info(ctx,colImg,xColPb,yColPb);
     int listCol;
     int refIdxCol;
     MotionVector mvCol;
+
+    fprintf(stderr,"read MVI %d;%d:\n",xColPb,yColPb);
+    logmvcand(*mvi);
 
     if (mvi->predFlag[0]==0) {
       mvCol = mvi->mv[1];
@@ -562,14 +586,21 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     *out_availableFlagLXCol = 1;
 
     bool isLongTerm = false; // TODO
-    int colDist  = colPic->PicOrderCntVal - colPic->RefPicList_POC[listCol][refIdxCol];
+    int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
     int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[listCol][refIdxLX];
+
+    printf("COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
+           colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
+           ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[listCol][refIdxLX]
+           );
 
     if (isLongTerm || colDist == currDist) {
       *out_mvLXCol = mvCol;
     }
     else {
-      assert(0); // TODO
+      scale_mv(out_mvLXCol, mvCol, colDist, currDist);
+      fprintf(stderr,"scale: %d;%d to %d;%d\n",
+              mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
     }
   }
 }
@@ -615,7 +646,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
       xColBr < ctx->current_sps->pic_width_in_luma_samples &&
       yColBr < ctx->current_sps->pic_height_in_luma_samples)
     {
-      xColPb = xColBr & ~0x0F;
+      xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
 
       derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
@@ -634,7 +665,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     int xColCtr = xP+(nPbW>>1);
     int yColCtr = yP+(nPbH>>1);
 
-    xColPb = xColCtr & ~0x0F;
+    xColPb = xColCtr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
     yColPb = yColCtr & ~0x0F;
 
     derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
@@ -815,23 +846,46 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
     }
   }
 
-  // 7. // TODO: long-term references
+  // 7.
 
   for (int k=0 ; k<=1 && out_availableFlagLXN[A]==0 ; k++) {
+    int refPicList;
+
     if (availableA[k] &&
         get_pred_mode(ctx,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
       
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
-      //if (vi->predFlag[X]==1 &&
-
-      // TODO: long-term references
+      if (vi->predFlag[X]==1 &&
+          true) { // TODO: long-term references
+        out_availableFlagLXN[A]=1;
+        out_mvLXN[A] = vi->mv[X];
+        refIdxA = vi->refIdx[X];
+        refPicList = X;
+      }
+      else if (vi->predFlag[Y]==1 &&
+               true) { // TODO: long-term references
+        out_availableFlagLXN[A]=1;
+        out_mvLXN[A] = vi->mv[Y];
+        refIdxA = vi->refIdx[Y];
+        refPicList = Y;
+      }
     }
 
-    // if (availableFlagLXN[X][A]==1 &&
-  }
+    if (out_availableFlagLXN[A]==1) {
+      de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
+      de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
+      if (refPicA->PicState == UsedForShortTermReference &&
+          refPicX->PicState == UsedForShortTermReference) {
 
+        int distA = ctx->img->PicOrderCntVal - refPicA->PicOrderCntVal;
+        int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
+
+        scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX);
+      }
+    }
+  }
 
 
   // --- B ---
@@ -894,12 +948,47 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
 
   if (isScaledFlagLX==0 &&
       out_availableFlagLXN[B]==0) {
-    for (int k=0;k<=2 && out_availableFlagLXN[B]==0;k++) {
-      assert(0); // TODO, long term prediction
+
+    for (int k=0 ; k<=2 && out_availableFlagLXN[B]==0 ; k++) {
+      int refPicList;
+
+      if (availableB[k] &&
+          get_pred_mode(ctx,xB[k],yB[k]) != MODE_INTRA) {
+
+        int Y=1-X;
+      
+        const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
+        if (vi->predFlag[X]==1 &&
+            true) { // TODO: long-term references
+          out_availableFlagLXN[B]=1;
+          out_mvLXN[B] = vi->mv[X];
+          refIdxB = vi->refIdx[X];
+          refPicList = X;
+        }
+        else if (vi->predFlag[Y]==1 &&
+                 true) { // TODO: long-term references
+          out_availableFlagLXN[B]=1;
+          out_mvLXN[B] = vi->mv[Y];
+          refIdxB = vi->refIdx[Y];
+          refPicList = Y;
+        }
+      }
+
+      if (out_availableFlagLXN[B]==1) {
+        de265_image* refPicB = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxB ] ];
+        de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
+        if (refPicB->PicState == UsedForShortTermReference &&
+            refPicX->PicState == UsedForShortTermReference) {
+
+          int distB = ctx->img->PicOrderCntVal - refPicB->PicOrderCntVal;
+          int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
+
+          scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX);
+        }
+      }
     }
   }
 }
-
 
 // 8.5.3.1.5
 MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
@@ -912,6 +1001,10 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
   bool availableFlagLXN[2];
   MotionVector mvLXN[2];
+
+  if (xP==112 && yP==96) {
+    //raise(SIGINT);
+  }
 
   derive_spatial_luma_vector_prediction(ctx, shdr, xC,yC, nCS, xP,yP, nPbW,nPbH, l, refIdx, partIdx,
                                         availableFlagLXN, mvLXN);
@@ -949,7 +1042,8 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
   // spatial predictor B (if not same as A)
 
   if (availableFlagLXN[1] &&
-      (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y))
+      (!availableFlagLXN[0] || // in case A in not available, but mvLXA initialized to same as mvLXB
+        (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y)))
     {
       mvpList[numMVPCandLX++] = mvLXN[1];
     }
@@ -978,9 +1072,15 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
 {
   fprintf(stderr,
+          "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
+          mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0]);
+
+  /*
+  fprintf(stderr,
           "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
           mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0],
           mv->lum.predFlag[1], mv->lum.mv[1].x,mv->lum.mv[1].y, mv->lum.refIdx[1]);
+  */
 }
 
 

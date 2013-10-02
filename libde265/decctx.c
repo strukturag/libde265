@@ -956,6 +956,7 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
   for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
     for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
       {                                                                 \
+        fprintf(stderr,"PB %d;%d = %d;%d\n",pbx,pby,(value).mv[0].x,(value).mv[0].y); \
         ctx->img->pb_info[PB_IDX(pbx,pby)].Field = value;               \
       }
 
@@ -971,12 +972,17 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y)
 {
-  return &img->pb_info[ CB_IDX(x,y) ].mvi;
+  return &img->pb_info[ PB_IDX(x,y) ].mvi;
 }
 
 
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
+
+  fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,
+          mv->mv[0].x,mv->mv[0].y,
+          ctx->img->PicOrderCntVal);
+
   { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
   { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
 }

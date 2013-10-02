@@ -39,7 +39,7 @@ typedef struct {
 } CB_ref_info;
 
 typedef struct {
-  PredVectorInfo mvi;
+  PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
 } PB_ref_info;
 
 
