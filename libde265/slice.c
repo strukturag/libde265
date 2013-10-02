@@ -573,6 +573,7 @@ static const int initValue_pred_mode_flag[2] = { 149,134 };
 static const int initValue_abs_mvd_greater01_flag[2] = { 140,198,169,198 };
 static const int initValue_mvp_lx_flag[2] = { 168,168 };
 static const int initValue_rqt_root_cbf[2] = { 79,79 };
+static const int initValue_ref_idx_lX[2] = { 153,153,153,153 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -812,6 +813,14 @@ void init_rqt_root_cbf(decoder_context* ctx, slice_segment_header* shdr)
       set_initValue(ctx,shdr,
                     &shdr->rqt_root_cbf_model[i],
                     initValue_rqt_root_cbf[i]);
+    }
+}
+
+void init_ref_idx_lX(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<4;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->ref_idx_lX_model[i], initValue_ref_idx_lX[i]);
     }
 }
 
@@ -1534,6 +1543,66 @@ int decode_rqt_root_cbf(decoder_context* ctx,
   return bit;
 }
 
+int decode_ref_idx_lX(decoder_context* ctx,
+                      slice_segment_header* shdr, int numRefIdxLXActive)
+{
+  logtrace(LogSlice,"# ref_idx_lX\n");
+
+  int cMax = numRefIdxLXActive-1;
+
+  if (cMax==0) { return 0; } // do check for single reference frame here
+
+  int ctxIdxOffset = (shdr->initType-1)*2;
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ref_idx_lX_model[ctxIdxOffset+0]);
+
+  int idx=0;
+
+  while (bit) {
+    idx++;
+    if (idx==cMax) { break; }
+
+    if (idx==1) {
+      bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ref_idx_lX_model[ctxIdxOffset+1]);
+    }
+    else {
+      bit = decode_CABAC_bypass(&shdr->cabac_decoder);
+    }
+  }
+
+  /*
+  if (bit==0) {
+    idx = 0;
+  }
+  else if (cMax==1) {
+    idx = 1;
+  }
+  else {
+    bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                           &shdr->ref_idx_lX_model[ctxIdxOffset+1]);
+
+    if (bit==0) {
+      idx=1;
+    }
+    else if (cMax==2) 
+    idx=1;
+
+    while (decode_CABAC_bypass(&shdr->cabac_decoder)) {
+      idx++;
+
+      if (idx==shdr->MaxNumMergeCand-1) {
+        break;
+      }
+    }
+  }
+  */
+
+  logtrace(LogSlice,"> merge_idx = %d\n",idx);
+
+  return idx;
+}
+
 
 
 int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
@@ -1561,6 +1630,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_abs_mvd_greater01_flag(ctx, shdr);
   init_mvp_lx_flag(ctx,shdr);
   init_rqt_root_cbf(ctx,shdr);
+  init_ref_idx_lX(ctx,shdr);
 
 
   int end_of_slice_segment_flag;
@@ -2553,13 +2623,10 @@ void read_prediction_unit(decoder_context* ctx,
     set_inter_pred_idc(ctx,x0,y0,0, inter_pred_idc);
 
     if (inter_pred_idc != PRED_L1) {
-      if (shdr->num_ref_idx_l0_active > 1) {
-        assert(0); // TODO
-        //set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, ???);
-      }
-      else {
-        set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, 0);
-      }
+      int ref_idx_l0 = decode_ref_idx_lX(ctx,shdr, shdr->num_ref_idx_l0_active);
+
+      // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
+      set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, ref_idx_l0);
 
       read_mvd_coding(ctx,shdr,x0,y0, 0);
 

@@ -205,6 +205,7 @@ typedef struct {
   context_model abs_mvd_greater01_flag_model[4];
   context_model mvp_lx_flag_model[2];
   context_model rqt_root_cbf_model[2];
+  context_model ref_idx_lX_model[2];
 
 } slice_segment_header;
 
