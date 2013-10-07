@@ -41,6 +41,7 @@ enum LogModule {
   LogHighlevel,
   LogHeaders,
   LogSlice,
+  LogDPB,
   LogMotion,
   LogTransform,
   LogDeblock,
@@ -51,6 +52,16 @@ enum LogModule {
   LogCABAC
 };
 
+
+#if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
+# define DE265_LOGGING 1
+#endif
+
+#ifdef DE265_LOGGING
+void log_set_current_POC(int poc);
+#else
+#define log_set_current_POC(poc) { }
+#endif
 
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...);

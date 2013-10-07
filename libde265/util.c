@@ -86,12 +86,18 @@ int abs_value_func(int a)
 }
 */
 
-
+#ifdef DE265_LOGGING
+static int current_poc=0;
+static int log_poc_start=0;
+void log_set_current_POC(int poc) { current_poc=poc; }
+#endif
 
 
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...)
 {
+  if (current_poc < log_poc_start) { return; }
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
@@ -105,6 +111,8 @@ void logerror(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_INFO
 void loginfo (enum LogModule module, const char* string, ...)
 {
+  if (current_poc < log_poc_start) { return; }
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
@@ -118,6 +126,8 @@ void loginfo (enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...)
 {
+  if (current_poc < log_poc_start) { return; }
+
   va_list va;
 
   va_start(va, string);
@@ -129,6 +139,8 @@ void logdebug(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_TRACE
 void logtrace(enum LogModule module, const char* string, ...)
 {
+  if (current_poc < log_poc_start) { return; }
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
