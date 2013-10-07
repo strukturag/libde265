@@ -333,18 +333,27 @@ void de265_release_next_picture(de265_decoder_context* de265ctx)
   if (ctx->image_output_queue_length==0) { return; }
 
 
+  loginfo(LogDPB, "release DPB with POC=%d\n",ctx->image_output_queue[0]->PicOrderCntVal);
+
   ctx->image_output_queue[0]->PicOutputFlag = false;
 
   // pop output queue
-
-  ctx->image_output_queue_length--;
 
   for (int i=1;i<ctx->image_output_queue_length;i++)
     {
       ctx->image_output_queue[i-1] = ctx->image_output_queue[i];
     }
 
+  ctx->image_output_queue_length--;
+
   ctx->image_output_queue[ ctx->image_output_queue_length ] = NULL;
+
+
+  loginfo(LogDPB, "* DPB output queue: ");
+  for (int i=0;i<ctx->image_output_queue_length;i++) {
+    loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
+  }
+  loginfo(LogDPB,"");
 }
 
 
