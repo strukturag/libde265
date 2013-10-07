@@ -248,7 +248,6 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 
   ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
 
-
   if (1 /* TemporalID==0 */ && // TODO
       !isRASL(ctx->nal_unit_type) &&
       !isRADL(ctx->nal_unit_type) &&
@@ -268,6 +267,8 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
       return k;
     }
   }
+
+  assert(false);
 
   return -1;
 }
@@ -491,7 +492,15 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       if (ctx->img->PicOutputFlag) {
         assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
         ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
+
+        loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
       }
+
+      loginfo(LogDPB, "* DPB output queue (after push): ");
+      for (int i=0;i<ctx->image_output_queue_length;i++) {
+        loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
+      }
+      loginfo(LogDPB,"");
 
       ctx->img = NULL;
 
@@ -602,11 +611,20 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     process_reference_picture_set(ctx,hdr);
     generate_unavailable_reference_pictures(ctx,hdr);
 
+    log_set_current_POC(ctx->img->PicOrderCntVal);
+
     if (hdr->slice_type == SLICE_TYPE_B ||
         hdr->slice_type == SLICE_TYPE_P)
       {
         construct_reference_picture_lists(ctx,hdr);
       }
+  }
+
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, ctx->dpb[i].PicOrderCntVal,
+            ctx->dpb[i].PicState == UnusedForReference ? "unused" :
+            ctx->dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
+            ctx->dpb[i].PicOutputFlag ? "output" : "---");
   }
 
   return DE265_OK;
@@ -956,9 +974,10 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
   for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
     for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
       {                                                                 \
-        fprintf(stderr,"PB %d;%d = %d;%d\n",pbx,pby,(value).mv[0].x,(value).mv[0].y); \
         ctx->img->pb_info[PB_IDX(pbx,pby)].Field = value;               \
       }
+
+//        fprintf(stderr,"PB %d;%d = %d;%d\n",pbx,pby,(value).mv[0].x,(value).mv[0].y); \
 
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
@@ -978,10 +997,11 @@ const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
 
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
-
+  /*
   fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,
           mv->mv[0].x,mv->mv[0].y,
           ctx->img->PicOrderCntVal);
+  */
 
   { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
   { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
