@@ -570,10 +570,10 @@ static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
 static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
 static const int initValue_pred_mode_flag[2] = { 149,134 };
-static const int initValue_abs_mvd_greater01_flag[2] = { 140,198,169,198 };
+static const int initValue_abs_mvd_greater01_flag[4] = { 140,198,169,198 };
 static const int initValue_mvp_lx_flag[2] = { 168,168 };
 static const int initValue_rqt_root_cbf[2] = { 79,79 };
-static const int initValue_ref_idx_lX[2] = { 153,153,153,153 };
+static const int initValue_ref_idx_lX[4] = { 153,153,153,153 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -792,6 +792,7 @@ void init_abs_mvd_greater01_flag(decoder_context* ctx, slice_segment_header* shd
 {
   for (int i=0;i<4;i++)
     {
+      fprintf(stderr, "REFIDX: %d\n", initValue_abs_mvd_greater01_flag[i]);
       set_initValue(ctx,shdr,
                     &shdr->abs_mvd_greater01_flag_model[i],
                     initValue_abs_mvd_greater01_flag[i]);
@@ -977,11 +978,10 @@ enum PartMode decode_part_mode(decoder_context* ctx,
     logtrace(LogSlice,"# part_mode (INTRA)\n");
 
     int ctxIdxOffset;
-    switch (shdr->slice_type) {
-    case SLICE_TYPE_I: ctxIdxOffset=0; break;
-    case SLICE_TYPE_P: ctxIdxOffset=1; break;
-    case SLICE_TYPE_B:
-    default:           ctxIdxOffset=1; break;
+    switch (shdr->initType) {
+    case 0: ctxIdxOffset=0; break;
+    case 1: ctxIdxOffset=1; break;
+    case 2: ctxIdxOffset=5; break;
     }
 
     int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
@@ -991,7 +991,7 @@ enum PartMode decode_part_mode(decoder_context* ctx,
     return bit ? PART_2Nx2N : PART_NxN;
   }
   else {
-    int ctxIdxOffset = (shdr->slice_type==SLICE_TYPE_P) ? 1 : 5;
+    int ctxIdxOffset = (shdr->initType==1) ? 1 : 5;
 
     int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
     if (bit) { return PART_2Nx2N; }
@@ -2520,7 +2520,7 @@ void read_mvd_coding(decoder_context* ctx,
                      slice_segment_header* shdr,
                      int x0,int y0, int refList)
 {
-  int ctxIdxOffset = (shdr->slice_type == SLICE_TYPE_P) ? 0 : 2;
+  int ctxIdxOffset = (shdr->initType==1) ? 0 : 2;
 
   int abs_mvd_greater0_flag[2];
   abs_mvd_greater0_flag[0] = decode_CABAC_bit(&shdr->cabac_decoder,
@@ -2616,7 +2616,7 @@ void read_prediction_unit(decoder_context* ctx,
   else { // no merge flag
     enum InterPredIdc inter_pred_idc;
 
-    if (shdr->slice_type==SLICE_TYPE_B) {
+    if (shdr->slice_type == SLICE_TYPE_B) {
       assert(0); // TODO: inter_pred_idc
     }
     else {
