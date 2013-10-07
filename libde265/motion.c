@@ -948,22 +948,22 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
   // 4.
 
   if (isScaledFlagLX==0 &&
-      out_availableFlagLXN[B]==1 &&
-      out_availableFlagLXN[A]==1) {
+      out_availableFlagLXN[B]) {
+    out_availableFlagLXN[A]=1;
     out_mvLXN[A] = out_mvLXN[B];
     refIdxA = refIdxB;
   }
 
   // 5.
 
-  if (isScaledFlagLX==0 &&
-      out_availableFlagLXN[B]==0) {
+  if (isScaledFlagLX==0) {
+    out_availableFlagLXN[B]=0;
 
     for (int k=0 ; k<=2 && out_availableFlagLXN[B]==0 ; k++) {
       int refPicList;
 
-      if (availableB[k] &&
-          get_pred_mode(ctx,xB[k],yB[k]) != MODE_INTRA) {
+      if (availableB[k]) {
+        // get_pred_mode(ctx,xB[k],yB[k]) != MODE_INTRA) {
 
         int Y=1-X;
       
@@ -987,7 +987,8 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
       if (out_availableFlagLXN[B]==1) {
         de265_image* refPicB = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxB ] ];
         de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
-        if (refPicB->PicState == UsedForShortTermReference &&
+        if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
+            refPicB->PicState == UsedForShortTermReference &&
             refPicX->PicState == UsedForShortTermReference) {
 
           int distB = ctx->img->PicOrderCntVal - refPicB->PicOrderCntVal;
@@ -1012,7 +1013,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
   bool availableFlagLXN[2];
   MotionVector mvLXN[2];
 
-  if (xP==256 && yP==176 && ctx->img->PicOrderCntVal==12) {
+  if (xP==68 && yP==16 && ctx->img->PicOrderCntVal==638) {
     //raise(SIGINT);
   }
 
