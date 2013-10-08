@@ -36,7 +36,9 @@
 #define DE265_MAX_SLICES   64
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
-#define DE265_DPB_SIZE  20  // TODO: check required value
+// TODO: check required value, change buffer management such that
+// a packet with lots of small images don't fill the output buffer.
+#define DE265_DPB_SIZE  20+50
 
 
 // split_cu_flag             CB (MinCbSizeY)

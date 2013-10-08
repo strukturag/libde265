@@ -792,7 +792,6 @@ void init_abs_mvd_greater01_flag(decoder_context* ctx, slice_segment_header* shd
 {
   for (int i=0;i<4;i++)
     {
-      fprintf(stderr, "REFIDX: %d\n", initValue_abs_mvd_greater01_flag[i]);
       set_initValue(ctx,shdr,
                     &shdr->abs_mvd_greater01_flag_model[i],
                     initValue_abs_mvd_greater01_flag[i]);

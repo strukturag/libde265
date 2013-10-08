@@ -496,11 +496,11 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
         loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
       }
 
-      loginfo(LogDPB, "* DPB output queue (after push): ");
+      loginfo(LogDPB, "DPB output queue (after push): ");
       for (int i=0;i<ctx->image_output_queue_length;i++) {
         loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
       }
-      loginfo(LogDPB,"");
+      loginfo(LogDPB,"*\n");
 
       ctx->img = NULL;
 

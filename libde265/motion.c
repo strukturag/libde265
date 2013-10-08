@@ -543,7 +543,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
                                       MotionVector* out_mvLXCol,
                                       uint8_t* out_availableFlagLXCol)
 {
-  fprintf(stderr,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
+  logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
   // TODO: has to get pred_mode from reference picture
   enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xColPb,yColPb);
@@ -555,10 +555,10 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     return;
   }
   else {
-    fprintf(stderr,"colPic:%d (POC=%d) X:%d refIdxLX:%d refpiclist:%d\n",
-            colPic,
-            ctx->dpb[colPic].PicOrderCntVal,
-            X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
+    logtrace(LogMotion,"colPic:%d (POC=%d) X:%d refIdxLX:%d refpiclist:%d\n",
+             colPic,
+             ctx->dpb[colPic].PicOrderCntVal,
+             X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
 
     const de265_image* colImg = &ctx->dpb[colPic];
     const PredVectorInfo* mvi = get_img_mv_info(ctx,colImg,xColPb,yColPb);
@@ -566,7 +566,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     int refIdxCol;
     MotionVector mvCol;
 
-    fprintf(stderr,"read MVI %d;%d:\n",xColPb,yColPb);
+    logtrace(LogMotion,"read MVI %d;%d:\n",xColPb,yColPb);
     logmvcand(*mvi);
 
     if (mvi->predFlag[0]==0) {
@@ -591,18 +591,18 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
     int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[listCol][refIdxLX];
 
-    fprintf(stderr,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
-           colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
-           ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[listCol][refIdxLX]
-           );
+    logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
+             colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
+             ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[listCol][refIdxLX]
+             );
 
     if (isLongTerm || colDist == currDist) {
       *out_mvLXCol = mvCol;
     }
     else {
       scale_mv(out_mvLXCol, mvCol, colDist, currDist);
-      fprintf(stderr,"scale: %d;%d to %d;%d\n",
-              mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
+      logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
+               mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
     }
   }
 }
@@ -1082,15 +1082,15 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
 {
-  fprintf(stderr,
-          "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
-          mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0]);
+  logtrace(LogMotion,
+           "*MV %d;%d [%d;%d] %s: (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
+           mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0]);
 
   /*
-  fprintf(stderr,
-          "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
-          mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0],
-          mv->lum.predFlag[1], mv->lum.mv[1].x,mv->lum.mv[1].y, mv->lum.refIdx[1]);
+  logtrace(LogMotion,
+           "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
+           mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0],
+           mv->lum.predFlag[1], mv->lum.mv[1].x,mv->lum.mv[1].y, mv->lum.refIdx[1]);
   */
 }
 
