@@ -121,7 +121,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
 
-          predSamplesL[l][y*nCS+x] = refPic->y[ x+xA + yA*refPic->stride ] << shift3;
+          predSamplesL[l][y*nCS+x] = refPic->y[ xA + yA*refPic->stride ] << shift3;
         }
 
 
@@ -150,8 +150,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           int xB = Clip3(0,wC-1,x + xIntOffsC);
           int yB = Clip3(0,hC-1,y + yIntOffsC);
 
-          predSamplesC[0][l][y*nCS+x] = refPic->cb[ x+xB + yB*refPic->stride ] << shiftC3;
-          predSamplesC[1][l][y*nCS+x] = refPic->cr[ x+xB + yB*refPic->stride ] << shiftC3;
+          predSamplesC[0][l][y*nCS+x] = refPic->cb[ xB + yB*refPic->chroma_stride ] << shiftC3;
+          predSamplesC[1][l][y*nCS+x] = refPic->cr[ xB + yB*refPic->chroma_stride ] << shiftC3;
         }
     }
   }
