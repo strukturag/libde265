@@ -105,7 +105,8 @@ int main(int argc, char** argv)
   }
 
   de265_error err =DE265_OK;
-  for (;;)
+  bool stop=false;
+  while (!stop)
     {
       // read a chunk of input data
       uint8_t buf[BUFFER_SIZE];
@@ -121,13 +122,15 @@ int main(int argc, char** argv)
 
       if (feof(fh)) {
         err = de265_decode_data(ctx, NULL, 0); // indicate end of stream
-        break;
+        stop = true;
       }
 
       // show queued output images
       for (;;) {
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
+
+        //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
 
 #if HAVE_VIDEOGFX
         display_image(img);

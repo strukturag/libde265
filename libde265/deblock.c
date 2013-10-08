@@ -134,6 +134,7 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical)
           bS = 2;
         }
         else {
+          return; // TODO HACK
           logerror(LogDeblock, "unimplemented code reached (file %s, line %d)\n",
                    __FILE__, __LINE__);
           bS = 2; // TODO

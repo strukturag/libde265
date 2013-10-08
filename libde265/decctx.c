@@ -41,6 +41,9 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- internal data ---
 
+  rbsp_buffer_init(&ctx->pending_input_data);
+  ctx->end_of_stream=false;
+
   rbsp_buffer_init(&ctx->nal_data);
   ctx->input_push_state = 0;
 
@@ -220,6 +223,17 @@ int get_next_slice_index(decoder_context* ctx)
 }
 
 
+static void log_dpb_content(const decoder_context* ctx)
+{
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, ctx->dpb[i].PicOrderCntVal,
+            ctx->dpb[i].PicState == UnusedForReference ? "unused" :
+            ctx->dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
+            ctx->dpb[i].PicOutputFlag ? "output" : "---");
+  }
+}
+
+
 /* 8.3.1
  */
 void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
@@ -259,8 +273,23 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 }
 
 
+bool has_free_dpb_picture(const decoder_context* ctx)
+{
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
 static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
 {
+  //log_dpb_content(ctx);
+  //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
+
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (ctx->dpb[k].PicOrderCntVal == poc &&
         ctx->dpb[k].PicState == UsedForShortTermReference) {
@@ -459,6 +488,52 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 }
 
 
+
+void push_current_picture_to_output_queue(decoder_context* ctx)
+{
+  if (ctx->img) {
+    ctx->img->PicState = UsedForShortTermReference;
+
+    // post-process image
+
+    apply_deblocking_filter(ctx);
+    apply_sample_adaptive_offset(ctx);
+
+    // push image into output queue
+
+    if (ctx->img->PicOutputFlag) {
+      loginfo(LogDPB,"new picture has output-flag=true\n");
+
+      assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
+      ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
+
+      loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
+    }
+
+    loginfo(LogDPB, "DPB output queue (after push): ");
+    for (int i=0;i<ctx->image_output_queue_length;i++) {
+      loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
+    }
+    loginfo(LogDPB,"*\n");
+
+    ctx->img = NULL;
+
+    /*
+      if (isRAP(ctx->nal_unit_type)) {
+      ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
+
+      ctx->last_RAP_was_CRA_and_first_image_of_sequence =
+      isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
+      }
+    */
+
+    // next image is not the first anymore
+
+    ctx->first_decoded_picture = false;
+  }
+}
+
+
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
@@ -479,44 +554,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     // previous picture has been completely decoded
 
-    if (ctx->img) {
-      ctx->img->PicState = UsedForShortTermReference;
-
-      // post-process image
-
-      apply_deblocking_filter(ctx);
-      apply_sample_adaptive_offset(ctx);
-
-      // push image into output queue
-
-      if (ctx->img->PicOutputFlag) {
-        assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
-        ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
-
-        loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
-      }
-
-      loginfo(LogDPB, "DPB output queue (after push): ");
-      for (int i=0;i<ctx->image_output_queue_length;i++) {
-        loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
-      }
-      loginfo(LogDPB,"*\n");
-
-      ctx->img = NULL;
-
-      /*
-      if (isRAP(ctx->nal_unit_type)) {
-        ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
-
-        ctx->last_RAP_was_CRA_and_first_image_of_sequence =
-          isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
-      }
-      */
-
-      // next image is not the first anymore
-
-      ctx->first_decoded_picture = false;
-    }
+    push_current_picture_to_output_queue(ctx);
 
     ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 
@@ -620,12 +658,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       }
   }
 
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, ctx->dpb[i].PicOrderCntVal,
-            ctx->dpb[i].PicState == UnusedForReference ? "unused" :
-            ctx->dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
-            ctx->dpb[i].PicOutputFlag ? "output" : "---");
-  }
+  log_dpb_content(ctx);
 
   return DE265_OK;
 }

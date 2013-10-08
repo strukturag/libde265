@@ -38,7 +38,7 @@
 
 // TODO: check required value, change buffer management such that
 // a packet with lots of small images don't fill the output buffer.
-#define DE265_DPB_SIZE  20+50
+#define DE265_DPB_SIZE  20
 
 
 // split_cu_flag             CB (MinCbSizeY)
@@ -131,6 +131,9 @@ typedef struct {
 
 
   // --- internal data ---
+
+  rbsp_buffer pending_input_data;
+  bool end_of_stream; // data in pending_input_data is end of stream
 
   rbsp_buffer nal_data;
   int         input_push_state;
@@ -345,6 +348,9 @@ bool available_zscan(const decoder_context* ctx,
 bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
+
+bool has_free_dpb_picture(const decoder_context* ctx);
+void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
 

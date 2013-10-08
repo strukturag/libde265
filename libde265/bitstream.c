@@ -67,6 +67,23 @@ void rbsp_buffer_free(rbsp_buffer* buffer)
 }
 
 
+void rbsp_buffer_append(rbsp_buffer* buffer, unsigned char* data, int n)
+{
+  rbsp_buffer_resize(buffer, buffer->size + n);
+  memcpy(buffer->data + buffer->size, data, n);
+  buffer->size += n;
+}
+
+
+void rbsp_buffer_pop(rbsp_buffer* buffer, int n)
+{
+  memmove(buffer->data,
+          buffer->data + n,
+          buffer->size - n);
+  buffer->size -= n;
+}
+
+
 #define READ_CHUNK_SIZE 1024
 
 static bool input_context_FILE_read(input_context* ctx)
