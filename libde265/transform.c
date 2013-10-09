@@ -314,6 +314,8 @@ void scale_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 
     int bdShift = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C) + Log2(nT) - 5;
 
+    logtrace(LogTransform,"bdShift=%d\n",bdShift);
+
     logtrace(LogTransform,"coefficients IN:\n");
     for (int y=0;y<nT;y++) {
       logtrace(LogTransform,"  ");
@@ -326,9 +328,10 @@ void scale_coefficients(decoder_context* ctx, slice_segment_header* shdr,
     if (sps->scaling_list_enable_flag==0) {
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++) {
+          int m_x_y = 16;
           coeff[xT+x+(y+yT)*coeffStride] = Clip3(-32768,32767,
                                                  ( (coeff[x+xT+(y+yT)*coeffStride]
-                                                    * 16 * levelScale[qP%6] << (qP/6))
+                                                    * m_x_y * levelScale[qP%6] << (qP/6))
                                                    + (1<<(bdShift-1)) ) >> bdShift);
         }
     }
@@ -347,10 +350,15 @@ void scale_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 
     int bdShift2 = (cIdx==0) ? 20-sps->BitDepth_Y : 20-sps->BitDepth_C;
 
+    logtrace(LogTransform,"bdShift2=%d\n",bdShift2);
+
+    logtrace(LogSlice,"get_transform_skip_flag(%d,%d, cIdx=%d)=%d\n",xT,yT,cIdx,
+             get_transform_skip_flag(ctx,xT,yT,cIdx));
+
     if (get_transform_skip_flag(ctx,xT,yT,cIdx)) {
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++) {
-          int16_t c = coeff[x+xT+(y+yT)*coeffStride] << 7;
+          int32_t c = coeff[x+xT+(y+yT)*coeffStride] << 7;
           coeff[x+xT+(y+yT)*coeffStride] = (c+(1<<(bdShift2-1)))>>bdShift2;
         }
     }
