@@ -759,6 +759,7 @@ enable_libtool_lock
 enable_dependency_tracking
 enable_log_error
 enable_log_info
+enable_log_debug
 enable_log_trace
 enable_dec265
 enable_sherlock265
@@ -1410,6 +1411,7 @@ Optional Features:
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-log-error      turn on logging at error level (default=yes)
   --enable-log-info       turn on logging at info level (default=no)
+  --enable-log-debug      turn on logging at debug level (default=no)
   --enable-log-trace      turn on logging at trace level (default=no)
   --disable-dec265        Do not build dec265 decoder program.
   --disable-sherlock265   Do not build sherlock265 visual inspection program.
@@ -16146,6 +16148,17 @@ fi
 
 if eval "test $enable_log_info = yes"; then
   CFLAGS+=" -DDE265_LOG_INFO"
+fi
+
+# Check whether --enable-log-debug was given.
+if test "${enable_log_debug+set}" = set; then :
+  enableval=$enable_log_debug; enable_log_debug=$enableval
+else
+  enable_log_debug=no
+fi
+
+if eval "test $enable_log_debug = yes"; then
+  CFLAGS+=" -DDE265_LOG_DEBUG"
 fi
 
 # Check whether --enable-log-trace was given.
