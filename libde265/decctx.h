@@ -359,7 +359,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
 
-void write_picture(const decoder_context* ctx);
+void write_picture(const de265_image* img);
 void draw_CB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_TB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_PB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);

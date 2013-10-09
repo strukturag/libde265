@@ -1195,12 +1195,11 @@ bool available_pred_blk(const decoder_context* ctx,
 }
 
 
-void write_picture(const decoder_context* ctx)
+void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen("out.yuv","wb"); }
 
-  const de265_image* img = ctx->img;
   for (int y=0;y<img->height;y++)
     fwrite(img->y + y*img->stride, img->width, 1, fh);
 
