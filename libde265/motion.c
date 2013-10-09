@@ -29,6 +29,12 @@
 #include <signal.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+# include <malloc.h>
+#else
+# include <alloca.h>
+#endif
+
 
 enum {
   // important! order like shown in 8.5.3.1.1
@@ -60,6 +66,128 @@ void reset_pred_vector(PredVectorInfo* pvec)
 }
 
 
+static int extra_before[4] = { 0,3,3,2 };
+static int extra_after [4] = { 0,3,4,4 };
+
+void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
+             int xP,int yP,
+             int16_t* out, int out_stride,
+             uint8_t* img, int img_stride,
+             int nPbW, int nPbH)
+{
+  int xFracL = mv_x & 3;
+  int yFracL = mv_y & 3;
+
+  int xIntOffsL = xP + (mv_x>>2);
+  int yIntOffsL = yP + (mv_y>>2);
+
+  // luma sample interpolation process (8.5.3.2.2.1)
+
+  const int shift1 = sps->BitDepth_Y-8;
+  const int shift2 = 6;
+  const int shift3 = 14 - sps->BitDepth_Y;
+
+  int w = sps->pic_width_in_luma_samples;
+  int h = sps->pic_height_in_luma_samples;
+
+  if (xFracL==0 && yFracL==0) {
+    for (int y=0;y<nPbH;y++)
+      for (int x=0;x<nPbW;x++) {
+        
+        int xA = Clip3(0,w-1,x + xIntOffsL);
+        int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+        out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
+      }
+  }
+  else {
+    int extra_left   = extra_before[xFracL];
+    int extra_right  = extra_after [xFracL];
+    int extra_top    = extra_before[yFracL];
+    int extra_bottom = extra_after [yFracL];
+
+    int nPbW_extra = extra_left + nPbW + extra_right;
+    int nPbH_extra = extra_top  + nPbH + extra_bottom;
+
+    uint8_t* tmp1buf = (uint16_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
+    int16_t* tmp2buf = ( int16_t*)alloca( nPbW       * nPbH_extra * sizeof(int16_t) );
+
+
+    logtrace(LogMotion,"---MC %d %d---\n",xFracL,yFracL);
+
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      for (int x=-extra_left;x<nPbW+extra_right;x++) {
+        
+        int xA = Clip3(0,w-1,x + xIntOffsL);
+        int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+        tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
+
+        logtrace(LogMotion,"%02x ",tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
+      }
+      logtrace(LogMotion,"\n");
+    }
+
+    // H-filters
+
+    logtrace(LogMotion,"---H---\n");
+
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
+
+      for (int x=0;x<nPbW;x++) {
+        int16_t v;
+        switch (xFracL) {
+        case 0: v = *p; break;
+        case 1: v = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1; break;
+        case 2: v = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1; break;
+        case 3: v = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1; break;
+        }
+        
+        tmp2buf[y+extra_top + x*nPbH_extra] = v;
+        p++;
+
+        logtrace(LogMotion,"%04x ",tmp2buf[y+extra_top + x*nPbH_extra]);
+      }
+      logtrace(LogMotion,"\n");
+    }
+
+    // V-filters
+
+    int vshift = (xFracL==0 ? shift1 : shift2);
+
+    for (int x=0;x<nPbW;x++) {
+      uint16_t* p = &tmp2buf[x*nPbH_extra];
+
+      for (int y=0;y<nPbH;y++) {
+        int16_t v;
+        //logtrace(LogMotion,"%x %x %x  %x  %x %x %x\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6]);
+
+        switch (yFracL) {
+        case 0: v = *p; break;
+        case 1: v = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift; break;
+        case 2: v = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift; break;
+        case 3: v = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift; break;
+        }
+        
+        out[x + y*out_stride] = v;
+        p++;
+      }
+
+    }
+
+    logtrace(LogMotion,"---V---\n");
+    for (int y=0;y<nPbH;y++) {
+      for (int x=0;x<nPbW;x++) {
+        logtrace(LogMotion,"%04x ",out[x+y*out_stride]);
+      }
+      logtrace(LogMotion,"\n");
+    }
+
+  }
+}
+
+
 #define MAX_CU_SIZE 64
 
 // 8.5.3.2
@@ -76,8 +204,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
   const seq_parameter_set* sps = ctx->current_sps;
 
-  uint16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-  uint16_t predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  int16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  int16_t predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
 
   int xP = xC+xB;
   int yP = yC+yB;
@@ -96,6 +224,11 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
       // 8.5.3.2.2
 
+      // TODO: is predSamples stride really nCS or something like nPbW?
+      mc_luma(sps, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+              predSamplesL[l],nCS, refPic->y,refPic->stride, nPbW,nPbH);
+
+      /*
       int xFracL = vi->lum.mv[l].x & 3;
       int yFracL = vi->lum.mv[l].y & 3;
 
@@ -123,7 +256,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
           predSamplesL[l][y*nCS+x] = refPic->y[ xA + yA*refPic->stride ] << shift3;
         }
-
+      */
 
       // chroma sample interpolation process (8.5.3.2.2.2)
 
@@ -194,6 +327,19 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   else {
         assert(false); // TODO
   }
+
+
+  logtrace(LogTransform,"MC pixels (luma), position %d %d:\n", xP,yP);
+
+  for (int y=0;y<nPbH;y++) {
+    logtrace(LogTransform,"MC-%d-%d ",xP,yP+y);
+
+    for (int x=0;x<nPbW;x++) {
+      logtrace(LogTransform,"*%02x ", ctx->img->y[xP+x+(yP+y)*ctx->img->stride]);
+    }
+
+    logtrace(LogTransform,"*\n");
+  }  
 }
 
 
