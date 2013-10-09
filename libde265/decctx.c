@@ -34,6 +34,8 @@
 
 void init_decoder_context(decoder_context* ctx)
 {
+  memset(ctx, 0, sizeof(decoder_context));
+
   // --- parameters ---
 
   ctx->param_sei_check_hash = true;
@@ -46,8 +48,6 @@ void init_decoder_context(decoder_context* ctx)
 
   rbsp_buffer_init(&ctx->nal_data);
   ctx->input_push_state = 0;
-
-  memset(ctx, 0, sizeof(decoder_context));
 
   ctx->ref_pic_sets = NULL;
 
@@ -783,6 +783,16 @@ void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWi
 int  get_intra_chroma_pred_mode(const decoder_context* ctx, int x,int y)
 {
   return GET_CB_BLK(x,y).intra_chroma_pred_mode;
+}
+
+void set_rqt_root_cbf(decoder_context* ctx,int x,int y, int log2BlkWidth, int rqt_root_cbf_value)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, rqt_root_cbf, rqt_root_cbf_value);
+}
+
+int  get_rqt_root_cbf(const decoder_context* ctx,int x,int y)
+{
+  return GET_CB_BLK(x,y).rqt_root_cbf;
 }
 
 
