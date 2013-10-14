@@ -108,13 +108,16 @@ typedef struct {
   uint8_t split_transform_flag;
   uint8_t transform_skip_flag;   // read bit (1<<cIdx)
   uint8_t coded_sub_block_flag;
-  uint8_t significant_coeff_flag;
+  //uint8_t significant_coeff_flag;
+  uint8_t nonzero_coefficient;
 } TU_info;
 
 
 
 #define DEBLOCK_FLAG_VERTI (1<<4)
 #define DEBLOCK_FLAG_HORIZ (1<<5)
+#define DEBLOCK_PB_EDGE_VERTI (1<<6)
+#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
 #define DEBLOCK_BS_MASK     0x03
 
 typedef struct {
@@ -293,6 +296,9 @@ int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafo
 
 void set_transform_skip_flag(decoder_context* ctx,int x0,int y0,int cIdx);
 int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
+
+void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
+int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
 
 // TODO CHECK: should be sufficient to set value only in to left of CB
 void set_rqt_root_cbf(decoder_context* ctx,int x0,int y0, int log2CbSize, int rqt_root_cbf);

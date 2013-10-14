@@ -1863,6 +1863,9 @@ int residual_coding(decoder_context* ctx,
   //seq_parameter_set* sps = ctx->current_sps;
 
 
+  set_nonzero_coefficient(ctx,x0,y0,log2TrafoSize);
+
+
   shdr->cu_transquant_bypass_flag=0; // TODO
 
   if (ctx->current_pps->transform_skip_enabled_flag &&
@@ -2689,7 +2692,7 @@ void read_coding_unit(decoder_context* ctx,
   if (cu_skip_flag) {
     read_prediction_unit_SKIP(ctx,shdr,x0,y0,nCbS,nCbS);
 
-    set_PartMode(ctx, x0,y0, PART_2Nx2N); // TODO: not sure if we need this
+    set_PartMode(ctx, x0,y0, PART_2Nx2N); // need this for deblocking filter
     set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
     cuPredMode = MODE_SKIP;
 

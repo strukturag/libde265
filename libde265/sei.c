@@ -148,6 +148,12 @@ static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_cont
 {
   const sei_decoded_picture_hash* seihash = &sei->decoded_picture_hash;
 
+  assert(ctx->image_output_queue_length >= 1);
+  de265_image* img = ctx->image_output_queue[ ctx->image_output_queue_length-1 ];
+  assert(img != NULL);
+
+  //write_picture(img);
+
   int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     uint8_t* data;
@@ -155,22 +161,22 @@ static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_cont
 
     switch (i) {
     case 0:
-      w = ctx->img->width;
-      h = ctx->img->height;
-      stride = ctx->img->stride;
+      w = img->width;
+      h = img->height;
+      stride = img->stride;
       break;
 
     case 1:
     case 2:
-      w = ctx->img->chroma_width;
-      h = ctx->img->chroma_height;
-      stride = ctx->img->chroma_stride;
+      w = img->chroma_width;
+      h = img->chroma_height;
+      stride = img->chroma_stride;
       break;
     }
 
-    /**/ if (i==0) data = ctx->img->y;
-    else if (i==1) data = ctx->img->cb;
-    else           data = ctx->img->cr;
+    /**/ if (i==0) data = img->y;
+    else if (i==1) data = img->cb;
+    else           data = img->cr;
 
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:
@@ -178,9 +184,17 @@ static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_cont
         uint8_t md5[16];
         compute_MD5_8bit(data,w,h,stride,md5);
 
+        /*
+        fprintf(stderr,"computed MD5: ");
+        for (int b=0;b<16;b++) {
+          fprintf(stderr,"%02x", md5[b]);
+        }
+        fprintf(stderr,"\n");
+        */
+
         for (int b=0;b<16;b++) {
           if (md5[b] != seihash->md5[i][b]) {
-            fprintf(stderr,"SEI decoded picture MD5 mismatch\n");
+            fprintf(stderr,"SEI decoded picture MD5 mismatch (POC=%d)\n", img->PicOrderCntVal);
             return DE265_ERROR_CHECKSUM_MISMATCH;
           }
         }
@@ -262,15 +276,20 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
   }
 }
 
+bool override_sei_check = true;
+
 int process_sei(const sei_message* sei, decoder_context* ctx)
 {
   int err = DE265_OK;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    if (ctx->param_sei_check_hash) {
+    if (ctx->param_sei_check_hash || override_sei_check) {
       err = process_sei_decoded_picture_hash(sei, ctx);
     }
+
+    if (override_sei_check) { err = DE265_OK; }
+
     break;
   }
 

@@ -388,6 +388,8 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       sei_message sei;
 
+      push_current_picture_to_output_queue(ctx);
+
       read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx);
       dump_sei(&sei, ctx);
 

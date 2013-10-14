@@ -911,6 +911,18 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx)
 }
 
 
+void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
+{
+  SET_TU_BLK(x,y,log2TrafoSize, nonzero_coefficient, 1);
+}
+
+
+int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
+{
+  return GET_TU_BLK(x,y).nonzero_coefficient;
+}
+
+
 void set_QPY(decoder_context* ctx,int x,int y, int QP_Y)
 {
   assert(x>=0 && x<ctx->current_sps->pic_width_in_luma_samples);
