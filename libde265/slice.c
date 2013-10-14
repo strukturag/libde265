@@ -1871,8 +1871,11 @@ int residual_coding(decoder_context* ctx,
     {
       int transform_skip_flag = decode_transform_skip_flag(ctx,shdr,cIdx);
       if (transform_skip_flag) {
-        logtrace(LogSlice,"set_transform_skip_flag(%d,%d,cIdx=%d)=1\n",x0,y0,cIdx);
-        set_transform_skip_flag(ctx,x0,y0,cIdx);
+        int x0C = (cIdx==0) ? x0 : x0/2;
+        int y0C = (cIdx==0) ? y0 : y0/2;
+
+        logtrace(LogSlice,"set_transform_skip_flag(%d,%d,cIdx=%d)=1\n",x0C,y0C,cIdx);
+        set_transform_skip_flag(ctx,x0C,y0C,cIdx);
       }
     }
 

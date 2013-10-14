@@ -234,7 +234,7 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int16_t* tmp2buf = ( int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
 
 
-    logtrace(LogMotion,"---MC chroma %d %d---\n",xFracC,yFracC);
+    logtrace(LogMotion,"---MC chroma frac:%d;%d---\n",xFracC,yFracC);
 
     for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
       for (int x=-extra_left;x<nPbWC+extra_right;x++) {
@@ -361,37 +361,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                 predSamplesC[0][l],nCS, refPic->cb,refPic->chroma_stride, nPbW/2,nPbH/2);
       mc_chroma(sps, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                 predSamplesC[1][l],nCS, refPic->cr,refPic->chroma_stride, nPbW/2,nPbH/2);
-
-      // chroma sample interpolation process (8.5.3.2.2.2)
-
-      /*
-      const int shiftC1 = sps->BitDepth_C-8;
-      const int shiftC2 = 6;
-      const int shiftC3 = 14 - sps->BitDepth_C;
-
-      int wC = sps->pic_width_in_luma_samples /sps->SubWidthC;
-      int hC = sps->pic_height_in_luma_samples/sps->SubHeightC;
-
-      int xFracC = vi->lum.mv[l].x & 7;
-      int yFracC = vi->lum.mv[l].y & 7;
-
-      xFracC = yFracC=0; // TODO: TMP HACK
-
-      int xIntOffsC = xP/2 + (vi->lum.mv[l].x>>3);
-      int yIntOffsC = yP/2 + (vi->lum.mv[l].y>>3);
-
-      assert(xFracC == 0 && yFracC == 0);
-
-      for (int y=0;y<nPbH/2;y++)
-        for (int x=0;x<nPbW/2;x++) {
-
-          int xB = Clip3(0,wC-1,x + xIntOffsC);
-          int yB = Clip3(0,hC-1,y + yIntOffsC);
-
-          predSamplesC[0][l][y*nCS+x] = refPic->cb[ xB + yB*refPic->chroma_stride ] << shiftC3;
-          predSamplesC[1][l][y*nCS+x] = refPic->cr[ xB + yB*refPic->chroma_stride ] << shiftC3;
-        }
-      */
     }
   }
 
@@ -421,17 +390,27 @@ void generate_inter_prediction_samples(decoder_context* ctx,
             ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
               Clip1_8bit((predSamplesC[1][0][x+y*nCS] + offset1)>>shift1);
           }
+
+
+
+        logtrace(LogMotion,"---output cIdx=1---\n");
+        for (int y=0;y<nPbH/2;y++) {
+          for (int x=0;x<nPbW/2;x++) {
+            logtrace(LogMotion,"%02x ",ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride]);
+          }
+          logtrace(LogMotion,"\n");
+        }
       }
       else {
         assert(false); // TODO
       }
     }
     else {
-        assert(false); // TODO
+      assert(false); // TODO
     }
   }
   else {
-        assert(false); // TODO
+    assert(false); // TODO
   }
 
 
