@@ -99,6 +99,29 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         
         out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
       }
+
+    logtrace(LogMotion,"---MC luma %d %d = direct---\n",xFracL,yFracL);
+
+    for (int y=0;y<nPbH;y++) {
+      for (int x=0;x<nPbW;x++) {
+        
+        int xA = Clip3(0,w-1,x + xIntOffsL);
+        int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+        logtrace(LogMotion,"%02x ", img[ xA + yA*img_stride ]);
+      }
+      logtrace(LogMotion,"\n");
+    }
+
+    logtrace(LogMotion," -> \n");
+
+    for (int y=0;y<nPbH;y++) {
+      for (int x=0;x<nPbW;x++) {
+        
+        logtrace(LogMotion,"%02x ",out[y*out_stride+x] >> 6); // 6 will be used when summing predictions
+      }
+      logtrace(LogMotion,"\n");
+    }
   }
   else {
     int extra_left   = extra_before[xFracL];
@@ -109,13 +132,14 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int nPbW_extra = extra_left + nPbW + extra_right;
     int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
-    uint8_t* tmp1buf = (uint16_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
-    int16_t* tmp2buf = ( int16_t*)alloca( nPbW       * nPbH_extra * sizeof(int16_t) );
+    uint8_t* tmp1buf = (uint8_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
+    int16_t* tmp2buf = (int16_t*)alloca( nPbW       * nPbH_extra * sizeof(int16_t) );
 
 
     logtrace(LogMotion,"---MC luma %d %d---\n",xFracL,yFracL);
 
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      if (y==0 || y==nPbH) { logtrace(LogMotion,"----------------\n"); }
       for (int x=-extra_left;x<nPbW+extra_right;x++) {
         
         int xA = Clip3(0,w-1,x + xIntOffsL);
@@ -123,7 +147,8 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         
         tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
 
-        logtrace(LogMotion,"%02x ",tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
+        logtrace(LogMotion,"%c%02x",(x==0 || x==nPbW) ? '|':' ',
+                 tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
       }
       logtrace(LogMotion,"\n");
     }
@@ -157,7 +182,7 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int vshift = (xFracL==0 ? shift1 : shift2);
 
     for (int x=0;x<nPbW;x++) {
-      uint16_t* p = &tmp2buf[x*nPbH_extra];
+      int16_t* p = &tmp2buf[x*nPbH_extra];
 
       for (int y=0;y<nPbH;y++) {
         int16_t v;
@@ -230,8 +255,8 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int nPbW_extra = extra_left + nPbWC + extra_right;
     int nPbH_extra = extra_top  + nPbHC + extra_bottom;
 
-    uint8_t* tmp1buf = (uint16_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
-    int16_t* tmp2buf = ( int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
+    uint8_t* tmp1buf = (uint8_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
+    int16_t* tmp2buf = (int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
 
 
     logtrace(LogMotion,"---MC chroma frac:%d;%d---\n",xFracC,yFracC);
@@ -282,7 +307,7 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int vshift = (xFracC==0 ? shift1 : shift2);
 
     for (int x=0;x<nPbWC;x++) {
-      uint16_t* p = &tmp2buf[x*nPbH_extra];
+      int16_t* p = &tmp2buf[x*nPbH_extra];
 
       for (int y=0;y<nPbHC;y++) {
         int16_t v;
