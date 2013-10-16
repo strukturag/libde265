@@ -601,11 +601,17 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
                       chroma,
                       0 /* border */); // border large enough for intra prediction
 
-    ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
-    ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
+    if (ctx->img->cb_info_size != ctx->current_sps->PicSizeInMinCbsY ||
+        ctx->img->cb_info == NULL) {
+      ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
+      ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
+    }
 
-    ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
-    ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
+    if (ctx->img->pb_info_size != ctx->current_sps->PicSizeInMinCbsY *4 *4 ||
+        ctx->img->pb_info == NULL) {
+      ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
+      ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
+    }
 
 
     de265_alloc_image(&ctx->coeff,
