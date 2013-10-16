@@ -207,6 +207,22 @@ void transform_dct(int16_t* in, int32_t* out, int nT, int shift)
 
   int fact = (1<<(5-Log2(nT)));
 
+
+  // check for all-zero coefficients and skip transform for this case
+
+  int16_t inOr = 0;
+  for (int i=0;i<nT;i++) {
+    inOr |= in[i];
+  }
+
+  if (inOr==0) {
+    memset(out,0,nT*sizeof(int32_t));
+    return;
+  }
+
+
+  // carry out DCT transform
+
   for (int i=0;i<nT;i++) {
     int sum=0;
 
