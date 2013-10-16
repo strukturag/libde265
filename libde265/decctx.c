@@ -605,7 +605,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
 
     ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
-    ctx->img->pb_info = (CB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
+    ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
 
 
     de265_alloc_image(&ctx->coeff,
@@ -1039,7 +1039,7 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 {
   int idx = PB_IDX(x,y);
 
-  return &ctx->pb_info[idx].pred_vector;
+  return &ctx->img->pb_info[ PB_IDX(x,y) ].mvi;
 }
 
 
@@ -1058,7 +1058,7 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
           ctx->img->PicOrderCntVal);
   */
 
-  { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
+  //{ SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
   { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
 }
 
@@ -1121,13 +1121,19 @@ int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist)
 
 void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx)
 {
-  SET_PB_BLK(x0,y0,nPbW,nPbH, pred_vector.refIdx[l], ref_idx);
+  // TODO: is it possible to mode this into the image's PB data or is this at a different resolution?
+  // It appears that the resolution is different, because it does not work out of the box.
+
+  SET_PB_BLK(x0,y0,nPbW,nPbH, refIdx[l], ref_idx);
+  //de265_image* img = ctx->img;
+  //{ SET_IMG_PB_BLK(x0,y0,nPbW,nPbH, mvi.refIdx[l], ref_idx); }
 }
 
 uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
 {
   int idx = PB_IDX(x0,y0);
-  return ctx->pb_info[idx].pred_vector.refIdx[l];
+  return ctx->pb_info[idx].refIdx[l];
+  //return &ctx->img->pb_info[ PB_IDX(x0,y0) ].mvi.refIdx[l];
 }
 
 
@@ -1228,16 +1234,20 @@ void write_picture(const de265_image* img)
 
 void draw_block_boundary(const decoder_context* ctx,
                          uint8_t* img,int stride,
-                         int x,int y,int log2BlkSize, uint8_t value)
+                         int x,int y,int hBlkSize, int vBlkSize, uint8_t value)
 {
-  for (int i=0;i<(1<<log2BlkSize);i++)
+  for (int i=0;i<vBlkSize;i++)
     {
       int yi = y + i;
-      int xi = x + i;
       
       if (yi < ctx->current_sps->pic_height_in_luma_samples) {
         img[yi*stride + x] = value;
       }
+    }
+
+  for (int i=0;i<hBlkSize;i++)
+    {
+      int xi = x + i;
       
       if (xi < ctx->current_sps->pic_width_in_luma_samples) {
         img[y*stride + xi] = value;
@@ -1321,19 +1331,51 @@ void drawTBgrid(const decoder_context* ctx, uint8_t* img, int stride,
     drawTBgrid(ctx,img,stride,x1,y1,value,log2CbSize,trafoDepth+1);
   }
   else {
-    draw_block_boundary(ctx,img,stride,x0,y0,log2CbSize-trafoDepth, value);
+    draw_block_boundary(ctx,img,stride,x0,y0,1<<(log2CbSize-trafoDepth),1<<(log2CbSize-trafoDepth), value);
   }
 }
-
-
 
 
 enum DrawMode {
   Partitioning_CB,
   Partitioning_TB,
   Partitioning_PB,
-  IntraPredMode
+  IntraPredMode,
+  PBPredMode,
+  PBMotionVectors
 };
+
+
+void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint8_t color)
+{
+  for (int y=0;y<h;y++)
+    for (int x=0;x<w;x++)
+      {
+        int xp = x0+x;
+        int yp = y0+y;
+
+        img[xp+yp*stride] = (img[xp+yp*stride] + color)/2;
+      }
+}
+
+
+void draw_PB_block(const decoder_context* ctx,uint8_t* img,int stride,
+                   int x0,int y0, int w,int h, enum DrawMode what, uint8_t value)
+{
+  if (what == Partitioning_PB) {
+    draw_block_boundary(ctx,img,stride,x0,y0,w,h, value);
+  }
+  else if (what == PBPredMode) {
+    enum PredMode predMode = get_pred_mode(ctx,x0,y0);
+
+    uint8_t cols[3][3] = { { 255,0,0 }, { 0,0,255 }, { 0,255,0 } };
+
+    tint_rect(img,stride, x0,y0,w,h, cols[predMode][value]);
+  }
+  else if (what == PBMotionVectors) {
+    assert(false); // TODO
+  }
+}
 
 
 void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
@@ -1357,22 +1399,48 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
           drawTBgrid(ctx,img,stride,x0*minCbSize,y0*minCbSize, value, log2CbSize, 0);
         }
         else if (what == Partitioning_CB) {
-          draw_block_boundary(ctx,img,stride,xb,yb, log2CbSize, value);
+          draw_block_boundary(ctx,img,stride,xb,yb, 1<<log2CbSize,1<<log2CbSize, value);
         }
-        else if (what == Partitioning_PB) {
+        else if (what == Partitioning_PB ||
+                 what == PBPredMode) {
           enum PartMode partMode = get_PartMode(ctx,xb,yb);
 
+          int CbSize = 1<<log2CbSize;
           int HalfCbSize = (1<<(log2CbSize-1));
 
           switch (partMode) {
           case PART_2Nx2N:
-            draw_block_boundary(ctx,img,stride,xb,yb,log2CbSize, value);
+            draw_PB_block(ctx,img,stride,xb,yb,CbSize,CbSize, what,value);
             break;
           case PART_NxN:
-            draw_block_boundary(ctx,img,stride,xb,           yb,           log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb,           log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1, value);
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize/2,CbSize/2, what,value);
+            draw_PB_block(ctx,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize/2, what,value);
+            draw_PB_block(ctx,img,stride,xb           ,yb+HalfCbSize,CbSize/2,CbSize/2, what,value);
+            draw_PB_block(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,CbSize/2,CbSize/2, what,value);
+            break;
+          case PART_2NxN:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize  ,CbSize/2, what,value);
+            draw_PB_block(ctx,img,stride,xb,           yb+HalfCbSize,CbSize  ,CbSize/2, what,value);
+            break;
+          case PART_Nx2N:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize/2,CbSize, what,value);
+            draw_PB_block(ctx,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize, what,value);
+            break;
+          case PART_2NxnU:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize  ,CbSize/4,   what,value);
+            draw_PB_block(ctx,img,stride,xb,           yb+CbSize/4  ,CbSize  ,CbSize*3/4, what,value);
+            break;
+          case PART_2NxnD:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize  ,CbSize*3/4, what,value);
+            draw_PB_block(ctx,img,stride,xb,           yb+CbSize*3/4,CbSize  ,CbSize/4,   what,value);
+            break;
+          case PART_nLx2N:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize/4  ,CbSize, what,value);
+            draw_PB_block(ctx,img,stride,xb+CbSize/4  ,yb,           CbSize*3/4,CbSize, what,value);
+            break;
+          case PART_nRx2N:
+            draw_PB_block(ctx,img,stride,xb,           yb,           CbSize*3/4,CbSize, what,value);
+            draw_PB_block(ctx,img,stride,xb+CbSize*3/4,yb,           CbSize/4  ,CbSize, what,value);
             break;
           default:
             assert(false);
@@ -1380,28 +1448,31 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
           }
         }
         else if (what==IntraPredMode) {
-          enum PartMode partMode = get_PartMode(ctx,xb,yb);
+          enum PredMode predMode = get_pred_mode(ctx,xb,yb);
+          if (predMode == MODE_INTRA) {
+            enum PartMode partMode = get_PartMode(ctx,xb,yb);
 
-          int HalfCbSize = (1<<(log2CbSize-1));
+            int HalfCbSize = (1<<(log2CbSize-1));
 
-          switch (partMode) {
-          case PART_2Nx2N:
-            draw_intra_pred_mode(ctx,img,stride,xb,yb,log2CbSize,
-                                 get_IntraPredMode(ctx,xb,yb), value);
-            break;
-          case PART_NxN:
-            draw_intra_pred_mode(ctx,img,stride,xb,           yb,           log2CbSize-1,
-                                 get_IntraPredMode(ctx,xb,yb), value);
-            draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb,           log2CbSize-1,
-                                 get_IntraPredMode(ctx,xb+HalfCbSize,yb), value);
-            draw_intra_pred_mode(ctx,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1,
-                                 get_IntraPredMode(ctx,xb,yb+HalfCbSize), value);
-            draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1,
-                                 get_IntraPredMode(ctx,xb+HalfCbSize,yb+HalfCbSize), value);
-            break;
-          default:
-            assert(false);
-            break;
+            switch (partMode) {
+            case PART_2Nx2N:
+              draw_intra_pred_mode(ctx,img,stride,xb,yb,log2CbSize,
+                                   get_IntraPredMode(ctx,xb,yb), value);
+              break;
+            case PART_NxN:
+              draw_intra_pred_mode(ctx,img,stride,xb,           yb,           log2CbSize-1,
+                                   get_IntraPredMode(ctx,xb,yb), value);
+              draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb,           log2CbSize-1,
+                                   get_IntraPredMode(ctx,xb+HalfCbSize,yb), value);
+              draw_intra_pred_mode(ctx,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1,
+                                   get_IntraPredMode(ctx,xb,yb+HalfCbSize), value);
+              draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1,
+                                   get_IntraPredMode(ctx,xb+HalfCbSize,yb+HalfCbSize), value);
+              break;
+            default:
+              assert(false);
+              break;
+            }
           }
         }
       }
@@ -1428,3 +1499,9 @@ void draw_intra_pred_modes(const decoder_context* ctx, uint8_t* img, int stride,
   draw_tree_grid(ctx,img,stride,value, IntraPredMode);
 }
 
+void draw_PB_pred_modes(const decoder_context* ctx, uint8_t* r, uint8_t* g, uint8_t* b, int stride)
+{
+  draw_tree_grid(ctx,r,stride,0, PBPredMode);
+  draw_tree_grid(ctx,g,stride,1, PBPredMode);
+  draw_tree_grid(ctx,b,stride,2, PBPredMode);
+}

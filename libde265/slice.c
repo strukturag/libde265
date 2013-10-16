@@ -47,6 +47,9 @@ int check_CTB_available(decoder_context* ctx,
                         slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN);
 
+void decode_inter_block(decoder_context* ctx,slice_segment_header* shdr,
+                        int xC, int yC, int log2CbSize);
+
 
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
@@ -976,12 +979,9 @@ enum PartMode decode_part_mode(decoder_context* ctx,
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
 
-    int ctxIdxOffset;
-    switch (shdr->initType) {
-    case 0: ctxIdxOffset=0; break;
-    case 1: ctxIdxOffset=1; break;
-    case 2: ctxIdxOffset=5; break;
-    }
+    const int idxOffsets[3] = { 0,1,5 };
+
+    int ctxIdxOffset = idxOffsets[shdr->initType];
 
     int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
 
@@ -1030,6 +1030,9 @@ enum PartMode decode_part_mode(decoder_context* ctx,
       }
     }
   }
+
+  assert(false); // should never be reached
+  return PART_2Nx2N;
 }
 
 
@@ -1737,6 +1740,9 @@ void read_sao(decoder_context* ctx, slice_segment_header* shdr, int xCtb,int yCt
               if (saoinfo.saoOffsetVal[cIdx][i] != 0) {
                 sign[i] = decode_sao_offset_sign(ctx,shdr) ? -1 : 1;
               }
+              else {
+                sign[i] = 0; // not really required, but compiler warns about uninitialized values
+              }
             }
 
             saoinfo.sao_band_position[cIdx] = decode_sao_band_position(ctx,shdr);
@@ -2218,9 +2224,6 @@ int residual_coding(decoder_context* ctx,
     int coeff_abs_level_remaining[16];
     memset(coeff_abs_level_remaining,0,16*sizeof(int));
 
-    int cLastAbsLevel  = 0;
-    int cLastRiceParam = 0;
-
     int uiGoRiceParam=0;
 
     for (int n=15;n>=0;n--) {
@@ -2252,24 +2255,6 @@ int residual_coding(decoder_context* ctx,
 
         logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
 
-        logtrace(LogSlice,"cLastAbsLevel=%d   cLastRiceParam=%d\n",cLastAbsLevel,cLastRiceParam);
-
-#if 0
-        int cRiceParam = cLastRiceParam;
-        cRiceParam += cLastAbsLevel > (3*(1<<cLastRiceParam)) ? 1 : 0;
-        if (cRiceParam>4) cRiceParam=4;
-
-        int cTRMax = 4<<cRiceParam;
-
-        if (baseLevel==checkLevel) {
-          coeff_abs_level_remaining[n] =
-            decode_coeff_abs_level_remaining(ctx,shdr, cRiceParam,cTRMax);
-        }
-
-
-        cLastAbsLevel = baseLevel + coeff_abs_level_remaining[n];
-        cLastRiceParam= cRiceParam;
-#else
         if (baseLevel==checkLevel) {
           coeff_abs_level_remaining[n] =
             decode_coeff_abs_level_remaining_HM(ctx,shdr, uiGoRiceParam);
@@ -2279,7 +2264,6 @@ int residual_coding(decoder_context* ctx,
             if (uiGoRiceParam>4) uiGoRiceParam=4;
           }
         }
-#endif
 
 
         TransCoeffLevel[xC][yC] = (baseLevel + coeff_abs_level_remaining[n]);
@@ -2296,10 +2280,6 @@ int residual_coding(decoder_context* ctx,
         }
 
         numSigCoeff++;
-      }
-      else {
-        cLastAbsLevel = 0;
-        cLastRiceParam= 0;
       }
     }
 

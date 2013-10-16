@@ -87,12 +87,11 @@ typedef struct {
 //#define PB_FLAG_MVP_L1_FLAG 4
 
 typedef struct {
-  PredVectorInfo pred_vector;
+  int8_t  refIdx[2];
   int16_t mvd[2][2]; // only in top left position
   uint8_t merge_idx;
   uint8_t merge_flag;
   uint8_t mvp_lX_flag[2];
-  //uint8_t ref_idx[2];        // defined in whole PB
   uint8_t inter_pred_idc[2]; // enum InterPredIdc
 } PB_info;
 
@@ -350,7 +349,7 @@ void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, 
 uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
 
 void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc);
-enum InterPredIdc get_inter_pred_idx(const decoder_context* ctx,int x0,int y0,int l);
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0,int l);
 
 
 bool available_zscan(const decoder_context* ctx,
@@ -369,6 +368,7 @@ void write_picture(const de265_image* img);
 void draw_CB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_TB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_PB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
+void draw_PB_pred_modes(const decoder_context* ctx, uint8_t* r, uint8_t* g, uint8_t* b, int stride);
 void draw_intra_pred_modes(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 
 #endif

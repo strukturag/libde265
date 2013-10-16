@@ -117,6 +117,10 @@ void markPredictionBlockBoundary(decoder_context* ctx, int x0,int y0,
       set_deblk_flags(ctx, x0+k,y0+cbSize2+cbSize4, DEBLOCK_PB_EDGE_HORIZ);
     }
     break;
+
+  case PART_2Nx2N:
+    // NOP
+    break;
   }
 }
 

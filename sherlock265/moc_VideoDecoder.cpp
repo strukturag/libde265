@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'VideoDecoder.hh'
 **
-** Created: Mon Aug 26 16:35:16 2013
+** Created: Wed Oct 16 16:30:46 2013
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_VideoDecoder[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       9,   14, // methods
+      10,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -42,6 +42,7 @@ static const uint qt_meta_data_VideoDecoder[] = {
      140,   85,   13,   13, 0x0a,
      165,   85,   13,   13, 0x0a,
      189,   85,   13,   13, 0x0a,
+     210,   85,   13,   13, 0x0a,
 
        0        // eod
 };
@@ -53,7 +54,8 @@ static const char qt_meta_stringdata_VideoDecoder[] = {
     "showCBPartitioning(bool)\0"
     "showTBPartitioning(bool)\0"
     "showPBPartitioning(bool)\0"
-    "showIntraPredMode(bool)\0showDecodedImage(bool)\0"
+    "showIntraPredMode(bool)\0showPBPredMode(bool)\0"
+    "showDecodedImage(bool)\0"
 };
 
 void VideoDecoder::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -70,7 +72,8 @@ void VideoDecoder::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         case 5: _t->showTBPartitioning((*reinterpret_cast< bool(*)>(_a[1]))); break;
         case 6: _t->showPBPartitioning((*reinterpret_cast< bool(*)>(_a[1]))); break;
         case 7: _t->showIntraPredMode((*reinterpret_cast< bool(*)>(_a[1]))); break;
-        case 8: _t->showDecodedImage((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 8: _t->showPBPredMode((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 9: _t->showDecodedImage((*reinterpret_cast< bool(*)>(_a[1]))); break;
         default: ;
         }
     }
@@ -108,9 +111,9 @@ int VideoDecoder::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 9)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 9;
+        _id -= 10;
     }
     return _id;
 }

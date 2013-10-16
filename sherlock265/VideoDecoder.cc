@@ -39,6 +39,7 @@ VideoDecoder::VideoDecoder()
     mCBShowPartitioning(false),
     mTBShowPartitioning(false),
     mPBShowPartitioning(false),
+    mShowPBPredMode(false),
     mShowIntraPredMode(false),
     mFH(NULL)
 {
@@ -186,6 +187,15 @@ void VideoDecoder::show_frame(const de265_image* img)
   const decoder_context* cx = (const decoder_context*)ctx;
 
   if (1) {
+    if (mShowPBPredMode)
+      {
+        draw_PB_pred_modes(cx,
+                           debugvisu.AskFrameR()[0],
+                           debugvisu.AskFrameG()[0],
+                           debugvisu.AskFrameB()[0],
+                           debugvisu.AskBitmapB().AskStride());
+      }
+
     if (mShowIntraPredMode)
       {
         draw_intra_pred_modes(cx,debugvisu.AskFrameR()[0],debugvisu.AskBitmapR().AskStride(),140);
@@ -287,6 +297,14 @@ void VideoDecoder::showPBPartitioning(bool flag)
 void VideoDecoder::showIntraPredMode(bool flag)
 {
   mShowIntraPredMode=flag;
+
+  const de265_image* img = de265_peek_next_picture(ctx);
+  if (img != NULL) { show_frame(img); }
+}
+
+void VideoDecoder::showPBPredMode(bool flag)
+{
+  mShowPBPredMode=flag;
 
   const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
