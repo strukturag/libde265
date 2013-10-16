@@ -117,8 +117,8 @@ void VideoDecoder::decoder_loop()
             */
 
             uint8_t buf[4096];
-            fread(buf,4096,1,mFH);
-            int err = de265_decode_data(ctx,buf,4096);
+            int buf_size = fread(buf,1,sizeof(buf),mFH);
+            int err = de265_decode_data(ctx,buf,buf_size);
             if (err!=DE265_OK)
               {
                 mVideoEnded=true;
