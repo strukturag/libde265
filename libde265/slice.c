@@ -1794,6 +1794,9 @@ void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr)
   int xCtbPixels = xCtb << sps->Log2CtbSizeY;
   int yCtbPixels = yCtb << sps->Log2CtbSizeY;
 
+  logtrace(LogSlice,"----- decode CTB %d;%d POC=%d\n",xCtbPixels,yCtbPixels,
+           ctx->img->PicOrderCntVal);
+
   set_SliceAddrRS(ctx, xCtb, yCtb,
                   shdr->SliceAddrRS);
 
@@ -1863,7 +1866,9 @@ int residual_coding(decoder_context* ctx,
   //seq_parameter_set* sps = ctx->current_sps;
 
 
-  set_nonzero_coefficient(ctx,x0,y0,log2TrafoSize);
+  if (cIdx==0) {
+    set_nonzero_coefficient(ctx,x0,y0,log2TrafoSize);
+  }
 
 
   shdr->cu_transquant_bypass_flag=0; // TODO
@@ -3135,7 +3140,7 @@ void read_coding_quadtree(decoder_context* ctx,
                           int log2CbSize,
                           int ctDepth)
 {
-  logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d\n",x0,y0,1<<log2CbSize,ctDepth);
+  logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d POC:%d\n",x0,y0,1<<log2CbSize,ctDepth,ctx->img->PicOrderCntVal);
 
   seq_parameter_set* sps = ctx->current_sps;
 
