@@ -36,8 +36,7 @@
 #define DE265_MAX_SLICES   64
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
-// TODO: check required value, change buffer management such that
-// a packet with lots of small images don't fill the output buffer.
+// TODO: check required value
 #define DE265_DPB_SIZE  20
 
 
@@ -71,7 +70,6 @@ typedef struct {
   uint8_t split_cu_flag;
   uint8_t rqt_root_cbf;
   // uint8_t pcm_flag;  // TODO
-  uint8_t intra_chroma_pred_mode;
   uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
 
   int8_t  QP_Y;
@@ -81,10 +79,6 @@ typedef struct {
   uint8_t PredMode; // (enum PredMode)
 } CB_info;
 
-
-//#define PB_FLAG_MERGE 1
-//#define PB_FLAG_MVP_L0_FLAG 2
-//#define PB_FLAG_MVP_L1_FLAG 4
 
 typedef struct {
   int8_t  refIdx[2];
@@ -107,7 +101,6 @@ typedef struct {
   uint8_t split_transform_flag;
   uint8_t transform_skip_flag;   // read bit (1<<cIdx)
   uint8_t coded_sub_block_flag;
-  //uint8_t significant_coeff_flag;
   uint8_t nonzero_coefficient;
 } TU_info;
 
@@ -174,9 +167,6 @@ typedef struct {
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
-  //uint8_t last_RAP_picture_NAL_type;
-  //uint8_t last_RAP_was_CRA_and_first_image_of_sequence;
-
   de265_image* img;
 
 
@@ -202,9 +192,9 @@ typedef struct {
   int RefPicSetLtFoll[DE265_DPB_SIZE];
 
 
-  // --- decoded image data ---
+  // --- decoded image data --- TODO: all this should move into de265_image
 
-  de265_image coeff; // transform coefficients
+  de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
   CB_info*  cb_info; // in raster scan
@@ -256,9 +246,6 @@ int get_next_slice_index(decoder_context* ctx);
 int get_ctDepth(const decoder_context* ctx, int x,int y);
 void set_ctDepth(decoder_context* ctx, int x,int y, int log2BlkWidth, int depth);
 void debug_dump_cb_info(const decoder_context*);
-
-//void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode);
-//int  get_intra_chroma_pred_mode(decoder_context* ctx, int x,int y);
 
 void set_cbf_cb(decoder_context*, int x0,int y0, int depth);
 void set_cbf_cr(decoder_context*, int x0,int y0, int depth);

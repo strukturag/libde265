@@ -781,15 +781,6 @@ enum PredMode get_img_pred_mode(const decoder_context* ctx,
   return (enum PredMode)img->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
-void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode)
-{
-  SET_CB_BLK(x,y,log2BlkWidth, intra_chroma_pred_mode, mode);
-}
-
-int  get_intra_chroma_pred_mode(const decoder_context* ctx, int x,int y)
-{
-  return GET_CB_BLK(x,y).intra_chroma_pred_mode;
-}
 
 void set_rqt_root_cbf(decoder_context* ctx,int x,int y, int log2BlkWidth, int rqt_root_cbf_value)
 {
