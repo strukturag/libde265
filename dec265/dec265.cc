@@ -19,14 +19,45 @@
  */
 
 #include "de265.h"
+#ifndef _MSC_VER
+#include "config.h"
+#endif
+#include <stdio.h>
+#include <stdlib.h>
 
+#ifndef _MSC_VER
+extern "C" {
+#include "libde265/decctx.h"
+}
+#else
+// VS2008 didn't support C99, compile all everything as C++
+#include "libde265/decctx.h"
+#endif
 
+#if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 using namespace videogfx;
+#endif
 
 
-void display_image(const struct de265_image* img, X11Win& win)
+#if HAVE_VIDEOGFX
+void display_image(const struct de265_image* img)
 {
+  static X11Win win;
+
+  // display picture
+
+  static bool first=true;
+
+  if (first) {
+    first=false;
+    win.Create(de265_get_image_width(img,0),
+               de265_get_image_height(img,0),
+               "de265 output");
+  }
+
+
+
   int width  = de265_get_image_width(img,0);
   int height = de265_get_image_height(img,0);
 
@@ -42,13 +73,14 @@ void display_image(const struct de265_image* img, X11Win& win)
     height = de265_get_image_height(img,ch);
 
     for (int y=0;y<height;y++) {
-        memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+      memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
     }
   }
 
   win.Display(visu);
+  //win.WaitForKeypress();
 }
-
+#endif
 
 
 #define BUFFER_SIZE 4096
@@ -56,8 +88,6 @@ void display_image(const struct de265_image* img, X11Win& win)
 
 int main(int argc, char** argv)
 {
-  X11Win win;
-
   if (argc != 2) {
     fprintf(stderr,"usage: dec265 videofile.bin\n");
     fprintf(stderr,"The video file must be a raw h.265 bitstream (e.g. HM-10.0 output)\n");
@@ -68,6 +98,8 @@ int main(int argc, char** argv)
   de265_init();
   de265_decoder_context* ctx = de265_new_decoder();
 
+  //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
+
   FILE* fh = fopen(argv[1], "rb");
   if (fh==NULL) {
     fprintf(stderr,"cannot open file %s!\n", argv[1]);
@@ -75,7 +107,8 @@ int main(int argc, char** argv)
   }
 
   de265_error err =DE265_OK;
-  for (;;)
+  bool stop=false;
+  while (!stop)
     {
       // read a chunk of input data
       uint8_t buf[BUFFER_SIZE];
@@ -91,7 +124,7 @@ int main(int argc, char** argv)
 
       if (feof(fh)) {
         err = de265_decode_data(ctx, NULL, 0); // indicate end of stream
-        break;
+        stop = true;
       }
 
       // show queued output images
@@ -99,18 +132,13 @@ int main(int argc, char** argv)
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
 
-        // display picture
+        //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
 
-        static bool first=true;
-
-        if (first) {
-          first=false;
-          win.Create(de265_get_image_width(img,0),
-                     de265_get_image_height(img,0),
-                     "de265 output");
-        }
-
-        display_image(img, win);
+#if HAVE_VIDEOGFX
+        display_image(img);
+#else
+        write_picture(img);
+#endif
       }
     }
 

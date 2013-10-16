@@ -23,19 +23,24 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#ifdef _MSC_VER
+# include <malloc.h>
+#else
+# include <alloca.h>
+#endif
 
 
 static void compute_NumPoc(ref_pic_set* rpset)
 {
-  rpset->NumPoc_withoutLongterm = 0;
+  rpset->NumPocTotalCurr = 0;
   
   for (int i=0; i<rpset->NumNegativePics; i++)
     if (rpset->UsedByCurrPicS0[i])
-      rpset->NumPoc_withoutLongterm++;
+      rpset->NumPocTotalCurr++;
 
   for (int i=0; i<rpset->NumPositivePics; i++)
     if (rpset->UsedByCurrPicS1[i])
-      rpset->NumPoc_withoutLongterm++;
+      rpset->NumPocTotalCurr++;
 
   /*
   for (int i = 0; i < num_long_term_sps + num_long_term_pics; i++ )
@@ -77,8 +82,8 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
 
     logtrace(LogHeaders,"predicted from %d with delta %d\n",RIdx,DeltaRPS);
 
-    char used_by_curr_pic_flag[ sets[RIdx].NumDeltaPocs ];
-    char use_delta_flag[ sets[RIdx].NumDeltaPocs ];
+    char *const used_by_curr_pic_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
+    char *const use_delta_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
 
     for (int j=0;j<=sets[RIdx].NumDeltaPocs;j++) {
       used_by_curr_pic_flag[j] = get_bits(br,1);
@@ -250,7 +255,7 @@ void dump_short_term_ref_pic_set(ref_pic_set* set)
 
 void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
 {
-  char log[range+1+range+1];
+  char *const log = (char *)alloca((range+1+range+1) * sizeof(char));
   log[2*range+1] = 0;
   for (int i=0;i<2*range+1;i++) log[i]='.';
   log[range]='|';
@@ -260,7 +265,7 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n>=-range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { logtrace(LogHeaders,"*%d ",n); }
+    } else { loginfo(LogHeaders,"*%d ",n); }
   }
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
@@ -268,8 +273,8 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { logtrace(LogHeaders,"*%d ",n); }
+    } else { loginfo(LogHeaders,"*%d ",n); }
   }
 
-  logtrace(LogHeaders,"*%s\n",log);
+  loginfo(LogHeaders,"*%s\n",log);
 }

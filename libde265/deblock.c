@@ -59,6 +59,68 @@ void markTransformBlockBoundary(decoder_context* ctx, int x0,int y0,
 }
 
 
+
+// 8.7.2.2 for both EDGE_HOR and EDGE_VER at the same time
+void markPredictionBlockBoundary(decoder_context* ctx, int x0,int y0,
+                                 int log2CbSize,
+                                 int filterLeftCbEdge, int filterTopCbEdge)
+{
+  logtrace(LogDeblock,"markPredictionBlockBoundary(%d,%d, %d, %d,%d)\n",x0,y0,
+           log2CbSize, filterLeftCbEdge,filterTopCbEdge);
+
+  enum PartMode partMode = get_PartMode(ctx,x0,y0);
+
+  int cbSize = 1<<log2CbSize;
+  int cbSize2 = 1<<(log2CbSize-1);
+  int cbSize4 = 1<<(log2CbSize-2);
+
+  switch (partMode) {
+  case PART_NxN:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+cbSize2,y0+k, DEBLOCK_PB_EDGE_VERTI);
+      set_deblk_flags(ctx, x0+k,y0+cbSize2, DEBLOCK_PB_EDGE_HORIZ);
+    }
+    break;
+
+  case PART_Nx2N:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+cbSize2,y0+k, DEBLOCK_PB_EDGE_VERTI);
+    }
+    break;
+
+  case PART_2NxN:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+k,y0+cbSize2, DEBLOCK_PB_EDGE_HORIZ);
+    }
+    break;
+
+  case PART_nLx2N:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+cbSize4,y0+k, DEBLOCK_PB_EDGE_VERTI);
+    }
+    break;
+
+  case PART_nRx2N:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+cbSize2+cbSize4,y0+k, DEBLOCK_PB_EDGE_VERTI);
+    }
+    break;
+
+  case PART_2NxnU:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+k,y0+cbSize4, DEBLOCK_PB_EDGE_HORIZ);
+    }
+    break;
+
+  case PART_2NxnD:
+    for (int k=0;k<cbSize;k++) {
+      set_deblk_flags(ctx, x0+k,y0+cbSize2+cbSize4, DEBLOCK_PB_EDGE_HORIZ);
+    }
+    break;
+  }
+}
+
+
 char derive_edgeFlags(decoder_context* ctx)
 {
   const int minCbSize = ctx->current_sps->MinCbSizeY;
@@ -96,6 +158,9 @@ char derive_edgeFlags(decoder_context* ctx)
 
           markTransformBlockBoundary(ctx, x0,y0, log2CbSize,0,
                                      filterLeftCbEdge, filterTopCbEdge);
+
+          markPredictionBlockBoundary(ctx, x0,y0, log2CbSize,
+                                      filterLeftCbEdge, filterTopCbEdge);
         }
       }
 
@@ -111,7 +176,10 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical)
   int yIncr = vertical ? 1 : 2;
   int xOffs = vertical ? 1 : 0;
   int yOffs = vertical ? 0 : 1;
-  int edgeFlag = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
+  int edgeMask = vertical ?
+    (DEBLOCK_FLAG_VERTI | DEBLOCK_PB_EDGE_VERTI) :
+    (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
+  int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
   for (int y=0;y<ctx->deblk_height;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
@@ -119,9 +187,11 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical)
       int yDi = y*4;
 
       logtrace(LogDeblock,"%d %d %s = %s\n",xDi,yDi, vertical?"Vertical":"Horizontal",
-             (get_deblk_flags(ctx,xDi,yDi) & edgeFlag) ? "edge" : "...");
+               (get_deblk_flags(ctx,xDi,yDi) & edgeMask) ? "edge" : "...");
 
-      if (get_deblk_flags(ctx,xDi,yDi) & edgeFlag) {
+      uint8_t edgeFlags = get_deblk_flags(ctx,xDi,yDi);
+
+      if (edgeFlags & edgeMask) {
         //int p0 = ctx->img.y[(xDi-xOffs)+(yDi-yOffs)*stride]; TODO: UNUSED
         //int q0 = ctx->img.y[xDi+yDi*stride];                 TODO: UNUSED
 
@@ -134,7 +204,92 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical)
           bS = 2;
         }
         else {
-          assert(false); // TODO
+          // opposing site
+          int xDiOpp = xDi-xOffs;
+          int yDiOpp = yDi-yOffs;
+          //uint8_t edgeFlagsOpp = get_deblk_flags(ctx,xDiOpp,yDiOpp);
+
+          if ((edgeFlags & transformEdgeMask) &&
+              (get_nonzero_coefficient(ctx,xDi,yDi) ||
+               get_nonzero_coefficient(ctx,xDiOpp,yDiOpp))) {
+            bS = 1;
+          }
+          else {
+
+            bS = 0;
+
+            slice_segment_header* shdrP = get_SliceHeader(ctx,xDiOpp,yDiOpp);
+            slice_segment_header* shdrQ = get_SliceHeader(ctx,xDi   ,yDi);
+
+            const PredVectorInfo* mviP = get_mv_info(ctx,xDiOpp,yDiOpp);
+            const PredVectorInfo* mviQ = get_mv_info(ctx,xDi   ,yDi);
+
+            int refPicP0 = mviP->predFlag[0] ? shdrP->RefPicList[0][ mviP->refIdx[0] ] : -1;
+            int refPicP1 = mviP->predFlag[1] ? shdrP->RefPicList[1][ mviP->refIdx[1] ] : -1;
+            int refPicQ0 = mviQ->predFlag[0] ? shdrQ->RefPicList[0][ mviQ->refIdx[0] ] : -1;
+            int refPicQ1 = mviQ->predFlag[1] ? shdrQ->RefPicList[1][ mviQ->refIdx[1] ] : -1;
+
+            MotionVector mvP0 = mviP->mv[0]; if (!mviP->predFlag[0]) { mvP0.x=mvP0.y=0; }
+            MotionVector mvP1 = mviP->mv[1]; if (!mviP->predFlag[1]) { mvP1.x=mvP1.y=0; }
+            MotionVector mvQ0 = mviQ->mv[0]; if (!mviQ->predFlag[0]) { mvQ0.x=mvQ0.y=0; }
+            MotionVector mvQ1 = mviQ->mv[1]; if (!mviQ->predFlag[1]) { mvQ1.x=mvQ1.y=0; }
+
+            bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
+                             (refPicP0==refPicQ1 && refPicP1==refPicQ0));
+
+            if (!samePics) {
+              bS = 1;
+            }
+            else {
+              int numMV_P = mviP->predFlag[0] + mviP->predFlag[1];
+              int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
+
+              assert(numMV_P==numMV_Q);
+
+              // two different reference pictures or only one reference picture
+              if (refPicP0 != refPicP1) {
+
+                if (refPicP0 == refPicQ0) {
+                  if (abs_value(mvP0.x-mvQ0.x) >= 4 ||
+                      abs_value(mvP0.y-mvQ0.y) >= 4 ||
+                      abs_value(mvP1.x-mvQ1.x) >= 4 ||
+                      abs_value(mvP1.y-mvQ1.y) >= 4) {
+                    bS = 1;
+                  }
+                }
+                else {
+                  if (abs_value(mvP0.x-mvQ1.x) >= 4 ||
+                      abs_value(mvP0.y-mvQ1.y) >= 4 ||
+                      abs_value(mvP1.x-mvQ0.x) >= 4 ||
+                      abs_value(mvP1.y-mvQ0.y) >= 4) {
+                    bS = 1;
+                  }
+                }
+              }
+              else {
+                assert(refPicQ0==refPicQ1);
+
+                if ((abs_value(mvP0.x-mvQ0.x) >= 4 ||
+                     abs_value(mvP0.y-mvQ0.y) >= 4 ||
+                     abs_value(mvP1.x-mvQ1.x) >= 4 ||
+                     abs_value(mvP1.y-mvQ1.y) >= 4)
+                    &&
+                    (abs_value(mvP0.x-mvQ1.x) >= 4 ||
+                     abs_value(mvP0.y-mvQ1.y) >= 4 ||
+                     abs_value(mvP1.x-mvQ0.x) >= 4 ||
+                     abs_value(mvP1.y-mvQ0.y) >= 4)) {
+                  bS = 1;
+                }
+              }
+            }
+
+            /*
+            printf("unimplemented deblocking code for CU at %d;%d\n",xDi,yDi);
+
+            logerror(LogDeblock, "unimplemented code reached (file %s, line %d)\n",
+                     __FILE__, __LINE__);
+            */
+          }
         }
 
         set_deblk_bS(ctx,xDi,yDi, bS);
@@ -165,7 +320,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
 
-  const int stride = ctx->img.stride;
+  const int stride = ctx->img->stride;
 
 
   for (int y=0;y<ctx->deblk_height;y+=yIncr)
@@ -180,7 +335,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
 
         // 8.7.2.4.3
 
-        uint8_t* ptr = ctx->img.y + stride*yDi + xDi;
+        uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
 
         uint8_t q[4][4], p[4][4];
         for (int i=0;i<4;i++)
@@ -381,7 +536,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
   int xIncr = vertical ? 4 : 2;
   int yIncr = vertical ? 2 : 4;
 
-  const int stride = ctx->img.chroma_stride;
+  const int stride = ctx->img->chroma_stride;
 
 
   for (int y=0;y<ctx->deblk_height;y+=yIncr)
@@ -399,8 +554,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
                               ctx->current_pps->pic_cr_qp_offset);
 
           uint8_t* ptr = (cplane==0 ?
-                          ctx->img.cb + stride*yDi + xDi :
-                          ctx->img.cr + stride*yDi + xDi);
+                          ctx->img->cb + stride*yDi + xDi :
+                          ctx->img->cr + stride*yDi + xDi);
 
           uint8_t p[2][4];
           uint8_t q[2][4];

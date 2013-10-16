@@ -42,7 +42,7 @@ static void init_context(input_context* ctx)
 void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size)
 {
   if (buffer->capacity < new_size) {
-    unsigned char* newbuffer = malloc(new_size);
+    unsigned char* newbuffer = (unsigned char*)malloc(new_size);
 
     if (buffer->data != NULL) {
       memcpy(newbuffer, buffer->data, buffer->size);
@@ -64,6 +64,23 @@ void rbsp_buffer_free(rbsp_buffer* buffer)
     buffer->size = 0;
     buffer->capacity = 0;
   }
+}
+
+
+void rbsp_buffer_append(rbsp_buffer* buffer, unsigned char* data, int n)
+{
+  rbsp_buffer_resize(buffer, buffer->size + n);
+  memcpy(buffer->data + buffer->size, data, n);
+  buffer->size += n;
+}
+
+
+void rbsp_buffer_pop(rbsp_buffer* buffer, int n)
+{
+  memmove(buffer->data,
+          buffer->data + n,
+          buffer->size - n);
+  buffer->size -= n;
 }
 
 

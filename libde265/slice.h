@@ -28,6 +28,24 @@
 #define SLICE_TYPE_P 1
 #define SLICE_TYPE_I 2
 
+
+/*
+        2Nx2N           2NxN             Nx2N            NxN          
+      +-------+       +-------+       +---+---+       +---+---+
+      |       |       |       |       |   |   |       |   |   |
+      |       |       |_______|       |   |   |       |___|___|
+      |       |       |       |       |   |   |       |   |   |
+      |       |       |       |       |   |   |       |   |   |
+      +-------+       +-------+       +---+---+       +---+---+
+
+        2NxnU           2NxnD           nLx2N           nRx2N        
+      +-------+       +-------+       +-+-----+       +-----+-+
+      |_______|       |       |       | |     |       |     | |
+      |       |       |       |       | |     |       |     | |
+      |       |       |_______|       | |     |       |     | |
+      |       |       |       |       | |     |       |     | |
+      +-------+       +-------+       +-+-----+       +-----+-+
+*/
 enum PartMode
   {
     PART_2Nx2N = 0,
@@ -35,7 +53,7 @@ enum PartMode
     PART_Nx2N  = 2,
     PART_NxN   = 3,
     PART_2NxnU = 4,
-    PART_2NXnD = 5,
+    PART_2NxnD = 5,
     PART_nLx2N = 6,
     PART_nRx2N = 7
   };
@@ -59,6 +77,11 @@ enum IntraPredMode
     INTRA_ANGULAR_30 = 30,  INTRA_ANGULAR_31 = 31,  INTRA_ANGULAR_32 = 32,  INTRA_ANGULAR_33 = 33,
     INTRA_ANGULAR_34 = 34,
     INTRA_CHROMA_EQ_LUMA = 100  // chroma := luma
+  };
+
+enum InterPredIdc
+  {
+    PRED_L0, PRED_L1, PRED_BI
   };
 
 typedef struct {
@@ -96,6 +119,12 @@ typedef struct {
   int  num_ref_idx_l1_active;
 
   //ref_pic_lists_modification()
+
+  char ref_pic_list_modification_flag_l0;
+  char ref_pic_list_modification_flag_l1;
+  int list_entry_l0[1]; // TODO
+  int list_entry_l1[1]; // TODO
+
   char mvd_l1_zero_flag;
   char cabac_init_flag;
   char collocated_from_l0_flag;
@@ -140,6 +169,8 @@ typedef struct {
   int CurrRpsIdx;
   int MaxNumMergeCand;
 
+  int RefPicList[2][14+1];
+
 
   // --- decoder runtime data ---
 
@@ -170,6 +201,11 @@ typedef struct {
   context_model transform_skip_flag_model[6];
   context_model merge_flag_model[2];
   context_model merge_idx_model[2];
+  context_model pred_mode_flag_model[2];
+  context_model abs_mvd_greater01_flag_model[4];
+  context_model mvp_lx_flag_model[2];
+  context_model rqt_root_cbf_model[2];
+  context_model ref_idx_lX_model[2];
 
 } slice_segment_header;
 

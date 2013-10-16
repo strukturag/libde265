@@ -79,7 +79,7 @@ libde265_la_LIBADD =
 am_libde265_la_OBJECTS = bitstream.lo cabac.lo de265.lo deblock.lo \
 	decctx.lo image.lo intrapred.lo md5.lo nal.lo pps.lo \
 	transform.lo refpic.lo sao.lo scan.lo sei.lo slice.lo sps.lo \
-	util.lo vps.lo
+	util.lo vps.lo motion.lo
 libde265_la_OBJECTS = $(am_libde265_la_OBJECTS)
 libde265_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -276,7 +276,8 @@ libde265_la_SOURCES = \
   slice_func.h \
   sps.h \
   util.h \
-  vps.h
+  vps.h \
+  motion.c motion.h
 
 libde265_la_HEADERS = \
   de265.h
@@ -363,6 +364,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/image.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intrapred.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motion.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pps.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/refpic.Plo@am__quote@

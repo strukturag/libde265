@@ -81,6 +81,15 @@ if eval "test $enable_log_info = yes"; then
   CFLAGS+=" -DDE265_LOG_INFO"
 fi
 
+AC_ARG_ENABLE(log-debug,
+              [AS_HELP_STRING([--enable-log-debug],
+                              [turn on logging at debug level (default=no)])],
+  [enable_log_debug=$enableval],
+  [enable_log_debug=no])
+if eval "test $enable_log_debug = yes"; then
+  CFLAGS+=" -DDE265_LOG_DEBUG"
+fi
+
 AC_ARG_ENABLE(log-trace,
               [AS_HELP_STRING([--enable-log-trace],
                               [turn on logging at trace level (default=no)])],
@@ -106,10 +115,10 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
     VIDEOGFX_LIBS=`libvideogfx-config --libs`
     AC_SUBST(VIDEOGFX_CFLAGS)
     AC_SUBST(VIDEOGFX_LIBS)
+    AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
   else
     echo "Did not find libvideogfx (is libvideogfx-config in your PATH ?)."
-    echo "... Disabling building of dec265 and sherlock265 ..."
-    enable_dec265="no"
+    echo "... Disabling building of sherlock265 ..."
     enable_sherlock265="no"
   fi
 fi

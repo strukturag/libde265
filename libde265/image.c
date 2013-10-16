@@ -26,6 +26,13 @@ static const int alignment = 16;
 
 void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border)
 {
+  // check if we can reuse old image buffer
+
+  if (img->width==w && img->height==h && img->chroma_format==c && img->border==border) {
+    return;
+  }
+
+
   int chroma_width = w;
   int chroma_height= h;
 
@@ -43,17 +50,18 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int b
 
   img->width = w;
   img->height= h;
+  img->border=border;
   img->chroma_width = chroma_width;
   img->chroma_height= chroma_height;
 
   img->chroma_format= c;
 
-  img->y_mem = malloc(img->stride * (h+2*border));
+  img->y_mem = (uint8_t *)malloc(img->stride * (h+2*border));
   img->y     = img->y_mem + border + 2*border*img->stride;
 
   if (c != de265_chroma_mono) {
-    img->cb_mem = malloc(img->chroma_stride * (chroma_height+2*border));
-    img->cr_mem = malloc(img->chroma_stride * (chroma_height+2*border));
+    img->cb_mem = (uint8_t *)malloc(img->chroma_stride * (chroma_height+2*border));
+    img->cr_mem = (uint8_t *)malloc(img->chroma_stride * (chroma_height+2*border));
 
     img->cb     = img->cb_mem + border + 2*border*img->chroma_stride;
     img->cr     = img->cr_mem + border + 2*border*img->chroma_stride;
@@ -78,6 +86,13 @@ void de265_free_image(de265_image* img)
   img->y_mem  = NULL;
   img->cb_mem = NULL;
   img->cr_mem = NULL;
+
+
+  if (img->cb_info) free(img->cb_info);
+  img->cb_info = NULL;
+
+  if (img->pb_info) free(img->pb_info);
+  img->pb_info = NULL;
 }
 
 
@@ -92,9 +107,21 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
   img->width = 0;
   img->height= 0;
   img->stride= 0;
+  img->border= 0;
   img->chroma_width = 0;
   img->chroma_height= 0;
   img->chroma_stride= 0;
+
+  img->picture_order_cnt_lsb = -1; // undefined
+  img->PicOrderCntVal = -1; // undefined
+  img->PicOutputFlag = 0;
+  img->PicState = UnusedForReference;
+
+  img->cb_info = NULL;
+  img->cb_info_size = 0;
+
+  img->pb_info = NULL;
+  img->pb_info_size = 0;
 }
 
 

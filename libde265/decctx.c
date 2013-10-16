@@ -21,6 +21,9 @@
 #include "decctx.h"
 #include "util.h"
 #include "pps_func.h"
+#include "sao.h"
+#include "sei.h"
+#include "deblock.h"
 
 #include <string.h>
 #include <assert.h>
@@ -31,27 +34,44 @@
 
 void init_decoder_context(decoder_context* ctx)
 {
+  memset(ctx, 0, sizeof(decoder_context));
+
   // --- parameters ---
 
   ctx->param_sei_check_hash = true;
+  ctx->param_HighestTid = 999; // unlimited
 
   // --- internal data ---
+
+  rbsp_buffer_init(&ctx->pending_input_data);
+  ctx->end_of_stream=false;
 
   rbsp_buffer_init(&ctx->nal_data);
   ctx->input_push_state = 0;
 
-  memset(ctx, 0, sizeof(decoder_context));
-
   ctx->ref_pic_sets = NULL;
 
-  de265_init_image(&ctx->img);
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    de265_init_image(&ctx->dpb[i]);
+  }
+
+  ctx->img = NULL;
+  ctx->image_output_queue_length = 0;
+  ctx->first_decoded_picture = true;
+  ctx->PicOrderCntMsb = 0;
+  //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
+
+  //de265_init_image(&ctx->img);
   de265_init_image(&ctx->coeff);
   //init_image(&ctx->intra_pred_available);
 
-  for (int i=0;i<DE265_IMAGE_OUTPUT_QUEUE_LEN;i++) {
-    ctx->image_output_queue[i] = -1;
-    ctx->image_ref_count[i]    =  0;
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    ctx->image_output_queue[i] = NULL;
   }
+
+  // --- decoded picture buffer ---
+
+  ctx->current_image_poc_lsb = -1; // any invalid number
 }
 
 
@@ -60,6 +80,7 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
   memset(ctx->cb_info,  0,sizeof(CB_info)  * ctx->cb_info_size);
   memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
+  memset(ctx->pb_info,  0,sizeof(PB_info)  * ctx->pb_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   de265_fill_image(&ctx->coeff, 0,0,0);
@@ -73,6 +94,7 @@ void free_info_arrays(decoder_context* ctx)
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
   if (ctx->cb_info)  { free(ctx->cb_info);  ctx->cb_info =NULL; }
   if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
+  if (ctx->pb_info)  { free(ctx->pb_info);  ctx->pb_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
@@ -93,16 +115,18 @@ de265_error allocate_info_arrays(decoder_context* ctx)
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
       ctx->cb_info_size   = sps->PicSizeInMinCbsY;
+      ctx->pb_info_size   = sps->PicSizeInMinCbsY*4*4;
       ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
       ctx->deblk_height   = deblk_h;
 
       // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
-      ctx->ctb_info   = malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
-      ctx->cb_info    = malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
-      ctx->tu_info    = malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
-      ctx->deblk_info = malloc( sizeof(deblock_info) * ctx->deblk_info_size);
+      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
+      ctx->cb_info    = (CB_info  *)malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
+      ctx->pb_info    = (PB_info  *)malloc( sizeof(PB_info)    * ctx->pb_info_size  *1);
+      ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
+      ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
       if (ctx->ctb_info==NULL || ctx->cb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
 	free_info_arrays(ctx);
@@ -119,8 +143,13 @@ void free_decoder_context(decoder_context* ctx)
   rbsp_buffer_free(&ctx->nal_data);
 
   free_ref_pic_sets(&ctx->ref_pic_sets);
-  de265_free_image(&ctx->img);
+
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    de265_free_image(&ctx->dpb[i]);
+  }
+  //de265_free_image(&ctx->img);
   de265_free_image(&ctx->coeff);
+
   free_info_arrays(ctx);
   //free_image(&ctx->intra_pred_available);
 
@@ -156,6 +185,9 @@ void process_vps(decoder_context* ctx, video_parameter_set* vps)
 void process_sps(decoder_context* ctx, seq_parameter_set* sps)
 {
   memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
+
+
+  ctx->HighestTid = min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
 
@@ -176,11 +208,331 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
   return &ctx->sps[id];
 }
 
+
+/* The returned index rotates through [0;DE265_MAX_SLICES) and is not reset at each new picture.
+ */
 int get_next_slice_index(decoder_context* ctx)
 {
   assert(ctx->next_free_slice_index < DE265_MAX_SLICES);
-  return ctx->next_free_slice_index++;
+
+  int sliceID = ctx->next_free_slice_index;
+
+  ctx->next_free_slice_index = ((ctx->next_free_slice_index+1) % DE265_MAX_SLICES);
+
+  return sliceID;
 }
+
+
+static void log_dpb_content(const decoder_context* ctx)
+{
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, ctx->dpb[i].PicOrderCntVal,
+            ctx->dpb[i].PicState == UnusedForReference ? "unused" :
+            ctx->dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
+            ctx->dpb[i].PicOutputFlag ? "output" : "---");
+  }
+}
+
+
+/* 8.3.1
+ */
+void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
+{
+  if (isIRAP(ctx->nal_unit_type) &&
+      ctx->NoRaslOutputFlag)
+    {
+      ctx->PicOrderCntMsb=0;
+    }
+  else
+    {
+      int MaxPicOrderCntLsb = ctx->current_sps->MaxPicOrderCntLsb;
+
+      if ((hdr->slice_pic_order_cnt_lsb < ctx->prevPicOrderCntLsb) &&
+          (ctx->prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) > MaxPicOrderCntLsb/2) {
+        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb + MaxPicOrderCntLsb;
+      }
+      else if ((hdr->slice_pic_order_cnt_lsb > ctx->prevPicOrderCntLsb) &&
+               (hdr->slice_pic_order_cnt_lsb - ctx->prevPicOrderCntLsb) > MaxPicOrderCntLsb/2) {
+        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb - MaxPicOrderCntLsb;
+      }
+      else {
+        // leave PicOrderCntMsb unchanged
+      }
+    }
+
+  ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
+
+  if (1 /* TemporalID==0 */ && // TODO
+      !isRASL(ctx->nal_unit_type) &&
+      !isRADL(ctx->nal_unit_type) &&
+      1 /* sub-layer non-reference picture */) // TODO
+    {
+      ctx->prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
+      ctx->prevPicOrderCntMsb = ctx->PicOrderCntMsb;
+    }
+}
+
+
+bool has_free_dpb_picture(const decoder_context* ctx)
+{
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
+{
+  //log_dpb_content(ctx);
+  //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
+
+  for (int k=0;k<DE265_DPB_SIZE;k++) {
+    if (ctx->dpb[k].PicOrderCntVal == poc &&
+        ctx->dpb[k].PicState == UsedForShortTermReference) {
+      return k;
+    }
+  }
+
+  assert(false);
+
+  return -1;
+}
+
+
+/* 8.3.2
+ */
+void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
+{
+  if (isRASL(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
+    // reset DPB
+
+    for (int i=0;i<DE265_DPB_SIZE;i++) {
+      ctx->dpb[i].PicState = UnusedForReference;
+    }
+  }
+
+
+  if (isIDR(ctx->nal_unit_type)) {
+    ctx->NumPocStCurrBefore = 0;
+    ctx->NumPocStCurrAfter = 0;
+    ctx->NumPocStFoll = 0;
+    ctx->NumPocLtCurr = 0;
+    ctx->NumPocLtFoll = 0;
+  }
+  else {
+    const ref_pic_set* rps = &ctx->ref_pic_sets[hdr->CurrRpsIdx];
+
+    // (8-98)
+
+    int i,j,k;
+
+    for (i=0, j=0, k=0;
+         i<rps->NumNegativePics;
+         i++)
+      {
+        if (rps->UsedByCurrPicS0[i]) {
+          ctx->PocStCurrBefore[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+        }
+        else {
+          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+        }
+      }
+
+    ctx->NumPocStCurrBefore = j;
+
+    for (i=0, j=0;
+         i<rps->NumPositivePics;
+         i++)
+      {
+        if (rps->UsedByCurrPicS1[i]) {
+          ctx->PocStCurrAfter[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+        }
+        else {
+          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+        }
+      }
+
+    ctx->NumPocStCurrAfter = j;
+    ctx->NumPocStFoll = k;
+
+    for (i=0, j=0, k=0;
+         i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
+         i++)
+      {
+        //int pocLt = 
+        assert(false);
+      }
+
+    ctx->NumPocLtCurr = j;
+    ctx->NumPocLtFoll = k;
+  }
+
+
+  // (8-99)
+  // 1.
+
+  for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    assert(false); // TODO
+  }
+
+  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    assert(false); // TODO
+  }
+
+
+  bool picInAnyList[DE265_DPB_SIZE];
+  memset(picInAnyList,0, DE265_DPB_SIZE*sizeof(bool));
+
+  // TODO: 2.
+
+  // 3.
+
+  for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
+
+    ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+
+    ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  for (int i=0;i<ctx->NumPocStFoll;i++) {
+    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
+
+    ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+  }
+
+  // 4.
+
+  for (int i=0;i<DE265_DPB_SIZE;i++)
+    if (!picInAnyList[i]) {
+      ctx->dpb[i].PicState = UnusedForReference;
+    }
+}
+
+
+// 8.3.3
+void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment_header* hdr)
+{
+  // TODO
+}
+
+
+// 8.3.4
+void construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
+{
+  int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
+  int NumRpsCurrTempList0 = max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
+
+  // TODO: fold code for both lists together
+
+  int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
+  int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
+
+  int rIdx=0;
+  while (rIdx < NumRpsCurrTempList0) {
+    for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrBefore[i];
+
+    for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
+
+    for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
+  }
+
+  assert(hdr->num_ref_idx_l0_active <= 15);
+  for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
+    hdr->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
+      RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
+
+    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+    ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ hdr->RefPicList[0][rIdx] ].PicOrderCntVal;
+  }
+
+
+  if (hdr->slice_type == SLICE_TYPE_B) {
+    int NumRpsCurrTempList1 = max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
+
+    int rIdx=0;
+    while (rIdx < NumRpsCurrTempList1) {
+      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
+
+      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+
+      for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
+    }
+
+    assert(hdr->num_ref_idx_l1_active <= 15);
+    for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
+      hdr->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
+        RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
+
+    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+      ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ hdr->RefPicList[1][rIdx] ].PicOrderCntVal;
+    }
+  }
+}
+
+
+
+void push_current_picture_to_output_queue(decoder_context* ctx)
+{
+  if (ctx->img) {
+    ctx->img->PicState = UsedForShortTermReference;
+
+    // post-process image
+
+    apply_deblocking_filter(ctx);
+    apply_sample_adaptive_offset(ctx);
+
+    // push image into output queue
+
+    if (ctx->img->PicOutputFlag) {
+      loginfo(LogDPB,"new picture has output-flag=true\n");
+
+      assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
+      ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
+
+      loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
+    }
+
+    loginfo(LogDPB, "DPB output queue (after push): ");
+    for (int i=0;i<ctx->image_output_queue_length;i++) {
+      loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
+    }
+    loginfo(LogDPB,"*\n");
+
+    ctx->img = NULL;
+
+    /*
+      if (isRAP(ctx->nal_unit_type)) {
+      ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
+
+      ctx->last_RAP_was_CRA_and_first_image_of_sequence =
+      isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
+      }
+    */
+
+    // next image is not the first anymore
+
+    ctx->first_decoded_picture = false;
+  }
+}
+
 
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
@@ -198,7 +550,14 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
   
   // --- prepare decoding of new picture ---
 
-  if (hdr->first_slice_segment_in_pic_flag) {
+  if (hdr->slice_pic_order_cnt_lsb != ctx->current_image_poc_lsb) {
+
+    // previous picture has been completely decoded
+
+    push_current_picture_to_output_queue(ctx);
+
+    ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
+
 
     // allocate info arrays
 
@@ -208,45 +567,98 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     seq_parameter_set* sps = ctx->current_sps;
 
 
-    // --- allocate image buffer for decoding ---
+    // --- find and allocate image buffer for decoding ---
 
-    if (ctx->img.y == NULL) {
-      int w = sps->pic_width_in_luma_samples;
-      int h = sps->pic_height_in_luma_samples;
-
-      enum de265_chroma chroma;
-      switch (sps->chroma_format_idc) {
-      case 0: chroma = de265_chroma_mono; break;
-      case 1: chroma = de265_chroma_420;  break;
-      case 2: chroma = de265_chroma_422;  break;
-      case 3: chroma = de265_chroma_444;  break;
-      default: chroma = de265_chroma_420; assert(0); break; // should never happen
+    int free_image_buffer_idx = -1;
+    for (int i=0;i<DE265_DPB_SIZE;i++) {
+      if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
+        free_image_buffer_idx = i;
+        break;
       }
-
-      de265_alloc_image(&ctx->img,
-                        w,h,
-                        chroma,
-                        0 /* border */); // border large enough for intra prediction
-
-      de265_alloc_image(&ctx->coeff,
-                        w*2,h,  // 2 bytes per pixel
-                        chroma,
-                        0 /* border */); // border large enough for intra prediction
-
-#if 0
-      alloc_image(&ctx->intra_pred_available,
-                  w,h,
-                  chroma_mono,
-                  64 /* border */); // border large enough for intra prediction
-#endif
     }
 
+    if (free_image_buffer_idx == -1) {
+      return DE265_ERROR_IMAGE_BUFFER_FULL;
+    }
+
+    ctx->img = &ctx->dpb[free_image_buffer_idx];
+
+
+    int w = sps->pic_width_in_luma_samples;
+    int h = sps->pic_height_in_luma_samples;
+
+    enum de265_chroma chroma;
+    switch (sps->chroma_format_idc) {
+    case 0: chroma = de265_chroma_mono; break;
+    case 1: chroma = de265_chroma_420;  break;
+    case 2: chroma = de265_chroma_422;  break;
+    case 3: chroma = de265_chroma_444;  break;
+    default: chroma = de265_chroma_420; assert(0); break; // should never happen
+    }
+
+    de265_alloc_image(ctx->img,
+                      w,h,
+                      chroma,
+                      0 /* border */); // border large enough for intra prediction
+
+    ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
+    ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
+
+    ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
+    ctx->img->pb_info = (CB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
+
+
+    de265_alloc_image(&ctx->coeff,
+                      w*2,h,  // 2 bytes per pixel
+                      chroma,
+                      0 /* border */);
+
     reset_decoder_context_for_new_picture(ctx);
+
+
+    if (isIRAP(ctx->nal_unit_type)) {
+      if (isIDR(ctx->nal_unit_type) ||
+          isBLA(ctx->nal_unit_type) ||
+          ctx->first_decoded_picture ||
+          0 /* first after EndOfSequence NAL */)
+        {
+          ctx->NoRaslOutputFlag = true;
+        }
+      else if (0) // TODO: set HandleCraAsBlaFlag by external means
+        {
+        }
+      else
+        {
+          ctx->NoRaslOutputFlag   = false;
+          ctx->HandleCraAsBlaFlag = false;
+        }
+    }
+
+
+    if (isRASL(ctx->nal_unit_type) &&
+        ctx->NoRaslOutputFlag)
+      {
+        ctx->img->PicOutputFlag = false;
+      }
+    else
+      {
+        ctx->img->PicOutputFlag = hdr->pic_output_flag;
+      }
+
+    process_picture_order_count(ctx,hdr);
+    process_reference_picture_set(ctx,hdr);
+    generate_unavailable_reference_pictures(ctx,hdr);
+
+    log_set_current_POC(ctx->img->PicOrderCntVal);
+
+    if (hdr->slice_type == SLICE_TYPE_B ||
+        hdr->slice_type == SLICE_TYPE_P)
+      {
+        construct_reference_picture_lists(ctx,hdr);
+      }
   }
 
-
-  // TODO: only when starting new image...
-  // fill_image(&ctx->intra_pred_available, 0,-1,-1);
+  log_dpb_content(ctx);
 
   return DE265_OK;
 }
@@ -268,6 +680,7 @@ void debug_dump_cb_info(const decoder_context* ctx)
 #define PIXEL2CB(x) (x >> ctx->current_sps->Log2MinCbSizeY)
 #define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*ctx->current_sps->PicWidthInMinCbsY)
 #define GET_CB_BLK(x,y) ctx->cb_info[CB_IDX(x,y)]
+
 //#define GET_CB_BLK(x,y) (assert(CB_IDX(x,y) < ctx->cb_info_size) , ctx->cb_info[CB_IDX(x,y)])
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
@@ -278,6 +691,17 @@ void debug_dump_cb_info(const decoder_context* ctx)
       {                                                                 \
         { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
         ctx->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
+      }
+
+#define SET_IMG_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
+  int cbX = PIXEL2CB(x);                                                \
+  int cbY = PIXEL2CB(y);                                                \
+  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinCbSizeY);   \
+  for (int cby=cbY;cby<cbY+width;cby++)                                 \
+    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+      {                                                                 \
+        { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
+        ctx->img->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
       }
 
 #define SET_CB_BLK_SAVE(x,y,log2BlkWidth,  Field,value)                 \
@@ -304,12 +728,9 @@ int get_ctDepth(const decoder_context* ctx, int x,int y)
 }
 
 
-void    set_cu_skip_flag(decoder_context* ctx, int x,int y, uint8_t flag)
+void    set_cu_skip_flag(decoder_context* ctx, int x,int y, int log2BlkWidth, uint8_t flag)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].cu_skip_flag = flag;
+  SET_CB_BLK(x,y,log2BlkWidth, cu_skip_flag, flag);
 }
 
 uint8_t get_cu_skip_flag(const decoder_context* ctx, int x,int y)
@@ -333,18 +754,25 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
+  return (enum PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
 }
 
 
 void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum PredMode mode)
 {
-  SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+  { SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
+  { SET_IMG_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
 }
 
 enum PredMode get_pred_mode(const decoder_context* ctx, int x,int y)
 {
-  return ctx->cb_info[ CB_IDX(x,y) ].PredMode;
+  return (enum PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
+}
+
+enum PredMode get_img_pred_mode(const decoder_context* ctx,
+                                const de265_image* img, int x,int y)
+{
+  return (enum PredMode)img->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
 void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, int mode)
@@ -355,6 +783,16 @@ void set_intra_chroma_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWi
 int  get_intra_chroma_pred_mode(const decoder_context* ctx, int x,int y)
 {
   return GET_CB_BLK(x,y).intra_chroma_pred_mode;
+}
+
+void set_rqt_root_cbf(decoder_context* ctx,int x,int y, int log2BlkWidth, int rqt_root_cbf_value)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, rqt_root_cbf, rqt_root_cbf_value);
+}
+
+int  get_rqt_root_cbf(const decoder_context* ctx,int x,int y)
+{
+  return GET_CB_BLK(x,y).rqt_root_cbf;
 }
 
 
@@ -400,7 +838,7 @@ void set_IntraPredMode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum
 
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, int x,int y)
 {
-  return GET_TU_BLK(x,y).IntraPredMode;
+  return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
 }
 
 void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enum IntraPredMode mode)
@@ -410,7 +848,7 @@ void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enu
 
 enum IntraPredMode get_IntraPredModeC(const decoder_context* ctx, int x,int y)
 {
-  return GET_TU_BLK(x,y).IntraPredModeC;
+  return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredModeC;
 }
 
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
@@ -473,6 +911,18 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx)
 }
 
 
+void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
+{
+  SET_TU_BLK(x,y,log2TrafoSize, nonzero_coefficient, 1);
+}
+
+
+int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
+{
+  return GET_TU_BLK(x,y).nonzero_coefficient;
+}
+
+
 void set_QPY(decoder_context* ctx,int x,int y, int QP_Y)
 {
   assert(x>=0 && x<ctx->current_sps->pic_width_in_luma_samples);
@@ -491,9 +941,9 @@ int  get_QPY(const decoder_context* ctx,int x,int y)
 void get_image_plane(const decoder_context* ctx, int cIdx, uint8_t** image, int* stride)
 {
   switch (cIdx) {
-  case 0: *image = ctx->img.y;  *stride = ctx->img.stride; break;
-  case 1: *image = ctx->img.cb; *stride = ctx->img.chroma_stride; break;
-  case 2: *image = ctx->img.cr; *stride = ctx->img.chroma_stride; break;
+  case 0: *image = ctx->img->y;  *stride = ctx->img->stride; break;
+  case 1: *image = ctx->img->cb; *stride = ctx->img->chroma_stride; break;
+  case 2: *image = ctx->img->cr; *stride = ctx->img->chroma_stride; break;
   }
 }
 
@@ -562,6 +1012,138 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
 }
 
 
+
+#define PIXEL2PB(x) (x >> (ctx->current_sps->Log2MinCbSizeY-2))
+#define PB_IDX(x0,y0) (PIXEL2PB(x0) + PIXEL2PB(y0)*ctx->current_sps->PicWidthInMinCbsY*4)
+#define GET_PB_BLK(x,y) ctx->pb_info[PB_IDX(x,y)]
+#define SET_PB_BLK(x,y,nPbW,nPbH, Field, value)                         \
+  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
+  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
+    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
+      {                                                                 \
+        ctx->pb_info[PB_IDX(pbx,pby)].Field = value;                    \
+      }
+
+#define SET_IMG_PB_BLK(x,y,nPbW,nPbH,  Field,value)                     \
+  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
+  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
+    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
+      {                                                                 \
+        ctx->img->pb_info[PB_IDX(pbx,pby)].Field = value;               \
+      }
+
+//        fprintf(stderr,"PB %d;%d = %d;%d\n",pbx,pby,(value).mv[0].x,(value).mv[0].y); \
+
+
+const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
+{
+  int idx = PB_IDX(x,y);
+
+  return &ctx->pb_info[idx].pred_vector;
+}
+
+
+const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
+                                      const de265_image* img, int x,int y)
+{
+  return &img->pb_info[ PB_IDX(x,y) ].mvi;
+}
+
+
+void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
+{
+  /*
+  fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,
+          mv->mv[0].x,mv->mv[0].y,
+          ctx->img->PicOrderCntVal);
+  */
+
+  { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
+  { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
+}
+
+
+int get_merge_idx(const decoder_context* ctx,int xP,int yP)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].merge_idx;
+}
+
+void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int new_merge_idx)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_idx, new_merge_idx);
+}
+
+
+uint8_t get_merge_flag(const decoder_context* ctx,int xP,int yP)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].merge_flag;
+}
+
+void set_merge_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, uint8_t new_merge_flag)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_flag, new_merge_flag);
+}
+
+
+uint8_t get_mvp_flag(const decoder_context* ctx,int xP,int yP, int l)
+{
+  int idx = PB_IDX(xP,yP);
+  return ctx->pb_info[idx].mvp_lX_flag[l];
+}
+
+void set_mvp_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,
+                  int l, uint8_t new_flag)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH,mvp_lX_flag[l], new_flag);
+}
+
+
+void    set_mvd(decoder_context* ctx,int x0,int y0,int reflist, int16_t dx,int16_t dy)
+{
+  int idx = PB_IDX(x0,y0);
+  ctx->pb_info[idx].mvd[reflist][0] = dx;
+  ctx->pb_info[idx].mvd[reflist][1] = dy;
+}
+
+int16_t get_mvd_x(const decoder_context* ctx,int x0,int y0,int reflist)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].mvd[reflist][0];
+}
+
+int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].mvd[reflist][1];
+}
+
+void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx)
+{
+  SET_PB_BLK(x0,y0,nPbW,nPbH, pred_vector.refIdx[l], ref_idx);
+}
+
+uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
+{
+  int idx = PB_IDX(x0,y0);
+  return ctx->pb_info[idx].pred_vector.refIdx[l];
+}
+
+
+void set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc)
+{
+  int idx = PB_IDX(x0,y0);
+  ctx->pb_info[idx].inter_pred_idc[l] = (uint8_t)idc;
+}
+
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0, int l)
+{
+  int idx = PB_IDX(x0,y0);
+  return (enum InterPredIdc)(ctx->pb_info[idx].inter_pred_idc[l]);
+}
+
+
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN)
 {
@@ -625,12 +1207,11 @@ bool available_pred_blk(const decoder_context* ctx,
 }
 
 
-void write_picture(const decoder_context* ctx)
+void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen("out.yuv","wb"); }
 
-  const de265_image* img = &ctx->img;
   for (int y=0;y<img->height;y++)
     fwrite(img->y + y*img->stride, img->width, 1, fh);
 

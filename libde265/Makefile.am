@@ -45,7 +45,8 @@ libde265_la_SOURCES = \
   slice_func.h \
   sps.h \
   util.h \
-  vps.h
+  vps.h \
+  motion.c motion.h
 
 libde265_la_HEADERS = \
   de265.h

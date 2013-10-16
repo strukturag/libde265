@@ -22,7 +22,25 @@
 #define DE265_IMAGE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "libde265/de265.h"
+#include "libde265/motion.h"
+
+
+enum PictureState {
+  UnusedForReference,
+  UsedForShortTermReference,
+  UsedForLongTermReference
+};
+
+
+typedef struct {
+  uint8_t PredMode; // (enum PredMode)
+} CB_ref_info;
+
+typedef struct {
+  PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
+} PB_ref_info;
 
 
 typedef struct de265_image {
@@ -41,7 +59,27 @@ typedef struct de265_image {
   int stride, chroma_stride;
 
   int border;
+
+
+  // --- decoding info ---
+
+  // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
+
+  int  picture_order_cnt_lsb;
+  int  PicOrderCntVal;
+  bool PicOutputFlag;
+  enum PictureState PicState;
+
+  CB_ref_info* cb_info;
+  int cb_info_size;
+
+  PB_ref_info* pb_info;
+  int pb_info_size;
+
+  int RefPicList_POC[2][14+1];
+
 } de265_image;
+
 
 void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
 void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border);

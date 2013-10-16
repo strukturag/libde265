@@ -21,6 +21,9 @@
 #ifndef DE265_NAL_H
 #define DE265_NAL_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "libde265/bitstream.h"
 
 typedef struct {
@@ -45,12 +48,12 @@ typedef struct {
 #define NAL_UNIT_RSV_VCL_R11  11
 #define NAL_UNIT_RSV_VCL_R13  13
 #define NAL_UNIT_RSV_VCL_R15  15
-#define NAL_UNIT_BLA_W_LP   16
+#define NAL_UNIT_BLA_W_LP   16     // BLA = broken link access
 #define NAL_UNIT_BLA_W_RADL 17
 #define NAL_UNIT_BLA_N_LP   18
 #define NAL_UNIT_IDR_W_RADL 19
 #define NAL_UNIT_IDR_N_LP   20
-#define NAL_UNIT_CRA_NUT    21
+#define NAL_UNIT_CRA_NUT    21     // CRA = clean random access
 #define NAL_UNIT_RSV_IRAP_VCL22 22
 #define NAL_UNIT_RSV_IRAP_VCL23 23
 #define NAL_UNIT_RSV_VCL24     24
@@ -78,6 +81,16 @@ typedef struct {
 #define NAL_UNIT_RSV_NVCL46     46
 #define NAL_UNIT_RSV_NVCL47     47
 
+#define NAL_UNIT_UNDEFINED    255
+
 void nal_read_header(bitreader* reader, nal_header*);
+
+bool isIDR(uint8_t unit_type);
+bool isBLA(uint8_t unit_type);
+bool isCRA(uint8_t unit_type);
+bool isRAP(uint8_t unit_type);
+bool isRASL(uint8_t unit_type);
+bool isIRAP(uint8_t unit_type);
+bool isRADL(uint8_t unit_type);
 
 #endif
