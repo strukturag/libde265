@@ -290,7 +290,7 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, uint8_t* data, in
   }
 
   if (nBytesProcessed != len) {
-    printf("%d %d\n",nBytesProcessed,len);
+    //printf("%d %d\n",nBytesProcessed,len);
 
     // save remaining bytes
 

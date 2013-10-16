@@ -350,7 +350,7 @@ void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, 
 uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
 
 void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc);
-enum InterPredIdc get_inter_pred_idx(const decoder_context* ctx,int x0,int y0,int l);
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0,int l);
 
 
 bool available_zscan(const decoder_context* ctx,

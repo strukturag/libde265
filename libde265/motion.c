@@ -100,6 +100,7 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
       }
 
+#ifdef DE265_LOG_TRACE
     logtrace(LogMotion,"---MC luma %d %d = direct---\n",xFracL,yFracL);
 
     for (int y=0;y<nPbH;y++) {
@@ -122,6 +123,7 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
       logtrace(LogMotion,"\n");
     }
+#endif
   }
   else {
     int extra_left   = extra_before[xFracL];
@@ -352,9 +354,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const VectorInfo* vi)
 {
-  int nCbSL = nCS;
-  int nCbSC = nCS>>1;
-
   const seq_parameter_set* sps = ctx->current_sps;
 
   int16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
@@ -765,7 +764,7 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
   }
 
 
-  int numInputMergeCand = *inout_numMergeCand;
+  //int numInputMergeCand = *inout_numMergeCand;
   int zeroIdx = 0;
 
   while (*inout_numMergeCand < shdr->MaxNumMergeCand) {
@@ -816,8 +815,8 @@ void scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 
 // (L1003) 8.5.3.2.8
 
-void derive_collocated_motion_vectors(decoder_context* ctx,
-                                      slice_segment_header* shdr,
+void derive_collocated_motion_vectors(const decoder_context* ctx,
+                                      const slice_segment_header* shdr,
                                       int xP,int yP,
                                       int colPic,
                                       int xColPb,int yColPb,
@@ -891,8 +890,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 
 // 8.5.3.1.7
-void derive_temporal_luma_vector_prediction(decoder_context* ctx,
-                                            slice_segment_header* shdr,
+void derive_temporal_luma_vector_prediction(const decoder_context* ctx,
+                                            const slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
                                             int refIdxL, int X,
@@ -1065,13 +1064,13 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
 
 // 8.5.3.1.6
-MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
-                                                   const slice_segment_header* shdr,
-                                                   int xC,int yC,int nCS,int xP,int yP,
-                                                   int nPbW,int nPbH, int X,
-                                                   int refIdxLX, int partIdx,
-                                                   uint8_t out_availableFlagLXN[2],
-                                                   MotionVector out_mvLXN[2])
+void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
+                                           const slice_segment_header* shdr,
+                                           int xC,int yC,int nCS,int xP,int yP,
+                                           int nPbW,int nPbH, int X,
+                                           int refIdxLX, int partIdx,
+                                           uint8_t out_availableFlagLXN[2],
+                                           MotionVector out_mvLXN[2])
 {
   int isScaledFlagLX = 0;
 
@@ -1164,8 +1163,8 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
     }
 
     if (out_availableFlagLXN[A]==1) {
-      de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
-      de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
+      const de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
+      const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
       if (refPicA->PicState == UsedForShortTermReference &&
           refPicX->PicState == UsedForShortTermReference) {
 
@@ -1267,8 +1266,8 @@ MotionVector derive_spatial_luma_vector_prediction(const decoder_context* ctx,
       }
 
       if (out_availableFlagLXN[B]==1) {
-        de265_image* refPicB = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxB ] ];
-        de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
+        const de265_image* refPicB = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxB ] ];
+        const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
         if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
             refPicB->PicState == UsedForShortTermReference &&
             refPicX->PicState == UsedForShortTermReference) {
@@ -1292,7 +1291,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 {
   // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
 
-  bool availableFlagLXN[2];
+  uint8_t availableFlagLXN[2];
   MotionVector mvLXN[2];
 
   if (xP==68 && yP==16 && ctx->img->PicOrderCntVal==638) {
@@ -1305,7 +1304,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
   // 8.5.3.1.7: if we only have one spatial vector or both spatial vectors are the same,
   // derive a temporal predictor
 
-  bool availableFlagLXCol;
+  uint8_t availableFlagLXCol;
   MotionVector mvLXCol;
 
 
@@ -1447,9 +1446,6 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
-  int nCS_L = nCS;
-  int nCS_C = nCS>>1;
-
   // 1.
 
   VectorInfo vi;
@@ -1469,7 +1465,7 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
                       int xC,int yC, int log2CbSize)
 {
   int nCS_L = 1<<log2CbSize;
-  int nCS_C = nCS_L>>1;
+  //int nCS_C = nCS_L>>1;
   int nCS1L = nCS_L>>1;
 
   enum PartMode partMode = get_PartMode(ctx,xC,yC);
