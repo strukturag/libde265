@@ -1039,7 +1039,7 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 {
   int idx = PB_IDX(x,y);
 
-  return &ctx->pb_info[idx].pred_vector;
+  return &ctx->img->pb_info[ PB_IDX(x,y) ].mvi;
 }
 
 
@@ -1058,7 +1058,7 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
           ctx->img->PicOrderCntVal);
   */
 
-  { SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
+  //{ SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
   { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
 }
 
@@ -1121,13 +1121,19 @@ int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist)
 
 void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx)
 {
-  SET_PB_BLK(x0,y0,nPbW,nPbH, pred_vector.refIdx[l], ref_idx);
+  // TODO: is it possible to mode this into the image's PB data or is this at a different resolution?
+  // It appears that the resolution is different, because it does not work out of the box.
+
+  SET_PB_BLK(x0,y0,nPbW,nPbH, refIdx[l], ref_idx);
+  //de265_image* img = ctx->img;
+  //{ SET_IMG_PB_BLK(x0,y0,nPbW,nPbH, mvi.refIdx[l], ref_idx); }
 }
 
 uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
 {
   int idx = PB_IDX(x0,y0);
-  return ctx->pb_info[idx].pred_vector.refIdx[l];
+  return ctx->pb_info[idx].refIdx[l];
+  //return &ctx->img->pb_info[ PB_IDX(x0,y0) ].mvi.refIdx[l];
 }
 
 
