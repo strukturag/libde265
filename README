@@ -6,7 +6,7 @@ libde265 is an open source implementation of the h.265 video codec.
 It is written from scratch in plain C for simplicity and efficiency.
 Its simple API makes it easy to integrate it into other software.
 
-Currently, libde265 only decodes intra frames, inter-frame decoding
+Currently, libde265 decodes I- and P- slices, B-slices decoding
 is under construction. Encoding is planned to be added afterwards.
 
 
@@ -18,6 +18,9 @@ The library comes with two example programs:
 - sherlock265, a Qt-based video player with the additional capability
           to overlay some graphical representations of the h.265
           bitstream (like CU-trees, intra-prediction modes).
+
+Example bitstreams can be found, e.g., at this site:
+  ftp://ftp.kw.bbc.co.uk/hevc/hm-10.1-anchors/bitstreams/lp_main/
 
 
 
