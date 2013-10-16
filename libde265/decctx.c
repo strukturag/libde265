@@ -1228,16 +1228,20 @@ void write_picture(const de265_image* img)
 
 void draw_block_boundary(const decoder_context* ctx,
                          uint8_t* img,int stride,
-                         int x,int y,int log2BlkSize, uint8_t value)
+                         int x,int y,int hBlkSize, int vBlkSize, uint8_t value)
 {
-  for (int i=0;i<(1<<log2BlkSize);i++)
+  for (int i=0;i<vBlkSize;i++)
     {
       int yi = y + i;
-      int xi = x + i;
       
       if (yi < ctx->current_sps->pic_height_in_luma_samples) {
         img[yi*stride + x] = value;
       }
+    }
+
+  for (int i=0;i<hBlkSize;i++)
+    {
+      int xi = x + i;
       
       if (xi < ctx->current_sps->pic_width_in_luma_samples) {
         img[y*stride + xi] = value;
@@ -1321,7 +1325,7 @@ void drawTBgrid(const decoder_context* ctx, uint8_t* img, int stride,
     drawTBgrid(ctx,img,stride,x1,y1,value,log2CbSize,trafoDepth+1);
   }
   else {
-    draw_block_boundary(ctx,img,stride,x0,y0,log2CbSize-trafoDepth, value);
+    draw_block_boundary(ctx,img,stride,x0,y0,1<<(log2CbSize-trafoDepth),1<<(log2CbSize-trafoDepth), value);
   }
 }
 
@@ -1357,22 +1361,47 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
           drawTBgrid(ctx,img,stride,x0*minCbSize,y0*minCbSize, value, log2CbSize, 0);
         }
         else if (what == Partitioning_CB) {
-          draw_block_boundary(ctx,img,stride,xb,yb, log2CbSize, value);
+          draw_block_boundary(ctx,img,stride,xb,yb, 1<<log2CbSize,1<<log2CbSize, value);
         }
         else if (what == Partitioning_PB) {
           enum PartMode partMode = get_PartMode(ctx,xb,yb);
 
+          int CbSize = 1<<log2CbSize;
           int HalfCbSize = (1<<(log2CbSize-1));
 
           switch (partMode) {
           case PART_2Nx2N:
-            draw_block_boundary(ctx,img,stride,xb,yb,log2CbSize, value);
+            draw_block_boundary(ctx,img,stride,xb,yb,CbSize,CbSize, value);
             break;
           case PART_NxN:
-            draw_block_boundary(ctx,img,stride,xb,           yb,           log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb,           log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1, value);
-            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1, value);
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize/2,CbSize/2, value);
+            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize/2, value);
+            draw_block_boundary(ctx,img,stride,xb           ,yb+HalfCbSize,CbSize/2,CbSize/2, value);
+            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,CbSize/2,CbSize/2, value);
+            break;
+          case PART_2NxN:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize  ,CbSize/2, value);
+            draw_block_boundary(ctx,img,stride,xb,           yb+HalfCbSize,CbSize  ,CbSize/2, value);
+            break;
+          case PART_Nx2N:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize/2,CbSize, value);
+            draw_block_boundary(ctx,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize, value);
+            break;
+          case PART_2NxnU:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize  ,CbSize/4,   value);
+            draw_block_boundary(ctx,img,stride,xb,           yb+CbSize/4  ,CbSize  ,CbSize*3/4, value);
+            break;
+          case PART_2NxnD:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize  ,CbSize*3/4, value);
+            draw_block_boundary(ctx,img,stride,xb,           yb+CbSize*3/4,CbSize  ,CbSize/4,   value);
+            break;
+          case PART_nLx2N:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize/4  ,CbSize, value);
+            draw_block_boundary(ctx,img,stride,xb+CbSize/4  ,yb,           CbSize*3/4,CbSize, value);
+            break;
+          case PART_nRx2N:
+            draw_block_boundary(ctx,img,stride,xb,           yb,           CbSize*3/4,CbSize, value);
+            draw_block_boundary(ctx,img,stride,xb+CbSize*3/4,yb,           CbSize/4  ,CbSize, value);
             break;
           default:
             assert(false);
