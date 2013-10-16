@@ -210,6 +210,7 @@ void transform_dct(int16_t* in, int32_t* out, int nT, int shift)
 
   // check for all-zero coefficients and skip transform for this case
 
+#if 0
   int16_t inOr = 0;
   for (int i=0;i<nT;i++) {
     inOr |= in[i];
@@ -219,14 +220,21 @@ void transform_dct(int16_t* in, int32_t* out, int nT, int shift)
     memset(out,0,nT*sizeof(int32_t));
     return;
   }
+#endif
 
+  // find last non-zero coefficient to reduce computations carried out in DCT
+
+  int lastCol = nT-1;
+  for (;lastCol>=0;lastCol--) {
+    if (in[lastCol]) { break; }
+  }
 
   // carry out DCT transform
 
   for (int i=0;i<nT;i++) {
     int sum=0;
 
-    for (int j=0;j<nT;j++) {
+    for (int j=0;j<=lastCol /*nT*/;j++) {
       sum += mat_dct[fact*j][i] * in[j];
     }
 
