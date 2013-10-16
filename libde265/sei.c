@@ -276,7 +276,7 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
   }
 }
 
-bool override_sei_check = true;
+bool override_sei_check = false;
 
 int process_sei(const sei_message* sei, decoder_context* ctx)
 {
