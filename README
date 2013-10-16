@@ -27,6 +27,9 @@ Example bitstreams can be found, e.g., at this site:
 Building
 ========
 
+If you got libde265 from the git repository, you will first need to run
+the included "autogen.sh" script to generate the "configure" script.
+
 libde265 has no dependencies on other libraries, but both example programs
 require that you install the libvideogfx library, which you can get from
   http://www.dirk-farin.net/software/libvideogfx/index.html
