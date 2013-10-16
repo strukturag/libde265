@@ -362,6 +362,12 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
   LOG("strong_intra_smoothing_enable_flag : %d\n", sps->strong_intra_smoothing_enable_flag);
   LOG("vui_parameters_present_flag        : %d\n", sps->vui_parameters_present_flag);
 
+  LOG("CtbSizeY     : %d\n", sps->CtbSizeY);
+  LOG("MinCbSizeY   : %d\n", sps->MinCbSizeY);
+  LOG("MaxCbSizeY   : %d\n", 1<<(sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
+  LOG("MinTBSizeY   : %d\n", 1<<sps->log2_min_transform_block_size);
+  LOG("MaxTBSizeY   : %d\n", 1<<(sps->log2_min_transform_block_size + sps->log2_diff_max_min_transform_block_size));
+
   return;
 
   if (sps->vui_parameters_present_flag) {
