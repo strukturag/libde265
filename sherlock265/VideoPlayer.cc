@@ -64,6 +64,11 @@ VideoPlayer::VideoPlayer(const char* filename)
   QObject::connect(showIntraPredModeButton, SIGNAL(toggled(bool)),
                    mDecoder, SLOT(showIntraPredMode(bool)));
 
+  QPushButton* showPBPredModeButton = new QPushButton("PB-mode");
+  showPBPredModeButton->setCheckable(true);
+  QObject::connect(showPBPredModeButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showPBPredMode(bool)));
+
   QPushButton* showDecodedImageButton = new QPushButton("image");
   showDecodedImageButton->setCheckable(true);
   showDecodedImageButton->setChecked(true);
@@ -71,7 +76,7 @@ VideoPlayer::VideoPlayer(const char* filename)
                    mDecoder, SLOT(showDecodedImage(bool)));
 
   QGridLayout *layout = new QGridLayout;
-  layout->addWidget(videoWidget, 0,0,1,5);
+  layout->addWidget(videoWidget, 0,0,1,6);
   layout->addWidget(startButton, 1,0,1,1);
   layout->addWidget(stopButton,  1,1,1,1);
   layout->addWidget(stepButton,  1,2,1,1);
@@ -79,7 +84,8 @@ VideoPlayer::VideoPlayer(const char* filename)
   layout->addWidget(showTBPartitioningButton,2,1,1,1);
   layout->addWidget(showPBPartitioningButton,2,2,1,1);
   layout->addWidget(showIntraPredModeButton, 2,3,1,1);
-  layout->addWidget(showDecodedImageButton,  2,4,1,1);
+  layout->addWidget(showPBPredModeButton,    2,4,1,1);
+  layout->addWidget(showDecodedImageButton,  2,5,1,1);
   setLayout(layout);
 
 
