@@ -78,7 +78,7 @@ void display_image(const struct de265_image* img)
   }
 
   win.Display(visu);
-  win.WaitForKeypress();
+  //win.WaitForKeypress();
 }
 #endif
 
@@ -97,6 +97,8 @@ int main(int argc, char** argv)
 
   de265_init();
   de265_decoder_context* ctx = de265_new_decoder();
+
+  //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
 
   FILE* fh = fopen(argv[1], "rb");
   if (fh==NULL) {
@@ -135,7 +137,7 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX
         display_image(img);
 #else
-        write_picture((const decoder_context*)ctx);
+        write_picture(img);
 #endif
       }
     }
