@@ -802,26 +802,30 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 void derive_zero_motion_vector_candidates(decoder_context* ctx,
                                           slice_segment_header* shdr,
                                           PredVectorInfo* inout_mergeCandList,
-                                          int* inout_numMergeCand)
+                                          int* inout_numCurrMergeCand)
 {
+  logtrace(LogMotion,"derive_zero_motion_vector_candidates\n");
+
   int numRefIdx;
 
   if (shdr->slice_type==SLICE_TYPE_P) {
-    numRefIdx = ctx->current_pps->num_ref_idx_l0_default_active;
+    numRefIdx = shdr->num_ref_idx_l0_active;
   }
   else {
-    numRefIdx = min(ctx->current_pps->num_ref_idx_l0_default_active,
-                    ctx->current_pps->num_ref_idx_l1_default_active);
+    numRefIdx = min(shdr->num_ref_idx_l0_active,
+                    shdr->num_ref_idx_l1_active);
   }
 
 
   //int numInputMergeCand = *inout_numMergeCand;
   int zeroIdx = 0;
 
-  while (*inout_numMergeCand < shdr->MaxNumMergeCand) {
+  while (*inout_numCurrMergeCand < shdr->MaxNumMergeCand) {
     // 1.
 
-    PredVectorInfo* newCand = &inout_mergeCandList[*inout_numMergeCand];
+    logtrace(LogMotion,"zeroIdx:%d numRefIdx:%d\n", zeroIdx, numRefIdx);
+
+    PredVectorInfo* newCand = &inout_mergeCandList[*inout_numCurrMergeCand];
 
     if (shdr->slice_type==SLICE_TYPE_P) {
       newCand->refIdx[0] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
@@ -841,7 +845,7 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
     newCand->mv[1].x = 0;
     newCand->mv[1].y = 0;
 
-    (*inout_numMergeCand)++;
+    (*inout_numCurrMergeCand)++;
 
     // 2.
 
@@ -917,22 +921,22 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
 
         int AllDiffPicOrderCntLEZero = true;
 
+        const int PicOrderCntVal = ctx->img->PicOrderCntVal;
+
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            int DiffPicOrderCnt = (ctx->dpb[shdr->RefPicList[0][rIdx]].PicOrderCntVal -
-                                   ctx->img->PicOrderCntVal);
+            int aPOC = ctx->dpb[shdr->RefPicList[0][rIdx]].PicOrderCntVal;
 
-            if (DiffPicOrderCnt > 0) {
+            if (aPOC > PicOrderCntVal) {
               AllDiffPicOrderCntLEZero = false;
             }
           }
 
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            int DiffPicOrderCnt = (ctx->dpb[shdr->RefPicList[1][rIdx]].PicOrderCntVal -
-                                   ctx->img->PicOrderCntVal);
+            int aPOC = ctx->dpb[shdr->RefPicList[1][rIdx]].PicOrderCntVal;
 
-            if (DiffPicOrderCnt > 0) {
+            if (aPOC > PicOrderCntVal) {
               AllDiffPicOrderCntLEZero = false;
             }
           }
@@ -955,11 +959,11 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
 
     bool isLongTerm = false; // TODO
     int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
-    int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[listCol][refIdxLX];
+    int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[X][refIdxLX];
 
     logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
              colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
-             ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[listCol][refIdxLX]
+             ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[X][refIdxLX]
              );
 
     if (isLongTerm || colDist == currDist) {
@@ -1125,10 +1129,6 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   MergingCandidates mergeCand;
   derive_spatial_merging_candidates(ctx, xC,yC, nCS, xP,yP, singleMCLFlag,
                                     nPbW,nPbH,partIdx, &mergeCand);
-
-  if (xP==112 && yP==96) {
-    //raise(SIGINT);
-  }
 
   int refIdxCol[2] = { 0,0 };
 
@@ -1443,10 +1443,6 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
   uint8_t availableFlagLXN[2];
   MotionVector mvLXN[2];
-
-  if (xP==68 && yP==16 && ctx->img->PicOrderCntVal==638) {
-    //raise(SIGINT);
-  }
 
   derive_spatial_luma_vector_prediction(ctx, shdr, xC,yC, nCS, xP,yP, nPbW,nPbH, l, refIdx, partIdx,
                                         availableFlagLXN, mvLXN);

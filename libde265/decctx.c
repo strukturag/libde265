@@ -466,11 +466,11 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {
-      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
-        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
-
       for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++)
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+
+      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
 
       for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++)
         RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
