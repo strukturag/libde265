@@ -577,6 +577,8 @@ static const int initValue_abs_mvd_greater01_flag[4] = { 140,198,169,198 };
 static const int initValue_mvp_lx_flag[2] = { 168,168 };
 static const int initValue_rqt_root_cbf[2] = { 79,79 };
 static const int initValue_ref_idx_lX[4] = { 153,153,153,153 };
+static const int initValue_inter_pred_idc[10] = { 95,79,63,31,31,
+                                                  95,79,63,31,31 };
 
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
@@ -824,6 +826,14 @@ void init_ref_idx_lX(decoder_context* ctx, slice_segment_header* shdr)
   for (int i=0;i<4;i++)
     {
       set_initValue(ctx,shdr, &shdr->ref_idx_lX_model[i], initValue_ref_idx_lX[i]);
+    }
+}
+
+void init_inter_pred_idc(decoder_context* ctx, slice_segment_header* shdr)
+{
+  for (int i=0;i<10;i++)
+    {
+      set_initValue(ctx,shdr, &shdr->inter_pred_idc_model[i], initValue_inter_pred_idc[i]);
     }
 }
 
@@ -1545,6 +1555,8 @@ int decode_rqt_root_cbf(decoder_context* ctx,
   return bit;
 }
 
+extern int logcnt;
+
 int decode_ref_idx_lX(decoder_context* ctx,
                       slice_segment_header* shdr, int numRefIdxLXActive)
 {
@@ -1608,6 +1620,39 @@ int decode_ref_idx_lX(decoder_context* ctx,
   return idx;
 }
 
+int decode_inter_pred_idc(decoder_context* ctx,
+                          slice_segment_header* shdr,
+                          int x0, int y0,
+                          int nPbW, int nPbH,
+                          int ctDepth)
+{
+  logtrace(LogSlice,"# inter_pred_idc\n");
+
+  int ctxIdxOffset = (shdr->initType-1)*5;
+  int value;
+
+  if (nPbW+nPbH==12) {
+    value = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->inter_pred_idc_model[ctxIdxOffset+4]);
+  }
+  else {
+    int bit0 = decode_CABAC_bit(&shdr->cabac_decoder,
+                                &shdr->inter_pred_idc_model[ctxIdxOffset+ctDepth]);
+    if (bit0==0) {
+      value = decode_CABAC_bit(&shdr->cabac_decoder,
+                               &shdr->inter_pred_idc_model[ctxIdxOffset+4]);
+    }
+    else {
+      value = 2;
+    }
+  }
+
+  logtrace(LogSlice,"> inter_pred_idc = %d\n",value);
+
+  return value;
+}
+
+
 
 
 int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
@@ -1636,6 +1681,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_mvp_lx_flag(ctx,shdr);
   init_rqt_root_cbf(ctx,shdr);
   init_ref_idx_lX(ctx,shdr);
+  init_inter_pred_idc(ctx,shdr);
 
 
   int end_of_slice_segment_flag;
@@ -2586,7 +2632,8 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
 void read_prediction_unit(decoder_context* ctx,
                           slice_segment_header* shdr,
                           int x0, int y0,
-                          int nPbW, int nPbH)
+                          int nPbW, int nPbH,
+                          int ctDepth)
 {
   logtrace(LogSlice,"read_prediction_unit %d;%d %dx%d\n",x0,y0,nPbW,nPbH);
 
@@ -2608,13 +2655,13 @@ void read_prediction_unit(decoder_context* ctx,
     enum InterPredIdc inter_pred_idc;
 
     if (shdr->slice_type == SLICE_TYPE_B) {
-      assert(0); // TODO: inter_pred_idc
+      inter_pred_idc = decode_inter_pred_idc(ctx,shdr,x0,y0,nPbW,nPbH,ctDepth);
     }
     else {
       inter_pred_idc = PRED_L0;
     }
 
-    set_inter_pred_idc(ctx,x0,y0,0, inter_pred_idc);
+    set_inter_pred_idc(ctx,x0,y0, inter_pred_idc);
 
     if (inter_pred_idc != PRED_L1) {
       int ref_idx_l0 = decode_ref_idx_lX(ctx,shdr, shdr->num_ref_idx_l0_active);
@@ -2632,7 +2679,24 @@ void read_prediction_unit(decoder_context* ctx,
     }
 
     if (inter_pred_idc != PRED_L0) {
-      assert(0);
+      int ref_idx_l1 = decode_ref_idx_lX(ctx,shdr, shdr->num_ref_idx_l1_active);
+
+      // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
+      set_ref_idx(ctx,x0,y0,nPbW,nPbH,1, ref_idx_l1);
+
+      if (shdr->mvd_l1_zero_flag &&
+          inter_pred_idc == PRED_BI) {
+        set_mvd(ctx, x0,y0, 1, 0,0);
+      }
+      else {
+        read_mvd_coding(ctx,shdr,x0,y0, 1);
+      }
+
+      int mvp_l1_flag = decode_mvp_lx_flag(ctx,shdr); // l1
+      set_mvp_flag(ctx,x0,y0,nPbW,nPbH,1, mvp_l1_flag);
+
+      logtrace(LogSlice,"prediction unit %d,%d, L1, mvp_l1_flag:%d\n",
+               x0,y0, mvp_l1_flag);
     }
   }
 }
@@ -2892,37 +2956,37 @@ void read_coding_unit(decoder_context* ctx,
     }
     else {
       if (PartMode == PART_2Nx2N) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS,ctDepth);
       }
       else if (PartMode == PART_2NxN) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/2);
-        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS,nCbS/2,ctDepth);
       }
       else if (PartMode == PART_Nx2N) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS);
-        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS,ctDepth);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS,ctDepth);
       }
       else if (PartMode == PART_2NxnU) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/4);
-        read_prediction_unit(ctx,shdr,x0,y0+nCbS/4,nCbS,nCbS*3/4);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS/4,ctDepth);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/4,nCbS,nCbS*3/4,ctDepth);
       }
       else if (PartMode == PART_2NxnD) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS*3/4);
-        read_prediction_unit(ctx,shdr,x0,y0+nCbS*3/4,nCbS,nCbS/4);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS,nCbS*3/4,ctDepth);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS*3/4,nCbS,nCbS/4,ctDepth);
       }
       else if (PartMode == PART_nLx2N) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS/4,nCbS);
-        read_prediction_unit(ctx,shdr,x0+nCbS/4,y0,nCbS*3/4,nCbS);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,shdr,x0+nCbS/4,y0,nCbS*3/4,nCbS,ctDepth);
       }
       else if (PartMode == PART_nRx2N) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS*3/4,nCbS);
-        read_prediction_unit(ctx,shdr,x0+nCbS*3/4,y0,nCbS/4,nCbS);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS*3/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,shdr,x0+nCbS*3/4,y0,nCbS/4,nCbS,ctDepth);
       }
       else if (PartMode == PART_NxN) {
-        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS/2);
-        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS/2);
-        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS/2,nCbS/2);
-        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0+nCbS/2,nCbS/2,nCbS/2);
+        read_prediction_unit(ctx,shdr,x0,y0,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,shdr,x0,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,shdr,x0+nCbS/2,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
       }
       else {
         assert(0); // undefined PartMode

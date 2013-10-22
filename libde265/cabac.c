@@ -167,7 +167,7 @@ void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 }
 
 
-static int logcnt=1;
+int logcnt=1;
 
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 {

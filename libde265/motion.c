@@ -417,6 +417,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
 
 
+        /*
         logtrace(LogMotion,"---output cIdx=1---\n");
         for (int y=0;y<nPbH/2;y++) {
           for (int x=0;x<nPbW/2;x++) {
@@ -424,9 +425,11 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           }
           logtrace(LogMotion,"\n");
         }
+        */
       }
       else {
-        assert(false); // TODO
+        assert(vi->lum.predFlag[0]==0 && vi->lum.predFlag[1]==0);
+        // TODO: check: could it be that predFlag[1] is 1 in P-slices ?
       }
     }
     else {
@@ -434,7 +437,53 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
   }
   else {
-    assert(false); // TODO
+    assert(shdr->slice_type == SLICE_TYPE_B);
+
+    if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==1) {
+      const int shift2  = 15-8; // TODO: real bit depth
+      const int offset2 = 1<<(shift2-1);
+
+      for (int y=0;y<nPbH;y++)
+        for (int x=0;x<nPbW;x++) {
+          // TODO: clip to real bit depth
+          ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
+            Clip1_8bit((predSamplesL[0][x+y*nCS] + predSamplesL[1][x+y*nCS] + offset2)>>shift2);
+        }
+
+      for (int y=0;y<nPbH/2;y++)
+        for (int x=0;x<nPbW/2;x++) {
+          // TODO: clip to real bit depth
+          ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+            Clip1_8bit((predSamplesC[0][0][x+y*nCS] + 
+                        predSamplesC[0][1][x+y*nCS] + offset2)>>shift2);
+
+          ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+            Clip1_8bit((predSamplesC[1][0][x+y*nCS] +
+                        predSamplesC[1][1][x+y*nCS] + offset2)>>shift2);
+        }
+    }
+    else if (vi->lum.predFlag[0]==1 || vi->lum.predFlag[1]==1) {
+      int l = vi->lum.predFlag[0] ? 0 : 1;
+
+      for (int y=0;y<nPbH;y++)
+        for (int x=0;x<nPbW;x++) {
+          // TODO: clip to real bit depth
+          ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
+            Clip1_8bit((predSamplesL[l][x+y*nCS] + offset1)>>shift1);
+        }
+
+      for (int y=0;y<nPbH/2;y++)
+        for (int x=0;x<nPbW/2;x++) {
+          // TODO: clip to real bit depth
+          ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+            Clip1_8bit((predSamplesC[0][l][x+y*nCS] + offset1)>>shift1);
+          ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
+            Clip1_8bit((predSamplesC[1][l][x+y*nCS] + offset1)>>shift1);
+        }
+    }
+    else {
+      assert(false); // both predFlags == 0
+    }
   }
 
 
@@ -492,6 +541,8 @@ bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
   // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
 
   for (int i=0;i<2;i++) {
+    if (a->predFlag[i] != b->predFlag[i]) return false;
+
     if (a->predFlag[i]) {
       if (a->mv[i].x != b->mv[i].x) return false;
       if (a->mv[i].y != b->mv[i].y) return false;
@@ -862,7 +913,41 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
         listCol = 0;
       }
       else {
-        assert(0); // both predFlag[]s are 1
+        // NOTE: NEW CODE B-SLICES
+
+        int AllDiffPicOrderCntLEZero = true;
+
+        for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
+          {
+            int DiffPicOrderCnt = (ctx->dpb[shdr->RefPicList[0][rIdx]].PicOrderCntVal -
+                                   ctx->img->PicOrderCntVal);
+
+            if (DiffPicOrderCnt > 0) {
+              AllDiffPicOrderCntLEZero = false;
+            }
+          }
+
+        for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
+          {
+            int DiffPicOrderCnt = (ctx->dpb[shdr->RefPicList[1][rIdx]].PicOrderCntVal -
+                                   ctx->img->PicOrderCntVal);
+
+            if (DiffPicOrderCnt > 0) {
+              AllDiffPicOrderCntLEZero = false;
+            }
+          }
+
+          if (AllDiffPicOrderCntLEZero) {
+            mvCol = mvi->mv[X];
+            refIdxCol = mvi->refIdx[X];
+            listCol = X;
+          }
+          else {
+            int N = shdr->collocated_from_l0_flag;
+            mvCol = mvi->mv[N];
+            refIdxCol = mvi->refIdx[N];
+            listCol = N;
+          }
       }
     }
 
@@ -913,10 +998,12 @@ void derive_temporal_luma_vector_prediction(const decoder_context* ctx,
   if (shdr->slice_type == SLICE_TYPE_B &&
       shdr->collocated_from_l0_flag == 0)
     {
+      // TODO: make sure that shdr->collocated_ref_idx is a valid index
       colPic = shdr->RefPicList[1][ shdr->collocated_ref_idx ];
     }
   else
     {
+      // TODO: make sure that shdr->collocated_ref_idx is a valid index
       colPic = shdr->RefPicList[0][ shdr->collocated_ref_idx ];
     }
 
@@ -957,6 +1044,67 @@ void derive_temporal_luma_vector_prediction(const decoder_context* ctx,
 }
 
 
+static int table_8_19[2][12] = {
+  { 0,1,0,2,1,2,0,3,1,3,2,3 },
+  { 1,0,2,0,2,1,3,0,3,1,3,2 }
+};
+
+// 8.5.3.1.3
+void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
+                                                     slice_segment_header* shdr,
+                                                     PredVectorInfo* inout_mergeCandList,
+                                                     int* inout_numMergeCand,
+                                                     int numOrigMergeCand)
+{
+  if (*inout_numMergeCand>1 && *inout_numMergeCand < shdr->MaxNumMergeCand) {
+    int numInputMergeCand = *inout_numMergeCand;
+    int combIdx = 0;
+    uint8_t combStop = false;
+
+    while (!combStop) {
+      int l0CandIdx = table_8_19[0][combIdx];
+      int l1CandIdx = table_8_19[1][combIdx];
+
+      if (l0CandIdx >= numInputMergeCand ||
+          l1CandIdx >= numInputMergeCand) {
+        assert(false); // bitstream error -> TODO: conceal error
+      }
+
+      PredVectorInfo* l0Cand = &inout_mergeCandList[l0CandIdx];
+      PredVectorInfo* l1Cand = &inout_mergeCandList[l1CandIdx];
+
+      logtrace(LogMotion,"add bipredictive merging candidate (combIdx:%d)\n",combIdx);
+      logtrace(LogMotion,"l0Cand:\n"); logmvcand(*l0Cand);
+      logtrace(LogMotion,"l1Cand:\n"); logmvcand(*l1Cand);
+
+      if (l0Cand->predFlag[0] && l1Cand->predFlag[1] &&
+          (ctx->dpb[shdr->RefPicList[0][l0Cand->refIdx[0]]].PicOrderCntVal !=
+           ctx->dpb[shdr->RefPicList[1][l1Cand->refIdx[1]]].PicOrderCntVal     ||
+           l0Cand->mv[0].x != l1Cand->mv[1].x ||
+           l0Cand->mv[0].y != l1Cand->mv[1].y)) {
+        PredVectorInfo* p = &inout_mergeCandList[ *inout_numMergeCand ];
+        p->refIdx[0] = l0Cand->refIdx[0];
+        p->refIdx[1] = l1Cand->refIdx[1];
+        p->predFlag[0] = l0Cand->predFlag[0];
+        p->predFlag[1] = l1Cand->predFlag[1];
+        p->mv[0] = l0Cand->mv[0];
+        p->mv[1] = l1Cand->mv[1];
+        (*inout_numMergeCand)++;
+
+        logtrace(LogMotion,"result:\n");
+        logmvcand(*p);
+      }
+
+      combIdx++;
+      if (combIdx == numOrigMergeCand*(numOrigMergeCand-1) ||
+          *inout_numMergeCand == shdr->MaxNumMergeCand) {
+        combStop = true;
+      }
+    }
+  }
+}
+
+
 // 8.5.3.1.1
 void derive_luma_motion_merge_mode(decoder_context* ctx,
                                    slice_segment_header* shdr,
@@ -978,25 +1126,25 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   derive_spatial_merging_candidates(ctx, xC,yC, nCS, xP,yP, singleMCLFlag,
                                     nPbW,nPbH,partIdx, &mergeCand);
 
-  int refIdxCol[2] = { 0,0 };
-
   if (xP==112 && yP==96) {
     //raise(SIGINT);
   }
 
-  MotionVector mvCol[2];
-  uint8_t availableFlagLCol;
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
-                                         &availableFlagLCol);
-  /*
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
-                                         &availableFlagLCol);
-  */
+  int refIdxCol[2] = { 0,0 };
 
-  int availableFlagCol = availableFlagLCol;
+  MotionVector mvCol[2];
+  uint8_t availableFlagLCol[2];
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
+                                         &availableFlagLCol[0]);
+
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
+                                         &availableFlagLCol[1]);
+
+
+  int availableFlagCol = availableFlagLCol[0] | availableFlagLCol[1];
   uint8_t predFlagLCol[2];
-  predFlagLCol[0] = availableFlagLCol;
-  predFlagLCol[1] = 0;
+  predFlagLCol[0] = availableFlagLCol[0];
+  predFlagLCol[1] = availableFlagLCol[1];
 
   // 4.
 
@@ -1028,11 +1176,13 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 6.
 
-  int numCombMergeCand = 0; // TODO
+  int numCombMergeCand = 0;
 
-  //slice_segment_header* shdr = get_SliceHeader(ctx,xC,yC);
   if (shdr->slice_type == SLICE_TYPE_B) {
-    assert(false); // TODO
+    derive_combined_bipredictive_merging_candidates(ctx, shdr,
+                                                    mergeCandList, &numMergeCand, numMergeCand);
+
+    numCombMergeCand = numMergeCand - numOrigMergeCand;
   }
 
 
@@ -1363,16 +1513,21 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
 {
+  /*
   logtrace(LogMotion,
            "*MV %d;%d [%d;%d] %s: (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
            mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0]);
+*/
 
-  /*
+  int pred0 = mv->lum.predFlag[0];
+  int pred1 = mv->lum.predFlag[1];
+
   logtrace(LogMotion,
-           "MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
-           mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0],
-           mv->lum.predFlag[1], mv->lum.mv[1].x,mv->lum.mv[1].y, mv->lum.refIdx[1]);
-  */
+           "*MV %d;%d [%d;%d] %s: (%d) %d;%d @%d   (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
+           pred0,
+           pred0 ? mv->lum.mv[0].x : 0,pred0 ? mv->lum.mv[0].y : 0, pred0 ? mv->lum.refIdx[0] : 0,
+           pred1,
+           pred1 ? mv->lum.mv[1].x : 0,pred1 ? mv->lum.mv[1].y : 0, pred1 ? mv->lum.refIdx[1] : 0);
 }
 
 
@@ -1402,7 +1557,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
     for (int l=0;l<2;l++) {
       // 1.
 
-      enum InterPredIdc inter_pred_idc = get_inter_pred_idc(ctx,xP,yP,l);
+      enum InterPredIdc inter_pred_idc = get_inter_pred_idc(ctx,xP,yP);
 
       if (inter_pred_idc == PRED_BI ||
           (inter_pred_idc == PRED_L0 && l==0) ||

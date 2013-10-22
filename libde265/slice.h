@@ -81,7 +81,9 @@ enum IntraPredMode
 
 enum InterPredIdc
   {
-    PRED_L0, PRED_L1, PRED_BI
+    PRED_L0=0,
+    PRED_L1=1,
+    PRED_BI=2
   };
 
 typedef struct {
@@ -205,7 +207,8 @@ typedef struct {
   context_model abs_mvd_greater01_flag_model[4];
   context_model mvp_lx_flag_model[2];
   context_model rqt_root_cbf_model[2];
-  context_model ref_idx_lX_model[2];
+  context_model ref_idx_lX_model[4];
+  context_model inter_pred_idc_model[10];
 
 } slice_segment_header;
 

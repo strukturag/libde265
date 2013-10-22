@@ -86,7 +86,7 @@ typedef struct {
   uint8_t merge_idx;
   uint8_t merge_flag;
   uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc[2]; // enum InterPredIdc
+  uint8_t inter_pred_idc; // enum InterPredIdc
 } PB_info;
 
 
@@ -335,8 +335,8 @@ int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist);
 void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx);
 uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
 
-void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc);
-enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0,int l);
+void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,enum InterPredIdc idc);
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0);
 
 
 bool available_zscan(const decoder_context* ctx,

@@ -481,10 +481,25 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
       hdr->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
         RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
 
-    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+      // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
       ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ hdr->RefPicList[1][rIdx] ].PicOrderCntVal;
     }
   }
+
+
+  // show reference picture lists
+
+  logtrace(LogHeaders,"RefPicList[0] =");
+  for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
+    logtrace(LogHeaders," %d", hdr->RefPicList[0][rIdx]);
+  }
+  logtrace(LogHeaders,"\n");
+
+  logtrace(LogHeaders,"RefPicList[1] =");
+  for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
+    logtrace(LogHeaders," %d", hdr->RefPicList[1][rIdx]);
+  }
+  logtrace(LogHeaders,"\n");
 }
 
 
@@ -1134,16 +1149,16 @@ uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
 }
 
 
-void set_inter_pred_idc(decoder_context* ctx,int x0,int y0,int l,enum InterPredIdc idc)
+void set_inter_pred_idc(decoder_context* ctx,int x0,int y0,enum InterPredIdc idc)
 {
   int idx = PB_IDX(x0,y0);
-  ctx->pb_info[idx].inter_pred_idc[l] = (uint8_t)idc;
+  ctx->pb_info[idx].inter_pred_idc = (uint8_t)idc;
 }
 
-enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0, int l)
+enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0)
 {
   int idx = PB_IDX(x0,y0);
-  return (enum InterPredIdc)(ctx->pb_info[idx].inter_pred_idc[l]);
+  return (enum InterPredIdc)(ctx->pb_info[idx].inter_pred_idc);
 }
 
 
