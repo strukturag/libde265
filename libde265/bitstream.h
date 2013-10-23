@@ -35,7 +35,7 @@ typedef struct {
 void rbsp_buffer_init(rbsp_buffer* buffer);
 void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size);
 void rbsp_buffer_free(rbsp_buffer* buffer);
-void rbsp_buffer_append(rbsp_buffer* buffer, unsigned char* data, int n);
+void rbsp_buffer_append(rbsp_buffer* buffer, const unsigned char* data, int n);
 void rbsp_buffer_pop(rbsp_buffer* buffer, int n);
 
 typedef struct input_context {

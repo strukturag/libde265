@@ -67,7 +67,7 @@ void rbsp_buffer_free(rbsp_buffer* buffer)
 }
 
 
-void rbsp_buffer_append(rbsp_buffer* buffer, unsigned char* data, int n)
+void rbsp_buffer_append(rbsp_buffer* buffer, const unsigned char* data, int n)
 {
   rbsp_buffer_resize(buffer, buffer->size + n);
   memcpy(buffer->data + buffer->size, data, n);

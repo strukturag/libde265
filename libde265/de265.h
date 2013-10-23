@@ -100,7 +100,7 @@ void de265_free_decoder(de265_decoder_context*);
    is read from the data.
    If you want to flush the data and force decoding of the data so far
    (e.g. at the end of a file), call de265_decode_data() with 'length' zero. */
-de265_error de265_decode_data(de265_decoder_context*, uint8_t* data, int length);
+de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to

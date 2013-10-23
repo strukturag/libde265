@@ -81,7 +81,7 @@ void de265_free_decoder(de265_decoder_context* de265ctx)
 }
 
 
-static de265_error process_data(decoder_context* ctx, uint8_t* data, int len,
+static de265_error process_data(decoder_context* ctx, const uint8_t* data, int len,
                                 int* out_nBytesProcessed)
 {
   *out_nBytesProcessed=0;
@@ -254,7 +254,7 @@ static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
 }
 
 
-de265_error de265_decode_data(de265_decoder_context* de265ctx, uint8_t* data, int len)
+de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data, int len)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -274,7 +274,7 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, uint8_t* data, in
     // -> append new input data to pending-input buffer
     if (err != DE265_OK || ctx->pending_input_data.size!=0) {
       if (len>0) {
-        rbsp_buffer_append(&ctx->pending_input_data, data,len);
+        rbsp_buffer_append(&ctx->pending_input_data, (const uint8_t*)data,len);
       }
 
       return err;
@@ -286,7 +286,7 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, uint8_t* data, in
   int nBytesProcessed = 0;
 
   if (has_free_dpb_picture(ctx)) {
-    err = process_data(ctx,data,len, &nBytesProcessed);
+    err = process_data(ctx,(const uint8_t*)data,len, &nBytesProcessed);
   }
 
   if (nBytesProcessed != len) {
