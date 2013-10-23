@@ -238,6 +238,11 @@ static void log_dpb_content(const decoder_context* ctx)
  */
 void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
 {
+  logdebug(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
+           hdr->slice_pic_order_cnt_lsb,
+           ctx->prevPicOrderCntLsb,
+           ctx->PicOrderCntMsb);
+
   if (isIRAP(ctx->nal_unit_type) &&
       ctx->NoRaslOutputFlag)
     {
@@ -262,10 +267,14 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 
   ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
 
-  if (1 /* TemporalID==0 */ && // TODO
-      !isRASL(ctx->nal_unit_type) &&
-      !isRADL(ctx->nal_unit_type) &&
-      1 /* sub-layer non-reference picture */) // TODO
+  logdebug(LogHeaders,"POC computation. new msb:%d POC=%d\n",
+           ctx->PicOrderCntMsb,
+           ctx->img->PicOrderCntVal);
+
+  //  if (1 /* TemporalID==0 */ && // TODO
+  //    !isRASL(ctx->nal_unit_type) &&
+  //    !isRADL(ctx->nal_unit_type) &&
+  //    1 /* sub-layer non-reference picture */) // TODO
     {
       ctx->prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
       ctx->prevPicOrderCntMsb = ctx->PicOrderCntMsb;
@@ -287,6 +296,8 @@ bool has_free_dpb_picture(const decoder_context* ctx)
 
 static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
 {
+  logdebug(LogHeaders,"get access to POC %d from DPB\n",poc);
+
   //log_dpb_content(ctx);
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
 
