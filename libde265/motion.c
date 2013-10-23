@@ -917,8 +917,6 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
         listCol = 0;
       }
       else {
-        // NOTE: NEW CODE B-SLICES
-
         int AllDiffPicOrderCntLEZero = true;
 
         const int PicOrderCntVal = ctx->img->PicOrderCntVal;
@@ -1172,17 +1170,17 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 5.
 
-  int numOrigMergeCand = numMergeCand;
+  //int numOrigMergeCand = numMergeCand;
 
   // 6.
 
-  int numCombMergeCand = 0;
+  //int numCombMergeCand = 0;
 
   if (shdr->slice_type == SLICE_TYPE_B) {
     derive_combined_bipredictive_merging_candidates(ctx, shdr,
                                                     mergeCandList, &numMergeCand, numMergeCand);
 
-    numCombMergeCand = numMergeCand - numOrigMergeCand;
+    //numCombMergeCand = numMergeCand - numOrigMergeCand;
   }
 
 
@@ -1394,8 +1392,6 @@ void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
       int refPicList;
 
       if (availableB[k]) {
-        // get_pred_mode(ctx,xB[k],yB[k]) != MODE_INTRA) {
-
         int Y=1-X;
       
         const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
@@ -1509,12 +1505,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
 {
-  /*
-  logtrace(LogMotion,
-           "*MV %d;%d [%d;%d] %s: (%d) %d;%d @%d\n", x0,y0,nPbW,nPbH,mode,
-           mv->lum.predFlag[0], mv->lum.mv[0].x,mv->lum.mv[0].y, mv->lum.refIdx[0]);
-*/
-
+#if DE265_LOG_TRACE
   int pred0 = mv->lum.predFlag[0];
   int pred1 = mv->lum.predFlag[1];
 
@@ -1524,6 +1515,7 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* m
            pred0 ? mv->lum.mv[0].x : 0,pred0 ? mv->lum.mv[0].y : 0, pred0 ? mv->lum.refIdx[0] : 0,
            pred1,
            pred1 ? mv->lum.mv[1].x : 0,pred1 ? mv->lum.mv[1].y : 0, pred1 ? mv->lum.refIdx[1] : 0);
+#endif
 }
 
 
@@ -1663,6 +1655,6 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
     break;
 
   default:
-    assert(false); // TODO
+    assert(false); // undefined partitioning mode
   }
 }
