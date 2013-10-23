@@ -39,7 +39,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
 
   sps->sps_temporal_id_nesting_flag = get_bits(br,1);
 
-  read_profile_tier_level(br,&sps->profile_tier_level, true, sps->sps_max_sub_layers);
+  read_profile_tier_level(br,&sps->profile_tier_level, sps->sps_max_sub_layers);
 
   sps->seq_parameter_set_id = get_uvlc(br);
 
