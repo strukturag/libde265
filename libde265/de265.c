@@ -422,6 +422,12 @@ const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ct
     de265_error err = de265_decode_pending_data(de265ctx);
     // TODO: what do we do with the error code ?
 
+    if (ctx->end_of_stream && ctx->pending_input_data.size==0) {
+      while (ctx->reorder_output_queue_length>0) {
+        flush_next_picture_from_reorder_buffer(ctx);
+      }
+    }
+
     if (ctx->image_output_queue_length==0) {
       return NULL;
     }

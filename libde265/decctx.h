@@ -233,6 +233,8 @@ void init_decoder_context(decoder_context*);
 void reset_decoder_context_for_new_picture(decoder_context* ctx);
 void free_decoder_context(decoder_context*);
 
+void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
+
 seq_parameter_set* get_sps(decoder_context* ctx, int id);
 
 void process_nal_hdr(decoder_context*, nal_header*);
