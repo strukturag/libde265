@@ -142,8 +142,9 @@ typedef struct {
 
   ref_pic_set* ref_pic_sets;
 
-  seq_parameter_set* current_sps;
-  pic_parameter_set* current_pps;
+  video_parameter_set* current_vps;
+  seq_parameter_set*   current_sps;
+  pic_parameter_set*   current_pps;
 
 
   // --- sequence level ---
@@ -155,8 +156,13 @@ typedef struct {
 
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
+  de265_image* reorder_output_queue[DE265_DPB_SIZE];
+  int          reorder_output_queue_length;
+
   de265_image* image_output_queue[DE265_DPB_SIZE];
   int          image_output_queue_length;
+
+  de265_image* last_decoded_image;
 
   int current_image_poc_lsb;
   bool first_decoded_picture;

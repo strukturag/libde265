@@ -56,14 +56,14 @@ void init_decoder_context(decoder_context* ctx)
   }
 
   ctx->img = NULL;
+  ctx->last_decoded_image = NULL;
   ctx->image_output_queue_length = 0;
+  ctx->reorder_output_queue_length = 0;
   ctx->first_decoded_picture = true;
   ctx->PicOrderCntMsb = 0;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
-  //de265_init_image(&ctx->img);
   de265_init_image(&ctx->coeff);
-  //init_image(&ctx->intra_pred_available);
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     ctx->image_output_queue[i] = NULL;
@@ -515,6 +515,39 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
 
 
+void flush_next_picture_from_reorder_buffer(decoder_context* ctx)
+{
+  assert(ctx->reorder_output_queue_length>0);
+
+  // search for picture in reorder buffer with minimum POC
+
+  int minPOC = ctx->reorder_output_queue[0]->PicOrderCntVal;
+  int minIdx = 0;
+  for (int i=1;i<ctx->reorder_output_queue_length;i++)
+    {
+      if (ctx->reorder_output_queue[i]->PicOrderCntVal < minPOC) {
+        minPOC = ctx->reorder_output_queue[i]->PicOrderCntVal;
+        minIdx = i;
+      }
+    }
+
+
+  // put image into output queue
+
+  assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
+  ctx->image_output_queue[ ctx->image_output_queue_length ] = ctx->reorder_output_queue[minIdx];
+  ctx->image_output_queue_length++;
+
+
+  // remove image from reorder buffer
+
+  for (int i=minIdx+1; i<ctx->reorder_output_queue_length; i++) {
+    ctx->reorder_output_queue[i-1] = ctx->reorder_output_queue[i];
+  }
+  ctx->reorder_output_queue_length--;
+}
+
+
 void push_current_picture_to_output_queue(decoder_context* ctx)
 {
   if (ctx->img) {
@@ -530,18 +563,13 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     if (ctx->img->PicOutputFlag) {
       loginfo(LogDPB,"new picture has output-flag=true\n");
 
-      assert(ctx->image_output_queue_length < DE265_DPB_SIZE);
-      ctx->image_output_queue[ ctx->image_output_queue_length++ ] = ctx->img;
+      assert(ctx->reorder_output_queue_length < DE265_DPB_SIZE);
+      ctx->reorder_output_queue[ ctx->reorder_output_queue_length++ ] = ctx->img;
 
-      loginfo(LogDPB,"push image %d into DPB\n", ctx->img->PicOrderCntVal);
+      loginfo(LogDPB,"push image %d into reordering queue\n", ctx->img->PicOrderCntVal);
     }
 
-    loginfo(LogDPB, "DPB output queue (after push): ");
-    for (int i=0;i<ctx->image_output_queue_length;i++) {
-      loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
-    }
-    loginfo(LogDPB,"*\n");
-
+    ctx->last_decoded_image = ctx->img;
     ctx->img = NULL;
 
     /*
@@ -556,6 +584,28 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     // next image is not the first anymore
 
     ctx->first_decoded_picture = false;
+
+
+    // check for full reorder buffers
+
+    int maxNumPicsInReorderBuffer = ctx->current_vps->layer[0].vps_max_num_reorder_pics;
+
+    if (ctx->reorder_output_queue_length > maxNumPicsInReorderBuffer) {
+      flush_next_picture_from_reorder_buffer(ctx);
+    }
+
+
+    loginfo(LogDPB, "DPB reorder queue (after push): ");
+    for (int i=0;i<ctx->reorder_output_queue_length;i++) {
+      loginfo(LogDPB, "*%d ", ctx->reorder_output_queue[i]->PicOrderCntVal);
+    }
+    loginfo(LogDPB,"*\n");
+
+    loginfo(LogDPB, "DPB output queue (after push): ");
+    for (int i=0;i<ctx->image_output_queue_length;i++) {
+      loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
+    }
+    loginfo(LogDPB,"*\n");
   }
 }
 
@@ -572,6 +622,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
   ctx->current_pps = &ctx->pps[pps_id];
   ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
+  ctx->current_vps = &ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ];
 
   
   // --- prepare decoding of new picture ---

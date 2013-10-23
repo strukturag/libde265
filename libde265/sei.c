@@ -148,8 +148,7 @@ static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_cont
 {
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
-  assert(ctx->image_output_queue_length >= 1);
-  de265_image* img = ctx->image_output_queue[ ctx->image_output_queue_length-1 ];
+  de265_image* img = ctx->last_decoded_image;
   assert(img != NULL);
 
   //write_picture(img);
