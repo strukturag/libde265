@@ -42,6 +42,7 @@ typedef struct {
 
 
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length);
+void init_CABAC_decoder_2(CABAC_decoder* decoder);
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model);
 int  decode_CABAC_TU(CABAC_decoder* decoder, int cMax, context_model* model);
 int  decode_CABAC_term_bit(CABAC_decoder* decoder);

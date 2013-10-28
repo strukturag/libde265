@@ -273,14 +273,14 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
     shdr->num_entry_point_offsets = get_uvlc(br);
+    assert(shdr->num_entry_point_offsets <= MAX_ENTRY_POINTS);
 
     if (shdr->num_entry_point_offsets > 0) {
       shdr->offset_len = get_uvlc(br) +1;
 
       for (int i=0; i<shdr->num_entry_point_offsets; i++) {
         {
-          assert(false);
-          //entry_point_offset[i]
+          shdr->entry_point_offset[i] = get_bits(br,shdr->offset_len)+1;
         }
       }
     }
@@ -491,7 +491,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       LOG("offset_len                 : %d\n", shdr->offset_len);
 
       for (int i=0; i<shdr->num_entry_point_offsets; i++) {
-        // TODO DUMP entry_point_offset_minus1[i]
+        LOG("entry point [%i] : %d\n", i, shdr->entry_point_offset[i]);
       }
     }
   }
@@ -580,6 +580,18 @@ static const int initValue_ref_idx_lX[4] = { 153,153,153,153 };
 static const int initValue_inter_pred_idc[10] = { 95,79,63,31,31,
                                                   95,79,63,31,31 };
 
+void init_context(decoder_context* ctx, slice_segment_header* shdr, enum context_model_indices idx, const int* initValues, int len)
+{
+  for (int i=0;i<len;i++)
+    {
+      set_initValue(ctx,shdr,
+                    &shdr->ctx_model[idx+i],
+                    initValues[i]);
+    }
+}
+
+
+#if 0
 void init_sao_merge_leftUp_flag_context(decoder_context* ctx, slice_segment_header* shdr)
 {
   for (int i=0;i<3;i++)
@@ -606,6 +618,7 @@ void init_sao_type_idx_lumaChroma_context(decoder_context* ctx, slice_segment_he
              i,shdr->sao_type_idx_model[i].state,shdr->sao_type_idx_model[i].MPSbit);
     }
 }
+
 
 
 void init_transform_skip_flag(decoder_context* ctx, slice_segment_header* shdr)
@@ -836,6 +849,7 @@ void init_inter_pred_idc(decoder_context* ctx, slice_segment_header* shdr)
       set_initValue(ctx,shdr, &shdr->inter_pred_idc_model[i], initValue_inter_pred_idc[i]);
     }
 }
+#endif
 
 
 int decode_transform_skip_flag(decoder_context* ctx,
@@ -848,7 +862,8 @@ int decode_transform_skip_flag(decoder_context* ctx,
 
   logtrace(LogSlice,"# transform_skip_flag (context=%d)\n",context);
 
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->transform_skip_flag_model[context]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ctx_model[CONTEXT_MODEL_TRANSFORM_SKIP_FLAG+context]);
   return bit;
 }
 
@@ -857,7 +872,8 @@ int decode_sao_merge_flag(decoder_context* ctx,
                           slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_merge_left/up_flag\n");
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->sao_merge_flag_model[shdr->initType]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ctx_model[CONTEXT_MODEL_SAO_MERGE_FLAG+shdr->initType]);
   return bit;
 }
 
@@ -868,7 +884,7 @@ int decode_sao_type_idx(decoder_context* ctx,
 {
   logtrace(LogSlice,"# sao_type_idx_luma/chroma\n");
   int bit0 = decode_CABAC_bit(&shdr->cabac_decoder,
-                              &shdr->sao_type_idx_model[shdr->initType]);
+                              &shdr->ctx_model[CONTEXT_MODEL_SAO_TYPE_IDX+shdr->initType]);
   if (bit0==0) {
     return 0;
   }
@@ -944,7 +960,7 @@ int decode_split_cu_flag(decoder_context* ctx,
 
   logtrace(LogSlice,"# split_cu_flag context=%d R=%x\n", context, shdr->cabac_decoder.range);
 
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->split_flag_model[context]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context]);
 
   logtrace(LogSlice,"> split_cu_flag R=%x, ctx=%d, bit=%d\n", shdr->cabac_decoder.range,context,bit);
 
@@ -974,7 +990,7 @@ int decode_cu_skip_flag(decoder_context* ctx,
 
   logtrace(LogSlice,"# cu_skip_flag context=%d R=%x\n", context, shdr->cabac_decoder.range);
 
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->cu_skip_flag_model[context]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->ctx_model[CONTEXT_MODEL_CU_SKIP_FLAG + context]);
 
   logtrace(LogSlice,"> cu_skip_flag R=%x, ctx=%d, bit=%d\n", shdr->cabac_decoder.range,context,bit);
 
@@ -986,6 +1002,8 @@ enum PartMode decode_part_mode(decoder_context* ctx,
                                slice_segment_header* shdr,
                                enum PredMode pred_mode, int cLog2CbSize)
 {
+  context_model* model = &shdr->ctx_model[CONTEXT_MODEL_PART_MODE];
+
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
 
@@ -993,7 +1011,7 @@ enum PartMode decode_part_mode(decoder_context* ctx,
 
     int ctxIdxOffset = idxOffsets[shdr->initType];
 
-    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
+    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset]);
 
     logtrace(LogSlice,"> %s\n",bit ? "2Nx2N" : "NxN");
 
@@ -1002,17 +1020,17 @@ enum PartMode decode_part_mode(decoder_context* ctx,
   else {
     int ctxIdxOffset = (shdr->initType==1) ? 1 : 5;
 
-    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset]);
+    int bit = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset]);
     if (bit) { return PART_2Nx2N; }
 
     if (cLog2CbSize > ctx->current_sps->Log2MinCbSizeY) {
       if (!ctx->current_sps->amp_enabled_flag) {
-        bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        bit = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+1]);
         return bit ? PART_2NxN : PART_Nx2N;
       }
       else {
-        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
-        int bit3 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
+        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+1]);
+        int bit3 = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+2]);
         if (bit3 &&  bit2) return PART_2NxN;
         if (bit3 && !bit2) return PART_Nx2N;
 
@@ -1028,14 +1046,14 @@ enum PartMode decode_part_mode(decoder_context* ctx,
       // checkcLog2CbSize==3 when it is '0'
 
       if (cLog2CbSize==3) {
-        bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        bit = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+1]);
         return bit ? PART_2NxN : PART_Nx2N;
       }
       else {
-        int bit1 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+1]);
+        int bit1 = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+1]);
         if (bit1) return PART_2NxN;
 
-        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->part_mode_model[ctxIdxOffset+2]);
+        int bit2 = decode_CABAC_bit(&shdr->cabac_decoder, &model[ctxIdxOffset+2]);
         return bit2 ? PART_Nx2N : PART_NxN;
       }
     }
@@ -1050,7 +1068,8 @@ int decode_prev_intra_luma_pred_flag(decoder_context* ctx,
                                      slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# prev_intra_luma_pred_flag\n");
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->prev_intra_luma_pred_flag_model[shdr->initType]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG + shdr->initType]);
   return bit;
 }
 
@@ -1078,7 +1097,8 @@ int decode_intra_chroma_pred_mode(decoder_context* ctx,
 {
   logtrace(LogSlice,"# intra_chroma_pred_mode\n");
 
-  int prefix = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->intra_chroma_pred_mode_model[ shdr->initType ]);
+  int prefix = decode_CABAC_bit(&shdr->cabac_decoder,
+                                &shdr->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE + shdr->initType ]);
 
   int mode;
   if (prefix==0) {
@@ -1104,7 +1124,7 @@ int decode_split_transform_flag(decoder_context* ctx,
 
   logtrace(LogSlice,"# context: %d\n",context);
 
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->split_transform_flag_model[context]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context]);
   return bit;
 }
 
@@ -1116,7 +1136,7 @@ int decode_cbf_chroma(decoder_context* ctx,
   logtrace(LogSlice,"# cbf_chroma\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->cbf_chroma_model[shdr->initType*4 + trafoDepth]);
+                             &shdr->ctx_model[CONTEXT_MODEL_CBF_CHROMA + shdr->initType*4 + trafoDepth]);
 
   return bit;
 }
@@ -1132,7 +1152,7 @@ int decode_cbf_luma(decoder_context* ctx,
   if (trafoDepth==0) context++;
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->cbf_luma_model[context]);
+                             &shdr->ctx_model[CONTEXT_MODEL_CBF_LUMA + context]);
 
   logtrace(LogSlice,"> cbf_luma = %d\n",bit);
 
@@ -1167,7 +1187,7 @@ int decode_coded_sub_block_flag(decoder_context* ctx,
   }
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->coded_sub_block_flag_model[context + ctxIdxInc]);
+                             &shdr->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + context + ctxIdxInc]);
 
   return bit;
 }
@@ -1181,7 +1201,7 @@ int decode_cu_qp_delta_abs(decoder_context* ctx,
   int context = shdr->initType*2;
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->cu_qp_delta_abs_model[context + 0]);
+                             &shdr->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + context + 0]);
   if (bit==0) {
     return 0;
   }
@@ -1189,7 +1209,7 @@ int decode_cu_qp_delta_abs(decoder_context* ctx,
   int prefix=1;
   for (int i=0;i<4;i++) {
     bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                           &shdr->cu_qp_delta_abs_model[context + 1]);
+                           &shdr->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + context + 1]);
     if (bit==0) { break; }
     else { prefix++; }
   }
@@ -1333,7 +1353,8 @@ int decode_significant_coeff_flag(decoder_context* ctx,
   int context = shdr->initType*42 + ctxIdxInc;
   logtrace(LogSlice,"context: %d\n",context);
 
-  int bit = decode_CABAC_bit(&shdr->cabac_decoder, &shdr->significant_coeff_flag_model[context]);
+  int bit = decode_CABAC_bit(&shdr->cabac_decoder,
+                             &shdr->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
   return bit;
 }
 
@@ -1398,7 +1419,7 @@ int decode_coeff_abs_level_greater1(decoder_context* ctx,
   context += ctxIdxInc;
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->coeff_abs_level_greater1_flag_model[context]);
+                             &shdr->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + context]);
 
   *lastInvocation_greater1Ctx = greater1Ctx;
   *lastInvocation_coeff_abs_level_greater1_flag = bit;
@@ -1424,7 +1445,7 @@ int decode_coeff_abs_level_greater2(decoder_context* ctx,
   context += ctxIdxInc;
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->coeff_abs_level_greater2_flag_model[context]);
+                             &shdr->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + context]);
 
   return bit;
 }
@@ -1487,7 +1508,7 @@ int decode_merge_flag(decoder_context* ctx,
   logtrace(LogSlice,"# merge_flag\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->merge_flag_model[shdr->initType-1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_MERGE_FLAG + shdr->initType-1]);
 
   return bit;
 }
@@ -1499,7 +1520,7 @@ int decode_merge_idx(decoder_context* ctx,
   logtrace(LogSlice,"# merge_idx\n");
 
   int idx = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->merge_idx_model[shdr->initType-1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_MERGE_IDX + shdr->initType-1]);
 
   if (idx==0) {
     // nothing
@@ -1528,7 +1549,7 @@ int decode_pred_mode_flag(decoder_context* ctx,
   logtrace(LogSlice,"# pred_mode_flag\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->pred_mode_flag_model[shdr->initType-1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_PRED_MODE_FLAG + shdr->initType-1]);
 
   return bit;
 }
@@ -1539,7 +1560,7 @@ int decode_mvp_lx_flag(decoder_context* ctx,
   logtrace(LogSlice,"# mvp_lx_flag\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->mvp_lx_flag_model[shdr->initType-1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_MVP_LX_FLAG + shdr->initType-1]);
 
   return bit;
 }
@@ -1550,7 +1571,7 @@ int decode_rqt_root_cbf(decoder_context* ctx,
   logtrace(LogSlice,"# rqt_root_cbf\n");
 
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->rqt_root_cbf_model[shdr->initType-1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_RQT_ROOT_CBF + shdr->initType-1]);
 
   return bit;
 }
@@ -1571,7 +1592,7 @@ int decode_ref_idx_lX(decoder_context* ctx,
 
   int ctxIdxOffset = (shdr->initType-1)*2;
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->ref_idx_lX_model[ctxIdxOffset+0]);
+                             &shdr->ctx_model[CONTEXT_MODEL_REF_IDX_LX + ctxIdxOffset+0]);
 
   int idx=0;
 
@@ -1581,7 +1602,7 @@ int decode_ref_idx_lX(decoder_context* ctx,
 
     if (idx==1) {
       bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->ref_idx_lX_model[ctxIdxOffset+1]);
+                             &shdr->ctx_model[CONTEXT_MODEL_REF_IDX_LX + ctxIdxOffset+1]);
     }
     else {
       bit = decode_CABAC_bypass(&shdr->cabac_decoder);
@@ -1631,16 +1652,18 @@ int decode_inter_pred_idc(decoder_context* ctx,
   int ctxIdxOffset = (shdr->initType-1)*5;
   int value;
 
+  context_model* model = &shdr->ctx_model[CONTEXT_MODEL_INTER_PRED_IDC];
+
   if (nPbW+nPbH==12) {
     value = decode_CABAC_bit(&shdr->cabac_decoder,
-                             &shdr->inter_pred_idc_model[ctxIdxOffset+4]);
+                             &model[ctxIdxOffset+4]);
   }
   else {
     int bit0 = decode_CABAC_bit(&shdr->cabac_decoder,
-                                &shdr->inter_pred_idc_model[ctxIdxOffset+ctDepth]);
+                                &model[ctxIdxOffset+ctDepth]);
     if (bit0==0) {
       value = decode_CABAC_bit(&shdr->cabac_decoder,
-                               &shdr->inter_pred_idc_model[ctxIdxOffset+4]);
+                               &model[ctxIdxOffset+4]);
     }
     else {
       value = 2;
@@ -1654,9 +1677,9 @@ int decode_inter_pred_idc(decoder_context* ctx,
 
 
 
-
-int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
+void initialize_CABAC(decoder_context* ctx, slice_segment_header* shdr)
 {
+#if 0
   init_sao_merge_leftUp_flag_context(ctx, shdr);
   init_sao_type_idx_lumaChroma_context(ctx, shdr);
   init_split_cu_context(ctx, shdr);
@@ -1677,16 +1700,78 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
   init_merge_flag(ctx, shdr);
   init_merge_idx(ctx, shdr);
   init_pred_mode_flag(ctx, shdr);
-  init_abs_mvd_greater01_flag(ctx, shdr);
-  init_mvp_lx_flag(ctx,shdr);
   init_rqt_root_cbf(ctx,shdr);
+  init_mvp_lx_flag(ctx,shdr);
   init_ref_idx_lX(ctx,shdr);
+  init_abs_mvd_greater01_flag(ctx, shdr);
   init_inter_pred_idc(ctx,shdr);
+#endif
+
+
+  init_context(ctx,shdr, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag, 9);
+  init_context(ctx,shdr, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag,  6);
+  init_context(ctx,shdr, CONTEXT_MODEL_PART_MODE,     initValue_part_mode,     9);
+  init_context(ctx,shdr, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, initValue_prev_intra_luma_pred_flag, 3);
+  init_context(ctx,shdr, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    initValue_intra_chroma_pred_mode,    3);
+  init_context(ctx,shdr, CONTEXT_MODEL_CBF_LUMA,      initValue_cbf_luma,      8);
+  init_context(ctx,shdr, CONTEXT_MODEL_CBF_CHROMA,    initValue_cbf_chroma,    12);
+  init_context(ctx,shdr, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      initValue_split_transform_flag,      12);
+  init_context(ctx,shdr, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, initValue_last_significant_coefficient_prefix, 54);
+  init_context(ctx,shdr, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, initValue_last_significant_coefficient_prefix, 54);
+  init_context(ctx,shdr, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                initValue_coded_sub_block_flag,                12);
+  init_context(ctx,shdr, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag,              126);
+  init_context(ctx,shdr, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
+  init_context(ctx,shdr, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       initValue_coeff_abs_level_greater2_flag,       18);
+  init_context(ctx,shdr, CONTEXT_MODEL_SAO_MERGE_FLAG,                      initValue_sao_merge_leftUp_flag,               3);
+  init_context(ctx,shdr, CONTEXT_MODEL_SAO_TYPE_IDX,                        initValue_sao_type_idx_lumaChroma_flag,        3);
+  init_context(ctx,shdr, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        6);
+  init_context(ctx,shdr, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    6);
+  init_context(ctx,shdr, CONTEXT_MODEL_MERGE_FLAG,             initValue_merge_flag,             2);
+  init_context(ctx,shdr, CONTEXT_MODEL_MERGE_IDX,              initValue_merge_idx,              2);
+  init_context(ctx,shdr, CONTEXT_MODEL_PRED_MODE_FLAG,         initValue_pred_mode_flag,         2);
+  init_context(ctx,shdr, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, initValue_abs_mvd_greater01_flag, 4);
+  init_context(ctx,shdr, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            2);
+  init_context(ctx,shdr, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           2);
+  init_context(ctx,shdr, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             4);
+  init_context(ctx,shdr, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         10);
+}
+
+
+
+int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
+{
+  //initialize_CABAC(ctx,shdr);
 
 
   int end_of_slice_segment_flag;
 
   do {
+    // WPP: store current state of CABAC after second CTB in row
+
+    if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
+        (shdr->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==2) {
+      memcpy(shdr->ctx_model_wpp_storage,
+             shdr->ctx_model,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+
+    if (shdr->CtbAddrInRS == 0) {
+      initialize_CABAC(ctx,shdr);
+      init_CABAC_decoder_2(&shdr->cabac_decoder);
+    }
+    else if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
+        (shdr->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
+
+      // WPP: init of CABAC from top right block
+
+      memcpy(shdr->ctx_model,
+             shdr->ctx_model_wpp_storage,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+
+      init_CABAC_decoder_2(&shdr->cabac_decoder);
+    }
+
+
     read_coding_tree_unit(ctx, shdr);
     end_of_slice_segment_flag = decode_CABAC_term_bit(&shdr->cabac_decoder);
 
@@ -1941,11 +2026,11 @@ int residual_coding(decoder_context* ctx,
 
   int last_significant_coeff_x_prefix =
     decode_last_significant_coeff_prefix(ctx,shdr,log2TrafoSize,cIdx,
-                                         shdr->last_significant_coefficient_x_prefix_model);
+                                         &shdr->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX]);
 
   int last_significant_coeff_y_prefix =
     decode_last_significant_coeff_prefix(ctx,shdr,log2TrafoSize,cIdx,
-                                         shdr->last_significant_coefficient_y_prefix_model);
+                                         &shdr->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX]);
 
 
   int LastSignificantCoeffX;
@@ -2550,6 +2635,8 @@ static const char* part_mode_name(enum PartMode pm)
   case PART_nLx2N: return "nLx2N";
   case PART_nRx2N: return "nRx2N";
   }
+
+  return "undefined part mode";
 }
 
 
@@ -2561,14 +2648,14 @@ void read_mvd_coding(decoder_context* ctx,
 
   int abs_mvd_greater0_flag[2];
   abs_mvd_greater0_flag[0] = decode_CABAC_bit(&shdr->cabac_decoder,
-                                              &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+0]);
+                                              &shdr->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+0]);
   abs_mvd_greater0_flag[1] = decode_CABAC_bit(&shdr->cabac_decoder,
-                                              &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+0]);
+                                              &shdr->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+0]);
 
   int abs_mvd_greater1_flag[2];
   if (abs_mvd_greater0_flag[0]) {
     abs_mvd_greater1_flag[0] = decode_CABAC_bit(&shdr->cabac_decoder,
-                                                &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+1]);
+                                                &shdr->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+1]);
   }
   else {
     abs_mvd_greater1_flag[0]=0;
@@ -2576,7 +2663,7 @@ void read_mvd_coding(decoder_context* ctx,
 
   if (abs_mvd_greater0_flag[1]) {
     abs_mvd_greater1_flag[1] = decode_CABAC_bit(&shdr->cabac_decoder,
-                                                &shdr->abs_mvd_greater01_flag_model[ctxIdxOffset+1]);
+                                                &shdr->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+1]);
   }
   else {
     abs_mvd_greater1_flag[1]=0;

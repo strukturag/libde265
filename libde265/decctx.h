@@ -294,7 +294,7 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
 
-// TODO CHECK: should be sufficient to set value only in to left of CB
+// TODO CHECK: should be sufficient to set value only in top left of CB
 void set_rqt_root_cbf(decoder_context* ctx,int x0,int y0, int log2CbSize, int rqt_root_cbf);
 int  get_rqt_root_cbf(const decoder_context* ctx,int x0,int y0);
 

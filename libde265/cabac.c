@@ -156,6 +156,14 @@ void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
   decoder->bitstream_start = bitstream;
   decoder->bitstream_curr  = bitstream;
   decoder->bitstream_end   = bitstream+length;
+}
+
+void init_CABAC_decoder_2(CABAC_decoder* decoder)
+{
+  fprintf(stderr,"RESETTING CABAC at byte offset %d\n",decoder->bitstream_curr - decoder->bitstream_start);
+
+  int length = decoder->bitstream_end - decoder->bitstream_curr;
+  fprintf(stderr,"LENGTH: %d\n",length);
 
   decoder->range = 510;
   decoder->bits_needed = 8;
@@ -164,6 +172,8 @@ void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 
   if (length>0) { decoder->value  = (*decoder->bitstream_curr++) << 8;  decoder->bits_needed-=8; }
   if (length>1) { decoder->value |= (*decoder->bitstream_curr++);       decoder->bits_needed-=8; }
+
+  fprintf(stderr,"VALUE: 0x%x\n",decoder->value);
 }
 
 
