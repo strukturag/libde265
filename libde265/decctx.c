@@ -247,6 +247,13 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
       ctx->NoRaslOutputFlag)
     {
       ctx->PicOrderCntMsb=0;
+
+
+      // flush all images from reorder buffer
+
+      while (ctx->reorder_output_queue_length>0) {
+        flush_next_picture_from_reorder_buffer(ctx);
+      }
     }
   else
     {

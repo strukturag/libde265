@@ -109,6 +109,10 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
       shdr->colour_plane_id = get_bits(br,1);
     }
 
+
+    shdr->slice_pic_order_cnt_lsb = 0;
+    shdr->short_term_ref_pic_set_sps_flag = 0;
+
     if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
         ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
       shdr->slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
