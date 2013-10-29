@@ -1454,6 +1454,9 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
 
       init_CABAC_decoder_2(&shdr->cabac_decoder);
+
+      logdebug(LogSlice,"resetting CABAC at byte position %d\n",
+	       shdr->cabac_decoder.bitstream_curr - shdr->cabac_decoder.bitstream_start);
     }
 
 
