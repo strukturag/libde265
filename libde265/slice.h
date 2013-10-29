@@ -216,35 +216,6 @@ typedef struct {
 
   CABAC_decoder cabac_decoder;
 
-#if 0
-  context_model sao_merge_flag_model[3];
-  context_model sao_type_idx_model[3];
-  context_model split_flag_model[9];
-  context_model cu_skip_flag_model[6];
-  context_model part_mode_model[9];
-  context_model prev_intra_luma_pred_flag_model[3];
-  context_model intra_chroma_pred_mode_model[3];
-  context_model cbf_luma_model[8];
-  context_model cbf_chroma_model[12];
-  context_model split_transform_flag_model[9];
-  context_model last_significant_coefficient_x_prefix_model[54];
-  context_model last_significant_coefficient_y_prefix_model[54];
-  context_model coded_sub_block_flag_model[12];
-  context_model significant_coeff_flag_model[126];
-  context_model coeff_abs_level_greater1_flag_model[72];
-  context_model coeff_abs_level_greater2_flag_model[18];
-  context_model cu_qp_delta_abs_model[6];
-  context_model transform_skip_flag_model[6];
-  context_model merge_flag_model[2];
-  context_model merge_idx_model[2];
-  context_model pred_mode_flag_model[2];
-  context_model abs_mvd_greater01_flag_model[4];
-  context_model mvp_lx_flag_model[2];
-  context_model rqt_root_cbf_model[2];
-  context_model ref_idx_lX_model[4];
-  context_model inter_pred_idc_model[10];
-#endif
-
   context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
   context_model ctx_model_wpp_storage[CONTEXT_MODEL_TABLE_LENGTH];
 } slice_segment_header;
