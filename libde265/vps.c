@@ -174,7 +174,7 @@ void read_profile_tier_level(bitreader* reader,
 }
 
 
-
+/*
 void read_bit_rate_pic_rate_info(bitreader* reader,
                                  struct bit_rate_pic_rate_info* hdr,
                                  int TempLevelLow,
@@ -196,7 +196,7 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
     }
   }
 }
-
+*/
 
 
 

@@ -25,7 +25,6 @@
 
 
 #include <sys/types.h>
-#include <signal.h>
 #include <string.h>
 
 
@@ -222,12 +221,6 @@ void intra_prediction_sample_filtering(decoder_context* ctx,
     // copy back to original array
 
     memcpy(p-2*nT, pF-2*nT, 4*nT+1);
-
-    /*
-    for (int i=-2*nT ; i<=2*nT ; i++) {
-      p[i] = pF[i];
-    }
-    */
   }
   else {
     // do nothing ?
@@ -304,15 +297,6 @@ void intra_prediction_angular(decoder_context* ctx,
 
     if (intraPredMode==26 && cIdx==0 && nT<32) {
       for (int y=0;y<nT;y++) {
-        /*
-        logtrace(LogIntraPred,"%d %d  %d  %d %d -> %d\n",
-               border[-1-y],
-               border[0],
-               (border[-1-y] - border[0]),
-               ((border[-1-y] - border[0])>>1),
-               border[1] + ((border[-1-y] - border[0])>>1),
-               Clip1Y(border[1] + ((border[-1-y] - border[0])>>1)));
-        */
         pred[0+y*stride] = Clip1Y(border[1] + ((border[-1-y] - border[0])>>1));
       }
     }
@@ -465,8 +449,6 @@ void decode_intra_block(decoder_context* ctx,
 {
   int splitFlag;
 
-  // intraPredMode = INTRA_ANGULAR_34; // HACK
-
   if (cIdx==0) {
     splitFlag = get_split_transform_flag(ctx,xB0,yB0,trafoDepth);
 
@@ -482,34 +464,14 @@ void decode_intra_block(decoder_context* ctx,
 
   logtrace(LogIntraPred,"splitFlag=%d\n",splitFlag);
 
-  if (xB0==108 && yB0==12 && trafoDepth==2) {
-    //kill(0,SIGTRAP);
-  }
-
   if (splitFlag==1) {
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
-
-    //int nT = 1<<(log2TrafoSize-1);
 
     decode_intra_block(ctx,shdr,cIdx,xB0,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
     decode_intra_block(ctx,shdr,cIdx,xB1,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
     decode_intra_block(ctx,shdr,cIdx,xB0,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
     decode_intra_block(ctx,shdr,cIdx,xB1,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-
-    /*
-    decode_intra_prediction(ctx, xB0,yB0, intraPredMode, nT, cIdx);
-    scale_coefficients(ctx, shdr, xB0,yB0, nT,cIdx);
-
-    decode_intra_prediction(ctx, xB1,yB0, intraPredMode, nT, cIdx);
-    scale_coefficients(ctx, shdr, xB1,yB0, nT,cIdx);
-
-    decode_intra_prediction(ctx, xB0,yB1, intraPredMode, nT, cIdx);
-    scale_coefficients(ctx, shdr, xB0,yB1, nT,cIdx);
-
-    decode_intra_prediction(ctx, xB1,yB1, intraPredMode, nT, cIdx);
-    scale_coefficients(ctx, shdr, xB1,yB1, nT,cIdx);
-    */
   }
   else {
     int nT = 1<<log2TrafoSize;

@@ -40,8 +40,6 @@ typedef struct {
   int NumPocTotalCurr;
 } ref_pic_set;
 
-//void alloc_ref_pic_set(ref_pic_set*, int max_dec_pic_buffering);
-//void free_ref_pic_set(ref_pic_set*);
 
 void dump_short_term_ref_pic_set(ref_pic_set*);
 void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range);

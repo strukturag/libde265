@@ -517,7 +517,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 
 
 
-void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
+static void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
                    context_model* model, int initValue)
 {
   int slopeIdx = initValue >> 4;
@@ -584,7 +584,7 @@ static const int initValue_ref_idx_lX[4] = { 153,153,153,153 };
 static const int initValue_inter_pred_idc[10] = { 95,79,63,31,31,
                                                   95,79,63,31,31 };
 
-void init_context(decoder_context* ctx, slice_segment_header* shdr, enum context_model_indices idx, const int* initValues, int len)
+static void init_context(decoder_context* ctx, slice_segment_header* shdr, enum context_model_indices idx, const int* initValues, int len)
 {
   for (int i=0;i<len;i++)
     {
@@ -595,9 +595,9 @@ void init_context(decoder_context* ctx, slice_segment_header* shdr, enum context
 }
 
 
-int decode_transform_skip_flag(decoder_context* ctx,
-                               slice_segment_header* shdr,
-                               int cIdx)
+static int decode_transform_skip_flag(decoder_context* ctx,
+				      slice_segment_header* shdr,
+				      int cIdx)
 {
   int context;
   if (cIdx==0) { context =   shdr->initType; }
@@ -611,8 +611,8 @@ int decode_transform_skip_flag(decoder_context* ctx,
 }
 
 
-int decode_sao_merge_flag(decoder_context* ctx,
-                          slice_segment_header* shdr)
+static int decode_sao_merge_flag(decoder_context* ctx,
+				 slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_merge_left/up_flag\n");
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
@@ -622,8 +622,8 @@ int decode_sao_merge_flag(decoder_context* ctx,
 
 
 
-int decode_sao_type_idx(decoder_context* ctx,
-                             slice_segment_header* shdr)
+static int decode_sao_type_idx(decoder_context* ctx,
+			       slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_type_idx_luma/chroma\n");
   int bit0 = decode_CABAC_bit(&shdr->cabac_decoder,
@@ -643,8 +643,8 @@ int decode_sao_type_idx(decoder_context* ctx,
 }
 
 
-int decode_sao_offset_abs(decoder_context* ctx,
-                          slice_segment_header* shdr)
+static int decode_sao_offset_abs(decoder_context* ctx,
+				 slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_offset_abs\n");
   int bitDepth = 8;
@@ -654,8 +654,8 @@ int decode_sao_offset_abs(decoder_context* ctx,
 }
 
 
-int decode_sao_class(decoder_context* ctx,
-                     slice_segment_header* shdr)
+static int decode_sao_class(decoder_context* ctx,
+			    slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_class\n");
   int value = decode_CABAC_FL_bypass(&shdr->cabac_decoder, 2);
@@ -663,8 +663,8 @@ int decode_sao_class(decoder_context* ctx,
 }
 
 
-int decode_sao_offset_sign(decoder_context* ctx,
-                     slice_segment_header* shdr)
+static int decode_sao_offset_sign(decoder_context* ctx,
+				  slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_offset_sign\n");
   int value = decode_CABAC_bypass(&shdr->cabac_decoder);
@@ -672,8 +672,8 @@ int decode_sao_offset_sign(decoder_context* ctx,
 }
 
 
-int decode_sao_band_position(decoder_context* ctx,
-                             slice_segment_header* shdr)
+static int decode_sao_band_position(decoder_context* ctx,
+				    slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# sao_band_position\n");
   int value = decode_CABAC_FL_bypass(&shdr->cabac_decoder,5);
@@ -681,9 +681,9 @@ int decode_sao_band_position(decoder_context* ctx,
 }
 
 
-int decode_split_cu_flag(decoder_context* ctx,
-                         slice_segment_header* shdr,
-                         int x0, int y0, int ctDepth)
+static int decode_split_cu_flag(decoder_context* ctx,
+				slice_segment_header* shdr,
+				int x0, int y0, int ctDepth)
 {
   // check if neighbors are available
 
@@ -711,9 +711,9 @@ int decode_split_cu_flag(decoder_context* ctx,
 }
 
 
-int decode_cu_skip_flag(decoder_context* ctx,
-                        slice_segment_header* shdr,
-                        int x0, int y0, int ctDepth)
+static int decode_cu_skip_flag(decoder_context* ctx,
+			       slice_segment_header* shdr,
+			       int x0, int y0, int ctDepth)
 {
   // check if neighbors are available
 
@@ -741,9 +741,9 @@ int decode_cu_skip_flag(decoder_context* ctx,
 }
 
 
-enum PartMode decode_part_mode(decoder_context* ctx,
-                               slice_segment_header* shdr,
-                               enum PredMode pred_mode, int cLog2CbSize)
+static enum PartMode decode_part_mode(decoder_context* ctx,
+				      slice_segment_header* shdr,
+				      enum PredMode pred_mode, int cLog2CbSize)
 {
   context_model* model = &shdr->ctx_model[CONTEXT_MODEL_PART_MODE];
 
@@ -807,8 +807,8 @@ enum PartMode decode_part_mode(decoder_context* ctx,
 }
 
 
-int decode_prev_intra_luma_pred_flag(decoder_context* ctx,
-                                     slice_segment_header* shdr)
+static int decode_prev_intra_luma_pred_flag(decoder_context* ctx,
+					    slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# prev_intra_luma_pred_flag\n");
   int bit = decode_CABAC_bit(&shdr->cabac_decoder,
@@ -817,8 +817,8 @@ int decode_prev_intra_luma_pred_flag(decoder_context* ctx,
 }
 
 
-int decode_mpm_idx(decoder_context* ctx,
-                   slice_segment_header* shdr)
+static int decode_mpm_idx(decoder_context* ctx,
+			  slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# mpm_idx (TU:2)\n");
   int mpm = decode_CABAC_TU_bypass(&shdr->cabac_decoder, 2);
@@ -827,16 +827,16 @@ int decode_mpm_idx(decoder_context* ctx,
 }
 
 
-int decode_rem_intra_luma_pred_mode(decoder_context* ctx,
-                                    slice_segment_header* shdr)
+static int decode_rem_intra_luma_pred_mode(decoder_context* ctx,
+					   slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# rem_intra_luma_pred_mode (5 bits)\n");
   return decode_CABAC_FL_bypass(&shdr->cabac_decoder, 5);
 }
 
 
-int decode_intra_chroma_pred_mode(decoder_context* ctx,
-                                  slice_segment_header* shdr)
+static int decode_intra_chroma_pred_mode(decoder_context* ctx,
+					 slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# intra_chroma_pred_mode\n");
 
@@ -857,9 +857,9 @@ int decode_intra_chroma_pred_mode(decoder_context* ctx,
 }
 
 
-int decode_split_transform_flag(decoder_context* ctx,
-                                slice_segment_header* shdr,
-                                int log2TrafoSize)
+static int decode_split_transform_flag(decoder_context* ctx,
+				       slice_segment_header* shdr,
+				       int log2TrafoSize)
 {
   logtrace(LogSlice,"# split_transform_flag (log2TrafoSize=%d)\n",log2TrafoSize);
 
@@ -872,9 +872,9 @@ int decode_split_transform_flag(decoder_context* ctx,
 }
 
 
-int decode_cbf_chroma(decoder_context* ctx,
-                      slice_segment_header* shdr,
-                      int trafoDepth)
+static int decode_cbf_chroma(decoder_context* ctx,
+			     slice_segment_header* shdr,
+			     int trafoDepth)
 {
   logtrace(LogSlice,"# cbf_chroma\n");
 
@@ -885,9 +885,9 @@ int decode_cbf_chroma(decoder_context* ctx,
 }
 
 
-int decode_cbf_luma(decoder_context* ctx,
-                    slice_segment_header* shdr,
-                    int trafoDepth)
+static int decode_cbf_luma(decoder_context* ctx,
+			   slice_segment_header* shdr,
+			   int trafoDepth)
 {
   logtrace(LogSlice,"# cbf_luma\n");
 
@@ -903,10 +903,10 @@ int decode_cbf_luma(decoder_context* ctx,
 }
 
 
-int decode_coded_sub_block_flag(decoder_context* ctx,
-                                slice_segment_header* shdr,
-                                int cIdx,int sbWidth, int xS,int yS,
-                                const uint8_t* coded_sub_block_flag)
+static int decode_coded_sub_block_flag(decoder_context* ctx,
+				       slice_segment_header* shdr,
+				       int cIdx,int sbWidth, int xS,int yS,
+				       const uint8_t* coded_sub_block_flag)
 {
   logtrace(LogSlice,"# coded_sub_block_flag\n");
 
@@ -936,8 +936,8 @@ int decode_coded_sub_block_flag(decoder_context* ctx,
 }
 
 
-int decode_cu_qp_delta_abs(decoder_context* ctx,
-                           slice_segment_header* shdr)
+static int decode_cu_qp_delta_abs(decoder_context* ctx,
+				  slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# cu_qp_delta_abs\n");
 
@@ -967,11 +967,11 @@ int decode_cu_qp_delta_abs(decoder_context* ctx,
 }
 
         
-int decode_last_significant_coeff_prefix(decoder_context* ctx,
-                                         slice_segment_header* shdr,
-                                         int log2TrafoSize,
-                                         int cIdx,
-                                         context_model* model)
+static int decode_last_significant_coeff_prefix(decoder_context* ctx,
+						slice_segment_header* shdr,
+						int log2TrafoSize,
+						int cIdx,
+						context_model* model)
 {
   logtrace(LogSlice,"# last_significant_coeff_prefix log2TrafoSize:%d cIdx:%d\n",log2TrafoSize,cIdx);
 
@@ -1014,13 +1014,13 @@ static const int ctxIdxMap[15] = {
   0,1,4,5,2,3,4,5,6,6,8,8,7,7,8
 };
 
-int decode_significant_coeff_flag(decoder_context* ctx,
-                                  slice_segment_header* shdr,
-                                  int xC,int yC,
-                                  const uint8_t* coded_sub_block_flag,
-                                  int sbWidth,
-                                  int cIdx,
-                                  int scanIdx)
+static int decode_significant_coeff_flag(decoder_context* ctx,
+					 slice_segment_header* shdr,
+					 int xC,int yC,
+					 const uint8_t* coded_sub_block_flag,
+					 int sbWidth,
+					 int cIdx,
+					 int scanIdx)
 {
   logtrace(LogSlice,"# significant_coeff_flag (xC:%d yC:%d sbWidth:%d cIdx:%d scanIdx:%d)\n",
          xC,yC,sbWidth,cIdx,scanIdx);
@@ -1102,22 +1102,22 @@ int decode_significant_coeff_flag(decoder_context* ctx,
 }
 
 
-int decode_coeff_abs_level_greater1(decoder_context* ctx,
-                                    slice_segment_header* shdr,
-                                    int cIdx, int i,int n,
-                                    bool firstCoeffInSubblock,
-                                    bool firstSubblock,
-                                    int  lastSubblock_greater1Ctx,
-                                    int* lastInvocation_greater1Ctx,
-                                    int* lastInvocation_coeff_abs_level_greater1_flag,
-                                    int* lastInvocation_ctxSet, int c1)
+static int decode_coeff_abs_level_greater1(decoder_context* ctx,
+					   slice_segment_header* shdr,
+					   int cIdx, int i,int n,
+					   bool firstCoeffInSubblock,
+					   bool firstSubblock,
+					   int  lastSubblock_greater1Ctx,
+					   int* lastInvocation_greater1Ctx,
+					   int* lastInvocation_coeff_abs_level_greater1_flag,
+					   int* lastInvocation_ctxSet, int c1)
 {
   logtrace(LogSlice,"# coeff_abs_level_greater1\n");
 
   logtrace(LogSlice,"  cIdx:%d i:%d n:%d firstCoeffInSB:%d firstSB:%d lastSB>1:%d last>1Ctx:%d lastLev>1:%d lastCtxSet:%d\n", cIdx,i,n,firstCoeffInSubblock,firstSubblock,lastSubblock_greater1Ctx,
-         *lastInvocation_greater1Ctx,
-         *lastInvocation_coeff_abs_level_greater1_flag,
-         *lastInvocation_ctxSet);
+	   *lastInvocation_greater1Ctx,
+	   *lastInvocation_coeff_abs_level_greater1_flag,
+	   *lastInvocation_ctxSet);
 
   int context = shdr->initType*24;
 
@@ -1172,10 +1172,10 @@ int decode_coeff_abs_level_greater1(decoder_context* ctx,
 }
 
 
-int decode_coeff_abs_level_greater2(decoder_context* ctx,
-                                    slice_segment_header* shdr,
-                                    int cIdx, // int i,int n,
-                                    int ctxSet)
+static int decode_coeff_abs_level_greater2(decoder_context* ctx,
+					   slice_segment_header* shdr,
+					   int cIdx, // int i,int n,
+					   int ctxSet)
 {
   logtrace(LogSlice,"# coeff_abs_level_greater2\n");
 
@@ -1194,9 +1194,9 @@ int decode_coeff_abs_level_greater2(decoder_context* ctx,
 }
 
 
-int decode_coeff_abs_level_remaining(decoder_context* ctx,
-                                     slice_segment_header* shdr,
-                                     int cRiceParam, int cTRMax)
+static int decode_coeff_abs_level_remaining(decoder_context* ctx,
+					    slice_segment_header* shdr,
+					    int cRiceParam, int cTRMax)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
@@ -1213,9 +1213,9 @@ int decode_coeff_abs_level_remaining(decoder_context* ctx,
 }
 
 
-int decode_coeff_abs_level_remaining_HM(decoder_context* ctx,
-                                        slice_segment_header* shdr,
-                                        int param)
+static int decode_coeff_abs_level_remaining_HM(decoder_context* ctx,
+					       slice_segment_header* shdr,
+					       int param)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining_HM\n");
 
@@ -1245,8 +1245,8 @@ int decode_coeff_abs_level_remaining_HM(decoder_context* ctx,
 }
 
 
-int decode_merge_flag(decoder_context* ctx,
-                      slice_segment_header* shdr)
+static int decode_merge_flag(decoder_context* ctx,
+			     slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# merge_flag\n");
 
@@ -1257,8 +1257,8 @@ int decode_merge_flag(decoder_context* ctx,
 }
 
 
-int decode_merge_idx(decoder_context* ctx,
-                     slice_segment_header* shdr)
+static int decode_merge_idx(decoder_context* ctx,
+			    slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# merge_idx\n");
 
@@ -1286,8 +1286,8 @@ int decode_merge_idx(decoder_context* ctx,
 }
 
 
-int decode_pred_mode_flag(decoder_context* ctx,
-                          slice_segment_header* shdr)
+static int decode_pred_mode_flag(decoder_context* ctx,
+				 slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# pred_mode_flag\n");
 
@@ -1297,8 +1297,8 @@ int decode_pred_mode_flag(decoder_context* ctx,
   return bit;
 }
 
-int decode_mvp_lx_flag(decoder_context* ctx,
-                       slice_segment_header* shdr)
+static int decode_mvp_lx_flag(decoder_context* ctx,
+			      slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# mvp_lx_flag\n");
 
@@ -1308,8 +1308,8 @@ int decode_mvp_lx_flag(decoder_context* ctx,
   return bit;
 }
 
-int decode_rqt_root_cbf(decoder_context* ctx,
-                        slice_segment_header* shdr)
+static int decode_rqt_root_cbf(decoder_context* ctx,
+			       slice_segment_header* shdr)
 {
   logtrace(LogSlice,"# rqt_root_cbf\n");
 
@@ -1319,10 +1319,8 @@ int decode_rqt_root_cbf(decoder_context* ctx,
   return bit;
 }
 
-extern int logcnt;
-
-int decode_ref_idx_lX(decoder_context* ctx,
-                      slice_segment_header* shdr, int numRefIdxLXActive)
+static int decode_ref_idx_lX(decoder_context* ctx,
+			     slice_segment_header* shdr, int numRefIdxLXActive)
 {
   logtrace(LogSlice,"# ref_idx_lX\n");
 
@@ -1352,43 +1350,16 @@ int decode_ref_idx_lX(decoder_context* ctx,
     }
   }
 
-  /*
-  if (bit==0) {
-    idx = 0;
-  }
-  else if (cMax==1) {
-    idx = 1;
-  }
-  else {
-    bit = decode_CABAC_bit(&shdr->cabac_decoder,
-                           &shdr->ref_idx_lX_model[ctxIdxOffset+1]);
-
-    if (bit==0) {
-      idx=1;
-    }
-    else if (cMax==2) 
-    idx=1;
-
-    while (decode_CABAC_bypass(&shdr->cabac_decoder)) {
-      idx++;
-
-      if (idx==shdr->MaxNumMergeCand-1) {
-        break;
-      }
-    }
-  }
-  */
-
   logtrace(LogSlice,"> ref_idx = %d\n",idx);
 
   return idx;
 }
 
-int decode_inter_pred_idc(decoder_context* ctx,
-                          slice_segment_header* shdr,
-                          int x0, int y0,
-                          int nPbW, int nPbH,
-                          int ctDepth)
+static int decode_inter_pred_idc(decoder_context* ctx,
+				 slice_segment_header* shdr,
+				 int x0, int y0,
+				 int nPbW, int nPbH,
+				 int ctDepth)
 {
   logtrace(LogSlice,"# inter_pred_idc\n");
 
@@ -1893,7 +1864,7 @@ int residual_coding(decoder_context* ctx,
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
 
     uint8_t significant_coeff_flag[4][4];
-    memset(significant_coeff_flag, 0, 4*4/*sbWidth*sbWidth*/);
+    memset(significant_coeff_flag, 0, 4*4);
 
     if ((i<lastSubBlock) && (i>0)) {
       coded_sub_block_flag[S.x+S.y*sbWidth] = decode_coded_sub_block_flag(ctx,shdr, cIdx,sbWidth,S.x,S.y, coded_sub_block_flag);
@@ -2516,10 +2487,6 @@ void read_coding_unit(decoder_context* ctx,
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
 
-  //enum PredMode PredMode = MODE_INTRA; // TODO: HACK for intra only decoder
-  //set_pred_mode(ctx,x0,y0,log2CbSize, MODE_INTRA); // HACK, TODO: decode and set correct values
-
-
   const seq_parameter_set* sps = ctx->current_sps;
 
 
@@ -2905,9 +2872,6 @@ void read_coding_unit(decoder_context* ctx,
         logtrace(LogSlice,"*\n");
       }
   }
-
-  // write for debugging
-  //write_picture(ctx);
 }
 
 
@@ -3041,5 +3005,4 @@ void read_coding_quadtree(decoder_context* ctx,
   }
 
   logtrace(LogSlice,"-\n");
-  //debug_dump_cb_info(ctx);
 }

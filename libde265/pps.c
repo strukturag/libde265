@@ -248,6 +248,7 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
   // --- debug logging ---
 
+  /*
   logtrace(LogHeaders,"6.5.2 Z-scan order array\n");
   for (int y=0;y<sps->PicHeightInTbsY;y++)
     {
@@ -271,6 +272,7 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
             }
         }
     }
+  */
 
   // END tiles
 

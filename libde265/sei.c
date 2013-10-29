@@ -275,7 +275,6 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
   }
 }
 
-bool override_sei_check = false;
 
 int process_sei(const sei_message* sei, decoder_context* ctx)
 {
@@ -283,11 +282,9 @@ int process_sei(const sei_message* sei, decoder_context* ctx)
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    if (ctx->param_sei_check_hash || override_sei_check) {
+    if (ctx->param_sei_check_hash) {
       err = process_sei_decoded_picture_hash(sei, ctx);
     }
-
-    if (override_sei_check) { err = DE265_OK; }
 
     break;
   }

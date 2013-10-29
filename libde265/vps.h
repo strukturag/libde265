@@ -79,6 +79,7 @@ void dump_profile_tier_level(struct profile_tier_level* hdr,
                              int max_sub_layers);
 
 
+/*
 struct bit_rate_pic_rate_info {
   char bit_rate_info_present_flag[8];
   char pic_rate_info_present_flag[8];
@@ -99,7 +100,7 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 void dump_bit_rate_pic_rate_info(struct bit_rate_pic_rate_info* hdr,
                                  int TempLevelLow,
                                  int TempLevelHigh);
-
+*/
 
 
 typedef struct {
