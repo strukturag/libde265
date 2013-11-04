@@ -118,7 +118,7 @@ typedef struct {
 
 
 
-typedef struct {
+typedef struct decoder_context {
 
   // --- parameters ---
 

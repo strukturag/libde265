@@ -46,7 +46,8 @@ libde265_la_SOURCES = \
   sps.h \
   util.h \
   vps.h \
-  motion.c motion.h
+  motion.c motion.h \
+  threads.c threads.h
 
 libde265_la_HEADERS = \
   de265.h
