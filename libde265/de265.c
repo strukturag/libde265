@@ -49,6 +49,7 @@ const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
   case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
+  case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
   default: return "unknown error";
   }
 }
