@@ -71,10 +71,7 @@ const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int
 
 /* === decoder === */
 
-typedef struct
-{
-  // private structure
-} de265_decoder_context;
+typedef void* de265_decoder_context; // private structure
 
 
 enum de265_param {
