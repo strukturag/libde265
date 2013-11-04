@@ -21,8 +21,14 @@
 #ifndef DE265_NAL_H
 #define DE265_NAL_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdint.h>
+#ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
+#endif
 
 #include "libde265/bitstream.h"
 
