@@ -32,7 +32,7 @@
 #include <stdlib.h>
 
 
-int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data);
+de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data);
 
 
 
@@ -155,7 +155,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
 
         // decode this NAL
         ctx->nal_data.size = out - ctx->nal_data.data;
-        int err = de265_decode_NAL((de265_decoder_context*)ctx, &ctx->nal_data);
+        de265_error err = de265_decode_NAL((de265_decoder_context*)ctx, &ctx->nal_data);
 
         // clear buffer for next NAL
         ctx->nal_data.size = 0;
@@ -205,7 +205,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
 
     // decode data
     ctx->nal_data.size = out - ctx->nal_data.data;
-    int err = de265_decode_NAL((de265_decoder_context*)ctx, &ctx->nal_data);
+    de265_error err = de265_decode_NAL((de265_decoder_context*)ctx, &ctx->nal_data);
     if (err != DE265_OK) {
       return err;
     }
@@ -235,7 +235,7 @@ static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
 
   int nBytesProcessed;
 
-  int err = process_data(ctx,
+  de265_error err = process_data(ctx,
                          ctx->pending_input_data.data,
                          ctx->pending_input_data.size,
                          &nBytesProcessed);
@@ -282,7 +282,7 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data,
   }
 
 
-  int err = DE265_OK;
+  de265_error err = DE265_OK;
   int nBytesProcessed = 0;
 
   if (has_free_dpb_picture(ctx)) {
@@ -295,18 +295,18 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data,
     // save remaining bytes
 
     assert(ctx->pending_input_data.size==0); // assume pending-input buffer is empty
-    rbsp_buffer_append(&ctx->pending_input_data, data+nBytesProcessed, len-nBytesProcessed);
+    rbsp_buffer_append(&ctx->pending_input_data, (const uint8_t*)data+nBytesProcessed, len-nBytesProcessed);
   }
 
   return err;
 }
 
 
-int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
+de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  int err = DE265_OK;
+  de265_error err = DE265_OK;
 
   bitreader reader;
   bitreader_init(&reader, data);

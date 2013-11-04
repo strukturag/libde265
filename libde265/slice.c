@@ -1355,11 +1355,11 @@ static int decode_ref_idx_lX(decoder_context* ctx,
   return idx;
 }
 
-static int decode_inter_pred_idc(decoder_context* ctx,
-				 slice_segment_header* shdr,
-				 int x0, int y0,
-				 int nPbW, int nPbH,
-				 int ctDepth)
+static enum InterPredIdc decode_inter_pred_idc(decoder_context* ctx,
+                                               slice_segment_header* shdr,
+                                               int x0, int y0,
+                                               int nPbW, int nPbH,
+                                               int ctDepth)
 {
   logtrace(LogSlice,"# inter_pred_idc\n");
 
@@ -1386,7 +1386,7 @@ static int decode_inter_pred_idc(decoder_context* ctx,
 
   logtrace(LogSlice,"> inter_pred_idc = %d\n",value);
 
-  return value;
+  return (enum InterPredIdc) value;
 }
 
 
@@ -1423,7 +1423,7 @@ void initialize_CABAC(decoder_context* ctx, slice_segment_header* shdr)
 
 
 
-int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
+de265_error read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
 {
   //initialize_CABAC(ctx,shdr);
 

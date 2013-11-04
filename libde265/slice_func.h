@@ -29,6 +29,6 @@
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context*);
 void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*);
 
-int  read_slice_segment_data(decoder_context*, slice_segment_header* shdr);
+de265_error read_slice_segment_data(decoder_context*, slice_segment_header* shdr);
 
 #endif
