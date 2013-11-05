@@ -39,6 +39,10 @@ extern "C" {
 using namespace videogfx;
 #endif
 
+extern "C" {
+#include "libde265/threads.h"
+}
+
 
 #if HAVE_VIDEOGFX
 void display_image(const struct de265_image* img)
@@ -84,6 +88,7 @@ void display_image(const struct de265_image* img)
 
 
 #define BUFFER_SIZE 4096
+#define NUM_THREADS 4
 
 
 int main(int argc, char** argv)
@@ -95,8 +100,12 @@ int main(int argc, char** argv)
   }
 
 
+  de265_error err =DE265_OK;
+
   de265_init();
   de265_decoder_context* ctx = de265_new_decoder();
+
+  //err = de265_start_worker_threads(ctx, NUM_THREADS);
 
   //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
 
@@ -106,7 +115,6 @@ int main(int argc, char** argv)
     exit(10);
   }
 
-  de265_error err =DE265_OK;
   bool stop=false;
   while (!stop)
     {

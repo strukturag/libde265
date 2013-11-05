@@ -50,6 +50,7 @@ int check_CTB_available(decoder_context* ctx,
 void decode_inter_block(decoder_context* ctx,slice_segment_header* shdr,
                         int xC, int yC, int log2CbSize);
 
+//void decode_CU(decoder_context* ctx, int x0, int y0, int log2CbSize);
 
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
@@ -1610,6 +1611,11 @@ void read_sao(decoder_context* ctx, slice_segment_header* shdr, int xCtb,int yCt
 }
 
 
+void add_CTB_decode_task(decoder_context* ctx, int x0,int y0)
+{
+}
+
+
 void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr)
 {
   seq_parameter_set* sps = ctx->current_sps;
@@ -1636,6 +1642,12 @@ void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr)
     }
 
   read_coding_quadtree(ctx,shdr, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY, 0);
+
+
+  if (ctx->num_worker_threads>0)
+    {
+      add_CTB_decode_task(ctx,xCtb,yCtb);
+    }
 }
 
 
@@ -2540,6 +2552,7 @@ void read_coding_unit(decoder_context* ctx,
 
       if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
         IntraSplitFlag=1;
+        set_intra_split_flag(ctx, x0,y0, 1);
       }
     } else {
       PartMode = PART_2Nx2N;
@@ -2628,8 +2641,8 @@ void read_coding_unit(decoder_context* ctx,
               int candModeList[3];
 
               logtrace(LogSlice,"availableA:%d candA:%d & availableB:%d candB:%d\n",
-                     availableA, candIntraPredModeA,
-                     availableB, candIntraPredModeB);
+                       availableA, candIntraPredModeA,
+                       availableB, candIntraPredModeB);
 
               if (candIntraPredModeA == candIntraPredModeB) {
                 if (candIntraPredModeA < 2) {
@@ -2799,12 +2812,25 @@ void read_coding_unit(decoder_context* ctx,
   }
 
 
+  if (ctx->num_worker_threads==0)
+    {
+      decode_CU(ctx, x0,y0, log2CbSize);
+    }
+}
+
+void decode_CU(decoder_context* ctx, int x0, int y0, int log2CbSize)
+{
   // --- decode CU ---
 
   logtrace(LogSlice,"--- decodeCU (%d;%d size %d) POC:%d ---\n",x0,y0,1<<log2CbSize,
            ctx->img->PicOrderCntVal);
 
   int nS = 1 << log2CbSize;
+
+  uint8_t IntraSplitFlag = get_intra_split_flag(ctx,x0,y0);
+  enum PredMode cuPredMode = get_pred_mode(ctx,x0,y0);
+  slice_segment_header* shdr = get_SliceHeader(ctx,x0,y0);
+
 
   // (8.4.1) decoding process for CUs coded in intra prediction mode
 
@@ -2863,18 +2889,19 @@ void read_coding_unit(decoder_context* ctx,
   }
 
 
-  {
-    uint8_t* image;
-    int stride;
-    get_image_plane(ctx, 0 /*cIdx*/,  &image, &stride);
-    for (int y=0;y<40;y++)
-      {
-        for (int x=0;x<40;x++)
-          logtrace(LogSlice,"*%02x ", image[x+y*stride]);
+  if (0)
+    {
+      uint8_t* image;
+      int stride;
+      get_image_plane(ctx, 0 /*cIdx*/,  &image, &stride);
+      for (int y=0;y<40;y++)
+        {
+          for (int x=0;x<40;x++)
+            logtrace(LogSlice,"*%02x ", image[x+y*stride]);
 
-        logtrace(LogSlice,"*\n");
-      }
-  }
+          logtrace(LogSlice,"*\n");
+        }
+    }
 }
 
 
@@ -2984,6 +3011,8 @@ void read_coding_quadtree(decoder_context* ctx,
     }
 
   if (split_flag) {
+    set_cu_split_flag(ctx, x0,y0, log2CbSize);
+
     int x1 = x0 + (1<<(log2CbSize-1));
     int y1 = y0 + (1<<(log2CbSize-1));
 

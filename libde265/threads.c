@@ -1,6 +1,7 @@
 
 #include "threads.h"
 #include <assert.h>
+#include <string.h>
 
 
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
@@ -25,8 +26,27 @@ static void* worker_thread(void* pool_ptr)
     de265_mutex_lock(&pool->mutex);
 
     // wait until we can pick a task or until the pool has been stopped
-    
-    while (!pool->stopped && pool->num_tasks==0) {
+
+    int available_task;
+
+    for (;;) {
+      // find an unblocked task
+
+      available_task = -1;
+      for (int i=0;i<pool->num_tasks;i++) {
+        if (pool->tasks[i].num_blockers==0) {
+          available_task=i;
+          break;
+        }
+      }
+
+
+      // end waiting if thread-pool has been stopped or we have a task to execute
+
+      if (pool->stopped || available_task>=0) {
+        break;
+      }
+
       de265_cond_wait(&pool->cond_var, &pool->mutex);
     }
 
@@ -40,11 +60,13 @@ static void* worker_thread(void* pool_ptr)
 
     // get a task
 
-    thread_task task = pool->tasks[0];
+    thread_task task = pool->tasks[available_task];
     pool->num_tasks--;
 
-    if (pool->num_tasks>0) {
-      memmove(&pool->tasks[0], &pool->tasks[1], pool->num_tasks*sizeof(thread_task));
+    if (available_task<pool->num_tasks) {
+      memmove(&pool->tasks[available_task],
+              &pool->tasks[available_task+1],
+              (pool->num_tasks-available_task)*sizeof(thread_task));
     }
 
     pool->num_threads_working++;
@@ -53,10 +75,11 @@ static void* worker_thread(void* pool_ptr)
 
 
     // execute the task
-    //(*task)();
 
-    usleep(500000 + (rand()%1000000));
-    
+    if (task.work_routine != NULL) {
+      task.work_routine( &task.data );
+    }
+
 
     // end processing and check if this was the last task to be processed
 
@@ -68,9 +91,9 @@ static void* worker_thread(void* pool_ptr)
       de265_cond_broadcast(&pool->finished_cond);
     }
 
-    printf("processed task %d at CTB %d;%d\n", task.task_id,
-           task.task.task_ctb.ctb_x,
-           task.task.task_ctb.ctb_y);
+    printf("processed task %d at CTB %d;%d\n", task.task_cmd,
+           task.data.task_ctb.ctb_x,
+           task.data.task_ctb.ctb_y);
 
     de265_mutex_unlock(&pool->mutex);
   }
@@ -117,7 +140,7 @@ void flush_thread_pool(thread_pool* pool)
 }
 
 
-void cancel_thread_pool(thread_pool* pool)
+void stop_thread_pool(thread_pool* pool)
 {
   de265_mutex_lock(&pool->mutex);
   pool->stopped = true;
@@ -145,7 +168,33 @@ void   add_task(thread_pool* pool, const thread_task* task)
     pool->num_tasks++;
 
     // wake up one thread
-    de265_cond_signal(&pool->cond_var);
+
+    if (task->num_blockers==0) {
+      de265_cond_signal(&pool->cond_var);
+    }
+  }
+  de265_mutex_unlock(&pool->mutex);
+}
+
+
+void   deblock_task(thread_pool* pool, int task_id)
+{
+  de265_mutex_lock(&pool->mutex);
+  for (int i=0;i<pool->num_tasks;i++) {
+    if (pool->tasks[i].task_id == task_id) {
+      assert(pool->tasks[i].num_blockers > 0);
+
+      // deblock task by one
+
+      pool->tasks[i].num_blockers--;
+
+      // if task can be executed now, wake up one thread
+
+      if (pool->tasks[i].num_blockers==0) {
+        de265_cond_signal(&pool->cond_var);
+      }
+      break;
+    }
   }
   de265_mutex_unlock(&pool->mutex);
 }

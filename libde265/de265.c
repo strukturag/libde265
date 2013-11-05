@@ -74,9 +74,31 @@ de265_decoder_context* de265_new_decoder()
 }
 
 
+de265_error de265_start_worker_threads(de265_decoder_context* de265ctx, int number_of_threads)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->num_worker_threads = number_of_threads;
+
+  if (number_of_threads>0) {
+    de265_error err = start_thread_pool(&ctx->thread_pool, number_of_threads);
+    return err;
+  }
+  else {
+    return DE265_OK;
+  }
+}
+
+
 void de265_free_decoder(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
+
+  if (ctx->num_worker_threads>0) {
+    flush_thread_pool(&ctx->thread_pool);
+    stop_thread_pool(&ctx->thread_pool);
+  }
+
   free_decoder_context(ctx);
   free(de265ctx);
 }

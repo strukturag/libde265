@@ -75,11 +75,15 @@ enum thread_task_id {
 
 typedef struct
 {
-  enum thread_task_id task_id;
+  int task_id;
+  enum thread_task_id task_cmd;
+  uint16_t num_blockers;  // a task only becomes executable when the num_blockers reaches zero
+
+  void (*work_routine)(void* data);
 
   union {
     struct thread_task_ctb task_ctb;
-  } task;
+  } data;
 } thread_task;
 
 
@@ -106,8 +110,9 @@ typedef struct
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads);
 void        flush_thread_pool(thread_pool* pool);  // process pool until no more tasks
-void        cancel_thread_pool(thread_pool* pool); // do not process remaining tasks
+void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
 void   add_task(thread_pool* pool, const thread_task* task);
+void   deblock_task(thread_pool* pool, int task_id);
 
 #endif

@@ -90,6 +90,10 @@ void de265_init(void);
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 de265_decoder_context* de265_new_decoder(void);
 
+/* Initialize background decoding threads. If this function is not called,
+   all decoding is done in the main thread (no multi-threading). */
+de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
+
 /* Free decoder context. May only be called once on a context. */
 void de265_free_decoder(de265_decoder_context*);
 

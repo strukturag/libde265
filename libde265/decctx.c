@@ -41,6 +41,10 @@ void init_decoder_context(decoder_context* ctx)
   ctx->param_sei_check_hash = true;
   ctx->param_HighestTid = 999; // unlimited
 
+  // --- processing ---
+
+  ctx->num_worker_threads = 0; // default: no background threads
+
   // --- internal data ---
 
   rbsp_buffer_init(&ctx->pending_input_data);
@@ -845,6 +849,40 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
   int cbY = PIXEL2CB(y);
 
   return (enum PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
+}
+
+
+void    set_intra_split_flag(decoder_context* ctx, int x,int y, uint8_t flag)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].intra_split_flag = flag;
+}
+
+uint8_t get_intra_split_flag(decoder_context* ctx, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].intra_split_flag;
+}
+
+
+void    set_cu_split_flag(decoder_context* ctx, int x,int y,int log2CbSize)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].split_cu_flag |= 1<<log2CbSize;
+}
+
+uint8_t get_cu_split_flag(decoder_context* ctx, int x,int y, int log2CbSize)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].split_cu_flag & 1<<log2CbSize;
 }
 
 
