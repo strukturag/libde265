@@ -1269,6 +1269,21 @@ enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0)
 }
 
 
+void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt)
+{
+  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
+  ctx->ctb_info[idx].task_blocking_cnt = cnt;
+}
+
+uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
+{
+  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
+
+  uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
+  return blkcnt;
+}
+
+
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN)
 {

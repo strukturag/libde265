@@ -61,6 +61,8 @@ typedef struct {
   uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
 
   sao_info saoInfo;
+
+  uint8_t  task_blocking_cnt; // for parallelization
 } CTB_info;
 
 
@@ -358,6 +360,8 @@ uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
 void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,enum InterPredIdc idc);
 enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0);
 
+void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt);
+uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY);
 
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN);

@@ -77,7 +77,6 @@ typedef struct
 {
   int task_id;
   enum thread_task_id task_cmd;
-  uint16_t num_blockers;  // a task only becomes executable when the num_blockers reaches zero
 
   void (*work_routine)(void* data);
 
@@ -102,6 +101,8 @@ typedef struct
 
   int num_threads_working;
 
+  int tasks_pending;
+
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];
 
@@ -116,6 +117,6 @@ void        flush_thread_pool(thread_pool* pool);  // process pool until no more
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
 void   add_task(thread_pool* pool, const thread_task* task);
-bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
+//bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
 
 #endif

@@ -121,6 +121,8 @@ int main(int argc, char** argv)
   }
 
   bool stop=false;
+  int framecnt=0;
+
   while (!stop)
     {
       // read a chunk of input data
@@ -145,6 +147,7 @@ int main(int argc, char** argv)
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
 
+        framecnt++;
         //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
 
 #if HAVE_VIDEOGFX
@@ -162,6 +165,8 @@ int main(int argc, char** argv)
   if (err != DE265_OK) {
     fprintf(stderr,"decoding error: %s\n", de265_get_error_text(err));
   }
+
+  fprintf(stderr,"nFrames decoded: %d\n",framecnt);
 
   return err==DE265_OK ? 0 : 10;
 }
