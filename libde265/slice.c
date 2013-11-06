@@ -34,6 +34,8 @@
 # include <alloca.h>
 #endif
 
+bool singleThreadedNonInterleaved = true;
+
 
 void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr);
 
@@ -50,7 +52,7 @@ int check_CTB_available(decoder_context* ctx,
 void decode_inter_block(decoder_context* ctx,slice_segment_header* shdr,
                         int xC, int yC, int log2CbSize);
 
-//void decode_CU(decoder_context* ctx, int x0, int y0, int log2CbSize);
+void decode_CU(decoder_context* ctx, int x0, int y0, int log2CbSize);
 
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
@@ -1446,7 +1448,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
       init_CABAC_decoder_2(&shdr->cabac_decoder);
     }
     else if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
-        (shdr->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
+             (shdr->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
 
       // WPP: init of CABAC from top right block
 
@@ -1465,7 +1467,7 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
     end_of_slice_segment_flag = decode_CABAC_term_bit(&shdr->cabac_decoder);
 
     logtrace(LogSlice,"read CTB %d -> end=%d %d\n",shdr->CtbAddrInTS, end_of_slice_segment_flag,
-           ctx->current_sps->PicSizeInCtbsY);
+             ctx->current_sps->PicSizeInCtbsY);
 
     shdr->CtbAddrInTS++;
     shdr->CtbAddrInRS = shdr->CtbAddrInTS; // TODO (page 46)
@@ -1481,6 +1483,27 @@ int read_slice_segment_data(decoder_context* ctx, slice_segment_header* shdr)
     // TODO (page 46)
 
   } while (!end_of_slice_segment_flag);
+
+
+  if (ctx->num_worker_threads==0 && singleThreadedNonInterleaved)
+    {
+      seq_parameter_set* sps = ctx->current_sps;
+
+      for (int y=0;y<sps->PicHeightInCtbsY;y++)
+        for (int x=0;x<sps->PicWidthInCtbsY;x++)
+          {
+            int xCtbPixels = x << sps->Log2CtbSizeY;
+            int yCtbPixels = y << sps->Log2CtbSizeY;
+
+            decode_CU_split(ctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY);
+          }
+    }
+
+
+  if (ctx->num_worker_threads>0)
+    {
+      flush_thread_pool(&ctx->thread_pool);
+    }
 
   return DE265_OK;
 }
@@ -1611,8 +1634,99 @@ void read_sao(decoder_context* ctx, slice_segment_header* shdr, int xCtb,int yCt
 }
 
 
-void add_CTB_decode_task(decoder_context* ctx, int x0,int y0)
+void decode_CU_split(decoder_context* ctx, int x0, int y0, int log2CbSize)
 {
+  seq_parameter_set* sps = ctx->current_sps;
+
+  uint8_t split = get_cu_split_flag(ctx, x0,y0, log2CbSize);
+
+  if (!split) {
+    decode_CU(ctx,x0,y0,log2CbSize);
+  }
+  else {
+    int x1 = x0 + (1<<(log2CbSize-1));
+    int y1 = y0 + (1<<(log2CbSize-1));
+
+    decode_CU_split(ctx,x0,y0, log2CbSize-1);
+
+    if (x1<sps->pic_width_in_luma_samples)
+      decode_CU_split(ctx,x1,y0, log2CbSize-1);
+
+    if (y1<sps->pic_height_in_luma_samples)
+      decode_CU_split(ctx,x0,y1, log2CbSize-1);
+
+    if (x1<sps->pic_width_in_luma_samples &&
+        y1<sps->pic_height_in_luma_samples)
+      decode_CU_split(ctx,x1,y1, log2CbSize-1);
+  }
+}
+
+
+void thread_decode_CTB(void* d)
+{
+  struct thread_task_ctb* data = (struct thread_task_ctb*)d;
+  decoder_context* ctx = data->ctx;
+
+  seq_parameter_set* sps = ctx->current_sps;
+  int ctbSize = 1<<sps->Log2CtbSizeY;
+
+  int ctbx = data->ctb_x;
+  int ctby = data->ctb_y;
+
+  //printf("PROCESS %d %d\n",ctbx,ctby);
+
+  decode_CU_split(ctx, ctbx * ctbSize, ctby * ctbSize, sps->Log2CtbSizeY);
+
+  //printf("END WORK %d %d\n",ctbx,ctby);
+
+  if (ctbx+1 < sps->PicWidthInCtbsY) {
+    add_CTB_decode_task(ctx,ctbx+1,ctby);
+  }
+
+  if (ctby+1 < sps->PicHeightInCtbsY) {
+
+    if (ctbx==0) {
+      // NOP
+    }
+    else if (ctbx+1 == sps->PicWidthInCtbsY) {
+      add_CTB_decode_task(ctx,ctbx-1,ctby+1);
+      add_CTB_decode_task(ctx,ctbx  ,ctby+1);
+    }
+    else {
+      add_CTB_decode_task(ctx,ctbx-1,ctby+1);
+    }
+  }
+
+  //printf("FINISHED %d %d\n",ctbx,ctby);
+}
+
+
+void add_CTB_decode_task(decoder_context* ctx, int ctbx,int ctby)
+{
+  seq_parameter_set* sps = ctx->current_sps;
+
+  int task_id = sps->PicWidthInCtbsY * ctby + ctbx;
+
+  //printf("add task %d %d\n",ctbx,ctby);
+
+  if (!deblock_task(&ctx->thread_pool, task_id)) {
+    bool firstCTB = (ctbx==0 && ctby==0);
+
+    thread_task task;
+    task.task_id = task_id;
+    task.task_cmd = THREAD_TASK_SYNTAX_DECODE_CTB;
+    task.work_routine = thread_decode_CTB;
+    task.data.task_ctb.ctb_x = ctbx;
+    task.data.task_ctb.ctb_y = ctby;
+    task.data.task_ctb.ctx   = ctx;
+    task.num_blockers = 0;
+    if (ctbx>0) task.num_blockers++;
+    if (ctby>0) task.num_blockers++;
+
+    //printf("  new with %d blockers\n",task.num_blockers);
+
+    add_task(&ctx->thread_pool, &task);
+  }
 }
 
 
@@ -1643,6 +1757,10 @@ void read_coding_tree_unit(decoder_context* ctx, slice_segment_header* shdr)
 
   read_coding_quadtree(ctx,shdr, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY, 0);
 
+
+  if (ctx->num_worker_threads==0 && !singleThreadedNonInterleaved && 0) {
+    //decode_CU_split(ctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY);
+  }
 
   if (ctx->num_worker_threads>0)
     {
@@ -2812,7 +2930,7 @@ void read_coding_unit(decoder_context* ctx,
   }
 
 
-  if (ctx->num_worker_threads==0)
+  if (ctx->num_worker_threads==0 && !singleThreadedNonInterleaved)
     {
       decode_CU(ctx, x0,y0, log2CbSize);
     }

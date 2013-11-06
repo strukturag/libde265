@@ -87,7 +87,7 @@ typedef struct
 } thread_task;
 
 
-#define MAX_THREAD_TASKS 256
+#define MAX_THREAD_TASKS 1024
 #define MAX_THREADS 32
 
 typedef struct
@@ -102,6 +102,9 @@ typedef struct
 
   int num_threads_working;
 
+  int ctbx[MAX_THREADS]; // the CTB the thread is working on
+  int ctby[MAX_THREADS];
+
   de265_mutex  mutex;
   de265_cond   cond_var;
   de265_cond   finished_cond;
@@ -113,6 +116,6 @@ void        flush_thread_pool(thread_pool* pool);  // process pool until no more
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
 void   add_task(thread_pool* pool, const thread_task* task);
-void   deblock_task(thread_pool* pool, int task_id);
+bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
 
 #endif

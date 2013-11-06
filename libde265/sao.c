@@ -99,6 +99,11 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           }
 
 
+          // This part seems inefficient with all the get_SliceHeaderIndex() calls,
+          // but removing this part (because the input was known to have only a single
+          // slice anyway) reduced computation time only by 1.3%.
+          // TODO: however, this may still be a big part of SAO itself.
+
           int sliceIdx = get_SliceHeaderIndex(ctx,xS,yS);
           if (sliceIdx != ctbSliceIdx &&
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <

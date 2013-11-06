@@ -93,8 +93,8 @@ void display_image(const struct de265_image* img)
 
 int main(int argc, char** argv)
 {
-  if (argc != 2) {
-    fprintf(stderr,"usage: dec265 videofile.bin\n");
+  if (argc < 2 || argc > 3) {
+    fprintf(stderr,"usage: dec265 videofile.bin number-of-threads\n");
     fprintf(stderr,"The video file must be a raw h.265 bitstream (e.g. HM-10.0 output)\n");
     exit(5);
   }
@@ -105,9 +105,14 @@ int main(int argc, char** argv)
   de265_init();
   de265_decoder_context* ctx = de265_new_decoder();
 
-  //err = de265_start_worker_threads(ctx, NUM_THREADS);
+  if (argc>=3) {
+    int nThreads = atoi(argv[2]);
+    if (nThreads>0) {
+      err = de265_start_worker_threads(ctx, nThreads);
+    }
+  }
 
-  //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
 
   FILE* fh = fopen(argv[1], "rb");
   if (fh==NULL) {
