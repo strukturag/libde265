@@ -139,7 +139,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
       else { return DE265_ERROR_NO_STARTCODE; }
       break;
     case 2:
-      if      (*data == 1) { ctx->input_push_state=3; }
+      if      (*data == 1) { ctx->input_push_state=3; ctx->num_skipped_bytes=0; }
       else if (*data == 0) { } // *out++ = 0; }
       else { return DE265_ERROR_NO_STARTCODE; }
       break;
@@ -173,7 +173,27 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
 
     case 7:
       if      (*data==0) { *out++ = 0; }
-      else if (*data==3) { *out++ = 0; *out++ = 0; ctx->input_push_state=5; }
+      else if (*data==3) {
+        *out++ = 0; *out++ = 0; ctx->input_push_state=5;
+
+        // remember which byte we removed
+
+        int* skipped = malloc((ctx->num_skipped_bytes+1) * sizeof(int));
+
+        if (ctx->num_skipped_bytes>0) {
+          memcpy(skipped, ctx->skipped_bytes, ctx->num_skipped_bytes * sizeof(int));
+        }
+
+        if (ctx->skipped_bytes) {
+          free(ctx->skipped_bytes);
+        }
+
+        skipped[ctx->num_skipped_bytes] = (out - ctx->nal_data.data); // + ctx->num_skipped_bytes;
+
+        ctx->skipped_bytes = skipped;
+
+        ctx->num_skipped_bytes++;
+      }
       else if (*data==1) {
 
         // decode this NAL
@@ -185,6 +205,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         out = ctx->nal_data.data;
 
         ctx->input_push_state=3;
+        ctx->num_skipped_bytes=0;
 
         if (err != DE265_OK) {
           data++;
@@ -329,6 +350,13 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
+  /*
+    printf("skipped bytes:\n  ");
+    for (int i=0;i<ctx->num_skipped_bytes;i++)
+    printf("%d ",ctx->skipped_bytes[i]);
+    printf("\n");
+  */
+
   int err = DE265_OK;
 
   bitreader reader;
@@ -359,18 +387,53 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     skip_bits(&reader,1); // TODO: why?
     prepare_for_CABAC(&reader);
 
+
+    // modify entry_point_offsets
+
+    int headerLength = reader.data - data->data;
+    for (int i=0;i<ctx->num_skipped_bytes;i++)
+      {
+        ctx->skipped_bytes[i] -= headerLength;
+      }
+
+    for (int i=0;i<hdr->num_entry_point_offsets;i++) {
+      for (int k=ctx->num_skipped_bytes-1;k>=0;k--)
+        if (ctx->skipped_bytes[k] <= hdr->entry_point_offset[i]) {
+          hdr->entry_point_offset[i] -= k;
+          break;
+        }
+    }
+
+
     int nThreads = hdr->num_entry_point_offsets +1;
-    int dataStartIndex = 0;
 
-    for (int i=0;i<nThreads;i++) {
-      init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
-                         &reader.data[dataStartIndex],
-                         reader.bytes_remaining); // TODO
+    bool use_WPP = false;
 
-      dataStartIndex += 0; // TODO
+    if (!use_WPP) {
+      init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
+                         reader.data,
+                         reader.bytes_remaining);
 
-      hdr->thread_context[i].shdr = hdr;
-      hdr->thread_context[i].decctx = ctx;
+      hdr->thread_context[0].shdr = hdr;
+      hdr->thread_context[0].decctx = ctx;
+    }
+    else {
+      for (int i=0;i<nThreads;i++) {
+        int dataStartIndex;
+        if (i==0) { dataStartIndex=0; }
+        else      { dataStartIndex=hdr->entry_point_offset[i-1]; }
+
+        int dataEnd;
+        if (i==nThreads-1) dataEnd = reader.bytes_remaining;
+        else               dataEnd = hdr->entry_point_offset[i];
+
+        init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
+                           &reader.data[dataStartIndex],
+                           dataEnd-dataStartIndex);
+
+        hdr->thread_context[i].shdr = hdr;
+        hdr->thread_context[i].decctx = ctx;
+      }
     }
 
     // TODO: fixed context 0

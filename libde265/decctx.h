@@ -138,6 +138,9 @@ typedef struct decoder_context {
   rbsp_buffer nal_data;
   int         input_push_state;
 
+  int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
+  int   num_skipped_bytes;
+
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
   pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];

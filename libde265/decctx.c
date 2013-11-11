@@ -50,6 +50,9 @@ void init_decoder_context(decoder_context* ctx)
   rbsp_buffer_init(&ctx->pending_input_data);
   ctx->end_of_stream=false;
 
+  ctx->skipped_bytes = NULL;
+  ctx->num_skipped_bytes = 0;
+
   rbsp_buffer_init(&ctx->nal_data);
   ctx->input_push_state = 0;
 
@@ -145,6 +148,7 @@ de265_error allocate_info_arrays(decoder_context* ctx)
 void free_decoder_context(decoder_context* ctx)
 {
   rbsp_buffer_free(&ctx->nal_data);
+  if (ctx->skipped_bytes) free(ctx->skipped_bytes);
 
   free_ref_pic_sets(&ctx->ref_pic_sets);
 
