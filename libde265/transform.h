@@ -27,10 +27,10 @@ int table8_22(int qPi);
 
 // (8.6.1)
 void decode_quantization_parameters(decoder_context* ctx,
-                                    slice_segment_header* shdr, int xC,int yC);
+                                    thread_context* shdr, int xC,int yC);
 
 // (8.6.2)
-void scale_coefficients(decoder_context* ctx, slice_segment_header* shdr,
+void scale_coefficients(decoder_context* ctx, thread_context* shdr,
                         int xT,int yT, int nT, int cIdx);
 
 #endif

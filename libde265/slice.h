@@ -25,7 +25,7 @@
 
 
 #define MAX_ENTRY_POINTS 256
-
+#define MAX_THREAD_CONTEXTS 96  // TODO: make this dynamic
 
 #define SLICE_TYPE_B 0
 #define SLICE_TYPE_P 1
@@ -120,7 +120,26 @@ enum context_model_indices {
 };
 
 
-typedef struct {
+struct slice_segment_header;
+
+typedef struct thread_context
+{
+  int currentQPY;
+  int lastQPYinPreviousQG;
+
+  int qPYPrime, qPCbPrime, qPCrPrime;
+
+  CABAC_decoder cabac_decoder;
+
+  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model ctx_model_wpp_storage[CONTEXT_MODEL_TABLE_LENGTH];
+
+  struct decoder_context* decctx;
+  struct slice_segment_header* shdr;
+} thread_context;
+
+
+typedef struct slice_segment_header {
   int slice_index; // index through all slices in a picture
 
   char first_slice_segment_in_pic_flag;
@@ -210,16 +229,9 @@ typedef struct {
 
   // --- decoder runtime data ---
 
-  int currentQPY;
-  int lastQPYinPreviousQG;
-
-  int qPYPrime, qPCbPrime, qPCrPrime;
-
-  CABAC_decoder cabac_decoder;
-
-  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
-  context_model ctx_model_wpp_storage[CONTEXT_MODEL_TABLE_LENGTH];
+  struct thread_context thread_context[MAX_THREAD_CONTEXTS];
 } slice_segment_header;
+
 
 
 typedef struct {

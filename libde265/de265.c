@@ -358,9 +358,23 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
     skip_bits(&reader,1); // TODO: why?
     prepare_for_CABAC(&reader);
-    init_CABAC_decoder(&hdr->cabac_decoder, reader.data, reader.bytes_remaining);
 
-    if ((err=read_slice_segment_data(ctx, hdr)) != DE265_OK)
+    int nThreads = hdr->num_entry_point_offsets +1;
+    int dataStartIndex = 0;
+
+    for (int i=0;i<nThreads;i++) {
+      init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
+                         &reader.data[dataStartIndex],
+                         reader.bytes_remaining); // TODO
+
+      dataStartIndex += 0; // TODO
+
+      hdr->thread_context[i].shdr = hdr;
+      hdr->thread_context[i].decctx = ctx;
+    }
+
+    // TODO: fixed context 0
+    if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
       { return err; }
   }
   else switch (nal_hdr.nal_unit_type) {

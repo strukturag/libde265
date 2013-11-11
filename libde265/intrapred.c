@@ -443,10 +443,13 @@ void decode_intra_prediction(decoder_context* ctx,
 
 
 void decode_intra_block(decoder_context* ctx,
-                        slice_segment_header* shdr, int cIdx, int xB0,int yB0,
+                        thread_context* tctx,
+                        int cIdx, int xB0,int yB0,
                         int log2TrafoSize, int trafoDepth,
                         enum IntraPredMode intraPredMode)
 {
+  slice_segment_header* shdr = tctx->shdr;
+
   int splitFlag;
 
   if (cIdx==0) {
@@ -468,10 +471,10 @@ void decode_intra_block(decoder_context* ctx,
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
 
-    decode_intra_block(ctx,shdr,cIdx,xB0,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,shdr,cIdx,xB1,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,shdr,cIdx,xB0,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,shdr,cIdx,xB1,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
+    decode_intra_block(ctx,tctx,cIdx,xB0,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
+    decode_intra_block(ctx,tctx,cIdx,xB1,yB0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
+    decode_intra_block(ctx,tctx,cIdx,xB0,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
+    decode_intra_block(ctx,tctx,cIdx,xB1,yB1,log2TrafoSize-1,trafoDepth+1,intraPredMode);
   }
   else {
     int nT = 1<<log2TrafoSize;
@@ -482,6 +485,6 @@ void decode_intra_block(decoder_context* ctx,
 
     // (8.6.2)
 
-    scale_coefficients(ctx, shdr, xB0,yB0, nT,cIdx);
+    scale_coefficients(ctx, tctx, xB0,yB0, nT,cIdx);
   }
 }

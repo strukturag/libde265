@@ -25,7 +25,8 @@
 
 extern const int intraPredAngle_table[1+34];
 
-void decode_intra_block(decoder_context* ctx, slice_segment_header* shdr,
+void decode_intra_block(decoder_context* ctx,
+                        thread_context* tctx,
                         int cIdx, int xB0,int yB0,
                         int log2TrafoSize, int trafoDepth,
                         enum IntraPredMode intraPredMode);

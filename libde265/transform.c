@@ -35,10 +35,11 @@ int table8_22(int qPi)
 
 // (8.6.1)
 void decode_quantization_parameters(decoder_context* ctx,
-                                    slice_segment_header* shdr, int xC,int yC)
+                                    thread_context* tctx, int xC,int yC)
 {
   pic_parameter_set* pps = ctx->current_pps;
   seq_parameter_set* sps = ctx->current_sps;
+  slice_segment_header* shdr = tctx->shdr;
 
   // top left pixel position of current quantization group
   int xQG = xC - (xC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
@@ -48,7 +49,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   if ((xQG & ((1<<sps->Log2CtbSizeY)-1)) == 0 &&
       (yQG & ((1<<sps->Log2CtbSizeY)-1)) == 0) {
-    shdr->lastQPYinPreviousQG = shdr->currentQPY;
+    tctx->lastQPYinPreviousQG = tctx->currentQPY;
   }
 
   int qPY_PRED;
@@ -56,7 +57,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   bool firstQGInTile = false; // TODO
   bool firstInCTBRow = false; // TODO
   
-  int first_ctb_in_slice_RS = shdr->slice_segment_address;
+  int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
 
   int SliceStartX = (first_ctb_in_slice_RS % sps->PicWidthInCtbsY) * sps->CtbSizeY;
   int SliceStartY = (first_ctb_in_slice_RS / sps->PicWidthInCtbsY) * sps->CtbSizeY;
@@ -65,10 +66,10 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   if (firstQGInSlice || firstQGInTile ||
       (firstInCTBRow && pps->entropy_coding_sync_enabled_flag)) {
-    qPY_PRED = shdr->SliceQPY;
+    qPY_PRED = tctx->shdr->SliceQPY;
   }
   else {
-    qPY_PRED = shdr->lastQPYinPreviousQG;
+    qPY_PRED = tctx->lastQPYinPreviousQG;
   }
 
 
@@ -103,23 +104,23 @@ void decode_quantization_parameters(decoder_context* ctx,
   int QPY = ((qPY_PRED + shdr->CuQpDelta + 52+2*sps->QpBdOffset_Y) %
              (52 + sps->QpBdOffset_Y)) - sps->QpBdOffset_Y;
 
-  shdr->qPYPrime = QPY + sps->QpBdOffset_Y;
+  tctx->qPYPrime = QPY + sps->QpBdOffset_Y;
 
   int qPiCb = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cb_qp_offset + shdr->slice_cb_qp_offset);
   int qPiCr = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset);
 
   logtrace(LogTransform,"qPiCb:%d (%d %d), qPiCr:%d (%d %d)\n",
-         qPiCb, pps->pic_cb_qp_offset, shdr->slice_cb_qp_offset,
-         qPiCr, pps->pic_cr_qp_offset, shdr->slice_cr_qp_offset);
+         qPiCb, pps->pic_cb_qp_offset, tctx->slice_cb_qp_offset,
+         qPiCr, pps->pic_cr_qp_offset, tctx->slice_cr_qp_offset);
 
   int qPCb = table8_22(qPiCb);
   int qPCr = table8_22(qPiCr);
 
-  shdr->qPCbPrime = qPCb + sps->QpBdOffset_C;
-  shdr->qPCrPrime = qPCr + sps->QpBdOffset_C;
+  tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
+  tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
 
   set_QPY(ctx,xQG,yQG, QPY);
-  shdr->currentQPY = QPY;
+  tctx->currentQPY = QPY;
 
   logtrace(LogTransform,"qPY(%d,%d)= %d\n",xC,yC,QPY);
 }
@@ -310,16 +311,17 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 static const int levelScale[] = { 40,45,51,57,64,72 };
 
 // (8.6.2) and (8.6.3)
-void scale_coefficients(decoder_context* ctx, slice_segment_header* shdr,
+void scale_coefficients(decoder_context* ctx, thread_context* tctx,
                         int xT,int yT, int nT, int cIdx)
 {
   seq_parameter_set* sps = ctx->current_sps;
+  slice_segment_header* shdr = tctx->shdr;
 
   int qP;
   switch (cIdx) {
-  case 0: qP = shdr->qPYPrime;  break;
-  case 1: qP = shdr->qPCbPrime; break;
-  case 2: qP = shdr->qPCrPrime; break;
+  case 0: qP = tctx->qPYPrime;  break;
+  case 1: qP = tctx->qPCbPrime; break;
+  case 2: qP = tctx->qPCrPrime; break;
   default: qP = 0; assert(0); break; // should never happen
   }
 

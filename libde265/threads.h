@@ -65,6 +65,7 @@ struct thread_task_ctb
 {
   int ctb_x, ctb_y;
   struct decoder_context* ctx;
+  struct thread_context* tctx;
 };
 
 enum thread_task_id {
