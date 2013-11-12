@@ -140,23 +140,49 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     logtrace(LogMotion,"---MC luma %d %d---\n",xFracL,yFracL);
 
-    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      if (y==0 || y==nPbH) { logtrace(LogMotion,"----------------\n"); }
-      for (int x=-extra_left;x<nPbW+extra_right;x++) {
-        
-        int xA = Clip3(0,w-1,x + xIntOffsL);
-        int yA = Clip3(0,h-1,y + yIntOffsL);
-        
-        tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
 
-        logtrace(LogMotion,"%c%02x",(x==0 || x==nPbW) ? '|':' ',
-                 tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
+    // --- copy source block into temporary buffer (with border padding) ---
+
+    // for the most frequent case (copy without padding), use special case
+
+    if (-extra_left + xIntOffsL >= 0 &&
+        -extra_top  + yIntOffsL >= 0 &&
+        nPbW+extra_right  + xIntOffsL < w &&
+        nPbH+extra_bottom + yIntOffsL < h) {
+
+      int n = nPbW+extra_left+extra_right;
+
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* po = &tmp1buf[(y+extra_top)*nPbW_extra];
+        uint8_t* pi = &img[ -extra_left+xIntOffsL + (y+yIntOffsL)*img_stride ];
+
+        //memcpy(po,pi, n);
+
+        for (int x=n;x>0;x--) {
+          *po++ = *pi++;
+        }
       }
-      logtrace(LogMotion,"\n");
+    }
+    else {
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        if (y==0 || y==nPbH) { logtrace(LogMotion,"----------------\n"); }
+        for (int x=-extra_left;x<nPbW+extra_right;x++) {
+        
+          int xA = Clip3(0,w-1,x + xIntOffsL);
+          int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+          tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
+
+          logtrace(LogMotion,"%c%02x",(x==0 || x==nPbW) ? '|':' ',
+                   tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
+        }
+        logtrace(LogMotion,"\n");
+      }
     }
 
     // H-filters
 
+#if 0
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
 
@@ -173,6 +199,58 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         p++;
       }
     }
+#else
+    switch (xFracL) {
+    case 0:
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
+        int16_t* o = &tmp2buf[y+extra_top];
+
+        for (int x=0;x<nPbW;x++) {
+          *o = *p;
+          o += nPbH_extra;
+          p++;
+        }
+      }
+      break;
+    case 1:
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
+        int16_t* o = &tmp2buf[y+extra_top];
+
+        for (int x=0;x<nPbW;x++) {
+          *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1;
+          o += nPbH_extra;
+          p++;
+        }
+      }
+      break;
+    case 2:
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
+        int16_t* o = &tmp2buf[y+extra_top];
+
+        for (int x=0;x<nPbW;x++) {
+          *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1;
+          o += nPbH_extra;
+          p++;
+        }
+      }
+      break;
+    case 3:
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
+        int16_t* o = &tmp2buf[y+extra_top];
+
+        for (int x=0;x<nPbW;x++) {
+          *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1;
+          o += nPbH_extra;
+          p++;
+        }
+      }
+      break;
+    }
+#endif
 
 
     logtrace(LogMotion,"---H---\n");
@@ -189,6 +267,7 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     int vshift = (xFracL==0 ? shift1 : shift2);
 
+#if 0
     for (int x=0;x<nPbW;x++) {
       int16_t* p = &tmp2buf[x*nPbH_extra];
 
@@ -206,8 +285,59 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         out[x + y*out_stride] = v;
         p++;
       }
-
     }
+#else
+    switch (yFracL) {
+    case 0:
+      for (int x=0;x<nPbW;x++) {
+        int16_t* p = &tmp2buf[x*nPbH_extra];
+        int16_t* o = &out[x];
+              
+        for (int y=0;y<nPbH;y++) {
+          *o = *p;
+          o+=out_stride;
+          p++;
+        }
+      }
+      break;
+    case 1:
+      for (int x=0;x<nPbW;x++) {
+        int16_t* p = &tmp2buf[x*nPbH_extra];
+        int16_t* o = &out[x];
+              
+        for (int y=0;y<nPbH;y++) {
+          *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
+          o+=out_stride;
+          p++;
+        }
+      }
+      break;
+    case 2:
+      for (int x=0;x<nPbW;x++) {
+        int16_t* p = &tmp2buf[x*nPbH_extra];
+        int16_t* o = &out[x];
+              
+        for (int y=0;y<nPbH;y++) {
+          *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
+          o+=out_stride;
+          p++;
+        }
+      }
+      break;
+    case 3:
+      for (int x=0;x<nPbW;x++) {
+        int16_t* p = &tmp2buf[x*nPbH_extra];
+        int16_t* o = &out[x];
+              
+        for (int y=0;y<nPbH;y++) {
+          *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
+          o+=out_stride;
+          p++;
+        }
+      }
+      break;
+    }
+#endif
 
     logtrace(LogMotion,"---V---\n");
     for (int y=0;y<nPbH;y++) {
@@ -424,13 +554,13 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
 
         /*
-        logtrace(LogMotion,"---output cIdx=1---\n");
-        for (int y=0;y<nPbH/2;y++) {
+          logtrace(LogMotion,"---output cIdx=1---\n");
+          for (int y=0;y<nPbH/2;y++) {
           for (int x=0;x<nPbW/2;x++) {
-            logtrace(LogMotion,"%02x ",ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride]);
+          logtrace(LogMotion,"%02x ",ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride]);
           }
           logtrace(LogMotion,"\n");
-        }
+          }
         */
       }
       else {
@@ -561,21 +691,21 @@ bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
 
 
 /*
-     +--+                +--+--+
-     |B2|                |B1|B0|
-     +--+----------------+--+--+
-        |                   |
-        |                   |
-        |                   |
-        |                   |
-        |                   |
-        |                   |
-        |                   |
-     +--+                   |
-     |A1|                   |
-     +--+-------------------+
-     |A0|
-     +--+
+  +--+                +--+--+
+  |B2|                |B1|B0|
+  +--+----------------+--+--+
+  |                   |
+  |                   |
+  |                   |
+  |                   |
+  |                   |
+  |                   |
+  |                   |
+  +--+                   |
+  |A1|                   |
+  +--+-------------------+
+  |A0|
+  +--+
 */
 
 
@@ -852,7 +982,7 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
     newCand->mv[1].y = 0;
 
     (*inout_numCurrMergeCand)++;
-
+      
     // 2.
 
     zeroIdx++;
@@ -945,17 +1075,17 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
             }
           }
 
-          if (AllDiffPicOrderCntLEZero) {
-            mvCol = mvi->mv[X];
-            refIdxCol = mvi->refIdx[X];
-            listCol = X;
-          }
-          else {
-            int N = shdr->collocated_from_l0_flag;
-            mvCol = mvi->mv[N];
-            refIdxCol = mvi->refIdx[N];
-            listCol = N;
-          }
+        if (AllDiffPicOrderCntLEZero) {
+          mvCol = mvi->mv[X];
+          refIdxCol = mvi->refIdx[X];
+          listCol = X;
+        }
+        else {
+          int N = shdr->collocated_from_l0_flag;
+          mvCol = mvi->mv[N];
+          refIdxCol = mvi->refIdx[N];
+          listCol = N;
+        }
       }
     }
 
@@ -1055,7 +1185,7 @@ void derive_temporal_luma_vector_prediction(const decoder_context* ctx,
 static int table_8_19[2][12] = {
   { 0,1,0,2,1,2,0,3,1,3,2,3 },
   { 1,0,2,0,2,1,3,0,3,1,3,2 }
-};
+  };
 
 // 8.5.3.1.3
 void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
@@ -1483,7 +1613,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
   if (availableFlagLXN[1] &&
       (!availableFlagLXN[0] || // in case A in not available, but mvLXA initialized to same as mvLXB
-        (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y)))
+       (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y)))
     {
       mvpList[numMVPCandLX++] = mvLXN[1];
     }
