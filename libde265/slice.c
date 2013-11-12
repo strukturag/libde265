@@ -287,6 +287,10 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
         {
           shdr->entry_point_offset[i] = get_bits(br,shdr->offset_len)+1;
         }
+
+        if (i>0) {
+          shdr->entry_point_offset[i] += shdr->entry_point_offset[i-1];
+        }
       }
     }
   }
@@ -1423,6 +1427,7 @@ int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
 
   int end_of_slice_segment_flag;
+  int cnt=0;
 
   do {
     // WPP: store current state of CABAC after second CTB in row
@@ -1440,6 +1445,11 @@ int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     }
     else if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
              (shdr->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
+
+      int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
+      //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
+      assert(offset == shdr->entry_point_offset[cnt]);
+      cnt++;
 
       // WPP: init of CABAC from top right block
 

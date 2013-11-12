@@ -188,7 +188,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
           free(ctx->skipped_bytes);
         }
 
-        skipped[ctx->num_skipped_bytes] = (out - ctx->nal_data.data); // + ctx->num_skipped_bytes;
+        skipped[ctx->num_skipped_bytes] = (out - ctx->nal_data.data) + ctx->num_skipped_bytes;
 
         ctx->skipped_bytes = skipped;
 
@@ -351,10 +351,12 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   /*
+  if (ctx->num_skipped_bytes>0) {
     printf("skipped bytes:\n  ");
     for (int i=0;i<ctx->num_skipped_bytes;i++)
     printf("%d ",ctx->skipped_bytes[i]);
     printf("\n");
+  }
   */
 
   int err = DE265_OK;
@@ -399,7 +401,7 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     for (int i=0;i<hdr->num_entry_point_offsets;i++) {
       for (int k=ctx->num_skipped_bytes-1;k>=0;k--)
         if (ctx->skipped_bytes[k] <= hdr->entry_point_offset[i]) {
-          hdr->entry_point_offset[i] -= k;
+          hdr->entry_point_offset[i] -= k+1;
           break;
         }
     }
