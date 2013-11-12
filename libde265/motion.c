@@ -579,13 +579,19 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       const int shift2  = 15-8; // TODO: real bit depth
       const int offset2 = 1<<(shift2-1);
 
-      for (int y=0;y<nPbH;y++)
+      for (int y=0;y<nPbH;y++) {
+        int16_t* in0 = &predSamplesL[0][y*nCS];
+        int16_t* in1 = &predSamplesL[1][y*nCS];
+        uint8_t* out = &ctx->img->y[xP + (yP+y)*ctx->img->stride];
+
         for (int x=0;x<nPbW;x++) {
           // TODO: clip to real bit depth
-          ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
-            Clip1_8bit((predSamplesL[0][x+y*nCS] + predSamplesL[1][x+y*nCS] + offset2)>>shift2);
+          *out = Clip1_8bit((*in0 + *in1 + offset2)>>shift2);
+          out++; in0++; in1++;
         }
+      }
 
+#if 0
       for (int y=0;y<nPbH/2;y++)
         for (int x=0;x<nPbW/2;x++) {
           // TODO: clip to real bit depth
@@ -597,6 +603,23 @@ void generate_inter_prediction_samples(decoder_context* ctx,
             Clip1_8bit((predSamplesC[1][0][x+y*nCS] +
                         predSamplesC[1][1][x+y*nCS] + offset2)>>shift2);
         }
+#else
+      for (int y=0;y<nPbH/2;y++) {
+        int16_t* in00 = &predSamplesC[0][0][y*nCS];
+        int16_t* in01 = &predSamplesC[0][1][y*nCS];
+        int16_t* in10 = &predSamplesC[1][0][y*nCS];
+        int16_t* in11 = &predSamplesC[1][1][y*nCS];
+        uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+y)*ctx->img->chroma_stride];
+        uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+y)*ctx->img->chroma_stride];
+
+        for (int x=0;x<nPbW/2;x++) {
+          *out0 = Clip1_8bit((*in00 + *in01 + offset2)>>shift2);
+          *out1 = Clip1_8bit((*in10 + *in11 + offset2)>>shift2);
+
+          in00++; in01++; in10++; in11++; out0++; out1++;
+        }
+      }
+#endif
     }
     else if (vi->lum.predFlag[0]==1 || vi->lum.predFlag[1]==1) {
       int l = vi->lum.predFlag[0] ? 0 : 1;
