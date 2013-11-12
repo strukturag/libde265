@@ -55,7 +55,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   int qPY_PRED;
   bool firstQGInSlice;
   bool firstQGInTile = false; // TODO
-  bool firstInCTBRow = false; // TODO
+  bool firstInCTBRow = (xC==0); // TODO
   
   int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
 
@@ -110,8 +110,8 @@ void decode_quantization_parameters(decoder_context* ctx,
   int qPiCr = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset);
 
   logtrace(LogTransform,"qPiCb:%d (%d %d), qPiCr:%d (%d %d)\n",
-         qPiCb, pps->pic_cb_qp_offset, tctx->slice_cb_qp_offset,
-         qPiCr, pps->pic_cr_qp_offset, tctx->slice_cr_qp_offset);
+           qPiCb, pps->pic_cb_qp_offset, shdr->slice_cb_qp_offset,
+           qPiCr, pps->pic_cr_qp_offset, shdr->slice_cr_qp_offset);
 
   int qPCb = table8_22(qPiCb);
   int qPCr = table8_22(qPiCr);

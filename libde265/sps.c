@@ -196,6 +196,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
   sps->strong_intra_smoothing_enable_flag = get_bits(br,1);
   sps->vui_parameters_present_flag = get_bits(br,1);
 
+#if 0
   if (sps->vui_parameters_present_flag) {
     assert(false);
     /*
@@ -219,7 +220,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
   }
 
   check_rbsp_trailing_bits(br);
-
+#endif
 
   // --- compute derived values ---
 

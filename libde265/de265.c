@@ -407,9 +407,9 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     }
 
 
-    int nThreads = hdr->num_entry_point_offsets +1;
+    int nRows = hdr->num_entry_point_offsets +1;
 
-    bool use_WPP = false;
+    bool use_WPP = (ctx->num_worker_threads > 0);
 
     if (!use_WPP) {
       init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
@@ -418,16 +418,21 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       hdr->thread_context[0].shdr = hdr;
       hdr->thread_context[0].decctx = ctx;
+
+
+      // fixed context 0
+      if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
+        { return err; }
     }
     else {
-      for (int i=0;i<nThreads;i++) {
+      for (int i=0;i<nRows;i++) {
         int dataStartIndex;
         if (i==0) { dataStartIndex=0; }
         else      { dataStartIndex=hdr->entry_point_offset[i-1]; }
 
         int dataEnd;
-        if (i==nThreads-1) dataEnd = reader.bytes_remaining;
-        else               dataEnd = hdr->entry_point_offset[i];
+        if (i==nRows-1) dataEnd = reader.bytes_remaining;
+        else            dataEnd = hdr->entry_point_offset[i];
 
         init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
                            &reader.data[dataStartIndex],
@@ -436,11 +441,21 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         hdr->thread_context[i].shdr = hdr;
         hdr->thread_context[i].decctx = ctx;
       }
-    }
 
-    // TODO: fixed context 0
-    if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
-      { return err; }
+      // TODO: hard-coded thread context
+
+      add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0);
+
+      /*
+      for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
+        for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
+          {
+            add_CTB_decode_task_syntax(&hdr->thread_context[y], x,y);
+          }
+      */
+
+      flush_thread_pool(&ctx->thread_pool);
+    }
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:

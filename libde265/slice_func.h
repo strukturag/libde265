@@ -31,4 +31,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 
 int  read_slice_segment_data(decoder_context*, thread_context* tctx);
 
+void add_CTB_decode_task_syntax(struct thread_context* tctx, int ctbx,int ctby,  int sx,int sy);
+
+
 #endif

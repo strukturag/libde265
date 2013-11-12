@@ -83,6 +83,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
     }
 
+
   for (int x=0 ; x<nT*2 ; x++)
     {
       bool availableN;

@@ -95,6 +95,24 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
   ctx->next_free_slice_index = 0;
 }
 
+void prepare_new_picture(decoder_context* ctx)
+{
+  // initialize threading tasks (TODO: move this to picture initialization)
+
+  int w = ctx->current_sps->PicWidthInCtbsY;
+  int h = ctx->current_sps->PicHeightInCtbsY;
+
+  for (int y=0;y<h;y++)
+    for (int x=0;x<w;x++)
+      {
+        int cnt=2;
+        if (y==0 || x==0) cnt--;
+        set_CTB_deblocking_cnt(ctx,x,y, cnt);
+      }
+
+  ctx->thread_pool.tasks_pending = w*h;
+}
+
 
 void free_info_arrays(decoder_context* ctx)
 {
@@ -712,6 +730,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
                       0 /* border */);
 
     reset_decoder_context_for_new_picture(ctx);
+    prepare_new_picture(ctx);
 
 
     if (isIRAP(ctx->nal_unit_type)) {

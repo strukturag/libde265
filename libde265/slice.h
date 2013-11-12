@@ -124,6 +124,12 @@ struct slice_segment_header;
 
 typedef struct thread_context
 {
+  int SliceAddrRS; // current value, this is also set into the CTB-info array in the decoder context
+
+  int CtbAddrInRS;
+  int CtbAddrInTS;
+
+
   int currentQPY;
   int lastQPYinPreviousQG;
 
@@ -208,10 +214,6 @@ typedef struct slice_segment_header {
 
   // --- derived data ---
 
-  int SliceAddrRS; // current value, this is also set into the CTB-info array in the decoder context
-
-  int CtbAddrInRS;
-  int CtbAddrInTS;
   int SliceQPY;
 
   int initType;
@@ -243,5 +245,6 @@ typedef struct {
   uint8_t sao_band_position[3];
   int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
 } sao_info;
+
 
 #endif

@@ -66,6 +66,9 @@ struct thread_task_ctb
   int ctb_x, ctb_y;
   struct decoder_context* ctx;
   struct thread_context* tctx;
+  struct slice_segment_header* shdr;
+
+  enum { INIT_RESET, INIT_COPY, INIT_NONE } CABAC_init;
 };
 
 enum thread_task_id {

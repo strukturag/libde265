@@ -157,8 +157,6 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     // H-filters
 
-    logtrace(LogMotion,"---H---\n");
-
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
 
@@ -173,11 +171,19 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         
         tmp2buf[y+extra_top + x*nPbH_extra] = v;
         p++;
+      }
+    }
 
+
+    logtrace(LogMotion,"---H---\n");
+
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      for (int x=0;x<nPbW;x++) {
         logtrace(LogMotion,"%04x ",tmp2buf[y+extra_top + x*nPbH_extra]);
       }
       logtrace(LogMotion,"\n");
     }
+
 
     // V-filters
 
