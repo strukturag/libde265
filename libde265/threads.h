@@ -121,6 +121,8 @@ void        flush_thread_pool(thread_pool* pool);  // process pool until no more
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
 void   add_task(thread_pool* pool, const thread_task* task);
+void   decrement_tasks_pending(thread_pool* pool);
+
 //bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
 
 #endif

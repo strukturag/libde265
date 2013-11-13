@@ -350,14 +350,14 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-
+  /*
   if (ctx->num_skipped_bytes>0) {
     printf("skipped bytes:\n  ");
     for (int i=0;i<ctx->num_skipped_bytes;i++)
     printf("%d ",ctx->skipped_bytes[i]);
     printf("\n");
   }
-
+  */
 
   int err = DE265_OK;
 
@@ -444,7 +444,7 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       // TODO: hard-coded thread context
 
-      add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0);
+      add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
       /*
       for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)

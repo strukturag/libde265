@@ -154,7 +154,7 @@ static void* worker_thread(void* pool_ptr)
     */
 
     //pool->num_threads_working--;
-    pool->tasks_pending--;
+    int pending = __sync_sub_and_fetch(&pool->tasks_pending, 1);
 
     /*
       printf("%03d [%d]: ",pool->num_tasks,pool->num_threads_working);
@@ -172,7 +172,7 @@ static void* worker_thread(void* pool_ptr)
     //printf("finish %d;%d\n",task.data.task_ctb.ctb_x, task.data.task_ctb.ctb_y);
     //printblks(pool);
 
-    if (pool->tasks_pending==0) {
+    if (pending==0) {
       de265_cond_broadcast(&pool->finished_cond);
     }
 
@@ -221,7 +221,7 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
 void flush_thread_pool(thread_pool* pool)
 {
   de265_mutex_lock(&pool->mutex);
-  if (pool->tasks_pending>0) {
+  while (pool->tasks_pending>0) {
     de265_cond_wait(&pool->finished_cond, &pool->mutex);
   }
   de265_mutex_unlock(&pool->mutex);
@@ -268,6 +268,16 @@ void   add_task(thread_pool* pool, const thread_task* task)
 }
 
 
+void   decrement_tasks_pending(thread_pool* pool)
+{
+  //de265_mutex_lock(&pool->mutex);
+  //pool->tasks_pending--;
+  //de265_mutex_unlock(&pool->mutex);
+
+  __sync_sub_and_fetch(&pool->tasks_pending, 1);
+}
+
+
 /*
 bool deblock_task(thread_pool* pool, int task_id)
 {
@@ -299,3 +309,5 @@ bool deblock_task(thread_pool* pool, int task_id)
   return found;
 }
 */
+
+

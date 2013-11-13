@@ -1444,7 +1444,7 @@ int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
              (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
 
       int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
-      printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
+      //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
       assert(offset == shdr->entry_point_offset[cnt]);
       cnt++;
 
@@ -1819,8 +1819,6 @@ void thread_decode_CTB_syntax(void* d)
 
   //printf("PROCESS %d %d\n",ctbx,ctby);
 
-  //LOCK;
-
 
 
   // WPP: store current state of CABAC after second CTB in row
@@ -1878,11 +1876,12 @@ void thread_decode_CTB_syntax(void* d)
   //printf("END WORK %d %d\n",ctbx,ctby);
 
 
-  //UNLOCK;
+  bool continueWithNextCTB = false;
+  thread_task nextCTBTask;
 
-#if 1
   if (ctbx+1 < sps->PicWidthInCtbsY) {
-    add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby);
+    continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, NULL);
+    //continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
   }
 
   if (ctby+1 < sps->PicHeightInCtbsY) {
@@ -1893,20 +1892,25 @@ void thread_decode_CTB_syntax(void* d)
       // NOP
     }
     else if (ctbx+1 == sps->PicWidthInCtbsY) {
-      add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby);
-      add_CTB_decode_task_syntax(tctx_y1,ctbx  ,ctby+1  ,ctbx,ctby);
+      add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby, NULL);
+      add_CTB_decode_task_syntax(tctx_y1,ctbx  ,ctby+1  ,ctbx,ctby, NULL);
     }
     else {
-      add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby);
+      add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby, NULL);
     }
   }
-#endif
 
   //printf("FINISHED %d %d\n",ctbx,ctby);
+
+
+  if (continueWithNextCTB) {
+    decrement_tasks_pending(&ctx->thread_pool);
+    thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
+  }
 }
 
 
-void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int sx,int sy)
+bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int sx,int sy,  thread_task* nextCTBTask)
 {
   decoder_context* ctx = tctx->decctx;
   seq_parameter_set* sps = ctx->current_sps;
@@ -1923,26 +1927,40 @@ void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int 
 
   if (cnt==0) {
     thread_task task;
-    task.task_id = task_id;
-    task.task_cmd = THREAD_TASK_SYNTAX_DECODE_CTB;
-    task.work_routine = thread_decode_CTB_syntax;
-    task.data.task_ctb.ctb_x = ctbx;
-    task.data.task_ctb.ctb_y = ctby;
-    task.data.task_ctb.ctx   = ctx;
-    task.data.task_ctb.tctx  = tctx;
-    task.data.task_ctb.shdr  = tctx->shdr;
+    thread_task* taskp = &task;
+
+    if (nextCTBTask != NULL) {
+      taskp = nextCTBTask;
+    }
+
+    taskp->task_id = task_id;
+    taskp->task_cmd = THREAD_TASK_SYNTAX_DECODE_CTB;
+    taskp->work_routine = thread_decode_CTB_syntax;
+    taskp->data.task_ctb.ctb_x = ctbx;
+    taskp->data.task_ctb.ctb_y = ctby;
+    taskp->data.task_ctb.ctx   = ctx;
+    taskp->data.task_ctb.tctx  = tctx;
+    taskp->data.task_ctb.shdr  = tctx->shdr;
 
     if (ctbx==0 && ctby==0) {
-      task.data.task_ctb.CABAC_init = INIT_RESET;
+      taskp->data.task_ctb.CABAC_init = INIT_RESET;
     } else if (ctbx==0) {
-      task.data.task_ctb.CABAC_init = INIT_COPY;
+      taskp->data.task_ctb.CABAC_init = INIT_COPY;
     }
     else {
-      task.data.task_ctb.CABAC_init = INIT_NONE;
+      taskp->data.task_ctb.CABAC_init = INIT_NONE;
     }
 
-    add_task(&ctx->thread_pool, &task);
+
+    if (nextCTBTask != NULL) {
+      return true;
+    }
+    else {
+      add_task(&ctx->thread_pool, &task);
+    }
   }
+
+  return false;
 }
 
 
