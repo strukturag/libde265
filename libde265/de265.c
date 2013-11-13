@@ -350,14 +350,14 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  /*
+
   if (ctx->num_skipped_bytes>0) {
     printf("skipped bytes:\n  ");
     for (int i=0;i<ctx->num_skipped_bytes;i++)
     printf("%d ",ctx->skipped_bytes[i]);
     printf("\n");
   }
-  */
+
 
   int err = DE265_OK;
 

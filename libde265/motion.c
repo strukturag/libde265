@@ -77,6 +77,8 @@ int FullPelInsideCnt,FullPelOutsideCnt;
 int NullCnt;
 
 int BipredCnt;
+int FullpelBipredCnt;
+int FullpelPredCnt;
 int TotalPredCnt;  // number of prediction blocks
 
 void showMotionProfile()
@@ -99,6 +101,8 @@ void showMotionProfile()
   fprintf(stderr,"fullpel-inside: %d,  fullpel-outside: %d\n", FullPelInsideCnt,FullPelOutsideCnt);
   fprintf(stderr,"null-vectors: %d\n", NullCnt);
   fprintf(stderr,"bi-pred: %d (%4.1f %%)\n", BipredCnt, BipredCnt*100.0/TotalPredCnt);
+  fprintf(stderr,"full-pel bi-pred: %d (%4.1f %%)\n", FullpelBipredCnt, FullpelBipredCnt*100.0/TotalPredCnt);
+  fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
 }
 
 void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
@@ -620,6 +624,12 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   if (shdr->slice_type == SLICE_TYPE_P) {
     if (ctx->current_pps->weighted_pred_flag==0) {
       if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==0) {
+        if ((vi->lum.mv[0].x & 3) == 0 &&
+            (vi->lum.mv[0].y & 3) == 0)
+          {
+            FullpelPredCnt++;
+          }
+
         for (int y=0;y<nPbH;y++)
           for (int x=0;x<nPbW;x++) {
             // TODO: clip to real bit depth
@@ -666,6 +676,14 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
       BipredCnt++;
 
+      if ((vi->lum.mv[0].x & 3) == 0 &&
+          (vi->lum.mv[0].y & 3) == 0 &&
+          (vi->lum.mv[1].x & 3) == 0 &&
+          (vi->lum.mv[1].y & 3) == 0)
+        {
+          FullpelBipredCnt++;
+        }
+
       for (int y=0;y<nPbH;y++) {
         int16_t* in0 = &predSamplesL[0][y*nCS];
         int16_t* in1 = &predSamplesL[1][y*nCS];
@@ -710,6 +728,13 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
     else if (vi->lum.predFlag[0]==1 || vi->lum.predFlag[1]==1) {
       int l = vi->lum.predFlag[0] ? 0 : 1;
+
+      if ((vi->lum.mv[l].x & 3) == 0 &&
+          (vi->lum.mv[l].y & 3) == 0)
+        {
+          FullpelPredCnt++;
+        }
+
 
       for (int y=0;y<nPbH;y++)
         for (int x=0;x<nPbW;x++) {

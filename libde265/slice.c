@@ -1444,7 +1444,7 @@ int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
              (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
 
       int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
-      //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
+      printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
       assert(offset == shdr->entry_point_offset[cnt]);
       cnt++;
 
