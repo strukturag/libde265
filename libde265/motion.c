@@ -69,6 +69,38 @@ void reset_pred_vector(PredVectorInfo* pvec)
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
+int FracCnt[4][4];
+int SizeCnt[64][64];
+int TotalCnt;
+int InsideCnt,OutsideCnt;
+int FullPelInsideCnt,FullPelOutsideCnt;
+int NullCnt;
+
+int BipredCnt;
+int TotalPredCnt;  // number of prediction blocks
+
+void showMotionProfile()
+{
+  fprintf(stderr,"fractional pel positions:\n");
+  for (int y=0;y<4;y++)
+    for (int x=0;x<4;x++)
+      fprintf(stderr,"%d %d  %d\n",x,y,FracCnt[x][y]);
+
+  fprintf(stderr,"block sizes:\n");
+  for (int y=0;y<64;y++)
+    for (int x=0;x<64;x++)
+      if (SizeCnt[x][y]) {
+        fprintf(stderr,"%d %d  %d\n",x+1,y+1,SizeCnt[x][y]);
+      }
+
+
+  fprintf(stderr,"total cnt: %d\n", TotalCnt);
+  fprintf(stderr,"inside: %d,  outside: %d\n", InsideCnt,OutsideCnt);
+  fprintf(stderr,"fullpel-inside: %d,  fullpel-outside: %d\n", FullPelInsideCnt,FullPelOutsideCnt);
+  fprintf(stderr,"null-vectors: %d\n", NullCnt);
+  fprintf(stderr,"bi-pred: %d (%4.1f %%)\n", BipredCnt, BipredCnt*100.0/TotalPredCnt);
+}
+
 void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
@@ -81,6 +113,11 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
   int xIntOffsL = xP + (mv_x>>2);
   int yIntOffsL = yP + (mv_y>>2);
 
+  FracCnt[xFracL][yFracL]++;
+  SizeCnt[nPbW-1][nPbH-1]++;
+  TotalCnt++;
+  if (mv_x==0 && mv_y==0) { NullCnt++; }
+
   // luma sample interpolation process (8.5.3.2.2.1)
 
   const int shift1 = sps->BitDepth_Y-8;
@@ -91,14 +128,40 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
   int h = sps->pic_height_in_luma_samples;
 
   if (xFracL==0 && yFracL==0) {
-    for (int y=0;y<nPbH;y++)
-      for (int x=0;x<nPbW;x++) {
-        
-        int xA = Clip3(0,w-1,x + xIntOffsL);
-        int yA = Clip3(0,h-1,y + yIntOffsL);
-        
-        out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
+    if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
+        nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
+      FullPelInsideCnt++;
+      InsideCnt++;
+    }
+    else {
+      FullPelOutsideCnt++;
+      OutsideCnt++;
+    }
+
+    if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
+        nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
+      for (int y=0;y<nPbH;y++) {
+        int16_t* o = &out[y*out_stride];
+        uint8_t* i = &img[xIntOffsL+(y+yIntOffsL)*img_stride];
+
+        for (int x=0;x<nPbW;x++) {
+
+          *o = *i << shift3;
+          o++;
+          i++;
+        }
       }
+    }
+    else {
+      for (int y=0;y<nPbH;y++)
+        for (int x=0;x<nPbW;x++) {
+        
+          int xA = Clip3(0,w-1,x + xIntOffsL);
+          int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+          out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
+        }
+    }
 
 #ifdef DE265_LOG_TRACE
     logtrace(LogMotion,"---MC luma %d %d = direct---\n",xFracL,yFracL);
@@ -150,6 +213,8 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
         nPbW+extra_right  + xIntOffsL < w &&
         nPbH+extra_bottom + yIntOffsL < h) {
 
+      InsideCnt++;
+
       int n = nPbW+extra_left+extra_right;
 
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
@@ -164,6 +229,8 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
     }
     else {
+      OutsideCnt++;
+
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
         if (y==0 || y==nPbH) { logtrace(LogMotion,"----------------\n"); }
         for (int x=-extra_left;x<nPbW+extra_right;x++) {
@@ -375,13 +442,29 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
 
   if (xFracC == 0 && yFracC == 0) {
-    for (int y=0;y<nPbHC;y++)
-      for (int x=0;x<nPbWC;x++) {
+    if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
+        yIntOffsC>=0 && nPbHC+yIntOffsC<=hC) {
+      for (int y=0;y<nPbHC;y++) {
+        int16_t* o = &out[y*out_stride];
+        uint8_t* i = &img[xIntOffsC + (y+yIntOffsC)*img_stride];
 
-        int xB = Clip3(0,wC-1,x + xIntOffsC);
-        int yB = Clip3(0,hC-1,y + yIntOffsC);
+        for (int x=0;x<nPbWC;x++) {
+          *o = *i << shift3;
+          o++;
+          i++;
+        }
+      }
+    }
+    else
+      {
+        for (int y=0;y<nPbHC;y++)
+          for (int x=0;x<nPbWC;x++) {
 
-        out[y*out_stride+x] = img[ xB + yB*img_stride ] << shift3;
+            int xB = Clip3(0,wC-1,x + xIntOffsC);
+            int yB = Clip3(0,hC-1,y + yIntOffsC);
+
+            out[y*out_stride+x] = img[ xB + yB*img_stride ] << shift3;
+          }
       }
   }
   else {
@@ -492,6 +575,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 {
   const seq_parameter_set* sps = ctx->current_sps;
 
+  TotalPredCnt++;
+
   int16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
   int16_t predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
 
@@ -578,6 +663,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==1) {
       const int shift2  = 15-8; // TODO: real bit depth
       const int offset2 = 1<<(shift2-1);
+
+      BipredCnt++;
 
       for (int y=0;y<nPbH;y++) {
         int16_t* in0 = &predSamplesL[0][y*nCS];

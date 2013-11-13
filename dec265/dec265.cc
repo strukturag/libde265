@@ -43,6 +43,10 @@ extern "C" {
 #include "libde265/threads.h"
 }
 
+extern "C" {
+void showMotionProfile();
+}
+
 
 #if HAVE_VIDEOGFX
 void display_image(const struct de265_image* img)
@@ -167,6 +171,8 @@ int main(int argc, char** argv)
   }
 
   fprintf(stderr,"nFrames decoded: %d\n",framecnt);
+
+  showMotionProfile();
 
   return err==DE265_OK ? 0 : 10;
 }
