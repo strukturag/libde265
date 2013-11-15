@@ -193,6 +193,7 @@ void process_sps(decoder_context* ctx, seq_parameter_set* sps)
 
 void process_pps(decoder_context* ctx, pic_parameter_set* pps)
 {
+  free_pps(&ctx->pps[ (int)pps->pic_parameter_set_id ]);
   memcpy(&ctx->pps[ (int)pps->pic_parameter_set_id ], pps, sizeof(pic_parameter_set));
 }
 
