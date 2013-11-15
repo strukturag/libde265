@@ -1,3 +1,5 @@
+# stats available at
+# https://travis-ci.org/strukturag/libde265/
 language: c
 compiler:
   - clang
