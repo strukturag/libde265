@@ -2051,7 +2051,8 @@ int check_CTB_available(decoder_context* ctx,
 
 int residual_coding(decoder_context* ctx,
                     thread_context* tctx,
-                    int x0, int y0,
+                    int x0, int y0,  // position of TU in frame
+                    int xL, int yL,  // position of TU in local CU
                     int log2TrafoSize,
                     int cIdx)
 {
@@ -2423,7 +2424,7 @@ int residual_coding(decoder_context* ctx,
       int subY = ScanOrderPos[n].y;
 
       logtrace(LogSlice,"read coefficient %d (%d,%d) [full blk scan pos: %d]\n",n,xC,yC,
-             (yC+subY*4)*4+(xC+subX*4));
+               (yC+subY*4)*4+(xC+subX*4));
 
       if (significant_coeff_flag[subY][subX]) {
         int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
@@ -2484,6 +2485,8 @@ int residual_coding(decoder_context* ctx,
   if (cIdx>0) { xB/=2; yB/=2; }
 
   logtrace(LogSlice,"coefficients [cIdx=%d,at %d,%d] ----------------------------------------\n",cIdx,xB,yB);
+
+
   for (int y=0;y<(1<<log2TrafoSize);y++) {
     logtrace(LogSlice,"  ");
     for (int x=0;x<(1<<log2TrafoSize);x++) {
@@ -2492,18 +2495,44 @@ int residual_coding(decoder_context* ctx,
     logtrace(LogSlice,"*\n");
   }
 
-  int16_t* coeff;
-  int      coeffStride;
-  get_coeff_plane(ctx,cIdx, &coeff,&coeffStride);
 
-  if ((1<<log2TrafoSize)+yB > ctx->img->height) {
-    return DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS;
+  if (0) {
+    int16_t* coeff;
+    int      coeffStride;
+    get_coeff_plane(ctx,cIdx, &coeff,&coeffStride);
+
+    if ((1<<log2TrafoSize)+yB > ctx->img->height) {
+      return DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS;
+    }
+
+    for (int y=0;y<(1<<log2TrafoSize);y++)
+      for (int x=0;x<(1<<log2TrafoSize);x++) {
+        coeff[x+xB+(y+yB)*coeffStride] = TransCoeffLevel[x][y];
+      }
   }
 
-  for (int y=0;y<(1<<log2TrafoSize);y++)
+
+  if (cIdx>0) { xL/=2; yL/=2; }
+  int coeffStride=64;
+
+  for (int y=0;y<(1<<log2TrafoSize);y++) {
     for (int x=0;x<(1<<log2TrafoSize);x++) {
-      coeff[x+xB+(y+yB)*coeffStride] = TransCoeffLevel[x][y];
+      tctx->coeff[cIdx][x+xL+(y+yL)*coeffStride] = TransCoeffLevel[x][y];
+      //printf("%d ",TransCoeffLevel[x][y]);
     }
+    //printf("\n");
+  }
+
+
+  /*
+    printf("TMP array:\n");
+    for (int y=0;y< 64;y++) {
+    for (int x=0;x< 64;x++) {
+    printf("%d ", tctx->coeff[0][y*64+x]);
+    }
+    printf("\n");
+    }
+  */
 
   return DE265_OK;
 }
@@ -2511,8 +2540,9 @@ int residual_coding(decoder_context* ctx,
 
 int read_transform_unit(decoder_context* ctx,
                         thread_context* tctx,
-                        int x0, int y0,
-                        int xBase, int yBase,
+                        int x0, int y0,        // position of TU in frame
+                        int xBase, int yBase,  // position of parent TU in frame
+                        int xCUBase,int yCUBase,  // position of CU in frame
                         int log2TrafoSize,
                         int trafoDepth,
                         int blkIdx,
@@ -2542,27 +2572,33 @@ int read_transform_unit(decoder_context* ctx,
         shdr->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
       }
 
+      // position of TU in local CU
+      int xL = x0 - xCUBase;
+      int yL = y0 - yCUBase;
+
       int err;
       if (cbf_luma) {
-        if ((err=residual_coding(ctx,tctx,x0,y0,log2TrafoSize,0)) != DE265_OK) return err;
+        if ((err=residual_coding(ctx,tctx,x0,y0, xL,yL,log2TrafoSize,0)) != DE265_OK) return err;
       }
 
       if (log2TrafoSize>2) {
         if (cbf_cb) {
-          if ((err=residual_coding(ctx,tctx,x0,y0,log2TrafoSize-1,1)) != DE265_OK) return err;
+          if ((err=residual_coding(ctx,tctx,x0,y0,xL,yL,log2TrafoSize-1,1)) != DE265_OK) return err;
         }
 
         if (cbf_cr) {
-          if ((err=residual_coding(ctx,tctx,x0,y0,log2TrafoSize-1,2)) != DE265_OK) return err;
+          if ((err=residual_coding(ctx,tctx,x0,y0,xL,yL,log2TrafoSize-1,2)) != DE265_OK) return err;
         }
       }
       else if (blkIdx==3) {
         if (cbf_cb) {
-          if ((err=residual_coding(ctx,tctx,xBase,yBase,log2TrafoSize,1)) != DE265_OK) return err;
+          if ((err=residual_coding(ctx,tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
+                                   log2TrafoSize,1)) != DE265_OK) return err;
         }
 
         if (cbf_cr) {
-          if ((err=residual_coding(ctx,tctx,xBase,yBase,log2TrafoSize,2)) != DE265_OK) return err;
+          if ((err=residual_coding(ctx,tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
+                                   log2TrafoSize,2)) != DE265_OK) return err;
         }
       }
     }
@@ -2573,8 +2609,9 @@ int read_transform_unit(decoder_context* ctx,
 
 void read_transform_tree(decoder_context* ctx,
                          thread_context* tctx,
-                         int x0, int y0,
-                         int xBase, int yBase,
+                         int x0, int y0,        // position of TU in frame
+                         int xBase, int yBase,  // position of parent TU in frame
+                         int xCUBase, int yCUBase, // position of CU in frame
                          int log2TrafoSize,
                          int trafoDepth,
                          int blkIdx,
@@ -2662,13 +2699,13 @@ void read_transform_tree(decoder_context* ctx,
 
     logtrace(LogSlice,"transform split.\n");
 
-    read_transform_tree(ctx,tctx, x0,y0, x0,y0, log2TrafoSize-1, trafoDepth+1, 0,
+    read_transform_tree(ctx,tctx, x0,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 0,
                         MaxTrafoDepth,IntraSplitFlag);
-    read_transform_tree(ctx,tctx, x1,y0, x0,y0, log2TrafoSize-1, trafoDepth+1, 1,
+    read_transform_tree(ctx,tctx, x1,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 1,
                         MaxTrafoDepth,IntraSplitFlag);
-    read_transform_tree(ctx,tctx, x0,y1, x0,y0, log2TrafoSize-1, trafoDepth+1, 2,
+    read_transform_tree(ctx,tctx, x0,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 2,
                         MaxTrafoDepth,IntraSplitFlag);
-    read_transform_tree(ctx,tctx, x1,y1, x0,y0, log2TrafoSize-1, trafoDepth+1, 3,
+    read_transform_tree(ctx,tctx, x1,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 3,
                         MaxTrafoDepth,IntraSplitFlag);
   }
   else {
@@ -2678,7 +2715,7 @@ void read_transform_tree(decoder_context* ctx,
       cbf_luma = decode_cbf_luma(tctx,trafoDepth);
     }
 
-    read_transform_unit(ctx,tctx, x0,y0,xBase,yBase, log2TrafoSize,trafoDepth, blkIdx,
+    read_transform_unit(ctx,tctx, x0,y0,xBase,yBase, xCUBase,yCUBase, log2TrafoSize,trafoDepth, blkIdx,
                         cbf_luma, cbf_cb, cbf_cr);
   }
 }
@@ -2856,11 +2893,15 @@ void read_prediction_unit(decoder_context* ctx,
 
 void read_coding_unit(decoder_context* ctx,
                       thread_context* tctx,
-                      int x0, int y0,
+                      int x0, int y0,  // position of coding unit in frame
                       int log2CbSize,
                       int ctDepth)
 {
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
+
+  memset(&tctx->coeff[0][0], 0, 3*64*64*sizeof(int16_t)); // HACK
+
+
 
   slice_segment_header* shdr = tctx->shdr;
 
@@ -3173,7 +3214,7 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
-        read_transform_tree(ctx,tctx, x0,y0, x0,y0, log2CbSize, 0,0, MaxTrafoDepth, IntraSplitFlag);
+        read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0, MaxTrafoDepth, IntraSplitFlag);
       }
     }
   }
@@ -3187,12 +3228,23 @@ void read_coding_unit(decoder_context* ctx,
 
 void decode_CU(decoder_context* ctx,
                thread_context* tctx,
-               int x0, int y0, int log2CbSize)
+               int x0, int y0,  // position of CU in frame
+               int log2CbSize)
 {
   // --- decode CU ---
 
   logtrace(LogSlice,"--- decodeCU (%d;%d size %d) POC:%d ---\n",x0,y0,1<<log2CbSize,
            ctx->img->PicOrderCntVal);
+
+  /*
+  for (int y=0;y< 1<<log2CbSize;y++) {
+    for (int x=0;x< 1<<log2CbSize;x++) {
+      printf("%d ", tctx->coeff[0][y*64+x]);
+    }
+    printf("\n");
+  }
+  */
+
 
   int nS = 1 << log2CbSize;
 
@@ -3214,7 +3266,7 @@ void decode_CU(decoder_context* ctx,
         logtrace(LogSlice,"get_IntraPredMode(%d,%d)=%d\n",x0,y0,get_IntraPredMode(ctx,x0,y0));
 
         decode_intra_block(ctx,tctx,0,
-                           x0,y0,
+                           x0,y0, x0,y0,
                            log2CbSize,0,
                            get_IntraPredMode(ctx,x0,y0));
       } else {
@@ -3228,7 +3280,7 @@ void decode_CU(decoder_context* ctx,
           logtrace(LogSlice,"get_IntraPredMode(%d,%d)=%d\n",xBS,yBS,get_IntraPredMode(ctx,xBS,yBS));
 
           decode_intra_block(ctx,tctx,0,
-                             xBS,yBS,
+                             xBS,yBS, x0,y0,
                              log2CbSize-1,1,
                              get_IntraPredMode(ctx,xBS,yBS));
         }
@@ -3239,11 +3291,11 @@ void decode_CU(decoder_context* ctx,
       logtrace(LogSlice,"get_IntraPredModeC(%d,%d)=%d\n",x0,y0,get_IntraPredModeC(ctx,x0,y0));
 
       decode_intra_block(ctx,tctx,1,
-                         x0/2,y0/2,
+                         x0/2,y0/2, x0/2,y0/2,
                          log2CbSize-1,0,
                          get_IntraPredModeC(ctx,x0,y0));
       decode_intra_block(ctx,tctx,2,
-                         x0/2,y0/2,
+                         x0/2,y0/2, x0/2,y0/2,
                          log2CbSize-1,0,
                          get_IntraPredModeC(ctx,x0,y0));
     }
@@ -3277,6 +3329,7 @@ void decode_CU(decoder_context* ctx,
 void decode_inter_block_luma(decoder_context* ctx,
                              thread_context* tctx,
                              int xC,int yC, int xB0,int yB0,
+                             int xCU,int yCU,
                              int log2TrafoSize,int trafoDepth, int nCbS)
 {
   int splitFlag = get_split_transform_flag(ctx,xC+xB0,yC+yB0,trafoDepth);
@@ -3285,21 +3338,22 @@ void decode_inter_block_luma(decoder_context* ctx,
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
 
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB0,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB0,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB1,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB1,log2TrafoSize-1,trafoDepth+1, nCbS);
+    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
+    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
+    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
+    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
   }
   else {
     int nT = 1<<log2TrafoSize;
 
-    scale_coefficients(ctx, tctx, xC+xB0,yC+yB0, nT,0);
+    scale_coefficients(ctx, tctx, xC+xB0,yC+yB0, xCU,yCU, nT,0);
   }
 }
 
 
 void decode_inter_block_chroma(decoder_context* ctx,thread_context* tctx,
                                int xC,int yC, int xB0,int yB0,
+                               int xCU,int yCU,
                                int log2TrafoSize,int trafoDepth, int nCbS, int cIdx)
 {
   int splitChromaFlag = get_split_transform_flag(ctx,xC+xB0,yC+yB0,trafoDepth) && log2TrafoSize>3;
@@ -3308,15 +3362,15 @@ void decode_inter_block_chroma(decoder_context* ctx,thread_context* tctx,
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
 
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB0,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB0,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB1,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB1,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
+    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
+    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
+    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
+    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
   }
   else {
     int nT = 1<<(log2TrafoSize-1);
 
-    scale_coefficients(ctx, tctx, (xC+xB0)/2,(yC+yB0)/2, nT,cIdx);
+    scale_coefficients(ctx, tctx, (xC+xB0)/2,(yC+yB0)/2, xCU/2,yCU/2, nT,cIdx);
   }
 }
 
@@ -3336,9 +3390,9 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
   else {
     logtrace(LogTransform,"decode inter block: %d,%d %dx%d\n",xC,yC,1<<log2CbSize,1<<log2CbSize);
 
-    decode_inter_block_luma  (ctx,tctx,xC,yC, 0,0, log2CbSize,0, nCSL);
-    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, log2CbSize,0, nCSC ,1);
-    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, log2CbSize,0, nCSC ,2);
+    decode_inter_block_luma  (ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSL);
+    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,1);
+    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,2);
   }
 }
 

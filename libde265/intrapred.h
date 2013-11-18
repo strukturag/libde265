@@ -27,7 +27,9 @@ extern const int intraPredAngle_table[1+34];
 
 void decode_intra_block(decoder_context* ctx,
                         thread_context* tctx,
-                        int cIdx, int xB0,int yB0,
+                        int cIdx,
+                        int xB0,int yB0, // position of TU in frame (chroma adapted)
+                        int x0,int y0,   // position of CU in frame (chroma adapted)
                         int log2TrafoSize, int trafoDepth,
                         enum IntraPredMode intraPredMode);
 

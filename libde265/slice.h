@@ -129,6 +129,7 @@ typedef struct thread_context
   int CtbAddrInRS;
   int CtbAddrInTS;
 
+  int16_t coeff[3][64*64];
 
   int currentQPY;
   int lastQPYinPreviousQG;

@@ -90,7 +90,7 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
   memset(ctx->pb_info,  0,sizeof(PB_info)  * ctx->pb_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
-  de265_fill_image(&ctx->coeff, 0,0,0);
+  // HACK de265_fill_image(&ctx->coeff, 0,0,0);
 
   ctx->next_free_slice_index = 0;
 }
@@ -174,7 +174,7 @@ void free_decoder_context(decoder_context* ctx)
     de265_free_image(&ctx->dpb[i]);
   }
   //de265_free_image(&ctx->img);
-  de265_free_image(&ctx->coeff);
+  // HACK de265_free_image(&ctx->coeff);
 
   free_info_arrays(ctx);
   //free_image(&ctx->intra_pred_available);
@@ -724,10 +724,12 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     }
 
 
+    /* HACK
     de265_alloc_image(&ctx->coeff,
                       w*2,h,  // 2 bytes per pixel
                       chroma,
-                      0 /* border */);
+                      0); // border
+    */
 
     reset_decoder_context_for_new_picture(ctx);
     prepare_new_picture(ctx);

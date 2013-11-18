@@ -116,7 +116,7 @@ int main(int argc, char** argv)
     }
   }
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
+  //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
 
   FILE* fh = fopen(argv[1], "rb");
   if (fh==NULL) {

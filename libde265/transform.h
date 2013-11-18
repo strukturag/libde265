@@ -31,6 +31,8 @@ void decode_quantization_parameters(decoder_context* ctx,
 
 // (8.6.2)
 void scale_coefficients(decoder_context* ctx, thread_context* shdr,
-                        int xT,int yT, int nT, int cIdx);
+                        int xT,int yT, // position of TU in frame (chroma adapted)
+                        int x0,int y0, // position of CU in frame (chroma adapted)
+                        int nT, int cIdx);
 
 #endif

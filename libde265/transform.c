@@ -312,7 +312,9 @@ static const int levelScale[] = { 40,45,51,57,64,72 };
 
 // (8.6.2) and (8.6.3)
 void scale_coefficients(decoder_context* ctx, thread_context* tctx,
-                        int xT,int yT, int nT, int cIdx)
+                        int xT,int yT, // position of TU in frame (chroma adapted)
+                        int x0,int y0, // position of CU in frame (chroma adapted)
+                        int nT, int cIdx)
 {
   seq_parameter_set* sps = ctx->current_sps;
   slice_segment_header* shdr = tctx->shdr;
@@ -327,9 +329,51 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   logtrace(LogTransform,"qP: %d\n",qP);
 
+
   int16_t* coeff;
   int      coeffStride;
+#if 1
   get_coeff_plane(ctx,cIdx, &coeff,&coeffStride);
+#endif
+
+#if 1
+  int16_t* coeff2;
+  int      coeffStride2;
+
+  coeffStride2=64;
+  coeff2 = &tctx->coeff[cIdx][(yT-y0)*coeffStride2+(xT-x0)];
+
+#if 0
+  printf("scale: pos=%d/%d\n",xT-x0,yT-y0);
+
+  printf("coeff1=\n");
+  for (int y=0;y<nT;y++) {
+    for (int x=0;x<nT;x++) {
+      printf("%d ",coeff[x+xT+(y+yT)*coeffStride]);
+    }
+    printf("\n");
+  }
+
+  printf("coeff2=\n");
+  for (int y=0;y<nT;y++) {
+    for (int x=0;x<nT;x++) {
+      printf("%d ",coeff2[x+y*coeffStride2]);
+    }
+    printf("\n");
+  }
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      //printf("%d %d\n",coeff[(y+yT)*coeffStride + (x+xT)], coeff2[y*coeffStride2+x]);
+      assert(coeff[(y+yT)*coeffStride + (x+xT)] == coeff2[y*coeffStride2+x]);
+    }
+#endif
+
+
+  coeff = coeff2;
+  coeffStride = coeffStride2;
+#endif
+
 
 
   if (shdr->cu_transquant_bypass_flag) {
@@ -346,7 +390,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     for (int y=0;y<nT;y++) {
       logtrace(LogTransform,"  ");
       for (int x=0;x<nT;x++) {
-        logtrace(LogTransform,"*%3d ", coeff[x+xT+(y+yT)*coeffStride]);
+        logtrace(LogTransform,"*%3d ", coeff[x+0*xT+(y+0*yT)*coeffStride]);
       }
       logtrace(LogTransform,"*\n");
     }
@@ -355,8 +399,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++) {
           int m_x_y = 16;
-          coeff[xT+x+(y+yT)*coeffStride] = Clip3(-32768,32767,
-                                                 ( (coeff[x+xT+(y+yT)*coeffStride]
+          coeff[0*xT+x+(y+0*yT)*coeffStride] = Clip3(-32768,32767,
+                                                 ( (coeff[x+0*xT+(y+0*yT)*coeffStride]
                                                     * m_x_y * levelScale[qP%6] << (qP/6))
                                                    + (1<<(bdShift-1)) ) >> bdShift);
         }
@@ -369,7 +413,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     for (int y=0;y<nT;y++) {
       logtrace(LogTransform,"  ");
       for (int x=0;x<nT;x++) {
-        logtrace(LogTransform,"*%3d ", coeff[x+xT+(y+yT)*coeffStride]);
+        logtrace(LogTransform,"*%3d ", coeff[x+0*xT+(y+0*yT)*coeffStride]);
       }
       logtrace(LogTransform,"*\n");
     }
@@ -384,8 +428,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     if (get_transform_skip_flag(ctx,xT,yT,cIdx)) {
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++) {
-          int32_t c = coeff[x+xT+(y+yT)*coeffStride] << 7;
-          coeff[x+xT+(y+yT)*coeffStride] = (c+(1<<(bdShift2-1)))>>bdShift2;
+          int32_t c = coeff[x+0*xT+(y+0*yT)*coeffStride] << 7;
+          coeff[x+0*xT+(y+0*yT)*coeffStride] = (c+(1<<(bdShift2-1)))>>bdShift2;
         }
     }
     else {
@@ -398,7 +442,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
         trType=0;
       }
 
-      transform_coefficients(ctx,shdr, &coeff[xT+yT*coeffStride], coeffStride, nT, trType, bdShift2);
+      transform_coefficients(ctx,shdr, &coeff[0*xT+0*yT*coeffStride], coeffStride, nT, trType, bdShift2);
 
       /*
         for (int y=0;y<nT;y++)
@@ -413,7 +457,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   for (int y=0;y<nT;y++) {
     logtrace(LogTransform,"  ");
     for (int x=0;x<nT;x++) {
-      logtrace(LogTransform,"*%3d ", coeff[x+xT+(y+yT)*coeffStride]);
+      logtrace(LogTransform,"*%3d ", coeff[x+0*xT+(y+0*yT)*coeffStride]);
     }
     logtrace(LogTransform,"*\n");
   }
@@ -435,7 +479,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
-      pred[x+y*stride] = Clip1_8bit(pred[x+y*stride] + coeff[xT+x+(yT+y)*coeffStride]);
+      pred[x+y*stride] = Clip1_8bit(pred[x+y*stride] + coeff[0*xT+x+(0*yT+y)*coeffStride]);
     }
 
 
