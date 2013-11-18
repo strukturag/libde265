@@ -2224,9 +2224,9 @@ int residual_coding(decoder_context* ctx,
                                           (initialization not strictly needed)
                                        */
 
-  int16_t TransCoeffLevel[32][32];
-  memset(TransCoeffLevel,0, sizeof(uint16_t)*32*32); // actually, we only need [1<<log2TrafoSize][1<<log2TrafoSize] = (1<<(2*log2TrafoSize))
-
+  int16_t TransCoeffLevel[32 * 32];
+  int CoeffStride = 1<<log2TrafoSize;
+  memset(TransCoeffLevel,0, sizeof(uint16_t)*CoeffStride*CoeffStride);
 
   int  lastInvocation_greater1Ctx;
   int  lastInvocation_coeff_abs_level_greater1_flag;
@@ -2457,18 +2457,20 @@ int residual_coding(decoder_context* ctx,
         }
 
 
-        TransCoeffLevel[xC][yC] = (baseLevel + coeff_abs_level_remaining[n]);
+        int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
         if (coeff_sign_flag[n]) {
-          TransCoeffLevel[xC][yC] = -TransCoeffLevel[xC][yC];
+          currCoeff = -currCoeff;
         }
 
         if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
           sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
 
           if (n==firstSigScanPos && (sumAbsLevel & 1)) {
-            TransCoeffLevel[xC][yC] = -TransCoeffLevel[xC][yC];
+            currCoeff = -currCoeff;
           }
         }
+
+        TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
 
         numSigCoeff++;
       }
@@ -2490,7 +2492,7 @@ int residual_coding(decoder_context* ctx,
   for (int y=0;y<(1<<log2TrafoSize);y++) {
     logtrace(LogSlice,"  ");
     for (int x=0;x<(1<<log2TrafoSize);x++) {
-      logtrace(LogSlice,"*%3d ", TransCoeffLevel[x][y]);
+      logtrace(LogSlice,"*%3d ", TransCoeffLevel[y*CoeffStride + x]);
     }
     logtrace(LogSlice,"*\n");
   }
@@ -2507,7 +2509,7 @@ int residual_coding(decoder_context* ctx,
 
     for (int y=0;y<(1<<log2TrafoSize);y++)
       for (int x=0;x<(1<<log2TrafoSize);x++) {
-        coeff[x+xB+(y+yB)*coeffStride] = TransCoeffLevel[x][y];
+        coeff[x+xB+(y+yB)*coeffStride] = TransCoeffLevel[y*CoeffStride + x];
       }
   }
 
@@ -2515,10 +2517,14 @@ int residual_coding(decoder_context* ctx,
   if (cIdx>0) { xL/=2; yL/=2; }
   int coeffStride=64;
 
+  int16_t* i = &TransCoeffLevel[0];
   for (int y=0;y<(1<<log2TrafoSize);y++) {
+    int16_t* o = &tctx->coeff[cIdx][0+xL+(y+yL)*coeffStride];
     for (int x=0;x<(1<<log2TrafoSize);x++) {
-      tctx->coeff[cIdx][x+xL+(y+yL)*coeffStride] = TransCoeffLevel[x][y];
-      //printf("%d ",TransCoeffLevel[x][y]);
+      *o = *i;
+      o++;
+      i++;
+      //printf("%d ",TransCoeffLevel[y*CoeffStride+x]);
     }
     //printf("\n");
   }
@@ -2899,8 +2905,19 @@ void read_coding_unit(decoder_context* ctx,
 {
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
-  memset(&tctx->coeff[0][0], 0, 3*64*64*sizeof(int16_t)); // HACK
+  //memset(&tctx->coeff[0][0], 0, 3*64*64*sizeof(int16_t)); // HACK
+  for (int y=0;y< 1<<log2CbSize;y++)
+    for (int x=0;x< 1<<log2CbSize;x++)
+      {
+        tctx->coeff[0][x+y*64] = 0;
+      }
 
+  for (int y=0;y< 1<<(log2CbSize-1);y++)
+    for (int x=0;x< 1<<(log2CbSize-1);x++)
+      {
+        tctx->coeff[1][x+y*64] = 0;
+        tctx->coeff[2][x+y*64] = 0;
+      }
 
 
   slice_segment_header* shdr = tctx->shdr;

@@ -24,6 +24,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #ifndef _MSC_VER
 extern "C" {
@@ -116,7 +117,7 @@ int main(int argc, char** argv)
     }
   }
 
-  //de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
 
   FILE* fh = fopen(argv[1], "rb");
   if (fh==NULL) {
@@ -126,6 +127,11 @@ int main(int argc, char** argv)
 
   bool stop=false;
   int framecnt=0;
+
+  struct timeval tv_start;
+  gettimeofday(&tv_start, NULL);
+
+  int width,height;
 
   while (!stop)
     {
@@ -151,13 +157,16 @@ int main(int argc, char** argv)
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
 
+        width  = img->width;
+        height = img->height;
+
         framecnt++;
         //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
 
 #if HAVE_VIDEOGFX
         display_image(img);
 #else
-        write_picture(img);
+        //write_picture(img);
 #endif
       }
     }
@@ -166,11 +175,19 @@ int main(int argc, char** argv)
 
   de265_free_decoder(ctx);
 
+  struct timeval tv_end;
+  gettimeofday(&tv_end, NULL);
+
   if (err != DE265_OK) {
     fprintf(stderr,"decoding error: %s\n", de265_get_error_text(err));
   }
 
-  fprintf(stderr,"nFrames decoded: %d\n",framecnt);
+  double secs = tv_end.tv_sec-tv_start.tv_sec;
+  secs += (tv_end.tv_usec - tv_start.tv_usec)*0.001*0.001;
+
+  fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
+          width,height,framecnt/secs);
+
 
   showMotionProfile();
 
