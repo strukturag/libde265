@@ -357,6 +357,17 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
       logtrace(LogTransform,"*\n");
     }
 
+    /*
+    printf("coefficients IN:\n");
+    for (int y=0;y<nT;y++) {
+      printf("  ");
+      for (int x=0;x<nT;x++) {
+        printf("%3d ", coeff[x+y*coeffStride]);
+      }
+      printf("*\n");
+    }
+    */
+
     if (sps->scaling_list_enable_flag==0) {
 
       for (int y=0;y<nT;y++) {

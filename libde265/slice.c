@@ -53,7 +53,7 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 
 void decode_CU(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
-void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
+//void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
 
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
@@ -1620,6 +1620,7 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
 }
 
 
+/*
 void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize)
 {
   seq_parameter_set* sps = ctx->current_sps;
@@ -1646,7 +1647,7 @@ void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0,
       decode_CU_split(ctx,tctx, x1,y1, log2CbSize-1);
   }
 }
-
+*/
 
 
 //void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby);
@@ -2446,6 +2447,174 @@ int read_transform_unit(decoder_context* ctx,
 }
 
 
+void read_transform_tree__interleaved(decoder_context* ctx,
+                                      thread_context* tctx,
+                                      int x0, int y0,        // position of TU in frame
+                                      int xBase, int yBase,  // position of parent TU in frame
+                                      int xCUBase, int yCUBase, // position of CU in frame
+                                      int log2TrafoSize,
+                                      int trafoDepth,
+                                      int blkIdx,
+                                      int MaxTrafoDepth,
+                                      int IntraSplitFlag,
+                                      enum PredMode cuPredMode)
+{
+  logtrace(LogSlice,"- read_transform_tree (interleaved) x0:%d y0:%d xBase:%d yBase:%d "
+           "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
+           x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth);
+
+  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
+
+  int split_transform_flag;
+  
+  int interSplitFlag=0; // TODO
+
+  /*  If TrafoSize is larger than maximum size   -> split automatically
+      If TrafoSize is at minimum size            -> do not split
+      If maximum transformation depth is reached -> do not split
+      If intra-prediction is NxN mode            -> split automatically (only at level 0)
+      Otherwise  ->  read split flag
+  */
+  if (log2TrafoSize <= ctx->current_sps->Log2MaxTrafoSize &&
+      log2TrafoSize >  ctx->current_sps->Log2MinTrafoSize &&
+      trafoDepth < MaxTrafoDepth &&
+      !(IntraSplitFlag && trafoDepth==0))
+    {
+      split_transform_flag = decode_split_transform_flag(tctx, log2TrafoSize);
+    }
+  else
+    {
+      split_transform_flag = (log2TrafoSize > ctx->current_sps->Log2MaxTrafoSize ||
+                              (IntraSplitFlag==1 && trafoDepth==0) ||
+                              interSplitFlag==1) ? 1:0;
+    }
+
+
+  if (split_transform_flag) {
+    logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
+    set_split_transform_flag(ctx,x0,y0,trafoDepth);
+  }
+
+
+  int cbf_cb=-1;
+  int cbf_cr=-1;
+
+  if (log2TrafoSize>2) {
+    if (trafoDepth==0 || get_cbf_cb(ctx,xBase,yBase,trafoDepth-1)) {
+      cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
+    }
+
+    if (trafoDepth==0 || get_cbf_cr(ctx,xBase,yBase,trafoDepth-1)) {
+      cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
+    }
+  }
+
+
+  // cbf_cr/cbf_cb not present in bitstream -> induce values
+
+  if (cbf_cb<0) {
+    if (trafoDepth>0 && log2TrafoSize==2) {
+      cbf_cb = get_cbf_cb(ctx,xBase,yBase,trafoDepth-1);
+    } else {
+      cbf_cb=0;
+    }
+  }
+
+  if (cbf_cb) {
+    set_cbf_cb(ctx,x0,y0, trafoDepth);
+  }
+  logtrace(LogSlice,"check cbf_cb[%d;%d;%d]: %d\n", xBase,yBase,trafoDepth,
+           get_cbf_cb(ctx,xBase,yBase,trafoDepth));
+
+  if (cbf_cr<0) {
+    if (trafoDepth>0 && log2TrafoSize==2) {
+      cbf_cr = get_cbf_cr(ctx,xBase,yBase,trafoDepth-1);
+    } else {
+      cbf_cr=0;
+    }
+  }
+
+  if (cbf_cr) {
+    set_cbf_cr(ctx,x0,y0, trafoDepth);
+  }
+  logtrace(LogSlice,"check cbf_cr[%d;%d;%d]: %d\n", xBase,yBase,trafoDepth,
+           get_cbf_cr(ctx,xBase,yBase,trafoDepth));
+
+  if (split_transform_flag) {
+    int x1 = x0 + (1<<(log2TrafoSize-1));
+    int y1 = y0 + (1<<(log2TrafoSize-1));
+
+    logtrace(LogSlice,"transform split.\n");
+
+    read_transform_tree__interleaved(ctx,tctx, x0,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 0,
+                                     MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+    read_transform_tree__interleaved(ctx,tctx, x1,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 1,
+                                     MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+    read_transform_tree__interleaved(ctx,tctx, x0,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 2,
+                                     MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+    read_transform_tree__interleaved(ctx,tctx, x1,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 3,
+                                     MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+  }
+  else {
+    int cbf_luma=1;
+
+    if (PredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
+      cbf_luma = decode_cbf_luma(tctx,trafoDepth);
+    }
+
+    logtrace(LogSlice,"call read_transform_unit %d/%d\n",x0,y0);
+
+    read_transform_unit(ctx,tctx, x0,y0,xBase,yBase, xCUBase,yCUBase, log2TrafoSize,trafoDepth, blkIdx,
+                        cbf_luma, cbf_cb, cbf_cr);
+
+
+    int nT = 1<<log2TrafoSize;
+
+
+    if (cuPredMode == MODE_INTRA) // if intra mode
+      {
+        enum IntraPredMode intraPredMode = get_IntraPredMode(ctx,x0,y0);
+
+        decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
+
+        enum IntraPredMode chromaPredMode = get_IntraPredModeC(ctx,x0,y0);
+
+        if (nT>=8) {
+          decode_intra_prediction(ctx, x0/2,y0/2, chromaPredMode, nT/2, 1);
+          decode_intra_prediction(ctx, x0/2,y0/2, chromaPredMode, nT/2, 2);
+        }
+        else if (blkIdx==3) {
+          decode_intra_prediction(ctx, xBase/2,yBase/2, chromaPredMode, nT, 1);
+          decode_intra_prediction(ctx, xBase/2,yBase/2, chromaPredMode, nT, 2);
+        }
+      }
+
+    if (cbf_luma) {
+      scale_coefficients(ctx, tctx, x0,y0, xCUBase,yCUBase, nT, 0);
+    }
+
+    if (nT>=8) {
+      if (cbf_cb) {
+        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1);
+      }
+      if (cbf_cr) {
+        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2);
+      }
+    }
+    else if (blkIdx==3) {
+      if (cbf_cb) {
+        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1);
+      }
+      if (cbf_cr) {
+        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2);
+      }
+    }
+  }
+}
+
+
+
+
 void read_transform_tree(decoder_context* ctx,
                          thread_context* tctx,
                          int x0, int y0,        // position of TU in frame
@@ -2467,6 +2636,12 @@ void read_transform_tree(decoder_context* ctx,
   
   int interSplitFlag=0; // TODO
 
+  /*  If TrafoSize is larger than maximum size   -> split automatically
+      If TrafoSize is at minimum size            -> do not split
+      If maximum transformation depth is reached -> do not split
+      If intra-prediction is NxN mode            -> split automatically (only at level 0)
+      Otherwise  ->  read split flag
+   */
   if (log2TrafoSize <= ctx->current_sps->Log2MaxTrafoSize &&
       log2TrafoSize >  ctx->current_sps->Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
@@ -2558,6 +2733,7 @@ void read_transform_tree(decoder_context* ctx,
                         cbf_luma, cbf_cb, cbf_cr);
   }
 }
+
 
 
 static const char* part_mode_name(enum PartMode pm)
@@ -2730,12 +2906,388 @@ void read_prediction_unit(decoder_context* ctx,
 }
 
 
+
+
+
+void read_coding_unit__interleaved(decoder_context* ctx,
+                      thread_context* tctx,
+                      int x0, int y0,  // position of coding unit in frame
+                      int log2CbSize,
+                      int ctDepth)
+{
+  int nS = 1 << log2CbSize;
+
+  logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
+
+  //memset(&tctx->coeff[0][0], 0, 3*64*64*sizeof(int16_t)); // HACK
+  for (int y=0;y< 1<<log2CbSize;y++)
+    for (int x=0;x< 1<<log2CbSize;x++)
+      {
+        tctx->coeff[0][x+y*64] = 0;
+      }
+
+  for (int y=0;y< 1<<(log2CbSize-1);y++)
+    for (int x=0;x< 1<<(log2CbSize-1);x++)
+      {
+        tctx->coeff[1][x+y*64] = 0;
+        tctx->coeff[2][x+y*64] = 0;
+      }
+
+
+  slice_segment_header* shdr = tctx->shdr;
+
+  set_log2CbSize(ctx, x0,y0, log2CbSize);
+
+  int nCbS = 1<<log2CbSize; // number of coding block samples
+
+
+  const seq_parameter_set* sps = ctx->current_sps;
+
+
+  if (ctx->current_pps->transquant_bypass_enable_flag)
+    {
+      assert(false); // TODO
+    }
+
+  uint8_t cu_skip_flag = 0;
+  if (shdr->slice_type != SLICE_TYPE_I) {
+    cu_skip_flag = decode_cu_skip_flag(tctx,x0,y0,ctDepth);
+  }
+
+  set_cu_skip_flag(ctx,x0,y0,log2CbSize, cu_skip_flag);
+
+  int IntraSplitFlag = 0;
+
+  enum PredMode cuPredMode;
+
+  if (cu_skip_flag) {
+    read_prediction_unit_SKIP(ctx,tctx,x0,y0,nCbS,nCbS);
+
+    set_PartMode(ctx, x0,y0, PART_2Nx2N); // need this for deblocking filter
+    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
+    cuPredMode = MODE_SKIP;
+
+    logtrace(LogSlice,"CU pred mode: SKIP\n");
+
+
+    // DECODE
+
+    decode_quantization_parameters(ctx,tctx, x0,y0);
+    inter_prediction(ctx,shdr, x0,y0, log2CbSize);
+  }
+  else /* not skipped */ {
+    if (shdr->slice_type != SLICE_TYPE_I) {
+      int pred_mode_flag = decode_pred_mode_flag(tctx);
+      cuPredMode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
+    }
+    else {
+      cuPredMode = MODE_INTRA;
+    }
+
+    set_pred_mode(ctx,x0,y0,log2CbSize, cuPredMode);
+
+    logtrace(LogSlice,"CU pred mode: %s\n", cuPredMode==MODE_INTRA ? "INTRA" : "INTER");
+
+
+    enum PartMode PartMode;
+
+    if (cuPredMode != MODE_INTRA ||
+        log2CbSize == sps->Log2MinCbSizeY) {
+      PartMode = decode_part_mode(tctx, cuPredMode, log2CbSize);
+
+      if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
+        IntraSplitFlag=1;
+        set_intra_split_flag(ctx, x0,y0, 1);
+      }
+    } else {
+      PartMode = PART_2Nx2N;
+    }
+
+    set_PartMode(ctx, x0,y0, PartMode);  // currently not required for decoding (but for visualization)
+
+    logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
+
+
+    if (cuPredMode == MODE_INTRA) {
+      assert(!sps->pcm_enabled_flag); // TODO
+
+      if (false) {
+      }
+      else {
+        int pbOffset = (PartMode == PART_NxN) ? (nCbS/2) : nCbS;
+        int log2IntraPredSize = (PartMode == PART_NxN) ? (log2CbSize-1) : log2CbSize;
+
+        logtrace(LogSlice,"nCbS:%d pbOffset:%d\n",nCbS,pbOffset);
+
+        int prev_intra_luma_pred_flag[4];
+
+        int idx=0;
+        for (int j=0;j<nCbS;j+=pbOffset)
+          for (int i=0;i<nCbS;i+=pbOffset)
+            {
+              prev_intra_luma_pred_flag[idx++] = decode_prev_intra_luma_pred_flag(tctx);
+            }
+
+        int mpm_idx[4], rem_intra_luma_pred_mode[4];
+        idx=0;
+
+        for (int j=0;j<nCbS;j+=pbOffset)
+          for (int i=0;i<nCbS;i+=pbOffset)
+            {
+              if (prev_intra_luma_pred_flag[idx]) {
+                mpm_idx[idx] = decode_mpm_idx(tctx);
+              }
+              else {
+                rem_intra_luma_pred_mode[idx] = decode_rem_intra_luma_pred_mode(tctx);
+              }
+
+
+              int x = x0+i;
+              int y = y0+j;
+
+              // --- find intra prediction mode ---
+
+              int IntraPredMode;
+
+              int availableA = check_CTB_available(ctx, shdr, x,y, x-1,y);
+              int availableB = check_CTB_available(ctx, shdr, x,y, x,y-1);
+
+              // block on left side
+
+
+              enum IntraPredMode candIntraPredModeA, candIntraPredModeB;
+              if (availableA==false) {
+                candIntraPredModeA=INTRA_DC;
+              }
+              else if (get_pred_mode(ctx, x-1,y) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+                candIntraPredModeA=INTRA_DC;
+              }
+              else {
+                candIntraPredModeA = get_IntraPredMode(ctx, x-1,y);
+              }
+
+              // block above
+
+              if (availableB==false) {
+                candIntraPredModeB=INTRA_DC;
+              }
+              else if (get_pred_mode(ctx, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+                candIntraPredModeB=INTRA_DC;
+              }
+              else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {
+                candIntraPredModeB=INTRA_DC;
+              }
+              else {
+                candIntraPredModeB = get_IntraPredMode(ctx, x,y-1);
+              }
+
+              // build candidate list
+
+              int candModeList[3];
+
+              logtrace(LogSlice,"availableA:%d candA:%d & availableB:%d candB:%d\n",
+                       availableA, candIntraPredModeA,
+                       availableB, candIntraPredModeB);
+
+              if (candIntraPredModeA == candIntraPredModeB) {
+                if (candIntraPredModeA < 2) {
+                  candModeList[0] = INTRA_PLANAR;
+                  candModeList[1] = INTRA_DC;
+                  candModeList[2] = INTRA_ANGULAR_26; 
+                }
+                else {
+                  candModeList[0] = candIntraPredModeA;
+                  candModeList[1] = 2 + ((candIntraPredModeA-2 -1 +32) % 32);
+                  candModeList[2] = 2 + ((candIntraPredModeA-2 +1    ) % 32);
+                }
+              }
+              else {
+                candModeList[0] = candIntraPredModeA;
+                candModeList[1] = candIntraPredModeB;
+
+                if (candIntraPredModeA != INTRA_PLANAR &&
+                    candIntraPredModeB != INTRA_PLANAR) {
+                  candModeList[2] = INTRA_PLANAR;
+                }
+                else if (candIntraPredModeA != INTRA_DC &&
+                         candIntraPredModeB != INTRA_DC) {
+                  candModeList[2] = INTRA_DC;
+                }
+                else {
+                  candModeList[2] = INTRA_ANGULAR_26; 
+                }
+              }
+
+              for (int i=0;i<3;i++)
+                logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
+
+              if (prev_intra_luma_pred_flag[idx]==1) {
+                IntraPredMode = candModeList[ mpm_idx[idx] ];
+              }
+              else {
+                // sort candModeList
+
+                if (candModeList[0] > candModeList[1]) {
+                  int t = candModeList[0]; candModeList[0]=candModeList[1]; candModeList[1]=t;
+                }
+                if (candModeList[0] > candModeList[2]) {
+                  int t = candModeList[0]; candModeList[0]=candModeList[2]; candModeList[2]=t;
+                }
+                if (candModeList[1] > candModeList[2]) {
+                  int t = candModeList[1]; candModeList[1]=candModeList[2]; candModeList[2]=t;
+                }
+
+                // skip modes in the list
+                // (we have 35 modes. skipping the 3 in the list gives us 32, which can be selected by 5 bits)
+                IntraPredMode = rem_intra_luma_pred_mode[idx];
+                for (int n=0;n<=2;n++) {
+                  if (IntraPredMode >= candModeList[n]) { IntraPredMode++; }
+                }
+              }
+
+              logtrace(LogSlice,"IntraPredMode[%d][%d] = %d (log2blk:%d)\n",x,y,IntraPredMode, log2IntraPredSize);
+
+              set_IntraPredMode(ctx,x,y, log2IntraPredSize,(enum IntraPredMode)IntraPredMode);
+              
+              idx++;
+            }
+
+
+        // set chroma intra prediction mode
+
+        int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
+
+        int IntraPredMode = get_IntraPredMode(ctx,x0,y0);
+        logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
+
+        int IntraPredModeC;
+        if (intra_chroma_pred_mode==4) {
+          IntraPredModeC = IntraPredMode;
+        }
+        else {
+          static enum IntraPredMode IntraPredModeCCand[4] = {
+            INTRA_PLANAR,
+            INTRA_ANGULAR_26, // vertical
+            INTRA_ANGULAR_10, // horizontal
+            INTRA_DC
+          };
+
+          IntraPredModeC = IntraPredModeCCand[intra_chroma_pred_mode];
+          if (IntraPredModeC == IntraPredMode) {
+            IntraPredModeC = INTRA_ANGULAR_34;
+          }
+        }
+
+        logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
+
+        set_IntraPredModeC(ctx,x0,y0, log2CbSize, (enum IntraPredMode)IntraPredModeC);
+      }
+    }
+    else {
+      if (PartMode == PART_2Nx2N) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS,ctDepth);
+      }
+      else if (PartMode == PART_2NxN) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0+nCbS/2,nCbS,nCbS/2,ctDepth);
+      }
+      else if (PartMode == PART_Nx2N) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0,nCbS/2,nCbS,ctDepth);
+      }
+      else if (PartMode == PART_2NxnU) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS/4,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0+nCbS/4,nCbS,nCbS*3/4,ctDepth);
+      }
+      else if (PartMode == PART_2NxnD) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS*3/4,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0+nCbS*3/4,nCbS,nCbS/4,ctDepth);
+      }
+      else if (PartMode == PART_nLx2N) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0+nCbS/4,y0,nCbS*3/4,nCbS,ctDepth);
+      }
+      else if (PartMode == PART_nRx2N) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS*3/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0+nCbS*3/4,y0,nCbS/4,nCbS,ctDepth);
+      }
+      else if (PartMode == PART_NxN) {
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
+      }
+      else {
+        assert(0); // undefined PartMode
+      }
+    }
+
+
+
+    // DECODE
+    decode_quantization_parameters(ctx,tctx, x0,y0);
+
+
+    if (cuPredMode != MODE_INTRA)
+      {
+        inter_prediction(ctx,shdr, x0,y0, log2CbSize);
+      }
+
+
+    if (false) { // pcm
+    }
+    else {
+      bool rqt_root_cbf;
+
+      bool merge_flag=get_merge_flag(ctx,x0,y0);
+
+      if (cuPredMode != MODE_INTRA &&
+          !(PartMode == PART_2Nx2N && merge_flag)) {
+
+        rqt_root_cbf = decode_rqt_root_cbf(tctx);
+      }
+      else {
+        rqt_root_cbf = true;
+      }
+
+      set_rqt_root_cbf(ctx,x0,y0, log2CbSize, rqt_root_cbf);
+
+      if (rqt_root_cbf) {
+        int MaxTrafoDepth;
+
+        if (cuPredMode==MODE_INTRA) {
+          MaxTrafoDepth = ctx->current_sps->max_transform_hierarchy_depth_intra + IntraSplitFlag;
+        }
+        else {
+          MaxTrafoDepth = ctx->current_sps->max_transform_hierarchy_depth_inter;
+        }
+
+        logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
+
+        read_transform_tree__interleaved(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
+                                         MaxTrafoDepth, IntraSplitFlag, cuPredMode);
+      }
+    }
+  }
+
+
+  // decode_CU(ctx,tctx, x0,y0, log2CbSize);
+}
+
+
+// ------------------------------------------------------------------------------------------
+
+
+
 void read_coding_unit(decoder_context* ctx,
                       thread_context* tctx,
                       int x0, int y0,  // position of coding unit in frame
                       int log2CbSize,
                       int ctDepth)
 {
+  read_coding_unit__interleaved(ctx,tctx,x0,y0,log2CbSize,ctDepth); return;
+
+
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
   //memset(&tctx->coeff[0][0], 0, 3*64*64*sizeof(int16_t)); // HACK
@@ -3070,11 +3622,10 @@ void read_coding_unit(decoder_context* ctx,
   }
 
 
-  //if (ctx->num_worker_threads==0 && !singleThreadedNonInterleaved)
-    {
-      decode_CU(ctx,tctx, x0,y0, log2CbSize);
-    }
+  decode_CU(ctx,tctx, x0,y0, log2CbSize);
 }
+
+
 
 void decode_CU(decoder_context* ctx,
                thread_context* tctx,

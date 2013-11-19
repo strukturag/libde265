@@ -48,6 +48,7 @@ extern "C" {
 
 extern "C" {
 void showMotionProfile();
+void showIntraPredictionProfile();
 }
 
 
@@ -245,6 +246,7 @@ int main(int argc, char** argv)
 
 
   showMotionProfile();
+  showIntraPredictionProfile();
 
   return err==DE265_OK ? 0 : 10;
 }

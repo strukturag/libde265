@@ -28,6 +28,14 @@
 #include <string.h>
 
 
+int nIntraPredictions;
+
+void showIntraPredictionProfile()
+{
+  printf("nIntraPredictions: %d\n", nIntraPredictions);
+}
+
+
 void print_border(uint8_t* data, int nT)
 {
   for (int i=-2*nT ; i<=2*nT ; i++) {
@@ -413,12 +421,22 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
 }
 
 
+
 // (8.4.4.2.1)
 void decode_intra_prediction(decoder_context* ctx,
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx)
 {
+  logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+           xB0,yB0, intraPredMode, nT,cIdx);
+  /*
+  printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+           xB0,yB0, intraPredMode, nT,cIdx);
+  */
+
+  nIntraPredictions++;
+
     uint8_t  border_pixels_mem[2*64+1];
     uint8_t* border_pixels = &border_pixels_mem[64];
 
