@@ -185,7 +185,7 @@ int main(int argc, char** argv)
 	}
       }
 
-      printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
+      // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
       if (feof(fh)) {
         err = de265_decode_data(ctx, NULL, 0); // indicate end of stream

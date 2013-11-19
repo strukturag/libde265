@@ -46,11 +46,15 @@ typedef enum {
 
 #else /* __cplusplus */
 
+#if !defined(_MSC_VER)
+
 /* Supporting <stdbool.h> in C++ is a GCC extension.  */
 #define _Bool	bool
 #define bool	bool
 #define false	false
 #define true	true
+
+#endif /* _MSC_VER */
 
 #endif /* __cplusplus */
 

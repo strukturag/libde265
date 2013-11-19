@@ -30,9 +30,9 @@
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context*);
 void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*);
 
-int  read_slice_segment_data(decoder_context*, thread_context* tctx);
+
+de265_error read_slice_segment_data(decoder_context*, thread_context* tctx);
 
 bool add_CTB_decode_task_syntax(struct thread_context* tctx, int ctbx,int ctby,  int sx,int sy, thread_task* nextCTBTask);
-
 
 #endif

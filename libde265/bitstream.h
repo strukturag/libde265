@@ -21,8 +21,14 @@
 #ifndef DE265_BITSTREAM_H
 #define DE265_BITSTREAM_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
+#ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
+#endif
 #include <stdint.h>
 
 

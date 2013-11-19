@@ -1331,10 +1331,11 @@ static int decode_ref_idx_lX(thread_context* tctx, int numRefIdxLXActive)
   return idx;
 }
 
-static int decode_inter_pred_idc(thread_context* tctx,
-				 int x0, int y0,
-				 int nPbW, int nPbH,
-				 int ctDepth)
+
+static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
+                                               int x0, int y0,
+                                               int nPbW, int nPbH,
+                                               int ctDepth)
 {
   logtrace(LogSlice,"# inter_pred_idc\n");
 
@@ -1361,7 +1362,7 @@ static int decode_inter_pred_idc(thread_context* tctx,
 
   logtrace(LogSlice,"> inter_pred_idc = %d\n",value);
 
-  return value;
+  return (enum InterPredIdc) value;
 }
 
 
@@ -1415,7 +1416,7 @@ void init_thread_context(thread_context* tctx, int ctby)
 }
 
 
-int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
+de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
 

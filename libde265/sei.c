@@ -144,7 +144,7 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
 }
 
 
-static int process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
+static de265_error process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
 {
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
@@ -276,9 +276,9 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
 }
 
 
-int process_sei(const sei_message* sei, decoder_context* ctx)
+de265_error process_sei(const sei_message* sei, decoder_context* ctx)
 {
-  int err = DE265_OK;
+  de265_error err = DE265_OK;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
