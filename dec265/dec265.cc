@@ -213,6 +213,15 @@ int main(int argc, char** argv)
           fprintf(stderr,"frame %d\r",framecnt);
         }
       }
+
+      for (;;) {
+        de265_error warning = de265_get_warning(ctx);
+        if (warning==DE265_OK) {
+          break;
+        }
+
+        fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+      }
     }
 
   fclose(fh);

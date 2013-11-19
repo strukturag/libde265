@@ -38,7 +38,6 @@
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)
 
-bool singleThreadedNonInterleaved = false;
 
 
 void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx);
@@ -1483,22 +1482,8 @@ int read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
   } while (!end_of_slice_segment_flag);
 
 
-  if (ctx->num_worker_threads==0 && singleThreadedNonInterleaved)
-    {
-      seq_parameter_set* sps = ctx->current_sps;
-
-      for (int y=0;y<sps->PicHeightInCtbsY;y++)
-        for (int x=0;x<sps->PicWidthInCtbsY;x++)
-          {
-            int xCtbPixels = x << sps->Log2CtbSizeY;
-            int yCtbPixels = y << sps->Log2CtbSizeY;
-
-            decode_CU_split(ctx, tctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY);
-          }
-    }
-
-
-  if (ctx->num_worker_threads>0)
+  if (ctx->num_worker_threads>0 &&
+      ctx->current_pps->entropy_coding_sync_enabled_flag)
     {
       flush_thread_pool(&ctx->thread_pool);
     }
@@ -1661,146 +1646,6 @@ void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0,
   }
 }
 
-#if 0
-void thread_decode_CTB(void* d)
-{
-  struct thread_task_ctb* data = (struct thread_task_ctb*)d;
-  decoder_context* ctx = data->ctx;
-
-  seq_parameter_set* sps = ctx->current_sps;
-  int ctbSize = 1<<sps->Log2CtbSizeY;
-
-  int ctbx = data->ctb_x;
-  int ctby = data->ctb_y;
-
-  //printf("PROCESS %d %d\n",ctbx,ctby);
-
-  decode_CU_split(ctx, ctbx * ctbSize, ctby * ctbSize, sps->Log2CtbSizeY);
-
-  //printf("END WORK %d %d\n",ctbx,ctby);
-
-  if (ctbx+1 < sps->PicWidthInCtbsY) {
-    add_CTB_decode_task(ctx,ctbx+1,ctby);
-  }
-
-  if (ctby+1 < sps->PicHeightInCtbsY) {
-
-    if (ctbx==0) {
-      // NOP
-    }
-    else if (ctbx+1 == sps->PicWidthInCtbsY) {
-      add_CTB_decode_task(ctx,ctbx-1,ctby+1);
-      add_CTB_decode_task(ctx,ctbx  ,ctby+1);
-    }
-    else {
-      add_CTB_decode_task(ctx,ctbx-1,ctby+1);
-    }
-  }
-
-  //printf("FINISHED %d %d\n",ctbx,ctby);
-}
-
-
-void add_CTB_decode_task(decoder_context* ctx, thread_context* tctx, int ctbx,int ctby)
-{
-  seq_parameter_set* sps = ctx->current_sps;
-
-  int task_id = sps->PicWidthInCtbsY * ctby + ctbx;
-
-  //printf("add task %d %d\n",ctbx,ctby);
-
-  if (!deblock_task(&ctx->thread_pool, task_id)) {
-    bool firstCTB = (ctbx==0 && ctby==0);
-
-    thread_task task;
-    task.task_id = task_id;
-    task.task_cmd = THREAD_TASK_SYNTAX_DECODE_CTB;
-    task.work_routine = thread_decode_CTB;
-    task.data.task_ctb.ctb_x = ctbx;
-    task.data.task_ctb.ctb_y = ctby;
-    task.data.task_ctb.ctx   = ctx;
-    task.data.task_ctb.tctx  = tctx;
-    //task.num_blockers = 0;
-    //if (ctbx>0) task.num_blockers++;
-    //if (ctby>0) task.num_blockers++;
-
-    //printf("  new with %d blockers\n",task.num_blockers);
-
-    add_task(&ctx->thread_pool, &task);
-  }
-}
-#endif
-
-
-
-void add_CTB_decode_task_nonblock(decoder_context* ctx, thread_context* tctx, int ctbx,int ctby);
-
-
-void thread_decode_CTB_nonblock(void* d)
-{
-  struct thread_task_ctb* data = (struct thread_task_ctb*)d;
-  decoder_context* ctx = data->ctx;
-  thread_context* tctx = data->tctx;
-
-  seq_parameter_set* sps = ctx->current_sps;
-  int ctbSize = 1<<sps->Log2CtbSizeY;
-
-  int ctbx = data->ctb_x;
-  int ctby = data->ctb_y;
-
-  //printf("PROCESS %d %d\n",ctbx,ctby);
-  
-  decode_CU_split(ctx,tctx, ctbx * ctbSize, ctby * ctbSize, sps->Log2CtbSizeY);
-
-  //printf("END WORK %d %d\n",ctbx,ctby);
-
-  if (ctbx+1 < sps->PicWidthInCtbsY) {
-    add_CTB_decode_task_nonblock(ctx,tctx,ctbx+1,ctby);
-  }
-
-  if (ctby+1 < sps->PicHeightInCtbsY) {
-
-    if (ctbx==0) {
-      // NOP
-    }
-    else if (ctbx+1 == sps->PicWidthInCtbsY) {
-      add_CTB_decode_task_nonblock(ctx,tctx,ctbx-1,ctby+1);
-      add_CTB_decode_task_nonblock(ctx,tctx,ctbx  ,ctby+1);
-    }
-    else {
-      add_CTB_decode_task_nonblock(ctx,tctx,ctbx-1,ctby+1);
-    }
-  }
-
-  //printf("FINISHED %d %d\n",ctbx,ctby);
-}
-
-
-void add_CTB_decode_task_nonblock(decoder_context* ctx, thread_context* tctx, int ctbx,int ctby)
-{
-  seq_parameter_set* sps = ctx->current_sps;
-
-  int task_id = sps->PicWidthInCtbsY * ctby + ctbx;
-
-  int cnt = decrease_CTB_deblocking_cnt(ctx,ctbx,ctby);
-
-  //printf("add task %d %d (blk=%d)\n",ctbx,ctby,cnt);
-
-  if (cnt==0) {
-    thread_task task;
-    task.task_id = task_id;
-    task.task_cmd = THREAD_TASK_SYNTAX_DECODE_CTB;
-    task.work_routine = thread_decode_CTB_nonblock;
-    task.data.task_ctb.ctb_x = ctbx;
-    task.data.task_ctb.ctb_y = ctby;
-    task.data.task_ctb.ctx   = ctx;
-    task.data.task_ctb.tctx  = tctx;
-
-    add_task(&ctx->thread_pool, &task);
-  }
-}
-
-
 
 
 //void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby);
@@ -1832,9 +1677,7 @@ void thread_decode_CTB_syntax(void* d)
   }
   else if (data->CABAC_init == INIT_COPY) {
     init_thread_context(tctx, ctby);
-    memcpy(tctx->ctx_model,
-           tctx->shdr->thread_context[ctby-1].ctx_model_wpp_storage, // TODO may be wrong with multiple slices
-           CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    // CABAC models were already copied from CTB-row above
     init_CABAC_decoder_2(&tctx->cabac_decoder);
   }
   else {
@@ -1847,10 +1690,12 @@ void thread_decode_CTB_syntax(void* d)
 
 
   if ((tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==1) {
-    // TODO: copy directly into context of next WPP thread
-    memcpy(tctx->ctx_model_wpp_storage,
-           tctx->ctx_model,
-           CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    if (ctby+1 < sps->PicHeightInCtbsY) {
+      // TODO may be wrong with multiple slices
+      memcpy(tctx->shdr->thread_context[ctby+1].ctx_model,
+             tctx->ctx_model,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
   }
 
 
@@ -1992,19 +1837,6 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
     }
 
   read_coding_quadtree(ctx,tctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY, 0);
-
-
-  if (ctx->num_worker_threads==0 && !singleThreadedNonInterleaved && 0) {
-    //decode_CU_split(ctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY);
-  }
-
-  if (ctx->num_worker_threads>0)
-    {
-      //printf("syntax finished for %d %d\n",xCtb,yCtb);
-
-      //add_CTB_decode_task(ctx,xCtb,yCtb);
-      add_CTB_decode_task_nonblock(ctx,tctx,xCtb,yCtb);
-    }
 }
 
 

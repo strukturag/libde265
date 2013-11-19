@@ -50,6 +50,12 @@ const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
+
+  case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
+    return "Cannot run decoder multi-threaded because stream does not support WPP";
+  case DE265_WARNING_WARNING_BUFFER_FULL:
+    return "Too many warnings queued";
+
   default: return "unknown error";
   }
 }
@@ -409,7 +415,13 @@ int  de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
     int nRows = hdr->num_entry_point_offsets +1;
 
-    bool use_WPP = (ctx->num_worker_threads > 0);
+    bool use_WPP = (ctx->num_worker_threads > 0 &&
+                    ctx->current_pps->entropy_coding_sync_enabled_flag);
+
+    if (ctx->num_worker_threads > 0 &&
+        ctx->current_pps->entropy_coding_sync_enabled_flag == false) {
+      add_warning(ctx, DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
+    }
 
     if (!use_WPP) {
       init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
@@ -586,6 +598,13 @@ void de265_release_next_picture(de265_decoder_context* de265ctx)
   loginfo(LogDPB,"*\n");
 }
 
+
+de265_error de265_get_warning(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  return get_warning(ctx);
+}
 
 void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
 {

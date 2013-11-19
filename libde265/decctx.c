@@ -1664,3 +1664,55 @@ void draw_PB_pred_modes(const decoder_context* ctx, uint8_t* r, uint8_t* g, uint
   draw_tree_grid(ctx,g,stride,1, PBPredMode);
   draw_tree_grid(ctx,b,stride,2, PBPredMode);
 }
+
+
+void add_warning(decoder_context* ctx, de265_error warning, bool once)
+{
+  // check if warning was already shown
+  bool add=true;
+  if (once) {
+    for (int i=0;i<ctx->nWarningsShown;i++) {
+      if (ctx->warnings_shown[i] == warning) {
+        add=false;
+        break;
+      }
+    }
+  }
+
+  if (!add) {
+    return;
+  }
+
+
+  // if this is a one-time warning, remember that it was shown
+
+  if (once) {
+    if (ctx->nWarningsShown < MAX_WARNINGS) {
+      ctx->warnings_shown[ctx->nWarningsShown++] = warning;
+    }
+  }
+
+
+  // add warning to output queue
+
+  if (ctx->nWarnings == MAX_WARNINGS) {
+    ctx->warnings[MAX_WARNINGS-1] = DE265_WARNING_WARNING_BUFFER_FULL;
+    return;
+  }
+
+  ctx->warnings[ctx->nWarnings++] = warning;
+
+}
+
+de265_error get_warning(decoder_context* ctx)
+{
+  if (ctx->nWarnings==0) {
+    return DE265_OK;
+  }
+
+  de265_error warn = ctx->warnings[0];
+  ctx->nWarnings--;
+  memmove(ctx->warnings, &ctx->warnings[1], ctx->nWarnings*sizeof(de265_error));
+
+  return warn;
+}

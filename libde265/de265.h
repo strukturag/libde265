@@ -42,7 +42,10 @@ typedef enum {
   DE265_ERROR_OUT_OF_MEMORY,
   DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE,
   DE265_ERROR_IMAGE_BUFFER_FULL,
-  DE265_ERROR_CANNOT_START_THREADPOOL
+  DE265_ERROR_CANNOT_START_THREADPOOL,
+
+  DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING = 1000,
+  DE265_WARNING_WARNING_BUFFER_FULL
 } de265_error;
 
 const char* de265_get_error_text(de265_error err);
@@ -121,6 +124,8 @@ const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may
    use the data anymore after calling this function. */
 void de265_release_next_picture(de265_decoder_context*);
 
+
+de265_error de265_get_warning(de265_decoder_context*);
 
 /* Set decoding parameters. */
 void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
