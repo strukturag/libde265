@@ -6,7 +6,7 @@ INCLUDES = -I../libde265
 sherlock265_DEPENDENCIES = ../libde265/libde265.la
 sherlock265_CXXFLAGS = $(QT_CFLAGS) $(VIDEOGFX_CFLAGS)
 sherlock265_LDFLAGS = $(QT_LIBS) $(VIDEOGFX_LIBS)
-sherlock265_LDADD = ../libde265/libde265.la -lstdc++
+sherlock265_LDADD = ../libde265/libde265.la -lstdc++ -lpthread
 sherlock265_SOURCES = \
   sherlock265.cc \
   VideoPlayer.cc \
