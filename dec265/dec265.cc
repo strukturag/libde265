@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #ifndef _MSC_VER
 extern "C" {
@@ -95,13 +97,50 @@ void display_image(const struct de265_image* img)
 #define BUFFER_SIZE 4096
 #define NUM_THREADS 4
 
+int nThreads=0;
+bool quiet=false;
+bool check_hash=false;
+bool show_help=false;
+
+static struct option long_options[] = {
+  {"quiet",      no_argument,       0, 'q' },
+  {"threads",    required_argument, 0, 't' },
+  {"check-hash", no_argument,       0, 'c' },
+  {"help",       no_argument,       0, 'h' },
+  //{"verbose",    no_argument,       0, 'v' },
+  {0,         0,                 0,  0 }
+};
+
 
 int main(int argc, char** argv)
 {
-  if (argc < 2 || argc > 3) {
-    fprintf(stderr,"usage: dec265 videofile.bin number-of-threads\n");
+  while (1) {
+    int option_index = 0;
+
+    int c = getopt_long(argc, argv, "qt:ch",
+                        long_options, &option_index);
+    if (c == -1)
+      break;
+
+    switch (c) {
+    case 'q': quiet=true; break;
+    case 't': nThreads=atoi(optarg); break;
+    case 'c': check_hash=true; break;
+    case 'h': show_help=true; break;
+    }
+  }
+
+  if (optind != argc-1 || show_help) {
+    fprintf(stderr,"usage: dec265 [options] videofile.bin\n");
     fprintf(stderr,"The video file must be a raw h.265 bitstream (e.g. HM-10.0 output)\n");
-    exit(5);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"options:\n");
+    fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
+    fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
+    fprintf(stderr,"  -c, --check-hash  perform hash check\n");
+    fprintf(stderr,"  -h, --help        show help\n");
+
+    exit(show_help ? 0 : 5);
   }
 
 
@@ -111,15 +150,14 @@ int main(int argc, char** argv)
   de265_decoder_context* ctx = de265_new_decoder();
 
   if (argc>=3) {
-    int nThreads = atoi(argv[2]);
     if (nThreads>0) {
       err = de265_start_worker_threads(ctx, nThreads);
     }
   }
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, false);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
 
-  FILE* fh = fopen(argv[1], "rb");
+  FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
     fprintf(stderr,"cannot open file %s!\n", argv[1]);
     exit(10);
@@ -163,11 +201,17 @@ int main(int argc, char** argv)
         framecnt++;
         //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
 
+        if (!quiet) {
 #if HAVE_VIDEOGFX
-        display_image(img);
+          display_image(img);
 #else
-        //write_picture(img);
+          //write_picture(img);
 #endif
+        }
+
+        if ((framecnt%100)==0) {
+          fprintf(stderr,"frame %d\r",framecnt);
+        }
       }
     }
 
