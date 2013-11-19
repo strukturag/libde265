@@ -640,6 +640,14 @@ int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param p
 }
 
 
+int de265_get_number_of_input_bytes_pending(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  return ctx->nal_data.size + ctx->pending_input_data.size;
+}
+
+
 int de265_get_image_width(const struct de265_image* img,int channel)
 {
   switch (channel) {

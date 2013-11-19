@@ -125,6 +125,8 @@ const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may
 void de265_release_next_picture(de265_decoder_context*);
 
 
+int de265_get_number_of_input_bytes_pending(de265_decoder_context*);
+
 de265_error de265_get_warning(de265_decoder_context*);
 
 /* Set decoding parameters. */
