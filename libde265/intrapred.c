@@ -461,12 +461,18 @@ void decode_intra_block(decoder_context* ctx,
     splitFlag = get_split_transform_flag(ctx,xB0,yB0,trafoDepth);
 
     logtrace(LogIntraPred,"get_split_transform_flag(%d,%d, %d)=%d\n",xB0,yB0,trafoDepth,splitFlag);
-  } else if (cIdx>0 &&
-             get_split_transform_flag(ctx,xB0<<1,yB0<<1,trafoDepth)==1 &&
-             log2TrafoSize > 2) {
-    splitFlag=1;
-  } else {
-    splitFlag = 0;
+  }
+  else {
+    assert(cIdx>0);
+
+    // for chroma, ignore split flag when we reach 4x4 transform
+
+    if (log2TrafoSize == 2) {
+      splitFlag = 0;
+    }
+    else {
+      splitFlag = get_split_transform_flag(ctx,xB0<<1,yB0<<1,trafoDepth);
+    }
   }
 
 
