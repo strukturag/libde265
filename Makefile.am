@@ -2,6 +2,8 @@
 
 SUBDIRS = libde265
 
+ACLOCAL_AMFLAGS = -I m4
+
 if ENABLE_DEC265
 SUBDIRS+=dec265
 endif

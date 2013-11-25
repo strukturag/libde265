@@ -61,6 +61,11 @@ AC_CHECK_FUNCS([memmove memset])
 AC_SEARCH_LIBS([sqrt], [m])
 
 
+# --- machine dependent optimizations ---
+
+AX_EXT
+CFLAGS+=$SIMD_FLAGS
+
 # --- additional logging ---
 
 AC_ARG_ENABLE(log-error,
