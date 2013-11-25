@@ -24,9 +24,11 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <limits>
 
 #ifndef _MSC_VER
 extern "C" {
@@ -101,12 +103,16 @@ void display_image(const struct de265_image* img)
 int nThreads=0;
 bool quiet=false;
 bool check_hash=false;
+bool show_profile=false;
 bool show_help=false;
+uint32_t max_frames=std::numeric_limits<uint32_t>::max();
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
   {"threads",    required_argument, 0, 't' },
   {"check-hash", no_argument,       0, 'c' },
+  {"profile",    no_argument,       0, 'p' },
+  {"frames",     required_argument, 0, 'f' },
   {"help",       no_argument,       0, 'h' },
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
@@ -118,7 +124,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:ch",
+    int c = getopt_long(argc, argv, "qt:chpf:",
                         long_options, &option_index);
     if (c == -1)
       break;
@@ -127,6 +133,8 @@ int main(int argc, char** argv)
     case 'q': quiet=true; break;
     case 't': nThreads=atoi(optarg); break;
     case 'c': check_hash=true; break;
+    case 'p': show_profile=true; break;
+    case 'f': max_frames=atoi(optarg); break;
     case 'h': show_help=true; break;
     }
   }
@@ -225,6 +233,10 @@ int main(int argc, char** argv)
 
         fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
       }
+
+      if (framecnt==max_frames) {
+        stop=true;
+      }
     }
 
   fclose(fh);
@@ -245,8 +257,10 @@ int main(int argc, char** argv)
           width,height,framecnt/secs);
 
 
-  showMotionProfile();
-  showIntraPredictionProfile();
+  if (show_profile) {
+    showMotionProfile();
+    showIntraPredictionProfile();
+  }
 
   return err==DE265_OK ? 0 : 10;
 }

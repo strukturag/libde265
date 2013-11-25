@@ -36,6 +36,7 @@
 #endif
 
 
+
 enum {
   // important! order like shown in 8.5.3.1.1
   PRED_A1  = 0,
@@ -566,6 +567,7 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
 }
 
 
+
 #define MAX_CU_SIZE 64
 
 // 8.5.3.2
@@ -630,22 +632,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
             FullpelPredCnt++;
           }
 
-        for (int y=0;y<nPbH;y++)
-          for (int x=0;x<nPbW;x++) {
-            // TODO: clip to real bit depth
-            ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
-              Clip1_8bit((predSamplesL[0][x+y*nCS] + offset1)>>shift1);
-          }
-
-        for (int y=0;y<nPbH/2;y++)
-          for (int x=0;x<nPbW/2;x++) {
-            // TODO: clip to real bit depth
-            ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-              Clip1_8bit((predSamplesC[0][0][x+y*nCS] + offset1)>>shift1);
-            ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-              Clip1_8bit((predSamplesC[1][0][x+y*nCS] + offset1)>>shift1);
-          }
-
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+                                            ctx->img->stride,
+                                            predSamplesL[0],nCS, nPbW,nPbH);
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+                                            ctx->img->chroma_stride,
+                                            predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+                                            ctx->img->chroma_stride,
+                                            predSamplesC[2][0],nCS, nPbW/2,nPbH/2);
 
 
         /*
@@ -684,47 +679,24 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           FullpelBipredCnt++;
         }
 
-      for (int y=0;y<nPbH;y++) {
-        int16_t* in0 = &predSamplesL[0][y*nCS];
-        int16_t* in1 = &predSamplesL[1][y*nCS];
-        uint8_t* out = &ctx->img->y[xP + (yP+y)*ctx->img->stride];
+      int16_t* in0 = predSamplesL[0];
+      int16_t* in1 = predSamplesL[1];
+      uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
 
-        for (int x=0;x<nPbW;x++) {
-          // TODO: clip to real bit depth
-          *out = Clip1_8bit((*in0 + *in1 + offset2)>>shift2);
-          out++; in0++; in1++;
-        }
-      }
+      ctx->lowlevel.put_weighted_pred_avg_8(out, ctx->img->stride,
+                                            in0,in1, nCS, nPbW, nPbH);
 
-#if 0
-      for (int y=0;y<nPbH/2;y++)
-        for (int x=0;x<nPbW/2;x++) {
-          // TODO: clip to real bit depth
-          ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-            Clip1_8bit((predSamplesC[0][0][x+y*nCS] + 
-                        predSamplesC[0][1][x+y*nCS] + offset2)>>shift2);
-
-          ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-            Clip1_8bit((predSamplesC[1][0][x+y*nCS] +
-                        predSamplesC[1][1][x+y*nCS] + offset2)>>shift2);
-        }
-#else
-      for (int y=0;y<nPbH/2;y++) {
-        int16_t* in00 = &predSamplesC[0][0][y*nCS];
-        int16_t* in01 = &predSamplesC[0][1][y*nCS];
-        int16_t* in10 = &predSamplesC[1][0][y*nCS];
-        int16_t* in11 = &predSamplesC[1][1][y*nCS];
-        uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+y)*ctx->img->chroma_stride];
-        uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+y)*ctx->img->chroma_stride];
-
-        for (int x=0;x<nPbW/2;x++) {
-          *out0 = Clip1_8bit((*in00 + *in01 + offset2)>>shift2);
-          *out1 = Clip1_8bit((*in10 + *in11 + offset2)>>shift2);
-
-          in00++; in01++; in10++; in11++; out0++; out1++;
-        }
-      }
-#endif
+      int16_t* in00 = predSamplesC[0][0];
+      int16_t* in01 = predSamplesC[0][1];
+      int16_t* in10 = predSamplesC[1][0];
+      int16_t* in11 = predSamplesC[1][1];
+      uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+      uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+      
+      ctx->lowlevel.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
+                                            in00,in01, nCS, nPbW/2, nPbH/2);
+      ctx->lowlevel.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
+                                            in10,in11, nCS, nPbW/2, nPbH/2);
     }
     else if (vi->lum.predFlag[0]==1 || vi->lum.predFlag[1]==1) {
       int l = vi->lum.predFlag[0] ? 0 : 1;
@@ -736,6 +708,17 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         }
 
 
+      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+                                          ctx->img->stride,
+                                          predSamplesL[l],nCS, nPbW,nPbH);
+      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          ctx->img->chroma_stride,
+                                          predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
+      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          ctx->img->chroma_stride,
+                                          predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
+
+#if 0
       for (int y=0;y<nPbH;y++)
         for (int x=0;x<nPbW;x++) {
           // TODO: clip to real bit depth
@@ -751,6 +734,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
             Clip1_8bit((predSamplesC[1][l][x+y*nCS] + offset1)>>shift1);
         }
+#endif
     }
     else {
       assert(false); // both predFlags == 0

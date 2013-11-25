@@ -47,7 +47,9 @@ libde265_la_SOURCES = \
   util.h \
   vps.h \
   motion.c motion.h motion_func.h \
-  threads.c threads.h
+  threads.c threads.h \
+  fallback.c fallback.h fallback-motion.c fallback-motion.h \
+  x86/sse.c x86/sse.h x86/sse-motion.c x86/sse-motion.h
 
 libde265_la_HEADERS = \
   de265.h
