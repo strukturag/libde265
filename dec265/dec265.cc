@@ -234,7 +234,7 @@ int main(int argc, char** argv)
         fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
       }
 
-      if (framecnt==max_frames) {
+      if (framecnt>=max_frames) {
         stop=true;
       }
     }

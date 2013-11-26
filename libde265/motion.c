@@ -36,6 +36,8 @@
 #endif
 
 
+#define MAX_CU_SIZE 64
+
 
 enum {
   // important! order like shown in 8.5.3.1.1
@@ -424,12 +426,18 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
 
 
-void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
+#include "fallback-motion.h"
+#include "x86/sse-motion.h"
+
+
+void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
                int xP,int yP,
                int16_t* out, int out_stride,
                uint8_t* img, int img_stride,
                int nPbWC, int nPbHC)
 {
+  const seq_parameter_set* sps = ctx->current_sps;
+
   // chroma sample interpolation process (8.5.3.2.2.2)
 
   const int shift1 = sps->BitDepth_C-8;
@@ -446,19 +454,14 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
   int yIntOffsC = yP/2 + (mv_y>>3);
 
 
+  int16_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+2*3 /* TODO: how much padding? */)];
+
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
         yIntOffsC>=0 && nPbHC+yIntOffsC<=hC) {
-      for (int y=0;y<nPbHC;y++) {
-        int16_t* o = &out[y*out_stride];
-        uint8_t* i = &img[xIntOffsC + (y+yIntOffsC)*img_stride];
-
-        for (int x=0;x<nPbWC;x++) {
-          *o = *i << shift3;
-          o++;
-          i++;
-        }
-      }
+      ctx->lowlevel.put_hevc_epel_8(out, out_stride,
+                                    &img[xIntOffsC + yIntOffsC*img_stride], img_stride,
+                                    nPbWC,nPbHC, 0,0, NULL);
     }
     else
       {
@@ -473,102 +476,59 @@ void mc_chroma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
   }
   else {
-    int extra_left = 1;
+    uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+4)];
+
+    uint8_t* src_ptr;
+    int src_stride;
+
     int extra_top  = 1;
-    int extra_right = 2;
-    int extra_bottom= 2;
+    int extra_left = 1;
+    int extra_right  = 2;
+    int extra_bottom = 2;
 
-    int nPbW_extra = extra_left + nPbWC + extra_right;
-    int nPbH_extra = extra_top  + nPbHC + extra_bottom;
-
-    uint8_t* tmp1buf = (uint8_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
-    int16_t* tmp2buf = (int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
-
-
-    logtrace(LogMotion,"---MC chroma frac:%d;%d---\n",xFracC,yFracC);
-
-    for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
-      for (int x=-extra_left;x<nPbWC+extra_right;x++) {
-        
-        int xA = Clip3(0,wC-1,x + xIntOffsC);
-        int yA = Clip3(0,hC-1,y + yIntOffsC);
-        
-        tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
-
-        logtrace(LogMotion,"%02x ",tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
-      }
-      logtrace(LogMotion,"\n");
+    if (xIntOffsC>=1 && nPbWC+xIntOffsC<=wC-2 &&
+        yIntOffsC>=1 && nPbHC+yIntOffsC<=hC-2) {
+      src_ptr = &img[xIntOffsC + yIntOffsC*img_stride];
+      src_stride = img_stride;
     }
-
-    // H-filters
-
-    logtrace(LogMotion,"---H---\n");
-
-    for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
-      uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-
-      for (int x=0;x<nPbWC;x++) {
-        int16_t v;
-        switch (xFracC) {
-        case 0: v = p[1]; break;
-        case 1: v = (-2*p[0]+58*p[1]+10*p[2]-2*p[3])>>shift1; break;
-        case 2: v = (-4*p[0]+54*p[1]+16*p[2]-2*p[3])>>shift1; break;
-        case 3: v = (-6*p[0]+46*p[1]+28*p[2]-4*p[3])>>shift1; break;
-        case 4: v = (-4*p[0]+36*p[1]+36*p[2]-4*p[3])>>shift1; break;
-        case 5: v = (-4*p[0]+28*p[1]+46*p[2]-6*p[3])>>shift1; break;
-        case 6: v = (-2*p[0]+16*p[1]+54*p[2]-4*p[3])>>shift1; break;
-        case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>shift1; break;
+    else {
+      for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
+        for (int x=-extra_left;x<nPbWC+extra_right;x++) {
+        
+          int xA = Clip3(0,wC-1,x + xIntOffsC);
+          int yA = Clip3(0,hC-1,y + yIntOffsC);
+        
+          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = img[ xA + yA*img_stride ];
         }
-        
-        tmp2buf[y+extra_top + x*nPbH_extra] = v;
-        p++;
-
-        logtrace(LogMotion,"%04x ",tmp2buf[y+extra_top + x*nPbH_extra]);
       }
-      logtrace(LogMotion,"\n");
+
+      src_ptr = &padbuf[extra_left + extra_top*(MAX_CU_SIZE+16)];
+      src_stride = MAX_CU_SIZE+16;
     }
 
-    // V-filters
 
-    int vshift = (xFracC==0 ? shift1 : shift2);
-
-    for (int x=0;x<nPbWC;x++) {
-      int16_t* p = &tmp2buf[x*nPbH_extra];
-
-      for (int y=0;y<nPbHC;y++) {
-        int16_t v;
-        //logtrace(LogMotion,"%x %x %x  %x  %x %x %x\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6]);
-
-        switch (yFracC) {
-        case 0: v = p[1]; break;
-        case 1: v = (-2*p[0]+58*p[1]+10*p[2]-2*p[3])>>vshift; break;
-        case 2: v = (-4*p[0]+54*p[1]+16*p[2]-2*p[3])>>vshift; break;
-        case 3: v = (-6*p[0]+46*p[1]+28*p[2]-4*p[3])>>vshift; break;
-        case 4: v = (-4*p[0]+36*p[1]+36*p[2]-4*p[3])>>vshift; break;
-        case 5: v = (-4*p[0]+28*p[1]+46*p[2]-6*p[3])>>vshift; break;
-        case 6: v = (-2*p[0]+16*p[1]+54*p[2]-4*p[3])>>vshift; break;
-        case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>vshift; break;
-        }
-        
-        out[x + y*out_stride] = v;
-        p++;
-      }
-
+    if (xFracC && yFracC) {
+      ctx->lowlevel.put_hevc_epel_hv_8(out, out_stride,
+                                       src_ptr, src_stride,
+                                       nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
     }
-
-    logtrace(LogMotion,"---V---\n");
-    for (int y=0;y<nPbHC;y++) {
-      for (int x=0;x<nPbWC;x++) {
-        logtrace(LogMotion,"%04x ",out[x+y*out_stride]);
-      }
-      logtrace(LogMotion,"\n");
+    else if (xFracC) {
+      ctx->lowlevel.put_hevc_epel_h_8(out, out_stride,
+                                      src_ptr, src_stride,
+                                      nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
+    }
+    else if (yFracC) {
+      ctx->lowlevel.put_hevc_epel_v_8(out, out_stride,
+                                      src_ptr, src_stride,
+                                      nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
+    }
+    else {
+      assert(false); // full-pel shifts are handled above
     }
   }
 }
 
 
-
-#define MAX_CU_SIZE 64
 
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
@@ -608,9 +568,9 @@ void generate_inter_prediction_samples(decoder_context* ctx,
               predSamplesL[l],nCS, refPic->y,refPic->stride, nPbW,nPbH);
 
 
-      mc_chroma(sps, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+      mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                 predSamplesC[0][l],nCS, refPic->cb,refPic->chroma_stride, nPbW/2,nPbH/2);
-      mc_chroma(sps, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+      mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                 predSamplesC[1][l],nCS, refPic->cr,refPic->chroma_stride, nPbW/2,nPbH/2);
     }
   }
