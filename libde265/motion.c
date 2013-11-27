@@ -108,12 +108,14 @@ void showMotionProfile()
   fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
 }
 
-void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
+void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
              uint8_t* img, int img_stride,
              int nPbW, int nPbH)
 {
+  const seq_parameter_set* sps = ctx->current_sps;
+
   int xFracL = mv_x & 3;
   int yFracL = mv_y & 3;
 
@@ -134,6 +136,8 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
+  int16_t mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
+
   if (xFracL==0 && yFracL==0) {
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
@@ -147,6 +151,7 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
+#if 0
       for (int y=0;y<nPbH;y++) {
         int16_t* o = &out[y*out_stride];
         uint8_t* i = &img[xIntOffsL+(y+yIntOffsL)*img_stride];
@@ -158,6 +163,12 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
           i++;
         }
       }
+#else
+      ctx->lowlevel.put_hevc_qpel_8[0][0](out, out_stride,
+                                          &img[yIntOffsL*img_stride + xIntOffsL],
+                                          img_stride,
+                                          nPbW,nPbH, mcbuffer);
+#endif
     }
     else {
       for (int y=0;y<nPbH;y++)
@@ -204,6 +215,56 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
     int nPbW_extra = extra_left + nPbW + extra_right;
     int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
+
+#if 1
+    uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+7)];
+
+    uint8_t* src_ptr;
+    int src_stride;
+
+    if (-extra_left + xIntOffsL >= 0 &&
+        -extra_top  + yIntOffsL >= 0 &&
+        nPbW+extra_right  + xIntOffsL < w &&
+        nPbH+extra_bottom + yIntOffsL < h) {
+      src_ptr = &img[xIntOffsL + yIntOffsL*img_stride];
+      src_stride = img_stride;
+    }
+    else {
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        for (int x=-extra_left;x<nPbW+extra_right;x++) {
+        
+          int xA = Clip3(0,w-1,x + xIntOffsL);
+          int yA = Clip3(0,h-1,y + yIntOffsL);
+        
+          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = img[ xA + yA*img_stride ];
+        }
+      }
+
+      /*
+      int n = nPbW+extra_left+extra_right;
+
+      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+        uint8_t* po = &padbuf[(y+extra_top)*(MAX_CU_SIZE+16)];
+        uint8_t* pi = &img[ -extra_left+xIntOffsL + (y+yIntOffsL)*img_stride ];
+
+        //memcpy(po,pi, n);
+
+        for (int x=n;x>0;x--) {
+          *po++ = *pi++;
+        }
+      }
+      */
+
+      src_ptr = &padbuf[extra_top*(MAX_CU_SIZE+16) + extra_left];
+      src_stride = MAX_CU_SIZE+16;
+    }
+
+    ctx->lowlevel.put_hevc_qpel_8[xFracL][yFracL](out, out_stride,
+                                                  src_ptr, src_stride,
+                                                  nPbW,nPbH, mcbuffer);
+
+
+#else
     uint8_t* tmp1buf = (uint8_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
     int16_t* tmp2buf = (int16_t*)alloca( nPbW       * nPbH_extra * sizeof(int16_t) );
 
@@ -256,24 +317,6 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     // H-filters
 
-#if 0
-    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-
-      for (int x=0;x<nPbW;x++) {
-        int16_t v;
-        switch (xFracL) {
-        case 0: v = *p; break;
-        case 1: v = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1; break;
-        case 2: v = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1; break;
-        case 3: v = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1; break;
-        }
-        
-        tmp2buf[y+extra_top + x*nPbH_extra] = v;
-        p++;
-      }
-    }
-#else
     switch (xFracL) {
     case 0:
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
@@ -324,7 +367,6 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
       break;
     }
-#endif
 
 
     logtrace(LogMotion,"---H---\n");
@@ -341,26 +383,6 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
 
     int vshift = (xFracL==0 ? shift1 : shift2);
 
-#if 0
-    for (int x=0;x<nPbW;x++) {
-      int16_t* p = &tmp2buf[x*nPbH_extra];
-
-      for (int y=0;y<nPbH;y++) {
-        int16_t v;
-        //logtrace(LogMotion,"%x %x %x  %x  %x %x %x\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6]);
-
-        switch (yFracL) {
-        case 0: v = *p; break;
-        case 1: v = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift; break;
-        case 2: v = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift; break;
-        case 3: v = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift; break;
-        }
-        
-        out[x + y*out_stride] = v;
-        p++;
-      }
-    }
-#else
     switch (yFracL) {
     case 0:
       for (int x=0;x<nPbW;x++) {
@@ -411,7 +433,6 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
       break;
     }
-#endif
 
     logtrace(LogMotion,"---V---\n");
     for (int y=0;y<nPbH;y++) {
@@ -420,14 +441,10 @@ void mc_luma(const seq_parameter_set* sps, int mv_x, int mv_y,
       }
       logtrace(LogMotion,"\n");
     }
-
+#endif
   }
 }
 
-
-
-#include "fallback-motion.h"
-#include "x86/sse-motion.h"
 
 
 void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
@@ -454,7 +471,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
   int yIntOffsC = yP/2 + (mv_y>>3);
 
 
-  int16_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+2*3 /* TODO: how much padding? */)];
+  int16_t __attribute__ ((aligned (16))) mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)];
 
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
@@ -476,7 +493,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
       }
   }
   else {
-    uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+4)];
+    uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+3)];
 
     uint8_t* src_ptr;
     int src_stride;
@@ -564,7 +581,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       // 8.5.3.2.2
 
       // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
-      mc_luma(sps, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+      mc_luma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
               predSamplesL[l],nCS, refPic->y,refPic->stride, nPbW,nPbH);
 
 
