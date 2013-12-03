@@ -31,6 +31,8 @@ struct lowlevel_functions
   void (*put_hevc_qpel_8[4][4])(int16_t *dst, ptrdiff_t dststride,
                                 uint8_t *src, ptrdiff_t srcstride, int width, int height,
                                 int16_t* mcbuffer);
+
+  void (*transform_4x4_luma_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
 };
 
 #endif

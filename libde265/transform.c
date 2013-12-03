@@ -133,7 +133,7 @@ static int8_t mat_8_357[4][4] = {
   { 55,-84, 74,-29 }
 };
 
-void transform_dst(int16_t* in, int32_t* out, int shift)
+static void transform_dst(int16_t* in, int32_t* out, int shift)
 {
   int rnd = 1<<(shift-1);
 
@@ -249,12 +249,27 @@ void transform_dct(int16_t* in, int32_t* out, int nT, int shift)
 }
 
 
-void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
-                            int16_t* coeff, int coeffStride, int nT, int trType, int postShift)
+bool transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
+                            int16_t* coeff, int coeffStride, int nT, int trType, int postShift,
+                            uint8_t* dst, int dstStride)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
   if (trType==1) {
+
+    int16_t g[4*4];
+
+    for (int c=0;c<4;c++) {
+      for (int y=0;y<4;y++) {
+        g[c+4*y] = coeff[c+y*coeffStride];
+      }
+    }
+
+    ctx->lowlevel.transform_4x4_luma_add_8(dst, g, dstStride);
+
+    return false;
+
+#if 0
     int16_t g[4][4];
     int16_t col[4];
     int32_t out[4];
@@ -278,7 +293,7 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
         coeff[x+y*coeffStride] = out[x];
       }
     }
-
+#endif
   } else {
 
     int16_t g[32][32];  // actually, only [nT][nT] used
@@ -304,6 +319,8 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
         coeff[x+y*coeffStride] = out[x];
       }
     }
+
+    return true;
   }
 }
 
@@ -337,6 +354,12 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   coeff = &tctx->coeff[cIdx][(yT-y0)*coeffStride+(xT-x0)];
 
 
+  uint8_t* pred;
+  int      stride;
+  get_image_plane(ctx,cIdx,&pred,&stride);
+  pred += xT + yT*stride;
+
+  bool addPred=true;
 
   if (shdr->cu_transquant_bypass_flag) {
     assert(false); // TODO
@@ -409,6 +432,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
           int32_t c = coeff[x+y*coeffStride] << 7;
           coeff[x+y*coeffStride] = (c+(1<<(bdShift2-1)))>>bdShift2;
         }
+
+      addPred = true;
     }
     else {
       int trType;
@@ -420,7 +445,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
         trType=0;
       }
 
-      transform_coefficients(ctx,shdr, coeff, coeffStride, nT, trType, bdShift2);
+      addPred = transform_coefficients(ctx,shdr, coeff, coeffStride, nT, trType, bdShift2,
+                                       pred, stride);
 
       /*
         for (int y=0;y<nT;y++)
@@ -441,11 +467,6 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   }
 
 
-  uint8_t* pred;
-  int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
-  pred += xT + yT*stride;
-
   logtrace(LogTransform,"prediction (cIdx:%d):\n",cIdx);
   for (int y=0;y<nT;y++) {
     for (int x=0;x<nT;x++) {
@@ -455,6 +476,9 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogTransform,"*\n");
   }  
 
+
+  if (addPred)
+    {
 #if 0
   for (int y=0;y<nT;y++) {
     uint8_t* p = &pred[y*stride];
@@ -473,6 +497,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     }
   }
 #endif
+    }
 
 
   logtrace(LogTransform,"pixels (cIdx:%d), position %d %d:\n",cIdx, xT,yT);

@@ -1,6 +1,7 @@
 
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
+#include "x86/sse-dct.h"
 
 
 void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
@@ -30,5 +31,8 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
   lowlevel->put_hevc_qpel_8[3][1] = ff_hevc_put_hevc_qpel_h_3_v_1_sse;
   lowlevel->put_hevc_qpel_8[3][2] = ff_hevc_put_hevc_qpel_h_3_v_2_sse;
   lowlevel->put_hevc_qpel_8[3][3] = ff_hevc_put_hevc_qpel_h_3_v_3_sse;
+
+  // actually, the scalar fallback seems to be faster than the SSE code
+  //lowlevel->transform_4x4_luma_add_8 = ff_hevc_transform_4x4_luma_add_8_sse4; // SSE-4 only TODO
 }
 

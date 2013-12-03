@@ -49,7 +49,9 @@ libde265_la_SOURCES = \
   motion.c motion.h motion_func.h \
   threads.c threads.h \
   fallback.c fallback.h fallback-motion.c fallback-motion.h \
-  x86/sse.c x86/sse.h x86/sse-motion.c x86/sse-motion.h
+  fallback-dct.h fallback-dct.c \
+  x86/sse.c x86/sse.h x86/sse-motion.c x86/sse-motion.h \
+  x86/sse-dct.h x86/sse-dct.c
 
 libde265_la_HEADERS = \
   de265.h
