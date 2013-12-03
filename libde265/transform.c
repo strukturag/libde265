@@ -24,7 +24,7 @@
 
 
 static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
-static int nSkip_4x4, nSkip_8x8, nSkip_16x16, nSkip_32x32;
+static int nSkip_4x4;
 static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
 
 void showTransformProfile()
@@ -36,9 +36,6 @@ void showTransformProfile()
   fprintf(stderr,"  DCT 16x16: %d\n",nDCT_16x16);
   fprintf(stderr,"  DCT 32x32: %d\n",nDCT_32x32);
   fprintf(stderr,"  Skip 4x4:   %d\n",nSkip_4x4);
-  fprintf(stderr,"  Skip 8x8:   %d\n",nSkip_8x8);
-  fprintf(stderr,"  Skip 16x16: %d\n",nSkip_16x16);
-  fprintf(stderr,"  Skip 32x32: %d\n",nSkip_32x32);
 
   fprintf(stderr,"nCoeff DCT 4x4: ");
   for (int i=1;i<=16;i++)
@@ -470,10 +467,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
       addPred = true;
 
-      /**/ if (nT==4)  { nSkip_4x4++; }
-      else if (nT==8)  { nSkip_8x8++; }
-      else if (nT==16) { nSkip_16x16++; }
-      else             { nSkip_32x32++; }
+      nSkip_4x4++;
     }
     else {
       int trType;
