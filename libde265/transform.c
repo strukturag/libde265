@@ -23,6 +23,45 @@
 #include <assert.h>
 
 
+static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
+static int nSkip_4x4, nSkip_8x8, nSkip_16x16, nSkip_32x32;
+static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
+
+void showTransformProfile()
+{
+  fprintf(stderr,"transform usage:\n");
+  fprintf(stderr,"  DST 4x4:   %d\n",nDST_4x4);
+  fprintf(stderr,"  DCT 4x4:   %d\n",nDCT_4x4);
+  fprintf(stderr,"  DCT 8x8:   %d\n",nDCT_8x8);
+  fprintf(stderr,"  DCT 16x16: %d\n",nDCT_16x16);
+  fprintf(stderr,"  DCT 32x32: %d\n",nDCT_32x32);
+  fprintf(stderr,"  Skip 4x4:   %d\n",nSkip_4x4);
+  fprintf(stderr,"  Skip 8x8:   %d\n",nSkip_8x8);
+  fprintf(stderr,"  Skip 16x16: %d\n",nSkip_16x16);
+  fprintf(stderr,"  Skip 32x32: %d\n",nSkip_32x32);
+
+  fprintf(stderr,"nCoeff DCT 4x4: ");
+  for (int i=1;i<=16;i++)
+    fprintf(stderr,"%d ",nCoeff4x4[i]);
+  fprintf(stderr,"\n");
+
+  fprintf(stderr,"nCoeff DCT 8x8: ");
+  for (int i=1;i<=8*8;i++)
+    fprintf(stderr,"%d ",nCoeff8x8[i]);
+  fprintf(stderr,"\n");
+
+  fprintf(stderr,"nCoeff DCT 16x16: ");
+  for (int i=1;i<=16*16;i++)
+    fprintf(stderr,"%d ",nCoeff16x16[i]);
+  fprintf(stderr,"\n");
+
+  fprintf(stderr,"nCoeff DCT 32x32: ");
+  for (int i=1;i<=32*32;i++)
+    fprintf(stderr,"%d ",nCoeff32x32[i]);
+  fprintf(stderr,"\n");
+}
+
+
 static const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
 
 int table8_22(int qPi)
@@ -265,37 +304,32 @@ bool transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
       }
     }
 
+    nDST_4x4++;
+
     ctx->lowlevel.transform_4x4_luma_add_8(dst, g, dstStride);
 
     return false;
-
-#if 0
-    int16_t g[4][4];
-    int16_t col[4];
-    int32_t out[4];
-
-    for (int c=0;c<4;c++) {
-      for (int y=0;y<4;y++) {
-        col[y] = coeff[c+y*coeffStride];
-      }
-
-      transform_dst(col,out, 7);
-
-      for (int y=0;y<4;y++) {
-        g[y][c] = out[y];
-      }
-    }
-
-    for (int y=0;y<4;y++) {
-      transform_dst(&g[y][0], out,postShift);
-
-      for (int x=0;x<4;x++) {
-        coeff[x+y*coeffStride] = out[x];
-      }
-    }
-#endif
   } else {
 
+#if 1
+    int16_t g[32*32];
+    int coeffCnt=0;
+
+    for (int c=0;c<nT;c++) {
+      for (int y=0;y<nT;y++) {
+        g[c+nT*y] = coeff[c+y*coeffStride];
+        coeffCnt += !!g[c+nT*y];
+      }
+    }
+    
+    /**/ if (nT==4)  { ctx->lowlevel.transform_4x4_add_8(dst,g,dstStride); nDCT_4x4++; nCoeff4x4[coeffCnt]++; }
+    else if (nT==8)  { ctx->lowlevel.transform_8x8_add_8(dst,g,dstStride); nDCT_8x8++; nCoeff8x8[coeffCnt]++; }
+    else if (nT==16) { ctx->lowlevel.transform_16x16_add_8(dst,g,dstStride); nDCT_16x16++; nCoeff16x16[coeffCnt]++; }
+    else             { ctx->lowlevel.transform_32x32_add_8(dst,g,dstStride); nDCT_32x32++; nCoeff32x32[coeffCnt]++; }
+
+    return false;
+
+#else
     int16_t g[32][32];  // actually, only [nT][nT] used
     int16_t col[32];    // actually, only [nT] used
     int32_t out[32];    // actually, only [nT] used
@@ -321,6 +355,7 @@ bool transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
     }
 
     return true;
+#endif
   }
 }
 
@@ -434,6 +469,11 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
         }
 
       addPred = true;
+
+      /**/ if (nT==4)  { nSkip_4x4++; }
+      else if (nT==8)  { nSkip_8x8++; }
+      else if (nT==16) { nSkip_16x16++; }
+      else             { nSkip_32x32++; }
     }
     else {
       int trType;

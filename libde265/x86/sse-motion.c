@@ -1,5 +1,5 @@
 /*
-  Code taken over from openHEVC.
+  Code was taken over from openHEVC and slightly modified.
  */
 
 #include <emmintrin.h>

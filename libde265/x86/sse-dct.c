@@ -1,3 +1,7 @@
+/*
+  Code was taken over from openHEVC and slightly modified.
+ */
+
 #include "x86/sse-dct.h"
 
 //#include "config.h"

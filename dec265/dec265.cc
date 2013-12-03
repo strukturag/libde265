@@ -51,6 +51,7 @@ extern "C" {
 extern "C" {
 void showMotionProfile();
 void showIntraPredictionProfile();
+void showTransformProfile();
 }
 
 
@@ -147,6 +148,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
+    fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -260,6 +262,7 @@ int main(int argc, char** argv)
   if (show_profile) {
     showMotionProfile();
     showIntraPredictionProfile();
+    showTransformProfile();
   }
 
   return err==DE265_OK ? 0 : 10;

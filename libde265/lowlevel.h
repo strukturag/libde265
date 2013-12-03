@@ -32,7 +32,12 @@ struct lowlevel_functions
                                 uint8_t *src, ptrdiff_t srcstride, int width, int height,
                                 int16_t* mcbuffer);
 
-  void (*transform_4x4_luma_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
+  void (*transform_4x4_luma_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDST
+
+  void (*transform_4x4_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_8x8_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_16x16_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_32x32_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
 };
 
 #endif

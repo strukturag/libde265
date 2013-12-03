@@ -34,5 +34,10 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
 
   // actually, the scalar fallback seems to be faster than the SSE code
   //lowlevel->transform_4x4_luma_add_8 = ff_hevc_transform_4x4_luma_add_8_sse4; // SSE-4 only TODO
+
+  lowlevel->transform_4x4_add_8   = ff_hevc_transform_4x4_add_8_sse4;
+  lowlevel->transform_8x8_add_8   = ff_hevc_transform_8x8_add_8_sse4;
+  lowlevel->transform_16x16_add_8 = ff_hevc_transform_16x16_add_8_sse4;
+  lowlevel->transform_32x32_add_8 = ff_hevc_transform_32x32_add_8_sse4;
 }
 
