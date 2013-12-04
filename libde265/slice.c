@@ -28,7 +28,7 @@
 
 #include <assert.h>
 #include <string.h>
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
 #else
 # include <alloca.h>
