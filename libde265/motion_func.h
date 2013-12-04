@@ -21,7 +21,6 @@
 #ifndef DE265_MOTION_FUNC_H
 #define DE265_MOTION_FUNC_H
 
-#include <stdint.h>
 #include "libde265/decctx.h"
 
 void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,

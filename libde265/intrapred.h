@@ -36,4 +36,9 @@ void decode_intra_block(decoder_context* ctx,
 void fill_border_samples(decoder_context* ctx, int xB,int yB,
                          int nT, int cIdx, uint8_t* out_border);
 
+void decode_intra_prediction(decoder_context* ctx,
+                             int xB0,int yB0,
+                             enum IntraPredMode intraPredMode,
+                             int nT, int cIdx);
+
 #endif

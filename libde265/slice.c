@@ -25,6 +25,7 @@
 #include "scan.h"
 #include "intrapred.h"
 #include "transform.h"
+#include "threads.h"
 
 #include <assert.h>
 #include <string.h>
@@ -3239,12 +3240,12 @@ void read_coding_unit__interleaved(decoder_context* ctx,
     else {
       bool rqt_root_cbf;
 
-      bool merge_flag=get_merge_flag(ctx,x0,y0);
+      bool merge_flag=!!get_merge_flag(ctx,x0,y0);
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
 
-        rqt_root_cbf = decode_rqt_root_cbf(tctx);
+        rqt_root_cbf = !!decode_rqt_root_cbf(tctx);
       }
       else {
         rqt_root_cbf = true;
@@ -3279,6 +3280,7 @@ void read_coding_unit__interleaved(decoder_context* ctx,
 
 
 
+#pragma warning(disable:4702) // unreachable code
 void read_coding_unit(decoder_context* ctx,
                       thread_context* tctx,
                       int x0, int y0,  // position of coding unit in frame
@@ -3286,7 +3288,6 @@ void read_coding_unit(decoder_context* ctx,
                       int ctDepth)
 {
   read_coding_unit__interleaved(ctx,tctx,x0,y0,log2CbSize,ctDepth); return;
-
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
@@ -3591,12 +3592,12 @@ void read_coding_unit(decoder_context* ctx,
     if (!false) { // !pcm
       bool rqt_root_cbf;
 
-      bool merge_flag=get_merge_flag(ctx,x0,y0);
+      bool merge_flag=!!get_merge_flag(ctx,x0,y0);
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
 
-        rqt_root_cbf = decode_rqt_root_cbf(tctx);
+        rqt_root_cbf = !!decode_rqt_root_cbf(tctx);
       }
       else {
         rqt_root_cbf = true;

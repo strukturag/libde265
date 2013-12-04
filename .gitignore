@@ -2,6 +2,7 @@
 .libs
 *.o
 *.lo
+*~
 Makefile
 Makefile.in
 config.log

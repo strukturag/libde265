@@ -184,7 +184,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
 
         // remember which byte we removed
 
-        int* skipped = malloc((ctx->num_skipped_bytes+1) * sizeof(int));
+        int* skipped = (int *)malloc((ctx->num_skipped_bytes+1) * sizeof(int));
 
         if (ctx->num_skipped_bytes>0) {
           memcpy(skipped, ctx->skipped_bytes, ctx->num_skipped_bytes * sizeof(int));
@@ -613,7 +613,7 @@ void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param 
   switch (param)
     {
     case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
-      ctx->param_sei_check_hash = value;
+      ctx->param_sei_check_hash = !!value;
       break;
 
     default:

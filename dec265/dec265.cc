@@ -24,13 +24,12 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <getopt.h>
 #include <limits>
+#include <getopt.h>
 
 #ifndef _MSC_VER
+#include <sys/time.h>
+#include <unistd.h>
 extern "C" {
 #include "libde265/decctx.h"
 }
@@ -48,11 +47,19 @@ extern "C" {
 #include "libde265/threads.h"
 }
 
+
+#ifndef WIN32
 extern "C" {
 void showMotionProfile();
 void showIntraPredictionProfile();
 void showTransformProfile();
 }
+#else
+void showMotionProfile();
+void showIntraPredictionProfile();
+void showTransformProfile();
+#endif
+
 
 
 #if HAVE_VIDEOGFX
@@ -97,6 +104,31 @@ void display_image(const struct de265_image* img)
 }
 #endif
 
+#ifdef WIN32
+#include <time.h>
+#define WIN32_LEAN_AND_MEAN
+#include <winsock.h>
+int gettimeofday(struct timeval *tp, void *tzp)
+{
+    time_t clock;
+    struct tm tm;
+    SYSTEMTIME wtm;
+
+    GetLocalTime(&wtm);
+    tm.tm_year      = wtm.wYear - 1900;
+    tm.tm_mon       = wtm.wMonth - 1;
+    tm.tm_mday      = wtm.wDay;
+    tm.tm_hour      = wtm.wHour;
+    tm.tm_min       = wtm.wMinute;
+    tm.tm_sec       = wtm.wSecond;
+    tm. tm_isdst    = -1;
+    clock = mktime(&tm);
+    tp->tv_sec = clock;
+    tp->tv_usec = wtm.wMilliseconds * 1000;
+
+    return (0);
+}
+#endif
 
 #define BUFFER_SIZE 4096
 #define NUM_THREADS 4
@@ -106,7 +138,7 @@ bool quiet=false;
 bool check_hash=false;
 bool show_profile=false;
 bool show_help=false;
-uint32_t max_frames=std::numeric_limits<uint32_t>::max();
+uint32_t max_frames=UINT32_MAX;
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
@@ -175,7 +207,7 @@ int main(int argc, char** argv)
   }
 
   bool stop=false;
-  int framecnt=0;
+  uint32_t framecnt=0;
 
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);

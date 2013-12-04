@@ -25,9 +25,21 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+//#define inline static __inline
 
+
+#define __STDC_LIMIT_MACROS 1
 #include <stdint.h>
 
+#ifdef _MSC_VER
+#define DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
+#else
+#define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
+#endif
+#define ALIGNED_32( var ) DECLARE_ALIGNED( var, 32 )
+#define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
+#define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
+#define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
 
 /* === error codes === */
 

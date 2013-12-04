@@ -50,19 +50,20 @@ else(USE_VIDEOGFX)
     add_definitions(-D HAVE_VIDEOGFX=0)
 endif(USE_VIDEOGFX)
 
-if(UNIX)
-    SET(PLATFORM_LIBS pthread rt m)
-endif(UNIX)
-
 include_directories(../ ../libde265)
 
-file(GLOB LIBSRC ../libde265/*.c)
-file(GLOB LIBINC ../libde265/*.h)
+file(GLOB LIBSRC ../libde265/*.c ../extra/*.c)
+file(GLOB LIBINC ../libde265/*.h ../extra/*.h)
 file(GLOB APPSRC dec265.cc)
 
 source_group(INC  FILES ${LIBINC})
 source_group(SRC  FILES ${LIBSRC})
 source_group(APP  FILES ${APPSRC})
+
+if(UNIX)
+    SET(PLATFORM_LIBS pthread rt m)
+    SET_SOURCE_FILES_PROPERTIES(../extra/win32thread.c PROPERTIES HEADER_FILE_ONLY TRUE)
+endif(UNIX)
 
 # Main CLI application
 if(MSVC)

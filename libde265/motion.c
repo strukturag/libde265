@@ -470,8 +470,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
   int xIntOffsC = xP/2 + (mv_x>>3);
   int yIntOffsC = yP/2 + (mv_y>>3);
 
-
-  int16_t __attribute__ ((aligned (16))) mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)];
+  ALIGNED_32(int16_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)]);
 
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&

@@ -3,9 +3,18 @@
 #include <assert.h>
 #include <string.h>
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+# include <malloc.h>
+#else
+# include <alloca.h>
+#endif
+
+
+#ifndef WIN32
+// #include <intrin.h>
 
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
-void de265_thread_join(de265_thread* t) { pthread_join(*t,NULL); }
+void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
 void de265_thread_destroy(de265_thread* t) { }
 void de265_mutex_init(de265_mutex* m) { pthread_mutex_init(m,NULL); }
 void de265_mutex_destroy(de265_mutex* m) { pthread_mutex_destroy(m); }
@@ -16,7 +25,7 @@ void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
-
+#endif // WIN32
 
 #include "libde265/decctx.h"
 
@@ -28,7 +37,8 @@ void printblks(const thread_pool* pool)
 
   printf("active threads: %d  queue len: %d\n",pool->num_threads_working,pool->num_tasks);
 
-  char p[w*h];
+  char *const p = (char *)alloca(w * h * sizeof(char));
+  assert(p != NULL);
   memset(p,' ',w*h);
 
   for (int i=0;i<pool->num_tasks;i++) {
@@ -154,7 +164,12 @@ static void* worker_thread(void* pool_ptr)
     */
 
     //pool->num_threads_working--;
+#ifndef WIN32
     int pending = __sync_sub_and_fetch(&pool->tasks_pending, 1);
+#else
+    int pending = InterlockedDecrement(reinterpret_cast<volatile long*>(&pool->tasks_pending));
+#endif
+
 
     /*
       printf("%03d [%d]: ",pool->num_tasks,pool->num_threads_working);
@@ -241,7 +256,7 @@ void stop_thread_pool(thread_pool* pool)
   de265_cond_broadcast(&pool->cond_var);
 
   for (int i=0;i<pool->num_threads;i++) {
-    de265_thread_join(&pool->thread[i]);
+    de265_thread_join(pool->thread[i]);
     de265_thread_destroy(&pool->thread[i]);
   }
 
@@ -274,7 +289,11 @@ void   decrement_tasks_pending(thread_pool* pool)
   //pool->tasks_pending--;
   //de265_mutex_unlock(&pool->mutex);
 
-  __sync_sub_and_fetch(&pool->tasks_pending, 1);
+#ifndef WIN32
+    __sync_sub_and_fetch(&pool->tasks_pending, 1);
+#else
+    InterlockedDecrement(reinterpret_cast<volatile long*>(&pool->tasks_pending));
+#endif
 }
 
 

@@ -791,7 +791,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       }
     else
       {
-        ctx->img->PicOutputFlag = hdr->pic_output_flag;
+        ctx->img->PicOutputFlag = !!hdr->pic_output_flag;
       }
 
     process_picture_order_count(ctx,hdr);
@@ -1334,7 +1334,11 @@ uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
 {
   int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
 
+#ifndef WIN32
   uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
+#else
+  uint8_t blkcnt = InterlockedDecrement(reinterpret_cast<volatile long*>(&ctx->ctb_info[idx].task_blocking_cnt));
+#endif
   return blkcnt;
 }
 

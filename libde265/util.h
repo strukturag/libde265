@@ -26,7 +26,9 @@
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
 #define Sign(value) (((value)>0) ? 1 : ((value)<0) ? -1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))
+#undef min
 #define min(a,b) (((a)<(b)) ? (a) : (b))
+#undef max
 #define max(a,b) (((a)>(b)) ? (a) : (b))
 
 int ceil_div(int num,int denom);
