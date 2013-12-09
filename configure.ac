@@ -66,6 +66,9 @@ AC_SEARCH_LIBS([sqrt], [m])
 AX_EXT
 CFLAGS+=$SIMD_FLAGS
 
+AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse42_ext" = x"yes"])
+
+
 # --- additional logging ---
 
 AC_ARG_ENABLE(log-error,
