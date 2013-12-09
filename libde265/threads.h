@@ -118,7 +118,7 @@ typedef struct
 #define MAX_THREAD_TASKS 1024
 #define MAX_THREADS 32
 
-typedef struct
+typedef struct thread_pool
 {
   bool stopped;
 
