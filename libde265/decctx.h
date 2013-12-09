@@ -88,16 +88,6 @@ typedef struct {
 
 
 typedef struct {
-  int8_t  refIdx[2];
-  int16_t mvd[2][2]; // only in top left position
-  uint8_t merge_idx;
-  uint8_t merge_flag;
-  uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc; // enum InterPredIdc
-} PB_info;
-
-
-typedef struct {
   uint16_t cbf_cb; // bitfield (1<<depth)
   uint16_t cbf_cr; // bitfield (1<<depth)
   uint16_t cbf_luma; // bitfield (1<<depth)
@@ -233,13 +223,11 @@ typedef struct decoder_context {
   CTB_info* ctb_info; // in raster scan
   CB_info*  cb_info; // in raster scan
   TU_info*  tu_info; // in raster scan
-  PB_info*  pb_info; // in raster scan
   deblock_info* deblk_info;
 
   int ctb_info_size;
   int cb_info_size;
   int tu_info_size;
-  int pb_info_size;
   int deblk_info_size;
 
   int deblk_width;
@@ -363,26 +351,6 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
 const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
-
-int  get_merge_idx(const decoder_context* ctx,int xP,int yP);
-void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int merge_idx);
-
-uint8_t get_merge_flag(const decoder_context* ctx,int xP,int yP);
-void    set_merge_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, uint8_t merge_flag);
-
-uint8_t get_mvp_flag(const decoder_context* ctx,int xP,int yP, int l);
-void set_mvp_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,
-                  int l, uint8_t new_flag);
-
-void    set_mvd(decoder_context* ctx,int x0,int y0,int reflist, int16_t dx,int16_t dy);
-int16_t get_mvd_x(const decoder_context* ctx,int x0,int y0,int reflist);
-int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist);
-
-void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx);
-uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l);
-
-void              set_inter_pred_idc(decoder_context* ctx,int x0,int y0,enum InterPredIdc idc);
-enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0);
 
 void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt);
 uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY);

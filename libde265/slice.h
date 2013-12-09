@@ -129,12 +129,27 @@ typedef struct thread_context
   int CtbAddrInRS;
   int CtbAddrInTS;
 
-  //int16_t coeff[3][64*64];
+
+  // motion vectors
+
+  int8_t  refIdx[2];
+  int16_t mvd[2][2]; // only in top left position
+  uint8_t merge_flag;
+  uint8_t merge_idx;
+  uint8_t mvp_lX_flag[2];
+  uint8_t inter_pred_idc; // enum InterPredIdc
+
+
+  // residual data
+
   int16_t coeffBuf[32*32];
 
   int16_t coeffList[3][32*32];
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
+
+
+  // quantization
 
   int currentQPY;
   int lastQPYinPreviousQG;

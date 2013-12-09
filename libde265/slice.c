@@ -48,7 +48,7 @@ int check_CTB_available(decoder_context* ctx,
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 
-void decode_CU(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
+//void decode_CU(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
 //void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
 
 
@@ -2657,7 +2657,9 @@ void read_mvd_coding(thread_context* tctx,
     }
   }
 
-  set_mvd(tctx->decctx, x0,y0, refList, value[0],value[1]);
+  //set_mvd(tctx->decctx, x0,y0, refList, value[0],value[1]);
+  tctx->mvd[refList][0] = value[0];
+  tctx->mvd[refList][1] = value[1];
 
   logtrace(LogSlice, "MVD[%d;%d|%d] = %d;%d\n",x0,y0,refList, value[0],value[1]);
 }
@@ -2675,8 +2677,8 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
     merge_idx = decode_merge_idx(tctx);
   }
 
-  set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
-  set_merge_flag(ctx,x0,y0,nPbW,nPbH, true);
+  tctx->merge_idx = merge_idx;
+  tctx->merge_flag = true;
 
   logtrace(LogSlice,"prediction skip 2Nx2N, merge_idx: %d\n",merge_idx);
 }
@@ -2696,7 +2698,7 @@ void read_prediction_unit(decoder_context* ctx,
   slice_segment_header* shdr = tctx->shdr;
 
   int merge_flag = decode_merge_flag(tctx);
-  set_merge_flag(ctx,x0,y0,nPbW,nPbH, merge_flag);
+  tctx->merge_flag = merge_flag;
 
   if (merge_flag) {
     int merge_idx = 0;
@@ -2707,7 +2709,7 @@ void read_prediction_unit(decoder_context* ctx,
 
     logtrace(LogSlice,"prediction unit %d,%d, merge mode, index: %d\n",x0,y0,merge_idx);
 
-    set_merge_idx(ctx,x0,y0, nPbW,nPbH, merge_idx);
+    tctx->merge_idx = merge_idx;
   }
   else { // no merge flag
     enum InterPredIdc inter_pred_idc;
@@ -2719,18 +2721,18 @@ void read_prediction_unit(decoder_context* ctx,
       inter_pred_idc = PRED_L0;
     }
 
-    set_inter_pred_idc(ctx,x0,y0, inter_pred_idc);
+    tctx->inter_pred_idc = inter_pred_idc; // set_inter_pred_idc(ctx,x0,y0, inter_pred_idc);
 
     if (inter_pred_idc != PRED_L1) {
       int ref_idx_l0 = decode_ref_idx_lX(tctx, shdr->num_ref_idx_l0_active);
 
       // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
-      set_ref_idx(ctx,x0,y0,nPbW,nPbH,0, ref_idx_l0);
+      tctx->refIdx[0] = ref_idx_l0;
 
       read_mvd_coding(tctx,x0,y0, 0);
 
       int mvp_l0_flag = decode_mvp_lx_flag(tctx); // l0
-      set_mvp_flag(ctx,x0,y0,nPbW,nPbH,0, mvp_l0_flag);
+      tctx->mvp_lX_flag[0] = mvp_l0_flag;
 
       logtrace(LogSlice,"prediction unit %d,%d, L0, mvp_l0_flag:%d\n",
                x0,y0, mvp_l0_flag);
@@ -2740,18 +2742,19 @@ void read_prediction_unit(decoder_context* ctx,
       int ref_idx_l1 = decode_ref_idx_lX(tctx, shdr->num_ref_idx_l1_active);
 
       // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
-      set_ref_idx(ctx,x0,y0,nPbW,nPbH,1, ref_idx_l1);
+      tctx->refIdx[1] = ref_idx_l1;
 
       if (shdr->mvd_l1_zero_flag &&
           inter_pred_idc == PRED_BI) {
-        set_mvd(ctx, x0,y0, 1, 0,0);
+        tctx->mvd[1][0] = 0;
+        tctx->mvd[1][1] = 0;
       }
       else {
         read_mvd_coding(tctx,x0,y0, 1);
       }
 
       int mvp_l1_flag = decode_mvp_lx_flag(tctx); // l1
-      set_mvp_flag(ctx,x0,y0,nPbW,nPbH,1, mvp_l1_flag);
+      tctx->mvp_lX_flag[1] = mvp_l1_flag;
 
       logtrace(LogSlice,"prediction unit %d,%d, L1, mvp_l1_flag:%d\n",
                x0,y0, mvp_l1_flag);
@@ -2760,7 +2763,7 @@ void read_prediction_unit(decoder_context* ctx,
 
 
 
-  decode_prediction_unit(ctx,shdr, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
+  decode_prediction_unit(ctx,tctx, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
 }
 
 
@@ -2820,7 +2823,7 @@ void read_coding_unit(decoder_context* ctx,
     //inter_prediction(ctx,shdr, x0,y0, log2CbSize);
 
     int nCS_L = 1<<log2CbSize;
-    decode_prediction_unit(ctx,shdr,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
+    decode_prediction_unit(ctx,tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {
@@ -3083,7 +3086,7 @@ void read_coding_unit(decoder_context* ctx,
     else {
       bool rqt_root_cbf;
 
-      bool merge_flag=!!get_merge_flag(ctx,x0,y0);
+      uint8_t merge_flag = tctx->merge_flag; // !!get_merge_flag(ctx,x0,y0);
 
       if (cuPredMode != MODE_INTRA &&
           !(PartMode == PART_2Nx2N && merge_flag)) {
@@ -3122,7 +3125,7 @@ void read_coding_unit(decoder_context* ctx,
 // ------------------------------------------------------------------------------------------
 
 
-
+#if 0
 void decode_CU(decoder_context* ctx,
                thread_context* tctx,
                int x0, int y0,  // position of CU in frame
@@ -3221,6 +3224,7 @@ void decode_CU(decoder_context* ctx,
         }
     }
 }
+#endif
 
 
 void decode_inter_block_luma(decoder_context* ctx,

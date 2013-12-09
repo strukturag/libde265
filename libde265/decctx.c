@@ -117,7 +117,6 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
   memset(ctx->cb_info,  0,sizeof(CB_info)  * ctx->cb_info_size);
   memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
-  memset(ctx->pb_info,  0,sizeof(PB_info)  * ctx->pb_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
@@ -149,7 +148,6 @@ void free_info_arrays(decoder_context* ctx)
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
   if (ctx->cb_info)  { free(ctx->cb_info);  ctx->cb_info =NULL; }
   if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
-  if (ctx->pb_info)  { free(ctx->pb_info);  ctx->pb_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
@@ -170,7 +168,6 @@ de265_error allocate_info_arrays(decoder_context* ctx)
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
       ctx->cb_info_size   = sps->PicSizeInMinCbsY;
-      ctx->pb_info_size   = sps->PicSizeInMinCbsY*4*4;
       ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
@@ -179,7 +176,6 @@ de265_error allocate_info_arrays(decoder_context* ctx)
       // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
       ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
       ctx->cb_info    = (CB_info  *)malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
-      ctx->pb_info    = (PB_info  *)malloc( sizeof(PB_info)    * ctx->pb_info_size  *1);
       ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
       ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
@@ -755,6 +751,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     }
 
 
+
     /* HACK
     de265_alloc_image(&ctx->coeff,
                       w*2,h,  // 2 bytes per pixel
@@ -1180,15 +1177,6 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
 
 #define PIXEL2PB(x) (x >> (ctx->current_sps->Log2MinCbSizeY-2))
 #define PB_IDX(x0,y0) (PIXEL2PB(x0) + PIXEL2PB(y0)*ctx->current_sps->PicWidthInMinCbsY*4)
-#define GET_PB_BLK(x,y) ctx->pb_info[PB_IDX(x,y)]
-#define SET_PB_BLK(x,y,nPbW,nPbH, Field, value)                         \
-  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
-  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
-    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
-      {                                                                 \
-        ctx->pb_info[PB_IDX(pbx,pby)].Field = value;                    \
-      }
-
 #define SET_IMG_PB_BLK(x,y,nPbW,nPbH,  Field,value)                     \
   int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
   for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
@@ -1225,93 +1213,6 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
 
   //{ SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
   { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
-}
-
-
-int get_merge_idx(const decoder_context* ctx,int xP,int yP)
-{
-  int idx = PB_IDX(xP,yP);
-  return ctx->pb_info[idx].merge_idx;
-}
-
-void set_merge_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, int new_merge_idx)
-{
-  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_idx, new_merge_idx);
-}
-
-
-uint8_t get_merge_flag(const decoder_context* ctx,int xP,int yP)
-{
-  int idx = PB_IDX(xP,yP);
-  return ctx->pb_info[idx].merge_flag;
-}
-
-void set_merge_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH, uint8_t new_merge_flag)
-{
-  SET_PB_BLK(x0,y0,nPbW,nPbH,merge_flag, new_merge_flag);
-}
-
-
-uint8_t get_mvp_flag(const decoder_context* ctx,int xP,int yP, int l)
-{
-  int idx = PB_IDX(xP,yP);
-  return ctx->pb_info[idx].mvp_lX_flag[l];
-}
-
-void set_mvp_flag(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,
-                  int l, uint8_t new_flag)
-{
-  SET_PB_BLK(x0,y0,nPbW,nPbH,mvp_lX_flag[l], new_flag);
-}
-
-
-void    set_mvd(decoder_context* ctx,int x0,int y0,int reflist, int16_t dx,int16_t dy)
-{
-  int idx = PB_IDX(x0,y0);
-  ctx->pb_info[idx].mvd[reflist][0] = dx;
-  ctx->pb_info[idx].mvd[reflist][1] = dy;
-}
-
-int16_t get_mvd_x(const decoder_context* ctx,int x0,int y0,int reflist)
-{
-  int idx = PB_IDX(x0,y0);
-  return ctx->pb_info[idx].mvd[reflist][0];
-}
-
-int16_t get_mvd_y(const decoder_context* ctx,int x0,int y0,int reflist)
-{
-  int idx = PB_IDX(x0,y0);
-  return ctx->pb_info[idx].mvd[reflist][1];
-}
-
-void    set_ref_idx(decoder_context* ctx,int x0,int y0,int nPbW,int nPbH,int l, int ref_idx)
-{
-  // TODO: is it possible to mode this into the image's PB data or is this at a different resolution?
-  // It appears that the resolution is different, because it does not work out of the box.
-
-  SET_PB_BLK(x0,y0,nPbW,nPbH, refIdx[l], ref_idx);
-  //de265_image* img = ctx->img;
-  //{ SET_IMG_PB_BLK(x0,y0,nPbW,nPbH, mvi.refIdx[l], ref_idx); }
-}
-
-uint8_t get_ref_idx(const decoder_context* ctx,int x0,int y0,int l)
-{
-  int idx = PB_IDX(x0,y0);
-  return ctx->pb_info[idx].refIdx[l];
-  //return &ctx->img->pb_info[ PB_IDX(x0,y0) ].mvi.refIdx[l];
-}
-
-
-void set_inter_pred_idc(decoder_context* ctx,int x0,int y0,enum InterPredIdc idc)
-{
-  int idx = PB_IDX(x0,y0);
-  ctx->pb_info[idx].inter_pred_idc = (uint8_t)idc;
-}
-
-enum InterPredIdc get_inter_pred_idc(const decoder_context* ctx,int x0,int y0)
-{
-  int idx = PB_IDX(x0,y0);
-  return (enum InterPredIdc)(ctx->pb_info[idx].inter_pred_idc);
 }
 
 

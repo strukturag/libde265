@@ -1340,11 +1340,13 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
 
 // 8.5.3.1.1
 void derive_luma_motion_merge_mode(decoder_context* ctx,
-                                   slice_segment_header* shdr,
+                                   thread_context* tctx,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
                                    VectorInfo* out_vi)
 {
+  slice_segment_header* shdr = tctx->shdr;
+
   int singleMCLFlag;
   singleMCLFlag = (ctx->current_pps->log2_parallel_merge_level > 2 && nCS==8);
 
@@ -1422,7 +1424,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 8.
 
-  int merge_idx = get_merge_idx(ctx,xP,yP);
+  int merge_idx = tctx->merge_idx; // get_merge_idx(ctx,xP,yP);
   out_vi->lum = mergeCandList[merge_idx];
 
 
@@ -1661,11 +1663,14 @@ void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
 
 // 8.5.3.1.5
 MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
-                                           const slice_segment_header* shdr,
+                                           thread_context* tctx,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int l,
                                            int refIdx, int partIdx)
 {
+  const slice_segment_header* shdr = tctx->shdr;
+
+
   // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
 
   uint8_t availableFlagLXN[2];
@@ -1731,7 +1736,7 @@ MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
 
   // select predictor according to mvp_lX_flag
 
-  return mvpList[ get_mvp_flag(ctx,xP,yP,l) ];
+  return mvpList[ tctx->mvp_lX_flag[l] ];
 }
 
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
@@ -1753,19 +1758,21 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* m
 
 // 8.5.3.1
 void motion_vectors_and_ref_indices(decoder_context* ctx,
-                                    slice_segment_header* shdr,
+                                    thread_context* tctx,
                                     int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
                                     VectorInfo* out_vi)
 {
+  slice_segment_header* shdr = tctx->shdr;
+
   int xP = xC+xB;
   int yP = yC+yB;
 
   enum PredMode predMode = get_pred_mode(ctx, xC,yC);
 
   if (predMode == MODE_SKIP ||
-      (predMode == MODE_INTER && get_merge_flag(ctx, xP,yP)))
+      (predMode == MODE_INTER && tctx->merge_flag))
     {
-      derive_luma_motion_merge_mode(ctx,shdr, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+      derive_luma_motion_merge_mode(ctx,tctx, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
 
       logMV(xP,yP,nPbW,nPbH, "merge_mode", out_vi);
     }
@@ -1776,12 +1783,12 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
     for (int l=0;l<2;l++) {
       // 1.
 
-      enum InterPredIdc inter_pred_idc = get_inter_pred_idc(ctx,xP,yP);
+      enum InterPredIdc inter_pred_idc = tctx->inter_pred_idc;
 
       if (inter_pred_idc == PRED_BI ||
           (inter_pred_idc == PRED_L0 && l==0) ||
           (inter_pred_idc == PRED_L1 && l==1)) {
-        out_vi->lum.refIdx[l] = get_ref_idx(ctx,xP,yP,l);
+        out_vi->lum.refIdx[l] = tctx->refIdx[l];
         out_vi->lum.predFlag[l] = 1;
       }
       else {
@@ -1791,14 +1798,14 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
       // 2.
 
-      mvdL[l][0] = get_mvd_x(ctx,xP,yP,l);
-      mvdL[l][1] = get_mvd_y(ctx,xP,yP,l);
+      mvdL[l][0] = tctx->mvd[l][0];
+      mvdL[l][1] = tctx->mvd[l][1];
 
 
       if (out_vi->lum.predFlag[l]) {
         // 3.
 
-        mvpL[l] = luma_motion_vector_prediction(ctx,shdr,xC,yC,nCS,xP,yP, nPbW,nPbH, l,
+        mvpL[l] = luma_motion_vector_prediction(ctx,tctx,xC,yC,nCS,xP,yP, nPbW,nPbH, l,
                                                 out_vi->lum.refIdx[l], partIdx);
 
         // 4.
@@ -1817,13 +1824,16 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
 
 // 8.5.3
-void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
+void decode_prediction_unit(decoder_context* ctx,
+                            thread_context* tctx,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
+  slice_segment_header* shdr = tctx->shdr;
+
   // 1.
 
   VectorInfo vi;
-  motion_vectors_and_ref_indices(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
+  motion_vectors_and_ref_indices(ctx,tctx, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 
   // 2.
 
@@ -1835,6 +1845,7 @@ void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
 
 
 // 8.5.2
+#if 0
 void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
                       int xC,int yC, int log2CbSize)
 {
@@ -1889,3 +1900,4 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
     assert(false); // undefined partitioning mode
   }
 }
+#endif
