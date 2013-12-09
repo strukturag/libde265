@@ -13,6 +13,9 @@
 #ifndef WIN32
 // #include <intrin.h>
 
+#define THREAD_RESULT       void*
+#define THREAD_PARAM        void*
+
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
 void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
 void de265_thread_destroy(de265_thread* t) { }
@@ -25,6 +28,30 @@ void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
+#else  // WIN32
+
+#define THREAD_RESULT       DWORD WINAPI
+#define THREAD_PARAM        LPVOID
+
+int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
+    HANDLE handle = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
+    if (handle == NULL) {
+        return -1;
+    }
+    *t = handle;
+    return 0;
+}
+void de265_thread_join(de265_thread t) { WaitForSingleObject(t, INFINITE); }
+void de265_thread_destroy(de265_thread* t) { CloseHandle(*t); *t = NULL; }
+void de265_mutex_init(de265_mutex* m) { *m = CreateMutex(NULL, FALSE, NULL); }
+void de265_mutex_destroy(de265_mutex* m) { CloseHandle(*m); }
+void de265_mutex_lock(de265_mutex* m) { WaitForSingleObject(*m, INFINITE); }
+void de265_mutex_unlock(de265_mutex* m) { ReleaseMutex(*m); }
+void de265_cond_init(de265_cond* c) { win32_cond_init(c); }
+void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
+void de265_cond_broadcast(de265_cond* c) { win32_cond_broadcast(c); }
+void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
+void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 #endif // WIN32
 
 #include "libde265/decctx.h"
@@ -68,7 +95,7 @@ void printblks(const thread_pool* pool)
 }
 
 
-static void* worker_thread(void* pool_ptr)
+static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 {
   thread_pool* pool = (thread_pool*)pool_ptr;
 
