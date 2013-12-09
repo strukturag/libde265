@@ -171,7 +171,7 @@ typedef struct decoder_context {
   seq_parameter_set*   current_sps;
   pic_parameter_set*   current_pps;
 
-  thread_pool thread_pool;
+  struct thread_pool thread_pool;
   int num_worker_threads;
 
 
