@@ -352,6 +352,13 @@ de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data,
 }
 
 
+void init_thread_context(thread_context* tctx)
+{
+  // zero scrap memory for coefficient blocks
+  memset(tctx->coeffBuf, 0, sizeof(tctx->coeffBuf));
+}
+
+
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
@@ -424,6 +431,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     }
 
     if (!use_WPP) {
+      init_thread_context(&hdr->thread_context[0]);
+
       init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
                          reader.data,
                          reader.bytes_remaining);
@@ -445,6 +454,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         int dataEnd;
         if (i==nRows-1) dataEnd = reader.bytes_remaining;
         else            dataEnd = hdr->entry_point_offset[i];
+
+        init_thread_context(&hdr->thread_context[i]);
 
         init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
                            &reader.data[dataStartIndex],

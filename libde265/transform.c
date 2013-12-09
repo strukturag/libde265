@@ -227,8 +227,21 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   int16_t* coeff;
   int      coeffStride;
 
-  coeffStride=64;
-  coeff = &tctx->coeff[cIdx][(yT-y0)*coeffStride+(xT-x0)];
+  //coeffStride=64;
+  //coeff = &tctx->coeff[cIdx][(yT-y0)*coeffStride+(xT-x0)];
+
+
+  //memset(&tctx->coeffBuf, 0, nT*nT*sizeof(int16_t));
+  for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+    tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
+  }
+
+  coeff = tctx->coeffBuf;
+  coeffStride = nT;
+
+
+
+
 
   uint8_t* pred;
   int      stride;
@@ -341,4 +354,12 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     logtrace(LogTransform,"*\n");
   }  
+
+
+
+  // zero out scrap coefficient buffer again
+
+  for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+    tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = 0;
+  }
 }

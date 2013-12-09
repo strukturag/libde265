@@ -228,7 +228,7 @@ typedef struct decoder_context {
 
   // --- decoded image data --- TODO: all this should move into de265_image
 
-  de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
+  // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
   CB_info*  cb_info; // in raster scan

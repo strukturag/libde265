@@ -77,7 +77,7 @@ void init_decoder_context(decoder_context* ctx)
   ctx->PicOrderCntMsb = 0;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
-  de265_init_image(&ctx->coeff);
+  //de265_init_image(&ctx->coeff);
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     ctx->image_output_queue[i] = NULL;
@@ -1123,6 +1123,7 @@ void get_image_plane(const decoder_context* ctx, int cIdx, uint8_t** image, int*
 }
 
 
+/*
 void get_coeff_plane(const decoder_context* ctx, int cIdx, int16_t** image, int* stride)
 {
   switch (cIdx) {
@@ -1131,7 +1132,7 @@ void get_coeff_plane(const decoder_context* ctx, int cIdx, int16_t** image, int*
   case 2: *image = (int16_t*)ctx->coeff.cr; *stride = ctx->coeff.chroma_stride/2; break;
   }
 }
-
+*/
 
 void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize)
 {
