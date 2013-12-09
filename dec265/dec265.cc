@@ -48,7 +48,7 @@ extern "C" {
 }
 
 
-#ifndef WIN32
+#ifndef _MSC_VER
 extern "C" {
 void showMotionProfile();
 void showIntraPredictionProfile();
