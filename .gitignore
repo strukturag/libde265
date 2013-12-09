@@ -11,3 +11,4 @@ config.h.in
 config.status
 stamp-h1
 configure
+*.obj

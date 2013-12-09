@@ -35,20 +35,15 @@ typedef pthread_t        de265_thread;
 typedef pthread_mutex_t  de265_mutex;
 typedef pthread_cond_t   de265_cond;
 
-/*
-inline int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
-inline void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
-inline void de265_thread_destroy(de265_thread* t) { }
-inline void de265_mutex_init(de265_mutex* m) { pthread_mutex_init(m,NULL); }
-inline void de265_mutex_destroy(de265_mutex* m) { pthread_mutex_destroy(m); }
-inline void de265_mutex_lock(de265_mutex* m) { pthread_mutex_lock(m); }
-inline void de265_mutex_unlock(de265_mutex* m) { pthread_mutex_unlock(m); }
-inline void de265_cond_init(de265_cond* c) { pthread_cond_init(c,NULL); }
-inline void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
-inline void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
-inline void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
-inline void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
-*/
+#else // WIN32
+#include <windows.h>
+#include <win32cond.h>
+
+typedef HANDLE              de265_thread;
+typedef HANDLE              de265_mutex;
+typedef win32_cond_t        de265_cond;
+#endif  // WIN32
+
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg);
 void de265_thread_join(de265_thread t);
 void de265_thread_destroy(de265_thread* t);
@@ -61,28 +56,6 @@ void de265_cond_destroy(de265_cond* c);
 void de265_cond_broadcast(de265_cond* c);
 void de265_cond_wait(de265_cond* c,de265_mutex* m);
 void de265_cond_signal(de265_cond* c);
-
-#else // WIN32
-#include "win32thread.h"
-
-typedef de265_pthread_t        de265_thread;
-typedef de265_pthread_mutex_t  de265_mutex;
-typedef de265_pthread_cond_t   de265_cond;
-
-#define de265_thread_create(id,th,arg)  de265_pthread_create(id, NULL, th, arg)
-#define de265_thread_join(x)            de265_pthread_join((x), NULL)
-#define de265_thread_destroy(x)
-#define de265_mutex_init(x)             de265_pthread_mutex_init((x), NULL)
-#define de265_mutex_destroy             de265_pthread_mutex_destroy
-#define de265_mutex_lock                de265_pthread_mutex_lock
-#define de265_mutex_unlock              de265_pthread_mutex_unlock
-#define de265_cond_init(x)              de265_pthread_cond_init((x), NULL)
-#define de265_cond_destroy              de265_pthread_cond_destroy
-#define de265_cond_broadcast            de265_pthread_cond_broadcast
-#define de265_cond_wait                 de265_pthread_cond_wait
-#define de265_cond_signal               de265_pthread_cond_signal
-#endif // WIN32
-
 
 enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
 

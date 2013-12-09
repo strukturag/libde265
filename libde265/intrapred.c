@@ -30,7 +30,7 @@
 
 int nIntraPredictions;
 
-void showIntraPredictionProfile()
+LIBDE265_API void showIntraPredictionProfile()
 {
   printf("nIntraPredictions: %d\n", nIntraPredictions);
 }

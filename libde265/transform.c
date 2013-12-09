@@ -27,7 +27,7 @@ static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
 static int nSkip_4x4;
 static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
 
-void showTransformProfile()
+LIBDE265_API void showTransformProfile()
 {
   fprintf(stderr,"transform usage:\n");
   fprintf(stderr,"  DST 4x4:   %d\n",nDST_4x4);
