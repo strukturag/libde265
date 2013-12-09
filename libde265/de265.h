@@ -31,7 +31,7 @@ extern "C" {
 #define __STDC_LIMIT_MACROS 1
 #include <stdint.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #ifdef LIBDE265_EXPORTS
 #define LIBDE265_API __declspec(dllexport)
 #else
