@@ -329,6 +329,7 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
 void dump_pps(pic_parameter_set* pps)
 {
+#if (_MSC_VER >= 1500)
 #define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
 
   LOG("----------------- PPS -----------------\n");
@@ -401,6 +402,8 @@ void dump_pps(pic_parameter_set* pps)
   LOG("num_extra_slice_header_bits    : %d\n", pps->num_extra_slice_header_bits);
   LOG("slice_segment_header_extension_present_flag : %d\n", pps->slice_segment_header_extension_present_flag);
   LOG("pps_extension_flag : %d\n", pps->pps_extension_flag);
+#undef LOG
+#endif
 }
 
 

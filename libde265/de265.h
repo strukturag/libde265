@@ -32,6 +32,16 @@ extern "C" {
 #include <stdint.h>
 
 #ifdef _MSC_VER
+#ifdef LIBDE265_EXPORTS
+#define LIBDE265_API __declspec(dllexport)
+#else
+#define LIBDE265_API __declspec(dllimport)
+#endif
+#else
+#define LIBDE265_API
+#endif
+
+#ifdef _MSC_VER
 #define DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
 #else
 #define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
@@ -60,7 +70,7 @@ typedef enum {
   DE265_WARNING_WARNING_BUFFER_FULL
 } de265_error;
 
-const char* de265_get_error_text(de265_error err);
+LIBDE265_API const char* de265_get_error_text(de265_error err);
 
 
 /* === image === */
@@ -79,10 +89,10 @@ enum de265_chroma {
 };
 
 
-int de265_get_image_width(const struct de265_image*,int channel);
-int de265_get_image_height(const struct de265_image*,int channel);
-enum de265_chroma de265_get_chroma_format(const struct de265_image*);
-const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
+LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
+LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
+LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
+LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
 
 
 /* === decoder === */
@@ -97,17 +107,17 @@ enum de265_param {
 
 
 /* Static library initialization. */
-void de265_init(void);
+LIBDE265_API void de265_init(void);
 
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
-de265_decoder_context* de265_new_decoder(void);
+LIBDE265_API de265_decoder_context* de265_new_decoder(void);
 
 /* Initialize background decoding threads. If this function is not called,
    all decoding is done in the main thread (no multi-threading). */
-de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
+LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
 
 /* Free decoder context. May only be called once on a context. */
-void de265_free_decoder(de265_decoder_context*);
+LIBDE265_API void de265_free_decoder(de265_decoder_context*);
 
 
 /* Push more data into the decoder, must be raw h265.
@@ -117,32 +127,32 @@ void de265_free_decoder(de265_decoder_context*);
    is read from the data.
    If you want to flush the data and force decoding of the data so far
    (e.g. at the end of a file), call de265_decode_data() with 'length' zero. */
-de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
+LIBDE265_API de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to
    advance to the next picture. */
-const struct de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
+LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
 
 /* Get next decoded picture and remove this picture from the decoder output queue.
    Returns NULL is there is no decoded picture ready.
    You can use the picture only until you call any other de265_* function. */
-const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
+LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
 /* Release the current decoded picture for reuse in the decoder. You should not
    use the data anymore after calling this function. */
-void de265_release_next_picture(de265_decoder_context*);
+LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
 
 
-int de265_get_number_of_input_bytes_pending(de265_decoder_context*);
+LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context*);
 
-de265_error de265_get_warning(de265_decoder_context*);
+LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 /* Set decoding parameters. */
-void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
+LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
 
 /* Get decoding parameters. */
-int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
+LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
 
 
 #ifdef __cplusplus

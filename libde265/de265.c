@@ -36,7 +36,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
 
 
-const char* de265_get_error_text(de265_error err)
+LIBDE265_API const char* de265_get_error_text(de265_error err)
 {
   switch (err) {
   case DE265_OK: return "no error";
@@ -64,13 +64,13 @@ const char* de265_get_error_text(de265_error err)
 
 
 
-void de265_init()
+LIBDE265_API void de265_init()
 {
   init_scan_orders();
 }
 
 
-de265_decoder_context* de265_new_decoder()
+LIBDE265_API de265_decoder_context* de265_new_decoder()
 {
   decoder_context* ctx = (decoder_context*)calloc(sizeof(decoder_context),1);
   if (!ctx) { return NULL; }
@@ -80,7 +80,7 @@ de265_decoder_context* de265_new_decoder()
 }
 
 
-de265_error de265_start_worker_threads(de265_decoder_context* de265ctx, int number_of_threads)
+LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265ctx, int number_of_threads)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -96,7 +96,7 @@ de265_error de265_start_worker_threads(de265_decoder_context* de265ctx, int numb
 }
 
 
-void de265_free_decoder(de265_decoder_context* de265ctx)
+LIBDE265_API void de265_free_decoder(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -304,7 +304,7 @@ static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
 }
 
 
-de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data, int len)
+LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data, int len)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -541,7 +541,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 }
 
 
-const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
+LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
   const struct de265_image* img = de265_peek_next_picture(de265ctx);
   if (img) {
@@ -552,7 +552,7 @@ const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx
 }
 
 
-const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ctx)
+LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -577,7 +577,7 @@ const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ct
 }
 
 
-void de265_release_next_picture(de265_decoder_context* de265ctx)
+LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -610,14 +610,14 @@ void de265_release_next_picture(de265_decoder_context* de265ctx)
 }
 
 
-de265_error de265_get_warning(de265_decoder_context* de265ctx)
+LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   return get_warning(ctx);
 }
 
-void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
+LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -634,7 +634,7 @@ void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param 
 }
 
 
-int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
+LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -651,7 +651,7 @@ int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param p
 }
 
 
-int de265_get_number_of_input_bytes_pending(de265_decoder_context* de265ctx)
+LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -659,7 +659,7 @@ int de265_get_number_of_input_bytes_pending(de265_decoder_context* de265ctx)
 }
 
 
-int de265_get_image_width(const struct de265_image* img,int channel)
+LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel)
 {
   switch (channel) {
   case 0:
@@ -672,7 +672,7 @@ int de265_get_image_width(const struct de265_image* img,int channel)
   }
 }
 
-int de265_get_image_height(const struct de265_image* img,int channel)
+LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channel)
 {
   switch (channel) {
   case 0:
@@ -685,12 +685,12 @@ int de265_get_image_height(const struct de265_image* img,int channel)
   }
 }
 
-enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
+LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
   return img->chroma_format;
 }
 
-const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* out_stride)
+LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* out_stride)
 {
   switch (channel) {
   case 0:

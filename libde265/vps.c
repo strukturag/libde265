@@ -202,6 +202,7 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 
 void dump_vps(video_parameter_set* vps)
 {
+#if (_MSC_VER >= 1500)
 #define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
 
   LOG("----------------- VPS -----------------\n");
@@ -267,12 +268,16 @@ void dump_vps(video_parameter_set* vps)
   }
   
   LOG("vps_extension_flag = %d\n", vps->vps_extension_flag);
+#undef LOG
+#endif
 }
 
 
 void dump_profile_tier_level(struct profile_tier_level* hdr,
                              int max_sub_layers)
 {
+#if (_MSC_VER >= 1500)
+#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
   LOG("  general_profile_space     : %d\n", hdr->general_profile_space);
   LOG("  general_tier_flag         : %d\n", hdr->general_tier_flag);
   LOG("  general_profile_idc       : %d\n", hdr->general_profile_idc);
@@ -314,6 +319,8 @@ void dump_profile_tier_level(struct profile_tier_level* hdr,
         LOG("    sub_layer_level_idc   : %d\n", hdr->profile[i].sub_layer_level_idc);
       }
     }
+#undef LOG
+#endif
 }
 
 
