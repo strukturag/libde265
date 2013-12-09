@@ -86,6 +86,7 @@ static void* worker_thread(void* pool_ptr)
         break;
       }
 
+      //printf("going idle\n");
       de265_cond_wait(&pool->cond_var, &pool->mutex);
     }
 

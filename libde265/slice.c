@@ -1728,23 +1728,29 @@ void thread_decode_CTB_syntax(void* d)
   thread_task nextCTBTask;
 
   if (ctbx+1 < sps->PicWidthInCtbsY) {
-    continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, NULL);
-    //continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
+    continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
   }
+
+  int offset=1;
 
   if (ctby+1 < sps->PicHeightInCtbsY) {
 
     thread_context* tctx_y1 = &tctx->shdr->thread_context[ctby+1];
 
-    if (ctbx==0) {
-      // NOP
-    }
-    else if (ctbx+1 == sps->PicWidthInCtbsY) {
+    if (ctbx+1 == sps->PicWidthInCtbsY) {
       add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby, NULL);
       add_CTB_decode_task_syntax(tctx_y1,ctbx  ,ctby+1  ,ctbx,ctby, NULL);
     }
-    else {
+    else if (ctbx==offset) {
+      for (int x=0;x<=offset-1;x++) {
+        add_CTB_decode_task_syntax(tctx_y1,x,ctby+1  ,ctbx,ctby, NULL);
+      }
+    }
+    else if (ctbx>offset) {
       add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby, NULL);
+    }
+    else {
+      // NOP
     }
   }
 
@@ -1754,6 +1760,9 @@ void thread_decode_CTB_syntax(void* d)
   if (continueWithNextCTB) {
     decrement_tasks_pending(&ctx->thread_pool);
     thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
+  }
+  else {
+    //printf("cannot continue at %d %d\n",ctbx,ctby);
   }
 }
 
