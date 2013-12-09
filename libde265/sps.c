@@ -267,6 +267,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
 
 void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
 {
+#if (_MSC_VER >= 1500)
 #define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
 
   LOG("----------------- SPS -----------------\n");
@@ -387,6 +388,8 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
               rbsp_trailing_bits()
     */
   }
+#undef LOG
+#endif
 }
 
 

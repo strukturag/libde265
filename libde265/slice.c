@@ -331,6 +331,7 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
 void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx)
 {
+#if (_MSC_VER >= 1500)
 #define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
 
   const pic_parameter_set* pps = &ctx->pps[shdr->slice_pic_parameter_set_id];
@@ -511,6 +512,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
   */
 
 #undef LOG
+#endif
 }
 
 
