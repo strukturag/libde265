@@ -2684,11 +2684,14 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
 
 void read_prediction_unit(decoder_context* ctx,
                           thread_context* tctx,
-                          int x0, int y0,
+                          int xC,int yC, int xB,int yB,
                           int nPbW, int nPbH,
-                          int ctDepth)
+                          int ctDepth, int nCS,int partIdx)
 {
   logtrace(LogSlice,"read_prediction_unit %d;%d %dx%d\n",x0,y0,nPbW,nPbH);
+
+  int x0 = xC+xB;
+  int y0 = yC+yB;
 
   slice_segment_header* shdr = tctx->shdr;
 
@@ -2754,6 +2757,10 @@ void read_prediction_unit(decoder_context* ctx,
                x0,y0, mvp_l1_flag);
     }
   }
+
+
+
+  decode_prediction_unit(ctx,shdr, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
 }
 
 
@@ -2810,7 +2817,10 @@ void read_coding_unit(decoder_context* ctx,
     // DECODE
 
     decode_quantization_parameters(ctx,tctx, x0,y0);
-    inter_prediction(ctx,shdr, x0,y0, log2CbSize);
+    //inter_prediction(ctx,shdr, x0,y0, log2CbSize);
+
+    int nCS_L = 1<<log2CbSize;
+    decode_prediction_unit(ctx,shdr,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {
@@ -3021,38 +3031,40 @@ void read_coding_unit(decoder_context* ctx,
       }
     }
     else {
+      int nCS = 1<<log2CbSize;
+
       if (PartMode == PART_2Nx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,nCbS,nCbS,ctDepth,nCS,0);
       }
       else if (PartMode == PART_2NxN) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS/2,ctDepth);
-        read_prediction_unit(ctx,tctx,x0,y0+nCbS/2,nCbS,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0     ,nCbS,nCbS/2,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/2,nCbS,nCbS/2,ctDepth,nCS,1);
       }
       else if (PartMode == PART_Nx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS,ctDepth);
-        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0,nCbS/2,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0  ,   nCbS/2,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,0,nCbS/2,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_2NxnU) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS/4,ctDepth);
-        read_prediction_unit(ctx,tctx,x0,y0+nCbS/4,nCbS,nCbS*3/4,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,     nCbS,nCbS/4,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/4,nCbS,nCbS*3/4,ctDepth,nCS,1);
       }
       else if (PartMode == PART_2NxnD) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS,nCbS*3/4,ctDepth);
-        read_prediction_unit(ctx,tctx,x0,y0+nCbS*3/4,nCbS,nCbS/4,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,       nCbS,nCbS*3/4,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS*3/4,nCbS,nCbS/4,ctDepth,nCS,1);
       }
       else if (PartMode == PART_nLx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/4,nCbS,ctDepth);
-        read_prediction_unit(ctx,tctx,x0+nCbS/4,y0,nCbS*3/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,     nCbS/4,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/4,0,nCbS*3/4,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_nRx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS*3/4,nCbS,ctDepth);
-        read_prediction_unit(ctx,tctx,x0+nCbS*3/4,y0,nCbS/4,nCbS,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,       nCbS*3/4,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS*3/4,0,nCbS/4,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_NxN) {
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS/2,ctDepth);
-        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0,nCbS/2,nCbS/2,ctDepth);
-        read_prediction_unit(ctx,tctx,x0,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
-        read_prediction_unit(ctx,tctx,x0+nCbS/2,y0+nCbS/2,nCbS/2,nCbS/2,ctDepth);
+        read_prediction_unit(ctx,tctx,x0,y0,0,0,          nCbS/2,nCbS/2,ctDepth,nCS,0);
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,0,     nCbS/2,nCbS/2,ctDepth,nCS,1);
+        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/2,     nCbS/2,nCbS/2,ctDepth,nCS,2);
+        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS/2,nCbS/2,nCbS/2,ctDepth,nCS,3);
       }
       else {
         assert(0); // undefined PartMode
@@ -3060,15 +3072,10 @@ void read_coding_unit(decoder_context* ctx,
     }
 
 
+    // decode residual
 
-    // DECODE
     decode_quantization_parameters(ctx,tctx, x0,y0);
 
-
-    if (cuPredMode != MODE_INTRA)
-      {
-        inter_prediction(ctx,shdr, x0,y0, log2CbSize);
-      }
 
 
     if (false) { // pcm

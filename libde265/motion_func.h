@@ -23,6 +23,9 @@
 
 #include "libde265/decctx.h"
 
+void decode_prediction_unit(decoder_context* ctx,slice_segment_header* shdr,
+                            int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
+
 void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
                       int xC,int yC, int log2CbSize);
 
