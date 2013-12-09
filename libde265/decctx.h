@@ -341,7 +341,6 @@ void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
 int  get_QPY(const decoder_context* ctx,int x0,int y0);
 
 void get_image_plane(const decoder_context*, int cIdx, uint8_t** image, int* stride);
-void get_coeff_plane(const decoder_context*, int cIdx, int16_t** image, int* stride);
 
 void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);

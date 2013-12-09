@@ -1123,17 +1123,6 @@ void get_image_plane(const decoder_context* ctx, int cIdx, uint8_t** image, int*
 }
 
 
-/*
-void get_coeff_plane(const decoder_context* ctx, int cIdx, int16_t** image, int* stride)
-{
-  switch (cIdx) {
-  case 0: *image = (int16_t*)ctx->coeff.y;  *stride = ctx->coeff.stride/2; break;
-  case 1: *image = (int16_t*)ctx->coeff.cb; *stride = ctx->coeff.chroma_stride/2; break;
-  case 2: *image = (int16_t*)ctx->coeff.cr; *stride = ctx->coeff.chroma_stride/2; break;
-  }
-}
-*/
-
 void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize)
 {
   ctx->cb_info[ CB_IDX(x0,y0) ].CB_size = log2CbSize;
