@@ -752,16 +752,10 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       ctx->img->pb_info_size   = puWidth*puHeight;
       ctx->img->pb_info_stride = puWidth;
       ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
+      // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
     }
 
-
-
-    /* HACK
-    de265_alloc_image(&ctx->coeff,
-                      w*2,h,  // 2 bytes per pixel
-                      chroma,
-                      0); // border
-    */
+    //ctx->img->pb_info_nextRootIdx = 0;
 
     reset_decoder_context_for_new_picture(ctx);
     prepare_new_picture(ctx);
@@ -1183,6 +1177,9 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
   int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
   int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
 
+  //int rootIdx = ctx->img->pb_rootIdx[idx];
+  //return &ctx->img->pb_info[rootIdx].mvi;
+
   return &ctx->img->pb_info[idx].mvi;
 }
 
@@ -1192,6 +1189,9 @@ const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
 {
   int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
   int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
+
+  //int rootIdx = img->pb_rootIdx[idx];
+  //return &img->pb_info[rootIdx].mvi;
 
   return &img->pb_info[idx].mvi;
 }
@@ -1208,13 +1208,17 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
 
   int stride = ctx->img->pb_info_stride; // ctx->current_sps->PicWidthInMinCbsY << f;
 
+  //int rootIdx = ctx->img->pb_info_nextRootIdx++;
+  //ctx->img->pb_info[rootIdx].mvi = *mv;
+
   for (int pby=0;pby<hPu;pby++)
     for (int pbx=0;pbx<wPu;pbx++)
       {               
+        //ctx->img->pb_rootIdx[ xPu+pbx + (yPu+pby)*stride ] = rootIdx;
         ctx->img->pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
       }
 
-  printf("%dx%d -> %dx%d  size %d\n",nPbW,nPbH, wPu,hPu,sizeof(*mv));
+  //printf("%dx%d -> %dx%d  size %d\n",nPbW,nPbH, wPu,hPu,sizeof(*mv));
 
   /*
   fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,

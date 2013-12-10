@@ -93,6 +93,9 @@ void de265_free_image(de265_image* img)
 
   if (img->pb_info) free(img->pb_info);
   img->pb_info = NULL;
+
+  if (img->pb_rootIdx) free(img->pb_rootIdx);
+  img->pb_rootIdx = NULL;
 }
 
 
@@ -122,6 +125,9 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
 
   img->pb_info = NULL;
   img->pb_info_size = 0;
+
+  img->pb_rootIdx = NULL;
+  img->pb_info_nextRootIdx = 0;
 }
 
 

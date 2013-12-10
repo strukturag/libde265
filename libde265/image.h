@@ -83,6 +83,10 @@ typedef struct de265_image {
   int pb_info_size;
   int pb_info_stride;
 
+  int* pb_rootIdx;
+  int  pb_info_nextRootIdx;
+
+
   int RefPicList_POC[2][14+1];
 
 } de265_image;
