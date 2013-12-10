@@ -66,12 +66,36 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
   // HACK: init usually not needed
-      for (int i=-2*nT ; i<=2*nT ; i++) {
-        out_border[i] = 1<<(sps->bit_depth_luma-1);
-      }
+  /*
+  for (int i=-2*nT ; i<=2*nT ; i++) {
+    out_border[i] = 1<<(sps->bit_depth_luma-1);
+  }
+  */
 
+  int nAvail=0;
 
-  for (int y=-1 ; y<nT*2 ; y++)
+  {
+    int y=-1;
+    bool availableN;
+    if (cIdx==0)
+      availableN = available_zscan(ctx, xB,yB, xB-1,yB+y);
+    else
+      availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB-1),2*(yB+y));
+
+    available[-(y+1)] = availableN;
+
+    if (ctx->current_pps->constrained_intra_pred_flag) {
+      if (get_pred_mode(ctx,xB-1,yB+y)!=MODE_INTRA)
+        available[-(y+1)] = false;
+    }
+
+    if (available[-(y+1)]) {
+      out_border[-(y+1)] = image[xB-1 + (yB+y)*stride];
+      nAvail++;
+    }
+  }
+
+  for (int y=0 ; y<nT*2 ; y+=4)
     {
       bool availableN;
       if (cIdx==0)
@@ -79,45 +103,47 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       else
         availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB-1),2*(yB+y));
 
-      available[-(y+1)] = availableN;
-
       if (ctx->current_pps->constrained_intra_pred_flag) {
         if (get_pred_mode(ctx,xB-1,yB+y)!=MODE_INTRA)
-          available[-(y+1)] = false;
+          availableN = false;
       }
 
+      for (int i=0;i<4;i++)
+        available[-(y+1+i)] = availableN;
+
       if (available[-(y+1)]) {
-        out_border[-(y+1)] = image[xB-1 + (yB+y)*stride];
+        for (int i=0;i<4;i++)
+          out_border[-(y+1+i)] = image[xB-1 + (yB+y+i)*stride];
+
+        nAvail+=4;
       }
     }
 
 
-  for (int x=0 ; x<nT*2 ; x++)
+  for (int x=0 ; x<nT*2 ; x+=4)
     {
       bool availableN;
       if (cIdx==0)
         availableN = available_zscan(ctx, xB,yB, xB+x,yB-1);
       else
         availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB+x),2*(yB-1));
-      available[x+1] = availableN;
 
       if (ctx->current_pps->constrained_intra_pred_flag) {
         if (get_pred_mode(ctx,xB+x,yB-1)!=MODE_INTRA)
-          available[x+1] = false;
+          for (int i=0;i<4;i++)
+            availableN = false;
       }
 
-      if (available[x+1]) {
-        out_border[x+1] = image[xB+x + (yB-1)*stride];
+      for (int i=0;i<4;i++)
+        available[x+1+i] = availableN;
+
+      if (availableN) {
+        for (int i=0;i<4;i++)
+          out_border[x+1+i] = image[xB+x+i + (yB-1)*stride];
+
+        nAvail+=4;
       }
     }
-
-
-  int nAvail=0;
-  for (int i = -2*nT ; i<=2*nT ; i++) {
-    if (available[i]) {
-      nAvail++;
-    }
-  }
 
 
   logtrace(LogIntraPred,"availableN: ");
@@ -163,9 +189,9 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
   // HACK
   /*
-  for (int i=-2*nT ; i<=2*nT ; i++) {
+    for (int i=-2*nT ; i<=2*nT ; i++) {
     out_border[i] = (i+2*nT)*10;
-  }
+    }
   */
 
 
