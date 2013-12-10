@@ -269,57 +269,60 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
 
 void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
 {
-#if (_MSC_VER >= 1500)
-#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
+  //#if (_MSC_VER >= 1500)
+#define LOG0(t) loginfo(LogHeaders, t)
+#define LOG1(t,d) loginfo(LogHeaders, t,d)
+#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
+#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
 
-  LOG("----------------- SPS -----------------\n");
-  LOG("video_parameter_set_id  : %d\n", sps->video_parameter_set_id);
-  LOG("sps_max_sub_layers      : %d\n", sps->sps_max_sub_layers);
-  LOG("sps_temporal_id_nesting_flag : %d\n", sps->sps_temporal_id_nesting_flag);
+  LOG0("----------------- SPS -----------------\n");
+  LOG1("video_parameter_set_id  : %d\n", sps->video_parameter_set_id);
+  LOG1("sps_max_sub_layers      : %d\n", sps->sps_max_sub_layers);
+  LOG1("sps_temporal_id_nesting_flag : %d\n", sps->sps_temporal_id_nesting_flag);
 
   dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers);
 
-  LOG("seq_parameter_set_id    : %d\n", sps->seq_parameter_set_id);
-  LOG("chroma_format_idc       : %d\n", sps->chroma_format_idc);
+  LOG1("seq_parameter_set_id    : %d\n", sps->seq_parameter_set_id);
+  LOG1("chroma_format_idc       : %d\n", sps->chroma_format_idc);
 
   if (sps->chroma_format_idc == 3) {
-    LOG("separate_colour_plane_flag : %d\n", sps->separate_colour_plane_flag);
+    LOG1("separate_colour_plane_flag : %d\n", sps->separate_colour_plane_flag);
   }
 
-  LOG("pic_width_in_luma_samples  : %d\n", sps->pic_width_in_luma_samples);
-  LOG("pic_height_in_luma_samples : %d\n", sps->pic_height_in_luma_samples);
-  LOG("conformance_window_flag    : %d\n", sps->conformance_window_flag);
+  LOG1("pic_width_in_luma_samples  : %d\n", sps->pic_width_in_luma_samples);
+  LOG1("pic_height_in_luma_samples : %d\n", sps->pic_height_in_luma_samples);
+  LOG1("conformance_window_flag    : %d\n", sps->conformance_window_flag);
 
   if (sps->conformance_window_flag) {
-    LOG("conf_win_left_offset  : %d\n", sps->conf_win_left_offset);
-    LOG("conf_win_right_offset : %d\n", sps->conf_win_right_offset);
-    LOG("conf_win_top_offset   : %d\n", sps->conf_win_top_offset);
-    LOG("conf_win_bottom_offset: %d\n", sps->conf_win_bottom_offset);
+    LOG1("conf_win_left_offset  : %d\n", sps->conf_win_left_offset);
+    LOG1("conf_win_right_offset : %d\n", sps->conf_win_right_offset);
+    LOG1("conf_win_top_offset   : %d\n", sps->conf_win_top_offset);
+    LOG1("conf_win_bottom_offset: %d\n", sps->conf_win_bottom_offset);
   }
 
-  LOG("bit_depth_luma   : %d\n", sps->bit_depth_luma);
-  LOG("bit_depth_chroma : %d\n", sps->bit_depth_chroma);
+  LOG1("bit_depth_luma   : %d\n", sps->bit_depth_luma);
+  LOG1("bit_depth_chroma : %d\n", sps->bit_depth_chroma);
 
-  LOG("log2_max_pic_order_cnt_lsb : %d\n", sps->log2_max_pic_order_cnt_lsb);
-  LOG("sps_sub_layer_ordering_info_present_flag : %d\n", sps->sps_sub_layer_ordering_info_present_flag);
+  LOG1("log2_max_pic_order_cnt_lsb : %d\n", sps->log2_max_pic_order_cnt_lsb);
+  LOG1("sps_sub_layer_ordering_info_present_flag : %d\n", sps->sps_sub_layer_ordering_info_present_flag);
 
   int firstLayer = (sps->sps_sub_layer_ordering_info_present_flag ?
                     0 : sps->sps_max_sub_layers-1 );
 
   for (int i=firstLayer ; i <= sps->sps_max_sub_layers-1; i++ ) {
-    LOG("Layer %d\n",i);
-    LOG("  sps_max_dec_pic_buffering : %d\n", sps->sps_max_dec_pic_buffering[i]);
-    LOG("  sps_max_num_reorder_pics  : %d\n", sps->sps_max_num_reorder_pics[i]);
-    LOG("  sps_max_latency_increase  : %d\n", sps->sps_max_latency_increase[i]);
+    LOG1("Layer %d\n",i);
+    LOG1("  sps_max_dec_pic_buffering : %d\n", sps->sps_max_dec_pic_buffering[i]);
+    LOG1("  sps_max_num_reorder_pics  : %d\n", sps->sps_max_num_reorder_pics[i]);
+    LOG1("  sps_max_latency_increase  : %d\n", sps->sps_max_latency_increase[i]);
   }
 
-  LOG("log2_min_luma_coding_block_size : %d\n", sps->log2_min_luma_coding_block_size);
-  LOG("log2_diff_max_min_luma_coding_block_size : %d\n",sps->log2_diff_max_min_luma_coding_block_size);
-  LOG("log2_min_transform_block_size   : %d\n", sps->log2_min_transform_block_size);
-  LOG("log2_diff_max_min_transform_block_size : %d\n", sps->log2_diff_max_min_transform_block_size);
-  LOG("max_transform_hierarchy_depth_inter : %d\n", sps->max_transform_hierarchy_depth_inter);
-  LOG("max_transform_hierarchy_depth_intra : %d\n", sps->max_transform_hierarchy_depth_intra);
-  LOG("scaling_list_enable_flag : %d\n", sps->scaling_list_enable_flag);
+  LOG1("log2_min_luma_coding_block_size : %d\n", sps->log2_min_luma_coding_block_size);
+  LOG1("log2_diff_max_min_luma_coding_block_size : %d\n",sps->log2_diff_max_min_luma_coding_block_size);
+  LOG1("log2_min_transform_block_size   : %d\n", sps->log2_min_transform_block_size);
+  LOG1("log2_diff_max_min_transform_block_size : %d\n", sps->log2_diff_max_min_transform_block_size);
+  LOG1("max_transform_hierarchy_depth_inter : %d\n", sps->max_transform_hierarchy_depth_inter);
+  LOG1("max_transform_hierarchy_depth_intra : %d\n", sps->max_transform_hierarchy_depth_intra);
+  LOG1("scaling_list_enable_flag : %d\n", sps->scaling_list_enable_flag);
 
   if (sps->scaling_list_enable_flag) {
 
@@ -331,46 +334,46 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
     }
   }
 
-  LOG("amp_enabled_flag                    : %d\n", sps->amp_enabled_flag);
-  LOG("sample_adaptive_offset_enabled_flag : %d\n", sps->sample_adaptive_offset_enabled_flag);
-  LOG("pcm_enabled_flag                    : %d\n", sps->pcm_enabled_flag);
+  LOG1("amp_enabled_flag                    : %d\n", sps->amp_enabled_flag);
+  LOG1("sample_adaptive_offset_enabled_flag : %d\n", sps->sample_adaptive_offset_enabled_flag);
+  LOG1("pcm_enabled_flag                    : %d\n", sps->pcm_enabled_flag);
 
   if (sps->pcm_enabled_flag) {
-    LOG("pcm_sample_bit_depth_luma     : %d\n", sps->pcm_sample_bit_depth_luma);
-    LOG("pcm_sample_bit_depth_chroma   : %d\n", sps->pcm_sample_bit_depth_chroma);
-    LOG("log2_min_pcm_luma_coding_block_size : %d\n", sps->log2_min_pcm_luma_coding_block_size);
-    LOG("log2_diff_max_min_pcm_luma_coding_block_size : %d\n", sps->log2_diff_max_min_pcm_luma_coding_block_size);
-    LOG("pcm_loop_filter_disable_flag  : %d\n", sps->pcm_loop_filter_disable_flag);
+    LOG1("pcm_sample_bit_depth_luma     : %d\n", sps->pcm_sample_bit_depth_luma);
+    LOG1("pcm_sample_bit_depth_chroma   : %d\n", sps->pcm_sample_bit_depth_chroma);
+    LOG1("log2_min_pcm_luma_coding_block_size : %d\n", sps->log2_min_pcm_luma_coding_block_size);
+    LOG1("log2_diff_max_min_pcm_luma_coding_block_size : %d\n", sps->log2_diff_max_min_pcm_luma_coding_block_size);
+    LOG1("pcm_loop_filter_disable_flag  : %d\n", sps->pcm_loop_filter_disable_flag);
   }
 
-  LOG("num_short_term_ref_pic_sets : %d\n", sps->num_short_term_ref_pic_sets);
+  LOG1("num_short_term_ref_pic_sets : %d\n", sps->num_short_term_ref_pic_sets);
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
-    LOG("ref_pic_set[ %2d ]: ",i);
+    LOG1("ref_pic_set[ %2d ]: ",i);
     dump_compact_short_term_ref_pic_set(&sets[i], 16);
   }
 
-  LOG("long_term_ref_pics_present_flag : %d\n", sps->long_term_ref_pics_present_flag);
+  LOG1("long_term_ref_pics_present_flag : %d\n", sps->long_term_ref_pics_present_flag);
 
   if (sps->long_term_ref_pics_present_flag) {
 
-    LOG("num_long_term_ref_pics_sps : %d\n", sps->num_long_term_ref_pics_sps);
+    LOG1("num_long_term_ref_pics_sps : %d\n", sps->num_long_term_ref_pics_sps);
 
     for (int i = 0; i < sps->num_long_term_ref_pics_sps; i++ ) {
-      LOG("lt_ref_pic_poc_lsb_sps[%d] : %d   (used_by_curr_pic_lt_sps_flag=%d)\n",
-          i, sps->lt_ref_pic_poc_lsb_sps[i], sps->used_by_curr_pic_lt_sps_flag[i]);
+      LOG3("lt_ref_pic_poc_lsb_sps[%d] : %d   (used_by_curr_pic_lt_sps_flag=%d)\n",
+           i, sps->lt_ref_pic_poc_lsb_sps[i], sps->used_by_curr_pic_lt_sps_flag[i]);
     }
   }
 
-  LOG("sps_temporal_mvp_enabled_flag      : %d\n", sps->sps_temporal_mvp_enabled_flag);
-  LOG("strong_intra_smoothing_enable_flag : %d\n", sps->strong_intra_smoothing_enable_flag);
-  LOG("vui_parameters_present_flag        : %d\n", sps->vui_parameters_present_flag);
+  LOG1("sps_temporal_mvp_enabled_flag      : %d\n", sps->sps_temporal_mvp_enabled_flag);
+  LOG1("strong_intra_smoothing_enable_flag : %d\n", sps->strong_intra_smoothing_enable_flag);
+  LOG1("vui_parameters_present_flag        : %d\n", sps->vui_parameters_present_flag);
 
-  LOG("CtbSizeY     : %d\n", sps->CtbSizeY);
-  LOG("MinCbSizeY   : %d\n", sps->MinCbSizeY);
-  LOG("MaxCbSizeY   : %d\n", 1<<(sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
-  LOG("MinTBSizeY   : %d\n", 1<<sps->log2_min_transform_block_size);
-  LOG("MaxTBSizeY   : %d\n", 1<<(sps->log2_min_transform_block_size + sps->log2_diff_max_min_transform_block_size));
+  LOG1("CtbSizeY     : %d\n", sps->CtbSizeY);
+  LOG1("MinCbSizeY   : %d\n", sps->MinCbSizeY);
+  LOG1("MaxCbSizeY   : %d\n", 1<<(sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
+  LOG1("MinTBSizeY   : %d\n", 1<<sps->log2_min_transform_block_size);
+  LOG1("MaxTBSizeY   : %d\n", 1<<(sps->log2_min_transform_block_size + sps->log2_diff_max_min_transform_block_size));
 
   return;
 
@@ -390,8 +393,11 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
               rbsp_trailing_bits()
     */
   }
-#undef LOG
-#endif
+#undef LOG0
+#undef LOG1
+#undef LOG2
+#undef LOG3
+  //#endif
 }
 
 

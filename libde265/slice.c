@@ -326,8 +326,11 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
 
 void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx)
 {
-#if (_MSC_VER >= 1500)
-#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
+  //#if !defined(_MSC_VER) || (_MSC_VER >= 1500)
+  //#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
+#define LOG0(t) loginfo(LogHeaders, t)
+#define LOG1(t,d) loginfo(LogHeaders, t, d)
+#define LOG2(t,d1,d2) loginfo(LogHeaders, t, d1,d2)
 
   const pic_parameter_set* pps = &ctx->pps[shdr->slice_pic_parameter_set_id];
   assert(pps->pps_read); // TODO: error handling
@@ -336,56 +339,56 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
   assert(sps->sps_read); // TODO: error handling
 
 
-  LOG("----------------- SLICE -----------------\n");
-  LOG("first_slice_segment_in_pic_flag        : %d\n", shdr->first_slice_segment_in_pic_flag);
+  LOG0("----------------- SLICE -----------------\n");
+  LOG1("first_slice_segment_in_pic_flag        : %d\n", shdr->first_slice_segment_in_pic_flag);
   if (ctx->nal_unit_type >= NAL_UNIT_BLA_W_LP &&
       ctx->nal_unit_type <= NAL_UNIT_RSV_IRAP_VCL23) {
-    LOG("no_output_of_prior_pics_flag           : %d\n", shdr->no_output_of_prior_pics_flag);
+    LOG1("no_output_of_prior_pics_flag           : %d\n", shdr->no_output_of_prior_pics_flag);
   }
 
-  LOG("slice_pic_parameter_set_id             : %d\n", shdr->slice_pic_parameter_set_id);
+  LOG1("slice_pic_parameter_set_id             : %d\n", shdr->slice_pic_parameter_set_id);
 
   if (!shdr->first_slice_segment_in_pic_flag) {
     if (pps->dependent_slice_segments_enabled_flag) {
-      LOG("dependent_slice_segment_flag         : %d\n", shdr->dependent_slice_segment_flag);
+      LOG1("dependent_slice_segment_flag         : %d\n", shdr->dependent_slice_segment_flag);
     }
-    LOG("slice_segment_address                : %d\n", shdr->slice_segment_address);
+    LOG1("slice_segment_address                : %d\n", shdr->slice_segment_address);
   }
 
   if (!shdr->dependent_slice_segment_flag) {
     //for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
     //slice_reserved_flag[i]
 
-    LOG("slice_type                           : %c\n",
+    LOG1("slice_type                           : %c\n",
         shdr->slice_type == 0 ? 'B' :
         shdr->slice_type == 1 ? 'P' : 'I');
 
     if (pps->output_flag_present_flag) {
-      LOG("pic_output_flag                      : %d\n", shdr->pic_output_flag);
+      LOG1("pic_output_flag                      : %d\n", shdr->pic_output_flag);
     }
 
     if (sps->separate_colour_plane_flag == 1) {
-      LOG("colour_plane_id                      : %d\n", shdr->colour_plane_id);
+      LOG1("colour_plane_id                      : %d\n", shdr->colour_plane_id);
     }
 
     if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
         ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
-      LOG("slice_pic_order_cnt_lsb              : %d\n", shdr->slice_pic_order_cnt_lsb);
-      LOG("short_term_ref_pic_set_sps_flag      : %d\n", shdr->short_term_ref_pic_set_sps_flag);
+      LOG1("slice_pic_order_cnt_lsb              : %d\n", shdr->slice_pic_order_cnt_lsb);
+      LOG1("short_term_ref_pic_set_sps_flag      : %d\n", shdr->short_term_ref_pic_set_sps_flag);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
         // TODO: DUMP short_term_ref_pic_set(num_short_term_ref_pic_sets)
       }
       else if (sps->num_short_term_ref_pic_sets > 1) {
-        LOG("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
+        LOG1("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
       }
 
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
-          LOG("num_long_term_sps                        : %d\n", shdr->num_long_term_sps);
+          LOG1("num_long_term_sps                        : %d\n", shdr->num_long_term_sps);
         }
 
-        LOG("num_long_term_pics                       : %d\n", shdr->num_long_term_pics);
+        LOG1("num_long_term_pics                       : %d\n", shdr->num_long_term_pics);
           
         for (int i=0; i<shdr->num_long_term_sps + shdr->num_long_term_pics; i++) {
           if (i < shdr->num_long_term_sps) {
@@ -403,24 +406,24 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
-        LOG("slice_temporal_mvp_enabled_flag : %d\n", shdr->slice_temporal_mvp_enabled_flag);
+        LOG1("slice_temporal_mvp_enabled_flag : %d\n", shdr->slice_temporal_mvp_enabled_flag);
       }
     }
       
 
     if (sps->sample_adaptive_offset_enabled_flag) {
-      LOG("slice_sao_luma_flag             : %d\n", shdr->slice_sao_luma_flag);
-      LOG("slice_sao_chroma_flag           : %d\n", shdr->slice_sao_chroma_flag);
+      LOG1("slice_sao_luma_flag             : %d\n", shdr->slice_sao_luma_flag);
+      LOG1("slice_sao_chroma_flag           : %d\n", shdr->slice_sao_chroma_flag);
     }
 
 
     if (shdr->slice_type == SLICE_TYPE_P || shdr->slice_type == SLICE_TYPE_B) {
-      LOG("num_ref_idx_active_override_flag : %d\n", shdr->num_ref_idx_active_override_flag);
+      LOG1("num_ref_idx_active_override_flag : %d\n", shdr->num_ref_idx_active_override_flag);
 
-      LOG("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
+      LOG1("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
 
       if (shdr->slice_type == SLICE_TYPE_B) {
-        LOG("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
+        LOG1("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
       }
 
       int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
@@ -433,14 +436,14 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         }
 
       if (shdr->slice_type == SLICE_TYPE_B) {
-        LOG("mvd_l1_zero_flag               : %d\n", shdr->mvd_l1_zero_flag);
+        LOG1("mvd_l1_zero_flag               : %d\n", shdr->mvd_l1_zero_flag);
       }
       
-      LOG("cabac_init_flag                : %d\n", shdr->cabac_init_flag);
+      LOG1("cabac_init_flag                : %d\n", shdr->cabac_init_flag);
 
       if (shdr->slice_temporal_mvp_enabled_flag) {
-        LOG("collocated_from_l0_flag        : %d\n", shdr->collocated_from_l0_flag);
-        LOG("collocated_ref_idx             : %d\n", shdr->collocated_ref_idx);
+        LOG1("collocated_from_l0_flag        : %d\n", shdr->collocated_from_l0_flag);
+        LOG1("collocated_ref_idx             : %d\n", shdr->collocated_ref_idx);
       }
 
       if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
@@ -450,48 +453,48 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
           //pred_weight_table()
         }
 
-      LOG("five_minus_max_num_merge_cand  : %d\n", shdr->five_minus_max_num_merge_cand);
+      LOG1("five_minus_max_num_merge_cand  : %d\n", shdr->five_minus_max_num_merge_cand);
     }
 
 
-    LOG("slice_qp_delta         : %d\n", shdr->slice_qp_delta);
+    LOG1("slice_qp_delta         : %d\n", shdr->slice_qp_delta);
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
-      LOG("slice_cb_qp_offset     : %d\n", shdr->slice_cb_qp_offset);
-      LOG("slice_cr_qp_offset     : %d\n", shdr->slice_cr_qp_offset);
+      LOG1("slice_cb_qp_offset     : %d\n", shdr->slice_cb_qp_offset);
+      LOG1("slice_cr_qp_offset     : %d\n", shdr->slice_cr_qp_offset);
     }
 
     if (pps->deblocking_filter_override_enabled_flag) {
-      LOG("deblocking_filter_override_flag : %d\n", shdr->deblocking_filter_override_flag);
+      LOG1("deblocking_filter_override_flag : %d\n", shdr->deblocking_filter_override_flag);
     }
 
-    LOG("slice_deblocking_filter_disabled_flag : %d %s\n",
+    LOG2("slice_deblocking_filter_disabled_flag : %d %s\n",
         shdr->slice_deblocking_filter_disabled_flag,
         (shdr->deblocking_filter_override_flag ? "(override)" : "(from pps)"));
 
     if (shdr->deblocking_filter_override_flag) {
 
       if (!shdr->slice_deblocking_filter_disabled_flag) {
-        LOG("slice_beta_offset  : %d\n", shdr->slice_beta_offset);
-        LOG("slice_tc_offset    : %d\n", shdr->slice_tc_offset);
+        LOG1("slice_beta_offset  : %d\n", shdr->slice_beta_offset);
+        LOG1("slice_tc_offset    : %d\n", shdr->slice_tc_offset);
       }
     }
 
     if (pps->pps_loop_filter_across_slices_enabled_flag  &&
         (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag ||
          !shdr->slice_deblocking_filter_disabled_flag)) {
-      LOG("slice_loop_filter_across_slices_enabled_flag : %d\n",
+      LOG1("slice_loop_filter_across_slices_enabled_flag : %d\n",
           shdr->slice_loop_filter_across_slices_enabled_flag);
     }
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag) {
-    LOG("num_entry_point_offsets    : %d\n", shdr->num_entry_point_offsets);
+    LOG1("num_entry_point_offsets    : %d\n", shdr->num_entry_point_offsets);
 
     if (shdr->num_entry_point_offsets > 0) {
-      LOG("offset_len                 : %d\n", shdr->offset_len);
+      LOG1("offset_len                 : %d\n", shdr->offset_len);
 
       for (int i=0; i<shdr->num_entry_point_offsets; i++) {
-        LOG("entry point [%i] : %d\n", i, shdr->entry_point_offset[i]);
+        LOG2("entry point [%i] : %d\n", i, shdr->entry_point_offset[i]);
       }
     }
   }
@@ -506,8 +509,10 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     }
   */
 
-#undef LOG
-#endif
+#undef LOG0
+#undef LOG1
+#undef LOG2
+  //#endif
 }
 
 
