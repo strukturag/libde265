@@ -48,6 +48,10 @@
       |       |       |_______|       | |     |       |     | |
       |       |       |       |       | |     |       |     | |
       +-------+       +-------+       +-+-----+       +-----+-+
+
+      - AMP only if CU size > min CU size
+      - NxN size >= 16x16 (-> block size 8x8)
+      - minimum block size for Bi-Pred is 8x8 (wikipedia: Coding_tree_unit)
 */
 enum PartMode
   {

@@ -744,9 +744,13 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
       ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
     }
 
-    if (ctx->img->pb_info_size != ctx->current_sps->PicSizeInMinCbsY *4 *4 ||
+    int puWidth  = ctx->current_sps->PicWidthInMinCbsY  << (ctx->current_sps->Log2MinCbSizeY -2);
+    int puHeight = ctx->current_sps->PicHeightInMinCbsY << (ctx->current_sps->Log2MinCbSizeY -2);
+
+    if (ctx->img->pb_info_size != puWidth*puHeight ||
         ctx->img->pb_info == NULL) {
-      ctx->img->pb_info_size = ctx->current_sps->PicSizeInMinCbsY *4 *4;
+      ctx->img->pb_info_size   = puWidth*puHeight;
+      ctx->img->pb_info_stride = puWidth;
       ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
     }
 
@@ -1174,45 +1178,49 @@ const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
 }
 
 
-
-#define PIXEL2PB(x) (x >> (ctx->current_sps->Log2MinCbSizeY-2))
-#define PB_IDX(x0,y0) (PIXEL2PB(x0) + PIXEL2PB(y0)*ctx->current_sps->PicWidthInMinCbsY*4)
-#define SET_IMG_PB_BLK(x,y,nPbW,nPbH,  Field,value)                     \
-  int blksize = 1<<(ctx->current_sps->Log2MinCbSizeY-2);                \
-  for (int pby=y;pby<y+nPbH;pby+=blksize)                               \
-    for (int pbx=x;pbx<x+nPbW;pbx+=blksize)                             \
-      {                                                                 \
-        ctx->img->pb_info[PB_IDX(pbx,pby)].Field = value;               \
-      }
-
-//        fprintf(stderr,"PB %d;%d = %d;%d\n",pbx,pby,(value).mv[0].x,(value).mv[0].y); \
-
-
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 {
-  int idx = PB_IDX(x,y);
+  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
+  int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
 
-  return &ctx->img->pb_info[ PB_IDX(x,y) ].mvi;
+  return &ctx->img->pb_info[idx].mvi;
 }
 
 
 const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y)
 {
-  return &img->pb_info[ PB_IDX(x,y) ].mvi;
+  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
+  int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
+
+  return &img->pb_info[idx].mvi;
 }
 
 
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
+  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
+
+  int xPu = x >> log2PuSize;
+  int yPu = y >> log2PuSize;
+  int wPu = nPbW >> log2PuSize;
+  int hPu = nPbH >> log2PuSize;
+
+  int stride = ctx->img->pb_info_stride; // ctx->current_sps->PicWidthInMinCbsY << f;
+
+  for (int pby=0;pby<hPu;pby++)
+    for (int pbx=0;pbx<wPu;pbx++)
+      {               
+        ctx->img->pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
+      }
+
+  printf("%dx%d -> %dx%d  size %d\n",nPbW,nPbH, wPu,hPu,sizeof(*mv));
+
   /*
   fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,
           mv->mv[0].x,mv->mv[0].y,
           ctx->img->PicOrderCntVal);
   */
-
-  //{ SET_PB_BLK(x,y,nPbW,nPbH, pred_vector, *mv); }
-  { SET_IMG_PB_BLK(x,y,nPbW,nPbH, mvi, *mv); }
 }
 
 
