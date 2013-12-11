@@ -173,7 +173,7 @@ char derive_edgeFlags(decoder_context* ctx)
 
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
-void derive_boundaryStrength(decoder_context* ctx, bool vertical)
+void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int yEnd)
 {
   //int stride = ctx->img.stride; TODO: UNUSED
   int xIncr = vertical ? 2 : 1;
@@ -185,7 +185,11 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical)
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  for (int y=0;y<ctx->deblk_height;y+=yIncr)
+  // required because multi-threading might cut odd strips
+  yStart &= ~1;
+  yEnd   &= ~1;
+
+  for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
       int xDi = x*4;
       int yDi = y*4;
@@ -318,7 +322,7 @@ static uint8_t table_8_23_tc[54] = {
 };
 
 // 8.7.2.4
-void edge_filtering_luma(decoder_context* ctx, bool vertical)
+void edge_filtering_luma(decoder_context* ctx, bool vertical, int yStart,int yEnd)
 {
   //int minCbSize = ctx->current_sps->MinCbSizeY;
   int xIncr = vertical ? 2 : 1;
@@ -326,8 +330,13 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
 
   const int stride = ctx->img->stride;
 
+  // required because multi-threading might cut odd strips
+  yStart &= ~1;
+  yEnd   &= ~1;
 
-  for (int y=0;y<ctx->deblk_height;y+=yIncr)
+  //printf("-> %d %d\n",yStart,yEnd);
+
+  for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
       int xDi = x*4;
       int yDi = y*4;
@@ -534,7 +543,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical)
 }
 
 
-void edge_filtering_chroma(decoder_context* ctx, bool vertical)
+void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int yEnd)
 {
   //int minCbSize = ctx->current_sps->MinCbSizeY;
   int xIncr = vertical ? 4 : 2;
@@ -542,8 +551,11 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
 
   const int stride = ctx->img->chroma_stride;
 
+  // required because multi-threading might cut odd strips
+  yStart &= ~3;
+  yEnd   &= ~3;
 
-  for (int y=0;y<ctx->deblk_height;y+=yIncr)
+  for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
       int xDi = x*2;
       int yDi = y*2;
@@ -633,6 +645,17 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical)
 }
 
 
+static void thread_deblock(void* d)
+{
+  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
+  struct decoder_context* ctx = data->ctx;
+
+  derive_boundaryStrength(ctx, data->vertical, data->first,data->last);
+  edge_filtering_luma    (ctx, data->vertical, data->first,data->last);
+  edge_filtering_chroma  (ctx, data->vertical, data->first,data->last);
+}
+
+
 void apply_deblocking_filter(decoder_context* ctx)
 {
   //return;
@@ -641,18 +664,51 @@ void apply_deblocking_filter(decoder_context* ctx)
 
   if (enabled_deblocking)
     {
-      // vertical filtering
+      if (ctx->num_worker_threads==0) {
+        // vertical filtering
 
-      logtrace(LogDeblock,"VERTICAL\n");
-      derive_boundaryStrength(ctx, true);
-      edge_filtering_luma(ctx, true);
-      edge_filtering_chroma(ctx, true);
+        logtrace(LogDeblock,"VERTICAL\n");
+        derive_boundaryStrength(ctx, true ,0,ctx->deblk_height);
+        edge_filtering_luma    (ctx, true ,0,ctx->deblk_height);
+        edge_filtering_chroma  (ctx, true ,0,ctx->deblk_height);
 
-      // horizontal filtering
+        // horizontal filtering
 
-      logtrace(LogDeblock,"HORIZONTAL\n");
-      derive_boundaryStrength(ctx, false);
-      edge_filtering_luma(ctx, false);
-      edge_filtering_chroma(ctx, false);
+        logtrace(LogDeblock,"HORIZONTAL\n");
+        derive_boundaryStrength(ctx, false ,0,ctx->deblk_height);
+        edge_filtering_luma    (ctx, false ,0,ctx->deblk_height);
+        edge_filtering_chroma  (ctx, false ,0,ctx->deblk_height);
+      }
+      else {
+
+        flush_thread_pool(&ctx->thread_pool);
+
+        for (int pass=0;pass<2;pass++) {
+
+          thread_task task;
+
+          task.task_id = -1;
+          task.task_cmd = THREAD_TASK_DEBLOCK;
+          task.work_routine = thread_deblock;
+
+          int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
+          ctx->thread_pool.tasks_pending = numStripes;
+
+          for (int i=0;i<numStripes;i++)
+            {
+              int ys = i*ctx->deblk_height/numStripes;
+              int ye = (i+1)*ctx->deblk_height/numStripes;
+
+              task.data.task_deblock.ctx   = ctx;
+              task.data.task_deblock.first = ys;
+              task.data.task_deblock.last  = ye;
+              task.data.task_deblock.vertical = (pass==0);
+
+              add_task(&ctx->thread_pool, &task);
+            }
+
+          flush_thread_pool(&ctx->thread_pool);
+        }
+      }
     }
 }
