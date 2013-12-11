@@ -227,15 +227,6 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   int16_t* coeff;
   int      coeffStride;
 
-  //coeffStride=64;
-  //coeff = &tctx->coeff[cIdx][(yT-y0)*coeffStride+(xT-x0)];
-
-
-  //memset(&tctx->coeffBuf, 0, nT*nT*sizeof(int16_t));
-  for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-    tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
-  }
-
   coeff = tctx->coeffBuf;
   coeffStride = nT;
 
@@ -258,39 +249,17 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     logtrace(LogTransform,"bdShift=%d\n",bdShift);
 
-    logtrace(LogTransform,"coefficients IN:\n");
-    for (int y=0;y<nT;y++) {
-      logtrace(LogTransform,"  ");
-      for (int x=0;x<nT;x++) {
-        logtrace(LogTransform,"*%3d ", coeff[x+y*coeffStride]);
-      }
-      logtrace(LogTransform,"*\n");
-    }
-
-    /*
-      printf("coefficients IN:\n");
-      for (int y=0;y<nT;y++) {
-      printf("  ");
-      for (int x=0;x<nT;x++) {
-      printf("%3d ", coeff[x+y*coeffStride]);
-      }
-      printf("*\n");
-      }
-    */
-
     if (sps->scaling_list_enable_flag==0) {
+      for (int i=0;i<tctx->nCoeff[cIdx];i++) {
 
-      for (int y=0;y<nT;y++) {
-        for (int x=0;x<nT;x++) {
-          int currCoeff = coeff[y*coeffStride+x];
+        int currCoeff  = tctx->coeffList[cIdx][i];
 
-          { //if (currCoeff != 0) {
-            int m_x_y = 16;
-            coeff[y*coeffStride+x] = Clip3(-32768,32767,
-                                           ( (currCoeff * m_x_y * levelScale[qP%6] << (qP/6))
-                                             + (1<<(bdShift-1)) ) >> bdShift);
-          }
-        }
+        const int m_x_y = 16;
+        currCoeff = Clip3(-32768,32767,
+                          ( (currCoeff * m_x_y * levelScale[qP%6] << (qP/6))
+                            + (1<<(bdShift-1)) ) >> bdShift);
+
+        tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
     }
     else {
@@ -315,15 +284,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     if (get_transform_skip_flag(ctx,xT,yT,cIdx)) { // NOTE: could add shortcut nT==4 && ...
 
-      int16_t g[32*32];
-
-      for (int c=0;c<nT;c++) {
-        for (int y=0;y<nT;y++) {
-          g[c+nT*y] = coeff[c+y*coeffStride];
-        }
-      }
-
-      ctx->lowlevel.transform_skip_8(pred, g, stride);
+      ctx->lowlevel.transform_skip_8(pred, coeff, stride);
 
       nSkip_4x4++;
     }
