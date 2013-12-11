@@ -87,6 +87,11 @@ typedef struct {
 } CB_info;
 
 
+#define TU_FLAG_NONZERO_COEFF  (1<<0)
+//#define TU_FLAG_AVAILABLE_LEFT    (1<<1)
+//#define TU_FLAG_AVAILABLE_TOP     (1<<2)
+//#define TU_FLAG_AVAILABLE_TOPLEFT (1<<3)
+
 typedef struct {
   uint16_t cbf_cb; // bitfield (1<<depth)
   uint16_t cbf_cr; // bitfield (1<<depth)
@@ -98,7 +103,7 @@ typedef struct {
   uint8_t split_transform_flag;
   uint8_t transform_skip_flag;   // read bit (1<<cIdx)
   uint8_t coded_sub_block_flag;
-  uint8_t nonzero_coefficient;
+  uint8_t flags;
 } TU_info;
 
 

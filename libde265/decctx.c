@@ -978,6 +978,15 @@ int  get_rqt_root_cbf(const decoder_context* ctx,int x,int y)
       {                                                                 \
         ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field = value; \
       }
+#define OR_TU_BLK(x,y,log2BlkWidth,  Field,value)                       \
+  int tuX = PIXEL2TU(x);                                                \
+  int tuY = PIXEL2TU(y);                                                \
+  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinTrafoSize); \
+  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
+    for (int tux=tuX;tux<tuX+width;tux++)                               \
+      {                                                                 \
+        ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field |= value; \
+      }
 
 void set_cbf_cb(decoder_context* ctx, int x0,int y0, int depth)
 {
@@ -1083,13 +1092,13 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx)
 
 void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
 {
-  SET_TU_BLK(x,y,log2TrafoSize, nonzero_coefficient, 1);
+  OR_TU_BLK(x,y,log2TrafoSize, flags, TU_FLAG_NONZERO_COEFF);
 }
 
 
 int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
 {
-  return GET_TU_BLK(x,y).nonzero_coefficient;
+  return GET_TU_BLK(x,y).flags & TU_FLAG_NONZERO_COEFF;
 }
 
 
@@ -1252,7 +1261,6 @@ bool available_zscan(const decoder_context* ctx,
 {
   seq_parameter_set* sps = ctx->current_sps;
   pic_parameter_set* pps = ctx->current_pps;
-
 
   if (xN<0 || yN<0) return false;
   if (xN>=sps->pic_width_in_luma_samples ||

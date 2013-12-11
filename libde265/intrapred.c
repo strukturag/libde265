@@ -29,10 +29,24 @@
 
 
 int nIntraPredictions;
+int nAvail0;
+int nAvailPart;
+int nAvailAll;
+int nAvailSz[32*2+32*2+1+1];
 
 LIBDE265_API void showIntraPredictionProfile()
 {
   printf("nIntraPredictions: %d\n", nIntraPredictions);
+  printf("  with no available border samples: %d\n", nAvail0);
+  printf("  with partially available samples: %d\n", nAvailPart);
+  printf("  with complete border samples: %d\n", nAvailAll);
+
+  if (0) {
+    printf("  ");
+    for (int i=0;i<32*2+32*2+1+1;i++)
+      printf("%d ",nAvailSz[i]);
+    printf("\n");
+  }
 }
 
 
@@ -64,86 +78,210 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int stride;
   get_image_plane(ctx, cIdx,  &image, &stride);
 
+  const int chromaShift = (cIdx==0) ? 0 : 1;
+  const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
 
-  // HACK: init usually not needed
-  /*
-  for (int i=-2*nT ; i<=2*nT ; i++) {
-    out_border[i] = 1<<(sps->bit_depth_luma-1);
+
+  // --- check for CTB boundaries ---
+
+  int xBLuma = (cIdx==0) ? xB : 2*xB;
+  int yBLuma = (cIdx==0) ? yB : 2*yB;
+
+  int log2CtbSize = sps->Log2CtbSizeY;
+  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
+  const pic_parameter_set* pps = ctx->current_pps;
+
+  bool availableLeft=true;    // is CTB at left side available?
+  bool availableTop=true;     // is CTB at top side available?
+  bool availableTopLeft=true; // if CTB at top-left pixel available?
+
+
+  // are we at left image border
+
+  if (xBLuma == 0) {
+    availableLeft = false;
+    availableTopLeft = false;
+    xBLuma = 0; // fake value, available flags are already set to false
   }
-  */
+
+
+  // are we at top image border
+
+  if (yBLuma == 0) {
+    availableTop = false;
+    availableTopLeft = false;
+    yBLuma = 0; // fake value, available flags are already set to false
+  }
+
+
+  // check for tile and slice boundaries
+
+  int xCurrCtb = xBLuma >> log2CtbSize;
+  int yCurrCtb = yBLuma >> log2CtbSize;
+  int xLeftCtb = (xBLuma-1) >> log2CtbSize;
+  int yTopCtb  = (yBLuma-1) >> log2CtbSize;
+
+  int currCTBSlice = get_SliceAddrRS(ctx, xCurrCtb,yCurrCtb);
+  int leftCTBSlice = get_SliceAddrRS(ctx, xLeftCtb, yCurrCtb);
+  int topCTBSlice  = get_SliceAddrRS(ctx, xCurrCtb, yTopCtb);
+  int topleftCTBSlice = get_SliceAddrRS(ctx, xLeftCtb, yTopCtb);
+
+  int currCTBTileID = pps->TileId[xCurrCtb+yCurrCtb*picWidthInCtbs];
+  int leftCTBTileID = pps->TileId[xLeftCtb+yCurrCtb*picWidthInCtbs];
+  int topCTBTileID  = pps->TileId[xCurrCtb+yTopCtb*picWidthInCtbs];
+  int topleftCTBTileID = pps->TileId[xLeftCtb+yTopCtb*picWidthInCtbs];
+
+  if (leftCTBSlice != currCTBSlice || leftCTBTileID != currCTBTileID) availableLeft   = false;
+  if (topCTBSlice  != currCTBSlice || topCTBTileID  != currCTBTileID) availableTop    = false;
+  if (topleftCTBSlice!=currCTBSlice||topleftCTBTileID!=currCTBTileID) availableTopLeft= false;
+
+
+  int currBlockAddr = pps->MinTbAddrZS[ (xBLuma>>sps->Log2MinTrafoSize) +
+                                        (yBLuma>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
+
+
+  // number of pixels that are in the valid image area to the right and to the bottom
+
+  int nBottom = sps->pic_height_in_luma_samples - (cIdx==0 ? yB : 2*yB);
+  if (cIdx) nBottom=(nBottom+1)/2;
+  if (nBottom>2*nT) nBottom=2*nT;
+  int nRight  = sps->pic_width_in_luma_samples  - (cIdx==0 ? xB : 2*xB);
+  if (cIdx) nRight =(nRight +1)/2;
+  if (nRight >2*nT) nRight=2*nT;
 
   int nAvail=0;
 
-  {
-    int y=-1;
-    bool availableN;
-    if (cIdx==0)
-      availableN = available_zscan(ctx, xB,yB, xB-1,yB+y);
-    else
-      availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB-1),2*(yB+y));
 
-    available[-(y+1)] = availableN;
+  // copy pixel at top-left position
 
-    if (ctx->current_pps->constrained_intra_pred_flag) {
-      if (get_pred_mode(ctx,xB-1,yB+y)!=MODE_INTRA)
-        available[-(y+1)] = false;
-    }
-
-    if (available[-(y+1)]) {
-      out_border[-(y+1)] = image[xB-1 + (yB+y)*stride];
-      nAvail++;
-    }
+  if (ctx->current_pps->constrained_intra_pred_flag) {
+    if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA)
+      availableTopLeft = false;
   }
 
-  for (int y=0 ; y<nT*2 ; y+=4)
-    {
-      bool availableN;
-      if (cIdx==0)
-        availableN = available_zscan(ctx, xB,yB, xB-1,yB+y);
-      else
-        availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB-1),2*(yB+y));
+  available[0] = availableTopLeft;
 
-      if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,xB-1,yB+y)!=MODE_INTRA)
-          availableN = false;
+  if (availableTopLeft) {
+    out_border[0] = image[xB-1 + (yB-1)*stride];
+    nAvail++;
+  }
+
+
+  // copy pixels at left column
+
+  if (!availableLeft) { nBottom=0; }
+
+  bool haveFillValue=availableTopLeft;
+
+  int y;
+  for (y=0 ; y<nBottom ; y+=4)
+    {
+      int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
+                                         ((yB+y)>>TUShift) * sps->PicWidthInTbsY ];
+
+      bool availableN = NBlockAddr < currBlockAddr;
+
+      if (!availableN) {
+        break;
       }
 
-      for (int i=0;i<4;i++)
-        available[-(y+1+i)] = availableN;
+      if (ctx->current_pps->constrained_intra_pred_flag) {
+        if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+          availableN = false;
 
-      if (available[-(y+1)]) {
+        // TODO: if fill value is defined, we could already fill it in here
+
+        haveFillValue=false;
+      }
+
+      if (availableN) {
         for (int i=0;i<4;i++)
           out_border[-(y+1+i)] = image[xB-1 + (yB+y+i)*stride];
 
         nAvail+=4;
-      }
-    }
-
-
-  for (int x=0 ; x<nT*2 ; x+=4)
-    {
-      bool availableN;
-      if (cIdx==0)
-        availableN = available_zscan(ctx, xB,yB, xB+x,yB-1);
-      else
-        availableN = available_zscan(ctx, 2*xB,2*yB, 2*(xB+x),2*(yB-1));
-
-      if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,xB+x,yB-1)!=MODE_INTRA)
-          for (int i=0;i<4;i++)
-            availableN = false;
+        haveFillValue=true;
       }
 
       for (int i=0;i<4;i++)
-        available[x+1+i] = availableN;
+        available[-(y+1+i)] = availableN;
+    }
+
+  if (haveFillValue) {
+    uint8_t fillValue = out_border[-(y+1) +1];
+    nAvail += 2*nT-y;
+    for (/*NOP*/;y<2*nT;y++) {
+      available[-(y+1)] = true;
+      out_border[-(y+1)] = fillValue;
+    }
+  }
+  else {
+    for (/*NOP*/;y<2*nT;y++) {
+      available[-(y+1)] = false;
+    }
+  }
+
+
+  if (!availableTopLeft && available[-1]) {
+    available[0] = true;
+    out_border[0] = out_border[-1];
+    nAvail++;
+    availableTopLeft=true;
+  }
+
+
+  // copy pixels at top row
+
+  if (!availableTop) { nRight=0; }
+
+  haveFillValue=availableTopLeft;  // whether the last pixel in the for-loop has a defined value
+
+  int x;
+  for (x=0 ; x<nRight ; x+=4)
+    {
+      int NBlockAddr = pps->MinTbAddrZS[ ((xB+x)>>TUShift) +
+                                         ((yB-1)>>TUShift) * sps->PicWidthInTbsY ];
+
+      bool availableN = NBlockAddr < currBlockAddr;
+
+      if (!availableN) {
+        break;
+      }
+
+      if (ctx->current_pps->constrained_intra_pred_flag) {
+        if (get_pred_mode(ctx,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+          availableN = false;
+
+          // TODO: if fill value is defined, we could already fill it in here
+
+          haveFillValue=false;
+        }
+      }
 
       if (availableN) {
         for (int i=0;i<4;i++)
           out_border[x+1+i] = image[xB+x+i + (yB-1)*stride];
 
         nAvail+=4;
+        haveFillValue=true;
       }
+
+      for (int i=0;i<4;i++)
+        available[x+1+i] = availableN;
     }
+
+  if (haveFillValue) {
+    uint8_t fillValue = out_border[x+1 -1];
+    nAvail += 2*nT-x;
+    for (/*NOP*/;x<2*nT;x++) {
+      available[x+1] = true;
+      out_border[x+1] = fillValue;
+    }
+  }
+  else {
+    for (/*NOP*/;x<2*nT;x++) {
+      available[x+1] = false;
+    }
+  }
 
 
   logtrace(LogIntraPred,"availableN: ");
@@ -157,6 +295,17 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
 
+  //nAvailSz[nAvail]++;
+#if 0
+  for (int i=-2*nT;i<=2*nT;i++) {
+    if (i==0) printf("|");
+    printf("%c", available[i] ? '*':'.');
+    if (i==0) printf("|");
+  }
+  printf("\n");
+#endif
+
+
   if (nAvail < 4*nT+1) {
     // 8.4.4.2.2 sample substitution process
 
@@ -164,9 +313,13 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       for (int i=-2*nT ; i<=2*nT ; i++) {
         out_border[i] = 1<<(sps->bit_depth_luma-1);
       }
+
+      nAvail0++;
     } else {
+      nAvailPart++;
+
       if (!available[-2*nT]) {
-        for (int i=-2*nT+1 ; ; i++) {
+        for (int i=-nBottom /*-2*nT+1*/ ; ; i++) {
           if (available[i]) {
             available[-2*nT] = true;
             out_border[-2*nT] = out_border[i];
@@ -179,11 +332,11 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
         if (!available[i]) {
           out_border[i] = out_border[i-1];
         }
-        else {
-          // break; // HACK, wrong according to standard
-        }
       }
     }
+  }
+  else {
+    nAvailAll++;
   }
 
 
