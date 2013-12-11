@@ -185,10 +185,6 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  // required because multi-threading might cut odd strips
-  yStart &= ~1;
-  yEnd   &= ~1;
-
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
       int xDi = x*4;
@@ -329,10 +325,6 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical, int yStart,int yEn
   int yIncr = vertical ? 1 : 2;
 
   const int stride = ctx->img->stride;
-
-  // required because multi-threading might cut odd strips
-  yStart &= ~1;
-  yEnd   &= ~1;
 
   //printf("-> %d %d\n",yStart,yEnd);
 
@@ -551,10 +543,6 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
   const int stride = ctx->img->chroma_stride;
 
-  // required because multi-threading might cut odd strips
-  yStart &= ~3;
-  yEnd   &= ~3;
-
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=0;x<ctx->deblk_width; x+=xIncr) {
       int xDi = x*2;
@@ -698,6 +686,11 @@ void apply_deblocking_filter(decoder_context* ctx)
             {
               int ys = i*ctx->deblk_height/numStripes;
               int ye = (i+1)*ctx->deblk_height/numStripes;
+
+              // required because multi-threading might cut odd strips
+              ys &= ~3;
+              if (i != numStripes-1) ye &= ~3;
+
 
               task.data.task_deblock.ctx   = ctx;
               task.data.task_deblock.first = ys;
