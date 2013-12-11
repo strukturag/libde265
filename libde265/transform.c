@@ -171,33 +171,15 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 
   if (trType==1) {
 
-    int16_t g[4*4];
-
-    for (int c=0;c<4;c++) {
-      for (int y=0;y<4;y++) {
-        g[c+4*y] = coeff[c+y*coeffStride];
-      }
-    }
-
+    ctx->lowlevel.transform_4x4_luma_add_8(dst, coeff, dstStride);
     nDST_4x4++;
 
-    ctx->lowlevel.transform_4x4_luma_add_8(dst, g, dstStride);
   } else {
 
-    int16_t g[32*32];
-    int coeffCnt=0;
-
-    for (int c=0;c<nT;c++) {
-      for (int y=0;y<nT;y++) {
-        g[c+nT*y] = coeff[c+y*coeffStride];
-        // coeffCnt += !!g[c+nT*y]; // TODO: only if profiling is enabled
-      }
-    }
-    
-    /**/ if (nT==4)  { ctx->lowlevel.transform_4x4_add_8(dst,g,dstStride); nDCT_4x4++; nCoeff4x4[coeffCnt]++; }
-    else if (nT==8)  { ctx->lowlevel.transform_8x8_add_8(dst,g,dstStride); nDCT_8x8++; nCoeff8x8[coeffCnt]++; }
-    else if (nT==16) { ctx->lowlevel.transform_16x16_add_8(dst,g,dstStride); nDCT_16x16++; nCoeff16x16[coeffCnt]++; }
-    else             { ctx->lowlevel.transform_32x32_add_8(dst,g,dstStride); nDCT_32x32++; nCoeff32x32[coeffCnt]++; }
+    /**/ if (nT==4)  { ctx->lowlevel.transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
+    else if (nT==8)  { ctx->lowlevel.transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
+    else if (nT==16) { ctx->lowlevel.transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
+    else             { ctx->lowlevel.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
   }
 }
 
