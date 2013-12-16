@@ -108,7 +108,6 @@ LIBDE265_API void showMotionProfile()
   fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
 }
 
-#include "x86/sse-motion.h"
 
 void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
              int xP,int yP,
@@ -244,42 +243,6 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
       }
       logtrace(LogMotion,"\n");
     }
-
-#if 0
-    void (*f)(int16_t *dst, ptrdiff_t dststride,
-              uint8_t *src, ptrdiff_t srcstride, int width, int height,
-              int16_t* mcbuffer);
-
-    switch (xFracL + 10*yFracL) {
-    case 10: f=ff_hevc_put_hevc_qpel_v_1_8_sse; break;
-    case 20: f=ff_hevc_put_hevc_qpel_v_2_8_sse; break;
-    case 30: f=ff_hevc_put_hevc_qpel_v_3_8_sse; break;
-    case  1: f=ff_hevc_put_hevc_qpel_h_1_8_sse; break;
-    case 11: f=ff_hevc_put_hevc_qpel_h_1_v_1_sse; break;
-    case 21: f=ff_hevc_put_hevc_qpel_h_1_v_2_sse; break;
-    case 31: f=ff_hevc_put_hevc_qpel_h_1_v_3_sse; break;
-    case  2: f=ff_hevc_put_hevc_qpel_h_2_8_sse; break;
-    case 12: f=ff_hevc_put_hevc_qpel_h_2_v_1_sse; break;
-    case 22: f=ff_hevc_put_hevc_qpel_h_2_v_2_sse; break;
-    case 32: f=ff_hevc_put_hevc_qpel_h_2_v_3_sse; break;
-    case  3: f=ff_hevc_put_hevc_qpel_h_3_8_sse; break;
-    case 13: f=ff_hevc_put_hevc_qpel_h_3_v_1_sse; break;
-    case 23: f=ff_hevc_put_hevc_qpel_h_3_v_2_sse; break;
-    case 33: f=ff_hevc_put_hevc_qpel_h_3_v_3_sse; break;
-    }
-
-    f(out, out_stride,
-      src_ptr, src_stride,
-      nPbW,nPbH, mcbuffer);
-
-    logtrace(LogMotion,"---V COPY---\n");
-    for (int y=0;y<nPbH;y++) {
-      for (int x=0;x<nPbW;x++) {
-        logtrace(LogMotion,"%04x ",out[x+y*out_stride]);
-      }
-      logtrace(LogMotion,"\n");
-    }
-#endif
   }
 }
 
