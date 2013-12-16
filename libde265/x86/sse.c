@@ -14,7 +14,6 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
   lowlevel->put_hevc_epel_v_8  = ff_hevc_put_hevc_epel_v_8_sse;
   lowlevel->put_hevc_epel_hv_8 = ff_hevc_put_hevc_epel_hv_8_sse;
 
-
   lowlevel->put_hevc_qpel_8[0][0] = ff_hevc_put_hevc_qpel_pixels_8_sse;
   lowlevel->put_hevc_qpel_8[0][1] = ff_hevc_put_hevc_qpel_v_1_8_sse;
   lowlevel->put_hevc_qpel_8[0][2] = ff_hevc_put_hevc_qpel_v_2_8_sse;
@@ -31,7 +30,6 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
   lowlevel->put_hevc_qpel_8[3][1] = ff_hevc_put_hevc_qpel_h_3_v_1_sse;
   lowlevel->put_hevc_qpel_8[3][2] = ff_hevc_put_hevc_qpel_h_3_v_2_sse;
   lowlevel->put_hevc_qpel_8[3][3] = ff_hevc_put_hevc_qpel_h_3_v_3_sse;
-
 
   lowlevel->transform_skip_8 = ff_hevc_transform_skip_8_sse;
 

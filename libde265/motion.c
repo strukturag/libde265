@@ -108,6 +108,8 @@ LIBDE265_API void showMotionProfile()
   fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
 }
 
+#include "x86/sse-motion.h"
+
 void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
@@ -151,24 +153,11 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
 
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
-#if 0
-      for (int y=0;y<nPbH;y++) {
-        int16_t* o = &out[y*out_stride];
-        uint8_t* i = &img[xIntOffsL+(y+yIntOffsL)*img_stride];
 
-        for (int x=0;x<nPbW;x++) {
-
-          *o = *i << shift3;
-          o++;
-          i++;
-        }
-      }
-#else
       ctx->lowlevel.put_hevc_qpel_8[0][0](out, out_stride,
                                           &img[yIntOffsL*img_stride + xIntOffsL],
                                           img_stride,
                                           nPbW,nPbH, mcbuffer);
-#endif
     }
     else {
       for (int y=0;y<nPbH;y++)
@@ -216,7 +205,6 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
     int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
 
-#if 1
     uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+7)];
 
     uint8_t* src_ptr;
@@ -240,21 +228,6 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
         }
       }
 
-      /*
-      int n = nPbW+extra_left+extra_right;
-
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* po = &padbuf[(y+extra_top)*(MAX_CU_SIZE+16)];
-        uint8_t* pi = &img[ -extra_left+xIntOffsL + (y+yIntOffsL)*img_stride ];
-
-        //memcpy(po,pi, n);
-
-        for (int x=n;x>0;x--) {
-          *po++ = *pi++;
-        }
-      }
-      */
-
       src_ptr = &padbuf[extra_top*(MAX_CU_SIZE+16) + extra_left];
       src_stride = MAX_CU_SIZE+16;
     }
@@ -264,177 +237,42 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
                                                   nPbW,nPbH, mcbuffer);
 
 
-#else
-    uint8_t* tmp1buf = (uint8_t*)alloca( nPbW_extra * nPbH_extra * sizeof(uint8_t) );
-    int16_t* tmp2buf = (int16_t*)alloca( nPbW       * nPbH_extra * sizeof(int16_t) );
-
-
-    logtrace(LogMotion,"---MC luma %d %d---\n",xFracL,yFracL);
-
-
-    // --- copy source block into temporary buffer (with border padding) ---
-
-    // for the most frequent case (copy without padding), use special case
-
-    if (-extra_left + xIntOffsL >= 0 &&
-        -extra_top  + yIntOffsL >= 0 &&
-        nPbW+extra_right  + xIntOffsL < w &&
-        nPbH+extra_bottom + yIntOffsL < h) {
-
-      InsideCnt++;
-
-      int n = nPbW+extra_left+extra_right;
-
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* po = &tmp1buf[(y+extra_top)*nPbW_extra];
-        uint8_t* pi = &img[ -extra_left+xIntOffsL + (y+yIntOffsL)*img_stride ];
-
-        //memcpy(po,pi, n);
-
-        for (int x=n;x>0;x--) {
-          *po++ = *pi++;
-        }
-      }
-    }
-    else {
-      OutsideCnt++;
-
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        if (y==0 || y==nPbH) { logtrace(LogMotion,"----------------\n"); }
-        for (int x=-extra_left;x<nPbW+extra_right;x++) {
-        
-          int xA = Clip3(0,w-1,x + xIntOffsL);
-          int yA = Clip3(0,h-1,y + yIntOffsL);
-        
-          tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra] = img[ xA + yA*img_stride ];
-
-          logtrace(LogMotion,"%c%02x",(x==0 || x==nPbW) ? '|':' ',
-                   tmp1buf[x+extra_left + (y+extra_top)*nPbW_extra]);
-        }
-        logtrace(LogMotion,"\n");
-      }
-    }
-
-    // H-filters
-
-    switch (xFracL) {
-    case 0:
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-        int16_t* o = &tmp2buf[y+extra_top];
-
-        for (int x=0;x<nPbW;x++) {
-          *o = *p;
-          o += nPbH_extra;
-          p++;
-        }
-      }
-      break;
-    case 1:
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-        int16_t* o = &tmp2buf[y+extra_top];
-
-        for (int x=0;x<nPbW;x++) {
-          *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1;
-          o += nPbH_extra;
-          p++;
-        }
-      }
-      break;
-    case 2:
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-        int16_t* o = &tmp2buf[y+extra_top];
-
-        for (int x=0;x<nPbW;x++) {
-          *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1;
-          o += nPbH_extra;
-          p++;
-        }
-      }
-      break;
-    case 3:
-      for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        uint8_t* p = &tmp1buf[(y+extra_top)*nPbW_extra];
-        int16_t* o = &tmp2buf[y+extra_top];
-
-        for (int x=0;x<nPbW;x++) {
-          *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1;
-          o += nPbH_extra;
-          p++;
-        }
-      }
-      break;
-    }
-
-
-    logtrace(LogMotion,"---H---\n");
-
-    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+    logtrace(LogMotion,"---V---\n");
+    for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
-        logtrace(LogMotion,"%04x ",tmp2buf[y+extra_top + x*nPbH_extra]);
+        logtrace(LogMotion,"%04x ",out[x+y*out_stride]);
       }
       logtrace(LogMotion,"\n");
     }
 
+#if 0
+    void (*f)(int16_t *dst, ptrdiff_t dststride,
+              uint8_t *src, ptrdiff_t srcstride, int width, int height,
+              int16_t* mcbuffer);
 
-    // V-filters
-
-    int vshift = (xFracL==0 ? shift1 : shift2);
-
-    switch (yFracL) {
-    case 0:
-      for (int x=0;x<nPbW;x++) {
-        int16_t* p = &tmp2buf[x*nPbH_extra];
-        int16_t* o = &out[x];
-              
-        for (int y=0;y<nPbH;y++) {
-          *o = *p;
-          o+=out_stride;
-          p++;
-        }
-      }
-      break;
-    case 1:
-      for (int x=0;x<nPbW;x++) {
-        int16_t* p = &tmp2buf[x*nPbH_extra];
-        int16_t* o = &out[x];
-              
-        for (int y=0;y<nPbH;y++) {
-          *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
-          o+=out_stride;
-          p++;
-        }
-      }
-      break;
-    case 2:
-      for (int x=0;x<nPbW;x++) {
-        int16_t* p = &tmp2buf[x*nPbH_extra];
-        int16_t* o = &out[x];
-              
-        for (int y=0;y<nPbH;y++) {
-          *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
-          o+=out_stride;
-          p++;
-        }
-      }
-      break;
-    case 3:
-      for (int x=0;x<nPbW;x++) {
-        int16_t* p = &tmp2buf[x*nPbH_extra];
-        int16_t* o = &out[x];
-              
-        for (int y=0;y<nPbH;y++) {
-          *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
-          o+=out_stride;
-          p++;
-        }
-      }
-      break;
+    switch (xFracL + 10*yFracL) {
+    case 10: f=ff_hevc_put_hevc_qpel_v_1_8_sse; break;
+    case 20: f=ff_hevc_put_hevc_qpel_v_2_8_sse; break;
+    case 30: f=ff_hevc_put_hevc_qpel_v_3_8_sse; break;
+    case  1: f=ff_hevc_put_hevc_qpel_h_1_8_sse; break;
+    case 11: f=ff_hevc_put_hevc_qpel_h_1_v_1_sse; break;
+    case 21: f=ff_hevc_put_hevc_qpel_h_1_v_2_sse; break;
+    case 31: f=ff_hevc_put_hevc_qpel_h_1_v_3_sse; break;
+    case  2: f=ff_hevc_put_hevc_qpel_h_2_8_sse; break;
+    case 12: f=ff_hevc_put_hevc_qpel_h_2_v_1_sse; break;
+    case 22: f=ff_hevc_put_hevc_qpel_h_2_v_2_sse; break;
+    case 32: f=ff_hevc_put_hevc_qpel_h_2_v_3_sse; break;
+    case  3: f=ff_hevc_put_hevc_qpel_h_3_8_sse; break;
+    case 13: f=ff_hevc_put_hevc_qpel_h_3_v_1_sse; break;
+    case 23: f=ff_hevc_put_hevc_qpel_h_3_v_2_sse; break;
+    case 33: f=ff_hevc_put_hevc_qpel_h_3_v_3_sse; break;
     }
 
-    logtrace(LogMotion,"---V---\n");
+    f(out, out_stride,
+      src_ptr, src_stride,
+      nPbW,nPbH, mcbuffer);
+
+    logtrace(LogMotion,"---V COPY---\n");
     for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
         logtrace(LogMotion,"%04x ",out[x+y*out_stride]);

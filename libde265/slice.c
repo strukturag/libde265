@@ -2074,7 +2074,7 @@ int residual_coding(decoder_context* ctx,
 
 #ifdef DE265_LOG_TRACE
   int16_t TransCoeffLevel[32 * 32];
-  memset(TransCoeffLevel,0, sizeof(uint16_t)*CoeffStride*CoeffStride);
+  memset(TransCoeffLevel,0, sizeof(uint16_t)*32*32);
 #endif
 
   int CoeffStride = 1<<log2TrafoSize;
@@ -2697,7 +2697,7 @@ void read_prediction_unit(decoder_context* ctx,
                           int nPbW, int nPbH,
                           int ctDepth, int nCS,int partIdx)
 {
-  logtrace(LogSlice,"read_prediction_unit %d;%d %dx%d\n",x0,y0,nPbW,nPbH);
+  logtrace(LogSlice,"read_prediction_unit %d;%d %dx%d\n",xC+xB,yC+xB,nPbW,nPbH);
 
   int x0 = xC+xB;
   int y0 = yC+yB;

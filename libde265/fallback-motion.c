@@ -224,3 +224,204 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
   }
   */
 }
+
+
+
+
+void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer)
+{
+  const int shift1 = 0; // sps->BitDepth_Y-8;
+  const int shift2 = 6;
+
+
+  // straight copy
+
+  for (int y=0;y<nPbH;y++) {
+      uint8_t* p = src + srcstride*y;
+      int16_t* o = out + out_stride*y;
+
+      for (int x=0;x<nPbW;x+=4) {
+#if 0
+        *o = *p << shift2;
+        o++; p++;
+#else
+        // does not seem to be faster...
+        int16_t o0,o1,o2,o3;
+        o0 = p[0] << shift2;
+        o1 = p[1] << shift2;
+        o2 = p[2] << shift2;
+        o3 = p[3] << shift2;
+        o[0]=o0;
+        o[1]=o1;
+        o[2]=o2;
+        o[3]=o3;
+
+        o+=4;
+        p+=4;
+#endif
+      }
+  }
+}
+
+
+
+static int extra_before[4] = { 0,3,3,2 };
+static int extra_after [4] = { 0,3,4,4 };
+
+void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
+                       uint8_t *src, ptrdiff_t srcstride,
+                       int nPbW, int nPbH, int16_t* mcbuffer,
+                       int xFracL, int yFracL)
+{
+  int extra_left   = extra_before[xFracL];
+  int extra_right  = extra_after [xFracL];
+  int extra_top    = extra_before[yFracL];
+  int extra_bottom = extra_after [yFracL];
+
+  int nPbW_extra = extra_left + nPbW + extra_right;
+  int nPbH_extra = extra_top  + nPbH + extra_bottom;
+
+  const int shift1 = 0; // sps->BitDepth_Y-8;
+  const int shift2 = 6;
+
+
+  // H-filters
+
+  switch (xFracL) {
+  case 0:
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      uint8_t* p = src + srcstride*y - extra_left;
+      int16_t* o = &mcbuffer[y+extra_top];
+
+      for (int x=0;x<nPbW;x++) {
+        *o = *p;
+        o += nPbH_extra;
+        p++;
+      }
+    }
+    break;
+  case 1:
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      uint8_t* p = src + srcstride*y - extra_left;
+      int16_t* o = &mcbuffer[y+extra_top];
+
+      for (int x=0;x<nPbW;x++) {
+        *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1;
+        o += nPbH_extra;
+        p++;
+      }
+    }
+    break;
+  case 2:
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      uint8_t* p = src + srcstride*y - extra_left;
+      int16_t* o = &mcbuffer[y+extra_top];
+
+      for (int x=0;x<nPbW;x++) {
+        *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1;
+        o += nPbH_extra;
+        p++;
+      }
+    }
+    break;
+  case 3:
+    for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+      uint8_t* p = src + srcstride*y - extra_left;
+      int16_t* o = &mcbuffer[y+extra_top];
+
+      for (int x=0;x<nPbW;x++) {
+        *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1;
+        o += nPbH_extra;
+        p++;
+      }
+    }
+    break;
+  }
+
+
+  logtrace(LogMotion,"---H---\n");
+
+  for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
+    for (int x=0;x<nPbW;x++) {
+      logtrace(LogMotion,"%04x ",mcbuffer[y+extra_top + x*nPbH_extra]);
+    }
+    logtrace(LogMotion,"\n");
+  }
+
+  // V-filters
+
+  int vshift = (xFracL==0 ? shift1 : shift2);
+
+  switch (yFracL) {
+  case 0:
+    for (int x=0;x<nPbW;x++) {
+      int16_t* p = &mcbuffer[x*nPbH_extra];
+      int16_t* o = &out[x];
+              
+      for (int y=0;y<nPbH;y++) {
+        *o = *p;
+        o+=out_stride;
+        p++;
+      }
+    }
+    break;
+  case 1:
+    for (int x=0;x<nPbW;x++) {
+      int16_t* p = &mcbuffer[x*nPbH_extra];
+      int16_t* o = &out[x];
+              
+      for (int y=0;y<nPbH;y++) {
+        *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
+        o+=out_stride;
+        p++;
+      }
+    }
+    break;
+  case 2:
+    for (int x=0;x<nPbW;x++) {
+      int16_t* p = &mcbuffer[x*nPbH_extra];
+      int16_t* o = &out[x];
+              
+      for (int y=0;y<nPbH;y++) {
+        *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
+        o+=out_stride;
+        p++;
+      }
+    }
+    break;
+  case 3:
+    for (int x=0;x<nPbW;x++) {
+      int16_t* p = &mcbuffer[x*nPbH_extra];
+      int16_t* o = &out[x];
+              
+      for (int y=0;y<nPbH;y++) {
+        *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
+        o+=out_stride;
+        p++;
+      }
+    }
+    break;
+  }
+
+
+  logtrace(LogMotion,"---V---\n");
+  for (int y=0;y<nPbH;y++) {
+    for (int x=0;x<nPbW;x++) {
+      logtrace(LogMotion,"%04x ",out[x+y*out_stride]);
+    }
+    logtrace(LogMotion,"\n");
+  }
+}
+
+
+#define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback(int16_t *out, ptrdiff_t out_stride,    \
+                                             uint8_t *src, ptrdiff_t srcstride,     \
+                                             int nPbW, int nPbH, int16_t* mcbuffer) \
+{ put_qpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH,mcbuffer,x,y ); }
+
+/*     */ QPEL(0,1) QPEL(0,2) QPEL(0,3)
+QPEL(1,0) QPEL(1,1) QPEL(1,2) QPEL(1,3)
+QPEL(2,0) QPEL(2,1) QPEL(2,2) QPEL(2,3)
+QPEL(3,0) QPEL(3,1) QPEL(3,2) QPEL(3,3)

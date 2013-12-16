@@ -24,4 +24,53 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dststride,
                             int width, int height,
                             int mx, int my, int16_t* mcbuffer);
 
+void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_0_1_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_0_2_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_0_3_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_1_0_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_1_1_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_1_2_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_1_3_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_2_0_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_2_1_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_2_2_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_2_3_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_3_0_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_3_1_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_3_2_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_qpel_3_3_fallback(int16_t *out, ptrdiff_t out_stride,
+                           uint8_t *src, ptrdiff_t srcstride,
+                           int nPbW, int nPbH, int16_t* mcbuffer);
+
 #endif
