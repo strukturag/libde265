@@ -235,7 +235,6 @@ void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
   const int shift1 = 0; // sps->BitDepth_Y-8;
   const int shift2 = 6;
 
-
   // straight copy
 
   for (int y=0;y<nPbH;y++) {

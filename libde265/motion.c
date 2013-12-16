@@ -366,8 +366,25 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   int xP = xC+xB;
   int yP = yC+yB;
 
+  int predFlag[2];
+  predFlag[0] = vi->lum.predFlag[0];
+  predFlag[1] = vi->lum.predFlag[1];
+
+
+  // Some encoders use bi-prediction with two similar MVs.
+  // Identify this case and use only one MV.
+
+  if (predFlag[0] && predFlag[1]) {
+    if (vi->lum.mv[0].x == vi->lum.mv[1].x &&
+        vi->lum.mv[0].y == vi->lum.mv[1].y &&
+        shdr->RefPicList[0][vi->lum.refIdx[0]] == shdr->RefPicList[1][vi->lum.refIdx[1]]) {
+      predFlag[1] = 0;
+    }
+  }
+
+
   for (int l=0;l<2;l++) {
-    if (vi->lum.predFlag[l]) {
+    if (predFlag[l]) {
       // 8.5.3.2.1
 
       de265_image* refPic;
@@ -398,11 +415,11 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   const int shift1 = 6; // TODO
   const int offset1= 1<<(shift1-1);
 
-  logtrace(LogMotion,"predFlags: %d %d\n", vi->lum.predFlag[0], vi->lum.predFlag[1]);
+  logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {
     if (ctx->current_pps->weighted_pred_flag==0) {
-      if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==0) {
+      if (predFlag[0]==1 && predFlag[1]==0) {
         if ((vi->lum.mv[0].x & 3) == 0 &&
             (vi->lum.mv[0].y & 3) == 0)
           {
@@ -431,7 +448,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         */
       }
       else {
-        assert(vi->lum.predFlag[0]==0 && vi->lum.predFlag[1]==0);
+        assert(predFlag[0]==0 && predFlag[1]==0);
         // TODO: check: could it be that predFlag[1] is 1 in P-slices ?
       }
     }
@@ -442,7 +459,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   else {
     assert(shdr->slice_type == SLICE_TYPE_B);
 
-    if (vi->lum.predFlag[0]==1 && vi->lum.predFlag[1]==1) {
+    if (predFlag[0]==1 && predFlag[1]==1) {
       const int shift2  = 15-8; // TODO: real bit depth
       const int offset2 = 1<<(shift2-1);
 
@@ -475,8 +492,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       ctx->lowlevel.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
                                             in10,in11, nCS, nPbW/2, nPbH/2);
     }
-    else if (vi->lum.predFlag[0]==1 || vi->lum.predFlag[1]==1) {
-      int l = vi->lum.predFlag[0] ? 0 : 1;
+    else if (predFlag[0]==1 || predFlag[1]==1) {
+      int l = predFlag[0] ? 0 : 1;
 
       if ((vi->lum.mv[l].x & 3) == 0 &&
           (vi->lum.mv[l].y & 3) == 0)
@@ -494,24 +511,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
-
-#if 0
-      for (int y=0;y<nPbH;y++)
-        for (int x=0;x<nPbW;x++) {
-          // TODO: clip to real bit depth
-          ctx->img->y[xP+x + (yP+y)*ctx->img->stride] =
-            Clip1_8bit((predSamplesL[l][x+y*nCS] + offset1)>>shift1);
-        }
-
-      for (int y=0;y<nPbH/2;y++)
-        for (int x=0;x<nPbW/2;x++) {
-          // TODO: clip to real bit depth
-          ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-            Clip1_8bit((predSamplesC[0][l][x+y*nCS] + offset1)>>shift1);
-          ctx->img->cr[xP/2+x + (yP/2+y)*ctx->img->chroma_stride] =
-            Clip1_8bit((predSamplesC[1][l][x+y*nCS] + offset1)>>shift1);
-        }
-#endif
     }
     else {
       assert(false); // both predFlags == 0
