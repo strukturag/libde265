@@ -172,15 +172,6 @@ char derive_edgeFlags(decoder_context* ctx)
 }
 
 
-void derive_boundaryStrength_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
-{
-  int ctbSize = ctx->current_sps->CtbSizeY;
-  int deblkSize = ctbSize/4;
-
-  derive_boundaryStrength(ctx,vertical,
-                          yCtb*deblkSize, (yCtb+1)*deblkSize,
-                          xCtb*deblkSize, (xCtb+1)*deblkSize);
-}
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
 void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int yEnd,
@@ -327,6 +318,17 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
 }
 
 
+void derive_boundaryStrength_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
+{
+  int ctbSize = ctx->current_sps->CtbSizeY;
+  int deblkSize = ctbSize/4;
+
+  derive_boundaryStrength(ctx,vertical,
+                          yCtb*deblkSize, (yCtb+1)*deblkSize,
+                          xCtb*deblkSize, (xCtb+1)*deblkSize);
+}
+
+
 static uint8_t table_8_23_beta[52] = {
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 7, 8,
    9,10,11,12,13,14,15,16,17,18,20,22,24,26,28,30,32,34,36,
@@ -339,17 +341,6 @@ static uint8_t table_8_23_tc[54] = {
    5, 5, 6, 6, 7, 8, 9,10,11,13,14,16,18,20,22,24
 };
 
-
-// 8.7.2.4
-void edge_filtering_luma_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
-{
-  int ctbSize = ctx->current_sps->CtbSizeY;
-  int deblkSize = ctbSize/4;
-
-  edge_filtering_luma(ctx,vertical,
-                      yCtb*deblkSize, (yCtb+1)*deblkSize,
-                      xCtb*deblkSize, (xCtb+1)*deblkSize);
-}
 
 
 // 8.7.2.4
@@ -576,18 +567,20 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 }
 
 
-// 8.7.2.4
-void edge_filtering_chroma_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
+void edge_filtering_luma_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = ctx->current_sps->CtbSizeY;
   int deblkSize = ctbSize/4;
 
-  edge_filtering_chroma(ctx,vertical,
-                        yCtb*deblkSize, (yCtb+1)*deblkSize,
-                        xCtb*deblkSize, (xCtb+1)*deblkSize);
+  edge_filtering_luma(ctx,vertical,
+                      yCtb*deblkSize, (yCtb+1)*deblkSize,
+                      xCtb*deblkSize, (xCtb+1)*deblkSize);
 }
 
 
+
+
+// 8.7.2.4
 void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int yEnd,
                            int xStart,int xEnd)
 {
@@ -688,6 +681,18 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
       }
     }
 }
+
+void edge_filtering_chroma_CTB(decoder_context* ctx, bool vertical, int xCtb,int yCtb)
+{
+  int ctbSize = ctx->current_sps->CtbSizeY;
+  int deblkSize = ctbSize/4;
+
+  edge_filtering_chroma(ctx,vertical,
+                        yCtb*deblkSize, (yCtb+1)*deblkSize,
+                        xCtb*deblkSize, (xCtb+1)*deblkSize);
+}
+
+
 
 
 static void thread_deblock(void* d)
