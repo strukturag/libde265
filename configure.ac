@@ -6,6 +6,8 @@ AC_INIT([libde265], [0.3], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
 
+AC_CANONICAL_SYSTEM
+
 LIBDE265_CURRENT=0
 LIBDE265_REVISION=2
 LIBDE265_AGE=0
@@ -63,10 +65,36 @@ AC_SEARCH_LIBS([sqrt], [m])
 
 # --- machine dependent optimizations ---
 
-AX_EXT
-CFLAGS+=$SIMD_FLAGS
+#AX_EXT
 
-AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse42_ext" = x"yes"])
+case $target_cpu in
+  powerpc*)
+    ;;
+
+  i[[3456]]86*|x86_64*|amd64*)
+
+    AX_CHECK_COMPILE_FLAG(-msse, ax_cv_support_sse_ext=yes, [])
+    if test x"$ax_cv_support_sse_ext" = x"yes"; then
+      SIMD_FLAGS="$SIMD_FLAGS -msse"
+      AC_DEFINE(HAVE_SSE,,[Support SSE (Streaming SIMD Extensions) instructions])
+    else
+      AC_MSG_WARN([Your processor supports sse instructions but not your compiler, can you try another compiler?])
+    fi
+
+    AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
+    if test x"$ax_cv_support_sse41_ext" = x"yes"; then
+      SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
+      AC_DEFINE(HAVE_SSE4_1,,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
+    else
+      AC_MSG_WARN([Your processor supports sse4.1 instructions but not your compiler, can you try another compiler?])
+    fi
+    ;;
+
+esac
+
+AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse_ext" = x"yes"])
+
+CFLAGS+=$SIMD_FLAGS
 
 
 # --- additional logging ---

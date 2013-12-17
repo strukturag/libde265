@@ -74,6 +74,7 @@ struct thread_task_deblock
   struct decoder_context* ctx;
   int first;  // stripe row
   int last;
+  int ctb_x,ctb_y;
   bool vertical;
 };
 

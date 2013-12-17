@@ -32,7 +32,7 @@
 #include <math.h>
 
 #include "fallback.h"
-#ifdef HAVE_SSE4_1
+#ifdef HAVE_SSE
 #include "x86/sse.h"
 #endif
 
@@ -97,7 +97,7 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 
 
   if (l==LOWLEVEL_AUTO) {
-#ifdef HAVE_SSE4_1
+#ifdef HAVE_SSE
     l = LOWLEVEL_SSE;
 #endif
   }
@@ -105,7 +105,7 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 
   // override functions with optimized variants
 
-#ifdef HAVE_SSE4_1
+#ifdef HAVE_SSE
   if (l==LOWLEVEL_SSE) {
     init_lowlevel_functions_sse(&ctx->lowlevel);
   }
