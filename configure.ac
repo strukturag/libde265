@@ -87,7 +87,8 @@ esac
 AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse_ext" = x"yes"])
 
 CFLAGS+=$SIMD_FLAGS
-CFLAGS+=" -march=x86-64"
+# CFLAGS+=" -march=x86-64"
+
 
 # --- additional logging ---
 
