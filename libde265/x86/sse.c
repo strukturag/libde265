@@ -38,7 +38,6 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
   if (have_SSE) {
   }
 
-
 #if HAVE_SSE4_1
   if (have_SSE4_1) {
     lowlevel->put_unweighted_pred_8   = ff_hevc_put_unweighted_pred_8_sse;
