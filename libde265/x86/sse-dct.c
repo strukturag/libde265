@@ -4,7 +4,10 @@
 
 #include "x86/sse-dct.h"
 #include "libde265/de265.h"
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <emmintrin.h> // SSE2
 #include <tmmintrin.h> // SSSE3

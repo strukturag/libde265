@@ -19,7 +19,7 @@
  */
 
 #include "de265.h"
-#ifndef _MSC_VER
+#ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include <stdio.h>

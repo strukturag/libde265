@@ -1583,7 +1583,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
     for (int l=0;l<2;l++) {
       // 1.
 
-      enum InterPredIdc inter_pred_idc = tctx->inter_pred_idc;
+      enum InterPredIdc inter_pred_idc = (enum InterPredIdc)tctx->inter_pred_idc;
 
       if (inter_pred_idc == PRED_BI ||
           (inter_pred_idc == PRED_L0 && l==0) ||

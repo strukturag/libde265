@@ -22,7 +22,10 @@
 #define DE265_THREADS_H
 
 #include "libde265/de265.h"
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>

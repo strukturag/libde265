@@ -2,7 +2,10 @@
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
 #include "x86/sse-dct.h"
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 
 void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
