@@ -199,6 +199,9 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
   xEnd = min(xEnd,ctx->deblk_width);
   yEnd = min(yEnd,ctx->deblk_height);
 
+  int TUShift = ctx->current_sps->Log2MinTrafoSize;
+  int TUStride= ctx->current_sps->PicWidthInTbsY;
+
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
       int xDi = x*4;
@@ -227,9 +230,14 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
           int yDiOpp = yDi-yOffs;
           //uint8_t edgeFlagsOpp = get_deblk_flags(ctx,xDiOpp,yDiOpp);
 
+          /*
           if ((edgeFlags & transformEdgeMask) &&
               (get_nonzero_coefficient(ctx,xDi,yDi) ||
                get_nonzero_coefficient(ctx,xDiOpp,yDiOpp))) {
+          */
+          if ((edgeFlags & transformEdgeMask) &&
+              (ctx->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF ||
+               ctx->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF)) {
             bS = 1;
           }
           else {
@@ -706,6 +714,37 @@ static void thread_deblock_ctb(void* d)
   edge_filtering_chroma_CTB  (ctx, data->vertical, data->ctb_x,data->ctb_y);
 }
 
+static void thread_deblock_ctb_row(void* d)
+{
+  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
+  struct decoder_context* ctx = data->ctx;
+
+  for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++) {
+    derive_boundaryStrength_CTB(ctx, data->vertical, x,data->ctb_y);
+    edge_filtering_luma_CTB    (ctx, data->vertical, x,data->ctb_y);
+    edge_filtering_chroma_CTB  (ctx, data->vertical, x,data->ctb_y);
+  }
+}
+
+static void thread_deblock_full_ctb_row(void* d)
+{
+  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
+  struct decoder_context* ctx = data->ctx;
+
+  int ctbSize = ctx->current_sps->CtbSizeY;
+  int deblkSize = ctbSize/4;
+
+  int xStart=0;
+  int xEnd = ctx->deblk_width;
+
+  int yStart =  data->ctb_y   *deblkSize;
+  int yEnd   = (data->ctb_y+1)*deblkSize;
+
+  derive_boundaryStrength(ctx, data->vertical, yStart,yEnd, xStart,xEnd);
+  edge_filtering_luma    (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
+  edge_filtering_chroma  (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
+}
+
 
 void apply_deblocking_filter(decoder_context* ctx)
 {
@@ -767,7 +806,8 @@ void apply_deblocking_filter(decoder_context* ctx)
 
           flush_thread_pool(&ctx->thread_pool);
         }
-#else
+#endif
+#if 0
         for (int pass=0;pass<2;pass++)
           {
             thread_task task;
@@ -783,6 +823,56 @@ void apply_deblocking_filter(decoder_context* ctx)
                 {
                   task.data.task_deblock.ctx   = ctx;
                   task.data.task_deblock.ctb_x = x;
+                  task.data.task_deblock.ctb_y = y;
+                  task.data.task_deblock.vertical = (pass==0);
+                
+                  add_task(&ctx->thread_pool, &task);
+                }
+          
+            flush_thread_pool(&ctx->thread_pool);
+          }
+#endif
+#if 0
+        for (int pass=0;pass<2;pass++)
+          {
+            thread_task task;
+
+            task.task_id = -1;
+            task.task_cmd = THREAD_TASK_DEBLOCK;
+            task.work_routine = thread_deblock_ctb_row;
+
+            ctx->thread_pool.tasks_pending = ctx->current_sps->PicHeightInCtbsY;
+
+            for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
+              //for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
+                {
+                  task.data.task_deblock.ctx   = ctx;
+                  //task.data.task_deblock.ctb_x = x;
+                  task.data.task_deblock.ctb_y = y;
+                  task.data.task_deblock.vertical = (pass==0);
+                
+                  add_task(&ctx->thread_pool, &task);
+                }
+          
+            flush_thread_pool(&ctx->thread_pool);
+          }
+#endif
+#if 0
+        for (int pass=0;pass<2;pass++)
+          {
+            thread_task task;
+
+            task.task_id = -1;
+            task.task_cmd = THREAD_TASK_DEBLOCK;
+            task.work_routine = thread_deblock_full_ctb_row;
+
+            ctx->thread_pool.tasks_pending = ctx->current_sps->PicHeightInCtbsY;
+
+            for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
+              //for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
+                {
+                  task.data.task_deblock.ctx   = ctx;
+                  //task.data.task_deblock.ctb_x = x;
                   task.data.task_deblock.ctb_y = y;
                   task.data.task_deblock.vertical = (pass==0);
                 
