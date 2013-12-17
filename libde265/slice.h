@@ -22,6 +22,7 @@
 #define DE265_SLICE_H
 
 #include "libde265/cabac.h"
+#include "libde265/de265.h"
 
 
 #define MAX_ENTRY_POINTS 256
@@ -147,7 +148,7 @@ typedef struct thread_context
   // residual data
 
   //#define DECLARE_ALIGNED(a,t,name) t __attribute__ ((aligned (a))) name
-  int16_t __attribute__ ((aligned (16))) coeffBuf[32*32]; // alignment required for SSE code !
+  ALIGNED_16(int16_t) coeffBuf[32*32]; // alignment required for SSE code !
 
   int16_t coeffList[3][32*32];
   int16_t coeffPos[3][32*32];

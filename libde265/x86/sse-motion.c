@@ -3,14 +3,16 @@
  */
 
 #include <emmintrin.h>
-#include <tmmintrin.h>
+#include <tmmintrin.h> // SSSE3
+#if HAVE_SSE4_1
 #include <smmintrin.h>
+#endif
 
 #include "sse-motion.h"
+#include "libde265/de265.h"
 
 
-
-const int8_t __attribute__ ((aligned (16))) epel_filters[7][16] = {
+ALIGNED_16(const int8_t) epel_filters[7][16] = {
   { -2,  58,  10,  -2,-2,  58,  10,  -2,-2,  58,  10,  -2,-2,  58,  10,  -2 },
   { -4,  54,  16,  -2,-4,  54,  16,  -2,-4,  54,  16,  -2,-4,  54,  16,  -2 },
   { -6,  46,  28,  -4,-6,  46,  28,  -4,-6,  46,  28,  -4,-6,  46,  28,  -4 },
@@ -324,7 +326,8 @@ void ff_hevc_put_weighted_pred_avg_sse(uint8_t *_dst, ptrdiff_t _dststride,
     }
 }
 
-void ff_hevc_weighted_pred_8_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
+#if 0
+void ff_hevc_weighted_pred_8_sse4(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
         uint8_t *_dst, ptrdiff_t _dststride, int16_t *src, ptrdiff_t srcstride,
         int width, int height) {
 
@@ -561,8 +564,10 @@ void ff_hevc_weighted_pred_8_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag
     }
 
 }
+#endif
 
 
+#if 0
 void ff_hevc_weighted_pred_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
         uint8_t *_dst, ptrdiff_t _dststride, int16_t *src, ptrdiff_t srcstride,
         int width, int height) {
@@ -645,8 +650,10 @@ void ff_hevc_weighted_pred_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
             src += srcstride;
         }
 }
+#endif
 
-void ff_hevc_weighted_pred_avg_8_sse(uint8_t denom, int16_t wl0Flag,
+#if HAVE_SSE4_1
+void ff_hevc_weighted_pred_avg_8_sse4(uint8_t denom, int16_t wl0Flag,
         int16_t wl1Flag, int16_t ol0Flag, int16_t ol1Flag, uint8_t *_dst,
         ptrdiff_t _dststride, int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
         int width, int height) {
@@ -829,12 +836,11 @@ void ff_hevc_weighted_pred_avg_8_sse(uint8_t denom, int16_t wl0Flag,
             src2 += srcstride;
         }
     }
-
-
 }
+#endif
 
 
-
+#if 0
 void ff_hevc_weighted_pred_avg_sse(uint8_t denom, int16_t wl0Flag,
         int16_t wl1Flag, int16_t ol0Flag, int16_t ol1Flag, uint8_t *_dst,
         ptrdiff_t _dststride, int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
@@ -907,6 +913,8 @@ void ff_hevc_weighted_pred_avg_sse(uint8_t denom, int16_t wl0Flag,
         src2 += srcstride;
     }
 }
+#endif
+
 
 void ff_hevc_put_hevc_epel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
         uint8_t *_src, ptrdiff_t srcstride, int width, int height, int mx,
@@ -2561,7 +2569,8 @@ void ff_hevc_put_hevc_qpel_v_1_8_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 
-void ff_hevc_put_hevc_qpel_v_1_10_sse(int16_t *dst, ptrdiff_t dststride,
+#if 0
+void ff_hevc_put_hevc_qpel_v_1_10_sse4(int16_t *dst, ptrdiff_t dststride,
         uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
@@ -2634,7 +2643,7 @@ void ff_hevc_put_hevc_qpel_v_1_10_sse(int16_t *dst, ptrdiff_t dststride,
         }
 
 }
-
+#endif
 
 
 
@@ -2812,6 +2821,7 @@ void ff_hevc_put_hevc_qpel_v_2_8_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 
+#if 0
 void ff_hevc_put_hevc_qpel_v_2_10_sse(int16_t *dst, ptrdiff_t dststride,
         uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -2900,6 +2910,7 @@ void ff_hevc_put_hevc_qpel_v_2_10_sse(int16_t *dst, ptrdiff_t dststride,
         }
     }
 }
+#endif
 
 static  void ff_hevc_put_hevc_qpel_v_3_sse(int16_t *dst, ptrdiff_t dststride,
         uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
@@ -3222,6 +3233,7 @@ void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
 }
 
 
+#if 0
 void ff_hevc_put_hevc_qpel_v_3_10_sse(int16_t *dst, ptrdiff_t dststride,
         uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3294,6 +3306,7 @@ void ff_hevc_put_hevc_qpel_v_3_10_sse(int16_t *dst, ptrdiff_t dststride,
     }
 
 }
+#endif
 
 
 

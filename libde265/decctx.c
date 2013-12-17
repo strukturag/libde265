@@ -968,7 +968,7 @@ int  get_rqt_root_cbf(const decoder_context* ctx,int x,int y)
 
 #define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
 #define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*ctx->current_sps->PicWidthInTbsY)
-#define GET_TU_BLK(x,y) (assert(TU_IDX(x,y) < ctx->tu_info_size) , ctx->tu_info[TU_IDX(x,y)])
+#define GET_TU_BLK(x,y) (ctx->tu_info[TU_IDX(x,y)])
 #define SET_TU_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int tuX = PIXEL2TU(x);                                                \
   int tuY = PIXEL2TU(y);                                                \

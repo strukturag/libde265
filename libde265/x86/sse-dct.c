@@ -3,6 +3,8 @@
  */
 
 #include "x86/sse-dct.h"
+#include "libde265/de265.h"
+#include "config.h"
 
 #include <emmintrin.h> // SSE2
 #include <tmmintrin.h> // SSSE3
@@ -11,10 +13,8 @@
 #include <smmintrin.h> // SSE4.1
 #endif
 
-#define DECLARE_ALIGNED(a,t,name) t __attribute__ ((aligned (a))) name
 
-
-DECLARE_ALIGNED(16, static const int16_t, transform4x4_luma[8][8] )=
+ALIGNED_16(static const int16_t) transform4x4_luma[8][8] =
 {
     {   29, +84, 29,  +84,  29, +84,  29, +84 },
     {  +74, +55, +74, +55, +74, +55, +74, +55 },
@@ -26,14 +26,14 @@ DECLARE_ALIGNED(16, static const int16_t, transform4x4_luma[8][8] )=
     {  -74, -29, -74, -29, -74, -29, -74, -29 }
 };
 
-DECLARE_ALIGNED( 16, static const int16_t, transform4x4[4][8] ) = {
+ALIGNED_16(static const int16_t) transform4x4[4][8] = {
     { 64,  64, 64,  64, 64,  64, 64,  64 },
     { 64, -64, 64, -64, 64, -64, 64, -64 },
     { 83,  36, 83,  36, 83,  36, 83,  36 },
     { 36, -83, 36, -83, 36, -83, 36, -83 }
 };
 
-DECLARE_ALIGNED(16, static const int16_t, transform8x8[12][8] )=
+ALIGNED_16(static const int16_t) transform8x8[12][8] =
 {
     {  89,  75,  89,  75, 89,  75, 89,  75 },
     {  50,  18,  50,  18, 50,  18, 50,  18 },
@@ -49,7 +49,7 @@ DECLARE_ALIGNED(16, static const int16_t, transform8x8[12][8] )=
     {  36, -83,  36, -83, 36, -83, 36, -83 }
 };
 
-DECLARE_ALIGNED(16, static const int16_t, transform16x16_1[4][8][8] )=
+ALIGNED_16(static const int16_t) transform16x16_1[4][8][8] =
 {
     {/*1-3*/ /*2-6*/
         { 90,  87,  90,  87,  90,  87,  90,  87 },
@@ -89,7 +89,8 @@ DECLARE_ALIGNED(16, static const int16_t, transform16x16_1[4][8][8] )=
         {  87, -90,  87, -90,  87, -90,  87, -90 },
     }
 };
-DECLARE_ALIGNED(16, static const int16_t, transform16x16_2[2][4][8] )=
+
+ALIGNED_16(static const int16_t) transform16x16_2[2][4][8] =
 {
     { /*2-6*/ /*4-12*/
         { 89,  75,  89,  75, 89,  75, 89,  75 },
@@ -104,7 +105,7 @@ DECLARE_ALIGNED(16, static const int16_t, transform16x16_2[2][4][8] )=
     }
 };
 
-DECLARE_ALIGNED(16, static const int16_t, transform16x16_3[2][2][8] )=
+ALIGNED_16(static const int16_t) transform16x16_3[2][2][8] =
 {
     {/*4-12*/ /*8-24*/
         {  83,  36,  83,  36,  83,  36,  83,  36 },
@@ -116,7 +117,7 @@ DECLARE_ALIGNED(16, static const int16_t, transform16x16_3[2][2][8] )=
 };
 
 
-DECLARE_ALIGNED(16, static const int16_t, transform32x32[8][16][8] )=
+ALIGNED_16(static const int16_t) transform32x32[8][16][8] =
 {
     { /*   1-3     */
         { 90,  90, 90,  90, 90,  90, 90,  90 },

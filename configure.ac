@@ -73,20 +73,12 @@ case $target_cpu in
 
   i[[3456]]86*|x86_64*|amd64*)
 
-    AX_CHECK_COMPILE_FLAG(-msse, ax_cv_support_sse_ext=yes, [])
-    if test x"$ax_cv_support_sse_ext" = x"yes"; then
-      SIMD_FLAGS="$SIMD_FLAGS -msse"
-      AC_DEFINE(HAVE_SSE,,[Support SSE (Streaming SIMD Extensions) instructions])
-    else
-      AC_MSG_WARN([Your processor supports sse instructions but not your compiler, can you try another compiler?])
-    fi
-
     AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
     if test x"$ax_cv_support_sse41_ext" = x"yes"; then
       SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
-      AC_DEFINE(HAVE_SSE4_1,,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
+      AC_DEFINE(HAVE_SSE4_1,1,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
     else
-      AC_MSG_WARN([Your processor supports sse4.1 instructions but not your compiler, can you try another compiler?])
+      AC_MSG_WARN([Your compiler does not support SSE4.1 instructions, can you try another compiler?])
     fi
     ;;
 
@@ -95,7 +87,7 @@ esac
 AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse_ext" = x"yes"])
 
 CFLAGS+=$SIMD_FLAGS
-
+CFLAGS+=" -march=x86-64"
 
 # --- additional logging ---
 
