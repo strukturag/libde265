@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = subdir-objects
 
 lib_LTLIBRARIES = libde265.la
 
