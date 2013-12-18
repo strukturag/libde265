@@ -61,6 +61,7 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memmove memset])
 
 AC_SEARCH_LIBS([sqrt], [m])
+AC_SEARCH_LIBS([pthread_create], [pthread])
 
 
 # --- machine dependent optimizations ---
