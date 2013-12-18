@@ -52,8 +52,8 @@ libde265_la_SOURCES = \
   fallback-dct.h fallback-dct.c
 
 if ENABLE_SSE_OPT
-  libde265_la_SOURCES += x86/sse.c x86/sse.h x86/sse-motion.c x86/sse-motion.h \
-    x86/sse-dct.h x86/sse-dct.c
+  SUBDIRS = x86
+  libde265_la_LIBADD = x86/libde265_x86.la
 endif
 
 libde265_la_HEADERS = \

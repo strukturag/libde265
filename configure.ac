@@ -75,7 +75,7 @@ case $target_cpu in
 
     AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
     if test x"$ax_cv_support_sse41_ext" = x"yes"; then
-      SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
+#      SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
       AC_DEFINE(HAVE_SSE4_1,1,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
     else
       AC_MSG_WARN([Your compiler does not support SSE4.1 instructions, can you try another compiler?])
@@ -86,7 +86,7 @@ esac
 
 AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse41_ext" = x"yes"])
 
-CFLAGS+=$SIMD_FLAGS
+# CFLAGS+=$SIMD_FLAGS
 # CFLAGS+=" -march=x86-64"
 
 
@@ -164,6 +164,7 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
+AC_CONFIG_FILES([libde265/x86/Makefile])
 AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_OUTPUT
