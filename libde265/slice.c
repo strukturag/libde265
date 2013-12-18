@@ -1730,7 +1730,14 @@ void thread_decode_CTB_syntax(void* d)
   thread_task nextCTBTask;
 
   if (ctbx+1 < sps->PicWidthInCtbsY) {
-    continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
+    if (end_of_slice_segment_flag) { // premature end of slice flag
+      continueWithNextCTB = false;
+
+      // TODO: abort decoding of picture
+    }
+    else {
+      continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
+    }
   }
 
   int offset=1;

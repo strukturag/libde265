@@ -151,6 +151,8 @@ static const uint8_t next_state_LPS[64] =
 
 
 
+int logcnt=1;
+
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 {
   decoder->bitstream_start = bitstream;
@@ -169,14 +171,23 @@ void init_CABAC_decoder_2(CABAC_decoder* decoder)
 
   if (length>0) { decoder->value  = (*decoder->bitstream_curr++) << 8;  decoder->bits_needed-=8; }
   if (length>1) { decoder->value |= (*decoder->bitstream_curr++);       decoder->bits_needed-=8; }
+
+  logtrace(LogCABAC,"[%3d] init_CABAC_decode_2 r:%x v:%x\n", logcnt, decoder->range, decoder->value);
 }
 
 
-int logcnt=1;
+//#include <sys/types.h>
+//#include <signal.h>
 
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 {
+  //if (logcnt >= 400000000) { enablelog(); }
+
+  // if (logcnt==400068770) { raise(SIGINT); }
+
   logtrace(LogCABAC,"[%3d] decodeBin r:%x v:%x state:%d\n",logcnt,decoder->range, decoder->value, model->state);
+
+  //assert(decoder->range>=0x100);
 
   int decoded_bit;
   int LPS = LPS_table[model->state][ ( decoder->range >> 6 ) - 4 ];
@@ -184,11 +195,11 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
   uint32_t scaled_range = decoder->range << 7;
 
-  //printf("[%3d] sr:%x v:%x\n",logcnt,scaled_range, decoder->value);
+  logtrace(LogCABAC,"[%3d] sr:%x v:%x\n",logcnt,scaled_range, decoder->value);
 
   if (decoder->value < scaled_range)
     {
-      //printf("[%3d] MPS\n",logcnt);
+      logtrace(LogCABAC,"[%3d] MPS\n",logcnt);
 
       // MPS path                                                                                    
 
@@ -211,7 +222,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     }
   else
     {
-      //printf("[%3d] LPS\n",logcnt);
+      logtrace(LogCABAC,"[%3d] LPS\n",logcnt);
 
       // LPS path                                                                                    
 
@@ -229,7 +240,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
       if (decoder->bits_needed >= 0)
         {
-          //printf("bits_needed: %d\n", decoder->bits_needed);
+          logtrace(LogCABAC,"bits_needed: %d\n", decoder->bits_needed);
           if (decoder->bitstream_curr != decoder->bitstream_end)
             { decoder->value |= (*decoder->bitstream_curr++) << decoder->bits_needed; }
 
@@ -239,6 +250,8 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
   logtrace(LogCABAC,"[%3d] -> bit %d  r:%x v:%x\n", logcnt, decoded_bit, decoder->range, decoder->value);
   logcnt++;
+
+  //assert(decoder->range>=0x100);
 
   return decoded_bit;
 }
@@ -254,6 +267,8 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
     }
   else
     {
+      // there is a while loop in the standard, but it will always be executed only once
+
       if (scaledRange < (256<<7))
         {
           decoder->range = scaledRange >> 6;
@@ -280,12 +295,14 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
 
+  //assert(decoder->range>=0x100);
+
   decoder->value <<= 1;
   decoder->bits_needed++;
 
   if (decoder->bits_needed >= 0)
     {
-      assert(decoder->bits_needed==0);
+      //assert(decoder->bits_needed==0);
 
       decoder->bits_needed = -8;
       decoder->value |= *decoder->bitstream_curr++;
@@ -305,6 +322,8 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
 
   logtrace(LogCABAC,"[%3d] -> bit %d  r:%x v:%x\n", logcnt, bit, decoder->range, decoder->value);
   logcnt++;
+
+  //assert(decoder->range>=0x100);
 
   return bit;
 }
