@@ -1250,10 +1250,10 @@ uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
 {
   int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
 
-#ifndef WIN32
+#ifndef _WIN32
   uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
 #else
-  uint8_t blkcnt = InterlockedDecrement(reinterpret_cast<volatile long*>(&ctx->ctb_info[idx].task_blocking_cnt));
+  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&ctx->ctb_info[idx].task_blocking_cnt));
 #endif
   return blkcnt;
 }

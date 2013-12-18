@@ -31,23 +31,27 @@
 #include <stdbool.h>
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <pthread.h>
 
 typedef pthread_t        de265_thread;
 typedef pthread_mutex_t  de265_mutex;
 typedef pthread_cond_t   de265_cond;
 
-#else // WIN32
+#else // _WIN32
 #include <windows.h>
-#include <win32cond.h>
+#include "../extra/win32cond.h"
 
 typedef HANDLE              de265_thread;
 typedef HANDLE              de265_mutex;
 typedef win32_cond_t        de265_cond;
-#endif  // WIN32
+#endif  // _WIN32
 
+#ifndef _WIN32
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg);
+#else
+int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg);
+#endif
 void de265_thread_join(de265_thread t);
 void de265_thread_destroy(de265_thread* t);
 void de265_mutex_init(de265_mutex* m);

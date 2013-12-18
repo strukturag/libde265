@@ -63,6 +63,8 @@ AC_CHECK_FUNCS([memmove memset])
 AC_SEARCH_LIBS([sqrt], [m])
 AC_SEARCH_LIBS([pthread_create], [pthread])
 
+AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
+
 
 # --- machine dependent optimizations ---
 
