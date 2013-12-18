@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = sherlock265
 
-INCLUDES = -I../libde265
+AM_CPPFLAGS = -I../libde265
 
 sherlock265_DEPENDENCIES = ../libde265/libde265.la
 sherlock265_CXXFLAGS = $(QT_CFLAGS) $(VIDEOGFX_CFLAGS)
