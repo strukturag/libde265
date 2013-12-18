@@ -101,9 +101,9 @@ void logerror(enum LogModule module, const char* string, ...)
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "ERR: ");
+  if (!noPrefix) fprintf(stdout, "ERR: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
 }
 #endif
@@ -116,9 +116,9 @@ void loginfo (enum LogModule module, const char* string, ...)
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "INFO: ");
+  if (!noPrefix) fprintf(stdout, "INFO: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
 }
 #endif
@@ -131,9 +131,9 @@ void logdebug(enum LogModule module, const char* string, ...)
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "DEBUG: ");
+  if (!noPrefix) fprintf(stdout, "DEBUG: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
 }
 #endif
@@ -148,9 +148,9 @@ void logtrace(enum LogModule module, const char* string, ...)
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) { } // fprintf(stderr, "ERR: ");
+  if (!noPrefix) { } // fprintf(stdout, "ERR: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
 }
 #endif

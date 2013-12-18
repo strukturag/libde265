@@ -205,6 +205,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   logtrace(LogTransform,"qP: %d\n",qP);
 
+  //printf("residual %d;%d cIdx=%d qp=%d\n",xT * (cIdx?2:1),yT * (cIdx?2:1),cIdx,qP);
+
 
   int16_t* coeff;
   int      coeffStride;
@@ -220,6 +222,21 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   int      stride;
   get_image_plane(ctx,cIdx,&pred,&stride);
   pred += xT + yT*stride;
+
+  /*
+  int x,y;
+  for (y=0;y<nT;y++)
+    {
+      printf("P: ");
+
+      for (x=0;x<nT;x++)
+        {
+          printf("%02x ",pred[x+y*stride]);
+        }
+
+      printf("\n");
+    }
+  */
 
   if (shdr->cu_transquant_bypass_flag) {
     assert(false); // TODO
@@ -298,7 +315,29 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogTransform,"*\n");
   }  
 
+  /*
+  for (y=0;y<nT;y++)
+    {
+      printf("C: ");
 
+      for (x=0;x<nT;x++)
+        {
+          printf("%4d ",coeff[x+y*nT]);
+        }
+
+      printf("\n");
+    }
+
+  for (y=0;y<nT;y++)
+    {
+      for (x=0;x<nT;x++)
+        {
+          printf("%02x ",pred[x+y*stride]);
+        }
+
+      printf("\n");
+    }
+  */
 
   // zero out scrap coefficient buffer again
 
