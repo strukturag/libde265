@@ -467,6 +467,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       // TODO: hard-coded thread context
 
+      ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
+
       add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
       /*

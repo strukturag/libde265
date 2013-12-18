@@ -143,8 +143,6 @@ void prepare_new_picture(decoder_context* ctx)
         if (y==0 || x==0) cnt--;
         set_CTB_deblocking_cnt(ctx,x,y, cnt);
       }
-
-  ctx->thread_pool.tasks_pending = w*h;
 }
 
 

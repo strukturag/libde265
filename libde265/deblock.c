@@ -776,7 +776,6 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_chroma  (ctx, false ,0,ctx->deblk_height,0,ctx->deblk_width);
       }
       else {
-
         flush_thread_pool(&ctx->thread_pool);
 
 #if 1
