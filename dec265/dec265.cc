@@ -138,6 +138,8 @@ bool quiet=false;
 bool check_hash=false;
 bool show_profile=false;
 bool show_help=false;
+bool write_yuv=false;
+//std::string output_filename;
 uint32_t max_frames=UINT32_MAX;
 
 static struct option long_options[] = {
@@ -146,6 +148,7 @@ static struct option long_options[] = {
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
   {"frames",     required_argument, 0, 'f' },
+  {"output",     no_argument, 0, 'o' },
   {"help",       no_argument,       0, 'h' },
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
@@ -157,7 +160,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:",
+    int c = getopt_long(argc, argv, "qt:chpf:o",
                         long_options, &option_index);
     if (c == -1)
       break;
@@ -168,6 +171,7 @@ int main(int argc, char** argv)
     case 'c': check_hash=true; break;
     case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
+    case 'o': write_yuv=true; /*output_filename=optarg;*/ break;
     case 'h': show_help=true; break;
     }
   }
@@ -181,6 +185,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
+    fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -249,9 +254,11 @@ int main(int argc, char** argv)
         if (!quiet) {
 #if HAVE_VIDEOGFX
           display_image(img);
-#else
-          //write_picture(img);
 #endif
+
+          if (write_yuv) {
+            write_picture(img);
+          }
         }
 
         if ((framecnt%100)==0) {
