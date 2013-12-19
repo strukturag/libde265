@@ -5,9 +5,18 @@ compiler:
   - clang
   - gcc
 
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq valgrind
+
+install:
+  - git clone https://github.com/strukturag/libde265-data.git
+
 before_script:
   - ./autogen.sh
   - ./configure
 
 script:
   - make
+  - valgrind --tool=memcheck --trace-children=yes --quiet ./dec265/dec265 -q ./libde265-data/IDR-only/paris-352x288-intra.bin
+  - valgrind --tool=memcheck --trace-children=yes --quiet ./dec265/dec265 -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin
