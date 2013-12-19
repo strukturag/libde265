@@ -14,7 +14,7 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
 
   int a = 1;
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   __cpuid((int *)regs, (int)a);
 
 #else

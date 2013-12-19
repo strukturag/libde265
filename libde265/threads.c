@@ -10,7 +10,7 @@
 #endif
 
 
-#ifndef WIN32
+#ifndef _WIN32
 // #include <intrin.h>
 
 #define THREAD_RESULT       void*
@@ -28,7 +28,7 @@ void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
-#else  // WIN32
+#else  // _WIN32
 
 #define THREAD_RESULT       DWORD WINAPI
 #define THREAD_PARAM        LPVOID
@@ -52,7 +52,7 @@ void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond* c) { win32_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
-#endif // WIN32
+#endif // _WIN32
 
 #include "libde265/decctx.h"
 
@@ -192,10 +192,10 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     */
 
     //pool->num_threads_working--;
-#ifndef WIN32
+#ifndef _WIN32
     int pending = __sync_sub_and_fetch(&pool->tasks_pending, 1);
 #else
-    int pending = InterlockedDecrement(reinterpret_cast<volatile long*>(&pool->tasks_pending));
+    int pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
 #endif
 
 
@@ -317,10 +317,10 @@ void   decrement_tasks_pending(thread_pool* pool)
   //pool->tasks_pending--;
   //de265_mutex_unlock(&pool->mutex);
 
-#ifndef WIN32
+#ifndef _WIN32
     __sync_sub_and_fetch(&pool->tasks_pending, 1);
 #else
-    InterlockedDecrement(reinterpret_cast<volatile long*>(&pool->tasks_pending));
+    InterlockedDecrement((volatile long*)(&pool->tasks_pending));
 #endif
 }
 
