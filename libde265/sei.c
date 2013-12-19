@@ -183,13 +183,13 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
         uint8_t md5[16];
         compute_MD5_8bit(data,w,h,stride,md5);
 
-        /*
+/*
         fprintf(stderr,"computed MD5: ");
         for (int b=0;b<16;b++) {
           fprintf(stderr,"%02x", md5[b]);
         }
         fprintf(stderr,"\n");
-        */
+*/
 
         for (int b=0;b<16;b++) {
           if (md5[b] != seihash->md5[i][b]) {

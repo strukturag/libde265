@@ -89,22 +89,29 @@ int abs_value_func(int a)
 #ifdef DE265_LOGGING
 static int current_poc=0;
 static int log_poc_start=0;
+static int enable_log = 1;
 void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
+
+#if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
+void enablelog() { enable_log=1; }
+#endif
 
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...)
 {
   if (current_poc < log_poc_start) { return; }
+  if (!enable_log) return;
 
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "ERR: ");
+  if (!noPrefix) fprintf(stdout, "ERR: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
+  fflush(stdout);
 }
 #endif
 
@@ -112,14 +119,16 @@ void logerror(enum LogModule module, const char* string, ...)
 void loginfo (enum LogModule module, const char* string, ...)
 {
   if (current_poc < log_poc_start) { return; }
+  if (!enable_log) return;
 
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "INFO: ");
+  if (!noPrefix) fprintf(stdout, "INFO: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
+  fflush(stdout);
 }
 #endif
 
@@ -127,14 +136,16 @@ void loginfo (enum LogModule module, const char* string, ...)
 void logdebug(enum LogModule module, const char* string, ...)
 {
   if (current_poc < log_poc_start) { return; }
+  if (!enable_log) return;
 
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stderr, "DEBUG: ");
+  if (!noPrefix) fprintf(stdout, "DEBUG: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
+  fflush(stdout);
 }
 #endif
 
@@ -142,15 +153,17 @@ void logdebug(enum LogModule module, const char* string, ...)
 void logtrace(enum LogModule module, const char* string, ...)
 {
   if (current_poc < log_poc_start) { return; }
+  if (!enable_log) return;
 
-  //if (module != LogCABAC) return;
+  if (module != LogCABAC) return;
 
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) { } // fprintf(stderr, "ERR: ");
+  if (!noPrefix) { } // fprintf(stdout, "ERR: ");
   va_start(va, string);
-  vfprintf(stderr, string + (noPrefix ? 1 : 0), va);
+  vfprintf(stdout, string + (noPrefix ? 1 : 0), va);
   va_end(va);
+  fflush(stdout);
 }
 #endif

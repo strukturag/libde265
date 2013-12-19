@@ -406,6 +406,20 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                 predSamplesC[0][l],nCS, refPic->cb,refPic->chroma_stride, nPbW/2,nPbH/2);
       mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                 predSamplesC[1][l],nCS, refPic->cr,refPic->chroma_stride, nPbW/2,nPbH/2);
+
+
+      /*
+      for (int c=0;c<2;c++)
+        {
+          printf("tmpbuf cIdx=%d l=%d\n",c+1,l);
+          for (int y=0;y<nPbH/2;y++) {
+            for (int x=0;x<nPbW/2;x++) {
+              printf("%02x ", Clip1_8bit((predSamplesC[c][l][x+y*nCS] + 32)>>6));
+            }
+            printf("\n");
+          }
+        }
+      */
     }
   }
 
@@ -431,10 +445,10 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                             predSamplesL[0],nCS, nPbW,nPbH);
         ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
-                                            predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
+                                            predSamplesC[0][0],nCS, nPbW/2,nPbH/2);
         ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
-                                            predSamplesC[2][0],nCS, nPbW/2,nPbH/2);
+                                            predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
 
 
         /*
