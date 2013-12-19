@@ -18,5 +18,5 @@ before_script:
 
 script:
   - make
-  - valgrind --tool=memcheck --trace-children=yes --quiet ./dec265/dec265 -q ./libde265-data/IDR-only/paris-352x288-intra.bin
-  - valgrind --tool=memcheck --trace-children=yes --quiet ./dec265/dec265 -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin
+  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
+  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
