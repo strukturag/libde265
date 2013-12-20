@@ -2,6 +2,7 @@
   Code was taken over from openHEVC and slightly modified.
  */
 
+#include <stdio.h>
 #include <emmintrin.h>
 #include <tmmintrin.h> // SSSE3
 #if HAVE_SSE4_1
