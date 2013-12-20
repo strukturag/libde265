@@ -6,7 +6,7 @@ CC=cl /nologo
 LINK=link /nologo /subsystem:console
 DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1
 
-CFLAGS=$(CFLAGS) /MT /Ob2 /Oi /TP /W4
+CFLAGS=$(CFLAGS) /MT /Ox /Ob2 /Oi /TP /W4 /GL
 
 # type conversion, possible loss of data
 CFLAGS=$(CFLAGS) /wd4244
