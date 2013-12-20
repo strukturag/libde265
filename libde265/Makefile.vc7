@@ -1,10 +1,10 @@
 #
 # Makefile for Microsoft Visual Studio 2003
 #
-CFLAGS=/I..\extra /I..
+CFLAGS=/I..\extra /I.. /I.
 CC=cl /nologo 
 LINK=link /nologo /subsystem:console
-DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DDE265_LOG_ERROR /DDE265_LOG_INFO /DDE265_LOG_DEBUG /DDE265_LOG_TRACE
+DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1
 
 CFLAGS=$(CFLAGS) /MT /Ob2 /Oi /TP /W4
 
@@ -44,6 +44,9 @@ OBJS=\
 	transform.obj \
 	util.obj \
 	vps.obj \
+	x86\sse.obj \
+	x86\sse-dct.obj \
+	x86\sse-motion.obj \
 	..\extra\win32cond.obj
 
 all: libde265.dll
