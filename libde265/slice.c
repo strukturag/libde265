@@ -1913,7 +1913,7 @@ int residual_coding(decoder_context* ctx,
 
   slice_segment_header* shdr = tctx->shdr;
 
-  //seq_parameter_set* sps = ctx->current_sps;
+  const seq_parameter_set* sps = ctx->current_sps;
 
 
   if (cIdx==0) {
@@ -1971,10 +1971,6 @@ int residual_coding(decoder_context* ctx,
   }
 
 
-  int IntraPredMode = get_IntraPredMode(ctx,x0,y0);
-  logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,IntraPredMode);
-
-
   // --- find last sub block and last scan pos ---
 
   int lastScanPos = 16;
@@ -1984,27 +1980,26 @@ int residual_coding(decoder_context* ctx,
 
   int scanIdx;
 
-  enum PredMode PredMode = MODE_INTRA; // HACK (TODO: take from decctx)
+  //enum PredMode PredMode = MODE_INTRA; // HACK (TODO: take from decctx)
+  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
 
-#if 0
-  // process from Draft-10, does not seem to fit to HM9.1
-  if (PredMode == MODE_INTRA &&
-      (log2TrafoSize==2 || (log2TrafoSize==3 && cIdx==0))) {
-    if (IntraPredMode>= 6 && IntraPredMode<=14) scanIdx=2;
-    else if (IntraPredMode>=22 && IntraPredMode<=30) scanIdx=1;
-    else scanIdx=0;
-  }
-  else {
-    scanIdx=0;
-  }
-#else
+
   // scanIdx derived as by HM9.1
 
   if (PredMode == MODE_INTRA) {
     int pred;
 
     if (cIdx==0) {
+      //int IntraPredMode_ = get_IntraPredMode(ctx,x0,y0);
+      //int IntraPredMode = tctx->IntraPredMode;
+      int IntraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
+                                                  (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
+      logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,IntraPredMode);
+
+      //assert(IntraPredMode == IntraPredMode_);
+
       pred = IntraPredMode;
+
 
       if (log2TrafoSize==2 || log2TrafoSize==3) {
         if (pred>= 6 && pred<=14) scanIdx=2;
@@ -2014,7 +2009,8 @@ int residual_coding(decoder_context* ctx,
       else { scanIdx=0; }
     }
     else {
-      pred = get_IntraPredModeC(ctx,x0,y0);
+      //pred = get_IntraPredModeC(ctx,x0,y0);
+      pred = tctx->IntraPredModeC;
 
       if (log2TrafoSize==1 || log2TrafoSize==2) {
         if (pred>= 6 && pred<=14) scanIdx=2;
@@ -2027,10 +2023,9 @@ int residual_coding(decoder_context* ctx,
     logtrace(LogSlice,"pred: %d -> scan: %d\n",pred,scanIdx);
   }
   else {
-    assert(0);
     scanIdx=0;
   }
-#endif
+
 
   // HM 9 only ?
   if (scanIdx==2) {
@@ -2450,6 +2445,8 @@ void read_transform_tree(decoder_context* ctx,
            "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
            x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth);
 
+  const seq_parameter_set* sps = ctx->current_sps;
+
   enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
 
   int split_transform_flag;
@@ -2560,11 +2557,16 @@ void read_transform_tree(decoder_context* ctx,
 
     if (cuPredMode == MODE_INTRA) // if intra mode
       {
-        enum IntraPredMode intraPredMode = get_IntraPredMode(ctx,x0,y0);
+        //enum IntraPredMode intraPredMode_ = get_IntraPredMode(ctx,x0,y0);
+        //enum IntraPredMode intraPredMode = tctx->IntraPredMode;
+        enum IntraPredMode intraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
+                                                                   (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
+        //assert(intraPredMode == intraPredMode_);
 
         decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
 
-        enum IntraPredMode chromaPredMode = get_IntraPredModeC(ctx,x0,y0);
+        //enum IntraPredMode chromaPredMode = get_IntraPredModeC(ctx,x0,y0);
+        enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
 
         if (nT>=8) {
           decode_intra_prediction(ctx, x0/2,y0/2, chromaPredMode, nT/2, 1);
@@ -2916,10 +2918,12 @@ void read_coding_unit(decoder_context* ctx,
               int availableA = check_CTB_available(ctx, shdr, x,y, x-1,y);
               int availableB = check_CTB_available(ctx, shdr, x,y, x,y-1);
 
+              int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+
               // block on left side
 
-
               enum IntraPredMode candIntraPredModeA, candIntraPredModeB;
+              enum IntraPredMode candIntraPredModeA_, candIntraPredModeB_;
               if (availableA==false) {
                 candIntraPredModeA=INTRA_DC;
               }
@@ -2927,7 +2931,10 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeA=INTRA_DC;
               }
               else {
-                candIntraPredModeA = get_IntraPredMode(ctx, x-1,y);
+                //candIntraPredModeA_ = get_IntraPredMode(ctx, x-1,y);
+                candIntraPredModeA = ctx->img->intraPredMode[PUidx-1];
+
+                //assert(candIntraPredModeA_ == candIntraPredModeA);
               }
 
               // block above
@@ -2942,7 +2949,10 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeB=INTRA_DC;
               }
               else {
-                candIntraPredModeB = get_IntraPredMode(ctx, x,y-1);
+                //candIntraPredModeB_ = get_IntraPredMode(ctx, x,y-1);
+                candIntraPredModeB = ctx->img->intraPredMode[PUidx-sps->PicWidthInMinPUs];
+
+                //assert(candIntraPredModeB_ == candIntraPredModeB);
               }
 
               // build candidate list
@@ -3011,8 +3021,14 @@ void read_coding_unit(decoder_context* ctx,
 
               logtrace(LogSlice,"IntraPredMode[%d][%d] = %d (log2blk:%d)\n",x,y,IntraPredMode, log2IntraPredSize);
 
-              set_IntraPredMode(ctx,x,y, log2IntraPredSize,(enum IntraPredMode)IntraPredMode);
-              
+              //set_IntraPredMode(ctx,x,y, log2IntraPredSize,(enum IntraPredMode)IntraPredMode);
+              //tctx->IntraPredMode = IntraPredMode;
+
+              int pbSize = 1<<(log2IntraPredSize - sps->Log2MinPUSize);
+              for (int y=0;y<pbSize;y++)
+                for (int x=0;x<pbSize;x++)
+                  ctx->img->intraPredMode[PUidx + x + y*sps->PicWidthInMinPUs] = IntraPredMode;
+
               idx++;
             }
 
@@ -3021,8 +3037,13 @@ void read_coding_unit(decoder_context* ctx,
 
         int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
 
-        int IntraPredMode = get_IntraPredMode(ctx,x0,y0);
+        //int IntraPredMode_ = get_IntraPredMode(ctx,x0,y0);
+        //int IntraPredMode = tctx->IntraPredMode;
+        int IntraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
+                                                    (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
         logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
+
+        //assert(IntraPredMode_ == IntraPredMode);
 
         int IntraPredModeC;
         if (intra_chroma_pred_mode==4) {
@@ -3044,7 +3065,8 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
 
-        set_IntraPredModeC(ctx,x0,y0, log2CbSize, (enum IntraPredMode)IntraPredModeC);
+        //set_IntraPredModeC(ctx,x0,y0, log2CbSize, (enum IntraPredMode)IntraPredModeC);
+        tctx->IntraPredModeC = IntraPredModeC;
       }
     }
     else {
@@ -3137,108 +3159,6 @@ void read_coding_unit(decoder_context* ctx,
 
 
 // ------------------------------------------------------------------------------------------
-
-
-#if 0
-void decode_CU(decoder_context* ctx,
-               thread_context* tctx,
-               int x0, int y0,  // position of CU in frame
-               int log2CbSize)
-{
-  // --- decode CU ---
-
-  logtrace(LogSlice,"--- decodeCU (%d;%d size %d) POC:%d ---\n",x0,y0,1<<log2CbSize,
-           ctx->img->PicOrderCntVal);
-
-  /*
-  for (int y=0;y< 1<<log2CbSize;y++) {
-    for (int x=0;x< 1<<log2CbSize;x++) {
-      printf("%d ", tctx->coeff[0][y*64+x]);
-    }
-    printf("\n");
-  }
-  */
-
-
-  int nS = 1 << log2CbSize;
-
-  uint8_t IntraSplitFlag = get_intra_split_flag(ctx,x0,y0);
-  enum PredMode cuPredMode = get_pred_mode(ctx,x0,y0);
-  slice_segment_header* shdr = get_SliceHeader(ctx,x0,y0);
-
-
-  // (8.4.1) decoding process for CUs coded in intra prediction mode
-
-  if (cuPredMode == MODE_INTRA) {
-    decode_quantization_parameters(ctx,tctx, x0,y0);
-
-    if (false) { // pcm_flag (8.4.1)
-      // TODO
-    } else {
-      if (IntraSplitFlag==0) {
-        logtrace(LogSlice,"IntraSplitFlag==0\n");
-        logtrace(LogSlice,"get_IntraPredMode(%d,%d)=%d\n",x0,y0,get_IntraPredMode(ctx,x0,y0));
-
-        decode_intra_block(ctx,tctx,0,
-                           x0,y0, x0,y0,
-                           log2CbSize,0,
-                           get_IntraPredMode(ctx,x0,y0));
-      } else {
-        // luma
-
-        for (int blkIdx=0; blkIdx<=3; blkIdx++) {
-          int xBS = x0 + (nS>>1)*(blkIdx % 2);
-          int yBS = y0 + (nS>>1)*(blkIdx / 2);
-
-          logtrace(LogSlice,"IntraSplitFlag==1\n");
-          logtrace(LogSlice,"get_IntraPredMode(%d,%d)=%d\n",xBS,yBS,get_IntraPredMode(ctx,xBS,yBS));
-
-          decode_intra_block(ctx,tctx,0,
-                             xBS,yBS, x0,y0,
-                             log2CbSize-1,1,
-                             get_IntraPredMode(ctx,xBS,yBS));
-        }
-      }
-
-      // chroma
-
-      logtrace(LogSlice,"get_IntraPredModeC(%d,%d)=%d\n",x0,y0,get_IntraPredModeC(ctx,x0,y0));
-
-      decode_intra_block(ctx,tctx,1,
-                         x0/2,y0/2, x0/2,y0/2,
-                         log2CbSize-1,0,
-                         get_IntraPredModeC(ctx,x0,y0));
-      decode_intra_block(ctx,tctx,2,
-                         x0/2,y0/2, x0/2,y0/2,
-                         log2CbSize-1,0,
-                         get_IntraPredModeC(ctx,x0,y0));
-    }
-
-  }
-  else { // cuPredMode == MODE_INTER / MODE_SKIP
-    decode_quantization_parameters(ctx,tctx, x0,y0);
-
-    inter_prediction(ctx,shdr, x0,y0, log2CbSize);
-
-    decode_inter_block(ctx,tctx, x0,y0, log2CbSize);
-  }
-
-
-  if (0)
-    {
-      uint8_t* image;
-      int stride;
-      get_image_plane(ctx, 0 /*cIdx*/,  &image, &stride);
-      for (int y=0;y<40;y++)
-        {
-          for (int x=0;x<40;x++)
-            logtrace(LogSlice,"*%02x ", image[x+y*stride]);
-
-          logtrace(LogSlice,"*\n");
-        }
-    }
-}
-#endif
 
 
 void decode_inter_block_luma(decoder_context* ctx,

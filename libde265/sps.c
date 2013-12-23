@@ -255,6 +255,10 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
   sps->Log2MinTrafoSize = sps->log2_min_transform_block_size;
   sps->Log2MaxTrafoSize = sps->log2_min_transform_block_size + sps->log2_diff_max_min_transform_block_size;
 
+  sps->Log2MinPUSize = sps->Log2MinCbSizeY-1;
+  sps->PicWidthInMinPUs  = sps->PicWidthInCtbsY  << (sps->Log2CtbSizeY - sps->Log2MinPUSize);
+  sps->PicHeightInMinPUs = sps->PicHeightInCtbsY << (sps->Log2CtbSizeY - sps->Log2MinPUSize);
+
   // the following are not in the standard
   sps->PicWidthInTbsY  = sps->PicWidthInCtbsY  << (sps->Log2CtbSizeY - sps->Log2MinTrafoSize);
   sps->PicHeightInTbsY = sps->PicHeightInCtbsY << (sps->Log2CtbSizeY - sps->Log2MinTrafoSize);

@@ -50,8 +50,8 @@
       |       |       |       |       | |     |       |     | |
       +-------+       +-------+       +-+-----+       +-----+-+
 
-      - AMP only if CU size > min CU size
-      - NxN size >= 16x16 (-> block size 8x8)
+      - AMP only if CU size > min CU size -> minimum PU size = CUsize/2
+      - NxN only if size >= 16x16 (-> minimum block size = 8x8)
       - minimum block size for Bi-Pred is 8x8 (wikipedia: Coding_tree_unit)
 */
 enum PartMode
@@ -143,6 +143,12 @@ typedef struct thread_context
   uint8_t merge_idx;
   uint8_t mvp_lX_flag[2];
   uint8_t inter_pred_idc; // enum InterPredIdc
+
+
+  // prediction
+
+  //enum IntraPredMode IntraPredMode;
+  enum IntraPredMode IntraPredModeC;
 
 
   // residual data

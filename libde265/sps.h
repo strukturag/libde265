@@ -155,6 +155,10 @@ typedef struct {
   int Log2MinTrafoSize;
   int Log2MaxTrafoSize;
 
+  int Log2MinPUSize;
+  int PicWidthInMinPUs;  // might be rounded up
+  int PicHeightInMinPUs; // might be rounded up
+
 } seq_parameter_set;
 
 

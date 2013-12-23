@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #endif
 #include "libde265/de265.h"
+#include "libde265/sps.h"
 #include "libde265/motion.h"
 
 
@@ -47,6 +48,20 @@ typedef struct {
 typedef struct {
   PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
 } PB_ref_info;
+
+
+typedef struct {
+  //uint16_t cbf_cb;   // bitfield (1<<depth)
+  //uint16_t cbf_cr;   // bitfield (1<<depth)
+  //uint16_t cbf_luma; // bitfield (1<<depth)
+
+  uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
+  uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
+
+  uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
+  uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
+  uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
+} TU_log_info;
 
 
 typedef struct de265_image {
@@ -86,6 +101,9 @@ typedef struct de265_image {
   int* pb_rootIdx;
   int  pb_info_nextRootIdx;
 
+  uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
+  int intraPredModeSize;
+
 
   int RefPicList_POC[2][14+1];
 
@@ -93,10 +111,22 @@ typedef struct de265_image {
 
 
 void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border);
+void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                       const seq_parameter_set* sps);
 void de265_free_image (de265_image* img);
 
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
+
+
+// --- value logging ---
+
+/*
+void set_IntraPredMode(de265_image*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
+enum IntraPredMode get_IntraPredMode(const de265_image*, int x,int y);
+
+void set_IntraPredModeC(de265_image*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
+enum IntraPredMode get_IntraPredModeC(const de265_image*, int x,int y);
+*/
 
 #endif

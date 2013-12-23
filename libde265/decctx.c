@@ -736,10 +736,7 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     default: chroma = de265_chroma_420; assert(0); break; // should never happen
     }
 
-    de265_alloc_image(ctx->img,
-                      w,h,
-                      chroma,
-                      0 /* border */); // border large enough for intra prediction
+    de265_alloc_image(ctx->img, w,h, chroma, sps);
 
     if (ctx->img->cb_info_size != ctx->current_sps->PicSizeInMinCbsY ||
         ctx->img->cb_info == NULL) {
@@ -1013,16 +1010,26 @@ int  get_cbf_cr(const decoder_context* ctx, int x0,int y0, int depth)
   return (ctx->tu_info[TU_IDX(x0,y0)].cbf_cr & (1<<depth)) ? 1:0;
 }
 
+
+/*
 void set_IntraPredMode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum IntraPredMode mode)
 {
   SET_TU_BLK(x,y,log2BlkWidth, IntraPredMode,mode);
 }
+*/
 
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, int x,int y)
 {
-  return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
+  assert(false);
+  /*
+  enum IntraPredMode ip = (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredMode;
+
+  return ip;
+  */
+  return (enum IntraPredMode)0;
 }
 
+/*
 void set_IntraPredModeC(decoder_context* ctx, int x,int y, int log2BlkWidth, enum IntraPredMode mode)
 {
   SET_TU_BLK(x,y,log2BlkWidth, IntraPredModeC,mode);
@@ -1032,6 +1039,7 @@ enum IntraPredMode get_IntraPredModeC(const decoder_context* ctx, int x,int y)
 {
   return (enum IntraPredMode)GET_TU_BLK(x,y).IntraPredModeC;
 }
+*/
 
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
 {

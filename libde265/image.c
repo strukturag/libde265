@@ -24,8 +24,12 @@
 
 static const int alignment = 16;
 
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int border)
+void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                       const seq_parameter_set* sps)
 {
+  const int border=0;  // TODO: remove the border altogether
+
+
   // check if we can reuse old image buffer
 
   if (img->width==w && img->height==h && img->chroma_format==c && img->border==border) {
@@ -70,6 +74,15 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c, int b
     img->cr_mem = NULL;
     img->cb     = NULL;
     img->cr     = NULL;
+  }
+
+
+  // --- allocate decoding info arrays ---
+
+  if (sps) {
+    int intraPredModeSize = sps->PicWidthInMinPUs * sps->PicHeightInMinPUs;
+    img->intraPredModeSize = intraPredModeSize;
+    img->intraPredMode = malloc(intraPredModeSize * sizeof(*img->intraPredMode));
   }
 }
 
