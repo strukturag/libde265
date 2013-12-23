@@ -1321,7 +1321,7 @@ bool available_pred_blk(const decoder_context* ctx,
 }
 
 
-void write_picture(const de265_image* img)
+LIBDE265_API void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen("out.yuv","wb"); }

@@ -137,7 +137,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
-  int16_t mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
+  ALIGNED_16(int16_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
 
   if (xFracL==0 && yFracL==0) {
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
