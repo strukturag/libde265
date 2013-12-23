@@ -21,6 +21,17 @@
 #include "image.h"
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
+
+#ifdef _WIN32
+#define ALLOC_ALIGNED(alignment, size)      _aligned_malloc((size), (alignment))
+#define FREE_ALIGNED(mem)                   _aligned_free((mem))
+#else
+#define ALLOC_ALIGNED(alignment, size)      memalign((alignment), (size))
+#define FREE_ALIGNED(mem)                   free((mem))
+#endif
+
+#define ALLOC_ALIGNED_16(size)              ALLOC_ALIGNED(16, size)
 
 static const int alignment = 16;
 
@@ -60,12 +71,12 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
 
   img->chroma_format= c;
 
-  img->y_mem = (uint8_t *)malloc(img->stride * (h+2*border));
+  img->y_mem = (uint8_t *)ALLOC_ALIGNED_16(img->stride * (h+2*border));
   img->y     = img->y_mem + border + 2*border*img->stride;
 
   if (c != de265_chroma_mono) {
-    img->cb_mem = (uint8_t *)malloc(img->chroma_stride * (chroma_height+2*border));
-    img->cr_mem = (uint8_t *)malloc(img->chroma_stride * (chroma_height+2*border));
+    img->cb_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border));
+    img->cr_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border));
 
     img->cb     = img->cb_mem + border + 2*border*img->chroma_stride;
     img->cr     = img->cr_mem + border + 2*border*img->chroma_stride;
@@ -89,9 +100,9 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
 
 void de265_free_image(de265_image* img)
 {
-  if (img->y)  free(img->y_mem);
-  if (img->cb) free(img->cb_mem);
-  if (img->cr) free(img->cr_mem);
+  if (img->y)  FREE_ALIGNED(img->y_mem);
+  if (img->cb) FREE_ALIGNED(img->cb_mem);
+  if (img->cr) FREE_ALIGNED(img->cr_mem);
 
   img->y  = NULL;
   img->cb = NULL;

@@ -209,7 +209,8 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
         sum += mat_dct[fact*j][i] * g[y*nT+j];
       }
       
-      int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
+      //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
+      int out = (sum+rnd2)>>postShift;
 
       dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
 

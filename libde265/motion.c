@@ -137,7 +137,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
-  int16_t mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
+  ALIGNED_16(int16_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
 
   if (xFracL==0 && yFracL==0) {
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
@@ -360,8 +360,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
   TotalPredCnt++;
 
-  int16_t predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-  int16_t predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
 
   int xP = xC+xB;
   int yP = yC+yB;

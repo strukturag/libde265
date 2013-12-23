@@ -1,3 +1,6 @@
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
