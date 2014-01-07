@@ -122,14 +122,14 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int yTopCtb  = (yBLuma-1) >> log2CtbSize;
 
   int currCTBSlice = get_SliceAddrRS(ctx, xCurrCtb,yCurrCtb);
-  int leftCTBSlice = get_SliceAddrRS(ctx, xLeftCtb, yCurrCtb);
-  int topCTBSlice  = get_SliceAddrRS(ctx, xCurrCtb, yTopCtb);
-  int topleftCTBSlice = get_SliceAddrRS(ctx, xLeftCtb, yTopCtb);
+  int leftCTBSlice = availableLeft ? get_SliceAddrRS(ctx, xLeftCtb, yCurrCtb) : -1;
+  int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx, xCurrCtb, yTopCtb) : -1;
+  int topleftCTBSlice = availableTopLeft ? get_SliceAddrRS(ctx, xLeftCtb, yTopCtb) : -1;
 
   int currCTBTileID = pps->TileId[xCurrCtb+yCurrCtb*picWidthInCtbs];
-  int leftCTBTileID = pps->TileId[xLeftCtb+yCurrCtb*picWidthInCtbs];
-  int topCTBTileID  = pps->TileId[xCurrCtb+yTopCtb*picWidthInCtbs];
-  int topleftCTBTileID = pps->TileId[xLeftCtb+yTopCtb*picWidthInCtbs];
+  int leftCTBTileID = availableLeft ? pps->TileId[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
+  int topCTBTileID  = availableTop ? pps->TileId[xCurrCtb+yTopCtb*picWidthInCtbs] : -1;
+  int topleftCTBTileID = availableTopLeft ? pps->TileId[xLeftCtb+yTopCtb*picWidthInCtbs] : -1;
 
   if (leftCTBSlice != currCTBSlice || leftCTBTileID != currCTBTileID) availableLeft   = false;
   if (topCTBSlice  != currCTBSlice || topCTBTileID  != currCTBTileID) availableTop    = false;
@@ -610,33 +610,33 @@ void decode_intra_prediction(decoder_context* ctx,
   logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
            xB0,yB0, intraPredMode, nT,cIdx);
   /*
-  printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
-           xB0,yB0, intraPredMode, nT,cIdx);
+    printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+    xB0,yB0, intraPredMode, nT,cIdx);
   */
 
   nIntraPredictions++;
 
-    uint8_t  border_pixels_mem[2*64+1];
-    uint8_t* border_pixels = &border_pixels_mem[64];
+  uint8_t  border_pixels_mem[2*64+1];
+  uint8_t* border_pixels = &border_pixels_mem[64];
 
-    fill_border_samples(ctx, xB0,yB0, nT, cIdx, border_pixels);
+  fill_border_samples(ctx, xB0,yB0, nT, cIdx, border_pixels);
 
-    if (cIdx==0) {
-      intra_prediction_sample_filtering(ctx, border_pixels, nT, intraPredMode);
-    }
+  if (cIdx==0) {
+    intra_prediction_sample_filtering(ctx, border_pixels, nT, intraPredMode);
+  }
 
 
-    switch (intraPredMode) {
-    case INTRA_PLANAR:
-      intra_prediction_planar(ctx,xB0,yB0,nT,cIdx, border_pixels);
-      break;
-    case INTRA_DC:
-      intra_prediction_DC(ctx,xB0,yB0,nT,cIdx, border_pixels);
-      break;
-    default:
-      intra_prediction_angular(ctx,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
-      break;
-    }
+  switch (intraPredMode) {
+  case INTRA_PLANAR:
+    intra_prediction_planar(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    break;
+  case INTRA_DC:
+    intra_prediction_DC(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    break;
+  default:
+    intra_prediction_angular(ctx,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    break;
+  }
 }
 
 

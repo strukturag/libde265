@@ -51,6 +51,7 @@ libde265_la_SOURCES = \
   vps.h \
   motion.c motion.h motion_func.h \
   threads.c threads.h \
+  lowlevel.h \
   fallback.c fallback.h fallback-motion.c fallback-motion.h \
   fallback-dct.h fallback-dct.c
 
