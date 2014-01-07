@@ -155,7 +155,7 @@ void logtrace(enum LogModule module, const char* string, ...)
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
 
-  if (module != LogCABAC) return;
+  //if (module != LogCABAC) return;
 
   va_list va;
 

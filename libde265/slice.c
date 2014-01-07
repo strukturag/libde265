@@ -1987,40 +1987,31 @@ int residual_coding(decoder_context* ctx,
   // scanIdx derived as by HM9.1
 
   if (PredMode == MODE_INTRA) {
-    int pred;
-
     if (cIdx==0) {
-      //int IntraPredMode_ = get_IntraPredMode(ctx,x0,y0);
-      //int IntraPredMode = tctx->IntraPredMode;
-      int IntraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
-                                                  (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
-      logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,IntraPredMode);
+      int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
 
-      //assert(IntraPredMode == IntraPredMode_);
-
-      pred = IntraPredMode;
-
+      enum IntraPredMode predMode = ctx->img->intraPredMode[PUidx];
+      logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
 
       if (log2TrafoSize==2 || log2TrafoSize==3) {
-        if (pred>= 6 && pred<=14) scanIdx=2;
-        else if (pred>=22 && pred<=30) scanIdx=1;
+        if (predMode >= 6 && predMode <= 14) scanIdx=2;
+        else if (predMode >= 22 && predMode <= 30) scanIdx=1;
         else scanIdx=0;
       }
       else { scanIdx=0; }
     }
     else {
-      //pred = get_IntraPredModeC(ctx,x0,y0);
-      pred = tctx->IntraPredModeC;
+      enum IntraPredMode predMode = tctx->IntraPredModeC;
 
       if (log2TrafoSize==1 || log2TrafoSize==2) {
-        if (pred>= 6 && pred<=14) scanIdx=2;
-        else if (pred>=22 && pred<=30) scanIdx=1;
+        if (predMode >= 6 && predMode <= 14) scanIdx=2;
+        else if (predMode >= 22 && predMode <= 30) scanIdx=1;
         else scanIdx=0;
       }
       else { scanIdx=0; }
     }
 
-    logtrace(LogSlice,"pred: %d -> scan: %d\n",pred,scanIdx);
+    logtrace(LogSlice,"pred: %d -> scan: %d\n",PredMode,scanIdx);
   }
   else {
     scanIdx=0;
@@ -2557,15 +2548,12 @@ void read_transform_tree(decoder_context* ctx,
 
     if (cuPredMode == MODE_INTRA) // if intra mode
       {
-        //enum IntraPredMode intraPredMode_ = get_IntraPredMode(ctx,x0,y0);
-        //enum IntraPredMode intraPredMode = tctx->IntraPredMode;
-        enum IntraPredMode intraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
-                                                                   (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
-        //assert(intraPredMode == intraPredMode_);
+        int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
+
+        enum IntraPredMode intraPredMode = ctx->img->intraPredMode[PUidx];
 
         decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
 
-        //enum IntraPredMode chromaPredMode = get_IntraPredModeC(ctx,x0,y0);
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
 
         if (nT>=8) {
@@ -2931,10 +2919,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeA=INTRA_DC;
               }
               else {
-                //candIntraPredModeA_ = get_IntraPredMode(ctx, x-1,y);
                 candIntraPredModeA = ctx->img->intraPredMode[PUidx-1];
-
-                //assert(candIntraPredModeA_ == candIntraPredModeA);
               }
 
               // block above
@@ -2949,10 +2934,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeB=INTRA_DC;
               }
               else {
-                //candIntraPredModeB_ = get_IntraPredMode(ctx, x,y-1);
                 candIntraPredModeB = ctx->img->intraPredMode[PUidx-sps->PicWidthInMinPUs];
-
-                //assert(candIntraPredModeB_ == candIntraPredModeB);
               }
 
               // build candidate list
@@ -3021,10 +3003,8 @@ void read_coding_unit(decoder_context* ctx,
 
               logtrace(LogSlice,"IntraPredMode[%d][%d] = %d (log2blk:%d)\n",x,y,IntraPredMode, log2IntraPredSize);
 
-              //set_IntraPredMode(ctx,x,y, log2IntraPredSize,(enum IntraPredMode)IntraPredMode);
-              //tctx->IntraPredMode = IntraPredMode;
-
               int pbSize = 1<<(log2IntraPredSize - sps->Log2MinPUSize);
+              
               for (int y=0;y<pbSize;y++)
                 for (int x=0;x<pbSize;x++)
                   ctx->img->intraPredMode[PUidx + x + y*sps->PicWidthInMinPUs] = IntraPredMode;
@@ -3037,13 +3017,9 @@ void read_coding_unit(decoder_context* ctx,
 
         int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
 
-        //int IntraPredMode_ = get_IntraPredMode(ctx,x0,y0);
-        //int IntraPredMode = tctx->IntraPredMode;
         int IntraPredMode = ctx->img->intraPredMode[(x0>>sps->Log2MinPUSize) +
                                                     (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs];
         logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
-
-        //assert(IntraPredMode_ == IntraPredMode);
 
         int IntraPredModeC;
         if (intra_chroma_pred_mode==4) {
@@ -3065,7 +3041,6 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
 
-        //set_IntraPredModeC(ctx,x0,y0, log2CbSize, (enum IntraPredMode)IntraPredModeC);
         tctx->IntraPredModeC = IntraPredModeC;
       }
     }

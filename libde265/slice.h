@@ -147,8 +147,7 @@ typedef struct thread_context
 
   // prediction
 
-  //enum IntraPredMode IntraPredMode;
-  enum IntraPredMode IntraPredModeC;
+  enum IntraPredMode IntraPredModeC; // chroma intra-prediction mode for current CB
 
 
   // residual data

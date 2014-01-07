@@ -97,9 +97,6 @@ typedef struct {
   uint16_t cbf_cr;   // NOTE: can be thread-local // bitfield (1<<depth)
   uint16_t cbf_luma; // NOTE: can be thread-local // bitfield (1<<depth)
 
-  //uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
-  //uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
-
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
   uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
   uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
@@ -302,15 +299,7 @@ enum PredMode get_pred_mode(const decoder_context*, int x,int y);
 enum PredMode get_img_pred_mode(const decoder_context* ctx,
                                 const de265_image* img, int x,int y);
 
-/*
-void set_IntraPredMode(decoder_context*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
-*/
-enum IntraPredMode get_IntraPredMode(const decoder_context*, int x,int y);
-
-/*
-void set_IntraPredModeC(decoder_context*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
-enum IntraPredMode get_IntraPredModeC(const decoder_context*, int x,int y);
-*/
+enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
 
 void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
 int  get_SliceAddrRS(const decoder_context*, int ctbX, int ctbY);

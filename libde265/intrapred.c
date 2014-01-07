@@ -610,33 +610,33 @@ void decode_intra_prediction(decoder_context* ctx,
   logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
            xB0,yB0, intraPredMode, nT,cIdx);
   /*
-  printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
-           xB0,yB0, intraPredMode, nT,cIdx);
+    printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+    xB0,yB0, intraPredMode, nT,cIdx);
   */
 
   nIntraPredictions++;
 
-    uint8_t  border_pixels_mem[2*64+1];
-    uint8_t* border_pixels = &border_pixels_mem[64];
+  uint8_t  border_pixels_mem[2*64+1];
+  uint8_t* border_pixels = &border_pixels_mem[64];
 
-    fill_border_samples(ctx, xB0,yB0, nT, cIdx, border_pixels);
+  fill_border_samples(ctx, xB0,yB0, nT, cIdx, border_pixels);
 
-    if (cIdx==0) {
-      intra_prediction_sample_filtering(ctx, border_pixels, nT, intraPredMode);
-    }
+  if (cIdx==0) {
+    intra_prediction_sample_filtering(ctx, border_pixels, nT, intraPredMode);
+  }
 
 
-    switch (intraPredMode) {
-    case INTRA_PLANAR:
-      intra_prediction_planar(ctx,xB0,yB0,nT,cIdx, border_pixels);
-      break;
-    case INTRA_DC:
-      intra_prediction_DC(ctx,xB0,yB0,nT,cIdx, border_pixels);
-      break;
-    default:
-      intra_prediction_angular(ctx,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
-      break;
-    }
+  switch (intraPredMode) {
+  case INTRA_PLANAR:
+    intra_prediction_planar(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    break;
+  case INTRA_DC:
+    intra_prediction_DC(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    break;
+  default:
+    intra_prediction_angular(ctx,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    break;
+  }
 }
 
 

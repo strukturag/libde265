@@ -121,12 +121,4 @@ void de265_copy_image(de265_image* dest, const de265_image* src);
 
 // --- value logging ---
 
-/*
-void set_IntraPredMode(de265_image*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
-enum IntraPredMode get_IntraPredMode(const de265_image*, int x,int y);
-
-void set_IntraPredModeC(de265_image*, int x,int y, int log2BlkWidth, enum IntraPredMode mode);
-enum IntraPredMode get_IntraPredModeC(const de265_image*, int x,int y);
-*/
-
 #endif
