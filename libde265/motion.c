@@ -1178,18 +1178,19 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int refIdxCol[2] = { 0,0 };
 
   MotionVector mvCol[2];
-  uint8_t availableFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
-                                         &availableFlagLCol[0]);
-
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
-                                         &availableFlagLCol[1]);
-
-
-  int availableFlagCol = availableFlagLCol[0] | availableFlagLCol[1];
   uint8_t predFlagLCol[2];
-  predFlagLCol[0] = availableFlagLCol[0];
-  predFlagLCol[1] = availableFlagLCol[1];
+  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
+                                         &predFlagLCol[0]);
+
+  uint8_t availableFlagCol = predFlagLCol[0];
+  predFlagLCol[1] = 0;
+
+  if (shdr->slice_type == SLICE_TYPE_B) {
+    derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
+                                           &predFlagLCol[1]);
+    availableFlagCol |= predFlagLCol[1];
+  }
+
 
   // 4.
 
