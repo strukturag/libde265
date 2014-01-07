@@ -93,7 +93,7 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
   if (sps) {
     int intraPredModeSize = sps->PicWidthInMinPUs * sps->PicHeightInMinPUs;
     img->intraPredModeSize = intraPredModeSize;
-    img->intraPredMode = malloc(intraPredModeSize * sizeof(*img->intraPredMode));
+    img->intraPredMode = (uint8_t *) malloc(intraPredModeSize * sizeof(*img->intraPredMode));
   }
 }
 
@@ -120,38 +120,19 @@ void de265_free_image(de265_image* img)
 
   if (img->pb_rootIdx) free(img->pb_rootIdx);
   img->pb_rootIdx = NULL;
+
+  if (img->intraPredMode) free(img->intraPredMode);
+  img->intraPredMode = NULL;
 }
 
 
 void de265_init_image(de265_image* img) // (optional) init variables, do not alloc image
 {
-  img->y  = NULL;
-  img->cb = NULL;
-  img->cr = NULL;
-  img->y_mem  = NULL;
-  img->cb_mem = NULL;
-  img->cr_mem = NULL;
-  img->width = 0;
-  img->height= 0;
-  img->stride= 0;
-  img->border= 0;
-  img->chroma_width = 0;
-  img->chroma_height= 0;
-  img->chroma_stride= 0;
+  memset(img, 0, sizeof(de265_image));
 
   img->picture_order_cnt_lsb = -1; // undefined
   img->PicOrderCntVal = -1; // undefined
-  img->PicOutputFlag = 0;
   img->PicState = UnusedForReference;
-
-  img->cb_info = NULL;
-  img->cb_info_size = 0;
-
-  img->pb_info = NULL;
-  img->pb_info_size = 0;
-
-  img->pb_rootIdx = NULL;
-  img->pb_info_nextRootIdx = 0;
 }
 
 

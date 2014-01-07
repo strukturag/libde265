@@ -1990,7 +1990,7 @@ int residual_coding(decoder_context* ctx,
     if (cIdx==0) {
       int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
 
-      enum IntraPredMode predMode = ctx->img->intraPredMode[PUidx];
+      enum IntraPredMode predMode = (enum IntraPredMode) ctx->img->intraPredMode[PUidx];
       logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
 
       if (log2TrafoSize==2 || log2TrafoSize==3) {
@@ -2550,7 +2550,7 @@ void read_transform_tree(decoder_context* ctx,
       {
         int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
 
-        enum IntraPredMode intraPredMode = ctx->img->intraPredMode[PUidx];
+        enum IntraPredMode intraPredMode = (enum IntraPredMode) ctx->img->intraPredMode[PUidx];
 
         decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
 
@@ -2919,7 +2919,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeA=INTRA_DC;
               }
               else {
-                candIntraPredModeA = ctx->img->intraPredMode[PUidx-1];
+                candIntraPredModeA = (enum IntraPredMode) ctx->img->intraPredMode[PUidx-1];
               }
 
               // block above
@@ -2934,7 +2934,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeB=INTRA_DC;
               }
               else {
-                candIntraPredModeB = ctx->img->intraPredMode[PUidx-sps->PicWidthInMinPUs];
+                candIntraPredModeB = (enum IntraPredMode) ctx->img->intraPredMode[PUidx-sps->PicWidthInMinPUs];
               }
 
               // build candidate list
@@ -3041,7 +3041,7 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
 
-        tctx->IntraPredModeC = IntraPredModeC;
+        tctx->IntraPredModeC = (enum IntraPredMode) IntraPredModeC;
       }
     }
     else {

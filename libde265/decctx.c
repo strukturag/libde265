@@ -1114,7 +1114,7 @@ enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, const de265_ima
 
   int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
 
-  return img->intraPredMode[PUidx];
+  return (enum IntraPredMode) img->intraPredMode[PUidx];
 }
 
 
