@@ -185,6 +185,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
+    fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
