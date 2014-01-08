@@ -82,8 +82,8 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
 
     logtrace(LogHeaders,"predicted from %d with delta %d\n",RIdx,DeltaRPS);
 
-    char *const used_by_curr_pic_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
-    char *const use_delta_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
+    char *const used_by_curr_pic_flag = (char *)alloca((sets[RIdx].NumDeltaPocs+1) * sizeof(char));
+    char *const use_delta_flag = (char *)alloca((sets[RIdx].NumDeltaPocs+1) * sizeof(char));
 
     for (int j=0;j<=sets[RIdx].NumDeltaPocs;j++) {
       used_by_curr_pic_flag[j] = get_bits(br,1);
