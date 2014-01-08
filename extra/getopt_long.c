@@ -76,7 +76,7 @@ int
 getopt_internal(int nargc, char ** nargv, const char *ostr)
 {
 	static char *place = EMSG;		/* option letter processing */
-	char *oli;				/* option letter list index */
+	const char *oli;				/* option letter list index */
 
 	_DIAGASSERT(nargv != NULL);
 	_DIAGASSERT(ostr != NULL);

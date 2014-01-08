@@ -35,7 +35,7 @@ extern "C" {
 #ifdef LIBDE265_EXPORTS
 #define LIBDE265_API __declspec(dllexport)
 #else
-#define LIBDE265_API __declspec(dllimport)
+#define LIBDE265_API //__declspec(dllimport)
 #endif
 #else
 #define LIBDE265_API

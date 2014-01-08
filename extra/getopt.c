@@ -49,6 +49,9 @@ static char sccsid[] = "@(#)getopt.c	8.3 (Berkeley) 4/27/95";
 __weak_alias(getopt,_getopt);
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int	opterr = 1,		/* if error message should be printed */
 	optind = 1,		/* index into parent argv vector */
@@ -87,7 +90,7 @@ getopt(int nargc, char * nargv[], const char *ostr)
 {
 	static char *__progname = 0;
 	static char *place = EMSG;		/* option letter processing */
-	char *oli;				/* option letter list index */
+	const char *oli;				/* option letter list index */
         __progname = __progname?__progname:_progname(*nargv);
 
 	_DIAGASSERT(nargv != NULL);
@@ -146,3 +149,7 @@ getopt(int nargc, char * nargv[], const char *ostr)
 	}
 	return (optopt);			/* dump back option letter */
 }
+
+#ifdef __cplusplus
+}
+#endif
