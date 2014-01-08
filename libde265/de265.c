@@ -183,21 +183,18 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         *out++ = 0; *out++ = 0; ctx->input_push_state=5;
 
         // remember which byte we removed
+        if (ctx->max_skipped_bytes == ctx->num_skipped_bytes) {
+            if (ctx->max_skipped_bytes == 0) {
+              ctx->max_skipped_bytes = 32;
+            } else {
+              ctx->max_skipped_bytes <<= 2;
+            }
 
-        int* skipped = (int *)malloc((ctx->num_skipped_bytes+1) * sizeof(int));
-
-        if (ctx->num_skipped_bytes>0) {
-          memcpy(skipped, ctx->skipped_bytes, ctx->num_skipped_bytes * sizeof(int));
+            // TODO: handle case where realloc fails
+            ctx->skipped_bytes = (int *)realloc(ctx->skipped_bytes, ctx->max_skipped_bytes * sizeof(int));
         }
 
-        if (ctx->skipped_bytes) {
-          free(ctx->skipped_bytes);
-        }
-
-        skipped[ctx->num_skipped_bytes] = (out - ctx->nal_data.data) + ctx->num_skipped_bytes;
-
-        ctx->skipped_bytes = skipped;
-
+        ctx->skipped_bytes[ctx->num_skipped_bytes] = (out - ctx->nal_data.data) + ctx->num_skipped_bytes;
         ctx->num_skipped_bytes++;
       }
       else if (*data==1) {
