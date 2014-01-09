@@ -82,10 +82,11 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
 
     logtrace(LogHeaders,"predicted from %d with delta %d\n",RIdx,DeltaRPS);
 
-    char *const used_by_curr_pic_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
-    char *const use_delta_flag = (char *)alloca(sets[RIdx].NumDeltaPocs * sizeof(char));
+    int nDeltaPocsRIdx= sets[RIdx].NumDeltaPocs;
+    char *const used_by_curr_pic_flag = (char *)alloca((nDeltaPocsRIdx+1) * sizeof(char));
+    char *const use_delta_flag = (char *)alloca((nDeltaPocsRIdx+1) * sizeof(char));
 
-    for (int j=0;j<=sets[RIdx].NumDeltaPocs;j++) {
+    for (int j=0;j<=nDeltaPocsRIdx;j++) {
       used_by_curr_pic_flag[j] = get_bits(br,1);
       if (!used_by_curr_pic_flag[j]) {
         use_delta_flag[j] = get_bits(br,1);
@@ -95,13 +96,12 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
     }
 
     logtrace(LogHeaders,"flags: ");
-    for (int j=0;j<=sets[RIdx].NumDeltaPocs;j++) {
+    for (int j=0;j<=nDeltaPocsRIdx;j++) {
       logtrace(LogHeaders,"%d ", use_delta_flag[j]);
     }
     logtrace(LogHeaders,"\n");
 
     int nNegativeRIdx = sets[RIdx].NumNegativePics;
-    int nDeltaPocsRIdx= sets[RIdx].NumDeltaPocs;
 
     // --- update list 0 (negative Poc) ---
     // Iterate through all Pocs in decreasing value order (positive reverse, 0, negative forward).

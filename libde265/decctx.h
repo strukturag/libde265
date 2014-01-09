@@ -149,6 +149,7 @@ typedef struct decoder_context {
 
   int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
   int   num_skipped_bytes;
+  int   max_skipped_bytes;
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];

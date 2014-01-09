@@ -64,6 +64,7 @@ void init_decoder_context(decoder_context* ctx)
 
   ctx->skipped_bytes = NULL;
   ctx->num_skipped_bytes = 0;
+  ctx->max_skipped_bytes = 0;
 
   rbsp_buffer_init(&ctx->nal_data);
   ctx->input_push_state = 0;
