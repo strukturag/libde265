@@ -759,7 +759,7 @@ void apply_deblocking_filter(decoder_context* ctx)
 
   if (enabled_deblocking)
     {
-      if (ctx->num_worker_threads==0) {
+      if (ctx->num_worker_threads==0 || true) {  // TMP HACK / TODO / switched off multi-core
 
         // vertical filtering
 

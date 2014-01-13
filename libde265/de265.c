@@ -464,7 +464,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       // TODO: hard-coded thread context
 
-      ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
+      assert(ctx->img->tasks_pending == 0);
+      increase_pending_tasks(ctx->img, nRows);
+      ctx->thread_pool.tasks_pending = 0;
 
       add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
@@ -476,7 +478,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
           }
       */
 
-      flush_thread_pool(&ctx->thread_pool);
+      wait_for_completion(ctx->img);
+      //flush_thread_pool(&ctx->thread_pool);
     }
   }
   else switch (nal_hdr.nal_unit_type) {

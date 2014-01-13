@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #define ALLOC_ALIGNED(alignment, size)      _aligned_malloc((size), (alignment))
@@ -167,3 +168,41 @@ void de265_copy_image(de265_image* dest, const de265_image* src)
 }
 
 
+void increase_pending_tasks(de265_image* img, int n)
+{
+#ifndef _WIN32
+    int pending = __sync_add_and_fetch(&img->tasks_pending, n);
+#else
+    int pending;
+    for (int i=0;i<n;i++) {
+      pending = InterlockedIncrement((volatile long*)(&pool->tasks_pending));
+    }
+#endif
+}
+
+void decrease_pending_tasks(de265_image* img, int n)
+{
+#ifndef _WIN32
+    int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
+#else
+    int pending;
+    for (int i=0;i<n;i++) {
+      pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
+    }
+#endif
+
+    assert(pending >= 0);
+
+    if (pending==0) {
+      de265_cond_broadcast(&img->finished_cond);
+    }
+}
+
+void wait_for_completion(de265_image* img)
+{
+  de265_mutex_lock(&img->mutex);
+  while (img->tasks_pending>0) {
+    de265_cond_wait(&img->finished_cond, &img->mutex);
+  }
+  de265_mutex_unlock(&img->mutex);
+}

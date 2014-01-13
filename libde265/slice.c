@@ -1773,10 +1773,18 @@ void thread_decode_CTB_syntax(void* d)
   else {
     //printf("cannot continue at %d %d\n",ctbx,ctby);
   }
+
+
+  if (ctbx == sps->PicWidthInCtbsY-1 ||
+      end_of_slice_segment_flag)
+    {
+      decrease_pending_tasks(ctx->img, 1);
+    }
 }
 
 
-bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int sx,int sy,  thread_task* nextCTBTask)
+bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
+                                int sx,int sy,  thread_task* nextCTBTask)
 {
   decoder_context* ctx = tctx->decctx;
   seq_parameter_set* sps = ctx->current_sps;
