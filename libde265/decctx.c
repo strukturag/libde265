@@ -53,41 +53,22 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- processing ---
 
-  ctx->num_worker_threads = 0; // default: no background threads
-
   set_lowlevel_functions(ctx,LOWLEVEL_AUTO);
 
   // --- internal data ---
 
   rbsp_buffer_init(&ctx->pending_input_data);
-  ctx->end_of_stream=false;
-
-  ctx->skipped_bytes = NULL;
-  ctx->num_skipped_bytes = 0;
-  ctx->max_skipped_bytes = 0;
 
   rbsp_buffer_init(&ctx->nal_data);
-  ctx->input_push_state = 0;
-
-  ctx->ref_pic_sets = NULL;
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_init_image(&ctx->dpb[i]);
   }
 
-  ctx->img = NULL;
-  ctx->last_decoded_image = NULL;
-  ctx->image_output_queue_length = 0;
-  ctx->reorder_output_queue_length = 0;
   ctx->first_decoded_picture = true;
-  ctx->PicOrderCntMsb = 0;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->coeff);
-
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    ctx->image_output_queue[i] = NULL;
-  }
 
   // --- decoded picture buffer ---
 
