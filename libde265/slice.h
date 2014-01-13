@@ -23,6 +23,7 @@
 
 #include "libde265/cabac.h"
 #include "libde265/de265.h"
+#include "libde265/util.h"
 
 
 #define MAX_ENTRY_POINTS 256

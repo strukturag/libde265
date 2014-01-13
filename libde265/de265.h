@@ -41,15 +41,6 @@ extern "C" {
 #define LIBDE265_API
 #endif
 
-#ifdef _MSC_VER
-#define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
-#else
-#define LIBDE265_DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
-#endif
-#define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
-#define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
-#define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
-#define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
 /* === error codes === */
 

@@ -187,8 +187,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   int TUShift = ctx->current_sps->Log2MinTrafoSize;
   int TUStride= ctx->current_sps->PicWidthInTbsY;
@@ -357,8 +357,8 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
   int bitDepth_Y = ctx->current_sps->BitDepth_Y;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -590,8 +590,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
   const int stride = ctx->img->chroma_stride;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {

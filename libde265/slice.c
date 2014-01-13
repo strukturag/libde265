@@ -649,7 +649,7 @@ static int decode_sao_offset_abs(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_offset_abs\n");
   int bitDepth = 8;
-  int cMax = (1<<(min(bitDepth,10)-5))-1;
+  int cMax = (1<<(libde265_min(bitDepth,10)-5))-1;
   int value = decode_CABAC_TU_bypass(&tctx->cabac_decoder, cMax);
   return value;
 }
@@ -1600,7 +1600,7 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
           int bitDepth = (cIdx==0 ?
                           ctx->current_sps->BitDepth_Y :
                           ctx->current_sps->BitDepth_C);
-          int shift = bitDepth-min(bitDepth,10);
+          int shift = bitDepth-libde265_min(bitDepth,10);
 
           for (int i=0;i<4;i++) {
             saoinfo.saoOffsetVal[cIdx][i] = sign[i]*(saoinfo.saoOffsetVal[cIdx][i] << shift);

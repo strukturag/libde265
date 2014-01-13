@@ -243,7 +243,7 @@ void process_sps(decoder_context* ctx, seq_parameter_set* sps)
   memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
 
 
-  ctx->HighestTid = min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
+  ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
 
@@ -507,7 +507,7 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
 void construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
   int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
-  int NumRpsCurrTempList0 = max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
+  int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together
 
@@ -537,7 +537,7 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
 
   if (hdr->slice_type == SLICE_TYPE_B) {
-    int NumRpsCurrTempList1 = max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
+    int NumRpsCurrTempList1 = libde265_max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {

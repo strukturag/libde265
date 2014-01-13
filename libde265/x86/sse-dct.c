@@ -3,7 +3,7 @@
  */
 
 #include "x86/sse-dct.h"
-#include "libde265/de265.h"
+#include "libde265/util.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

@@ -10,7 +10,7 @@
 #endif
 
 #include "sse-motion.h"
-#include "libde265/de265.h"
+#include "libde265/util.h"
 
 
 ALIGNED_16(const int8_t) epel_filters[7][16] = {

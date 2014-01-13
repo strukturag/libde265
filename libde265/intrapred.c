@@ -366,7 +366,8 @@ void intra_prediction_sample_filtering(decoder_context* ctx,
     filterFlag = 0;
   } else {
     // int-cast below prevents a typing problem that leads to wrong results when abs_value is a macro
-    int minDistVerHor = min( abs_value((int)intraPredMode-26), abs_value((int)intraPredMode-10) );
+    int minDistVerHor = libde265_min( abs_value((int)intraPredMode-26),
+                                      abs_value((int)intraPredMode-10) );
     switch (nT) {
     case 8:  filterFlag = (minDistVerHor>7) ? 1 : 0; break;
     case 16: filterFlag = (minDistVerHor>1) ? 1 : 0; break;
