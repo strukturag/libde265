@@ -1448,7 +1448,10 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
       int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
       //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
-      assert(offset == shdr->entry_point_offset[cnt]);
+      if (offset != shdr->entry_point_offset[cnt]) {
+        add_warning(ctx, DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, false);
+      }
+
       cnt++;
 
       // WPP: init of CABAC from top right block
@@ -1734,6 +1737,12 @@ void thread_decode_CTB_syntax(void* d)
       continueWithNextCTB = false;
 
       // TODO: abort decoding of picture
+
+      //printf("premature end at %d %d\n",ctbx,ctby);
+
+      add_warning(ctx, DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT, false);
+
+      //void add_warning(decoder_context* ctx, de265_error warning, bool once);
     }
     else {
       continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
@@ -1765,21 +1774,17 @@ void thread_decode_CTB_syntax(void* d)
 
   //printf("FINISHED %d %d\n",ctbx,ctby);
 
-
   if (continueWithNextCTB) {
     decrement_tasks_pending(&ctx->thread_pool);
     thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
   }
   else {
     //printf("cannot continue at %d %d\n",ctbx,ctby);
+
+    decrease_pending_tasks(ctx->img, 1);
+
+    //printf("end decoding of ctb row: %d\n",ctby);
   }
-
-
-  if (ctbx == sps->PicWidthInCtbsY-1 ||
-      end_of_slice_segment_flag)
-    {
-      decrease_pending_tasks(ctx->img, 1);
-    }
 }
 
 
@@ -1831,6 +1836,8 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
     }
     else {
       add_task(&ctx->thread_pool, &task);
+
+      increase_pending_tasks(ctx->img, 1);
     }
   }
 

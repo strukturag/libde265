@@ -193,6 +193,8 @@ void decrease_pending_tasks(de265_image* img, int n)
 
     assert(pending >= 0);
 
+    //printf("pending: %d\n",pending);
+
     if (pending==0) {
       de265_cond_broadcast(&img->finished_cond);
     }

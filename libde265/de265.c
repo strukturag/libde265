@@ -55,6 +55,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Cannot run decoder multi-threaded because stream does not support WPP";
   case DE265_WARNING_WARNING_BUFFER_FULL:
     return "Too many warnings queued";
+  case DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT:
+    return "Premature end of slice segment";
+  case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
+    return "Incorrect entry-point offset";
 
   default: return "unknown error";
   }
@@ -465,8 +469,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
       // TODO: hard-coded thread context
 
       assert(ctx->img->tasks_pending == 0);
-      increase_pending_tasks(ctx->img, nRows);
+      //increase_pending_tasks(ctx->img, nRows);
       ctx->thread_pool.tasks_pending = 0;
+
+      //printf("----------------\n");
 
       add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 

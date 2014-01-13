@@ -706,6 +706,8 @@ static void thread_deblock(void* d)
   derive_boundaryStrength(ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_luma    (ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_chroma  (ctx, data->vertical, data->first,data->last, xStart,xEnd);
+
+  decrease_pending_tasks(ctx->img, 1);
 }
 
 
@@ -759,7 +761,7 @@ void apply_deblocking_filter(decoder_context* ctx)
 
   if (enabled_deblocking)
     {
-      if (ctx->num_worker_threads==0 || true) {  // TMP HACK / TODO / switched off multi-core
+      if (ctx->num_worker_threads==0) {  // TMP HACK / TODO / switched off multi-core
 
         // vertical filtering
 
@@ -788,7 +790,8 @@ void apply_deblocking_filter(decoder_context* ctx)
           task.work_routine = thread_deblock;
 
           int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
-          ctx->thread_pool.tasks_pending = numStripes;
+          //ctx->thread_pool.tasks_pending = numStripes;
+          increase_pending_tasks(ctx->img, numStripes);
 
           for (int i=0;i<numStripes;i++)
             {
@@ -808,7 +811,8 @@ void apply_deblocking_filter(decoder_context* ctx)
               add_task(&ctx->thread_pool, &task);
             }
 
-          flush_thread_pool(&ctx->thread_pool);
+          wait_for_completion(ctx->img);
+          //flush_thread_pool(&ctx->thread_pool);
         }
 #endif
 #if 0
