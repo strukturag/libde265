@@ -174,10 +174,7 @@ void increase_pending_tasks(de265_image* img, int n)
 #ifndef _WIN32
   int pending = __sync_add_and_fetch(&img->tasks_pending, n);
 #else
-  int pending;
-  for (int i=0;i<n;i++) {
-    pending = InterlockedIncrement((volatile long*)(&pool->tasks_pending));
-  }
+  int pending = InterlockedAdd((volatile long*)(&pool->tasks_pending), n);
 #endif
 
   //printf("++ pending [%p]: %d\n",img,pending);
@@ -190,9 +187,7 @@ void decrease_pending_tasks(de265_image* img, int n)
 #ifndef _WIN32
   int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
 #else
-  int pending;
-  for (int i=0;i<n;i++) {
-    pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
+  int pending = InterlockedAdd((volatile long*)(&pool->tasks_pending), -n);
   }
 #endif
   //de265_mutex_unlock(&img->mutex);
