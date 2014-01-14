@@ -391,6 +391,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
   if (nal_hdr.nal_unit_type<32) {
     logdebug(LogHeaders,"---> read slice segment header\n");
 
+    //printf("-------- slice header --------\n");
+
     int sliceIndex = get_next_slice_index(ctx);
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     hdr->slice_index = sliceIndex;
@@ -472,7 +474,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
       //increase_pending_tasks(ctx->img, nRows);
       ctx->thread_pool.tasks_pending = 0;
 
-      //printf("----------------\n");
+      //printf("-------- decode --------\n");
 
       add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
@@ -486,6 +488,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       wait_for_completion(ctx->img);
       //flush_thread_pool(&ctx->thread_pool);
+
+      //printf("slice decoding finished\n");
     }
   }
   else switch (nal_hdr.nal_unit_type) {

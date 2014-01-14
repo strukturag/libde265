@@ -170,34 +170,41 @@ void de265_copy_image(de265_image* dest, const de265_image* src)
 
 void increase_pending_tasks(de265_image* img, int n)
 {
+  //de265_mutex_lock(&img->mutex);
 #ifndef _WIN32
-    int pending = __sync_add_and_fetch(&img->tasks_pending, n);
+  int pending = __sync_add_and_fetch(&img->tasks_pending, n);
 #else
-    int pending;
-    for (int i=0;i<n;i++) {
-      pending = InterlockedIncrement((volatile long*)(&pool->tasks_pending));
-    }
+  int pending;
+  for (int i=0;i<n;i++) {
+    pending = InterlockedIncrement((volatile long*)(&pool->tasks_pending));
+  }
 #endif
+
+  //printf("++ pending [%p]: %d\n",img,pending);
+  //de265_mutex_unlock(&img->mutex);
 }
 
 void decrease_pending_tasks(de265_image* img, int n)
 {
+  //de265_mutex_lock(&img->mutex);
 #ifndef _WIN32
-    int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
+  int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
 #else
-    int pending;
-    for (int i=0;i<n;i++) {
-      pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
-    }
+  int pending;
+  for (int i=0;i<n;i++) {
+    pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
+  }
 #endif
+  //de265_mutex_unlock(&img->mutex);
 
-    assert(pending >= 0);
+  //printf("-- pending [%p]: %d\n",img,pending);
+  //fflush(stdout);
 
-    //printf("pending: %d\n",pending);
+  assert(pending >= 0);
 
-    if (pending==0) {
-      de265_cond_broadcast(&img->finished_cond);
-    }
+  if (pending==0) {
+    de265_cond_broadcast(&img->finished_cond);
+  }
 }
 
 void wait_for_completion(de265_image* img)

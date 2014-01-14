@@ -109,7 +109,7 @@ typedef struct de265_image {
 
   // --- multi core ---
 
-  uint32_t    tasks_pending; // number of tasks pending to complete decoding
+  volatile uint32_t    tasks_pending; // number of tasks pending to complete decoding
   de265_mutex mutex;
   de265_cond  finished_cond;
 

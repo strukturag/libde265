@@ -45,12 +45,10 @@ void read_coding_quadtree(decoder_context* ctx,
 int check_CTB_available(decoder_context* ctx,
                         slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN);
+/*
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
-
-//void decode_CU(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
-//void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
-
+*/
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
 {
@@ -1626,38 +1624,6 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
 }
 
 
-/*
-void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize)
-{
-  seq_parameter_set* sps = ctx->current_sps;
-
-  uint8_t split = get_cu_split_flag(ctx, x0,y0, log2CbSize);
-
-  if (!split) {
-    decode_CU(ctx,tctx,x0,y0,log2CbSize);
-  }
-  else {
-    int x1 = x0 + (1<<(log2CbSize-1));
-    int y1 = y0 + (1<<(log2CbSize-1));
-
-    decode_CU_split(ctx,tctx, x0,y0, log2CbSize-1);
-
-    if (x1<sps->pic_width_in_luma_samples)
-      decode_CU_split(ctx,tctx, x1,y0, log2CbSize-1);
-
-    if (y1<sps->pic_height_in_luma_samples)
-      decode_CU_split(ctx,tctx, x0,y1, log2CbSize-1);
-
-    if (x1<sps->pic_width_in_luma_samples &&
-        y1<sps->pic_height_in_luma_samples)
-      decode_CU_split(ctx,tctx, x1,y1, log2CbSize-1);
-  }
-}
-*/
-
-
-//void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby);
-
 void thread_decode_CTB_syntax(void* d)
 {
   struct thread_task_ctb* data = (struct thread_task_ctb*)d;
@@ -1835,9 +1801,8 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
       return true;
     }
     else {
-      add_task(&ctx->thread_pool, &task);
-
       increase_pending_tasks(ctx->img, 1);
+      add_task(&ctx->thread_pool, &task);
     }
   }
 
@@ -3151,6 +3116,7 @@ void read_coding_unit(decoder_context* ctx,
 // ------------------------------------------------------------------------------------------
 
 
+/*
 void decode_inter_block_luma(decoder_context* ctx,
                              thread_context* tctx,
                              int xC,int yC, int xB0,int yB0,
@@ -3198,8 +3164,10 @@ void decode_inter_block_chroma(decoder_context* ctx,thread_context* tctx,
     scale_coefficients(ctx, tctx, (xC+xB0)/2,(yC+yB0)/2, xCU/2,yCU/2, nT,cIdx);
   }
 }
+*/
 
 
+/*
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize)
 {
@@ -3220,6 +3188,7 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
     decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,2);
   }
 }
+*/
 
 
 void read_coding_quadtree(decoder_context* ctx,
