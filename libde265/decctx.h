@@ -35,7 +35,7 @@
 #define DE265_MAX_VPS_SETS 16
 #define DE265_MAX_SPS_SETS 16
 #define DE265_MAX_PPS_SETS 64
-#define DE265_MAX_SLICES   8
+#define DE265_MAX_SLICES   1
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value

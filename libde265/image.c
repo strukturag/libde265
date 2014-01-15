@@ -28,7 +28,7 @@
 #define ALLOC_ALIGNED(alignment, size)      _aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                   _aligned_free((mem))
 #else
-#define ALLOC_ALIGNED(alignment, size)      memalign((alignment), (size));
+#define ALLOC_ALIGNED(alignment, size)      memalign((alignment), (size))
 #define FREE_ALIGNED(mem)                   free((mem))
 #endif
 

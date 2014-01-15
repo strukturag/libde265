@@ -26,7 +26,7 @@
 #include "libde265/util.h"
 
 
-#define MAX_CTB_ROWS   34  // enough for 4K, but TODO: make this dynamic
+#define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
 #define MAX_ENTRY_POINTS    MAX_CTB_ROWS
 #define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
 
