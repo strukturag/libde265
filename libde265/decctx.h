@@ -205,12 +205,11 @@ typedef struct decoder_context {
   int NumPocLtCurr;
   int NumPocLtFoll;
 
-  // TODO: what are the actual maximum array sizes? This is just a first upper bound.
-  int PocStCurrBefore[DE265_DPB_SIZE];
-  int PocStCurrAfter[DE265_DPB_SIZE];
-  int PocStFoll[DE265_DPB_SIZE];
-  int PocLtCutt[DE265_DPB_SIZE];
-  int PocLtFoll[DE265_DPB_SIZE];
+  int PocStCurrBefore[MAX_NUM_REF_PICS];
+  int PocStCurrAfter[MAX_NUM_REF_PICS];
+  int PocStFoll[MAX_NUM_REF_PICS];
+  int PocLtCutt[MAX_NUM_REF_PICS];
+  int PocLtFoll[MAX_NUM_REF_PICS];
 
   int RefPicSetStCurrBefore[DE265_DPB_SIZE];
   int RefPicSetStCurrAfter[DE265_DPB_SIZE];
