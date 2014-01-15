@@ -159,8 +159,7 @@ static struct option long_options[] = {
   {0,         0,                 0,  0 }
 };
 
-
-
+#ifdef __GNUC__
 static void *(*old_malloc_hook)(size_t, const void *);
 
 static void *new_malloc_hook(size_t size, const void *caller) {
@@ -188,7 +187,7 @@ static void init_my_hooks(void) {
 #if DO_MEMORY_LOGGING
 void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
-
+#endif
 
 int main(int argc, char** argv)
 {
