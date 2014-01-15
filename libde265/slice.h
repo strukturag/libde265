@@ -26,8 +26,9 @@
 #include "libde265/util.h"
 
 
-#define MAX_ENTRY_POINTS 256
-#define MAX_THREAD_CONTEXTS 96  // TODO: make this dynamic
+#define MAX_CTB_ROWS   34  // enough for 4K, but TODO: make this dynamic
+#define MAX_ENTRY_POINTS    MAX_CTB_ROWS
+#define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
 
 #define SLICE_TYPE_B 0
 #define SLICE_TYPE_P 1

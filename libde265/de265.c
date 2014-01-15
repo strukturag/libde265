@@ -51,6 +51,9 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
 
+  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED: return "internal error: maximum number of thread contexts exceeded";
+  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED: return "internal error: maximum number of slices exceeded";
+
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
   case DE265_WARNING_WARNING_BUFFER_FULL:
@@ -394,6 +397,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     //printf("-------- slice header --------\n");
 
     int sliceIndex = get_next_slice_index(ctx);
+    if (sliceIndex<0) {
+      return DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED;
+    }
+
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     hdr->slice_index = sliceIndex;
     read_slice_segment_header(&reader,hdr,ctx);
@@ -449,6 +456,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         { return err; }
     }
     else {
+      if (nRows > MAX_THREAD_CONTEXTS) {
+        return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+      }
+
       for (int i=0;i<nRows;i++) {
         int dataStartIndex;
         if (i==0) { dataStartIndex=0; }

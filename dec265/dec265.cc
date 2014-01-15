@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <limits>
 #include <getopt.h>
+#include <malloc.h>
+#include <signal.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>
@@ -153,6 +155,34 @@ static struct option long_options[] = {
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
 };
+
+
+
+static void *(*old_malloc_hook)(size_t, const void *);
+
+static void *new_malloc_hook(size_t size, const void *caller) {
+  void *mem;
+
+  /*
+  if (size>1000000) {
+    raise(SIGINT);
+  }
+  */
+
+  __malloc_hook = old_malloc_hook;
+  mem = malloc(size);
+  fprintf(stderr, "%p: malloc(%zu) = %p\n", caller, size, mem);
+  __malloc_hook = new_malloc_hook;
+
+  return mem;
+}
+
+static void init_my_hooks(void) {
+  old_malloc_hook = __malloc_hook;
+  __malloc_hook = new_malloc_hook;
+}
+
+// void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 
 
 int main(int argc, char** argv)
