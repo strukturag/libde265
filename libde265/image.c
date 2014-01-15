@@ -171,10 +171,12 @@ void de265_copy_image(de265_image* dest, const de265_image* src)
 void increase_pending_tasks(de265_image* img, int n)
 {
   //de265_mutex_lock(&img->mutex);
-#ifndef _WIN32
-  int pending = __sync_add_and_fetch(&img->tasks_pending, n);
-#else
+#ifdef _WIN64
   int pending = InterlockedAdd((volatile long*)(&img->tasks_pending), n);
+#elif _WIN32
+  int pending = InterlockedExchangeAdd((volatile long*)(&img->tasks_pending), n) + n;
+#else
+  int pending = __sync_add_and_fetch(&img->tasks_pending, n);
 #endif
 
   //printf("++ pending [%p]: %d\n",img,pending);
@@ -184,10 +186,12 @@ void increase_pending_tasks(de265_image* img, int n)
 void decrease_pending_tasks(de265_image* img, int n)
 {
   //de265_mutex_lock(&img->mutex);
-#ifndef _WIN32
-  int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
-#else
+#ifdef _WIN64
   int pending = InterlockedAdd((volatile long*)(&img->tasks_pending), -n);
+#elif _WIN32
+  int pending = InterlockedExchangeAdd((volatile long*)(&img->tasks_pending), -n) - n;
+#else
+  int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
 #endif
   //de265_mutex_unlock(&img->mutex);
 
