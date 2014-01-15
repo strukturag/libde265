@@ -1477,9 +1477,15 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     if (tctx->CtbAddrInRS==ctx->current_sps->PicSizeInCtbsY &&
         end_of_slice_segment_flag == false) {
 
-      // image full, but end_of_slice_segment_flag not set, this cannot be correct...
+      if (ctx->param_conceal_stream_errors) {
+        add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        break;
+      }
+      else {
+        // image full, but end_of_slice_segment_flag not set, this cannot be correct...
 
-      return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+        return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+      }
     }
 
     // TODO (page 46)

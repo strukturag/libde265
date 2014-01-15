@@ -50,6 +50,7 @@ void init_decoder_context(decoder_context* ctx)
 
   ctx->param_sei_check_hash = true;
   ctx->param_HighestTid = 999; // unlimited
+  ctx->param_conceal_stream_errors = true;
 
   // --- processing ---
 
@@ -356,8 +357,6 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
     }
   }
 
-  assert(false);
-
   return -1;
 }
 
@@ -452,6 +451,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
+    if (k<0) { } // TODO
 
     ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -459,6 +459,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+    if (k<0) { } // TODO
 
     ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -466,12 +467,13 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
+    if (k<0) { } // TODO
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
   }
 
-  // 4.
+  // 4. any picture that is not marked for reference is put into the "UnusedForReference" state
 
   for (int i=0;i<DE265_DPB_SIZE;i++)
     if (!picInAnyList[i]) {

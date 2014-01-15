@@ -18,6 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define DEBUG_INSERT_STREAM_ERRORS 0
+
+
 #include "de265.h"
 #include "decctx.h"
 #include "slice_func.h"
@@ -62,6 +65,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Premature end of slice segment";
   case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
     return "Incorrect entry-point offset";
+  case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
+    return "CTB outside of image area (concealing stream error...)";
 
   default: return "unknown error";
   }
@@ -205,6 +210,16 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         ctx->num_skipped_bytes++;
       }
       else if (*data==1) {
+
+#if DEBUG_INSERT_STREAM_ERRORS
+        if ((rand()%100)<10 && ctx->nal_data.size>0) {
+          int pos = rand()%ctx->nal_data.size;
+          int bit = rand()%8;
+          ctx->nal_data.data[pos] ^= 1<<bit;
+
+          printf("inserted error...\n");
+        }
+#endif
 
         // decode this NAL
         ctx->nal_data.size = out - ctx->nal_data.data;

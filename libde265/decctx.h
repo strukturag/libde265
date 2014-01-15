@@ -128,6 +128,7 @@ typedef struct decoder_context {
 
   bool param_sei_check_hash;
   int  param_HighestTid;
+  bool param_conceal_stream_errors;
 
 
   // --- decoder administration ---
