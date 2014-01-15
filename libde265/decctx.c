@@ -451,7 +451,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
-    if (k<0) { } // TODO
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -459,7 +459,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
-    if (k<0) { } // TODO
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -467,7 +467,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
-    if (k<0) { } // TODO
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
