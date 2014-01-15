@@ -22,14 +22,24 @@
 #define DE265_UTIL_H
 
 
+#ifdef _MSC_VER
+#define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
+#else
+#define LIBDE265_DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
+#endif
+#define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
+#define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
+#define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
+#define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
+
+
+
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
 #define Sign(value) (((value)>0) ? 1 : ((value)<0) ? -1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))
-#undef min
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-#undef max
-#define max(a,b) (((a)>(b)) ? (a) : (b))
+#define libde265_min(a,b) (((a)<(b)) ? (a) : (b))
+#define libde265_max(a,b) (((a)>(b)) ? (a) : (b))
 
 int ceil_div(int num,int denom);
 int ceil_log2(int val);

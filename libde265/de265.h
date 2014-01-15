@@ -41,15 +41,6 @@ extern "C" {
 #define LIBDE265_API
 #endif
 
-#ifdef _MSC_VER
-#define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
-#else
-#define LIBDE265_DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
-#endif
-#define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
-#define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
-#define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
-#define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
 /* === error codes === */
 
@@ -66,8 +57,17 @@ typedef enum {
   DE265_ERROR_IMAGE_BUFFER_FULL,
   DE265_ERROR_CANNOT_START_THREADPOOL,
 
+  // --- errors that should become obsolete in later libde265 versions ---
+
+  DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500,
+  DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501,
+
+  // --- warnings ---
+
   DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING = 1000,
-  DE265_WARNING_WARNING_BUFFER_FULL
+  DE265_WARNING_WARNING_BUFFER_FULL,
+  DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT,
+  DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET
 } de265_error;
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);

@@ -54,38 +54,6 @@ int Log2(int v)
 }
 
 
-/*
-int Clip1_8bit_func(int value)
-{
-  if (value<0) return 0;
-  if (value>255) return 255;
-  return value;
-}
-*/
-
-/*
-int Clip3_func(int low,int high, int value)
-{
-  if (value<=low) return low;
-  if (value>=high) return high;
-  return value;
-}
-*/
-
-/*
-int min(int a,int b)
-{
-  return a<b ? a : b;
-}
-*/
-
-/*
-int abs_value_func(int a)
-{
-  return a<0 ? -a : a;
-}
-*/
-
 #ifdef DE265_LOGGING
 static int current_poc=0;
 static int log_poc_start=0;

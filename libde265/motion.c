@@ -857,8 +857,8 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
     numRefIdx = shdr->num_ref_idx_l0_active;
   }
   else {
-    numRefIdx = min(shdr->num_ref_idx_l0_active,
-                    shdr->num_ref_idx_l1_active);
+    numRefIdx = libde265_min(shdr->num_ref_idx_l0_active,
+                             shdr->num_ref_idx_l1_active);
   }
 
 
