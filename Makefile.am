@@ -18,4 +18,5 @@ EXTRA_DIST = .travis.yml \
   m4/m4_ax_ext.m4 \
   m4/m4_ax_gcc_x86_avx_xgetbv.m4 \
   m4/m4_ax_gcc_x86_cpuid.m4 \
-  build
+  build \
+  Makefile.vc7
