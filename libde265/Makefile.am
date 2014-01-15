@@ -65,5 +65,10 @@ if MINGW
   libde265_la_LDFLAGS += -no-undefined -static-libgcc -static-libstdc++
 endif
 
+dist_libde265_la_SOURCES = ../extra/stdbool.h \
+  ../extra/stdint.h
+
+EXTRA_DIST = Makefile.vc7
+
 libde265_la_HEADERS = \
   de265.h
