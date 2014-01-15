@@ -1479,6 +1479,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
       if (ctx->param_conceal_stream_errors) {
         add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        ctx->img->decoding_error = true;
         break;
       }
       else {

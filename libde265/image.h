@@ -107,6 +107,10 @@ typedef struct de265_image {
 
   int RefPicList_POC[2][14+1];
 
+  // --- meta information ---
+
+  bool decoding_error; // an error occured while the image was decoded, image content may be incorrect
+
   // --- multi core ---
 
   volatile uint32_t    tasks_pending; // number of tasks pending to complete decoding
