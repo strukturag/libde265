@@ -18,6 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define DO_MEMORY_LOGGING 0
+
+
 #include "de265.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -182,7 +185,9 @@ static void init_my_hooks(void) {
   __malloc_hook = new_malloc_hook;
 }
 
-// void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
+#if DO_MEMORY_LOGGING
+void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
+#endif
 
 
 int main(int argc, char** argv)
