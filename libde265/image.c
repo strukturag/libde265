@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #define ALLOC_ALIGNED(alignment, size)      _aligned_malloc((size), (alignment))
@@ -167,3 +168,48 @@ void de265_copy_image(de265_image* dest, const de265_image* src)
 }
 
 
+void increase_pending_tasks(de265_image* img, int n)
+{
+  //de265_mutex_lock(&img->mutex);
+#ifdef _WIN64
+  int pending = InterlockedAdd((volatile long*)(&img->tasks_pending), n);
+#elif _WIN32
+  int pending = InterlockedExchangeAdd((volatile long*)(&img->tasks_pending), n) + n;
+#else
+  int pending = __sync_add_and_fetch(&img->tasks_pending, n);
+#endif
+
+  //printf("++ pending [%p]: %d\n",img,pending);
+  //de265_mutex_unlock(&img->mutex);
+}
+
+void decrease_pending_tasks(de265_image* img, int n)
+{
+  //de265_mutex_lock(&img->mutex);
+#ifdef _WIN64
+  int pending = InterlockedAdd((volatile long*)(&img->tasks_pending), -n);
+#elif _WIN32
+  int pending = InterlockedExchangeAdd((volatile long*)(&img->tasks_pending), -n) - n;
+#else
+  int pending = __sync_sub_and_fetch(&img->tasks_pending, n);
+#endif
+  //de265_mutex_unlock(&img->mutex);
+
+  //printf("-- pending [%p]: %d\n",img,pending);
+  //fflush(stdout);
+
+  assert(pending >= 0);
+
+  if (pending==0) {
+    de265_cond_broadcast(&img->finished_cond);
+  }
+}
+
+void wait_for_completion(de265_image* img)
+{
+  de265_mutex_lock(&img->mutex);
+  while (img->tasks_pending>0) {
+    de265_cond_wait(&img->finished_cond, &img->mutex);
+  }
+  de265_mutex_unlock(&img->mutex);
+}

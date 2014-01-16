@@ -45,12 +45,10 @@ void read_coding_quadtree(decoder_context* ctx,
 int check_CTB_available(decoder_context* ctx,
                         slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN);
+/*
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
-
-//void decode_CU(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
-//void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize);
-
+*/
 
 void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
 {
@@ -649,7 +647,7 @@ static int decode_sao_offset_abs(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_offset_abs\n");
   int bitDepth = 8;
-  int cMax = (1<<(min(bitDepth,10)-5))-1;
+  int cMax = (1<<(libde265_min(bitDepth,10)-5))-1;
   int value = decode_CABAC_TU_bypass(&tctx->cabac_decoder, cMax);
   return value;
 }
@@ -1448,7 +1446,10 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
       int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
       //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
-      assert(offset == shdr->entry_point_offset[cnt]);
+      if (offset != shdr->entry_point_offset[cnt]) {
+        add_warning(ctx, DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, false);
+      }
+
       cnt++;
 
       // WPP: init of CABAC from top right block
@@ -1476,9 +1477,15 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     if (tctx->CtbAddrInRS==ctx->current_sps->PicSizeInCtbsY &&
         end_of_slice_segment_flag == false) {
 
-      // image full, but end_of_slice_segment_flag not set, this cannot be correct...
+      if (ctx->param_conceal_stream_errors) {
+        add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        break;
+      }
+      else {
+        // image full, but end_of_slice_segment_flag not set, this cannot be correct...
 
-      return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+        return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+      }
     }
 
     // TODO (page 46)
@@ -1600,7 +1607,7 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
           int bitDepth = (cIdx==0 ?
                           ctx->current_sps->BitDepth_Y :
                           ctx->current_sps->BitDepth_C);
-          int shift = bitDepth-min(bitDepth,10);
+          int shift = bitDepth-libde265_min(bitDepth,10);
 
           for (int i=0;i<4;i++) {
             saoinfo.saoOffsetVal[cIdx][i] = sign[i]*(saoinfo.saoOffsetVal[cIdx][i] << shift);
@@ -1622,38 +1629,6 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
   }
 }
 
-
-/*
-void decode_CU_split(decoder_context* ctx, thread_context* tctx, int x0, int y0, int log2CbSize)
-{
-  seq_parameter_set* sps = ctx->current_sps;
-
-  uint8_t split = get_cu_split_flag(ctx, x0,y0, log2CbSize);
-
-  if (!split) {
-    decode_CU(ctx,tctx,x0,y0,log2CbSize);
-  }
-  else {
-    int x1 = x0 + (1<<(log2CbSize-1));
-    int y1 = y0 + (1<<(log2CbSize-1));
-
-    decode_CU_split(ctx,tctx, x0,y0, log2CbSize-1);
-
-    if (x1<sps->pic_width_in_luma_samples)
-      decode_CU_split(ctx,tctx, x1,y0, log2CbSize-1);
-
-    if (y1<sps->pic_height_in_luma_samples)
-      decode_CU_split(ctx,tctx, x0,y1, log2CbSize-1);
-
-    if (x1<sps->pic_width_in_luma_samples &&
-        y1<sps->pic_height_in_luma_samples)
-      decode_CU_split(ctx,tctx, x1,y1, log2CbSize-1);
-  }
-}
-*/
-
-
-//void add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby);
 
 void thread_decode_CTB_syntax(void* d)
 {
@@ -1734,6 +1709,12 @@ void thread_decode_CTB_syntax(void* d)
       continueWithNextCTB = false;
 
       // TODO: abort decoding of picture
+
+      //printf("premature end at %d %d\n",ctbx,ctby);
+
+      add_warning(ctx, DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT, false);
+
+      //void add_warning(decoder_context* ctx, de265_error warning, bool once);
     }
     else {
       continueWithNextCTB = add_CTB_decode_task_syntax(tctx,ctbx+1,ctby  ,ctbx,ctby, &nextCTBTask);
@@ -1765,18 +1746,22 @@ void thread_decode_CTB_syntax(void* d)
 
   //printf("FINISHED %d %d\n",ctbx,ctby);
 
-
   if (continueWithNextCTB) {
     decrement_tasks_pending(&ctx->thread_pool);
     thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
   }
   else {
     //printf("cannot continue at %d %d\n",ctbx,ctby);
+
+    decrease_pending_tasks(ctx->img, 1);
+
+    //printf("end decoding of ctb row: %d\n",ctby);
   }
 }
 
 
-bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int sx,int sy,  thread_task* nextCTBTask)
+bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
+                                int sx,int sy,  thread_task* nextCTBTask)
 {
   decoder_context* ctx = tctx->decctx;
   seq_parameter_set* sps = ctx->current_sps;
@@ -1822,6 +1807,7 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby    ,int 
       return true;
     }
     else {
+      increase_pending_tasks(ctx->img, 1);
       add_task(&ctx->thread_pool, &task);
     }
   }
@@ -3136,6 +3122,7 @@ void read_coding_unit(decoder_context* ctx,
 // ------------------------------------------------------------------------------------------
 
 
+/*
 void decode_inter_block_luma(decoder_context* ctx,
                              thread_context* tctx,
                              int xC,int yC, int xB0,int yB0,
@@ -3183,8 +3170,10 @@ void decode_inter_block_chroma(decoder_context* ctx,thread_context* tctx,
     scale_coefficients(ctx, tctx, (xC+xB0)/2,(yC+yB0)/2, xCU/2,yCU/2, nT,cIdx);
   }
 }
+*/
 
 
+/*
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize)
 {
@@ -3205,6 +3194,7 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
     decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,2);
   }
 }
+*/
 
 
 void read_coding_quadtree(decoder_context* ctx,

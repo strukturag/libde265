@@ -50,44 +50,26 @@ void init_decoder_context(decoder_context* ctx)
 
   ctx->param_sei_check_hash = true;
   ctx->param_HighestTid = 999; // unlimited
+  ctx->param_conceal_stream_errors = true;
 
   // --- processing ---
-
-  ctx->num_worker_threads = 0; // default: no background threads
 
   set_lowlevel_functions(ctx,LOWLEVEL_AUTO);
 
   // --- internal data ---
 
   rbsp_buffer_init(&ctx->pending_input_data);
-  ctx->end_of_stream=false;
-
-  ctx->skipped_bytes = NULL;
-  ctx->num_skipped_bytes = 0;
-  ctx->max_skipped_bytes = 0;
 
   rbsp_buffer_init(&ctx->nal_data);
-  ctx->input_push_state = 0;
-
-  ctx->ref_pic_sets = NULL;
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_init_image(&ctx->dpb[i]);
   }
 
-  ctx->img = NULL;
-  ctx->last_decoded_image = NULL;
-  ctx->image_output_queue_length = 0;
-  ctx->reorder_output_queue_length = 0;
   ctx->first_decoded_picture = true;
-  ctx->PicOrderCntMsb = 0;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->coeff);
-
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    ctx->image_output_queue[i] = NULL;
-  }
 
   // --- decoded picture buffer ---
 
@@ -243,7 +225,7 @@ void process_sps(decoder_context* ctx, seq_parameter_set* sps)
   memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
 
 
-  ctx->HighestTid = min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
+  ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
 
@@ -267,10 +249,13 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
 
 
 /* The returned index rotates through [0;DE265_MAX_SLICES) and is not reset at each new picture.
+   Returns -1 if no more slice data structure available.
  */
 int get_next_slice_index(decoder_context* ctx)
 {
-  assert(ctx->next_free_slice_index < DE265_MAX_SLICES);
+  if (ctx->next_free_slice_index >= DE265_MAX_SLICES) {
+    return -1;
+  }
 
   int sliceID = ctx->next_free_slice_index;
 
@@ -372,8 +357,6 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
     }
   }
 
-  assert(false);
-
   return -1;
 }
 
@@ -468,6 +451,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -475,6 +459,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -482,12 +467,13 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
+    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
   }
 
-  // 4.
+  // 4. any picture that is not marked for reference is put into the "UnusedForReference" state
 
   for (int i=0;i<DE265_DPB_SIZE;i++)
     if (!picInAnyList[i]) {
@@ -507,7 +493,7 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
 void construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
   int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
-  int NumRpsCurrTempList0 = max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
+  int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together
 
@@ -537,7 +523,7 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
 
   if (hdr->slice_type == SLICE_TYPE_B) {
-    int NumRpsCurrTempList1 = max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
+    int NumRpsCurrTempList1 = libde265_max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {

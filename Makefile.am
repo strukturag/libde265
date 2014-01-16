@@ -11,3 +11,10 @@ endif
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
 endif
+
+EXTRA_DIST = .travis.yml \
+  autogen.sh \
+  build.bat \
+  m4/m4_ax_check_compile_flag.m4 \
+  build \
+  Makefile.vc7

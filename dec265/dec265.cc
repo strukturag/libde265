@@ -18,6 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define DO_MEMORY_LOGGING 0
+
+
 #include "de265.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -26,6 +29,8 @@
 #include <stdlib.h>
 #include <limits>
 #include <getopt.h>
+#include <malloc.h>
+#include <signal.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>
@@ -154,6 +159,35 @@ static struct option long_options[] = {
   {0,         0,                 0,  0 }
 };
 
+#ifdef __GNUC__
+static void *(*old_malloc_hook)(size_t, const void *);
+
+static void *new_malloc_hook(size_t size, const void *caller) {
+  void *mem;
+
+  /*
+  if (size>1000000) {
+    raise(SIGINT);
+  }
+  */
+
+  __malloc_hook = old_malloc_hook;
+  mem = malloc(size);
+  fprintf(stderr, "%p: malloc(%zu) = %p\n", caller, size, mem);
+  __malloc_hook = new_malloc_hook;
+
+  return mem;
+}
+
+static void init_my_hooks(void) {
+  old_malloc_hook = __malloc_hook;
+  __malloc_hook = new_malloc_hook;
+}
+
+#if DO_MEMORY_LOGGING
+void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
+#endif
+#endif
 
 int main(int argc, char** argv)
 {

@@ -18,6 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define DEBUG_INSERT_STREAM_ERRORS 0
+
+
 #include "de265.h"
 #include "decctx.h"
 #include "slice_func.h"
@@ -51,10 +54,19 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
 
+  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED: return "internal error: maximum number of thread contexts exceeded";
+  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED: return "internal error: maximum number of slices exceeded";
+
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
   case DE265_WARNING_WARNING_BUFFER_FULL:
     return "Too many warnings queued";
+  case DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT:
+    return "Premature end of slice segment";
+  case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
+    return "Incorrect entry-point offset";
+  case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
+    return "CTB outside of image area (concealing stream error...)";
 
   default: return "unknown error";
   }
@@ -198,6 +210,16 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         ctx->num_skipped_bytes++;
       }
       else if (*data==1) {
+
+#if DEBUG_INSERT_STREAM_ERRORS
+        if ((rand()%100)<10 && ctx->nal_data.size>0) {
+          int pos = rand()%ctx->nal_data.size;
+          int bit = rand()%8;
+          ctx->nal_data.data[pos] ^= 1<<bit;
+
+          printf("inserted error...\n");
+        }
+#endif
 
         // decode this NAL
         ctx->nal_data.size = out - ctx->nal_data.data;
@@ -387,7 +409,13 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
   if (nal_hdr.nal_unit_type<32) {
     logdebug(LogHeaders,"---> read slice segment header\n");
 
+    //printf("-------- slice header --------\n");
+
     int sliceIndex = get_next_slice_index(ctx);
+    if (sliceIndex<0) {
+      return DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED;
+    }
+
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     hdr->slice_index = sliceIndex;
     read_slice_segment_header(&reader,hdr,ctx);
@@ -443,6 +471,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         { return err; }
     }
     else {
+      if (nRows > MAX_THREAD_CONTEXTS) {
+        return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+      }
+
       for (int i=0;i<nRows;i++) {
         int dataStartIndex;
         if (i==0) { dataStartIndex=0; }
@@ -464,7 +496,11 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
       // TODO: hard-coded thread context
 
-      ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
+      assert(ctx->img->tasks_pending == 0);
+      //increase_pending_tasks(ctx->img, nRows);
+      ctx->thread_pool.tasks_pending = 0;
+
+      //printf("-------- decode --------\n");
 
       add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
@@ -476,7 +512,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
           }
       */
 
-      flush_thread_pool(&ctx->thread_pool);
+      wait_for_completion(ctx->img);
+      //flush_thread_pool(&ctx->thread_pool);
+
+      //printf("slice decoding finished\n");
     }
   }
   else switch (nal_hdr.nal_unit_type) {

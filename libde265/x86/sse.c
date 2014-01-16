@@ -10,27 +10,28 @@
 #include "config.h"
 #endif
 
+#ifdef __GNUC__
+#include <cpuid.h>
+#endif
 
 void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
 {
-  uint32_t regs[4];
-
-  int a = 1;
+  uint32_t ecx,edx;
 
 #ifdef _MSC_VER
+  uint32_t regs[4];
+  int a = 1;
+
   __cpuid((int *)regs, (int)a);
 
+  ecx = regs[2];
+  edx = regs[3];
 #else
-  __asm__ volatile
-    ("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "a" (a), "c" (0));
-  // ECX is set to zero for CPUID function 4
+  uint32_t eax,ebx;
+  __get_cpuid(1, &eax,&ebx,&ecx,&edx);
 #endif
   
   // printf("CPUID EAX=1 -> ECX=%x EDX=%x\n", regs[2], regs[3]);
-
-  uint32_t ecx = regs[2];
-  uint32_t edx = regs[3];
 
   int have_MMX    = !!(edx & (1<<23));
   int have_SSE    = !!(edx & (1<<25));

@@ -32,6 +32,7 @@
 #include "libde265/de265.h"
 #include "libde265/sps.h"
 #include "libde265/motion.h"
+#include "libde265/threads.h"
 
 
 enum PictureState {
@@ -104,8 +105,13 @@ typedef struct de265_image {
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
 
-
   int RefPicList_POC[2][14+1];
+
+  // --- multi core ---
+
+  volatile uint32_t    tasks_pending; // number of tasks pending to complete decoding
+  de265_mutex mutex;
+  de265_cond  finished_cond;
 
 } de265_image;
 
@@ -118,6 +124,10 @@ void de265_free_image (de265_image* img);
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
+
+void increase_pending_tasks(de265_image* img, int n);
+void decrease_pending_tasks(de265_image* img, int n);
+void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
 
 // --- value logging ---
 

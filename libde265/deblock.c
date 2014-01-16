@@ -187,8 +187,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   int TUShift = ctx->current_sps->Log2MinTrafoSize;
   int TUStride= ctx->current_sps->PicWidthInTbsY;
@@ -357,8 +357,8 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
   int bitDepth_Y = ctx->current_sps->BitDepth_Y;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -590,8 +590,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
   const int stride = ctx->img->chroma_stride;
 
-  xEnd = min(xEnd,ctx->deblk_width);
-  yEnd = min(yEnd,ctx->deblk_height);
+  xEnd = libde265_min(xEnd,ctx->deblk_width);
+  yEnd = libde265_min(yEnd,ctx->deblk_height);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -706,6 +706,8 @@ static void thread_deblock(void* d)
   derive_boundaryStrength(ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_luma    (ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_chroma  (ctx, data->vertical, data->first,data->last, xStart,xEnd);
+
+  decrease_pending_tasks(ctx->img, 1);
 }
 
 
@@ -759,7 +761,7 @@ void apply_deblocking_filter(decoder_context* ctx)
 
   if (enabled_deblocking)
     {
-      if (ctx->num_worker_threads==0) {
+      if (ctx->num_worker_threads==0) {  // TMP HACK / TODO / switched off multi-core
 
         // vertical filtering
 
@@ -788,7 +790,8 @@ void apply_deblocking_filter(decoder_context* ctx)
           task.work_routine = thread_deblock;
 
           int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
-          ctx->thread_pool.tasks_pending = numStripes;
+          //ctx->thread_pool.tasks_pending = numStripes;
+          increase_pending_tasks(ctx->img, numStripes);
 
           for (int i=0;i<numStripes;i++)
             {
@@ -808,7 +811,8 @@ void apply_deblocking_filter(decoder_context* ctx)
               add_task(&ctx->thread_pool, &task);
             }
 
-          flush_thread_pool(&ctx->thread_pool);
+          wait_for_completion(ctx->img);
+          //flush_thread_pool(&ctx->thread_pool);
         }
 #endif
 #if 0
