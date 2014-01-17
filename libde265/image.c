@@ -124,6 +124,9 @@ void de265_free_image(de265_image* img)
 
   if (img->intraPredMode) free(img->intraPredMode);
   img->intraPredMode = NULL;
+
+  de265_cond_destroy(&img->finished_cond);
+  de265_mutex_destroy(&img->mutex);
 }
 
 
@@ -134,6 +137,9 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
   img->picture_order_cnt_lsb = -1; // undefined
   img->PicOrderCntVal = -1; // undefined
   img->PicState = UnusedForReference;
+
+  de265_mutex_init(&img->mutex);
+  de265_cond_init(&img->finished_cond);
 }
 
 
@@ -201,7 +207,9 @@ void decrease_pending_tasks(de265_image* img, int n)
   assert(pending >= 0);
 
   if (pending==0) {
+    de265_mutex_lock(&img->mutex);
     de265_cond_broadcast(&img->finished_cond);
+    de265_mutex_unlock(&img->mutex);
   }
 }
 
