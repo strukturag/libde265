@@ -42,6 +42,11 @@ enum PictureState {
 };
 
 
+#define INTEGRITY_CORRECT 0
+#define INTEGRITY_UNAVAILABLE_REFERENCE 1
+#define INTEGRITY_DECODING_ERRORS 2
+
+
 typedef struct {
   uint8_t PredMode; // (enum PredMode)
 } CB_ref_info;
@@ -109,7 +114,10 @@ typedef struct de265_image {
 
   // --- meta information ---
 
-  bool decoding_error; // an error occured while the image was decoded, image content may be incorrect
+  uint8_t integrity; /* Whether an error occured while the image was decoded.
+                        When generated, this is initialized to INTEGRITY_CORRECT,
+                        and changed on decoding errors.
+                      */
 
   // --- multi core ---
 

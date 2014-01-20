@@ -50,7 +50,8 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 */
 
-void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
+de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx,
+                                      bool* continueDecoding)
 {
   // set defaults
 
@@ -95,6 +96,11 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
     }
 
     shdr->slice_type = get_uvlc(br);
+    if (shdr->slice_type > 2) {
+      add_warning(ctx, DE265_WARNING_SLICEHEADER_INVALID, false);
+      *continueDecoding = false;
+      return DE265_OK;
+    }
 
     if (pps->output_flag_present_flag) {
       shdr->pic_output_flag = get_bits(br,1);
@@ -315,6 +321,9 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
     case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag ? 2 : 1; break;
     case SLICE_TYPE_B: shdr->initType = shdr->cabac_init_flag ? 1 : 2; break;
     }
+
+  *continueDecoding = true;
+  return DE265_OK;
 }
 
 
@@ -1479,7 +1488,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
       if (ctx->param_conceal_stream_errors) {
         add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
-        ctx->img->decoding_error = true;
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         break;
       }
       else {

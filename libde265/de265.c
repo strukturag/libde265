@@ -67,6 +67,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Incorrect entry-point offset";
   case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
     return "CTB outside of image area (concealing stream error...)";
+  case DE265_WARNING_SLICEHEADER_INVALID:
+    return "slice header invalid";
+  case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
+    return "impossible motion vector scaling";
 
   default: return "unknown error";
   }
@@ -383,12 +387,12 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   /*
-  if (ctx->num_skipped_bytes>0) {
+    if (ctx->num_skipped_bytes>0) {
     printf("skipped bytes:\n  ");
     for (int i=0;i<ctx->num_skipped_bytes;i++)
     printf("%d ",ctx->skipped_bytes[i]);
     printf("\n");
-  }
+    }
   */
 
   de265_error err = DE265_OK;
@@ -418,104 +422,110 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     hdr->slice_index = sliceIndex;
-    read_slice_segment_header(&reader,hdr,ctx);
-    dump_slice_segment_header(hdr, ctx);
-
-    if ((err = process_slice_segment_header(ctx, hdr)) != DE265_OK)
-      { return err; }
-
-    skip_bits(&reader,1); // TODO: why?
-    prepare_for_CABAC(&reader);
-
-
-    // modify entry_point_offsets
-
-    int headerLength = reader.data - data->data;
-    for (int i=0;i<ctx->num_skipped_bytes;i++)
-      {
-        ctx->skipped_bytes[i] -= headerLength;
-      }
-
-    for (int i=0;i<hdr->num_entry_point_offsets;i++) {
-      for (int k=ctx->num_skipped_bytes-1;k>=0;k--)
-        if (ctx->skipped_bytes[k] <= hdr->entry_point_offset[i]) {
-          hdr->entry_point_offset[i] -= k+1;
-          break;
-        }
-    }
-
-
-    int nRows = hdr->num_entry_point_offsets +1;
-
-    bool use_WPP = (ctx->num_worker_threads > 0 &&
-                    ctx->current_pps->entropy_coding_sync_enabled_flag);
-
-    if (ctx->num_worker_threads > 0 &&
-        ctx->current_pps->entropy_coding_sync_enabled_flag == false) {
-      add_warning(ctx, DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
-    }
-
-    if (!use_WPP) {
-      init_thread_context(&hdr->thread_context[0]);
-
-      init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
-                         reader.data,
-                         reader.bytes_remaining);
-
-      hdr->thread_context[0].shdr = hdr;
-      hdr->thread_context[0].decctx = ctx;
-
-
-      // fixed context 0
-      if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
-        { return err; }
+    bool continueDecoding;
+    err = read_slice_segment_header(&reader,hdr,ctx, &continueDecoding);
+    if (!continueDecoding) {
+      return err;
     }
     else {
-      if (nRows > MAX_THREAD_CONTEXTS) {
-        return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
-      }
+      dump_slice_segment_header(hdr, ctx);
 
-      for (int i=0;i<nRows;i++) {
-        int dataStartIndex;
-        if (i==0) { dataStartIndex=0; }
-        else      { dataStartIndex=hdr->entry_point_offset[i-1]; }
+      if ((err = process_slice_segment_header(ctx, hdr)) != DE265_OK)
+        { return err; }
 
-        int dataEnd;
-        if (i==nRows-1) dataEnd = reader.bytes_remaining;
-        else            dataEnd = hdr->entry_point_offset[i];
+      skip_bits(&reader,1); // TODO: why?
+      prepare_for_CABAC(&reader);
 
-        init_thread_context(&hdr->thread_context[i]);
 
-        init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
-                           &reader.data[dataStartIndex],
-                           dataEnd-dataStartIndex);
+      // modify entry_point_offsets
 
-        hdr->thread_context[i].shdr = hdr;
-        hdr->thread_context[i].decctx = ctx;
-      }
+      int headerLength = reader.data - data->data;
+      for (int i=0;i<ctx->num_skipped_bytes;i++)
+        {
+          ctx->skipped_bytes[i] -= headerLength;
+        }
 
-      // TODO: hard-coded thread context
-
-      assert(ctx->img->tasks_pending == 0);
-      //increase_pending_tasks(ctx->img, nRows);
-      ctx->thread_pool.tasks_pending = 0;
-
-      //printf("-------- decode --------\n");
-
-      add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
-
-      /*
-      for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
-        for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
-          {
-            add_CTB_decode_task_syntax(&hdr->thread_context[y], x,y);
+      for (int i=0;i<hdr->num_entry_point_offsets;i++) {
+        for (int k=ctx->num_skipped_bytes-1;k>=0;k--)
+          if (ctx->skipped_bytes[k] <= hdr->entry_point_offset[i]) {
+            hdr->entry_point_offset[i] -= k+1;
+            break;
           }
-      */
+      }
 
-      wait_for_completion(ctx->img);
-      //flush_thread_pool(&ctx->thread_pool);
 
-      //printf("slice decoding finished\n");
+      int nRows = hdr->num_entry_point_offsets +1;
+
+      bool use_WPP = (ctx->num_worker_threads > 0 &&
+                      ctx->current_pps->entropy_coding_sync_enabled_flag);
+
+      if (ctx->num_worker_threads > 0 &&
+          ctx->current_pps->entropy_coding_sync_enabled_flag == false) {
+        add_warning(ctx, DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
+      }
+
+      if (!use_WPP) {
+        init_thread_context(&hdr->thread_context[0]);
+
+        init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
+                           reader.data,
+                           reader.bytes_remaining);
+
+        hdr->thread_context[0].shdr = hdr;
+        hdr->thread_context[0].decctx = ctx;
+
+
+        // fixed context 0
+        if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
+          { return err; }
+      }
+      else {
+        if (nRows > MAX_THREAD_CONTEXTS) {
+          return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+        }
+
+        for (int i=0;i<nRows;i++) {
+          int dataStartIndex;
+          if (i==0) { dataStartIndex=0; }
+          else      { dataStartIndex=hdr->entry_point_offset[i-1]; }
+
+          int dataEnd;
+          if (i==nRows-1) dataEnd = reader.bytes_remaining;
+          else            dataEnd = hdr->entry_point_offset[i];
+
+          init_thread_context(&hdr->thread_context[i]);
+
+          init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
+                             &reader.data[dataStartIndex],
+                             dataEnd-dataStartIndex);
+
+          hdr->thread_context[i].shdr = hdr;
+          hdr->thread_context[i].decctx = ctx;
+        }
+
+        // TODO: hard-coded thread context
+
+        assert(ctx->img->tasks_pending == 0);
+        //increase_pending_tasks(ctx->img, nRows);
+        ctx->thread_pool.tasks_pending = 0;
+
+        //printf("-------- decode --------\n");
+
+        add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
+
+        /*
+          for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
+          for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
+          {
+          add_CTB_decode_task_syntax(&hdr->thread_context[y], x,y);
+          }
+        */
+
+        wait_for_completion(ctx->img);
+        //flush_thread_pool(&ctx->thread_pool);
+
+        //printf("slice decoding finished\n");
+      }
     }
   }
   else switch (nal_hdr.nal_unit_type) {

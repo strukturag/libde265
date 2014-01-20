@@ -361,6 +361,44 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
 }
 
 
+/* 8.3.3.2
+   Returns DPB index of the generated picture.
+ */
+int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
+                                           int POC, bool longTerm)
+{
+  assert(has_free_dpb_picture(ctx));
+
+  int idx = initialize_new_DPB_image(ctx, ctx->current_sps);
+  assert(idx>=0);
+
+  de265_image* img = &ctx->dpb[idx];
+  assert(img->border==0);
+
+  memset( img->y - img->border, 1<<(sps->BitDepth_Y-1), img->stride * img->height );
+  memset( img->cb- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
+  memset( img->cr- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
+
+  for (int i=0;i<img->cb_info_size;i++)
+    { img->cb_info[i].PredMode = MODE_INTRA; }
+
+
+  img->PicOrderCntVal = POC;
+  img->picture_order_cnt_lsb = POC & (sps->MaxPicOrderCntLsb-1);
+  img->PicOutputFlag = false;
+  img->PicState = (longTerm ? UsedForLongTermReference : UsedForShortTermReference);
+  img->integrity = INTEGRITY_UNAVAILABLE_REFERENCE;
+  /*
+  int w = sps->pic_width_in_luma_samples;
+  int h = sps->pic_height_in_luma_samples;
+  de265_alloc_image(ctx->img, w,h, chroma, sps);
+  QQQ
+  */
+
+  return idx;
+}
+
+
 /* 8.3.2
  */
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
@@ -451,23 +489,33 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
-    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
+    else {
+      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                    ctx->PocStCurrBefore[i], false);
+      ctx->RefPicSetStCurrBefore[i] = concealedPicture;
+      picInAnyList[concealedPicture]=true;
+    }
   }
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
-    if (k<0) { assert(false); } // TODO
 
     ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
+    else {
+      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                    ctx->PocStCurrAfter[i], false);
+      ctx->RefPicSetStCurrAfter[i] = concealedPicture;
+      picInAnyList[concealedPicture]=true;
+    }
   }
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
-    if (k<0) { assert(false); } // TODO
+    // if (k<0) { assert(false); } // IGNORE
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -485,7 +533,17 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 // 8.3.3
 void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment_header* hdr)
 {
-  // TODO
+  for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
+    if (ctx->RefPicSetStCurrBefore[i] < 0) {
+      //int idx = generate_unavailable_picture(ctx,ctx->current_sps,
+    }
+  }
+
+  for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
+    if (ctx->RefPicSetStCurrAfter[i] < 0) {
+      //int idx = initialize_new_DPB_image(ctx, ctx->current_sps);
+    }
+  }
 }
 
 
@@ -550,17 +608,17 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   // show reference picture lists
 
-  logtrace(LogHeaders,"RefPicList[0] =");
+  loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    logtrace(LogHeaders," %d", hdr->RefPicList[0][rIdx]);
+    loginfo(LogHeaders,"* %d", hdr->RefPicList[0][rIdx]);
   }
-  logtrace(LogHeaders,"\n");
+  loginfo(LogHeaders,"*\n");
 
-  logtrace(LogHeaders,"RefPicList[1] =");
+  loginfo(LogHeaders,"RefPicList[1] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-    logtrace(LogHeaders," %d", hdr->RefPicList[1][rIdx]);
+    loginfo(LogHeaders,"* %d", hdr->RefPicList[1][rIdx]);
   }
-  logtrace(LogHeaders,"\n");
+  loginfo(LogHeaders,"*\n");
 }
 
 
@@ -660,6 +718,62 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 }
 
 
+/* Alloc a new image in the DPB and return its index.
+   If there is no space for a new image, return -1.
+ */
+int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
+{
+  int free_image_buffer_idx = -1;
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
+      free_image_buffer_idx = i;
+      break;
+    }
+  }
+
+  if (free_image_buffer_idx == -1) {
+    return -1;
+  }
+
+  de265_image* img = &ctx->dpb[free_image_buffer_idx];
+
+  int w = sps->pic_width_in_luma_samples;
+  int h = sps->pic_height_in_luma_samples;
+
+  enum de265_chroma chroma;
+  switch (sps->chroma_format_idc) {
+  case 0: chroma = de265_chroma_mono; break;
+  case 1: chroma = de265_chroma_420;  break;
+  case 2: chroma = de265_chroma_422;  break;
+  case 3: chroma = de265_chroma_444;  break;
+  default: chroma = de265_chroma_420; assert(0); break; // should never happen
+  }
+
+  de265_alloc_image(img, w,h, chroma, sps);
+
+  if (img->cb_info_size != ctx->current_sps->PicSizeInMinCbsY ||
+      img->cb_info == NULL) {
+    img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
+    img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * img->cb_info_size);
+  }
+
+  int puWidth  = ctx->current_sps->PicWidthInMinCbsY  << (ctx->current_sps->Log2MinCbSizeY -2);
+  int puHeight = ctx->current_sps->PicHeightInMinCbsY << (ctx->current_sps->Log2MinCbSizeY -2);
+
+  if (img->pb_info_size != puWidth*puHeight ||
+      img->pb_info == NULL) {
+    img->pb_info_size   = puWidth*puHeight;
+    img->pb_info_stride = puWidth;
+    img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
+    // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
+  }
+
+  img->integrity = INTEGRITY_CORRECT;
+
+  return free_image_buffer_idx;
+}
+
+
 de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
 {
   // get PPS and SPS for this slice
@@ -696,51 +810,14 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     // --- find and allocate image buffer for decoding ---
 
-    int free_image_buffer_idx = -1;
-    for (int i=0;i<DE265_DPB_SIZE;i++) {
-      if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
-        free_image_buffer_idx = i;
-        break;
-      }
-    }
-
-    if (free_image_buffer_idx == -1) {
+    int image_buffer_idx;
+    image_buffer_idx = initialize_new_DPB_image(ctx,sps);
+    if (image_buffer_idx == -1) {
       return DE265_ERROR_IMAGE_BUFFER_FULL;
     }
 
-    ctx->img = &ctx->dpb[free_image_buffer_idx];
+    ctx->img = &ctx->dpb[image_buffer_idx];
 
-
-    int w = sps->pic_width_in_luma_samples;
-    int h = sps->pic_height_in_luma_samples;
-
-    enum de265_chroma chroma;
-    switch (sps->chroma_format_idc) {
-    case 0: chroma = de265_chroma_mono; break;
-    case 1: chroma = de265_chroma_420;  break;
-    case 2: chroma = de265_chroma_422;  break;
-    case 3: chroma = de265_chroma_444;  break;
-    default: chroma = de265_chroma_420; assert(0); break; // should never happen
-    }
-
-    de265_alloc_image(ctx->img, w,h, chroma, sps);
-
-    if (ctx->img->cb_info_size != ctx->current_sps->PicSizeInMinCbsY ||
-        ctx->img->cb_info == NULL) {
-      ctx->img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
-      ctx->img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * ctx->img->cb_info_size);
-    }
-
-    int puWidth  = ctx->current_sps->PicWidthInMinCbsY  << (ctx->current_sps->Log2MinCbSizeY -2);
-    int puHeight = ctx->current_sps->PicHeightInMinCbsY << (ctx->current_sps->Log2MinCbSizeY -2);
-
-    if (ctx->img->pb_info_size != puWidth*puHeight ||
-        ctx->img->pb_info == NULL) {
-      ctx->img->pb_info_size   = puWidth*puHeight;
-      ctx->img->pb_info_stride = puWidth;
-      ctx->img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * ctx->img->pb_info_size);
-      // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
-    }
 
     //ctx->img->pb_info_nextRootIdx = 0;
 

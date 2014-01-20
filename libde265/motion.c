@@ -392,6 +392,10 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->lum.refIdx[l], shdr->RefPicList[l][vi->lum.refIdx[l]]);
 
+      if (refPic->PicState == UnusedForReference) {
+        printf("state %d = %d\n",refPic->PicOrderCntVal, refPic->PicState);
+      }
+
       assert(refPic->PicState != UnusedForReference);
 
 
@@ -899,17 +903,24 @@ void derive_zero_motion_vector_candidates(decoder_context* ctx,
 }
 
 
-void scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
+bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 {
   int td = Clip3(-128,127, colDist);
   int tb = Clip3(-128,127, currDist);
 
-  int tx = (16384 + (abs_value(td)>>1)) / td;
-  int distScaleFactor = Clip3(-4096,4095, (tb*tx+32)>>6);
-  out_mv->x = Clip3(-32768,32767,
-                    Sign(distScaleFactor*mv.x)*((abs_value(distScaleFactor*mv.x)+127)>>8));
-  out_mv->y = Clip3(-32768,32767,
-                    Sign(distScaleFactor*mv.y)*((abs_value(distScaleFactor*mv.y)+127)>>8));
+  if (td==0) {
+    *out_mv = mv;
+    return false;
+  }
+  else {
+    int tx = (16384 + (abs_value(td)>>1)) / td;
+    int distScaleFactor = Clip3(-4096,4095, (tb*tx+32)>>6);
+    out_mv->x = Clip3(-32768,32767,
+                      Sign(distScaleFactor*mv.x)*((abs_value(distScaleFactor*mv.x)+127)>>8));
+    out_mv->y = Clip3(-32768,32767,
+                      Sign(distScaleFactor*mv.y)*((abs_value(distScaleFactor*mv.y)+127)>>8));
+    return true;
+  }
 }
 
 
@@ -1013,7 +1024,11 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
       *out_mvLXCol = mvCol;
     }
     else {
-      scale_mv(out_mvLXCol, mvCol, colDist, currDist);
+      if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
+        add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+      }
+
       logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
                mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
     }
@@ -1367,7 +1382,10 @@ void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
         int distA = ctx->img->PicOrderCntVal - refPicA->PicOrderCntVal;
         int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
 
-        scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX);
+        if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
+          add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+          ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        }
       }
     }
   }
@@ -1469,7 +1487,10 @@ void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
           int distB = ctx->img->PicOrderCntVal - refPicB->PicOrderCntVal;
           int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
 
-          scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX);
+          if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
+            add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+            ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+          }
         }
       }
     }

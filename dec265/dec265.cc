@@ -323,7 +323,7 @@ int main(int argc, char** argv)
   gettimeofday(&tv_end, NULL);
 
   if (err != DE265_OK) {
-    fprintf(stderr,"decoding error: %s\n", de265_get_error_text(err));
+    fprintf(stderr,"decoding error: %s (%d)\n", de265_get_error_text(err), err);
   }
 
   double secs = tv_end.tv_sec-tv_start.tv_sec;
