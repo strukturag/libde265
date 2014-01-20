@@ -778,8 +778,6 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_chroma  (ctx, false ,0,ctx->deblk_height,0,ctx->deblk_width);
       }
       else {
-        flush_thread_pool(&ctx->thread_pool);
-
 #if 1
         for (int pass=0;pass<2;pass++) {
 
@@ -812,7 +810,6 @@ void apply_deblocking_filter(decoder_context* ctx)
             }
 
           wait_for_completion(ctx->img);
-          //flush_thread_pool(&ctx->thread_pool);
         }
 #endif
 #if 0
@@ -836,8 +833,6 @@ void apply_deblocking_filter(decoder_context* ctx)
                 
                   add_task(&ctx->thread_pool, &task);
                 }
-          
-            flush_thread_pool(&ctx->thread_pool);
           }
 #endif
 #if 0
@@ -861,8 +856,6 @@ void apply_deblocking_filter(decoder_context* ctx)
                 
                   add_task(&ctx->thread_pool, &task);
                 }
-          
-            flush_thread_pool(&ctx->thread_pool);
           }
 #endif
 #if 0
@@ -886,8 +879,6 @@ void apply_deblocking_filter(decoder_context* ctx)
                 
                   add_task(&ctx->thread_pool, &task);
                 }
-          
-            flush_thread_pool(&ctx->thread_pool);
           }
 #endif
       }

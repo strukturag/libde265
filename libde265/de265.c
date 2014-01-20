@@ -117,7 +117,7 @@ LIBDE265_API void de265_free_decoder(de265_decoder_context* de265ctx)
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   if (ctx->num_worker_threads>0) {
-    flush_thread_pool(&ctx->thread_pool);
+    //flush_thread_pool(&ctx->thread_pool);
     stop_thread_pool(&ctx->thread_pool);
   }
 
@@ -506,8 +506,6 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         // TODO: hard-coded thread context
 
         assert(ctx->img->tasks_pending == 0);
-        //increase_pending_tasks(ctx->img, nRows);
-        ctx->thread_pool.tasks_pending = 0;
 
         //printf("-------- decode --------\n");
 

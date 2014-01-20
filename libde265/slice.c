@@ -1503,12 +1503,6 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
   } while (!end_of_slice_segment_flag);
 
 
-  if (ctx->num_worker_threads>0 &&
-      ctx->current_pps->entropy_coding_sync_enabled_flag)
-    {
-      flush_thread_pool(&ctx->thread_pool);
-    }
-
   return DE265_OK;
 }
 
@@ -1757,12 +1751,9 @@ void thread_decode_CTB_syntax(void* d)
   //printf("FINISHED %d %d\n",ctbx,ctby);
 
   if (continueWithNextCTB) {
-    decrement_tasks_pending(&ctx->thread_pool);
     thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
   }
   else {
-    //printf("cannot continue at %d %d\n",ctbx,ctby);
-
     decrease_pending_tasks(ctx->img, 1);
 
     //printf("end decoding of ctb row: %d\n",ctby);

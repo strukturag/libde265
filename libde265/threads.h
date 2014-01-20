@@ -120,25 +120,19 @@ typedef struct thread_pool
   int num_threads;
 
   int num_threads_working;
-
-  long tasks_pending;
+  //long tasks_pending;
 
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];
 
   de265_mutex  mutex;
   de265_cond   cond_var;
-  de265_cond   finished_cond;
 } thread_pool;
 
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads);
-void        flush_thread_pool(thread_pool* pool);  // process pool until no more tasks
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
-void   add_task(thread_pool* pool, const thread_task* task);
-void   decrement_tasks_pending(thread_pool* pool);
-
-//bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
+void        add_task(thread_pool* pool, const thread_task* task);
 
 #endif
