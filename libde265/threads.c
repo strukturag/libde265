@@ -25,7 +25,7 @@ void de265_mutex_lock(de265_mutex* m) { pthread_mutex_lock(m); }
 void de265_mutex_unlock(de265_mutex* m) { pthread_mutex_unlock(m); }
 void de265_cond_init(de265_cond* c) { pthread_cond_init(c,NULL); }
 void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
+void de265_cond_broadcast(de265_cond* c,de265_mutex* m) { pthread_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
 #else  // _WIN32
@@ -49,7 +49,12 @@ void de265_mutex_lock(de265_mutex* m) { WaitForSingleObject(*m, INFINITE); }
 void de265_mutex_unlock(de265_mutex* m) { ReleaseMutex(*m); }
 void de265_cond_init(de265_cond* c) { win32_cond_init(c); }
 void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c) { win32_cond_broadcast(c); }
+void de265_cond_broadcast(de265_cond* c,de265_mutex* m)
+{
+  de265_mutex_lock(m);
+  win32_cond_broadcast(c);
+  de265_mutex_unlock(m);
+}
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 #endif // _WIN32
@@ -216,7 +221,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     //printblks(pool);
 
     if (pending==0) {
-      de265_cond_broadcast(&pool->finished_cond);
+      de265_cond_broadcast(&pool->finished_cond, &pool->mutex);
     }
 
     /*
@@ -281,7 +286,7 @@ void stop_thread_pool(thread_pool* pool)
   pool->stopped = true;
   de265_mutex_unlock(&pool->mutex);
 
-  de265_cond_broadcast(&pool->cond_var);
+  de265_cond_broadcast(&pool->cond_var, &pool->mutex);
 
   for (int i=0;i<pool->num_threads;i++) {
     de265_thread_join(pool->thread[i]);

@@ -207,9 +207,7 @@ void decrease_pending_tasks(de265_image* img, int n)
   assert(pending >= 0);
 
   if (pending==0) {
-    de265_mutex_lock(&img->mutex);
-    de265_cond_broadcast(&img->finished_cond);
-    de265_mutex_unlock(&img->mutex);
+    de265_cond_broadcast(&img->finished_cond, &img->mutex);
   }
 }
 

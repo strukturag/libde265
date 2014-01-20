@@ -60,7 +60,7 @@ void de265_mutex_lock(de265_mutex* m);
 void de265_mutex_unlock(de265_mutex* m);
 void de265_cond_init(de265_cond* c);
 void de265_cond_destroy(de265_cond* c);
-void de265_cond_broadcast(de265_cond* c);
+void de265_cond_broadcast(de265_cond* c, de265_mutex* m);
 void de265_cond_wait(de265_cond* c,de265_mutex* m);
 void de265_cond_signal(de265_cond* c);
 
