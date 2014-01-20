@@ -220,7 +220,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xT + yT*stride;
 
   /*

@@ -327,8 +327,6 @@ int  get_rqt_root_cbf(const decoder_context* ctx,int x0,int y0);
 void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
 int  get_QPY(const decoder_context* ctx,int x0,int y0);
 
-void get_image_plane(const decoder_context*, int cIdx, uint8_t** image, int* stride);
-
 void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);
 void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize);

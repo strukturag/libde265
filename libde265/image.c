@@ -193,6 +193,17 @@ void de265_copy_image(de265_image* dest, const de265_image* src)
 }
 
 
+void get_image_plane(const de265_image* img, int cIdx, uint8_t** image, int* stride)
+{
+  switch (cIdx) {
+  case 0: *image = img->y;  if (stride) *stride = img->stride; break;
+  case 1: *image = img->cb; if (stride) *stride = img->chroma_stride; break;
+  case 2: *image = img->cr; if (stride) *stride = img->chroma_stride; break;
+  default: *image = NULL; if (stride) *stride = 0; break;
+  }
+}
+
+
 void increase_pending_tasks(de265_image* img, int n)
 {
   de265_sync_add_and_fetch(&img->tasks_pending, n);

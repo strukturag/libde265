@@ -1145,16 +1145,6 @@ int  get_QPY(const decoder_context* ctx,int x,int y)
 
 
 
-void get_image_plane(const decoder_context* ctx, int cIdx, uint8_t** image, int* stride)
-{
-  switch (cIdx) {
-  case 0: *image = ctx->img->y;  *stride = ctx->img->stride; break;
-  case 1: *image = ctx->img->cb; *stride = ctx->img->chroma_stride; break;
-  case 2: *image = ctx->img->cr; *stride = ctx->img->chroma_stride; break;
-  }
-}
-
-
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, const de265_image* img, int x,int y)
 {
   const seq_parameter_set* sps = ctx->current_sps;

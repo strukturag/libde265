@@ -76,7 +76,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
   uint8_t* image;
   int stride;
-  get_image_plane(ctx, cIdx,  &image, &stride);
+  get_image_plane(ctx->img, cIdx,  &image, &stride);
 
   const int chromaShift = (cIdx==0) ? 0 : 1;
   const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
@@ -447,7 +447,7 @@ void intra_prediction_angular(decoder_context* ctx,
 
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int intraPredAngle = intraPredAngle_table[intraPredMode];
@@ -547,7 +547,7 @@ void intra_prediction_planar(decoder_context* ctx,int xB0,int yB0,int nT,int cId
 {
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int Log2_nT = Log2(nT);
@@ -566,7 +566,7 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
 {
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int Log2_nT = Log2(nT);

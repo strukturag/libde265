@@ -738,19 +738,7 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
 
 LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* out_stride)
 {
-  switch (channel) {
-  case 0:
-    if (out_stride) { *out_stride = img->stride; }
-    return img->y;
-
-  case 1:
-  case 2:
-    if (out_stride) { *out_stride = img->chroma_stride; }
-    if (channel==1) { return img->cb; }
-    else            { return img->cr; }
-
-  default:
-    if (out_stride) { *out_stride = 0; }
-    return NULL;
-  }
+  uint8_t* data;
+  get_image_plane(img, channel, &data, out_stride);
+  return data;
 }

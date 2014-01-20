@@ -136,6 +136,8 @@ void de265_free_image (de265_image* img);
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
+void get_image_plane(const de265_image*, int cIdx, uint8_t** image, int* stride);
+
 
 void increase_pending_tasks(de265_image* img, int n);
 void decrease_pending_tasks(de265_image* img, int n);
