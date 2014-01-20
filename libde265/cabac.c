@@ -151,7 +151,9 @@ static const uint8_t next_state_LPS[64] =
 
 
 
+#ifdef DE265_LOG_TRACE
 int logcnt=1;
+#endif
 
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 {
@@ -249,7 +251,9 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     }
 
   logtrace(LogCABAC,"[%3d] -> bit %d  r:%x v:%x\n", logcnt, decoded_bit, decoder->range, decoder->value);
+#ifdef DE265_LOG_TRACE
   logcnt++;
+#endif
 
   //assert(decoder->range>=0x100);
 
@@ -321,7 +325,9 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
     }
 
   logtrace(LogCABAC,"[%3d] -> bit %d  r:%x v:%x\n", logcnt, bit, decoder->range, decoder->value);
+#ifdef DE265_LOG_TRACE
   logcnt++;
+#endif
 
   //assert(decoder->range>=0x100);
 
