@@ -61,8 +61,8 @@ typedef struct {
   //uint16_t cbf_cr;   // bitfield (1<<depth)
   //uint16_t cbf_luma; // bitfield (1<<depth)
 
-  uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
-  uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
+  //uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
+  //uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
 
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
   uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
@@ -105,7 +105,7 @@ typedef struct de265_image {
   int pb_info_stride;
 
   int* pb_rootIdx;
-  int  pb_info_nextRootIdx;
+  //int  pb_info_nextRootIdx;
 
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
@@ -121,7 +121,7 @@ typedef struct de265_image {
 
   // --- multi core ---
 
-  volatile uint32_t    tasks_pending; // number of tasks pending to complete decoding
+  de265_sync_int tasks_pending; // number of tasks pending to complete decoding
   de265_mutex mutex;
   de265_cond  finished_cond;
 

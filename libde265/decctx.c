@@ -751,23 +751,6 @@ int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
 
   de265_alloc_image(img, w,h, chroma, sps);
 
-  if (img->cb_info_size != ctx->current_sps->PicSizeInMinCbsY ||
-      img->cb_info == NULL) {
-    img->cb_info_size = ctx->current_sps->PicSizeInMinCbsY;
-    img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * img->cb_info_size);
-  }
-
-  int puWidth  = ctx->current_sps->PicWidthInMinCbsY  << (ctx->current_sps->Log2MinCbSizeY -2);
-  int puHeight = ctx->current_sps->PicHeightInMinCbsY << (ctx->current_sps->Log2MinCbSizeY -2);
-
-  if (img->pb_info_size != puWidth*puHeight ||
-      img->pb_info == NULL) {
-    img->pb_info_size   = puWidth*puHeight;
-    img->pb_info_stride = puWidth;
-    img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
-    // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
-  }
-
   img->integrity = INTEGRITY_CORRECT;
 
   return free_image_buffer_idx;
