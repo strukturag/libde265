@@ -12,9 +12,9 @@ env:
 matrix:
   exclude:
     - compiler: clang
-      env: HOST=i686-w64-mingw32 CROSSCOMPILE=32
+      env: HOST=i686-w64-mingw32 WINE=wine
     - compiler: clang
-      env: HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
+      env: HOST=x86_64-w64-mingw32 WINE=wine64
 
 before_install:
   - sudo apt-get update -qq
