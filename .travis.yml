@@ -26,7 +26,7 @@ install:
 
 before_script:
   - ./autogen.sh
-  - sh -c "if [ '$CROSSCOMPILE' != '0' ]; then unset CC CXX; fi"
+  - if [ '$CROSSCOMPILE' != '0' ]; then unset CC CXX; fi
   - ./configure --host=$HOST
 
 script:
