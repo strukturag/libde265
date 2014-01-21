@@ -71,6 +71,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "slice header invalid";
   case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
     return "impossible motion vector scaling";
+  case DE265_WARNING_NONEXISTING_PPS_REFERENCED:
+    return "non-existing PPS referenced";
+  case DE265_WARNING_NONEXISTING_SPS_REFERENCED:
+    return "non-existing SPS referenced";
 
   default: return "unknown error";
   }
@@ -216,7 +220,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
       else if (*data==1) {
 
 #if DEBUG_INSERT_STREAM_ERRORS
-        if ((rand()%100)<10 && ctx->nal_data.size>0) {
+        if ((rand()%100)<90 && ctx->nal_data.size>0) {
           int pos = rand()%ctx->nal_data.size;
           int bit = rand()%8;
           ctx->nal_data.data[pos] ^= 1<<bit;
@@ -242,7 +246,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         }
 
         // when there are no free image buffers in the DPB, pause decoding
-        if (!has_free_dpb_picture(ctx)) {
+        if (!has_free_dpb_picture(ctx, false)) {
           data++;
           return err;
         }
@@ -302,7 +306,7 @@ static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (!has_free_dpb_picture(ctx)) {
+  if (!has_free_dpb_picture(ctx, false)) {
     return DE265_OK;
   }
 
@@ -358,7 +362,7 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx, cons
   de265_error err = DE265_OK;
   int nBytesProcessed = 0;
 
-  if (has_free_dpb_picture(ctx)) {
+  if (has_free_dpb_picture(ctx, false)) {
     err = process_data(ctx,(const uint8_t*)data,len, &nBytesProcessed);
   }
 
@@ -561,10 +565,12 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         pic_parameter_set pps;
 
         init_pps(&pps);
-        read_pps(&reader,&pps,ctx);
+        bool success = read_pps(&reader,&pps,ctx);
         dump_pps(&pps);
 
-        process_pps(ctx,&pps);
+        if (success) {
+          process_pps(ctx,&pps);
+        }
       }
       break;
 

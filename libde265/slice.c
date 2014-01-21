@@ -67,12 +67,25 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
   }
 
   shdr->slice_pic_parameter_set_id = get_uvlc(br);
+  if (shdr->slice_pic_parameter_set_id > DE265_MAX_PPS_SETS) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   pic_parameter_set* pps = &ctx->pps[(int)shdr->slice_pic_parameter_set_id];
-  assert(pps->pps_read); // TODO: error handling
+  if (!pps->pps_read) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
-  assert(sps->sps_read); // TODO: error handling
+  if (!sps->sps_read) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   if (!shdr->first_slice_segment_in_pic_flag) {
     if (pps->dependent_slice_segments_enabled_flag) {

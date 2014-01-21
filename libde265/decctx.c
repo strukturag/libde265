@@ -331,9 +331,11 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 }
 
 
-bool has_free_dpb_picture(const decoder_context* ctx)
+bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority)
 {
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
+  int nImages = high_priority ? DE265_DPB_SIZE : DE265_DPB_OUTPUT_IMAGES;
+
+  for (int i=0;i<nImages;i++) {
     if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
       return true;
     }
@@ -367,7 +369,7 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
 int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
                                            int POC, bool longTerm)
 {
-  assert(has_free_dpb_picture(ctx));
+  assert(has_free_dpb_picture(ctx, true));
 
   int idx = initialize_new_DPB_image(ctx, ctx->current_sps);
   assert(idx>=0);

@@ -31,7 +31,7 @@
 #endif
 
 
-void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
+bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 {
   pps->pic_parameter_set_id = get_uvlc(br);
   pps->seq_parameter_set_id = get_uvlc(br);
@@ -42,6 +42,18 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   pps->cabac_init_present_flag = get_bits(br,1);
   pps->num_ref_idx_l0_default_active = get_uvlc(br)+1;
   pps->num_ref_idx_l1_default_active = get_uvlc(br)+1;
+
+  if (pps->pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    return false;
+  }
+
+  if (pps->seq_parameter_set_id >= DE265_MAX_PPS_SETS) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
+    pps->pps_read = false; // incomplete pps
+    return false;
+  }
+
 
   seq_parameter_set* sps = get_sps(ctx, pps->seq_parameter_set_id);
 
@@ -324,6 +336,8 @@ void read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
 
   pps->pps_read = true;
+
+  return true;
 }
 
 

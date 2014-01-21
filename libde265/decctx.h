@@ -39,7 +39,9 @@
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value
-#define DE265_DPB_SIZE  20
+#define DE265_DPB_OUTPUT_IMAGES  20
+#define DE265_DPB_RESILIENCE_IMAGES 5
+#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
 #define MAX_WARNINGS 20
 
@@ -359,7 +361,7 @@ bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
 
-bool has_free_dpb_picture(const decoder_context* ctx);
+bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority);
 void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
