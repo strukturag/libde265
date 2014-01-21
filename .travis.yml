@@ -1,22 +1,40 @@
 # stats available at
 # https://travis-ci.org/strukturag/libde265/
-language: c
+language: cpp
 compiler:
   - clang
   - gcc
+env:
+  - HOST= WINE=
+  - HOST=i686-w64-mingw32 WINE=wine
+  - HOST=x86_64-w64-mingw32 WINE=wine64
+
+matrix:
+  exclude:
+    - compiler: clang
+      env: HOST=i686-w64-mingw32 WINE=wine
+    - compiler: clang
+      env: HOST=x86_64-w64-mingw32 WINE=wine64
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq valgrind
+  - sh -c "if [ -z '$HOST' ]; then sudo apt-get install -qq valgrind; fi"
+  - sh -c "if [ ! -z '$HOST' ]; then sudo apt-get install -qq wine; fi"
+  - sh -c "if [ '$WINE' = 'wine'   ]; then sudo apt-get install -qq gcc-mingw-w64-i686   g++-mingw-w64-i686   binutils-mingw-w64-i686   mingw-w64-dev; fi"
+  - sh -c "if [ '$WINE' = 'wine64' ]; then sudo apt-get install -qq gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev; fi"
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
 
 before_script:
   - ./autogen.sh
-  - ./configure
+  - if [ ! -z "$HOST" ]; then unset CC; fi
+  - if [ ! -z "$HOST" ]; then unset CXX; fi
+  - ./configure --host=$HOST
 
 script:
   - make
-  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
-  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
+  - sh -c "if [ -z "$HOST" ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ -z "$HOST" ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ ! -z "$HOST" ]; then WINEPREFIX=`pwd`/$WINE $WINE ./dec265/dec265.exe -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ ! -z "$HOST" ]; then WINEPREFIX=`pwd`/$WINE $WINE ./dec265/dec265.exe -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"

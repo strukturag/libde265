@@ -57,8 +57,7 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_CHECK_FUNCS([memmove memset])
+AC_CHECK_FUNCS([malloc memmove memset __malloc_hook __mingw_aligned_malloc __mingw_aligned_free])
 
 AC_SEARCH_LIBS([sqrt], [m])
 AC_SEARCH_LIBS([pthread_create], [pthread])
@@ -145,9 +144,21 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
   if eval "test x$HAVE_VIDEOGFX = xyes" ; then
     VIDEOGFX_CFLAGS=`libvideogfx-config --cflags`
     VIDEOGFX_LIBS=`libvideogfx-config --libs`
+    SAVE_CFLAGS=$CFLAGS
+    SAVE_LIBS=$LIBS
+    AC_CHECK_HEADERS([libvideogfx.hh], [
+        AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
+    ], [
+        VIDEOGFX_CFLAGS=""
+        VIDEOGFX_LIBS=""
+        echo "libvideogfx found but not usable (check config.log for details)"
+        echo "... Disabling building of sherlock265 ..."
+        enable_sherlock265="no"
+    ])
+    CFLAGS=$SAVE_CFLAGS
+    LIBS=$SAVE_LIBS
     AC_SUBST(VIDEOGFX_CFLAGS)
     AC_SUBST(VIDEOGFX_LIBS)
-    AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
   else
     echo "Did not find libvideogfx (is libvideogfx-config in your PATH ?)."
     echo "... Disabling building of sherlock265 ..."
