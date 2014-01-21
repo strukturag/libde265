@@ -342,7 +342,11 @@ int  get_uvlc(bitreader* br)
 {
   int num_zeros=0;
 
-  while (get_bits(br,1)==0) { num_zeros++; }
+  while (get_bits(br,1)==0) {
+    num_zeros++;
+
+    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return -1; }
+  }
 
   int offset = 0;
   if (num_zeros != 0) {

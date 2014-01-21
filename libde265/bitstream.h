@@ -32,6 +32,8 @@
 #include <stdint.h>
 
 
+#define MAX_UVLC_LEADING_ZEROS 10
+
 typedef struct {
   unsigned char* data;
   int size;
