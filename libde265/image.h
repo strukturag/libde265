@@ -42,9 +42,14 @@ enum PictureState {
 };
 
 
+/* TODO:
+   At INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE images, we can check the SEI hash, whether
+   the output image is correct despite the faulty reference, and set the state back to correct.
+*/
 #define INTEGRITY_CORRECT 0
 #define INTEGRITY_UNAVAILABLE_REFERENCE 1
 #define INTEGRITY_DECODING_ERRORS 2
+#define INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE 3
 
 
 typedef struct {
