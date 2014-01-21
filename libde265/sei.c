@@ -105,21 +105,24 @@ static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride)
   return sum & 0xFFFFFFFF;
 }
 
-static uint32_t crc_process_byte(uint32_t crc, uint8_t byte)
+inline uint16_t crc_process_byte(uint16_t crc, uint8_t byte)
 {
   for (int bit=0;bit<8;bit++) {
     int bitVal = (byte >> (7-bit)) & 1;
 
     int crcMsb = (crc>>15) & 1;
-    crc = (((crc<<1) + bitVal) & 0xFFFF) ^ (crcMsb * 0x1021);
+    crc = (((crc<<1) + bitVal) & 0xFFFF);
+
+    if (crcMsb) { crc ^=  0x1021; }
   }
 
   return crc;
 }
 
-static uint32_t compute_CRC_8bit(uint8_t* data,int w,int h,int stride)
+static uint16_t compute_CRC_8bit_old(const uint8_t* data,int w,int h,int stride)
 {
-  uint32_t crc = 0xFFFF;
+  uint16_t crc = 0xFFFF;
+
   for (int y=0; y<h; y++)
     for(int x=0; x<w; x++) {
       crc = crc_process_byte(crc, data[y*stride+x]);
@@ -127,6 +130,35 @@ static uint32_t compute_CRC_8bit(uint8_t* data,int w,int h,int stride)
 
   crc = crc_process_byte(crc, 0);
   crc = crc_process_byte(crc, 0);
+
+  return crc;
+}
+
+inline uint16_t crc_process_byte_parallel(uint16_t crc, uint8_t byte)
+{
+  uint16_t s = byte ^ (crc >> 8);
+  uint16_t t = s ^ (s >> 4);
+
+  return  ((crc << 8) ^
+	   t ^
+	   (t <<  5) ^
+	   (t << 12)) & 0xFFFF;
+}
+
+static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,int stride)
+{
+  uint16_t crc = 0xFFFF;
+
+  crc = crc_process_byte_parallel(crc, 0);
+  crc = crc_process_byte_parallel(crc, 0);
+
+  for (int y=0; y<h; y++) {
+    const uint8_t* d = &data[y*stride];
+
+    for(int x=0; x<w; x++) {
+      crc = crc_process_byte_parallel(crc, *d++);
+    }
+  }
 
   return crc;
 }
@@ -202,7 +234,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
 
     case sei_decoded_picture_hash_type_CRC:
       {
-        uint32_t crc = compute_CRC_8bit(data,w,h,stride);
+        uint16_t crc = compute_CRC_8bit_fast(data,w,h,stride);
 
         logtrace(LogSEI,"SEI decoded picture hash: %04x <-[%d]-> decoded picture: %04x\n",
                  seihash->crc[i], i, crc);
