@@ -26,8 +26,7 @@ install:
 
 before_script:
   - ./autogen.sh
-  - if [ -z "$HOST" ]; then ./configure; fi
-  - if [ ! -z "$HOST" ]; then CC=$HOST-gcc CXX=$HOST-g++ ./configure --host=$HOST; fi
+  - ./configure --host=$HOST
 
 script:
   - make
