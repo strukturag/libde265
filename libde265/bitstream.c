@@ -345,7 +345,7 @@ int  get_uvlc(bitreader* br)
   while (get_bits(br,1)==0) {
     num_zeros++;
 
-    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return -1; }
+    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return UVLC_ERROR; }
   }
 
   int offset = 0;
@@ -361,6 +361,8 @@ int  get_svlc(bitreader* br)
 {
   int v = get_uvlc(br);
   if (v==0) return v;
+  if (v==UVLC_ERROR) return UVLC_ERROR;
+
   bool negative = ((v&1)==0);
   return negative ? -v/2 : (v+1)/2;
 }
