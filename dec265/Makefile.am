@@ -9,6 +9,10 @@ dec265_LDFLAGS = $(VIDEOGFX_LIBS)
 dec265_LDADD = ../libde265/libde265.la -lstdc++ -lpthread
 dec265_SOURCES = dec265.cc
 
+if MINGW
+  dec265_LDFLAGS += -static-libgcc -static-libstdc++
+endif
+
 EXTRA_DIST = Makefile.vc7 \
   CMakeLists.txt \
   ../extra/getopt.c \
