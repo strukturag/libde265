@@ -492,6 +492,8 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
 
+    //printf("st curr before, poc=%d -> idx=%d\n",ctx->PocStCurrBefore[i], k);
+
     ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
@@ -499,11 +501,15 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
                                                                     ctx->PocStCurrBefore[i], false);
       ctx->RefPicSetStCurrBefore[i] = concealedPicture;
       picInAnyList[concealedPicture]=true;
+
+      //printf("  concealed: %d\n", concealedPicture);
     }
   }
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
     int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+
+    //printf("st curr after, poc=%d -> idx=%d\n",ctx->PocStCurrAfter[i], k);
 
     ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
@@ -512,6 +518,8 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
                                                                     ctx->PocStCurrAfter[i], false);
       ctx->RefPicSetStCurrAfter[i] = concealedPicture;
       picInAnyList[concealedPicture]=true;
+
+      //printf("  concealed: %d\n", concealedPicture);
     }
   }
 

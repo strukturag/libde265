@@ -21,6 +21,7 @@
 #include "deblock.h"
 #include "util.h"
 #include "transform.h"
+#include "de265.h"
 
 #include <assert.h>
 
@@ -261,7 +262,10 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
               int numMV_P = mviP->predFlag[0] + mviP->predFlag[1];
               int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
 
-              assert(numMV_P==numMV_Q);
+              if (numMV_P!=numMV_Q) {
+                add_warning(ctx, DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
+                ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+              }
 
               // two different reference pictures or only one reference picture
               if (refPicP0 != refPicP1) {

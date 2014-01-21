@@ -231,7 +231,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
           int bit = rand()%8;
           ctx->nal_data.data[pos] ^= 1<<bit;
 
-          printf("inserted error...\n");
+          //printf("inserted error...\n");
         }
 #endif
 
