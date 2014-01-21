@@ -19,7 +19,7 @@ matrix:
 before_install:
   - sudo apt-get update -qq
   - sh -c "if [ -z "$HOST" ]; then sudo apt-get install -qq valgrind; fi"
-  - sh -c "if [ ! -z "$HOST" ]; then sudo apt-get install -qq gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 wine; fi"
+  - sh -c "if [ ! -z "$HOST" ]; then sudo apt-get install -qq gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 mingw-w64-i686-dev mingw-w64-i686-devgcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev wine; fi"
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
