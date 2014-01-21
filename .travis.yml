@@ -28,6 +28,8 @@ install:
 
 before_script:
   - ./autogen.sh
+  if [ ! -z '$HOST' ]; then unset CC; fi
+  if [ ! -z '$HOST' ]; then unset CXX; fi
   - ./configure --host=$HOST
 
 script:
