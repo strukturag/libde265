@@ -396,34 +396,24 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         printf("state %d = %d\n",refPic->PicOrderCntVal, refPic->PicState);
       }
 
-      assert(refPic->PicState != UnusedForReference);
+      //assert(refPic->PicState != UnusedForReference);
+      if (refPic->PicState == UnusedForReference) {
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        add_warning(ctx,DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+      }
+      else {
+        // 8.5.3.2.2
+
+        // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
+        mc_luma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+                predSamplesL[l],nCS, refPic->y,refPic->stride, nPbW,nPbH);
 
 
-      // 8.5.3.2.2
-
-      // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
-      mc_luma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-              predSamplesL[l],nCS, refPic->y,refPic->stride, nPbW,nPbH);
-
-
-      mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-                predSamplesC[0][l],nCS, refPic->cb,refPic->chroma_stride, nPbW/2,nPbH/2);
-      mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-                predSamplesC[1][l],nCS, refPic->cr,refPic->chroma_stride, nPbW/2,nPbH/2);
-
-
-      /*
-      for (int c=0;c<2;c++)
-        {
-          printf("tmpbuf cIdx=%d l=%d\n",c+1,l);
-          for (int y=0;y<nPbH/2;y++) {
-            for (int x=0;x<nPbW/2;x++) {
-              printf("%02x ", Clip1_8bit((predSamplesC[c][l][x+y*nCS] + 32)>>6));
-            }
-            printf("\n");
-          }
-        }
-      */
+        mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+                  predSamplesC[0][l],nCS, refPic->cb,refPic->chroma_stride, nPbW/2,nPbH/2);
+        mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+                  predSamplesC[1][l],nCS, refPic->cr,refPic->chroma_stride, nPbW/2,nPbH/2);
+      }
     }
   }
 
@@ -466,12 +456,18 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         */
       }
       else {
-        assert(predFlag[0]==0 && predFlag[1]==0);
-        // TODO: check: could it be that predFlag[1] is 1 in P-slices ?
+        add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+
+        //assert(predFlag[0]==0 && predFlag[1]==0);
+        //assert(predFlag[0]==0);
+        // TODO: check: why can it be that predFlag[1] is 1 in P-slices,
+        // or both are zero ?
       }
     }
     else {
-      assert(false); // TODO
+      // TODO
+      assert(false);
     }
   }
   else {
@@ -531,7 +527,11 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                           predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
     }
     else {
-      assert(false); // both predFlags == 0
+      // TODO: check why it can actually happen that both predFlags[] are false.
+      // For now, we ignore this and continue decoding.
+
+      add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+      ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
     }
   }
 

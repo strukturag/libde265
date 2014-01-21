@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define DEBUG_INSERT_STREAM_ERRORS 0
+#define DEBUG_INSERT_STREAM_ERRORS 1
 
 
 #include "de265.h"
@@ -75,6 +75,12 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "non-existing PPS referenced";
   case DE265_WARNING_NONEXISTING_SPS_REFERENCED:
     return "non-existing SPS referenced";
+  case DE265_WARNING_BOTH_PREDFLAGS_ZERO:
+    return "both predFlags[] are zero in MC";
+  case DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED:
+    return "non-existing reference picture accessed";
+  case DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ:
+    return "numMV_P != numMV_Q in deblocking";
 
   default: return "unknown error";
   }
