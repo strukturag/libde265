@@ -20,8 +20,8 @@ before_install:
   - sudo apt-get update -qq
   - sh -c "if [ -z '$HOST' ]; then sudo apt-get install -qq valgrind; fi"
   - sh -c "if [ ! -z '$HOST' ]; then sudo apt-get install -qq wine; fi"
-  - sh -c "if [ '$WINE' = 'wine'   ]; then sudo apt-get install -qq gcc-mingw-w64-i686   g++-mingw-w64-i686   binutils-mingw-w64-i686   mingw-w64-i686-dev; fi"
-  - sh -c "if [ '$WINE' = 'wine64' ]; then sudo apt-get install -qq gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev; fi"
+  - sh -c "if [ '$WINE' = 'wine'   ]; then sudo apt-get install -qq gcc-mingw-w64-i686   g++-mingw-w64-i686   binutils-mingw-w64-i686   mingw-w64-dev; fi"
+  - sh -c "if [ '$WINE' = 'wine64' ]; then sudo apt-get install -qq gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev; fi"
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
