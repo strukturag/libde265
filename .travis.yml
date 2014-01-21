@@ -9,7 +9,7 @@ env:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install valgrind gcc-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 wine
+  - sudo apt-get install -qq valgrind gcc-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 wine
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
