@@ -87,6 +87,6 @@ void prepare_for_CABAC(bitreader*);
 int  get_uvlc(bitreader*);  // may return UVLC_ERROR
 int  get_svlc(bitreader*);  // may return UVLC_ERROR
 
-void check_rbsp_trailing_bits(bitreader*);
+bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 
 #endif

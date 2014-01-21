@@ -367,13 +367,17 @@ int  get_svlc(bitreader* br)
   return negative ? -v/2 : (v+1)/2;
 }
 
-void check_rbsp_trailing_bits(bitreader* br)
+bool check_rbsp_trailing_bits(bitreader* br)
 {
   int stop_bit = get_bits(br,1);
   assert(stop_bit==1);
 
   while (br->nextbits_cnt>0 || br->bytes_remaining>0) {
     int filler = get_bits(br,1);
-    assert(filler==0);
+    if (filler!=0) {
+      return false;
+    }
   }
+
+  return true;
 }
