@@ -5,9 +5,9 @@ compiler:
   - clang
   - gcc
 env:
-  - CROSSCOMPILE=0
-  - HOST=i686-w64-mingw32 CROSSCOMPILE=32
-  - HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
+  - HOST= WINE=
+  - HOST=i686-w64-mingw32 WINE=wine
+  - HOST=x86_64-w64-mingw32 WINE=wine64
 
 matrix:
   exclude:
@@ -18,20 +18,21 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sh -c "if [ '$CROSSCOMPILE' = '0' ]; then sudo apt-get install -qq valgrind; fi"
-  - sh -c "if [ '$CROSSCOMPILE' != '0' ]; then sudo apt-get install -qq gcc-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 wine; fi"
+  - sh -c "if [ '$HOST' = '' ]; then sudo apt-get install -qq valgrind; fi"
+  - sh -c "if [ '$HOST' != '' ]; then sudo apt-get install -qq gcc-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 wine; fi"
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
 
 before_script:
   - ./autogen.sh
-  - if [ '$CROSSCOMPILE' != '0' ]; then unset CC CXX; fi
+  - if [ '$HOST' != '' ]; then unset CC; fi
+  - if [ '$HOST' != '' ]; then unset CXX; fi
   - ./configure --host=$HOST
 
 script:
   - make
-  - sh -c "if [ '$CROSSCOMPILE' = '0' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
-  - sh -c "if [ '$CROSSCOMPILE' = '0' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
-  - sh -c "if [ '$CROSSCOMPILE' = '32' ]; then WINEPREFIX=`pwd`/wine32 wine ./dec265/dec265.exe -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
-  - sh -c "if [ '$CROSSCOMPILE' = '64' ]; then WINEPREFIX=`pwd`/wine64 wine64 ./dec265/dec265.exe -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$HOST' = '' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$HOST' = '' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$HOST' != '' ]; then WINEPREFIX=`pwd`/$WINE $WINE ./dec265/dec265.exe -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$HOST' != '' ]; then WINEPREFIX=`pwd`/$WINE $WINE ./dec265/dec265.exe -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
