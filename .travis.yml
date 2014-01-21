@@ -1,11 +1,20 @@
 # stats available at
 # https://travis-ci.org/strukturag/libde265/
 language: cpp
+compiler:
+  - clang
+  - gcc
 env:
-  - CC=clang CXX=clang++ CROSSCOMPILE=0
-  - CC=gcc CXX=g++ CROSSCOMPILE=0
-  - CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ HOST=i586-mingw32msvc CROSSCOMPILE=32
-  - CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
+  - CROSSCOMPILE=0
+  - HOST=i686-w64-mingw32 CROSSCOMPILE=32
+  - HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
+
+matrix:
+  exclude:
+    - compiler: clang
+      env: HOST=i686-w64-mingw32 CROSSCOMPILE=32
+    - compiler: clang
+      env: HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
 
 before_install:
   - sudo apt-get update -qq
