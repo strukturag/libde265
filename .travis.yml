@@ -1,22 +1,26 @@
 # stats available at
 # https://travis-ci.org/strukturag/libde265/
-language: c
-compiler:
-  - clang
-  - gcc
+language: cpp
+env:
+  CC=clang CXX=clang++ CROSSCOMPILE=0
+  CC=gcc CXX=g++ CROSSCOMPILE=0
+  CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ HOST=i586-mingw32msvc CROSSCOMPILE=32
+  CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ HOST=x86_64-w64-mingw32 CROSSCOMPILE=64
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq valgrind
+  - sudo apt-get install -qq valgrind gcc-mingw-w64-i686 gcc-mingw-w64-x86-64 wine
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
 
 before_script:
   - ./autogen.sh
-  - ./configure
+  - ./configure --host=$HOST
 
 script:
   - make
-  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
-  - LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin
+  - sh -c "if [ '$CROSSCOMPILE' = '0' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$CROSSCOMPILE' = '0' ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$CROSSCOMPILE' = '32' ]; then WINEPREFIX=`pwd`/wine32 wine ./dec265/dec265.exe -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
+  - sh -c "if [ '$CROSSCOMPILE' = '64' ]; then WINEPREFIX=`pwd`/wine64 wine64 ./dec265/dec265.exe -t 4 -q ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
