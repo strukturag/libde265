@@ -983,23 +983,6 @@ enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
 }
 
 
-void    set_cu_split_flag(decoder_context* ctx, int x,int y,int log2CbSize)
-{
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].split_cu_flag |= 1<<log2CbSize;
-}
-
-uint8_t get_cu_split_flag(decoder_context* ctx, int x,int y, int log2CbSize)
-{
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].split_cu_flag & 1<<log2CbSize;
-}
-
-
 void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum PredMode mode)
 {
   { SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }

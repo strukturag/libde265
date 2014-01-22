@@ -3254,8 +3254,6 @@ void read_coding_quadtree(decoder_context* ctx,
     }
 
   if (split_flag) {
-    set_cu_split_flag(ctx, x0,y0, log2CbSize);
-
     int x1 = x0 + (1<<(log2CbSize-1));
     int y1 = y0 + (1<<(log2CbSize-1));
 
