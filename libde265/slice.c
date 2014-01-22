@@ -2856,7 +2856,6 @@ void read_coding_unit(decoder_context* ctx,
 
       if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
         IntraSplitFlag=1;
-        set_intra_split_flag(ctx, x0,y0, 1);
       }
     } else {
       PartMode = PART_2Nx2N;

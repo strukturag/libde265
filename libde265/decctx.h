@@ -79,7 +79,6 @@ typedef struct {
   uint8_t rqt_root_cbf;
   // uint8_t pcm_flag;  // TODO
   uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
-  uint8_t intra_split_flag;
 
   int8_t  QP_Y;
 
@@ -291,9 +290,6 @@ uint8_t get_cu_skip_flag(const decoder_context*, int x,int y);
 
 void          set_PartMode(      decoder_context*, int x,int y, enum PartMode);
 enum PartMode get_PartMode(const decoder_context*, int x,int y);
-
-void    set_intra_split_flag(decoder_context*, int x,int y, uint8_t flag);
-uint8_t get_intra_split_flag(decoder_context*, int x,int y);
 
 // indicate that CB with log2CbSize is split
 void    set_cu_split_flag(decoder_context*, int x,int y,int log2CbSize);
