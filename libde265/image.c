@@ -231,3 +231,32 @@ void wait_for_completion(de265_image* img)
   }
   de265_mutex_unlock(&img->mutex);
 }
+
+
+
+#define PIXEL2CB(x) (x >> sps->Log2MinCbSizeY)
+#define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
+  int cbX = PIXEL2CB(x);                                                \
+  int cbY = PIXEL2CB(y);                                                \
+  int width = 1 << (log2BlkWidth - sps->Log2MinCbSizeY);                \
+  for (int cby=cbY;cby<cbY+width;cby++)                                 \
+    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+      {                                                                 \
+        img->cb_info[ cbx + cby*sps->PicWidthInMinCbsY ].Field = value; \
+      }
+
+
+void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
+                         int x,int y, int log2BlkWidth, uint8_t flag)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, cu_skip_flag, flag);
+}
+
+uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_skip_flag;
+}
+

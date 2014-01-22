@@ -748,8 +748,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && get_cu_skip_flag(ctx,x0-1,y0)) condL=1;
-  if (availableA && get_cu_skip_flag(ctx,x0,y0-1)) condA=1;
+  if (availableL && get_cu_skip_flag(ctx->current_sps,ctx->img,x0-1,y0)) condL=1;
+  if (availableA && get_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0-1)) condA=1;
 
   int contextOffset = condL + condA;
   int context = 3*(tctx->shdr->initType-1) + contextOffset;
@@ -2810,7 +2810,7 @@ void read_coding_unit(decoder_context* ctx,
     cu_skip_flag = decode_cu_skip_flag(tctx,x0,y0,ctDepth);
   }
 
-  set_cu_skip_flag(ctx,x0,y0,log2CbSize, cu_skip_flag);
+  set_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0,log2CbSize, cu_skip_flag);
 
   int IntraSplitFlag = 0;
 

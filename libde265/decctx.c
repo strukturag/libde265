@@ -953,19 +953,6 @@ int get_ctDepth(const decoder_context* ctx, int x,int y)
 }
 
 
-void    set_cu_skip_flag(decoder_context* ctx, int x,int y, int log2BlkWidth, uint8_t flag)
-{
-  SET_CB_BLK(x,y,log2BlkWidth, cu_skip_flag, flag);
-}
-
-uint8_t get_cu_skip_flag(const decoder_context* ctx, int x,int y)
-{
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].cu_skip_flag;
-}
-
 void          set_PartMode(decoder_context* ctx, int x,int y, enum PartMode mode)
 {
   int cbX = PIXEL2CB(x);

@@ -55,6 +55,7 @@ enum PictureState {
 
 typedef struct {
   uint8_t PredMode; // (enum PredMode)
+  uint8_t cu_skip_flag : 1;
 } CB_ref_info;
 
 typedef struct {
@@ -148,6 +149,13 @@ void get_image_plane(const de265_image*, int cIdx, uint8_t** image, int* stride)
 void increase_pending_tasks(de265_image* img, int n);
 void decrease_pending_tasks(de265_image* img, int n);
 void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
+
+
+void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
+                         int x,int y, int log2BlkWidth, uint8_t flag);
+uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y);
+
+
 
 // --- value logging ---
 
