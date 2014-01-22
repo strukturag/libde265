@@ -33,6 +33,7 @@
 #include "libde265/sps.h"
 #include "libde265/motion.h"
 #include "libde265/threads.h"
+#include "libde265/slice.h"
 
 
 enum PictureState {
@@ -52,10 +53,16 @@ enum PictureState {
 #define INTEGRITY_DECODING_ERRORS 3
 #define INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE 4
 
+#define SEI_HASH_UNCHECKED 0
+#define SEI_HASH_CORRECT   1
+#define SEI_HASH_INCORRECT 2
+
 
 typedef struct {
-  uint8_t PredMode; // (enum PredMode)
-  uint8_t cu_skip_flag : 1;
+  uint8_t cu_skip_flag : 1; // only for decoding of current image
+  uint8_t log2CBSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t PartMode : 3;     // (enum PartMode)  [0;7]
+  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
 } CB_ref_info;
 
 typedef struct {
@@ -125,6 +132,7 @@ typedef struct de265_image {
                         When generated, this is initialized to INTEGRITY_CORRECT,
                         and changed on decoding errors.
                       */
+  uint8_t sei_hash_check_result;
 
   // --- multi core ---
 
@@ -155,6 +163,9 @@ void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
                          int x,int y, int log2BlkWidth, uint8_t flag);
 uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y);
 
+void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
+                   int x,int y, int log2BlkWidth, enum PredMode mode);
+enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
 
 
 // --- value logging ---

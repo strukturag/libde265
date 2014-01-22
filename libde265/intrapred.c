@@ -160,7 +160,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   // copy pixel at top-left position
 
   if (ctx->current_pps->constrained_intra_pred_flag) {
-    if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA)
+    if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA)
       availableTopLeft = false;
   }
 
@@ -191,7 +191,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+        if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
           availableN = false;
 
         // TODO: if fill value is defined, we could already fill it in here
@@ -254,7 +254,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+        if (get_pred_mode(ctx->img,sps,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
           availableN = false;
 
           // TODO: if fill value is defined, we could already fill it in here

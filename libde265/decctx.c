@@ -961,30 +961,13 @@ void          set_PartMode(decoder_context* ctx, int x,int y, enum PartMode mode
   ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode = mode;
 }
 
+
 enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
 {
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
   return (enum PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
-}
-
-
-void set_pred_mode(decoder_context* ctx, int x,int y, int log2BlkWidth, enum PredMode mode)
-{
-  { SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
-  { SET_IMG_CB_BLK(x,y,log2BlkWidth, PredMode, mode); }
-}
-
-enum PredMode get_pred_mode(const decoder_context* ctx, int x,int y)
-{
-  return (enum PredMode)ctx->cb_info[ CB_IDX(x,y) ].PredMode;
-}
-
-enum PredMode get_img_pred_mode(const decoder_context* ctx,
-                                const de265_image* img, int x,int y)
-{
-  return (enum PredMode)img->cb_info[ CB_IDX(x,y) ].PredMode;
 }
 
 
@@ -1313,7 +1296,7 @@ bool available_pred_blk(const decoder_context* ctx,
                    yN >= yC+nPbH && xN < xC+nPbW);
   }
 
-  if (availableN && get_pred_mode(ctx,xN,yN) == MODE_INTRA) {
+  if (availableN && get_pred_mode(ctx->img,ctx->current_sps,xN,yN) == MODE_INTRA) {
     availableN = false;
   }
 
@@ -1474,7 +1457,7 @@ void draw_PB_block(const decoder_context* ctx,uint8_t* img,int stride,
     draw_block_boundary(ctx,img,stride,x0,y0,w,h, value);
   }
   else if (what == PBPredMode) {
-    enum PredMode predMode = get_pred_mode(ctx,x0,y0);
+    enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps,x0,y0);
 
     uint8_t cols[3][3] = { { 255,0,0 }, { 0,0,255 }, { 0,255,0 } };
 
@@ -1556,7 +1539,7 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
           }
         }
         else if (what==IntraPredMode) {
-          enum PredMode predMode = get_pred_mode(ctx,xb,yb);
+          enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps,xb,yb);
           if (predMode == MODE_INTRA) {
             enum PartMode partMode = get_PartMode(ctx,xb,yb);
 

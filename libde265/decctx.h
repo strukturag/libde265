@@ -80,8 +80,6 @@ typedef struct {
   int8_t  QP_Y;
 
   uint8_t CB_size; // log2CbSize at top-left of CB, zero otherwise
-
-  uint8_t PredMode; // (enum PredMode)
 } CB_info;
 
 
@@ -285,11 +283,6 @@ int  get_cbf_cr(const decoder_context*, int x0,int y0, int depth);
 void          set_PartMode(      decoder_context*, int x,int y, enum PartMode);
 enum PartMode get_PartMode(const decoder_context*, int x,int y);
 
-void          set_pred_mode(      decoder_context*, int x,int y, int log2BlkWidth, enum PredMode mode);
-enum PredMode get_pred_mode(const decoder_context*, int x,int y);
-enum PredMode get_img_pred_mode(const decoder_context* ctx,
-                                const de265_image* img, int x,int y);
-
 enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
 
 void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
@@ -312,7 +305,7 @@ int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
 void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
 int  get_QPY(const decoder_context* ctx,int x0,int y0);
 
-void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
+//void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);
 void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize);
 

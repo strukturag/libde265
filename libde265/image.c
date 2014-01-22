@@ -260,3 +260,17 @@ uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, i
   return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_skip_flag;
 }
 
+
+void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
+                   int x,int y, int log2BlkWidth, enum PredMode mode)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+}
+
+enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return (enum PredMode)img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].PredMode;
+}

@@ -290,7 +290,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     else {
       int trType;
 
-      if (nT==4 && cIdx==0 && get_pred_mode(ctx,xT,yT)==MODE_INTRA) {
+      if (nT==4 && cIdx==0 && get_pred_mode(ctx->img,ctx->current_sps,xT,yT)==MODE_INTRA) {
         trType=1;
       }
       else {

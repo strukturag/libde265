@@ -1985,8 +1985,7 @@ int residual_coding(decoder_context* ctx,
 
   int scanIdx;
 
-  //enum PredMode PredMode = MODE_INTRA; // HACK (TODO: take from decctx)
-  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
+  enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
 
 
   // scanIdx derived as by HM9.1
@@ -2443,7 +2442,7 @@ void read_transform_tree(decoder_context* ctx,
 
   const seq_parameter_set* sps = ctx->current_sps;
 
-  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
+  enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
 
   int split_transform_flag;
   
@@ -2820,7 +2819,7 @@ void read_coding_unit(decoder_context* ctx,
     read_prediction_unit_SKIP(ctx,tctx,x0,y0,nCbS,nCbS);
 
     set_PartMode(ctx, x0,y0, PART_2Nx2N); // need this for deblocking filter
-    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
+    set_pred_mode(ctx->img,sps,x0,y0,log2CbSize, MODE_SKIP);
     cuPredMode = MODE_SKIP;
 
     logtrace(LogSlice,"CU pred mode: SKIP\n");
@@ -2843,7 +2842,7 @@ void read_coding_unit(decoder_context* ctx,
       cuPredMode = MODE_INTRA;
     }
 
-    set_pred_mode(ctx,x0,y0,log2CbSize, cuPredMode);
+    set_pred_mode(ctx->img,sps,x0,y0,log2CbSize, cuPredMode);
 
     logtrace(LogSlice,"CU pred mode: %s\n", cuPredMode==MODE_INTRA ? "INTRA" : "INTER");
 
@@ -2919,7 +2918,8 @@ void read_coding_unit(decoder_context* ctx,
               if (availableA==false) {
                 candIntraPredModeA=INTRA_DC;
               }
-              else if (get_pred_mode(ctx, x-1,y) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x-1,y) != MODE_INTRA) {
+                // || TODO: pcm_flag (page 110)
                 candIntraPredModeA=INTRA_DC;
               }
               else {
@@ -2931,7 +2931,7 @@ void read_coding_unit(decoder_context* ctx,
               if (availableB==false) {
                 candIntraPredModeB=INTRA_DC;
               }
-              else if (get_pred_mode(ctx, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
                 candIntraPredModeB=INTRA_DC;
               }
               else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {

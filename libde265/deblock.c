@@ -208,8 +208,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
         //int p0 = ctx->img.y[(xDi-xOffs)+(yDi-yOffs)*stride]; TODO: UNUSED
         //int q0 = ctx->img.y[xDi+yDi*stride];                 TODO: UNUSED
 
-        bool p_is_intra_pred = (get_pred_mode(ctx, xDi-xOffs, yDi-yOffs) == MODE_INTRA);
-        bool q_is_intra_pred = (get_pred_mode(ctx, xDi,       yDi      ) == MODE_INTRA);
+        bool p_is_intra_pred = (get_pred_mode(ctx->img,ctx->current_sps,xDi-xOffs, yDi-yOffs) == MODE_INTRA);
+        bool q_is_intra_pred = (get_pred_mode(ctx->img,ctx->current_sps,xDi,       yDi      ) == MODE_INTRA);
 
         int bS;
 

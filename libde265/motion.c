@@ -948,7 +948,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
   // TODO: has to get pred_mode from reference picture
-  enum PredMode predMode = get_img_pred_mode(ctx, &ctx->dpb[colPic], xColPb,yColPb);
+  enum PredMode predMode = get_pred_mode(&ctx->dpb[colPic],ctx->current_sps, xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
     out_mvLXCol->x = 0;
@@ -1333,7 +1333,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 &&
-        get_pred_mode(ctx,xA[k],yA[k]) != MODE_INTRA) {
+        get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
       
@@ -1362,7 +1362,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
     int refPicList;
 
     if (availableA[k] &&
-        get_pred_mode(ctx,xA[k],yA[k]) != MODE_INTRA) {
+        get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
       
@@ -1613,7 +1613,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   int xP = xC+xB;
   int yP = yC+yB;
 
-  enum PredMode predMode = get_pred_mode(ctx, xC,yC);
+  enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps, xC,yC);
 
   if (predMode == MODE_SKIP ||
       (predMode == MODE_INTER && tctx->merge_flag))
