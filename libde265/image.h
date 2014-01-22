@@ -60,7 +60,7 @@ enum PictureState {
 
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
-  uint8_t log2CBSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7]
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
 } CB_ref_info;
@@ -166,6 +166,11 @@ uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, i
 void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
                    int x,int y, int log2BlkWidth, enum PredMode mode);
 enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
+
+int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
+void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
+int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
 
 
 // --- value logging ---

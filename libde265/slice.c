@@ -2784,6 +2784,8 @@ void read_coding_unit(decoder_context* ctx,
                       int log2CbSize,
                       int ctDepth)
 {
+  const seq_parameter_set* sps = ctx->current_sps;
+
   int nS = 1 << log2CbSize;
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
@@ -2791,12 +2793,10 @@ void read_coding_unit(decoder_context* ctx,
 
   slice_segment_header* shdr = tctx->shdr;
 
-  set_log2CbSize(ctx, x0,y0, log2CbSize);
+  set_log2CbSize(ctx->img,sps, x0,y0, log2CbSize);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
-
-  const seq_parameter_set* sps = ctx->current_sps;
 
 
   if (ctx->current_pps->transquant_bypass_enable_flag)

@@ -1113,31 +1113,23 @@ enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, const de265_ima
 }
 
 
-void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize)
-{
-  ctx->cb_info[ CB_IDX(x0,y0) ].CB_size = log2CbSize;
-
-  // assume that remaining cb_info blocks are initialized to zero
-}
-
-int get_log2CbSize(const decoder_context* ctx, int x0, int y0)
-{
-  return ctx->cb_info[ CB_IDX(x0,y0) ].CB_size;
-}
-
-int get_log2CbSize_cbUnits(const decoder_context* ctx, int x0, int y0)
-{
-  return ctx->cb_info[ x0 + y0 * ctx->current_sps->PicWidthInMinCbsY ].CB_size;
-}
-
 void    set_deblk_flags(decoder_context* ctx, int x0,int y0, uint8_t flags)
 {
-  ctx->deblk_info[x0/4 + y0/4*ctx->deblk_width].deblock_flags |= flags;
+  const int xd = x0/4;
+  const int yd = y0/4;
+
+  if (xd<ctx->deblk_width && yd<ctx->deblk_height) {
+    ctx->deblk_info[xd + yd*ctx->deblk_width].deblock_flags |= flags;
+  }
 }
 
 uint8_t get_deblk_flags(const decoder_context* ctx, int x0,int y0)
 {
-  return ctx->deblk_info[x0/4 + y0/4*ctx->deblk_width].deblock_flags;
+  const int xd = x0/4;
+  const int yd = y0/4;
+  assert (xd<ctx->deblk_width && yd<ctx->deblk_height);
+
+  return ctx->deblk_info[xd + yd*ctx->deblk_width].deblock_flags;
 }
 
 void    set_deblk_bS(decoder_context* ctx, int x0,int y0, uint8_t bS)
@@ -1477,7 +1469,7 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
   for (int y0=0;y0<ctx->current_sps->PicHeightInMinCbsY;y0++)
     for (int x0=0;x0<ctx->current_sps->PicWidthInMinCbsY;x0++)
       {
-        int log2CbSize = get_log2CbSize_cbUnits(ctx,x0,y0);
+        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,ctx->current_sps,x0,y0);
         if (log2CbSize==0) {
           continue;
         }

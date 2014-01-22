@@ -274,3 +274,28 @@ enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps
 
   return (enum PredMode)img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].PredMode;
 }
+
+
+int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
+{
+  int cbX = PIXEL2CB(x0);
+  int cbY = PIXEL2CB(y0);
+
+  return (enum PredMode)img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].log2CbSize;
+}
+
+void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize)
+{
+  int cbX = PIXEL2CB(x0);
+  int cbY = PIXEL2CB(y0);
+
+  img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
+
+  // assume that remaining cb_info blocks are initialized to zero
+}
+
+// coordinates in CB units
+int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int x0, int y0)
+{
+  return (enum PredMode)img->cb_info[ x0 + y0*sps->PicWidthInMinCbsY ].log2CbSize;
+}

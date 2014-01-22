@@ -78,8 +78,6 @@ typedef struct {
   uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
 
   int8_t  QP_Y;
-
-  uint8_t CB_size; // log2CbSize at top-left of CB, zero otherwise
 } CB_info;
 
 
@@ -304,13 +302,6 @@ int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
 
 void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
 int  get_QPY(const decoder_context* ctx,int x0,int y0);
-
-//void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
-int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);
-void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize);
-
-// coordinates in CB units
-int  get_log2CbSize_cbUnits(const decoder_context* ctx, int x0, int y0);
 
 void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
 uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);

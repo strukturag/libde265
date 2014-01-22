@@ -134,7 +134,7 @@ char derive_edgeFlags(decoder_context* ctx)
   for (int cb_y=0;cb_y<ctx->current_sps->PicHeightInMinCbsY;cb_y++)
     for (int cb_x=0;cb_x<ctx->current_sps->PicWidthInMinCbsY;cb_x++)
       {
-        int log2CbSize = get_log2CbSize_cbUnits(ctx,cb_x,cb_y);
+        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,ctx->current_sps,cb_x,cb_y);
         if (log2CbSize==0) {
           continue;
         }
