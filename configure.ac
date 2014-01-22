@@ -145,7 +145,13 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
     VIDEOGFX_CFLAGS=`libvideogfx-config --cflags`
     VIDEOGFX_LIBS=`libvideogfx-config --libs`
     SAVE_CFLAGS=$CFLAGS
+    SAVE_CXXFLAGS=$CXXFLAGS
+    SAVE_CPPFLAGS=$CPPFLAGS
     SAVE_LIBS=$LIBS
+    CXXFLAGS="$VIDEOGFX_CFLAGS $CXXFLAGS"
+    CPPFLAGS="$VIDEOGFX_CFLAGS -std=c++0x"
+    LIBS=$VIDEOGFX_LIBS
+    AC_LANG_PUSH([C++])
     AC_CHECK_HEADERS([libvideogfx.hh], [
         AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
     ], [
@@ -155,7 +161,10 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
         echo "... Disabling building of sherlock265 ..."
         enable_sherlock265="no"
     ])
+    AC_LANG_POP([C++])
     CFLAGS=$SAVE_CFLAGS
+    CXXFLAGS=$SAVE_CXXFLAGS
+    CPPFLAGS=$SAVE_CPPFLAGS
     LIBS=$SAVE_LIBS
     AC_SUBST(VIDEOGFX_CFLAGS)
     AC_SUBST(VIDEOGFX_LIBS)
