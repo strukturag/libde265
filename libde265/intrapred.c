@@ -50,7 +50,7 @@ LIBDE265_API void showIntraPredictionProfile()
 }
 
 
-void print_border(uint8_t* data, int nT)
+void print_border(uint8_t* data, uint8_t* available, int nT)
 {
   for (int i=-2*nT ; i<=2*nT ; i++) {
     if (i==0 || i==1 || i==-nT || i==nT+1) {
@@ -59,7 +59,12 @@ void print_border(uint8_t* data, int nT)
       logtrace(LogIntraPred," ");
     }
 
-    logtrace(LogIntraPred,"%02x",data[i]);
+    if (available==NULL || available[i]) {
+      logtrace(LogIntraPred,"%02x",data[i]);
+    }
+    else {
+      logtrace(LogIntraPred,"--");
+    }
   }
 }
 
@@ -195,8 +200,9 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (availableN) {
-        for (int i=0;i<4;i++)
+        for (int i=0;i<4;i++) {
           out_border[-(y+1+i)] = image[xB-1 + (yB+y+i)*stride];
+        }
 
         nAvail+=4;
         haveFillValue=true;
@@ -258,8 +264,9 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (availableN) {
-        for (int i=0;i<4;i++)
+        for (int i=0;i<4;i++) {
           out_border[x+1+i] = image[xB+x+i + (yB-1)*stride];
+        }
 
         nAvail+=4;
         haveFillValue=true;
@@ -285,12 +292,12 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
   logtrace(LogIntraPred,"availableN: ");
-  print_border(available,nT);
+  print_border(available,NULL,nT);
   logtrace(LogIntraPred,"\n");
 
 
   logtrace(LogIntraPred,"input: ");
-  print_border(out_border,nT);
+  print_border(out_border,available,nT);
   logtrace(LogIntraPred,"\n");
 
 
@@ -349,7 +356,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
   logtrace(LogIntraPred,"output: ");
-  print_border(out_border,nT);
+  print_border(out_border,NULL,nT);
   logtrace(LogIntraPred,"\n");
 }
 
@@ -417,7 +424,7 @@ void intra_prediction_sample_filtering(decoder_context* ctx,
 
 
   logtrace(LogIntraPred,"post filtering: ");
-  print_border(p,nT);
+  print_border(p,NULL,nT);
   logtrace(LogIntraPred,"\n");
 }
 
@@ -598,6 +605,18 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
           pred[x+y*stride] = dcVal;
         }
   }
+
+
+  /*
+  printf("INTRAPRED DC\n");
+  for (int y=0;y<nT;y++) {
+    for (int x=0;x<nT;x++)
+      {
+        printf("%d ",pred[x+y*stride]);
+      }
+    printf("\n");
+  }
+  */
 }
 
 
