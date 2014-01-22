@@ -936,7 +936,7 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 
 // (L1003) 8.5.3.2.8
 
-void derive_collocated_motion_vectors(const decoder_context* ctx,
+void derive_collocated_motion_vectors(decoder_context* ctx,
                                       const slice_segment_header* shdr,
                                       int xP,int yP,
                                       int colPic,
@@ -1047,7 +1047,7 @@ void derive_collocated_motion_vectors(const decoder_context* ctx,
 
 
 // 8.5.3.1.7
-void derive_temporal_luma_vector_prediction(const decoder_context* ctx,
+void derive_temporal_luma_vector_prediction(decoder_context* ctx,
                                             const slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
@@ -1285,7 +1285,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
 
 // 8.5.3.1.6
-void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
+void derive_spatial_luma_vector_prediction(decoder_context* ctx,
                                            const slice_segment_header* shdr,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int X,
@@ -1508,7 +1508,7 @@ void derive_spatial_luma_vector_prediction(const decoder_context* ctx,
 }
 
 // 8.5.3.1.5
-MotionVector luma_motion_vector_prediction(const decoder_context* ctx,
+MotionVector luma_motion_vector_prediction(decoder_context* ctx,
                                            thread_context* tctx,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int l,
