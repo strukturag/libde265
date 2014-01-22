@@ -24,7 +24,10 @@
 #include <malloc.h>
 #include <assert.h>
 
-#ifdef _WIN32
+#ifdef HAVE___MINGW_ALIGNED_MALLOC
+#define ALLOC_ALIGNED(alignment, size)         __mingw_aligned_malloc((size), (alignment))
+#define FREE_ALIGNED(mem)                      __mingw_aligned_free((mem))
+#elif _WIN32
 #define ALLOC_ALIGNED(alignment, size)         _aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                      _aligned_free((mem))
 #else

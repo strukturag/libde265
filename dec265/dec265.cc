@@ -159,7 +159,7 @@ static struct option long_options[] = {
   {0,         0,                 0,  0 }
 };
 
-#ifdef __GNUC__
+#ifdef HAVE___MALLOC_HOOK
 static void *(*old_malloc_hook)(size_t, const void *);
 
 static void *new_malloc_hook(size_t size, const void *caller) {
