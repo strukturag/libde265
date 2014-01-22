@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 
-#define MAX_UVLC_LEADING_ZEROS 10
+#define MAX_UVLC_LEADING_ZEROS 20
 #define UVLC_ERROR -99999
 
 typedef struct {
