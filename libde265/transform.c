@@ -117,7 +117,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     // unused: int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
 
-    qPYA = get_QPY(ctx,xQG-1,yQG);
+    qPYA = get_QPY(ctx->img,sps,xQG-1,yQG);
   }
   else {
     qPYA = qPY_PRED;
@@ -129,7 +129,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     // unused: int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
 
-    qPYB = get_QPY(ctx,xQG,yQG-1);
+    qPYB = get_QPY(ctx->img,sps,xQG,yQG-1);
   }
   else {
     qPYB = qPY_PRED;
@@ -155,7 +155,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
   tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
 
-  set_QPY(ctx,xQG,yQG, QPY);
+  set_QPY(ctx->img,sps,pps,xQG,yQG, QPY);
   tctx->currentQPY = QPY;
 
   logtrace(LogTransform,"qPY(%d,%d)= %d\n",xC,yC,QPY);

@@ -255,6 +255,18 @@ void prepare_image_for_decoding(de265_image* img)
         img->cb_info[ cbx + cby*sps->PicWidthInMinCbsY ].Field = value; \
       }
 
+#define SET_CB_BLK_SAVE(x,y,log2BlkWidth,  Field,value)                 \
+  int cbX = PIXEL2CB(x);                                                \
+  int cbY = PIXEL2CB(y);                                                \
+  int width = 1 << (log2BlkWidth - sps->Log2MinCbSizeY);                \
+  for (int cby=cbY;cby<cbY+width;cby++)                                 \
+    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+      if (cbx < sps->PicWidthInMinCbsY &&                               \
+          cby < sps->PicHeightInMinCbsY)                                \
+      {                                                                 \
+        img->cb_info[ cbx + cby*sps->PicWidthInMinCbsY ].Field = value; \
+      }
+
 
 void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
                          int x,int y, int log2BlkWidth, uint8_t flag)
@@ -333,3 +345,19 @@ int get_ctDepth(const de265_image* img, const seq_parameter_set* sps, int x,int 
 {
   return img->cb_info[ CB_IDX(x,y) ].ctDepth;
 }
+
+
+void set_QPY(de265_image* img, const seq_parameter_set* sps,
+             const pic_parameter_set* pps, int x,int y, int QP_Y)
+{
+  assert(x>=0 && x<ctx->current_sps->pic_width_in_luma_samples);
+  assert(y>=0 && y<ctx->current_sps->pic_height_in_luma_samples);
+
+  SET_CB_BLK_SAVE(x,y,pps->Log2MinCuQpDeltaSize, QP_Y, QP_Y);
+}
+
+int  get_QPY(const de265_image* img, const seq_parameter_set* sps,int x,int y)
+{
+  return img->cb_info[CB_IDX(x,y)].QP_Y;
+}
+

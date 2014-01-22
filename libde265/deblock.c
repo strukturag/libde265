@@ -412,8 +412,10 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 #endif
 
 
-        int QP_Q = get_QPY(ctx, xDi,yDi);
-        int QP_P = (vertical ? get_QPY(ctx, xDi-1,yDi) : get_QPY(ctx,xDi,yDi-1));
+        int QP_Q = get_QPY(ctx->img, ctx->current_sps, xDi,yDi);
+        int QP_P = (vertical ?
+                    get_QPY(ctx->img, ctx->current_sps, xDi-1,yDi) :
+                    get_QPY(ctx->img, ctx->current_sps, xDi,yDi-1) );
         int qP_L = (QP_Q+QP_P+1)>>1;
 
         logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
@@ -634,25 +636,27 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
               }
 
 #if 0
-        for (int k=0;k<4;k++)
-          {
-            for (int i=0;i<2;i++)
-              {
-                printf("%02x ", p[1-i][k]);
-              }
+          for (int k=0;k<4;k++)
+            {
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", p[1-i][k]);
+                }
 
-            printf("| ");
+              printf("| ");
 
-            for (int i=0;i<2;i++)
-              {
-                printf("%02x ", q[i][k]);
-              }
-            printf("\n");
-          }
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", q[i][k]);
+                }
+              printf("\n");
+            }
 #endif
 
-          int QP_Q = get_QPY(ctx, 2*xDi,2*yDi);
-          int QP_P = (vertical ? get_QPY(ctx, 2*xDi-1,2*yDi) : get_QPY(ctx,2*xDi,2*yDi-1));
+          int QP_Q = get_QPY(ctx->img, ctx->current_sps, 2*xDi,2*yDi);
+          int QP_P = (vertical ?
+                      get_QPY(ctx->img,ctx->current_sps, 2*xDi-1,2*yDi) :
+                      get_QPY(ctx->img,ctx->current_sps, 2*xDi,2*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C = table8_22(qP_i);
 

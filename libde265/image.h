@@ -31,6 +31,7 @@
 #endif
 #include "libde265/de265.h"
 #include "libde265/sps.h"
+#include "libde265/pps.h"
 #include "libde265/motion.h"
 #include "libde265/threads.h"
 #include "libde265/slice.h"
@@ -66,6 +67,8 @@ typedef struct {
                             // set during decoding
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
   uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
+
+  int8_t  QP_Y;
 
   // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
@@ -186,6 +189,10 @@ enum PartMode get_PartMode(const de265_image*, const seq_parameter_set*, int x,i
 
 void set_ctDepth(de265_image*, const seq_parameter_set*, int x,int y, int log2BlkWidth, int depth);
 int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
+
+void set_QPY(de265_image*, const seq_parameter_set*,
+             const pic_parameter_set* pps, int x,int y, int QP_Y);
+int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
 
 // --- value logging ---
 

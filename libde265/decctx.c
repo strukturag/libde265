@@ -1063,6 +1063,7 @@ int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
 }
 
 
+#if 0
 void set_QPY(decoder_context* ctx,int x,int y, int QP_Y)
 {
   assert(x>=0 && x<ctx->current_sps->pic_width_in_luma_samples);
@@ -1075,7 +1076,7 @@ int  get_QPY(const decoder_context* ctx,int x,int y)
 {
   return GET_CB_BLK(x,y).QP_Y;
 }
-
+#endif
 
 
 enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, const de265_image* img, int x,int y)

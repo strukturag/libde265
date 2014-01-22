@@ -72,7 +72,7 @@ typedef struct {
 
 
 typedef struct {
-  int8_t  QP_Y;
+  int dummy;
 } CB_info;
 
 
@@ -289,9 +289,6 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
 
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
-
-void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
-int  get_QPY(const decoder_context* ctx,int x0,int y0);
 
 void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
 uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);
