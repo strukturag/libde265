@@ -717,8 +717,8 @@ static int decode_split_cu_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && get_ctDepth(ctx,x0-1,y0) > ctDepth) condL=1;
-  if (availableA && get_ctDepth(ctx,x0,y0-1) > ctDepth) condA=1;
+  if (availableL && get_ctDepth(ctx->img,ctx->current_sps,x0-1,y0) > ctDepth) condL=1;
+  if (availableA && get_ctDepth(ctx->img,ctx->current_sps,x0,y0-1) > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = 3*tctx->shdr->initType + contextOffset;
@@ -3272,7 +3272,7 @@ void read_coding_quadtree(decoder_context* ctx,
   else {
     // set ctDepth of this CU
 
-    set_ctDepth(ctx, x0,y0, log2CbSize, ctDepth);
+    set_ctDepth(ctx->img,ctx->current_sps, x0,y0, log2CbSize, ctDepth);
 
     read_coding_unit(ctx,tctx, x0,y0, log2CbSize, ctDepth);
   }

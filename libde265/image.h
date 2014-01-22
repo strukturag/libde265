@@ -65,6 +65,9 @@ typedef struct {
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
+  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
+
+  // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
 
 typedef struct {
@@ -180,6 +183,9 @@ int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int 
 void          set_PartMode(      de265_image*, const seq_parameter_set*, int x,int y, enum PartMode);
 enum PartMode get_PartMode(const de265_image*, const seq_parameter_set*, int x,int y);
 
+
+void set_ctDepth(de265_image*, const seq_parameter_set*, int x,int y, int log2BlkWidth, int depth);
+int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
 
 // --- value logging ---
 

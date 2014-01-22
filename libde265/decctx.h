@@ -72,11 +72,6 @@ typedef struct {
 
 
 typedef struct {
-  uint8_t depth;
-
-  // uint8_t pcm_flag;  // TODO
-  // uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
-
   int8_t  QP_Y;
 } CB_info;
 
@@ -269,8 +264,6 @@ de265_error get_warning(decoder_context* ctx);
 // --- decoder 2D data arrays ---
 // All coordinates are in pixels if not stated otherwise.
 
-int get_ctDepth(const decoder_context* ctx, int x,int y);
-void set_ctDepth(decoder_context* ctx, int x,int y, int log2BlkWidth, int depth);
 void debug_dump_cb_info(const decoder_context*);
 
 void set_cbf_cb(decoder_context*, int x0,int y0, int depth);

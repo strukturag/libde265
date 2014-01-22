@@ -236,6 +236,9 @@ void wait_for_completion(de265_image* img)
 
 void prepare_image_for_decoding(de265_image* img)
 {
+  // TODO: maybe we could avoid the memset by ensuring that all data is written to
+  // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
+
   memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
 }
 
@@ -319,3 +322,14 @@ enum PartMode get_PartMode(const de265_image* img, const seq_parameter_set* sps,
   return (enum PartMode)img->cb_info[ CB_IDX(x,y) ].PartMode;
 }
 
+
+void set_ctDepth(de265_image* img, const seq_parameter_set* sps,
+                 int x,int y, int log2BlkWidth, int depth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, ctDepth, depth);
+}
+
+int get_ctDepth(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  return img->cb_info[ CB_IDX(x,y) ].ctDepth;
+}

@@ -944,15 +944,6 @@ void debug_dump_cb_info(const decoder_context* ctx)
         ctx->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
       }
 
-void set_ctDepth(decoder_context* ctx, int x,int y, int log2BlkWidth, int depth)
-{
-  SET_CB_BLK(x,y,log2BlkWidth, depth, depth);
-}
-
-int get_ctDepth(const decoder_context* ctx, int x,int y)
-{
-  return ctx->cb_info[ CB_IDX(x,y) ].depth;
-}
 
 
 #define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
