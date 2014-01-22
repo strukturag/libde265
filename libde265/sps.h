@@ -162,9 +162,5 @@ typedef struct {
 } seq_parameter_set;
 
 
-de265_error read_sps(bitreader*, seq_parameter_set*, ref_pic_set**);
-void dump_sps(seq_parameter_set*, ref_pic_set* sets);
-
-void free_ref_pic_sets(ref_pic_set**);
-
 #endif
+

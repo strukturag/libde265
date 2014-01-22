@@ -558,7 +558,8 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
 
 
 // 8.3.4
-void construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
+// Returns whether we can continue decoding (or whether there is a severe error).
+bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
   int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
@@ -578,9 +579,20 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
     for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++)
       RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
+
+
+    // This check is to prevent an endless loop when no images are added above.
+    if (rIdx==0) {
+      add_warning(ctx, DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      return false;
+    }
   }
 
-  assert(hdr->num_ref_idx_l0_active <= 15);
+  if (hdr->num_ref_idx_l0_active > 15) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    return false;
+  }
+
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     hdr->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
       RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
@@ -629,6 +641,8 @@ void construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
     loginfo(LogHeaders,"* %d", hdr->RefPicList[1][rIdx]);
   }
   loginfo(LogHeaders,"*\n");
+
+  return true;
 }
 
 
@@ -767,8 +781,12 @@ int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
 }
 
 
-de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr)
+// returns whether we can continue decoding the stream of whether we should give up
+bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
+                                  de265_error* err)
 {
+  *err = DE265_OK;
+
   // get PPS and SPS for this slice
 
   int pps_id = hdr->slice_pic_parameter_set_id;
@@ -795,8 +813,8 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
 
     // allocate info arrays
 
-    de265_error err = allocate_info_arrays(ctx);
-    if (err != DE265_OK) { return err; }
+    *err = allocate_info_arrays(ctx);
+    if (*err != DE265_OK) { return false; }
 
     seq_parameter_set* sps = ctx->current_sps;
 
@@ -806,7 +824,8 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     int image_buffer_idx;
     image_buffer_idx = initialize_new_DPB_image(ctx,sps);
     if (image_buffer_idx == -1) {
-      return DE265_ERROR_IMAGE_BUFFER_FULL;
+      *err = DE265_ERROR_IMAGE_BUFFER_FULL;
+      return false;
     }
 
     ctx->img = &ctx->dpb[image_buffer_idx];
@@ -856,13 +875,16 @@ de265_error process_slice_segment_header(decoder_context* ctx, slice_segment_hea
     if (hdr->slice_type == SLICE_TYPE_B ||
         hdr->slice_type == SLICE_TYPE_P)
       {
-        construct_reference_picture_lists(ctx,hdr);
+        bool success = construct_reference_picture_lists(ctx,hdr);
+        if (!success) {
+          return false;
+        }
       }
   }
 
   log_dpb_content(ctx);
 
-  return DE265_OK;
+  return true;
 }
 
 

@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define DEBUG_INSERT_STREAM_ERRORS 1
+#define DEBUG_INSERT_STREAM_ERRORS 0
 
 
 #include "de265.h"
@@ -54,8 +54,12 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
 
-  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED: return "internal error: maximum number of thread contexts exceeded";
-  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED: return "internal error: maximum number of slices exceeded";
+  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
+    return "internal error: maximum number of thread contexts exceeded";
+  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
+    return "internal error: maximum number of slices exceeded";
+  case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
+    return "scaling list not implemented";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
@@ -81,6 +85,12 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "non-existing reference picture accessed";
   case DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ:
     return "numMV_P != numMV_Q in deblocking";
+  case DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE:
+    return "number of short-term ref-pic-sets out of range";
+  case DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE:
+    return "short-term ref-pic-set index out of range";
+  case DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST:
+    return "faulty reference picture list";
 
   default: return "unknown error";
   }
@@ -440,8 +450,11 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
     else {
       dump_slice_segment_header(hdr, ctx);
 
-      if ((err = process_slice_segment_header(ctx, hdr)) != DE265_OK)
-        { return err; }
+      if (process_slice_segment_header(ctx, hdr, &err) == false)
+        {
+          ctx->img->integrity = INTEGRITY_NOT_DECODED;
+          return err;
+        }
 
       skip_bits(&reader,1); // TODO: why?
       prepare_for_CABAC(&reader);
@@ -555,7 +568,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         seq_parameter_set sps;
 
-        if ((err=read_sps(&reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
+        if ((err=read_sps(ctx, &reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
           break;
         }
         dump_sps(&sps, ctx->ref_pic_sets);

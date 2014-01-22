@@ -387,13 +387,19 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     if (predFlag[l]) {
       // 8.5.3.2.1
 
+      if (vi->lum.refIdx[l] >= MAX_REF_PIC_LIST) {
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        add_warning(ctx,DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        return;
+      }
+
       de265_image* refPic;
       refPic = &ctx->dpb[ shdr->RefPicList[l][vi->lum.refIdx[l]] ];
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->lum.refIdx[l], shdr->RefPicList[l][vi->lum.refIdx[l]]);
 
       if (refPic->PicState == UnusedForReference) {
-        printf("state %d = %d\n",refPic->PicOrderCntVal, refPic->PicState);
+        //printf("state %d = %d\n",refPic->PicOrderCntVal, refPic->PicState);
       }
 
       //assert(refPic->PicState != UnusedForReference);
@@ -579,8 +585,12 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 void logmvcand(PredVectorInfo p)
 {
   for (int v=0;v<2;v++) {
-    logtrace(LogMotion,"  %d: %s  %d;%d ref=%d\n", v, p.predFlag[v] ? "yes":"no ",
-             p.mv[v].x,p.mv[v].y, p.refIdx[v]);
+    if (p.predFlag[v]) {
+      logtrace(LogMotion,"  %d: %s  %d;%d ref=%d\n", v, p.predFlag[v] ? "yes":"no ",
+               p.mv[v].x,p.mv[v].y, p.refIdx[v]);
+    } else {
+      logtrace(LogMotion,"  %d: %s  --;-- ref=--\n", v, p.predFlag[v] ? "yes":"no ");
+    }
   }
 }
 

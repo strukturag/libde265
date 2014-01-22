@@ -19,6 +19,7 @@
  */
 
 #include "sps.h"
+#include "sps_func.h"
 #include "util.h"
 
 #include <assert.h>
@@ -29,7 +30,8 @@ static int SubWidthC[]  = { -1,2,2,1 };
 static int SubHeightC[] = { -1,2,1,1 };
 
 
-de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
+de265_error read_sps(decoder_context* ctx, bitreader* br,
+                     seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
 {
   sps->video_parameter_set_id = get_bits(br,4);
   sps->sps_max_sub_layers     = get_bits(br,3) +1;
@@ -141,8 +143,7 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
     sps->sps_scaling_list_data_present_flag = get_bits(br,1);
     if (sps->sps_scaling_list_data_present_flag) {
 
-      assert(0);
-      //scaling_list_data()
+      return DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED;
     }
   }
 
@@ -158,6 +159,11 @@ de265_error read_sps(bitreader* br, seq_parameter_set* sps, ref_pic_set** ref_pi
   }
 
   sps->num_short_term_ref_pic_sets = get_uvlc(br);
+  if (sps->num_short_term_ref_pic_sets < 0 ||
+      sps->num_short_term_ref_pic_sets > 64) {
+    add_warning(ctx, DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
   // --- allocate reference pic set ---
 
@@ -333,7 +339,8 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
     //sps->sps_scaling_list_data_present_flag = get_bits(br,1);
     if (sps->sps_scaling_list_data_present_flag) {
 
-      assert(0);
+      LOG0("NOT IMPLEMENTED");
+      //assert(0);
       //scaling_list_data()
     }
   }

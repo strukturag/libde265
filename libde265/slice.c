@@ -147,6 +147,11 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         if (nBits>0) shdr->short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         shdr->short_term_ref_pic_set_idx = 0;
 
+        if (shdr->short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
+          add_warning(ctx, DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
+
         shdr->CurrRpsIdx = shdr->short_term_ref_pic_set_idx;
       }
 
@@ -2072,9 +2077,9 @@ int residual_coding(decoder_context* ctx,
 
   int CoeffStride = 1<<log2TrafoSize;
 
-  int  lastInvocation_greater1Ctx;
-  int  lastInvocation_coeff_abs_level_greater1_flag;
-  int  lastInvocation_ctxSet;
+  int  lastInvocation_greater1Ctx=0;
+  int  lastInvocation_coeff_abs_level_greater1_flag=0;
+  int  lastInvocation_ctxSet=0;
 
   for (int i=lastSubBlock;i>=0;i--) {
     position S = ScanOrderSub[i];

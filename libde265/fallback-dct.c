@@ -151,8 +151,22 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
   int fact = (1<<(5-Log2(nT)));
 
   int16_t g[32*32];  // actually, only [nT*nT] used
-  //int16_t col[32];    // actually, only [nT] used
-  //int32_t out[32];    // actually, only [nT] used
+
+  // TODO: valgrind reports that dst[] contains uninitialized data.
+  // Probably from intra-prediction.
+
+  /*
+  for (int i=0;i<nT*nT;i++) {
+    printf("%d\n",coeffs[i]);
+  }
+
+  for (int y=0;y<nT;y++) {
+    for (int i=0;i<nT;i++) {
+      printf("%d ",dst[y*stride+i]);
+    }
+  }
+  printf("\n");
+  */
 
   for (int c=0;c<nT;c++) {
 
@@ -212,6 +226,8 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
 
+      //printf("%d\n",Clip1_8bit(dst[y*stride+i]));
+      //printf("%d\n",Clip1_8bit(out));
       dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
 
       logtrace(LogTransform,"*%d ",out);
