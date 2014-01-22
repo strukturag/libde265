@@ -234,7 +234,14 @@ void wait_for_completion(de265_image* img)
 
 
 
+void prepare_image_for_decoding(de265_image* img)
+{
+  memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
+}
+
+
 #define PIXEL2CB(x) (x >> sps->Log2MinCbSizeY)
+#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*sps->PicWidthInMinCbsY)
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
   int cbY = PIXEL2CB(y);                                                \
@@ -299,3 +306,16 @@ int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int 
 {
   return (enum PredMode)img->cb_info[ x0 + y0*sps->PicWidthInMinCbsY ].log2CbSize;
 }
+
+
+void          set_PartMode(de265_image* img, const seq_parameter_set* sps,
+                           int x,int y, enum PartMode mode)
+{
+  img->cb_info[ CB_IDX(x,y) ].PartMode = mode;
+}
+
+enum PartMode get_PartMode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  return (enum PartMode)img->cb_info[ CB_IDX(x,y) ].PartMode;
+}
+

@@ -75,7 +75,7 @@ typedef struct {
   uint8_t depth;
 
   // uint8_t pcm_flag;  // TODO
-  uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
+  // uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
 
   int8_t  QP_Y;
 } CB_info;
@@ -277,9 +277,6 @@ void set_cbf_cb(decoder_context*, int x0,int y0, int depth);
 void set_cbf_cr(decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cb(const decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cr(const decoder_context*, int x0,int y0, int depth);
-
-void          set_PartMode(      decoder_context*, int x,int y, enum PartMode);
-enum PartMode get_PartMode(const decoder_context*, int x,int y);
 
 enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
 

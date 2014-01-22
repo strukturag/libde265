@@ -69,7 +69,7 @@ void markPredictionBlockBoundary(decoder_context* ctx, int x0,int y0,
   logtrace(LogDeblock,"markPredictionBlockBoundary(%d,%d, %d, %d,%d)\n",x0,y0,
            log2CbSize, filterLeftCbEdge,filterTopCbEdge);
 
-  enum PartMode partMode = get_PartMode(ctx,x0,y0);
+  enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,x0,y0);
 
   int cbSize = 1<<log2CbSize;
   int cbSize2 = 1<<(log2CbSize-1);

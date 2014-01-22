@@ -61,7 +61,9 @@ enum PictureState {
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
   uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
-  uint8_t PartMode : 3;     // (enum PartMode)  [0;7]
+  uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
+                            // TODO: could be removed if prediction-block-boundaries would be
+                            // set during decoding
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
 } CB_ref_info;
 
@@ -159,6 +161,8 @@ void decrease_pending_tasks(de265_image* img, int n);
 void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
 
 
+void prepare_image_for_decoding(de265_image*);
+
 void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
                          int x,int y, int log2BlkWidth, uint8_t flag);
 uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y);
@@ -168,9 +172,13 @@ void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
 enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
 
 
-int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
 void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
+int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
 int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
+
+
+void          set_PartMode(      de265_image*, const seq_parameter_set*, int x,int y, enum PartMode);
+enum PartMode get_PartMode(const de265_image*, const seq_parameter_set*, int x,int y);
 
 
 // --- value logging ---

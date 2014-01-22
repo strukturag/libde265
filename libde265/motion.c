@@ -644,7 +644,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   const pic_parameter_set* pps = ctx->current_pps;
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
-  enum PartMode PartMode = get_PartMode(ctx,xC,yC);
+  enum PartMode PartMode = get_PartMode(ctx->img,ctx->current_sps,xC,yC);
 
   // --- A1 ---
 
@@ -1699,7 +1699,7 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
   //int nCS_C = nCS_L>>1;
   int nCS1L = nCS_L>>1;
 
-  enum PartMode partMode = get_PartMode(ctx,xC,yC);
+  enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xC,yC);
   switch (partMode) {
   case PART_2Nx2N:
     decode_prediction_unit(ctx,shdr,xC,yC, 0,0, nCS_L, nCS_L,nCS_L, 0);

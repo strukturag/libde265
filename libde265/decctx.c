@@ -127,6 +127,8 @@ void prepare_new_picture(decoder_context* ctx)
         if (y==0 || x==0) cnt--;
         set_CTB_deblocking_cnt(ctx,x,y, cnt);
       }
+
+  prepare_image_for_decoding(ctx->img);
 }
 
 
@@ -953,24 +955,6 @@ int get_ctDepth(const decoder_context* ctx, int x,int y)
 }
 
 
-void          set_PartMode(decoder_context* ctx, int x,int y, enum PartMode mode)
-{
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode = mode;
-}
-
-
-enum PartMode get_PartMode(const decoder_context* ctx, int x,int y)
-{
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return (enum PartMode)ctx->cb_info[ cbX + cbY*ctx->current_sps->PicWidthInMinCbsY ].PartMode;
-}
-
-
 #define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
 #define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*ctx->current_sps->PicWidthInTbsY)
 #define GET_TU_BLK(x,y) (ctx->tu_info[TU_IDX(x,y)])
@@ -1486,7 +1470,7 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
         }
         else if (what == Partitioning_PB ||
                  what == PBPredMode) {
-          enum PartMode partMode = get_PartMode(ctx,xb,yb);
+          enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xb,yb);
 
           int CbSize = 1<<log2CbSize;
           int HalfCbSize = (1<<(log2CbSize-1));
@@ -1533,7 +1517,7 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
         else if (what==IntraPredMode) {
           enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps,xb,yb);
           if (predMode == MODE_INTRA) {
-            enum PartMode partMode = get_PartMode(ctx,xb,yb);
+            enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xb,yb);
 
             int HalfCbSize = (1<<(log2CbSize-1));
 

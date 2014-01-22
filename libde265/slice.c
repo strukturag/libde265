@@ -2818,7 +2818,7 @@ void read_coding_unit(decoder_context* ctx,
   if (cu_skip_flag) {
     read_prediction_unit_SKIP(ctx,tctx,x0,y0,nCbS,nCbS);
 
-    set_PartMode(ctx, x0,y0, PART_2Nx2N); // need this for deblocking filter
+    set_PartMode(ctx->img, ctx->current_sps, x0,y0, PART_2Nx2N); // need this for deblocking filter
     set_pred_mode(ctx->img,sps,x0,y0,log2CbSize, MODE_SKIP);
     cuPredMode = MODE_SKIP;
 
@@ -2860,7 +2860,7 @@ void read_coding_unit(decoder_context* ctx,
       PartMode = PART_2Nx2N;
     }
 
-    set_PartMode(ctx, x0,y0, PartMode);  // currently not required for decoding (but for visualization)
+    set_PartMode(ctx->img,ctx->current_sps, x0,y0, PartMode); // needed for deblocking ?
 
     logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
 
