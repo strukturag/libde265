@@ -21,6 +21,7 @@
 #include "decctx.h"
 #include "util.h"
 #include "pps_func.h"
+#include "sps_func.h"
 #include "sao.h"
 #include "sei.h"
 #include "deblock.h"
