@@ -76,7 +76,6 @@ typedef struct {
   uint8_t       cu_skip_flag;
 
   uint8_t split_cu_flag;
-  uint8_t rqt_root_cbf;
   // uint8_t pcm_flag;  // TODO
   uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
 
@@ -318,10 +317,6 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
 
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
-
-// TODO CHECK: should be sufficient to set value only in top left of CB
-void set_rqt_root_cbf(decoder_context* ctx,int x0,int y0, int log2CbSize, int rqt_root_cbf);
-int  get_rqt_root_cbf(const decoder_context* ctx,int x0,int y0);
 
 void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
 int  get_QPY(const decoder_context* ctx,int x0,int y0);

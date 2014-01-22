@@ -1018,17 +1018,6 @@ enum PredMode get_img_pred_mode(const decoder_context* ctx,
 }
 
 
-void set_rqt_root_cbf(decoder_context* ctx,int x,int y, int log2BlkWidth, int rqt_root_cbf_value)
-{
-  SET_CB_BLK(x,y,log2BlkWidth, rqt_root_cbf, rqt_root_cbf_value);
-}
-
-int  get_rqt_root_cbf(const decoder_context* ctx,int x,int y)
-{
-  return GET_CB_BLK(x,y).rqt_root_cbf;
-}
-
-
 #define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
 #define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*ctx->current_sps->PicWidthInTbsY)
 #define GET_TU_BLK(x,y) (ctx->tu_info[TU_IDX(x,y)])

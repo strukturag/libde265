@@ -3112,7 +3112,7 @@ void read_coding_unit(decoder_context* ctx,
         rqt_root_cbf = true;
       }
 
-      set_rqt_root_cbf(ctx,x0,y0, log2CbSize, rqt_root_cbf);
+      //set_rqt_root_cbf(ctx,x0,y0, log2CbSize, rqt_root_cbf);
 
       if (rqt_root_cbf) {
         int MaxTrafoDepth;
