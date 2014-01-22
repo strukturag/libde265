@@ -104,7 +104,6 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
-  memset(ctx->cb_info,  0,sizeof(CB_info)  * ctx->cb_info_size);
   memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
@@ -135,7 +134,6 @@ void prepare_new_picture(decoder_context* ctx)
 void free_info_arrays(decoder_context* ctx)
 {
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
-  if (ctx->cb_info)  { free(ctx->cb_info);  ctx->cb_info =NULL; }
   if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
@@ -149,14 +147,12 @@ de265_error allocate_info_arrays(decoder_context* ctx)
   int deblk_h = (ctx->current_sps->pic_height_in_luma_samples+3)/4;
 
   if (ctx->ctb_info_size != sps->PicSizeInCtbsY ||
-      ctx->cb_info_size  != sps->PicSizeInMinCbsY ||
       ctx->tu_info_size  != sps->PicSizeInTbsY ||
       ctx->deblk_info_size != deblk_w*deblk_h)
     {
       free_info_arrays(ctx);
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
-      ctx->cb_info_size   = sps->PicSizeInMinCbsY;
       ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
@@ -164,11 +160,10 @@ de265_error allocate_info_arrays(decoder_context* ctx)
 
       // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
       ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
-      ctx->cb_info    = (CB_info  *)malloc( sizeof(CB_info)    * ctx->cb_info_size  *1);
       ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
       ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
-      if (ctx->ctb_info==NULL || ctx->cb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
+      if (ctx->ctb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
 	free_info_arrays(ctx);
 	return DE265_ERROR_OUT_OF_MEMORY;
       }
@@ -889,61 +884,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
   return true;
 }
-
-
-void debug_dump_cb_info(const decoder_context* ctx)
-{
-  for (int y=0;y<ctx->current_sps->PicHeightInMinCbsY;y++)
-    {
-      for (int x=0;x<ctx->current_sps->PicWidthInMinCbsY;x++)
-        {
-          logtrace(LogPixels,"*%d ", ctx->cb_info[ y*ctx->current_sps->PicWidthInMinCbsY + x].depth);
-        }
-      logtrace(LogPixels,"*\n");
-    }
-}
-
-
-#define PIXEL2CB(x) (x >> ctx->current_sps->Log2MinCbSizeY)
-#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*ctx->current_sps->PicWidthInMinCbsY)
-#define GET_CB_BLK(x,y) ctx->cb_info[CB_IDX(x,y)]
-
-//#define GET_CB_BLK(x,y) (assert(CB_IDX(x,y) < ctx->cb_info_size) , ctx->cb_info[CB_IDX(x,y)])
-#define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
-  int cbX = PIXEL2CB(x);                                                \
-  int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinCbSizeY);   \
-  for (int cby=cbY;cby<cbY+width;cby++)                                 \
-    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
-      {                                                                 \
-        { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
-        ctx->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
-      }
-
-#define SET_IMG_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
-  int cbX = PIXEL2CB(x);                                                \
-  int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinCbSizeY);   \
-  for (int cby=cbY;cby<cbY+width;cby++)                                 \
-    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
-      {                                                                 \
-        { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
-        ctx->img->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
-      }
-
-#define SET_CB_BLK_SAVE(x,y,log2BlkWidth,  Field,value)                 \
-  int cbX = PIXEL2CB(x);                                                \
-  int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinCbSizeY);   \
-  for (int cby=cbY;cby<cbY+width;cby++)                                 \
-    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
-      if (cbx < ctx->current_sps->PicWidthInMinCbsY &&                  \
-          cby < ctx->current_sps->PicHeightInMinCbsY)                   \
-      {                                                                 \
-        { assert( cbx + cby*ctx->current_sps->PicWidthInMinCbsY < ctx->cb_info_size ); } \
-        ctx->cb_info[ cbx + cby*ctx->current_sps->PicWidthInMinCbsY ].Field = value; \
-      }
-
 
 
 #define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)

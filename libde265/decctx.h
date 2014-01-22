@@ -71,11 +71,6 @@ typedef struct {
 } CTB_info;
 
 
-typedef struct {
-  int dummy;
-} CB_info;
-
-
 #define TU_FLAG_NONZERO_COEFF  (1<<0)
 //#define TU_FLAG_AVAILABLE_LEFT    (1<<1)
 //#define TU_FLAG_AVAILABLE_TOP     (1<<2)
@@ -212,12 +207,10 @@ typedef struct decoder_context {
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
-  CB_info*  cb_info; // in raster scan
   TU_info*  tu_info; // in raster scan
   deblock_info* deblk_info;
 
   int ctb_info_size;
-  int cb_info_size;
   int tu_info_size;
   int deblk_info_size;
 
