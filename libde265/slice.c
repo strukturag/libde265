@@ -67,7 +67,8 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
   }
 
   shdr->slice_pic_parameter_set_id = get_uvlc(br);
-  if (shdr->slice_pic_parameter_set_id > DE265_MAX_PPS_SETS) {
+  if (shdr->slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
+      shdr->slice_pic_parameter_set_id == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     *continueDecoding = false;
     return DE265_OK;
