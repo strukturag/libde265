@@ -31,8 +31,10 @@
 #endif
 #include "libde265/de265.h"
 #include "libde265/sps.h"
+#include "libde265/pps.h"
 #include "libde265/motion.h"
 #include "libde265/threads.h"
+#include "libde265/slice.h"
 
 
 enum PictureState {
@@ -42,8 +44,33 @@ enum PictureState {
 };
 
 
+/* TODO:
+   At INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE images, we can check the SEI hash, whether
+   the output image is correct despite the faulty reference, and set the state back to correct.
+*/
+#define INTEGRITY_CORRECT 0
+#define INTEGRITY_UNAVAILABLE_REFERENCE 1
+#define INTEGRITY_NOT_DECODED 2
+#define INTEGRITY_DECODING_ERRORS 3
+#define INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE 4
+
+#define SEI_HASH_UNCHECKED 0
+#define SEI_HASH_CORRECT   1
+#define SEI_HASH_INCORRECT 2
+
+
 typedef struct {
-  uint8_t PredMode; // (enum PredMode)
+  uint8_t cu_skip_flag : 1; // only for decoding of current image
+  uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
+                            // TODO: could be removed if prediction-block-boundaries would be
+                            // set during decoding
+  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
+  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
+
+  int8_t  QP_Y;
+
+  // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
 
 typedef struct {
@@ -56,8 +83,8 @@ typedef struct {
   //uint16_t cbf_cr;   // bitfield (1<<depth)
   //uint16_t cbf_luma; // bitfield (1<<depth)
 
-  uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
-  uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
+  //uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
+  //uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
 
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
   uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
@@ -100,16 +127,24 @@ typedef struct de265_image {
   int pb_info_stride;
 
   int* pb_rootIdx;
-  int  pb_info_nextRootIdx;
+  //int  pb_info_nextRootIdx;
 
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
 
   int RefPicList_POC[2][14+1];
 
+  // --- meta information ---
+
+  uint8_t integrity; /* Whether an error occured while the image was decoded.
+                        When generated, this is initialized to INTEGRITY_CORRECT,
+                        and changed on decoding errors.
+                      */
+  uint8_t sei_hash_check_result;
+
   // --- multi core ---
 
-  volatile uint32_t    tasks_pending; // number of tasks pending to complete decoding
+  de265_sync_int tasks_pending; // number of tasks pending to complete decoding
   de265_mutex mutex;
   de265_cond  finished_cond;
 
@@ -124,10 +159,40 @@ void de265_free_image (de265_image* img);
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
+void get_image_plane(const de265_image*, int cIdx, uint8_t** image, int* stride);
+
 
 void increase_pending_tasks(de265_image* img, int n);
 void decrease_pending_tasks(de265_image* img, int n);
 void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
+
+
+void prepare_image_for_decoding(de265_image*);
+
+void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
+                         int x,int y, int log2BlkWidth, uint8_t flag);
+uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y);
+
+void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
+                   int x,int y, int log2BlkWidth, enum PredMode mode);
+enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
+
+void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
+int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
+int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
+
+
+void          set_PartMode(      de265_image*, const seq_parameter_set*, int x,int y, enum PartMode);
+enum PartMode get_PartMode(const de265_image*, const seq_parameter_set*, int x,int y);
+
+
+void set_ctDepth(de265_image*, const seq_parameter_set*, int x,int y, int log2BlkWidth, int depth);
+int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
+
+void set_QPY(de265_image*, const seq_parameter_set*,
+             const pic_parameter_set* pps, int x,int y, int QP_Y);
+int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
 
 // --- value logging ---
 

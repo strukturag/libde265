@@ -50,7 +50,7 @@ LIBDE265_API void showIntraPredictionProfile()
 }
 
 
-void print_border(uint8_t* data, int nT)
+void print_border(uint8_t* data, uint8_t* available, int nT)
 {
   for (int i=-2*nT ; i<=2*nT ; i++) {
     if (i==0 || i==1 || i==-nT || i==nT+1) {
@@ -59,7 +59,12 @@ void print_border(uint8_t* data, int nT)
       logtrace(LogIntraPred," ");
     }
 
-    logtrace(LogIntraPred,"%02x",data[i]);
+    if (available==NULL || available[i]) {
+      logtrace(LogIntraPred,"%02x",data[i]);
+    }
+    else {
+      logtrace(LogIntraPred,"--");
+    }
   }
 }
 
@@ -76,7 +81,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
   uint8_t* image;
   int stride;
-  get_image_plane(ctx, cIdx,  &image, &stride);
+  get_image_plane(ctx->img, cIdx,  &image, &stride);
 
   const int chromaShift = (cIdx==0) ? 0 : 1;
   const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
@@ -155,7 +160,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   // copy pixel at top-left position
 
   if (ctx->current_pps->constrained_intra_pred_flag) {
-    if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA)
+    if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA)
       availableTopLeft = false;
   }
 
@@ -186,7 +191,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+        if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
           availableN = false;
 
         // TODO: if fill value is defined, we could already fill it in here
@@ -195,8 +200,9 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (availableN) {
-        for (int i=0;i<4;i++)
+        for (int i=0;i<4;i++) {
           out_border[-(y+1+i)] = image[xB-1 + (yB+y+i)*stride];
+        }
 
         nAvail+=4;
         haveFillValue=true;
@@ -248,7 +254,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (ctx->current_pps->constrained_intra_pred_flag) {
-        if (get_pred_mode(ctx,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+        if (get_pred_mode(ctx->img,sps,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
           availableN = false;
 
           // TODO: if fill value is defined, we could already fill it in here
@@ -258,8 +264,9 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
       }
 
       if (availableN) {
-        for (int i=0;i<4;i++)
+        for (int i=0;i<4;i++) {
           out_border[x+1+i] = image[xB+x+i + (yB-1)*stride];
+        }
 
         nAvail+=4;
         haveFillValue=true;
@@ -285,12 +292,12 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
   logtrace(LogIntraPred,"availableN: ");
-  print_border(available,nT);
+  print_border(available,NULL,nT);
   logtrace(LogIntraPred,"\n");
 
 
   logtrace(LogIntraPred,"input: ");
-  print_border(out_border,nT);
+  print_border(out_border,available,nT);
   logtrace(LogIntraPred,"\n");
 
 
@@ -349,7 +356,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
   logtrace(LogIntraPred,"output: ");
-  print_border(out_border,nT);
+  print_border(out_border,NULL,nT);
   logtrace(LogIntraPred,"\n");
 }
 
@@ -417,7 +424,7 @@ void intra_prediction_sample_filtering(decoder_context* ctx,
 
 
   logtrace(LogIntraPred,"post filtering: ");
-  print_border(p,nT);
+  print_border(p,NULL,nT);
   logtrace(LogIntraPred,"\n");
 }
 
@@ -447,7 +454,7 @@ void intra_prediction_angular(decoder_context* ctx,
 
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int intraPredAngle = intraPredAngle_table[intraPredMode];
@@ -547,7 +554,7 @@ void intra_prediction_planar(decoder_context* ctx,int xB0,int yB0,int nT,int cId
 {
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int Log2_nT = Log2(nT);
@@ -566,7 +573,7 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
 {
   uint8_t* pred;
   int      stride;
-  get_image_plane(ctx,cIdx,&pred,&stride);
+  get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xB0 + yB0*stride;
 
   int Log2_nT = Log2(nT);
@@ -598,6 +605,18 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
           pred[x+y*stride] = dcVal;
         }
   }
+
+
+  /*
+  printf("INTRAPRED DC\n");
+  for (int y=0;y<nT;y++) {
+    for (int x=0;x<nT;x++)
+      {
+        printf("%d ",pred[x+y*stride]);
+      }
+    printf("\n");
+  }
+  */
 }
 
 

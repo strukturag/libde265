@@ -18,22 +18,15 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DE265_SLICE_FUNC_H
-#define DE265_SLICE_FUNC_H
+#ifndef DE265_SPS_FUNC_H
+#define DE265_SPS_FUNC_H
 
-#include "libde265/slice.h"
+#include "libde265/sps.h"
 #include "libde265/decctx.h"
-#include "libde265/bitstream.h"
-#include "libde265/threads.h"
 
+de265_error read_sps(decoder_context*, bitreader*, seq_parameter_set*, ref_pic_set**);
+void dump_sps(seq_parameter_set*, ref_pic_set* sets);
 
-de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context*,
-                                      bool* continueDecoding);
-void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*);
-
-
-de265_error read_slice_segment_data(decoder_context*, thread_context* tctx);
-
-bool add_CTB_decode_task_syntax(struct thread_context* tctx, int ctbx,int ctby,  int sx,int sy, thread_task* nextCTBTask);
+void free_ref_pic_sets(ref_pic_set**);
 
 #endif

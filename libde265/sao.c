@@ -63,7 +63,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
   uint8_t* out_img;
   int out_stride;
-  get_image_plane(ctx, cIdx, &out_img,&out_stride);
+  get_image_plane(ctx->img, cIdx, &out_img,&out_stride);
 
 
   for (int i=0;i<5;i++)

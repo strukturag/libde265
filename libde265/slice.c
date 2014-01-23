@@ -50,7 +50,8 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 */
 
-void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
+de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx,
+                                      bool* continueDecoding)
 {
   // set defaults
 
@@ -66,12 +67,25 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
   }
 
   shdr->slice_pic_parameter_set_id = get_uvlc(br);
+  if (shdr->slice_pic_parameter_set_id > DE265_MAX_PPS_SETS) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   pic_parameter_set* pps = &ctx->pps[(int)shdr->slice_pic_parameter_set_id];
-  assert(pps->pps_read); // TODO: error handling
+  if (!pps->pps_read) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
-  assert(sps->sps_read); // TODO: error handling
+  if (!sps->sps_read) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
+    *continueDecoding = false;
+    return DE265_OK;
+  }
 
   if (!shdr->first_slice_segment_in_pic_flag) {
     if (pps->dependent_slice_segments_enabled_flag) {
@@ -95,6 +109,11 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
     }
 
     shdr->slice_type = get_uvlc(br);
+    if (shdr->slice_type > 2) {
+      add_warning(ctx, DE265_WARNING_SLICEHEADER_INVALID, false);
+      *continueDecoding = false;
+      return DE265_OK;
+    }
 
     if (pps->output_flag_present_flag) {
       shdr->pic_output_flag = get_bits(br,1);
@@ -127,6 +146,11 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
         int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
         if (nBits>0) shdr->short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         shdr->short_term_ref_pic_set_idx = 0;
+
+        if (shdr->short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
+          add_warning(ctx, DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
 
         shdr->CurrRpsIdx = shdr->short_term_ref_pic_set_idx;
       }
@@ -315,6 +339,9 @@ void read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decode
     case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag ? 2 : 1; break;
     case SLICE_TYPE_B: shdr->initType = shdr->cabac_init_flag ? 1 : 2; break;
     }
+
+  *continueDecoding = true;
+  return DE265_OK;
 }
 
 
@@ -690,8 +717,8 @@ static int decode_split_cu_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && get_ctDepth(ctx,x0-1,y0) > ctDepth) condL=1;
-  if (availableA && get_ctDepth(ctx,x0,y0-1) > ctDepth) condA=1;
+  if (availableL && get_ctDepth(ctx->img,ctx->current_sps,x0-1,y0) > ctDepth) condL=1;
+  if (availableA && get_ctDepth(ctx->img,ctx->current_sps,x0,y0-1) > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = 3*tctx->shdr->initType + contextOffset;
@@ -721,8 +748,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && get_cu_skip_flag(ctx,x0-1,y0)) condL=1;
-  if (availableA && get_cu_skip_flag(ctx,x0,y0-1)) condA=1;
+  if (availableL && get_cu_skip_flag(ctx->current_sps,ctx->img,x0-1,y0)) condL=1;
+  if (availableA && get_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0-1)) condA=1;
 
   int contextOffset = condL + condA;
   int context = 3*(tctx->shdr->initType-1) + contextOffset;
@@ -1479,6 +1506,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
       if (ctx->param_conceal_stream_errors) {
         add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         break;
       }
       else {
@@ -1492,12 +1520,6 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
   } while (!end_of_slice_segment_flag);
 
-
-  if (ctx->num_worker_threads>0 &&
-      ctx->current_pps->entropy_coding_sync_enabled_flag)
-    {
-      flush_thread_pool(&ctx->thread_pool);
-    }
 
   return DE265_OK;
 }
@@ -1747,12 +1769,9 @@ void thread_decode_CTB_syntax(void* d)
   //printf("FINISHED %d %d\n",ctbx,ctby);
 
   if (continueWithNextCTB) {
-    decrement_tasks_pending(&ctx->thread_pool);
     thread_decode_CTB_syntax(&(nextCTBTask.data.task_ctb));
   }
   else {
-    //printf("cannot continue at %d %d\n",ctbx,ctby);
-
     decrease_pending_tasks(ctx->img, 1);
 
     //printf("end decoding of ctb row: %d\n",ctby);
@@ -1966,8 +1985,7 @@ int residual_coding(decoder_context* ctx,
 
   int scanIdx;
 
-  //enum PredMode PredMode = MODE_INTRA; // HACK (TODO: take from decctx)
-  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
+  enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
 
 
   // scanIdx derived as by HM9.1
@@ -2058,9 +2076,9 @@ int residual_coding(decoder_context* ctx,
 
   int CoeffStride = 1<<log2TrafoSize;
 
-  int  lastInvocation_greater1Ctx;
-  int  lastInvocation_coeff_abs_level_greater1_flag;
-  int  lastInvocation_ctxSet;
+  int  lastInvocation_greater1Ctx=0;
+  int  lastInvocation_coeff_abs_level_greater1_flag=0;
+  int  lastInvocation_ctxSet=0;
 
   for (int i=lastSubBlock;i>=0;i--) {
     position S = ScanOrderSub[i];
@@ -2424,7 +2442,7 @@ void read_transform_tree(decoder_context* ctx,
 
   const seq_parameter_set* sps = ctx->current_sps;
 
-  enum PredMode PredMode = get_pred_mode(ctx,x0,y0);
+  enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
 
   int split_transform_flag;
   
@@ -2766,6 +2784,8 @@ void read_coding_unit(decoder_context* ctx,
                       int log2CbSize,
                       int ctDepth)
 {
+  const seq_parameter_set* sps = ctx->current_sps;
+
   int nS = 1 << log2CbSize;
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
@@ -2773,12 +2793,10 @@ void read_coding_unit(decoder_context* ctx,
 
   slice_segment_header* shdr = tctx->shdr;
 
-  set_log2CbSize(ctx, x0,y0, log2CbSize);
+  set_log2CbSize(ctx->img,sps, x0,y0, log2CbSize);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
-
-  const seq_parameter_set* sps = ctx->current_sps;
 
 
   if (ctx->current_pps->transquant_bypass_enable_flag)
@@ -2791,7 +2809,7 @@ void read_coding_unit(decoder_context* ctx,
     cu_skip_flag = decode_cu_skip_flag(tctx,x0,y0,ctDepth);
   }
 
-  set_cu_skip_flag(ctx,x0,y0,log2CbSize, cu_skip_flag);
+  set_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0,log2CbSize, cu_skip_flag);
 
   int IntraSplitFlag = 0;
 
@@ -2800,8 +2818,8 @@ void read_coding_unit(decoder_context* ctx,
   if (cu_skip_flag) {
     read_prediction_unit_SKIP(ctx,tctx,x0,y0,nCbS,nCbS);
 
-    set_PartMode(ctx, x0,y0, PART_2Nx2N); // need this for deblocking filter
-    set_pred_mode(ctx,x0,y0,log2CbSize, MODE_SKIP);
+    set_PartMode(ctx->img, ctx->current_sps, x0,y0, PART_2Nx2N); // need this for deblocking filter
+    set_pred_mode(ctx->img,sps,x0,y0,log2CbSize, MODE_SKIP);
     cuPredMode = MODE_SKIP;
 
     logtrace(LogSlice,"CU pred mode: SKIP\n");
@@ -2824,7 +2842,7 @@ void read_coding_unit(decoder_context* ctx,
       cuPredMode = MODE_INTRA;
     }
 
-    set_pred_mode(ctx,x0,y0,log2CbSize, cuPredMode);
+    set_pred_mode(ctx->img,sps,x0,y0,log2CbSize, cuPredMode);
 
     logtrace(LogSlice,"CU pred mode: %s\n", cuPredMode==MODE_INTRA ? "INTRA" : "INTER");
 
@@ -2837,13 +2855,12 @@ void read_coding_unit(decoder_context* ctx,
 
       if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
         IntraSplitFlag=1;
-        set_intra_split_flag(ctx, x0,y0, 1);
       }
     } else {
       PartMode = PART_2Nx2N;
     }
 
-    set_PartMode(ctx, x0,y0, PartMode);  // currently not required for decoding (but for visualization)
+    set_PartMode(ctx->img,ctx->current_sps, x0,y0, PartMode); // needed for deblocking ?
 
     logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
 
@@ -2901,7 +2918,8 @@ void read_coding_unit(decoder_context* ctx,
               if (availableA==false) {
                 candIntraPredModeA=INTRA_DC;
               }
-              else if (get_pred_mode(ctx, x-1,y) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x-1,y) != MODE_INTRA) {
+                // || TODO: pcm_flag (page 110)
                 candIntraPredModeA=INTRA_DC;
               }
               else {
@@ -2913,7 +2931,7 @@ void read_coding_unit(decoder_context* ctx,
               if (availableB==false) {
                 candIntraPredModeB=INTRA_DC;
               }
-              else if (get_pred_mode(ctx, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
                 candIntraPredModeB=INTRA_DC;
               }
               else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {
@@ -3094,7 +3112,7 @@ void read_coding_unit(decoder_context* ctx,
         rqt_root_cbf = true;
       }
 
-      set_rqt_root_cbf(ctx,x0,y0, log2CbSize, rqt_root_cbf);
+      //set_rqt_root_cbf(ctx,x0,y0, log2CbSize, rqt_root_cbf);
 
       if (rqt_root_cbf) {
         int MaxTrafoDepth;
@@ -3236,8 +3254,6 @@ void read_coding_quadtree(decoder_context* ctx,
     }
 
   if (split_flag) {
-    set_cu_split_flag(ctx, x0,y0, log2CbSize);
-
     int x1 = x0 + (1<<(log2CbSize-1));
     int y1 = y0 + (1<<(log2CbSize-1));
 
@@ -3256,7 +3272,7 @@ void read_coding_quadtree(decoder_context* ctx,
   else {
     // set ctDepth of this CU
 
-    set_ctDepth(ctx, x0,y0, log2CbSize, ctDepth);
+    set_ctDepth(ctx->img,ctx->current_sps, x0,y0, log2CbSize, ctDepth);
 
     read_coding_unit(ctx,tctx, x0,y0, log2CbSize, ctDepth);
   }

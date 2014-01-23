@@ -32,6 +32,9 @@
 #include <stdint.h>
 
 
+#define MAX_UVLC_LEADING_ZEROS 20
+#define UVLC_ERROR -99999
+
 typedef struct {
   unsigned char* data;
   int size;
@@ -81,9 +84,9 @@ void skip_bits(bitreader*, int n);
 void skip_bits_fast(bitreader*, int n);
 void skip_to_byte_boundary(bitreader*);
 void prepare_for_CABAC(bitreader*);
-int  get_uvlc(bitreader*);
-int  get_svlc(bitreader*);
+int  get_uvlc(bitreader*);  // may return UVLC_ERROR
+int  get_svlc(bitreader*);  // may return UVLC_ERROR
 
-void check_rbsp_trailing_bits(bitreader*);
+bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 
 #endif

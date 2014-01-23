@@ -28,7 +28,7 @@
 void init_pps(pic_parameter_set*);
 void free_pps(pic_parameter_set*);
 
-void read_pps(bitreader*, pic_parameter_set*, decoder_context*);
+bool read_pps(bitreader*, pic_parameter_set*, decoder_context*);
 void dump_pps(pic_parameter_set*);
 
 #endif

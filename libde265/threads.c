@@ -25,7 +25,7 @@ void de265_mutex_lock(de265_mutex* m) { pthread_mutex_lock(m); }
 void de265_mutex_unlock(de265_mutex* m) { pthread_mutex_unlock(m); }
 void de265_cond_init(de265_cond* c) { pthread_cond_init(c,NULL); }
 void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c) { pthread_cond_broadcast(c); }
+void de265_cond_broadcast(de265_cond* c,de265_mutex* m) { pthread_cond_broadcast(c); }
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
 #else  // _WIN32
@@ -49,7 +49,12 @@ void de265_mutex_lock(de265_mutex* m) { WaitForSingleObject(*m, INFINITE); }
 void de265_mutex_unlock(de265_mutex* m) { ReleaseMutex(*m); }
 void de265_cond_init(de265_cond* c) { win32_cond_init(c); }
 void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c) { win32_cond_broadcast(c); }
+void de265_cond_broadcast(de265_cond* c,de265_mutex* m)
+{
+  de265_mutex_lock(m);
+  win32_cond_broadcast(c);
+  de265_mutex_unlock(m);
+}
 void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 #endif // _WIN32
@@ -156,12 +161,8 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
       }
     }
 
+    pool->num_threads_working++;
     
-    //pool->ctbx[pool->num_threads_working] = task.data.task_ctb.ctb_x;
-    //pool->ctby[pool->num_threads_working] = task.data.task_ctb.ctb_y;
-
-    //pool->num_threads_working++;
-
     //printblks(pool);
 
     de265_mutex_unlock(&pool->mutex);
@@ -178,53 +179,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     de265_mutex_lock(&pool->mutex);
 
-    /* num-1 because: if at last pos, we do not need to shift */
-    /*
-    for (int i=0;i<pool->num_threads_working -1;i++)
-      {
-        if (pool->ctbx[i] == task.data.task_ctb.ctb_x &&
-            pool->ctby[i] == task.data.task_ctb.ctb_y) {
-          pool->ctbx[i] = pool->ctbx[pool->num_threads_working-1];
-          pool->ctby[i] = pool->ctby[pool->num_threads_working-1];
-          break;
-        }
-      }
-    */
-
-    //pool->num_threads_working--;
-#ifndef _WIN32
-    int pending = __sync_sub_and_fetch(&pool->tasks_pending, 1);
-#else
-    int pending = InterlockedDecrement((volatile long*)(&pool->tasks_pending));
-#endif
-
-
-    /*
-      printf("%03d [%d]: ",pool->num_tasks,pool->num_threads_working);
-
-      for (int i=0;i<pool->num_tasks;i++) {
-      printf("%d%c%d ",
-      pool->tasks[i].data.task_ctb.ctb_x,
-      pool->tasks[i].num_blockers==0 ? '*':'.',
-      pool->tasks[i].data.task_ctb.ctb_y);
-      }
-
-      printf("\n");
-    */
-
-    //printf("finish %d;%d\n",task.data.task_ctb.ctb_x, task.data.task_ctb.ctb_y);
-    //printblks(pool);
-
-    if (pending==0) {
-      de265_cond_broadcast(&pool->finished_cond);
-    }
-
-    /*
-      printf("processed task %d at CTB %d;%d\n", task.task_cmd,
-      task.data.task_ctb.ctb_x,
-      task.data.task_ctb.ctb_y);
-    */
-
+    pool->num_threads_working--;
   }
   de265_mutex_unlock(&pool->mutex);
 
@@ -243,7 +198,6 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
 
   de265_mutex_init(&pool->mutex);
   de265_cond_init(&pool->cond_var);
-  de265_cond_init(&pool->finished_cond);
 
   // start worker threads
 
@@ -261,27 +215,13 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
 }
 
 
-void flush_thread_pool(thread_pool* pool)
-{
-  de265_mutex_lock(&pool->mutex);
-  while (pool->tasks_pending>0) {
-    de265_cond_wait(&pool->finished_cond, &pool->mutex);
-  }
-  de265_mutex_unlock(&pool->mutex);
-
-  /*
-  printf("----------------------------------------------------------------------------------------------------\n");
-  */
-}
-
-
 void stop_thread_pool(thread_pool* pool)
 {
   de265_mutex_lock(&pool->mutex);
   pool->stopped = true;
   de265_mutex_unlock(&pool->mutex);
 
-  de265_cond_broadcast(&pool->cond_var);
+  de265_cond_broadcast(&pool->cond_var, &pool->mutex);
 
   for (int i=0;i<pool->num_threads;i++) {
     de265_thread_join(pool->thread[i]);
@@ -290,7 +230,6 @@ void stop_thread_pool(thread_pool* pool)
 
   de265_mutex_destroy(&pool->mutex);
   de265_cond_destroy(&pool->cond_var);
-  de265_cond_destroy(&pool->finished_cond);
 }
 
 
@@ -310,51 +249,5 @@ void   add_task(thread_pool* pool, const thread_task* task)
   de265_mutex_unlock(&pool->mutex);
 }
 
-
-void   decrement_tasks_pending(thread_pool* pool)
-{
-  //de265_mutex_lock(&pool->mutex);
-  //pool->tasks_pending--;
-  //de265_mutex_unlock(&pool->mutex);
-
-#ifndef _WIN32
-    __sync_sub_and_fetch(&pool->tasks_pending, 1);
-#else
-    InterlockedDecrement((volatile long*)(&pool->tasks_pending));
-#endif
-}
-
-
-/*
-bool deblock_task(thread_pool* pool, int task_id)
-{
-  bool found=false;
-
-  de265_mutex_lock(&pool->mutex);
-  for (int i=0;i<pool->num_tasks;i++) {
-    if (pool->tasks[i].task_id == task_id) {
-      assert(pool->tasks[i].num_blockers > 0);
-
-      // deblock task by one
-
-      pool->tasks[i].num_blockers--;
-
-      //printf("remaining blockers = %d\n",pool->tasks[i].num_blockers);
-
-      // if task can be executed now, wake up one thread
-
-      if (pool->tasks[i].num_blockers==0) {
-        de265_cond_signal(&pool->cond_var);
-      }
-
-      found = true;
-      break;
-    }
-  }
-  de265_mutex_unlock(&pool->mutex);
-
-  return found;
-}
-*/
-
-
+extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);
+extern inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n);

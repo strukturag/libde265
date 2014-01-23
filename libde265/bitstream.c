@@ -342,7 +342,11 @@ int  get_uvlc(bitreader* br)
 {
   int num_zeros=0;
 
-  while (get_bits(br,1)==0) { num_zeros++; }
+  while (get_bits(br,1)==0) {
+    num_zeros++;
+
+    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return UVLC_ERROR; }
+  }
 
   int offset = 0;
   if (num_zeros != 0) {
@@ -357,17 +361,23 @@ int  get_svlc(bitreader* br)
 {
   int v = get_uvlc(br);
   if (v==0) return v;
+  if (v==UVLC_ERROR) return UVLC_ERROR;
+
   bool negative = ((v&1)==0);
   return negative ? -v/2 : (v+1)/2;
 }
 
-void check_rbsp_trailing_bits(bitreader* br)
+bool check_rbsp_trailing_bits(bitreader* br)
 {
   int stop_bit = get_bits(br,1);
   assert(stop_bit==1);
 
   while (br->nextbits_cnt>0 || br->bytes_remaining>0) {
     int filler = get_bits(br,1);
-    assert(filler==0);
+    if (filler!=0) {
+      return false;
+    }
   }
+
+  return true;
 }

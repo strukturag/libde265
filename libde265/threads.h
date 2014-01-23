@@ -60,9 +60,34 @@ void de265_mutex_lock(de265_mutex* m);
 void de265_mutex_unlock(de265_mutex* m);
 void de265_cond_init(de265_cond* c);
 void de265_cond_destroy(de265_cond* c);
-void de265_cond_broadcast(de265_cond* c);
+void de265_cond_broadcast(de265_cond* c, de265_mutex* m);
 void de265_cond_wait(de265_cond* c,de265_mutex* m);
 void de265_cond_signal(de265_cond* c);
+
+typedef volatile long de265_sync_int;
+
+inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n)
+{
+#ifdef _WIN64
+  return InterlockedAdd(cnt, -n);
+#elif _WIN32
+  return InterlockedExchangeAdd(cnt, -n) - n;
+#else
+  return __sync_sub_and_fetch(cnt, n);
+#endif
+}
+
+inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
+{
+#ifdef _WIN64
+  return InterlockedAdd(cnt, n);
+#elif _WIN32
+  return InterlockedExchangeAdd(cnt, n) + n;
+#else
+  return __sync_add_and_fetch(cnt, n);
+#endif
+}
+
 
 enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
 
@@ -120,25 +145,19 @@ typedef struct thread_pool
   int num_threads;
 
   int num_threads_working;
-
-  long tasks_pending;
+  //long tasks_pending;
 
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];
 
   de265_mutex  mutex;
   de265_cond   cond_var;
-  de265_cond   finished_cond;
 } thread_pool;
 
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads);
-void        flush_thread_pool(thread_pool* pool);  // process pool until no more tasks
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
-void   add_task(thread_pool* pool, const thread_task* task);
-void   decrement_tasks_pending(thread_pool* pool);
-
-//bool   deblock_task(thread_pool* pool, int task_id); // returns false if task does not exist
+void        add_task(thread_pool* pool, const thread_task* task);
 
 #endif

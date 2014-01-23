@@ -39,7 +39,9 @@
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value
-#define DE265_DPB_SIZE  20
+#define DE265_DPB_OUTPUT_IMAGES  20
+#define DE265_DPB_RESILIENCE_IMAGES 5
+#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
 #define MAX_WARNINGS 20
 
@@ -67,24 +69,6 @@ typedef struct {
 
   uint8_t  task_blocking_cnt; // for parallelization
 } CTB_info;
-
-
-typedef struct {
-  uint8_t       depth;
-  uint8_t       cu_skip_flag;
-
-  uint8_t split_cu_flag;
-  uint8_t rqt_root_cbf;
-  // uint8_t pcm_flag;  // TODO
-  uint8_t PartMode; // (enum PartMode)  set only in top-left of CB
-  uint8_t intra_split_flag;
-
-  int8_t  QP_Y;
-
-  uint8_t CB_size; // log2CbSize at top-left of CB, zero otherwise
-
-  uint8_t PredMode; // (enum PredMode)
-} CB_info;
 
 
 #define TU_FLAG_NONZERO_COEFF  (1<<0)
@@ -223,12 +207,10 @@ typedef struct decoder_context {
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
-  CB_info*  cb_info; // in raster scan
   TU_info*  tu_info; // in raster scan
   deblock_info* deblk_info;
 
   int ctb_info_size;
-  int cb_info_size;
   int tu_info_size;
   int deblk_info_size;
 
@@ -253,6 +235,7 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx);
 void free_decoder_context(decoder_context*);
 
 void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
+int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps);
 
 seq_parameter_set* get_sps(decoder_context* ctx, int id);
 
@@ -260,7 +243,8 @@ void process_nal_hdr(decoder_context*, nal_header*);
 void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);
 void process_pps(decoder_context*, pic_parameter_set*);
-de265_error process_slice_segment_header(decoder_context*, slice_segment_header*);
+bool process_slice_segment_header(decoder_context*, slice_segment_header*,
+                                  de265_error*);
 
 int get_next_slice_index(decoder_context* ctx);
 
@@ -273,32 +257,12 @@ de265_error get_warning(decoder_context* ctx);
 // --- decoder 2D data arrays ---
 // All coordinates are in pixels if not stated otherwise.
 
-int get_ctDepth(const decoder_context* ctx, int x,int y);
-void set_ctDepth(decoder_context* ctx, int x,int y, int log2BlkWidth, int depth);
 void debug_dump_cb_info(const decoder_context*);
 
 void set_cbf_cb(decoder_context*, int x0,int y0, int depth);
 void set_cbf_cr(decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cb(const decoder_context*, int x0,int y0, int depth);
 int  get_cbf_cr(const decoder_context*, int x0,int y0, int depth);
-
-void    set_cu_skip_flag(      decoder_context*, int x,int y, int log2BlkWidth, uint8_t flag);
-uint8_t get_cu_skip_flag(const decoder_context*, int x,int y);
-
-void          set_PartMode(      decoder_context*, int x,int y, enum PartMode);
-enum PartMode get_PartMode(const decoder_context*, int x,int y);
-
-void    set_intra_split_flag(decoder_context*, int x,int y, uint8_t flag);
-uint8_t get_intra_split_flag(decoder_context*, int x,int y);
-
-// indicate that CB with log2CbSize is split
-void    set_cu_split_flag(decoder_context*, int x,int y,int log2CbSize);
-uint8_t get_cu_split_flag(decoder_context*, int x,int y,int log2CbSize);
-
-void          set_pred_mode(      decoder_context*, int x,int y, int log2BlkWidth, enum PredMode mode);
-enum PredMode get_pred_mode(const decoder_context*, int x,int y);
-enum PredMode get_img_pred_mode(const decoder_context* ctx,
-                                const de265_image* img, int x,int y);
 
 enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
 
@@ -318,22 +282,6 @@ int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
 
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
-
-// TODO CHECK: should be sufficient to set value only in top left of CB
-void set_rqt_root_cbf(decoder_context* ctx,int x0,int y0, int log2CbSize, int rqt_root_cbf);
-int  get_rqt_root_cbf(const decoder_context* ctx,int x0,int y0);
-
-void set_QPY(decoder_context* ctx,int x0,int y0, int QP_Y);
-int  get_QPY(const decoder_context* ctx,int x0,int y0);
-
-void get_image_plane(const decoder_context*, int cIdx, uint8_t** image, int* stride);
-
-void set_CB_size(decoder_context*, int x0, int y0, int log2CbSize);
-int  get_log2CbSize(const decoder_context* ctx, int x0, int y0);
-void set_log2CbSize(decoder_context* ctx, int x0, int y0, int log2CbSize);
-
-// coordinates in CB units
-int  get_log2CbSize_cbUnits(const decoder_context* ctx, int x0, int y0);
 
 void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
 uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);
@@ -360,7 +308,7 @@ bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
 
-bool has_free_dpb_picture(const decoder_context* ctx);
+bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority);
 void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
