@@ -30,7 +30,7 @@ Building
 ========
 
 If you got libde265 from the git repository, you will first need to run
-the included "autogen.sh" script to generate the "configure" script.
+the included `autogen.sh` script to generate the `configure` script.
 
 libde265 has no dependencies on other libraries, but both example programs
 require that you install the libvideogfx library, which you can get from
@@ -39,15 +39,18 @@ or
   http://github.com/farindk/libvideogfx
 
 
-You can disable building of the example programs by running ./configure with
+You can disable building of the example programs by running `./configure` with
+<pre>
   --disable-dec265        Do not dec265 decoder program.
   --disable-sherlock265   Do not build sherlock265 visual inspection program.
+</pre>
 
-Additional logging information can be turned on and off using these ./configure flags:
+Additional logging information can be turned on and off using these `./configure` flags:
+<pre>
   --enable-log-error      turn on logging at error level (default=yes)
   --enable-log-info       turn on logging at info level (default=no)
   --enable-log-trace      turn on logging at trace level (default=no)
-
+</pre>
 
 
 License
