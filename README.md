@@ -2,6 +2,8 @@
 libde265 - open h.265 codec implementation
 ==========================================
 
+![libde265](libde265.png)
+
 libde265 is an open source implementation of the h.265 video codec.
 It is written from scratch in plain C for simplicity and efficiency.
 Its simple API makes it easy to integrate it into other software.
