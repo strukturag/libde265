@@ -31,6 +31,8 @@ Example bitstreams can be found, e.g., at this site:
 Building
 ========
 
+[![Build Status](https://travis-ci.org/strukturag/libde265.png?branch=master)](https://travis-ci.org/strukturag/libde265)
+
 If you got libde265 from the git repository, you will first need to run
 the included `autogen.sh` script to generate the `configure` script.
 
