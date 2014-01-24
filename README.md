@@ -59,5 +59,5 @@ License
 libde265 is distributed under the terms of the GNU Lesser General Public License.
 See COPYRIGHT for more details.
 
-Copyright (c) 2013 Struktur AG
-contact: Dirk Farin <farin@struktur.de>
+Copyright (c) 2013-2014 Struktur AG
+Contact: Dirk Farin <farin@struktur.de>
