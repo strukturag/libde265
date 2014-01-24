@@ -72,6 +72,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Incorrect entry-point offset";
   case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
     return "CTB outside of image area (concealing stream error...)";
+  case DE265_WARNING_SPS_HEADER_INVALID:
+    return "sps header invalid";
+  case DE265_WARNING_PPS_HEADER_INVALID:
+    return "pps header invalid";
   case DE265_WARNING_SLICEHEADER_INVALID:
     return "slice header invalid";
   case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
