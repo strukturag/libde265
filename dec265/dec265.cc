@@ -113,7 +113,7 @@ void display_image(const struct de265_image* img)
 #include <time.h>
 #define WIN32_LEAN_AND_MEAN
 #include <winsock.h>
-int gettimeofday(struct timeval *tp, void *tzp)
+int gettimeofday(struct timeval *tp, void *)
 {
     time_t clock;
     struct tm tm;
@@ -128,7 +128,7 @@ int gettimeofday(struct timeval *tp, void *tzp)
     tm.tm_sec       = wtm.wSecond;
     tm. tm_isdst    = -1;
     clock = mktime(&tm);
-    tp->tv_sec = clock;
+    tp->tv_sec = (long) clock;
     tp->tv_usec = wtm.wMilliseconds * 1000;
 
     return (0);
