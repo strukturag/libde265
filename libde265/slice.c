@@ -1981,7 +1981,7 @@ int residual_coding(decoder_context* ctx,
 
 
   if (cIdx==0) {
-    set_nonzero_coefficient(ctx,x0,y0,log2TrafoSize);
+    set_nonzero_coefficient(ctx->img,sps,x0,y0,log2TrafoSize);
   }
 
 

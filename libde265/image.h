@@ -58,6 +58,9 @@ enum PictureState {
 #define SEI_HASH_CORRECT   1
 #define SEI_HASH_INCORRECT 2
 
+#define TU_FLAG_NONZERO_COEFF  (1<<7)
+#define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
+
 
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
@@ -208,6 +211,12 @@ void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
                               int x0,int y0,int trafoDepth);
 int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
                               int x0,int y0,int trafoDepth);
+
+void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
+                             int x,int y, int log2TrafoSize);
+
+int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
+                             int x,int y);
 
 // --- value logging ---
 

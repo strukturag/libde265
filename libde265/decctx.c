@@ -104,7 +104,6 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
-  memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
@@ -134,7 +133,6 @@ void prepare_new_picture(decoder_context* ctx)
 void free_info_arrays(decoder_context* ctx)
 {
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
-  if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
@@ -147,23 +145,19 @@ de265_error allocate_info_arrays(decoder_context* ctx)
   int deblk_h = (ctx->current_sps->pic_height_in_luma_samples+3)/4;
 
   if (ctx->ctb_info_size != sps->PicSizeInCtbsY ||
-      ctx->tu_info_size  != sps->PicSizeInTbsY ||
       ctx->deblk_info_size != deblk_w*deblk_h)
     {
       free_info_arrays(ctx);
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
-      ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
       ctx->deblk_height   = deblk_h;
 
-      // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
-      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
-      ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
+      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size);
       ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
-      if (ctx->ctb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
+      if (ctx->ctb_info==NULL || ctx->deblk_info==NULL) {
 	free_info_arrays(ctx);
 	return DE265_ERROR_OUT_OF_MEMORY;
       }
@@ -886,29 +880,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 }
 
 
-#define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
-#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*ctx->current_sps->PicWidthInTbsY)
-#define GET_TU_BLK(x,y) (ctx->tu_info[TU_IDX(x,y)])
-#define SET_TU_BLK(x,y,log2BlkWidth,  Field,value)                      \
-  int tuX = PIXEL2TU(x);                                                \
-  int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinTrafoSize); \
-  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
-    for (int tux=tuX;tux<tuX+width;tux++)                               \
-      {                                                                 \
-        ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field = value; \
-      }
-#define OR_TU_BLK(x,y,log2BlkWidth,  Field,value)                       \
-  int tuX = PIXEL2TU(x);                                                \
-  int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinTrafoSize); \
-  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
-    for (int tux=tuX;tux<tuX+width;tux++)                               \
-      {                                                                 \
-        ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field |= value; \
-      }
-
-
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
 {
   assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
@@ -946,6 +917,7 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
 }
 
 
+#if 0
 void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
 {
   OR_TU_BLK(x,y,log2TrafoSize, flags, TU_FLAG_NONZERO_COEFF);
@@ -956,6 +928,7 @@ int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
 {
   return GET_TU_BLK(x,y).flags & TU_FLAG_NONZERO_COEFF;
 }
+#endif
 
 
 #if 0

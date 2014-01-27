@@ -376,14 +376,14 @@ int  get_QPY(const de265_image* img, const seq_parameter_set* sps,int x,int y)
 #define PIXEL2TU(x) (x >> sps->Log2MinTrafoSize)
 #define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*sps->PicWidthInTbsY)
 
-#define OR_TU_BLK(x,y,log2BlkWidth,  Field,value)                       \
+#define OR_TU_BLK(x,y,log2BlkWidth,  value)                             \
   int tuX = PIXEL2TU(x);                                                \
   int tuY = PIXEL2TU(y);                                                \
   int width = 1 << (log2BlkWidth - sps->Log2MinTrafoSize);              \
   for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
     for (int tux=tuX;tux<tuX+width;tux++)                               \
       {                                                                 \
-        ctx->tu_info[ tux + tuy*sps->PicWidthInTbsY ].Field |= value;   \
+        img->tu_info[ tux + tuy*sps->PicWidthInTbsY ] |= value;         \
       }
 
 void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
@@ -397,4 +397,18 @@ int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* s
 {
   int idx = TU_IDX(x0,y0);
   return (img->tu_info[idx] & (1<<trafoDepth));
+}
+
+
+void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
+                             int x,int y, int log2TrafoSize)
+{
+  OR_TU_BLK(x,y,log2TrafoSize, TU_FLAG_NONZERO_COEFF);
+}
+
+
+int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
+                             int x,int y)
+{
+  return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
 }

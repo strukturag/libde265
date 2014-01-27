@@ -229,8 +229,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
                get_nonzero_coefficient(ctx,xDiOpp,yDiOpp))) {
           */
           if ((edgeFlags & transformEdgeMask) &&
-              (ctx->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF ||
-               ctx->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF)) {
+              (ctx->img->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF ||
+               ctx->img->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF)) {
             bS = 1;
           }
           else {

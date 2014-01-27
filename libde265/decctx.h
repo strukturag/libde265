@@ -54,12 +54,6 @@
 // mpm_idx                   CB
 // intra_chroma_pred_mode    CB
 
-// split_transform_flag      TU
-// cbf_cb, cbf_cr, cbf_luma  TU[trafoDepth]
-// transform_skip_flag       TU[cIdx]
-// coded_sub_block_flag      TU
-// significant_coeff_flag    TU
-
 
 typedef struct {
   uint16_t SliceAddrRS;
@@ -69,15 +63,6 @@ typedef struct {
 
   uint8_t  task_blocking_cnt; // for parallelization
 } CTB_info;
-
-
-#define TU_FLAG_NONZERO_COEFF  (1<<7)
-#define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
-
-typedef struct {
-  uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
-  uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
-} TU_info;
 
 
 
@@ -200,11 +185,9 @@ typedef struct decoder_context {
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
-  TU_info*  tu_info; // in raster scan
   deblock_info* deblk_info;
 
   int ctb_info_size;
-  int tu_info_size;
   int deblk_info_size;
 
   int deblk_width;
@@ -262,8 +245,10 @@ int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
 
+/*
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
+*/
 
 void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
 uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);
