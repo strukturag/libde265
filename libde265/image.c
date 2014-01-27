@@ -490,3 +490,16 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
 {
   return img->deblk_info[x0/4 + y0/4*img->deblk_width] & DEBLOCK_BS_MASK;
 }
+
+
+void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
+                     int ctbX, int ctbY, int SliceAddrRS)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+}
+
+int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY)
+{
+  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS;
+}

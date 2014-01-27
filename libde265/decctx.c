@@ -870,18 +870,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 }
 
 
-void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
-{
-  assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
-  ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
-}
-
-int  get_SliceAddrRS(const decoder_context* ctx, int ctbX, int ctbY)
-{
-  return ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceAddrRS;
-}
-
-
 void set_SliceHeaderIndex(decoder_context* ctx, int x, int y, int SliceHeaderIndex)
 {
   int ctbX = x >> ctx->current_sps->Log2CtbSizeY;
@@ -1019,8 +1007,8 @@ bool available_zscan(const decoder_context* ctx,
   int xNCtb = xN >> sps->Log2CtbSizeY;
   int yNCtb = yN >> sps->Log2CtbSizeY;
 
-  if (get_SliceAddrRS(ctx, xCurrCtb,yCurrCtb) !=
-      get_SliceAddrRS(ctx, xNCtb,   yNCtb)) {
+  if (get_SliceAddrRS(ctx->img,sps, xCurrCtb,yCurrCtb) !=
+      get_SliceAddrRS(ctx->img,sps, xNCtb,   yNCtb)) {
     return false;
   }
 

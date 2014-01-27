@@ -1908,7 +1908,7 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
   logtrace(LogSlice,"----- decode CTB %d;%d POC=%d\n",xCtbPixels,yCtbPixels,
            ctx->img->PicOrderCntVal);
 
-  set_SliceAddrRS(ctx, xCtb, yCtb,
+  set_SliceAddrRS(ctx->img, sps, xCtb, yCtb,
                   tctx->SliceAddrRS);
 
   set_SliceHeaderIndex(ctx,xCtbPixels,yCtbPixels, shdr->slice_index);
