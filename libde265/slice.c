@@ -2131,55 +2131,77 @@ int residual_coding(decoder_context* ctx,
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
 
+    int sub_block_is_coded = 0;
+
     if ((i<lastSubBlock) && (i>0)) {
-      int csb_flag = decode_coded_sub_block_flag(tctx, cIdx,sbWidth, S.x,S.y, coded_sub_block_flag);
-      coded_sub_block_flag[S.x+S.y*sbWidth] = csb_flag;
+      sub_block_is_coded = decode_coded_sub_block_flag(tctx, cIdx,sbWidth, S.x,S.y,
+                                                       coded_sub_block_flag);
+      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded;
 
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0) { // NOTE: equivalent to: S.x==0 && S.y==0) {
-      coded_sub_block_flag[S.x+S.y*sbWidth]=1;
+      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
     }
     else if (i==lastSubBlock) {
       // NOTE: equivalent to: S.x==LastSignificantCoeffX>>2 && S.y==LastSignificantCoeffY>>2) {
-      coded_sub_block_flag[S.x+S.y*sbWidth]=1;
+      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
     }
 
 
     bool hasNonZero = false;
 
     uint8_t significant_coeff_flag[4][4];
-    memset(significant_coeff_flag, 0, 4*4);
 
-    for (int n= (i==lastSubBlock) ? lastScanPos-1 : 15 ;
-         n>=0 ; n--) {
-      int subX = ScanOrderPos[n].x;
-      int subY = ScanOrderPos[n].y;
-      xC = (S.x<<2) + subX;
-      yC = (S.y<<2) + subY;
+    if (sub_block_is_coded) {
+      memset(significant_coeff_flag, 0, 4*4);
 
-      logtrace(LogSlice,"n=%d , S.x=%d S.y=%d\n",n,S.x,S.y);
+      for (int n= (i==lastSubBlock) ? lastScanPos-1 : 15 ;
+           n>=0 ; n--) {
+        int subX = ScanOrderPos[n].x;
+        int subY = ScanOrderPos[n].y;
+        xC = (S.x<<2) + subX;
+        yC = (S.y<<2) + subY;
 
-      if (coded_sub_block_flag[S.x+S.y*sbWidth] && (n>0 || inferSbDcSigCoeffFlag==0)) {
+        logtrace(LogSlice,"n=%d , S.x=%d S.y=%d\n",n,S.x,S.y);
+
+        if (n>0 || inferSbDcSigCoeffFlag==0) {
+          //if (coded_sub_block_flag[S.x+S.y*sbWidth] && !(n==0 && inferSbDcSigCoeffFlag)) {
+          int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
+                                                                sbWidth, cIdx,scanIdx);
+
+          if (significant_coeff) {
+            significant_coeff_flag[subY][subX] = significant_coeff;
+
+            hasNonZero=true;
+            inferSbDcSigCoeffFlag = 0;
+          }
+        }
+        else if (n==0 && // DC coefficient (in sub-block)
+                 inferSbDcSigCoeffFlag) {
+          significant_coeff_flag[subY][subX]=1;
+          hasNonZero=true;
+        }
+      }
+
+#if 0
+      if (inferSbDcSigCoeffFlag==0) {
         //if (coded_sub_block_flag[S.x+S.y*sbWidth] && !(n==0 && inferSbDcSigCoeffFlag)) {
         int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
                                                               sbWidth, cIdx,scanIdx);
 
         if (significant_coeff) {
-          significant_coeff_flag[subY][subX] = significant_coeff;
+          significant_coeff_flag[0][0] = significant_coeff;
 
           hasNonZero=true;
-          inferSbDcSigCoeffFlag = 0;
         }
       }
-      else if ((subX==0 && subY==0) &&
-               inferSbDcSigCoeffFlag &&
-               coded_sub_block_flag[S.x+S.y*sbWidth]) {
-        significant_coeff_flag[subY][subX]=1;
+      else if (inferSbDcSigCoeffFlag) {
+        significant_coeff_flag[0][0]=1;
         hasNonZero=true;
       }
+#endif
     }
-
 
     // set the last coded coefficient in the last subblock
 
