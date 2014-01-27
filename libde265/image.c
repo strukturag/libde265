@@ -106,6 +106,18 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     }
   }
 
+
+  // check for memory shortage
+
+  if (img->y_mem  == NULL ||
+      img->cb_mem == NULL ||
+      img->cr_mem == NULL)
+    {
+      de265_free_image(img);
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
+
+
   // --- allocate decoding info arrays ---
 
   if (sps) {
@@ -140,7 +152,6 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       img->pb_info_stride = puWidth;
       free(img->pb_info);
       img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
-      // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
     }
 
 
@@ -180,10 +191,19 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       }
 
 
-    if (img->ctb_info==NULL) {
-      //free_info_arrays(ctx);
-      return DE265_ERROR_OUT_OF_MEMORY;
-    }
+
+    // check for memory shortage
+
+    if (img->ctb_info == NULL ||
+        img->intraPredMode == NULL ||
+        img->cb_info == NULL ||
+        img->pb_info == NULL ||
+        img->tu_info == NULL ||
+        img->deblk_info == NULL)
+      {
+        de265_free_image(img);
+        return DE265_ERROR_OUT_OF_MEMORY;
+      }
   }
 
   return DE265_OK;
