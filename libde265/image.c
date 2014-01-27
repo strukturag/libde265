@@ -520,3 +520,38 @@ int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, 
   return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex;
 }
 
+
+void set_sao_info(de265_image* img,const seq_parameter_set* sps,
+                  int ctbX,int ctbY,const sao_info* saoinfo)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  memcpy(&img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo,
+         saoinfo,
+         sizeof(sao_info));
+}
+
+const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo;
+}
+
+
+void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt)
+{
+  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
+  img->ctb_info[idx].task_blocking_cnt = cnt;
+}
+
+uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY)
+{
+  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
+
+#ifndef _WIN32
+  uint8_t blkcnt = __sync_sub_and_fetch(&img->ctb_info[idx].task_blocking_cnt, 1);
+#else
+  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&img->ctb_info[idx].task_blocking_cnt));
+#endif
+
+  return blkcnt;
+}

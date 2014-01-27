@@ -37,7 +37,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
   bool pcm_loop_filter_disable = false;
   bool cu_transquant_bypass = false;
-  const sao_info* saoinfo = get_sao_info(ctx,xCtb,yCtb);
+  const sao_info* saoinfo = get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 

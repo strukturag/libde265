@@ -74,7 +74,7 @@ typedef struct {
 
   sao_info saoInfo;
 
-  uint8_t  task_blocking_cnt; // for parallelization
+  de265_sync_int task_blocking_cnt; // for parallelization
 } CTB_info;
 
 
@@ -251,6 +251,19 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
 void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
                      int ctbX, int ctbY, int SliceAddrRS);
 int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY);
+
+
+void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
+                          int x, int y, int SliceHeaderIndex);
+int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y);
+
+void set_sao_info(de265_image* img,const seq_parameter_set* sps,
+                  int ctbX,int ctbY,const sao_info* saoinfo);
+const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY);
+
+
+void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt);
+uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY);
 
 
 // --- value logging ---

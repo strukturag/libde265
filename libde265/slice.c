@@ -26,6 +26,7 @@
 #include "intrapred.h"
 #include "transform.h"
 #include "threads.h"
+#include "image.h"
 
 #include <assert.h>
 #include <string.h>
@@ -1697,16 +1698,16 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
       }
     }
 
-    set_sao_info(ctx,xCtb,yCtb,  &saoinfo);
+    set_sao_info(ctx->img,ctx->current_sps, xCtb,yCtb,  &saoinfo);
   }
 
 
   if (sao_merge_left_flag) {
-    set_sao_info(ctx,xCtb,yCtb,  get_sao_info(ctx,xCtb-1,yCtb));
+    set_sao_info(ctx->img,ctx->current_sps, xCtb,yCtb,  get_sao_info(ctx->img,ctx->current_sps,xCtb-1,yCtb));
   }
 
   if (sao_merge_up_flag) {
-    set_sao_info(ctx,xCtb,yCtb,  get_sao_info(ctx,xCtb,yCtb-1));
+    set_sao_info(ctx->img,ctx->current_sps, xCtb,yCtb,  get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb-1));
   }
 }
 
@@ -1846,6 +1847,7 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
 
   int task_id = sps->PicWidthInCtbsY * ctby + ctbx;
 
+  //int cnt = decrease_CTB_deblocking_cnt(ctx->img,sps,ctbx,ctby);
   int cnt = decrease_CTB_deblocking_cnt(ctx,ctbx,ctby);
 
   //printf("add task %d %d (blk=%d)\n",ctbx,ctby,cnt);

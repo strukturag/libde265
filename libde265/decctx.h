@@ -207,16 +207,8 @@ de265_error get_warning(decoder_context* ctx);
 
 void debug_dump_cb_info(const decoder_context*);
 
-//void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
-//int  get_SliceAddrRS(const decoder_context*, int ctbX, int ctbY);
-
-//void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderIndex);
-//int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
-
-void            set_sao_info(decoder_context*, int ctbX,int ctbY,const sao_info* sao_info);
-const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
 
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);

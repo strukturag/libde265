@@ -122,6 +122,7 @@ void prepare_new_picture(decoder_context* ctx)
       {
         int cnt=2;
         if (y==0 || x==0) cnt--;
+        //set_CTB_deblocking_cnt(ctx->img,ctx->current_sps,x,y, cnt);
         set_CTB_deblocking_cnt(ctx,x,y, cnt);
       }
 
@@ -881,21 +882,6 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
 }
 
 
-void            set_sao_info(decoder_context* ctx, int ctbX,int ctbY,const sao_info* saoinfo)
-{
-  assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
-  memcpy(&ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].saoInfo,
-         saoinfo,
-         sizeof(sao_info));
-}
-
-const sao_info* get_sao_info(const decoder_context* ctx, int ctbX,int ctbY)
-{
-  assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
-  return &ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].saoInfo;
-}
-
-
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 {
   int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
@@ -951,24 +937,6 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
   */
 }
 
-
-void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt)
-{
-  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
-  ctx->ctb_info[idx].task_blocking_cnt = cnt;
-}
-
-uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
-{
-  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
-
-#ifndef _WIN32
-  uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
-#else
-  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&ctx->ctb_info[idx].task_blocking_cnt));
-#endif
-  return blkcnt;
-}
 
 
 bool available_zscan(const decoder_context* ctx,
@@ -1379,3 +1347,24 @@ de265_error get_warning(decoder_context* ctx)
 
   return warn;
 }
+
+
+void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt)
+{
+  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
+  ctx->ctb_info[idx].task_blocking_cnt = cnt;
+}
+
+
+uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
+{
+  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
+
+#ifndef _WIN32
+  uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
+#else
+  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&ctx->ctb_info[idx].task_blocking_cnt));
+#endif
+  return blkcnt;
+}
+
