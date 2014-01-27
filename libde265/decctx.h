@@ -79,7 +79,7 @@ typedef struct {
 typedef struct {
   uint16_t cbf_cb;   // NOTE: can be thread-local // bitfield (1<<depth)
   uint16_t cbf_cr;   // NOTE: can be thread-local // bitfield (1<<depth)
-  uint16_t cbf_luma; // NOTE: can be thread-local // bitfield (1<<depth)
+  //uint16_t cbf_luma; // NOTE: can be thread-local // bitfield (1<<depth)
 
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
   uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
