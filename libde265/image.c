@@ -54,8 +54,8 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
 
 
 
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
-                       const seq_parameter_set* sps)
+de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                              const seq_parameter_set* sps)
 {
   const int border=0;  // TODO: remove the border altogether
 
@@ -168,7 +168,25 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       free(img->deblk_info);
       img->deblk_info = (uint8_t*)malloc(sizeof(uint8_t) * img->deblk_info_size);
     }
+
+
+    // CTB info
+
+    if (img->ctb_info_size != sps->PicSizeInCtbsY)
+      {
+        img->ctb_info_size  = sps->PicSizeInCtbsY;
+        free(img->ctb_info);
+        img->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
+      }
+
+
+    if (img->ctb_info==NULL) {
+      //free_info_arrays(ctx);
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
   }
+
+  return DE265_OK;
 }
 
 
@@ -182,7 +200,7 @@ void de265_free_image(de265_image* img)
   free(img->pb_info);
   free(img->tu_info);
   free(img->deblk_info);
-
+  free(img->ctb_info);
   free(img->intraPredMode);
 
   de265_cond_destroy(&img->finished_cond);
@@ -270,6 +288,7 @@ void prepare_image_for_decoding(de265_image* img)
 
   memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
   memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
+  memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
 }
 
 

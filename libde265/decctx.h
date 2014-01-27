@@ -55,16 +55,6 @@
 // intra_chroma_pred_mode    CB
 
 
-typedef struct {
-  uint16_t SliceAddrRS;
-  uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
-
-  sao_info saoInfo;
-
-  uint8_t  task_blocking_cnt; // for parallelization
-} CTB_info;
-
-
 enum LowLevelImplementation {
   LOWLEVEL_AUTO,
   LOWLEVEL_SSE,

@@ -69,6 +69,16 @@ enum PictureState {
 
 
 typedef struct {
+  uint16_t SliceAddrRS;
+  uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
+
+  sao_info saoInfo;
+
+  uint8_t  task_blocking_cnt; // for parallelization
+} CTB_info;
+
+
+typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
   uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
@@ -81,6 +91,7 @@ typedef struct {
 
   // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
+
 
 typedef struct {
   PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
@@ -130,6 +141,9 @@ typedef struct de265_image {
   bool PicOutputFlag;
   enum PictureState PicState;
 
+  CTB_info* ctb_info; // in raster scan
+  int ctb_info_size;
+
   CB_ref_info* cb_info;
   int cb_info_size;
 
@@ -171,8 +185,8 @@ typedef struct de265_image {
 
 
 void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
-                       const seq_parameter_set* sps);
+de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                              const seq_parameter_set* sps);
 void de265_free_image (de265_image* img);
 
 void de265_fill_image(de265_image* img, int y,int u,int v);
