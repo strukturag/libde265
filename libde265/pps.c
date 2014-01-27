@@ -35,16 +35,17 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 {
   pps->pps_read = false; // incomplete pps
 
-  pps->pic_parameter_set_id = get_uvlc(br);
+  int uvlc;
+  pps->pic_parameter_set_id = uvlc = get_uvlc(br);
   if (pps->pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
-      pps->pic_parameter_set_id == UVLC_ERROR) {
+      uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return false;
   }
 
-  pps->seq_parameter_set_id = get_uvlc(br);
+  pps->seq_parameter_set_id = uvlc = get_uvlc(br);
   if (pps->seq_parameter_set_id >= DE265_MAX_PPS_SETS ||
-      pps->seq_parameter_set_id == UVLC_ERROR) {
+      uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
@@ -54,15 +55,15 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   pps->num_extra_slice_header_bits = get_bits(br,3);
   pps->sign_data_hiding_flag = get_bits(br,1);
   pps->cabac_init_present_flag = get_bits(br,1);
-  pps->num_ref_idx_l0_default_active = get_uvlc(br);
-  if (pps->num_ref_idx_l0_default_active == UVLC_ERROR) {
+  pps->num_ref_idx_l0_default_active = uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
   pps->num_ref_idx_l0_default_active++;
 
-  pps->num_ref_idx_l1_default_active = get_uvlc(br);
-  if (pps->num_ref_idx_l1_default_active == UVLC_ERROR) {
+  pps->num_ref_idx_l1_default_active = uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }

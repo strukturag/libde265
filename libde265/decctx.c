@@ -104,7 +104,6 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
-  memset(ctx->tu_info,  0,sizeof(TU_info)  * ctx->tu_info_size);
   memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
@@ -134,7 +133,6 @@ void prepare_new_picture(decoder_context* ctx)
 void free_info_arrays(decoder_context* ctx)
 {
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
-  if (ctx->tu_info)  { free(ctx->tu_info);  ctx->tu_info =NULL; }
   if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
@@ -147,23 +145,19 @@ de265_error allocate_info_arrays(decoder_context* ctx)
   int deblk_h = (ctx->current_sps->pic_height_in_luma_samples+3)/4;
 
   if (ctx->ctb_info_size != sps->PicSizeInCtbsY ||
-      ctx->tu_info_size  != sps->PicSizeInTbsY ||
       ctx->deblk_info_size != deblk_w*deblk_h)
     {
       free_info_arrays(ctx);
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
-      ctx->tu_info_size   = sps->PicSizeInTbsY;
       ctx->deblk_info_size= deblk_w*deblk_h;
       ctx->deblk_width    = deblk_w;
       ctx->deblk_height   = deblk_h;
 
-      // TODO: CHECK: *1 was *2 previously, but I guess this was only for debugging...
-      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size *1);
-      ctx->tu_info    = (TU_info  *)malloc( sizeof(TU_info)    * ctx->tu_info_size  *1);
+      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size);
       ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
-      if (ctx->ctb_info==NULL || ctx->tu_info==NULL || ctx->deblk_info==NULL) {
+      if (ctx->ctb_info==NULL || ctx->deblk_info==NULL) {
 	free_info_arrays(ctx);
 	return DE265_ERROR_OUT_OF_MEMORY;
       }
@@ -886,51 +880,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 }
 
 
-#define PIXEL2TU(x) (x >> ctx->current_sps->Log2MinTrafoSize)
-#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*ctx->current_sps->PicWidthInTbsY)
-#define GET_TU_BLK(x,y) (ctx->tu_info[TU_IDX(x,y)])
-#define SET_TU_BLK(x,y,log2BlkWidth,  Field,value)                      \
-  int tuX = PIXEL2TU(x);                                                \
-  int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinTrafoSize); \
-  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
-    for (int tux=tuX;tux<tuX+width;tux++)                               \
-      {                                                                 \
-        ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field = value; \
-      }
-#define OR_TU_BLK(x,y,log2BlkWidth,  Field,value)                       \
-  int tuX = PIXEL2TU(x);                                                \
-  int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - ctx->current_sps->Log2MinTrafoSize); \
-  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
-    for (int tux=tuX;tux<tuX+width;tux++)                               \
-      {                                                                 \
-        ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field |= value; \
-      }
-
-void set_cbf_cb(decoder_context* ctx, int x0,int y0, int depth)
-{
-  logtrace(LogSlice,"set_cbf_cb at %d;%d depth %d\n",x0,y0,depth);
-  ctx->tu_info[TU_IDX(x0,y0)].cbf_cb |= (1<<depth);
-}
-
-void set_cbf_cr(decoder_context* ctx, int x0,int y0, int depth)
-{
-  logtrace(LogSlice,"set_cbf_cr at %d;%d depth %d\n",x0,y0,depth);
-  ctx->tu_info[TU_IDX(x0,y0)].cbf_cr |= (1<<depth);
-}
-
-int  get_cbf_cb(const decoder_context* ctx, int x0,int y0, int depth)
-{
-  return (ctx->tu_info[TU_IDX(x0,y0)].cbf_cb & (1<<depth)) ? 1:0;
-}
-
-int  get_cbf_cr(const decoder_context* ctx, int x0,int y0, int depth)
-{
-  return (ctx->tu_info[TU_IDX(x0,y0)].cbf_cr & (1<<depth)) ? 1:0;
-}
-
-
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
 {
   assert(ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY < ctx->ctb_info_size);
@@ -967,30 +916,8 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
   return &ctx->slice[ ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
 }
 
-void set_split_transform_flag(decoder_context* ctx,int x0,int y0,int trafoDepth)
-{
-  ctx->tu_info[TU_IDX(x0,y0)].split_transform_flag |= (1<<trafoDepth);
-}
 
-int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafoDepth)
-{
-  int idx = TU_IDX(x0,y0);
-  return (ctx->tu_info[idx].split_transform_flag & (1<<trafoDepth)) ? 1:0;
-}
-
-
-void set_transform_skip_flag(decoder_context* ctx,int x0,int y0,int cIdx)
-{
-  ctx->tu_info[TU_IDX(x0,y0)].transform_skip_flag |= (1<<cIdx);
-}
-
-int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx)
-{
-  int idx = TU_IDX(x0,y0);
-  return (ctx->tu_info[idx].transform_skip_flag & (1<<cIdx)) ? 1:0;
-}
-
-
+#if 0
 void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
 {
   OR_TU_BLK(x,y,log2TrafoSize, flags, TU_FLAG_NONZERO_COEFF);
@@ -1001,6 +928,7 @@ int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
 {
   return GET_TU_BLK(x,y).flags & TU_FLAG_NONZERO_COEFF;
 }
+#endif
 
 
 #if 0
@@ -1321,7 +1249,8 @@ void draw_intra_pred_mode(const decoder_context* ctx,
 void drawTBgrid(const decoder_context* ctx, uint8_t* img, int stride,
                 int x0,int y0, uint8_t value, int log2CbSize, int trafoDepth)
 {
-  if (get_split_transform_flag(ctx,x0,y0,trafoDepth)) {
+  int split_transform_flag = get_split_transform_flag(ctx->img, ctx->current_sps,x0,y0,trafoDepth);
+  if (split_transform_flag) {
     int x1 = x0 + ((1<<(log2CbSize-trafoDepth))>>1);
     int y1 = y0 + ((1<<(log2CbSize-trafoDepth))>>1);
     drawTBgrid(ctx,img,stride,x0,y0,value,log2CbSize,trafoDepth+1);

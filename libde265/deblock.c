@@ -35,7 +35,8 @@ void markTransformBlockBoundary(decoder_context* ctx, int x0,int y0,
   logtrace(LogDeblock,"markTransformBlockBoundary(%d,%d, %d,%d, %d,%d)\n",x0,y0,
            log2TrafoSize,trafoDepth, filterLeftCbEdge,filterTopCbEdge);
 
-  if (get_split_transform_flag(ctx,x0,y0,trafoDepth)) {
+  int split_transform = get_split_transform_flag(ctx->img,ctx->current_sps,x0,y0,trafoDepth);
+  if (split_transform) {
     int x1 = x0 + ((1<<log2TrafoSize)>>1);
     int y1 = y0 + ((1<<log2TrafoSize)>>1);
 
@@ -228,8 +229,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
                get_nonzero_coefficient(ctx,xDiOpp,yDiOpp))) {
           */
           if ((edgeFlags & transformEdgeMask) &&
-              (ctx->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF ||
-               ctx->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride].flags & TU_FLAG_NONZERO_COEFF)) {
+              (ctx->img->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF ||
+               ctx->img->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF)) {
             bS = 1;
           }
           else {

@@ -58,6 +58,9 @@ enum PictureState {
 #define SEI_HASH_CORRECT   1
 #define SEI_HASH_INCORRECT 2
 
+#define TU_FLAG_NONZERO_COEFF  (1<<7)
+#define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
+
 
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
@@ -78,6 +81,7 @@ typedef struct {
 } PB_ref_info;
 
 
+/*
 typedef struct {
   //uint16_t cbf_cb;   // bitfield (1<<depth)
   //uint16_t cbf_cr;   // bitfield (1<<depth)
@@ -86,10 +90,11 @@ typedef struct {
   //uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
   //uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
 
-  uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
-  uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
-  uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
+  //uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
+  //uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
+  //uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
 } TU_log_info;
+*/
 
 
 typedef struct de265_image {
@@ -131,6 +136,14 @@ typedef struct de265_image {
 
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
+
+  uint8_t* tu_info;
+  int tu_info_size;
+
+  uint8_t* deblk_info;
+  int deblk_info_size;
+  int deblk_width;
+  int deblk_height;
 
   int RefPicList_POC[2][14+1];
 
@@ -193,6 +206,17 @@ int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
 void set_QPY(de265_image*, const seq_parameter_set*,
              const pic_parameter_set* pps, int x,int y, int QP_Y);
 int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
+
+void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth);
+int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth);
+
+void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
+                             int x,int y, int log2TrafoSize);
+
+int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
+                             int x,int y);
 
 // --- value logging ---
 
