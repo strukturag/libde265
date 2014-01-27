@@ -2029,19 +2029,13 @@ int residual_coding(decoder_context* ctx,
   }
 
 
-  // --- find last sub block and last scan pos ---
 
-  int lastScanPos = 16;
-  int lastSubBlock = (1<<(log2TrafoSize-2)) * (1<<(log2TrafoSize-2)) -1;
-
-  
+  // --- determine scanIdx ---
 
   int scanIdx;
 
   enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
 
-
-  // scanIdx derived as by HM9.1
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
@@ -2093,23 +2087,15 @@ int residual_coding(decoder_context* ctx,
   logtrace(LogSlice,"*\n");
 
 
-  tctx->nCoeff[cIdx] = 0;
+  // --- find last sub block and last scan pos ---
 
   int xC,yC;
-  do {
-    if (lastScanPos==0) {
-      lastScanPos=16;
-      lastSubBlock--;
-    }
-    lastScanPos--;
 
-    position S = ScanOrderSub[lastSubBlock];
-    xC = (S.x<<2) + ScanOrderPos[lastScanPos].x;
-    yC = (S.y<<2) + ScanOrderPos[lastScanPos].y;
+  scan_position lastScanPos = get_scan_position(LastSignificantCoeffX, LastSignificantCoeffY,
+                                                scanIdx, log2TrafoSize);
 
-  } while ( (xC != LastSignificantCoeffX) || (yC != LastSignificantCoeffY));
-
-  logtrace(LogSlice,"lastScanPos=%d lastSubBlock=%d\n",lastScanPos,lastSubBlock);
+  int lastScanPos  = lastScanPos.scanPos;
+  int lastSubBlock = lastScanPos.subBlock;
 
 
   int sbWidth = 1<<(log2TrafoSize-2);
@@ -2132,6 +2118,8 @@ int residual_coding(decoder_context* ctx,
   int  lastInvocation_greater1Ctx=0;
   int  lastInvocation_coeff_abs_level_greater1_flag=0;
   int  lastInvocation_ctxSet=0;
+
+  tctx->nCoeff[cIdx] = 0;
 
   for (int i=lastSubBlock;i>=0;i--) {
     position S = ScanOrderSub[i];

@@ -27,10 +27,17 @@ typedef struct {
   uint8_t x,y;
 } position;
 
+typedef struct {
+  uint8_t subBlock;
+  uint8_t scanPos;
+} scan_position;
+
 void init_scan_orders();
 
 /* scanIdx: 0 - diag, 1 - horiz, 2 - verti
  */
 const position* get_scan_order(int log2BlockSize, int scanIdx);
+
+scan_position get_scan_position(int x,int y, int scanIdx, int log2BlkSize);
 
 #endif
