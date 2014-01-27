@@ -77,10 +77,6 @@ typedef struct {
 //#define TU_FLAG_AVAILABLE_TOPLEFT (1<<3)
 
 typedef struct {
-  uint16_t cbf_cb;   // NOTE: can be thread-local // bitfield (1<<depth)
-  uint16_t cbf_cr;   // NOTE: can be thread-local // bitfield (1<<depth)
-  //uint16_t cbf_luma; // NOTE: can be thread-local // bitfield (1<<depth)
-
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
   uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
   uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
@@ -258,11 +254,6 @@ de265_error get_warning(decoder_context* ctx);
 // All coordinates are in pixels if not stated otherwise.
 
 void debug_dump_cb_info(const decoder_context*);
-
-void set_cbf_cb(decoder_context*, int x0,int y0, int depth);
-void set_cbf_cr(decoder_context*, int x0,int y0, int depth);
-int  get_cbf_cb(const decoder_context*, int x0,int y0, int depth);
-int  get_cbf_cr(const decoder_context*, int x0,int y0, int depth);
 
 enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
 

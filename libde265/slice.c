@@ -2493,7 +2493,8 @@ void read_transform_tree(decoder_context* ctx,
                          int blkIdx,
                          int MaxTrafoDepth,
                          int IntraSplitFlag,
-                         enum PredMode cuPredMode)
+                         enum PredMode cuPredMode,
+                         bool parent_cbf_cb,bool parent_cbf_cr)
 {
   logtrace(LogSlice,"- read_transform_tree (interleaved) x0:%d y0:%d xBase:%d yBase:%d "
            "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
@@ -2538,11 +2539,13 @@ void read_transform_tree(decoder_context* ctx,
   int cbf_cr=-1;
 
   if (log2TrafoSize>2) {
-    if (trafoDepth==0 || get_cbf_cb(ctx,xBase,yBase,trafoDepth-1)) {
+    // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
+    if (/*trafoDepth==0 ||*/ parent_cbf_cb) {
       cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
     }
 
-    if (trafoDepth==0 || get_cbf_cr(ctx,xBase,yBase,trafoDepth-1)) {
+    // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
+    if (/*trafoDepth==0 ||*/ parent_cbf_cr) {
       cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
     }
   }
@@ -2552,31 +2555,19 @@ void read_transform_tree(decoder_context* ctx,
 
   if (cbf_cb<0) {
     if (trafoDepth>0 && log2TrafoSize==2) {
-      cbf_cb = get_cbf_cb(ctx,xBase,yBase,trafoDepth-1);
+      cbf_cb = parent_cbf_cb;
     } else {
       cbf_cb=0;
     }
   }
 
-  if (cbf_cb) {
-    set_cbf_cb(ctx,x0,y0, trafoDepth);
-  }
-  logtrace(LogSlice,"check cbf_cb[%d;%d;%d]: %d\n", xBase,yBase,trafoDepth,
-           get_cbf_cb(ctx,xBase,yBase,trafoDepth));
-
   if (cbf_cr<0) {
     if (trafoDepth>0 && log2TrafoSize==2) {
-      cbf_cr = get_cbf_cr(ctx,xBase,yBase,trafoDepth-1);
+      cbf_cr = parent_cbf_cr;
     } else {
       cbf_cr=0;
     }
   }
-
-  if (cbf_cr) {
-    set_cbf_cr(ctx,x0,y0, trafoDepth);
-  }
-  logtrace(LogSlice,"check cbf_cr[%d;%d;%d]: %d\n", xBase,yBase,trafoDepth,
-           get_cbf_cr(ctx,xBase,yBase,trafoDepth));
 
   if (split_transform_flag) {
     int x1 = x0 + (1<<(log2TrafoSize-1));
@@ -2585,13 +2576,13 @@ void read_transform_tree(decoder_context* ctx,
     logtrace(LogSlice,"transform split.\n");
 
     read_transform_tree(ctx,tctx, x0,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 0,
-                        MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+                        MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
     read_transform_tree(ctx,tctx, x1,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 1,
-                        MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+                        MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
     read_transform_tree(ctx,tctx, x0,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 2,
-                        MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+                        MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
     read_transform_tree(ctx,tctx, x1,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 3,
-                        MaxTrafoDepth,IntraSplitFlag, cuPredMode);
+                        MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
   }
   else {
     int cbf_luma=1;
@@ -3186,7 +3177,7 @@ void read_coding_unit(decoder_context* ctx,
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
         read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
-                            MaxTrafoDepth, IntraSplitFlag, cuPredMode);
+                            MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
       }
     }
   }

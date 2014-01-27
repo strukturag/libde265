@@ -908,28 +908,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
         ctx->tu_info[ tux + tuy*ctx->current_sps->PicWidthInTbsY ].Field |= value; \
       }
 
-void set_cbf_cb(decoder_context* ctx, int x0,int y0, int depth)
-{
-  logtrace(LogSlice,"set_cbf_cb at %d;%d depth %d\n",x0,y0,depth);
-  ctx->tu_info[TU_IDX(x0,y0)].cbf_cb |= (1<<depth);
-}
-
-void set_cbf_cr(decoder_context* ctx, int x0,int y0, int depth)
-{
-  logtrace(LogSlice,"set_cbf_cr at %d;%d depth %d\n",x0,y0,depth);
-  ctx->tu_info[TU_IDX(x0,y0)].cbf_cr |= (1<<depth);
-}
-
-int  get_cbf_cb(const decoder_context* ctx, int x0,int y0, int depth)
-{
-  return (ctx->tu_info[TU_IDX(x0,y0)].cbf_cb & (1<<depth)) ? 1:0;
-}
-
-int  get_cbf_cr(const decoder_context* ctx, int x0,int y0, int depth)
-{
-  return (ctx->tu_info[TU_IDX(x0,y0)].cbf_cr & (1<<depth)) ? 1:0;
-}
-
 
 void set_SliceAddrRS(decoder_context* ctx, int ctbX, int ctbY, int SliceAddrRS)
 {
