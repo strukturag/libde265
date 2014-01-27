@@ -141,6 +141,11 @@ typedef struct de265_image {
   bool PicOutputFlag;
   enum PictureState PicState;
 
+
+  seq_parameter_set* sps;  // the SPS used for decoding this image
+  pic_parameter_set* pps;  // the PPS used for decoding this image
+
+
   CTB_info* ctb_info; // in raster scan
   int ctb_info_size;
 

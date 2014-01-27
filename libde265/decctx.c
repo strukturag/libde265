@@ -643,6 +643,9 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
       loginfo(LogDPB,"push image %d into reordering queue\n", ctx->img->PicOrderCntVal);
     }
 
+    ctx->img->sps = NULL; // this may not be valid anymore in the future
+    ctx->img->pps = NULL; // this may not be valid anymore in the future
+
     ctx->last_decoded_image = ctx->img;
     ctx->img = NULL;
 
@@ -765,8 +768,11 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
       return false;
     }
 
-    ctx->img = &ctx->dpb[image_buffer_idx];
+    de265_image* img = &ctx->dpb[image_buffer_idx];
+    ctx->img = img;
 
+    img->sps = ctx->current_sps;
+    img->pps = ctx->current_pps;
 
     reset_decoder_context_for_new_picture(ctx);
     prepare_new_picture(ctx);
