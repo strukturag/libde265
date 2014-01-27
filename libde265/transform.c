@@ -280,7 +280,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogTransform,"bdShift2=%d\n",bdShift2);
 
     logtrace(LogSlice,"get_transform_skip_flag(%d,%d, cIdx=%d)=%d\n",xT,yT,cIdx,
-             get_transform_skip_flag(ctx,xT,yT,cIdx));
+             transform_skip_flag);
 
     if (transform_skip_flag) {
 

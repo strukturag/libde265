@@ -2156,51 +2156,58 @@ int residual_coding(decoder_context* ctx,
     if (sub_block_is_coded) {
       memset(significant_coeff_flag, 0, 4*4);
 
-      for (int n= (i==lastSubBlock) ? lastScanPos-1 : 15 ;
-           n>=0 ; n--) {
+      int x0 = S.x<<2;
+      int y0 = S.y<<2;
+
+      // --- decode all coefficients except DC coefficient ---
+
+      int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
+      for (int n= last_coeff ; n>0 ; n--) {
         int subX = ScanOrderPos[n].x;
         int subY = ScanOrderPos[n].y;
-        xC = (S.x<<2) + subX;
-        yC = (S.y<<2) + subY;
+        xC = x0 + subX;
+        yC = y0 + subY;
 
-        logtrace(LogSlice,"n=%d , S.x=%d S.y=%d\n",n,S.x,S.y);
 
-        if (n>0 || inferSbDcSigCoeffFlag==0) {
-          //if (coded_sub_block_flag[S.x+S.y*sbWidth] && !(n==0 && inferSbDcSigCoeffFlag)) {
-          int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
-                                                                sbWidth, cIdx,scanIdx);
+        // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-          if (significant_coeff) {
-            significant_coeff_flag[subY][subX] = significant_coeff;
-
-            hasNonZero=true;
-            inferSbDcSigCoeffFlag = 0;
-          }
-        }
-        else if (n==0 && // DC coefficient (in sub-block)
-                 inferSbDcSigCoeffFlag) {
-          significant_coeff_flag[subY][subX]=1;
-          hasNonZero=true;
-        }
-      }
-
-#if 0
-      if (inferSbDcSigCoeffFlag==0) {
-        //if (coded_sub_block_flag[S.x+S.y*sbWidth] && !(n==0 && inferSbDcSigCoeffFlag)) {
         int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
                                                               sbWidth, cIdx,scanIdx);
 
         if (significant_coeff) {
-          significant_coeff_flag[0][0] = significant_coeff;
+          significant_coeff_flag[subY][subX] = significant_coeff;
 
           hasNonZero=true;
+
+          // since we have a coefficient in the sub-block,
+          // we cannot infer the DC coefficient anymore
+          inferSbDcSigCoeffFlag = 0;
         }
       }
-      else if (inferSbDcSigCoeffFlag) {
-        significant_coeff_flag[0][0]=1;
-        hasNonZero=true;
-      }
-#endif
+
+
+      // --- decode DC coefficient ---
+
+      if (last_coeff>=0)
+        {
+          if (inferSbDcSigCoeffFlag==0) {
+            // if we cannot infert the DC coefficient, it is coded
+            int significant_coeff = decode_significant_coeff_flag(tctx, x0,y0, coded_sub_block_flag,
+                                                                  sbWidth, cIdx,scanIdx);
+
+            if (significant_coeff) {
+              significant_coeff_flag[0][0] = significant_coeff;
+
+              hasNonZero=true;
+            }
+          }
+          else {
+            // we can infer that the DC coefficient must be present
+            significant_coeff_flag[0][0]=1;
+            hasNonZero=true;
+          }
+        }
+
     }
 
     // set the last coded coefficient in the last subblock
