@@ -210,8 +210,8 @@ void debug_dump_cb_info(const decoder_context*);
 //void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
 //int  get_SliceAddrRS(const decoder_context*, int ctbX, int ctbY);
 
-void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderIndex);
-int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
+//void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderIndex);
+//int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
 

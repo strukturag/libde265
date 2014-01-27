@@ -503,3 +503,20 @@ int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int c
 {
   return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS;
 }
+
+
+void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
+                          int x, int y, int SliceHeaderIndex)
+{
+  int ctbX = x >> sps->Log2CtbSizeY;
+  int ctbY = y >> sps->Log2CtbSizeY;
+  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+}
+
+int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y)
+{
+  int ctbX = x >> sps->Log2CtbSizeY;
+  int ctbY = y >> sps->Log2CtbSizeY;
+  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex;
+}
+

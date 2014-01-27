@@ -870,28 +870,14 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 }
 
 
-void set_SliceHeaderIndex(decoder_context* ctx, int x, int y, int SliceHeaderIndex)
-{
-  int ctbX = x >> ctx->current_sps->Log2CtbSizeY;
-  int ctbY = y >> ctx->current_sps->Log2CtbSizeY;
-  ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
-}
-
-int  get_SliceHeaderIndex(const decoder_context* ctx, int x, int y)
-{
-  int ctbX = x >> ctx->current_sps->Log2CtbSizeY;
-  int ctbY = y >> ctx->current_sps->Log2CtbSizeY;
-  return ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex;
-}
-
 slice_segment_header* get_SliceHeader(decoder_context* ctx, int x, int y)
 {
-  return &ctx->slice[ get_SliceHeaderIndex(ctx,x,y) ];
+  return &ctx->slice[ get_SliceHeaderIndex(ctx->img, ctx->current_sps,x,y) ];
 }
 
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)
 {
-  return &ctx->slice[ ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
+  return &ctx->slice[ ctx->img->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
 }
 
 

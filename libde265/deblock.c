@@ -424,7 +424,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
         logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
 
-        int sliceIndexQ00 = get_SliceHeaderIndex(ctx,xDi,yDi);
+        int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,ctx->current_sps,xDi,yDi);
         int beta_offset = ctx->slice[sliceIndexQ00].slice_beta_offset;
         int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
 
@@ -668,7 +668,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
           logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,QP_C);
 
-          int sliceIndexQ00 = get_SliceHeaderIndex(ctx,2*xDi,2*yDi);
+          int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,ctx->current_sps,2*xDi,2*yDi);
           int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
 
           int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);

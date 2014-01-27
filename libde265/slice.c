@@ -1911,7 +1911,7 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
   set_SliceAddrRS(ctx->img, sps, xCtb, yCtb,
                   tctx->SliceAddrRS);
 
-  set_SliceHeaderIndex(ctx,xCtbPixels,yCtbPixels, shdr->slice_index);
+  set_SliceHeaderIndex(ctx->img,sps, xCtbPixels,yCtbPixels, shdr->slice_index);
 
 
   int CtbAddrInSliceSeg = tctx->CtbAddrInRS - shdr->slice_segment_address;
