@@ -3183,88 +3183,10 @@ void read_coding_unit(decoder_context* ctx,
       }
     }
   }
-
-
-  // decode_CU(ctx,tctx, x0,y0, log2CbSize);
 }
 
 
 // ------------------------------------------------------------------------------------------
-
-
-/*
-void decode_inter_block_luma(decoder_context* ctx,
-                             thread_context* tctx,
-                             int xC,int yC, int xB0,int yB0,
-                             int xCU,int yCU,
-                             int log2TrafoSize,int trafoDepth, int nCbS)
-{
-  int splitFlag = get_split_transform_flag(ctx,xC+xB0,yC+yB0,trafoDepth);
-
-  if (splitFlag) {
-    int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
-    int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
-
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB0,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
-    decode_inter_block_luma(ctx, tctx, xC,yC, xB1,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS);
-  }
-  else {
-    int nT = 1<<log2TrafoSize;
-
-    scale_coefficients(ctx, tctx, xC+xB0,yC+yB0, xCU,yCU, nT,0);
-  }
-}
-
-
-void decode_inter_block_chroma(decoder_context* ctx,thread_context* tctx,
-                               int xC,int yC, int xB0,int yB0,
-                               int xCU,int yCU,
-                               int log2TrafoSize,int trafoDepth, int nCbS, int cIdx)
-{
-  int splitChromaFlag = get_split_transform_flag(ctx,xC+xB0,yC+yB0,trafoDepth) && log2TrafoSize>3;
-
-  if (splitChromaFlag) {
-    int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
-    int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
-
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB0,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB0,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-    decode_inter_block_chroma(ctx, tctx, xC,yC, xB1,yB1,xCU,yCU,log2TrafoSize-1,trafoDepth+1, nCbS, cIdx);
-  }
-  else {
-    int nT = 1<<(log2TrafoSize-1);
-
-    scale_coefficients(ctx, tctx, (xC+xB0)/2,(yC+yB0)/2, xCU/2,yCU/2, nT,cIdx);
-  }
-}
-*/
-
-
-/*
-void decode_inter_block(decoder_context* ctx,thread_context* tctx,
-                        int xC, int yC, int log2CbSize)
-{
-  int nCSL = 1<<log2CbSize;
-  int nCSC = (1<<log2CbSize)>>1;
-
-  int rqt_root_cbf = get_rqt_root_cbf(ctx,xC,yC);
-  int skip_flag    = get_cu_skip_flag(ctx,xC,yC);
-
-  if (rqt_root_cbf==0 || skip_flag==1) {
-    // NOP
-  }
-  else {
-    logtrace(LogTransform,"decode inter block: %d,%d %dx%d\n",xC,yC,1<<log2CbSize,1<<log2CbSize);
-
-    decode_inter_block_luma  (ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSL);
-    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,1);
-    decode_inter_block_chroma(ctx,tctx,xC,yC, 0,0, xC,yC,log2CbSize,0, nCSC ,2);
-  }
-}
-*/
 
 
 void read_coding_quadtree(decoder_context* ctx,

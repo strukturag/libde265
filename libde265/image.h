@@ -78,6 +78,7 @@ typedef struct {
 } PB_ref_info;
 
 
+/*
 typedef struct {
   //uint16_t cbf_cb;   // bitfield (1<<depth)
   //uint16_t cbf_cr;   // bitfield (1<<depth)
@@ -86,10 +87,11 @@ typedef struct {
   //uint8_t IntraPredMode;  // NOTE: can be thread-local // (enum IntraPredMode)
   //uint8_t IntraPredModeC; // NOTE: can be thread-local // (enum IntraPredMode)
 
-  uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
-  uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
-  uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
+  //uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
+  //uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
+  //uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
 } TU_log_info;
+*/
 
 
 typedef struct de265_image {
