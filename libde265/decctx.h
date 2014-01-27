@@ -213,7 +213,8 @@ const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
-bool available_zscan(const decoder_context* ctx,
+// TODO: move to some utility file
+bool available_zscan(const de265_image* ctx,
                      int xCurr,int yCurr, int xN,int yN);
 
 bool available_pred_blk(const decoder_context* ctx,

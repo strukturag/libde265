@@ -897,11 +897,11 @@ void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const Pred
 
 
 
-bool available_zscan(const decoder_context* ctx,
+bool available_zscan(const de265_image* img,
                      int xCurr,int yCurr, int xN,int yN)
 {
-  seq_parameter_set* sps = ctx->current_sps;
-  pic_parameter_set* pps = ctx->current_pps;
+  seq_parameter_set* sps = img->sps;
+  pic_parameter_set* pps = img->pps;
 
   if (xN<0 || yN<0) return false;
   if (xN>=sps->pic_width_in_luma_samples ||
@@ -919,8 +919,8 @@ bool available_zscan(const decoder_context* ctx,
   int xNCtb = xN >> sps->Log2CtbSizeY;
   int yNCtb = yN >> sps->Log2CtbSizeY;
 
-  if (get_SliceAddrRS(ctx->img,sps, xCurrCtb,yCurrCtb) !=
-      get_SliceAddrRS(ctx->img,sps, xNCtb,   yNCtb)) {
+  if (get_SliceAddrRS(img,sps, xCurrCtb,yCurrCtb) !=
+      get_SliceAddrRS(img,sps, xNCtb,   yNCtb)) {
     return false;
   }
 
@@ -943,7 +943,7 @@ bool available_pred_blk(const decoder_context* ctx,
   bool availableN;
 
   if (!sameCb) {
-    availableN = available_zscan(ctx,xP,yP,xN,yN);
+    availableN = available_zscan(ctx->img,xP,yP,xN,yN);
   }
   else {
     availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
