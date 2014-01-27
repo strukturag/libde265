@@ -160,6 +160,10 @@ static struct option long_options[] = {
 };
 
 #ifdef HAVE___MALLOC_HOOK
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 static void *(*old_malloc_hook)(size_t, const void *);
 
 static void *new_malloc_hook(size_t size, const void *caller) {
@@ -186,6 +190,9 @@ static void init_my_hooks(void) {
 
 #if DO_MEMORY_LOGGING
 void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 #endif
 
