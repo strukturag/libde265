@@ -1847,8 +1847,7 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
 
   int task_id = sps->PicWidthInCtbsY * ctby + ctbx;
 
-  //int cnt = decrease_CTB_deblocking_cnt(ctx->img,sps,ctbx,ctby);
-  int cnt = decrease_CTB_deblocking_cnt(ctx,ctbx,ctby);
+  int cnt = decrease_CTB_deblocking_cnt_new(ctx->img,sps,ctbx,ctby);
 
   //printf("add task %d %d (blk=%d)\n",ctbx,ctby,cnt);
 

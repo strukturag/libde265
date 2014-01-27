@@ -548,9 +548,9 @@ uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set
   int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
 
 #ifndef _WIN32
-  uint8_t blkcnt = __sync_sub_and_fetch(&img->ctb_info[idx].task_blocking_cnt, 1);
+  de265_sync_int blkcnt = __sync_sub_and_fetch(&img->ctb_info[idx].task_blocking_cnt, 1);
 #else
-  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&img->ctb_info[idx].task_blocking_cnt));
+  de265_sync_int blkcnt = InterlockedDecrement((volatile long*)(&img->ctb_info[idx].task_blocking_cnt));
 #endif
 
   return blkcnt;

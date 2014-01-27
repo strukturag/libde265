@@ -162,9 +162,6 @@ typedef struct decoder_context {
 
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
-  CTB_info* ctb_info; // in raster scan
-  int ctb_info_size;
-
   // --- parameters derived from parameter sets ---
 
   // NAL
@@ -215,9 +212,6 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
 const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
-
-void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt);
-uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY);
 
 bool available_zscan(const decoder_context* ctx,
                      int xCurr,int yCurr, int xN,int yN);

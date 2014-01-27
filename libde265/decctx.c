@@ -103,8 +103,6 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
-  memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
-
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
 
   ctx->next_free_slice_index = 0;
@@ -112,6 +110,8 @@ void reset_decoder_context_for_new_picture(decoder_context* ctx)
 
 void prepare_new_picture(decoder_context* ctx)
 {
+  prepare_image_for_decoding(ctx->img);
+
   // initialize threading tasks (TODO: move this to picture initialization)
 
   int w = ctx->current_sps->PicWidthInCtbsY;
@@ -122,39 +122,8 @@ void prepare_new_picture(decoder_context* ctx)
       {
         int cnt=2;
         if (y==0 || x==0) cnt--;
-        //set_CTB_deblocking_cnt(ctx->img,ctx->current_sps,x,y, cnt);
-        set_CTB_deblocking_cnt(ctx,x,y, cnt);
+        set_CTB_deblocking_cnt_new(ctx->img,ctx->current_sps,x,y, cnt);
       }
-
-  prepare_image_for_decoding(ctx->img);
-}
-
-
-void free_info_arrays(decoder_context* ctx)
-{
-  if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
-}
-
-
-de265_error allocate_info_arrays(decoder_context* ctx)
-{
-  seq_parameter_set* sps = ctx->current_sps;
-
-  if (ctx->ctb_info_size != sps->PicSizeInCtbsY)
-    {
-      free_info_arrays(ctx);
-
-      ctx->ctb_info_size  = sps->PicSizeInCtbsY;
-
-      ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size);
-
-      if (ctx->ctb_info==NULL) {
-	free_info_arrays(ctx);
-	return DE265_ERROR_OUT_OF_MEMORY;
-      }
-    }
-
-  return DE265_OK;
 }
 
 
@@ -168,16 +137,6 @@ void free_decoder_context(decoder_context* ctx)
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_free_image(&ctx->dpb[i]);
   }
-  //de265_free_image(&ctx->img);
-  // HACK de265_free_image(&ctx->coeff);
-
-  free_info_arrays(ctx);
-  //free_image(&ctx->intra_pred_available);
-
-  free_info_arrays(ctx);
-
-  //video_parameter_set vps[ MAX_VPS_SETS ];
-  //seq_parameter_set   sps[ MAX_SPS_SETS ];
 
   for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
     free_pps(&ctx->pps[i]);
@@ -794,11 +753,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 
 
-    // allocate info arrays
-
-    *err = allocate_info_arrays(ctx);
-    if (*err != DE265_OK) { return false; }
-
     seq_parameter_set* sps = ctx->current_sps;
 
 
@@ -813,8 +767,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
     ctx->img = &ctx->dpb[image_buffer_idx];
 
-
-    //ctx->img->pb_info_nextRootIdx = 0;
 
     reset_decoder_context_for_new_picture(ctx);
     prepare_new_picture(ctx);
@@ -1347,24 +1299,3 @@ de265_error get_warning(decoder_context* ctx)
 
   return warn;
 }
-
-
-void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt)
-{
-  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
-  ctx->ctb_info[idx].task_blocking_cnt = cnt;
-}
-
-
-uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY)
-{
-  int idx = ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY;
-
-#ifndef _WIN32
-  uint8_t blkcnt = __sync_sub_and_fetch(&ctx->ctb_info[idx].task_blocking_cnt, 1);
-#else
-  uint8_t blkcnt = InterlockedDecrement((volatile long*)(&ctx->ctb_info[idx].task_blocking_cnt));
-#endif
-  return blkcnt;
-}
-
