@@ -2140,18 +2140,19 @@ int residual_coding(decoder_context* ctx,
 
       inferSbDcSigCoeffFlag=1;
     }
-    else if (i==0) { // NOTE: equivalent to: S.x==0 && S.y==0) {
+    else if (i==0 || i==lastSubBlock) {
+      // first (DC) and last sub-block are always marked as coded
+
       coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
     }
-    else if (i==lastSubBlock) {
-      // NOTE: equivalent to: S.x==LastSignificantCoeffX>>2 && S.y==LastSignificantCoeffY>>2) {
-      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
-    }
 
 
-    bool hasNonZero = false;
 
-    uint8_t significant_coeff_flag[4][4];
+    // ----- find significant coefficients in this sub-block -----
+
+    bool hasNonZero = false; // if this flag stays false, there are no significant coefficients
+
+    uint8_t significant_coeff_flag[4][4]; // only valid contents if 'hasNonZero' is true
 
     if (sub_block_is_coded) {
       memset(significant_coeff_flag, 0, 4*4);
