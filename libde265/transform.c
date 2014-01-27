@@ -190,7 +190,8 @@ static const int levelScale[] = { 40,45,51,57,64,72 };
 void scale_coefficients(decoder_context* ctx, thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
-                        int nT, int cIdx)
+                        int nT, int cIdx,
+                        bool transform_skip_flag)
 {
   seq_parameter_set* sps = ctx->current_sps;
   slice_segment_header* shdr = tctx->shdr;
@@ -281,7 +282,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogSlice,"get_transform_skip_flag(%d,%d, cIdx=%d)=%d\n",xT,yT,cIdx,
              get_transform_skip_flag(ctx,xT,yT,cIdx));
 
-    if (get_transform_skip_flag(ctx,xT,yT,cIdx)) { // NOTE: could add shortcut nT==4 && ...
+    if (transform_skip_flag) {
 
       ctx->lowlevel.transform_skip_8(pred, coeff, stride);
 

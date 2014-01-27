@@ -1991,14 +1991,7 @@ int residual_coding(decoder_context* ctx,
       !shdr->cu_transquant_bypass_flag &&
       (log2TrafoSize==2))
     {
-      int transform_skip_flag = decode_transform_skip_flag(tctx,cIdx);
-      if (transform_skip_flag) {
-        int x0C = (cIdx==0) ? x0 : x0/2;
-        int y0C = (cIdx==0) ? y0 : y0/2;
-
-        logtrace(LogSlice,"set_transform_skip_flag(%d,%d,cIdx=%d)=1\n",x0C,y0C,cIdx);
-        set_transform_skip_flag(ctx,x0C,y0C,cIdx);
-      }
+      tctx->transform_skip_flag[cIdx] = decode_transform_skip_flag(tctx,cIdx);
     }
 
   int last_significant_coeff_x_prefix =
@@ -2433,6 +2426,10 @@ int read_transform_unit(decoder_context* ctx,
   assert(cbf_cr != -1);
   assert(cbf_luma != -1);
 
+  tctx->transform_skip_flag[0]=0;
+  tctx->transform_skip_flag[1]=0;
+  tctx->transform_skip_flag[2]=0;
+
   if (cbf_luma || cbf_cb || cbf_cr)
     {
       if (ctx->current_pps->cu_qp_delta_enabled_flag &&
@@ -2621,23 +2618,28 @@ void read_transform_tree(decoder_context* ctx,
       }
 
     if (cbf_luma) {
-      scale_coefficients(ctx, tctx, x0,y0, xCUBase,yCUBase, nT, 0);
+      scale_coefficients(ctx, tctx, x0,y0, xCUBase,yCUBase, nT, 0,
+                         tctx->transform_skip_flag[0]);
     }
 
     if (nT>=8) {
       if (cbf_cb) {
-        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1);
+        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
+                           tctx->transform_skip_flag[1]);
       }
       if (cbf_cr) {
-        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2);
+        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
+                           tctx->transform_skip_flag[2]);
       }
     }
     else if (blkIdx==3) {
       if (cbf_cb) {
-        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1);
+        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
+                           tctx->transform_skip_flag[1]);
       }
       if (cbf_cr) {
-        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2);
+        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
+                           tctx->transform_skip_flag[2]);
       }
     }
   }

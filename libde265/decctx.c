@@ -957,18 +957,6 @@ int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafo
 }
 
 
-void set_transform_skip_flag(decoder_context* ctx,int x0,int y0,int cIdx)
-{
-  ctx->tu_info[TU_IDX(x0,y0)].transform_skip_flag |= (1<<cIdx);
-}
-
-int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx)
-{
-  int idx = TU_IDX(x0,y0);
-  return (ctx->tu_info[idx].transform_skip_flag & (1<<cIdx)) ? 1:0;
-}
-
-
 void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
 {
   OR_TU_BLK(x,y,log2TrafoSize, flags, TU_FLAG_NONZERO_COEFF);

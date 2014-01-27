@@ -666,7 +666,8 @@ void decode_intra_block(decoder_context* ctx,
                         int xB0,int yB0,  // position of TU in frame (chroma adapted)
                         int x0,int y0,    // position of CU in frame (chroma adapted)
                         int log2TrafoSize, int trafoDepth,
-                        enum IntraPredMode intraPredMode)
+                        enum IntraPredMode intraPredMode,
+                        bool transform_skip_flag)
 {
   //printf("decode_intra_block: xB0:%d/%d x0:%d/%d\n",xB0,yB0,x0,y0);
 
@@ -699,10 +700,10 @@ void decode_intra_block(decoder_context* ctx,
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
 
-    decode_intra_block(ctx,tctx,cIdx,xB0,yB0,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,tctx,cIdx,xB1,yB0,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,tctx,cIdx,xB0,yB1,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
-    decode_intra_block(ctx,tctx,cIdx,xB1,yB1,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode);
+    decode_intra_block(ctx,tctx,cIdx,xB0,yB0,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode,transform_skip_flag);
+    decode_intra_block(ctx,tctx,cIdx,xB1,yB0,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode,transform_skip_flag);
+    decode_intra_block(ctx,tctx,cIdx,xB0,yB1,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode,transform_skip_flag);
+    decode_intra_block(ctx,tctx,cIdx,xB1,yB1,x0,y0,log2TrafoSize-1,trafoDepth+1,intraPredMode,transform_skip_flag);
   }
   else {
     int nT = 1<<log2TrafoSize;
@@ -713,6 +714,6 @@ void decode_intra_block(decoder_context* ctx,
 
     // (8.6.2)
 
-    scale_coefficients(ctx, tctx, xB0,yB0, x0,y0, nT,cIdx);
+    scale_coefficients(ctx, tctx, xB0,yB0, x0,y0, nT,cIdx, transform_skip_flag);
   }
 }

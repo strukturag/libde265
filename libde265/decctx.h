@@ -78,7 +78,6 @@ typedef struct {
 
 typedef struct {
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
-  uint8_t transform_skip_flag;   // NOTE: can be in local context    // read bit (1<<cIdx)
   uint8_t flags;                 // NOTE: can be removed if deblocking flags set during decoding (nonzero coefficients)
 } TU_info;
 
@@ -267,9 +266,6 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
 
 void set_split_transform_flag(decoder_context* ctx,int x0,int y0,int trafoDepth);
 int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafoDepth);
-
-void set_transform_skip_flag(decoder_context* ctx,int x0,int y0,int cIdx);
-int  get_transform_skip_flag(const decoder_context* ctx,int x0,int y0,int cIdx);
 
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
