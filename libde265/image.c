@@ -412,3 +412,12 @@ int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps
 {
   return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
 }
+
+
+enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
+
+  return (enum IntraPredMode) img->intraPredMode[PUidx];
+}
+

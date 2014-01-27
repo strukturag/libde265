@@ -218,6 +218,8 @@ void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
 int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
                              int x,int y);
 
+enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
 // --- value logging ---
 
 #endif

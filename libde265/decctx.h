@@ -235,8 +235,6 @@ de265_error get_warning(decoder_context* ctx);
 
 void debug_dump_cb_info(const decoder_context*);
 
-enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
-
 void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
 int  get_SliceAddrRS(const decoder_context*, int ctbX, int ctbY);
 

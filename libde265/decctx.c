@@ -917,46 +917,6 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
 }
 
 
-#if 0
-void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
-{
-  OR_TU_BLK(x,y,log2TrafoSize, flags, TU_FLAG_NONZERO_COEFF);
-}
-
-
-int  get_nonzero_coefficient(const decoder_context* ctx,int x,int y)
-{
-  return GET_TU_BLK(x,y).flags & TU_FLAG_NONZERO_COEFF;
-}
-#endif
-
-
-#if 0
-void set_QPY(decoder_context* ctx,int x,int y, int QP_Y)
-{
-  assert(x>=0 && x<ctx->current_sps->pic_width_in_luma_samples);
-  assert(y>=0 && y<ctx->current_sps->pic_height_in_luma_samples);
-
-  SET_CB_BLK_SAVE(x,y,ctx->current_pps->Log2MinCuQpDeltaSize, QP_Y, QP_Y);
-}
-
-int  get_QPY(const decoder_context* ctx,int x,int y)
-{
-  return GET_CB_BLK(x,y).QP_Y;
-}
-#endif
-
-
-enum IntraPredMode get_IntraPredMode(const decoder_context* ctx, const de265_image* img, int x,int y)
-{
-  const seq_parameter_set* sps = ctx->current_sps;
-
-  int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
-
-  return (enum IntraPredMode) img->intraPredMode[PUidx];
-}
-
-
 void    set_deblk_flags(decoder_context* ctx, int x0,int y0, uint8_t flags)
 {
   const int xd = x0/4;
@@ -1309,12 +1269,13 @@ void draw_PB_block(const decoder_context* ctx,uint8_t* img,int stride,
 void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
                     uint8_t value, enum DrawMode what)
 {
-  int minCbSize = ctx->current_sps->MinCbSizeY;
+  const seq_parameter_set* sps = ctx->current_sps;
+  int minCbSize = sps->MinCbSizeY;
 
-  for (int y0=0;y0<ctx->current_sps->PicHeightInMinCbsY;y0++)
-    for (int x0=0;x0<ctx->current_sps->PicWidthInMinCbsY;x0++)
+  for (int y0=0;y0<sps->PicHeightInMinCbsY;y0++)
+    for (int x0=0;x0<sps->PicWidthInMinCbsY;x0++)
       {
-        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,ctx->current_sps,x0,y0);
+        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,sps,x0,y0);
         if (log2CbSize==0) {
           continue;
         }
@@ -1331,7 +1292,7 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
         }
         else if (what == Partitioning_PB ||
                  what == PBPredMode) {
-          enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xb,yb);
+          enum PartMode partMode = get_PartMode(ctx->img,sps,xb,yb);
 
           int CbSize = 1<<log2CbSize;
           int HalfCbSize = (1<<(log2CbSize-1));
@@ -1376,26 +1337,26 @@ void draw_tree_grid(const decoder_context* ctx, uint8_t* img, int stride,
           }
         }
         else if (what==IntraPredMode) {
-          enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps,xb,yb);
+          enum PredMode predMode = get_pred_mode(ctx->img,sps,xb,yb);
           if (predMode == MODE_INTRA) {
-            enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xb,yb);
+            enum PartMode partMode = get_PartMode(ctx->img,sps,xb,yb);
 
             int HalfCbSize = (1<<(log2CbSize-1));
 
             switch (partMode) {
             case PART_2Nx2N:
               draw_intra_pred_mode(ctx,img,stride,xb,yb,log2CbSize,
-                                   get_IntraPredMode(ctx,ctx->img,xb,yb), value);
+                                   get_IntraPredMode(ctx->img,sps,xb,yb), value);
               break;
             case PART_NxN:
               draw_intra_pred_mode(ctx,img,stride,xb,           yb,           log2CbSize-1,
-                                   get_IntraPredMode(ctx,ctx->img,xb,yb), value);
+                                   get_IntraPredMode(ctx->img,sps,xb,yb), value);
               draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb,           log2CbSize-1,
-                                   get_IntraPredMode(ctx,ctx->img,xb+HalfCbSize,yb), value);
+                                   get_IntraPredMode(ctx->img,sps,xb+HalfCbSize,yb), value);
               draw_intra_pred_mode(ctx,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1,
-                                   get_IntraPredMode(ctx,ctx->img,xb,yb+HalfCbSize), value);
+                                   get_IntraPredMode(ctx->img,sps,xb,yb+HalfCbSize), value);
               draw_intra_pred_mode(ctx,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1,
-                                   get_IntraPredMode(ctx,ctx->img,xb+HalfCbSize,yb+HalfCbSize), value);
+                                   get_IntraPredMode(ctx->img,sps,xb+HalfCbSize,yb+HalfCbSize), value);
               break;
             default:
               assert(false);
