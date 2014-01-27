@@ -129,7 +129,7 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
     }
 
 
-    // pu info
+    // pb info
 
     int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
     int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
@@ -141,6 +141,15 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       free(img->pb_info);
       img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
       // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
+    }
+
+    // tu info
+
+    if (img->tu_info_size != sps->PicSizeInTbsY ||
+        img->tu_info == NULL) {
+      img->tu_info_size = sps->PicSizeInTbsY;
+      free(img->tu_info);
+      img->tu_info = (uint8_t*)malloc(sizeof(uint8_t) * img->tu_info_size);
     }
   }
 }
@@ -240,6 +249,8 @@ void prepare_image_for_decoding(de265_image* img)
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
   memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
+
+  memset(img->tu_info,  0,img->tu_info_size * sizeof(uint8_t));
 }
 
 
@@ -361,3 +372,29 @@ int  get_QPY(const de265_image* img, const seq_parameter_set* sps,int x,int y)
   return img->cb_info[CB_IDX(x,y)].QP_Y;
 }
 
+
+#define PIXEL2TU(x) (x >> sps->Log2MinTrafoSize)
+#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*sps->PicWidthInTbsY)
+
+#define OR_TU_BLK(x,y,log2BlkWidth,  Field,value)                       \
+  int tuX = PIXEL2TU(x);                                                \
+  int tuY = PIXEL2TU(y);                                                \
+  int width = 1 << (log2BlkWidth - sps->Log2MinTrafoSize);              \
+  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
+    for (int tux=tuX;tux<tuX+width;tux++)                               \
+      {                                                                 \
+        ctx->tu_info[ tux + tuy*sps->PicWidthInTbsY ].Field |= value;   \
+      }
+
+void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth)
+{
+  img->tu_info[TU_IDX(x0,y0)] |= (1<<trafoDepth);
+}
+
+int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth)
+{
+  int idx = TU_IDX(x0,y0);
+  return (img->tu_info[idx] & (1<<trafoDepth));
+}

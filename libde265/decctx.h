@@ -71,10 +71,8 @@ typedef struct {
 } CTB_info;
 
 
-#define TU_FLAG_NONZERO_COEFF  (1<<0)
-//#define TU_FLAG_AVAILABLE_LEFT    (1<<1)
-//#define TU_FLAG_AVAILABLE_TOP     (1<<2)
-//#define TU_FLAG_AVAILABLE_TOPLEFT (1<<3)
+#define TU_FLAG_NONZERO_COEFF  (1<<7)
+#define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
 
 typedef struct {
   uint8_t split_transform_flag;  // NOTE: can be local if deblocking flags set during decoding
@@ -263,9 +261,6 @@ void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderI
 int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
-
-void set_split_transform_flag(decoder_context* ctx,int x0,int y0,int trafoDepth);
-int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafoDepth);
 
 void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
 int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);

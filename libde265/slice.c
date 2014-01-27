@@ -2528,7 +2528,7 @@ void read_transform_tree(decoder_context* ctx,
 
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
-    set_split_transform_flag(ctx,x0,y0,trafoDepth);
+    set_split_transform_flag(ctx->img,sps,x0,y0,trafoDepth);
   }
 
 

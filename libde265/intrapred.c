@@ -676,7 +676,7 @@ void decode_intra_block(decoder_context* ctx,
   int splitFlag;
 
   if (cIdx==0) {
-    splitFlag = get_split_transform_flag(ctx,xB0,yB0,trafoDepth);
+    splitFlag = get_split_transform_flag(ctx->img,ctx->current_sps,xB0,yB0,trafoDepth);
 
     logtrace(LogIntraPred,"get_split_transform_flag(%d,%d, %d)=%d\n",xB0,yB0,trafoDepth,splitFlag);
   }
@@ -689,14 +689,14 @@ void decode_intra_block(decoder_context* ctx,
       splitFlag = 0;
     }
     else {
-      splitFlag = get_split_transform_flag(ctx,xB0<<1,yB0<<1,trafoDepth);
+      splitFlag = get_split_transform_flag(ctx->img,ctx->current_sps,xB0<<1,yB0<<1,trafoDepth);
     }
   }
 
 
   logtrace(LogIntraPred,"splitFlag=%d\n",splitFlag);
 
-  if (splitFlag==1) {
+  if (splitFlag) {
     int xB1 = xB0 + ((1<<log2TrafoSize)>>1);
     int yB1 = yB0 + ((1<<log2TrafoSize)>>1);
 

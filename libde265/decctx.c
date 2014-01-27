@@ -945,17 +945,6 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
   return &ctx->slice[ ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
 }
 
-void set_split_transform_flag(decoder_context* ctx,int x0,int y0,int trafoDepth)
-{
-  ctx->tu_info[TU_IDX(x0,y0)].split_transform_flag |= (1<<trafoDepth);
-}
-
-int  get_split_transform_flag(const decoder_context* ctx,int x0,int y0,int trafoDepth)
-{
-  int idx = TU_IDX(x0,y0);
-  return (ctx->tu_info[idx].split_transform_flag & (1<<trafoDepth)) ? 1:0;
-}
-
 
 void set_nonzero_coefficient(decoder_context* ctx,int x,int y, int log2TrafoSize)
 {
@@ -1287,7 +1276,8 @@ void draw_intra_pred_mode(const decoder_context* ctx,
 void drawTBgrid(const decoder_context* ctx, uint8_t* img, int stride,
                 int x0,int y0, uint8_t value, int log2CbSize, int trafoDepth)
 {
-  if (get_split_transform_flag(ctx,x0,y0,trafoDepth)) {
+  int split_transform_flag = get_split_transform_flag(ctx->img, ctx->current_sps,x0,y0,trafoDepth);
+  if (split_transform_flag) {
     int x1 = x0 + ((1<<(log2CbSize-trafoDepth))>>1);
     int y1 = y0 + ((1<<(log2CbSize-trafoDepth))>>1);
     drawTBgrid(ctx,img,stride,x0,y0,value,log2CbSize,trafoDepth+1);

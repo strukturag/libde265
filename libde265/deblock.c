@@ -35,7 +35,8 @@ void markTransformBlockBoundary(decoder_context* ctx, int x0,int y0,
   logtrace(LogDeblock,"markTransformBlockBoundary(%d,%d, %d,%d, %d,%d)\n",x0,y0,
            log2TrafoSize,trafoDepth, filterLeftCbEdge,filterTopCbEdge);
 
-  if (get_split_transform_flag(ctx,x0,y0,trafoDepth)) {
+  int split_transform = get_split_transform_flag(ctx->img,ctx->current_sps,x0,y0,trafoDepth);
+  if (split_transform) {
     int x1 = x0 + ((1<<log2TrafoSize)>>1);
     int y1 = y0 + ((1<<log2TrafoSize)>>1);
 

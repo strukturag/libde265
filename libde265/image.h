@@ -134,6 +134,14 @@ typedef struct de265_image {
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
 
+  uint8_t* tu_info;
+  int tu_info_size;
+
+  uint8_t* deblk_info;
+  int deblk_info_size;
+  int deblk_width;
+  int deblk_height;
+
   int RefPicList_POC[2][14+1];
 
   // --- meta information ---
@@ -195,6 +203,11 @@ int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
 void set_QPY(de265_image*, const seq_parameter_set*,
              const pic_parameter_set* pps, int x,int y, int QP_Y);
 int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
+
+void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth);
+int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
+                              int x0,int y0,int trafoDepth);
 
 // --- value logging ---
 
