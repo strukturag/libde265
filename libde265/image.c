@@ -143,6 +143,7 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
     }
 
+
     // tu info
 
     if (img->tu_info_size != sps->PicSizeInTbsY ||
@@ -150,6 +151,22 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       img->tu_info_size = sps->PicSizeInTbsY;
       free(img->tu_info);
       img->tu_info = (uint8_t*)malloc(sizeof(uint8_t) * img->tu_info_size);
+    }
+
+
+    // deblk info
+
+    int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
+    int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
+
+    if (img->deblk_width  != deblk_w ||
+        img->deblk_height != deblk_h ||
+        img->deblk_info == NULL) {
+      img->deblk_width  = deblk_w;
+      img->deblk_height = deblk_h;
+      img->deblk_info_size = deblk_w*deblk_h;
+      free(img->deblk_info);
+      img->deblk_info = (uint8_t*)malloc(sizeof(uint8_t) * img->deblk_info_size);
     }
   }
 }
@@ -163,7 +180,8 @@ void de265_free_image(de265_image* img)
 
   free(img->cb_info);
   free(img->pb_info);
-  //free(img->pb_rootIdx);
+  free(img->tu_info);
+  free(img->deblk_info);
 
   free(img->intraPredMode);
 
@@ -250,7 +268,8 @@ void prepare_image_for_decoding(de265_image* img)
 
   memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
 
-  memset(img->tu_info,  0,img->tu_info_size * sizeof(uint8_t));
+  memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
+  memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
 }
 
 
@@ -421,3 +440,34 @@ enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter
   return (enum IntraPredMode) img->intraPredMode[PUidx];
 }
 
+
+void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
+
+  if (xd<img->deblk_width && yd<img->deblk_height) {
+    img->deblk_info[xd + yd*img->deblk_width] |= flags;
+  }
+}
+
+uint8_t get_deblk_flags(const de265_image* img, int x0,int y0)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
+  assert (xd<img->deblk_width && yd<img->deblk_height);
+
+  return img->deblk_info[xd + yd*img->deblk_width];
+}
+
+void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS)
+{
+  uint8_t* data = &img->deblk_info[x0/4 + y0/4*img->deblk_width];
+  *data &= ~DEBLOCK_BS_MASK;
+  *data |= bS;
+}
+
+uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
+{
+  return img->deblk_info[x0/4 + y0/4*img->deblk_width] & DEBLOCK_BS_MASK;
+}

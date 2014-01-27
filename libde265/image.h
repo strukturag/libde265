@@ -61,6 +61,12 @@ enum PictureState {
 #define TU_FLAG_NONZERO_COEFF  (1<<7)
 #define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
 
+#define DEBLOCK_FLAG_VERTI (1<<4)
+#define DEBLOCK_FLAG_HORIZ (1<<5)
+#define DEBLOCK_PB_EDGE_VERTI (1<<6)
+#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
+#define DEBLOCK_BS_MASK     0x03
+
 
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
@@ -219,6 +225,13 @@ int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps
                              int x,int y);
 
 enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
+
+void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags);
+uint8_t get_deblk_flags(const de265_image* img, int x0,int y0);
+
+void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS);
+uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
 
 // --- value logging ---
 

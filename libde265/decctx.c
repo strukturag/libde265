@@ -104,7 +104,6 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
   memset(ctx->ctb_info, 0,sizeof(CTB_info) * ctx->ctb_info_size);
-  memset(ctx->deblk_info,  0,sizeof(deblock_info)  * ctx->deblk_info_size);
 
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
 
@@ -133,7 +132,6 @@ void prepare_new_picture(decoder_context* ctx)
 void free_info_arrays(decoder_context* ctx)
 {
   if (ctx->ctb_info) { free(ctx->ctb_info); ctx->ctb_info=NULL; }
-  if (ctx->deblk_info)  { free(ctx->deblk_info);  ctx->deblk_info =NULL; }
 }
 
 
@@ -141,23 +139,15 @@ de265_error allocate_info_arrays(decoder_context* ctx)
 {
   seq_parameter_set* sps = ctx->current_sps;
 
-  int deblk_w = (ctx->current_sps->pic_width_in_luma_samples+3)/4;
-  int deblk_h = (ctx->current_sps->pic_height_in_luma_samples+3)/4;
-
-  if (ctx->ctb_info_size != sps->PicSizeInCtbsY ||
-      ctx->deblk_info_size != deblk_w*deblk_h)
+  if (ctx->ctb_info_size != sps->PicSizeInCtbsY)
     {
       free_info_arrays(ctx);
 
       ctx->ctb_info_size  = sps->PicSizeInCtbsY;
-      ctx->deblk_info_size= deblk_w*deblk_h;
-      ctx->deblk_width    = deblk_w;
-      ctx->deblk_height   = deblk_h;
 
       ctx->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * ctx->ctb_info_size);
-      ctx->deblk_info = (deblock_info*)malloc( sizeof(deblock_info) * ctx->deblk_info_size);
 
-      if (ctx->ctb_info==NULL || ctx->deblk_info==NULL) {
+      if (ctx->ctb_info==NULL) {
 	free_info_arrays(ctx);
 	return DE265_ERROR_OUT_OF_MEMORY;
       }
@@ -916,37 +906,6 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
   return &ctx->slice[ ctx->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
 }
 
-
-void    set_deblk_flags(decoder_context* ctx, int x0,int y0, uint8_t flags)
-{
-  const int xd = x0/4;
-  const int yd = y0/4;
-
-  if (xd<ctx->deblk_width && yd<ctx->deblk_height) {
-    ctx->deblk_info[xd + yd*ctx->deblk_width].deblock_flags |= flags;
-  }
-}
-
-uint8_t get_deblk_flags(const decoder_context* ctx, int x0,int y0)
-{
-  const int xd = x0/4;
-  const int yd = y0/4;
-  assert (xd<ctx->deblk_width && yd<ctx->deblk_height);
-
-  return ctx->deblk_info[xd + yd*ctx->deblk_width].deblock_flags;
-}
-
-void    set_deblk_bS(decoder_context* ctx, int x0,int y0, uint8_t bS)
-{
-  uint8_t* data = &ctx->deblk_info[x0/4 + y0/4*ctx->deblk_width].deblock_flags;
-  *data &= ~DEBLOCK_BS_MASK;
-  *data |= bS;
-}
-
-uint8_t get_deblk_bS(const decoder_context* ctx, int x0,int y0)
-{
-  return ctx->deblk_info[x0/4 + y0/4*ctx->deblk_width].deblock_flags & DEBLOCK_BS_MASK;
-}
 
 void            set_sao_info(decoder_context* ctx, int ctbX,int ctbY,const sao_info* saoinfo)
 {

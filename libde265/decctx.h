@@ -65,18 +65,6 @@ typedef struct {
 } CTB_info;
 
 
-
-#define DEBLOCK_FLAG_VERTI (1<<4)
-#define DEBLOCK_FLAG_HORIZ (1<<5)
-#define DEBLOCK_PB_EDGE_VERTI (1<<6)
-#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
-#define DEBLOCK_BS_MASK     0x03
-
-typedef struct {
-  uint8_t deblock_flags;
-} deblock_info;
-
-
 enum LowLevelImplementation {
   LOWLEVEL_AUTO,
   LOWLEVEL_SSE,
@@ -185,13 +173,7 @@ typedef struct decoder_context {
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
   CTB_info* ctb_info; // in raster scan
-  deblock_info* deblk_info;
-
   int ctb_info_size;
-  int deblk_info_size;
-
-  int deblk_width;
-  int deblk_height;
 
   // --- parameters derived from parameter sets ---
 
@@ -242,17 +224,6 @@ void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderI
 int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
-
-/*
-void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
-int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
-*/
-
-void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
-uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);
-
-void    set_deblk_bS(decoder_context*, int x0,int y0, uint8_t bS);
-uint8_t get_deblk_bS(const decoder_context*, int x0,int y0);
 
 void            set_sao_info(decoder_context*, int ctbX,int ctbY,const sao_info* sao_info);
 const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
