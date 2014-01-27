@@ -2091,11 +2091,11 @@ int residual_coding(decoder_context* ctx,
 
   int xC,yC;
 
-  scan_position lastScanPos = get_scan_position(LastSignificantCoeffX, LastSignificantCoeffY,
-                                                scanIdx, log2TrafoSize);
+  scan_position lastScanP = get_scan_position(LastSignificantCoeffX, LastSignificantCoeffY,
+                                              scanIdx, log2TrafoSize);
 
-  int lastScanPos  = lastScanPos.scanPos;
-  int lastSubBlock = lastScanPos.subBlock;
+  int lastScanPos  = lastScanP.scanPos;
+  int lastSubBlock = lastScanP.subBlock;
 
 
   int sbWidth = 1<<(log2TrafoSize-2);
@@ -2121,65 +2121,67 @@ int residual_coding(decoder_context* ctx,
 
   tctx->nCoeff[cIdx] = 0;
 
+
+  // i - subblock index
+  // n - coefficient index in subblock
+
   for (int i=lastSubBlock;i>=0;i--) {
     position S = ScanOrderSub[i];
     int inferSbDcSigCoeffFlag=0;
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
 
-    uint8_t significant_coeff_flag[4][4];
-    memset(significant_coeff_flag, 0, 4*4);
-
     if ((i<lastSubBlock) && (i>0)) {
-      coded_sub_block_flag[S.x+S.y*sbWidth] = decode_coded_sub_block_flag(tctx, cIdx,sbWidth,S.x,S.y, coded_sub_block_flag);
+      int csb_flag = decode_coded_sub_block_flag(tctx, cIdx,sbWidth, S.x,S.y, coded_sub_block_flag);
+      coded_sub_block_flag[S.x+S.y*sbWidth] = csb_flag;
+
       inferSbDcSigCoeffFlag=1;
     }
-    else {
-      if (S.x==0 && S.y==0) {
-        coded_sub_block_flag[S.x+S.y*sbWidth]=1;
-      }
-      else if (S.x==LastSignificantCoeffX>>2 && S.y==LastSignificantCoeffY>>2) {
-        coded_sub_block_flag[S.x+S.y*sbWidth]=1;
-      }
+    else if (i==0) { // NOTE: equivalent to: S.x==0 && S.y==0) {
+      coded_sub_block_flag[S.x+S.y*sbWidth]=1;
+    }
+    else if (i==lastSubBlock) {
+      // NOTE: equivalent to: S.x==LastSignificantCoeffX>>2 && S.y==LastSignificantCoeffY>>2) {
+      coded_sub_block_flag[S.x+S.y*sbWidth]=1;
     }
 
 
     bool hasNonZero = false;
 
+    uint8_t significant_coeff_flag[4][4];
+    memset(significant_coeff_flag, 0, 4*4);
+
     for (int n= (i==lastSubBlock) ? lastScanPos-1 : 15 ;
          n>=0 ; n--) {
-      xC = (S.x<<2) + ScanOrderPos[n].x;
-      yC = (S.y<<2) + ScanOrderPos[n].y;
       int subX = ScanOrderPos[n].x;
       int subY = ScanOrderPos[n].y;
+      xC = (S.x<<2) + subX;
+      yC = (S.y<<2) + subY;
 
       logtrace(LogSlice,"n=%d , S.x=%d S.y=%d\n",n,S.x,S.y);
 
-      if (coded_sub_block_flag[S.x+S.y*sbWidth] && (n>0 || !inferSbDcSigCoeffFlag)) {
-        significant_coeff_flag[subY][subX] = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,sbWidth, cIdx,scanIdx);
-        if (significant_coeff_flag[subY][subX]) {
+      if (coded_sub_block_flag[S.x+S.y*sbWidth] && (n>0 || inferSbDcSigCoeffFlag==0)) {
+        //if (coded_sub_block_flag[S.x+S.y*sbWidth] && !(n==0 && inferSbDcSigCoeffFlag)) {
+        int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
+                                                              sbWidth, cIdx,scanIdx);
+
+        if (significant_coeff) {
+          significant_coeff_flag[subY][subX] = significant_coeff;
+
           hasNonZero=true;
           inferSbDcSigCoeffFlag = 0;
         }
       }
-      else {
-        /*
-          if (xC==LastSignificantCoeffX &&
-          yC==LastSignificantCoeffY) {
-          significant_coeff_flag[yC][xC]=1;
-          }
-          else*/
-        if (((xC&3)==0 && (yC&3)==0) &&
-            inferSbDcSigCoeffFlag==1 &&
-            coded_sub_block_flag[S.x+S.y*sbWidth]==1) {
-          significant_coeff_flag[subY][subX]=1;
-          hasNonZero=true;
-        }
-        else {
-          significant_coeff_flag[subY][subX]=0;
-        }
+      else if ((subX==0 && subY==0) &&
+               inferSbDcSigCoeffFlag &&
+               coded_sub_block_flag[S.x+S.y*sbWidth]) {
+        significant_coeff_flag[subY][subX]=1;
+        hasNonZero=true;
       }
     }
+
+
+    // set the last coded coefficient in the last subblock
 
     if (i==lastSubBlock) {
       significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
@@ -2260,118 +2262,118 @@ int residual_coding(decoder_context* ctx,
           firstCoeffInSubblock = false;
         }
       }
-    }
-
-    firstSubblock = false;
-    lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
 
 
-    logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
 
-    int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
-                      !shdr->cu_transquant_bypass_flag);
-
-    if (lastGreater1ScanPos != -1) {
-      coeff_abs_level_greater2_flag[lastGreater1ScanPos] =
-        decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
-    }
+      firstSubblock = false;
+      lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
 
 
-    // --- decode coefficient signs ---
+      logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
 
-    for (int n=15;n>=0;n--) {
-      xC = (S.x<<2) + ScanOrderPos[n].x;
-      yC = (S.y<<2) + ScanOrderPos[n].y;
-      int subX = ScanOrderPos[n].x;
-      int subY = ScanOrderPos[n].y;
+      int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
+                        !shdr->cu_transquant_bypass_flag);
 
-      if (significant_coeff_flag[subY][subX]) {
-        if (!ctx->current_pps->sign_data_hiding_flag ||
-            !signHidden ||
-            n != firstSigScanPos) {
-          coeff_sign_flag[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
-          logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign_flag[n]);
+      if (lastGreater1ScanPos != -1) {
+        coeff_abs_level_greater2_flag[lastGreater1ScanPos] =
+          decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
+      }
+
+
+      // --- decode coefficient signs ---
+
+      for (int n=15;n>=0;n--) {
+        xC = (S.x<<2) + ScanOrderPos[n].x;
+        yC = (S.y<<2) + ScanOrderPos[n].y;
+        int subX = ScanOrderPos[n].x;
+        int subY = ScanOrderPos[n].y;
+
+        if (significant_coeff_flag[subY][subX]) {
+          if (!ctx->current_pps->sign_data_hiding_flag ||
+              !signHidden ||
+              n != firstSigScanPos) {
+            coeff_sign_flag[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
+            logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign_flag[n]);
+          }
         }
       }
-    }
 
+      // --- decode coefficient value ---
 
-    // --- decode coefficient value ---
+      int numSigCoeff=0;
+      int sumAbsLevel=0;
 
-    int numSigCoeff=0;
-    int sumAbsLevel=0;
+      int coeff_abs_level_remaining[16];
+      memset(coeff_abs_level_remaining,0,16*sizeof(int));
 
-    int coeff_abs_level_remaining[16];
-    memset(coeff_abs_level_remaining,0,16*sizeof(int));
+      int uiGoRiceParam=0;
 
-    int uiGoRiceParam=0;
+      for (int n=15;n>=0;n--) {
+        xC = (S.x<<2) + ScanOrderPos[n].x;
+        yC = (S.y<<2) + ScanOrderPos[n].y;
+        int subX = ScanOrderPos[n].x;
+        int subY = ScanOrderPos[n].y;
 
-    for (int n=15;n>=0;n--) {
-      xC = (S.x<<2) + ScanOrderPos[n].x;
-      yC = (S.y<<2) + ScanOrderPos[n].y;
-      int subX = ScanOrderPos[n].x;
-      int subY = ScanOrderPos[n].y;
+        logtrace(LogSlice,"read coefficient %d (%d,%d) [full blk scan pos: %d]\n",n,xC,yC,
+                 (yC+subY*4)*4+(xC+subX*4));
 
-      logtrace(LogSlice,"read coefficient %d (%d,%d) [full blk scan pos: %d]\n",n,xC,yC,
-               (yC+subY*4)*4+(xC+subX*4));
+        if (significant_coeff_flag[subY][subX]) {
+          int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
 
-      if (significant_coeff_flag[subY][subX]) {
-        int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
+          logtrace(LogSlice,"baseLevel=%d\n",baseLevel);
 
-        logtrace(LogSlice,"baseLevel=%d\n",baseLevel);
-
-        int checkLevel;
-        if (numSigCoeff<8) {
-          if (n==lastGreater1ScanPos) {
-            checkLevel=3;
+          int checkLevel;
+          if (numSigCoeff<8) {
+            if (n==lastGreater1ScanPos) {
+              checkLevel=3;
+            }
+            else {
+              checkLevel=2;
+            }
           }
           else {
-            checkLevel=2;
+            checkLevel=1;
           }
-        }
-        else {
-          checkLevel=1;
-        }
 
-        logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
+          logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
 
-        if (baseLevel==checkLevel) {
-          coeff_abs_level_remaining[n] =
-            decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
+          if (baseLevel==checkLevel) {
+            coeff_abs_level_remaining[n] =
+              decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
 
-          if (baseLevel + coeff_abs_level_remaining[n] > 3*(1<<uiGoRiceParam)) {
-            uiGoRiceParam++;
-            if (uiGoRiceParam>4) uiGoRiceParam=4;
+            if (baseLevel + coeff_abs_level_remaining[n] > 3*(1<<uiGoRiceParam)) {
+              uiGoRiceParam++;
+              if (uiGoRiceParam>4) uiGoRiceParam=4;
+            }
           }
-        }
 
 
-        int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
-        if (coeff_sign_flag[n]) {
-          currCoeff = -currCoeff;
-        }
-
-        if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
-          sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
-
-          if (n==firstSigScanPos && (sumAbsLevel & 1)) {
+          int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
+          if (coeff_sign_flag[n]) {
             currCoeff = -currCoeff;
           }
-        }
+
+          if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
+            sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
+
+            if (n==firstSigScanPos && (sumAbsLevel & 1)) {
+              currCoeff = -currCoeff;
+            }
+          }
 
 #ifdef DE265_LOG_TRACE
-        TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
+          TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
 #endif
 
-        // put coefficient in list
-        tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
-        tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
-        tctx->nCoeff[cIdx]++;
+          // put coefficient in list
+          tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
+          tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
+          tctx->nCoeff[cIdx]++;
 
-        numSigCoeff++;
+          numSigCoeff++;
+        }
       }
     }
-
   }
 
 
