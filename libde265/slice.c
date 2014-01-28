@@ -1121,9 +1121,12 @@ static int decode_significant_coeff_flag(thread_context* tctx,
     logtrace(LogSlice,"posInSubset: %d,%d\n",xP,yP);
     logtrace(LogSlice,"prevCsbf: %d\n",prevCsbf);
 
+    //printf("%d | %d %d\n",prevCsbf,xP,yP);
+
     switch (prevCsbf) {
     case 0:
-      sigCtx = (xP+yP==0) ? 2 : (xP+yP<3) ? 1 : 0;
+      //sigCtx = (xP+yP==0) ? 2 : (xP+yP<3) ? 1 : 0;
+      sigCtx = (xP+yP>=3) ? 0 : (xP+yP>0) ? 1 : 2;
       break;
     case 1:
       sigCtx = (yP==0) ? 2 : (yP==1) ? 1 : 0;
