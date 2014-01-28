@@ -108,6 +108,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 LIBDE265_API void de265_init()
 {
   init_scan_orders();
+  init_CtxIdx_lookupTable();
 }
 
 

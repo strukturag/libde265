@@ -36,4 +36,6 @@ de265_error read_slice_segment_data(decoder_context*, thread_context* tctx);
 
 bool add_CTB_decode_task_syntax(struct thread_context* tctx, int ctbx,int ctby,  int sx,int sy, thread_task* nextCTBTask);
 
+void init_CtxIdx_lookupTable();
+
 #endif

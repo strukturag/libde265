@@ -1085,9 +1085,107 @@ static int decode_last_significant_coeff_prefix(thread_context* tctx,
 }
 
 
-static const int ctxIdxMap[15] = {
-  0,1,4,5,2,3,4,5,6,6,8,8,7,7,8
+static const uint8_t ctxIdxMap[15] = {
+  0,1,4,5,
+  2,3,4,5,
+  6,6,8,8,
+  7,7,8
 };
+
+// TODO: can be made smaller
+uint8_t ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx */][4 /* prevCsbf */][32*32];
+
+void init_CtxIdx_lookupTable()
+{
+  for (int log2w=2; log2w<=5 ; log2w++)
+    for (int cIdx=0;cIdx<2;cIdx++)
+      for (int scanIdx=0;scanIdx<2;scanIdx++)
+        for (int prevCsbf=0;prevCsbf<4;prevCsbf++)
+          for (int yC=0;yC<(1<<log2w);yC++)
+            for (int xC=0;xC<(1<<log2w);xC++)
+              {
+                int w = 1<<log2w;
+                int sbWidth = w>>2;
+
+                int sigCtx;
+
+                // if log2TrafoSize==2
+                if (sbWidth==1) {
+                  sigCtx = ctxIdxMap[(yC<<2) + xC];
+                }
+                else if (xC+yC==0) {
+                  sigCtx = 0;
+                }
+                else {
+                  int xS = xC>>2;
+                  int yS = yC>>2;
+                  /*
+                    int prevCsbf = 0;
+
+                    if (xS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+1  +yS*sbWidth];    }
+                    if (yS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+(1+yS)*sbWidth]<<1; }
+                  */
+                  int xP = xC & 3;
+                  int yP = yC & 3;
+
+                  logtrace(LogSlice,"posInSubset: %d,%d\n",xP,yP);
+                  logtrace(LogSlice,"prevCsbf: %d\n",prevCsbf);
+
+                  //printf("%d | %d %d\n",prevCsbf,xP,yP);
+
+                  switch (prevCsbf) {
+                  case 0:
+                    //sigCtx = (xP+yP==0) ? 2 : (xP+yP<3) ? 1 : 0;
+                    sigCtx = (xP+yP>=3) ? 0 : (xP+yP>0) ? 1 : 2;
+                    break;
+                  case 1:
+                    sigCtx = (yP==0) ? 2 : (yP==1) ? 1 : 0;
+                    break;
+                  case 2:
+                    sigCtx = (xP==0) ? 2 : (xP==1) ? 1 : 0;
+                    break;
+                  default:
+                    sigCtx = 2;
+                    break;
+                  }
+
+                  logtrace(LogSlice,"a) sigCtx=%d\n",sigCtx);
+
+                  if (cIdx==0) {
+                    if (xS+yS > 0) sigCtx+=3;
+
+                    logtrace(LogSlice,"b) sigCtx=%d\n",sigCtx);
+
+                    // if log2TrafoSize==3
+                    if (sbWidth==2) {
+                      sigCtx += (scanIdx==0) ? 9 : 15;
+                    } else {
+                      sigCtx += 21;
+                    }
+
+                    logtrace(LogSlice,"c) sigCtx=%d\n",sigCtx);
+                  }
+                  else {
+                    // if log2TrafoSize==3
+                    if (sbWidth==2) {
+                      sigCtx+=9;
+                    }
+                    else {
+                      sigCtx+=12;
+                    }
+                  }
+                }
+
+                int ctxIdxInc;
+                if (cIdx==0) { ctxIdxInc=sigCtx; }
+                else         { ctxIdxInc=27+sigCtx; }
+
+
+
+                ctxIdxLookup[log2w-2][cIdx][scanIdx][prevCsbf][xC+yC*w] = ctxIdxInc;
+              }
+}
+
 
 static int decode_significant_coeff_flag(thread_context* tctx,
 					 int xC,int yC,
@@ -1097,7 +1195,7 @@ static int decode_significant_coeff_flag(thread_context* tctx,
 					 int scanIdx)
 {
   logtrace(LogSlice,"# significant_coeff_flag (xC:%d yC:%d sbWidth:%d cIdx:%d scanIdx:%d)\n",
-         xC,yC,sbWidth,cIdx,scanIdx);
+           xC,yC,sbWidth,cIdx,scanIdx);
 
   int sigCtx;
 
@@ -1177,6 +1275,48 @@ static int decode_significant_coeff_flag(thread_context* tctx,
                              &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
   return bit;
 }
+
+
+
+static int decode_significant_coeff_flag_lookup(thread_context* tctx,
+                                                int xC,int yC,
+                                                const uint8_t* coded_sub_block_flag,
+                                                int sbWidth,
+                                                int cIdx,
+                                                int scanIdx)
+{
+  logtrace(LogSlice,"# significant_coeff_flag (xC:%d yC:%d sbWidth:%d cIdx:%d scanIdx:%d)\n",
+           xC,yC,sbWidth,cIdx,scanIdx);
+
+  // TODO: this whole computation can be removed. Either use csb-neighbor array or precompute
+
+  int xS = xC>>2;
+  int yS = yC>>2;
+  int prevCsbf = 0;
+  if (xS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+1  +yS*sbWidth];    }
+  if (yS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+(1+yS)*sbWidth]<<1; }
+
+  int log2w;
+  switch (sbWidth) {
+  case 1: log2w=2-2; break;
+  case 2: log2w=3-2; break;
+  case 4: log2w=4-2; break;
+  case 8: log2w=5-2; break;
+  }
+
+  int ctxIdxInc = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf][xC + (sbWidth<<2)*yC];
+
+
+  int context = tctx->shdr->initType*42 + ctxIdxInc;
+  logtrace(LogSlice,"context: %d\n",context);
+
+  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+                             &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
+  return bit;
+}
+
+
+
 
 
 static int decode_coeff_abs_level_greater1(thread_context* tctx,
@@ -2010,6 +2150,8 @@ int residual_coding(decoder_context* ctx,
     decode_last_significant_coeff_prefix(tctx,log2TrafoSize,cIdx,
                                          &tctx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX]);
 
+
+  // TODO: we can combine both FL-bypass calls into one, but the gain may be limited...
 
   int LastSignificantCoeffX;
   if (last_significant_coeff_x_prefix > 3) {
