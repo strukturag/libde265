@@ -1995,6 +1995,10 @@ int residual_coding(decoder_context* ctx,
       tctx->transform_skip_flag[cIdx] = decode_transform_skip_flag(tctx,cIdx);
     }
 
+
+
+  // --- decode position of last coded coefficient ---
+
   int last_significant_coeff_x_prefix =
     decode_last_significant_coeff_prefix(tctx,log2TrafoSize,cIdx,
                                          &tctx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX]);
@@ -2119,6 +2123,10 @@ int residual_coding(decoder_context* ctx,
   int  lastInvocation_coeff_abs_level_greater1_flag=0;
   int  lastInvocation_ctxSet=0;
 
+
+
+  // ----- decode coefficients -----
+
   tctx->nCoeff[cIdx] = 0;
 
 
@@ -2130,6 +2138,9 @@ int residual_coding(decoder_context* ctx,
     int inferSbDcSigCoeffFlag=0;
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
+
+
+    // --- check whether this sub-block is coded ---
 
     int sub_block_is_coded = 0;
 
@@ -2187,9 +2198,9 @@ int residual_coding(decoder_context* ctx,
       }
 
 
-      // --- decode DC coefficient ---
+      // --- decode DC coefficient significance ---
 
-      if (last_coeff>=0)
+      if (last_coeff>=0) // last coded coefficient (always set to 1) is not the DC coefficient
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
@@ -2401,10 +2412,10 @@ int residual_coding(decoder_context* ctx,
           tctx->nCoeff[cIdx]++;
 
           numSigCoeff++;
-        }
-      }
-    }
-  }
+        }  // if significant coefficient
+      }  // iterate through coefficients in sub-block
+    }  // if nonZero
+  }  // next sub-block
 
 
 
