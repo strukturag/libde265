@@ -1279,29 +1279,11 @@ static int decode_significant_coeff_flag(thread_context* tctx,
 
 
 
-static int decode_significant_coeff_flag_lookup(thread_context* tctx,
-                                                 int xC,int yC,
-                                                 uint8_t coded_sub_block_neighbors,
-                                                 int sbWidth,
-                                                 int cIdx,
-                                                 int scanIdx)
+static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
+                                                 uint8_t ctxIdxInc)
 {
   logtrace(LogSlice,"# significant_coeff_flag (xC:%d yC:%d sbWidth:%d cIdx:%d scanIdx:%d)\n",
            xC,yC,sbWidth,cIdx,scanIdx);
-
-  // TODO: this whole computation can be removed. Either use csb-neighbor array or precompute
-
-  int prevCsbf = coded_sub_block_neighbors;
-
-  int log2w;
-  switch (sbWidth) {
-  case 1: log2w=2-2; break;
-  case 2: log2w=3-2; break;
-  case 4: log2w=4-2; break;
-  case 8: log2w=5-2; break;
-  }
-
-  int ctxIdxInc = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf][xC + (sbWidth<<2)*yC];
 
 
   int context = tctx->shdr->initType*42 + ctxIdxInc;
@@ -2320,6 +2302,12 @@ int residual_coding(decoder_context* ctx,
       int x0 = S.x<<2;
       int y0 = S.y<<2;
 
+      int log2w = log2TrafoSize-2;
+      int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
+      uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
+      //printf("-------------\n");
+      //printf("A %d %d %d %d\n", log2w, cIdx,scanIdx,prevCsbf);
+
       // --- decode all coefficients except DC coefficient ---
 
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
@@ -2332,9 +2320,8 @@ int residual_coding(decoder_context* ctx,
 
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-        int significant_coeff = decode_significant_coeff_flag_lookup(tctx, xC,yC,
-                                                                      coded_sub_block_neighbors[S.x+S.y*sbWidth],
-                                                                      sbWidth, cIdx,scanIdx);
+        int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
+                                                                     ctxIdxMap[xC+(yC<<log2TrafoSize)]);
 
         if (significant_coeff) {
           significant_coeff_flag[subY][subX] = significant_coeff;
@@ -2354,9 +2341,8 @@ int residual_coding(decoder_context* ctx,
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
-            int significant_coeff = decode_significant_coeff_flag_lookup(tctx, x0,y0,
-                                                                          coded_sub_block_neighbors[S.x+S.y*sbWidth],
-                                                                          sbWidth, cIdx,scanIdx);
+            int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
+                                                                         ctxIdxMap[x0+(y0<<log2TrafoSize)]);
 
             if (significant_coeff) {
               significant_coeff_flag[0][0] = significant_coeff;
