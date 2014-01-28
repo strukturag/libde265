@@ -2056,9 +2056,9 @@ int residual_coding(decoder_context* ctx,
       else { scanIdx=0; }
     }
     else {
-      enum IntraPredMode predMode = tctx->IntraPredModeC;
-
       if (log2TrafoSize==1 || log2TrafoSize==2) {
+        enum IntraPredMode predMode = tctx->IntraPredModeC;
+
         if (predMode >= 6 && predMode <= 14) scanIdx=2;
         else if (predMode >= 22 && predMode <= 30) scanIdx=1;
         else scanIdx=0;
