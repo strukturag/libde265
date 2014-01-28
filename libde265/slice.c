@@ -981,29 +981,21 @@ static int decode_cbf_luma(thread_context* tctx,
 }
 
 
-static int decode_coded_sub_block_flag(thread_context* tctx,
-				       int cIdx,int sbWidth, int xS,int yS,
-				       const uint8_t* coded_sub_block_flag)
+static inline int decode_coded_sub_block_flag(thread_context* tctx,
+                                              int cIdx,
+                                              uint8_t coded_sub_block_neighbors)
 {
   logtrace(LogSlice,"# coded_sub_block_flag\n");
 
   int context = tctx->shdr->initType*4;
-  context += 0;
 
-  int csbfCtx = 0;
-  if (xS<sbWidth-1) {
-    csbfCtx += coded_sub_block_flag[xS+1 +yS*sbWidth];
-  }
-  if (yS<sbWidth-1) {
-    csbfCtx += coded_sub_block_flag[xS +(yS+1)*sbWidth];
-  }
-  //coded_sub_block_flag[S.x+S.y*sbWidth] = decode_coded_sub_block_flag(ctx,shdr, cIdx,sbWidth,S.x,S.y, coded_sub_block_flag);
+  // tricky computation of csbfCtx
+  int csbfCtx = ((coded_sub_block_neighbors &  1) |
+                 (coded_sub_block_neighbors >> 1));
 
-  int ctxIdxInc;
-  if (cIdx==0) {
-    ctxIdxInc = csbfCtx<1 ? csbfCtx : 1;
-  } else {
-    ctxIdxInc = 2 + (csbfCtx<1 ? csbfCtx : 1);
+  int ctxIdxInc = csbfCtx;
+  if (cIdx!=0) {
+    ctxIdxInc += 2;
   }
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
@@ -1186,7 +1178,7 @@ void init_CtxIdx_lookupTable()
               }
 }
 
-
+#if 0
 static int decode_significant_coeff_flag(thread_context* tctx,
 					 int xC,int yC,
 					 const uint8_t* coded_sub_block_flag,
@@ -1275,7 +1267,7 @@ static int decode_significant_coeff_flag(thread_context* tctx,
                              &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
   return bit;
 }
-
+#endif
 
 
 
@@ -2227,8 +2219,6 @@ int residual_coding(decoder_context* ctx,
 
 
   int sbWidth = 1<<(log2TrafoSize-2);
-  uint8_t coded_sub_block_flag[32/4*32/4];
-  memset(coded_sub_block_flag,0,sbWidth*sbWidth);
 
   uint8_t coded_sub_block_neighbors[32/4*32/4];
   memset(coded_sub_block_neighbors,0,sbWidth*sbWidth);
@@ -2272,16 +2262,14 @@ int residual_coding(decoder_context* ctx,
     int sub_block_is_coded = 0;
 
     if ((i<lastSubBlock) && (i>0)) {
-      sub_block_is_coded = decode_coded_sub_block_flag(tctx, cIdx,sbWidth, S.x,S.y,
-                                                       coded_sub_block_flag);
-      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded;
-
+      sub_block_is_coded = decode_coded_sub_block_flag(tctx, cIdx,
+                                                       coded_sub_block_neighbors[S.x+S.y*sbWidth]);
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0 || i==lastSubBlock) {
       // first (DC) and last sub-block are always marked as coded
 
-      coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
+      sub_block_is_coded = 1;
     }
 
     if (sub_block_is_coded) {
@@ -2305,8 +2293,6 @@ int residual_coding(decoder_context* ctx,
       int log2w = log2TrafoSize-2;
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
-      //printf("-------------\n");
-      //printf("A %d %d %d %d\n", log2w, cIdx,scanIdx,prevCsbf);
 
       // --- decode all coefficients except DC coefficient ---
 
