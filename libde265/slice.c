@@ -1278,23 +1278,20 @@ static int decode_significant_coeff_flag(thread_context* tctx,
 
 
 
+
 static int decode_significant_coeff_flag_lookup(thread_context* tctx,
-                                                int xC,int yC,
-                                                const uint8_t* coded_sub_block_flag,
-                                                int sbWidth,
-                                                int cIdx,
-                                                int scanIdx)
+                                                 int xC,int yC,
+                                                 uint8_t coded_sub_block_neighbors,
+                                                 int sbWidth,
+                                                 int cIdx,
+                                                 int scanIdx)
 {
   logtrace(LogSlice,"# significant_coeff_flag (xC:%d yC:%d sbWidth:%d cIdx:%d scanIdx:%d)\n",
            xC,yC,sbWidth,cIdx,scanIdx);
 
   // TODO: this whole computation can be removed. Either use csb-neighbor array or precompute
 
-  int xS = xC>>2;
-  int yS = yC>>2;
-  int prevCsbf = 0;
-  if (xS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+1  +yS*sbWidth];    }
-  if (yS < sbWidth-1) { prevCsbf += coded_sub_block_flag[xS+(1+yS)*sbWidth]<<1; }
+  int prevCsbf = coded_sub_block_neighbors;
 
   int log2w;
   switch (sbWidth) {
@@ -2251,6 +2248,9 @@ int residual_coding(decoder_context* ctx,
   uint8_t coded_sub_block_flag[32/4*32/4];
   memset(coded_sub_block_flag,0,sbWidth*sbWidth);
 
+  uint8_t coded_sub_block_neighbors[32/4*32/4];
+  memset(coded_sub_block_neighbors,0,sbWidth*sbWidth);
+
   int  c1 = 1;
   bool firstSubblock = true;           // for coeff_abs_level_greater1_flag context model
   int  lastSubblock_greater1Ctx=false; /* for coeff_abs_level_greater1_flag context model
@@ -2302,6 +2302,10 @@ int residual_coding(decoder_context* ctx,
       coded_sub_block_flag[S.x+S.y*sbWidth] = sub_block_is_coded = 1;
     }
 
+    if (sub_block_is_coded) {
+      if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
+      if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
+    }
 
 
     // ----- find significant coefficients in this sub-block -----
@@ -2328,8 +2332,9 @@ int residual_coding(decoder_context* ctx,
 
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-        int significant_coeff = decode_significant_coeff_flag(tctx, xC,yC, coded_sub_block_flag,
-                                                              sbWidth, cIdx,scanIdx);
+        int significant_coeff = decode_significant_coeff_flag_lookup(tctx, xC,yC,
+                                                                      coded_sub_block_neighbors[S.x+S.y*sbWidth],
+                                                                      sbWidth, cIdx,scanIdx);
 
         if (significant_coeff) {
           significant_coeff_flag[subY][subX] = significant_coeff;
@@ -2349,8 +2354,9 @@ int residual_coding(decoder_context* ctx,
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
-            int significant_coeff = decode_significant_coeff_flag(tctx, x0,y0, coded_sub_block_flag,
-                                                                  sbWidth, cIdx,scanIdx);
+            int significant_coeff = decode_significant_coeff_flag_lookup(tctx, x0,y0,
+                                                                          coded_sub_block_neighbors[S.x+S.y*sbWidth],
+                                                                          sbWidth, cIdx,scanIdx);
 
             if (significant_coeff) {
               significant_coeff_flag[0][0] = significant_coeff;
