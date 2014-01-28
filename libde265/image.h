@@ -81,11 +81,11 @@ typedef struct {
 typedef struct {
   uint8_t cu_skip_flag : 1; // only for decoding of current image
   uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
+  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
-  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
-  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
 
   int8_t  QP_Y;
 
