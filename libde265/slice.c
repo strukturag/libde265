@@ -2043,12 +2043,12 @@ int residual_coding(decoder_context* ctx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
-
-      enum IntraPredMode predMode = (enum IntraPredMode) ctx->img->intraPredMode[PUidx];
-      logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
-
       if (log2TrafoSize==2 || log2TrafoSize==3) {
+        int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
+
+        enum IntraPredMode predMode = (enum IntraPredMode) ctx->img->intraPredMode[PUidx];
+        logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
+
         if (predMode >= 6 && predMode <= 14) scanIdx=2;
         else if (predMode >= 22 && predMode <= 30) scanIdx=1;
         else scanIdx=0;
