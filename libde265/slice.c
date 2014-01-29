@@ -2460,6 +2460,8 @@ int residual_coding(decoder_context* ctx,
       int nCoefficients;
       // --- END of list ---
 
+      int newLastGreater1ScanPos=-1;
+
       // **** CONVERT BEGIN ****
       int numSigCoeff=0;
 
@@ -2472,31 +2474,12 @@ int residual_coding(decoder_context* ctx,
         if (significant_coeff_flag[subY][subX]) {
           int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
 
-          int checkLevel;
-          if (numSigCoeff<8) {
-            if (n==lastGreater1ScanPos) {
-              checkLevel=3;
-            }
-            else {
-              checkLevel=2;
-            }
-          }
-          else {
-            checkLevel=1; // when check-level is 1, it is always == baseLevel
-          }
-
-          // printf("%d %d | %d %d\n",numSigCoeff,n==lastGreater1ScanPos,baseLevel,checkLevel);
-
-          if (checkLevel==1) {
-            assert(baseLevel==1);
-          }
-
-          logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
-
-
           coeff_value[numSigCoeff] = baseLevel;
           coeff_scan_pos[numSigCoeff] = n;
-          coeff_has_max_base_level[numSigCoeff] = (baseLevel==checkLevel);
+
+          if (n==lastGreater1ScanPos) {
+            newLastGreater1ScanPos=numSigCoeff;
+          }
 
           numSigCoeff++;
         }
@@ -2504,6 +2487,23 @@ int residual_coding(decoder_context* ctx,
       nCoefficients = numSigCoeff;
       // **** CONVERT END ****
 
+
+      for (int coeff=0;coeff<nCoefficients;coeff++) {
+        int checkLevel;
+        if (coeff<8) {
+          if (coeff==newLastGreater1ScanPos) {
+            checkLevel=3;
+          }
+          else {
+            checkLevel=2;
+          }
+        }
+        else {
+          checkLevel=1; // when check-level is 1, it is always == baseLevel
+        }
+
+        coeff_has_max_base_level[coeff] = (coeff_value[coeff]==checkLevel);
+      }
 
       // --- decode coefficient signs ---
 
