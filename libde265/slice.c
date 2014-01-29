@@ -1315,7 +1315,7 @@ static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
 
 
 static int decode_coeff_abs_level_greater1(thread_context* tctx,
-					   int cIdx, int i,int n,
+					   int cIdx, int i,
 					   bool firstCoeffInSubblock,
 					   bool firstSubblock,
 					   int  lastSubblock_greater1Ctx,
@@ -2388,14 +2388,7 @@ int residual_coding(decoder_context* ctx,
     }
 
 
-    int numGreater1Flag=0;
-    int lastGreater1ScanPos=-1;
-
-    uint8_t coeff_abs_level_greater1_flag[16];
-
     bool firstCoeffInSubblock = true;
-
-    memset(coeff_abs_level_greater1_flag,0,16);
 
     if (hasNonZero) {
       int ctxSet;
@@ -2404,48 +2397,6 @@ int residual_coding(decoder_context* ctx,
 
       if (c1==0) { ctxSet++; }
       c1=1;
-
-
-      // --- decode greater-1 flags ---
-
-      for (int n=15;n>=0;n--) {
-        xC = (S.x<<2) + ScanOrderPos[n].x;
-        yC = (S.y<<2) + ScanOrderPos[n].y;
-        int subX = ScanOrderPos[n].x;
-        int subY = ScanOrderPos[n].y;
-
-        if (significant_coeff_flag[subY][subX]) {
-          if (numGreater1Flag<8) {
-            coeff_abs_level_greater1_flag[n] =
-              decode_coeff_abs_level_greater1(tctx, cIdx,i,n,
-                                              firstCoeffInSubblock,
-                                              firstSubblock,
-                                              lastSubblock_greater1Ctx,
-                                              &lastInvocation_greater1Ctx,
-                                              &lastInvocation_coeff_abs_level_greater1_flag,
-                                              &lastInvocation_ctxSet, ctxSet);
-            numGreater1Flag++;
-
-            if (coeff_abs_level_greater1_flag[n]) {
-              c1=0;
-            }
-            else if (c1<3 && c1>0) {
-              c1++;
-            }
-
-            if (coeff_abs_level_greater1_flag[n] && lastGreater1ScanPos == -1) {
-              lastGreater1ScanPos=n;
-            }
-          }
-
-          firstCoeffInSubblock = false;
-        }
-      }
-
-      firstSubblock = false;
-      lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
-
-      logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
 
 
       // --- new coefficient list ---
@@ -2468,20 +2419,53 @@ int residual_coding(decoder_context* ctx,
         int subY = ScanOrderPos[n].y;
 
         if (significant_coeff_flag[subY][subX]) {
-          int baseLevel = 1 + coeff_abs_level_greater1_flag[n];
-
-          coeff_value[numSigCoeff] = baseLevel;
+          coeff_value[numSigCoeff] = 1;
           coeff_scan_pos[numSigCoeff] = n;
-
-          if (n==lastGreater1ScanPos) {
-            newLastGreater1ScanPos=numSigCoeff;
-          }
 
           numSigCoeff++;
         }
       }
       nCoefficients = numSigCoeff;
       // **** CONVERT END ****
+
+
+      // --- decode greater-1 flags ---
+
+      int numGreater1Flag=0;
+
+      for (int c=0;c<nCoefficients;c++) {
+        if (numGreater1Flag<8) {
+          int greater1_flag =
+            decode_coeff_abs_level_greater1(tctx, cIdx,i,
+                                            firstCoeffInSubblock,
+                                            firstSubblock,
+                                            lastSubblock_greater1Ctx,
+                                            &lastInvocation_greater1Ctx,
+                                            &lastInvocation_coeff_abs_level_greater1_flag,
+                                            &lastInvocation_ctxSet, ctxSet);
+          numGreater1Flag++;
+
+          coeff_value[c] += greater1_flag;
+
+          if (greater1_flag) {
+            c1=0;
+          }
+          else if (c1<3 && c1>0) {
+            c1++;
+          }
+
+          if (greater1_flag && newLastGreater1ScanPos == -1) {
+            newLastGreater1ScanPos=c;
+          }
+        }
+
+        firstCoeffInSubblock = false;
+      }
+
+      firstSubblock = false;
+      lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
+
+      logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
 
 
       for (int coeff=0;coeff<nCoefficients;coeff++) {
