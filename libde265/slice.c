@@ -2449,16 +2449,10 @@ int residual_coding(decoder_context* ctx,
         }
       }
 
-
-
       firstSubblock = false;
       lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
 
-
       logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
-
-      int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
-                        !shdr->cu_transquant_bypass_flag);
 
       if (lastGreater1ScanPos != -1) {
         coeff_abs_level_greater2_flag[lastGreater1ScanPos] =
@@ -2474,15 +2468,10 @@ int residual_coding(decoder_context* ctx,
       int nCoefficients;
       // --- END of list ---
 
-
-      // --- decode coefficient signs ---
-
       // **** CONVERT BEGIN ****
       int numSigCoeff=0;
-      int newFirstSigScanPos;
 
       nCoefficients = 0;
-      int currSbCoeff = 0;
 
       for (int n=15;n>=0;n--) {
         xC = (S.x<<2) + ScanOrderPos[n].x;
@@ -2515,37 +2504,28 @@ int residual_coding(decoder_context* ctx,
           logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
 
 
-          coeff_value[currSbCoeff] = baseLevel;
-          coeff_scan_pos[currSbCoeff] = xC + yC*CoeffStride;
-          //coeff_sign[currSbCoeff] = coeff_sign_flag[n];
-          coeff_has_max_base_level[currSbCoeff] = (baseLevel==checkLevel);
-          logtrace(LogSlice,"sign=%d\n", coeff_sign[currSbCoeff]);
-
-          if (n==firstSigScanPos) {
-            newFirstSigScanPos=currSbCoeff;
-          }
-
-          currSbCoeff++;
-
+          coeff_value[numSigCoeff] = baseLevel;
+          coeff_scan_pos[numSigCoeff] = xC + yC*CoeffStride;
+          coeff_has_max_base_level[numSigCoeff] = (baseLevel==checkLevel);
 
           numSigCoeff++;
         }
       }
-      nCoefficients = currSbCoeff;
+      nCoefficients = numSigCoeff;
       // **** CONVERT END ****
 
 
+      // --- decode coefficient signs ---
 
+      //printf("%d %d\n",lastSigScanPos-firstSigScanPos, nCoefficients);
+
+      int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
+                        !shdr->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients;n++) {
-        xC = (S.x<<2) + ScanOrderPos[n].x;
-        yC = (S.y<<2) + ScanOrderPos[n].y;
-        int subX = ScanOrderPos[n].x;
-        int subY = ScanOrderPos[n].y;
-
         if (!ctx->current_pps->sign_data_hiding_flag ||
             !signHidden ||
-            n != newFirstSigScanPos) {
+            n != nCoefficients-1) {
           coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
           logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign_flag[n]);
         }
@@ -2586,7 +2566,7 @@ int residual_coding(decoder_context* ctx,
         if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
           sumAbsLevel += baseLevel + coeff_abs_level_remaining;
 
-          if (n==newFirstSigScanPos && (sumAbsLevel & 1)) {
+          if (n==nCoefficients-1 && (sumAbsLevel & 1)) {
             currCoeff = -currCoeff;
           }
         }
