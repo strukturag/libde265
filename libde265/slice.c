@@ -2504,6 +2504,7 @@ int residual_coding(decoder_context* ctx,
       int nCoefficients;
       // --- END of list ---
 
+      int newFirstSigScanPos;
 
       nCoefficients = 0;
       int currSbCoeff = 0;
@@ -2543,49 +2544,26 @@ int residual_coding(decoder_context* ctx,
           coeff_scan_pos[currSbCoeff] = xC + yC*CoeffStride;
           coeff_sign[currSbCoeff] = coeff_sign_flag[n];
           coeff_has_max_base_level[currSbCoeff] = (baseLevel==checkLevel);
+          logtrace(LogSlice,"sign=%d\n", coeff_sign[currSbCoeff]);
+
+          if (n==firstSigScanPos) {
+            newFirstSigScanPos=currSbCoeff;
+          }
+
           currSbCoeff++;
+
+
+          numSigCoeff++;
         }
       }
+      nCoefficients = currSbCoeff;
 
 
 
+      for (int n=0;n<nCoefficients;n++) {
+        int baseLevel = coeff_value[n];
 
-      for (int n=15;n>=0;n--) {
-        xC = (S.x<<2) + ScanOrderPos[n].x;
-        yC = (S.y<<2) + ScanOrderPos[n].y;
-        int subX = ScanOrderPos[n].x;
-        int subY = ScanOrderPos[n].y;
-
-        logtrace(LogSlice,"read coefficient %d (%d,%d) [full blk scan pos: %d]\n",n,xC,yC,
-                 (yC+subY*4)*4+(xC+subX*4));
-
-        if (significant_coeff_flag[subY][subX]) {
-          int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
-
-          logtrace(LogSlice,"baseLevel=%d\n",baseLevel);
-
-          int checkLevel;
-          if (numSigCoeff<8) {
-            if (n==lastGreater1ScanPos) {
-              checkLevel=3;
-            }
-            else {
-              checkLevel=2;
-            }
-          }
-          else {
-            checkLevel=1; // when check-level is 1, it is always == baseLevel
-          }
-
-          // printf("%d %d | %d %d\n",numSigCoeff,n==lastGreater1ScanPos,baseLevel,checkLevel);
-
-          if (checkLevel==1) {
-            assert(baseLevel==1);
-          }
-
-          logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
-
-          if (baseLevel==checkLevel) {
+        if (coeff_has_max_base_level[n]) {
             coeff_abs_level_remaining[n] =
               decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
 
@@ -2593,33 +2571,30 @@ int residual_coding(decoder_context* ctx,
               uiGoRiceParam++;
               if (uiGoRiceParam>4) uiGoRiceParam=4;
             }
-          }
+        }
 
 
-          int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
-          if (coeff_sign_flag[n]) {
+        int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
+        if (coeff_sign[n]) {
+          currCoeff = -currCoeff;
+        }
+
+        if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
+          sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
+
+          if (n==newFirstSigScanPos && (sumAbsLevel & 1)) {
             currCoeff = -currCoeff;
           }
-
-          if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
-            sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
-
-            if (n==firstSigScanPos && (sumAbsLevel & 1)) {
-              currCoeff = -currCoeff;
-            }
-          }
+        }
 
 #ifdef DE265_LOG_TRACE
-          TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
+        TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
 #endif
 
-          // put coefficient in list
-          tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
-          tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
-          tctx->nCoeff[cIdx]++;
-
-          numSigCoeff++;
-        }  // if significant coefficient
+        // put coefficient in list
+        tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
+        tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = coeff_scan_pos[n];
+        tctx->nCoeff[cIdx]++;
       }  // iterate through coefficients in sub-block
     }  // if nonZero
   }  // next sub-block
