@@ -2462,7 +2462,7 @@ int residual_coding(decoder_context* ctx,
 
       // --- new coefficient list ---
       int16_t  coeff_value[16];
-      uint16_t coeff_scan_pos[16];
+      int8_t   coeff_scan_pos[16];
       int8_t   coeff_sign[16];
       int8_t   coeff_has_max_base_level[16];
       int nCoefficients;
@@ -2474,8 +2474,6 @@ int residual_coding(decoder_context* ctx,
       nCoefficients = 0;
 
       for (int n=15;n>=0;n--) {
-        xC = (S.x<<2) + ScanOrderPos[n].x;
-        yC = (S.y<<2) + ScanOrderPos[n].y;
         int subX = ScanOrderPos[n].x;
         int subY = ScanOrderPos[n].y;
 
@@ -2505,7 +2503,7 @@ int residual_coding(decoder_context* ctx,
 
 
           coeff_value[numSigCoeff] = baseLevel;
-          coeff_scan_pos[numSigCoeff] = xC + yC*CoeffStride;
+          coeff_scan_pos[numSigCoeff] = n;
           coeff_has_max_base_level[numSigCoeff] = (baseLevel==checkLevel);
 
           numSigCoeff++;
@@ -2576,8 +2574,12 @@ int residual_coding(decoder_context* ctx,
 #endif
 
         // put coefficient in list
+        int p = coeff_scan_pos[n];
+        xC = (S.x<<2) + ScanOrderPos[p].x;
+        yC = (S.y<<2) + ScanOrderPos[p].y;
+
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
-        tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = coeff_scan_pos[n];
+        tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
       }  // iterate through coefficients in sub-block
     }  // if nonZero
