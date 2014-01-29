@@ -1483,14 +1483,14 @@ static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
 
 
 
-static int decode_coeff_abs_level_greater1(thread_context* tctx,
-					   int cIdx, int i,
-					   bool firstCoeffInSubblock,
-					   bool firstSubblock,
-					   int  lastSubblock_greater1Ctx,
-					   int* lastInvocation_greater1Ctx,
-					   int* lastInvocation_coeff_abs_level_greater1_flag,
-					   int* lastInvocation_ctxSet, int c1)
+static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
+                                                  int cIdx, int i,
+                                                  bool firstCoeffInSubblock,
+                                                  bool firstSubblock,
+                                                  int  lastSubblock_greater1Ctx,
+                                                  int* lastInvocation_greater1Ctx,
+                                                  int* lastInvocation_coeff_abs_level_greater1_flag,
+                                                  int* lastInvocation_ctxSet, int c1)
 {
   logtrace(LogSlice,"# coeff_abs_level_greater1\n");
 
