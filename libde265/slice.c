@@ -2468,6 +2468,16 @@ int residual_coding(decoder_context* ctx,
       }
 
 
+      // --- new coefficient list ---
+      int16_t  coeff_value[16];
+      uint16_t coeff_scan_pos[16];
+      int8_t   coeff_sign[16];
+      int8_t   coeff_has_max_base_level[16];
+      int nCoefficients;
+      // --- END of list ---
+
+
+
       // --- decode coefficient signs ---
 
       for (int n=15;n>=0;n--) {
@@ -2489,20 +2499,9 @@ int residual_coding(decoder_context* ctx,
       // --- decode coefficient value ---
 
       int numSigCoeff=0;
-      int sumAbsLevel=0;
 
-      int coeff_abs_level_remaining[16];
-      memset(coeff_abs_level_remaining,0,16*sizeof(int));
-
-      int uiGoRiceParam=0;
-
-      // --- new coefficient list ---
-      int16_t  coeff_value[16];
-      uint16_t coeff_scan_pos[16];
-      int8_t   coeff_sign[16];
-      int8_t   coeff_has_max_base_level[16];
-      int nCoefficients;
-      // --- END of list ---
+      //int coeff_abs_level_remaining[16];
+      //memset(coeff_abs_level_remaining,0,16*sizeof(int));
 
       int newFirstSigScanPos;
 
@@ -2560,27 +2559,35 @@ int residual_coding(decoder_context* ctx,
 
 
 
+      int sumAbsLevel=0;
+      int uiGoRiceParam=0;
+
       for (int n=0;n<nCoefficients;n++) {
         int baseLevel = coeff_value[n];
 
-        if (coeff_has_max_base_level[n]) {
-            coeff_abs_level_remaining[n] =
-              decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
+        int coeff_abs_level_remaining;
 
-            if (baseLevel + coeff_abs_level_remaining[n] > 3*(1<<uiGoRiceParam)) {
-              uiGoRiceParam++;
-              if (uiGoRiceParam>4) uiGoRiceParam=4;
-            }
+        if (coeff_has_max_base_level[n]) {
+          coeff_abs_level_remaining =
+            decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
+
+          if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
+            uiGoRiceParam++;
+            if (uiGoRiceParam>4) uiGoRiceParam=4;
+          }
+        }
+        else {
+          coeff_abs_level_remaining = 0;
         }
 
 
-        int16_t currCoeff = baseLevel + coeff_abs_level_remaining[n];
+        int16_t currCoeff = baseLevel + coeff_abs_level_remaining;
         if (coeff_sign[n]) {
           currCoeff = -currCoeff;
         }
 
         if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
-          sumAbsLevel += baseLevel + coeff_abs_level_remaining[n];
+          sumAbsLevel += baseLevel + coeff_abs_level_remaining;
 
           if (n==newFirstSigScanPos && (sumAbsLevel & 1)) {
             currCoeff = -currCoeff;
