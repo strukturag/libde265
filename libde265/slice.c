@@ -2307,6 +2307,14 @@ int residual_coding(decoder_context* ctx,
     bool hasNonZero = false; // if this flag stays false, there are no significant coefficients
 
     uint8_t significant_coeff_flag[4][4]; // only valid contents if 'hasNonZero' is true
+    // --- new coefficient list ---
+    int16_t  coeff_value[16];
+    int8_t   coeff_scan_pos[16];
+    int8_t   coeff_sign[16];
+    int8_t   coeff_has_max_base_level[16];
+    int nCoefficients=0;
+    // --- END of list ---
+
 
     if (sub_block_is_coded) {
       memset(significant_coeff_flag, 0, 4*4);
@@ -2318,9 +2326,29 @@ int residual_coding(decoder_context* ctx,
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
-      // --- decode all coefficients except DC coefficient ---
+
+
+      // set the last coded coefficient in the last subblock
 
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
+
+      if (i==lastSubBlock) {
+        int subX = ScanOrderPos[lastScanPos].x;
+        int subY = ScanOrderPos[lastScanPos].y;
+        significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
+
+        /*
+        printf("%d %d | %d %d\n",
+               LastSignificantCoeffY%4,LastSignificantCoeffX%4,
+               subY,subX);
+        */
+
+        hasNonZero=true;
+      }
+
+
+      // --- decode all coefficients except DC coefficient ---
+
       for (int n= last_coeff ; n>0 ; n--) {
         int subX = ScanOrderPos[n].x;
         int subY = ScanOrderPos[n].y;
@@ -2369,14 +2397,6 @@ int residual_coding(decoder_context* ctx,
 
     }
 
-    // set the last coded coefficient in the last subblock
-
-    if (i==lastSubBlock) {
-      significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
-      hasNonZero=true;
-    }
-
-
 
     logtrace(LogSlice,"significant_coeff_flags:\n");
     for (int y=0;y<4;y++) {
@@ -2397,20 +2417,8 @@ int residual_coding(decoder_context* ctx,
       c1=1;
 
 
-      // --- new coefficient list ---
-      int16_t  coeff_value[16];
-      int8_t   coeff_scan_pos[16];
-      int8_t   coeff_sign[16];
-      int8_t   coeff_has_max_base_level[16];
-      int nCoefficients;
-      // --- END of list ---
-
-      int newLastGreater1ScanPos=-1;
-
       // **** CONVERT BEGIN ****
       int numSigCoeff=0;
-
-      nCoefficients = 0;
 
       for (int n=15;n>=0;n--) {
         int subX = ScanOrderPos[n].x;
@@ -2429,6 +2437,8 @@ int residual_coding(decoder_context* ctx,
 
 
       // --- decode greater-1 flags ---
+
+      int newLastGreater1ScanPos=-1;
 
       int numGreater1Flag=0;
 
