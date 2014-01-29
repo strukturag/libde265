@@ -122,19 +122,6 @@ enum de265_param {
 
 
 
-/* Static library initialization. Must be paired with de265_free().
-   Return value is false if initialization failed.
-   Only call de265_free() when initialization was successful.
-   Multiple calls to 'init' are allowed, but must be matched with an equal number of 'free' calls.
-*/
-LIBDE265_API de265_error de265_init(void);
-
-/* Free global library data.
-   Returns false if library was not initialized before, or if 'free' was called
-   more often than 'init'.
- */
-LIBDE265_API de265_error de265_free(void);
-
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 LIBDE265_API de265_decoder_context* de265_new_decoder(void);
 
@@ -179,6 +166,25 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_pa
 
 /* Get decoding parameters. */
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
+
+
+
+/* --- optional library initialization --- */
+
+/* Static library initialization. Must be paired with de265_free().
+   Initialization is optional, since it will be done implicitly in de265_new_decoder().
+   Return value is false if initialization failed.
+   Only call de265_free() when initialization was successful.
+   Multiple calls to 'init' are allowed, but must be matched with an equal number of 'free' calls.
+*/
+LIBDE265_API de265_error de265_init(void);
+
+/* Free global library data.
+   An implicit free call is made in de265_free_decoder().
+   Returns false if library was not initialized before, or if 'free' was called
+   more often than 'init'.
+ */
+LIBDE265_API de265_error de265_free(void);
 
 
 #ifdef __cplusplus
