@@ -54,6 +54,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
+  case DE265_ERROR_LIBRARY_INITIALIZATION_FAILED: return "global library initialization failed";
+  case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "cannot free library data (not initialized";
 
   case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
     return "internal error: maximum number of thread contexts exceeded";
@@ -105,20 +107,79 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 
 
 
-LIBDE265_API void de265_init()
+static int de265_init_count = 0;
+
+LIBDE265_API de265_error de265_init()
 {
+  if (de265_init_count>0) {
+    // already initialized
+
+    de265_init_count++;
+    return DE265_OK;
+  }
+
+
+  // do initializations
+
   init_scan_orders();
-  init_CtxIdx_lookupTable();
+
+  if (!alloc_and_init_significant_coeff_ctxIdx_lookupTable()) {
+    return DE265_ERROR_LIBRARY_INITIALIZATION_FAILED;
+  }
+
+  de265_init_count++;
+
+  return DE265_OK;
+}
+
+LIBDE265_API de265_error de265_free()
+{
+  if (de265_init_count<=0) {
+    return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
+  }
+
+  de265_init_count--;
+
+  if (de265_init_count==0) {
+    free_significant_coeff_ctxIdx_lookupTable();
+  }
+
+  return DE265_OK;
 }
 
 
 LIBDE265_API de265_decoder_context* de265_new_decoder()
 {
+  de265_error init_err = de265_init();
+  if (init_err != DE265_OK) {
+    return NULL;
+  }
+
   decoder_context* ctx = (decoder_context*)calloc(sizeof(decoder_context),1);
-  if (!ctx) { return NULL; }
+  if (!ctx) {
+    de265_free();
+    return NULL;
+  }
 
   init_decoder_context(ctx);
+
   return (de265_decoder_context*)ctx;
+}
+
+
+LIBDE265_API de265_error de265_free_decoder(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  if (ctx->num_worker_threads>0) {
+    //flush_thread_pool(&ctx->thread_pool);
+    stop_thread_pool(&ctx->thread_pool);
+  }
+
+  free_decoder_context(ctx);
+  free(de265ctx);
+
+  return de265_free();
 }
 
 
@@ -135,20 +196,6 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
   else {
     return DE265_OK;
   }
-}
-
-
-LIBDE265_API void de265_free_decoder(de265_decoder_context* de265ctx)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  if (ctx->num_worker_threads>0) {
-    //flush_thread_pool(&ctx->thread_pool);
-    stop_thread_pool(&ctx->thread_pool);
-  }
-
-  free_decoder_context(ctx);
-  free(de265ctx);
 }
 
 

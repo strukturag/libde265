@@ -236,7 +236,6 @@ int main(int argc, char** argv)
 
   de265_error err =DE265_OK;
 
-  de265_init();
   de265_decoder_context* ctx = de265_new_decoder();
 
   if (argc>=3) {

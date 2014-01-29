@@ -56,6 +56,8 @@ typedef enum {
   DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE,
   DE265_ERROR_IMAGE_BUFFER_FULL,
   DE265_ERROR_CANNOT_START_THREADPOOL,
+  DE265_ERROR_LIBRARY_INITIALIZATION_FAILED,
+  DE265_ERROR_LIBRARY_NOT_INITIALIZED,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
@@ -120,8 +122,18 @@ enum de265_param {
 
 
 
-/* Static library initialization. */
-LIBDE265_API void de265_init(void);
+/* Static library initialization. Must be paired with de265_free().
+   Return value is false if initialization failed.
+   Only call de265_free() when initialization was successful.
+   Multiple calls to 'init' are allowed, but must be matched with an equal number of 'free' calls.
+*/
+LIBDE265_API de265_error de265_init(void);
+
+/* Free global library data.
+   Returns false if library was not initialized before, or if 'free' was called
+   more often than 'init'.
+ */
+LIBDE265_API de265_error de265_free(void);
 
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 LIBDE265_API de265_decoder_context* de265_new_decoder(void);
@@ -131,7 +143,7 @@ LIBDE265_API de265_decoder_context* de265_new_decoder(void);
 LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
 
 /* Free decoder context. May only be called once on a context. */
-LIBDE265_API void de265_free_decoder(de265_decoder_context*);
+LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 
 
 /* Push more data into the decoder, must be raw h265.
