@@ -2446,11 +2446,6 @@ int residual_coding(decoder_context* ctx,
 
       logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
 
-      if (lastGreater1ScanPos != -1) {
-        coeff_abs_level_greater2_flag[lastGreater1ScanPos] =
-          decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
-      }
-
 
       // --- new coefficient list ---
       int16_t  coeff_value[16];
@@ -2472,7 +2467,7 @@ int residual_coding(decoder_context* ctx,
         int subY = ScanOrderPos[n].y;
 
         if (significant_coeff_flag[subY][subX]) {
-          int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
+          int baseLevel = 1 + coeff_abs_level_greater1_flag[n];
 
           coeff_value[numSigCoeff] = baseLevel;
           coeff_scan_pos[numSigCoeff] = n;
@@ -2486,6 +2481,12 @@ int residual_coding(decoder_context* ctx,
       }
       nCoefficients = numSigCoeff;
       // **** CONVERT END ****
+
+
+      if (newLastGreater1ScanPos != -1) {
+        int flag = decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
+        coeff_value[newLastGreater1ScanPos] += flag;
+      }
 
 
       for (int coeff=0;coeff<nCoefficients;coeff++) {
