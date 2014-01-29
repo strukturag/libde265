@@ -2291,7 +2291,9 @@ int residual_coding(decoder_context* ctx,
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0 || i==lastSubBlock) {
-      // first (DC) and last sub-block are always marked as coded
+      // first (DC) and last sub-block are always coded
+      // - the first will most probably contain coefficients
+      // - the last obviously contains the last coded coefficient
 
       sub_block_is_coded = 1;
     }
@@ -2304,21 +2306,14 @@ int residual_coding(decoder_context* ctx,
 
     // ----- find significant coefficients in this sub-block -----
 
-    bool hasNonZero = false; // if this flag stays false, there are no significant coefficients
-
-    uint8_t significant_coeff_flag[4][4]; // only valid contents if 'hasNonZero' is true
-    // --- new coefficient list ---
     int16_t  coeff_value[16];
     int8_t   coeff_scan_pos[16];
     int8_t   coeff_sign[16];
     int8_t   coeff_has_max_base_level[16];
     int nCoefficients=0;
-    // --- END of list ---
 
 
     if (sub_block_is_coded) {
-      memset(significant_coeff_flag, 0, 4*4);
-
       int x0 = S.x<<2;
       int y0 = S.y<<2;
 
@@ -2327,20 +2322,15 @@ int residual_coding(decoder_context* ctx,
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
 
-
       // set the last coded coefficient in the last subblock
 
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
 
       if (i==lastSubBlock) {
-        //significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
-
         coeff_value[nCoefficients] = 1;
-        coeff_scan_pos[nCoefficients] = lastScanPos;
         coeff_has_max_base_level[nCoefficients] = 1;
+        coeff_scan_pos[nCoefficients] = lastScanPos;
         nCoefficients++;
-
-        hasNonZero=true;
       }
 
 
@@ -2359,9 +2349,10 @@ int residual_coding(decoder_context* ctx,
                                                                      ctxIdxMap[xC+(yC<<log2TrafoSize)]);
 
         if (significant_coeff) {
-          significant_coeff_flag[subY][subX] = significant_coeff;
-
-          hasNonZero=true;
+          coeff_value[nCoefficients] = 1;
+          coeff_has_max_base_level[nCoefficients] = 1;
+          coeff_scan_pos[nCoefficients] = n;
+          nCoefficients++;
 
           // since we have a coefficient in the sub-block,
           // we cannot infer the DC coefficient anymore
@@ -2380,15 +2371,18 @@ int residual_coding(decoder_context* ctx,
                                                                          ctxIdxMap[x0+(y0<<log2TrafoSize)]);
 
             if (significant_coeff) {
-              significant_coeff_flag[0][0] = significant_coeff;
-
-              hasNonZero=true;
+              coeff_value[nCoefficients] = 1;
+              coeff_has_max_base_level[nCoefficients] = 1;
+              coeff_scan_pos[nCoefficients] = 0;
+              nCoefficients++;
             }
           }
           else {
             // we can infer that the DC coefficient must be present
-            significant_coeff_flag[0][0]=1;
-            hasNonZero=true;
+            coeff_value[nCoefficients] = 1;
+            coeff_has_max_base_level[nCoefficients] = 1;
+            coeff_scan_pos[nCoefficients] = 0;
+            nCoefficients++;
           }
         }
 
@@ -2405,7 +2399,7 @@ int residual_coding(decoder_context* ctx,
     }
 
 
-    if (hasNonZero) {
+    if (nCoefficients) {
       int ctxSet;
       if (i==0 || cIdx>0) { ctxSet=0; }
       else { ctxSet=2; }
@@ -2414,57 +2408,37 @@ int residual_coding(decoder_context* ctx,
       c1=1;
 
 
-      // **** CONVERT BEGIN ****
-      int numSigCoeff=nCoefficients;
-
-      for (int n=15;n>=0;n--) {
-        int subX = ScanOrderPos[n].x;
-        int subY = ScanOrderPos[n].y;
-
-        if (significant_coeff_flag[subY][subX]) {
-          coeff_value[numSigCoeff] = 1;
-          coeff_scan_pos[numSigCoeff] = n;
-          coeff_has_max_base_level[numSigCoeff] = 1;
-
-          numSigCoeff++;
-        }
-      }
-      nCoefficients = numSigCoeff;
-      // **** CONVERT END ****
-
-
       // --- decode greater-1 flags ---
 
       int newLastGreater1ScanPos=-1;
 
       int numGreater1Flag=0;
 
-      for (int c=0;c<nCoefficients;c++) {
-        if (c<8) {
-          int greater1_flag =
-            decode_coeff_abs_level_greater1(tctx, cIdx,i,
-                                            c==0,
-                                            firstSubblock,
-                                            lastSubblock_greater1Ctx,
-                                            &lastInvocation_greater1Ctx,
-                                            &lastInvocation_coeff_abs_level_greater1_flag,
-                                            &lastInvocation_ctxSet, ctxSet);
+      int lastGreater1Coefficient = libde265_min(8,nCoefficients);
+      for (int c=0;c<lastGreater1Coefficient;c++) {
+        int greater1_flag =
+          decode_coeff_abs_level_greater1(tctx, cIdx,i,
+                                          c==0,
+                                          firstSubblock,
+                                          lastSubblock_greater1Ctx,
+                                          &lastInvocation_greater1Ctx,
+                                          &lastInvocation_coeff_abs_level_greater1_flag,
+                                          &lastInvocation_ctxSet, ctxSet);
 
-          if (greater1_flag) {
-            coeff_value[c]++;
+        if (greater1_flag) {
+          coeff_value[c]++;
 
-            c1=0;
+          c1=0;
 
-            if (newLastGreater1ScanPos == -1) {
-              newLastGreater1ScanPos=c;
-            }
+          if (newLastGreater1ScanPos == -1) {
+            newLastGreater1ScanPos=c;
           }
-          else {
-            coeff_has_max_base_level[c] = 0;
+        }
+        else {
+          coeff_has_max_base_level[c] = 0;
 
-            if (c1<3 && c1>0) {
-              c1++;
-            }
+          if (c1<3 && c1>0) {
+            c1++;
           }
         }
       }
@@ -2489,18 +2463,20 @@ int residual_coding(decoder_context* ctx,
       int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
                         !shdr->cu_transquant_bypass_flag);
 
-      for (int n=0;n<nCoefficients;n++) {
-        // TODO: we could move out the last coefficient to omit the 'if'
-        if (!ctx->current_pps->sign_data_hiding_flag ||
-            !signHidden ||
-            n != nCoefficients-1) {
-          coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
-          logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign_flag[n]);
-        }
-        else {
-          coeff_sign[n] = 0;
-        }
+      for (int n=0;n<nCoefficients-1;n++) {
+        coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
+        logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign_flag[n]);
       }
+
+      // n==nCoefficients-1
+      if (!ctx->current_pps->sign_data_hiding_flag || !signHidden) {
+        coeff_sign[nCoefficients-1] = decode_CABAC_bypass(&tctx->cabac_decoder);
+        logtrace(LogSlice,"sign[%d] = %d\n", nCoefficients-1, coeff_sign_flag[nCoefficients-1]);
+      }
+      else {
+        coeff_sign[nCoefficients-1] = 0;
+      }
+
 
       // --- decode coefficient value ---
 
