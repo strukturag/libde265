@@ -362,7 +362,7 @@ int  decode_CABAC_TU(CABAC_decoder* decoder, int cMax, context_model* model)
 
 int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 {
-  logtrace(LogCABAC,"[%3d] bypass2 r:%x v:%x\n",logcnt,decoder->range, decoder->value);
+  logtrace(LogCABAC,"[%3d] bypass group r:%x v:%x\n",logcnt,decoder->range, decoder->value);
 
   decoder->value <<= nBits;
   decoder->bits_needed+=nBits;
@@ -380,8 +380,8 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
   int value = decoder->value / scaled_range;
   decoder->value -= value * scaled_range;
 
-  logtrace(LogCABAC,"[%3d] -> bit %d  r:%x v:%x\n", logcnt+nBits-1,
-           bit, decoder->range, decoder->value);
+  logtrace(LogCABAC,"[%3d] -> value %d  r:%x v:%x\n", logcnt+nBits-1,
+           value, decoder->range, decoder->value);
 #ifdef DE265_LOG_TRACE
   logcnt+=nBits;
 #endif
