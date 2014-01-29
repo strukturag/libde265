@@ -2405,6 +2405,9 @@ int residual_coding(decoder_context* ctx,
       if (c1==0) { ctxSet++; }
       c1=1;
 
+
+      // --- decode greater-1 flags ---
+
       for (int n=15;n>=0;n--) {
         xC = (S.x<<2) + ScanOrderPos[n].x;
         yC = (S.y<<2) + ScanOrderPos[n].y;
@@ -2494,6 +2497,8 @@ int residual_coding(decoder_context* ctx,
       }
 
 
+      // --- decode greater-2 flag ---
+
       if (newLastGreater1ScanPos != -1) {
         int flag = decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
         coeff_value[newLastGreater1ScanPos] += flag;
@@ -2503,11 +2508,11 @@ int residual_coding(decoder_context* ctx,
 
       // --- decode coefficient signs ---
 
-
       int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
                         !shdr->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients;n++) {
+        // TODO: we could move out the last coefficient to omit the 'if'
         if (!ctx->current_pps->sign_data_hiding_flag ||
             !signHidden ||
             n != nCoefficients-1) {
