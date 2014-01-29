@@ -2496,6 +2496,60 @@ int residual_coding(decoder_context* ctx,
 
       int uiGoRiceParam=0;
 
+      // --- new coefficient list ---
+      int16_t  coeff_value[16];
+      uint16_t coeff_scan_pos[16];
+      int8_t   coeff_sign[16];
+      int8_t   coeff_has_max_base_level[16];
+      int nCoefficients;
+      // --- END of list ---
+
+
+      nCoefficients = 0;
+      int currSbCoeff = 0;
+
+      for (int n=15;n>=0;n--) {
+        xC = (S.x<<2) + ScanOrderPos[n].x;
+        yC = (S.y<<2) + ScanOrderPos[n].y;
+        int subX = ScanOrderPos[n].x;
+        int subY = ScanOrderPos[n].y;
+
+        if (significant_coeff_flag[subY][subX]) {
+          int baseLevel = 1 + coeff_abs_level_greater1_flag[n] + coeff_abs_level_greater2_flag[n];
+
+          int checkLevel;
+          if (numSigCoeff<8) {
+            if (n==lastGreater1ScanPos) {
+              checkLevel=3;
+            }
+            else {
+              checkLevel=2;
+            }
+          }
+          else {
+            checkLevel=1; // when check-level is 1, it is always == baseLevel
+          }
+
+          // printf("%d %d | %d %d\n",numSigCoeff,n==lastGreater1ScanPos,baseLevel,checkLevel);
+
+          if (checkLevel==1) {
+            assert(baseLevel==1);
+          }
+
+          logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
+
+
+          coeff_value[currSbCoeff] = baseLevel;
+          coeff_scan_pos[currSbCoeff] = xC + yC*CoeffStride;
+          coeff_sign[currSbCoeff] = coeff_sign_flag[n];
+          coeff_has_max_base_level[currSbCoeff] = (baseLevel==checkLevel);
+          currSbCoeff++;
+        }
+      }
+
+
+
+
       for (int n=15;n>=0;n--) {
         xC = (S.x<<2) + ScanOrderPos[n].x;
         yC = (S.y<<2) + ScanOrderPos[n].y;
@@ -2520,7 +2574,13 @@ int residual_coding(decoder_context* ctx,
             }
           }
           else {
-            checkLevel=1;
+            checkLevel=1; // when check-level is 1, it is always == baseLevel
+          }
+
+          // printf("%d %d | %d %d\n",numSigCoeff,n==lastGreater1ScanPos,baseLevel,checkLevel);
+
+          if (checkLevel==1) {
+            assert(baseLevel==1);
           }
 
           logtrace(LogSlice,"checkLevel=%d\n",checkLevel);
