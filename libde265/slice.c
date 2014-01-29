@@ -2333,15 +2333,12 @@ int residual_coding(decoder_context* ctx,
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
 
       if (i==lastSubBlock) {
-        int subX = ScanOrderPos[lastScanPos].x;
-        int subY = ScanOrderPos[lastScanPos].y;
-        significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
+        //significant_coeff_flag[LastSignificantCoeffY%4][LastSignificantCoeffX%4] = 1;
 
-        /*
-        printf("%d %d | %d %d\n",
-               LastSignificantCoeffY%4,LastSignificantCoeffX%4,
-               subY,subX);
-        */
+        coeff_value[nCoefficients] = 1;
+        coeff_scan_pos[nCoefficients] = lastScanPos;
+        coeff_has_max_base_level[nCoefficients] = 1;
+        nCoefficients++;
 
         hasNonZero=true;
       }
@@ -2418,7 +2415,7 @@ int residual_coding(decoder_context* ctx,
 
 
       // **** CONVERT BEGIN ****
-      int numSigCoeff=0;
+      int numSigCoeff=nCoefficients;
 
       for (int n=15;n>=0;n--) {
         int subX = ScanOrderPos[n].x;
