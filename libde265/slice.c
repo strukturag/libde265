@@ -2421,6 +2421,7 @@ int residual_coding(decoder_context* ctx,
         if (significant_coeff_flag[subY][subX]) {
           coeff_value[numSigCoeff] = 1;
           coeff_scan_pos[numSigCoeff] = n;
+          coeff_has_max_base_level[numSigCoeff] = 1;
 
           numSigCoeff++;
         }
@@ -2446,6 +2447,7 @@ int residual_coding(decoder_context* ctx,
           numGreater1Flag++;
 
           coeff_value[c] += greater1_flag;
+          coeff_has_max_base_level[c] = greater1_flag;
 
           if (greater1_flag) {
             c1=0;
@@ -2466,19 +2468,6 @@ int residual_coding(decoder_context* ctx,
       lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
 
       logtrace(LogSlice,"lastGreater1ScanPos=%d\n",lastGreater1ScanPos);
-
-
-      for (int coeff=0;coeff<nCoefficients;coeff++) {
-        int checkLevel;
-        if (coeff<8) {
-          checkLevel=2;
-        }
-        else {
-          checkLevel=1; // when check-level is 1, it is always == baseLevel
-        }
-
-        coeff_has_max_base_level[coeff] = (coeff_value[coeff]==checkLevel);
-      }
 
 
       // --- decode greater-2 flag ---
