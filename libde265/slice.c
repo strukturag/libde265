@@ -2388,8 +2388,6 @@ int residual_coding(decoder_context* ctx,
     }
 
 
-    int firstSigScanPos=16;
-    int lastSigScanPos=-1;
     int numGreater1Flag=0;
     int lastGreater1ScanPos=-1;
 
@@ -2438,12 +2436,6 @@ int residual_coding(decoder_context* ctx,
               lastGreater1ScanPos=n;
             }
           }
-
-          if (lastSigScanPos==-1) {
-            lastSigScanPos=n;
-          }
-
-          firstSigScanPos=n;
 
           firstCoeffInSubblock = false;
         }
@@ -2515,9 +2507,8 @@ int residual_coding(decoder_context* ctx,
 
       // --- decode coefficient signs ---
 
-      printf("%d %d\n",coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1], nCoefficients);
 
-      int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
+      int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
                         !shdr->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients;n++) {
