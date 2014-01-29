@@ -2515,7 +2515,7 @@ int residual_coding(decoder_context* ctx,
 
       // --- decode coefficient signs ---
 
-      //printf("%d %d\n",lastSigScanPos-firstSigScanPos, nCoefficients);
+      printf("%d %d\n",coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1], nCoefficients);
 
       int signHidden = (lastSigScanPos-firstSigScanPos > 3 &&
                         !shdr->cu_transquant_bypass_flag);
