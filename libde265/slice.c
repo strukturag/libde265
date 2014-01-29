@@ -990,8 +990,8 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
   int context = tctx->shdr->initType*4;
 
   // tricky computation of csbfCtx
-  int csbfCtx = ((coded_sub_block_neighbors &  1) |
-                 (coded_sub_block_neighbors >> 1));
+  int csbfCtx = ((coded_sub_block_neighbors &  1) |  // right neighbor set  or
+                 (coded_sub_block_neighbors >> 1));  // bottom neighbor set   -> csbfCtx=1
 
   int ctxIdxInc = csbfCtx;
   if (cIdx!=0) {
