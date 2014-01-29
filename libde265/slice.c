@@ -2388,8 +2388,6 @@ int residual_coding(decoder_context* ctx,
     }
 
 
-    bool firstCoeffInSubblock = true;
-
     if (hasNonZero) {
       int ctxSet;
       if (i==0 || cIdx>0) { ctxSet=0; }
@@ -2435,33 +2433,33 @@ int residual_coding(decoder_context* ctx,
       int numGreater1Flag=0;
 
       for (int c=0;c<nCoefficients;c++) {
-        if (numGreater1Flag<8) {
+        if (c<8) {
           int greater1_flag =
             decode_coeff_abs_level_greater1(tctx, cIdx,i,
-                                            firstCoeffInSubblock,
+                                            c==0,
                                             firstSubblock,
                                             lastSubblock_greater1Ctx,
                                             &lastInvocation_greater1Ctx,
                                             &lastInvocation_coeff_abs_level_greater1_flag,
                                             &lastInvocation_ctxSet, ctxSet);
-          numGreater1Flag++;
-
-          coeff_value[c] += greater1_flag;
-          coeff_has_max_base_level[c] = greater1_flag;
 
           if (greater1_flag) {
-            c1=0;
-          }
-          else if (c1<3 && c1>0) {
-            c1++;
-          }
+            coeff_value[c]++;
 
-          if (greater1_flag && newLastGreater1ScanPos == -1) {
-            newLastGreater1ScanPos=c;
+            c1=0;
+
+            if (newLastGreater1ScanPos == -1) {
+              newLastGreater1ScanPos=c;
+            }
+          }
+          else {
+            coeff_has_max_base_level[c] = 0;
+
+            if (c1<3 && c1>0) {
+              c1++;
+            }
           }
         }
-
-        firstCoeffInSubblock = false;
       }
 
       firstSubblock = false;
