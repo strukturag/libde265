@@ -2392,12 +2392,10 @@ int residual_coding(decoder_context* ctx,
     int lastGreater1ScanPos=-1;
 
     uint8_t coeff_abs_level_greater1_flag[16];
-    uint8_t coeff_abs_level_greater2_flag[16];
 
     bool firstCoeffInSubblock = true;
 
     memset(coeff_abs_level_greater1_flag,0,16);
-    memset(coeff_abs_level_greater2_flag,0,16);
 
     if (hasNonZero) {
       int ctxSet;
@@ -2483,21 +2481,10 @@ int residual_coding(decoder_context* ctx,
       // **** CONVERT END ****
 
 
-      if (newLastGreater1ScanPos != -1) {
-        int flag = decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
-        coeff_value[newLastGreater1ScanPos] += flag;
-      }
-
-
       for (int coeff=0;coeff<nCoefficients;coeff++) {
         int checkLevel;
         if (coeff<8) {
-          if (coeff==newLastGreater1ScanPos) {
-            checkLevel=3;
-          }
-          else {
-            checkLevel=2;
-          }
+          checkLevel=2;
         }
         else {
           checkLevel=1; // when check-level is 1, it is always == baseLevel
@@ -2505,6 +2492,14 @@ int residual_coding(decoder_context* ctx,
 
         coeff_has_max_base_level[coeff] = (coeff_value[coeff]==checkLevel);
       }
+
+
+      if (newLastGreater1ScanPos != -1) {
+        int flag = decode_coeff_abs_level_greater2(tctx,cIdx, lastInvocation_ctxSet);
+        coeff_value[newLastGreater1ScanPos] += flag;
+        coeff_has_max_base_level[newLastGreater1ScanPos] = flag;
+      }
+
 
       // --- decode coefficient signs ---
 
