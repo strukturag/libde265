@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
