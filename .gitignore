@@ -13,3 +13,10 @@ stamp-h1
 configure
 *.obj
 *.la
+.gitignore
+
+# MSVC
+*.sln
+*.ncb
+*.suo
+*.vcproj*
