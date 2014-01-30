@@ -126,10 +126,10 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int xLeftCtb = (xBLuma-1) >> log2CtbSize;
   int yTopCtb  = (yBLuma-1) >> log2CtbSize;
 
-  int currCTBSlice = get_SliceAddrRS(ctx, xCurrCtb,yCurrCtb);
-  int leftCTBSlice = availableLeft ? get_SliceAddrRS(ctx, xLeftCtb, yCurrCtb) : -1;
-  int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx, xCurrCtb, yTopCtb) : -1;
-  int topleftCTBSlice = availableTopLeft ? get_SliceAddrRS(ctx, xLeftCtb, yTopCtb) : -1;
+  int currCTBSlice = get_SliceAddrRS(ctx->img,sps, xCurrCtb,yCurrCtb);
+  int leftCTBSlice = availableLeft ? get_SliceAddrRS(ctx->img,sps, xLeftCtb, yCurrCtb) : -1;
+  int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx->img,sps, xCurrCtb, yTopCtb) : -1;
+  int topleftCTBSlice = availableTopLeft ? get_SliceAddrRS(ctx->img,sps, xLeftCtb, yTopCtb) : -1;
 
   int currCTBTileID = pps->TileId[xCurrCtb+yCurrCtb*picWidthInCtbs];
   int leftCTBTileID = availableLeft ? pps->TileId[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;

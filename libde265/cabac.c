@@ -359,14 +359,66 @@ int  decode_CABAC_TU(CABAC_decoder* decoder, int cMax, context_model* model)
   return cMax;
 }
 
+
+int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
+{
+  logtrace(LogCABAC,"[%3d] bypass group r:%x v:%x\n",logcnt,decoder->range, decoder->value);
+
+  decoder->value <<= nBits;
+  decoder->bits_needed+=nBits;
+
+  if (decoder->bits_needed >= 0)
+    {
+      int input = *decoder->bitstream_curr++;
+      input <<= decoder->bits_needed;
+
+      decoder->bits_needed -= 8;
+      decoder->value |= input;
+    }
+
+  uint32_t scaled_range = decoder->range << 7;
+  int value = decoder->value / scaled_range;
+  decoder->value -= value * scaled_range;
+
+  logtrace(LogCABAC,"[%3d] -> value %d  r:%x v:%x\n", logcnt+nBits-1,
+           value, decoder->range, decoder->value);
+#ifdef DE265_LOG_TRACE
+  logcnt+=nBits;
+#endif
+
+  //assert(decoder->range>=0x100);
+
+  return value;
+}
+
+
 int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
 {
-  // assert(nBits<8); // TODO: HM has fast code for reading 8 bypass bits at once. But does this ever occur?
-
   int value=0;
-  while (nBits--) {
-    value <<= 1;
-    value |= decode_CABAC_bypass(decoder);
+
+
+  if (nBits<=8) {
+    if (nBits==0) {
+      return 0;
+    }
+    // we could use decode_CABAC_bypass() for a single bit, but this seems to be slower
+#if 0
+    else if (nBits==1) {
+      value = decode_CABAC_bypass(decoder);
+    }
+#endif
+    else {
+      value = decode_CABAC_FL_bypass_parallel(decoder,nBits);
+    }
+  }
+  else {
+    value = decode_CABAC_FL_bypass_parallel(decoder,8);
+    nBits-=8;
+
+    while (nBits--) {
+      value <<= 1;
+      value |= decode_CABAC_bypass(decoder);
+    }
   }
 
   logtrace(LogCABAC,"      -> FL: %d\n", value);

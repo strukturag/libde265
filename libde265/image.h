@@ -61,20 +61,37 @@ enum PictureState {
 #define TU_FLAG_NONZERO_COEFF  (1<<7)
 #define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
 
+#define DEBLOCK_FLAG_VERTI (1<<4)
+#define DEBLOCK_FLAG_HORIZ (1<<5)
+#define DEBLOCK_PB_EDGE_VERTI (1<<6)
+#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
+#define DEBLOCK_BS_MASK     0x03
+
 
 typedef struct {
-  uint8_t cu_skip_flag : 1; // only for decoding of current image
+  uint16_t SliceAddrRS;
+  uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
+
+  sao_info saoInfo;
+
+  de265_sync_int task_blocking_cnt; // for parallelization
+} CTB_info;
+
+
+typedef struct {
   uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t cu_skip_flag : 1; // only for decoding of current image
+  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
+  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
-  uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be safed for past images
-  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
 
   int8_t  QP_Y;
 
   // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
+
 
 typedef struct {
   PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
@@ -124,15 +141,20 @@ typedef struct de265_image {
   bool PicOutputFlag;
   enum PictureState PicState;
 
+
+  seq_parameter_set* sps;  // the SPS used for decoding this image
+  pic_parameter_set* pps;  // the PPS used for decoding this image
+
+
+  CTB_info* ctb_info; // in raster scan
+  int ctb_info_size;
+
   CB_ref_info* cb_info;
   int cb_info_size;
 
   PB_ref_info* pb_info;
   int pb_info_size;
   int pb_info_stride;
-
-  int* pb_rootIdx;
-  //int  pb_info_nextRootIdx;
 
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
@@ -165,8 +187,8 @@ typedef struct de265_image {
 
 
 void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
-                       const seq_parameter_set* sps);
+de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                              const seq_parameter_set* sps);
 void de265_free_image (de265_image* img);
 
 void de265_fill_image(de265_image* img, int y,int u,int v);
@@ -217,6 +239,34 @@ void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
 
 int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
                              int x,int y);
+
+enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
+
+void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags);
+uint8_t get_deblk_flags(const de265_image* img, int x0,int y0);
+
+void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS);
+uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
+
+
+void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
+                     int ctbX, int ctbY, int SliceAddrRS);
+int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY);
+
+
+void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
+                          int x, int y, int SliceHeaderIndex);
+int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y);
+
+void set_sao_info(de265_image* img,const seq_parameter_set* sps,
+                  int ctbX,int ctbY,const sao_info* saoinfo);
+const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY);
+
+
+void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt);
+uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY);
+
 
 // --- value logging ---
 

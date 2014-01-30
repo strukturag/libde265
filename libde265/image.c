@@ -54,8 +54,8 @@ void de265_init_image(de265_image* img) // (optional) init variables, do not all
 
 
 
-void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
-                       const seq_parameter_set* sps)
+de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
+                              const seq_parameter_set* sps)
 {
   const int border=0;  // TODO: remove the border altogether
 
@@ -106,6 +106,18 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
     }
   }
 
+
+  // check for memory shortage
+
+  if (img->y_mem  == NULL ||
+      img->cb_mem == NULL ||
+      img->cr_mem == NULL)
+    {
+      de265_free_image(img);
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
+
+
   // --- allocate decoding info arrays ---
 
   if (sps) {
@@ -140,8 +152,8 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       img->pb_info_stride = puWidth;
       free(img->pb_info);
       img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
-      // ctx->img->pb_rootIdx = (int*)malloc(sizeof(int) * ctx->img->pb_info_size);
     }
+
 
     // tu info
 
@@ -151,7 +163,50 @@ void de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
       free(img->tu_info);
       img->tu_info = (uint8_t*)malloc(sizeof(uint8_t) * img->tu_info_size);
     }
+
+
+    // deblk info
+
+    int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
+    int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
+
+    if (img->deblk_width  != deblk_w ||
+        img->deblk_height != deblk_h ||
+        img->deblk_info == NULL) {
+      img->deblk_width  = deblk_w;
+      img->deblk_height = deblk_h;
+      img->deblk_info_size = deblk_w*deblk_h;
+      free(img->deblk_info);
+      img->deblk_info = (uint8_t*)malloc(sizeof(uint8_t) * img->deblk_info_size);
+    }
+
+
+    // CTB info
+
+    if (img->ctb_info_size != sps->PicSizeInCtbsY)
+      {
+        img->ctb_info_size  = sps->PicSizeInCtbsY;
+        free(img->ctb_info);
+        img->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
+      }
+
+
+
+    // check for memory shortage
+
+    if (img->ctb_info == NULL ||
+        img->intraPredMode == NULL ||
+        img->cb_info == NULL ||
+        img->pb_info == NULL ||
+        img->tu_info == NULL ||
+        img->deblk_info == NULL)
+      {
+        de265_free_image(img);
+        return DE265_ERROR_OUT_OF_MEMORY;
+      }
   }
+
+  return DE265_OK;
 }
 
 
@@ -163,8 +218,9 @@ void de265_free_image(de265_image* img)
 
   free(img->cb_info);
   free(img->pb_info);
-  //free(img->pb_rootIdx);
-
+  free(img->tu_info);
+  free(img->deblk_info);
+  free(img->ctb_info);
   free(img->intraPredMode);
 
   de265_cond_destroy(&img->finished_cond);
@@ -250,7 +306,9 @@ void prepare_image_for_decoding(de265_image* img)
 
   memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
 
-  memset(img->tu_info,  0,img->tu_info_size * sizeof(uint8_t));
+  memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
+  memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
+  memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
 }
 
 
@@ -411,4 +469,109 @@ int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps
                              int x,int y)
 {
   return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
+}
+
+
+enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
+
+  return (enum IntraPredMode) img->intraPredMode[PUidx];
+}
+
+
+void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
+
+  if (xd<img->deblk_width && yd<img->deblk_height) {
+    img->deblk_info[xd + yd*img->deblk_width] |= flags;
+  }
+}
+
+uint8_t get_deblk_flags(const de265_image* img, int x0,int y0)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
+  assert (xd<img->deblk_width && yd<img->deblk_height);
+
+  return img->deblk_info[xd + yd*img->deblk_width];
+}
+
+void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS)
+{
+  uint8_t* data = &img->deblk_info[x0/4 + y0/4*img->deblk_width];
+  *data &= ~DEBLOCK_BS_MASK;
+  *data |= bS;
+}
+
+uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
+{
+  return img->deblk_info[x0/4 + y0/4*img->deblk_width] & DEBLOCK_BS_MASK;
+}
+
+
+void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
+                     int ctbX, int ctbY, int SliceAddrRS)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+}
+
+int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY)
+{
+  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS;
+}
+
+
+void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
+                          int x, int y, int SliceHeaderIndex)
+{
+  int ctbX = x >> sps->Log2CtbSizeY;
+  int ctbY = y >> sps->Log2CtbSizeY;
+  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+}
+
+int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y)
+{
+  int ctbX = x >> sps->Log2CtbSizeY;
+  int ctbY = y >> sps->Log2CtbSizeY;
+  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex;
+}
+
+
+void set_sao_info(de265_image* img,const seq_parameter_set* sps,
+                  int ctbX,int ctbY,const sao_info* saoinfo)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  memcpy(&img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo,
+         saoinfo,
+         sizeof(sao_info));
+}
+
+const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY)
+{
+  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo;
+}
+
+
+void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt)
+{
+  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
+  img->ctb_info[idx].task_blocking_cnt = cnt;
+}
+
+uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY)
+{
+  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
+
+#ifndef _WIN32
+  de265_sync_int blkcnt = __sync_sub_and_fetch(&img->ctb_info[idx].task_blocking_cnt, 1);
+#else
+  de265_sync_int blkcnt = InterlockedDecrement((volatile long*)(&img->ctb_info[idx].task_blocking_cnt));
+#endif
+
+  return blkcnt;
 }

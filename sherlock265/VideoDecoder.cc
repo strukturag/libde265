@@ -323,8 +323,6 @@ void VideoDecoder::showDecodedImage(bool flag)
 
 void VideoDecoder::init_decoder(const char* filename)
 {
-  de265_init();
-
   mFH = fopen(filename,"rb");
   //init_file_context(&inputctx, filename);
   //rbsp_buffer_init(&buf);

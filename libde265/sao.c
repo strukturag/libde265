@@ -37,7 +37,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
   bool pcm_loop_filter_disable = false;
   bool cu_transquant_bypass = false;
-  const sao_info* saoinfo = get_sao_info(ctx,xCtb,yCtb);
+  const sao_info* saoinfo = get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
@@ -56,7 +56,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
   if (cIdx>0) { width =(width+1)/2; height =(height+1)/2; }
 
-  int ctbSliceIdx = get_SliceHeaderIndex(ctx,xC,yC);
+  int ctbSliceIdx = get_SliceHeaderIndex(ctx->img,ctx->current_sps,xC,yC);
   int* MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
   int  PicWidthInTbsY = ctx->current_sps->PicWidthInTbsY;
   int  Log2MinTrafoSize = ctx->current_sps->Log2MinTrafoSize;
@@ -104,7 +104,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           // slice anyway) reduced computation time only by 1.3%.
           // TODO: however, this may still be a big part of SAO itself.
 
-          int sliceIdx = get_SliceHeaderIndex(ctx,xS,yS);
+          int sliceIdx = get_SliceHeaderIndex(ctx->img,ctx->current_sps,xS,yS);
           if (sliceIdx != ctbSliceIdx &&
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
               MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&

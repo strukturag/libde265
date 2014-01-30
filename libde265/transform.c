@@ -112,7 +112,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   int qPYA,qPYB;
 
-  if (available_zscan(ctx,xQG,yQG, xQG-1,yQG)) {
+  if (available_zscan(ctx->img,xQG,yQG, xQG-1,yQG)) {
     // unused: int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
     // unused: int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
     // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
@@ -124,7 +124,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     qPYA = qPY_PRED;
   }
 
-  if (available_zscan(ctx,xQG,yQG, xQG,yQG-1)) {
+  if (available_zscan(ctx->img,xQG,yQG, xQG,yQG-1)) {
     // unused: int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
     // unused: int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
     // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
@@ -281,7 +281,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogTransform,"bdShift2=%d\n",bdShift2);
 
     logtrace(LogSlice,"get_transform_skip_flag(%d,%d, cIdx=%d)=%d\n",xT,yT,cIdx,
-             get_transform_skip_flag(ctx,xT,yT,cIdx));
+             transform_skip_flag);
 
     if (transform_skip_flag) {
 

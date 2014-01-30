@@ -55,28 +55,6 @@
 // intra_chroma_pred_mode    CB
 
 
-typedef struct {
-  uint16_t SliceAddrRS;
-  uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
-
-  sao_info saoInfo;
-
-  uint8_t  task_blocking_cnt; // for parallelization
-} CTB_info;
-
-
-
-#define DEBLOCK_FLAG_VERTI (1<<4)
-#define DEBLOCK_FLAG_HORIZ (1<<5)
-#define DEBLOCK_PB_EDGE_VERTI (1<<6)
-#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
-#define DEBLOCK_BS_MASK     0x03
-
-typedef struct {
-  uint8_t deblock_flags;
-} deblock_info;
-
-
 enum LowLevelImplementation {
   LOWLEVEL_AUTO,
   LOWLEVEL_SSE,
@@ -184,15 +162,6 @@ typedef struct decoder_context {
 
   // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
 
-  CTB_info* ctb_info; // in raster scan
-  deblock_info* deblk_info;
-
-  int ctb_info_size;
-  int deblk_info_size;
-
-  int deblk_width;
-  int deblk_height;
-
   // --- parameters derived from parameter sets ---
 
   // NAL
@@ -235,29 +204,8 @@ de265_error get_warning(decoder_context* ctx);
 
 void debug_dump_cb_info(const decoder_context*);
 
-enum IntraPredMode get_IntraPredMode(const decoder_context*, const de265_image*, int x,int y);
-
-void set_SliceAddrRS(      decoder_context*, int ctbX, int ctbY, int SliceAddrRS);
-int  get_SliceAddrRS(const decoder_context*, int ctbX, int ctbY);
-
-void set_SliceHeaderIndex(      decoder_context*, int x, int y, int SliceHeaderIndex);
-int  get_SliceHeaderIndex(const decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeader(decoder_context*, int x, int y);
 slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY);
-
-/*
-void set_nonzero_coefficient(decoder_context* ctx,int x0,int y0, int log2TrafoSize);
-int  get_nonzero_coefficient(const decoder_context* ctx,int x0,int y0);
-*/
-
-void    set_deblk_flags(decoder_context*, int x0,int y0, uint8_t flags);
-uint8_t get_deblk_flags(const decoder_context*, int x0,int y0);
-
-void    set_deblk_bS(decoder_context*, int x0,int y0, uint8_t bS);
-uint8_t get_deblk_bS(const decoder_context*, int x0,int y0);
-
-void            set_sao_info(decoder_context*, int ctbX,int ctbY,const sao_info* sao_info);
-const sao_info* get_sao_info(const decoder_context*, int ctbX,int ctbY);
 
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
@@ -265,10 +213,8 @@ const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
                                       const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
-void set_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY, int cnt);
-uint8_t decrease_CTB_deblocking_cnt(decoder_context* ctx,int ctbX,int ctbY);
-
-bool available_zscan(const decoder_context* ctx,
+// TODO: move to some utility file
+bool available_zscan(const de265_image* ctx,
                      int xCurr,int yCurr, int xN,int yN);
 
 bool available_pred_blk(const decoder_context* ctx,
