@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
@@ -1077,7 +1078,7 @@ static int decode_last_significant_coeff_prefix(thread_context* tctx,
 }
 
 
-static const uint8_t ctxIdxMap[15] = {
+static const uint8_t ctxIdxMap[16] = {
   0,1,4,5,
   2,3,4,5,
   6,6,8,8,
