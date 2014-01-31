@@ -70,7 +70,7 @@ enum LogModule {
 };
 
 
-#if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
+#if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_TRACE)
 # define DE265_LOGGING 1
 void enablelog();
 #else
