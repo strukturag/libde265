@@ -50,6 +50,26 @@ else(USE_VIDEOGFX)
     add_definitions(-D HAVE_VIDEOGFX=0)
 endif(USE_VIDEOGFX)
 
+option(DE265_LOG_ERROR  "Enable DE265_LOG_ERROR" OFF)
+if(DE265_LOG_ERROR)
+    add_definitions(-DDE265_LOG_ERROR)
+endif(DE265_LOG_ERROR)
+
+option(DE265_LOG_INFO   "Enable DE265_LOG_INFO"  OFF)
+if(DE265_LOG_INFO)
+    add_definitions(-DDE265_LOG_INFO)
+endif(DE265_LOG_INFO)
+
+option(DE265_LOG_DEBUG  "Enable DE265_LOG_DEBUG" OFF)
+if(DE265_LOG_DEBUG)
+    add_definitions(-DDE265_LOG_DEBUG)
+endif(DE265_LOG_DEBUG)
+
+option(DE265_LOG_TRACE  "Enable DE265_LOG_TRACE" OFF)
+if(DE265_LOG_TRACE)
+    add_definitions(-DDE265_LOG_TRACE)
+endif(DE265_LOG_TRACE)
+
 include_directories(../ ../libde265)
 
 file(GLOB LIBSRC ../libde265/*.c ../extra/*.c)
