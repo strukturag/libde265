@@ -185,8 +185,10 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
       if (scaled_range < ( 256 << 7 ) )
         {
-          decoder->range = scaled_range >> 6;
-          decoder->value <<= 1;
+          // scaled range, highest bit (15) not set
+
+          decoder->range = scaled_range >> 6; // shift range by one bit
+          decoder->value <<= 1;               // shift value by one bit
           decoder->bits_needed++;
 
           if (decoder->bits_needed == 0)
@@ -207,7 +209,8 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
       decoder->value = (decoder->value - scaled_range);
 
       decoder->value <<= num_bits;
-      decoder->range   = LPS << num_bits;
+      decoder->range   = LPS << num_bits;  /* this is always >= 0x100 except for state 63,
+                                              but state 63 is never used */
       decoded_bit      = 1 - model->MPSbit;
 
       if (model->state==0) { model->MPSbit = 1-model->MPSbit; }

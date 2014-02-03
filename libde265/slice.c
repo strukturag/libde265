@@ -618,7 +618,11 @@ static void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
   
   model->MPSbit=(preCtxState<=63) ? 0 : 1;
   model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
-  //model->state = model->MPSbit ? (preCtxState-64) : preCtxState; // HACK
+
+  // model state will always be between [0;62]
+
+  assert(model->state >= 0);
+  assert(model->state <= 62);
 }
 
 
