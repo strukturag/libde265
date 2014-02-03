@@ -3067,9 +3067,12 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
 {
   slice_segment_header* shdr = tctx->shdr;
 
-  int merge_idx = 0;
+  int merge_idx;
   if (shdr->MaxNumMergeCand>1) {
     merge_idx = decode_merge_idx(tctx);
+  }
+  else {
+    merge_idx = 0;
   }
 
   tctx->merge_idx = merge_idx;
@@ -3096,10 +3099,13 @@ void read_prediction_unit(decoder_context* ctx,
   tctx->merge_flag = merge_flag;
 
   if (merge_flag) {
-    int merge_idx = 0;
+    int merge_idx;
 
     if (shdr->MaxNumMergeCand>1) {
       merge_idx = decode_merge_idx(tctx);
+    }
+    else {
+      merge_idx = 0;
     }
 
     logtrace(LogSlice,"prediction unit %d,%d, merge mode, index: %d\n",x0,y0,merge_idx);
