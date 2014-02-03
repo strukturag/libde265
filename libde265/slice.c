@@ -509,10 +509,12 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     if (shdr->slice_type == SLICE_TYPE_P || shdr->slice_type == SLICE_TYPE_B) {
       LOG1("num_ref_idx_active_override_flag : %d\n", shdr->num_ref_idx_active_override_flag);
 
-      LOG1("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
+      LOG2("num_ref_idx_l0_active          : %d %s\n", shdr->num_ref_idx_l0_active,
+           shdr->num_ref_idx_active_override_flag ? "" : "(from PPS)");
 
       if (shdr->slice_type == SLICE_TYPE_B) {
-        LOG1("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
+        LOG2("num_ref_idx_l1_active          : %d %s\n", shdr->num_ref_idx_l1_active,
+             shdr->num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
 
       int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
