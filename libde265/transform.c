@@ -250,14 +250,17 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     logtrace(LogTransform,"bdShift=%d\n",bdShift);
 
     if (sps->scaling_list_enable_flag==0) {
+
+      const int m_x_y = 16;
+      const int offset = (1<<(bdShift-1));
+      const int fact = m_x_y * levelScale[qP%6] << (qP/6);
+
       for (int i=0;i<tctx->nCoeff[cIdx];i++) {
 
         int currCoeff  = tctx->coeffList[cIdx][i];
 
-        const int m_x_y = 16;
         currCoeff = Clip3(-32768,32767,
-                          ( (currCoeff * m_x_y * levelScale[qP%6] << (qP/6))
-                            + (1<<(bdShift-1)) ) >> bdShift);
+                          ( (currCoeff * fact + offset ) >> bdShift));
 
         tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
