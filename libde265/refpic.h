@@ -41,8 +41,8 @@ typedef struct {
 } ref_pic_set;
 
 
-void dump_short_term_ref_pic_set(ref_pic_set*);
-void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range);
+void dump_short_term_ref_pic_set(ref_pic_set*, FILE* fh);
+void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range, FILE* fh);
 
 void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, int num_short_term_ref_pic_sets);
 

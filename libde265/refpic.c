@@ -232,28 +232,28 @@ void free_ref_pic_set(ref_pic_set* set)
 }
 */
 
-void dump_short_term_ref_pic_set(ref_pic_set* set)
+void dump_short_term_ref_pic_set(ref_pic_set* set, FILE* fh)
 {
-  logtrace(LogHeaders,"NumDeltaPocs: %d [-:%d +:%d]\n", set->NumDeltaPocs,
+  log2fh(fh,"NumDeltaPocs: %d [-:%d +:%d]\n", set->NumDeltaPocs,
          set->NumNegativePics, set->NumPositivePics);
 
-  logtrace(LogHeaders,"DeltaPocS0:");
+  log2fh(fh,"DeltaPocS0:");
   for (int i=0;i<set->NumNegativePics;i++) {
-    if (i) { logtrace(LogHeaders,","); }
-    logtrace(LogHeaders," %d/%d",set->DeltaPocS0[i],set->UsedByCurrPicS0[i]);
+    if (i) { log2fh(fh,","); }
+    log2fh(fh," %d/%d",set->DeltaPocS0[i],set->UsedByCurrPicS0[i]);
   }
-  logtrace(LogHeaders,"\n");
+  log2fh(fh,"\n");
 
-  logtrace(LogHeaders,"DeltaPocS1:");
+  log2fh(fh,"DeltaPocS1:");
   for (int i=0;i<set->NumPositivePics;i++) {
-    if (i) { logtrace(LogHeaders,","); }
-    logtrace(LogHeaders," %d/%d",set->DeltaPocS1[i],set->UsedByCurrPicS1[i]);
+    if (i) { log2fh(fh,","); }
+    log2fh(fh," %d/%d",set->DeltaPocS1[i],set->UsedByCurrPicS1[i]);
   }
-  logtrace(LogHeaders,"\n");
+  log2fh(fh,"\n");
 }
 
 
-void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
+void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range, FILE* fh)
 {
   char *const log = (char *)alloca((range+1+range+1) * sizeof(char));
   log[2*range+1] = 0;
@@ -265,7 +265,7 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n>=-range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { loginfo(LogHeaders,"*%d ",n); }
+    } else { log2fh(fh,"*%d ",n); }
   }
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
@@ -273,8 +273,8 @@ void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range)
     if (n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { loginfo(LogHeaders,"*%d ",n); }
+    } else { log2fh(fh,"*%d ",n); }
   }
 
-  loginfo(LogHeaders,"*%s\n",log);
+  log2fh(fh,"*%s\n",log);
 }

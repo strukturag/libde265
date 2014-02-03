@@ -140,45 +140,20 @@ if eval "test x$enable_dec265 = x"      ; then enable_dec265=yes ; fi
 if eval "test x$enable_sherlock265 = x" ; then enable_sherlock265=yes ; fi
 
 if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes" ; then
-#  AC_CHECK_PROG([HAVE_VIDEOGFX], [libvideogfx-config], [yes])
-#  if eval "test x$HAVE_VIDEOGFX = xyes" ; then
-#    VIDEOGFX_CFLAGS=`libvideogfx-config --cflags`
-#    VIDEOGFX_LIBS=`libvideogfx-config --libs`
-#    SAVE_CFLAGS=$CFLAGS
-#    SAVE_CXXFLAGS=$CXXFLAGS
-#    SAVE_CPPFLAGS=$CPPFLAGS
-#    SAVE_LIBS=$LIBS
-#    CXXFLAGS="$VIDEOGFX_CFLAGS $CXXFLAGS"
-#    CPPFLAGS="$VIDEOGFX_CFLAGS -std=c++0x"
-#    LIBS=$VIDEOGFX_LIBS
-#    AC_LANG_PUSH([C++])
-#    AC_CHECK_HEADERS([libvideogfx.hh], [
-#        AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
-#    ], [
-#        VIDEOGFX_CFLAGS=""
-#        VIDEOGFX_LIBS=""
-#        echo "libvideogfx found but not usable (check config.log for details)"
-#        echo "... Disabling building of sherlock265 ..."
-#        enable_sherlock265="no"
-#    ])
-#    AC_LANG_POP([C++])
-#    CFLAGS=$SAVE_CFLAGS
-#    CXXFLAGS=$SAVE_CXXFLAGS
-#    CPPFLAGS=$SAVE_CPPFLAGS
-#    LIBS=$SAVE_LIBS
-#    AC_SUBST(VIDEOGFX_CFLAGS)
-#    AC_SUBST(VIDEOGFX_LIBS)
-#  else
-#    echo "Did not find libvideogfx (is libvideogfx-config in your PATH ?)."
-#    echo "... Disabling building of sherlock265 ..."
-#    enable_sherlock265="no"
-#  fi
    PKG_CHECK_MODULES([VIDEOGFX], [libvideogfx],
                      [AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
                       AC_SUBST(VIDEOGFX_CFLAGS)
                       AC_SUBST(VIDEOGFX_LIBS)],
                      [enable_sherlock265="no"
                       AC_MSG_WARN([Did not find libvideogfx, compilation of sherlock265 will be disabled.])]
+                     )
+fi
+
+if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes" ; then
+   PKG_CHECK_MODULES([SDL], [sdl],
+                     [AC_DEFINE([HAVE_SDL], [1], [Whether libSDL was found.])
+                      AC_SUBST(SDL_CFLAGS)
+                      AC_SUBST(SDL_LIBS)]
                      )
 fi
 

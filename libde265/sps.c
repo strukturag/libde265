@@ -179,7 +179,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
     read_short_term_ref_pic_set(br,*ref_pic_sets, i, sps->num_short_term_ref_pic_sets);
 
-    dump_short_term_ref_pic_set(&(*ref_pic_sets)[i]);
+    // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
   }
 
   sps->long_term_ref_pics_present_flag = get_bits(br,1);
@@ -375,7 +375,7 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
-    dump_compact_short_term_ref_pic_set(&sets[i], 16);
+    dump_compact_short_term_ref_pic_set(&sets[i], 16, fh);
   }
 
   LOG1("long_term_ref_pics_present_flag : %d\n", sps->long_term_ref_pics_present_flag);
