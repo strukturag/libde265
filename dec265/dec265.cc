@@ -119,11 +119,17 @@ bool sdl_active=false;
 bool display_sdl(const struct de265_image* img)
 {
   if (!sdl_active) {
+    int width  = de265_get_image_width(img,0);
+    int height = de265_get_image_height(img,0);
+
     sdl_active=true;
-    sdlWin.init(img->width,img->height);
+    sdlWin.init(width,height);
   }
 
-  sdlWin.display(img->y,img->cb,img->cr);
+  sdlWin.display((uint8_t*)de265_get_image_plane(img,0,NULL),
+                 (uint8_t*)de265_get_image_plane(img,1,NULL),
+                 (uint8_t*)de265_get_image_plane(img,2,NULL));
+
   return sdlWin.doQuit();
 }
 #endif
@@ -326,8 +332,8 @@ int main(int argc, char** argv)
         const de265_image* img = de265_get_next_picture(ctx);
         if (img==NULL) break;
 
-        width  = img->width;
-        height = img->height;
+        width  = de265_get_image_width(img,0);
+        height = de265_get_image_height(img,0);
 
         framecnt++;
         //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);

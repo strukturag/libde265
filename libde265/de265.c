@@ -827,10 +827,10 @@ LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel
 {
   switch (channel) {
   case 0:
-    return img->width;
+    return img->width_confwin;
   case 1:
   case 2:
-    return img->chroma_width;
+    return img->chroma_width_confwin;
   default:
     return 0;
   }
@@ -840,10 +840,10 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
 {
   switch (channel) {
   case 0:
-    return img->height;
+    return img->height_confwin;
   case 1:
   case 2:
-    return img->chroma_height;
+    return img->chroma_height_confwin;
   default:
     return 0;
   }
@@ -854,9 +854,16 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
   return img->chroma_format;
 }
 
-LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* out_stride)
+LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)
 {
   uint8_t* data;
-  get_image_plane(img, channel, &data, out_stride);
+
+  switch (channel) {
+  case 0: data = img->y_confwin;  if (stride) *stride = img->stride; break;
+  case 1: data = img->cb_confwin; if (stride) *stride = img->chroma_stride; break;
+  case 2: data = img->cr_confwin; if (stride) *stride = img->chroma_stride; break;
+  default: data = NULL; if (stride) *stride = 0; break;
+  }
+
   return data;
 }

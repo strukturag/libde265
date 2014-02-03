@@ -271,6 +271,28 @@ void get_image_plane(const de265_image* img, int cIdx, uint8_t** image, int* str
   }
 }
 
+void set_conformance_window(de265_image* img, int left,int right,int top,int bottom)
+{
+  int WinUnitX, WinUnitY;
+
+  switch (img->chroma_format) {
+  case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
+  case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
+  case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
+  case de265_chroma_444:  WinUnitX=1; WinUnitY=1; break;
+  default:
+    assert(0);
+  }
+
+  img->y_confwin = img->y + left*WinUnitX + top*WinUnitY*img->stride;
+  img->cb_confwin= img->cb+ left + top*img->chroma_stride;
+  img->cr_confwin= img->cr+ left + top*img->chroma_stride;
+
+  img->width_confwin = img->width - (left+right)*WinUnitX;
+  img->height_confwin= img->height- (top+bottom)*WinUnitY;
+  img->chroma_width_confwin = img->chroma_width -left-right;
+  img->chroma_height_confwin= img->chroma_height-top-bottom;
+}
 
 void increase_pending_tasks(de265_image* img, int n)
 {

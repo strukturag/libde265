@@ -640,6 +640,12 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     // push image into output queue
 
     if (ctx->img->PicOutputFlag) {
+      set_conformance_window(ctx->img,
+                             ctx->current_sps->conf_win_left_offset,
+                             ctx->current_sps->conf_win_right_offset,
+                             ctx->current_sps->conf_win_top_offset,
+                             ctx->current_sps->conf_win_bottom_offset);
+
       loginfo(LogDPB,"new picture has output-flag=true\n");
 
       assert(ctx->reorder_output_queue_length < DE265_DPB_SIZE);
