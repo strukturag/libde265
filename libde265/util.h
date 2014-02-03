@@ -21,7 +21,10 @@
 #ifndef DE265_UTIL_H
 #define DE265_UTIL_H
 
+#ifndef _MSC_VER
 #include <inttypes.h>
+#endif
+
 #include <stdio.h>
 
 

@@ -13,3 +13,7 @@ stamp-h1
 configure
 *.obj
 *.la
+*.sln
+*.ncb
+*.suo
+*.vcproj*
