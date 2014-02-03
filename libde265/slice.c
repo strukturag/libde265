@@ -466,7 +466,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", shdr->short_term_ref_pic_set_sps_flag);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
-        // TODO: DUMP short_term_ref_pic_set(num_short_term_ref_pic_sets)
+        LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets);
+        dump_compact_short_term_ref_pic_set(&ctx->ref_pic_sets[sps->num_short_term_ref_pic_sets], 16, fh);
       }
       else if (sps->num_short_term_ref_pic_sets > 1) {
         LOG1("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
