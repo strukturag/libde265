@@ -358,6 +358,13 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 {
   const seq_parameter_set* sps = ctx->current_sps;
 
+  /*
+  if (vi->lum.predFlag[0]) {
+    assert(vi->lum.refIdx[0] >= 0);
+    assert(vi->lum.refIdx[0] <= 1);
+  }
+  */
+
   TotalPredCnt++;
 
   ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
