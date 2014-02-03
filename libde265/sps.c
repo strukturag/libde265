@@ -304,7 +304,10 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
   dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers, fh);
 
   LOG1("seq_parameter_set_id    : %d\n", sps->seq_parameter_set_id);
-  LOG1("chroma_format_idc       : %d\n", sps->chroma_format_idc);
+  LOG2("chroma_format_idc       : %d (%s)\n", sps->chroma_format_idc,
+       sps->chroma_format_idc == 1 ? "4:2:0" :
+       sps->chroma_format_idc == 2 ? "4:2:2" :
+       sps->chroma_format_idc == 3 ? "4:4:4" : "unknown");
 
   if (sps->chroma_format_idc == 3) {
     LOG1("separate_colour_plane_flag : %d\n", sps->separate_colour_plane_flag);
