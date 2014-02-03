@@ -500,7 +500,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
       return err;
     }
     else {
-      dump_slice_segment_header(hdr, ctx);
+      if (ctx->param_slice_headers_fd>=0) {
+        dump_slice_segment_header(hdr, ctx, ctx->param_slice_headers_fd);
+      }
 
       if (process_slice_segment_header(ctx, hdr, &err) == false)
         {
@@ -608,7 +610,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         video_parameter_set vps;
         read_vps(&reader,&vps);
-        dump_vps(&vps);
+        if (ctx->param_vps_headers_fd>=0) {
+          dump_vps(&vps, ctx->param_vps_headers_fd);
+        }
 
         process_vps(ctx, &vps);
       }
@@ -623,7 +627,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         if ((err=read_sps(ctx, &reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
           break;
         }
-        dump_sps(&sps, ctx->ref_pic_sets);
+
+        if (ctx->param_sps_headers_fd>=0) {
+          dump_sps(&sps, ctx->ref_pic_sets, ctx->param_sps_headers_fd);
+        }
 
         process_sps(ctx, &sps);
       }
@@ -637,7 +644,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         init_pps(&pps);
         bool success = read_pps(&reader,&pps,ctx);
-        dump_pps(&pps);
+
+        if (ctx->param_pps_headers_fd>=0) {
+          dump_pps(&pps, ctx->param_pps_headers_fd);
+        }
 
         if (success) {
           process_pps(ctx,&pps);
@@ -755,6 +765,37 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum
       break;
     }
 }
+
+
+LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum de265_param param, int value)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  switch (param)
+    {
+    case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
+      ctx->param_sps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
+      ctx->param_vps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
+      ctx->param_pps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
+      ctx->param_slice_headers_fd = value;
+      break;
+
+    default:
+      assert(false);
+      break;
+    }
+}
+
+
 
 
 LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)

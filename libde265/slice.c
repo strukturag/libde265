@@ -410,13 +410,16 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 //-----------------------------------------------------------------------
 
 
-void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx)
+void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx, int fd)
 {
-  //#if !defined(_MSC_VER) || (_MSC_VER >= 1500)
-  //#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
-#define LOG0(t) loginfo(LogHeaders, t)
-#define LOG1(t,d) loginfo(LogHeaders, t, d)
-#define LOG2(t,d1,d2) loginfo(LogHeaders, t, d1,d2)
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
 
   const pic_parameter_set* pps = &ctx->pps[shdr->slice_pic_parameter_set_id];
   assert(pps->pps_read); // TODO: error handling

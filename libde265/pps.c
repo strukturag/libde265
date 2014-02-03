@@ -411,10 +411,15 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 }
 
 
-void dump_pps(pic_parameter_set* pps)
+void dump_pps(pic_parameter_set* pps, int fd)
 {
-#define LOG0(t) loginfo(LogHeaders, t)
-#define LOG1(t,d) loginfo(LogHeaders, t,d)
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
 
   LOG0("----------------- PPS -----------------\n");
   LOG1("pic_parameter_set_id       : %d\n", pps->pic_parameter_set_id);

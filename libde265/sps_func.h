@@ -25,7 +25,7 @@
 #include "libde265/decctx.h"
 
 de265_error read_sps(decoder_context*, bitreader*, seq_parameter_set*, ref_pic_set**);
-void dump_sps(seq_parameter_set*, ref_pic_set* sets);
+void dump_sps(seq_parameter_set*, ref_pic_set* sets, int fd);
 
 void free_ref_pic_sets(ref_pic_set**);
 

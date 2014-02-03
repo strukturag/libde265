@@ -135,3 +135,15 @@ void logtrace(enum LogModule module, const char* string, ...)
   fflush(stdout);
 }
 #endif
+
+void log2fh(FILE* fh, const char* string, ...)
+{
+  va_list va;
+
+  int noPrefix = (string[0]=='*');
+  if (!noPrefix) fprintf(stdout, "INFO: ");
+  va_start(va, string);
+  vfprintf(fh, string + (noPrefix ? 1 : 0), va);
+  va_end(va);
+  fflush(stdout);
+}

@@ -277,20 +277,31 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
 
 
-void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
+void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 {
   //#if (_MSC_VER >= 1500)
-#define LOG0(t) loginfo(LogHeaders, t)
-#define LOG1(t,d) loginfo(LogHeaders, t,d)
-#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
-#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+  //#define LOG0(t) loginfo(LogHeaders, t)
+  //#define LOG1(t,d) loginfo(LogHeaders, t,d)
+  //#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
+  //#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+  
 
   LOG0("----------------- SPS -----------------\n");
   LOG1("video_parameter_set_id  : %d\n", sps->video_parameter_set_id);
   LOG1("sps_max_sub_layers      : %d\n", sps->sps_max_sub_layers);
   LOG1("sps_temporal_id_nesting_flag : %d\n", sps->sps_temporal_id_nesting_flag);
 
-  dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers);
+  dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers, fh);
 
   LOG1("seq_parameter_set_id    : %d\n", sps->seq_parameter_set_id);
   LOG1("chroma_format_idc       : %d\n", sps->chroma_format_idc);

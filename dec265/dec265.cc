@@ -143,6 +143,7 @@ bool quiet=false;
 bool check_hash=false;
 bool show_profile=false;
 bool show_help=false;
+bool dump_headers=false;
 bool write_yuv=false;
 //std::string output_filename;
 uint32_t max_frames=UINT32_MAX;
@@ -153,7 +154,8 @@ static struct option long_options[] = {
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
   {"frames",     required_argument, 0, 'f' },
-  {"output",     no_argument, 0, 'o' },
+  {"output",     no_argument,       0, 'o' },
+  {"dump",       no_argument,       0, 'd' },
   {"help",       no_argument,       0, 'h' },
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
@@ -201,7 +203,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o",
+    int c = getopt_long(argc, argv, "qt:chpf:od",
                         long_options, &option_index);
     if (c == -1)
       break;
@@ -214,6 +216,7 @@ int main(int argc, char** argv)
     case 'f': max_frames=atoi(optarg); break;
     case 'o': write_yuv=true; /*output_filename=optarg;*/ break;
     case 'h': show_help=true; break;
+    case 'd': dump_headers=true; break;
     }
   }
 
@@ -228,6 +231,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
+    fprintf(stderr,"  -d, --dump        dump headers\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -245,6 +249,13 @@ int main(int argc, char** argv)
   }
 
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+
+  if (dump_headers) {
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+  }
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
