@@ -393,6 +393,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
   // --- init variables ---
 
   shdr->SliceQPY = pps->pic_init_qp + shdr->slice_qp_delta;
+  shdr->CuQpDelta = 0;
 
   switch (shdr->slice_type)
     {
@@ -2765,6 +2766,7 @@ int read_transform_unit(decoder_context* ctx,
   tctx->transform_skip_flag[1]=0;
   tctx->transform_skip_flag[2]=0;
 
+
   if (cbf_luma || cbf_cb || cbf_cr)
     {
       if (ctx->current_pps->cu_qp_delta_enabled_flag &&
@@ -2778,8 +2780,20 @@ int read_transform_unit(decoder_context* ctx,
 
         shdr->IsCuQpDeltaCoded = 1;
         shdr->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
-      }
 
+        logtrace(LogSlice,"cu_qp_delta_abs = %d\n",cu_qp_delta_abs);
+        logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
+        logtrace(LogSlice,"CuQpDelta = %d\n",shdr->CuQpDelta);
+      }
+    }
+
+  //if (x0==xCUBase && y0==yCUBase) {
+  decode_quantization_parameters(ctx,tctx, x0,y0);
+    //}
+
+
+  if (cbf_luma || cbf_cb || cbf_cr)
+    {
       // position of TU in local CU
       int xL = x0 - xCUBase;
       int yL = y0 - yCUBase;
@@ -3485,8 +3499,7 @@ void read_coding_unit(decoder_context* ctx,
 
     // decode residual
 
-    decode_quantization_parameters(ctx,tctx, x0,y0);
-
+    //decode_quantization_parameters(ctx,tctx, x0,y0);
 
 
     if (false) { // pcm
@@ -3521,6 +3534,9 @@ void read_coding_unit(decoder_context* ctx,
 
         read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
                             MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
+      }
+      else {
+        decode_quantization_parameters(ctx,tctx, x0,y0);
       }
     }
   }
@@ -3565,7 +3581,7 @@ void read_coding_quadtree(decoder_context* ctx,
     }
   else
     {
-      shdr->CuQpDelta = 0; // TODO check: is this the right place to set to default value ?
+      // shdr->CuQpDelta = 0; // TODO check: is this the right place to set to default value ?
     }
 
   if (split_flag) {

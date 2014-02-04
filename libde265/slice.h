@@ -167,6 +167,7 @@ typedef struct thread_context
   // quantization
 
   int currentQPY;
+  int currentQG_x, currentQG_y;
   int lastQPYinPreviousQG;
 
   int qPYPrime, qPCbPrime, qPCrPrime;
