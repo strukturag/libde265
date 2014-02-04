@@ -50,6 +50,11 @@ else(USE_VIDEOGFX)
     add_definitions(-D HAVE_VIDEOGFX=0)
 endif(USE_VIDEOGFX)
 
+option(BUILD_STATIC  "Static Lib" ON)
+if(BUILD_STATIC)
+    add_definitions(-DLIBDE265_STATIC_BUILD)
+endif(BUILD_STATIC)
+
 option(DE265_LOG_ERROR  "Enable DE265_LOG_ERROR" OFF)
 if(DE265_LOG_ERROR)
     add_definitions(-DDE265_LOG_ERROR)
