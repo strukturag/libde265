@@ -627,6 +627,43 @@ void flush_next_picture_from_reorder_buffer(decoder_context* ctx)
 }
 
 
+void writeFrame_Y(decoder_context* ctx,const char* filename)
+{
+  int w = ctx->img->width;
+  int h = ctx->img->height;
+  int c_idx=0;
+  int ctb_size = 64; // HACK
+
+  int stride = ctx->img->stride;
+
+  for (int ctbY=0;ctbY<ctx->current_sps->PicHeightInCtbsY;ctbY++)
+    for (int ctbX=0;ctbX<ctx->current_sps->PicWidthInCtbsY;ctbX++)
+      {
+        int x0 = ctbX*ctb_size;
+        int y0 = ctbY*ctb_size;
+
+        
+        uint8_t *src = &ctx->img->y[y0 * stride + x0];
+
+        printf("%s %d %d\n",filename,x0,y0);
+        int dx,dy;
+        for (dy=0;dy<ctb_size;dy++)
+          if (y0+dy < h)
+            {
+              printf("%s %d %d ",filename,y0+dy,x0);
+
+              for (dx=0;dx<ctb_size;dx++)
+                if (x0+dx < w)
+                  {
+                    printf("%02x ",*(src+dx+dy*stride));
+                  }
+
+              printf("\n");
+            }
+      }
+}
+
+
 void push_current_picture_to_output_queue(decoder_context* ctx)
 {
   if (ctx->img) {
@@ -634,8 +671,11 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
     // post-process image
 
+    //writeFrame_Y(ctx,"raw");
     apply_deblocking_filter(ctx);
+    //writeFrame_Y(ctx,"deblk");
     apply_sample_adaptive_offset(ctx);
+    //writeFrame_Y(ctx,"sao");
 
     // push image into output queue
 

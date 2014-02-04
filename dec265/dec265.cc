@@ -172,6 +172,7 @@ bool show_help=false;
 bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
+bool logging=true;
 //std::string output_filename;
 uint32_t max_frames=UINT32_MAX;
 
@@ -184,6 +185,7 @@ static struct option long_options[] = {
   {"output",     no_argument,       0, 'o' },
   {"dump",       no_argument,       0, 'd' },
   {"videogfx",   no_argument,       0, 'V' },
+  {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
@@ -231,7 +233,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:od"
+    int c = getopt_long(argc, argv, "qt:chpf:odL"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -249,6 +251,7 @@ int main(int argc, char** argv)
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
     case 'V': output_with_videogfx=true; break;
+    case 'L': logging=false; break;
     }
   }
 
@@ -290,6 +293,10 @@ int main(int argc, char** argv)
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+  }
+
+  if (!logging) {
+    de265_disable_logging();
   }
 
   FILE* fh = fopen(argv[optind], "rb");
