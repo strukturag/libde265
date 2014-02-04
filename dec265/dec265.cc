@@ -233,9 +233,9 @@ int main(int argc, char** argv)
 
     int c = getopt_long(argc, argv, "qt:chpf:od"
 #if HAVE_VIDEOGFX && HAVE_SDL
-                        "V",
+                        "V"
 #endif
-                        long_options, &option_index);
+                        , long_options, &option_index);
     if (c == -1)
       break;
 
