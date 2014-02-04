@@ -13,6 +13,7 @@ unused by known encoders are missing (long-term MC, weighted prediction, PCM),
 but will be added once conformant bit-streams are available.
 Encoding is planned to be added afterwards.
 
+libde265 supports WPP-based multithreading and includes SSE optimizations.
 
 The library comes with two example programs:
 
