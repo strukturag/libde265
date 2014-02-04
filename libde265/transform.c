@@ -83,12 +83,17 @@ void decode_quantization_parameters(decoder_context* ctx,
   int xQG = xC - (xC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
   int yQG = yC - (yC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
 
-  // if first QG in CU, remember last QPY of last CU previous QG
 
-  /*
-  if (xQG == tctx->currentQG_x ||
-      yQG == tctx->currentQG_y) { return; }
-  */
+  // we only have to set QP in the first call in a quantization-group
+
+  if (xQG == tctx->currentQG_x &&
+      yQG == tctx->currentQG_y)
+    {
+      return;
+    }
+
+
+  // if first QG in CU, remember last QPY of last CU previous QG
 
   if (xQG != tctx->currentQG_x ||
       yQG != tctx->currentQG_y)

@@ -451,6 +451,9 @@ void init_thread_context(thread_context* tctx)
 {
   // zero scrap memory for coefficient blocks
   memset(tctx->coeffBuf, 0, sizeof(tctx->coeffBuf));
+
+  tctx->currentQG_x = -1;
+  tctx->currentQG_y = -1;
 }
 
 
