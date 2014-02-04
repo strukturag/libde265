@@ -101,7 +101,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   int qPY_PRED;
   bool firstQGInSlice;
   bool firstQGInTile = false; // TODO
-  bool firstInCTBRow = (xC==0); // TODO
+  bool firstInCTBRow = (xQG==0); // TODO
   
   int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
 
