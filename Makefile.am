@@ -17,4 +17,6 @@ EXTRA_DIST = .travis.yml \
   build.bat \
   m4/m4_ax_check_compile_flag.m4 \
   build \
-  Makefile.vc7
+  Makefile.vc7 \
+  README.md \
+  libde265.png

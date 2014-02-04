@@ -200,64 +200,71 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 
 
 
-void dump_vps(video_parameter_set* vps)
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+
+void dump_vps(video_parameter_set* vps, int fd)
 {
-#if (_MSC_VER >= 1500)
-#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
 
-  LOG("----------------- VPS -----------------\n");
-  LOG("video_parameter_set_id                : %d\n", vps->video_parameter_set_id);
-  LOG("vps_max_layers                        : %d\n", vps->vps_max_layers);
-  LOG("vps_max_sub_layers                    : %d\n", vps->vps_max_sub_layers);
-  LOG("vps_temporal_id_nesting_flag          : %d\n", vps->vps_temporal_id_nesting_flag);
+  LOG0("----------------- VPS -----------------\n");
+  LOG1("video_parameter_set_id                : %d\n", vps->video_parameter_set_id);
+  LOG1("vps_max_layers                        : %d\n", vps->vps_max_layers);
+  LOG1("vps_max_sub_layers                    : %d\n", vps->vps_max_sub_layers);
+  LOG1("vps_temporal_id_nesting_flag          : %d\n", vps->vps_temporal_id_nesting_flag);
 
-  dump_profile_tier_level(&vps->profile_tier_level, vps->vps_max_sub_layers);
+  dump_profile_tier_level(&vps->profile_tier_level, vps->vps_max_sub_layers, fh);
   //dump_bit_rate_pic_rate_info(&vps->bit_rate_pic_rate_info, 0, vps->vps_max_sub_layers-1);
 
-  LOG("vps_sub_layer_ordering_info_present_flag : %d\n",
-         vps->vps_sub_layer_ordering_info_present_flag);
+  LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
+       vps->vps_sub_layer_ordering_info_present_flag);
 
   if (vps->vps_sub_layer_ordering_info_present_flag) {
     for (int i=0;i<vps->vps_max_sub_layers;i++) {
-      LOG("layer %d: vps_max_dec_pic_buffering = %d\n",i,vps->layer[i].vps_max_dec_pic_buffering);
-      LOG("         vps_max_num_reorder_pics  = %d\n",vps->layer[i].vps_max_num_reorder_pics);
-      LOG("         vps_max_latency_increase  = %d\n",vps->layer[i].vps_max_latency_increase);
+      LOG2("layer %d: vps_max_dec_pic_buffering = %d\n",i,vps->layer[i].vps_max_dec_pic_buffering);
+      LOG1("         vps_max_num_reorder_pics  = %d\n",vps->layer[i].vps_max_num_reorder_pics);
+      LOG1("         vps_max_latency_increase  = %d\n",vps->layer[i].vps_max_latency_increase);
     }
   }
   else {
-    LOG("layer (all): vps_max_dec_pic_buffering = %d\n",vps->layer[0].vps_max_dec_pic_buffering);
-    LOG("             vps_max_num_reorder_pics  = %d\n",vps->layer[0].vps_max_num_reorder_pics);
-    LOG("             vps_max_latency_increase  = %d\n",vps->layer[0].vps_max_latency_increase);
+    LOG1("layer (all): vps_max_dec_pic_buffering = %d\n",vps->layer[0].vps_max_dec_pic_buffering);
+    LOG1("             vps_max_num_reorder_pics  = %d\n",vps->layer[0].vps_max_num_reorder_pics);
+    LOG1("             vps_max_latency_increase  = %d\n",vps->layer[0].vps_max_latency_increase);
   }
 
 
-  LOG("vps_max_layer_id   = %d\n", vps->vps_max_layer_id);
-  LOG("vps_num_layer_sets = %d\n", vps->vps_num_layer_sets);
+  LOG1("vps_max_layer_id   = %d\n", vps->vps_max_layer_id);
+  LOG1("vps_num_layer_sets = %d\n", vps->vps_num_layer_sets);
 
   for (int i=1; i <= vps->vps_num_layer_sets-1; i++)
     for (int j=0; j <= vps->vps_max_layer_id; j++)
       {
-        LOG("layer_id_included_flag[%d][%d] = %d\n",i,j,
-            vps->layer_id_included_flag[i][j]);
+        LOG3("layer_id_included_flag[%d][%d] = %d\n",i,j,
+             vps->layer_id_included_flag[i][j]);
       }
 
-  LOG("vps_timing_info_present_flag = %d\n",
-      vps->vps_timing_info_present_flag);
+  LOG1("vps_timing_info_present_flag = %d\n",
+       vps->vps_timing_info_present_flag);
 
   if (vps->vps_timing_info_present_flag) {
-    LOG("vps_num_units_in_tick = %d\n", vps->vps_num_units_in_tick);
-    LOG("vps_time_scale        = %d\n", vps->vps_time_scale);
-    LOG("vps_poc_proportional_to_timing_flag = %d\n", vps->vps_poc_proportional_to_timing_flag);
+    LOG1("vps_num_units_in_tick = %d\n", vps->vps_num_units_in_tick);
+    LOG1("vps_time_scale        = %d\n", vps->vps_time_scale);
+    LOG1("vps_poc_proportional_to_timing_flag = %d\n", vps->vps_poc_proportional_to_timing_flag);
 
     if (vps->vps_poc_proportional_to_timing_flag) {
-      LOG("vps_num_ticks_poc_diff_one = %d\n", vps->vps_num_ticks_poc_diff_one);
-      LOG("vps_num_hrd_parameters     = %d\n", vps->vps_num_hrd_parameters);
+      LOG1("vps_num_ticks_poc_diff_one = %d\n", vps->vps_num_ticks_poc_diff_one);
+      LOG1("vps_num_hrd_parameters     = %d\n", vps->vps_num_hrd_parameters);
 
       for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
-        LOG("hrd_layer_set_idx[%d] = %d\n", vps->hrd_layer_set_idx[i]);
+        LOG2("hrd_layer_set_idx[%d] = %d\n", i, vps->hrd_layer_set_idx[i]);
 
         if (i > 0) {
-          LOG("cprms_present_flag[i] = %d\n", vps->cprms_present_flag[i]);
+          LOG2("cprms_present_flag[%d] = %d\n", i, vps->cprms_present_flag[i]);
         }
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
@@ -267,62 +274,60 @@ void dump_vps(video_parameter_set* vps)
     }
   }
   
-  LOG("vps_extension_flag = %d\n", vps->vps_extension_flag);
-#undef LOG
-#endif
+  LOG1("vps_extension_flag = %d\n", vps->vps_extension_flag);
 }
 
 
 void dump_profile_tier_level(struct profile_tier_level* hdr,
-                             int max_sub_layers)
+                             int max_sub_layers, FILE* fh)
 {
-#if (_MSC_VER >= 1500)
-#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
-  LOG("  general_profile_space     : %d\n", hdr->general_profile_space);
-  LOG("  general_tier_flag         : %d\n", hdr->general_tier_flag);
-  LOG("  general_profile_idc       : %d\n", hdr->general_profile_idc);
+  LOG1("  general_profile_space     : %d\n", hdr->general_profile_space);
+  LOG1("  general_tier_flag         : %d\n", hdr->general_tier_flag);
+  LOG1("  general_profile_idc       : %d\n", hdr->general_profile_idc);
 
-  LOG("  general_profile_compatibility_flags: ");
+  LOG0("  general_profile_compatibility_flags: ");
   for (int i=0; i<32; i++) {
-    if (i) LOG("*,");
-    LOG("*%d",hdr->general_profile_compatibility_flag[i]);
+    if (i) LOG0("*,");
+    LOG1("*%d",hdr->general_profile_compatibility_flag[i]);
   }
-  LOG("*\n");
+  LOG0("*\n");
 
-  LOG("  general_level_idc         : %d\n", hdr->general_level_idc);
+  LOG1("  general_level_idc         : %d\n", hdr->general_level_idc);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      LOG("  Profile/Tier/Level [Layer %d]\n",i);
+      LOG1("  Profile/Tier/Level [Layer %d]\n",i);
 
       if (hdr->profile[i].sub_layer_profile_present_flag) {
 
-        LOG("    sub_layer_profile_space : %d\n",hdr->profile[i].sub_layer_profile_space);
-        LOG("    sub_layer_tier_flag     : %d\n",hdr->profile[i].sub_layer_tier_flag);
-        LOG("    sub_layer_profile_idc   : %d\n",hdr->profile[i].sub_layer_profile_idc);
+        LOG1("    sub_layer_profile_space : %d\n",hdr->profile[i].sub_layer_profile_space);
+        LOG1("    sub_layer_tier_flag     : %d\n",hdr->profile[i].sub_layer_tier_flag);
+        LOG1("    sub_layer_profile_idc   : %d\n",hdr->profile[i].sub_layer_profile_idc);
 
-        LOG("    sub_layer_profile_compatibility_flags: ");
+        LOG0("    sub_layer_profile_compatibility_flags: ");
         for (int j=0; j<32; j++) {
-          if (j) LOG(",");
-          LOG("%d",hdr->profile[i].sub_layer_profile_compatibility_flag[j]);
+          if (j) LOG0(",");
+          LOG1("%d",hdr->profile[i].sub_layer_profile_compatibility_flag[j]);
         }
-        LOG("\n");
+        LOG0("\n");
 
-        LOG("    sub_layer_progressive_source_flag : %d\n",hdr->profile[i].sub_layer_progressive_source_flag);
-        LOG("    sub_layer_interlaced_source_flag : %d\n",hdr->profile[i].sub_layer_interlaced_source_flag);
-        LOG("    sub_layer_non_packed_constraint_flag : %d\n",hdr->profile[i].sub_layer_non_packed_constraint_flag);
-        LOG("    sub_layer_frame_only_constraint_flag : %d\n",hdr->profile[i].sub_layer_frame_only_constraint_flag);
+        LOG1("    sub_layer_progressive_source_flag : %d\n",hdr->profile[i].sub_layer_progressive_source_flag);
+        LOG1("    sub_layer_interlaced_source_flag : %d\n",hdr->profile[i].sub_layer_interlaced_source_flag);
+        LOG1("    sub_layer_non_packed_constraint_flag : %d\n",hdr->profile[i].sub_layer_non_packed_constraint_flag);
+        LOG1("    sub_layer_frame_only_constraint_flag : %d\n",hdr->profile[i].sub_layer_frame_only_constraint_flag);
       }
 
 
       if (hdr->profile[i].sub_layer_level_present_flag) {
-        LOG("    sub_layer_level_idc   : %d\n", hdr->profile[i].sub_layer_level_idc);
+        LOG1("    sub_layer_level_idc   : %d\n", hdr->profile[i].sub_layer_level_idc);
       }
     }
-#undef LOG
-#endif
 }
 
+#undef LOG0
+#undef LOG1
+#undef LOG2
+#undef LOG3
 
 
 /*

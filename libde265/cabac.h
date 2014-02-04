@@ -36,8 +36,8 @@ typedef struct {
 
 
 typedef struct {
-  int state;
-  int MPSbit;
+  uint8_t MPSbit : 1;
+  uint8_t state  : 7;
 } context_model;
 
 

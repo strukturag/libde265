@@ -70,6 +70,11 @@ typedef struct decoder_context {
   int  param_HighestTid;
   bool param_conceal_stream_errors;
 
+  int  param_sps_headers_fd;
+  int  param_vps_headers_fd;
+  int  param_pps_headers_fd;
+  int  param_slice_headers_fd;
+
 
   // --- decoder administration ---
 

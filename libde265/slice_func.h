@@ -29,7 +29,7 @@
 
 de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context*,
                                       bool* continueDecoding);
-void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*);
+void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*, int fd);
 
 
 de265_error read_slice_segment_data(decoder_context*, thread_context* tctx);

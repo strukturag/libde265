@@ -25,6 +25,8 @@
 #include <inttypes.h>
 #endif
 
+#include <stdio.h>
+
 
 #ifdef _MSC_VER
 #define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
@@ -106,5 +108,7 @@ void logtrace(enum LogModule module, const char* string, ...);
 #else
 #define logtrace(a,b, ...) { }
 #endif
+
+void log2fh(FILE* fh, const char* string, ...);
 
 #endif

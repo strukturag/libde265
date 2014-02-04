@@ -82,7 +82,7 @@ void read_profile_tier_level(bitreader* reader,
                              int max_sub_layers);
 
 void dump_profile_tier_level(struct profile_tier_level* hdr,
-                             int max_sub_layers);
+                             int max_sub_layers, FILE* fh);
 
 
 /*
@@ -149,6 +149,6 @@ typedef struct {
 } video_parameter_set;
 
 void read_vps(bitreader* reader, video_parameter_set* vps);
-void dump_vps(video_parameter_set*);
+void dump_vps(video_parameter_set*, int fd);
 
 #endif

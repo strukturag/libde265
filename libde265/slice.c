@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
@@ -409,13 +410,16 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 //-----------------------------------------------------------------------
 
 
-void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx)
+void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context* ctx, int fd)
 {
-  //#if !defined(_MSC_VER) || (_MSC_VER >= 1500)
-  //#define LOG(...) loginfo(LogHeaders, __VA_ARGS__)
-#define LOG0(t) loginfo(LogHeaders, t)
-#define LOG1(t,d) loginfo(LogHeaders, t, d)
-#define LOG2(t,d1,d2) loginfo(LogHeaders, t, d1,d2)
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
 
   const pic_parameter_set* pps = &ctx->pps[shdr->slice_pic_parameter_set_id];
   assert(pps->pps_read); // TODO: error handling
@@ -462,7 +466,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", shdr->short_term_ref_pic_set_sps_flag);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
-        // TODO: DUMP short_term_ref_pic_set(num_short_term_ref_pic_sets)
+        LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets);
+        dump_compact_short_term_ref_pic_set(&ctx->ref_pic_sets[sps->num_short_term_ref_pic_sets], 16, fh);
       }
       else if (sps->num_short_term_ref_pic_sets > 1) {
         LOG1("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
@@ -505,10 +510,12 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     if (shdr->slice_type == SLICE_TYPE_P || shdr->slice_type == SLICE_TYPE_B) {
       LOG1("num_ref_idx_active_override_flag : %d\n", shdr->num_ref_idx_active_override_flag);
 
-      LOG1("num_ref_idx_l0_active          : %d\n", shdr->num_ref_idx_l0_active);
+      LOG2("num_ref_idx_l0_active          : %d %s\n", shdr->num_ref_idx_l0_active,
+           shdr->num_ref_idx_active_override_flag ? "" : "(from PPS)");
 
       if (shdr->slice_type == SLICE_TYPE_B) {
-        LOG1("num_ref_idx_l1_active          : %d\n", shdr->num_ref_idx_l1_active);
+        LOG2("num_ref_idx_l1_active          : %d %s\n", shdr->num_ref_idx_l1_active,
+             shdr->num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
 
       int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
@@ -617,7 +624,11 @@ static void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
   
   model->MPSbit=(preCtxState<=63) ? 0 : 1;
   model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
-  //model->state = model->MPSbit ? (preCtxState-64) : preCtxState; // HACK
+
+  // model state will always be between [0;62]
+
+  assert(model->state >= 0);
+  assert(model->state <= 62);
 }
 
 
@@ -1637,6 +1648,9 @@ static int decode_merge_idx(thread_context* tctx)
 {
   logtrace(LogSlice,"# merge_idx\n");
 
+  // TU coding, first bin is CABAC, remaining are bypass.
+  // cMax = MaxNumMergeCand-1
+
   int idx = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_MERGE_IDX + tctx->shdr->initType-1]);
 
@@ -1646,10 +1660,11 @@ static int decode_merge_idx(thread_context* tctx)
   else {
     idx=1;
 
-    while (decode_CABAC_bypass(&tctx->cabac_decoder)) {
-      idx++;
-
-      if (idx==tctx->shdr->MaxNumMergeCand-1) {
+    while (idx<tctx->shdr->MaxNumMergeCand-1) {
+      if (decode_CABAC_bypass(&tctx->cabac_decoder)) {
+        idx++;
+      }
+      else {
         break;
       }
     }
@@ -3052,9 +3067,12 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
 {
   slice_segment_header* shdr = tctx->shdr;
 
-  int merge_idx = 0;
+  int merge_idx;
   if (shdr->MaxNumMergeCand>1) {
     merge_idx = decode_merge_idx(tctx);
+  }
+  else {
+    merge_idx = 0;
   }
 
   tctx->merge_idx = merge_idx;
@@ -3081,10 +3099,13 @@ void read_prediction_unit(decoder_context* ctx,
   tctx->merge_flag = merge_flag;
 
   if (merge_flag) {
-    int merge_idx = 0;
+    int merge_idx;
 
     if (shdr->MaxNumMergeCand>1) {
       merge_idx = decode_merge_idx(tctx);
+    }
+    else {
+      merge_idx = 0;
     }
 
     logtrace(LogSlice,"prediction unit %d,%d, merge mode, index: %d\n",x0,y0,merge_idx);

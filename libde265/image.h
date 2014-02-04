@@ -132,6 +132,16 @@ typedef struct de265_image {
   int border;
 
 
+  // --- conformance cropping window ---
+
+  uint8_t* y_confwin;
+  uint8_t* cb_confwin;
+  uint8_t* cr_confwin;
+
+  int width_confwin, height_confwin;
+  int chroma_width_confwin, chroma_height_confwin;
+
+
   // --- decoding info ---
 
   // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
@@ -195,6 +205,7 @@ void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
 void get_image_plane(const de265_image*, int cIdx, uint8_t** image, int* stride);
+void set_conformance_window(de265_image* img, int left,int right,int top,int bottom);
 
 
 void increase_pending_tasks(de265_image* img, int n);

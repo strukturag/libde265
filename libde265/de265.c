@@ -500,7 +500,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
       return err;
     }
     else {
-      dump_slice_segment_header(hdr, ctx);
+      if (ctx->param_slice_headers_fd>=0) {
+        dump_slice_segment_header(hdr, ctx, ctx->param_slice_headers_fd);
+      }
 
       if (process_slice_segment_header(ctx, hdr, &err) == false)
         {
@@ -608,7 +610,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         video_parameter_set vps;
         read_vps(&reader,&vps);
-        dump_vps(&vps);
+        if (ctx->param_vps_headers_fd>=0) {
+          dump_vps(&vps, ctx->param_vps_headers_fd);
+        }
 
         process_vps(ctx, &vps);
       }
@@ -623,7 +627,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
         if ((err=read_sps(ctx, &reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
           break;
         }
-        dump_sps(&sps, ctx->ref_pic_sets);
+
+        if (ctx->param_sps_headers_fd>=0) {
+          dump_sps(&sps, ctx->ref_pic_sets, ctx->param_sps_headers_fd);
+        }
 
         process_sps(ctx, &sps);
       }
@@ -637,7 +644,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, rbsp_buffer* data)
 
         init_pps(&pps);
         bool success = read_pps(&reader,&pps,ctx);
-        dump_pps(&pps);
+
+        if (ctx->param_pps_headers_fd>=0) {
+          dump_pps(&pps, ctx->param_pps_headers_fd);
+        }
 
         if (success) {
           process_pps(ctx,&pps);
@@ -757,6 +767,37 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum
 }
 
 
+LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum de265_param param, int value)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  switch (param)
+    {
+    case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
+      ctx->param_sps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
+      ctx->param_vps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
+      ctx->param_pps_headers_fd = value;
+      break;
+
+    case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
+      ctx->param_slice_headers_fd = value;
+      break;
+
+    default:
+      assert(false);
+      break;
+    }
+}
+
+
+
+
 LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
@@ -786,10 +827,10 @@ LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel
 {
   switch (channel) {
   case 0:
-    return img->width;
+    return img->width_confwin;
   case 1:
   case 2:
-    return img->chroma_width;
+    return img->chroma_width_confwin;
   default:
     return 0;
   }
@@ -799,10 +840,10 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
 {
   switch (channel) {
   case 0:
-    return img->height;
+    return img->height_confwin;
   case 1:
   case 2:
-    return img->chroma_height;
+    return img->chroma_height_confwin;
   default:
     return 0;
   }
@@ -813,9 +854,16 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
   return img->chroma_format;
 }
 
-LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* out_stride)
+LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)
 {
   uint8_t* data;
-  get_image_plane(img, channel, &data, out_stride);
+
+  switch (channel) {
+  case 0: data = img->y_confwin;  if (stride) *stride = img->stride; break;
+  case 1: data = img->cb_confwin; if (stride) *stride = img->chroma_stride; break;
+  case 2: data = img->cr_confwin; if (stride) *stride = img->chroma_stride; break;
+  default: data = NULL; if (stride) *stride = 0; break;
+  }
+
   return data;
 }

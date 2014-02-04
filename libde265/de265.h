@@ -117,7 +117,11 @@ typedef void* de265_decoder_context; // private structure
 
 
 enum de265_param {
-  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH /* Perform SEI hash check on decoded pictures. */
+  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, /* (bool) Perform SEI hash check on decoded pictures. */
+  DE265_DECODER_PARAM_DUMP_SPS_HEADERS,    /* (int)  Dump headers to specified file-descriptor. */
+  DE265_DECODER_PARAM_DUMP_VPS_HEADERS,
+  DE265_DECODER_PARAM_DUMP_PPS_HEADERS,
+  DE265_DECODER_PARAM_DUMP_SLICE_HEADERS
 };
 
 
@@ -163,6 +167,8 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 /* Set decoding parameters. */
 LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
+
+LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_param param, int value);
 
 /* Get decoding parameters. */
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);

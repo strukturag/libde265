@@ -1,0 +1,67 @@
+
+libde265 - open h.265 codec implementation
+==========================================
+
+![libde265](libde265.png)
+
+libde265 is an open source implementation of the h.265 video codec.
+It is written from scratch in plain C for simplicity and efficiency.
+Its simple API makes it easy to integrate it into other software.
+
+libde265 decodes all common types of HEVC files. A few features currently
+unused by known encoders are missing (long-term MC, weighted prediction, PCM),
+but will be added once conformant bit-streams are available.
+Encoding is planned to be added afterwards.
+
+
+The library comes with two example programs:
+
+- dec265, a simple player for raw h.265 bitstreams.
+          It serves nicely as an example program how to use libde265.
+
+- sherlock265, a Qt-based video player with the additional capability
+          to overlay some graphical representations of the h.265
+          bitstream (like CU-trees, intra-prediction modes).
+
+Example bitstreams can be found, e.g., at this site:
+  ftp://ftp.kw.bbc.co.uk/hevc/hm-10.1-anchors/bitstreams/ra_main/
+
+
+
+Building
+========
+
+[![Build Status](https://travis-ci.org/strukturag/libde265.png?branch=master)](https://travis-ci.org/strukturag/libde265)
+
+If you got libde265 from the git repository, you will first need to run
+the included `autogen.sh` script to generate the `configure` script.
+
+libde265 has no dependencies on other libraries, but both example programs
+require that you install the libvideogfx library, which you can get from
+  http://www.dirk-farin.net/software/libvideogfx/index.html
+or
+  http://github.com/farindk/libvideogfx
+
+
+You can disable building of the example programs by running `./configure` with
+<pre>
+  --disable-dec265        Do not dec265 decoder program.
+  --disable-sherlock265   Do not build sherlock265 visual inspection program.
+</pre>
+
+Additional logging information can be turned on and off using these `./configure` flags:
+<pre>
+  --enable-log-error      turn on logging at error level (default=yes)
+  --enable-log-info       turn on logging at info level (default=no)
+  --enable-log-trace      turn on logging at trace level (default=no)
+</pre>
+
+
+License
+=======
+
+libde265 is distributed under the terms of the GNU Lesser General Public License.
+See COPYRIGHT for more details.
+
+Copyright (c) 2013-2014 Struktur AG
+Contact: Dirk Farin <farin@struktur.de>

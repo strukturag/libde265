@@ -179,7 +179,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
     read_short_term_ref_pic_set(br,*ref_pic_sets, i, sps->num_short_term_ref_pic_sets);
 
-    dump_short_term_ref_pic_set(&(*ref_pic_sets)[i]);
+    // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
   }
 
   sps->long_term_ref_pics_present_flag = get_bits(br,1);
@@ -277,23 +277,37 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
 
 
-void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
+void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 {
   //#if (_MSC_VER >= 1500)
-#define LOG0(t) loginfo(LogHeaders, t)
-#define LOG1(t,d) loginfo(LogHeaders, t,d)
-#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
-#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+  //#define LOG0(t) loginfo(LogHeaders, t)
+  //#define LOG1(t,d) loginfo(LogHeaders, t,d)
+  //#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
+  //#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+  
 
   LOG0("----------------- SPS -----------------\n");
   LOG1("video_parameter_set_id  : %d\n", sps->video_parameter_set_id);
   LOG1("sps_max_sub_layers      : %d\n", sps->sps_max_sub_layers);
   LOG1("sps_temporal_id_nesting_flag : %d\n", sps->sps_temporal_id_nesting_flag);
 
-  dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers);
+  dump_profile_tier_level(&sps->profile_tier_level, sps->sps_max_sub_layers, fh);
 
   LOG1("seq_parameter_set_id    : %d\n", sps->seq_parameter_set_id);
-  LOG1("chroma_format_idc       : %d\n", sps->chroma_format_idc);
+  LOG2("chroma_format_idc       : %d (%s)\n", sps->chroma_format_idc,
+       sps->chroma_format_idc == 1 ? "4:2:0" :
+       sps->chroma_format_idc == 2 ? "4:2:2" :
+       sps->chroma_format_idc == 3 ? "4:4:4" : "unknown");
 
   if (sps->chroma_format_idc == 3) {
     LOG1("separate_colour_plane_flag : %d\n", sps->separate_colour_plane_flag);
@@ -361,7 +375,7 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets)
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
-    dump_compact_short_term_ref_pic_set(&sets[i], 16);
+    dump_compact_short_term_ref_pic_set(&sets[i], 16, fh);
   }
 
   LOG1("long_term_ref_pics_present_flag : %d\n", sps->long_term_ref_pics_present_flag);
