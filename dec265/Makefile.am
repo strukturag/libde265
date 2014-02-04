@@ -10,7 +10,7 @@ dec265_LDADD = ../libde265/libde265.la -lstdc++
 dec265_SOURCES = dec265.cc
 
 if HAVE_SDL
-  dec265_SOURCES += sdl.cc
+  dec265_SOURCES += sdl.cc sdl.hh
 endif
 
 if MINGW
