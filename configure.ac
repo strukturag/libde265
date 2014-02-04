@@ -153,9 +153,14 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
    PKG_CHECK_MODULES([SDL], [sdl],
                      [AC_DEFINE([HAVE_SDL], [1], [Whether libSDL was found.])
                       AC_SUBST(SDL_CFLAGS)
-                      AC_SUBST(SDL_LIBS)]
+                      AC_SUBST(SDL_LIBS)
+                      have_sdl="yes"],
+                     [have_sdl="no"
+                      AC_MSG_WARN([Did not find libsdl, video output of dec265 will be disabled.])]
                      )
 fi
+
+AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" != "xno"])
 
 if eval "test $enable_sherlock265 = yes" ; then
   PKG_CHECK_MODULES([QT], [QtCore QtGui])
