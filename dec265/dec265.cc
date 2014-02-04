@@ -231,7 +231,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:od"
+    int c = getopt_long(argc, argv, "qt:chpf:od",
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V",
 #endif
