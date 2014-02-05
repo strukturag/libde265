@@ -270,6 +270,7 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
+    fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
