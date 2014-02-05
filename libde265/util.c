@@ -19,6 +19,7 @@
  */
 
 #include "util.h"
+#include "de265.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -62,6 +63,13 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
 
+static int disable_logging=0;
+
+LIBDE265_API void de265_disable_logging()
+{
+  disable_logging=1;
+}
+
 #if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
 void enablelog() { enable_log=1; }
 #endif
@@ -69,6 +77,7 @@ void enablelog() { enable_log=1; }
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...)
 {
+  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
 
@@ -86,6 +95,7 @@ void logerror(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_INFO
 void loginfo (enum LogModule module, const char* string, ...)
 {
+  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
 
@@ -103,6 +113,7 @@ void loginfo (enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...)
 {
+  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
 
@@ -120,6 +131,7 @@ void logdebug(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_TRACE
 void logtrace(enum LogModule module, const char* string, ...)
 {
+  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
 

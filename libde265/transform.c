@@ -74,6 +74,8 @@ int table8_22(int qPi)
 void decode_quantization_parameters(decoder_context* ctx,
                                     thread_context* tctx, int xC,int yC)
 {
+  logtrace(LogTransform,"decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
+
   pic_parameter_set* pps = ctx->current_pps;
   seq_parameter_set* sps = ctx->current_sps;
   slice_segment_header* shdr = tctx->shdr;
@@ -82,17 +84,30 @@ void decode_quantization_parameters(decoder_context* ctx,
   int xQG = xC - (xC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
   int yQG = yC - (yC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
 
+
+  // we only have to set QP in the first call in a quantization-group
+
+  if (xQG == tctx->currentQG_x &&
+      yQG == tctx->currentQG_y)
+    {
+      return;
+    }
+
+
   // if first QG in CU, remember last QPY of last CU previous QG
 
-  if ((xQG & ((1<<sps->Log2CtbSizeY)-1)) == 0 &&
-      (yQG & ((1<<sps->Log2CtbSizeY)-1)) == 0) {
-    tctx->lastQPYinPreviousQG = tctx->currentQPY;
-  }
+  if (xQG != tctx->currentQG_x ||
+      yQG != tctx->currentQG_y)
+    {
+      tctx->lastQPYinPreviousQG = tctx->currentQPY;
+      tctx->currentQG_x = xQG;
+      tctx->currentQG_y = yQG;
+    }
 
   int qPY_PRED;
   bool firstQGInSlice;
   bool firstQGInTile = false; // TODO
-  bool firstInCTBRow = (xC==0); // TODO
+  bool firstInCTBRow = (xQG==0); // TODO
   
   int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
 
@@ -113,24 +128,32 @@ void decode_quantization_parameters(decoder_context* ctx,
   int qPYA,qPYB;
 
   if (available_zscan(ctx->img,xQG,yQG, xQG-1,yQG)) {
-    // unused: int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
-    // unused: int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
-    // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    // unused: int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
-
-    qPYA = get_QPY(ctx->img,sps,xQG-1,yQG);
+    int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
+    int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
+    int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
+    int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
+    if (ctbAddrA == tctx->CtbAddrInTS) {
+      qPYA = get_QPY(ctx->img,sps,xQG-1,yQG);
+    }
+    else {
+      qPYA = qPY_PRED;
+    }
   }
   else {
     qPYA = qPY_PRED;
   }
 
   if (available_zscan(ctx->img,xQG,yQG, xQG,yQG-1)) {
-    // unused: int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
-    // unused: int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
-    // unused: int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    // unused: int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
-
-    qPYB = get_QPY(ctx->img,sps,xQG,yQG-1);
+    int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
+    int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
+    int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
+    int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
+    if (ctbAddrA == tctx->CtbAddrInTS) {
+      qPYB = get_QPY(ctx->img,sps,xQG,yQG-1);
+    }
+    else {
+      qPYB = qPY_PRED;
+    }
   }
   else {
     qPYB = qPY_PRED;
@@ -159,7 +182,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   set_QPY(ctx->img,sps,pps,xQG,yQG, QPY);
   tctx->currentQPY = QPY;
 
-  logtrace(LogTransform,"qPY(%d,%d)= %d\n",xC,yC,QPY);
+  logtrace(LogTransform,"qPY(%d,%d)= %d\n",xQG,yQG,QPY);
 }
 
 

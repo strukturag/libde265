@@ -2,14 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [0.3], [farin@struktur.de])
+AC_INIT([libde265], [0.4], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
 
 LIBDE265_CURRENT=0
-LIBDE265_REVISION=2
+LIBDE265_REVISION=3
 LIBDE265_AGE=0
 
 AC_SUBST(LIBDE265_CURRENT)
@@ -153,9 +153,14 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
    PKG_CHECK_MODULES([SDL], [sdl],
                      [AC_DEFINE([HAVE_SDL], [1], [Whether libSDL was found.])
                       AC_SUBST(SDL_CFLAGS)
-                      AC_SUBST(SDL_LIBS)]
+                      AC_SUBST(SDL_LIBS)
+                      have_sdl="yes"],
+                     [have_sdl="no"
+                      AC_MSG_WARN([Did not find libsdl, video output of dec265 will be disabled.])]
                      )
 fi
+
+AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" != "xno"])
 
 if eval "test $enable_sherlock265 = yes" ; then
   PKG_CHECK_MODULES([QT], [QtCore QtGui])
