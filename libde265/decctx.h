@@ -110,7 +110,6 @@ typedef struct decoder_context {
 
   // byte-stream level
 
-  //rbsp_buffer pending_input_data;
   bool end_of_stream; // data in pending_input_data is end of stream
   int  input_push_state;
   NAL_unit* pending_input_NAL;

@@ -180,6 +180,10 @@ static int cnt=0;
 
     printf("  popped nal size: %d\n",nal->nal_data.size);
 
+    ctx->nBytes_in_NAL_queue -= nal->nal_data.size;
+
+ printf("NAL queue size: %d bytes\n", ctx->nBytes_in_NAL_queue);
+
     return nal;
   }
 }
@@ -198,6 +202,8 @@ static int cnt=0;
 
   ctx->NAL_queue[ ctx->NAL_queue_len ] = nal;
   ctx->NAL_queue_len++;
+
+  ctx->nBytes_in_NAL_queue += nal->nal_data.size;
 }
 
 

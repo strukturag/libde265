@@ -69,7 +69,7 @@ void showTransformProfile();
 #endif
 
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
 int nThreads=0;
@@ -177,7 +177,7 @@ bool output_image(const de265_image* img)
   height = de265_get_image_height(img,0);
 
   framecnt++;
-  printf("SHOW POC: %d / PTS: %d\n",img->PicOrderCntVal, img->pts);
+  printf("SHOW POC: %d / PTS: %ld\n",img->PicOrderCntVal, img->pts);
 
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
