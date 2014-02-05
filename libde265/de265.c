@@ -257,11 +257,6 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
       else { ctx->input_push_state=0; }
       break;
     case 3:
-      /*
-      *out++ = 0;
-      *out++ = 0;
-      *out++ = 1;
-      */
       *out++ = *data;
       ctx->input_push_state = 4;
       break;
@@ -304,19 +299,13 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
         }
 #endif
 
-        // decode this NAL
         nal->nal_data.size = out - nal->nal_data.data;
 
+        // push this NAL decoder queue
         push_to_NAL_queue(ctx, nal);
 
 
-        // TODO: push NAL to NAL-queue instead of decoding
-        //de265_error err = de265_decode_NAL(de265ctx, nal);
-
-
-        // initialize new NAL unit
-
-        //free_NAL_unit(ctx,nal);
+        // initialize new, empty NAL unit
 
         ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
         ctx->pending_input_NAL->pts = pts;
@@ -325,13 +314,6 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
 
         ctx->input_push_state=3;
         nal->num_skipped_bytes=0;
-
-#if 0
-        if (err != DE265_OK) {
-          data++;
-          return err;
-        }
-#endif
       }
       else {
         *out++ = 0;
@@ -344,13 +326,6 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
     }
 
     data++;
-
-    /*
-    for (int i=0;i<out - ctx->nal_data.data;i++) {
-      printf("%02x ",ctx->nal_data.data[i]);
-    }
-    printf("\n");
-    */
   }
 
 #if 0
@@ -500,8 +475,23 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   if (ctx->pending_input_NAL) {
-    push_to_NAL_queue(ctx, ctx->pending_input_NAL);
-    ctx->pending_input_NAL = NULL;
+    NAL_unit* nal = ctx->pending_input_NAL;
+    uint8_t null[2] = { 0,0 };
+
+    // append bytes that are implied by the push state
+
+    if (ctx->input_push_state==6) { rbsp_buffer_append(&nal->nal_data,null,1); }
+    if (ctx->input_push_state==7) { rbsp_buffer_append(&nal->nal_data,null,2); }
+
+
+    // only push the NAL if it contains at least the NAL header
+
+    if (ctx->input_push_state>=5) {
+      push_to_NAL_queue(ctx, nal);
+      ctx->pending_input_NAL = NULL;
+    }
+
+    ctx->input_push_state = 0;
   }
 
   ctx->end_of_stream = true;
