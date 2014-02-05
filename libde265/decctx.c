@@ -64,9 +64,9 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- internal data ---
 
-  rbsp_buffer_init(&ctx->pending_input_data);
+  //rbsp_buffer_init(&ctx->pending_input_data);
 
-  rbsp_buffer_init(&ctx->nal_data);
+  //rbsp_buffer_init(&ctx->nal_data);
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_init_image(&ctx->dpb[i]);
@@ -106,6 +106,130 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
 #endif
 }
 
+
+NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
+{
+  NAL_unit* nal;
+
+  // --- get NAL-unit object ---
+
+  if (ctx->NAL_free_list == NULL ||
+      ctx->NAL_free_list_len==0) {
+    nal = (NAL_unit*)calloc( sizeof(NAL_unit),1 );
+  }
+  else {
+    ctx->NAL_free_list_len--;
+    nal = ctx->NAL_free_list[ctx->NAL_free_list_len];
+  }
+
+
+  // --- allocate skipped-bytes set ---
+
+  if (skipped_size>0 && skipped_size>nal->max_skipped_bytes) {
+    nal->skipped_bytes = (int*)realloc( nal->skipped_bytes, skipped_size*sizeof(int) );
+    nal->max_skipped_bytes = skipped_size;
+  }
+
+  nal->num_skipped_bytes = 0;
+
+  rbsp_buffer_init(&nal->nal_data);
+  rbsp_buffer_resize(&nal->nal_data, size);
+
+  return nal;
+}
+
+void      free_NAL_unit(decoder_context* ctx, NAL_unit* nal)
+{
+  // --- allocate free list if not already there ---
+
+  if (ctx->NAL_free_list == NULL) {
+    ctx->NAL_free_list_size = DE265_NAL_FREE_LIST_SIZE;
+    ctx->NAL_free_list = (NAL_unit**)malloc( ctx->NAL_free_list_size * sizeof(NAL_unit*) );
+  }
+
+
+  // --- put into free-list if not full ---
+
+  if (ctx->NAL_free_list_len < ctx->NAL_free_list_size) {
+    ctx->NAL_free_list[ ctx->NAL_free_list_len ] = nal;
+    ctx->NAL_free_list_len++;
+  }
+  else {
+    rbsp_buffer_free(&nal->nal_data);
+    free(nal->skipped_bytes);
+    free(nal);
+  }
+}
+
+NAL_unit* pop_from_NAL_queue(decoder_context* ctx)
+{
+  if (ctx->NAL_queue_len==0) {
+    return NULL;
+  }
+  else {
+    assert(ctx->NAL_queue != NULL);
+    ctx->NAL_queue_len--;
+    return ctx->NAL_queue[ ctx->NAL_queue_len ];
+  }
+}
+
+void push_to_NAL_queue(decoder_context* ctx,NAL_unit* nal)
+{
+  if (ctx->NAL_queue_len == ctx->NAL_queue_size) {
+    ctx->NAL_queue = (NAL_unit**)realloc(ctx->NAL_queue,
+                                         sizeof(NAL_unit*) * (ctx->NAL_queue_size + 10));
+  }
+
+  ctx->NAL_queue[ ctx->NAL_queue_len ] = nal;
+  ctx->NAL_queue_len++;
+}
+
+
+void free_decoder_context(decoder_context* ctx)
+{
+  // --- free NAL queues ---
+
+  // empty NAL queue
+
+  NAL_unit* nal;
+  while ( (nal = pop_from_NAL_queue(ctx)) ) {
+    free_NAL_unit(ctx,nal);
+  }
+
+  // free the pending input NAL
+  free_NAL_unit(ctx, ctx->pending_input_NAL);
+
+  // free all NALs in free-list
+
+  for (int i=0;i<ctx->NAL_free_list_len;i++)
+    {
+      rbsp_buffer_free(&ctx->NAL_free_list[i]->nal_data);
+      free(ctx->NAL_free_list[i]->skipped_bytes);
+      free(ctx->NAL_free_list[i]);
+    }
+
+  // remove lists themselves
+
+  free(ctx->NAL_queue);
+  free(ctx->NAL_free_list);
+
+
+
+  //rbsp_buffer_free(&ctx->nal_data);
+  //if (ctx->skipped_bytes) free(ctx->skipped_bytes);
+
+  free_ref_pic_sets(&ctx->ref_pic_sets);
+
+  for (int i=0;i<DE265_DPB_SIZE;i++) {
+    de265_free_image(&ctx->dpb[i]);
+  }
+
+  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
+    free_pps(&ctx->pps[i]);
+  }
+}
+
+
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
   // HACK de265_fill_image(&ctx->coeff, 0,0,0);
@@ -129,23 +253,6 @@ void prepare_new_picture(decoder_context* ctx)
         if (y==0 || x==0) cnt--;
         set_CTB_deblocking_cnt_new(ctx->img,ctx->current_sps,x,y, cnt);
       }
-}
-
-
-void free_decoder_context(decoder_context* ctx)
-{
-  rbsp_buffer_free(&ctx->nal_data);
-  if (ctx->skipped_bytes) free(ctx->skipped_bytes);
-
-  free_ref_pic_sets(&ctx->ref_pic_sets);
-
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    de265_free_image(&ctx->dpb[i]);
-  }
-
-  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
-    free_pps(&ctx->pps[i]);
-  }
 }
 
 
