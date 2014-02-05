@@ -116,6 +116,7 @@ NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
   if (ctx->NAL_free_list == NULL ||
       ctx->NAL_free_list_len==0) {
     nal = (NAL_unit*)calloc( sizeof(NAL_unit),1 );
+    rbsp_buffer_init(&nal->nal_data);
   }
   else {
     ctx->NAL_free_list_len--;
@@ -131,8 +132,7 @@ NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
   }
 
   nal->num_skipped_bytes = 0;
-
-  rbsp_buffer_init(&nal->nal_data);
+  nal->nal_data.size = 0;
   rbsp_buffer_resize(&nal->nal_data, size);
 
   return nal;
@@ -163,21 +163,37 @@ void      free_NAL_unit(decoder_context* ctx, NAL_unit* nal)
 
 NAL_unit* pop_from_NAL_queue(decoder_context* ctx)
 {
+static int cnt=0;
+ cnt++;
+ printf("pop cnt: %d @ queue size: %d\n",cnt,ctx->NAL_queue_len);
+
   if (ctx->NAL_queue_len==0) {
+    printf("EMPTY\n");
     return NULL;
   }
   else {
     assert(ctx->NAL_queue != NULL);
     ctx->NAL_queue_len--;
-    return ctx->NAL_queue[ ctx->NAL_queue_len ];
+
+    NAL_unit* nal = ctx->NAL_queue[0];
+    memmove(ctx->NAL_queue, ctx->NAL_queue+1, sizeof(NAL_unit*)* ctx->NAL_queue_len);
+
+    printf("  popped nal size: %d\n",nal->nal_data.size);
+
+    return nal;
   }
 }
 
 void push_to_NAL_queue(decoder_context* ctx,NAL_unit* nal)
 {
-  if (ctx->NAL_queue_len == ctx->NAL_queue_size) {
+static int cnt=0;
+ cnt++;
+ printf("push cnt: %d\n",cnt);
+  if (ctx->NAL_queue == NULL ||
+      ctx->NAL_queue_len == ctx->NAL_queue_size) {
+    ctx->NAL_queue_size += 10;
     ctx->NAL_queue = (NAL_unit**)realloc(ctx->NAL_queue,
-                                         sizeof(NAL_unit*) * (ctx->NAL_queue_size + 10));
+                                         sizeof(NAL_unit*) * ctx->NAL_queue_size);
   }
 
   ctx->NAL_queue[ ctx->NAL_queue_len ] = nal;
@@ -197,7 +213,10 @@ void free_decoder_context(decoder_context* ctx)
   }
 
   // free the pending input NAL
-  free_NAL_unit(ctx, ctx->pending_input_NAL);
+
+  if (ctx->pending_input_NAL != NULL) {
+    free_NAL_unit(ctx, ctx->pending_input_NAL);
+  }
 
   // free all NALs in free-list
 

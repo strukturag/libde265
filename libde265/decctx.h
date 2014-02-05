@@ -64,8 +64,6 @@ enum LowLevelImplementation {
   LOWLEVEL_AVX
 };
 
-typedef int64_t de265_PTS;
-
 typedef struct NAL_unit {
   nal_header  header;
 

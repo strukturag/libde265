@@ -198,13 +198,17 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 }
 
 
-static de265_error process_data(decoder_context* ctx, const uint8_t* data, int len,
-                                int* out_nBytesProcessed)
+LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx, const void* data8, int len,
+                                         de265_PTS pts)
 {
-  *out_nBytesProcessed=0;
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  uint8_t* data = (uint8_t*)data8;
+
+  //*out_nBytesProcessed=0;
 
   if (ctx->pending_input_NAL == NULL) {
     ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
+    ctx->pending_input_NAL->pts = pts;
   }
 
   NAL_unit* nal = ctx->pending_input_NAL; // shortcut
@@ -216,7 +220,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
   unsigned char* out = nal->nal_data.data + nal->nal_data.size;
 
   for (int i=0;i<len;i++) {
-    (*out_nBytesProcessed)++;
+    //(*out_nBytesProcessed)++;
 
     /*
     printf("state=%d input=%02x (%p) (output size: %d)\n",ctx->input_push_state, *data, data,
@@ -298,27 +302,31 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
         // decode this NAL
         nal->nal_data.size = out - nal->nal_data.data;
 
+        push_to_NAL_queue(ctx, nal);
+
+
         // TODO: push NAL to NAL-queue instead of decoding
-        de265_error err = de265_decode_NAL((de265_decoder_context*)ctx, nal);
+        //de265_error err = de265_decode_NAL(de265ctx, nal);
 
 
-        // clear buffer for next NAL
-        nal->nal_data.size = 0;
+        // initialize new NAL unit
+
+        //free_NAL_unit(ctx,nal);
+
+        ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
+        ctx->pending_input_NAL->pts = pts;
+        nal = ctx->pending_input_NAL;
         out = nal->nal_data.data;
 
         ctx->input_push_state=3;
         nal->num_skipped_bytes=0;
 
+#if 0
         if (err != DE265_OK) {
           data++;
           return err;
         }
-
-        // when there are no free image buffers in the DPB, pause decoding
-        if (!has_free_dpb_picture(ctx, false)) {
-          data++;
-          return err;
-        }
+#endif
       }
       else {
         *out++ = 0;
@@ -340,7 +348,7 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
     */
   }
 
-
+#if 0
   if (*out_nBytesProcessed == len && ctx->end_of_stream &&
       ctx->input_push_state != 8) {
     if      (ctx->input_push_state<5) { return DE265_ERROR_EOF; }
@@ -364,11 +372,56 @@ static de265_error process_data(decoder_context* ctx, const uint8_t* data, int l
 
     return DE265_OK;
   }
-
+#endif
 
   nal->nal_data.size = out - nal->nal_data.data;
   return DE265_OK;
 }
+
+
+LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* didDecode)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  // if NAL-queue is empty, there is nothing to do
+
+  if (ctx->NAL_queue_len == 0) {
+    if (didDecode) { *didDecode=0; }
+
+    // no more NALs and the stream has ended, flush all pictures
+
+    if (ctx->end_of_stream) {
+      while (ctx->reorder_output_queue_length>0) {
+        flush_next_picture_from_reorder_buffer(ctx);
+        if (didDecode) { *didDecode=1; }
+      }
+    }
+
+    return DE265_OK;
+  }
+
+
+  // when there are no free image buffers in the DPB, pause decoding
+
+  if (!has_free_dpb_picture(ctx, false)) {
+    if (didDecode) *didDecode = 0;
+    return DE265_ERROR_IMAGE_BUFFER_FULL;
+  }
+
+
+  // decode one NAL from the queue
+
+  NAL_unit* nal = pop_from_NAL_queue(ctx);
+  assert(nal);
+  de265_error err = de265_decode_NAL(de265ctx, nal);
+  free_NAL_unit(ctx,nal);
+
+  if (didDecode) *didDecode=1;
+
+  return err;
+}
+
+
 
 
 static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
@@ -403,54 +456,18 @@ static de265_error de265_decode_pending_data(de265_decoder_context* de265ctx)
 }
 
 
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx, const void* data, int len)
+LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-
-  if (len==0) {
-    ctx->end_of_stream = true;
+  if (ctx->pending_input_NAL) {
+    push_to_NAL_queue(ctx, ctx->pending_input_NAL);
+    ctx->pending_input_NAL = NULL;
   }
 
+  ctx->end_of_stream = true;
 
-  // process the data that is still pending for input
-
-#if 0
-  if (ctx->pending_input_data.size > 0) {
-
-    de265_error err = de265_decode_pending_data(de265ctx);
-
-    // if something went wrong, or more data is pending
-    // -> append new input data to pending-input buffer
-    if (err != DE265_OK || ctx->pending_input_data.size!=0) {
-      if (len>0) {
-        rbsp_buffer_append(&ctx->pending_input_data, (const uint8_t*)data,len);
-      }
-
-      return err;
-    }
-  }
-#endif
-
-  de265_error err = DE265_OK;
-  int nBytesProcessed = 0;
-
-  if (has_free_dpb_picture(ctx, false)) {
-    err = process_data(ctx,(const uint8_t*)data,len, &nBytesProcessed);
-  }
-
-#if 0
-  if (nBytesProcessed != len) {
-    //printf("%d %d\n",nBytesProcessed,len);
-
-    // save remaining bytes
-
-    assert(ctx->pending_input_data.size==0); // assume pending-input buffer is empty
-    rbsp_buffer_append(&ctx->pending_input_data, (const uint8_t*)data+nBytesProcessed, len-nBytesProcessed);
-  }
-#endif
-
-  return err;
+  return DE265_OK;
 }
 
 
@@ -701,6 +718,7 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
+#if 0
   // check for empty queue -> return NULL
 
   if (ctx->image_output_queue_length==0) {
@@ -719,6 +737,8 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
       return NULL;
     }
   }
+#endif
+
 
   return ctx->image_output_queue[0];
 }

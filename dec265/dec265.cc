@@ -69,6 +69,37 @@ void showTransformProfile();
 #endif
 
 
+#define BUFFER_SIZE 40960
+#define NUM_THREADS 4
+
+int nThreads=0;
+bool quiet=false;
+bool check_hash=false;
+bool show_profile=false;
+bool show_help=false;
+bool dump_headers=false;
+bool write_yuv=false;
+bool output_with_videogfx=false;
+bool logging=true;
+//std::string output_filename;
+uint32_t max_frames=UINT32_MAX;
+
+static struct option long_options[] = {
+  {"quiet",      no_argument,       0, 'q' },
+  {"threads",    required_argument, 0, 't' },
+  {"check-hash", no_argument,       0, 'c' },
+  {"profile",    no_argument,       0, 'p' },
+  {"frames",     required_argument, 0, 'f' },
+  {"output",     no_argument,       0, 'o' },
+  {"dump",       no_argument,       0, 'd' },
+  {"videogfx",   no_argument,       0, 'V' },
+  {"no-logging", no_argument,       0, 'L' },
+  {"help",       no_argument,       0, 'h' },
+  //{"verbose",    no_argument,       0, 'v' },
+  {0,         0,                 0,  0 }
+};
+
+
 
 #if HAVE_VIDEOGFX
 void display_image(const struct de265_image* img)
@@ -135,6 +166,49 @@ bool display_sdl(const struct de265_image* img)
 #endif
 
 
+static int width,height;
+static uint32_t framecnt=0;
+
+bool output_image(const de265_image* img)
+{
+  bool stop=false;
+
+  width  = de265_get_image_width(img,0);
+  height = de265_get_image_height(img,0);
+
+  framecnt++;
+  //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
+
+  if (!quiet) {
+#if HAVE_SDL && HAVE_VIDEOGFX
+    if (output_with_videogfx) { 
+      display_image(img);
+    } else {
+      stop = display_sdl(img);
+    }
+#elif HAVE_SDL
+    stop = display_sdl(img);
+#elif HAVE_VIDEOGFX
+    display_image(img);
+#endif
+
+    if (write_yuv) {
+      write_picture(img);
+    }
+  }
+
+  if ((framecnt%100)==0) {
+    fprintf(stderr,"frame %d\r",framecnt);
+  }
+
+  if (framecnt>=max_frames) {
+    stop=true;
+  }
+
+  return stop;
+}
+
+
 #ifdef WIN32
 #include <time.h>
 #define WIN32_LEAN_AND_MEAN
@@ -160,36 +234,6 @@ int gettimeofday(struct timeval *tp, void *)
     return (0);
 }
 #endif
-
-#define BUFFER_SIZE 4096
-#define NUM_THREADS 4
-
-int nThreads=0;
-bool quiet=false;
-bool check_hash=false;
-bool show_profile=false;
-bool show_help=false;
-bool dump_headers=false;
-bool write_yuv=false;
-bool output_with_videogfx=false;
-bool logging=true;
-//std::string output_filename;
-uint32_t max_frames=UINT32_MAX;
-
-static struct option long_options[] = {
-  {"quiet",      no_argument,       0, 'q' },
-  {"threads",    required_argument, 0, 't' },
-  {"check-hash", no_argument,       0, 'c' },
-  {"profile",    no_argument,       0, 'p' },
-  {"frames",     required_argument, 0, 'f' },
-  {"output",     no_argument,       0, 'o' },
-  {"dump",       no_argument,       0, 'd' },
-  {"videogfx",   no_argument,       0, 'V' },
-  {"no-logging", no_argument,       0, 'L' },
-  {"help",       no_argument,       0, 'h' },
-  //{"verbose",    no_argument,       0, 'v' },
-  {0,         0,                 0,  0 }
-};
 
 #ifdef HAVE___MALLOC_HOOK
 #ifdef __GNUC__
@@ -307,12 +351,9 @@ int main(int argc, char** argv)
   }
 
   bool stop=false;
-  uint32_t framecnt=0;
 
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
-
-  int width,height;
 
   while (!stop)
     {
@@ -322,7 +363,7 @@ int main(int argc, char** argv)
 
       // decode input data
       if (n) {
-	err = de265_decode_data(ctx, buf, n);
+	err = de265_push_data(ctx, buf, n, 0);
 	if (err != DE265_OK) {
 	  break;
 	}
@@ -331,56 +372,51 @@ int main(int argc, char** argv)
       // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
       if (feof(fh)) {
-        err = de265_decode_data(ctx, NULL, 0); // indicate end of stream
+        printf("FLUSH\n");
+        err = de265_flush_data(ctx); // indicate end of stream
         stop = true;
+        printf("FLUSH END\n");
       }
 
-      // show queued output images
-      for (;;) {
-        const de265_image* img = de265_get_next_picture(ctx);
-        if (img==NULL) break;
 
-        width  = de265_get_image_width(img,0);
-        height = de265_get_image_height(img,0);
+      // decoding / display loop
 
-        framecnt++;
-        //fprintf(stderr,"SHOW POC: %d\n",img->PicOrderCntVal);
+      int more=1;
+      while (more)
+        {
+          more = 0;
 
-        if (!quiet) {
-#if HAVE_SDL && HAVE_VIDEOGFX
-          if (output_with_videogfx) { 
-            display_image(img);
-          } else {
-            stop = display_sdl(img);
+          // decode some more
+
+          err = de265_decode(ctx, &more);
+          if (err != DE265_OK) {
+            more = 0;
+            break;
           }
-#elif HAVE_SDL
-          stop = display_sdl(img);
-#elif HAVE_VIDEOGFX
-          display_image(img);
-#endif
 
-          if (write_yuv) {
-            write_picture(img);
+          // show available images
+
+          const de265_image* img = de265_get_next_picture(ctx);
+          if (img) {
+            stop = output_image(img);
+            if (stop) more=0;
+            else      more=1;
+static int cnti=0;
+ cnti++;
+ printf("show img : %d\n",cnti);
+          }
+
+          // show warnings
+
+          for (;;) {
+            de265_error warning = de265_get_warning(ctx);
+            if (warning==DE265_OK) {
+              break;
+            }
+
+            fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
           }
         }
-
-        if ((framecnt%100)==0) {
-          fprintf(stderr,"frame %d\r",framecnt);
-        }
-      }
-
-      for (;;) {
-        de265_error warning = de265_get_warning(ctx);
-        if (warning==DE265_OK) {
-          break;
-        }
-
-        fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
-      }
-
-      if (framecnt>=max_frames) {
-        stop=true;
-      }
     }
 
   fclose(fh);

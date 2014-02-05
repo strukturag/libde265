@@ -115,6 +115,8 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int
 
 typedef void* de265_decoder_context; // private structure
 
+typedef int64_t de265_PTS;
+
 
 enum de265_param {
   DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, /* (bool) Perform SEI hash check on decoded pictures. */
@@ -144,7 +146,11 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
    is read from the data.
    If you want to flush the data and force decoding of the data so far
    (e.g. at the end of a file), call de265_decode_data() with 'length' zero. */
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
+LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* data, int length,
+                                         de265_PTS pts);
+LIBDE265_API de265_error de265_flush_data(de265_decoder_context*);
+
+LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* didDecode);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to
