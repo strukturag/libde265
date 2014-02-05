@@ -86,12 +86,14 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   // we only have to set QP in the first call in a quantization-group
 
+  /* TODO: check why this does not work with HoneyBee stream
+
   if (xQG == tctx->currentQG_x &&
       yQG == tctx->currentQG_y)
     {
       return;
     }
-
+  */
 
   // if first QG in CU, remember last QPY of last CU previous QG
 
