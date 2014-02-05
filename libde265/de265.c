@@ -45,7 +45,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   switch (err) {
   case DE265_OK: return "no error";
   case DE265_ERROR_NO_SUCH_FILE: return "no such file";
-  case DE265_ERROR_NO_STARTCODE: return "no startcode found";
+    //case DE265_ERROR_NO_STARTCODE: return "no startcode found";
   case DE265_ERROR_EOF: return "end of file";
   case DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS: return "coefficient out of image bounds";
   case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
@@ -249,12 +249,12 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
     case 0:
     case 1:
       if (*data == 0) { ctx->input_push_state++; }
-      else { return DE265_ERROR_NO_STARTCODE; }
+      else { ctx->input_push_state=0; }
       break;
     case 2:
       if      (*data == 1) { ctx->input_push_state=3; nal->num_skipped_bytes=0; }
       else if (*data == 0) { } // *out++ = 0; }
-      else { return DE265_ERROR_NO_STARTCODE; }
+      else { ctx->input_push_state=0; }
       break;
     case 3:
       /*
@@ -291,8 +291,6 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
 
         // remember which byte we removed
         nal_insert_skipped_byte(nal, (out - nal->nal_data.data) + nal->num_skipped_bytes);
-
-        printf("SKIP at %d\n",pts);
       }
       else if (*data==1) {
 

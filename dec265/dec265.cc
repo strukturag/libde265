@@ -177,7 +177,7 @@ bool output_image(const de265_image* img)
   height = de265_get_image_height(img,0);
 
   framecnt++;
-  printf("SHOW POC: %d / PTS: %ld\n",img->PicOrderCntVal, img->pts);
+  //printf("SHOW POC: %d / PTS: %ld\n",img->PicOrderCntVal, img->pts);
 
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
@@ -376,10 +376,8 @@ int main(int argc, char** argv)
       // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
       if (feof(fh)) {
-        printf("FLUSH\n");
         err = de265_flush_data(ctx); // indicate end of stream
         stop = true;
-        printf("FLUSH END\n");
       }
 
 
@@ -405,9 +403,6 @@ int main(int argc, char** argv)
             stop = output_image(img);
             if (stop) more=0;
             else      more=1;
-static int cnti=0;
- cnti++;
- printf("show img : %d\n",cnti);
           }
 
           // show warnings

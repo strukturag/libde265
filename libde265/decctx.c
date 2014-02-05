@@ -163,12 +163,7 @@ void      free_NAL_unit(decoder_context* ctx, NAL_unit* nal)
 
 NAL_unit* pop_from_NAL_queue(decoder_context* ctx)
 {
-static int cnt=0;
- cnt++;
- printf("pop cnt: %d @ queue size: %d\n",cnt,ctx->NAL_queue_len);
-
   if (ctx->NAL_queue_len==0) {
-    printf("EMPTY\n");
     return NULL;
   }
   else {
@@ -178,11 +173,7 @@ static int cnt=0;
     NAL_unit* nal = ctx->NAL_queue[0];
     memmove(ctx->NAL_queue, ctx->NAL_queue+1, sizeof(NAL_unit*)* ctx->NAL_queue_len);
 
-    printf("  popped nal size: %d\n",nal->nal_data.size);
-
     ctx->nBytes_in_NAL_queue -= nal->nal_data.size;
-
- printf("NAL queue size: %d bytes\n", ctx->nBytes_in_NAL_queue);
 
     return nal;
   }
@@ -190,9 +181,6 @@ static int cnt=0;
 
 void push_to_NAL_queue(decoder_context* ctx,NAL_unit* nal)
 {
-static int cnt=0;
- cnt++;
- printf("push cnt: %d\n",cnt);
   if (ctx->NAL_queue == NULL ||
       ctx->NAL_queue_len == ctx->NAL_queue_size) {
     ctx->NAL_queue_size += 10;
