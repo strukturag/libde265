@@ -905,7 +905,7 @@ int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
 
 // returns whether we can continue decoding the stream of whether we should give up
 bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
-                                  de265_error* err)
+                                  de265_error* err, de265_PTS pts)
 {
   *err = DE265_OK;
 
@@ -946,6 +946,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     }
 
     de265_image* img = &ctx->dpb[image_buffer_idx];
+    img->pts = pts;
     ctx->img = img;
 
     img->sps = ctx->current_sps;
