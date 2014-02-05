@@ -186,6 +186,10 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
  */
 LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* more);
 
+/* Clear decoder state. Call this when skipping in the stream.
+ */
+LIBDE265_API void de265_reset(de265_decoder_context*);
+
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to
    advance to the next picture. */

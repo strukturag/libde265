@@ -732,6 +732,17 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 }
 
 
+LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  // TODO: maybe we can do things better here
+
+  free_decoder_context(ctx);
+  init_decoder_context(ctx);
+}
+
+
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
   const struct de265_image* img = de265_peek_next_picture(de265ctx);
