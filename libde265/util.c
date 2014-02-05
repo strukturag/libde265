@@ -19,6 +19,7 @@
  */
 
 #include "util.h"
+#include "de265.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -64,7 +65,7 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 
 static int disable_logging=0;
 
-void de265_disable_logging()
+LIBDE265_API void de265_disable_logging()
 {
   disable_logging=1;
 }
