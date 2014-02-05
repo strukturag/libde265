@@ -47,21 +47,6 @@ void rbsp_buffer_free(rbsp_buffer* buffer);
 void rbsp_buffer_append(rbsp_buffer* buffer, const unsigned char* data, int n);
 void rbsp_buffer_pop(rbsp_buffer* buffer, int n);
 
-typedef struct input_context {
-  rbsp_buffer input_buffer;
-
-  bool (*refill_buffer)(struct input_context*);
-} input_context;
-
-
-typedef struct {
-  input_context ctx;
-  FILE* input_file;
-} input_context_FILE;
-
-
-int init_file_context(input_context_FILE* ctx, const char* filename);
-int read_nal_unit(input_context* ctx, rbsp_buffer* buffer);
 
 
 
