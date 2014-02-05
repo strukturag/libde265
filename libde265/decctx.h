@@ -43,6 +43,9 @@
 #define DE265_DPB_RESILIENCE_IMAGES 5
 #define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
+#define DE265_NAL_FREE_LIST_SIZE 16
+#define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
+
 #define MAX_WARNINGS 20
 
 
@@ -61,6 +64,23 @@ enum LowLevelImplementation {
   LOWLEVEL_AVX
 };
 
+typedef struct NAL_unit {
+  nal_header  header;
+
+  rbsp_buffer nal_data;
+
+  de265_PTS pts;
+
+  int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
+  int   num_skipped_bytes;
+  int   max_skipped_bytes;
+
+  union {
+    seq_parameter_set sps;
+    pic_parameter_set pps;
+    // slice_segment_header slice_hdr;
+  };
+} NAL_unit;
 
 typedef struct decoder_context {
 
@@ -85,17 +105,29 @@ typedef struct decoder_context {
   de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
   int nWarningsShown;
 
-  // --- internal data ---
 
-  rbsp_buffer pending_input_data;
+  // --- input stream data ---
+
+  // byte-stream level
+
   bool end_of_stream; // data in pending_input_data is end of stream
+  int  input_push_state;
+  NAL_unit* pending_input_NAL;
 
-  rbsp_buffer nal_data;
-  int         input_push_state;
+  // NAL level
 
-  int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
-  int   num_skipped_bytes;
-  int   max_skipped_bytes;
+  NAL_unit** NAL_queue;  // enqueued NALs have suffing bytes removed
+  int NAL_queue_len;
+  int NAL_queue_size;
+
+  int nBytes_in_NAL_queue;
+
+  NAL_unit** NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
+  int NAL_free_list_len;
+  int NAL_free_list_size;
+
+
+  // --- internal data ---
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
@@ -184,6 +216,14 @@ void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation);
 void reset_decoder_context_for_new_picture(decoder_context* ctx);
 void free_decoder_context(decoder_context*);
 
+
+NAL_unit* alloc_NAL_unit(decoder_context*, int size, int skipped_size);
+void      free_NAL_unit(decoder_context*, NAL_unit*);
+
+NAL_unit* pop_from_NAL_queue(decoder_context*);
+void      push_to_NAL_queue(decoder_context*,NAL_unit*);
+
+
 void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
 int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps);
 
@@ -194,7 +234,7 @@ void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);
 void process_pps(decoder_context*, pic_parameter_set*);
 bool process_slice_segment_header(decoder_context*, slice_segment_header*,
-                                  de265_error*);
+                                  de265_error*, de265_PTS pts);
 
 int get_next_slice_index(decoder_context* ctx);
 

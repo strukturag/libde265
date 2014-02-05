@@ -46,9 +46,9 @@ extern "C" {
 
 typedef enum {
   DE265_OK = 0,
-  DE265_ERROR_NO_SUCH_FILE,
-  DE265_ERROR_NO_STARTCODE,
-  DE265_ERROR_EOF,
+  DE265_ERROR_NO_SUCH_FILE=1,
+  //DE265_ERROR_NO_STARTCODE=2,
+  DE265_ERROR_EOF=3,
   DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS,
   DE265_ERROR_CHECKSUM_MISMATCH,
   DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA,
@@ -58,6 +58,7 @@ typedef enum {
   DE265_ERROR_CANNOT_START_THREADPOOL,
   DE265_ERROR_LIBRARY_INITIALIZATION_FAILED,
   DE265_ERROR_LIBRARY_NOT_INITIALIZED,
+  DE265_ERROR_WAITING_FOR_INPUT_DATA,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
@@ -104,11 +105,14 @@ enum de265_chroma {
   de265_chroma_444
 };
 
+typedef int64_t de265_PTS;
+
 
 LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
 LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
+LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 
 
 /* === decoder === */
@@ -137,14 +141,54 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int 
 LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 
 
-/* Push more data into the decoder, must be raw h265.
-   All complete images in the data will be decoded, hence, do not push
-   too much data at once to prevent image buffer overflows.
-   The end of a picture can only be detected when the succeeding start-code
-   is read from the data.
-   If you want to flush the data and force decoding of the data so far
-   (e.g. at the end of a file), call de265_decode_data() with 'length' zero. */
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
+/* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
+   The PTS is assigned to all NALs whose start-code 0x000001 is contained in the data.
+   The bytestream must contain all stuffing-bytes.
+   This function only pushes data into the decoder, nothing will be decoded.
+*/
+LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* data, int length,
+                                         de265_PTS pts);
+
+/* Push a complete NAL unit without startcode into the decoder. The data must still
+   contain all stuffing-bytes.
+   This function only pushes data into the decoder, nothing will be decoded.
+*/
+LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data, int length,
+                                        de265_PTS pts);
+
+/* Indicate the end-of-stream. All data pending at the decoder input will be
+   pushed into the decoder and the decoded picture queue will be completely emptied.
+ */
+LIBDE265_API de265_error de265_flush_data(de265_decoder_context*);
+
+/* Return number of bytes pending at the decoder input.
+   Can be used to avoid overflowing the decoder with too much data.
+ */
+LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context*);
+
+/* Return number of NAL units pending at the decoder input.
+   Can be used to avoid overflowing the decoder with too much data.
+ */
+LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
+
+/* Do some decoding. Returns status whether it did perform some decoding or
+   why it could not do so. If 'more' is non-null, indicates whether de265_decode()
+   should be called again (possibly after resolving the indicated problem).
+   DE265_OK - decoding ok
+   DE265_ERROR_IMAGE_BUFFER_FULL - DPB full, extract some images before continuing
+   DE265_ERROR_WAITING_FOR_INPUT_DATA - insert more data before continuing
+
+   You have to consider these cases:
+   - decoding successful   -> err  = DE265_OK, more=true
+   - decoding stalled      -> err != DE265_OK, more=true
+   - decoding finished     -> err  = DE265_OK, more=false
+   - unresolvable error    -> err != DE265_OK, more=false
+ */
+LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* more);
+
+/* Clear decoder state. Call this when skipping in the stream.
+ */
+LIBDE265_API void de265_reset(de265_decoder_context*);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to
@@ -160,8 +204,6 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
    use the data anymore after calling this function. */
 LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
 
-
-LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context*);
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
