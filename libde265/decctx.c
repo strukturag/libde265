@@ -228,9 +228,6 @@ void free_decoder_context(decoder_context* ctx)
 
 
 
-  //rbsp_buffer_free(&ctx->nal_data);
-  //if (ctx->skipped_bytes) free(ctx->skipped_bytes);
-
   free_ref_pic_sets(&ctx->ref_pic_sets);
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
@@ -245,8 +242,6 @@ void free_decoder_context(decoder_context* ctx)
 
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
-  // HACK de265_fill_image(&ctx->coeff, 0,0,0);
-
   ctx->next_free_slice_index = 0;
 }
 

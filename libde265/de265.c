@@ -328,32 +328,6 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
     data++;
   }
 
-#if 0
-  if (*out_nBytesProcessed == len && ctx->end_of_stream &&
-      ctx->input_push_state != 8) {
-    if      (ctx->input_push_state<5) { return DE265_ERROR_EOF; }
-    else if (ctx->input_push_state==6) { *out++ = 0; }
-    else if (ctx->input_push_state==7) { *out++ = 0; *out++ = 0; }
-
-    ctx->input_push_state=8; // end of stream, stop all processing
-
-    // decode data
-    nal->nal_data.size = out - nal->nal_data.data;
-    de265_error err = de265_decode_NAL((de265_decoder_context*)ctx, nal);
-    if (err != DE265_OK) {
-      return err;
-    }
-
-    push_current_picture_to_output_queue(ctx);
-
-    // clear buffer
-    nal->nal_data.size = 0;
-    out = nal->nal_data.data;
-
-    return DE265_OK;
-  }
-#endif
-
   nal->nal_data.size = out - nal->nal_data.data;
   return DE265_OK;
 }
@@ -513,17 +487,7 @@ void init_thread_context(thread_context* tctx)
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-
   rbsp_buffer* data = &nal->nal_data;
-
-  /*
-    if (ctx->num_skipped_bytes>0) {
-    printf("skipped bytes:\n  ");
-    for (int i=0;i<ctx->num_skipped_bytes;i++)
-    printf("%d ",ctx->skipped_bytes[i]);
-    printf("\n");
-    }
-  */
 
   de265_error err = DE265_OK;
 
@@ -646,18 +610,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
 
-        /*
-          for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
-          for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
-          {
-          add_CTB_decode_task_syntax(&hdr->thread_context[y], x,y);
-          }
-        */
-
         wait_for_completion(ctx->img);
-        //flush_thread_pool(&ctx->thread_pool);
-
-        //printf("slice decoding finished\n");
       }
     }
   }
@@ -757,28 +710,6 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-
-#if 0
-  // check for empty queue -> return NULL
-
-  if (ctx->image_output_queue_length==0) {
-    de265_error err = de265_decode_pending_data(de265ctx);
-    // TODO: what do we do with the error code ?
-
-#if 0
-    if (ctx->end_of_stream && ctx->pending_input_data.size==0) {
-      while (ctx->reorder_output_queue_length>0) {
-        flush_next_picture_from_reorder_buffer(ctx);
-      }
-    }
-#endif
-
-    if (ctx->image_output_queue_length==0) {
-      return NULL;
-    }
-  }
-#endif
-
 
   return ctx->image_output_queue[0];
 }
