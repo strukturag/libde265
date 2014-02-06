@@ -28,7 +28,7 @@
 
 typedef struct
 {
-  int waiters_count_;
+  long waiters_count_;
   // Number of waiting threads.
 
   CRITICAL_SECTION waiters_count_lock_;

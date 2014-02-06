@@ -31,14 +31,14 @@ extern "C" {
 #define __STDC_LIMIT_MACROS 1
 #include <stdint.h>
 
-#ifdef _MSC_VER
-#ifdef LIBDE265_EXPORTS
-#define LIBDE265_API __declspec(dllexport)
+#if defined(_MSC_VER) && !defined(LIBDE265_STATIC_BUILD)
+  #ifdef LIBDE265_EXPORTS
+  #define LIBDE265_API __declspec(dllexport)
+  #else
+  #define LIBDE265_API __declspec(dllimport)
+  #endif
 #else
-#define LIBDE265_API __declspec(dllimport)
-#endif
-#else
-#define LIBDE265_API
+  #define LIBDE265_API
 #endif
 
 

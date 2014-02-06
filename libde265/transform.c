@@ -29,13 +29,14 @@ static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[3
 
 LIBDE265_API void showTransformProfile()
 {
+  const int nDCT_sum = nDST_4x4 + nDCT_4x4 + nDCT_8x8 + nDCT_16x16 + nDCT_32x32 + nSkip_4x4;
   fprintf(stderr,"transform usage:\n");
-  fprintf(stderr,"  DST 4x4:   %d\n",nDST_4x4);
-  fprintf(stderr,"  DCT 4x4:   %d\n",nDCT_4x4);
-  fprintf(stderr,"  DCT 8x8:   %d\n",nDCT_8x8);
-  fprintf(stderr,"  DCT 16x16: %d\n",nDCT_16x16);
-  fprintf(stderr,"  DCT 32x32: %d\n",nDCT_32x32);
-  fprintf(stderr,"  Skip 4x4:   %d\n",nSkip_4x4);
+  fprintf(stderr,"  IDST   4x4:  %8d  %4.1f%%\n",nDST_4x4,(float)(nDST_4x4 * 100) / nDCT_sum);
+  fprintf(stderr,"  IDCT   4x4:  %8d  %4.1f%%\n",nDCT_4x4,(float)(nDCT_4x4 * 100) / nDCT_sum);
+  fprintf(stderr,"  IDCT   8x8:  %8d  %4.1f%%\n",nDCT_8x8,(float)(nDCT_8x8 * 100) / nDCT_sum);
+  fprintf(stderr,"  IDCT 16x16:  %8d  %4.1f%%\n",nDCT_16x16,(float)(nDCT_16x16 * 100) / nDCT_sum);
+  fprintf(stderr,"  IDCT 32x32:  %8d  %4.1f%%\n",nDCT_32x32,(float)(nDCT_32x32 * 100) / nDCT_sum);
+  fprintf(stderr,"  Skip   4x4:  %8d  %4.1f%%\n",nSkip_4x4,(float)(nSkip_4x4 * 100) / nDCT_sum);
 
   fprintf(stderr,"nCoeff DCT 4x4: ");
   for (int i=1;i<=16;i++)

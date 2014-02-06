@@ -648,15 +648,22 @@ static const int initValue_last_significant_coefficient_prefix[54] = {
     125,110,124,110, 95, 94,125,111,111, 79,125,126,111,111, 79,108,123, 93
   };
 static const int initValue_coded_sub_block_flag[12] = { 91,171,134,141,121,140,61,154,121,140,61,154 };
-static const int initValue_significant_coeff_flag[126] = {
-    111,  111,  125,  110,  110,   94,  124,  108,  124,  107,  125,  141,  179,  153,  125,  107,
-    125,  141,  179,  153,  125,  107,  125,  141,  179,  153,  125,  140,  139,  182,  182,  152,
-    136,  152,  136,  153,  136,  139,  111,  136,  139,  111,  155,  154,  139,  153,  139,  123,
-    123,   63,  153,  166,  183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  166,
-    183,  140,  136,  153,  154,  170,  153,  123,  123,  107,  121,  107,  121,  167,  151,  183,
-    140,  151,  183,  140,  170,  154,  139,  153,  139,  123,  123,   63,  124,  166,  183,  140,
-    136,  153,  154,  166,  183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  170,
-    153,  138,  138,  122,  121,  122,  121,  167,  151,  183,  140,  151,  183,  140
+static const int initValue_significant_coeff_flag[3][42] = {
+    {
+      111,  111,  125,  110,  110,   94,  124,  108,  124,  107,  125,  141,  179,  153,  125,  107,
+      125,  141,  179,  153,  125,  107,  125,  141,  179,  153,  125,  140,  139,  182,  182,  152,
+      136,  152,  136,  153,  136,  139,  111,  136,  139,  111
+    },
+    {
+      155,  154,  139,  153,  139,  123,  123,   63,  153,  166,  183,  140,  136,  153,  154,  166,
+      183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  170,  153,  123,  123,  107,
+      121,  107,  121,  167,  151,  183,  140,  151,  183,  140,
+    },
+    {
+      170,  154,  139,  153,  139,  123,  123,   63,  124,  166,  183,  140,  136,  153,  154,  166,
+      183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  170,  153,  138,  138,  122,
+      121,  122,  121,  167,  151,  183,  140,  151,  183,  140
+    },
   };
 static const int initValue_coeff_abs_level_greater1_flag[72] = {
     140, 92,137,138,140,152,138,139,153, 74,149, 92,139,107,122,152,
@@ -1481,13 +1488,10 @@ static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
                                                  uint8_t ctxIdxInc)
 {
   logtrace(LogSlice,"# significant_coeff_flag\n");
-
-
-  int context = tctx->shdr->initType*42 + ctxIdxInc;
-  logtrace(LogSlice,"context: %d\n",context);
+  logtrace(LogSlice,"context: %d\n",ctxIdxInc);
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
+                             &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc]);
   return bit;
 }
 
@@ -1780,6 +1784,9 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 
 void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
 {
+  const int initType = tctx->shdr->initType;
+  assert(initType >= 0 && initType <= 2);
+
   init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag, 9);
   init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag,  6);
   init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     initValue_part_mode,     9);
@@ -1791,7 +1798,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, initValue_last_significant_coefficient_prefix, 54);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, initValue_last_significant_coefficient_prefix, 54);
   init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                initValue_coded_sub_block_flag,                12);
-  init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag,              126);
+  init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       initValue_coeff_abs_level_greater2_flag,       18);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      initValue_sao_merge_leftUp_flag,               3);

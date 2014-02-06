@@ -89,13 +89,15 @@ LIBDE265_API void showMotionProfile()
   fprintf(stderr,"fractional pel positions:\n");
   for (int y=0;y<4;y++)
     for (int x=0;x<4;x++)
-      fprintf(stderr,"%d %d  %d\n",x,y,FracCnt[x][y]);
+      fprintf(stderr,"(%d,%d)  %8d  %4.1f%%\n",x,y,FracCnt[x][y],(float)(FracCnt[x][y] * 100) / TotalCnt);
 
   fprintf(stderr,"block sizes:\n");
-  for (int y=0;y<64;y++)
-    for (int x=0;x<64;x++)
+  for (int x=0;x<64;x++)
+    for (int y=0;y<64;y++)
       if (SizeCnt[x][y]) {
-        fprintf(stderr,"%d %d  %d\n",x+1,y+1,SizeCnt[x][y]);
+        char tmp[128];
+        sprintf(tmp, "%dx%d", x+1, y+1);
+        fprintf(stderr,"%2dx%2d  %8d  %4.1f%%\n",x+1, y+1, SizeCnt[x][y],(float)(SizeCnt[x][y] * 100) / TotalCnt);
       }
 
 

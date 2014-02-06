@@ -52,9 +52,7 @@ int win32_cond_destroy(win32_cond_t *cv)
 int win32_cond_wait(win32_cond_t *cv, HANDLE *external_mutex)
 {
   // Avoid race conditions.
-  EnterCriticalSection (&cv->waiters_count_lock_);
-  cv->waiters_count_++;
-  LeaveCriticalSection (&cv->waiters_count_lock_);
+  InterlockedIncrement((volatile LONG*)&cv->waiters_count_);
 
   // This call atomically releases the mutex and waits on the
   // semaphore until <pthread_cond_signal> or <pthread_cond_broadcast>
