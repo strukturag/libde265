@@ -696,8 +696,7 @@ static const int initValue_abs_mvd_greater01_flag[4] = { 140,198,169,198 };
 static const int initValue_mvp_lx_flag[1] = { 168 };
 static const int initValue_rqt_root_cbf[1] = { 79 };
 static const int initValue_ref_idx_lX[2] = { 153,153 };
-static const int initValue_inter_pred_idc[10] = { 95,79,63,31,31,
-                                                  95,79,63,31,31 };
+static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
 
 static void init_context(decoder_context* ctx,
                          thread_context* tctx,
@@ -1731,21 +1730,20 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 {
   logtrace(LogSlice,"# inter_pred_idc\n");
 
-  int ctxIdxOffset = (tctx->shdr->initType-1)*5;
   int value;
 
   context_model* model = &tctx->ctx_model[CONTEXT_MODEL_INTER_PRED_IDC];
 
   if (nPbW+nPbH==12) {
     value = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &model[ctxIdxOffset+4]);
+                             &model[4]);
   }
   else {
     int bit0 = decode_CABAC_bit(&tctx->cabac_decoder,
-                                &model[ctxIdxOffset+ctDepth]);
+                                &model[ctDepth]);
     if (bit0==0) {
       value = decode_CABAC_bit(&tctx->cabac_decoder,
-                               &model[ctxIdxOffset+4]);
+                               &model[4]);
     }
     else {
       value = 2;
@@ -1791,7 +1789,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
   init_context(ctx,tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
   init_context(ctx,tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
-  init_context(ctx,tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         10);
+  init_context(ctx,tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
 }
 
 
