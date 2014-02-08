@@ -687,7 +687,7 @@ static const int initValue_coeff_abs_level_greater2_flag[18] = {
   };
 static const int initValue_sao_merge_leftUp_flag[3] = { 153,153,153 };
 static const int initValue_sao_type_idx_lumaChroma_flag[3] = { 200,185,160 };
-static const int initValue_cu_qp_delta_abs[6] = { 154,154,154,154,154,154 };
+static const int initValue_cu_qp_delta_abs[2] = { 154,154 };
 static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
 static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
@@ -1021,10 +1021,8 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
 {
   logtrace(LogSlice,"# cu_qp_delta_abs\n");
 
-  int context = tctx->shdr->initType*2;
-
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + context + 0]);
+                             &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 0]);
   if (bit==0) {
     return 0;
   }
@@ -1032,7 +1030,7 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
   int prefix=1;
   for (int i=0;i<4;i++) {
     bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                           &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + context + 1]);
+                           &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 1]);
     if (bit==0) { break; }
     else { prefix++; }
   }
@@ -1788,7 +1786,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        6);
+  init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
   init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    6);
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             initValue_merge_flag,             2);
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              initValue_merge_idx,              2);
