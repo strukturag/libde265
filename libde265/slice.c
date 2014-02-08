@@ -859,59 +859,51 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 				      enum PredMode pred_mode, int cLog2CbSize)
 {
   decoder_context* ctx = tctx->decctx;
-  context_model* model = &tctx->ctx_model[CONTEXT_MODEL_PART_MODE];
 
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
 
-    const int idxOffsets[3] = { 0,1,5 };
-
-    int ctxIdxOffset = idxOffsets[tctx->shdr->initType];
-
-    int bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset]);
+    int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE]);
 
     logtrace(LogSlice,"> %s\n",bit ? "2Nx2N" : "NxN");
 
     return bit ? PART_2Nx2N : PART_NxN;
   }
   else {
-    int ctxIdxOffset = (tctx->shdr->initType==1) ? 1 : 5;
+    int bit0 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+0]);
+    if (bit0) { return PART_2Nx2N; }
 
-    int bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset]);
-    if (bit) { return PART_2Nx2N; }
-
+    // CHECK_ME: I optimize code and fix bug here, need more VERIFY!
+    int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+1]);
     if (cLog2CbSize > ctx->current_sps->Log2MinCbSizeY) {
       if (!ctx->current_sps->amp_enabled_flag) {
-        bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+1]);
-        return bit ? PART_2NxN : PART_Nx2N;
+        return bit1 ? PART_2NxN : PART_Nx2N;
       }
       else {
-        int bit2 = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+1]);
-        int bit3 = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+2]);
-        if (bit3 &&  bit2) return PART_2NxN;
-        if (bit3 && !bit2) return PART_Nx2N;
+        int bit3 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+3]);
+        if (bit3) {
+          return bit1 ? PART_2NxN : PART_Nx2N;
+        }
 
         int bit4 = decode_CABAC_bypass(&tctx->cabac_decoder);
-        if ( bit2 &&  bit4) return PART_2NxnD;
-        if ( bit2 && !bit4) return PART_2NxnU;
-        if (!bit2 && !bit4) return PART_nLx2N;
-        if (!bit2 &&  bit4) return PART_nRx2N;
+        if ( bit1 &&  bit4) return PART_2NxnD;
+        if ( bit1 && !bit4) return PART_2NxnU;
+        if (!bit1 && !bit4) return PART_nLx2N;
+        if (!bit1 &&  bit4) return PART_nRx2N;
       }
     }
     else {
       // TODO, we could save one if here when first decoding the next bin and then
       // checkcLog2CbSize==3 when it is '0'
 
+      if (bit1) return PART_2NxN;
+
       if (cLog2CbSize==3) {
-        bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+1]);
-        return bit ? PART_2NxN : PART_Nx2N;
+        return PART_Nx2N;
       }
       else {
-        int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+1]);
-        if (bit1) return PART_2NxN;
-
-        int bit2 = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxIdxOffset+2]);
-        return bit2 ? PART_Nx2N : PART_NxN;
+        int bit2 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+2]);
+        return (enum PartMode)((int)PART_NxN - bit2)/*bit2 ? PART_Nx2N : PART_NxN*/;
       }
     }
   }
@@ -1801,7 +1793,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   if (initType > 0) {
     init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
   }
-  init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     initValue_part_mode,     9);
+  init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
   init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, initValue_prev_intra_luma_pred_flag, 3);
   init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    initValue_intra_chroma_pred_mode,    3);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,      initValue_cbf_luma,      8);
