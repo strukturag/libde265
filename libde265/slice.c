@@ -1506,8 +1506,6 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
 	   *lastInvocation_coeff_abs_level_greater1_flag,
 	   *lastInvocation_ctxSet);
 
-  int context = tctx->shdr->initType*24;
-
   int lastGreater1Ctx;
   int greater1Ctx;
   int ctxSet;
@@ -1546,10 +1544,8 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
 
   if (cIdx>0) { ctxIdxInc+=16; }
 
-  context += ctxIdxInc;
-
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + context]);
+                             &tctx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + ctxIdxInc]);
 
   *lastInvocation_greater1Ctx = greater1Ctx;
   *lastInvocation_coeff_abs_level_greater1_flag = bit;
@@ -1792,7 +1788,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
   init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
   init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
-  init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
+  init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       initValue_coeff_abs_level_greater2_flag,       18);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
