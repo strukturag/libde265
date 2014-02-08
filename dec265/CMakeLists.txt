@@ -36,9 +36,10 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-Wall -Wextra -Wunused-variable -Wunused-function -Wshadow -msse4)
 endif()
 
-option(USE_ASM "Use of SIMD optimize" ON)
+option(USE_ASM "Use SSE41 SIMD optimize" ON)
 if(USE_ASM)
     add_definitions(-DUSE_ASM=ASM_SSE4)
+    add_definitions(-DHAVE_SSE4_1)
 else(USE_ASM)
     add_definitions(-DUSE_ASM=ASM_NONE)
 endif(USE_ASM)
@@ -80,10 +81,24 @@ include_directories(../ ../libde265)
 file(GLOB LIBSRC ../libde265/*.c ../extra/*.c)
 file(GLOB LIBINC ../libde265/*.h ../extra/*.h)
 file(GLOB APPSRC dec265.cc)
+file(GLOB ASMSRC0 ../libde265/x86/sse.c ../libde265/x86/sse-dct.c)
+file(GLOB ASMSRC1 ../libde265/x86/sse-motion.c)
+file(GLOB ASMINC ../libde265/x86/*.h)
 
 source_group(INC  FILES ${LIBINC})
 source_group(SRC  FILES ${LIBSRC})
 source_group(APP  FILES ${APPSRC})
+source_group(ASM  FILES ${ASMSRC0} ${ASMSRC1} ${ASMINC})
+
+if(USE_ASM)
+    SET(LIBSRC ${LIBSRC} ${ASMSRC0} ${ASMSRC1})
+    SET(LIBINC ${LIBSRC} ${ASMINC})
+
+    # disable uninitialize check on VC, because x1 is not assign, remove later
+    if(MSVC)
+        SET_SOURCE_FILES_PROPERTIES(${ASMSRC1} PROPERTIES COMPILE_FLAGS "/RTCs")
+    endif(MSVC)
+endif(USE_ASM)
 
 if(UNIX)
     SET(PLATFORM_LIBS pthread rt m)
@@ -108,9 +123,8 @@ if(GCC)
     add_definitions(-Wno-unused-parameter)
 endif(GCC)
 
-
 add_executable(dec265
-    dec265.cc ${EXTRAS} ${LIBSRC} ${LIBINC}
+    ${APPSRC} ${EXTRAS} ${LIBSRC} ${LIBINC}
 )
 
 target_link_libraries(dec265 ${PLATFORM_LIBS})
