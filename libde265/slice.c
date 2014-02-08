@@ -1621,7 +1621,7 @@ static int decode_merge_flag(thread_context* tctx)
   logtrace(LogSlice,"# merge_flag\n");
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_MERGE_FLAG + tctx->shdr->initType-1]);
+                             &tctx->ctx_model[CONTEXT_MODEL_MERGE_FLAG]);
 
   return bit;
 }
@@ -1635,7 +1635,7 @@ static int decode_merge_idx(thread_context* tctx)
   // cMax = MaxNumMergeCand-1
 
   int idx = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_MERGE_IDX + tctx->shdr->initType-1]);
+                             &tctx->ctx_model[CONTEXT_MODEL_MERGE_IDX]);
 
   if (idx==0) {
     // nothing
@@ -1785,8 +1785,8 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
   init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
-  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             initValue_merge_flag,             2);
-  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              initValue_merge_idx,              2);
+  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
+  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         initValue_pred_mode_flag,         2);
   init_context(ctx,tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, initValue_abs_mvd_greater01_flag, 4);
   init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            2);
