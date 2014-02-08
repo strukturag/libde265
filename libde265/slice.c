@@ -916,8 +916,7 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 static int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 {
   logtrace(LogSlice,"# prev_intra_luma_pred_flag\n");
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG + tctx->shdr->initType]);
+  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG]);
   return bit;
 }
 
@@ -1794,7 +1793,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
     init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
   }
   init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
-  init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, initValue_prev_intra_luma_pred_flag, 3);
+  init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    initValue_intra_chroma_pred_mode,    3);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,      initValue_cbf_luma,      8);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,    initValue_cbf_chroma,    12);
