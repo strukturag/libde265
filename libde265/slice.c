@@ -688,7 +688,7 @@ static const int initValue_coeff_abs_level_greater2_flag[18] = {
 static const int initValue_sao_merge_leftUp_flag[3] = { 153,153,153 };
 static const int initValue_sao_type_idx_lumaChroma_flag[3] = { 200,185,160 };
 static const int initValue_cu_qp_delta_abs[2] = { 154,154 };
-static const int initValue_transform_skip_flag[6] = { 139,139,139,139,139,139 };
+static const int initValue_transform_skip_flag[2] = { 139,139 };
 static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
 static const int initValue_pred_mode_flag[2] = { 149,134 };
@@ -713,12 +713,9 @@ static void init_context(decoder_context* ctx,
 }
 
 
-static int decode_transform_skip_flag(thread_context* tctx,
-				      int cIdx)
+static int decode_transform_skip_flag(thread_context* tctx, int cIdx)
 {
-  int context;
-  if (cIdx==0) { context =   tctx->shdr->initType; }
-  else         { context = 3+tctx->shdr->initType; }
+  const int context = (cIdx==0) ? 0 : 1;
 
   logtrace(LogSlice,"# transform_skip_flag (context=%d)\n",context);
 
@@ -1787,7 +1784,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
-  init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    6);
+  init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             initValue_merge_flag,             2);
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              initValue_merge_idx,              2);
   init_context(ctx,tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         initValue_pred_mode_flag,         2);
