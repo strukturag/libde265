@@ -693,7 +693,7 @@ static const int initValue_merge_flag[2] = { 110,154 };
 static const int initValue_merge_idx[2] = { 122,137 };
 static const int initValue_pred_mode_flag[2] = { 149,134 };
 static const int initValue_abs_mvd_greater01_flag[4] = { 140,198,169,198 };
-static const int initValue_mvp_lx_flag[2] = { 168,168 };
+static const int initValue_mvp_lx_flag[1] = { 168 };
 static const int initValue_rqt_root_cbf[2] = { 79,79 };
 static const int initValue_ref_idx_lX[4] = { 153,153,153,153 };
 static const int initValue_inter_pred_idc[10] = { 95,79,63,31,31,
@@ -1674,7 +1674,7 @@ static int decode_mvp_lx_flag(thread_context* tctx)
   logtrace(LogSlice,"# mvp_lx_flag\n");
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_MVP_LX_FLAG + tctx->shdr->initType-1]);
+                             &tctx->ctx_model[CONTEXT_MODEL_MVP_LX_FLAG]);
 
   return bit;
 }
@@ -1789,7 +1789,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         &initValue_pred_mode_flag[initType-1], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
-  init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            2);
+  init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
   init_context(ctx,tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           2);
   init_context(ctx,tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             4);
   init_context(ctx,tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         10);
