@@ -976,8 +976,7 @@ static int decode_cbf_chroma(thread_context* tctx,
 {
   logtrace(LogSlice,"# cbf_chroma\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + tctx->shdr->initType*4 + trafoDepth]);
+  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + trafoDepth]);
 
   return bit;
 }
@@ -1791,7 +1790,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
-  init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,    initValue_cbf_chroma,    12);
+  init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
   init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      initValue_split_transform_flag,      12);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, initValue_last_significant_coefficient_prefix, 54);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, initValue_last_significant_coefficient_prefix, 54);
