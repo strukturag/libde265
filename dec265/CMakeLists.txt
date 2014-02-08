@@ -95,9 +95,9 @@ if(USE_ASM)
     SET(LIBINC ${LIBSRC} ${ASMINC})
 
     # disable uninitialize check on VC, because x1 is not assign, remove later
-    if(MSVC)
-        SET_SOURCE_FILES_PROPERTIES(${ASMSRC1} PROPERTIES COMPILE_FLAGS "/RTCs")
-    endif(MSVC)
+    #if(MSVC)
+    #    SET_SOURCE_FILES_PROPERTIES(${ASMSRC1} PROPERTIES COMPILE_FLAGS "/RTCs")
+    #endif(MSVC)
 endif(USE_ASM)
 
 if(UNIX)

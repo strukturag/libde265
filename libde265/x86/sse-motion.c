@@ -3184,6 +3184,10 @@ void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
             dst += dststride;
         }
     }else{
+        // NOTE: avoid Runtime check - uninitialize variant
+#ifdef _DEBUG
+        x1 = _mm_setzero_si128();
+#endif
         x = 0;
         for (y = 0; y < height; y ++) {
             for(x=0;x<width;x+=4){
