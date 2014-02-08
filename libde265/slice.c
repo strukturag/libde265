@@ -641,7 +641,10 @@ static const int initValue_split_cu_flag[3][3] = {
   { 107,139,126 },
   { 107,139,126 },
 };
-static const int initValue_cu_skip_flag[6] = { 197,185,201, 197,185,201 };
+static const int initValue_cu_skip_flag[2][3] = {
+  { 197,185,201 },
+  { 197,185,201 },
+};
 static const int initValue_part_mode[9] = { 184,154,139, 154,154,154, 139,154,154 };
 static const int initValue_prev_intra_luma_pred_flag[3] = { 184,154,183 };
 static const int initValue_intra_chroma_pred_mode[3] = { 63,152,152 };
@@ -838,7 +841,7 @@ static int decode_cu_skip_flag(thread_context* tctx,
   if (availableA && get_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0-1)) condA=1;
 
   int contextOffset = condL + condA;
-  int context = 3*(tctx->shdr->initType-1) + contextOffset;
+  int context = contextOffset;
 
   // decode bit
 
@@ -1795,7 +1798,9 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   assert(initType >= 0 && initType <= 2);
 
   init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
-  init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag,  6);
+  if (initType > 0) {
+    init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
+  }
   init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     initValue_part_mode,     9);
   init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, initValue_prev_intra_luma_pred_flag, 3);
   init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    initValue_intra_chroma_pred_mode,    3);
