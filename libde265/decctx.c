@@ -1128,8 +1128,9 @@ bool available_pred_blk(const decoder_context* ctx,
 
 LIBDE265_API void write_picture(const de265_image* img)
 {
+  extern const char *output_filename;
   static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen("out.yuv","wb"); }
+  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 
   for (int y=0;y<img->height;y++)
     fwrite(img->y + y*img->stride, img->width, 1, fh);

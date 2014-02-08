@@ -81,7 +81,7 @@ bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
 bool logging=true;
-//std::string output_filename;
+const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 
 static struct option long_options[] = {
@@ -90,7 +90,7 @@ static struct option long_options[] = {
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
   {"frames",     required_argument, 0, 'f' },
-  {"output",     no_argument,       0, 'o' },
+  {"output",     required_argument, 0, 'o' },
   {"dump",       no_argument,       0, 'd' },
   {"videogfx",   no_argument,       0, 'V' },
   {"no-logging", no_argument,       0, 'L' },
@@ -277,7 +277,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:odL"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dL"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -291,7 +291,7 @@ int main(int argc, char** argv)
     case 'c': check_hash=true; break;
     case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
-    case 'o': write_yuv=true; /*output_filename=optarg;*/ break;
+    case 'o': write_yuv=true; output_filename=optarg; break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
     case 'V': output_with_videogfx=true; break;
