@@ -1001,8 +1001,6 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
 {
   logtrace(LogSlice,"# coded_sub_block_flag\n");
 
-  int context = tctx->shdr->initType*4;
-
   // tricky computation of csbfCtx
   int csbfCtx = ((coded_sub_block_neighbors &  1) |  // right neighbor set  or
                  (coded_sub_block_neighbors >> 1));  // bottom neighbor set   -> csbfCtx=1
@@ -1013,7 +1011,7 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
   }
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + context + ctxIdxInc]);
+                             &tctx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc]);
 
   return bit;
 }
@@ -1792,7 +1790,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
-  init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                initValue_coded_sub_block_flag,                12);
+  init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
   init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       initValue_coeff_abs_level_greater2_flag,       18);
