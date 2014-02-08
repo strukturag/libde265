@@ -2,6 +2,9 @@
  * H.265 video codec.
  * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
  *
+ * Authors: StrukturAG, Dirk Farin <farin@struktur.de>
+ *          Min Chen <chenm003@163.com>
+ *
  * This file is part of libde265.
  *
  * libde265 is free software: you can redistribute it and/or modify
@@ -398,8 +401,8 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
   switch (shdr->slice_type)
     {
     case SLICE_TYPE_I: shdr->initType = 0; break;
-    case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag ? 2 : 1; break;
-    case SLICE_TYPE_B: shdr->initType = shdr->cabac_init_flag ? 1 : 2; break;
+    case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag + 1/*shdr->cabac_init_flag ? 2 : 1*/; break;
+    case SLICE_TYPE_B: shdr->initType = 2 - shdr->cabac_init_flag/*shdr->cabac_init_flag ? 1 : 2*/; break;
     }
 
   *continueDecoding = true;
