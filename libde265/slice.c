@@ -1068,17 +1068,15 @@ static int decode_last_significant_coeff_prefix(thread_context* tctx,
     ctxShift  = log2TrafoSize-2;
   }
 
-  int context = 18 * tctx->shdr->initType + ctxOffset;
-
   int binIdx;
   int value = cMax;
   for (binIdx=0;binIdx<cMax;binIdx++)
     {
       int ctxIdxInc = (binIdx >> ctxShift);
 
-      logtrace(LogSlice,"context: %d+%d\n",context,ctxIdxInc);
+      logtrace(LogSlice,"context: %d+%d\n",ctxOffset,ctxIdxInc);
 
-      int bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[context + ctxIdxInc]);
+      int bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxOffset + ctxIdxInc]);
       if (bit==0) {
         value=binIdx;
         break;
@@ -1792,8 +1790,8 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
   init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
-  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, initValue_last_significant_coefficient_prefix, 54);
-  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, initValue_last_significant_coefficient_prefix, 54);
+  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
   init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                initValue_coded_sub_block_flag,                12);
   init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
