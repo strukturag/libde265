@@ -1788,7 +1788,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
   init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
   init_context(ctx,tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         &initValue_pred_mode_flag[initType-1], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, initValue_abs_mvd_greater01_flag, 4);
+  init_context(ctx,tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
   init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            2);
   init_context(ctx,tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           2);
   init_context(ctx,tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             4);
@@ -3004,18 +3004,17 @@ void read_mvd_coding(thread_context* tctx,
                      int x0,int y0, int refList)
 {
   slice_segment_header* shdr = tctx->shdr;
-  int ctxIdxOffset = (shdr->initType==1) ? 0 : 2;
 
   int abs_mvd_greater0_flag[2];
   abs_mvd_greater0_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
-                                              &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+0]);
+                                              &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+0]);
   abs_mvd_greater0_flag[1] = decode_CABAC_bit(&tctx->cabac_decoder,
-                                              &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+0]);
+                                              &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+0]);
 
   int abs_mvd_greater1_flag[2];
   if (abs_mvd_greater0_flag[0]) {
     abs_mvd_greater1_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
-                                                &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+1]);
+                                                &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+1]);
   }
   else {
     abs_mvd_greater1_flag[0]=0;
@@ -3023,7 +3022,7 @@ void read_mvd_coding(thread_context* tctx,
 
   if (abs_mvd_greater0_flag[1]) {
     abs_mvd_greater1_flag[1] = decode_CABAC_bit(&tctx->cabac_decoder,
-                                                &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+ctxIdxOffset+1]);
+                                                &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+1]);
   }
   else {
     abs_mvd_greater1_flag[1]=0;
