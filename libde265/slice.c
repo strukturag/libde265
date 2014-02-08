@@ -726,7 +726,7 @@ static int decode_sao_merge_flag(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_merge_left/up_flag\n");
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
-                             &tctx->ctx_model[CONTEXT_MODEL_SAO_MERGE_FLAG+tctx->shdr->initType]);
+                             &tctx->ctx_model[CONTEXT_MODEL_SAO_MERGE_FLAG]);
   return bit;
 }
 
@@ -1804,7 +1804,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       initValue_coeff_abs_level_greater1_flag,       72);
   init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       initValue_coeff_abs_level_greater2_flag,       18);
-  init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      initValue_sao_merge_leftUp_flag,               3);
+  init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        initValue_sao_type_idx_lumaChroma_flag,        3);
   init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        6);
   init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    6);
