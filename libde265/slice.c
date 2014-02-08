@@ -650,8 +650,7 @@ static const int initValue_prev_intra_luma_pred_flag[3] = { 184,154,183 };
 static const int initValue_intra_chroma_pred_mode[3] = { 63,152,152 };
 static const int initValue_cbf_luma[4] = { 111,141,153,111 };
 static const int initValue_cbf_chroma[12] = { 94,138,182,154,149,107,167,154,149,92,167,154 };
-static const int initValue_split_transform_flag[12] = { 153,138,138, 124,138,94, 224,167,122 }; // FIX712
-  //const static int initValue_split_transform_flag[12] = { 224,167,122, 124,138,94, 153,138,138 };
+static const int initValue_split_transform_flag[9] = { 153,138,138, 124,138,94, 224,167,122 }; // FIX712
 static const int initValue_last_significant_coefficient_prefix[54] = {
     110,110,124,125,140,153,125,127,140,109,111,143,127,111, 79,108,123, 63,
     125,110, 94,110, 95, 79,125,111,110, 78,110,111,111, 95, 94,108,123,108,
@@ -962,7 +961,8 @@ static int decode_split_transform_flag(thread_context* tctx,
 {
   logtrace(LogSlice,"# split_transform_flag (log2TrafoSize=%d)\n",log2TrafoSize);
 
-  int context = 3*tctx->shdr->initType + 5-log2TrafoSize;
+  int context = 5-log2TrafoSize;
+  assert(context >= 0 && context <= 2);
 
   logtrace(LogSlice,"# context: %d\n",context);
 
@@ -1791,7 +1791,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
   init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
-  init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      initValue_split_transform_flag,      12);
+  init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, initValue_last_significant_coefficient_prefix, 54);
   init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, initValue_last_significant_coefficient_prefix, 54);
   init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                initValue_coded_sub_block_flag,                12);
