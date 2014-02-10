@@ -1180,8 +1180,8 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable()
                     int xP = xC & 3;
                     int yP = yC & 3;
 
-                    logtrace(LogSlice,"posInSubset: %d,%d\n",xP,yP);
-                    logtrace(LogSlice,"prevCsbf: %d\n",prevCsbf);
+                    //logtrace(LogSlice,"posInSubset: %d,%d\n",xP,yP);
+                    //logtrace(LogSlice,"prevCsbf: %d\n",prevCsbf);
 
                     switch (prevCsbf) {
                     case 0:
@@ -1198,12 +1198,12 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable()
                       break;
                     }
 
-                    logtrace(LogSlice,"a) sigCtx=%d\n",sigCtx);
+                    //logtrace(LogSlice,"a) sigCtx=%d\n",sigCtx);
 
                     if (cIdx==0) {
                       if (xS+yS > 0) sigCtx+=3;
 
-                      logtrace(LogSlice,"b) sigCtx=%d\n",sigCtx);
+                      //logtrace(LogSlice,"b) sigCtx=%d\n",sigCtx);
 
                       // if log2TrafoSize==3
                       if (sbWidth==2) { // 8x8 block
@@ -1212,7 +1212,7 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable()
                         sigCtx += 21;
                       }
 
-                      logtrace(LogSlice,"c) sigCtx=%d\n",sigCtx);
+                      //logtrace(LogSlice,"c) sigCtx=%d\n",sigCtx);
                     }
                     else {
                       // if log2TrafoSize==3
@@ -3167,6 +3167,64 @@ void read_prediction_unit(decoder_context* ctx,
 
 
 
+static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSize)
+{
+  bitreader br;
+  br.data            = tctx->cabac_decoder.bitstream_curr;
+  br.bytes_remaining = tctx->cabac_decoder.bitstream_end - tctx->cabac_decoder.bitstream_curr;
+  br.nextbits = 0;
+  br.nextbits_cnt = 0;
+
+  const seq_parameter_set* sps = tctx->decctx->current_sps;
+
+  int nBitsY = sps->pcm_sample_bit_depth_luma;
+  int nBitsC = sps->pcm_sample_bit_depth_chroma;
+
+  int wY = 1<<log2CbSize;
+  int wC = 1<<(log2CbSize-1);
+
+  uint8_t* yPtr;
+  uint8_t* cbPtr;
+  uint8_t* crPtr;
+  int stride;
+  int chroma_stride;
+  get_image_plane(tctx->decctx->img, 0, &yPtr, &stride);
+  get_image_plane(tctx->decctx->img, 1, &cbPtr, &chroma_stride);
+  get_image_plane(tctx->decctx->img, 2, &crPtr, &chroma_stride);
+
+  yPtr  = &yPtr [y0*stride + x0];
+  cbPtr = &cbPtr[y0/2*chroma_stride + x0/2];
+  crPtr = &crPtr[y0/2*chroma_stride + x0/2];
+
+  int shiftY = sps->BitDepth_Y - nBitsY;
+  int shiftC = sps->BitDepth_C - nBitsC;
+
+  for (int y=0;y<wY;y++)
+    for (int x=0;x<wY;x++)
+      {
+        int value = get_bits(&br, nBitsY);
+        yPtr[y*stride+x] = value << shiftY;
+      }
+
+  for (int y=0;y<wC;y++)
+    for (int x=0;x<wC;x++)
+      {
+        int value = get_bits(&br, nBitsC);
+        cbPtr[y*chroma_stride+x] = value << shiftC;
+      }
+
+  for (int y=0;y<wC;y++)
+    for (int x=0;x<wC;x++)
+      {
+        int value = get_bits(&br, nBitsC);
+        crPtr[y*chroma_stride+x] = value << shiftC;
+      }
+
+  prepare_for_CABAC(&br);
+  tctx->cabac_decoder.bitstream_curr = br.data;
+  init_CABAC_decoder_2(&tctx->cabac_decoder);
+}
+
 
 void read_coding_unit(decoder_context* ctx,
                       thread_context* tctx,
@@ -3255,10 +3313,21 @@ void read_coding_unit(decoder_context* ctx,
     logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
 
 
-    if (cuPredMode == MODE_INTRA) {
-      assert(!sps->pcm_enabled_flag); // TODO
+    bool pcm_flag = false;
 
-      if (false) {
+    if (cuPredMode == MODE_INTRA) {
+      if (PartMode == PART_2Nx2N && sps->pcm_enabled_flag &&
+          log2CbSize >= sps->Log2MinIpcmCbSizeY &&
+          log2CbSize <= sps->Log2MaxIpcmCbSizeY) {
+        pcm_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+      }
+
+      //assert(!sps->pcm_enabled_flag); // TODO
+
+      if (pcm_flag) {
+        set_pcm_flag(ctx->img, ctx->current_sps, x0,y0,log2CbSize);
+
+        read_pcm_samples(tctx, x0,y0, log2CbSize);
       }
       else {
         int pbOffset = (PartMode == PART_NxN) ? (nCbS/2) : nCbS;
@@ -3438,7 +3507,7 @@ void read_coding_unit(decoder_context* ctx,
         tctx->IntraPredModeC = (enum IntraPredMode) IntraPredModeC;
       }
     }
-    else {
+    else { // INTER
       int nCS = 1<<log2CbSize;
 
       if (PartMode == PART_2Nx2N) {
@@ -3477,7 +3546,7 @@ void read_coding_unit(decoder_context* ctx,
       else {
         assert(0); // undefined PartMode
       }
-    }
+    } // INTER
 
 
     // decode residual
@@ -3485,9 +3554,7 @@ void read_coding_unit(decoder_context* ctx,
     //decode_quantization_parameters(ctx,tctx, x0,y0);
 
 
-    if (false) { // pcm
-    }
-    else {
+    if (!pcm_flag) { // !pcm
       bool rqt_root_cbf;
 
       uint8_t merge_flag = tctx->merge_flag; // !!get_merge_flag(ctx,x0,y0);
@@ -3521,7 +3588,7 @@ void read_coding_unit(decoder_context* ctx,
       else {
         decode_quantization_parameters(ctx,tctx, x0,y0);
       }
-    }
+    } // !pcm
   }
 }
 

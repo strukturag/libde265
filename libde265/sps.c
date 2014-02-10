@@ -265,6 +265,10 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
   sps->PicWidthInMinPUs  = sps->PicWidthInCtbsY  << (sps->Log2CtbSizeY - sps->Log2MinPUSize);
   sps->PicHeightInMinPUs = sps->PicHeightInCtbsY << (sps->Log2CtbSizeY - sps->Log2MinPUSize);
 
+  sps->Log2MinIpcmCbSizeY = sps->log2_min_pcm_luma_coding_block_size;
+  sps->Log2MaxIpcmCbSizeY = (sps->log2_min_pcm_luma_coding_block_size +
+                             sps->log2_diff_max_min_pcm_luma_coding_block_size);
+
   // the following are not in the standard
   sps->PicWidthInTbsY  = sps->PicWidthInCtbsY  << (sps->Log2CtbSizeY - sps->Log2MinTrafoSize);
   sps->PicHeightInTbsY = sps->PicHeightInCtbsY << (sps->Log2CtbSizeY - sps->Log2MinTrafoSize);

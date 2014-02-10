@@ -86,6 +86,7 @@ typedef struct {
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
+  uint8_t pcm_flag : 1;     //
 
   int8_t  QP_Y;
 
@@ -226,6 +227,8 @@ void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
                    int x,int y, int log2BlkWidth, enum PredMode mode);
 enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
 
+void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
+                  int x,int y, int log2BlkWidth);
 
 void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);

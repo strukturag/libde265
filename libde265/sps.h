@@ -159,6 +159,9 @@ typedef struct {
   int PicWidthInMinPUs;  // might be rounded up
   int PicHeightInMinPUs; // might be rounded up
 
+  int Log2MinIpcmCbSizeY;
+  int Log2MaxIpcmCbSizeY;
+
 } seq_parameter_set;
 
 

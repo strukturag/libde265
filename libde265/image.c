@@ -389,6 +389,13 @@ enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps
 }
 
 
+void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
+                  int x,int y, int log2BlkWidth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
+}
+
+
 int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
 {
   int cbX = PIXEL2CB(x0);
