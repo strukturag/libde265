@@ -1092,8 +1092,8 @@ bool available_zscan(const de265_image* img,
     return false;
   }
 
-  if (pps->TileId[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
-      pps->TileId[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
+  if (pps->TileIdRS[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
+      pps->TileIdRS[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
     return false;
   }
 
