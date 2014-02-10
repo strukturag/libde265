@@ -109,7 +109,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 
 
 
-static de265_sync_int de265_init_count = 0;
+ALIGNED_8(static de265_sync_int de265_init_count) = 0;
 
 LIBDE265_API de265_error de265_init()
 {
