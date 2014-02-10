@@ -29,23 +29,22 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
                const slice_segment_header* shdr, int cIdx, int nS,
                const uint8_t* in_img, int in_stride)
 {
-  int bitDepth = (cIdx==0 ? ctx->current_sps->BitDepth_Y : ctx->current_sps->BitDepth_C);
+  const seq_parameter_set* sps = ctx->current_sps;
+  int bitDepth = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C);
   int maxPixelValue = (1<<bitDepth)-1;
 
   int xC = xCtb*nS;
   int yC = yCtb*nS;
 
-  bool pcm_loop_filter_disable = false;
-  bool cu_transquant_bypass = false;
   const sao_info* saoinfo = get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
   logtrace(LogSAO,"apply_sao x:%d y:%d cIdx:%d type=%d (%dx%d)\n",xC,yC,cIdx, SaoTypeIdx, nS,nS);
 
-  if (pcm_loop_filter_disable ||
-      cu_transquant_bypass ||
-      SaoTypeIdx == 0)
+  if ((sps->pcm_loop_filter_disable_flag && get_pcm_flag(ctx->img,sps,xC,yC)) ||
+       get_cu_transquant_bypass(ctx->img,sps,xC,yC) ||
+       SaoTypeIdx == 0)
     {
       return;
     }

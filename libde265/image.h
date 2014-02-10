@@ -87,6 +87,7 @@ typedef struct {
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
   uint8_t pcm_flag : 1;     //
+  uint8_t cu_transquant_bypass : 1;
 
   int8_t  QP_Y;
 
@@ -230,6 +231,10 @@ enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps
 void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
                   int x,int y, int log2BlkWidth);
 int get_pcm_flag(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+
+void set_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps,
+                              int x,int y, int log2BlkWidth);
+int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps, int x,int y);
 
 void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);

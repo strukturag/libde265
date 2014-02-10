@@ -599,6 +599,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
   int yIncr = vertical ? 2 : 4;
 
   de265_image* img = ctx->img;
+  seq_parameter_set* sps = ctx->current_sps;
 
   const int stride = img->chroma_stride;
 
@@ -677,18 +678,35 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           int tc = tcPrime * (1<<(ctx->current_sps->BitDepth_C - 8));
 
           if (vertical) {
+            bool filterP = true;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi-1,yDi)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,xDi-1,yDi)) filterP=false;
+
+            bool filterQ = true;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+
+
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
               logtrace(LogDeblock,"delta=%d\n",delta);
-              ptr[-1+k*stride] = Clip1_8bit(p[0][k]+delta);
-              ptr[ 0+k*stride] = Clip1_8bit(q[0][k]-delta);
+              if (filterP) { ptr[-1+k*stride] = Clip1_8bit(p[0][k]+delta); }
+              if (filterQ) { ptr[ 0+k*stride] = Clip1_8bit(q[0][k]-delta); }
             }
           }
           else {
+            bool filterP = true;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi-1)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi-1)) filterP=false;
+
+            bool filterQ = true;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
-              ptr[ k-1*stride] = Clip1_8bit(p[0][k]+delta);
-              ptr[ k+0*stride] = Clip1_8bit(q[0][k]-delta);
+              if (filterP) { ptr[ k-1*stride] = Clip1_8bit(p[0][k]+delta); }
+              if (filterQ) { ptr[ k+0*stride] = Clip1_8bit(q[0][k]-delta); }
             }
           }
         }

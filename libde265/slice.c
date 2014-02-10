@@ -3176,7 +3176,8 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   br.nextbits_cnt = 0;
 
   const seq_parameter_set* sps = tctx->decctx->current_sps;
-  
+  //fprintf(stderr,"PCM pos: %d %d (POC=%d)\n",x0,y0,tctx->decctx->img->PicOrderCntVal);
+
   int nBitsY = sps->pcm_sample_bit_depth_luma;
   int nBitsC = sps->pcm_sample_bit_depth_chroma;
 
@@ -3250,6 +3251,8 @@ void read_coding_unit(decoder_context* ctx,
   if (ctx->current_pps->transquant_bypass_enable_flag)
     {
       assert(false); // TODO
+
+      set_cu_transquant_bypass(ctx->img,sps,x0,y0,log2CbSize);
     }
 
   uint8_t cu_skip_flag = 0;

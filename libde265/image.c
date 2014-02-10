@@ -389,6 +389,20 @@ enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps
 }
 
 
+void set_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps,
+                              int x,int y, int log2BlkWidth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
+}
+
+int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_transquant_bypass;
+}
+
 void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
                   int x,int y, int log2BlkWidth)
 {
