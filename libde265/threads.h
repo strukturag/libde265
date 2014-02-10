@@ -41,6 +41,7 @@ typedef pthread_cond_t   de265_cond;
 #else // _WIN32
 #include <windows.h>
 #include "../extra/win32cond.h"
+#include <intrin.h>
 
 typedef HANDLE              de265_thread;
 typedef HANDLE              de265_mutex;
@@ -69,9 +70,9 @@ typedef volatile long de265_sync_int;
 inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n)
 {
 #ifdef _WIN64
-  return InterlockedAdd(cnt, -n);
+  return _InterlockedAdd(cnt, -n);
 #elif _WIN32
-  return InterlockedExchangeAdd(cnt, -n) - n;
+  return _InterlockedExchangeAdd(cnt, -n) - n;
 #else
   return __sync_sub_and_fetch(cnt, n);
 #endif
@@ -80,9 +81,9 @@ inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n)
 inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 {
 #ifdef _WIN64
-  return InterlockedAdd(cnt, n);
+  return _InterlockedAdd(cnt, n);
 #elif _WIN32
-  return InterlockedExchangeAdd(cnt, n) + n;
+  return _InterlockedExchangeAdd(cnt, n) + n;
 #else
   return __sync_add_and_fetch(cnt, n);
 #endif
