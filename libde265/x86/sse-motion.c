@@ -3184,16 +3184,11 @@ void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
             dst += dststride;
         }
     }else{
-        // NOTE: avoid Runtime check - uninitialize variant
-#ifdef _DEBUG
-        x1 = _mm_setzero_si128();
-#endif
         x = 0;
         for (y = 0; y < height; y ++) {
             for(x=0;x<width;x+=4){
                 r0 = _mm_set1_epi16(0);
                 /* load data in register  */
-                //x1 = _mm_setzero_si128();
                 x2 = _mm_loadl_epi64((__m128i *) &src[x-2 * srcstride]);
                 x3 = _mm_loadl_epi64((__m128i *) &src[x-srcstride]);
                 x4 = _mm_loadl_epi64((__m128i *) &src[x]);
@@ -3202,7 +3197,6 @@ void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
                 x7 = _mm_loadl_epi64((__m128i *) &src[x+3 * srcstride]);
                 x8 = _mm_loadl_epi64((__m128i *) &src[x + 4 * srcstride]);
 
-                x1 = _mm_unpacklo_epi8(x1,r0);
                 x2 = _mm_unpacklo_epi8(x2, r0);
                 x3 = _mm_unpacklo_epi8(x3, r0);
                 x4 = _mm_unpacklo_epi8(x4, r0);
