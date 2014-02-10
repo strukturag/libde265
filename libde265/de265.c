@@ -226,8 +226,7 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
   decoder_context* ctx = (decoder_context*)de265ctx;
   de265_error err;
   if (len > 0) {
-    err = de265_push_data(de265ctx, data8, len, ctx->pts_pos);
-    ctx->pts_pos += len;
+    err = de265_push_data(de265ctx, data8, len, 0);
   } else {
     err = de265_flush_data(de265ctx);
   }
