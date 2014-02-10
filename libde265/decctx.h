@@ -70,6 +70,7 @@ typedef struct NAL_unit {
   rbsp_buffer nal_data;
 
   de265_PTS pts;
+  void*     user_data;
 
   int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
   int   num_skipped_bytes;
@@ -234,7 +235,7 @@ void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);
 void process_pps(decoder_context*, pic_parameter_set*);
 bool process_slice_segment_header(decoder_context*, slice_segment_header*,
-                                  de265_error*, de265_PTS pts);
+                                  de265_error*, de265_PTS pts, void* user_data);
 
 int get_next_slice_index(decoder_context* ctx);
 

@@ -226,7 +226,7 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
   decoder_context* ctx = (decoder_context*)de265ctx;
   de265_error err;
   if (len > 0) {
-    err = de265_push_data(de265ctx, data8, len, 0);
+    err = de265_push_data(de265ctx, data8, len, 0, NULL);
   } else {
     err = de265_flush_data(de265ctx);
   }
@@ -256,7 +256,7 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
 
 LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
                                          const void* data8, int len,
-                                         de265_PTS pts)
+                                         de265_PTS pts, void* user_data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
@@ -264,6 +264,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
   if (ctx->pending_input_NAL == NULL) {
     ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
     ctx->pending_input_NAL->pts = pts;
+    ctx->pending_input_NAL->user_data = user_data;
   }
 
   NAL_unit* nal = ctx->pending_input_NAL; // shortcut
@@ -404,7 +405,7 @@ void remove_stuffing_bytes(NAL_unit* nal)
 
 LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
                                         const void* data8, int len,
-                                        de265_PTS pts)
+                                        de265_PTS pts, void* user_data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
@@ -416,6 +417,7 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   rbsp_buffer_resize(&nal->nal_data, len);
   nal->nal_data.size = len;
   nal->pts = pts;
+  nal->user_data = user_data;
   memcpy(nal->nal_data.data, data, len);
 
   remove_stuffing_bytes(nal);
@@ -561,7 +563,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         dump_slice_segment_header(hdr, ctx, ctx->param_slice_headers_fd);
       }
 
-      if (process_slice_segment_header(ctx, hdr, &err, nal->pts) == false)
+      if (process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)
         {
           ctx->img->integrity = INTEGRITY_NOT_DECODED;
           return err;
@@ -924,4 +926,9 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int ch
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image* img)
 {
   return img->pts;
+}
+
+LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
+{
+  return img->user_data;
 }

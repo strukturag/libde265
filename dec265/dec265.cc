@@ -365,7 +365,7 @@ int main(int argc, char** argv)
 
       // decode input data
       if (n) {
-	err = de265_push_data(ctx, buf, n, pos);
+	err = de265_push_data(ctx, buf, n, pos, NULL);
 	if (err != DE265_OK) {
 	  break;
 	}

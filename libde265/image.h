@@ -182,6 +182,7 @@ typedef struct de265_image {
   // --- meta information ---
 
   de265_PTS pts;
+  void*     user_data;
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,

@@ -122,6 +122,7 @@ LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
+LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
 
 
 /* === decoder === */
@@ -171,14 +172,14 @@ LIBDE265_API LIBDE265_DEPRECATED de265_error de265_decode_data(de265_decoder_con
    This function only pushes data into the decoder, nothing will be decoded.
 */
 LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* data, int length,
-                                         de265_PTS pts);
+                                         de265_PTS pts, void* user_data);
 
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
    This function only pushes data into the decoder, nothing will be decoded.
 */
 LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data, int length,
-                                        de265_PTS pts);
+                                        de265_PTS pts, void* user_data);
 
 /* Indicate the end-of-stream. All data pending at the decoder input will be
    pushed into the decoder and the decoded picture queue will be completely emptied.
