@@ -108,7 +108,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   int qPY_PRED;
   bool firstQGInSlice;
-  bool firstQGInTile = false; // TODO
+  bool firstQGInTile = false;
   bool firstInCTBRow = (xQG==0); // TODO
   
   int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
@@ -117,6 +117,17 @@ void decode_quantization_parameters(decoder_context* ctx,
   int SliceStartY = (first_ctb_in_slice_RS / sps->PicWidthInCtbsY) * sps->CtbSizeY;
 
   firstQGInSlice = (SliceStartX == xQG && SliceStartY == yQG);
+
+  if (pps->tiles_enabled_flag) {
+    if ((xQG & ((1 << sps->Log2CtbSizeY)-1)) == 0 &&
+        (yQG & ((1 << sps->Log2CtbSizeY)-1)) == 0)
+      {
+        int ctbX = xQG >> sps->Log2CtbSizeY;
+        int ctbY = yQG >> sps->Log2CtbSizeY;
+
+        firstQGInTile = is_tile_start_CTB(pps,ctbX,ctbY);
+      }
+  }
 
   if (firstQGInSlice || firstQGInTile ||
       (firstInCTBRow && pps->entropy_coding_sync_enabled_flag)) {

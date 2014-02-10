@@ -1811,24 +1811,6 @@ void init_thread_context_for_CTB(thread_context* tctx, int ctby)
 }
 
 
-bool is_tile_start_CTB(const pic_parameter_set* pps,int ctbX,int ctbY)
-{
-  for (int i=0;i<pps->num_tile_columns;i++)
-    if (pps->colBd[i]==ctbX)
-      {
-        for (int k=0;k<pps->num_tile_rows;k++)
-          if (pps->rowBd[k]==ctbY)
-            {
-              return true;
-            }
-
-        return false;
-      }
-
-  return false;
-}
-
-
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
