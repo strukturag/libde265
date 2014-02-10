@@ -2293,7 +2293,7 @@ int check_CTB_available(decoder_context* ctx,
   if (yN >= ctx->current_sps->pic_height_in_luma_samples) { return 0; }
 
 
-  //int ctbAddrRS = luma_pos_to_ctbAddrRS(ctx, xC,yC);
+  int ctbAddrRS = luma_pos_to_ctbAddrRS(ctx, xC,yC);
   //int ctbAddrTS = ctx->current_pps->CtbAddrRStoTS[ ctbAddrRS ];
 
   // TODO: check if this is correct (6.4.1)
@@ -2307,6 +2307,14 @@ int check_CTB_available(decoder_context* ctx,
   int first_ctb_in_slice_TS = ctx->current_pps->CtbAddrRStoTS[ shdr->slice_segment_address ];
 
   if (neighbor_ctbAddrTS < first_ctb_in_slice_TS) {
+    return 0;
+  }
+
+
+  // check if both CTBs are in the same tile.
+
+  if (ctx->current_pps->TileIdRS[ctbAddrRS] !=
+      ctx->current_pps->TileIdRS[neighbor_ctbAddrRS]) {
     return 0;
   }
 
