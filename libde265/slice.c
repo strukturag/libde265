@@ -3176,7 +3176,7 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   br.nextbits_cnt = 0;
 
   const seq_parameter_set* sps = tctx->decctx->current_sps;
-
+  
   int nBitsY = sps->pcm_sample_bit_depth_luma;
   int nBitsC = sps->pcm_sample_bit_depth_chroma;
 
@@ -3322,8 +3322,6 @@ void read_coding_unit(decoder_context* ctx,
         pcm_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
       }
 
-      //assert(!sps->pcm_enabled_flag); // TODO
-
       if (pcm_flag) {
         set_pcm_flag(ctx->img, ctx->current_sps, x0,y0,log2CbSize);
 
@@ -3373,12 +3371,11 @@ void read_coding_unit(decoder_context* ctx,
               // block on left side
 
               enum IntraPredMode candIntraPredModeA, candIntraPredModeB;
-              enum IntraPredMode candIntraPredModeA_, candIntraPredModeB_;
               if (availableA==false) {
                 candIntraPredModeA=INTRA_DC;
               }
-              else if (get_pred_mode(ctx->img,sps, x-1,y) != MODE_INTRA) {
-                // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x-1,y) != MODE_INTRA ||
+                       get_pcm_flag(ctx->img,sps, x-1,y)) {
                 candIntraPredModeA=INTRA_DC;
               }
               else {
@@ -3390,7 +3387,8 @@ void read_coding_unit(decoder_context* ctx,
               if (availableB==false) {
                 candIntraPredModeB=INTRA_DC;
               }
-              else if (get_pred_mode(ctx->img,sps, x,y-1) != MODE_INTRA) { // || TODO: pcm_flag (page 110)
+              else if (get_pred_mode(ctx->img,sps, x,y-1) != MODE_INTRA ||
+                       get_pcm_flag(ctx->img,sps, x,y-1)) {
                 candIntraPredModeB=INTRA_DC;
               }
               else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {

@@ -395,6 +395,14 @@ void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
   SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
 }
 
+int get_pcm_flag(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].pcm_flag;
+}
+
 
 int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
 {
