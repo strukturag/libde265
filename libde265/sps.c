@@ -157,6 +157,13 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     sps->log2_diff_max_min_pcm_luma_coding_block_size = get_uvlc(br);
     sps->pcm_loop_filter_disable_flag = get_bits(br,1);
   }
+  else {
+    sps->pcm_sample_bit_depth_luma = 0;
+    sps->pcm_sample_bit_depth_chroma = 0;
+    sps->log2_min_pcm_luma_coding_block_size = 0;
+    sps->log2_diff_max_min_pcm_luma_coding_block_size = 0;
+    sps->pcm_loop_filter_disable_flag = 0;
+  }
 
   sps->num_short_term_ref_pic_sets = get_uvlc(br);
   if (sps->num_short_term_ref_pic_sets < 0 ||
