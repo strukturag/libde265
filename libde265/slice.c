@@ -1811,9 +1811,28 @@ void init_thread_context_for_CTB(thread_context* tctx, int ctby)
 }
 
 
+bool is_tile_start_CTB(const pic_parameter_set* pps,int ctbX,int ctbY)
+{
+  for (int i=0;i<pps->num_tile_columns;i++)
+    if (pps->colBd[i]==ctbX)
+      {
+        for (int k=0;k<pps->num_tile_rows;k++)
+          if (pps->rowBd[k]==ctbY)
+            {
+              return true;
+            }
+
+        return false;
+      }
+
+  return false;
+}
+
+
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
+  const pic_parameter_set* pps = ctx->current_pps;
 
   init_thread_context_for_CTB(tctx,0);
 
@@ -1835,29 +1854,45 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
       initialize_CABAC(ctx,tctx);
       init_CABAC_decoder_2(&tctx->cabac_decoder);
     }
-    else if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
-             (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==0) {
+    else {
+      int ctbX = (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY);
+      int ctbY = (tctx->CtbAddrInRS / ctx->current_sps->PicWidthInCtbsY);
 
-      int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
-      //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
-      if (offset != shdr->entry_point_offset[cnt]) {
-        add_warning(ctx, DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, false);
+      if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
+          ctbX==0) {
+
+        int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
+        //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
+        if (offset != shdr->entry_point_offset[cnt]) {
+          add_warning(ctx, DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, false);
+        }
+
+        cnt++;
+
+        // WPP: init of CABAC from top right block
+
+        memcpy(tctx->ctx_model,
+               tctx->ctx_model_wpp_storage,
+               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+
+        init_CABAC_decoder_2(&tctx->cabac_decoder);
+
+        logdebug(LogSlice,"resetting CABAC at byte position %d\n",
+                 tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start);
       }
+      else if (pps->tiles_enabled_flag && is_tile_start_CTB(pps,ctbX,ctbY)) {
+        int offset = tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start;
+        //printf("  %d / %d\n",offset, shdr->entry_point_offset[cnt]);
+        if (offset != shdr->entry_point_offset[cnt]) {
+          add_warning(ctx, DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, false);
+        }
 
-      cnt++;
+        cnt++;
 
-      // WPP: init of CABAC from top right block
-
-      memcpy(tctx->ctx_model,
-             tctx->ctx_model_wpp_storage,
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-
-      init_CABAC_decoder_2(&tctx->cabac_decoder);
-
-      logdebug(LogSlice,"resetting CABAC at byte position %d\n",
-	       tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start);
+        initialize_CABAC(ctx,tctx);
+        init_CABAC_decoder_2(&tctx->cabac_decoder);
+      }
     }
-
 
     read_coding_tree_unit(ctx, tctx);
     end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
@@ -1866,7 +1901,8 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
              ctx->current_sps->PicSizeInCtbsY);
 
     tctx->CtbAddrInTS++;
-    tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
+    //tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
+    tctx->CtbAddrInRS = pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
 
     if (tctx->CtbAddrInRS==ctx->current_sps->PicSizeInCtbsY &&
         end_of_slice_segment_flag == false) {
@@ -1896,6 +1932,8 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
               int CtbAddrInSliceSeg)
 {
   slice_segment_header* shdr = tctx->shdr;
+  const seq_parameter_set* sps = ctx->current_sps;
+  const pic_parameter_set* pps = ctx->current_pps;
 
   logtrace(LogSlice,"# read_sao(%d,%d)\n",xCtb,yCtb);
 
@@ -1909,7 +1947,8 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
 
   if (xCtb>0) {
     char leftCtbInSliceSeg = (CtbAddrInSliceSeg>0);
-    char leftCtbInTile = true; // TODO TILES
+    char leftCtbInTile = (pps->TileIdRS[xCtb   + yCtb * sps->PicWidthInCtbsY] ==
+                          pps->TileIdRS[xCtb-1 + yCtb * sps->PicWidthInCtbsY]);
 
     if (leftCtbInSliceSeg && leftCtbInTile) {
       sao_merge_left_flag = decode_sao_merge_flag(tctx);
@@ -1923,7 +1962,8 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
              ctx->current_sps->PicWidthInCtbsY,
              shdr->slice_segment_address);
     char upCtbInSliceSeg = (tctx->CtbAddrInRS - ctx->current_sps->PicWidthInCtbsY) >= shdr->slice_segment_address;
-    char upCtbInTile = true; // TODO TILES
+    char upCtbInTile = (pps->TileIdRS[xCtb +  yCtb    * sps->PicWidthInCtbsY] ==
+                        pps->TileIdRS[xCtb + (yCtb-1) * sps->PicWidthInCtbsY]);
 
     if (upCtbInSliceSeg && upCtbInTile) {
       sao_merge_up_flag = decode_sao_merge_flag(tctx);

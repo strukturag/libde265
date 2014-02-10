@@ -73,6 +73,7 @@ typedef struct {
   int* CtbAddrRStoTS; // #CTBs
   int* CtbAddrTStoRS; // #CTBs
   int* TileId;        // #CTBs
+  int* TileIdRS;      // #CTBs
   int* MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
 
 

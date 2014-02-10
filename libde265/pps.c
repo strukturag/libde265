@@ -216,12 +216,14 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
   if (pps->CtbAddrRStoTS) { free(pps->CtbAddrRStoTS); }
   if (pps->CtbAddrTStoRS) { free(pps->CtbAddrTStoRS); }
-  if (pps->TileId) { free(pps->TileId); }
+  if (pps->TileId)   { free(pps->TileId); }
+  if (pps->TileIdRS) { free(pps->TileIdRS); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
 
   pps->CtbAddrRStoTS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
   pps->CtbAddrTStoRS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
   pps->TileId        = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  pps->TileIdRS      = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
   pps->MinTbAddrZS   = (int *)malloc( sizeof(int) * sps->PicSizeInTbsY  );
 
 
@@ -283,8 +285,10 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
     for (int i=0 ; i<pps->num_tile_columns;i++)
       {
         for (int y=pps->rowBd[j] ; y<pps->rowBd[j+1] ; y++)
-          for (int x=pps->colBd[j] ; x<pps->colBd[j+1] ; x++)
-            pps->TileId[ pps->CtbAddrRStoTS[y*sps->PicWidthInCtbsY + x] ] = tIdx;
+          for (int x=pps->colBd[j] ; x<pps->colBd[j+1] ; x++) {
+            pps->TileId  [ pps->CtbAddrRStoTS[y*sps->PicWidthInCtbsY + x] ] = tIdx;
+            pps->TileIdRS[ y*sps->PicWidthInCtbsY + x ] = tIdx;
+          }
 
         tIdx++;
       }
@@ -454,6 +458,18 @@ void dump_pps(pic_parameter_set* pps, int fd)
     LOG1("num_tile_rows       : %d\n", pps->num_tile_rows);
     LOG1("uniform_spacing_flag: %d\n", pps->uniform_spacing_flag);
 
+    LOG0("tile column boundaries: ");
+    for (int i=0;i<=pps->num_tile_columns;i++) {
+      LOG1("*%d ",pps->colBd[i]);
+    }
+    LOG0("*\n");
+
+    LOG0("tile row boundaries: ");
+    for (int i=0;i<=pps->num_tile_rows;i++) {
+      LOG1("*%d ",pps->rowBd[i]);
+    }
+    LOG0("*\n");
+
   //if( !uniform_spacing_flag ) {
   /*
             for( i = 0; i < num_tile_columns_minus1; i++ )
@@ -501,6 +517,7 @@ void init_pps(pic_parameter_set* pps)
   pps->CtbAddrRStoTS = NULL;
   pps->CtbAddrTStoRS = NULL;
   pps->TileId = NULL;
+  pps->TileIdRS = NULL;
   pps->MinTbAddrZS = NULL;
 }
 
@@ -509,7 +526,8 @@ void free_pps(pic_parameter_set* pps)
 {
   if (pps->CtbAddrRStoTS) { free(pps->CtbAddrRStoTS); }
   if (pps->CtbAddrTStoRS) { free(pps->CtbAddrTStoRS); }
-  if (pps->TileId) { free(pps->TileId); }
+  if (pps->TileId)   { free(pps->TileId); }
+  if (pps->TileIdRS) { free(pps->TileIdRS); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
 }
 
