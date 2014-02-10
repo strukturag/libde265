@@ -1127,9 +1127,15 @@ bool available_pred_blk(const decoder_context* ctx,
 }
 
 
+static const char *output_filename;
+
+LIBDE265_API void set_output_filename(const char* filename)
+{
+  output_filename = filename;
+}
+
 LIBDE265_API void write_picture(const de265_image* img)
 {
-  extern const char *output_filename;
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 

@@ -291,7 +291,9 @@ int main(int argc, char** argv)
     case 'c': check_hash=true; break;
     case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
-    case 'o': write_yuv=true; output_filename=optarg; break;
+    case 'o': write_yuv=true; output_filename=optarg;
+      set_output_filename(output_filename);
+      break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
     case 'V': output_with_videogfx=true; break;
