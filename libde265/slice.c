@@ -1901,8 +1901,13 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
              ctx->current_sps->PicSizeInCtbsY);
 
     tctx->CtbAddrInTS++;
-    //tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
-    tctx->CtbAddrInRS = pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
+
+    if (tctx->CtbAddrInTS < ctx->current_sps->PicSizeInCtbsY) {
+      tctx->CtbAddrInRS = pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
+    }
+    else {
+      tctx->CtbAddrInRS = ctx->current_sps->PicSizeInCtbsY;
+    }
 
     if (tctx->CtbAddrInRS==ctx->current_sps->PicSizeInCtbsY &&
         end_of_slice_segment_flag == false) {
