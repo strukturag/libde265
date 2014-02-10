@@ -115,6 +115,7 @@ if(MSVC)
 #    add_definitions(/wd4018) # signed/unsigned mismatch
     add_definitions(/wd4189) # local variable is initialized but not referenced
     add_definitions(/wd4715) # not all control paths return a value
+    add_definitions(/wd4324) # structure was padded due to __declspec(align())
 
     set_source_files_properties(${LIBSRC} PROPERTIES LANGUAGE CXX)
 endif(MSVC)
