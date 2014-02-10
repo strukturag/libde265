@@ -1,5 +1,3 @@
-#include <sys/types.h>
-#include <signal.h>
 /*
  * H.265 video codec.
  * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
@@ -3402,9 +3400,6 @@ void read_coding_unit(decoder_context* ctx,
               // --- find intra prediction mode ---
 
               int IntraPredMode;
-
-              //if (x==192 && y==0) { raise(SIGINT); }
-
 
               int availableA = check_CTB_available(ctx, shdr, x,y, x-1,y);
               int availableB = check_CTB_available(ctx, shdr, x,y, x,y-1);
