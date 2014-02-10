@@ -131,10 +131,10 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx->img,sps, xCurrCtb, yTopCtb) : -1;
   int topleftCTBSlice = availableTopLeft ? get_SliceAddrRS(ctx->img,sps, xLeftCtb, yTopCtb) : -1;
 
-  int currCTBTileID = pps->TileId[xCurrCtb+yCurrCtb*picWidthInCtbs];
-  int leftCTBTileID = availableLeft ? pps->TileId[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
-  int topCTBTileID  = availableTop ? pps->TileId[xCurrCtb+yTopCtb*picWidthInCtbs] : -1;
-  int topleftCTBTileID = availableTopLeft ? pps->TileId[xLeftCtb+yTopCtb*picWidthInCtbs] : -1;
+  int currCTBTileID = pps->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
+  int leftCTBTileID = availableLeft ? pps->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
+  int topCTBTileID  = availableTop ? pps->TileIdRS[xCurrCtb+yTopCtb*picWidthInCtbs] : -1;
+  int topleftCTBTileID = availableTopLeft ? pps->TileIdRS[xLeftCtb+yTopCtb*picWidthInCtbs] : -1;
 
   if (leftCTBSlice != currCTBSlice || leftCTBTileID != currCTBTileID) availableLeft   = false;
   if (topCTBSlice  != currCTBSlice || topCTBTileID  != currCTBTileID) availableTop    = false;
