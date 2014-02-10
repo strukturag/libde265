@@ -162,8 +162,7 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
    You should use "de265_push_data" or "de265_push_NAL" and "de265_decode"
    instead.
 */
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context*, const void* data, int length)
-    LIBDE265_DEPRECATED;
+LIBDE265_API LIBDE265_DEPRECATED de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
 #endif
 
 /* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
