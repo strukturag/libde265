@@ -2061,7 +2061,7 @@ void thread_decode_CTB_syntax(void* d)
   if ((tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==1) {
     if (ctby+1 < sps->PicHeightInCtbsY) {
       // TODO may be wrong with multiple slices
-      memcpy(tctx->shdr->thread_context[ctby+1].ctx_model,
+      memcpy(ctx->thread_context[ctby+1].ctx_model,
              tctx->ctx_model,
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
     }
@@ -2114,7 +2114,7 @@ void thread_decode_CTB_syntax(void* d)
 
   if (ctby+1 < sps->PicHeightInCtbsY) {
 
-    thread_context* tctx_y1 = &tctx->shdr->thread_context[ctby+1];
+    thread_context* tctx_y1 = &ctx->thread_context[ctby+1];
 
     if (ctbx+1 == sps->PicWidthInCtbsY) {
       add_CTB_decode_task_syntax(tctx_y1,ctbx-1,ctby+1  ,ctbx,ctby, NULL);
@@ -2158,7 +2158,7 @@ bool add_CTB_decode_task_syntax(thread_context* tctx, int ctbx,int ctby,
 
   //printf("add task %d %d (blk=%d)\n",ctbx,ctby,cnt);
 
-  assert(tctx == &tctx->shdr->thread_context[ctby]); // TODO: assumption for the moment, but may not be correct with multiple slices
+  assert(tctx == &ctx->thread_context[ctby]); // TODO: assumption for the moment, but may not be correct with multiple slices
 
   //printf("%d %d -> task %d %d has cnt=%d\n",sx,sy, ctbx,ctby, cnt);
 

@@ -601,18 +601,18 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       }
 
       if (!use_WPP) {
-        init_thread_context(&hdr->thread_context[0]);
+        init_thread_context(&ctx->thread_context[0]);
 
-        init_CABAC_decoder(&hdr->thread_context[0].cabac_decoder,
+        init_CABAC_decoder(&ctx->thread_context[0].cabac_decoder,
                            reader.data,
                            reader.bytes_remaining);
 
-        hdr->thread_context[0].shdr = hdr;
-        hdr->thread_context[0].decctx = ctx;
+        ctx->thread_context[0].shdr = hdr;
+        ctx->thread_context[0].decctx = ctx;
 
 
         // fixed context 0
-        if ((err=read_slice_segment_data(ctx, &hdr->thread_context[0])) != DE265_OK)
+        if ((err=read_slice_segment_data(ctx, &ctx->thread_context[0])) != DE265_OK)
           { return err; }
       }
       else {
@@ -629,14 +629,14 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           if (i==nRows-1) dataEnd = reader.bytes_remaining;
           else            dataEnd = hdr->entry_point_offset[i];
 
-          init_thread_context(&hdr->thread_context[i]);
+          init_thread_context(&ctx->thread_context[i]);
 
-          init_CABAC_decoder(&hdr->thread_context[i].cabac_decoder,
+          init_CABAC_decoder(&ctx->thread_context[i].cabac_decoder,
                              &reader.data[dataStartIndex],
                              dataEnd-dataStartIndex);
 
-          hdr->thread_context[i].shdr = hdr;
-          hdr->thread_context[i].decctx = ctx;
+          ctx->thread_context[i].shdr = hdr;
+          ctx->thread_context[i].decctx = ctx;
         }
 
         // TODO: hard-coded thread context
@@ -645,7 +645,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         //printf("-------- decode --------\n");
 
-        add_CTB_decode_task_syntax(&hdr->thread_context[0], 0,0  ,0,0, NULL);
+        add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
 
         wait_for_completion(ctx->img);
       }

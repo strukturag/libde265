@@ -131,60 +131,6 @@ enum context_model_indices {
 };
 
 
-struct slice_segment_header;
-
-typedef struct thread_context
-{
-  int SliceAddrRS; // current value, this is also set into the CTB-info array in the decoder context
-
-  int CtbAddrInRS;
-  int CtbAddrInTS;
-
-
-  // motion vectors
-
-  int8_t  refIdx[2];
-  int16_t mvd[2][2]; // only in top left position
-  uint8_t merge_flag;
-  uint8_t merge_idx;
-  uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc; // enum InterPredIdc
-
-
-  // prediction
-
-  enum IntraPredMode IntraPredModeC; // chroma intra-prediction mode for current CB
-
-
-  // residual data
-
-  uint8_t transform_skip_flag[3];
-
-  ALIGNED_16(int16_t) coeffBuf[32*32]; // alignment required for SSE code !
-
-  int16_t coeffList[3][32*32];
-  int16_t coeffPos[3][32*32];
-  int16_t nCoeff[3];
-
-
-  // quantization
-
-  int currentQPY;
-  int currentQG_x, currentQG_y;
-  int lastQPYinPreviousQG;
-
-  int qPYPrime, qPCbPrime, qPCrPrime;
-
-  CABAC_decoder cabac_decoder;
-
-  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
-  context_model ctx_model_wpp_storage[CONTEXT_MODEL_TABLE_LENGTH];
-
-  struct decoder_context* decctx;
-  struct slice_segment_header* shdr;
-} thread_context;
-
-
 typedef struct slice_segment_header {
   int slice_index; // index through all slices in a picture
 
@@ -267,11 +213,6 @@ typedef struct slice_segment_header {
   int MaxNumMergeCand;
 
   int RefPicList[2][MAX_REF_PIC_LIST];
-
-
-  // --- decoder runtime data ---
-
-  struct thread_context thread_context[MAX_THREAD_CONTEXTS];
 } slice_segment_header;
 
 
