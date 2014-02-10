@@ -113,6 +113,9 @@ typedef struct decoder_context {
   bool end_of_stream; // data in pending_input_data is end of stream
   int  input_push_state;
   NAL_unit* pending_input_NAL;
+#ifndef LIBDE265_DISABLE_DEPRECATED
+  de265_PTS pts_pos;
+#endif
 
   // NAL level
 

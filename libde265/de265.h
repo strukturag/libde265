@@ -41,6 +41,13 @@ extern "C" {
   #define LIBDE265_API
 #endif
 
+#if __GNUC__
+#define LIBDE265_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define LIBDE265_DEPRECATED __declspec(deprecated)
+#else
+#define LIBDE265_DEPRECATED
+#endif
 
 /* === error codes === */
 
@@ -142,6 +149,21 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int 
 /* Free decoder context. May only be called once on a context. */
 LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 
+#ifndef LIBDE265_DISABLE_DEPRECATED
+/* Push more data into the decoder, must be raw h265.
+   All complete images in the data will be decoded, hence, do not push
+   too much data at once to prevent image buffer overflows.
+   The end of a picture can only be detected when the succeeding start-code
+   is read from the data.
+   If you want to flush the data and force decoding of the data so far
+   (e.g. at the end of a file), call de265_decode_data() with 'length' zero.
+
+   NOTE: This method is deprecated and will be removed in a future version.
+   You should use "de265_push_data" or "de265_push_NAL" and "de265_decode"
+   instead.
+*/
+LIBDE265_API LIBDE265_DEPRECATED de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
+#endif
 
 /* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
    The PTS is assigned to all NALs whose start-code 0x000001 is contained in the data.
