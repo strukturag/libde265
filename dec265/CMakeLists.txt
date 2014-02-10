@@ -92,7 +92,7 @@ source_group(ASM  FILES ${ASMSRC0} ${ASMSRC1} ${ASMINC})
 
 if(USE_ASM)
     SET(LIBSRC ${LIBSRC} ${ASMSRC0} ${ASMSRC1})
-    SET(LIBINC ${LIBSRC} ${ASMINC})
+    SET(LIBINC ${LIBINC} ${ASMINC})
 
     # disable uninitialize check on VC, because x1 is not assign, remove later
     #if(MSVC)
