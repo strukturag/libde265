@@ -30,6 +30,7 @@
 #include "transform.h"
 #include "threads.h"
 #include "image.h"
+#include "pps_func.h"
 
 #include <assert.h>
 #include <string.h>
