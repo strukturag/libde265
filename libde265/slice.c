@@ -1811,6 +1811,20 @@ void init_thread_context_for_CTB(thread_context* tctx, int ctby)
   tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
 }
 
+// returns true when we reached the end of the image (ctbAddr==picSizeInCtbsY)
+bool advanceCtbAddr(thread_context* tctx)
+{
+    tctx->CtbAddrInTS++;
+
+    if (tctx->CtbAddrInTS < tctx->decctx->current_sps->PicSizeInCtbsY) {
+      tctx->CtbAddrInRS = tctx->decctx->current_pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
+      return false;
+    }
+    else {
+      tctx->CtbAddrInRS = tctx->decctx->current_sps->PicSizeInCtbsY;
+      return true;
+    }
+}
 
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
@@ -1883,16 +1897,9 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     logtrace(LogSlice,"read CTB %d -> end=%d %d\n",tctx->CtbAddrInTS, end_of_slice_segment_flag,
              ctx->current_sps->PicSizeInCtbsY);
 
-    tctx->CtbAddrInTS++;
+    bool endOfPicture = advanceCtbAddr(tctx);
 
-    if (tctx->CtbAddrInTS < ctx->current_sps->PicSizeInCtbsY) {
-      tctx->CtbAddrInRS = pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
-    }
-    else {
-      tctx->CtbAddrInRS = ctx->current_sps->PicSizeInCtbsY;
-    }
-
-    if (tctx->CtbAddrInRS==ctx->current_sps->PicSizeInCtbsY &&
+    if (endOfPicture &&
         end_of_slice_segment_flag == false) {
 
       if (ctx->param_conceal_stream_errors) {
@@ -2097,9 +2104,7 @@ void thread_decode_CTB_syntax(void* d)
 
 
 
-  // TODO: move to thread context
-  tctx->CtbAddrInTS++;
-  tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
+  bool endOfPicture = advanceCtbAddr(tctx);
 
 
   /*
