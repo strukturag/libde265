@@ -90,6 +90,23 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
+typedef struct de265_progress_lock
+{
+  int progress;
+
+  // private data
+
+  de265_mutex mutex;
+  de265_cond  cond;
+} de265_progress_lock;
+
+void de265_progress_lock_init(de265_progress_lock* lock);
+void de265_progress_lock_destroy(de265_progress_lock* lock);
+int  de265_wait_for_progress(de265_progress_lock* lock, int progress);
+void de265_announce_progress(de265_progress_lock* lock, int progress);
+
+
+
 enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
 
 struct thread_task_ctb

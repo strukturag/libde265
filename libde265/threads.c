@@ -59,6 +59,48 @@ void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 #endif // _WIN32
 
+
+
+
+void de265_progress_lock_init(de265_progress_lock* lock)
+{
+  lock->progress = 0;
+
+  de265_mutex_init(&lock->mutex);
+  de265_cond_init(&lock->cond);
+}
+
+void de265_progress_lock_destroy(de265_progress_lock* lock)
+{
+  de265_mutex_destroy(&lock->mutex);
+  de265_cond_destroy(&lock->cond);
+}
+
+int de265_wait_for_progress(de265_progress_lock* lock, int progress)
+{
+  if (lock->progress >= progress) {
+    return lock->progress;
+  }
+
+  de265_mutex_lock(&lock->mutex);
+  while (lock->progress < progress) {
+    de265_cond_wait(&lock->cond, &lock->mutex);
+  }
+  de265_mutex_unlock(&lock->mutex);
+
+  return lock->progress;
+}
+
+void de265_announce_progress(de265_progress_lock* lock, int progress)
+{
+  lock->progress = progress;
+
+  de265_cond_broadcast(&lock->cond, &lock->mutex);
+}
+
+
+
+
 #include "libde265/decctx.h"
 
 const char* line="--------------------------------------------------";
