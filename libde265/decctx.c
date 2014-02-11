@@ -1105,6 +1105,8 @@ bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN)
 {
+  logtrace(LogMotion,"C:%d;%d P:%d;%d N:%d;%d size=%d;%d\n",xC,yC,xP,yP,xN,yN,nPbW,nPbH);
+
   int sameCb = (xC <= xN && xN < xC+nCbS &&
                 yC <= yN && yN < yC+nCbS);
 

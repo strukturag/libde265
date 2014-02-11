@@ -285,13 +285,23 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
     for (int i=0 ; i<pps->num_tile_columns;i++)
       {
         for (int y=pps->rowBd[j] ; y<pps->rowBd[j+1] ; y++)
-          for (int x=pps->colBd[j] ; x<pps->colBd[j+1] ; x++) {
+          for (int x=pps->colBd[i] ; x<pps->colBd[i+1] ; x++) {
             pps->TileId  [ pps->CtbAddrRStoTS[y*sps->PicWidthInCtbsY + x] ] = tIdx;
             pps->TileIdRS[ y*sps->PicWidthInCtbsY + x ] = tIdx;
+
+            //logtrace(LogHeaders,"tileID[%d,%d] = %d\n",x,y,pps->TileIdRS[ y*sps->PicWidthInCtbsY + x ]);
           }
 
         tIdx++;
       }
+
+  logtrace(LogHeaders,"Tile IDs RS:\n");
+  for (int y=0;y<sps->PicHeightInCtbsY;y++) {
+    for (int x=0;x<sps->PicWidthInCtbsY;x++) {
+      logtrace(LogHeaders,"%2d ",pps->TileIdRS[y*sps->PicWidthInCtbsY+x]);
+    }
+    logtrace(LogHeaders,"\n");
+  }
 
   // 6.5.2 Z-scan order array initialization process
 
