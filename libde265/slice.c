@@ -2081,7 +2081,12 @@ void thread_decode_CTB_syntax(void* d)
   }
   else if (data->CABAC_init == INIT_COPY) {
     init_thread_context_for_CTB(tctx, ctby);
-    // CABAC models were already copied from CTB-row above
+    // TODO has to be changed for tiles
+
+    memcpy(tctx->ctx_model,
+           &ctx->img->ctx_model_wpp_storage[(ctby-1)*CONTEXT_MODEL_TABLE_LENGTH],
+           CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+
     init_CABAC_decoder_2(&tctx->cabac_decoder);
   }
   else {
@@ -2095,8 +2100,9 @@ void thread_decode_CTB_syntax(void* d)
 
   if ((tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==1) {
     if (ctby+1 < sps->PicHeightInCtbsY) {
-      // TODO may be wrong with multiple slices
-      memcpy(ctx->thread_context[ctby+1].ctx_model,
+      // TODO has to be changed for tiles
+
+      memcpy(&ctx->img->ctx_model_wpp_storage[ctby*CONTEXT_MODEL_TABLE_LENGTH],
              tctx->ctx_model,
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
     }
