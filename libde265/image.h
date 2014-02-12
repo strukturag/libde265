@@ -68,6 +68,10 @@ enum PictureState {
 #define DEBLOCK_BS_MASK     0x03
 
 
+#define CTB_PROGRESS_NONE      0
+#define CTB_PROGRESS_PREFILTER 1
+#define CTB_PROGRESS_FILTERED  2
+
 typedef struct {
   uint16_t SliceAddrRS;
   uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
@@ -178,6 +182,8 @@ typedef struct de265_image {
   int deblk_info_size;
   int deblk_width;
   int deblk_height;
+
+  de265_progress_lock* ctb_progress; // ctb_info_size
 
   int RefPicList_POC[2][14+1];
 

@@ -185,9 +185,18 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
 
     if (img->ctb_info_size != sps->PicSizeInCtbsY)
       {
-        img->ctb_info_size  = sps->PicSizeInCtbsY;
+        for (int i=0;i<img->ctb_info_size;i++)
+          { de265_progress_lock_destroy(&img->ctb_progress[i]); }
+
         free(img->ctb_info);
-        img->ctb_info   = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
+        free(img->ctb_progress);
+        img->ctb_info_size  = sps->PicSizeInCtbsY;
+        img->ctb_info     = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
+        img->ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
+                                                          * img->ctb_info_size);
+
+        for (int i=0;i<img->ctb_info_size;i++)
+          { de265_progress_lock_init(&img->ctb_progress[i]); }
       }
 
 
@@ -216,6 +225,10 @@ void de265_free_image(de265_image* img)
   if (img->cb) FREE_ALIGNED(img->cb_mem);
   if (img->cr) FREE_ALIGNED(img->cr_mem);
 
+  for (int i=0;i<img->ctb_info_size;i++)
+    { de265_progress_lock_destroy(&img->ctb_progress[i]); }
+
+  free(img->ctb_progress);
   free(img->cb_info);
   free(img->pb_info);
   free(img->tu_info);
@@ -331,6 +344,10 @@ void prepare_image_for_decoding(de265_image* img)
   memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
   memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
   memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
+
+  for (int i=0;i<img->ctb_info_size;i++) {
+    img->ctb_progress[i].progress = CTB_PROGRESS_NONE;
+  }
 }
 
 
