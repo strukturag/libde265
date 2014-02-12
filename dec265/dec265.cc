@@ -159,9 +159,12 @@ bool display_sdl(const struct de265_image* img)
     sdlWin.init(width,height);
   }
 
-  sdlWin.display((uint8_t*)de265_get_image_plane(img,0,NULL),
-                 (uint8_t*)de265_get_image_plane(img,1,NULL),
-                 (uint8_t*)de265_get_image_plane(img,2,NULL));
+  int stride,chroma_stride;
+  const uint8_t* y = de265_get_image_plane(img,0,&stride);
+  const uint8_t* cb =de265_get_image_plane(img,1,&chroma_stride);
+  const uint8_t* cr =de265_get_image_plane(img,2,NULL);
+
+  sdlWin.display(y,cb,cr, stride, chroma_stride);
 
   return sdlWin.doQuit();
 }

@@ -4,6 +4,12 @@
 
 bool SDL_YUV_Display::init(int frame_width, int frame_height)
 {
+  // reduce image size to a multiple of 8 (apparently required by YUV overlay)
+
+  frame_width  &= ~7;
+  frame_height &= ~7;
+
+
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0 ) {
     printf("SDL_Init() failed: %s\n", SDL_GetError( ) );
     SDL_Quit();
@@ -54,14 +60,36 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height)
   return true;
 }
 
-void SDL_YUV_Display::display(unsigned char *Y, unsigned char *U, unsigned char *V)
+void SDL_YUV_Display::display(const unsigned char *Y,
+                              const unsigned char *U,
+                              const unsigned char *V,
+                              int stride, int chroma_stride)
 {
   if (!mWindowOpen) return;
   if (SDL_LockYUVOverlay(mYUVOverlay) < 0) return;
 
-  memcpy(mYUVOverlay->pixels[0], Y, rect.w * rect.h);
-  memcpy(mYUVOverlay->pixels[1], V, rect.w * rect.h / 4);
-  memcpy(mYUVOverlay->pixels[2], U, rect.w * rect.h / 4);
+  if (stride == rect.w && chroma_stride == rect.w/2) {
+
+    // fast copy
+
+    memcpy(mYUVOverlay->pixels[0], Y, rect.w * rect.h);
+    memcpy(mYUVOverlay->pixels[1], V, rect.w * rect.h / 4);
+    memcpy(mYUVOverlay->pixels[2], U, rect.w * rect.h / 4);
+  }
+  else {
+    // copy line by line, because sizes are different
+
+    for (int y=0;y<rect.h;y++)
+      {
+        memcpy(mYUVOverlay->pixels[0]+y*rect.w, Y+stride*y, rect.w);
+      }
+
+    for (int y=0;y<rect.h/2;y++)
+      {
+        memcpy(mYUVOverlay->pixels[1]+y*rect.w/2, U+chroma_stride*y, rect.w/2);
+        memcpy(mYUVOverlay->pixels[2]+y*rect.w/2, V+chroma_stride*y, rect.w/2);
+      }
+  }
 
   SDL_UnlockYUVOverlay(mYUVOverlay);
 
