@@ -1838,11 +1838,14 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
   int cnt=0;
 
   do {
+    int ctbX = (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY);
+    int ctbY = (tctx->CtbAddrInRS / ctx->current_sps->PicWidthInCtbsY);
+
     // WPP: store current state of CABAC after second CTB in row
 
     if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
         (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY)==2) {
-      memcpy(tctx->ctx_model_wpp_storage,
+      memcpy(&ctx->img->ctx_model_wpp_storage[ctbY * CONTEXT_MODEL_TABLE_LENGTH],
              tctx->ctx_model,
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
     }
@@ -1852,9 +1855,6 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
       init_CABAC_decoder_2(&tctx->cabac_decoder);
     }
     else {
-      int ctbX = (tctx->CtbAddrInRS % ctx->current_sps->PicWidthInCtbsY);
-      int ctbY = (tctx->CtbAddrInRS / ctx->current_sps->PicWidthInCtbsY);
-
       if (ctx->current_pps->entropy_coding_sync_enabled_flag &&
           ctbX==0) {
 
@@ -1869,7 +1869,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
         // WPP: init of CABAC from top right block
 
         memcpy(tctx->ctx_model,
-               tctx->ctx_model_wpp_storage,
+               &ctx->img->ctx_model_wpp_storage[(ctbY-1) * CONTEXT_MODEL_TABLE_LENGTH],
                CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
 
         init_CABAC_decoder_2(&tctx->cabac_decoder);

@@ -132,7 +132,6 @@ typedef struct thread_context
   CABAC_decoder cabac_decoder;
 
   context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
-  context_model ctx_model_wpp_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
   struct decoder_context* decctx;
   struct slice_segment_header* shdr;

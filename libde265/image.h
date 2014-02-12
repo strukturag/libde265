@@ -183,7 +183,8 @@ typedef struct de265_image {
   int deblk_width;
   int deblk_height;
 
-  de265_progress_lock* ctb_progress; // ctb_info_size
+  context_model* ctx_model_wpp_storage; // CONTEXT_MODEL_TABLE_LENGTH for each CTB-row
+  int ctb_height;
 
   int RefPicList_POC[2][14+1];
 
@@ -199,6 +200,8 @@ typedef struct de265_image {
   uint8_t sei_hash_check_result;
 
   // --- multi core ---
+
+  de265_progress_lock* ctb_progress; // ctb_info_size
 
   ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
   de265_mutex mutex;

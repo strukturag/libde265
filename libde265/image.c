@@ -200,6 +200,17 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       }
 
 
+    // CTB height
+
+    if (img->ctb_height != sps->PicHeightInCtbsY)
+      {
+        free(img->ctx_model_wpp_storage);
+
+        img->ctb_height = sps->PicHeightInCtbsY;
+        img->ctx_model_wpp_storage = (context_model*)malloc(sizeof(context_model)*
+                                                            sps->PicHeightInCtbsY *
+                                                            CONTEXT_MODEL_TABLE_LENGTH);
+      }
 
     // check for memory shortage
 
@@ -235,6 +246,7 @@ void de265_free_image(de265_image* img)
   free(img->deblk_info);
   free(img->ctb_info);
   free(img->intraPredMode);
+  free(img->ctx_model_wpp_storage);
 
   de265_cond_destroy(&img->finished_cond);
   de265_mutex_destroy(&img->mutex);
