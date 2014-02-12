@@ -73,6 +73,7 @@ void showTransformProfile();
 #define NUM_THREADS 4
 
 int nThreads=0;
+bool nal_input=false;
 bool quiet=false;
 bool check_hash=false;
 bool show_profile=false;
@@ -92,6 +93,7 @@ static struct option long_options[] = {
   {"frames",     required_argument, 0, 'f' },
   {"output",     required_argument, 0, 'o' },
   {"dump",       no_argument,       0, 'd' },
+  {"nal",        no_argument,       0, 'n' },
   {"videogfx",   no_argument,       0, 'V' },
   {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
@@ -277,7 +279,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dL"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLn"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -296,6 +298,7 @@ int main(int argc, char** argv)
       break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
+    case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
     case 'L': logging=false; break;
     }
@@ -361,19 +364,33 @@ int main(int argc, char** argv)
 
   while (!stop)
     {
-      // read a chunk of input data
-      uint8_t buf[BUFFER_SIZE];
-      int n = fread(buf,1,BUFFER_SIZE,fh);
+      if (nal_input) {
+        uint8_t len[4];
+        int n = fread(len,1,4,fh);
+        int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
 
-      // decode input data
-      if (n) {
-	err = de265_push_data(ctx, buf, n, pos, NULL);
-	if (err != DE265_OK) {
-	  break;
-	}
+        uint8_t* buf = (uint8_t*)malloc(length);
+        n = fread(buf,1,length,fh);
+        err = de265_push_NAL(ctx, buf,n,  pos,NULL);
+        free(buf);
+
+        pos+=n;
       }
+      else {
+        // read a chunk of input data
+        uint8_t buf[BUFFER_SIZE];
+        int n = fread(buf,1,BUFFER_SIZE,fh);
 
-      pos+=n;
+        // decode input data
+        if (n) {
+          err = de265_push_data(ctx, buf, n, pos, NULL);
+          if (err != DE265_OK) {
+            break;
+          }
+        }
+
+        pos+=n;
+      }
 
       // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
