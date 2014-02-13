@@ -21,7 +21,6 @@
 #include "image.h"
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <assert.h>
 
 #ifdef HAVE___MINGW_ALIGNED_MALLOC
