@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 #ifdef HAVE___MINGW_ALIGNED_MALLOC
 #define ALLOC_ALIGNED(alignment, size)         __mingw_aligned_malloc((size), (alignment))
