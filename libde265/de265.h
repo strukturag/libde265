@@ -25,6 +25,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <libde265/de265-config.h>
+
 //#define inline static __inline
 
 
@@ -48,6 +51,17 @@ extern "C" {
 #else
 #define LIBDE265_DEPRECATED
 #endif
+
+/* === version numbers === */
+
+// version of libde265 headers
+#define LIBDE265_VERSION _LIBDE265_VERSION
+#define LIBDE265_VERSION_NUMBER _LIBDE265_NUMERIC_VERSION
+
+// version of linked libde265 library
+LIBDE265_API const char *de265_get_version(void);
+LIBDE265_API uint32_t de265_get_version_number(void);
+
 
 /* === error codes === */
 

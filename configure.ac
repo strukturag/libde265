@@ -5,6 +5,7 @@ AC_PREREQ([2.68])
 AC_INIT([libde265], [0.4], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
+AC_DEFINE(NUMERIC_VERSION, 0x00040000, [Numeric representation of the version])
 
 AC_CANONICAL_SYSTEM
 

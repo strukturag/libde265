@@ -14,6 +14,7 @@ configure
 *.obj
 *.la
 .gitignore
+de265-config.h
 
 # MSVC
 *.sln

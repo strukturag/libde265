@@ -38,7 +38,15 @@
 
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal);
 
+LIBDE265_API const char *de265_get_version(void)
+{
+    return (_LIBDE265_VERSION);
+}
 
+LIBDE265_API uint32_t de265_get_version_number(void)
+{
+    return (_LIBDE265_NUMERIC_VERSION);
+}
 
 LIBDE265_API const char* de265_get_error_text(de265_error err)
 {
