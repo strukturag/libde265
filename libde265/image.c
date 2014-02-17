@@ -337,13 +337,19 @@ void increase_pending_tasks(de265_image* img, int n)
 
 void decrease_pending_tasks(de265_image* img, int n)
 {
+  de265_mutex_lock(&img->mutex);
+
   int pending = de265_sync_sub_and_fetch(&img->tasks_pending, n);
+
+  //printf("pending: %d\n",pending);
 
   assert(pending >= 0);
 
   if (pending==0) {
     de265_cond_broadcast(&img->finished_cond, &img->mutex);
   }
+
+  de265_mutex_unlock(&img->mutex);
 }
 
 void wait_for_completion(de265_image* img)

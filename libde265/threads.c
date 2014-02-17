@@ -93,9 +93,11 @@ int de265_wait_for_progress(de265_progress_lock* lock, int progress)
 
 void de265_announce_progress(de265_progress_lock* lock, int progress)
 {
+  de265_mutex_lock(&lock->mutex);
   lock->progress = progress;
 
   de265_cond_broadcast(&lock->cond, &lock->mutex);
+  de265_mutex_unlock(&lock->mutex);
 }
 
 

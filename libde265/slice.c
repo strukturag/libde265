@@ -2054,6 +2054,75 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
 }
 
 
+void thread_decode_CTB_row(void* d)
+{
+  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
+  decoder_context* ctx = data->ctx;
+  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
+
+  seq_parameter_set* sps = ctx->current_sps;
+  int ctbSize = 1<<sps->Log2CtbSizeY;
+  int ctbW = sps->PicWidthInCtbsY;
+
+  int ctbx = tctx->CtbAddrInRS % ctbW;
+  int ctby = tctx->CtbAddrInRS / ctbW;
+  int myCtbRow = ctby;
+
+  //printf("start decoding at %d/%d\n", ctbx,ctby);
+
+
+  init_thread_context_for_CTB(tctx, ctby);
+
+  if (ctby==0) {
+    initialize_CABAC(ctx,tctx);
+  }
+
+  init_CABAC_decoder_2(&tctx->cabac_decoder);
+
+  while (ctby == myCtbRow) {
+    if (ctby>0 && ctbx<ctbW-1) {
+      //printf("wait on %d/%d\n",ctbx+1,ctby-1);
+
+      de265_wait_for_progress(&ctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW],
+                              CTB_PROGRESS_PREFILTER);
+    }
+
+    read_coding_tree_unit(ctx, tctx);
+
+    if (ctbx==1 && ctby+1 < sps->PicHeightInCtbsY) {
+      int destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+
+      memcpy(&ctx->thread_context[destThreadContext].ctx_model,
+             &tctx->ctx_model,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+
+    de265_announce_progress(&ctx->img->ctb_progress[ctbx+ctby*ctbW], CTB_PROGRESS_PREFILTER);
+    //printf("finished %d/%d\n",ctbx,ctby);
+
+    int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+
+
+    bool endOfPicture = advanceCtbAddr(tctx);
+
+    if (end_of_slice_segment_flag &&
+        ctbx+1 < sps->PicWidthInCtbsY)
+      {
+        add_warning(ctx, DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT, false);
+
+        break; // stop decoding this row
+      }
+
+
+    ctbx = tctx->CtbAddrInRS % ctbW;
+    ctby = tctx->CtbAddrInRS / ctbW;
+  }
+
+
+  decrease_pending_tasks(ctx->img, 1);
+}
+
+
 void thread_decode_CTB_syntax(void* d)
 {
   struct thread_task_ctb* data = (struct thread_task_ctb*)d;

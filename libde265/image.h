@@ -79,6 +79,7 @@ typedef struct {
   sao_info saoInfo;
 
   de265_sync_int task_blocking_cnt; // for parallelization
+  uint16_t thread_context_id; // which thread-context is used to decode this CTB
 } CTB_info;
 
 

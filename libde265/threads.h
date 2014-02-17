@@ -119,6 +119,12 @@ struct thread_task_ctb
   enum thread_task_ctb_init_type CABAC_init;
 };
 
+struct thread_task_ctb_row
+{
+  int thread_context_id;
+  struct decoder_context* ctx;
+};
+
 struct thread_task_deblock
 {
   struct decoder_context* ctx;
@@ -131,6 +137,7 @@ struct thread_task_deblock
 enum thread_task_id {
   THREAD_TASK_SYNTAX_DECODE_CTB,
   THREAD_TASK_DEBLOCK,
+  THREAD_TASK_DECODE_CTB_ROW,
   //THREAD_TASK_PIXEL_DECODE_CTB,
   //THREAD_TASK_POSTPROC_CTB
 };
@@ -144,6 +151,7 @@ typedef struct
 
   union {
     struct thread_task_ctb task_ctb;
+    struct thread_task_ctb_row task_ctb_row;
     struct thread_task_deblock task_deblock;
   } data;
 } thread_task;
