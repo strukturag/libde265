@@ -538,13 +538,14 @@ extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);
 
 
-void add_task_decode_CTB_row(decoder_context* ctx, int thread_id)
+void add_task_decode_CTB_row(decoder_context* ctx, int thread_id, bool initCABAC)
 {
   thread_task task;
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
   task.work_routine = thread_decode_CTB_row;
   task.data.task_ctb_row.ctx = ctx;
+  task.data.task_ctb_row.initCABAC = initCABAC;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&ctx->thread_pool, &task);
 }
@@ -642,9 +643,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       bool use_tiles = (ctx->num_worker_threads > 0 &&
                         ctx->current_pps->tiles_enabled_flag);
 
-      if (0) {
-        printf("WPP: %d\n",use_WPP);
-        printf("Tiles: %d\n",use_tiles);
+      if (use_WPP && use_tiles) {
+        //add_warning(ctx, DE265_WARNING_STREAMS_APPLIES_TILES_AND_WPP, true);
       }
 
       if (ctx->num_worker_threads > 0 &&
@@ -773,7 +773,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         // add tasks
 
         for (int y=0;y<nRows;y++) {
-          add_task_decode_CTB_row(ctx, y);
+          add_task_decode_CTB_row(ctx, y, y==0);
         }
 
         // TODO: hard-coded thread context
