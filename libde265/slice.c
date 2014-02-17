@@ -3634,7 +3634,7 @@ void read_coding_quadtree(decoder_context* ctx,
 /* Decode CTBs until the end of sub-stream, the end-of-slice, or some error
  */
 bool decode_substream(thread_context* tctx,
-                      bool wpp,
+                      bool block_wpp, // block on WPP dependencies
                       int context_copy_ctbx, // copy CABAC-context after decoding this CTB
                       int context_copy_thread_context) // copy CABAC-context to this t.ctx.
 {
@@ -3650,7 +3650,7 @@ bool decode_substream(thread_context* tctx,
     const int ctbx = tctx->CtbX;
     const int ctby = tctx->CtbY;
 
-    if (wpp && ctby>0 && ctbx < ctbW-1) {
+    if (block_wpp && ctby>0 && ctbx < ctbW-1) {
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
       // TODO: ctx->img should be tctx->img
@@ -3775,7 +3775,10 @@ void thread_decode_CTB_row(void* d)
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  int destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+  int destThreadContext = 0;
+  if (ctby+1 < sps->PicHeightInCtbsY) {
+    ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+  }
 
   bool endOfSegment = decode_substream(tctx, true, 1,destThreadContext);
 
