@@ -3777,7 +3777,7 @@ void thread_decode_CTB_row(void* d)
 
   int destThreadContext = 0;
   if (ctby+1 < sps->PicHeightInCtbsY) {
-    ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+    destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
   }
 
   bool endOfSegment = decode_substream(tctx, true, 1,destThreadContext);
