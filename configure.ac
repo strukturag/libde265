@@ -6,6 +6,11 @@ AC_INIT([libde265], [0.4], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
 
+NUMERIC_VERSION=0x00040000 # Numeric representation of the version
+AC_SUBST(NUMERIC_VERSION)
+
+# ---------------------------------------------------------------------------
+
 AC_CANONICAL_SYSTEM
 
 LIBDE265_CURRENT=0
@@ -44,7 +49,7 @@ changequote([,])dnl
 
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h])
+AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -57,7 +62,7 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([malloc memmove memset __malloc_hook __mingw_aligned_malloc __mingw_aligned_free])
+AC_CHECK_FUNCS([malloc memmove memset __malloc_hook memalign posix_memalign __mingw_aligned_malloc __mingw_aligned_free])
 
 AC_SEARCH_LIBS([sqrt], [m])
 AC_SEARCH_LIBS([pthread_create], [pthread])
@@ -175,6 +180,7 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
+AC_CONFIG_FILES([libde265/de265-version.h])
 AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_OUTPUT

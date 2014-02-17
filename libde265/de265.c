@@ -38,7 +38,15 @@
 
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal);
 
+LIBDE265_API const char *de265_get_version(void)
+{
+    return (LIBDE265_VERSION);
+}
 
+LIBDE265_API uint32_t de265_get_version_number(void)
+{
+    return (LIBDE265_NUMERIC_VERSION);
+}
 
 LIBDE265_API const char* de265_get_error_text(de265_error err)
 {
@@ -375,13 +383,13 @@ void remove_stuffing_bytes(NAL_unit* nal)
 
   for (int i=0;i<nal->nal_data.size-2;i++)
     {
-      /*
-      for (int k=0;k<32;k++) 
-        if (i+k<nal->nal_data.size) {
-          printf("%02x ",p[k]);
-        }
-      printf("\n");
-      */
+#if 0
+        for (int k=i;k<i+64;k++) 
+          if (i*0+k<nal->nal_data.size) {
+            printf("%c%02x", (k==i) ? '[':' ', nal->nal_data.data[k]);
+          }
+        printf("\n");
+#endif
 
       if (p[2]!=3 && p[2]!=0) {
         // fast forward 3 bytes (2+1)
@@ -390,11 +398,14 @@ void remove_stuffing_bytes(NAL_unit* nal)
       }
       else {
         if (p[0]==0 && p[1]==0 && p[2]==3) {
+          //printf("SKIP NAL @ %d\n",i+2+nal->num_skipped_bytes);
           nal_insert_skipped_byte(nal, i+2 + nal->num_skipped_bytes);
-          //printf("SKIP NAL @ %d\n",nal->pts);
 
-          memcpy(p+2, p+3, nal->nal_data.size-i-3);
+          memmove(p+2, p+3, nal->nal_data.size-i-3);
           nal->nal_data.size--;
+
+          p++;
+          i++;
         }
       }
 
