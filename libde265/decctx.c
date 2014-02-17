@@ -993,6 +993,18 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
   log_dpb_content(ctx);
 
+
+  if (hdr->dependent_slice_segment_flag==0) {
+    hdr->SliceAddrRS = hdr->slice_segment_address;
+  } else {
+    const pic_parameter_set* pps = ctx->current_pps;
+    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[hdr->slice_segment_address] -1 ];
+
+    hdr->SliceAddrRS = ctx->img->ctb_info[prevCtb].SliceAddrRS;
+  }
+
+
+
   return true;
 }
 

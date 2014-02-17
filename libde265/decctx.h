@@ -94,6 +94,8 @@ typedef struct thread_context
   int CtbAddrInRS;
   int CtbAddrInTS;
 
+  int CtbX, CtbY;
+
 
   // motion vectors
 

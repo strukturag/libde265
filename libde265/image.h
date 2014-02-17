@@ -283,6 +283,7 @@ void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS);
 uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
 
 
+// address of first CTB in slice
 void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
                      int ctbX, int ctbY, int SliceAddrRS);
 int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY);

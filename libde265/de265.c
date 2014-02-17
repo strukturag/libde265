@@ -533,6 +533,8 @@ void init_thread_context(thread_context* tctx)
 
 
 extern void thread_decode_CTB_row(void* d);
+extern void thread_decode_slice_segment(void* d);
+
 
 void add_task_decode_CTB_row(decoder_context* ctx, int thread_id)
 {
@@ -540,6 +542,18 @@ void add_task_decode_CTB_row(decoder_context* ctx, int thread_id)
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
   task.work_routine = thread_decode_CTB_row;
+  task.data.task_ctb_row.ctx = ctx;
+  task.data.task_ctb_row.thread_context_id = thread_id;
+  add_task(&ctx->thread_pool, &task);
+}
+
+
+void add_task_decode_slice_segment(decoder_context* ctx, int thread_id)
+{
+  thread_task task;
+  task.task_id = 0; // no ID
+  task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
+  task.work_routine = thread_decode_slice_segment;
   task.data.task_ctb_row.ctx = ctx;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&ctx->thread_pool, &task);
@@ -615,6 +629,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       }
 
 
+      const pic_parameter_set* pps = ctx->current_pps;
+      int ctbsWidth = ctx->current_sps->PicWidthInCtbsY;
+
       int nRows = hdr->num_entry_point_offsets +1;
 
       bool use_WPP = (ctx->num_worker_threads > 0 &&
@@ -623,8 +640,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       bool use_tiles = (ctx->num_worker_threads > 0 &&
                         ctx->current_pps->tiles_enabled_flag);
 
-      printf("WPP: %d\n",use_WPP);
-      printf("Tiles: %d\n",use_tiles);
+      if (0) {
+        printf("WPP: %d\n",use_WPP);
+        printf("Tiles: %d\n",use_tiles);
+      }
 
       if (ctx->num_worker_threads > 0 &&
           ctx->current_pps->entropy_coding_sync_enabled_flag == false &&
@@ -643,20 +662,75 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         ctx->thread_context[0].shdr = hdr;
         ctx->thread_context[0].decctx = ctx;
-
+        ctx->thread_context[0].CtbAddrInTS = pps->CtbAddrRStoTS[hdr->SliceAddrRS];
 
         // fixed context 0
         if ((err=read_slice_segment_data(ctx, &ctx->thread_context[0])) != DE265_OK)
           { return err; }
       }
       else if (use_tiles && !use_WPP) {
+        int nTiles = nRows;  // TODO: rename 'nRows'
+
+        if (nTiles > MAX_THREAD_CONTEXTS) {
+          return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+        }
+
+        assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
+
+        assert(ctx->img->tasks_pending == 0);
+        increase_pending_tasks(ctx->img, nTiles);
+
+        for (int ty=0;ty<pps->num_tile_rows;ty++)
+          for (int tx=0;tx<pps->num_tile_columns;tx++) {
+            int tile = tx + ty*pps->num_tile_rows;
+
+            // set thread context
+
+            /*
+              for (int x=0;x<ctbsWidth;x++) {
+              ctx->img->ctb_info[x+y*ctbsWidth].thread_context_id = y; // TODO: shouldn't be hardcoded
+              }
+            */
+
+            ctx->thread_context[tile].shdr = hdr;
+            ctx->thread_context[tile].decctx = ctx;
+
+            ctx->thread_context[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
+
+
+            // init CABAC
+
+            int dataStartIndex;
+            if (tile==0) { dataStartIndex=0; }
+            else         { dataStartIndex=hdr->entry_point_offset[tile-1]; }
+
+            int dataEnd;
+            if (tile==nRows-1) dataEnd = reader.bytes_remaining;
+            else               dataEnd = hdr->entry_point_offset[tile];
+
+            init_thread_context(&ctx->thread_context[tile]);
+
+            init_CABAC_decoder(&ctx->thread_context[tile].cabac_decoder,
+                               &reader.data[dataStartIndex],
+                               dataEnd-dataStartIndex);
+          }
+
+        // add tasks
+
+        for (int i=0;i<nTiles;i++) {
+          add_task_decode_slice_segment(ctx, i);
+        }
+
+        // TODO: hard-coded thread context
+
+        //add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
+
+        wait_for_completion(ctx->img);
       }
       else if (1) {
         if (nRows > MAX_THREAD_CONTEXTS) {
           return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
         }
-
-        int ctbsWidth = ctx->current_sps->PicWidthInCtbsY;
 
         assert(ctx->img->tasks_pending == 0);
         increase_pending_tasks(ctx->img, nRows);
@@ -674,8 +748,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
           ctx->thread_context[y].shdr = hdr;
           ctx->thread_context[y].decctx = ctx;
-
-          ctx->thread_context[y].CtbAddrInRS = 0 + y*ctbsWidth;
+          ctx->thread_context[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
 
 
           // init CABAC

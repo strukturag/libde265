@@ -1794,21 +1794,43 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
 }
 
 
-void init_thread_context_for_CTB(thread_context* tctx, int ctby)
+void init_thread_context_for_CTB(thread_context* tctx)
 {
+#if 0
   slice_segment_header* shdr = tctx->shdr;
   pic_parameter_set* pps = tctx->decctx->current_pps;
 
-  if (shdr->dependent_slice_segment_flag==0) {
-    tctx->SliceAddrRS = shdr->slice_segment_address;
-  } else {
-    tctx->SliceAddrRS = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
-  }
+  tctx->SliceAddrRS = shdr->SliceAddrRS;
 
   tctx->CtbAddrInTS = shdr->slice_segment_address;
-  tctx->CtbAddrInTS += ctby * tctx->decctx->current_sps->PicWidthInCtbsY; // TODO
+  // tctx->CtbAddrInTS += ctby * tctx->decctx->current_sps->PicWidthInCtbsY; // TODO
 
   tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
+#endif
+}
+
+
+/* Take CtbAddrInTS and compute
+   -> CtbAddrInRS, CtbX, CtbY
+ */
+bool setCtbAddrFromTS(thread_context* tctx)
+{
+  const seq_parameter_set* sps = tctx->decctx->current_sps;
+
+  if (tctx->CtbAddrInTS < tctx->decctx->current_sps->PicSizeInCtbsY) {
+    tctx->CtbAddrInRS = tctx->decctx->current_pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
+
+    tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
+    tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
+    return false;
+  }
+  else {
+    tctx->CtbAddrInRS = tctx->decctx->current_sps->PicSizeInCtbsY;
+
+    tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
+    tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
+    return true;
+  }
 }
 
 // returns true when we reached the end of the image (ctbAddr==picSizeInCtbsY)
@@ -1816,22 +1838,100 @@ bool advanceCtbAddr(thread_context* tctx)
 {
     tctx->CtbAddrInTS++;
 
-    if (tctx->CtbAddrInTS < tctx->decctx->current_sps->PicSizeInCtbsY) {
-      tctx->CtbAddrInRS = tctx->decctx->current_pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
-      return false;
-    }
-    else {
-      tctx->CtbAddrInRS = tctx->decctx->current_sps->PicSizeInCtbsY;
-      return true;
-    }
+    return setCtbAddrFromTS(tctx);
 }
+
+
+de265_error decode_slice_segment(thread_context* tctx)
+{
+  // QWE
+}
+
+
+void thread_decode_slice_segment(void* d)
+{
+  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
+  decoder_context* ctx = data->ctx;
+  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
+
+  seq_parameter_set* sps = ctx->current_sps;
+  pic_parameter_set* pps = ctx->current_pps;
+  int ctbSize = 1<<sps->Log2CtbSizeY;
+  int ctbW = sps->PicWidthInCtbsY;
+
+  init_thread_context_for_CTB(tctx); //, ctby);
+  setCtbAddrFromTS(tctx);
+
+  int ctbx = tctx->CtbX;
+  int ctby = tctx->CtbY;
+  int myCtbRow = ctby;
+
+  //printf("%p: start decoding at %d/%d\n", tctx, ctbx,ctby);
+
+  int end_of_slice_segment_flag;
+  int cnt=0;
+
+  initialize_CABAC(ctx,tctx);
+  init_CABAC_decoder_2(&tctx->cabac_decoder);
+
+  do {
+    //printf("%p: decode %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
+
+    read_coding_tree_unit(ctx, tctx);
+    end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+
+    logtrace(LogSlice,"read CTB %d -> end=%d %d\n",tctx->CtbAddrInTS, end_of_slice_segment_flag,
+             ctx->current_sps->PicSizeInCtbsY);
+
+    bool endOfPicture = advanceCtbAddr(tctx);
+
+    bool endOfTile = (pps->TileId[tctx->CtbAddrInTS] != pps->TileId[tctx->CtbAddrInTS-1]);
+
+    //printf("%p: end %d %d %d\n", tctx, end_of_slice_segment_flag, endOfPicture, endOfTile);
+
+    bool endOfCtbRow = false; // TODO
+
+    if (endOfTile || endOfCtbRow) {
+      int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
+      //printf("EOSS:%d\n", end_of_sub_stream_one_bit);
+
+      break;
+    }
+
+    if (endOfPicture &&
+        end_of_slice_segment_flag == false) {
+
+      if (ctx->param_conceal_stream_errors) {
+        add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        break;
+      }
+      else {
+        // image full, but end_of_slice_segment_flag not set, this cannot be correct...
+
+        decrease_pending_tasks(ctx->img, 1);
+
+        return; // DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+      }
+    }
+
+    // TODO (page 46)
+
+  } while (!end_of_slice_segment_flag);
+
+  decrease_pending_tasks(ctx->img, 1);
+
+  return; // DE265_OK;
+}
+
 
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
   const pic_parameter_set* pps = ctx->current_pps;
 
-  init_thread_context_for_CTB(tctx,0);
+  //init_thread_context_for_CTB(tctx);
+  setCtbAddrFromTS(tctx);
 
 
   int end_of_slice_segment_flag;
@@ -2054,6 +2154,12 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
 }
 
 
+de265_error decode_CTB_row(thread_context* tctx, int ctby, int ctbx_start, int ctbx_end,
+                           int context_copy_ctbx, int context_copy_thread_context)
+{
+}
+
+
 void thread_decode_CTB_row(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
@@ -2064,14 +2170,14 @@ void thread_decode_CTB_row(void* d)
   int ctbSize = 1<<sps->Log2CtbSizeY;
   int ctbW = sps->PicWidthInCtbsY;
 
+  init_thread_context_for_CTB(tctx); //, ctby);
+  setCtbAddrFromTS(tctx);
+
   int ctbx = tctx->CtbAddrInRS % ctbW;
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
 
   //printf("start decoding at %d/%d\n", ctbx,ctby);
-
-
-  init_thread_context_for_CTB(tctx, ctby);
 
   if (ctby==0) {
     initialize_CABAC(ctx,tctx);
@@ -2144,12 +2250,12 @@ void thread_decode_CTB_syntax(void* d)
   assert(ctx->current_pps->entropy_coding_sync_enabled_flag);
 
   if (data->CABAC_init == INIT_RESET) {
-    init_thread_context_for_CTB(tctx,0);
+    init_thread_context_for_CTB(tctx);
     initialize_CABAC(ctx,tctx);
     init_CABAC_decoder_2(&tctx->cabac_decoder);
   }
   else if (data->CABAC_init == INIT_COPY) {
-    init_thread_context_for_CTB(tctx, ctby);
+    init_thread_context_for_CTB(tctx); //, ctby);
     // TODO has to be changed for tiles
 
     memcpy(tctx->ctx_model,

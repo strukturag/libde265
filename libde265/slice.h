@@ -200,6 +200,7 @@ typedef struct slice_segment_header {
 
   // --- derived data ---
 
+  int SliceAddrRS;
   int SliceQPY;
 
   int initType;
