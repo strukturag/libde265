@@ -1842,89 +1842,6 @@ bool advanceCtbAddr(thread_context* tctx)
 }
 
 
-de265_error decode_slice_segment(thread_context* tctx)
-{
-  // QWE
-}
-
-
-void thread_decode_slice_segment(void* d)
-{
-  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
-  decoder_context* ctx = data->ctx;
-  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
-
-  seq_parameter_set* sps = ctx->current_sps;
-  pic_parameter_set* pps = ctx->current_pps;
-  int ctbSize = 1<<sps->Log2CtbSizeY;
-  int ctbW = sps->PicWidthInCtbsY;
-
-  init_thread_context_for_CTB(tctx); //, ctby);
-  setCtbAddrFromTS(tctx);
-
-  int ctbx = tctx->CtbX;
-  int ctby = tctx->CtbY;
-  int myCtbRow = ctby;
-
-  //printf("%p: start decoding at %d/%d\n", tctx, ctbx,ctby);
-
-  int end_of_slice_segment_flag;
-  int cnt=0;
-
-  initialize_CABAC(ctx,tctx);
-  init_CABAC_decoder_2(&tctx->cabac_decoder);
-
-  do {
-    //printf("%p: decode %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
-
-    read_coding_tree_unit(ctx, tctx);
-    end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
-
-    logtrace(LogSlice,"read CTB %d -> end=%d %d\n",tctx->CtbAddrInTS, end_of_slice_segment_flag,
-             ctx->current_sps->PicSizeInCtbsY);
-
-    bool endOfPicture = advanceCtbAddr(tctx);
-
-    bool endOfTile = (pps->TileId[tctx->CtbAddrInTS] != pps->TileId[tctx->CtbAddrInTS-1]);
-
-    //printf("%p: end %d %d %d\n", tctx, end_of_slice_segment_flag, endOfPicture, endOfTile);
-
-    bool endOfCtbRow = false; // TODO
-
-    if (endOfTile || endOfCtbRow) {
-      int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
-      //printf("EOSS:%d\n", end_of_sub_stream_one_bit);
-
-      break;
-    }
-
-    if (endOfPicture &&
-        end_of_slice_segment_flag == false) {
-
-      if (ctx->param_conceal_stream_errors) {
-        add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        break;
-      }
-      else {
-        // image full, but end_of_slice_segment_flag not set, this cannot be correct...
-
-        decrease_pending_tasks(ctx->img, 1);
-
-        return; // DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
-      }
-    }
-
-    // TODO (page 46)
-
-  } while (!end_of_slice_segment_flag);
-
-  decrease_pending_tasks(ctx->img, 1);
-
-  return; // DE265_OK;
-}
-
-
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
@@ -2151,12 +2068,6 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
   if (sao_merge_up_flag) {
     set_sao_info(ctx->img,ctx->current_sps, xCtb,yCtb,  get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb-1));
   }
-}
-
-
-de265_error decode_CTB_row(thread_context* tctx, int ctby, int ctbx_start, int ctbx_end,
-                           int context_copy_ctbx, int context_copy_thread_context)
-{
 }
 
 
@@ -3882,4 +3793,106 @@ void read_coding_quadtree(decoder_context* ctx,
   }
 
   logtrace(LogSlice,"-\n");
+}
+
+
+// ---------------------------------------------------------------------------
+
+/* Decode CTBs until the end of sub-stream, the end-of-slice, or some error
+ */
+de265_error decode_substream(thread_context* tctx,
+                             int context_copy_ctbx, // copy CABAC-context after decoding this CTB
+                             int context_copy_thread_context) // copy CABAC-context to this t.ctx.
+{
+  decoder_context* ctx = tctx->decctx;
+  const pic_parameter_set* pps = ctx->current_pps;
+  const seq_parameter_set* sps = ctx->current_sps;
+
+  do {
+    //printf("%p: decode %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
+
+    // read and decode CTB
+
+    read_coding_tree_unit(ctx, tctx);
+
+    if (pps->entropy_coding_sync_enabled_flag &&
+        tctx->CtbX == context_copy_ctbx &&
+        tctx->CtbY+1 < sps->PicHeightInCtbsY)
+      {
+        //int destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+        int destThreadContext = context_copy_thread_context;
+
+        memcpy(&ctx->thread_context[destThreadContext].ctx_model,
+               &tctx->ctx_model,
+               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      }
+
+
+    // end of slice segment ?
+
+    int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+
+    logtrace(LogSlice,"read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
+
+    int lastCtbX = tctx->CtbX;
+    int lastCtbY = tctx->CtbY;
+
+    bool endOfPicture = advanceCtbAddr(tctx); // true if we read past the end of the image
+
+    if (endOfPicture &&
+        end_of_slice_segment_flag == false)
+      {
+        add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        break;
+      }
+
+
+    if (end_of_slice_segment_flag) {
+      break;
+    }
+
+
+    if (!end_of_slice_segment_flag) {
+      bool end_of_sub_stream = false;
+      end_of_sub_stream |= (pps->tiles_enabled_flag &&
+                            pps->TileId[tctx->CtbAddrInTS] != pps->TileId[tctx->CtbAddrInTS-1]);
+      end_of_sub_stream |= (pps->entropy_coding_sync_enabled_flag &&
+                            lastCtbY != tctx->CtbY);
+
+      if (end_of_sub_stream) {
+        int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
+        if (!end_of_sub_stream_one_bit) {
+          add_warning(ctx, DE265_WARNING_EOSS_BIT_NOT_SET, false);
+          ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        }
+
+        init_CABAC_decoder_2(&tctx->cabac_decoder); // byte alignment
+        break;
+      }
+    }
+
+  } while (true);
+}
+
+
+
+void thread_decode_slice_segment(void* d)
+{
+  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
+  decoder_context* ctx = data->ctx;
+  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
+
+  setCtbAddrFromTS(tctx);
+
+  //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
+
+  initialize_CABAC(ctx,tctx);
+  init_CABAC_decoder_2(&tctx->cabac_decoder);
+
+  de265_error err = decode_substream(tctx, -1,-1);
+
+  decrease_pending_tasks(ctx->img, 1);
+
+  return; // DE265_OK;
 }

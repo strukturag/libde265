@@ -108,6 +108,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "short-term ref-pic-set index out of range";
   case DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST:
     return "faulty reference picture list";
+  case DE265_WARNING_EOSS_BIT_NOT_SET:
+    return "end_of_sub_stream_one_bit not set to 1 when it should be";
 
   default: return "unknown error";
   }
