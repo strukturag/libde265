@@ -5,7 +5,11 @@ AC_PREREQ([2.68])
 AC_INIT([libde265], [0.4], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
-AC_DEFINE(NUMERIC_VERSION, 0x00040000, [Numeric representation of the version])
+
+NUMERIC_VERSION=0x00040000 # Numeric representation of the version
+AC_SUBST(NUMERIC_VERSION)
+
+# ---------------------------------------------------------------------------
 
 AC_CANONICAL_SYSTEM
 
@@ -176,6 +180,7 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
+AC_CONFIG_FILES([libde265/de265-version.h])
 AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_OUTPUT

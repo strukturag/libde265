@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#include <libde265/de265-config.h>
+#include <libde265/de265-version.h>
 
 //#define inline static __inline
 
@@ -53,10 +53,6 @@ extern "C" {
 #endif
 
 /* === version numbers === */
-
-// version of libde265 headers
-#define LIBDE265_VERSION _LIBDE265_VERSION
-#define LIBDE265_VERSION_NUMBER _LIBDE265_NUMERIC_VERSION
 
 // version of linked libde265 library
 LIBDE265_API const char *de265_get_version(void);
