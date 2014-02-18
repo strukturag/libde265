@@ -69,7 +69,8 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
   if (vlc<0 || vlc>7) return false;
 
   if (sps->chroma_format_idc != 0) {
-    vlc = shdr->luma_log2_weight_denom + get_svlc(br);
+    vlc = get_svlc(br);
+    vlc += shdr->luma_log2_weight_denom;
     if (vlc<0 || vlc>7) return false;
     shdr->ChromaLog2WeightDenom = vlc;
   }
@@ -104,10 +105,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             vlc = get_svlc(br);
             if (vlc < -128 || vlc > 127) return false;
 
-            if (vlc==0) vlc= 2<<shdr->luma_log2_weight_denom;
-            else        vlc=(1<<shdr->luma_log2_weight_denom) + vlc;
-
-            shdr->LumaWeight[l][i] = vlc;
+            shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + vlc;
 
             // luma_offset
 
@@ -116,7 +114,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             shdr->luma_offset[l][i] = vlc;
           }
           else {
-            // luma_offset[][]=0  (already initialized to zero)
+            shdr->LumaWeight[l][i] = 1<<shdr->luma_log2_weight_denom;
           }
 
           if (shdr->chroma_weight_flag[l][i])
@@ -126,10 +124,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               vlc = get_svlc(br);
               if (vlc < -128 || vlc > 127) return false;
 
-              if (vlc==0) vlc= 2<<shdr->ChromaLog2WeightDenom;
-              else        vlc=(1<<shdr->ChromaLog2WeightDenom) + vlc;
-
-              shdr->ChromaWeight[l][i][j] = vlc;
+              shdr->ChromaWeight[l][i][j] = (1<<shdr->ChromaLog2WeightDenom) + vlc;
 
               // delta_chroma_offset
 
@@ -143,7 +138,8 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               shdr->ChromaOffset[l][i][j] = vlc;
             }
           else {
-            // ChromaWeight[][]=0  (already initialized to zero)
+            for (int j=0;j<2;j++)
+              shdr->ChromaWeight[l][i][j] = 1<<shdr->ChromaLog2WeightDenom;
           }
         }
       }
@@ -680,17 +676,13 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
                 }
 
                 for (int i=0;i<=num_ref;i++) {
-                  if (shdr->luma_weight_flag[l][i]) {
+                  LOG3("LumaWeight_L%d[%d]             : %d\n",l,i,shdr->LumaWeight[l][i]);
+                  LOG3("luma_offset_l%d[%d]            : %d\n",l,i,shdr->luma_offset[l][i]);
 
-                    LOG3("LumaWeight_L%d[%d]             : %d\n",l,i,shdr->LumaWeight[l][i]);
-                    LOG3("luma_offset_l%d[%d]            : %d\n",l,i,shdr->luma_offset[l][i]);
+                  for (int j=0;j<2;j++) {
+                    LOG4("ChromaWeight_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaWeight[l][i][j]);
+                    LOG4("ChromaOffset_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaOffset[l][i][j]);
                   }
-
-                  if (shdr->chroma_weight_flag[l][i])
-                    for (int j=0;j<2;j++) {
-                      LOG4("ChromaWeight_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaWeight[l][i][j]);
-                      LOG4("ChromaOffset_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaOffset[l][i][j]);
-                    }
                 }
               }
         }
