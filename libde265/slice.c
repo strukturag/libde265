@@ -93,9 +93,6 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             if (shdr->chroma_weight_flag[l][i]) sumWeightFlags+=2;
           }
         }
-        else {
-          // chroma_weight_flag[][]=0  (already initialized to zero)
-        }
 
         for (int i=0;i<=num_ref;i++) {
           if (shdr->luma_weight_flag[l][i]) {
@@ -115,6 +112,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
           }
           else {
             shdr->LumaWeight[l][i] = 1<<shdr->luma_log2_weight_denom;
+            shdr->luma_offset[l][i] = 0;
           }
 
           if (shdr->chroma_weight_flag[l][i])
@@ -138,8 +136,10 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               shdr->ChromaOffset[l][i][j] = vlc;
             }
           else {
-            for (int j=0;j<2;j++)
+            for (int j=0;j<2;j++) {
               shdr->ChromaWeight[l][i][j] = 1<<shdr->ChromaLog2WeightDenom;
+              shdr->ChromaOffset[l][i][j] = 0;
+            }
           }
         }
       }

@@ -15,6 +15,15 @@ void put_unweighted_pred_8_fallback(uint8_t *_dst, ptrdiff_t dststride,
                                     int16_t *src, ptrdiff_t srcstride,
                                     int width, int height);
 
+void put_weighted_pred_8_fallback(uint8_t *_dst, ptrdiff_t dststride,
+                                  int16_t *src, ptrdiff_t srcstride,
+                                  int width, int height,
+                                  int w,int o,int log2WD);
+void put_weighted_bipred_8_fallback(uint8_t *_dst, ptrdiff_t dststride,
+                                    int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                    int width, int height,
+                                    int w1,int o1, int w2,int o2, int log2WD);
+
 void put_epel_8_fallback(int16_t *dst, ptrdiff_t dststride,
                     uint8_t *_src, ptrdiff_t srcstride,
                     int width, int height,

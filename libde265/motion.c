@@ -361,10 +361,10 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   const seq_parameter_set* sps = ctx->current_sps;
 
   /*
-  if (vi->lum.predFlag[0]) {
+    if (vi->lum.predFlag[0]) {
     assert(vi->lum.refIdx[0] >= 0);
     assert(vi->lum.refIdx[0] <= 1);
-  }
+    }
   */
 
   TotalPredCnt++;
@@ -458,88 +458,192 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
                                             predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
-
-
-        /*
-          logtrace(LogMotion,"---output cIdx=1---\n");
-          for (int y=0;y<nPbH/2;y++) {
-          for (int x=0;x<nPbW/2;x++) {
-          logtrace(LogMotion,"%02x ",ctx->img->cb[xP/2+x + (yP/2+y)*ctx->img->chroma_stride]);
-          }
-          logtrace(LogMotion,"\n");
-          }
-        */
       }
       else {
         add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-
-        //assert(predFlag[0]==0 && predFlag[1]==0);
-        //assert(predFlag[0]==0);
-        // TODO: check: why can it be that predFlag[1] is 1 in P-slices,
-        // or both are zero ?
       }
+
+      //printf("unweighted\n");
     }
     else {
-      // TODO
-      assert(false);
+      // weighted prediction
+
+      if (predFlag[0]==1 && predFlag[1]==0) {
+
+        int refIdx0 = vi->lum.refIdx[0];
+
+        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+
+        int luma_w0 = shdr->LumaWeight[0][refIdx0];
+        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(8-8)); // TODO: bitDepth
+
+        int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
+        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
+        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(8-8)); // TODO: bitDepth
+
+        //printf("weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
+
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+                                          ctx->img->stride,
+                                          predSamplesL[0],nCS, nPbW,nPbH,
+                                          luma_w0, luma_o0, luma_log2WD);
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          ctx->img->chroma_stride,
+                                          predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
+                                          chroma0_w0, chroma0_o0, chroma_log2WD);
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          ctx->img->chroma_stride,
+                                          predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
+                                          chroma1_w0, chroma1_o0, chroma_log2WD);
+      }
+      else {
+        add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+      }
     }
   }
   else {
     assert(shdr->slice_type == SLICE_TYPE_B);
 
+    //printf("unweighted\n");
+
     if (predFlag[0]==1 && predFlag[1]==1) {
-      const int shift2  = 15-8; // TODO: real bit depth
-      const int offset2 = 1<<(shift2-1);
+      if (ctx->current_pps->weighted_bipred_flag==0) {
+        const int shift2  = 15-8; // TODO: real bit depth
+        const int offset2 = 1<<(shift2-1);
 
-      BipredCnt++;
+        BipredCnt++;
 
-      if ((vi->lum.mv[0].x & 3) == 0 &&
-          (vi->lum.mv[0].y & 3) == 0 &&
-          (vi->lum.mv[1].x & 3) == 0 &&
-          (vi->lum.mv[1].y & 3) == 0)
-        {
-          FullpelBipredCnt++;
-        }
+        if ((vi->lum.mv[0].x & 3) == 0 &&
+            (vi->lum.mv[0].y & 3) == 0 &&
+            (vi->lum.mv[1].x & 3) == 0 &&
+            (vi->lum.mv[1].y & 3) == 0)
+          {
+            FullpelBipredCnt++;
+          }
 
-      int16_t* in0 = predSamplesL[0];
-      int16_t* in1 = predSamplesL[1];
-      uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
+        int16_t* in0 = predSamplesL[0];
+        int16_t* in1 = predSamplesL[1];
+        uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
 
-      ctx->lowlevel.put_weighted_pred_avg_8(out, ctx->img->stride,
-                                            in0,in1, nCS, nPbW, nPbH);
+        ctx->lowlevel.put_weighted_pred_avg_8(out, ctx->img->stride,
+                                              in0,in1, nCS, nPbW, nPbH);
 
-      int16_t* in00 = predSamplesC[0][0];
-      int16_t* in01 = predSamplesC[0][1];
-      int16_t* in10 = predSamplesC[1][0];
-      int16_t* in11 = predSamplesC[1][1];
-      uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
-      uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+        int16_t* in00 = predSamplesC[0][0];
+        int16_t* in01 = predSamplesC[0][1];
+        int16_t* in10 = predSamplesC[1][0];
+        int16_t* in11 = predSamplesC[1][1];
+        uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+        uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
       
-      ctx->lowlevel.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
-                                            in00,in01, nCS, nPbW/2, nPbH/2);
-      ctx->lowlevel.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
-                                            in10,in11, nCS, nPbW/2, nPbH/2);
+        ctx->lowlevel.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
+                                              in00,in01, nCS, nPbW/2, nPbH/2);
+        ctx->lowlevel.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
+                                              in10,in11, nCS, nPbW/2, nPbH/2);
+      }
+      else {
+        // weighted prediction
+
+        int refIdx0 = vi->lum.refIdx[0];
+        int refIdx1 = vi->lum.refIdx[1];
+
+        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+
+        int luma_w0 = shdr->LumaWeight[0][refIdx0];
+        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(8-8)); // TODO: bitDepth
+        int luma_w1 = shdr->LumaWeight[1][refIdx1];
+        int luma_o1 = shdr->luma_offset[1][refIdx1] * (1<<(8-8)); // TODO: bitDepth
+
+        int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
+        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
+        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_w1 = shdr->ChromaWeight[1][refIdx1][0];
+        int chroma0_o1 = shdr->ChromaOffset[1][refIdx1][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_w1 = shdr->ChromaWeight[1][refIdx1][1];
+        int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(8-8)); // TODO: bitDepth
+
+        int16_t* in0 = predSamplesL[0];
+        int16_t* in1 = predSamplesL[1];
+        uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
+
+        ctx->lowlevel.put_weighted_bipred_8(out, ctx->img->stride,
+                                            in0,in1, nCS, nPbW, nPbH,
+                                            luma_w0,luma_o0,
+                                            luma_w1,luma_o1,
+                                            luma_log2WD);
+
+        int16_t* in00 = predSamplesC[0][0];
+        int16_t* in01 = predSamplesC[0][1];
+        int16_t* in10 = predSamplesC[1][0];
+        int16_t* in11 = predSamplesC[1][1];
+        uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+        uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
+      
+        ctx->lowlevel.put_weighted_bipred_8(out0, ctx->img->chroma_stride,
+                                            in00,in01, nCS, nPbW/2, nPbH/2,
+                                            chroma0_w0,chroma0_o0,
+                                            chroma0_w1,chroma0_o1,
+                                            chroma_log2WD);
+        ctx->lowlevel.put_weighted_bipred_8(out1, ctx->img->chroma_stride,
+                                            in10,in11, nCS, nPbW/2, nPbH/2,
+                                            chroma1_w0,chroma1_o0,
+                                            chroma1_w1,chroma1_o1,
+                                            chroma_log2WD);
+      }
     }
     else if (predFlag[0]==1 || predFlag[1]==1) {
       int l = predFlag[0] ? 0 : 1;
 
-      if ((vi->lum.mv[l].x & 3) == 0 &&
-          (vi->lum.mv[l].y & 3) == 0)
-        {
-          FullpelPredCnt++;
-        }
+      if (ctx->current_pps->weighted_bipred_flag==0) {
+        if ((vi->lum.mv[l].x & 3) == 0 &&
+            (vi->lum.mv[l].y & 3) == 0)
+          {
+            FullpelPredCnt++;
+          }
 
 
-      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+                                            ctx->img->stride,
+                                            predSamplesL[l],nCS, nPbW,nPbH);
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+                                            ctx->img->chroma_stride,
+                                            predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
+        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+                                            ctx->img->chroma_stride,
+                                            predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
+      }
+      else {
+        int refIdx = vi->lum.refIdx[l];
+
+        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+
+        int luma_w0 = shdr->LumaWeight[l][refIdx];
+        int luma_o0 = shdr->luma_offset[l][refIdx] * (1<<(8-8)); // TODO: bitDepth
+
+        int chroma0_w0 = shdr->ChromaWeight[l][refIdx][0];
+        int chroma0_o0 = shdr->ChromaOffset[l][refIdx][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_w0 = shdr->ChromaWeight[l][refIdx][1];
+        int chroma1_o0 = shdr->ChromaOffset[l][refIdx][1] * (1<<(8-8)); // TODO: bitDepth
+
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
-                                          predSamplesL[l],nCS, nPbW,nPbH);
-      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          predSamplesL[0],nCS, nPbW,nPbH,
+                                          luma_w0, luma_o0, luma_log2WD);
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
-                                          predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
-      ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+                                          predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
+                                          chroma0_w0, chroma0_o0, chroma_log2WD);
+        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
-                                          predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
+                                          predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
+                                          chroma1_w0, chroma1_o0, chroma_log2WD);
+      }
     }
     else {
       // TODO: check why it can actually happen that both predFlags[] are false.

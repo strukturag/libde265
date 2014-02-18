@@ -33,6 +33,46 @@ void put_unweighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 }
 
 
+void put_weighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
+                                  int16_t *src, ptrdiff_t srcstride,
+                                  int width, int height,
+                                  int w,int o,int log2WD)
+{
+  assert(log2WD>=1); // TODO
+
+  const int rnd = (1<<(log2WD-1));
+
+  for (int y=0;y<height;y++) {
+    int16_t* in  = &src[y*srcstride];
+    uint8_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip1_8bit(((in[0]*w + rnd)>>log2WD) + o);
+      out++; in++;
+    }
+  }
+}
+
+void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
+                                    int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                    int width, int height,
+                                    int w1,int o1, int w2,int o2, int log2WD)
+{
+  int rnd = ((o1+o2+1) << log2WD);
+
+  for (int y=0;y<height;y++) {
+    int16_t* in1 = &src1[y*srcstride];
+    int16_t* in2 = &src2[y*srcstride];
+    uint8_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip1_8bit((in1[0]*w1 + in2[0]*w2 + rnd)>>(log2WD+1));
+      out++; in1++; in2++;
+    }
+  }
+}
+
+
 void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
                                       int16_t *src1, int16_t *src2,
                                       ptrdiff_t srcstride, int width,
