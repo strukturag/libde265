@@ -184,9 +184,6 @@ typedef struct de265_image {
   int deblk_width;
   int deblk_height;
 
-  context_model* ctx_model_wpp_storage; // CONTEXT_MODEL_TABLE_LENGTH for each CTB-row
-  int ctb_height;
-
   int RefPicList_POC[2][14+1];
 
   // --- meta information ---
