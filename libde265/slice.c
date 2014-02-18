@@ -2618,10 +2618,15 @@ void read_transform_tree(decoder_context* ctx,
   const seq_parameter_set* sps = ctx->current_sps;
 
   enum PredMode PredMode = get_pred_mode(ctx->img,sps,x0,y0);
+  enum PartMode PartMode = get_PartMode(ctx->img,sps,x0,y0);
 
   int split_transform_flag;
   
-  int interSplitFlag=0; // TODO
+  int interSplitFlag= (sps->max_transform_hierarchy_depth_inter==0 &&
+                       PredMode == MODE_INTER &&
+                       PartMode != PART_2Nx2N &&
+                       trafoDepth == 0);
+
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
