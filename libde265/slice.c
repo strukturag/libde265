@@ -3631,9 +3631,15 @@ void read_coding_quadtree(decoder_context* ctx,
 
 // ---------------------------------------------------------------------------
 
-/* Decode CTBs until the end of sub-stream, the end-of-slice, or some error
+enum DecodeResult {
+  Decode_EndOfSliceSegment,
+  Decode_EndOfSubstream,
+  Decode_Error
+};
+
+/* Decode CTBs until the end of sub-stream, the end-of-slice, or some error occurs.
  */
-bool decode_substream(thread_context* tctx,
+enum DecodeResult decode_substream(thread_context* tctx,
                       bool block_wpp, // block on WPP dependencies
                       int context_copy_ctbx, // copy CABAC-context after decoding this CTB
                       int context_copy_thread_context) // copy CABAC-context to this t.ctx.
@@ -3696,12 +3702,12 @@ bool decode_substream(thread_context* tctx,
       {
         add_warning(ctx, DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        return true;
+        return Decode_Error;
       }
 
 
     if (end_of_slice_segment_flag) {
-      return true;
+      return Decode_EndOfSliceSegment;
     }
 
 
@@ -3717,11 +3723,11 @@ bool decode_substream(thread_context* tctx,
         if (!end_of_sub_stream_one_bit) {
           add_warning(ctx, DE265_WARNING_EOSS_BIT_NOT_SET, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-          return true;
+        return Decode_Error;
         }
 
         init_CABAC_decoder_2(&tctx->cabac_decoder); // byte alignment
-        return false;
+          return Decode_EndOfSubstream;
       }
     }
 
@@ -3743,7 +3749,7 @@ void thread_decode_slice_segment(void* d)
   initialize_CABAC(ctx,tctx);
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  bool endOfSegment = decode_substream(tctx, false, -1,-1);
+  enum DecodeResult result = decode_substream(tctx, false, -1,-1);
 
   decrease_pending_tasks(ctx->img, 1);
 
@@ -3780,7 +3786,16 @@ void thread_decode_CTB_row(void* d)
     destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
   }
 
-  bool endOfSegment = decode_substream(tctx, true, 1,destThreadContext);
+  enum DecodeResult result = decode_substream(tctx, true, 1,destThreadContext);
+
+  // mark progress on remaining CTBs in row (in case of decoder error and early termination)
+
+  if (tctx->CtbY == myCtbRow) {
+    int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
+    for (int x = tctx->CtbX; x<lastCtbX ; x++) {
+      de265_announce_progress(&ctx->img->ctb_progress[myCtbRow*ctbW + x], CTB_PROGRESS_PREFILTER);
+    }
+  }
 
   decrease_pending_tasks(ctx->img, 1);
 }
@@ -3795,9 +3810,14 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
   // printf("-----\n");
 
-  bool endOfSegment = false;
-  while (!endOfSegment) {
-    endOfSegment = decode_substream(tctx, false, 1,1);  // HACK: save context in thread.context 1
+  enum DecodeResult result;
+  do {
+    result = decode_substream(tctx, false, 1,1);  // HACK: save context in thread.context 1
+
+    if (result == Decode_EndOfSliceSegment ||
+        result == Decode_Error) {
+      break;
+    }
 
     if (ctx->current_pps->entropy_coding_sync_enabled_flag) {
       memcpy(&tctx->ctx_model,
@@ -3808,7 +3828,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     if (ctx->current_pps->tiles_enabled_flag) {
       initialize_CABAC(ctx,tctx);
     }
-  }
+  } while (true);
 
   return DE265_OK;
 }
