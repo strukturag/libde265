@@ -8,12 +8,10 @@ libde265 is an open source implementation of the h.265 video codec.
 It is written from scratch in plain C for simplicity and efficiency.
 Its simple API makes it easy to integrate it into other software.
 
-libde265 decodes all common types of HEVC files. A few features currently
-unused by known encoders are missing (long-term MC, weighted prediction, PCM),
-but will be added once conformant bit-streams are available.
-Encoding is planned to be added afterwards.
+libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
 
-libde265 supports WPP-based multithreading and includes SSE optimizations.
+All features of the Main profile are supported except long-term MC
+and weighted prediction, which are currently unused by the available encoders.
 
 The library comes with two example programs:
 
@@ -27,6 +25,16 @@ The library comes with two example programs:
 Example bitstreams can be found, e.g., at this site:
   ftp://ftp.kw.bbc.co.uk/hevc/hm-10.1-anchors/bitstreams/ra_main/
 
+Approximate performance for WPP, non-tiles streams (measured using the totem video
+player with libde265-gstreamer plugin on a Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz with
+8 CPU cores on Ubuntu 12.04, 64bit):
+
+| Resolution        | fps     | CPU usage @ 24 fps |
+| ----------------- | ------- | ------------------ |
+| 720p              | 685 fps | ~28 %              |
+| 1080p             | 240 fps | ~80 %              |
+| 4K                | 51 fps  | ~380 %             |
+
 
 
 Building
@@ -37,8 +45,16 @@ Building
 If you got libde265 from the git repository, you will first need to run
 the included `autogen.sh` script to generate the `configure` script.
 
-libde265 has no dependencies on other libraries, but both example programs
-require that you install the libvideogfx library, which you can get from
+libde265 has no dependencies on other libraries, but both optional example programs
+have dependencies on:
+
+- SDL (optional for dec265's YUV overlay output),
+
+- Qt (required for sherlock265),
+
+- libvideogfx (required for sherlock265, optional for dec265).
+
+Libvideogfx can be obtained from
   http://www.dirk-farin.net/software/libvideogfx/index.html
 or
   http://github.com/farindk/libvideogfx
@@ -56,6 +72,24 @@ Additional logging information can be turned on and off using these `./configure
   --enable-log-info       turn on logging at info level (default=no)
   --enable-log-trace      turn on logging at trace level (default=no)
 </pre>
+
+
+Prebuilt binaries
+=================
+
+Binary packages can be obtained from here: https://launchpad.net/~strukturag/+archive/libde265 .
+
+
+Software using libde265
+=======================
+
+Libde265 has been integrated into these applications:
+
+- gstreamer plugin, https://github.com/strukturag/gstreamer-libde265
+
+- Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
+
+- ffmpeg fork, https://github.com/farindk/ffmpeg
 
 
 License
