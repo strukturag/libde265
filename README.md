@@ -76,7 +76,7 @@ Additional logging information can be turned on and off using these `./configure
 Prebuilt binaries
 =================
 
-Binary packages can be obtained from his [launchpad site](https://launchpad.net/~strukturag/+archive/libde265).
+Binary packages can be obtained from this [launchpad site](https://launchpad.net/~strukturag/+archive/libde265).
 
 
 Software using libde265
