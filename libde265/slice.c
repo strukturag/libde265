@@ -56,6 +56,102 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 */
 
+bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
+{
+  int vlc;
+
+  pic_parameter_set* pps = &ctx->pps[(int)shdr->slice_pic_parameter_set_id];
+  assert(pps);
+  seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
+  assert(sps);
+
+  shdr->luma_log2_weight_denom = vlc = get_uvlc(br);
+  if (vlc<0 || vlc>7) return false;
+
+  if (sps->chroma_format_idc != 0) {
+    vlc = shdr->luma_log2_weight_denom + get_svlc(br);
+    if (vlc<0 || vlc>7) return false;
+    shdr->ChromaLog2WeightDenom = vlc;
+  }
+
+  int sumWeightFlags = 0;
+
+  for (int l=0;l<=1;l++)
+    if (l==0 || (l==1 && shdr->slice_type == SLICE_TYPE_B))
+      {
+        int num_ref = (l==0 ? shdr->num_ref_idx_l0_active-1 : shdr->num_ref_idx_l1_active-1);
+
+        for (int i=0;i<=num_ref;i++) {
+          shdr->luma_weight_flag[l][i] = get_bits(br,1);
+          if (shdr->luma_weight_flag[l][i]) sumWeightFlags++;
+        }
+
+        if (sps->chroma_format_idc != 0) {
+          for (int i=0;i<=num_ref;i++) {
+            shdr->chroma_weight_flag[l][i] = get_bits(br,1);
+            if (shdr->chroma_weight_flag[l][i]) sumWeightFlags+=2;
+          }
+        }
+        else {
+          // chroma_weight_flag[][]=0  (already initialized to zero)
+        }
+
+        for (int i=0;i<=num_ref;i++) {
+          if (shdr->luma_weight_flag[l][i]) {
+
+            // delta_luma_weight
+
+            vlc = get_svlc(br);
+            if (vlc < -128 || vlc > 127) return false;
+
+            if (vlc==0) vlc= 2<<shdr->luma_log2_weight_denom;
+            else        vlc=(1<<shdr->luma_log2_weight_denom) + vlc;
+
+            shdr->LumaWeight[l][i] = vlc;
+
+            // luma_offset
+
+            vlc = get_svlc(br);
+            if (vlc < -128 || vlc > 127) return false;
+            shdr->luma_offset[l][i] = vlc;
+          }
+          else {
+            // luma_offset[][]=0  (already initialized to zero)
+          }
+
+          if (shdr->chroma_weight_flag[l][i])
+            for (int j=0;j<2;j++) {
+              // delta_chroma_weight
+
+              vlc = get_svlc(br);
+              if (vlc < -128 || vlc > 127) return false;
+
+              if (vlc==0) vlc= 2<<shdr->ChromaLog2WeightDenom;
+              else        vlc=(1<<shdr->ChromaLog2WeightDenom) + vlc;
+
+              shdr->ChromaWeight[l][i][j] = vlc;
+
+              // delta_chroma_offset
+
+              vlc = get_svlc(br);
+              if (vlc < -512 || vlc > 511) return false;
+
+              if (vlc==0) { vlc=0; }
+              else { vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
+                                                 >> shdr->ChromaLog2WeightDenom) + 128)); }
+            }
+          else {
+            // ChromaWeight[][]=0  (already initialized to zero)
+          }
+        }
+      }
+
+  // TODO: bitstream conformance requires that 'sumWeightFlags<=24'
+
+  return true;
+}
+
+
 de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx,
                                       bool* continueDecoding)
 {
@@ -279,8 +375,12 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
       if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
           (pps->weighted_bipred_flag && shdr->slice_type == SLICE_TYPE_B)) {
-        //pred_weight_table()
-        assert(false);
+
+        if (!read_pred_weight_table(br,shdr,ctx))
+          {
+	    add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
       }
 
       shdr->five_minus_max_num_merge_cand = get_uvlc(br);

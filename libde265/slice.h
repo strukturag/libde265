@@ -162,8 +162,8 @@ typedef struct slice_segment_header {
   char slice_sao_chroma_flag;
 
   char num_ref_idx_active_override_flag;
-  int  num_ref_idx_l0_active;
-  int  num_ref_idx_l1_active;
+  int  num_ref_idx_l0_active; // [1;16]
+  int  num_ref_idx_l1_active; // [1;16]
 
   //ref_pic_lists_modification()
 
@@ -177,7 +177,20 @@ typedef struct slice_segment_header {
   char collocated_from_l0_flag;
   int  collocated_ref_idx;
 
-  //pred_weight_table()
+  // --- pred_weight_table ---
+
+  uint8_t luma_log2_weight_denom; // [0;7]
+  uint8_t ChromaLog2WeightDenom;  // [0;7]
+
+  // first index is L0/L1
+  uint8_t luma_weight_flag[2][16];   // bool
+  uint8_t chroma_weight_flag[2][16]; // bool
+  int16_t LumaWeight[2][16];
+  int8_t  luma_offset[2][16];
+  int16_t ChromaWeight[2][16][2];
+  int8_t  ChromaOffset[2][16][2];
+
+
   int  five_minus_max_num_merge_cand;
   int  slice_qp_delta;
 
