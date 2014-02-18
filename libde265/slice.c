@@ -139,6 +139,8 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               if (vlc==0) { vlc=0; }
               else { vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
                                                  >> shdr->ChromaLog2WeightDenom) + 128)); }
+
+              shdr->ChromaOffset[l][i][j] = vlc;
             }
           else {
             // ChromaWeight[][]=0  (already initialized to zero)
@@ -532,6 +534,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 #define LOG0(t) log2fh(fh, t)
 #define LOG1(t,d) log2fh(fh, t,d)
 #define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+#define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
 
   const pic_parameter_set* pps = &ctx->pps[shdr->slice_pic_parameter_set_id];
   assert(pps->pps_read); // TODO: error handling
@@ -653,8 +657,42 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
           (pps->weighted_bipred_flag && shdr->slice_type == SLICE_TYPE_B))
         {
-          assert(false);
-          //pred_weight_table()
+          LOG1("luma_log2_weight_denom         : %d\n", shdr->luma_log2_weight_denom);
+          if (sps->chroma_format_idc != 0) {
+            LOG1("ChromaLog2WeightDenom          : %d\n", shdr->ChromaLog2WeightDenom);
+          }
+
+          for (int l=0;l<=1;l++)
+            if (l==0 || (l==1 && shdr->slice_type == SLICE_TYPE_B))
+              {
+                int num_ref = (l==0 ?
+                               shdr->num_ref_idx_l0_active-1 :
+                               shdr->num_ref_idx_l1_active-1);
+
+                for (int i=0;i<=num_ref;i++) {
+                  LOG2("luma_weight_flag_l%d           : %d\n",l,shdr->luma_weight_flag[l][i]);
+                }
+
+                if (sps->chroma_format_idc != 0) {
+                  for (int i=0;i<=num_ref;i++) {
+                    LOG2("chroma_weight_flag_l%d         : %d\n",l,shdr->chroma_weight_flag[l][i]);
+                  }
+                }
+
+                for (int i=0;i<=num_ref;i++) {
+                  if (shdr->luma_weight_flag[l][i]) {
+
+                    LOG3("LumaWeight_L%d[%d]             : %d\n",l,i,shdr->LumaWeight[l][i]);
+                    LOG3("luma_offset_l%d[%d]            : %d\n",l,i,shdr->luma_offset[l][i]);
+                  }
+
+                  if (shdr->chroma_weight_flag[l][i])
+                    for (int j=0;j<2;j++) {
+                      LOG4("ChromaWeight_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaWeight[l][i][j]);
+                      LOG4("ChromaOffset_L%d[%d][%d]        : %d\n",l,i,j,shdr->ChromaOffset[l][i][j]);
+                    }
+                }
+              }
         }
 
       LOG1("five_minus_max_num_merge_cand  : %d\n", shdr->five_minus_max_num_merge_cand);
@@ -716,6 +754,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 #undef LOG0
 #undef LOG1
 #undef LOG2
+#undef LOG3
+#undef LOG4
   //#endif
 }
 
