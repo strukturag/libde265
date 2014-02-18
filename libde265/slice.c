@@ -561,8 +561,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     //slice_reserved_flag[i]
 
     LOG1("slice_type                           : %c\n",
-        shdr->slice_type == 0 ? 'B' :
-        shdr->slice_type == 1 ? 'P' : 'I');
+         shdr->slice_type == 0 ? 'B' :
+         shdr->slice_type == 1 ? 'P' : 'I');
 
     if (pps->output_flag_present_flag) {
       LOG1("pic_output_flag                      : %d\n", shdr->pic_output_flag);
@@ -665,13 +665,15 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
                                shdr->num_ref_idx_l0_active-1 :
                                shdr->num_ref_idx_l1_active-1);
 
-                for (int i=0;i<=num_ref;i++) {
-                  LOG2("luma_weight_flag_l%d           : %d\n",l,shdr->luma_weight_flag[l][i]);
-                }
-
-                if (sps->chroma_format_idc != 0) {
+                if (false) { // do not show these flags
                   for (int i=0;i<=num_ref;i++) {
-                    LOG2("chroma_weight_flag_l%d         : %d\n",l,shdr->chroma_weight_flag[l][i]);
+                    LOG3("luma_weight_flag_l%d[%d]        : %d\n",l,i,shdr->luma_weight_flag[l][i]);
+                  }
+
+                  if (sps->chroma_format_idc != 0) {
+                    for (int i=0;i<=num_ref;i++) {
+                      LOG3("chroma_weight_flag_l%d[%d]      : %d\n",l,i,shdr->chroma_weight_flag[l][i]);
+                    }
                   }
                 }
 
@@ -702,8 +704,8 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
     }
 
     LOG2("slice_deblocking_filter_disabled_flag : %d %s\n",
-        shdr->slice_deblocking_filter_disabled_flag,
-        (shdr->deblocking_filter_override_flag ? "(override)" : "(from pps)"));
+         shdr->slice_deblocking_filter_disabled_flag,
+         (shdr->deblocking_filter_override_flag ? "(override)" : "(from pps)"));
 
     if (shdr->deblocking_filter_override_flag) {
 
@@ -717,7 +719,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag ||
          !shdr->slice_deblocking_filter_disabled_flag)) {
       LOG1("slice_loop_filter_across_slices_enabled_flag : %d\n",
-          shdr->slice_loop_filter_across_slices_enabled_flag);
+           shdr->slice_loop_filter_across_slices_enabled_flag);
     }
   }
 
