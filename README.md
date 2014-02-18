@@ -9,7 +9,6 @@ It is written from scratch in plain C for simplicity and efficiency.
 Its simple API makes it easy to integrate it into other software.
 
 libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
-
 All features of the Main profile are supported except long-term MC
 and weighted prediction, which are currently unused by the available encoders.
 
@@ -77,7 +76,7 @@ Additional logging information can be turned on and off using these `./configure
 Prebuilt binaries
 =================
 
-Binary packages can be obtained from here: https://launchpad.net/~strukturag/+archive/libde265 .
+Binary packages can be obtained from this launchpad site: https://launchpad.net/~strukturag/+archive/libde265 .
 
 
 Software using libde265
@@ -85,7 +84,7 @@ Software using libde265
 
 Libde265 has been integrated into these applications:
 
-- gstreamer plugin, https://github.com/strukturag/gstreamer-libde265
+- gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
 - Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
 
