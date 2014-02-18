@@ -37,14 +37,14 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
   int uvlc;
   pps->pic_parameter_set_id = uvlc = get_uvlc(br);
-  if (pps->pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
+  if (uvlc >= DE265_MAX_PPS_SETS ||
       uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return false;
   }
 
   pps->seq_parameter_set_id = uvlc = get_uvlc(br);
-  if (pps->seq_parameter_set_id >= DE265_MAX_PPS_SETS ||
+  if (uvlc >= DE265_MAX_PPS_SETS ||
       uvlc == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
@@ -71,6 +71,10 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
 
   seq_parameter_set* sps = get_sps(ctx, pps->seq_parameter_set_id);
+  if (sps==NULL) {
+    add_warning(ctx, DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
+    return false;
+  }
 
   if ((pps->pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -406,7 +410,7 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   pps->pps_extension_flag = get_bits(br,1);
 
   if (pps->pps_extension_flag) {
-    assert(false);
+    //assert(false);
     /*
       while( more_rbsp_data() )
 

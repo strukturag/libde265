@@ -107,6 +107,12 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
     shdr->slice_segment_address = 0;
   }
 
+  if (shdr->slice_segment_address < 0 ||
+      shdr->slice_segment_address > sps->PicSizeInCtbsY) {
+    add_warning(ctx, DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
 
   if (!shdr->dependent_slice_segment_flag) {
 
@@ -144,7 +150,8 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       shdr->short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
-        read_short_term_ref_pic_set(br, ctx->ref_pic_sets,
+        read_short_term_ref_pic_set(ctx,
+                                    br, ctx->ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets);
 

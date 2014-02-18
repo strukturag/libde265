@@ -38,6 +38,10 @@
 
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal);
 
+// TODO: should be in some vps.c related header
+de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
+
+
 LIBDE265_API const char *de265_get_version(void)
 {
     return (LIBDE265_VERSION);
@@ -110,6 +114,12 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "faulty reference picture list";
   case DE265_WARNING_EOSS_BIT_NOT_SET:
     return "end_of_sub_stream_one_bit not set to 1 when it should be";
+  case DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED:
+    return "maximum number of reference pictures exceeded";
+  case DE265_WARNING_INVALID_CHROMA_FORMAT:
+    return "invalid chroma format in SPS header";
+  case DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID:
+    return "slice segment address invalid";
 
   default: return "unknown error";
   }
@@ -824,7 +834,11 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         logdebug(LogHeaders,"---> read VPS\n");
 
         video_parameter_set vps;
-        read_vps(&reader,&vps);
+        err=read_vps(ctx,&reader,&vps);
+        if (err != DE265_OK) {
+          break;
+        }
+
         if (ctx->param_vps_headers_fd>=0) {
           dump_vps(&vps, ctx->param_vps_headers_fd);
         }

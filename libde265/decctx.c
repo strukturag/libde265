@@ -302,7 +302,6 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
 {
   if (ctx->sps[id].sps_read==false) {
     logerror(LogHeaders, "SPS %d has not been read\n", id);
-    assert(false); // TODO
     return NULL;
   }
 

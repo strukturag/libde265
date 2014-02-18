@@ -30,7 +30,7 @@
 #endif
 
 #include "libde265/bitstream.h"
-
+#include "libde265/de265.h"
 
 #define MAX_TEMPORAL_SUBLAYERS 8
 
@@ -148,7 +148,7 @@ typedef struct {
 
 } video_parameter_set;
 
-void read_vps(bitreader* reader, video_parameter_set* vps);
+
 void dump_vps(video_parameter_set*, int fd);
 
 #endif

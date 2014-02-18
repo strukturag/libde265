@@ -20,11 +20,12 @@
 
 #include "vps.h"
 #include "util.h"
+#include "decctx.h"
 
 #include <assert.h>
 
 
-void read_vps(bitreader* reader, video_parameter_set* vps)
+de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps)
 {
   vps->video_parameter_set_id = get_bits(reader, 4);
   skip_bits(reader, 2);
@@ -63,6 +64,11 @@ void read_vps(bitreader* reader, video_parameter_set* vps)
   vps->vps_max_layer_id = get_bits(reader,6);
   vps->vps_num_layer_sets = get_uvlc(reader)+1;
 
+  if (vps->vps_num_layer_sets<0 ||
+      vps->vps_num_layer_sets>=1024) {
+    add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
   for (int i=1; i <= vps->vps_num_layer_sets-1; i++)
     for (int j=0; j <= vps->vps_max_layer_id; j++)
@@ -94,7 +100,7 @@ void read_vps(bitreader* reader, video_parameter_set* vps)
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
 
-        return; // TODO: decode hrd_parameters()
+        return DE265_OK; // TODO: decode hrd_parameters()
       }
     }
   }
@@ -108,6 +114,8 @@ void read_vps(bitreader* reader, video_parameter_set* vps)
     rbsp_trailing_bits()
     */
   }
+
+  return DE265_OK;
 }
 
 

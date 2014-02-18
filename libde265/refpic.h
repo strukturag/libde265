@@ -23,7 +23,6 @@
 
 #include "libde265/bitstream.h"
 
-
 #define MAX_NUM_REF_PICS 16
 
 typedef struct {
@@ -43,7 +42,5 @@ typedef struct {
 
 void dump_short_term_ref_pic_set(ref_pic_set*, FILE* fh);
 void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range, FILE* fh);
-
-void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, int num_short_term_ref_pic_sets);
 
 #endif

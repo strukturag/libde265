@@ -19,6 +19,7 @@
  */
 
 #include "refpic.h"
+#include "decctx.h"
 #include "util.h"
 
 #include <assert.h>
@@ -51,7 +52,9 @@ static void compute_NumPoc(ref_pic_set* rpset)
 }
 
 
-void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, int num_short_term_ref_pic_sets)
+bool read_short_term_ref_pic_set(decoder_context* ctx,
+                                 bitreader* br, ref_pic_set* sets,
+                                 int idxRps, int num_short_term_ref_pic_sets)
 {
   char inter_ref_pic_set_prediction_flag=0;
 
@@ -170,7 +173,10 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
     int num_negative_pics = get_uvlc(br);
     int num_positive_pics = get_uvlc(br);
 
-    assert(num_negative_pics + num_positive_pics <= MAX_NUM_REF_PICS);
+    if (num_negative_pics + num_positive_pics > MAX_NUM_REF_PICS) {
+      add_warning(ctx, DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      return false;
+    }
 
 
     sets[idxRps].NumNegativePics = num_negative_pics;
@@ -204,6 +210,8 @@ void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, i
 
 
   compute_NumPoc(&sets[idxRps]);
+
+  return true;
 }
 
 

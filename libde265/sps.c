@@ -30,6 +30,11 @@ static int SubWidthC[]  = { -1,2,2,1 };
 static int SubHeightC[] = { -1,2,1,1 };
 
 
+// TODO: should be in some header-file of refpic.c
+extern bool read_short_term_ref_pic_set(decoder_context* ctx, bitreader* br, ref_pic_set* sets,
+                                        int idxRps, int num_short_term_ref_pic_sets);
+
+
 de265_error read_sps(decoder_context* ctx, bitreader* br,
                      seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
 {
@@ -62,6 +67,12 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
   }
   else {
     sps->ChromaArrayType = sps->chroma_format_idc;
+  }
+
+  if (sps->chroma_format_idc<0 ||
+      sps->chroma_format_idc>3) {
+    add_warning(ctx, DE265_WARNING_INVALID_CHROMA_FORMAT, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
   sps->SubWidthC  = SubWidthC [sps->chroma_format_idc];
@@ -184,7 +195,11 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     //alloc_ref_pic_set(&(*ref_pic_sets)[i],
     //sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1]);
 
-    read_short_term_ref_pic_set(br,*ref_pic_sets, i, sps->num_short_term_ref_pic_sets);
+    bool success = read_short_term_ref_pic_set(ctx,br,*ref_pic_sets, i,
+                                               sps->num_short_term_ref_pic_sets);
+    if (!success) {
+      return DE265_WARNING_SPS_HEADER_INVALID;
+    }
 
     // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
   }
