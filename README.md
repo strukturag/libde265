@@ -9,8 +9,8 @@ It is written from scratch in plain C for simplicity and efficiency.
 Its simple API makes it easy to integrate it into other software.
 
 libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
-All features of the Main profile are supported except long-term MC
-and weighted prediction, which are currently unused by the available encoders.
+All features of the Main profile except long-term MC (which is currently unused
+by the available encoders) are supported.
 
 The library comes with two example programs:
 
