@@ -671,7 +671,7 @@ void decode_intra_block(decoder_context* ctx,
 {
   //printf("decode_intra_block: xB0:%d/%d x0:%d/%d\n",xB0,yB0,x0,y0);
 
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   int splitFlag;
 

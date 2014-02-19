@@ -132,8 +132,8 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
 
   // luma sample interpolation process (8.5.3.2.2.1)
 
-  const int shift1 = sps->BitDepth_Y-8;
-  const int shift2 = 6;
+  //const int shift1 = sps->BitDepth_Y-8;
+  //const int shift2 = 6;
   const int shift3 = 14 - sps->BitDepth_Y;
 
   int w = sps->pic_width_in_luma_samples;
@@ -202,8 +202,8 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
     int extra_top    = extra_before[yFracL];
     int extra_bottom = extra_after [yFracL];
 
-    int nPbW_extra = extra_left + nPbW + extra_right;
-    int nPbH_extra = extra_top  + nPbH + extra_bottom;
+    //int nPbW_extra = extra_left + nPbW + extra_right;
+    //int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
 
     uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+7)];
@@ -260,8 +260,8 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
 
   // chroma sample interpolation process (8.5.3.2.2.2)
 
-  const int shift1 = sps->BitDepth_C-8;
-  const int shift2 = 6;
+  //const int shift1 = sps->BitDepth_C-8;
+  //const int shift2 = 6;
   const int shift3 = 14 - sps->BitDepth_C;
 
   int wC = sps->pic_width_in_luma_samples /sps->SubWidthC;
@@ -358,7 +358,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const VectorInfo* vi)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
+  //const seq_parameter_set* sps = ctx->current_sps;
 
   /*
     if (vi->lum.predFlag[0]) {
@@ -435,8 +435,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  const int shift1 = 6; // TODO
-  const int offset1= 1<<(shift1-1);
+  //const int shift1 = 6; // TODO
+  //const int offset1= 1<<(shift1-1);
 
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
@@ -512,8 +512,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
     if (predFlag[0]==1 && predFlag[1]==1) {
       if (ctx->current_pps->weighted_bipred_flag==0) {
-        const int shift2  = 15-8; // TODO: real bit depth
-        const int offset2 = 1<<(shift2-1);
+        //const int shift2  = 15-8; // TODO: real bit depth
+        //const int offset2 = 1<<(shift2-1);
 
         BipredCnt++;
 
@@ -1441,7 +1441,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   // 6.  test A0 and A1  (Ak)
 
-  int refIdxA;
+  int refIdxA=-1;
 
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
@@ -1472,7 +1472,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
   // 7.
 
   for (int k=0 ; k<=1 && out_availableFlagLXN[A]==0 ; k++) {
-    int refPicList;
+    int refPicList=-1;
 
     if (availableA[k] &&
         get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
@@ -1497,6 +1497,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
     }
 
     if (out_availableFlagLXN[A]==1) {
+      assert(refIdxA>=0);
+      assert(refPicList>=0);
+
       const de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
       const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
       if (refPicA->PicState == UsedForShortTermReference &&
@@ -1534,7 +1537,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   // 3. test B0,B1,B2 (Bk)
 
-  int refIdxB;
+  int refIdxB=-1;
 
   bool availableB[3];
   for (int k=0;k<3;k++) {
@@ -1578,7 +1581,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
     out_availableFlagLXN[B]=0;
 
     for (int k=0 ; k<=2 && out_availableFlagLXN[B]==0 ; k++) {
-      int refPicList;
+      int refPicList=-1;
 
       if (availableB[k]) {
         int Y=1-X;
@@ -1601,6 +1604,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       }
 
       if (out_availableFlagLXN[B]==1) {
+        assert(refPicList>=0);
+        assert(refIdxB>=0);
+
         const de265_image* refPicB = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxB ] ];
         const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
         if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
@@ -1721,7 +1727,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
                                     int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
                                     VectorInfo* out_vi)
 {
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   int xP = xC+xB;
   int yP = yC+yB;

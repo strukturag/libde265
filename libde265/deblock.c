@@ -486,7 +486,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
         if (dE != 0) {
           for (int k=0;k<4;k++) {
-            int nDp,nDq;
+            //int nDp,nDq;
 
             logtrace(LogDeblock,"line:%d\n",k);
 
@@ -502,7 +502,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
             if (dE==2) {
               // strong filtering
 
-              nDp=nDq=3;
+              //nDp=nDq=3;
 
               uint8_t pnew[3],qnew[3];
               pnew[0] = Clip3(p0-2*tc,p0+2*tc, (p2 + 2*p1 + 2*p0 + 2*q0 + q1 +4)>>3);
@@ -532,7 +532,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
             else {
               // weak filtering
 
-              nDp=nDq=0;
+              //nDp=nDq=0;
 
               int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
 
@@ -564,8 +564,8 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
                   else          { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); }
                 }
 
-                nDp = dEp+1;
-                nDq = dEq+1;
+                //nDp = dEp+1;
+                //nDq = dEq+1;
 
                 logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
               }
@@ -743,7 +743,7 @@ static void thread_deblock(void* d)
   decrease_pending_tasks(ctx->img, 1);
 }
 
-
+/*
 static void thread_deblock_ctb(void* d)
 {
   struct thread_task_deblock* data = (struct thread_task_deblock*)d;
@@ -786,6 +786,7 @@ static void thread_deblock_full_ctb_row(void* d)
   edge_filtering_luma    (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
   edge_filtering_chroma  (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
 }
+*/
 
 
 void apply_deblocking_filter(decoder_context* ctx)

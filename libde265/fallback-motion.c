@@ -165,21 +165,23 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
 {
   const int shift1 = 0;
   const int shift2 = 6;
-  const int shift3 = 6;
+  //const int shift3 = 6;
 
   int extra_left = 1;
   int extra_top  = 1;
-  int extra_right = 2;
+  //  int extra_right = 2;
   int extra_bottom= 2;
 
-  int nPbW_extra = extra_left + nPbWC + extra_right;
+
   int nPbH_extra = extra_top  + nPbHC + extra_bottom;
 
   int16_t* tmp2buf = (int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
 
   /*
-  printf("x,y FracC: %d/%d\n",xFracC,yFracC);
+  int nPbW_extra = extra_left + nPbWC + extra_right;
 
+
+  printf("x,y FracC: %d/%d\n",xFracC,yFracC);
 
   printf("---IN---\n");
 
@@ -213,6 +215,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       case 4: v = (-4*p[0]+36*p[1]+36*p[2]-4*p[3])>>shift1; break;
       case 5: v = (-4*p[0]+28*p[1]+46*p[2]-6*p[3])>>shift1; break;
       case 6: v = (-2*p[0]+16*p[1]+54*p[2]-4*p[3])>>shift1; break;
+      default:
       case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>shift1; break;
       }
 
@@ -245,6 +248,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       case 4: v = (-4*p[0]+36*p[1]+36*p[2]-4*p[3])>>vshift; break;
       case 5: v = (-4*p[0]+28*p[1]+46*p[2]-6*p[3])>>vshift; break;
       case 6: v = (-2*p[0]+16*p[1]+54*p[2]-4*p[3])>>vshift; break;
+      default:
       case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>vshift; break;
       }
         
@@ -272,7 +276,7 @@ void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
                            uint8_t *src, ptrdiff_t srcstride,
                            int nPbW, int nPbH, int16_t* mcbuffer)
 {
-  const int shift1 = 0; // sps->BitDepth_Y-8;
+  //const int shift1 = 0; // sps->BitDepth_Y-8;
   const int shift2 = 6;
 
   // straight copy
@@ -315,11 +319,11 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
                        int xFracL, int yFracL)
 {
   int extra_left   = extra_before[xFracL];
-  int extra_right  = extra_after [xFracL];
+  //int extra_right  = extra_after [xFracL];
   int extra_top    = extra_before[yFracL];
   int extra_bottom = extra_after [yFracL];
 
-  int nPbW_extra = extra_left + nPbW + extra_right;
+  //int nPbW_extra = extra_left + nPbW + extra_right;
   int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
   const int shift1 = 0; // sps->BitDepth_Y-8;
