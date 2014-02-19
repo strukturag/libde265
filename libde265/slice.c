@@ -2661,7 +2661,7 @@ int read_transform_unit(decoder_context* ctx,
   logtrace(LogSlice,"- read_transform_unit x0:%d y0:%d xBase:%d yBase:%d cbf:%d:%d:%d\n",
          x0,y0,xBase,yBase, cbf_luma, cbf_cb, cbf_cr);
 
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   assert(cbf_cb != -1);
   assert(cbf_cr != -1);
@@ -3532,7 +3532,7 @@ void read_coding_quadtree(decoder_context* ctx,
 {
   logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d POC:%d\n",x0,y0,1<<log2CbSize,ctDepth,ctx->img->PicOrderCntVal);
 
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
   seq_parameter_set* sps = ctx->current_sps;
 
   int split_flag;
