@@ -218,9 +218,6 @@ typedef struct slice_segment_header {
 
   int initType;
 
-  int IsCuQpDeltaCoded;
-  int CuQpDelta;
-
   int cu_transquant_bypass_flag;
 
   int CurrRpsIdx;

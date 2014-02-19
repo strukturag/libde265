@@ -504,7 +504,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
   // --- init variables ---
 
   shdr->SliceQPY = pps->pic_init_qp + shdr->slice_qp_delta;
-  shdr->CuQpDelta = 0;
+  //shdr->CuQpDelta = 0;
 
   switch (shdr->slice_type)
     {
@@ -2675,7 +2675,7 @@ int read_transform_unit(decoder_context* ctx,
   if (cbf_luma || cbf_cb || cbf_cr)
     {
       if (ctx->current_pps->cu_qp_delta_enabled_flag &&
-          !shdr->IsCuQpDeltaCoded) {
+          !tctx->IsCuQpDeltaCoded) {
 
         int cu_qp_delta_abs = decode_cu_qp_delta_abs(tctx);
         int cu_qp_delta_sign=0;
@@ -2683,12 +2683,12 @@ int read_transform_unit(decoder_context* ctx,
           cu_qp_delta_sign = decode_CABAC_bypass(&tctx->cabac_decoder);
         }
 
-        shdr->IsCuQpDeltaCoded = 1;
-        shdr->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
+        tctx->IsCuQpDeltaCoded = 1;
+        tctx->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
 
         logtrace(LogSlice,"cu_qp_delta_abs = %d\n",cu_qp_delta_abs);
         logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
-        logtrace(LogSlice,"CuQpDelta = %d\n",shdr->CuQpDelta);
+        logtrace(LogSlice,"CuQpDelta = %d\n",tctx->CuQpDelta);
       }
     }
 
@@ -3554,8 +3554,8 @@ void read_coding_quadtree(decoder_context* ctx,
   if (ctx->current_pps->cu_qp_delta_enabled_flag &&
       log2CbSize >= ctx->current_pps->Log2MinCuQpDeltaSize)
     {
-      shdr->IsCuQpDeltaCoded = 0;
-      shdr->CuQpDelta = 0;
+      tctx->IsCuQpDeltaCoded = 0;
+      tctx->CuQpDelta = 0;
     }
   else
     {
@@ -3612,8 +3612,6 @@ enum DecodeResult decode_substream(thread_context* tctx,
   const int ctbW = sps->PicWidthInCtbsY;
 
   do {
-    //printf("%p: decode %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
-
     const int ctbx = tctx->CtbX;
     const int ctby = tctx->CtbY;
 
@@ -3624,6 +3622,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
       de265_wait_for_progress(&ctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW],
                               CTB_PROGRESS_PREFILTER);
     }
+
+    //printf("%p: decode %d|%d\n", tctx, tctx->CtbY,tctx->CtbX);
 
 
     // read and decode CTB
@@ -3645,7 +3645,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     // TODO: ctx->img should be tctx->img
     de265_announce_progress(&ctx->img->ctb_progress[ctbx+ctby*ctbW], CTB_PROGRESS_PREFILTER);
 
-    //printf("decoded %d|%d\n",ctby,ctbx);
+    //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
 
 
     // end of slice segment ?
@@ -3771,6 +3771,8 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
   enum DecodeResult result;
   do {
+    //printf("offset: %d\n", tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start-2);
+
     result = decode_substream(tctx, false, 1,1);  // HACK: save context in thread.context 1
 
     if (result == Decode_EndOfSliceSegment ||

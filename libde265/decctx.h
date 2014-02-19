@@ -125,6 +125,9 @@ typedef struct thread_context
 
   // quantization
 
+  int IsCuQpDeltaCoded;
+  int CuQpDelta;
+
   int currentQPY;
   int currentQG_x, currentQG_y;
   int lastQPYinPreviousQG;

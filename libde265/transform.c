@@ -176,7 +176,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   qPY_PRED = (qPYA + qPYB + 1)>>1;
 
-  int QPY = ((qPY_PRED + shdr->CuQpDelta + 52+2*sps->QpBdOffset_Y) %
+  int QPY = ((qPY_PRED + tctx->CuQpDelta + 52+2*sps->QpBdOffset_Y) %
              (52 + sps->QpBdOffset_Y)) - sps->QpBdOffset_Y;
 
   tctx->qPYPrime = QPY + sps->QpBdOffset_Y;
