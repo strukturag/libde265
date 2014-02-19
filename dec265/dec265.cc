@@ -308,13 +308,16 @@ int main(int argc, char** argv)
   }
 
   if (optind != argc-1 || show_help) {
+    fprintf(stderr," dec265  v%s\n", de265_get_version());
+    fprintf(stderr,"--------------\n");
     fprintf(stderr,"usage: dec265 [options] videofile.bin\n");
-    fprintf(stderr,"The video file must be a raw h.265 bitstream (e.g. HM-10.0 output)\n");
+    fprintf(stderr,"The video file must be a raw bitstream, or a stream with NAL units (option -n).\n");
     fprintf(stderr,"\n");
     fprintf(stderr,"options:\n");
     fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
+    fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
     fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
