@@ -132,9 +132,8 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               vlc = get_svlc(br);
               if (vlc < -512 || vlc > 511) return false;
 
-              if (vlc==0) { vlc=0; }
-              else { vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
-                                                 >> shdr->ChromaLog2WeightDenom) + 128)); }
+              vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
+                                          >> shdr->ChromaLog2WeightDenom) + 128));
 
               shdr->ChromaOffset[l][i][j] = vlc;
             }

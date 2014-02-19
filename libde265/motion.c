@@ -623,26 +623,26 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
         int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
 
-        int luma_w0 = shdr->LumaWeight[l][refIdx];
-        int luma_o0 = shdr->luma_offset[l][refIdx] * (1<<(8-8)); // TODO: bitDepth
+        int luma_w = shdr->LumaWeight[l][refIdx];
+        int luma_o = shdr->luma_offset[l][refIdx] * (1<<(8-8)); // TODO: bitDepth
 
-        int chroma0_w0 = shdr->ChromaWeight[l][refIdx][0];
-        int chroma0_o0 = shdr->ChromaOffset[l][refIdx][0] * (1<<(8-8)); // TODO: bitDepth
-        int chroma1_w0 = shdr->ChromaWeight[l][refIdx][1];
-        int chroma1_o0 = shdr->ChromaOffset[l][refIdx][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_w = shdr->ChromaWeight[l][refIdx][0];
+        int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_w = shdr->ChromaWeight[l][refIdx][1];
+        int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(8-8)); // TODO: bitDepth
 
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
                                           predSamplesL[l],nCS, nPbW,nPbH,
-                                          luma_w0, luma_o0, luma_log2WD);
+                                          luma_w, luma_o, luma_log2WD);
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
-                                          chroma0_w0, chroma0_o0, chroma_log2WD);
+                                          chroma0_w, chroma0_o, chroma_log2WD);
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
-                                          chroma1_w0, chroma1_o0, chroma_log2WD);
+                                          chroma1_w, chroma1_o, chroma_log2WD);
       }
     }
     else {
