@@ -242,8 +242,8 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
                  seihash->crc[i], i, crc);
 
         if (crc != seihash->crc[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x\n",
-                  seihash->crc[i], crc);
+          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
+                  seihash->crc[i], crc, img->PicOrderCntVal);
           return DE265_ERROR_CHECKSUM_MISMATCH;
         }
       }
@@ -254,8 +254,8 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
         uint32_t chksum = compute_checksum_8bit(data,w,h,stride);
 
         if (chksum != seihash->checksum[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x\n",
-                  seihash->checksum[i], chksum);
+          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
+                  seihash->checksum[i], chksum, img->PicOrderCntVal);
           return DE265_ERROR_CHECKSUM_MISMATCH;
         }
       }
