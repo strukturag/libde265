@@ -830,7 +830,9 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
     // check for full reorder buffers
 
-    int maxNumPicsInReorderBuffer = ctx->current_vps->layer[0].vps_max_num_reorder_pics;
+    int sublayer = ctx->current_vps->vps_max_sub_layers -1;
+
+    int maxNumPicsInReorderBuffer = ctx->current_vps->layer[sublayer].vps_max_num_reorder_pics;
 
     if (ctx->reorder_output_queue_length > maxNumPicsInReorderBuffer) {
       flush_next_picture_from_reorder_buffer(ctx);
