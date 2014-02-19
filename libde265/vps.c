@@ -27,10 +27,18 @@
 
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps)
 {
-  vps->video_parameter_set_id = get_bits(reader, 4);
+  int vlc;
+
+  vps->video_parameter_set_id = vlc = get_bits(reader, 4);
+  if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+
   skip_bits(reader, 2);
-  vps->vps_max_layers = get_bits(reader,6) +1;
-  vps->vps_max_sub_layers = get_bits(reader,3) +1;
+  vps->vps_max_layers = vlc = get_bits(reader,6) +1;
+  if (vlc != 1) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // TODO: out of specification
+
+  vps->vps_max_sub_layers = vlc = get_bits(reader,3) +1;
+  if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+
   vps->vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
 
@@ -43,8 +51,9 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
   */
 
   vps->vps_sub_layer_ordering_info_present_flag = get_bits(reader,1);
+  assert(vps->vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
 
-  int firstLayerRead = vps->vps_sub_layer_ordering_info_present_flag ? 0 : vps->vps_max_sub_layers-1;
+  int firstLayerRead = vps->vps_sub_layer_ordering_info_present_flag ? 0 : (vps->vps_max_sub_layers-1);
 
   for (int i=firstLayerRead;i<vps->vps_max_sub_layers;i++) {
     vps->layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
@@ -53,6 +62,8 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
   }
 
   if (!vps->vps_sub_layer_ordering_info_present_flag) {
+    //assert(firstLayerRead < MAX_TEMPORAL_SUBLAYERS);
+
     for (int i=0;i<firstLayerRead;i++) {
       vps->layer[i].vps_max_dec_pic_buffering = vps->layer[firstLayerRead].vps_max_dec_pic_buffering;
       vps->layer[i].vps_max_num_reorder_pics  = vps->layer[firstLayerRead].vps_max_num_reorder_pics;
