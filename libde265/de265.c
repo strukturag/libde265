@@ -243,7 +243,7 @@ void nal_insert_skipped_byte(NAL_unit* nal, int pos)
 LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
                                            const void* data8, int len)
 {
-  decoder_context* ctx = (decoder_context*)de265ctx;
+  //decoder_context* ctx = (decoder_context*)de265ctx;
   de265_error err;
   if (len > 0) {
     err = de265_push_data(de265ctx, data8, len, 0, NULL);

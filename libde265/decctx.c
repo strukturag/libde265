@@ -745,7 +745,7 @@ void writeFrame_Y(decoder_context* ctx,const char* filename)
 {
   int w = ctx->img->width;
   int h = ctx->img->height;
-  int c_idx=0;
+  //int c_idx=0;
   int ctb_size = 64; // HACK
 
   int stride = ctx->img->stride;

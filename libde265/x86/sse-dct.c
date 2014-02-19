@@ -271,9 +271,7 @@ void ff_hevc_transform_skip_8_sse(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _str
     ptrdiff_t stride = _stride;
     int shift = 5;
     int offset = 16;
-    int result;
-    int x, y;
-    __m128i r0,r1,r2,r3,r4,r5,r6,r7,r8,r9;
+    __m128i r0,r1,r2,r3,r4,r5,r6,r9;
 
     r9= _mm_setzero_si128();
     //r8= _mm_set_epi32(0,0,0,-1);

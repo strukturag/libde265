@@ -40,6 +40,9 @@
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)
 
+extern bool read_short_term_ref_pic_set(decoder_context* ctx,
+                                        bitreader* br, ref_pic_set* sets,
+                                        int idxRps, int num_short_term_ref_pic_sets);
 
 
 void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx);
@@ -1708,6 +1711,7 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 }
 
 
+/*
 static int decode_coeff_abs_level_remaining(thread_context* tctx,
 					    int cRiceParam, int cTRMax)
 {
@@ -1724,6 +1728,7 @@ static int decode_coeff_abs_level_remaining(thread_context* tctx,
     return prefix;
   }
 }
+*/
 
 
 static int decode_coeff_abs_level_remaining_HM(thread_context* tctx,
@@ -2505,8 +2510,6 @@ int residual_coding(decoder_context* ctx,
 
       int newLastGreater1ScanPos=-1;
 
-      int numGreater1Flag=0;
-
       int lastGreater1Coefficient = libde265_min(8,nCoefficients);
       for (int c=0;c<lastGreater1Coefficient;c++) {
         int greater1_flag =
@@ -2903,7 +2906,7 @@ void read_transform_tree(decoder_context* ctx,
 }
 
 
-
+#if DE265_LOG_TRACE
 static const char* part_mode_name(enum PartMode pm)
 {
   switch (pm) {
@@ -2919,12 +2922,13 @@ static const char* part_mode_name(enum PartMode pm)
 
   return "undefined part mode";
 }
+#endif
 
 
 void read_mvd_coding(thread_context* tctx,
                      int x0,int y0, int refList)
 {
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   int abs_mvd_greater0_flag[2];
   abs_mvd_greater0_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
@@ -3159,7 +3163,7 @@ void read_coding_unit(decoder_context* ctx,
 {
   const seq_parameter_set* sps = ctx->current_sps;
 
-  int nS = 1 << log2CbSize;
+  //int nS = 1 << log2CbSize;
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
@@ -3707,7 +3711,7 @@ void thread_decode_slice_segment(void* d)
   initialize_CABAC(ctx,tctx);
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  enum DecodeResult result = decode_substream(tctx, false, -1,-1);
+  /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,-1);
 
   decrease_pending_tasks(ctx->img, 1);
 
@@ -3722,12 +3726,10 @@ void thread_decode_CTB_row(void* d)
   thread_context* tctx = &ctx->thread_context[data->thread_context_id];
 
   seq_parameter_set* sps = ctx->current_sps;
-  int ctbSize = 1<<sps->Log2CtbSizeY;
   int ctbW = sps->PicWidthInCtbsY;
 
   setCtbAddrFromTS(tctx);
 
-  int ctbx = tctx->CtbAddrInRS % ctbW;
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
 
@@ -3744,7 +3746,7 @@ void thread_decode_CTB_row(void* d)
     destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
   }
 
-  enum DecodeResult result = decode_substream(tctx, true, 1,destThreadContext);
+  /*enum DecodeResult result =*/ decode_substream(tctx, true, 1,destThreadContext);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 

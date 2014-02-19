@@ -51,7 +51,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
   */
 
   vps->vps_sub_layer_ordering_info_present_flag = get_bits(reader,1);
-  assert(vps->vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
+  //assert(vps->vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
 
   int firstLayerRead = vps->vps_sub_layer_ordering_info_present_flag ? 0 : (vps->vps_max_sub_layers-1);
 
@@ -62,7 +62,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
   }
 
   if (!vps->vps_sub_layer_ordering_info_present_flag) {
-    //assert(firstLayerRead < MAX_TEMPORAL_SUBLAYERS);
+    assert(firstLayerRead < MAX_TEMPORAL_SUBLAYERS);
 
     for (int i=0;i<firstLayerRead;i++) {
       vps->layer[i].vps_max_dec_pic_buffering = vps->layer[firstLayerRead].vps_max_dec_pic_buffering;

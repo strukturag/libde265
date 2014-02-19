@@ -567,7 +567,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
                 //nDp = dEp+1;
                 //nDq = dEq+1;
 
-                logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
+                //logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
               }
             }
           }

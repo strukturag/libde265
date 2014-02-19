@@ -133,6 +133,8 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
   if (sps->sps_sub_layer_ordering_info_present_flag) {
     int ref = sps->sps_max_sub_layers-1;
+    assert(ref<7);
+
     for (int i=0 ; i < sps->sps_max_sub_layers-1; i++ ) {
       sps->sps_max_dec_pic_buffering[i] = sps->sps_max_dec_pic_buffering[ref];
       sps->sps_max_num_reorder_pics[i]  = sps->sps_max_num_reorder_pics[ref];

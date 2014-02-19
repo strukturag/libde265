@@ -16,7 +16,7 @@
 
 void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
 {
-  uint32_t ecx,edx;
+  uint32_t ecx=0,edx=0;
 
 #ifdef _MSC_VER
   uint32_t regs[4];
@@ -33,7 +33,7 @@ void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel)
   
   // printf("CPUID EAX=1 -> ECX=%x EDX=%x\n", regs[2], regs[3]);
 
-  int have_MMX    = !!(edx & (1<<23));
+  //int have_MMX    = !!(edx & (1<<23));
   int have_SSE    = !!(edx & (1<<25));
   int have_SSE4_1 = !!(ecx & (1<<19));
 

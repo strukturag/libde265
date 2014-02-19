@@ -119,6 +119,7 @@ static inline uint16_t crc_process_byte(uint16_t crc, uint8_t byte)
   return crc;
 }
 
+/*
 static uint16_t compute_CRC_8bit_old(const uint8_t* data,int w,int h,int stride)
 {
   uint16_t crc = 0xFFFF;
@@ -133,6 +134,7 @@ static uint16_t compute_CRC_8bit_old(const uint8_t* data,int w,int h,int stride)
 
   return crc;
 }
+*/
 
 static inline uint16_t crc_process_byte_parallel(uint16_t crc, uint8_t byte)
 {
