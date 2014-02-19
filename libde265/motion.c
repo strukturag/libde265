@@ -633,15 +633,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
-                                          predSamplesL[0],nCS, nPbW,nPbH,
+                                          predSamplesL[l],nCS, nPbW,nPbH,
                                           luma_w0, luma_o0, luma_log2WD);
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
-                                          predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
+                                          predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
                                           chroma0_w0, chroma0_o0, chroma_log2WD);
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
-                                          predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
+                                          predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
                                           chroma1_w0, chroma1_o0, chroma_log2WD);
       }
     }

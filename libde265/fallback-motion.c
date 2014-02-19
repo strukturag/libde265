@@ -58,7 +58,9 @@ void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
                                     int width, int height,
                                     int w1,int o1, int w2,int o2, int log2WD)
 {
-  int rnd = ((o1+o2+1) << log2WD);
+  assert(log2WD>=1); // TODO
+
+  const int rnd = ((o1+o2+1) << log2WD);
 
   for (int y=0;y<height;y++) {
     int16_t* in1 = &src1[y*srcstride];
