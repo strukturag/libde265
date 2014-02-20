@@ -822,7 +822,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         //printf("-------- decode --------\n");
 
-        add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
+        //add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
 
         wait_for_completion(ctx->img);
       }
