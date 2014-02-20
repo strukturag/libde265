@@ -698,12 +698,6 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
             // set thread context
 
-            /*
-              for (int x=0;x<ctbsWidth;x++) {
-              ctx->img->ctb_info[x+y*ctbsWidth].thread_context_id = y; // TODO: shouldn't be hardcoded
-              }
-            */
-
             ctx->thread_context[tile].shdr = hdr;
             ctx->thread_context[tile].decctx = ctx;
 
@@ -733,13 +727,9 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           add_task_decode_slice_segment(ctx, i);
         }
 
-        // TODO: hard-coded thread context
-
-        //add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
-
         wait_for_completion(ctx->img);
       }
-      else if (1) {
+      else {
         if (nRows > MAX_THREAD_CONTEXTS) {
           return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
         }
@@ -785,44 +775,6 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         for (int y=0;y<nRows;y++) {
           add_task_decode_CTB_row(ctx, y, y==0);
         }
-
-        // TODO: hard-coded thread context
-
-        //add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
-
-        wait_for_completion(ctx->img);
-      }
-      else {
-        if (nRows > MAX_THREAD_CONTEXTS) {
-          return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
-        }
-
-        for (int i=0;i<nRows;i++) {
-          int dataStartIndex;
-          if (i==0) { dataStartIndex=0; }
-          else      { dataStartIndex=hdr->entry_point_offset[i-1]; }
-
-          int dataEnd;
-          if (i==nRows-1) dataEnd = reader.bytes_remaining;
-          else            dataEnd = hdr->entry_point_offset[i];
-
-          init_thread_context(&ctx->thread_context[i]);
-
-          init_CABAC_decoder(&ctx->thread_context[i].cabac_decoder,
-                             &reader.data[dataStartIndex],
-                             dataEnd-dataStartIndex);
-
-          ctx->thread_context[i].shdr = hdr;
-          ctx->thread_context[i].decctx = ctx;
-        }
-
-        // TODO: hard-coded thread context
-
-        assert(ctx->img->tasks_pending == 0);
-
-        //printf("-------- decode --------\n");
-
-        //add_CTB_decode_task_syntax(&ctx->thread_context[0], 0,0  ,0,0, NULL);
 
         wait_for_completion(ctx->img);
       }

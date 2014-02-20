@@ -1939,22 +1939,6 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
 }
 
 
-void init_thread_context_for_CTB(thread_context* tctx)
-{
-#if 0
-  slice_segment_header* shdr = tctx->shdr;
-  pic_parameter_set* pps = tctx->decctx->current_pps;
-
-  tctx->SliceAddrRS = shdr->SliceAddrRS;
-
-  tctx->CtbAddrInTS = shdr->slice_segment_address;
-  // tctx->CtbAddrInTS += ctby * tctx->decctx->current_sps->PicWidthInCtbsY; // TODO
-
-  tctx->CtbAddrInRS = tctx->CtbAddrInTS; // TODO (page 46)
-#endif
-}
-
-
 /* Take CtbAddrInTS and compute
    -> CtbAddrInRS, CtbX, CtbY
  */
