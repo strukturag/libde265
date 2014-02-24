@@ -13,7 +13,7 @@ env:
 matrix:
   exclude:
     - compiler: clang
-      env: HOST= WINE= DECODESTREAMS=
+      env: HOST= WINE= DECODESTREAMS=1
     - compiler: clang
       env: HOST=i686-w64-mingw32 WINE=wine DECODESTREAMS=
     - compiler: clang
