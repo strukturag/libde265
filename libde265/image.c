@@ -639,23 +639,3 @@ const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps
   assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
   return &img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo;
 }
-
-
-void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt)
-{
-  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
-  img->ctb_info[idx].task_blocking_cnt = cnt;
-}
-
-uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY)
-{
-  int idx = ctbX + ctbY*sps->PicWidthInCtbsY;
-
-#ifndef _WIN32
-  de265_sync_int blkcnt = __sync_sub_and_fetch(&img->ctb_info[idx].task_blocking_cnt, 1);
-#else
-  de265_sync_int blkcnt = InterlockedDecrement((volatile long*)(&img->ctb_info[idx].task_blocking_cnt));
-#endif
-
-  return blkcnt;
-}

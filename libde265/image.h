@@ -78,7 +78,6 @@ typedef struct {
 
   sao_info saoInfo;
 
-  de265_sync_int task_blocking_cnt; // for parallelization
   uint16_t thread_context_id; // which thread-context is used to decode this CTB
 } CTB_info;
 
@@ -293,10 +292,6 @@ int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, 
 void set_sao_info(de265_image* img,const seq_parameter_set* sps,
                   int ctbX,int ctbY,const sao_info* saoinfo);
 const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY);
-
-
-void set_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY, int cnt);
-uint8_t decrease_CTB_deblocking_cnt_new(de265_image* img,const seq_parameter_set* sps,int ctbX,int ctbY);
 
 
 // --- value logging ---

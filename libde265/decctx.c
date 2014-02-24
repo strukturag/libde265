@@ -253,14 +253,6 @@ void prepare_new_picture(decoder_context* ctx)
 
   int w = ctx->current_sps->PicWidthInCtbsY;
   int h = ctx->current_sps->PicHeightInCtbsY;
-
-  for (int y=0;y<h;y++)
-    for (int x=0;x<w;x++)
-      {
-        int cnt=2;
-        if (y==0 || x==0) cnt--;
-        set_CTB_deblocking_cnt_new(ctx->img,ctx->current_sps,x,y, cnt);
-      }
 }
 
 
