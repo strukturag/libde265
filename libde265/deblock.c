@@ -743,7 +743,7 @@ static void thread_deblock(void* d)
   decrease_pending_tasks(ctx->img, 1);
 }
 
-/*
+
 static void thread_deblock_ctb(void* d)
 {
   struct thread_task_deblock* data = (struct thread_task_deblock*)d;
@@ -752,8 +752,11 @@ static void thread_deblock_ctb(void* d)
   derive_boundaryStrength_CTB(ctx, data->vertical, data->ctb_x,data->ctb_y);
   edge_filtering_luma_CTB    (ctx, data->vertical, data->ctb_x,data->ctb_y);
   edge_filtering_chroma_CTB  (ctx, data->vertical, data->ctb_x,data->ctb_y);
+
+  decrease_pending_tasks(ctx->img, 1);
 }
 
+/*
 static void thread_deblock_ctb_row(void* d)
 {
   struct thread_task_deblock* data = (struct thread_task_deblock*)d;
@@ -858,7 +861,8 @@ void apply_deblocking_filter(decoder_context* ctx)
             task.task_cmd = THREAD_TASK_DEBLOCK;
             task.work_routine = thread_deblock_ctb;
 
-            ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
+            //ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
+            increase_pending_tasks(ctx->img, ctx->current_sps->PicSizeInCtbsY);
 
             for (int y=0;y<ctx->current_sps->PicHeightInCtbsY;y++)
               for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
@@ -870,6 +874,8 @@ void apply_deblocking_filter(decoder_context* ctx)
                 
                   add_task(&ctx->thread_pool, &task);
                 }
+
+            wait_for_completion(ctx->img);
           }
 #endif
 #if 0
