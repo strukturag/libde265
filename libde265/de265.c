@@ -694,7 +694,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         for (int ty=0;ty<pps->num_tile_rows;ty++)
           for (int tx=0;tx<pps->num_tile_columns;tx++) {
-            int tile = tx + ty*pps->num_tile_rows;
+            int tile = tx + ty*pps->num_tile_columns;
 
             // set thread context
 
