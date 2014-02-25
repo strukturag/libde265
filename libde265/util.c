@@ -129,11 +129,13 @@ void logdebug(enum LogModule module, const char* string, ...)
 #endif
 
 #ifdef DE265_LOG_TRACE
+extern int logcnt;
 void logtrace(enum LogModule module, const char* string, ...)
 {
   if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
+  //if (logcnt<319500) return;
 
   //if (module != LogCABAC) return;
 
