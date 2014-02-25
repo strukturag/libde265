@@ -53,4 +53,23 @@ int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits);
 int  decode_CABAC_TR_bypass(CABAC_decoder* decoder, int cRiceParam, int cTRMax);
 int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 
+
+// ---------------------------------------------------------------------------
+
+typedef struct {
+  uint8_t* data;
+  uint32_t data_capacity;
+  uint32_t data_size;
+
+  uint32_t range;
+  uint32_t low;
+  int8_t   bits_left;
+  uint8_t  buffered_byte;
+  uint16_t num_buffered_bytes;
+} CABAC_encoder;
+
+void init_CABAC_encoder(CABAC_encoder* encoder);
+void encode_CABAC_bit(CABAC_encoder* encoder,context_model* model, int bit);
+void encode_CABAC_bypass(CABAC_encoder* encoder, int bit);
+
 #endif

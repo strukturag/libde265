@@ -23,7 +23,10 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
+
+#define INITIAL_CABAC_BUFFER_CAPACITY 4096
 
 
 static const uint8_t LPS_table[64][4] =
@@ -158,13 +161,7 @@ void init_CABAC_decoder_2(CABAC_decoder* decoder)
 
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 {
-  //if (logcnt >= 400000000) { enablelog(); }
-
-  // if (logcnt==400068770) { raise(SIGINT); }
-
   logtrace(LogCABAC,"[%3d] decodeBin r:%x v:%x state:%d\n",logcnt,decoder->range, decoder->value, model->state);
-
-  //assert(decoder->range>=0x100);
 
   int decoded_bit;
   int LPS = LPS_table[model->state][ ( decoder->range >> 6 ) - 4 ];
@@ -173,6 +170,8 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
   uint32_t scaled_range = decoder->range << 7;
 
   logtrace(LogCABAC,"[%3d] sr:%x v:%x\n",logcnt,scaled_range, decoder->value);
+
+  //if (logcnt==319827) { raise(SIGINT); }
 
   if (decoder->value < scaled_range)
     {
@@ -203,14 +202,19 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     {
       logtrace(LogCABAC,"[%3d] LPS\n",logcnt);
 
-      // LPS path                                                                                    
+      // LPS path
 
-      int num_bits = renorm_table[ LPS >> 3 ];
       decoder->value = (decoder->value - scaled_range);
 
+      int num_bits = renorm_table[ LPS >> 3 ];
       decoder->value <<= num_bits;
       decoder->range   = LPS << num_bits;  /* this is always >= 0x100 except for state 63,
                                               but state 63 is never used */
+
+      int num_bitsTab = renorm_table[ LPS >> 3 ];
+
+      assert(num_bits == num_bitsTab);
+
       decoded_bit      = 1 - model->MPSbit;
 
       if (model->state==0) { model->MPSbit = 1-model->MPSbit; }
@@ -232,8 +236,6 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 #ifdef DE265_LOG_TRACE
   logcnt++;
 #endif
-
-  //assert(decoder->range>=0x100);
 
   return decoded_bit;
 }
@@ -277,15 +279,11 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
 
-  //assert(decoder->range>=0x100);
-
   decoder->value <<= 1;
   decoder->bits_needed++;
 
   if (decoder->bits_needed >= 0)
     {
-      //assert(decoder->bits_needed==0);
-
       decoder->bits_needed = -8;
       decoder->value |= *decoder->bitstream_curr++;
     }
@@ -306,8 +304,6 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
 #ifdef DE265_LOG_TRACE
   logcnt++;
 #endif
-
-  //assert(decoder->range>=0x100);
 
   return bit;
 }
@@ -361,11 +357,10 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 
   logtrace(LogCABAC,"[%3d] -> value %d  r:%x v:%x\n", logcnt+nBits-1,
            value, decoder->range, decoder->value);
+
 #ifdef DE265_LOG_TRACE
   logcnt+=nBits;
 #endif
-
-  //assert(decoder->range>=0x100);
 
   return value;
 }
@@ -374,7 +369,6 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
 {
   int value=0;
-
 
   if (nBits<=8) {
     if (nBits==0) {
@@ -399,7 +393,6 @@ int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
       value |= decode_CABAC_bypass(decoder);
     }
   }
-
   logtrace(LogCABAC,"      -> FL: %d\n", value);
 
   return value;
@@ -435,5 +428,142 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 
   int suffix = decode_CABAC_FL_bypass(decoder, n);
   return base + suffix;
+}
+
+
+// ---------------------------------------------------------------------------
+
+void init_CABAC_encoder(CABAC_encoder* encoder)
+{
+  encoder->data = NULL;
+  encoder->data_capacity = 0;
+  encoder->data_size = 0;
+
+  encoder->range = 510;
+  encoder->bits_left = 23;
+  encoder->buffered_byte = 0xFF;
+  encoder->num_buffered_bytes = 0;
+}
+
+
+static void append_byte(CABAC_encoder* encoder, int byte, int bits)
+{
+  assert(bits==8);
+
+  if (encoder->data_size == encoder->data_capacity) {
+    if (encoder->data_capacity==0) {
+      encoder->data_capacity = INITIAL_CABAC_BUFFER_CAPACITY;
+    } else {
+      encoder->data_capacity *= 2;
+    }
+
+    encoder->data = realloc(encoder->data,encoder->data_capacity);
+  }
+
+  encoder->data[ encoder->data_size++ ] = byte;
+}
+
+
+/**
+ * \brief Move bits from register into bitstream
+ */
+static void write_out(CABAC_encoder* encoder)
+{
+  int leadByte = encoder->low >> (24 - encoder->bits_left);
+  encoder->bits_left += 8;
+  encoder->low &= 0xffffffffu >> encoder->bits_left;
+
+  //printf("write byte %02x\n",leadByte);
+  
+  if (leadByte == 0xff)
+    {
+      encoder->num_buffered_bytes++;
+    }
+  else
+    {
+      if (encoder->num_buffered_bytes > 0)
+        {
+          int carry = leadByte >> 8;
+          int byte = encoder->buffered_byte + carry;
+          encoder->buffered_byte = leadByte & 0xff;
+          append_byte(encoder, byte, 8);
+      
+          byte = ( 0xff + carry ) & 0xff;
+          while ( encoder->num_buffered_bytes > 1 )
+            {
+              append_byte(encoder, byte, 8);
+              encoder->num_buffered_bytes--;
+            }
+        }
+      else
+        {
+          encoder->num_buffered_bytes = 1;
+          encoder->buffered_byte = leadByte;
+        }      
+    }    
+}
+
+static void testAndWriteOut(CABAC_encoder* encoder)
+{
+  //printf("bits_left = %d\n",encoder->bits_left);
+
+  if (encoder->bits_left < 12)
+    {
+      write_out(encoder);
+    }
+}
+
+
+void encode_CABAC_bit(CABAC_encoder* encoder,context_model* model, int bin)
+{
+  //m_uiBinsCoded += m_binCountIncrement;
+  //rcCtxModel.setBinsCoded( 1 );
+  
+  uint32_t LPS = LPS_table[model->state][ ( encoder->range >> 6 ) - 4 ];
+  encoder->range -= LPS;
+  
+  if (bin != model->MPSbit)
+    {
+      //printf("LPS\n");
+
+      int num_bits = renorm_table[ LPS >> 3 ];
+      encoder->low = (encoder->low + encoder->range) << num_bits;
+      encoder->range   = LPS << num_bits;
+
+      model->state = next_state_LPS[model->state];
+  
+      encoder->bits_left -= num_bits;
+    }
+  else
+    {
+      //printf("MPS\n");
+
+      model->state = next_state_MPS[model->state];
+
+      if (encoder->range >= 256)
+        {
+          return;
+        }
+    
+      encoder->low <<= 1;
+      encoder->range <<= 1;
+      encoder->bits_left--;
+    }
+  
+  testAndWriteOut(encoder);
+}
+
+void encode_CABAC_bypass(CABAC_encoder* encoder, int bin)
+{
+  // encoder->BinsCoded += m_binCountIncrement;
+  encoder->low <<= 1;
+
+  if (bin)
+    {
+      encoder->low += encoder->range;
+    }
+  encoder->bits_left--;
+  
+  testAndWriteOut(encoder);
 }
 
