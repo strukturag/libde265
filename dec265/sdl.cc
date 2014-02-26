@@ -86,8 +86,8 @@ void SDL_YUV_Display::display(const unsigned char *Y,
 
     for (int y=0;y<rect.h/2;y++)
       {
-        memcpy(mYUVOverlay->pixels[1]+y*rect.w/2, U+chroma_stride*y, rect.w/2);
-        memcpy(mYUVOverlay->pixels[2]+y*rect.w/2, V+chroma_stride*y, rect.w/2);
+        memcpy(mYUVOverlay->pixels[2]+y*rect.w/2, U+chroma_stride*y, rect.w/2);
+        memcpy(mYUVOverlay->pixels[1]+y*rect.w/2, V+chroma_stride*y, rect.w/2);
       }
   }
 
