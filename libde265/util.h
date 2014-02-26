@@ -30,9 +30,14 @@
 
 #ifdef _MSC_VER
 #define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
+#define likely(x)      (x)
+#define unlikely(x)    (x)
 #else
 #define LIBDE265_DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
+#define likely(x)      __builtin_expect(!!(x), 1)
+#define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
+
 #define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
 #define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )

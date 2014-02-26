@@ -356,7 +356,7 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 
   uint32_t scaled_range = decoder->range << 7;
   int value = decoder->value / scaled_range;
-  if (value>=(1<<nBits)) { value=(1<<nBits)-1; } // may happen with broken bitstreams
+  if (unlikely(value>=(1<<nBits))) { value=(1<<nBits)-1; } // may happen with broken bitstreams
   decoder->value -= value * scaled_range;
 
   logtrace(LogCABAC,"[%3d] -> value %d  r:%x v:%x\n", logcnt+nBits-1,
@@ -376,7 +376,7 @@ int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
   int value=0;
 
 
-  if (nBits<=8) {
+  if (likely(nBits<=8)) {
     if (nBits==0) {
       return 0;
     }
