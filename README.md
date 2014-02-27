@@ -12,6 +12,8 @@ libde265 supports WPP and tile-based multithreading and includes SSE optimizatio
 All features of the Main profile except long-term MC (which is currently unused
 by the available encoders) are supported.
 
+For latest news check our website at http://www.libde265.org
+
 The library comes with two example programs:
 
 - dec265, a simple player for raw h.265 bitstreams.
