@@ -1177,7 +1177,7 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
 
   if (prefix==5) {
     int value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 0);
-    return value + 4;
+    return value + 5;
   }
   else {
     return prefix;
