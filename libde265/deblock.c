@@ -744,6 +744,7 @@ static void thread_deblock(void* d)
 }
 
 
+#if 0
 static void thread_deblock_ctb(void* d)
 {
   struct thread_task_deblock* data = (struct thread_task_deblock*)d;
@@ -755,6 +756,7 @@ static void thread_deblock_ctb(void* d)
 
   decrease_pending_tasks(ctx->img, 1);
 }
+#endif
 
 /*
 static void thread_deblock_ctb_row(void* d)
