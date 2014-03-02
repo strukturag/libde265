@@ -417,6 +417,8 @@ int main(int argc, char** argv)
 
           err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
+            if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
+              stop = 1;
             more = 0;
             break;
           }
