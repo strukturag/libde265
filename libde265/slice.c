@@ -2670,16 +2670,16 @@ int read_transform_unit(decoder_context* ctx,
         tctx->IsCuQpDeltaCoded = 1;
         tctx->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
 
+        decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
+
         logtrace(LogSlice,"cu_qp_delta_abs = %d\n",cu_qp_delta_abs);
         logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
         logtrace(LogSlice,"CuQpDelta = %d\n",tctx->CuQpDelta);
       }
     }
 
-  //if (x0==xCUBase && y0==yCUBase) {
-  decode_quantization_parameters(ctx,tctx, x0,y0);
-    //}
-
+  if (x0 == xCUBase && y0 == yCUBase)
+    decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
 
   if (cbf_luma || cbf_cb || cbf_cr)
     {
@@ -3189,7 +3189,7 @@ void read_coding_unit(decoder_context* ctx,
 
     // DECODE
 
-    decode_quantization_parameters(ctx,tctx, x0,y0);
+    decode_quantization_parameters(ctx, tctx, x0, y0, x0, y0);
     //inter_prediction(ctx,shdr, x0,y0, log2CbSize);
 
     int nCS_L = 1<<log2CbSize;
@@ -3498,7 +3498,7 @@ void read_coding_unit(decoder_context* ctx,
                             MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
       }
       else {
-        decode_quantization_parameters(ctx,tctx, x0,y0);
+        decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
       }
     } // !pcm
   }

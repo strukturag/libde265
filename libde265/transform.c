@@ -74,7 +74,8 @@ int table8_22(int qPi)
 
 // (8.6.1)
 void decode_quantization_parameters(decoder_context* ctx,
-                                    thread_context* tctx, int xC,int yC)
+                                    thread_context* tctx, int xC,int yC,
+                                    int xCUBase, int yCUBase)
 {
   logtrace(LogTransform,"decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
 
@@ -146,7 +147,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
     int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
+    int ctbAddrA = minTbAddrA >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
       qPYA = get_QPY(ctx->img,sps,xQG-1,yQG);
     }
@@ -161,9 +162,9 @@ void decode_quantization_parameters(decoder_context* ctx,
   if (available_zscan(ctx->img,xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
-    int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    int ctbAddrA = (minTbAddrA>>2)*(sps->Log2CtbSizeY-sps->Log2MinTrafoSize);
-    if (ctbAddrA == tctx->CtbAddrInTS) {
+    int minTbAddrB = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
+    int ctbAddrB = minTbAddrB >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
+    if (ctbAddrB == tctx->CtbAddrInTS) {
       qPYB = get_QPY(ctx->img,sps,xQG,yQG-1);
     }
     else {
@@ -194,10 +195,11 @@ void decode_quantization_parameters(decoder_context* ctx,
   tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
   tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
 
-  set_QPY(ctx->img,sps,pps,xQG,yQG, QPY);
+  int log2CbSize = get_log2CbSize (ctx->img, sps, xCUBase, yCUBase);
+  set_QPY(ctx->img, sps, pps,xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
-  logtrace(LogTransform,"qPY(%d,%d)= %d\n",xQG,yQG,QPY);
+  logtrace(LogTransform,"qPY(%d,%d,%d)= %d\n",xCUBase,yCUBase,1<<log2CbSize,QPY);
 }
 
 

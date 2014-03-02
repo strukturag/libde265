@@ -501,12 +501,12 @@ int get_ctDepth(const de265_image* img, const seq_parameter_set* sps, int x,int 
 
 
 void set_QPY(de265_image* img, const seq_parameter_set* sps,
-             const pic_parameter_set* pps, int x,int y, int QP_Y)
+             const pic_parameter_set* pps, int x,int y, int log2BlkWidth, int QP_Y)
 {
   assert(x>=0 && x<sps->pic_width_in_luma_samples);
   assert(y>=0 && y<sps->pic_height_in_luma_samples);
 
-  SET_CB_BLK_SAVE(x,y,pps->Log2MinCuQpDeltaSize, QP_Y, QP_Y);
+  SET_CB_BLK (x, y, log2BlkWidth, QP_Y, QP_Y);
 }
 
 int  get_QPY(const de265_image* img, const seq_parameter_set* sps,int x,int y)

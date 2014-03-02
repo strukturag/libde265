@@ -255,7 +255,7 @@ void set_ctDepth(de265_image*, const seq_parameter_set*, int x,int y, int log2Bl
 int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
 
 void set_QPY(de265_image*, const seq_parameter_set*,
-             const pic_parameter_set* pps, int x,int y, int QP_Y);
+             const pic_parameter_set* pps, int x,int y, int log2BlkWidth, int QP_Y);
 int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
 
 void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
