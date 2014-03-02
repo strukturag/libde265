@@ -250,9 +250,6 @@ void prepare_new_picture(decoder_context* ctx)
   prepare_image_for_decoding(ctx->img);
 
   // initialize threading tasks (TODO: move this to picture initialization)
-
-  int w = ctx->current_sps->PicWidthInCtbsY;
-  int h = ctx->current_sps->PicHeightInCtbsY;
 }
 
 
