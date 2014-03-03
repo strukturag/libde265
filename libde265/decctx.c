@@ -242,7 +242,6 @@ void free_decoder_context(decoder_context* ctx)
 
 void reset_decoder_context_for_new_picture(decoder_context* ctx)
 {
-  ctx->next_free_slice_index = 0;
 }
 
 void prepare_new_picture(decoder_context* ctx)
@@ -303,15 +302,15 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
  */
 int get_next_slice_index(decoder_context* ctx)
 {
-  if (ctx->next_free_slice_index >= DE265_MAX_SLICES) {
-    return -1;
+  for (int i=0;i<DE265_MAX_SLICES;i++) {
+    if (ctx->slice[i].inUse == false) {
+      return i;
+    }
   }
 
-  int sliceID = ctx->next_free_slice_index;
+  // TODO: make this dynamic, increase storage when completely full
 
-  ctx->next_free_slice_index = ((ctx->next_free_slice_index+1) % DE265_MAX_SLICES);
-
-  return sliceID;
+  return -1;
 }
 
 
@@ -796,9 +795,6 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
       loginfo(LogDPB,"push image %d into reordering queue\n", ctx->img->PicOrderCntVal);
     }
-
-    ctx->img->sps = NULL; // this may not be valid anymore in the future
-    ctx->img->pps = NULL; // this may not be valid anymore in the future
 
     ctx->last_decoded_image = ctx->img;
     ctx->img = NULL;

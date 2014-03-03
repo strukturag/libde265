@@ -35,7 +35,7 @@
 #define DE265_MAX_VPS_SETS 16
 #define DE265_MAX_SPS_SETS 16
 #define DE265_MAX_PPS_SETS 64
-#define DE265_MAX_SLICES   1
+#define DE265_MAX_SLICES   128  // TODO: make this dynamic
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value
@@ -196,7 +196,6 @@ typedef struct decoder_context {
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
   pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
   slice_segment_header slice[ DE265_MAX_SLICES ];
-  int next_free_slice_index;
 
   ref_pic_set* ref_pic_sets;
 

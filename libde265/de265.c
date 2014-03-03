@@ -887,6 +887,26 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 }
 
 
+static void cleanup_image(decoder_context* ctx, de265_image* img)
+{
+  // mark all slice-headers locked by this image as unused
+
+  for (int y=0;y<img->sps->PicHeightInCtbsY;y++)
+    for (int x=0;x<img->sps->PicWidthInCtbsY;x++)
+      {
+        slice_segment_header* shdr;
+        shdr = &ctx->slice[ get_SliceHeaderIndex(img,
+                                                 img->sps,
+                                                 x >> img->sps->Log2CtbSizeY,
+                                                 y >> img->sps->Log2CtbSizeY) ];
+        shdr->inUse = false;
+      }
+
+  img->sps = NULL; // this may not be valid anymore in the future
+  img->pps = NULL; // this may not be valid anymore in the future
+}
+
+
 LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
@@ -899,6 +919,7 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
   loginfo(LogDPB, "release DPB with POC=%d\n",ctx->image_output_queue[0]->PicOrderCntVal);
 
   ctx->image_output_queue[0]->PicOutputFlag = false;
+  cleanup_image(ctx, ctx->image_output_queue[0]);
 
   // pop output queue
 
