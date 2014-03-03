@@ -1299,6 +1299,11 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 {
   slice_segment_header* shdr = tctx->shdr;
 
+  int xOrigP = xP;
+  int yOrigP = yP;
+  int nOrigPbW = nPbW;
+  int nOrigPbH = nPbH;
+
   int singleMCLFlag;
   singleMCLFlag = (ctx->current_pps->log2_parallel_merge_level > 2 && nCS==8);
 
@@ -1391,7 +1396,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 9.
 
-  if (out_vi->lum.predFlag[0] && out_vi->lum.predFlag[1] && nPbW+nPbH==12) {
+  if (out_vi->lum.predFlag[0] && out_vi->lum.predFlag[1] && nOrigPbW+nOrigPbH==12) {
     out_vi->lum.refIdx[1] = -1;
     out_vi->lum.predFlag[1] = 0;
   }
