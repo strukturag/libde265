@@ -767,8 +767,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   bool availableA1;
 
-  if (xP>>log2_parallel_merge_level == xA1>>log2_parallel_merge_level &&
-      yP>>log2_parallel_merge_level == yA1>>log2_parallel_merge_level) {
+  if ((xP>>log2_parallel_merge_level) == (xA1>>log2_parallel_merge_level) &&
+      (yP>>log2_parallel_merge_level) == (yA1>>log2_parallel_merge_level)) {
     availableA1 = false;
     logtrace(LogMotion,"spatial merging candidate A1: below parallel merge level\n");
   }
@@ -805,8 +805,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   bool availableB1;
 
-  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
-      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+  if ((xP>>log2_parallel_merge_level) == (xB1>>log2_parallel_merge_level) &&
+      (yP>>log2_parallel_merge_level) == (yB1>>log2_parallel_merge_level)) {
     availableB1 = false;
     logtrace(LogMotion,"spatial merging candidate B1: below parallel merge level\n");
   }
@@ -851,8 +851,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   bool availableB0;
 
-  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
-      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+  if ((xP>>log2_parallel_merge_level) == (xB0>>log2_parallel_merge_level) &&
+      (yP>>log2_parallel_merge_level) == (yB0>>log2_parallel_merge_level)) {
     availableB0 = false;
     logtrace(LogMotion,"spatial merging candidate B0: below parallel merge level\n");
   }
@@ -889,8 +889,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   bool availableA0;
 
-  if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
-      yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+  if ((xP>>log2_parallel_merge_level) == (xA0>>log2_parallel_merge_level) &&
+      (yP>>log2_parallel_merge_level) == (yA0>>log2_parallel_merge_level)) {
     availableA0 = false;
     logtrace(LogMotion,"spatial merging candidate A0: below parallel merge level\n");
   }
@@ -932,8 +932,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     availableB2 = false;
     logtrace(LogMotion,"spatial merging candidate B2: ignore\n");
   }
-  else if (xP>>log2_parallel_merge_level == xB1>>log2_parallel_merge_level &&
-           yP>>log2_parallel_merge_level == yB1>>log2_parallel_merge_level) {
+  else if ((xP>>log2_parallel_merge_level) == (xB2>>log2_parallel_merge_level) &&
+           (yP>>log2_parallel_merge_level) == (yB2>>log2_parallel_merge_level)) {
     availableB2 = false;
     logtrace(LogMotion,"spatial merging candidate B2: below parallel merge level\n");
   }
@@ -1307,6 +1307,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
     yP=yC;
     nPbW=nCS;
     nPbH=nCS;
+    partIdx=0;
   }
 
   MergingCandidates mergeCand;
