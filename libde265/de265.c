@@ -460,6 +460,8 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   if (ctx->NAL_queue_len == 0 && ctx->end_of_stream) {
     if (more) { *more=0; } // 0 if no more pictures in queue
 
+    push_current_picture_to_output_queue(ctx);
+
     while (ctx->reorder_output_queue_length>0) {
       flush_next_picture_from_reorder_buffer(ctx);
       if (more) { *more=1; }
