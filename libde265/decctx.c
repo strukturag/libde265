@@ -42,6 +42,8 @@
 #include "x86/sse.h"
 #endif
 
+#define SAVE_INTERMEDIATE_IMAGES 0
+
 
 void init_decoder_context(decoder_context* ctx)
 {
@@ -773,11 +775,26 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
     // post-process image
 
+#if SAVE_INTERMEDIATE_IMAGES
+    char buf[1000];
+    sprintf(buf,"pre-lf-%05d.yuv", ctx->img->PicOrderCntVal);
+    write_picture_to_file(ctx->img, buf);
+#endif
+
     //writeFrame_Y(ctx,"raw");
     apply_deblocking_filter(ctx);
     //writeFrame_Y(ctx,"deblk");
+
+#if SAVE_INTERMEDIATE_IMAGES
+    sprintf(buf,"pre-sao-%05d.yuv", ctx->img->PicOrderCntVal);
+    write_picture_to_file(ctx->img, buf);
+#endif
+
     apply_sample_adaptive_offset(ctx);
     //writeFrame_Y(ctx,"sao");
+
+    //sprintf(buf,"pre-sao-%05d.yuv", ctx->img->PicOrderCntVal);
+    //write_picture(ctx->img);
 
     // push image into output queue
 
@@ -1150,6 +1167,24 @@ LIBDE265_API void write_picture(const de265_image* img)
 
   fflush(fh);
   //fclose(fh);
+}
+
+
+void write_picture_to_file(const de265_image* img, const char* filename)
+{
+  FILE* fh = fopen(filename, "wb");
+
+  for (int y=0;y<img->height;y++)
+    fwrite(img->y + y*img->stride, img->width, 1, fh);
+
+  for (int y=0;y<img->chroma_height;y++)
+    fwrite(img->cb + y*img->chroma_stride, img->chroma_width, 1, fh);
+
+  for (int y=0;y<img->chroma_height;y++)
+    fwrite(img->cr + y*img->chroma_stride, img->chroma_width, 1, fh);
+
+  fflush(fh);
+  fclose(fh);
 }
 
 

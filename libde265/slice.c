@@ -2116,7 +2116,7 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
            ctx->img->PicOrderCntVal);
 
   set_SliceAddrRS(ctx->img, sps, xCtb, yCtb,
-                  tctx->SliceAddrRS);
+                  tctx->shdr->SliceAddrRS);
 
   set_SliceHeaderIndex(ctx->img,sps, xCtbPixels,yCtbPixels, shdr->slice_index);
   ctx->slice[ shdr->slice_index ].inUse=true; // mark that we are using this header

@@ -89,8 +89,6 @@ struct slice_segment_header;
 
 typedef struct thread_context
 {
-  int SliceAddrRS; // current value, this is also set into the CTB-info array in the decoder context
-
   int CtbAddrInRS;
   int CtbAddrInTS;
 
@@ -340,6 +338,8 @@ void push_current_picture_to_output_queue(decoder_context* ctx);
 
 LIBDE265_API void set_output_filename(const char* filename);
 LIBDE265_API void write_picture(const de265_image* img);
+void write_picture_to_file(const de265_image* img, const char* filename);
+
 void draw_CB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_TB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
 void draw_PB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
