@@ -172,7 +172,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   {
     // copy pixels at left column
 
-    for (int y=nBottom-1 ; y>=0 ; y--)
+    for (int y=nBottom-1 ; y>=0 ; y-=4)
       if (availableLeft)
         {
           int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
@@ -188,12 +188,12 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
           if (availableN) {
             if (!nAvail) firstValue = image[xB-1 + (yB+y)*stride];
 
-            for (int i=0;i<1;i++) {
-              available[-y-i-1] = availableN;
-              out_border[-y-i-1] = image[xB-1 + (yB+y+i)*stride];
+            for (int i=0;i<4;i++) {
+              available[-y+i-1] = availableN;
+              out_border[-y+i-1] = image[xB-1 + (yB+y-i)*stride];
             }
 
-            nAvail++;
+            nAvail+=4;
           }
         }
 
@@ -223,7 +223,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
     // copy pixels at top row
 
-    for (int x=0 ; x<nRight ; x++) {
+    for (int x=0 ; x<nRight ; x+=4) {
       bool borderAvailable;
       if (x<nT) borderAvailable=availableTop;
       else      borderAvailable=availableTopRight;
@@ -245,12 +245,12 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
           if (availableN) {
             if (!nAvail) firstValue = image[xB+x + (yB-1)*stride];
 
-            for (int i=0;i<1;i++) {
+            for (int i=0;i<4;i++) {
               out_border[x+i+1] = image[xB+x+i + (yB-1)*stride];
               available[x+i+1] = availableN;
             }
 
-            nAvail++;
+            nAvail+=4;
           }
         }
     }
@@ -260,10 +260,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
     if (nAvail!=4*nT+1) {
       if (nAvail==0) {
-
-        for (int i=-2*nT; i<=2*nT; i++)
-          out_border[i] = 1<<(sps->bit_depth_luma-1);
-        //memset(out_border-2*nT, 1<<(sps->bit_depth_luma-1), 4*nT+1);
+        memset(out_border-2*nT, 1<<(sps->bit_depth_luma-1), 4*nT+1);
       }
       else {
         if (!available[-2*nT]) {
