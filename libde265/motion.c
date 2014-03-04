@@ -383,11 +383,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   // Some encoders use bi-prediction with two similar MVs.
   // Identify this case and use only one MV.
 
-  if (predFlag[0] && predFlag[1]) {
-    if (vi->lum.mv[0].x == vi->lum.mv[1].x &&
-        vi->lum.mv[0].y == vi->lum.mv[1].y &&
-        ctx->img->RefPicList[0][vi->lum.refIdx[0]] == ctx->img->RefPicList[1][vi->lum.refIdx[1]]) {
-      predFlag[1] = 0;
+  // do this only without weighted prediction, because the weights/offsets may be different
+  if (ctx->current_pps->weighted_pred_flag==0) {
+    if (predFlag[0] && predFlag[1]) {
+      if (vi->lum.mv[0].x == vi->lum.mv[1].x &&
+          vi->lum.mv[0].y == vi->lum.mv[1].y &&
+          ctx->img->RefPicList[0][vi->lum.refIdx[0]] ==
+          ctx->img->RefPicList[1][vi->lum.refIdx[1]]) {
+        predFlag[1] = 0;
+      }
     }
   }
 
@@ -488,7 +492,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
         int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(8-8)); // TODO: bitDepth
 
-        //printf("weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
+        logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
 
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
@@ -571,6 +575,9 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int chroma1_w1 = shdr->ChromaWeight[1][refIdx1][1];
         int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(8-8)); // TODO: bitDepth
 
+        logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
+        logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n", refIdx1, luma_log2WD-6,luma_w1,luma_o1,nPbW,nPbH);
+
         int16_t* in0 = predSamplesL[0];
         int16_t* in1 = predSamplesL[1];
         uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
@@ -634,6 +641,8 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(8-8)); // TODO: bitDepth
         int chroma1_w = shdr->ChromaWeight[l][refIdx][1];
         int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(8-8)); // TODO: bitDepth
+
+        logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 
         ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
