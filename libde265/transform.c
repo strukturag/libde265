@@ -292,13 +292,17 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     if (sps->scaling_list_enable_flag==0) {
 
-      const int m_x_y = 16;
+      //const int m_x_y = 16;
+      const int m_x_y = 1;
+      bdShift -= 4;  // this is equivalent to having a m_x_y of 16 and we can use 32bit integers
+
       const int offset = (1<<(bdShift-1));
       const int fact = m_x_y * levelScale[qP%6] << (qP/6);
 
       for (int i=0;i<tctx->nCoeff[cIdx];i++) {
 
-        int currCoeff  = tctx->coeffList[cIdx][i];
+        // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
+        int32_t currCoeff  = tctx->coeffList[cIdx][i];
 
         currCoeff = Clip3(-32768,32767,
                           ( (currCoeff * fact + offset ) >> bdShift));
