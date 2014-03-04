@@ -602,6 +602,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
     int sliceIndex = get_next_slice_index(ctx);
     if (sliceIndex<0) {
+      add_warning(ctx,DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED, true);
       return DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED;
     }
 
@@ -897,8 +898,8 @@ static void cleanup_image(decoder_context* ctx, de265_image* img)
         slice_segment_header* shdr;
         shdr = &ctx->slice[ get_SliceHeaderIndex(img,
                                                  img->sps,
-                                                 x >> img->sps->Log2CtbSizeY,
-                                                 y >> img->sps->Log2CtbSizeY) ];
+                                                 x << img->sps->Log2CtbSizeY,
+                                                 y << img->sps->Log2CtbSizeY) ];
         shdr->inUse = false;
       }
 
