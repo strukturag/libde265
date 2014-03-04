@@ -645,11 +645,11 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   }
 
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    hdr->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
+    ctx->img->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
       RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
 
     // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-    ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ hdr->RefPicList[0][rIdx] ].PicOrderCntVal;
+    ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ ctx->img->RefPicList[0][rIdx] ].PicOrderCntVal;
   }
 
 
@@ -670,11 +670,11 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
     assert(hdr->num_ref_idx_l1_active <= 15);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-      hdr->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
+      ctx->img->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
         RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ hdr->RefPicList[1][rIdx] ].PicOrderCntVal;
+      ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ ctx->img->RefPicList[1][rIdx] ].PicOrderCntVal;
     }
   }
 
@@ -683,13 +683,13 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    loginfo(LogHeaders,"* %d", hdr->RefPicList[0][rIdx]);
+    loginfo(LogHeaders,"* %d", ctx->img->RefPicList[0][rIdx]);
   }
   loginfo(LogHeaders,"*\n");
 
   loginfo(LogHeaders,"RefPicList[1] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-    loginfo(LogHeaders,"* %d", hdr->RefPicList[1][rIdx]);
+    loginfo(LogHeaders,"* %d", ctx->img->RefPicList[1][rIdx]);
   }
   loginfo(LogHeaders,"*\n");
 
@@ -979,7 +979,11 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
       }
 
     process_picture_order_count(ctx,hdr);
-    process_reference_picture_set(ctx,hdr);
+
+    if (hdr->first_slice_segment_in_pic_flag) {
+      process_reference_picture_set(ctx,hdr);
+    }
+
     generate_unavailable_reference_pictures(ctx,hdr);
 
     log_set_current_POC(ctx->img->PicOrderCntVal);

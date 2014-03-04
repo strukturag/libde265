@@ -1896,7 +1896,8 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
     }
   }
 
-  logtrace(LogSlice,"> inter_pred_idc = %d\n",value);
+  logtrace(LogSlice,"> inter_pred_idc = %d (%s)\n",value,
+           value==0 ? "L0" : (value==1 ? "L1" : "BI"));
 
   return (enum InterPredIdc) value;
 }

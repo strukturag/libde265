@@ -224,7 +224,6 @@ typedef struct slice_segment_header {
   int CurrRpsIdx;
   int MaxNumMergeCand;
 
-  int RefPicList[2][MAX_REF_PIC_LIST];
 } slice_segment_header;
 
 

@@ -245,10 +245,10 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
             const PredVectorInfo* mviP = get_mv_info(ctx,xDiOpp,yDiOpp);
             const PredVectorInfo* mviQ = get_mv_info(ctx,xDi   ,yDi);
 
-            int refPicP0 = mviP->predFlag[0] ? shdrP->RefPicList[0][ mviP->refIdx[0] ] : -1;
-            int refPicP1 = mviP->predFlag[1] ? shdrP->RefPicList[1][ mviP->refIdx[1] ] : -1;
-            int refPicQ0 = mviQ->predFlag[0] ? shdrQ->RefPicList[0][ mviQ->refIdx[0] ] : -1;
-            int refPicQ1 = mviQ->predFlag[1] ? shdrQ->RefPicList[1][ mviQ->refIdx[1] ] : -1;
+            int refPicP0 = mviP->predFlag[0] ? img->RefPicList[0][ mviP->refIdx[0] ] : -1;
+            int refPicP1 = mviP->predFlag[1] ? img->RefPicList[1][ mviP->refIdx[1] ] : -1;
+            int refPicQ0 = mviQ->predFlag[0] ? img->RefPicList[0][ mviQ->refIdx[0] ] : -1;
+            int refPicQ1 = mviQ->predFlag[1] ? img->RefPicList[1][ mviQ->refIdx[1] ] : -1;
 
             MotionVector mvP0 = mviP->mv[0]; if (!mviP->predFlag[0]) { mvP0.x=mvP0.y=0; }
             MotionVector mvP1 = mviP->mv[1]; if (!mviP->predFlag[1]) { mvP1.x=mvP1.y=0; }

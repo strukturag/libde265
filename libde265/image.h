@@ -183,6 +183,7 @@ typedef struct de265_image {
   int deblk_width;
   int deblk_height;
 
+  int RefPicList[2][MAX_REF_PIC_LIST]; // contains indices into DPB
   int RefPicList_POC[2][14+1];
 
   // --- meta information ---
