@@ -71,21 +71,29 @@ int table8_22(int qPi)
   return tab8_22[qPi-30];
 }
 
+#include <sys/types.h>
+#include <signal.h>
 
 // (8.6.1)
 void decode_quantization_parameters(decoder_context* ctx,
                                     thread_context* tctx, int xC,int yC,
                                     int xCUBase, int yCUBase)
 {
-  logtrace(LogTransform,"decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
+  logtrace(LogTransform,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
+
+  if (/*ctx->img->PicOrderCntVal==3 &&*/ xC==1280 && yC==48) {
+    //raise(SIGINT);
+  }
 
   pic_parameter_set* pps = ctx->current_pps;
   seq_parameter_set* sps = ctx->current_sps;
   slice_segment_header* shdr = tctx->shdr;
 
   // top left pixel position of current quantization group
-  int xQG = xC - (xC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
-  int yQG = yC - (yC & ((1<<pps->Log2MinCuQpDeltaSize)-1));
+  int xQG = xCUBase - (xCUBase & ((1<<pps->Log2MinCuQpDeltaSize)-1));
+  int yQG = yCUBase - (yCUBase & ((1<<pps->Log2MinCuQpDeltaSize)-1));
+
+  logtrace(LogTransform,"QG: %d,%d\n",xQG,yQG);
 
 
   // we only have to set QP in the first call in a quantization-group
@@ -112,7 +120,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   int qPY_PRED;
   bool firstQGInSlice;
   bool firstQGInTile = false;
-  bool firstInCTBRow = (xQG==0); // TODO
+  bool firstInCTBRow = (xQG==0); // TODO: Tiles
   
   int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
 
@@ -177,6 +185,8 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   qPY_PRED = (qPYA + qPYB + 1)>>1;
 
+  logtrace(LogTransform,"qPY_PRED = %d  (%d, %d)\n",qPY_PRED, qPYA, qPYB);
+
   int QPY = ((qPY_PRED + tctx->CuQpDelta + 52+2*sps->QpBdOffset_Y) %
              (52 + sps->QpBdOffset_Y)) - sps->QpBdOffset_Y;
 
@@ -199,7 +209,11 @@ void decode_quantization_parameters(decoder_context* ctx,
   set_QPY(ctx->img, sps, pps,xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
-  logtrace(LogTransform,"qPY(%d,%d,%d)= %d\n",xCUBase,yCUBase,1<<log2CbSize,QPY);
+  printf("SET QPY POC=%d %d;%d-%d;%d = %d\n",ctx->img->PicOrderCntVal,xCUBase,yCUBase,
+         xCUBase+(1<<log2CbSize),yCUBase+(1<<log2CbSize), QPY);
+
+  logtrace(LogTransform,"qPY(%d,%d,%d)= %d, qPYPrime=%d\n",
+           xCUBase,yCUBase,1<<log2CbSize,QPY,tctx->qPYPrime);
 }
 
 
@@ -289,6 +303,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     int bdShift = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C) + Log2(nT) - 5;
 
     logtrace(LogTransform,"bdShift=%d\n",bdShift);
+
+    logtrace(LogTransform,"dequant %d;%d cIdx=%d qp=%d\n",xT*(cIdx?2:1),yT*(cIdx?2:1),cIdx,qP);
 
     if (sps->scaling_list_enable_flag==0) {
 

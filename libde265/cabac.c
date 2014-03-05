@@ -158,7 +158,7 @@ void init_CABAC_decoder_2(CABAC_decoder* decoder)
 
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 {
-  //if (logcnt >= 400000000) { enablelog(); }
+  if (logcnt >= 1100000) { enablelog(); }
 
   // if (logcnt==400068770) { raise(SIGINT); }
 

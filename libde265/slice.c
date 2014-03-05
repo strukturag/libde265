@@ -2644,8 +2644,8 @@ int read_transform_unit(decoder_context* ctx,
                         int blkIdx,
                         int cbf_luma, int cbf_cb, int cbf_cr)
 {
-  logtrace(LogSlice,"- read_transform_unit x0:%d y0:%d xBase:%d yBase:%d cbf:%d:%d:%d\n",
-         x0,y0,xBase,yBase, cbf_luma, cbf_cb, cbf_cr);
+  logtrace(LogSlice,"- read_transform_unit x0:%d y0:%d xBase:%d yBase:%d nT:%d cbf:%d:%d:%d\n",
+           x0,y0,xBase,yBase, 1<<log2TrafoSize, cbf_luma, cbf_cb, cbf_cr);
 
   //slice_segment_header* shdr = tctx->shdr;
 
@@ -2672,16 +2672,20 @@ int read_transform_unit(decoder_context* ctx,
         tctx->IsCuQpDeltaCoded = 1;
         tctx->CuQpDelta = cu_qp_delta_abs*(1-2*cu_qp_delta_sign);
 
-        decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
+        //printf("read cu_qp_delta (%d;%d) = %d\n",x0,y0,tctx->CuQpDelta);
 
         logtrace(LogSlice,"cu_qp_delta_abs = %d\n",cu_qp_delta_abs);
         logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
         logtrace(LogSlice,"CuQpDelta = %d\n",tctx->CuQpDelta);
+
+        decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
       }
     }
 
+  /*
   if (x0 == xCUBase && y0 == yCUBase)
     decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
+  */
 
   if (cbf_luma || cbf_cb || cbf_cr)
     {
@@ -3159,6 +3163,7 @@ void read_coding_unit(decoder_context* ctx,
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
+  decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
 
 
   if (ctx->current_pps->transquant_bypass_enable_flag)
@@ -3191,8 +3196,7 @@ void read_coding_unit(decoder_context* ctx,
 
     // DECODE
 
-    decode_quantization_parameters(ctx, tctx, x0, y0, x0, y0);
-    //inter_prediction(ctx,shdr, x0,y0, log2CbSize);
+    //UNIFY decode_quantization_parameters(ctx, tctx, x0, y0, x0, y0);
 
     int nCS_L = 1<<log2CbSize;
     decode_prediction_unit(ctx,tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
@@ -3240,6 +3244,8 @@ void read_coding_unit(decoder_context* ctx,
 
       if (pcm_flag) {
         set_pcm_flag(ctx->img, ctx->current_sps, x0,y0,log2CbSize);
+
+        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
 
         read_pcm_samples(tctx, x0,y0, log2CbSize);
       }
@@ -3496,11 +3502,13 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
+        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
+
         read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
                             MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
       }
       else {
-        decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
+        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
       }
     } // !pcm
   }

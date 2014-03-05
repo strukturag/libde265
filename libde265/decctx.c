@@ -42,7 +42,7 @@
 #include "x86/sse.h"
 #endif
 
-#define SAVE_INTERMEDIATE_IMAGES 0
+#define SAVE_INTERMEDIATE_IMAGES 1
 
 
 void init_decoder_context(decoder_context* ctx)
