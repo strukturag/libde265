@@ -42,7 +42,7 @@
 #include "x86/sse.h"
 #endif
 
-#define SAVE_INTERMEDIATE_IMAGES 1
+#define SAVE_INTERMEDIATE_IMAGES 0
 
 
 void init_decoder_context(decoder_context* ctx)
@@ -51,7 +51,7 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- parameters ---
 
-  ctx->param_sei_check_hash = true;
+  ctx->param_sei_check_hash = false;
   ctx->param_HighestTid = 999; // unlimited
   ctx->param_conceal_stream_errors = true;
 
