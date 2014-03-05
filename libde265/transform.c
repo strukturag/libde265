@@ -209,8 +209,10 @@ void decode_quantization_parameters(decoder_context* ctx,
   set_QPY(ctx->img, sps, pps,xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
+  /*
   printf("SET QPY POC=%d %d;%d-%d;%d = %d\n",ctx->img->PicOrderCntVal,xCUBase,yCUBase,
          xCUBase+(1<<log2CbSize),yCUBase+(1<<log2CbSize), QPY);
+  */
 
   logtrace(LogTransform,"qPY(%d,%d,%d)= %d, qPYPrime=%d\n",
            xCUBase,yCUBase,1<<log2CbSize,QPY,tctx->qPYPrime);
