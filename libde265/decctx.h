@@ -89,6 +89,8 @@ struct slice_segment_header;
 
 typedef struct thread_context
 {
+  uint8_t inUse;  // thread_context is used for the current decoding process
+
   int CtbAddrInRS;
   int CtbAddrInTS;
 
@@ -302,6 +304,7 @@ bool process_slice_segment_header(decoder_context*, slice_segment_header*,
                                   de265_error*, de265_PTS pts, void* user_data);
 
 int get_next_slice_index(decoder_context* ctx);
+int get_next_thread_context_index(decoder_context* ctx);
 
 void add_warning(decoder_context* ctx, de265_error warning, bool once);
 de265_error get_warning(decoder_context* ctx);

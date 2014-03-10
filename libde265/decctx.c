@@ -42,7 +42,7 @@
 #include "x86/sse.h"
 #endif
 
-#define SAVE_INTERMEDIATE_IMAGES 1
+#define SAVE_INTERMEDIATE_IMAGES 0
 
 
 void init_decoder_context(decoder_context* ctx)
@@ -308,6 +308,23 @@ int get_next_slice_index(decoder_context* ctx)
 {
   for (int i=0;i<DE265_MAX_SLICES;i++) {
     if (ctx->slice[i].inUse == false) {
+      return i;
+    }
+  }
+
+  // TODO: make this dynamic, increase storage when completely full
+
+  return -1;
+}
+
+
+/* The returned index rotates through [0;MAX_THREAD_CONTEXTS) and is not reset at each new picture.
+   Returns -1 if no more context data structure available.
+ */
+int get_next_thread_context_index(decoder_context* ctx)
+{
+  for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
+    if (ctx->thread_context[i].inUse == false) {
       return i;
     }
   }
@@ -795,8 +812,10 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     apply_sample_adaptive_offset(ctx);
     //writeFrame_Y(ctx,"sao");
 
-    //sprintf(buf,"pre-sao-%05d.yuv", ctx->img->PicOrderCntVal);
-    //write_picture(ctx->img);
+#if SAVE_INTERMEDIATE_IMAGES
+    sprintf(buf,"sao-%05d.yuv", ctx->img->PicOrderCntVal);
+    write_picture_to_file(ctx->img, buf);
+#endif
 
     // push image into output queue
 
@@ -1012,7 +1031,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     hdr->SliceAddrRS = ctx->img->ctb_info[prevCtb].SliceAddrRS;
   }
 
-
+  loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);
 
   return true;
 }

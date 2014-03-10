@@ -207,14 +207,14 @@ typedef struct slice_segment_header {
 
   int  num_entry_point_offsets;
   int  offset_len;
-  int entry_point_offset[MAX_ENTRY_POINTS];
+  int  entry_point_offset[MAX_ENTRY_POINTS];
 
   int  slice_segment_header_extension_length;
 
 
   // --- derived data ---
 
-  int SliceAddrRS;
+  int SliceAddrRS;  // start if last independent slice
   int SliceQPY;
 
   int initType;
@@ -223,6 +223,9 @@ typedef struct slice_segment_header {
 
   int CurrRpsIdx;
   int MaxNumMergeCand;
+
+  // context storage for dependent slices and WPP in single-thread mode
+  context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
 } slice_segment_header;
 

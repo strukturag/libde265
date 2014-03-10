@@ -608,6 +608,10 @@ int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int c
   return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS;
 }
 
+int  get_SliceAddrRS_atCtbRS(const de265_image* img, const seq_parameter_set* sps, int ctbRS)
+{
+  return img->ctb_info[ctbRS].SliceAddrRS;
+}
 
 void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
                           int x, int y, int SliceHeaderIndex)
@@ -623,6 +627,7 @@ int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, 
   int ctbY = y >> sps->Log2CtbSizeY;
   return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex;
 }
+
 
 
 void set_sao_info(de265_image* img,const seq_parameter_set* sps,

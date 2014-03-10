@@ -543,6 +543,8 @@ void init_thread_context(thread_context* tctx)
 
   tctx->currentQG_x = -1;
   tctx->currentQG_y = -1;
+
+  tctx->inUse = true;
 }
 
 
@@ -607,13 +609,14 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
     }
 
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
-    hdr->slice_index = sliceIndex;
     bool continueDecoding;
     err = read_slice_segment_header(&reader,hdr,ctx, &continueDecoding);
     if (!continueDecoding) {
       return err;
     }
     else {
+      hdr->slice_index = sliceIndex;
+
       if (ctx->param_slice_headers_fd>=0) {
         dump_slice_segment_header(hdr, ctx, ctx->param_slice_headers_fd);
       }
@@ -669,18 +672,31 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       }
 
       if (!use_WPP && !use_tiles) {
-        init_thread_context(&ctx->thread_context[0]);
+        // --- single threaded decoding ---
 
-        init_CABAC_decoder(&ctx->thread_context[0].cabac_decoder,
+#if 0
+        int thread_context_idx = get_next_thread_context_index(ctx);
+        if (thread_context_idx<0) {
+          assert(false); // TODO
+        }
+#else
+        int thread_context_idx=0;
+#endif
+
+        thread_context* tctx = &ctx->thread_context[thread_context_idx];
+
+        init_thread_context(tctx);
+
+        init_CABAC_decoder(&tctx->cabac_decoder,
                            reader.data,
                            reader.bytes_remaining);
 
-        ctx->thread_context[0].shdr = hdr;
-        ctx->thread_context[0].decctx = ctx;
-        ctx->thread_context[0].CtbAddrInTS = pps->CtbAddrRStoTS[hdr->SliceAddrRS];
+        tctx->shdr = hdr;
+        tctx->decctx = ctx;
+        tctx->CtbAddrInTS = pps->CtbAddrRStoTS[hdr->slice_segment_address];
 
         // fixed context 0
-        if ((err=read_slice_segment_data(ctx, &ctx->thread_context[0])) != DE265_OK)
+        if ((err=read_slice_segment_data(ctx, tctx)) != DE265_OK)
           { return err; }
       }
       else if (use_tiles && !use_WPP) {

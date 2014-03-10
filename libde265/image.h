@@ -284,6 +284,7 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
 void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
                      int ctbX, int ctbY, int SliceAddrRS);
 int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY);
+int  get_SliceAddrRS_atCtbRS(const de265_image* img, const seq_parameter_set* sps, int ctbRS);
 
 
 void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,

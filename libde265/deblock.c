@@ -771,7 +771,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C = table8_22(qP_i);
 
-          printf("POC=%d\n",ctx->img->PicOrderCntVal);
+          //printf("POC=%d\n",ctx->img->PicOrderCntVal);
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
                    2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
 
@@ -780,7 +780,6 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
 
           int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);
-          printf("%d + 2 + %d = %d\n",QP_C,tc_offset, Q);
 
           int tcPrime = table_8_23_tc[Q];
           int tc = tcPrime * (1<<(ctx->current_sps->BitDepth_C - 8));
@@ -922,11 +921,11 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, true ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, true ,0,img->deblk_height,0,img->deblk_width);
 
-
+        /*
           char buf[1000];
           sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
           write_picture_to_file(ctx->img, buf);
-
+        */
 
         // horizontal filtering
 
@@ -936,8 +935,8 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_chroma  (ctx, false ,0,img->deblk_height,0,img->deblk_width);
 
         /*
-          sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
-          write_picture_to_file(ctx->img, buf);
+        sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
+        write_picture_to_file(ctx->img, buf);
         */
       }
       else {
