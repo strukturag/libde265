@@ -30,6 +30,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
                const uint8_t* in_img, int in_stride)
 {
   const seq_parameter_set* sps = ctx->current_sps;
+  const pic_parameter_set* pps = ctx->current_pps;
   int bitDepth = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C);
   int maxPixelValue = (1<<bitDepth)-1;
 
@@ -59,6 +60,11 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
   int* MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
   int  PicWidthInTbsY = ctx->current_sps->PicWidthInTbsY;
   int  Log2MinTrafoSize = ctx->current_sps->Log2MinTrafoSize;
+
+  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
+  int  ctbshift = ctx->current_sps->Log2CtbSizeY;
+  if (cIdx>0) ctbshift-=1;
+
 
   uint8_t* out_img;
   int out_stride;
@@ -121,9 +127,11 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           }
 
 
-          // TODO: tiles
-
-          // if (loop_filter_across_tiles_enabled==0 && differentTile) -> edgeIdx=0; break;
+          if (pps->loop_filter_across_tiles_enabled_flag==0 && 
+              pps->TileIdRS[(xS>>ctbshift) + (yS>>ctbshift)*picWidthInCtbs] !=
+              pps->TileIdRS[(xC>>ctbshift) + (yC>>ctbshift)*picWidthInCtbs]) {
+            edgeIdx=0;
+          }
         }
 
         if (edgeIdx != 0) {
