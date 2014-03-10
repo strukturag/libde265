@@ -274,15 +274,17 @@ void process_vps(decoder_context* ctx, video_parameter_set* vps)
 
 void process_sps(decoder_context* ctx, seq_parameter_set* sps)
 {
+  push_current_picture_to_output_queue(ctx);
+
   memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
-
-
   ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
 
 void process_pps(decoder_context* ctx, pic_parameter_set* pps)
 {
+  push_current_picture_to_output_queue(ctx);
+
   free_pps(&ctx->pps[ (int)pps->pic_parameter_set_id ]);
   memcpy(&ctx->pps[ (int)pps->pic_parameter_set_id ], pps, sizeof(pic_parameter_set));
 }

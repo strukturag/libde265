@@ -168,34 +168,26 @@ char derive_edgeFlags(decoder_context* ctx)
         // check for slice and tile boundaries (8.7.2, step 2 in both processes)
 
         if (x0 && ((x0 & ctb_mask) == 0)) { // left edge at CTB boundary
-          //printf("%d %d left boundary\n",x0,y0);
-
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
               shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0-1,y0)) {
             filterLeftCbEdge = 0;
-            printf("%d %d has left slice boundary\n",x0,y0);
           }
           else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
                    pps->TileIdRS[  x0ctb           +y0ctb*picWidthInCtbs] !=
                    pps->TileIdRS[((x0-1)>>ctbshift)+y0ctb*picWidthInCtbs]) {
             filterLeftCbEdge = 0;
-            printf("%d %d has left tile boundary\n",x0,y0);
           }
         }
 
         if (y0 && ((y0 & ctb_mask) == 0)) { // top edge at CTB boundary
-          //printf("%d %d top boundary\n",x0,y0);
-
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
               shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0,y0-1)) {
             filterTopCbEdge = 0;
-            printf("%d %d has top slice boundary\n",x0,y0);
           }
           else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
                    pps->TileIdRS[x0ctb+  y0ctb           *picWidthInCtbs] !=
                    pps->TileIdRS[x0ctb+((y0-1)>>ctbshift)*picWidthInCtbs]) {
             filterTopCbEdge = 0;
-            printf("%d %d has top tile boundary\n",x0,y0);
           }
         }
 
@@ -733,9 +725,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
                               ctx->current_pps->pic_cb_qp_offset :
                               ctx->current_pps->pic_cr_qp_offset);
 
-          uint8_t* ptr = (cplane==0 ?
-                          ctx->img->cb + stride*yDi + xDi :
-                          ctx->img->cr + stride*yDi + xDi);
+          uint8_t* ptr = (cplane==0 ? ctx->img->cb : ctx->img->cr);
+          ptr += stride*yDi + xDi;
 
           uint8_t p[2][4];
           uint8_t q[2][4];
@@ -780,10 +771,11 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C = table8_22(qP_i);
 
-          logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,QP_C);
+          logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
+                   2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
 
           int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,ctx->current_sps,2*xDi,2*yDi);
-          int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
+          int tc_offset   = ctx->current_pps->tc_offset;
 
           int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);
 
@@ -792,12 +784,12 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
           if (vertical) {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi-1,yDi)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,xDi-1,yDi)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi-1,2*yDi)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,2*xDi-1,2*yDi)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi)) filterQ=false;
 
 
             for (int k=0;k<4;k++) {
@@ -809,12 +801,12 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           }
           else {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi-1)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi-1)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi-1)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi-1)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
@@ -925,9 +917,11 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, true ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, true ,0,img->deblk_height,0,img->deblk_width);
 
-    char buf[1000];
-    sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
-    write_picture_to_file(ctx->img, buf);
+        /*
+          char buf[1000];
+          sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
+          write_picture_to_file(ctx->img, buf);
+        */
 
         // horizontal filtering
 
@@ -936,8 +930,10 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, false ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, false ,0,img->deblk_height,0,img->deblk_width);
 
-    sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
-    write_picture_to_file(ctx->img, buf);
+        /*
+          sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
+          write_picture_to_file(ctx->img, buf);
+        */
       }
       else {
 #if 1
