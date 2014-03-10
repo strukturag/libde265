@@ -169,9 +169,11 @@ char derive_edgeFlags(decoder_context* ctx)
 
         if (x0 && ((x0 & ctb_mask) == 0)) { // left edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
-              shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0-1,y0)) {
-            filterLeftCbEdge = 0;
-          }
+              //shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0-1,y0))
+              shdr->SliceAddrRS != get_SliceHeader(ctx,x0-1,y0)->SliceAddrRS)
+            {
+              filterLeftCbEdge = 0;
+            }
           else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
                    pps->TileIdRS[  x0ctb           +y0ctb*picWidthInCtbs] !=
                    pps->TileIdRS[((x0-1)>>ctbshift)+y0ctb*picWidthInCtbs]) {
@@ -181,9 +183,11 @@ char derive_edgeFlags(decoder_context* ctx)
 
         if (y0 && ((y0 & ctb_mask) == 0)) { // top edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
-              shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0,y0-1)) {
-            filterTopCbEdge = 0;
-          }
+              //shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0,y0-1))
+              shdr->SliceAddrRS != get_SliceHeader(ctx,x0,y0-1)->SliceAddrRS)
+            {
+              filterTopCbEdge = 0;
+            }
           else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
                    pps->TileIdRS[x0ctb+  y0ctb           *picWidthInCtbs] !=
                    pps->TileIdRS[x0ctb+((y0-1)>>ctbshift)*picWidthInCtbs]) {
