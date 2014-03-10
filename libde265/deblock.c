@@ -132,6 +132,12 @@ char derive_edgeFlags(decoder_context* ctx)
   const int minCbSize = ctx->current_sps->MinCbSizeY;
   char deblocking_enabled=0; // whether deblocking is enabled in some part of the image
 
+  int ctb_mask = (1<<ctx->current_sps->Log2CtbSizeY)-1;
+  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
+  int ctbshift = ctx->current_sps->Log2CtbSizeY;
+
+  const pic_parameter_set* pps = ctx->current_pps;
+
   for (int cb_y=0;cb_y<ctx->current_sps->PicHeightInMinCbsY;cb_y++)
     for (int cb_x=0;cb_x<ctx->current_sps->PicWidthInMinCbsY;cb_x++)
       {
@@ -145,6 +151,8 @@ char derive_edgeFlags(decoder_context* ctx)
         int x0 = cb_x * minCbSize;
         int y0 = cb_y * minCbSize;
 
+        int x0ctb = x0 >> ctbshift;
+        int y0ctb = y0 >> ctbshift;
 
         // check whether we should filter this slice
 
@@ -157,7 +165,42 @@ char derive_edgeFlags(decoder_context* ctx)
         if (x0 == 0) filterLeftCbEdge = 0;
         if (y0 == 0) filterTopCbEdge  = 0;
 
-        // ... TODO: check for slice and tile boundaries (8.7.2, step 2 in both processes)
+        // check for slice and tile boundaries (8.7.2, step 2 in both processes)
+
+        if (x0 && ((x0 & ctb_mask) == 0)) { // left edge at CTB boundary
+          //printf("%d %d left boundary\n",x0,y0);
+
+          if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
+              shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0-1,y0)) {
+            filterLeftCbEdge = 0;
+            printf("%d %d has left slice boundary\n",x0,y0);
+          }
+          else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
+                   pps->TileIdRS[  x0ctb           +y0ctb*picWidthInCtbs] !=
+                   pps->TileIdRS[((x0-1)>>ctbshift)+y0ctb*picWidthInCtbs]) {
+            filterLeftCbEdge = 0;
+            printf("%d %d has left tile boundary\n",x0,y0);
+          }
+        }
+
+        if (y0 && ((y0 & ctb_mask) == 0)) { // top edge at CTB boundary
+          //printf("%d %d top boundary\n",x0,y0);
+
+          if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
+              shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0,y0-1)) {
+            filterTopCbEdge = 0;
+            printf("%d %d has top slice boundary\n",x0,y0);
+          }
+          else if (pps->loop_filter_across_tiles_enabled_flag == 0 &&
+                   pps->TileIdRS[x0ctb+  y0ctb           *picWidthInCtbs] !=
+                   pps->TileIdRS[x0ctb+((y0-1)>>ctbshift)*picWidthInCtbs]) {
+            filterTopCbEdge = 0;
+            printf("%d %d has top tile boundary\n",x0,y0);
+          }
+        }
+
+
+        // mark edges
 
         if (shdr->slice_deblocking_filter_disabled_flag==0) {
           deblocking_enabled=1;
@@ -354,6 +397,8 @@ static uint8_t table_8_23_tc[54] = {
 void edge_filtering_luma(decoder_context* ctx, bool vertical,
                          int yStart,int yEnd, int xStart,int xEnd)
 {
+  const seq_parameter_set* sps = ctx->current_sps;
+
   //int minCbSize = ctx->current_sps->MinCbSizeY;
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
@@ -374,7 +419,39 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
       int yDi = y*4;
       int bS = get_deblk_bS(ctx->img, xDi,yDi);
 
-      logtrace(LogDeblock,"--- x:%d y:%d bS:%d---\n",xDi,yDi,bS);
+      logtrace(LogDeblock,"deblock POC=%d %c --- x:%d y:%d bS:%d---\n",
+               img->PicOrderCntVal,vertical ? 'V':'H',xDi,yDi,bS);
+
+#if 0
+      {
+        uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
+
+        for (int dy=-4;dy<4;dy++) {
+          for (int dx=-4;dx<4;dx++) {
+            printf("%02x ", ptr[dy*stride + dx]);
+            if (dx==-1) printf("| ");
+          }
+          printf("\n");
+          if (dy==-1) printf("-------------------------\n");
+        }
+      }
+#endif
+
+#if 0
+      if (!vertical)
+        {
+          uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
+
+          for (int dy=-4;dy<4;dy++) {
+            for (int dx=0;dx<4;dx++) {
+              printf("%02x ", ptr[dy*stride + dx]);
+              if (dx==-1) printf("| ");
+            }
+            printf("\n");
+            if (dy==-1) printf("-------------------------\n");
+          }
+        }
+#endif
 
       if (bS>0) {
 
@@ -485,6 +562,24 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
         // 8.7.2.4.4
 
         if (dE != 0) {
+          bool filterP = true;
+          bool filterQ = true;
+
+          if (vertical) {
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi-1,yDi)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,xDi-1,yDi)) filterP=false;
+
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+          }
+          else {
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi-1)) filterP=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi-1)) filterP=false;
+
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+          }
+
           for (int k=0;k<4;k++) {
             //int nDp,nDq;
 
@@ -516,16 +611,16 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
               if (vertical) {
                 for (int i=0;i<3;i++) {
-                  ptr[-i-1+k*stride] = pnew[i];
-                  ptr[ i + k*stride] = qnew[i];
+                  if (filterP) { ptr[-i-1+k*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ i + k*stride] = qnew[i]; }
                 }
 
                 // ptr[-1+k*stride] = ptr[ 0+k*stride] = 200;
               }
               else {
                 for (int i=0;i<3;i++) {
-                  ptr[ k -(i+1)*stride] = pnew[i];
-                  ptr[ k + i   *stride] = qnew[i];
+                  if (filterP) { ptr[ k -(i+1)*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ k + i   *stride] = qnew[i]; }
                 }
               }
             }
@@ -535,33 +630,51 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
               //nDp=nDq=0;
 
               int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
+              logtrace(LogDeblock,"delta=%d, tc=%d\n",delta,tc);
 
               if (abs_value(delta) < tc*10) {
 
                 delta = Clip3(-tc,tc,delta);
-                logtrace(LogDeblock," delta:%d\n",delta);
+                logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
+                         vertical ? xDi-1 : xDi+k,
+                         vertical ? yDi+k : yDi-1, p0,Clip1_8bit(p0+delta),
+                         vertical ? xDi   : xDi+k,
+                         vertical ? yDi+k : yDi, q0,Clip1_8bit(q0-delta),
+                         delta);
 
                 if (vertical) {
-                  ptr[-0-1+k*stride] = Clip1_8bit(p0+delta);
-                  ptr[ 0  +k*stride] = Clip1_8bit(q0-delta);
+                  if (filterP) { ptr[-0-1+k*stride] = Clip1_8bit(p0+delta); }
+                  if (filterQ) { ptr[ 0  +k*stride] = Clip1_8bit(q0-delta); }
                 }
                 else {
-                  ptr[ k -1*stride] = Clip1_8bit(p0+delta);
-                  ptr[ k +0*stride] = Clip1_8bit(q0-delta);
+                  if (filterP) { ptr[ k -1*stride] = Clip1_8bit(p0+delta); }
+                  if (filterQ) { ptr[ k +0*stride] = Clip1_8bit(q0-delta); }
                 }
 
                 //ptr[ 0+k*stride] = 200;
 
                 if (dEp==1) {
                   int delta_p = Clip3(-(tc>>1), tc>>1, (((p2+p0+1)>>1)-p1+delta)>>1);
-                  if (vertical) { ptr[-1-1+k*stride] = Clip1_8bit(p1+delta_p); }
-                  else          { ptr[ k  -2*stride] = Clip1_8bit(p1+delta_p); }
+
+                  logtrace(LogDeblock," deblk dEp %d;%d delta:%d\n",
+                           vertical ? xDi-2 : xDi+k,
+                           vertical ? yDi+k : yDi-2,
+                           delta_p);
+
+                  if (vertical) { if (filterP) { ptr[-1-1+k*stride] = Clip1_8bit(p1+delta_p); } }
+                  else          { if (filterQ) { ptr[ k  -2*stride] = Clip1_8bit(p1+delta_p); } }
                 }
 
                 if (dEq==1) {
                   int delta_q = Clip3(-(tc>>1), tc>>1, (((q2+q0+1)>>1)-q1-delta)>>1);
-                  if (vertical) { ptr[ 1  +k*stride] = Clip1_8bit(q1+delta_q); }
-                  else          { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); }
+
+                  logtrace(LogDeblock," delkb dEq %d;%d delta:%d\n",
+                           vertical ? xDi+1 : xDi+k,
+                           vertical ? yDi+k : yDi+1,
+                           delta_q);
+
+                  if (vertical) { if (filterP) { ptr[ 1  +k*stride] = Clip1_8bit(q1+delta_q); } }
+                  else          { if (filterQ) { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); } }
                 }
 
                 //nDp = dEp+1;
@@ -812,12 +925,19 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, true ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, true ,0,img->deblk_height,0,img->deblk_width);
 
+    char buf[1000];
+    sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
+    write_picture_to_file(ctx->img, buf);
+
         // horizontal filtering
 
         logtrace(LogDeblock,"HORIZONTAL\n");
         derive_boundaryStrength(ctx, false ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_luma    (ctx, false ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, false ,0,img->deblk_height,0,img->deblk_width);
+
+    sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
+    write_picture_to_file(ctx->img, buf);
       }
       else {
 #if 1
