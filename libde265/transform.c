@@ -81,7 +81,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 {
   logtrace(LogTransform,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
 
-  if (/*ctx->img->PicOrderCntVal==3 &&*/ xC==1280 && yC==48) {
+  if (/*ctx->img->PicOrderCntVal==3 &&*/ xC==168 && yC==128) {
     //raise(SIGINT);
   }
 
@@ -122,7 +122,7 @@ void decode_quantization_parameters(decoder_context* ctx,
   bool firstQGInTile = false;
   bool firstInCTBRow = (xQG==0); // TODO: Tiles
   
-  int first_ctb_in_slice_RS = tctx->shdr->slice_segment_address;
+  int first_ctb_in_slice_RS = tctx->shdr->SliceAddrRS; // slice_segment_address;
 
   int SliceStartX = (first_ctb_in_slice_RS % sps->PicWidthInCtbsY) * sps->CtbSizeY;
   int SliceStartY = (first_ctb_in_slice_RS / sps->PicWidthInCtbsY) * sps->CtbSizeY;
