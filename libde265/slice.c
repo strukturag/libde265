@@ -3806,8 +3806,8 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   setCtbAddrFromTS(tctx);
 
-  const slice_segment_header* shdr = tctx->shdr;
   const pic_parameter_set* pps = ctx->current_pps;
+  slice_segment_header* shdr = tctx->shdr;
 
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
