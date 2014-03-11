@@ -649,7 +649,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
                 //ptr[ 0+k*stride] = 200;
 
-                if (dEp==1) {
+                if (dEp==1 && filterP) {
                   int delta_p = Clip3(-(tc>>1), tc>>1, (((p2+p0+1)>>1)-p1+delta)>>1);
 
                   logtrace(LogDeblock," deblk dEp %d;%d delta:%d\n",
@@ -657,11 +657,11 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
                            vertical ? yDi+k : yDi-2,
                            delta_p);
 
-                  if (vertical) { if (filterP) { ptr[-1-1+k*stride] = Clip1_8bit(p1+delta_p); } }
-                  else          { if (filterQ) { ptr[ k  -2*stride] = Clip1_8bit(p1+delta_p); } }
+                  if (vertical) { ptr[-1-1+k*stride] = Clip1_8bit(p1+delta_p); }
+                  else          { ptr[ k  -2*stride] = Clip1_8bit(p1+delta_p); }
                 }
 
-                if (dEq==1) {
+                if (dEq==1 && filterQ) {
                   int delta_q = Clip3(-(tc>>1), tc>>1, (((q2+q0+1)>>1)-q1-delta)>>1);
 
                   logtrace(LogDeblock," delkb dEq %d;%d delta:%d\n",
@@ -669,8 +669,8 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
                            vertical ? yDi+k : yDi+1,
                            delta_q);
 
-                  if (vertical) { if (filterP) { ptr[ 1  +k*stride] = Clip1_8bit(q1+delta_q); } }
-                  else          { if (filterQ) { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); } }
+                  if (vertical) { ptr[ 1  +k*stride] = Clip1_8bit(q1+delta_q); }
+                  else          { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); }
                 }
 
                 //nDp = dEp+1;
@@ -925,11 +925,11 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, true ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, true ,0,img->deblk_height,0,img->deblk_width);
 
-        /*
+#if 0
           char buf[1000];
           sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
           write_picture_to_file(ctx->img, buf);
-        */
+#endif
 
         // horizontal filtering
 
@@ -938,10 +938,10 @@ void apply_deblocking_filter(decoder_context* ctx)
         edge_filtering_luma    (ctx, false ,0,img->deblk_height,0,img->deblk_width);
         edge_filtering_chroma  (ctx, false ,0,img->deblk_height,0,img->deblk_width);
 
-        /*
+#if 0
         sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
         write_picture_to_file(ctx->img, buf);
-        */
+#endif
       }
       else {
 #if 1
