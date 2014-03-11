@@ -463,6 +463,10 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
          !shdr->slice_deblocking_filter_disabled_flag )) {
       shdr->slice_loop_filter_across_slices_enabled_flag = get_bits(br,1);
     }
+    else {
+      shdr->slice_loop_filter_across_slices_enabled_flag =
+        pps->pps_loop_filter_across_slices_enabled_flag;
+    }
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
