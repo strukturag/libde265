@@ -24,6 +24,19 @@ void transform_skip_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + c);
     }
 }
+
+
+void transform_bypass_8_fallback(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride)
+{
+  int bdShift2 = 20-8;
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + c);
+    }
+}
         
 
 static int8_t mat_8_357[4][4] = {

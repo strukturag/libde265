@@ -127,7 +127,8 @@ enum context_model_indices {
   CONTEXT_MODEL_RQT_ROOT_CBF           = CONTEXT_MODEL_MVP_LX_FLAG + 1,
   CONTEXT_MODEL_REF_IDX_LX             = CONTEXT_MODEL_RQT_ROOT_CBF + 1,
   CONTEXT_MODEL_INTER_PRED_IDC         = CONTEXT_MODEL_REF_IDX_LX + 2,
-  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_INTER_PRED_IDC + 5
+  CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG = CONTEXT_MODEL_INTER_PRED_IDC + 5,
+  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
 };
 
 
@@ -218,8 +219,6 @@ typedef struct slice_segment_header {
   int SliceQPY;
 
   int initType;
-
-  int cu_transquant_bypass_flag;
 
   int CurrRpsIdx;
   int MaxNumMergeCand;

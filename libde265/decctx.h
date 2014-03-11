@@ -114,6 +114,7 @@ typedef struct thread_context
 
   // residual data
 
+  uint8_t cu_transquant_bypass_flag;
   uint8_t transform_skip_flag[3];
 
   ALIGNED_16(int16_t) coeffBuf[32*32]; // alignment required for SSE code !

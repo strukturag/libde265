@@ -436,6 +436,7 @@ int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* s
   return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_transquant_bypass;
 }
 
+
 void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
                   int x,int y, int log2BlkWidth)
 {

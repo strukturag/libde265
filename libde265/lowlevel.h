@@ -42,6 +42,7 @@ struct lowlevel_functions
                                 int16_t* mcbuffer);
 
   void (*transform_skip_8)(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _stride); // no transform
+  void (*transform_bypass_8)(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride);
   void (*transform_4x4_luma_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDST
 
   void (*transform_4x4_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT

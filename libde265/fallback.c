@@ -35,6 +35,7 @@ void init_lowlevel_functions_fallback(struct lowlevel_functions* lowlevel)
   lowlevel->put_hevc_qpel_8[3][3] = put_qpel_3_3_fallback;
 
   lowlevel->transform_skip_8 = transform_skip_8_fallback;
+  lowlevel->transform_bypass_8 = transform_bypass_8_fallback;
   lowlevel->transform_4x4_luma_add_8 = transform_4x4_luma_add_8_fallback;
   lowlevel->transform_4x4_add_8   = transform_4x4_add_8_fallback;
   lowlevel->transform_8x8_add_8   = transform_8x8_add_8_fallback;

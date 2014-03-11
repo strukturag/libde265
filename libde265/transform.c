@@ -296,8 +296,15 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     }
   */
 
-  if (shdr->cu_transquant_bypass_flag) {
-    assert(false); // TODO
+  if (tctx->cu_transquant_bypass_flag) {
+    //assert(false); // TODO
+
+    for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+      int32_t currCoeff  = tctx->coeffList[cIdx][i];
+      tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
+    }
+
+    ctx->lowlevel.transform_bypass_8(pred, coeff, nT, stride);
   }
   else {
     // (8.6.3)

@@ -851,6 +851,8 @@ static const int initValue_mvp_lx_flag[1] = { 168 };
 static const int initValue_rqt_root_cbf[1] = { 79 };
 static const int initValue_ref_idx_lX[2] = { 153,153 };
 static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
+static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
+
 
 static void init_context(decoder_context* ctx,
                          thread_context* tctx,
@@ -940,6 +942,15 @@ static int decode_sao_band_position(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_band_position\n");
   int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder,5);
+  return value;
+}
+
+
+static int decode_transquant_bypass_flag(thread_context* tctx)
+{
+  logtrace(LogSlice,"# cu_transquant_bypass_enable_flag\n");
+  int value = decode_CABAC_bit(&tctx->cabac_decoder,
+                               &tctx->ctx_model[CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG]);
   return value;
 }
 
@@ -1949,6 +1960,7 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   init_context(ctx,tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
   init_context(ctx,tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
   init_context(ctx,tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
+  init_context(ctx,tctx, CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
 }
 
 
@@ -2209,7 +2221,7 @@ int residual_coding(decoder_context* ctx,
 {
   logtrace(LogSlice,"- residual_coding x0:%d y0:%d log2TrafoSize:%d cIdx:%d\n",x0,y0,log2TrafoSize,cIdx);
 
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   const seq_parameter_set* sps = ctx->current_sps;
 
@@ -2219,15 +2231,18 @@ int residual_coding(decoder_context* ctx,
   }
 
 
-  shdr->cu_transquant_bypass_flag=0; // TODO
+  //tctx->cu_transquant_bypass_flag=0; // TODO
 
   if (ctx->current_pps->transform_skip_enabled_flag &&
-      !shdr->cu_transquant_bypass_flag &&
+      !tctx->cu_transquant_bypass_flag &&
       (log2TrafoSize==2))
     {
       tctx->transform_skip_flag[cIdx] = decode_transform_skip_flag(tctx,cIdx);
     }
-
+  else
+    {
+      tctx->transform_skip_flag[cIdx] = 0;
+    }
 
 
   // --- decode position of last coded coefficient ---
@@ -2557,7 +2572,7 @@ int residual_coding(decoder_context* ctx,
       // --- decode coefficient signs ---
 
       int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
-                        !shdr->cu_transquant_bypass_flag);
+                        !tctx->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients-1;n++) {
         coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
@@ -3185,9 +3200,13 @@ void read_coding_unit(decoder_context* ctx,
 
   if (ctx->current_pps->transquant_bypass_enable_flag)
     {
-      assert(false); // TODO
+      int transquant_bypass = decode_transquant_bypass_flag(tctx);
 
-      set_cu_transquant_bypass(ctx->img,sps,x0,y0,log2CbSize);
+      tctx->cu_transquant_bypass_flag = transquant_bypass;
+
+      if (transquant_bypass) {
+        set_cu_transquant_bypass(ctx->img,sps,x0,y0,log2CbSize);
+      }
     }
 
   uint8_t cu_skip_flag = 0;
