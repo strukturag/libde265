@@ -196,10 +196,9 @@ bool output_image(const de265_image* img)
 #elif HAVE_VIDEOGFX
     display_image(img);
 #endif
-
-    if (write_yuv) {
-      write_picture(img);
-    }
+  }
+  if (write_yuv) {
+    write_picture(img);
   }
 
   if ((framecnt%100)==0) {
