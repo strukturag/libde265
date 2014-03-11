@@ -41,15 +41,20 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
-  logtrace(LogSAO,"apply_sao x:%d y:%d cIdx:%d type=%d (%dx%d)\n",xC,yC,cIdx, SaoTypeIdx, nS,nS);
+  logtrace(LogSAO,"apply_sao CTB %d;%d cIdx:%d type=%d (%dx%d)\n",xC,yC,cIdx, SaoTypeIdx, nS,nS);
 
+  if (SaoTypeIdx==0) {
+    return;
+  }
+
+  /*
   if ((sps->pcm_loop_filter_disable_flag && get_pcm_flag(ctx->img,sps,xC,yC)) ||
        get_cu_transquant_bypass(ctx->img,sps,xC,yC) ||
        SaoTypeIdx == 0)
     {
       return;
     }
-
+  */
 
   int width  = ctx->current_sps->pic_width_in_luma_samples;
   int height = ctx->current_sps->pic_height_in_luma_samples;
@@ -60,10 +65,13 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
   int* MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
   int  PicWidthInTbsY = ctx->current_sps->PicWidthInTbsY;
   int  Log2MinTrafoSize = ctx->current_sps->Log2MinTrafoSize;
+  int  chromaLog2MinTrafoSize = Log2MinTrafoSize;
+  if (cIdx>0) { chromaLog2MinTrafoSize-=1; }
 
   int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
   int  ctbshift = ctx->current_sps->Log2CtbSizeY;
-  if (cIdx>0) ctbshift-=1;
+  int  chromashift = 0;
+  if (cIdx>0) { ctbshift-=1; chromashift=1; }
 
 
   uint8_t* out_img;
@@ -94,6 +102,18 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
       for (int i=0;i<nS;i++) {
         int edgeIdx = -1;
 
+        logtrace(LogSAO, "pos %d,%d\n",xC+i,yC+j);
+
+        if (xC+i>=width || yC+j>=height) {
+          continue;
+        }
+
+        if ((sps->pcm_loop_filter_disable_flag &&
+             get_pcm_flag(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            get_cu_transquant_bypass(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
+          continue;
+        }
+
         for (int k=0;k<2;k++) {
           int xS = xC+i+hPos[k];
           int yS = yC+j+vPos[k];
@@ -109,11 +129,11 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           // slice anyway) reduced computation time only by 1.3%.
           // TODO: however, this may still be a big part of SAO itself.
 
-          int sliceAddrRS = get_SliceHeader(ctx,xS,yS)->SliceAddrRS;
+          int sliceAddrRS = get_SliceHeader(ctx,xS<<chromashift,yS<<chromashift)->SliceAddrRS;
           if (sliceAddrRS != ctbSliceAddrRS &&
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
               MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              get_SliceHeader(ctx,xC+i,yC+j)->slice_loop_filter_across_slices_enabled_flag==0) {
+              get_SliceHeader(ctx,(xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
             edgeIdx=0;
             break;
           }
@@ -121,7 +141,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           if (sliceAddrRS != ctbSliceAddrRS &&
               MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] <
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              get_SliceHeader(ctx,xS,yS)->slice_loop_filter_across_slices_enabled_flag==0) {
+              get_SliceHeader(ctx,xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
             edgeIdx=0;
             break;
           }
@@ -183,6 +203,12 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 
         if (xC+i>=width || yC+j>=height) {
           break;
+        }
+
+        if ((sps->pcm_loop_filter_disable_flag &&
+             get_pcm_flag(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            get_cu_transquant_bypass(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
+          continue;
         }
 
         int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
