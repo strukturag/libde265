@@ -172,6 +172,7 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
     pps->num_tile_columns = 1;
     pps->num_tile_rows    = 1;
     pps->uniform_spacing_flag = 1;
+    pps->loop_filter_across_tiles_enabled_flag = 0;
   }
 
 
