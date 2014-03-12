@@ -278,9 +278,6 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
 
             bS = 0;
 
-            slice_segment_header* shdrP = get_SliceHeader(ctx,xDiOpp,yDiOpp);
-            slice_segment_header* shdrQ = get_SliceHeader(ctx,xDi   ,yDi);
-
             const PredVectorInfo* mviP = get_mv_info(ctx,xDiOpp,yDiOpp);
             const PredVectorInfo* mviQ = get_mv_info(ctx,xDi   ,yDi);
 
