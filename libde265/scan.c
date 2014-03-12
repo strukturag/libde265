@@ -20,16 +20,16 @@
 
 #include "scan.h"
 
-static position scan1 = { 0,0 };
+static position scan0 = { 0,0 };
 static position scan_h_1[ 2* 2], scan_v_1[ 2* 2], scan_d_1[ 2* 2];
 static position scan_h_2[ 4* 4], scan_v_2[ 4* 4], scan_d_2[ 4* 4];
 static position scan_h_3[ 8* 8], scan_v_3[ 8* 8], scan_d_3[ 8* 8];
 static position scan_h_4[16*16], scan_v_4[16*16], scan_d_4[16*16];
 static position scan_h_5[32*32], scan_v_5[32*32], scan_d_5[32*32];
 
-static position* scan_h[7] = { &scan1,scan_h_1,scan_h_2,scan_h_3,scan_h_4,scan_h_5 };
-static position* scan_v[7] = { &scan1,scan_v_1,scan_v_2,scan_v_3,scan_v_4,scan_v_5 };
-static position* scan_d[7] = { &scan1,scan_d_1,scan_d_2,scan_d_3,scan_d_4,scan_d_5 };
+static position* scan_h[7] = { &scan0,scan_h_1,scan_h_2,scan_h_3,scan_h_4,scan_h_5 };
+static position* scan_v[7] = { &scan0,scan_v_1,scan_v_2,scan_v_3,scan_v_4,scan_v_5 };
+static position* scan_d[7] = { &scan0,scan_d_1,scan_d_2,scan_d_3,scan_d_4,scan_d_5 };
 
 static void init_scan_h(position* scan, int blkSize)
 {
