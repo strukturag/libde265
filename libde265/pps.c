@@ -549,6 +549,11 @@ void free_pps(pic_parameter_set* pps)
 
 bool is_tile_start_CTB(const pic_parameter_set* pps,int ctbX,int ctbY)
 {
+  // fast check
+  if (pps->tiles_enabled_flag==0) {
+    return ctbX == 0 && ctbY == 0;
+  }
+
   for (int i=0;i<pps->num_tile_columns;i++)
     if (pps->colBd[i]==ctbX)
       {

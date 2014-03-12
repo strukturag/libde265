@@ -3793,38 +3793,6 @@ void thread_decode_CTB_row(void* d)
 }
 
 
-int firstCTBInTile(const seq_parameter_set* sps,
-                   const pic_parameter_set* pps,
-                   int ctbRS)
-{
-  if (pps->tiles_enabled_flag==0) {
-    return ctbRS == 0;
-  }
-  else {
-    int ctbX = ctbRS % sps->PicWidthInCtbsY;
-    int ctbY = ctbRS / sps->PicWidthInCtbsY;
-
-    int columnStart=0;
-    for (int i=0;i<pps->num_tile_columns;i++)
-      if (pps->colBd[i]==ctbX) {
-        columnStart=1;
-        break;
-      }
-
-    if (!columnStart) return 0;
-
-    int rowStart=0;
-    for (int i=0;i<pps->num_tile_rows;i++)
-      if (pps->rowBd[i]==ctbY) {
-        rowStart=1;
-        break;
-      }
-
-    return rowStart;
-  }
-}
-
-
 de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 {
   setCtbAddrFromTS(tctx);
@@ -3837,7 +3805,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
     slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->ctb_info[prevCtb ].SliceHeaderIndex ];
 
-    if (firstCTBInTile(ctx->current_sps, pps, shdr->slice_segment_address)) {
+    if (is_tile_start_CTB(ctx->current_sps, pps, shdr->slice_segment_address)) {
       initialize_CABAC(ctx,tctx);
     }
     else {
