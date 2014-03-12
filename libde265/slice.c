@@ -197,9 +197,16 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       shdr->dependent_slice_segment_flag = 0;
     }
 
+    int slice_segment_address = get_bits(br, ceil_log2(sps->PicSizeInCtbsY));
 
     if (shdr->dependent_slice_segment_flag) {
-      int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
+      if (slice_segment_address == 0) {
+        *continueDecoding = false;
+        add_warning(ctx, DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
+        return DE265_OK;
+      }
+
+      int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
       slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->ctb_info[prevCtb].SliceHeaderIndex];
       memcpy(shdr, prevCtbHdr, sizeof(slice_segment_header));
 
@@ -207,7 +214,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       shdr->dependent_slice_segment_flag = 1;
     }
 
-    shdr->slice_segment_address = get_bits(br, ceil_log2(sps->PicSizeInCtbsY));
+    shdr->slice_segment_address = slice_segment_address;
   } else {
     shdr->dependent_slice_segment_flag = 0;
     shdr->slice_segment_address = 0;
@@ -3805,7 +3812,10 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
     slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->ctb_info[prevCtb ].SliceHeaderIndex ];
 
-    if (is_tile_start_CTB(ctx->current_sps, pps, shdr->slice_segment_address)) {
+    if (is_tile_start_CTB(pps,
+                          shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
+                          shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY
+                          )) {
       initialize_CABAC(ctx,tctx);
     }
     else {

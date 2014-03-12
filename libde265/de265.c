@@ -120,6 +120,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "invalid chroma format in SPS header";
   case DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID:
     return "slice segment address invalid";
+  case DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO:
+    return "dependent slice with address 0";
 
   default: return "unknown error";
   }
