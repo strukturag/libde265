@@ -35,6 +35,14 @@ enum {
 };
 
 
+typedef struct scaling_list_data {
+  uint8_t ScalingFactor_Size0[6][4][4];
+  uint8_t ScalingFactor_Size1[6][8][8];
+  uint8_t ScalingFactor_Size2[6][16][16];
+  uint8_t ScalingFactor_Size3[2][32][32];
+} scaling_list_data;
+
+
 typedef struct {
   bool sps_read; // whether the sps has been read from the bitstream
 
@@ -74,11 +82,11 @@ typedef struct {
   int  log2_diff_max_min_transform_block_size;
   int  max_transform_hierarchy_depth_inter;
   int  max_transform_hierarchy_depth_intra;
-  char scaling_list_enable_flag;
 
+  char scaling_list_enable_flag;
   char sps_scaling_list_data_present_flag;
 
-  // scaling_list_data()
+  struct scaling_list_data scaling_list;
 
   char amp_enabled_flag;
   char sample_adaptive_offset_enabled_flag;

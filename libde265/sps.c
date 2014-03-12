@@ -21,9 +21,11 @@
 #include "sps.h"
 #include "sps_func.h"
 #include "util.h"
+#include "scan.h"
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 static int SubWidthC[]  = { -1,2,2,1 };
@@ -156,7 +158,10 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     sps->sps_scaling_list_data_present_flag = get_bits(br,1);
     if (sps->sps_scaling_list_data_present_flag) {
 
-      return DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED;
+      de265_error err;
+      if ((err=read_scaling_list(br,sps, &sps->scaling_list, false)) != DE265_OK) {
+        return err;
+      }
     }
   }
 
@@ -451,6 +456,188 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 #undef LOG2
 #undef LOG3
   //#endif
+}
+
+
+static uint8_t default_ScalingList_4x4[16] = {
+  16,16,16,16,16,16,16,16,
+  16,16,16,16,16,16,16,16
+};
+
+static uint8_t default_ScalingList_8x8_intra[64] = {
+  16,16,16,16,16,16,16,16,16,16,17,16,17,16,17,18,
+  17,18,18,17,18,21,19,20,21,20,19,21,24,22,22,24,
+  24,22,22,24,25,25,27,30,27,25,25,29,31,35,35,31,
+  29,36,41,44,41,36,47,54,54,47,65,70,65,88,88,115
+};
+
+static uint8_t default_ScalingList_8x8_inter[64] = {
+  16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,18,
+  18,18,18,18,18,20,20,20,20,20,20,20,24,24,24,24,
+  24,24,24,24,25,25,25,25,25,25,25,28,28,28,28,28,
+  28,33,33,33,33,33,41,41,41,41,54,54,54,71,71,91
+};
+
+de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
+                              scaling_list_data* sclist, bool inPPS)
+{
+  for (int sizeId=0;sizeId<4;sizeId++) {
+    int n = ((sizeId==3) ? 2 : 6);
+    uint8_t scaling_list[6][32*32];
+
+    for (int matrixId=0;matrixId<n;matrixId++) {
+      uint8_t* curr_scaling_list = scaling_list[matrixId];
+
+      printf("----- matrix %d\n",matrixId);
+
+      char scaling_list_pred_mode_flag = get_bits(br,1);
+      if (!scaling_list_pred_mode_flag) {
+        int scaling_list_pred_matrix_id_delta = get_uvlc(br);
+        if (scaling_list_pred_matrix_id_delta < 0 ||
+            scaling_list_pred_matrix_id_delta > matrixId) {
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
+
+        printf("scaling_list_pred_matrix_id_delta=%d\n",
+               scaling_list_pred_matrix_id_delta);
+
+        if (scaling_list_pred_matrix_id_delta==0) {
+          if (sizeId==0) {
+            memcpy(curr_scaling_list, default_ScalingList_4x4, 16);
+          }
+          else {
+            if (matrixId<3) { memcpy(curr_scaling_list, default_ScalingList_8x8_intra,64); }
+            else            { memcpy(curr_scaling_list, default_ScalingList_8x8_inter,64); }
+          }
+        }
+        else {
+          // TODO: CHECK: for sizeID=3 and the second matrix, should we have delta=1 or delta=3 ?
+          if (sizeId==3) { assert(scaling_list_pred_matrix_id_delta==1); }
+
+          int mID = matrixId - scaling_list_pred_matrix_id_delta;
+
+          int len = (sizeId == 0 ? 16 : 64);
+          memcpy(curr_scaling_list, scaling_list[mID], len);
+        }
+      }
+      else {
+        printf("signal matrix\n");
+
+        int nextCoef=8;
+        int coefNum = (sizeId==0 ? 16 : 64);
+        if (sizeId>1) {
+          int scaling_list_dc_coef = get_svlc(br);
+          if (scaling_list_dc_coef < -7 ||
+              scaling_list_dc_coef > 247) {
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
+
+          scaling_list_dc_coef += 8;
+
+          //printf("DC = %d\n",scaling_list_dc_coef);
+
+          nextCoef=scaling_list_dc_coef;
+        }
+
+        for (int i=0;i<coefNum;i++) {
+          int scaling_list_delta_coef = get_svlc(br);
+          if (scaling_list_delta_coef < -128 ||
+              scaling_list_delta_coef >  127) {
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
+
+          nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
+          if (nextCoef < 0 || nextCoef > 255) {
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
+
+          curr_scaling_list[i] = nextCoef;
+          //printf("curr %d = %d\n",i,nextCoef);
+        }
+      }
+
+
+      // --- generate ScalingFactor arrays ---
+
+      const position* scan;
+
+      switch (sizeId) {
+      case 0:
+        scan = get_scan_order(2, 0 /* diag */);
+
+        for (int i=0;i<4*4;i++) {
+          sclist->ScalingFactor_Size0[matrixId][scan[i].x][scan[i].y] = curr_scaling_list[i];
+        }
+
+        for (int y=0;y<4;y++) {
+          for (int x=0;x<4;x++)
+            printf("%d,",sclist->ScalingFactor_Size0[matrixId][x][y]);
+
+          printf("\n");
+        }
+        break;
+
+      case 1:
+        scan = get_scan_order(3, 0 /* diag */);
+
+        for (int i=0;i<8*8;i++) {
+          sclist->ScalingFactor_Size1[matrixId][scan[i].x][scan[i].y] = curr_scaling_list[i];
+        }
+
+        for (int y=0;y<8;y++) {
+          for (int x=0;x<8;x++)
+            printf("%d,",sclist->ScalingFactor_Size1[matrixId][x][y]);
+
+          printf("\n");
+        }
+        break;
+
+      case 2:
+        scan = get_scan_order(3, 0 /* diag */);
+
+        for (int i=0;i<8*8;i++) {
+          for (int dy=0;dy<2;dy++)
+            for (int dx=0;dx<2;dx++)
+              {
+                int x = 2*scan[i].x+dx;
+                int y = 2*scan[i].y+dy;
+                sclist->ScalingFactor_Size2[matrixId][x][y] = curr_scaling_list[i];
+              }
+        }
+
+        for (int y=0;y<16;y+=2) {
+          for (int x=0;x<16;x+=2)
+            printf("%d,",sclist->ScalingFactor_Size2[matrixId][x][y]);
+
+          printf("\n");
+        }
+        break;
+
+      case 3:
+        scan = get_scan_order(3, 0 /* diag */);
+
+        for (int i=0;i<8*8;i++) {
+          for (int dy=0;dy<4;dy++)
+            for (int dx=0;dx<4;dx++)
+              {
+                int x = 4*scan[i].x+dx;
+                int y = 4*scan[i].y+dy;
+                sclist->ScalingFactor_Size3[matrixId][x][y] = curr_scaling_list[i];
+              }
+        }
+
+        for (int y=0;y<32;y+=4) {
+          for (int x=0;x<32;x+=4)
+            printf("%d,",sclist->ScalingFactor_Size3[matrixId][x][y]);
+
+          printf("\n");
+        }
+        break;
+      }
+    }
+  }
+
+  return DE265_OK;
 }
 
 
