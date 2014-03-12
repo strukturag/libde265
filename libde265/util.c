@@ -57,7 +57,7 @@ int Log2(int v)
 
 #ifdef DE265_LOGGING
 static int current_poc=0;
-static int log_poc_start=0;
+static int log_poc_start=-9999; // frame-numbers can be negative
 static int enable_log = 1;
 void log_set_current_POC(int poc) { current_poc=poc; }
 #endif

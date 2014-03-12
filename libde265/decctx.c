@@ -350,7 +350,7 @@ static void log_dpb_content(const decoder_context* ctx)
  */
 void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
 {
-  logdebug(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
+  loginfo(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
            hdr->slice_pic_order_cnt_lsb,
            ctx->prevPicOrderCntLsb,
            ctx->PicOrderCntMsb);
@@ -372,7 +372,7 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
       int MaxPicOrderCntLsb = ctx->current_sps->MaxPicOrderCntLsb;
 
       if ((hdr->slice_pic_order_cnt_lsb < ctx->prevPicOrderCntLsb) &&
-          (ctx->prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) > MaxPicOrderCntLsb/2) {
+          (ctx->prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) >= MaxPicOrderCntLsb/2) {
         ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb + MaxPicOrderCntLsb;
       }
       else if ((hdr->slice_pic_order_cnt_lsb > ctx->prevPicOrderCntLsb) &&
@@ -380,21 +380,23 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
         ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb - MaxPicOrderCntLsb;
       }
       else {
-        // leave PicOrderCntMsb unchanged
+        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb;
       }
     }
 
   ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
 
-  logdebug(LogHeaders,"POC computation. new msb:%d POC=%d\n",
+  loginfo(LogHeaders,"POC computation. new msb:%d POC=%d\n",
            ctx->PicOrderCntMsb,
            ctx->img->PicOrderCntVal);
 
-  //  if (1 /* TemporalID==0 */ && // TODO
-  //    !isRASL(ctx->nal_unit_type) &&
-  //    !isRADL(ctx->nal_unit_type) &&
-  //    1 /* sub-layer non-reference picture */) // TODO
+  if (1 /* TemporalID==0 */ && // TODO
+      (isReferenceNALU(ctx->nal_unit_type) &&
+       (!isRASL(ctx->nal_unit_type) && !isRADL(ctx->nal_unit_type))) &&
+      1 /* sub-layer non-reference picture */) // TODO
     {
+      loginfo(LogHeaders,"set prevPicOrderCntLsb/Msb\n");
+
       ctx->prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
       ctx->prevPicOrderCntMsb = ctx->PicOrderCntMsb;
     }
@@ -937,7 +939,8 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
   
   // --- prepare decoding of new picture ---
 
-  if (hdr->slice_pic_order_cnt_lsb != ctx->current_image_poc_lsb) {
+  //if (hdr->slice_pic_order_cnt_lsb != ctx->current_image_poc_lsb) {
+  if (hdr->first_slice_segment_in_pic_flag) {
 
     // previous picture has been completely decoded
 

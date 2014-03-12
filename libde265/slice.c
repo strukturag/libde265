@@ -559,7 +559,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
   LOG0("----------------- SLICE -----------------\n");
   LOG1("first_slice_segment_in_pic_flag        : %d\n", shdr->first_slice_segment_in_pic_flag);
   if (ctx->nal_unit_type >= NAL_UNIT_BLA_W_LP &&
-      ctx->nal_unit_type <= NAL_UNIT_RSV_IRAP_VCL23) {
+      ctx->nal_unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23) {
     LOG1("no_output_of_prior_pics_flag           : %d\n", shdr->no_output_of_prior_pics_flag);
   }
 

@@ -591,10 +591,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
   nal_read_header(&reader, &nal_hdr);
   process_nal_hdr(ctx, &nal_hdr);
 
-  logdebug(LogHighlevel,"NAL: 0x%x 0x%x -  %d %d\n",
-           data->data[0], data->data[1],
-           nal_hdr.nal_unit_type,
-           nal_hdr.nuh_temporal_id);
+  loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%d temporal id:%d\n",
+          data->data[0], data->data[1],
+          nal_hdr.nal_unit_type,
+          nal_hdr.nuh_temporal_id);
 
 
   if (nal_hdr.nal_unit_type<32) {

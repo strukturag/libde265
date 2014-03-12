@@ -61,11 +61,19 @@ bool isRASL(uint8_t unit_type)
 bool isIRAP(uint8_t unit_type)
 {
   return (unit_type >= NAL_UNIT_BLA_W_LP &&
-          unit_type <= NAL_UNIT_RSV_IRAP_VCL23);
+          unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23);
 }
 
 bool isRADL(uint8_t unit_type)
 {
   return (unit_type == NAL_UNIT_RADL_N ||
           unit_type == NAL_UNIT_RADL_R);
+}
+
+
+bool isReferenceNALU(uint8_t unit_type)
+{
+  return ( ((unit_type <= NAL_UNIT_RESERVED_VCL_R15) && (unit_type%2 != 0)) ||
+           ((unit_type >= NAL_UNIT_BLA_W_LP) &&
+            (unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23)) );
 }
