@@ -121,7 +121,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
     yBLuma = 0; // fake value, available flags are already set to false
   }
 
-  if (xBLuma+nT >= sps->pic_width_in_luma_samples) {
+  if (xBLuma+nTLuma >= sps->pic_width_in_luma_samples) {
     availableTopRight=false;
   }
  
