@@ -228,15 +228,15 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 
   if (trType==1) {
 
-    ctx->lowlevel.transform_4x4_luma_add_8(dst, coeff, dstStride);
+    ctx->acceleration.transform_4x4_luma_add_8(dst, coeff, dstStride);
     nDST_4x4++;
 
   } else {
 
-    /**/ if (nT==4)  { ctx->lowlevel.transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
-    else if (nT==8)  { ctx->lowlevel.transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
-    else if (nT==16) { ctx->lowlevel.transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
-    else             { ctx->lowlevel.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
+    /**/ if (nT==4)  { ctx->acceleration.transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
+    else if (nT==8)  { ctx->acceleration.transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
+    else if (nT==16) { ctx->acceleration.transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
+    else             { ctx->acceleration.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
   }
 }
 
@@ -281,6 +281,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
   get_image_plane(ctx->img,cIdx,&pred,&stride);
   pred += xT + yT*stride;
 
+  //fprintf(stderr,"POC=%d pred: %p (%d;%d stride=%d)\n",ctx->img->PicOrderCntVal,pred,xT,yT,stride);
+
   /*
   int x,y;
   for (y=0;y<nT;y++)
@@ -304,7 +306,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
 
-    ctx->lowlevel.transform_bypass_8(pred, coeff, nT, stride);
+    ctx->acceleration.transform_bypass_8(pred, coeff, nT, stride);
   }
   else {
     // (8.6.3)
@@ -357,7 +359,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     if (transform_skip_flag) {
 
-      ctx->lowlevel.transform_skip_8(pred, coeff, stride);
+      ctx->acceleration.transform_skip_8(pred, coeff, stride);
 
       nSkip_4x4++;
     }

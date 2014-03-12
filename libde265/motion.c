@@ -155,7 +155,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
 
-      ctx->lowlevel.put_hevc_qpel_8[0][0](out, out_stride,
+      ctx->acceleration.put_hevc_qpel_8[0][0](out, out_stride,
                                           &img[yIntOffsL*img_stride + xIntOffsL],
                                           img_stride,
                                           nPbW,nPbH, mcbuffer);
@@ -233,7 +233,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
       src_stride = MAX_CU_SIZE+16;
     }
 
-    ctx->lowlevel.put_hevc_qpel_8[xFracL][yFracL](out, out_stride,
+    ctx->acceleration.put_hevc_qpel_8[xFracL][yFracL](out, out_stride,
                                                   src_ptr, src_stride,
                                                   nPbW,nPbH, mcbuffer);
 
@@ -278,7 +278,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
         yIntOffsC>=0 && nPbHC+yIntOffsC<=hC) {
-      ctx->lowlevel.put_hevc_epel_8(out, out_stride,
+      ctx->acceleration.put_hevc_epel_8(out, out_stride,
                                     &img[xIntOffsC + yIntOffsC*img_stride], img_stride,
                                     nPbWC,nPbHC, 0,0, NULL);
     }
@@ -327,17 +327,17 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
 
 
     if (xFracC && yFracC) {
-      ctx->lowlevel.put_hevc_epel_hv_8(out, out_stride,
+      ctx->acceleration.put_hevc_epel_hv_8(out, out_stride,
                                        src_ptr, src_stride,
                                        nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
     }
     else if (xFracC) {
-      ctx->lowlevel.put_hevc_epel_h_8(out, out_stride,
+      ctx->acceleration.put_hevc_epel_h_8(out, out_stride,
                                       src_ptr, src_stride,
                                       nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
     }
     else if (yFracC) {
-      ctx->lowlevel.put_hevc_epel_v_8(out, out_stride,
+      ctx->acceleration.put_hevc_epel_v_8(out, out_stride,
                                       src_ptr, src_stride,
                                       nPbWC,nPbHC, xFracC,yFracC, mcbuffer);
     }
@@ -457,13 +457,13 @@ void generate_inter_prediction_samples(decoder_context* ctx,
             FullpelPredCnt++;
           }
 
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                             ctx->img->stride,
                                             predSamplesL[0],nCS, nPbW,nPbH);
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
                                             predSamplesC[0][0],nCS, nPbW/2,nPbH/2);
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
                                             predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
       }
@@ -494,15 +494,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
 
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
                                           predSamplesL[0],nCS, nPbW,nPbH,
                                           luma_w0, luma_o0, luma_log2WD);
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
                                           chroma0_w0, chroma0_o0, chroma_log2WD);
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
                                           chroma1_w0, chroma1_o0, chroma_log2WD);
@@ -537,7 +537,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in1 = predSamplesL[1];
         uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
 
-        ctx->lowlevel.put_weighted_pred_avg_8(out, ctx->img->stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out, ctx->img->stride,
                                               in0,in1, nCS, nPbW, nPbH);
 
         int16_t* in00 = predSamplesC[0][0];
@@ -547,9 +547,9 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
         uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
       
-        ctx->lowlevel.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
                                               in00,in01, nCS, nPbW/2, nPbH/2);
-        ctx->lowlevel.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
                                               in10,in11, nCS, nPbW/2, nPbH/2);
       }
       else {
@@ -582,7 +582,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in1 = predSamplesL[1];
         uint8_t* out = &ctx->img->y[xP + (yP+0)*ctx->img->stride];
 
-        ctx->lowlevel.put_weighted_bipred_8(out, ctx->img->stride,
+        ctx->acceleration.put_weighted_bipred_8(out, ctx->img->stride,
                                             in0,in1, nCS, nPbW, nPbH,
                                             luma_w0,luma_o0,
                                             luma_w1,luma_o1,
@@ -595,12 +595,12 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         uint8_t* out0 = &ctx->img->cb[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
         uint8_t* out1 = &ctx->img->cr[xP/2 + (yP/2+0)*ctx->img->chroma_stride];
       
-        ctx->lowlevel.put_weighted_bipred_8(out0, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_bipred_8(out0, ctx->img->chroma_stride,
                                             in00,in01, nCS, nPbW/2, nPbH/2,
                                             chroma0_w0,chroma0_o0,
                                             chroma0_w1,chroma0_o1,
                                             chroma_log2WD);
-        ctx->lowlevel.put_weighted_bipred_8(out1, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_bipred_8(out1, ctx->img->chroma_stride,
                                             in10,in11, nCS, nPbW/2, nPbH/2,
                                             chroma1_w0,chroma1_o0,
                                             chroma1_w1,chroma1_o1,
@@ -618,13 +618,13 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           }
 
 
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                             ctx->img->stride,
                                             predSamplesL[l],nCS, nPbW,nPbH);
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
                                             predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
-        ctx->lowlevel.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_unweighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                             ctx->img->chroma_stride,
                                             predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
       }
@@ -644,15 +644,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->y[xP +yP*ctx->img->stride],
                                           ctx->img->stride,
                                           predSamplesL[l],nCS, nPbW,nPbH,
                                           luma_w, luma_o, luma_log2WD);
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->cb[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
                                           chroma0_w, chroma0_o, chroma_log2WD);
-        ctx->lowlevel.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
+        ctx->acceleration.put_weighted_pred_8(&ctx->img->cr[xP/2 +yP/2*ctx->img->chroma_stride],
                                           ctx->img->chroma_stride,
                                           predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
                                           chroma1_w, chroma1_o, chroma_log2WD);

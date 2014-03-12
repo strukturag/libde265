@@ -144,15 +144,6 @@ LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
 typedef void* de265_decoder_context; // private structure
 
 
-enum de265_param {
-  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, /* (bool) Perform SEI hash check on decoded pictures. */
-  DE265_DECODER_PARAM_DUMP_SPS_HEADERS,    /* (int)  Dump headers to specified file-descriptor. */
-  DE265_DECODER_PARAM_DUMP_VPS_HEADERS,
-  DE265_DECODER_PARAM_DUMP_PPS_HEADERS,
-  DE265_DECODER_PARAM_DUMP_SLICE_HEADERS
-};
-
-
 
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 LIBDE265_API de265_decoder_context* de265_new_decoder(void);
@@ -245,6 +236,31 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
 
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
+
+
+/* --- decoding parameters --- */
+
+enum de265_param {
+  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
+  DE265_DECODER_PARAM_DUMP_SPS_HEADERS=1,    // (int)  Dump headers to specified file-descriptor.
+  DE265_DECODER_PARAM_DUMP_VPS_HEADERS=2,
+  DE265_DECODER_PARAM_DUMP_PPS_HEADERS=3,
+  DE265_DECODER_PARAM_DUMP_SLICE_HEADERS=4,
+  DE265_DECODER_PARAM_ACCELERATION_CODE=5    // (int)  enum de265_acceleration, default: AUTO
+};
+
+// sorted such that a large ID includes all optimizations from lower IDs
+enum de265_acceleration {
+  de265_acceleration_SCALAR = 0, // only fallback implementation
+  de265_acceleration_MMX  = 10,
+  de265_acceleration_SSE  = 20,
+  de265_acceleration_SSE2 = 30,
+  de265_acceleration_SSE4 = 40,
+  de265_acceleration_AVX  = 50,    // not implemented yet
+  de265_acceleration_AVX2 = 60,    // not implemented yet
+  de265_acceleration_AUTO = 10000
+};
+
 
 /* Set decoding parameters. */
 LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);

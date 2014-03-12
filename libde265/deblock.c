@@ -469,7 +469,6 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
               }
             }
 
-
 #if 0
         for (int k=0;k<4;k++)
           {

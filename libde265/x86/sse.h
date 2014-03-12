@@ -2,8 +2,8 @@
 #ifndef DE265_SSE_H
 #define DE265_SSE_H
 
-#include "lowlevel.h"
+#include "acceleration.h"
 
-void init_lowlevel_functions_sse(struct lowlevel_functions* lowlevel);
+void init_acceleration_functions_sse(struct acceleration_functions* accel);
 
 #endif

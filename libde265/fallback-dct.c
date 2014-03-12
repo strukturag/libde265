@@ -239,8 +239,8 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
 
-      //printf("%d\n",Clip1_8bit(dst[y*stride+i]));
-      //printf("%d\n",Clip1_8bit(out));
+      //fprintf(stderr,"%d*%d+%d = %d\n",y,stride,i,y*stride+i);
+      //fprintf(stderr,"[%p]=%d\n",&dst[y*stride+i], Clip1_8bit(dst[y*stride+i]));
       dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
 
       logtrace(LogTransform,"*%d ",out);

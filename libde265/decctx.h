@@ -30,7 +30,7 @@
 #include "libde265/motion.h"
 #include "libde265/de265.h"
 #include "libde265/threads.h"
-#include "libde265/lowlevel.h"
+#include "libde265/acceleration.h"
 
 #define DE265_MAX_VPS_SETS 16
 #define DE265_MAX_SPS_SETS 16
@@ -57,12 +57,6 @@
 // mpm_idx                   CB
 // intra_chroma_pred_mode    CB
 
-
-enum LowLevelImplementation {
-  LOWLEVEL_AUTO,
-  LOWLEVEL_SSE,
-  LOWLEVEL_AVX
-};
 
 typedef struct NAL_unit {
   nal_header  header;
@@ -162,7 +156,7 @@ typedef struct decoder_context {
 
   // --- decoder administration ---
 
-  struct lowlevel_functions lowlevel; // CPU optimized functions
+  struct acceleration_functions acceleration; // CPU optimized functions
 
   de265_error warnings[MAX_WARNINGS];
   int nWarnings;
@@ -280,7 +274,7 @@ typedef struct decoder_context {
 
 
 void init_decoder_context(decoder_context*);
-void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation);
+void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration);
 void reset_decoder_context_for_new_picture(decoder_context* ctx);
 void free_decoder_context(decoder_context*);
 

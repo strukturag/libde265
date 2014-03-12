@@ -57,7 +57,7 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- processing ---
 
-  set_lowlevel_functions(ctx,LOWLEVEL_AUTO);
+  set_acceleration_functions(ctx,de265_acceleration_AUTO);
 
   ctx->param_sps_headers_fd = -1;
   ctx->param_vps_headers_fd = -1;
@@ -85,25 +85,18 @@ void init_decoder_context(decoder_context* ctx)
 }
 
 
-void set_lowlevel_functions(decoder_context* ctx, enum LowLevelImplementation l)
+void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration l)
 {
-  // fill lowlevel functions first (so that function table is completely filled)
+  // fill scalar functions first (so that function table is completely filled)
 
-  init_lowlevel_functions_fallback(&ctx->lowlevel);
-
-
-  if (l==LOWLEVEL_AUTO) {
-#ifdef HAVE_SSE4_1
-    l = LOWLEVEL_SSE;
-#endif
-  }
+  init_acceleration_functions_fallback(&ctx->acceleration);
 
 
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
-  if (l==LOWLEVEL_SSE) {
-    init_lowlevel_functions_sse(&ctx->lowlevel);
+  if (l>=de265_acceleration_SSE) {
+    init_acceleration_functions_sse(&ctx->acceleration);
   }
 #endif
 }

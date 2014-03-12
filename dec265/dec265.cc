@@ -82,6 +82,7 @@ bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
 bool logging=true;
+bool no_acceleration=false;
 const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 
@@ -97,6 +98,7 @@ static struct option long_options[] = {
   {"videogfx",   no_argument,       0, 'V' },
   {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
+  {"noaccel",    no_argument,       0, '0' },
   //{"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
 };
@@ -281,7 +283,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLn"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLn0"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -303,6 +305,7 @@ int main(int argc, char** argv)
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
     case 'L': logging=false; break;
+    case '0': no_acceleration=true; break;
     }
   }
 
@@ -324,6 +327,7 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
+    fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
@@ -348,6 +352,10 @@ int main(int argc, char** argv)
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+  }
+
+  if (no_acceleration) {
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
   }
 
   if (!logging) {
