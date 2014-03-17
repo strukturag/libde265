@@ -368,6 +368,9 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
             }
           }
         }
+        else {
+          shdr->ref_pic_list_modification_flag_l1 = 0;
+        }
       }
       else {
         shdr->ref_pic_list_modification_flag_l0 = 0;
