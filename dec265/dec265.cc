@@ -28,7 +28,9 @@
 #include <stdlib.h>
 #include <limits>
 #include <getopt.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <signal.h>
 
 #ifndef _MSC_VER
