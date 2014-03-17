@@ -72,9 +72,9 @@ typedef struct {
   int  log2_max_pic_order_cnt_lsb;
   char sps_sub_layer_ordering_info_present_flag;
 
-  int sps_max_dec_pic_buffering[7];
+  int sps_max_dec_pic_buffering[7]; // for each temporal layer
   int sps_max_num_reorder_pics[7];
-  int sps_max_latency_increase[7];
+  int sps_max_latency_increase_plus1[7];
 
   int  log2_min_luma_coding_block_size;
   int  log2_diff_max_min_luma_coding_block_size;
@@ -170,6 +170,8 @@ typedef struct {
 
   int Log2MinIpcmCbSizeY;
   int Log2MaxIpcmCbSizeY;
+
+  int SpsMaxLatencyPictures[7]; // [temporal layer]
 
 } seq_parameter_set;
 

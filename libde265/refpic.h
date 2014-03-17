@@ -23,20 +23,27 @@
 
 #include "libde265/bitstream.h"
 
-#define MAX_NUM_REF_PICS 16
+#define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
+
 
 typedef struct {
-  int NumDeltaPocs;
-  int NumNegativePics;
-  int NumPositivePics;
+  uint8_t NumNegativePics;  // number of past reference pictures
+  uint8_t NumPositivePics;  // number of future reference pictures
+  uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
 
-  int DeltaPocS0[MAX_NUM_REF_PICS]; // sorted in decreasing order (e.g. -1, -2, -4, -7, ...)
-  int DeltaPocS1[MAX_NUM_REF_PICS]; // sorted in ascending order (e.g. 1, 2, 4, 7)
+  uint8_t NumPocTotalCurr; /* Total number of reference pictures that may actually be used
+                              for prediction in the current frame. */
 
-  char UsedByCurrPicS0[MAX_NUM_REF_PICS];
-  char UsedByCurrPicS1[MAX_NUM_REF_PICS];
+  // Lists of pictures that have to be kept in the decoded picture buffer for future
+  // reference and that may optionally be used for prediction in the current frame.
+  // Lists contain the relative POC positions.
+  int16_t DeltaPocS0[MAX_NUM_REF_PICS]; // sorted in decreasing order (e.g. -1, -2, -4, -7, ...)
+  int16_t DeltaPocS1[MAX_NUM_REF_PICS]; // sorted in ascending order (e.g. 1, 2, 4, 7)
 
-  int NumPocTotalCurr;
+  // flag for each reference whether this is actually used for prediction in the current frame
+  uint8_t UsedByCurrPicS0[MAX_NUM_REF_PICS];
+  uint8_t UsedByCurrPicS1[MAX_NUM_REF_PICS];
+
 } ref_pic_set;
 
 

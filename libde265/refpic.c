@@ -53,48 +53,65 @@ static void compute_NumPoc(ref_pic_set* rpset)
 
 
 bool read_short_term_ref_pic_set(decoder_context* ctx,
-                                 bitreader* br, ref_pic_set* sets,
-                                 int idxRps, int num_short_term_ref_pic_sets)
+                                 const seq_parameter_set* sps,
+                                 bitreader* br,
+                                 ref_pic_set* sets,
+                                 int idxRps,  // index of the set to be read
+                                 int num_short_term_ref_pic_sets)
 {
-  char inter_ref_pic_set_prediction_flag=0;
+  // --- is this set coded in prediction mode (not possible for the first set)
+
+  char inter_ref_pic_set_prediction_flag;
 
   if (idxRps != 0) {
     inter_ref_pic_set_prediction_flag = get_bits(br,1);
   }
+  else {
+    inter_ref_pic_set_prediction_flag = 0;
+  }
+
+
 
   if (inter_ref_pic_set_prediction_flag) {
+    int vlc;
+
+    /* Only for the last ref_pic_set (that's the one coded in the slice header),
+       we can specify relative to which reference set we code the set. */
 
     int delta_idx;
     if (idxRps == num_short_term_ref_pic_sets) {
-      delta_idx = get_uvlc(br)+1;
+      delta_idx = vlc = get_uvlc(br);
+      delta_idx++;
     } else {
       delta_idx = 1;
     }
 
-    int RIdx = idxRps - delta_idx;
+    int RIdx = idxRps - delta_idx; // this is our source set, which we will modify
     assert(RIdx>=0);
 
     int delta_rps_sign = get_bits(br,1);
-    int abs_delta_rps  = get_uvlc(br)+1;
+    int abs_delta_rps  = vlc = get_uvlc(br);
+    abs_delta_rps++;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
 
     // bits are stored in this order:
     // - all bits for negative Pocs (forward),
     // - then all bits for positive Pocs (forward),
-    // - then bits for '0'
+    // - then bits for '0', shifting of the current picture
+    // in total, these are 'nDeltaPocsRIdx'+1 bits
 
     logtrace(LogHeaders,"predicted from %d with delta %d\n",RIdx,DeltaRPS);
 
-    int nDeltaPocsRIdx= sets[RIdx].NumDeltaPocs;
+    int nDeltaPocsRIdx= sets[RIdx].NumDeltaPocs; // size of source set
     char *const used_by_curr_pic_flag = (char *)alloca((nDeltaPocsRIdx+1) * sizeof(char));
     char *const use_delta_flag = (char *)alloca((nDeltaPocsRIdx+1) * sizeof(char));
 
     for (int j=0;j<=nDeltaPocsRIdx;j++) {
       used_by_curr_pic_flag[j] = get_bits(br,1);
-      if (!used_by_curr_pic_flag[j]) {
-        use_delta_flag[j] = get_bits(br,1);
+      if (used_by_curr_pic_flag[j]) {
+        use_delta_flag[j] = 1;  // if this frame is used, we also have to apply the delta
       } else {
-        use_delta_flag[j] = 1;
+        use_delta_flag[j] = get_bits(br,1);  // otherwise, it is only optionally included
       }
     }
 
@@ -105,13 +122,16 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     logtrace(LogHeaders,"\n");
 
     int nNegativeRIdx = sets[RIdx].NumNegativePics;
+    int nPositiveRIdx = sets[RIdx].NumPositivePics;
 
     // --- update list 0 (negative Poc) ---
     // Iterate through all Pocs in decreasing value order (positive reverse, 0, negative forward).
 
-    int i=0;
-    for (int j=sets[RIdx].NumPositivePics-1;j>=0;j--) {
-      int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
+    int i=0; // target index
+
+    // positive list
+    for (int j=nPositiveRIdx-1;j>=0;j--) {
+      int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
         sets[idxRps].DeltaPocS0[i] = dPoc;
         sets[idxRps].UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
@@ -119,12 +139,14 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
       }
     }
 
+    // frame 0
     if (DeltaRPS<0 && use_delta_flag[nDeltaPocsRIdx]) {
       sets[idxRps].DeltaPocS0[i] = DeltaRPS;
       sets[idxRps].UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
     }
 
+    // negative list
     for (int j=0;j<nNegativeRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc<0 && use_delta_flag[j]) {
@@ -140,8 +162,10 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     // --- update list 1 (positive Poc) ---
     // Iterate through all Pocs in increasing value order (negative reverse, 0, positive forward)
 
-    i=0;
-    for (int j=sets[RIdx].NumNegativePics-1;j>=0;j--) {
+    i=0; // target index
+
+    // negative list
+    for (int j=nNegativeRIdx-1;j>=0;j--) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[j]) {
         sets[idxRps].DeltaPocS1[i] = dPoc;
@@ -150,13 +174,15 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
       }
     }
 
+    // frame 0
     if (DeltaRPS>0 && use_delta_flag[nDeltaPocsRIdx]) {
       sets[idxRps].DeltaPocS1[i] = DeltaRPS;
       sets[idxRps].UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
     }
 
-    for (int j=0;j<sets[RIdx].NumPositivePics;j++) {
+    // positive list
+    for (int j=0;j<nPositiveRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[nNegativeRIdx+j]) {
         sets[idxRps].DeltaPocS1[i] = dPoc;
@@ -170,10 +196,15 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     sets[idxRps].NumDeltaPocs = sets[idxRps].NumNegativePics + sets[idxRps].NumPositivePics;
 
   } else {
+
+    // --- first, read the number of past and future frames in this set ---
+
     int num_negative_pics = get_uvlc(br);
     int num_positive_pics = get_uvlc(br);
 
-    if (num_negative_pics + num_positive_pics > MAX_NUM_REF_PICS) {
+    // total number of reference pictures may not exceed buffer capacity
+    if (num_negative_pics + num_positive_pics >
+        sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
       add_warning(ctx, DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
@@ -183,24 +214,27 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     sets[idxRps].NumPositivePics = num_positive_pics;
     sets[idxRps].NumDeltaPocs = num_positive_pics + num_negative_pics;
 
+
+    // --- now, read the deltas between the reference frames to fill the lists ---
+
+    // past frames
+
     int lastPocS=0;
     for (int i=0;i<num_negative_pics;i++) {
       int  delta_poc_s0 = get_uvlc(br)+1;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
-
-      logtrace(LogHeaders,"neg: %d %d\n", delta_poc_s0, used_by_curr_pic_s0_flag);
 
       sets[idxRps].DeltaPocS0[i]      = lastPocS - delta_poc_s0;
       sets[idxRps].UsedByCurrPicS0[i] = used_by_curr_pic_s0_flag;
       lastPocS = sets[idxRps].DeltaPocS0[i];
     }
 
+    // future frames
+
     lastPocS=0;
     for (int i=0;i<num_positive_pics;i++) {
       int  delta_poc_s1 = get_uvlc(br)+1;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
-
-      logtrace(LogHeaders,"pos: %d %d\n", delta_poc_s1, used_by_curr_pic_s1_flag);
 
       sets[idxRps].DeltaPocS1[i]      = lastPocS + delta_poc_s1;
       sets[idxRps].UsedByCurrPicS1[i] = used_by_curr_pic_s1_flag;
@@ -214,31 +248,6 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
   return true;
 }
 
-
-/*
-void alloc_ref_pic_set(ref_pic_set* set, int max_dec_pic_buffering)
-{
-  set->NumDeltaPocs = 0;
-  set->NumNegativePics = 0;
-  set->NumPositivePics = 0;
-
-  set->DeltaPocS0 = calloc(max_dec_pic_buffering+1,sizeof(int));
-  set->DeltaPocS1 = calloc(max_dec_pic_buffering+1,sizeof(int));
-  set->UsedByCurrPicS0 = calloc(max_dec_pic_buffering+1,1);
-  set->UsedByCurrPicS1 = calloc(max_dec_pic_buffering+1,1);
-}
-
-void free_ref_pic_set(ref_pic_set* set)
-{
-  free(set->DeltaPocS0);
-  free(set->DeltaPocS1);
-  free(set->UsedByCurrPicS0);
-  free(set->UsedByCurrPicS1);
-
-  set->UsedByCurrPicS0 = NULL;
-  set->UsedByCurrPicS1 = NULL;
-}
-*/
 
 void dump_short_term_ref_pic_set(ref_pic_set* set, FILE* fh)
 {

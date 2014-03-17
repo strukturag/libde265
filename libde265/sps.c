@@ -32,8 +32,14 @@ static int SubWidthC[]  = { -1,2,2,1 };
 static int SubHeightC[] = { -1,2,1,1 };
 
 
+// TODO if (!check_high(ctx, vlc, 15)) return false;
+// TODO if (!check_ulvc(ctx, vlc)) return false;
+
+
 // TODO: should be in some header-file of refpic.c
-extern bool read_short_term_ref_pic_set(decoder_context* ctx, bitreader* br, ref_pic_set* sets,
+extern bool read_short_term_ref_pic_set(decoder_context* ctx,
+                                        const seq_parameter_set* sps,
+                                        bitreader* br, ref_pic_set* sets,
                                         int idxRps, int num_short_term_ref_pic_sets);
 
 
@@ -41,6 +47,8 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
                      seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
 {
   memset(sps, 0, sizeof(seq_parameter_set));
+
+  int vlc;
 
   sps->video_parameter_set_id = get_bits(br,4);
   sps->sps_max_sub_layers     = get_bits(br,3) +1;
@@ -128,9 +136,40 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
                     0 : sps->sps_max_sub_layers-1 );
 
   for (int i=firstLayer ; i <= sps->sps_max_sub_layers-1; i++ ) {
-    sps->sps_max_dec_pic_buffering[i] = get_uvlc(br);
-    sps->sps_max_num_reorder_pics[i]  = get_uvlc(br);
-    sps->sps_max_latency_increase[i]  = get_uvlc(br);
+
+    // sps_max_dec_pic_buffering[i]
+
+    vlc=get_uvlc(br);
+    if (vlc == UVLC_ERROR ||
+        vlc+1 > MAX_NUM_REF_PICS) {
+      add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    sps->sps_max_dec_pic_buffering[i] = vlc+1;
+
+    // sps_max_num_reorder_pics[i]
+
+    vlc = get_uvlc(br);
+    if (vlc == UVLC_ERROR) {
+      add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    sps->sps_max_num_reorder_pics[i]  = vlc;
+
+
+    // sps_max_latency_increase[i]
+
+    vlc = get_uvlc(br);
+    if (vlc == UVLC_ERROR) {
+      add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    sps->sps_max_latency_increase_plus1[i]  = vlc;
+
+    sps->SpsMaxLatencyPictures[i] = (sps->sps_max_num_reorder_pics[i] +
+                                     sps->sps_max_latency_increase_plus1[i]-1);
   }
 
   // copy info to all layers if only specified once
@@ -142,7 +181,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     for (int i=0 ; i < sps->sps_max_sub_layers-1; i++ ) {
       sps->sps_max_dec_pic_buffering[i] = sps->sps_max_dec_pic_buffering[ref];
       sps->sps_max_num_reorder_pics[i]  = sps->sps_max_num_reorder_pics[ref];
-      sps->sps_max_latency_increase[i]  = sps->sps_max_latency_increase[ref];
+      sps->sps_max_latency_increase_plus1[i]  = sps->sps_max_latency_increase_plus1[ref];
     }
   }
 
@@ -207,7 +246,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     //alloc_ref_pic_set(&(*ref_pic_sets)[i],
     //sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1]);
 
-    bool success = read_short_term_ref_pic_set(ctx,br,*ref_pic_sets, i,
+    bool success = read_short_term_ref_pic_set(ctx,sps,br,*ref_pic_sets, i,
                                                sps->num_short_term_ref_pic_sets);
     if (!success) {
       return DE265_WARNING_SPS_HEADER_INVALID;
@@ -373,9 +412,9 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 
   for (int i=firstLayer ; i <= sps->sps_max_sub_layers-1; i++ ) {
     LOG1("Layer %d\n",i);
-    LOG1("  sps_max_dec_pic_buffering : %d\n", sps->sps_max_dec_pic_buffering[i]);
-    LOG1("  sps_max_num_reorder_pics  : %d\n", sps->sps_max_num_reorder_pics[i]);
-    LOG1("  sps_max_latency_increase  : %d\n", sps->sps_max_latency_increase[i]);
+    LOG1("  sps_max_dec_pic_buffering      : %d\n", sps->sps_max_dec_pic_buffering[i]);
+    LOG1("  sps_max_num_reorder_pics       : %d\n", sps->sps_max_num_reorder_pics[i]);
+    LOG1("  sps_max_latency_increase_plus1 : %d\n", sps->sps_max_latency_increase_plus1[i]);
   }
 
   LOG1("log2_min_luma_coding_block_size : %d\n", sps->log2_min_luma_coding_block_size);

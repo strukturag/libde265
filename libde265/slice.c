@@ -41,6 +41,7 @@
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)
 
 extern bool read_short_term_ref_pic_set(decoder_context* ctx,
+                                        const seq_parameter_set* sps,
                                         bitreader* br, ref_pic_set* sets,
                                         int idxRps, int num_short_term_ref_pic_sets);
 
@@ -263,7 +264,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       shdr->short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
-        read_short_term_ref_pic_set(ctx,
+        read_short_term_ref_pic_set(ctx, sps,
                                     br, ctx->ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets,
                                     sps->num_short_term_ref_pic_sets);
