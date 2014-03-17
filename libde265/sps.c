@@ -40,6 +40,8 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx, bitreader* br, ref
 de265_error read_sps(decoder_context* ctx, bitreader* br,
                      seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
 {
+  memset(sps, 0, sizeof(seq_parameter_set));
+
   sps->video_parameter_set_id = get_bits(br,4);
   sps->sps_max_sub_layers     = get_bits(br,3) +1;
   if (sps->sps_max_sub_layers>7) {
@@ -386,10 +388,10 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 
   if (sps->scaling_list_enable_flag) {
 
-    //sps->sps_scaling_list_data_present_flag = get_bits(br,1);
+    LOG1("sps_scaling_list_data_present_flag : %d\n", sps->sps_scaling_list_data_present_flag);
     if (sps->sps_scaling_list_data_present_flag) {
 
-      LOG0("NOT IMPLEMENTED");
+      LOG0("scaling list logging output not implemented");
       //assert(0);
       //scaling_list_data()
     }
@@ -435,6 +437,9 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
   LOG1("MaxCbSizeY   : %d\n", 1<<(sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
   LOG1("MinTBSizeY   : %d\n", 1<<sps->log2_min_transform_block_size);
   LOG1("MaxTBSizeY   : %d\n", 1<<(sps->log2_min_transform_block_size + sps->log2_diff_max_min_transform_block_size));
+
+  LOG1("SubWidthC               : %d\n", sps->SubWidthC);
+  LOG1("SubHeightC              : %d\n", sps->SubHeightC);
 
   return;
 
@@ -561,6 +566,10 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
 de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
                               scaling_list_data* sclist, bool inPPS)
 {
+  int dc_coeff[4][6];
+  for (int i=0;i<4;i++) for (int k=0;k<6;k++) dc_coeff[i][k] = -1;   // TODO: for debugging only
+
+
   for (int sizeId=0;sizeId<4;sizeId++) {
     int n = ((sizeId==3) ? 2 : 6);
     uint8_t scaling_list[6][32*32];
@@ -568,6 +577,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
     for (int matrixId=0;matrixId<n;matrixId++) {
       uint8_t* curr_scaling_list = scaling_list[matrixId];
       int scaling_list_dc_coef;
+      //printf("DCC=%d\n",scaling_list_dc_coef);
 
       printf("----- matrix %d\n",matrixId);
 
@@ -581,6 +591,9 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
         printf("scaling_list_pred_matrix_id_delta=%d\n",
                scaling_list_pred_matrix_id_delta);
+
+        dc_coeff[sizeId][matrixId] = 16;
+        scaling_list_dc_coef       = 16;
 
         if (scaling_list_pred_matrix_id_delta==0) {
           if (sizeId==0) {
@@ -599,6 +612,9 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
           int len = (sizeId == 0 ? 16 : 64);
           memcpy(curr_scaling_list, scaling_list[mID], len);
+
+          scaling_list_dc_coef       = dc_coeff[sizeId][mID];
+          dc_coeff[sizeId][matrixId] = dc_coeff[sizeId][mID];
         }
       }
       else {
@@ -614,11 +630,13 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           }
 
           scaling_list_dc_coef += 8;
-
-          //printf("DC = %d\n",scaling_list_dc_coef);
-
           nextCoef=scaling_list_dc_coef;
+          dc_coeff[sizeId][matrixId] = scaling_list_dc_coef;
         }
+        else {
+          scaling_list_dc_coef = 16;
+        }
+        //printf("DC = %d\n",scaling_list_dc_coef);
 
         for (int i=0;i<coefNum;i++) {
           int scaling_list_delta_coef = get_svlc(br);
@@ -697,12 +715,10 @@ void set_default_scaling_lists(scaling_list_data* sclist)
 
   // 32x32
 
-  for (int matrixId=0;matrixId<3;matrixId++) {
-    fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId+0][0][0],
-                        default_ScalingList_8x8_intra, 3);
-    fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId+3][0][0],
-                        default_ScalingList_8x8_inter, 3);
-  }
+  fill_scaling_factor(&sclist->ScalingFactor_Size3[0][0][0],
+                      default_ScalingList_8x8_intra, 3);
+  fill_scaling_factor(&sclist->ScalingFactor_Size3[1][0][0],
+                      default_ScalingList_8x8_inter, 3);
 }
 
 
