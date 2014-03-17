@@ -84,7 +84,8 @@ typedef struct {
   int  max_transform_hierarchy_depth_intra;
 
   char scaling_list_enable_flag;
-  char sps_scaling_list_data_present_flag;
+  char sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
+                                              in scaling_list */
 
   struct scaling_list_data scaling_list;
 

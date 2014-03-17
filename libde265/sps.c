@@ -163,6 +163,9 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
         return err;
       }
     }
+    else {
+      set_default_scaling_lists(&sps->scaling_list);
+    }
   }
 
   sps->amp_enabled_flag = get_bits(br,1);
@@ -478,6 +481,83 @@ static uint8_t default_ScalingList_8x8_inter[64] = {
   28,33,33,33,33,33,41,41,41,41,54,54,54,71,71,91
 };
 
+
+void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int sizeId)
+{
+  const position* scan;
+  int width;
+  int subWidth;
+
+  switch (sizeId) {
+  case 0:
+    width=4;
+    subWidth=1;
+    scan = get_scan_order(2, 0 /* diag */);
+
+    for (int i=0;i<4*4;i++) {
+      scalingFactors[scan[i].x + width*scan[i].y] = sclist[i];
+    }
+    break;
+
+  case 1:
+    width=8;
+    subWidth=1;
+    scan = get_scan_order(3, 0 /* diag */);
+
+    for (int i=0;i<8*8;i++) {
+      scalingFactors[scan[i].x + width*scan[i].y] = sclist[i];
+    }
+    break;
+
+  case 2:
+    width=8;
+    subWidth=2;
+    scan = get_scan_order(3, 0 /* diag */);
+
+    for (int i=0;i<8*8;i++) {
+      for (int dy=0;dy<2;dy++)
+        for (int dx=0;dx<2;dx++)
+          {
+            int x = 2*scan[i].x+dx;
+            int y = 2*scan[i].y+dy;
+            scalingFactors[x+width*subWidth*y] = sclist[i];
+          }
+    }
+    break;
+
+  case 3:
+    width=8;
+    subWidth=4;
+    scan = get_scan_order(3, 0 /* diag */);
+
+    for (int i=0;i<8*8;i++) {
+      for (int dy=0;dy<4;dy++)
+        for (int dx=0;dx<4;dx++)
+          {
+            int x = 4*scan[i].x+dx;
+            int y = 4*scan[i].y+dy;
+            scalingFactors[x*width*subWidth*y] = sclist[i];
+          }
+    }
+    break;
+
+  default:
+    assert(0);
+    break;
+  }
+
+
+  // --- dump matrix ---
+
+  for (int y=0;y<width;y++) {
+    for (int x=0;x<width;x++)
+      printf("%d,",scalingFactors[x*subWidth + width*subWidth*y]);
+    
+    printf("\n");
+  }
+}
+
+
 de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
                               scaling_list_data* sclist, bool inPPS)
 {
@@ -559,85 +639,65 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       // --- generate ScalingFactor arrays ---
 
-      const position* scan;
-
       switch (sizeId) {
       case 0:
-        scan = get_scan_order(2, 0 /* diag */);
-
-        for (int i=0;i<4*4;i++) {
-          sclist->ScalingFactor_Size0[matrixId][scan[i].x][scan[i].y] = curr_scaling_list[i];
-        }
-
-        for (int y=0;y<4;y++) {
-          for (int x=0;x<4;x++)
-            printf("%d,",sclist->ScalingFactor_Size0[matrixId][x][y]);
-
-          printf("\n");
-        }
+        fill_scaling_factor(&sclist->ScalingFactor_Size0[matrixId][0][0], curr_scaling_list, 0);
         break;
 
       case 1:
-        scan = get_scan_order(3, 0 /* diag */);
-
-        for (int i=0;i<8*8;i++) {
-          sclist->ScalingFactor_Size1[matrixId][scan[i].x][scan[i].y] = curr_scaling_list[i];
-        }
-
-        for (int y=0;y<8;y++) {
-          for (int x=0;x<8;x++)
-            printf("%d,",sclist->ScalingFactor_Size1[matrixId][x][y]);
-
-          printf("\n");
-        }
+        fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId][0][0], curr_scaling_list, 1);
         break;
 
       case 2:
-        scan = get_scan_order(3, 0 /* diag */);
-
-        for (int i=0;i<8*8;i++) {
-          for (int dy=0;dy<2;dy++)
-            for (int dx=0;dx<2;dx++)
-              {
-                int x = 2*scan[i].x+dx;
-                int y = 2*scan[i].y+dy;
-                sclist->ScalingFactor_Size2[matrixId][x][y] = curr_scaling_list[i];
-              }
-        }
-
-        for (int y=0;y<16;y+=2) {
-          for (int x=0;x<16;x+=2)
-            printf("%d,",sclist->ScalingFactor_Size2[matrixId][x][y]);
-
-          printf("\n");
-        }
+        fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId][0][0], curr_scaling_list, 2);
         break;
 
       case 3:
-        scan = get_scan_order(3, 0 /* diag */);
-
-        for (int i=0;i<8*8;i++) {
-          for (int dy=0;dy<4;dy++)
-            for (int dx=0;dx<4;dx++)
-              {
-                int x = 4*scan[i].x+dx;
-                int y = 4*scan[i].y+dy;
-                sclist->ScalingFactor_Size3[matrixId][x][y] = curr_scaling_list[i];
-              }
-        }
-
-        for (int y=0;y<32;y+=4) {
-          for (int x=0;x<32;x+=4)
-            printf("%d,",sclist->ScalingFactor_Size3[matrixId][x][y]);
-
-          printf("\n");
-        }
+        fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId][0][0], curr_scaling_list, 3);
         break;
       }
     }
   }
 
   return DE265_OK;
+}
+
+
+void set_default_scaling_lists(scaling_list_data* sclist)
+{
+  // 4x4
+
+  for (int matrixId=0;matrixId<6;matrixId++) {
+    fill_scaling_factor(&sclist->ScalingFactor_Size0[matrixId][0][0],
+                        default_ScalingList_4x4, 0);
+  }
+
+  // 8x8
+
+  for (int matrixId=0;matrixId<3;matrixId++) {
+    fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId+0][0][0],
+                        default_ScalingList_8x8_intra, 1);
+    fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId+3][0][0],
+                        default_ScalingList_8x8_inter, 1);
+  }
+
+  // 16x16
+
+  for (int matrixId=0;matrixId<3;matrixId++) {
+    fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId+0][0][0],
+                        default_ScalingList_8x8_intra, 2);
+    fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId+3][0][0],
+                        default_ScalingList_8x8_inter, 2);
+  }
+
+  // 32x32
+
+  for (int matrixId=0;matrixId<3;matrixId++) {
+    fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId+0][0][0],
+                        default_ScalingList_8x8_intra, 3);
+    fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId+3][0][0],
+                        default_ScalingList_8x8_inter, 3);
+  }
 }
 
 

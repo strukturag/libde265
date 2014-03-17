@@ -393,11 +393,32 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
     pps->pic_disable_deblocking_filter_flag = 0;
   }
 
+
+  // --- scaling list ---
+
   pps->pic_scaling_list_data_present_flag = get_bits(br,1);
-  if (pps->pic_scaling_list_data_present_flag) {
-    assert(false);
-    //scaling_list_data()
+
+  // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
+  // must be FALSE
+  if (sps->scaling_list_enable_flag==0 &&
+      pps->pic_scaling_list_data_present_flag != 0) {
+    add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
   }
+
+  if (pps->pic_scaling_list_data_present_flag) {
+    de265_error err = read_scaling_list(br, sps, &pps->scaling_list, true);
+    if (err != DE265_OK) {
+      add_warning(ctx, err, false);
+      return false;
+    }
+  }
+  else {
+    memcpy(&pps->scaling_list, &sps->scaling_list, sizeof(scaling_list_data));
+  }
+
+
+
 
   pps->lists_modification_present_flag = get_bits(br,1);
   pps->log2_parallel_merge_level = get_uvlc(br);

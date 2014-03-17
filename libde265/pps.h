@@ -22,6 +22,7 @@
 #define DE265_PPS_H
 
 #include "libde265/bitstream.h"
+#include "libde265/sps.h" // for scaling list only
 
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
@@ -95,7 +96,7 @@ typedef struct {
   int tc_offset;
 
   char pic_scaling_list_data_present_flag;
-  //scaling_list_data()
+  struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
 
   char lists_modification_present_flag;
   int log2_parallel_merge_level;
