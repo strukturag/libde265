@@ -675,8 +675,19 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)
         {
-          assert(false);
-          //ref_pic_lists_modification()
+          LOG1("ref_pic_list_modification_flag_l0 : %d\n", shdr->ref_pic_list_modification_flag_l0);
+          if (shdr->ref_pic_list_modification_flag_l0) {
+            for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
+              LOG2("  %d: %d\n",i,shdr->list_entry_l0[i]);
+            }
+          }
+
+          LOG1("ref_pic_list_modification_flag_l1 : %d\n", shdr->ref_pic_list_modification_flag_l1);
+          if (shdr->ref_pic_list_modification_flag_l1) {
+            for (int i=0;i<shdr->num_ref_idx_l1_active;i++) {
+              LOG2("  %d: %d\n",i,shdr->list_entry_l1[i]);
+            }
+          }
         }
 
       if (shdr->slice_type == SLICE_TYPE_B) {

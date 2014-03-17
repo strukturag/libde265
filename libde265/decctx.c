@@ -466,7 +466,7 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 }
 
 
-/* 8.3.2
+/* 8.3.2   invoked once per picture
  */
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
@@ -624,6 +624,8 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
 
 // 8.3.4
 // Returns whether we can continue decoding (or whether there is a severe error).
+/* Called at beginning of each slice.
+ */
 bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
   int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
@@ -1004,16 +1006,16 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     generate_unavailable_reference_pictures(ctx,hdr);
 
     log_set_current_POC(ctx->img->PicOrderCntVal);
-
-    if (hdr->slice_type == SLICE_TYPE_B ||
-        hdr->slice_type == SLICE_TYPE_P)
-      {
-        bool success = construct_reference_picture_lists(ctx,hdr);
-        if (!success) {
-          return false;
-        }
-      }
   }
+
+  if (hdr->slice_type == SLICE_TYPE_B ||
+      hdr->slice_type == SLICE_TYPE_P)
+    {
+      bool success = construct_reference_picture_lists(ctx,hdr);
+      if (!success) {
+        return false;
+      }
+    }
 
   log_dpb_content(ctx);
 
