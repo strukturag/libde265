@@ -2911,27 +2911,27 @@ void read_transform_tree(decoder_context* ctx,
 
     if (cbf_luma) {
       scale_coefficients(ctx, tctx, x0,y0, xCUBase,yCUBase, nT, 0,
-                         tctx->transform_skip_flag[0]);
+                         tctx->transform_skip_flag[0], PredMode==MODE_INTRA);
     }
 
     if (nT>=8) {
       if (cbf_cb) {
         scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
-                           tctx->transform_skip_flag[1]);
+                           tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
       }
       if (cbf_cr) {
         scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
-                           tctx->transform_skip_flag[2]);
+                           tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
       }
     }
     else if (blkIdx==3) {
       if (cbf_cb) {
         scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
-                           tctx->transform_skip_flag[1]);
+                           tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
       }
       if (cbf_cr) {
         scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
-                           tctx->transform_skip_flag[2]);
+                           tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
       }
     }
   }

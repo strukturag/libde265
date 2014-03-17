@@ -248,9 +248,10 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
-                        bool transform_skip_flag)
+                        bool transform_skip_flag, bool intra)
 {
   seq_parameter_set* sps = ctx->current_sps;
+  pic_parameter_set* pps = ctx->current_pps;
   slice_segment_header* shdr = tctx->shdr;
 
   int qP;
@@ -338,7 +339,38 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
       }
     }
     else {
-      assert(false); // TODO
+      const int offset = (1<<(bdShift-1));
+
+      uint8_t* sclist;
+      int matrixID = cIdx;
+      if (!intra) {
+        if (nT<32) { matrixID += 3; }
+        else { matrixID++; }
+      }
+
+      switch (nT) {
+      case  4: sclist = &pps->scaling_list.ScalingFactor_Size0[matrixID][0][0]; break;
+      case  8: sclist = &pps->scaling_list.ScalingFactor_Size1[matrixID][0][0]; break;
+      case 16: sclist = &pps->scaling_list.ScalingFactor_Size2[matrixID][0][0]; break;
+      case 32: sclist = &pps->scaling_list.ScalingFactor_Size3[matrixID][0][0]; break;
+      default: assert(0);
+      }
+
+      for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+        int pos = tctx->coeffPos[cIdx][i];
+        int x = pos%nT;
+        int y = pos/nT;
+
+        const int m_x_y = sclist[x+y*nT];
+        const int fact = m_x_y * levelScale[qP%6] << (qP/6);
+
+        int64_t currCoeff  = tctx->coeffList[cIdx][i];
+
+        currCoeff = Clip3(-32768,32767,
+                          ( (currCoeff * fact + offset ) >> bdShift));
+
+        tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
+      }
     }
 
     logtrace(LogTransform,"coefficients OUT:\n");

@@ -536,7 +536,7 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
           {
             int x = 4*scan[i].x+dx;
             int y = 4*scan[i].y+dy;
-            scalingFactors[x*width*subWidth*y] = sclist[i];
+            scalingFactors[x+width*subWidth*y] = sclist[i];
           }
     }
     break;
@@ -551,7 +551,7 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
 
   for (int y=0;y<width;y++) {
     for (int x=0;x<width;x++)
-      printf("%d,",scalingFactors[x*subWidth + width*subWidth*y]);
+      printf("%d,",scalingFactors[x*subWidth + width*subWidth*subWidth*y]);
     
     printf("\n");
   }
@@ -567,6 +567,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
     for (int matrixId=0;matrixId<n;matrixId++) {
       uint8_t* curr_scaling_list = scaling_list[matrixId];
+      int scaling_list_dc_coef;
 
       printf("----- matrix %d\n",matrixId);
 
@@ -606,7 +607,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
         int nextCoef=8;
         int coefNum = (sizeId==0 ? 16 : 64);
         if (sizeId>1) {
-          int scaling_list_dc_coef = get_svlc(br);
+          scaling_list_dc_coef = get_svlc(br);
           if (scaling_list_dc_coef < -7 ||
               scaling_list_dc_coef > 247) {
             return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -650,10 +651,14 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       case 2:
         fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId][0][0], curr_scaling_list, 2);
+        sclist->ScalingFactor_Size2[matrixId][0][0] = scaling_list_dc_coef;
+        printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
 
       case 3:
         fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId][0][0], curr_scaling_list, 3);
+        sclist->ScalingFactor_Size3[matrixId][0][0] = scaling_list_dc_coef;
+        printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
       }
     }

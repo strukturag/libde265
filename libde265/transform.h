@@ -35,6 +35,6 @@ void scale_coefficients(decoder_context* ctx, thread_context* shdr,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
-                        bool transform_skip_flag);
+                        bool transform_skip_flag, bool intra);
 
 #endif
