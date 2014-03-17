@@ -473,17 +473,25 @@ static uint8_t default_ScalingList_4x4[16] = {
 };
 
 static uint8_t default_ScalingList_8x8_intra[64] = {
-  16,16,16,16,16,16,16,16,16,16,17,16,17,16,17,18,
-  17,18,18,17,18,21,19,20,21,20,19,21,24,22,22,24,
-  24,22,22,24,25,25,27,30,27,25,25,29,31,35,35,31,
-  29,36,41,44,41,36,47,54,54,47,65,70,65,88,88,115
+  16,16,16,16,16,16,16,16,
+  16,16,17,16,17,16,17,18,
+  17,18,18,17,18,21,19,20,
+  21,20,19,21,24,22,22,24,
+  24,22,22,24,25,25,27,30,
+  27,25,25,29,31,35,35,31,
+  29,36,41,44,41,36,47,54,
+  54,47,65,70,65,88,88,115
 };
 
 static uint8_t default_ScalingList_8x8_inter[64] = {
-  16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,18,
-  18,18,18,18,18,20,20,20,20,20,20,20,24,24,24,24,
-  24,24,24,24,25,25,25,25,25,25,25,28,28,28,28,28,
-  28,33,33,33,33,33,41,41,41,41,54,54,54,71,71,91
+  16,16,16,16,16,16,16,16,
+  16,16,17,17,17,17,17,18,
+  18,18,18,18,18,20,20,20,
+  20,20,20,20,24,24,24,24,
+  24,24,24,24,25,25,25,25,
+  25,25,25,28,28,28,28,28,
+  28,33,33,33,33,33,41,41,
+  41,41,54,54,54,71,71,91
 };
 
 
@@ -554,12 +562,14 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
 
   // --- dump matrix ---
 
+#if 0
   for (int y=0;y<width;y++) {
     for (int x=0;x<width;x++)
       printf("%d,",scalingFactors[x*subWidth + width*subWidth*subWidth*y]);
     
     printf("\n");
   }
+#endif
 }
 
 
@@ -567,8 +577,6 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
                               scaling_list_data* sclist, bool inPPS)
 {
   int dc_coeff[4][6];
-  for (int i=0;i<4;i++) for (int k=0;k<6;k++) dc_coeff[i][k] = -1;   // TODO: for debugging only
-
 
   for (int sizeId=0;sizeId<4;sizeId++) {
     int n = ((sizeId==3) ? 2 : 6);
@@ -577,9 +585,12 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
     for (int matrixId=0;matrixId<n;matrixId++) {
       uint8_t* curr_scaling_list = scaling_list[matrixId];
       int scaling_list_dc_coef;
-      //printf("DCC=%d\n",scaling_list_dc_coef);
 
-      printf("----- matrix %d\n",matrixId);
+      int canonicalMatrixId = matrixId;
+      if (sizeId==3 && matrixId==1) { canonicalMatrixId=3; }
+
+
+      //printf("----- matrix %d\n",matrixId);
 
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
@@ -589,8 +600,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 
-        printf("scaling_list_pred_matrix_id_delta=%d\n",
-               scaling_list_pred_matrix_id_delta);
+        //printf("scaling_list_pred_matrix_id_delta=%d\n", scaling_list_pred_matrix_id_delta);
 
         dc_coeff[sizeId][matrixId] = 16;
         scaling_list_dc_coef       = 16;
@@ -600,8 +610,10 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
             memcpy(curr_scaling_list, default_ScalingList_4x4, 16);
           }
           else {
-            if (matrixId<3) { memcpy(curr_scaling_list, default_ScalingList_8x8_intra,64); }
-            else            { memcpy(curr_scaling_list, default_ScalingList_8x8_inter,64); }
+            if (canonicalMatrixId<3)
+              { memcpy(curr_scaling_list, default_ScalingList_8x8_intra,64); }
+            else
+              { memcpy(curr_scaling_list, default_ScalingList_8x8_inter,64); }
           }
         }
         else {
@@ -618,8 +630,6 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
         }
       }
       else {
-        printf("signal matrix\n");
-
         int nextCoef=8;
         int coefNum = (sizeId==0 ? 16 : 64);
         if (sizeId>1) {
@@ -670,13 +680,13 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       case 2:
         fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId][0][0], curr_scaling_list, 2);
         sclist->ScalingFactor_Size2[matrixId][0][0] = scaling_list_dc_coef;
-        printf("DC coeff: %d\n", scaling_list_dc_coef);
+        //printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
 
       case 3:
         fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId][0][0], curr_scaling_list, 3);
         sclist->ScalingFactor_Size3[matrixId][0][0] = scaling_list_dc_coef;
-        printf("DC coeff: %d\n", scaling_list_dc_coef);
+        //printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
       }
     }
