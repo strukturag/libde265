@@ -171,8 +171,8 @@ typedef struct slice_segment_header {
 
   char ref_pic_list_modification_flag_l0;
   char ref_pic_list_modification_flag_l1;
-  int list_entry_l0[1]; // TODO
-  int list_entry_l1[1]; // TODO
+  uint8_t list_entry_l0[16];
+  uint8_t list_entry_l1[16];
 
   char mvd_l1_zero_flag;
   char cabac_init_flag;

@@ -350,10 +350,24 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
-        assert(false);
-        /*
-          ref_pic_lists_modification()
-        */
+
+        int nBits = ceil_log2(NumPocTotalCurr);
+
+        shdr->ref_pic_list_modification_flag_l0 = get_bits(br,1);
+        if (shdr->ref_pic_list_modification_flag_l0) {
+          for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
+            shdr->list_entry_l0[i] = get_bits(br, nBits);
+          }
+        }
+
+        if (shdr->slice_type == SLICE_TYPE_B) {
+          shdr->ref_pic_list_modification_flag_l1 = get_bits(br,1);
+          if (shdr->ref_pic_list_modification_flag_l1) {
+            for (int i=0;i<shdr->num_ref_idx_l1_active;i++) {
+              shdr->list_entry_l1[i] = get_bits(br, nBits);
+            }
+          }
+        }
       }
       else {
         shdr->ref_pic_list_modification_flag_l0 = 0;
