@@ -20,10 +20,12 @@
 
 #include "pps.h"
 #include "pps_func.h"
+#include "sps_func.h"
 #include "util.h"
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
 #else
