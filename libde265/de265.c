@@ -131,7 +131,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   }
 }
 
-
+LIBDE265_API int de265_isOK(de265_error err)
+{
+  return err == DE265_OK || err >= 1000;
+}
 
 
 
@@ -214,10 +217,17 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
+  if (number_of_threads > MAX_THREADS) {
+    number_of_threads = MAX_THREADS;
+  }
+
   ctx->num_worker_threads = number_of_threads;
 
   if (number_of_threads>0) {
     de265_error err = start_thread_pool(&ctx->thread_pool, number_of_threads);
+    if (de265_isOK(err)) {
+      err = DE265_OK;
+    }
     return err;
   }
   else {

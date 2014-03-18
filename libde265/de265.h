@@ -113,6 +113,10 @@ typedef enum {
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);
 
+/* Returns true, if 'err' is DE265_OK or a warning.
+ */
+LIBDE265_API int  de265_isOK(de265_error err);
+
 LIBDE265_API void de265_disable_logging();
 
 
