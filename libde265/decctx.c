@@ -66,9 +66,9 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- internal data ---
 
-  //rbsp_buffer_init(&ctx->pending_input_data);
-
-  //rbsp_buffer_init(&ctx->nal_data);
+  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
+    init_sps(&ctx->sps[i]);
+  }
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_init_image(&ctx->dpb[i]);
@@ -222,8 +222,9 @@ void free_decoder_context(decoder_context* ctx)
   free(ctx->NAL_free_list);
 
 
-
-  free_ref_pic_sets(&ctx->ref_pic_sets);
+  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
+    free_sps(&ctx->sps[i]);
+  }
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     de265_free_image(&ctx->dpb[i]);
@@ -269,7 +270,7 @@ void process_sps(decoder_context* ctx, seq_parameter_set* sps)
 {
   push_current_picture_to_output_queue(ctx);
 
-  memcpy(&ctx->sps[ sps->seq_parameter_set_id ], sps, sizeof(seq_parameter_set));
+  move_sps(&ctx->sps[ sps->seq_parameter_set_id ], sps);
   ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 
@@ -487,7 +488,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     ctx->NumPocLtFoll = 0;
   }
   else {
-    const ref_pic_set* rps = &ctx->ref_pic_sets[hdr->CurrRpsIdx];
+    const ref_pic_set* rps = hdr->CurrRps;
 
     // (8-98)
 
@@ -628,7 +629,7 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
  */
 bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
-  int NumPocTotalCurr = ctx->ref_pic_sets[hdr->CurrRpsIdx].NumPocTotalCurr;
+  int NumPocTotalCurr = hdr->CurrRps->NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together

@@ -825,13 +825,14 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         logdebug(LogHeaders,"----> read SPS\n");
 
         seq_parameter_set sps;
+        init_sps(&sps);
 
-        if ((err=read_sps(ctx, &reader,&sps, &ctx->ref_pic_sets)) != DE265_OK) {
+        if ((err=read_sps(ctx, &reader,&sps)) != DE265_OK) {
           break;
         }
 
         if (ctx->param_sps_headers_fd>=0) {
-          dump_sps(&sps, ctx->ref_pic_sets, ctx->param_sps_headers_fd);
+          dump_sps(&sps, ctx->param_sps_headers_fd);
         }
 
         process_sps(ctx, &sps);

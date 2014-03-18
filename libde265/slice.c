@@ -42,8 +42,11 @@
 
 extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         const seq_parameter_set* sps,
-                                        bitreader* br, ref_pic_set* sets,
-                                        int idxRps, int num_short_term_ref_pic_sets);
+                                        bitreader* br,
+                                        ref_pic_set* out_set,
+                                        int idxRps,  // index of the set to be read
+                                        const ref_pic_set* sets,
+                                        bool sliceRefPicSet);
 
 
 void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx);
@@ -265,11 +268,13 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
         read_short_term_ref_pic_set(ctx, sps,
-                                    br, ctx->ref_pic_sets,
+                                    br, &shdr->slice_ref_pic_set,
                                     sps->num_short_term_ref_pic_sets,
-                                    sps->num_short_term_ref_pic_sets);
+                                    ctx->current_sps->ref_pic_sets,
+                                    true);
 
         shdr->CurrRpsIdx = sps->num_short_term_ref_pic_sets;
+        shdr->CurrRps    = &shdr->slice_ref_pic_set;
       }
       else {
         int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
@@ -282,6 +287,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         }
 
         shdr->CurrRpsIdx = shdr->short_term_ref_pic_set_idx;
+        shdr->CurrRps    = &sps->ref_pic_sets[shdr->CurrRpsIdx];
       }
 
       if (sps->long_term_ref_pics_present_flag) {
@@ -347,7 +353,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         shdr->num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
+      int NumPocTotalCurr = shdr->CurrRps->NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
@@ -620,7 +626,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
         LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets);
-        dump_compact_short_term_ref_pic_set(&ctx->ref_pic_sets[sps->num_short_term_ref_pic_sets], 16, fh);
+        dump_compact_short_term_ref_pic_set(&shdr->slice_ref_pic_set, 16, fh);
       }
       else if (sps->num_short_term_ref_pic_sets > 1) {
         LOG1("short_term_ref_pic_set_idx           : %d\n", shdr->short_term_ref_pic_set_idx);
@@ -671,7 +677,7 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
              shdr->num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
 
-      int NumPocTotalCurr = ctx->ref_pic_sets[shdr->CurrRpsIdx].NumPocTotalCurr;
+      int NumPocTotalCurr = shdr->CurrRps->NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)

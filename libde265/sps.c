@@ -39,15 +39,28 @@ static int SubHeightC[] = { -1,2,1,1 };
 // TODO: should be in some header-file of refpic.c
 extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         const seq_parameter_set* sps,
-                                        bitreader* br, ref_pic_set* sets,
-                                        int idxRps, int num_short_term_ref_pic_sets);
+                                        bitreader* br,
+                                        ref_pic_set* out_set,
+                                        int idxRps,  // index of the set to be read
+                                        const ref_pic_set* sets,
+                                        bool sliceRefPicSet);
+
+void init_sps(seq_parameter_set* sps)
+{
+  memset(sps,0,sizeof(seq_parameter_set));
+}
+
+
+void free_sps(seq_parameter_set* sps)
+{
+  free(sps->ref_pic_sets);
+  sps->ref_pic_sets = NULL;
+}
 
 
 de265_error read_sps(decoder_context* ctx, bitreader* br,
-                     seq_parameter_set* sps, ref_pic_set** ref_pic_sets)
+                     seq_parameter_set* sps) //, ref_pic_set** ref_pic_sets)
 {
-  memset(sps, 0, sizeof(seq_parameter_set));
-
   int vlc;
 
   sps->video_parameter_set_id = get_bits(br,4);
@@ -236,18 +249,20 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
   // --- allocate reference pic set ---
 
-  // allocate one more for the ref-pic-set that may be sent in the slice header
-  // TODO: should use "realloc" and only reallocate if necessary
-  free(*ref_pic_sets);
-  *ref_pic_sets = (ref_pic_set *)calloc(sizeof(ref_pic_set), sps->num_short_term_ref_pic_sets + 1);
+  // we do not allocate the ref-pic-set for the slice header here, but in the slice header itself
+  sps->ref_pic_sets = (ref_pic_set*)realloc(sps->ref_pic_sets,
+                                            sizeof(ref_pic_set)*sps->num_short_term_ref_pic_sets);
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
 
     //alloc_ref_pic_set(&(*ref_pic_sets)[i],
     //sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1]);
 
-    bool success = read_short_term_ref_pic_set(ctx,sps,br,*ref_pic_sets, i,
-                                               sps->num_short_term_ref_pic_sets);
+    bool success = read_short_term_ref_pic_set(ctx,sps,br,
+                                               &sps->ref_pic_sets[i], i,
+                                               sps->ref_pic_sets,
+                                               false);
+
     if (!success) {
       return DE265_WARNING_SPS_HEADER_INVALID;
     }
@@ -354,7 +369,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
 
 
-void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
+void dump_sps(seq_parameter_set* sps, /*ref_pic_set* sets,*/ int fd)
 {
   //#if (_MSC_VER >= 1500)
   //#define LOG0(t) loginfo(LogHeaders, t)
@@ -452,7 +467,7 @@ void dump_sps(seq_parameter_set* sps, ref_pic_set* sets, int fd)
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
-    dump_compact_short_term_ref_pic_set(&sets[i], 16, fh);
+    dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[i], 16, fh);
   }
 
   LOG1("long_term_ref_pics_present_flag : %d\n", sps->long_term_ref_pics_present_flag);
@@ -771,8 +786,9 @@ void set_default_scaling_lists(scaling_list_data* sclist)
 }
 
 
-void free_ref_pic_sets(ref_pic_set** sets)
+void move_sps(seq_parameter_set* dest,
+              seq_parameter_set* src)
 {
-  free(*sets);
-  *sets = NULL;
+  memcpy(dest, src, sizeof(seq_parameter_set));
+  memset(src, 0, sizeof(seq_parameter_set));
 }

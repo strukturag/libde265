@@ -192,8 +192,6 @@ typedef struct decoder_context {
   pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
   slice_segment_header slice[ DE265_MAX_SLICES ];
 
-  ref_pic_set* ref_pic_sets;
-
   video_parameter_set* current_vps;
   seq_parameter_set*   current_sps;
   pic_parameter_set*   current_pps;

@@ -26,6 +26,8 @@
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
 
+#define MAX_REF_PIC_SETS 64  // maximum according to standard
+
 enum {
   CHROMA_MONO = 0,
   CHROMA_420 = 1,
@@ -100,6 +102,7 @@ typedef struct {
   char pcm_loop_filter_disable_flag;
 
   int num_short_term_ref_pic_sets;
+  ref_pic_set* ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
 
   /*
     for( i = 0; i < num_short_term_ref_pic_sets; i++)

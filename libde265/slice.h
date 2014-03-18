@@ -27,6 +27,7 @@
 #include "libde265/cabac.h"
 #include "libde265/de265.h"
 #include "libde265/util.h"
+#include "libde265/refpic.h"
 
 
 #define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
@@ -147,6 +148,8 @@ typedef struct slice_segment_header {
   char colour_plane_id;
   int  slice_pic_order_cnt_lsb;
   char short_term_ref_pic_set_sps_flag;
+  ref_pic_set slice_ref_pic_set;
+
   //short_term_ref_pic_set(num_short_term_ref_pic_sets)
   int  short_term_ref_pic_set_idx;
   int  num_long_term_sps;
@@ -220,8 +223,9 @@ typedef struct slice_segment_header {
 
   int initType;
 
-  int CurrRpsIdx;
   int MaxNumMergeCand;
+  int CurrRpsIdx;
+  const ref_pic_set* CurrRps;  // the active reference-picture set
 
   // context storage for dependent slices and WPP in single-thread mode
   context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
