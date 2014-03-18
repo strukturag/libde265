@@ -865,10 +865,11 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
       push_current_picture_to_output_queue(ctx);
 
-      read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx);
-      dump_sei(&sei, ctx);
+      if (read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx)) {
+        dump_sei(&sei, ctx);
 
-      err = process_sei(&sei, ctx);
+        err = process_sei(&sei, ctx);
+      }
       break;
     }
 

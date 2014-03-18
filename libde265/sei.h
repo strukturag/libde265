@@ -56,7 +56,7 @@ typedef struct {
 
 
 
-void read_sei(bitreader* reader, sei_message*, bool suffix, const decoder_context* ctx);
+bool read_sei(bitreader* reader, sei_message*, bool suffix, const decoder_context* ctx);
 void dump_sei(const sei_message*, const decoder_context* ctx);
 de265_error process_sei(const sei_message*, decoder_context* ctx);
 

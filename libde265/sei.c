@@ -25,9 +25,14 @@
 #include <assert.h>
 
 
-static void read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
+static bool read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
                                           const decoder_context* ctx)
 {
+  // cannot read hash SEI, because SPS is not defined
+  if (ctx->current_sps == NULL) {
+    return false;
+  }
+
   sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
@@ -48,6 +53,8 @@ static void read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
       break;
     }
   }
+
+  return true;
 }
 
 
@@ -180,6 +187,11 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
 
 static de265_error process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
 {
+  if (ctx->current_sps == NULL || ctx->last_decoded_image == NULL) {
+    add_warning(ctx,DE265_ERROR_CANNOT_PROCESS_SEI, false);
+    return DE265_OK;
+  }
+
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   de265_image* img = ctx->last_decoded_image;
@@ -269,7 +281,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
 }
 
 
-void read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_context* ctx)
+bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_context* ctx)
 {
   int payload_type = 0;
   for (;;)
@@ -293,11 +305,15 @@ void read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_co
 
   // --- sei message dispatch
 
+  bool success=false;
+
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    read_sei_decoded_picture_hash(reader,sei,ctx);
+    success = read_sei_decoded_picture_hash(reader,sei,ctx);
     break;
   }
+
+  return success;
 }
 
 void dump_sei(const sei_message* sei, const decoder_context* ctx)
