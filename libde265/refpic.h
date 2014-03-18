@@ -47,7 +47,7 @@ typedef struct {
 } ref_pic_set;
 
 
-void dump_short_term_ref_pic_set(ref_pic_set*, FILE* fh);
-void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range, FILE* fh);
+void dump_short_term_ref_pic_set(const ref_pic_set*, FILE* fh);
+void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE* fh);
 
 #endif

@@ -52,6 +52,13 @@ static void compute_NumPoc(ref_pic_set* rpset)
 }
 
 
+/* A ref-pic-set is coded either coded
+   - as a list of the relative POC deltas themselves, or
+   - by shifting an existing ref-pic-set by some number of frames
+   When shifting an existing set, the frame 0 is also shifted as an additional reference frame.
+   When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
+   In the slice header, the ref-pic-set can use any previous set as reference.
+ */
 bool read_short_term_ref_pic_set(decoder_context* ctx,
                                  const seq_parameter_set* sps,
                                  bitreader* br,
@@ -250,7 +257,7 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 }
 
 
-void dump_short_term_ref_pic_set(ref_pic_set* set, FILE* fh)
+void dump_short_term_ref_pic_set(const ref_pic_set* set, FILE* fh)
 {
   log2fh(fh,"NumDeltaPocs: %d [-:%d +:%d]\n", set->NumDeltaPocs,
          set->NumNegativePics, set->NumPositivePics);
@@ -271,7 +278,7 @@ void dump_short_term_ref_pic_set(ref_pic_set* set, FILE* fh)
 }
 
 
-void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range, FILE* fh)
+void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE* fh)
 {
   char *const log = (char *)alloca((range+1+range+1) * sizeof(char));
   log[2*range+1] = 0;
