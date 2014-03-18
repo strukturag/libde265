@@ -880,10 +880,20 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
+  int num_worker_threads = ctx->num_worker_threads;
+  if (num_worker_threads>0) {
+    //flush_thread_pool(&ctx->thread_pool);
+    stop_thread_pool(&ctx->thread_pool);
+  }
+  
   // TODO: maybe we can do things better here
 
   free_decoder_context(ctx);
   init_decoder_context(ctx);
+  if (num_worker_threads>0) {
+    // TODO: need error checking
+    de265_start_worker_threads(de265ctx, num_worker_threads);
+  }
 }
 
 
