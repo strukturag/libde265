@@ -77,6 +77,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     //return "scaling list not implemented";
   case DE265_ERROR_WAITING_FOR_INPUT_DATA:
     return "no more input data, decoder stalled";
+  case DE265_ERROR_CANNOT_PROCESS_SEI:
+    return "SEI data cannot be processed";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
@@ -122,6 +124,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "slice segment address invalid";
   case DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO:
     return "dependent slice with address 0";
+  case DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM:
+    return "number of threads limited to maximum amount";
 
   default: return "unknown error";
   }

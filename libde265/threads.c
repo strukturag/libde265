@@ -233,7 +233,14 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads)
 {
-  assert(num_threads <= MAX_THREADS);
+  de265_error err = DE265_OK;
+
+  // limit number of threads to maximum
+
+  if (num_threads > MAX_THREADS) {
+    num_threads = MAX_THREADS;
+    err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
+  }
 
   pool->num_tasks = 0;
   pool->num_threads = 0; // will be increased below
@@ -255,7 +262,7 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
     pool->num_threads++;
   }
 
-  return DE265_OK;
+  return err;
 }
 
 
