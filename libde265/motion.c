@@ -1318,8 +1318,8 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 {
   slice_segment_header* shdr = tctx->shdr;
 
-  int xOrigP = xP;
-  int yOrigP = yP;
+  //int xOrigP = xP;
+  //int yOrigP = yP;
   int nOrigPbW = nPbW;
   int nOrigPbH = nPbH;
 
