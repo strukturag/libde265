@@ -290,7 +290,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
     if (n>=-range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { log2fh(fh,"*%d ",n); }
+    } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS0[i] ? 'X':'o'); }
   }
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
@@ -298,7 +298,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
     if (n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { log2fh(fh,"*%d ",n); }
+    } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS1[i] ? 'X':'o'); }
   }
 
   log2fh(fh,"*%s\n",log);

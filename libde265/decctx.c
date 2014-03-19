@@ -561,17 +561,17 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
           int currentPictureMSB = ctx->img->PicOrderCntVal - hdr->slice_pic_order_cnt_lsb;
           pocLt += currentPictureMSB
             - ctx->DeltaPocMsbCycleLt[i] * ctx->current_sps->MaxPicOrderCntLsb;
+        }
 
-          if (ctx->UsedByCurrPicLt[i]) {
-            ctx->PocLtCurr[j] = pocLt;
-            ctx->CurrDeltaPocMsbPresentFlag[j] = hdr->delta_poc_msb_present_flag[i];
-            j++;
-          }
-          else {
-            ctx->PocLtFoll[k] = pocLt;
-            ctx->FollDeltaPocMsbPresentFlag[k] = hdr->delta_poc_msb_present_flag[i];
-            k++;
-          }
+        if (ctx->UsedByCurrPicLt[i]) {
+          ctx->PocLtCurr[j] = pocLt;
+          ctx->CurrDeltaPocMsbPresentFlag[j] = hdr->delta_poc_msb_present_flag[i];
+          j++;
+        }
+        else {
+          ctx->PocLtFoll[k] = pocLt;
+          ctx->FollDeltaPocMsbPresentFlag[k] = hdr->delta_poc_msb_present_flag[i];
+          k++;
         }
       }
 
@@ -805,13 +805,19 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    loginfo(LogHeaders,"* %d", ctx->img->RefPicList[0][rIdx]);
+    loginfo(LogHeaders,"* [%d]=%d",
+            ctx->img->RefPicList[0][rIdx],
+            ctx->dpb[ctx->img->RefPicList[0][rIdx]].PicOrderCntVal
+            );
   }
   loginfo(LogHeaders,"*\n");
 
   loginfo(LogHeaders,"RefPicList[1] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-    loginfo(LogHeaders,"* %d", ctx->img->RefPicList[1][rIdx]);
+    loginfo(LogHeaders,"* [%d]=%d",
+            ctx->img->RefPicList[1][rIdx],
+            ctx->dpb[ctx->img->RefPicList[1][rIdx]].PicOrderCntVal
+            );
   }
   loginfo(LogHeaders,"*\n");
 
@@ -893,7 +899,7 @@ void writeFrame_Y(decoder_context* ctx,const char* filename)
 void push_current_picture_to_output_queue(decoder_context* ctx)
 {
   if (ctx->img) {
-    ctx->img->PicState = UsedForShortTermReference;
+    //ctx->img->PicState = UsedForShortTermReference;
 
     // post-process image
 
@@ -1108,6 +1114,8 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     if (hdr->first_slice_segment_in_pic_flag) {
       process_reference_picture_set(ctx,hdr);
     }
+
+    img->PicState = UsedForShortTermReference;
 
     //generate_unavailable_reference_pictures(ctx,hdr);
 
