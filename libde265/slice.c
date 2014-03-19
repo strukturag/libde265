@@ -696,17 +696,9 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
         LOG1("num_long_term_pics                       : %d\n", shdr->num_long_term_pics);
           
         for (int i=0; i<shdr->num_long_term_sps + shdr->num_long_term_pics; i++) {
-          if (i < shdr->num_long_term_sps) {
-            if (sps->num_long_term_ref_pics_sps > 1) {
-              // TODO lt_idx_sps[i]
-            }
-          } else {
-            // TODO poc_lsb_lt[i]
-            // TODO used_by_curr_pic_lt_flag[i]
-          }
-          // TODO delta_poc_msb_present_flag[i]
-          // TODO if( delta_poc_msb_present_flag[i] )
-          // TODO delta_poc_msb_cycle_lt[i]
+          LOG2("PocLsbLt[%d]            : %d\n", i, ctx->PocLsbLt[i]);
+          LOG2("UsedByCurrPicLt[%d]     : %d\n", i, ctx->UsedByCurrPicLt[i]);
+          LOG2("DeltaPocMsbCycleLt[%d]  : %d\n", i, ctx->DeltaPocMsbCycleLt[i]);
         }
       }
 

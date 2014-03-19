@@ -742,6 +742,12 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
   int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
 
+  /* --- Fill RefPicListTmp0 with reference pictures in this order:
+     1) short term, past POC
+     2) short term, future POC
+     3) long term
+  */
+
   int rIdx=0;
   while (rIdx < NumRpsCurrTempList0) {
     for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
@@ -774,6 +780,12 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
     ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ ctx->img->RefPicList[0][rIdx] ].PicOrderCntVal;
   }
 
+
+  /* --- Fill RefPicListTmp1 with reference pictures in this order:
+     1) short term, future POC
+     2) short term, past POC
+     3) long term
+  */
 
   if (hdr->slice_type == SLICE_TYPE_B) {
     int NumRpsCurrTempList1 = libde265_max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
