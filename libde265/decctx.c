@@ -411,7 +411,7 @@ bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority)
 }
 
 
-static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
+static int DPB_index_of_picture_with_POC(decoder_context* ctx, int poc)
 {
   logdebug(LogHeaders,"get access to POC %d from DPB\n",poc);
 
@@ -420,7 +420,22 @@ static int DPB_index_of_st_ref_picture(decoder_context* ctx, int poc)
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (ctx->dpb[k].PicOrderCntVal == poc &&
-        ctx->dpb[k].PicState == UsedForShortTermReference) {
+        ctx->dpb[k].PicState != UnusedForReference) {
+      return k;
+    }
+  }
+
+  return -1;
+}
+
+
+static int DPB_index_of_picture_with_LSB(decoder_context* ctx, int lsb)
+{
+  logdebug(LogHeaders,"get access to picture with PSB %d from DPB\n",lsb);
+
+  for (int k=0;k<DE265_DPB_SIZE;k++) {
+    if (ctx->dpb[k].picture_order_cnt_lsb == lsb &&
+        ctx->dpb[k].PicState != UnusedForReference) {
       return k;
     }
   }
@@ -534,17 +549,18 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     ctx->NumPocStFoll = k;
 
 
-    // 
+    // find used / future long-term references
 
     for (i=0, j=0, k=0;
          i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
          i++)
       {
         int pocLt = ctx->PocLsbLt[i];
+
         if (hdr->delta_poc_msb_present_flag[i]) {
-          pocLt += ctx->img->PicOrderCntVal
-            - ctx->DeltaPocMsbCycleLt[i] * ctx->current_sps->MaxPicOrderCntLsb
-            - hdr->slice_pic_order_cnt_lsb;
+          int currentPictureMSB = ctx->img->PicOrderCntVal - hdr->slice_pic_order_cnt_lsb;
+          pocLt += currentPictureMSB
+            - ctx->DeltaPocMsbCycleLt[i] * ctx->current_sps->MaxPicOrderCntLsb;
 
           if (ctx->UsedByCurrPicLt[i]) {
             ctx->PocLtCurr[j] = pocLt;
@@ -564,27 +580,87 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
   }
 
 
-  // (8-99)
+  // (old 8-99) / (new 8-106)
   // 1.
-
-  for (int i=0;i<ctx->NumPocLtCurr;i++) {
-    assert(false); // TODO
-  }
-
-  for (int i=0;i<ctx->NumPocLtFoll;i++) {
-    assert(false); // TODO
-  }
-
 
   bool picInAnyList[DE265_DPB_SIZE];
   memset(picInAnyList,0, DE265_DPB_SIZE*sizeof(bool));
 
-  // TODO: 2.
+
+  for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    if (!ctx->CurrDeltaPocMsbPresentFlag[i]) {
+      int k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtCurr[i]);
+
+      ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
+      if (k>=0) picInAnyList[k]=true;
+      else {
+        // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtCurr)
+        // We do not know the correct MSB
+        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                      ctx->PocLtCurr[i], true);
+        ctx->RefPicSetLtCurr[i] = concealedPicture;
+        picInAnyList[concealedPicture]=true;
+      }
+    }
+    else {
+      int k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtCurr[i]);
+
+      ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
+      if (k>=0) picInAnyList[k]=true;
+      else {
+        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                      ctx->PocLtCurr[i], true);
+        ctx->RefPicSetLtCurr[i] = concealedPicture;
+        picInAnyList[concealedPicture]=true;
+      }
+    }
+  }
+
+  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    if (!ctx->FollDeltaPocMsbPresentFlag[i]) {
+      int k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtFoll[i]);
+
+      ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
+      if (k>=0) picInAnyList[k]=true;
+      else {
+        // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtFoll)
+        // We do not know the correct MSB
+        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                      ctx->PocLtFoll[i], true);
+        ctx->RefPicSetLtFoll[i] = concealedPicture;
+        picInAnyList[concealedPicture]=true;
+      }
+    }
+    else {
+      int k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtFoll[i]);
+
+      ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
+      if (k>=0) picInAnyList[k]=true;
+      else {
+        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                      ctx->PocLtFoll[i], true);
+        ctx->RefPicSetLtFoll[i] = concealedPicture;
+        picInAnyList[concealedPicture]=true;
+      }
+    }
+  }
+
+
+  // 2. Mark all pictures in RefPicSetLtCurr / RefPicSetLtFoll as UsedForLongTermReference
+
+  for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    ctx->dpb[ ctx->RefPicSetLtCurr[i] ].PicState = UsedForLongTermReference;
+  }
+
+  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    ctx->dpb[ ctx->RefPicSetLtFoll[i] ].PicState = UsedForLongTermReference;
+  }
+
 
   // 3.
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
-    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrBefore[i]);
+    int k = DPB_index_of_picture_with_POC(ctx, ctx->PocStCurrBefore[i]);
 
     //printf("st curr before, poc=%d -> idx=%d\n",ctx->PocStCurrBefore[i], k);
 
@@ -601,7 +677,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
   }
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
-    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStCurrAfter[i]);
+    int k = DPB_index_of_picture_with_POC(ctx, ctx->PocStCurrAfter[i]);
 
     //printf("st curr after, poc=%d -> idx=%d\n",ctx->PocStCurrAfter[i], k);
 
@@ -618,7 +694,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
   }
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
-    int k = DPB_index_of_st_ref_picture(ctx, ctx->PocStFoll[i]);
+    int k = DPB_index_of_picture_with_POC(ctx, ctx->PocStFoll[i]);
     // if (k<0) { assert(false); } // IGNORE
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
@@ -635,6 +711,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
 
 // 8.3.3
+/*
 void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment_header* hdr)
 {
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
@@ -649,7 +726,7 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
     }
   }
 }
-
+*/
 
 // 8.3.4
 // Returns whether we can continue decoding (or whether there is a severe error).
@@ -1032,7 +1109,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
       process_reference_picture_set(ctx,hdr);
     }
 
-    generate_unavailable_reference_pictures(ctx,hdr);
+    //generate_unavailable_reference_pictures(ctx,hdr);
 
     log_set_current_POC(ctx->img->PicOrderCntVal);
   }

@@ -248,9 +248,10 @@ typedef struct decoder_context {
   int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
   int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
   int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
-  int PocLtCurr[MAX_NUM_REF_PICS]; // use in current picture
+  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
   int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
 
+  // These lists contain indices into the DPB.
   int RefPicSetStCurrBefore[DE265_DPB_SIZE];
   int RefPicSetStCurrAfter[DE265_DPB_SIZE];
   int RefPicSetStFoll[DE265_DPB_SIZE];
