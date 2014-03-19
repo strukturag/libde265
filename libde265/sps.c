@@ -275,7 +275,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
   if (sps->long_term_ref_pics_present_flag) {
 
     sps->num_long_term_ref_pics_sps = get_uvlc(br);
-    if (sps->num_long_term_ref_pics_sps > 32) {
+    if (sps->num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 

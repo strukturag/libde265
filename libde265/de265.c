@@ -126,6 +126,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "dependent slice with address 0";
   case DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM:
     return "number of threads limited to maximum amount";
+  case DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER:
+    return "non-existing long-term reference candidate specified in slice header";
 
   default: return "unknown error";
   }

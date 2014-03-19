@@ -231,17 +231,25 @@ typedef struct decoder_context {
 
   // --- motion compensation ---
 
+  int PocLsbLt[MAX_NUM_REF_PICS];
+  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
+  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+
+  // The number of entries in the lists below.
   int NumPocStCurrBefore;
   int NumPocStCurrAfter;
   int NumPocStFoll;
   int NumPocLtCurr;
   int NumPocLtFoll;
 
-  int PocStCurrBefore[MAX_NUM_REF_PICS];
-  int PocStCurrAfter[MAX_NUM_REF_PICS];
-  int PocStFoll[MAX_NUM_REF_PICS];
-  int PocLtCutt[MAX_NUM_REF_PICS];
-  int PocLtFoll[MAX_NUM_REF_PICS];
+  // These lists contain absolute POC values.
+  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
+  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
+  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
+  int PocLtCurr[MAX_NUM_REF_PICS]; // use in current picture
+  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
 
   int RefPicSetStCurrBefore[DE265_DPB_SIZE];
   int RefPicSetStCurrAfter[DE265_DPB_SIZE];

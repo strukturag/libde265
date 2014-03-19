@@ -150,17 +150,16 @@ typedef struct slice_segment_header {
   char short_term_ref_pic_set_sps_flag;
   ref_pic_set slice_ref_pic_set;
 
-  //short_term_ref_pic_set(num_short_term_ref_pic_sets)
   int  short_term_ref_pic_set_idx;
   int  num_long_term_sps;
   int  num_long_term_pics;
 
-  //int lt_idx_sps[i];
-  //int poc_lsb_lt[i];
-  //char used_by_curr_pic_lt_flag[i];
+  uint8_t lt_idx_sps[MAX_NUM_REF_PICS];
+  int     poc_lsb_lt[MAX_NUM_REF_PICS];
+  char    used_by_curr_pic_lt_flag[MAX_NUM_REF_PICS];
 
-  //char delta_poc_msb_present_flag[i];
-  //int delta_poc_msb_cycle_lt[i];
+  char delta_poc_msb_present_flag[MAX_NUM_REF_PICS];
+  int delta_poc_msb_cycle_lt[MAX_NUM_REF_PICS];
 
   char slice_temporal_mvp_enabled_flag;
   char slice_sao_luma_flag;

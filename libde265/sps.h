@@ -27,6 +27,8 @@
 #include "libde265/de265.h"
 
 #define MAX_REF_PIC_SETS 64  // maximum according to standard
+#define MAX_NUM_LT_REF_PICS_SPS 32
+
 
 enum {
   CHROMA_MONO = 0,
@@ -113,8 +115,8 @@ typedef struct {
 
   int num_long_term_ref_pics_sps;
 
-  int  lt_ref_pic_poc_lsb_sps[32];
-  char used_by_curr_pic_lt_sps_flag[32];
+  int  lt_ref_pic_poc_lsb_sps[MAX_NUM_LT_REF_PICS_SPS];
+  char used_by_curr_pic_lt_sps_flag[MAX_NUM_LT_REF_PICS_SPS];
 
   char sps_temporal_mvp_enabled_flag;
   char strong_intra_smoothing_enable_flag;

@@ -468,6 +468,8 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 
 
 /* 8.3.2   invoked once per picture
+
+   This function will mark pictures in the DPB as 'unused' or 'used for long-term reference'
  */
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
@@ -481,6 +483,9 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
 
   if (isIDR(ctx->nal_unit_type)) {
+
+    // clear all reference pictures
+
     ctx->NumPocStCurrBefore = 0;
     ctx->NumPocStCurrAfter = 0;
     ctx->NumPocStFoll = 0;
@@ -493,6 +498,8 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     // (8-98)
 
     int i,j,k;
+
+    // scan ref-pic-set for smaller POCs and fill into PocStCurrBefore / PocStFoll
 
     for (i=0, j=0, k=0;
          i<rps->NumNegativePics;
@@ -507,6 +514,9 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
       }
 
     ctx->NumPocStCurrBefore = j;
+
+
+    // scan ref-pic-set for larger POCs and fill into PocStCurrAfter / PocStFoll
 
     for (i=0, j=0;
          i<rps->NumPositivePics;
@@ -523,12 +533,30 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     ctx->NumPocStCurrAfter = j;
     ctx->NumPocStFoll = k;
 
+
+    // 
+
     for (i=0, j=0, k=0;
          i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
          i++)
       {
-        //int pocLt = 
-        assert(false);
+        int pocLt = ctx->PocLsbLt[i];
+        if (hdr->delta_poc_msb_present_flag[i]) {
+          pocLt += ctx->img->PicOrderCntVal
+            - ctx->DeltaPocMsbCycleLt[i] * ctx->current_sps->MaxPicOrderCntLsb
+            - hdr->slice_pic_order_cnt_lsb;
+
+          if (ctx->UsedByCurrPicLt[i]) {
+            ctx->PocLtCurr[j] = pocLt;
+            ctx->CurrDeltaPocMsbPresentFlag[j] = hdr->delta_poc_msb_present_flag[i];
+            j++;
+          }
+          else {
+            ctx->PocLtFoll[k] = pocLt;
+            ctx->FollDeltaPocMsbPresentFlag[k] = hdr->delta_poc_msb_present_flag[i];
+            k++;
+          }
+        }
       }
 
     ctx->NumPocLtCurr = j;

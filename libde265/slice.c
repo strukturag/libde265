@@ -290,24 +290,74 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         shdr->CurrRps    = &sps->ref_pic_sets[shdr->CurrRpsIdx];
       }
 
+
+      // --- long-term MC ---
+
       if (sps->long_term_ref_pics_present_flag) {
-        assert(false);
-        /*
-          if( num_long_term_ref_pics_sps > 0 )
-          num_long_term_sps
-          num_long_term_pics
-          for( i = 0; i < num_long_term_sps + num_long_term_pics; i++ ) {
-          if( i < num_long_term_sps )
-          lt_idx_sps[i]
+        if (sps->num_long_term_ref_pics_sps > 0) {
+          shdr->num_long_term_sps = get_uvlc(br);
+        }
+        else {
+          shdr->num_long_term_sps = 0;
+        }
+
+        shdr->num_long_term_pics= get_uvlc(br);
+
+
+        // check maximum number of reference frames
+
+        if (shdr->num_long_term_sps +
+            shdr->num_long_term_pics +
+            shdr->CurrRps->NumNegativePics +
+            shdr->CurrRps->NumPositivePics
+            > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
+          {
+            add_warning(ctx, DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+            *continueDecoding = false;
+            return DE265_OK;
+          }
+
+        for (int i=0; i<shdr->num_long_term_sps + shdr->num_long_term_pics; i++) {
+          if (i < shdr->num_long_term_sps) {
+            int nBits = ceil_log2(sps->num_long_term_ref_pics_sps);
+            shdr->lt_idx_sps[i] = get_bits(br, nBits);
+
+            // check that the referenced lt-reference really exists
+
+            if (shdr->lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
+              add_warning(ctx, DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER, false);
+              *continueDecoding = false;
+              return DE265_OK;
+            }
+
+            ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ shdr->lt_idx_sps[i] ];
+            ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ shdr->lt_idx_sps[i] ];
+          }
           else {
-          poc_lsb_lt[i]
-          used_by_curr_pic_lt_flag[i]
+            int nBits = sps->log2_max_pic_order_cnt_lsb;
+            shdr->poc_lsb_lt[i] = get_bits(br, nBits);
+            shdr->used_by_curr_pic_lt_flag[i] = get_bits(br,1);
+
+            ctx->PocLsbLt[i] = shdr->poc_lsb_lt[i];
+            ctx->UsedByCurrPicLt[i] = shdr->used_by_curr_pic_lt_flag[i];
           }
-          delta_poc_msb_present_flag[i]
-          if( delta_poc_msb_present_flag[i] )
-          delta_poc_msb_cycle_lt[i]
+
+          shdr->delta_poc_msb_present_flag[i] = get_bits(br,1);
+          if (shdr->delta_poc_msb_present_flag[i]) {
+            shdr->delta_poc_msb_cycle_lt[i] = get_uvlc(br);
           }
-        */
+          else {
+            shdr->delta_poc_msb_cycle_lt[i] = 0;
+          }
+
+          if (i==0 || i==shdr->num_long_term_sps) {
+            ctx->DeltaPocMsbCycleLt[i] = shdr->delta_poc_msb_cycle_lt[i];
+          }
+          else {
+            ctx->DeltaPocMsbCycleLt[i] = (shdr->delta_poc_msb_cycle_lt[i] +
+                                          ctx->DeltaPocMsbCycleLt[i-1]);
+          }
+        }
       }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
@@ -317,8 +367,14 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         shdr->slice_temporal_mvp_enabled_flag = 0;
       }
     }
+    else {
+      shdr->num_long_term_sps = 0;
+      shdr->num_long_term_pics= 0;
+    }
 
 
+      // --- SAO ---
+      
     if (sps->sample_adaptive_offset_enabled_flag) {
       shdr->slice_sao_luma_flag   = get_bits(br,1);
       shdr->slice_sao_chroma_flag = get_bits(br,1);
