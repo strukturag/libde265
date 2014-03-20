@@ -794,7 +794,11 @@ void ff_hevc_weighted_pred_avg_8_sse4(uint8_t denom, int16_t wl0Flag,
                 r0 = _mm_packus_epi32(r0, r2);
                 r0 = _mm_packus_epi16(r0, r0);
 
+#if MASKMOVE
                 _mm_maskmoveu_si128(r0,_mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1),(char *) (dst+x));
+#else
+                *((uint32_t*)(dst+x)) = _mm_cvtsi128_si32(r0);
+#endif
             }
             dst += dststride;
             src1 += srcstride;
@@ -830,7 +834,11 @@ void ff_hevc_weighted_pred_avg_8_sse4(uint8_t denom, int16_t wl0Flag,
                 r0 = _mm_packus_epi32(r0, r2);
                 r0 = _mm_packus_epi16(r0, r0);
 
+#if MASKMOVE
                 _mm_maskmoveu_si128(r0,_mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1),(char *) (dst+x));
+#else
+                *((uint16_t*)(dst+x)) = _mm_cvtsi128_si32(r0);
+#endif
             }
             dst += dststride;
             src1 += srcstride;
