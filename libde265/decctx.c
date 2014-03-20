@@ -82,6 +82,16 @@ void init_decoder_context(decoder_context* ctx)
   // --- decoded picture buffer ---
 
   ctx->current_image_poc_lsb = -1; // any invalid number
+
+  for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
+    ctx->thread_context[i].coeffBuf = (int16_t *) &ctx->thread_context[i]._coeffBuf;
+    // some compilers/linkers don't align struct members correctly,
+    // adjust if necessary
+    int offset = (uintptr_t) ctx->thread_context[i].coeffBuf & 0x0f;
+    if (offset != 0) {
+        ctx->thread_context[i].coeffBuf = (int16_t *) (((uint8_t *)ctx->thread_context[i].coeffBuf) + (16-offset));
+    }
+  }
 }
 
 
