@@ -28,7 +28,15 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
   edx = regs[3];
 #else
   uint32_t eax,ebx;
+#if __native_client__ && !__x86_64__
+  // XXX: the native client gcc produces invalid asm code for
+  // "__get_cpuid" when compiled for 32bit (actually the internal
+  // call to "__get_cpuid_max" which uses "pushf", resulting in an
+  // "invalid instruction")
+  __cpuid(1, eax,ebx,ecx,edx);
+#else
   __get_cpuid(1, &eax,&ebx,&ecx,&edx);
+#endif
 #endif
   
   // printf("CPUID EAX=1 -> ECX=%x EDX=%x\n", regs[2], regs[3]);
