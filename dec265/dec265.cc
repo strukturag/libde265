@@ -89,6 +89,7 @@ const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 bool write_bytestream=false;
 const char *bytestream_filename;
+int verbosity=0;
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
@@ -104,7 +105,7 @@ static struct option long_options[] = {
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
-  //{"verbose",    no_argument,       0, 'v' },
+  {"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
 };
 
@@ -288,7 +289,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0v"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -312,6 +313,7 @@ int main(int argc, char** argv)
     case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
+    case 'v': verbosity++; break;
     }
   }
 
@@ -368,6 +370,8 @@ int main(int argc, char** argv)
   if (!logging) {
     de265_disable_logging();
   }
+
+  de265_set_verbosity(verbosity);
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {

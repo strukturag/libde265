@@ -64,10 +64,16 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 
 
 static int disable_logging=0;
+static int verbosity = 0;
 
-LIBDE265_API void de265_disable_logging()
+LIBDE265_API void de265_disable_logging() // DEPRECATED
 {
   disable_logging=1;
+}
+
+LIBDE265_API void de265_set_verbosity(int level)
+{
+  verbosity = level;
 }
 
 #if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
@@ -95,6 +101,7 @@ void logerror(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_INFO
 void loginfo (enum LogModule module, const char* string, ...)
 {
+  if (verbosity<1) return;
   if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
@@ -113,6 +120,7 @@ void loginfo (enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...)
 {
+  if (verbosity<2) return;
   if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
@@ -131,6 +139,7 @@ void logdebug(enum LogModule module, const char* string, ...)
 #ifdef DE265_LOG_TRACE
 void logtrace(enum LogModule module, const char* string, ...)
 {
+  if (verbosity<3) return;
   if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
   if (!enable_log) return;
