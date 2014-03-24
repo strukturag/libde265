@@ -1145,28 +1145,41 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       }
     }
 
-    *out_availableFlagLXCol = 1;
 
-    bool isLongTerm = false; // TODO
-    int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
-    int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[X][refIdxLX];
 
-    logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
-             colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
-             ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[X][refIdxLX]
-             );
+    slice_segment_header* colShdr = get_SliceHeader(ctx,xColPb,yColPb);
 
-    if (isLongTerm || colDist == currDist) {
-      *out_mvLXCol = mvCol;
+    if (shdr->LongTermRefPic[X][refIdxLX] != 
+        colShdr->LongTermRefPic[listCol][refIdxCol]) {
+      *out_availableFlagLXCol = 0;
+      out_mvLXCol->x = 0;
+      out_mvLXCol->y = 0;
     }
     else {
-      if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
-        add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-      }
+      *out_availableFlagLXCol = 1;
 
-      logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
-               mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
+      const bool isLongTerm = shdr->LongTermRefPic[X][refIdxLX];
+
+      int colDist  = colImg->PicOrderCntVal - colImg->RefPicList_POC[listCol][refIdxCol];
+      int currDist = ctx->img->PicOrderCntVal - ctx->img->RefPicList_POC[X][refIdxLX];
+
+      logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
+               colImg->PicOrderCntVal, colImg->RefPicList_POC[listCol][refIdxCol],
+               ctx->img->PicOrderCntVal, ctx->img->RefPicList_POC[X][refIdxLX]
+               );
+
+      if (isLongTerm || colDist == currDist) {
+        *out_mvLXCol = mvCol;
+      }
+      else {
+        if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
+          add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+          ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        }
+
+        logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
+                 mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
+      }
     }
   }
 }
