@@ -270,7 +270,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
         read_short_term_ref_pic_set(ctx, sps,
                                     br, &shdr->slice_ref_pic_set,
                                     sps->num_short_term_ref_pic_sets,
-                                    ctx->current_sps->ref_pic_sets,
+                                    sps->ref_pic_sets,
                                     true);
 
         shdr->CurrRpsIdx = sps->num_short_term_ref_pic_sets;
