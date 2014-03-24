@@ -35,7 +35,7 @@
 #define DE265_MAX_VPS_SETS 16
 #define DE265_MAX_SPS_SETS 16
 #define DE265_MAX_PPS_SETS 64
-#define DE265_MAX_SLICES   128  // TODO: make this dynamic
+#define DE265_MAX_SLICES   512  // TODO: make this dynamic
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value
@@ -285,6 +285,8 @@ void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration);
 void reset_decoder_context_for_new_picture(decoder_context* ctx);
 void free_decoder_context(decoder_context*);
 
+
+void cleanup_image(decoder_context* ctx, de265_image* img);
 
 NAL_unit* alloc_NAL_unit(decoder_context*, int size, int skipped_size);
 void      free_NAL_unit(decoder_context*, NAL_unit*);

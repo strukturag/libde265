@@ -1173,6 +1173,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       }
       else {
         if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
+          //printf("A\n");
           add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         }
@@ -1547,6 +1548,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
         int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
 
         if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
+          //printf("B\n");
           add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         }
@@ -1655,6 +1657,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
           int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
+            //printf("C\n");
             add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
           }

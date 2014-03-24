@@ -453,8 +453,11 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 {
   assert(has_free_dpb_picture(ctx, true));
 
+  //printf("generate_unavailable_reference_picture(%d,%d)\n",POC,longTerm);
+
   int idx = initialize_new_DPB_image(ctx, ctx->current_sps);
   assert(idx>=0);
+  //printf("-> fill with unavailable POC %d\n",POC);
 
   de265_image* img = &ctx->dpb[idx];
   assert(img->border==0);
@@ -493,7 +496,11 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     // reset DPB
 
     for (int i=0;i<DE265_DPB_SIZE;i++) {
-      ctx->dpb[i].PicState = UnusedForReference;
+      if (ctx->dpb[i].PicState != UnusedForReference) {
+        ctx->dpb[i].PicState = UnusedForReference;
+
+        cleanup_image(ctx, &ctx->dpb[i]);
+      }
     }
   }
 
@@ -523,6 +530,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
       {
         if (rps->UsedByCurrPicS0[i]) {
           ctx->PocStCurrBefore[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+          //printf("PocStCurrBefore = %d\n",ctx->PocStCurrBefore[j-1]);
         }
         else {
           ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
@@ -540,6 +548,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
       {
         if (rps->UsedByCurrPicS1[i]) {
           ctx->PocStCurrAfter[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+          //printf("PocStCurrAfter = %d\n",ctx->PocStCurrAfter[j-1]);
         }
         else {
           ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
@@ -706,7 +715,11 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
   for (int i=0;i<DE265_DPB_SIZE;i++)
     if (!picInAnyList[i]) {
-      ctx->dpb[i].PicState = UnusedForReference;
+      if (ctx->dpb[i].PicState != UnusedForReference) {
+        ctx->dpb[i].PicState = UnusedForReference;
+
+        cleanup_image(ctx, &ctx->dpb[i]);
+      }
     }
 }
 
@@ -887,6 +900,32 @@ void flush_next_picture_from_reorder_buffer(decoder_context* ctx)
 }
 
 
+void cleanup_image(decoder_context* ctx, de265_image* img)
+{
+  if (img->PicState != UnusedForReference) { return; } // still required for reference
+  if (img->PicOutputFlag) { return; } // required for output
+
+  if (img->sps==NULL) { return; } // might be an unavailable-reference replacement image
+
+
+  // mark all slice-headers locked by this image as unused
+
+  for (int y=0;y<img->sps->PicHeightInCtbsY;y++)
+    for (int x=0;x<img->sps->PicWidthInCtbsY;x++)
+      {
+        slice_segment_header* shdr;
+        shdr = &ctx->slice[ get_SliceHeaderIndex(img,
+                                                 img->sps,
+                                                 x << img->sps->Log2CtbSizeY,
+                                                 y << img->sps->Log2CtbSizeY) ];
+        shdr->inUse = false;
+      }
+
+  img->sps = NULL; // this may not be valid anymore in the future
+  img->pps = NULL; // this may not be valid anymore in the future
+}
+
+
 void writeFrame_Y(decoder_context* ctx,const char* filename)
 {
   int w = ctx->img->width;
@@ -1019,6 +1058,9 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
  */
 int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
 {
+  //printf("initialize_new_DPB_image()\n");
+  log_dpb_content(ctx);
+
   int free_image_buffer_idx = -1;
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     if (ctx->dpb[i].PicOutputFlag==false && ctx->dpb[i].PicState == UnusedForReference) {
@@ -1026,6 +1068,8 @@ int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
       break;
     }
   }
+
+  //printf("free buffer index = %d\n", free_image_buffer_idx);
 
   if (free_image_buffer_idx == -1) {
     return -1;
@@ -1159,6 +1203,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
       }
     }
 
+  //printf("process slice segment header\n");
   log_dpb_content(ctx);
 
 
