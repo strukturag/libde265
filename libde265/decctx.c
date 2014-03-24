@@ -785,11 +785,11 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     int idx = hdr->ref_pic_list_modification_flag_l0 ? hdr->list_entry_l0[rIdx] : rIdx;
 
-    ctx->img->RefPicList[0][rIdx] = RefPicListTemp0[idx];
+    hdr->RefPicList[0][rIdx] = RefPicListTemp0[idx];
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
     // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-    ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ ctx->img->RefPicList[0][rIdx] ].PicOrderCntVal;
+    hdr->RefPicList_POC[0][rIdx] = ctx->dpb[ hdr->RefPicList[0][rIdx] ].PicOrderCntVal;
   }
 
 
@@ -820,11 +820,11 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
 
-      ctx->img->RefPicList[1][rIdx] = RefPicListTemp1[idx];
+      hdr->RefPicList[1][rIdx] = RefPicListTemp1[idx];
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ ctx->img->RefPicList[1][rIdx] ].PicOrderCntVal;
+      hdr->RefPicList_POC[1][rIdx] = ctx->dpb[ hdr->RefPicList[1][rIdx] ].PicOrderCntVal;
     }
   }
 
@@ -834,8 +834,8 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
-            ctx->img->RefPicList[0][rIdx],
-            ctx->dpb[ctx->img->RefPicList[0][rIdx]].PicOrderCntVal
+            hdr->RefPicList[0][rIdx],
+            ctx->dpb[hdr->RefPicList[0][rIdx]].PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
@@ -843,8 +843,8 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   loginfo(LogHeaders,"RefPicList[1] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
-            ctx->img->RefPicList[1][rIdx],
-            ctx->dpb[ctx->img->RefPicList[1][rIdx]].PicOrderCntVal
+            hdr->RefPicList[1][rIdx],
+            ctx->dpb[hdr->RefPicList[1][rIdx]].PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
