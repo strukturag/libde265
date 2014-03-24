@@ -33,7 +33,7 @@
 #define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
 #define MAX_ENTRY_POINTS    MAX_CTB_ROWS
 #define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
-#define MAX_REF_PIC_LIST (14+1)
+#define MAX_NUM_REF_PICS    16
 
 #define SLICE_TYPE_B 0
 #define SLICE_TYPE_P 1
@@ -225,6 +225,9 @@ typedef struct slice_segment_header {
   int MaxNumMergeCand;
   int CurrRpsIdx;
   const ref_pic_set* CurrRps;  // the active reference-picture set
+
+  char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
+                                               is a long-term picture. */
 
   // context storage for dependent slices and WPP in single-thread mode
   context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];

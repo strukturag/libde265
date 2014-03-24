@@ -731,6 +731,11 @@ void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment
 // 8.3.4
 // Returns whether we can continue decoding (or whether there is a severe error).
 /* Called at beginning of each slice.
+
+   Constructs
+   - the RefPicList[2][], containing indices into the DPB, and
+   - the RefPicList_POC[2][], containing POCs.
+   - LongTermRefPic[2][] is also set to true if it is a long-term reference
  */
 bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
@@ -741,6 +746,9 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
   int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
+  char isLongTerm[2][DE265_DPB_SIZE];
+
+  memset(isLongTerm,0,2*DE265_DPB_SIZE);
 
   /* --- Fill RefPicListTmp0 with reference pictures in this order:
      1) short term, past POC
@@ -756,9 +764,10 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
     for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
       RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
 
-    for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+    for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++) {
       RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
-
+      isLongTerm[0][rIdx] = true;
+    }
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
@@ -773,8 +782,10 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   }
 
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    ctx->img->RefPicList[0][rIdx] = hdr->ref_pic_list_modification_flag_l0 ?
-      RefPicListTemp0[hdr->list_entry_l0[rIdx]] : RefPicListTemp0[rIdx];
+    int idx = hdr->ref_pic_list_modification_flag_l0 ? hdr->list_entry_l0[rIdx] : rIdx;
+
+    ctx->img->RefPicList[0][rIdx] = RefPicListTemp0[idx];
+    hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
     // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
     ctx->img->RefPicList_POC[0][rIdx] = ctx->dpb[ ctx->img->RefPicList[0][rIdx] ].PicOrderCntVal;
@@ -798,14 +809,18 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
       for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
 
-      for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+      for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
+        isLongTerm[1][rIdx] = true;
+      }
     }
 
     assert(hdr->num_ref_idx_l1_active <= 15);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-      ctx->img->RefPicList[1][rIdx] = hdr->ref_pic_list_modification_flag_l1 ?
-        RefPicListTemp1[hdr->list_entry_l1[rIdx]] : RefPicListTemp1[rIdx];
+      int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
+
+      ctx->img->RefPicList[1][rIdx] = RefPicListTemp1[idx];
+      hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
       ctx->img->RefPicList_POC[1][rIdx] = ctx->dpb[ ctx->img->RefPicList[1][rIdx] ].PicOrderCntVal;

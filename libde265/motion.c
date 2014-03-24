@@ -400,7 +400,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     if (predFlag[l]) {
       // 8.5.3.2.1
 
-      if (vi->lum.refIdx[l] >= MAX_REF_PIC_LIST) {
+      if (vi->lum.refIdx[l] >= MAX_NUM_REF_PICS) {
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         add_warning(ctx,DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
         return;
@@ -1506,14 +1506,14 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
-          true) { // TODO: long-term references
+          shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[X];
         refIdxA = vi->refIdx[X];
         refPicList = X;
       }
       else if (vi->predFlag[Y]==1 &&
-               true) { // TODO: long-term references
+               shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[Y][ vi->refIdx[Y] ]) {
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[Y];
         refIdxA = vi->refIdx[Y];
@@ -1613,14 +1613,14 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       
         const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
         if (vi->predFlag[X]==1 &&
-            true) { // TODO: long-term references
+            shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
           out_availableFlagLXN[B]=1;
           out_mvLXN[B] = vi->mv[X];
           refIdxB = vi->refIdx[X];
           refPicList = X;
         }
         else if (vi->predFlag[Y]==1 &&
-                 true) { // TODO: long-term references
+                 shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[Y][ vi->refIdx[Y] ]) {
           out_availableFlagLXN[B]=1;
           out_mvLXN[B] = vi->mv[Y];
           refIdxB = vi->refIdx[Y];

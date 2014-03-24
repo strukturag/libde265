@@ -183,8 +183,9 @@ typedef struct de265_image {
   int deblk_width;
   int deblk_height;
 
-  int RefPicList[2][MAX_REF_PIC_LIST]; // contains indices into DPB
-  int RefPicList_POC[2][14+1];
+  // TODO CHECK: should this move to slice header? Can this be different for each slice in the image?
+  int RefPicList[2][MAX_NUM_REF_PICS]; // contains indices into DPB
+  int RefPicList_POC[2][MAX_NUM_REF_PICS];
 
   // --- meta information ---
 
