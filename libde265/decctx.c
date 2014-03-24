@@ -379,6 +379,7 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
     }
 
   ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
+  ctx->img->picture_order_cnt_lsb = hdr->slice_pic_order_cnt_lsb;
 
   loginfo(LogHeaders,"POC computation. new msb:%d POC=%d\n",
            ctx->PicOrderCntMsb,
