@@ -1379,14 +1379,14 @@ LIBDE265_API void write_picture(const de265_image* img)
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 
-  for (int y=0;y<img->height;y++)
-    fwrite(img->y + y*img->stride, img->width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,0);y++)
+    fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fh);
 
-  for (int y=0;y<img->chroma_height;y++)
-    fwrite(img->cb + y*img->chroma_stride, img->chroma_width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,1);y++)
+    fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fh);
 
-  for (int y=0;y<img->chroma_height;y++)
-    fwrite(img->cr + y*img->chroma_stride, img->chroma_width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,2);y++)
+    fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fh);
 
   fflush(fh);
   //fclose(fh);
@@ -1397,14 +1397,14 @@ void write_picture_to_file(const de265_image* img, const char* filename)
 {
   FILE* fh = fopen(filename, "wb");
 
-  for (int y=0;y<img->height;y++)
-    fwrite(img->y + y*img->stride, img->width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,0);y++)
+    fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fh);
 
-  for (int y=0;y<img->chroma_height;y++)
-    fwrite(img->cb + y*img->chroma_stride, img->chroma_width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,1);y++)
+    fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fh);
 
-  for (int y=0;y<img->chroma_height;y++)
-    fwrite(img->cr + y*img->chroma_stride, img->chroma_width, 1, fh);
+  for (int y=0;y<de265_get_image_height(img,2);y++)
+    fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fh);
 
   fflush(fh);
   fclose(fh);
