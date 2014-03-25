@@ -493,10 +493,23 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
   if (isRASL(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
+
+    int currentPOC = ctx->img->PicOrderCntVal;
+
     // reset DPB
 
+    /* The standard says: "When the current picture is an IRAP picture with NoRaslOutputFlag
+       equal to 1, all reference pictures currently in the DPB (if any) are marked as
+       "unused for reference".
+
+       This seems to be wrong as it also throws out the first CRA picture in a stream like
+       RAP_A (decoding order: CRA,POC=64, RASL,POC=60). Removing only the pictures with
+       lower POCs seems to be compliant to the reference decoder.
+    */
+
     for (int i=0;i<DE265_DPB_SIZE;i++) {
-      if (ctx->dpb[i].PicState != UnusedForReference) {
+      if (ctx->dpb[i].PicState != UnusedForReference &&
+          ctx->dpb[i].PicOrderCntVal < currentPOC) {
         ctx->dpb[i].PicState = UnusedForReference;
 
         cleanup_image(ctx, &ctx->dpb[i]);
