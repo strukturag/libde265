@@ -743,13 +743,13 @@ bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
   +--+                +--+--+
   |B2|                |B1|B0|
   +--+----------------+--+--+
-  |                   |
-  |                   |
-  |                   |
-  |                   |
-  |                   |
-  |                   |
-  |                   |
+     |                   |
+     |                   |
+     |                   |
+     |                   |
+     |                   |
+     |                   |
+     |                   |
   +--+                   |
   |A1|                   |
   +--+-------------------+
@@ -1482,6 +1482,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   int refIdxA=-1;
 
+  // the POC we want to reference in this PB
+  const int referenced_POC = ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal;
+
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 &&
@@ -1490,17 +1493,16 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       int Y=1-X;
       
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
+      logtrace(LogMotion,"MVP A%d=\n",k);
+      logmvcand(*vi);
       if (vi->predFlag[X] &&
-          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal ==
-          ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
-        //vi->refIdx[X] == refIdxLX) {
+          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal == referenced_POC) {
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[X];
         refIdxA = vi->refIdx[X];
       }
       else if (vi->predFlag[Y] &&
-               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal ==
-               ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal == referenced_POC) {
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[Y];
         refIdxA = vi->refIdx[Y];
@@ -1541,11 +1543,14 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
       const de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
       const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
+
+      //printf("scale MVP A: A-POC:%d X-POC:%d\n",refPicA->PicOrderCntVal,refPicX->PicOrderCntVal);
+
       if (refPicA->PicState == UsedForShortTermReference &&
           refPicX->PicState == UsedForShortTermReference) {
 
         int distA = ctx->img->PicOrderCntVal - refPicA->PicOrderCntVal;
-        int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
+        int distX = ctx->img->PicOrderCntVal - referenced_POC;
 
         if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
           //printf("B\n");
@@ -1588,17 +1593,18 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       int Y=1-X;
       
       const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
+      logtrace(LogMotion,"MVP B%d=\n",k);
+      logmvcand(*vi);
+
       if (vi->predFlag[X] &&
-          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal ==
-          ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+          ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal == referenced_POC) {
         //vi->refIdx[X] == refIdxLX) {
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[X];
         refIdxB = vi->refIdx[X];
       }
       else if (vi->predFlag[Y] &&
-               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal ==
-               ctx->dpb[ shdr->RefPicList[X][ refIdxLX ] ].PicOrderCntVal) {
+               ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal == referenced_POC) {
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[Y];
         refIdxB = vi->refIdx[Y];
@@ -1654,7 +1660,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
             refPicX->PicState == UsedForShortTermReference) {
 
           int distB = ctx->img->PicOrderCntVal - refPicB->PicOrderCntVal;
-          int distX = ctx->img->PicOrderCntVal - refPicX->PicOrderCntVal;
+          int distX = ctx->img->PicOrderCntVal - referenced_POC;
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
             //printf("C\n");

@@ -368,6 +368,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       }
     }
     else {
+      shdr->slice_pic_order_cnt_lsb = 0;
       shdr->num_long_term_sps = 0;
       shdr->num_long_term_pics= 0;
     }
@@ -675,9 +676,10 @@ void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_c
       LOG1("colour_plane_id                      : %d\n", shdr->colour_plane_id);
     }
 
+    LOG1("slice_pic_order_cnt_lsb              : %d\n", shdr->slice_pic_order_cnt_lsb);
+
     if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
         ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
-      LOG1("slice_pic_order_cnt_lsb              : %d\n", shdr->slice_pic_order_cnt_lsb);
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", shdr->short_term_ref_pic_set_sps_flag);
 
       if (!shdr->short_term_ref_pic_set_sps_flag) {
