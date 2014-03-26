@@ -197,6 +197,14 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
   de265_image* img = ctx->last_decoded_image;
   assert(img != NULL);
 
+  /* Do not check SEI on pictures that are not output.
+     Hash may be wrong, because of a broken link (BLA).
+     This happens, for example in conformance stream RAP_B, where a EOS-NAL
+     appears before a CRA (POC=32). */
+  if (img->PicOutputFlag == false) {
+    return DE265_OK;
+  }
+
   //write_picture(img);
 
   int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
