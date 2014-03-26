@@ -2,15 +2,15 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [0.5], [farin@struktur.de])
+AC_INIT([libde265], [0.6], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.c])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x00050000 # Numeric representation of the version
+NUMERIC_VERSION=0x00060000 # Numeric representation of the version
 AC_SUBST(NUMERIC_VERSION)
 
 LIBDE265_CURRENT=0
-LIBDE265_REVISION=4
+LIBDE265_REVISION=5
 LIBDE265_AGE=0
 
 # ---------------------------------------------------------------------------
