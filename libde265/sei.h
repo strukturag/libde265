@@ -79,6 +79,7 @@ typedef struct {
 } sei_message;
 
 
+const char* sei_type_name(enum sei_payload_type type);
 
 bool read_sei(bitreader* reader, sei_message*, bool suffix, const decoder_context* ctx);
 void dump_sei(const sei_message*, const decoder_context* ctx);

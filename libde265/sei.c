@@ -322,6 +322,8 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_co
 
 void dump_sei(const sei_message* sei, const decoder_context* ctx)
 {
+  loginfo(LogHeaders,"SEI message: %s\n", sei_type_name(sei->payload_type));
+
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
     dump_sei_decoded_picture_hash(sei, ctx);
@@ -354,4 +356,63 @@ de265_error process_sei(const sei_message* sei, decoder_context* ctx)
   return err;
 }
 
+
+const char* sei_type_name(enum sei_payload_type type)
+{
+  switch (type) {
+  case sei_payload_type_buffering_period:
+    return "buffering_period";
+  case sei_payload_type_pic_timing:
+    return "pic_timing";
+  case sei_payload_type_pan_scan_rect:
+    return "pan_scan_rect";
+  case sei_payload_type_filler_payload:
+    return "filler_payload";
+  case sei_payload_type_user_data_registered_itu_t_t35:
+    return "user_data_registered_itu_t_t35";
+  case sei_payload_type_user_data_unregistered:
+    return "user_data_unregistered";
+  case sei_payload_type_recovery_point:
+    return "recovery_point";
+  case sei_payload_type_scene_info:
+    return "scene_info";
+  case sei_payload_type_picture_snapshot:
+    return "picture_snapshot";
+  case sei_payload_type_progressive_refinement_segment_start:
+    return "progressive_refinement_segment_start";
+  case sei_payload_type_progressive_refinement_segment_end:
+    return "progressive_refinement_segment_end";
+  case sei_payload_type_film_grain_characteristics:
+    return "film_grain_characteristics";
+  case sei_payload_type_post_filter_hint:
+    return "post_filter_hint";
+  case sei_payload_type_tone_mapping_info:
+    return "tone_mapping_info";
+  case sei_payload_type_frame_packing_arrangement:
+    return "frame_packing_arrangement";
+  case sei_payload_type_display_orientation:
+    return "display_orientation";
+  case sei_payload_type_structure_of_pictures_info:
+    return "structure_of_pictures_info";
+  case sei_payload_type_active_parameter_sets:
+    return "active_parameter_sets";
+  case sei_payload_type_decoding_unit_info:
+    return "decoding_unit_info";
+  case sei_payload_type_temporal_sub_layer_zero_index:
+    return "temporal_sub_layer_zero_index";
+  case sei_payload_type_decoded_picture_hash:
+    return "decoded_picture_hash";
+  case sei_payload_type_scalable_nesting:
+    return "scalable_nesting";
+  case sei_payload_type_region_refresh_info:
+    return "region_refresh_info";
+  case sei_payload_type_no_display:
+    return "no_display";
+  case sei_payload_type_motion_constrained_tile_sets:
+    return "motion_constrained_tile_sets";
+
+  default:
+    return "unknown SEI message";
+  }
+}
 
