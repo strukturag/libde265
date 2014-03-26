@@ -26,7 +26,31 @@
 
 
 enum sei_payload_type {
-  sei_payload_type_decoded_picture_hash = 132
+  sei_payload_type_buffering_period = 0,
+  sei_payload_type_pic_timing = 1,
+  sei_payload_type_pan_scan_rect = 2,
+  sei_payload_type_filler_payload = 3,
+  sei_payload_type_user_data_registered_itu_t_t35 = 4,
+  sei_payload_type_user_data_unregistered = 5,
+  sei_payload_type_recovery_point = 6,
+  sei_payload_type_scene_info = 9,
+  sei_payload_type_picture_snapshot = 15,
+  sei_payload_type_progressive_refinement_segment_start = 16,
+  sei_payload_type_progressive_refinement_segment_end = 17,
+  sei_payload_type_film_grain_characteristics = 19,
+  sei_payload_type_post_filter_hint = 22,
+  sei_payload_type_tone_mapping_info = 23,
+  sei_payload_type_frame_packing_arrangement = 45,
+  sei_payload_type_display_orientation = 47,
+  sei_payload_type_structure_of_pictures_info = 128,
+  sei_payload_type_active_parameter_sets = 129,
+  sei_payload_type_decoding_unit_info = 130,
+  sei_payload_type_temporal_sub_layer_zero_index = 131,
+  sei_payload_type_decoded_picture_hash = 132,
+  sei_payload_type_scalable_nesting = 133,
+  sei_payload_type_region_refresh_info = 134,
+  sei_payload_type_no_display = 135,
+  sei_payload_type_motion_constrained_tile_sets = 136
 };
 
 
