@@ -1487,7 +1487,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
-        out_availableFlagLXN[A]==0 &&
+        out_availableFlagLXN[A]==0 && // no A?-predictor so far
         get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
@@ -1495,14 +1495,23 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
+
+      // check whether the predictor X is available and references the same POC
       if (vi->predFlag[X] &&
           ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal == referenced_POC) {
+
+        logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,X);
+
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[X];
         refIdxA = vi->refIdx[X];
       }
+      // check whether the other predictor (Y) is available and references the same POC
       else if (vi->predFlag[Y] &&
                ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal == referenced_POC) {
+
+        logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,Y);
+
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[Y];
         refIdxA = vi->refIdx[Y];
@@ -1510,12 +1519,14 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
     }
   }
 
-  // 7.
+  // 7. If there is no predictor referencing the same POC, we take any other reference as
+  //    long as it is the same type of reference (long-term / short-term)
 
   for (int k=0 ; k<=1 && out_availableFlagLXN[A]==0 ; k++) {
     int refPicList=-1;
 
     if (availableA[k] &&
+        // TODO: we could remove this call by storing the result of the similar computation above
         get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
@@ -1523,6 +1534,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
+
+        logtrace(LogMotion,"take A%D/L%d as A candidate with different POCs\n",k,X);
+
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[X];
         refIdxA = vi->refIdx[X];
@@ -1530,6 +1544,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       }
       else if (vi->predFlag[Y]==1 &&
                shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[Y][ vi->refIdx[Y] ]) {
+
+        logtrace(LogMotion,"take A%d/L%d as A candidate with different POCs\n",k,Y);
+
         out_availableFlagLXN[A]=1;
         out_mvLXN[A] = vi->mv[Y];
         refIdxA = vi->refIdx[Y];
@@ -1544,7 +1561,8 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       const de265_image* refPicA = &ctx->dpb[ shdr->RefPicList[refPicList][refIdxA ] ];
       const de265_image* refPicX = &ctx->dpb[ shdr->RefPicList[X         ][refIdxLX] ];
 
-      //printf("scale MVP A: A-POC:%d X-POC:%d\n",refPicA->PicOrderCntVal,refPicX->PicOrderCntVal);
+      logtrace(LogMotion,"scale MVP A: A-POC:%d X-POC:%d\n",
+               refPicA->PicOrderCntVal,refPicX->PicOrderCntVal);
 
       if (refPicA->PicState == UsedForShortTermReference &&
           refPicX->PicState == UsedForShortTermReference) {
@@ -1553,7 +1571,6 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
         int distX = ctx->img->PicOrderCntVal - referenced_POC;
 
         if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
-          //printf("B\n");
           add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         }
@@ -1598,13 +1615,18 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
       if (vi->predFlag[X] &&
           ctx->dpb[ shdr->RefPicList[X][ vi->refIdx[X] ] ].PicOrderCntVal == referenced_POC) {
-        //vi->refIdx[X] == refIdxLX) {
+
+        logtrace(LogMotion,"take B%d/L%d as B candidate with same POC\n",k,X);
+
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[X];
         refIdxB = vi->refIdx[X];
       }
       else if (vi->predFlag[Y] &&
                ctx->dpb[ shdr->RefPicList[Y][ vi->refIdx[Y] ] ].PicOrderCntVal == referenced_POC) {
+
+        logtrace(LogMotion,"take B%d/L%d as B candidate with same POC\n",k,Y);
+
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[Y];
         refIdxB = vi->refIdx[Y];
@@ -1614,15 +1636,23 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   // 4.
 
-  if (isScaledFlagLX==0 &&
-      out_availableFlagLXN[B]) {
-    out_availableFlagLXN[A]=1;
-    out_mvLXN[A] = out_mvLXN[B];
-    refIdxA = refIdxB;
-  }
+  if (isScaledFlagLX==0 &&      // no A predictor,
+      out_availableFlagLXN[B])  // but an unscaled B predictor
+    {
+      // use unscaled B predictor as A predictor
+
+      logtrace(LogMotion,"copy the same-POC B candidate as additional A candidate\n");
+
+      out_availableFlagLXN[A]=1;
+      out_mvLXN[A] = out_mvLXN[B];
+      refIdxA = refIdxB;
+    }
 
   // 5.
 
+  // If no A predictor, we output the unscaled B as the A predictor (above)
+  // and also add a scaled B predictor here.
+  // If there is (probably) an A predictor, no differing-POC B predictor is generated.
   if (isScaledFlagLX==0) {
     out_availableFlagLXN[B]=0;
 
@@ -1662,8 +1692,9 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
           int distB = ctx->img->PicOrderCntVal - refPicB->PicOrderCntVal;
           int distX = ctx->img->PicOrderCntVal - referenced_POC;
 
+          logtrace(LogMotion,"scale MVP B: B-POC:%d X-POC:%d\n",refPicB->PicOrderCntVal,refPicX->PicOrderCntVal);
+
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
-            //printf("C\n");
             add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
           }
@@ -1840,6 +1871,9 @@ void decode_prediction_unit(decoder_context* ctx,
                             thread_context* tctx,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
+  logtrace(LogMotion,"decode_prediction_unit POC=%d %d;%d %dx%d\n",
+           ctx->img->PicOrderCntVal, xC+xB,yC+yB, nPbW,nPbH);
+
   slice_segment_header* shdr = tctx->shdr;
 
   // 1.

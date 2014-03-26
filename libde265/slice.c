@@ -3177,8 +3177,8 @@ void read_prediction_unit(decoder_context* ctx,
       int mvp_l0_flag = decode_mvp_lx_flag(tctx); // l0
       tctx->mvp_lX_flag[0] = mvp_l0_flag;
 
-      logtrace(LogSlice,"prediction unit %d,%d, L0, mvp_l0_flag:%d\n",
-               x0,y0, mvp_l0_flag);
+      logtrace(LogSlice,"prediction unit %d,%d, L0, refIdx=%d mvp_l0_flag:%d\n",
+               x0,y0, tctx->refIdx[0], mvp_l0_flag);
     }
 
     if (inter_pred_idc != PRED_L0) {
@@ -3199,8 +3199,8 @@ void read_prediction_unit(decoder_context* ctx,
       int mvp_l1_flag = decode_mvp_lx_flag(tctx); // l1
       tctx->mvp_lX_flag[1] = mvp_l1_flag;
 
-      logtrace(LogSlice,"prediction unit %d,%d, L1, mvp_l1_flag:%d\n",
-               x0,y0, mvp_l1_flag);
+      logtrace(LogSlice,"prediction unit %d,%d, L1, refIdx=%d mvp_l1_flag:%d\n",
+               x0,y0, tctx->refIdx[1], mvp_l1_flag);
     }
   }
 
