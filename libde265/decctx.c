@@ -927,16 +927,21 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
 
   // mark all slice-headers locked by this image as unused
 
-  for (int y=0;y<img->sps->PicHeightInCtbsY;y++)
-    for (int x=0;x<img->sps->PicWidthInCtbsY;x++)
-      {
-        slice_segment_header* shdr;
-        shdr = &ctx->slice[ get_SliceHeaderIndex(img,
-                                                 img->sps,
-                                                 x << img->sps->Log2CtbSizeY,
-                                                 y << img->sps->Log2CtbSizeY) ];
-        shdr->inUse = false;
-      }
+  /* Note: cannot use SPS here, because this may already be outdated when a
+     new SPS was sent before cleaning up this image.
+  */
+
+  for (int i=0;i<img->ctb_info_size;i++)
+    {
+      int sliceHeaderIdx = img->ctb_info[i].SliceHeaderIndex;
+
+      slice_segment_header* shdr;
+      shdr = &ctx->slice[ sliceHeaderIdx ];
+      
+      //printf("cleanup SHDR %d\n",sliceHeaderIdx);
+      
+      shdr->inUse = false;
+    }
 
   img->sps = NULL; // this may not be valid anymore in the future
   img->pps = NULL; // this may not be valid anymore in the future
