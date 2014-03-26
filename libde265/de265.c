@@ -887,6 +887,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         err = process_sei(&sei, ctx);
       }
       break;
+
+    case NAL_UNIT_EOS_NUT:
+      ctx->FirstAfterEndOfSequenceNAL = true;
+      break;
     }
 
   return err;

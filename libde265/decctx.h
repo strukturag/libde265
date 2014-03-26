@@ -222,6 +222,7 @@ typedef struct decoder_context {
   bool first_decoded_picture;
   bool NoRaslOutputFlag;
   bool HandleCraAsBlaFlag;
+  bool FirstAfterEndOfSequenceNAL;
 
   int  PicOrderCntMsb;
   int prevPicOrderCntLsb;  // at precTid0Pic

@@ -75,6 +75,7 @@ void init_decoder_context(decoder_context* ctx)
   }
 
   ctx->first_decoded_picture = true;
+  //ctx->FirstAfterEndOfSequenceNAL = true;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
   //de265_init_image(&ctx->coeff);
@@ -1190,9 +1191,10 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
       if (isIDR(ctx->nal_unit_type) ||
           isBLA(ctx->nal_unit_type) ||
           ctx->first_decoded_picture ||
-          0 /* first after EndOfSequence NAL */)
+          ctx->FirstAfterEndOfSequenceNAL)
         {
           ctx->NoRaslOutputFlag = true;
+          ctx->FirstAfterEndOfSequenceNAL = false;
         }
       else if (0) // TODO: set HandleCraAsBlaFlag by external means
         {
