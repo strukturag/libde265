@@ -557,7 +557,7 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 void init_thread_context(thread_context* tctx)
 {
   // zero scrap memory for coefficient blocks
-  memset(tctx->coeffBuf, 0, sizeof(tctx->coeffBuf));
+  memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));
 
   tctx->currentQG_x = -1;
   tctx->currentQG_y = -1;
