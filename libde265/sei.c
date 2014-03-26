@@ -63,30 +63,30 @@ static void dump_sei_decoded_picture_hash(const sei_message* sei,
 {
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
-  logdebug(LogSEI,"  hash_type: ");
+  loginfo(LogSEI,"  hash_type: ");
   switch (seihash->hash_type) {
-  case sei_decoded_picture_hash_type_MD5: logdebug(LogSEI,"MD5\n"); break;
-  case sei_decoded_picture_hash_type_CRC: logdebug(LogSEI,"CRC\n"); break;
-  case sei_decoded_picture_hash_type_checksum: logdebug(LogSEI,"checksum\n"); break;
+  case sei_decoded_picture_hash_type_MD5: loginfo(LogSEI,"MD5\n"); break;
+  case sei_decoded_picture_hash_type_CRC: loginfo(LogSEI,"CRC\n"); break;
+  case sei_decoded_picture_hash_type_checksum: loginfo(LogSEI,"checksum\n"); break;
   }
 
   int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:
-      logdebug(LogSEI,"  MD5[%d]: %02x", i,seihash->md5[i][0]);
+      loginfo(LogSEI,"  MD5[%d]: %02x", i,seihash->md5[i][0]);
       for (int b=1;b<16;b++) {
-        logdebug(LogSEI,"*:%02x", seihash->md5[i][b]);
+        loginfo(LogSEI,"*:%02x", seihash->md5[i][b]);
       }
-      logdebug(LogSEI,"*\n");
+      loginfo(LogSEI,"*\n");
       break;
 
     case sei_decoded_picture_hash_type_CRC:
-      logdebug(LogSEI,"  CRC[%d]: %02x\n", i,seihash->crc[i]);
+      loginfo(LogSEI,"  CRC[%d]: %02x\n", i,seihash->crc[i]);
       break;
 
     case sei_decoded_picture_hash_type_checksum:
-      logdebug(LogSEI,"  checksum[%d]: %04x\n", i,seihash->checksum[i]);
+      loginfo(LogSEI,"  checksum[%d]: %04x\n", i,seihash->checksum[i]);
       break;
     }
   }
@@ -275,7 +275,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
     }
   }
 
-  logdebug(LogSEI,"decoded picture hash checked: OK\n");
+  loginfo(LogSEI,"decoded picture hash checked: OK\n");
 
   return DE265_OK;
 }
@@ -311,6 +311,10 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_co
   case sei_payload_type_decoded_picture_hash:
     success = read_sei_decoded_picture_hash(reader,sei,ctx);
     break;
+
+  default:
+    // TODO: unknown SEI messages are ignored
+    break;
   }
 
   return success;
@@ -321,6 +325,10 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
     dump_sei_decoded_picture_hash(sei, ctx);
+    break;
+
+  default:
+    // TODO: unknown SEI messages are ignored
     break;
   }
 }
@@ -336,6 +344,10 @@ de265_error process_sei(const sei_message* sei, decoder_context* ctx)
       err = process_sei_decoded_picture_hash(sei, ctx);
     }
 
+    break;
+
+  default:
+    // TODO: unknown SEI messages are ignored
     break;
   }
 
