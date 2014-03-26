@@ -424,7 +424,7 @@ bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority)
 
 static int DPB_index_of_picture_with_POC(decoder_context* ctx, int poc)
 {
-  logdebug(LogHeaders,"get access to POC %d from DPB\n",poc);
+  logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=\n",poc);
 
   //log_dpb_content(ctx);
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
@@ -1090,6 +1090,8 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
  */
 int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps)
 {
+  loginfo(LogHeaders,"initialize_new_DPB_image\n");
+
   //printf("initialize_new_DPB_image()\n");
   log_dpb_content(ctx);
 
@@ -1216,6 +1218,9 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     process_picture_order_count(ctx,hdr);
 
     if (hdr->first_slice_segment_in_pic_flag) {
+      // mark picture so that it is not overwritten by unavailable reference frames
+      img->PicState = UsedForShortTermReference;
+
       process_reference_picture_set(ctx,hdr);
     }
 
@@ -1236,6 +1241,8 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     }
 
   //printf("process slice segment header\n");
+
+  loginfo(LogHeaders,"end of process-slice-header\n");
   log_dpb_content(ctx);
 
 
