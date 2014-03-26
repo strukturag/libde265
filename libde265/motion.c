@@ -1089,6 +1089,13 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
              X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
 
     const de265_image* colImg = &ctx->dpb[colPic];
+    if (colImg->integrity == INTEGRITY_UNAVAILABLE_REFERENCE) {
+      out_mvLXCol->x = 0;
+      out_mvLXCol->y = 0;
+      *out_availableFlagLXCol = 0;
+      return;
+    }
+
     const PredVectorInfo* mvi = get_img_mv_info(ctx,colImg,xColPb,yColPb);
     int listCol;
     int refIdxCol;

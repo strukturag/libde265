@@ -492,7 +492,7 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
  */
 void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
-  if (isRASL(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
+  if (isIRAP(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
 
     int currentPOC = ctx->img->PicOrderCntVal;
 
@@ -727,13 +727,15 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
   // 4. any picture that is not marked for reference is put into the "UnusedForReference" state
 
   for (int i=0;i<DE265_DPB_SIZE;i++)
-    if (!picInAnyList[i]) {
-      if (ctx->dpb[i].PicState != UnusedForReference) {
-        ctx->dpb[i].PicState = UnusedForReference;
-
-        cleanup_image(ctx, &ctx->dpb[i]);
+    if (!picInAnyList[i] &&        // no reference
+        &ctx->dpb[i] != ctx->img)  // not the current picture
+      {
+        if (ctx->dpb[i].PicState != UnusedForReference) {
+          ctx->dpb[i].PicState = UnusedForReference;
+          
+          cleanup_image(ctx, &ctx->dpb[i]);
+        }
       }
-    }
 }
 
 
@@ -920,6 +922,8 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
 
   if (img->sps==NULL) { return; } // might be an unavailable-reference replacement image
 
+
+  //printf("cleanup_image POC=%d\n",img->PicOrderCntVal);
 
   // mark all slice-headers locked by this image as unused
 
