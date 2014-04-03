@@ -29,7 +29,7 @@ static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
 static int nSkip_4x4;
 static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
 
-LIBDE265_API void showTransformProfile()
+LIBDE265_API void de265_printGlobalTransformProfile(void)
 {
   const int nDCT_sum = nDST_4x4 + nDCT_4x4 + nDCT_8x8 + nDCT_16x16 + nDCT_32x32 + nSkip_4x4;
   fprintf(stderr,"transform usage:\n");

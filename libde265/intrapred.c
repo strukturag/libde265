@@ -34,7 +34,7 @@ int nAvailPart;
 int nAvailAll;
 int nAvailSz[32*2+32*2+1+1];
 
-LIBDE265_API void showIntraPredictionProfile()
+LIBDE265_API void de265_printGlobalIntraPredictionProfile(void)
 {
   printf("nIntraPredictions: %d\n", nIntraPredictions);
   printf("  with no available border samples: %d\n", nAvail0);

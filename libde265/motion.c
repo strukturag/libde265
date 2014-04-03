@@ -84,7 +84,7 @@ int FullpelBipredCnt;
 int FullpelPredCnt;
 int TotalPredCnt;  // number of prediction blocks
 
-LIBDE265_API void showMotionProfile()
+LIBDE265_API void de265_printGlobalMotionProfile(void)
 {
   fprintf(stderr,"fractional pel positions:\n");
   for (int y=0;y<4;y++)

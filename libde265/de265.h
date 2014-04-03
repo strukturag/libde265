@@ -283,6 +283,10 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_par
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
 
 
+/* For debugging only, these will go away in the future! */
+LIBDE265_API void de265_printGlobalMotionProfile(void);
+LIBDE265_API void de265_printGlobalIntraPredictionProfile(void);
+LIBDE265_API void de265_printGlobalTransformProfile(void);
 
 /* --- optional library initialization --- */
 

@@ -501,9 +501,9 @@ int main(int argc, char** argv)
 
 
   if (show_profile) {
-    showMotionProfile();
-    showIntraPredictionProfile();
-    showTransformProfile();
+    de265_printGlobalMotionProfile();
+    de265_printGlobalIntraPredictionProfile();
+    de265_printGlobalTransformProfile();
   }
 
   return err==DE265_OK ? 0 : 10;
