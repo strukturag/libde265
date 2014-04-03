@@ -85,10 +85,10 @@ bool write_yuv=false;
 bool output_with_videogfx=false;
 bool logging=true;
 bool no_acceleration=false;
-const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 bool write_bytestream=false;
 const char *bytestream_filename;
+FILE *yuv_fh=NULL;
 int verbosity=0;
 
 static struct option long_options[] = {
@@ -206,7 +206,7 @@ bool output_image(const de265_image* img)
 #endif
   }
   if (write_yuv) {
-    write_picture(img);
+    de265_write_image(img, yuv_fh);
   }
 
   if ((framecnt%100)==0) {
@@ -303,8 +303,8 @@ int main(int argc, char** argv)
     case 'c': check_hash=true; break;
     case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
-    case 'o': write_yuv=true; output_filename=optarg;
-      set_output_filename(output_filename);
+    case 'o': write_yuv=true;
+      yuv_fh = fopen(optarg, "wb");
       break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
@@ -481,6 +481,9 @@ int main(int argc, char** argv)
     fclose(bytestream_fh);
   }
 
+  if (write_yuv) {
+    fclose(yuv_fh);
+  }
   de265_free_decoder(ctx);
 
   struct timeval tv_end;

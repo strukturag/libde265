@@ -30,6 +30,7 @@ extern "C" {
 
 //#define inline static __inline
 
+#include <stdio.h>
 
 #define __STDC_LIMIT_MACROS 1
 #include <stdint.h>
@@ -146,6 +147,8 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
+/* Write YUV image to file and return number of bytes written or -1 on error. */
+LIBDE265_API size_t de265_write_image(const struct de265_image*, FILE *fp);
 
 
 /* === decoder === */
