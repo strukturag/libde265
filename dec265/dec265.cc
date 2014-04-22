@@ -190,7 +190,18 @@ bool output_image(const de265_image* img)
   height = de265_get_image_height(img,0);
 
   framecnt++;
-  //printf("SHOW POC: %d / PTS: %ld\n",img->PicOrderCntVal, img->pts);
+  //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
+
+
+  if (0) {
+    const char* nal_unit_name;
+    int nuh_layer_id;
+    int nuh_temporal_id;
+    de265_get_image_NAL_header(img, NULL, &nal_unit_name, &nuh_layer_id, &nuh_temporal_id);
+
+    printf("NAL: %s layer:%d temporal:%d\n",nal_unit_name, nuh_layer_id, nuh_temporal_id);
+  }
+
 
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
@@ -355,6 +366,7 @@ int main(int argc, char** argv)
   }
 
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
@@ -426,6 +438,16 @@ int main(int argc, char** argv)
         }
 
         pos+=n;
+
+        if (0) { // fake skipping
+          if (pos>1000000) {
+            printf("RESET\n");
+            de265_reset(ctx);
+            pos=0;
+
+            fseek(fh,-200000,SEEK_CUR);
+          }
+        }
       }
 
       // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
