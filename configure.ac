@@ -74,23 +74,30 @@ AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
 #AX_EXT
 
-case $target_cpu in
-  powerpc*)
-    ;;
+AC_ARG_ENABLE(sse,
+              [AS_HELP_STRING([--disable-sse],
+                              [disable SSE optimizations (default=no)])],
+  [disable_sse=yes],
+  [disable_sse=no])
 
-  i[[3456]]86*|x86_64*|amd64*)
+if eval "test x$disable_sse != xyes"; then
+    case $target_cpu in
+      powerpc*)
+        ;;
 
-    AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
-    if test x"$ax_cv_support_sse41_ext" = x"yes"; then
-#      SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
-      AC_DEFINE(HAVE_SSE4_1,1,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
-    else
-      AC_MSG_WARN([Your compiler does not support SSE4.1 instructions, can you try another compiler?])
-    fi
-    ;;
+      i[[3456]]86*|x86_64*|amd64*)
 
-esac
+        AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
+        if test x"$ax_cv_support_sse41_ext" = x"yes"; then
+#          SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
+          AC_DEFINE(HAVE_SSE4_1,1,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
+        else
+          AC_MSG_WARN([Your compiler does not support SSE4.1 instructions, can you try another compiler?])
+        fi
+        ;;
 
+    esac
+fi
 AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse41_ext" = x"yes"])
 
 # CFLAGS+=$SIMD_FLAGS
