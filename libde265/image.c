@@ -350,7 +350,7 @@ void wait_for_completion(de265_image* img)
 
 
 
-void prepare_image_for_decoding(de265_image* img)
+void img_clear_decoding_data(de265_image* img)
 {
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
@@ -360,6 +360,9 @@ void prepare_image_for_decoding(de265_image* img)
   memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
   memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
   memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
+
+
+  // --- reset CTB progresses ---
 
   for (int i=0;i<img->ctb_info_size;i++) {
     img->ctb_progress[i].progress = CTB_PROGRESS_NONE;

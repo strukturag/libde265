@@ -248,18 +248,6 @@ void free_decoder_context(decoder_context* ctx)
 }
 
 
-void reset_decoder_context_for_new_picture(decoder_context* ctx)
-{
-}
-
-void prepare_new_picture(decoder_context* ctx)
-{
-  prepare_image_for_decoding(ctx->img);
-
-  // initialize threading tasks (TODO: move this to picture initialization)
-}
-
-
 void process_nal_hdr(decoder_context* ctx, nal_header* nal)
 {
   ctx->nal_unit_type = nal->nal_unit_type;
@@ -1193,8 +1181,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     img->sps = ctx->current_sps;
     img->pps = ctx->current_pps;
 
-    reset_decoder_context_for_new_picture(ctx);
-    prepare_new_picture(ctx);
+    img_clear_decoding_data(ctx->img);
 
 
     if (isIRAP(ctx->nal_unit_type)) {

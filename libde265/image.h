@@ -227,7 +227,13 @@ void decrease_pending_tasks(de265_image* img, int n);
 void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
 
 
-void prepare_image_for_decoding(de265_image*);
+/* Clear all CTB/CB/PB decoding data of this image.
+   All CTB's processing states are set to 'unprocessed'.
+ */
+void img_clear_decoding_data(de265_image*);
+
+
+
 
 void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
                          int x,int y, int log2BlkWidth, uint8_t flag);
