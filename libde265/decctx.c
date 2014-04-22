@@ -622,60 +622,43 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 
 
   for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    int k;
     if (!ctx->CurrDeltaPocMsbPresentFlag[i]) {
-      int k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtCurr[i]);
-
-      ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
-      if (k>=0) picInAnyList[k]=true;
-      else {
-        // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtCurr)
-        // We do not know the correct MSB
-        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                      ctx->PocLtCurr[i], true);
-        ctx->RefPicSetLtCurr[i] = concealedPicture;
-        picInAnyList[concealedPicture]=true;
-      }
+      k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtCurr[i]);
     }
     else {
-      int k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtCurr[i]);
+      k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtCurr[i]);
+    }
 
-      ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
-      if (k>=0) picInAnyList[k]=true;
-      else {
-        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                      ctx->PocLtCurr[i], true);
-        ctx->RefPicSetLtCurr[i] = concealedPicture;
-        picInAnyList[concealedPicture]=true;
-      }
+    ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+    else {
+      // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtCurr)
+      // We do not know the correct MSB
+      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                    ctx->PocLtCurr[i], true);
+      ctx->RefPicSetLtCurr[i] = concealedPicture;
+      picInAnyList[concealedPicture]=true;
     }
   }
 
-  for (int i=0;i<ctx->NumPocLtFoll;i++) {
-    if (!ctx->FollDeltaPocMsbPresentFlag[i]) {
-      int k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtFoll[i]);
 
-      ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
-      if (k>=0) picInAnyList[k]=true;
-      else {
-        // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtFoll)
-        // We do not know the correct MSB
-        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                      ctx->PocLtFoll[i], true);
-        ctx->RefPicSetLtFoll[i] = concealedPicture;
-        picInAnyList[concealedPicture]=true;
-      }
+  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    int k;
+    if (!ctx->FollDeltaPocMsbPresentFlag[i]) {
+      k = DPB_index_of_picture_with_LSB(ctx, ctx->PocLtFoll[i]);
     }
     else {
-      int k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtFoll[i]);
+      k = DPB_index_of_picture_with_POC(ctx, ctx->PocLtFoll[i]);
+    }
 
-      ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
-      if (k>=0) picInAnyList[k]=true;
-      else {
-        int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                      ctx->PocLtFoll[i], true);
-        ctx->RefPicSetLtFoll[i] = concealedPicture;
-        picInAnyList[concealedPicture]=true;
-      }
+    ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
+    if (k>=0) picInAnyList[k]=true;
+    else {
+      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                    ctx->PocLtFoll[i], true);
+      ctx->RefPicSetLtFoll[i] = concealedPicture;
+      picInAnyList[concealedPicture]=true;
     }
   }
 
