@@ -54,6 +54,7 @@ void init_decoder_context(decoder_context* ctx)
   ctx->param_sei_check_hash = false;
   ctx->param_HighestTid = 999; // unlimited
   ctx->param_conceal_stream_errors = true;
+  ctx->param_suppress_faulty_pictures = false;
 
   // --- processing ---
 
@@ -637,8 +638,12 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
       // We do not know the correct MSB
       int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
                                                                     ctx->PocLtCurr[i], true);
-      ctx->RefPicSetLtCurr[i] = concealedPicture;
+      ctx->RefPicSetLtCurr[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
+    }
+
+    if (ctx->dpb[k].integrity != INTEGRITY_CORRECT) {
+      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
@@ -655,8 +660,8 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
-      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                    ctx->PocLtFoll[i], true);
+      int concealedPicture = k = generate_unavailable_reference_picture(ctx, ctx->current_sps,
+                                                                        ctx->PocLtFoll[i], true);
       ctx->RefPicSetLtFoll[i] = concealedPicture;
       picInAnyList[concealedPicture]=true;
     }
@@ -686,10 +691,14 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     else {
       int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
                                                                     ctx->PocStCurrBefore[i], false);
-      ctx->RefPicSetStCurrBefore[i] = concealedPicture;
+      ctx->RefPicSetStCurrBefore[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
 
       //printf("  concealed: %d\n", concealedPicture);
+    }
+
+    if (ctx->dpb[k].integrity != INTEGRITY_CORRECT) {
+      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
@@ -703,10 +712,14 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     else {
       int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
                                                                     ctx->PocStCurrAfter[i], false);
-      ctx->RefPicSetStCurrAfter[i] = concealedPicture;
+      ctx->RefPicSetStCurrAfter[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
 
       //printf("  concealed: %d\n", concealedPicture);
+    }
+
+    if (ctx->dpb[k].integrity != INTEGRITY_CORRECT) {
+      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
@@ -1020,8 +1033,14 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
       loginfo(LogDPB,"new picture has output-flag=true\n");
 
-      assert(ctx->reorder_output_queue_length < DE265_DPB_SIZE);
-      ctx->reorder_output_queue[ ctx->reorder_output_queue_length++ ] = ctx->img;
+      if (ctx->img->integrity != INTEGRITY_CORRECT &&
+          ctx->param_suppress_faulty_pictures) {
+        cleanup_image(ctx, ctx->img);
+      }
+      else {
+        assert(ctx->reorder_output_queue_length < DE265_DPB_SIZE);
+        ctx->reorder_output_queue[ ctx->reorder_output_queue_length++ ] = ctx->img;
+      }
 
       loginfo(LogDPB,"push image %d into reordering queue\n", ctx->img->PicOrderCntVal);
     }
@@ -1048,6 +1067,14 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     int sublayer = ctx->current_vps->vps_max_sub_layers -1;
 
     int maxNumPicsInReorderBuffer = ctx->current_vps->layer[sublayer].vps_max_num_reorder_pics;
+
+    /*
+    printf("reorder buffer: ");
+    for (int i=0;i<ctx->reorder_output_queue_length;i++) {
+      printf("%d ",ctx->reorder_output_queue[i]->PicOrderCntVal);
+    }
+    printf("\n");
+    */
 
     if (ctx->reorder_output_queue_length > maxNumPicsInReorderBuffer) {
       flush_next_picture_from_reorder_buffer(ctx);

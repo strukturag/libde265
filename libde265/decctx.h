@@ -148,6 +148,7 @@ typedef struct decoder_context {
   bool param_sei_check_hash;
   int  param_HighestTid;
   bool param_conceal_stream_errors;
+  bool param_suppress_faulty_pictures;
 
   int  param_sps_headers_fd;
   int  param_vps_headers_fd;

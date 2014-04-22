@@ -629,6 +629,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
     bool continueDecoding;
     err = read_slice_segment_header(&reader,hdr,ctx, &continueDecoding);
     if (!continueDecoding) {
+      ctx->img->integrity = INTEGRITY_NOT_DECODED;
       return err;
     }
     else {
@@ -907,10 +908,26 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
     stop_thread_pool(&ctx->thread_pool);
   }
   
-  // TODO: maybe we can do things better here
+  // --- remove all pictures from output queue ---
 
-  free_decoder_context(ctx);
-  init_decoder_context(ctx);
+  if (1) { /* TODO: alternatively, we could just leave the pictures in the queue,
+              but then, old pictures decoded before calling 'reset' will be shown afterwards. */
+    for (int i=0;i<DE265_DPB_SIZE;i++) {
+      if (ctx->dpb[i].PicOutputFlag ||
+          ctx->dpb[i].PicState != UnusedForReference)
+        {
+          ctx->dpb[i].PicOutputFlag = false;
+          ctx->dpb[i].PicState = UnusedForReference;
+          cleanup_image(ctx, &ctx->dpb[i]);
+        }
+    }
+
+    ctx->reorder_output_queue_length=0;
+    ctx->image_output_queue_length=0;
+    ctx->first_decoded_picture = true;
+  }
+
+
   if (num_worker_threads>0) {
     // TODO: need error checking
     de265_start_worker_threads(de265ctx, num_worker_threads);
@@ -988,6 +1005,10 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum
       ctx->param_sei_check_hash = !!value;
       break;
 
+    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
+      ctx->param_suppress_faulty_pictures = !!value;
+      break;
+
     default:
       assert(false);
       break;
@@ -1038,7 +1059,9 @@ LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum 
     {
     case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
       return ctx->param_sei_check_hash;
-      break;
+
+    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
+      return ctx->param_suppress_faulty_pictures;
 
     default:
       assert(false);
