@@ -147,6 +147,15 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
 
+/* Get NAL-header information of this frame. You can pass in NULL pointers if you
+   do not need this piece of information.
+ */
+LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
+                                             int* nal_unit_type,
+                                             const char** nal_unit_name, // textual description of 'nal_unit_type'
+                                             int* nuh_layer_id,
+                                             int* nuh_temporal_id);
+
 
 /* === decoder === */
 

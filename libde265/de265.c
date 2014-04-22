@@ -645,6 +645,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           return err;
         }
 
+      ctx->img->nal_header = nal_hdr;
+
       skip_bits(&reader,1); // TODO: why?
       prepare_for_CABAC(&reader);
 
@@ -1145,3 +1147,16 @@ LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
 {
   return img->user_data;
 }
+
+LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
+                                             int* nal_unit_type,
+                                             const char** nal_unit_name,
+                                             int* nuh_layer_id,
+                                             int* nuh_temporal_id)
+{
+  if (nal_unit_type)   *nal_unit_type   = img->nal_header.nal_unit_type;
+  if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_header.nal_unit_type);
+  if (nuh_layer_id)    *nuh_layer_id    = img->nal_header.nuh_layer_id;
+  if (nuh_temporal_id) *nuh_temporal_id = img->nal_header.nuh_temporal_id;
+}
+

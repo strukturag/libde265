@@ -35,6 +35,7 @@
 #include "libde265/motion.h"
 #include "libde265/threads.h"
 #include "libde265/slice.h"
+#include "libde265/nal.h"
 
 
 enum PictureState {
@@ -195,6 +196,8 @@ typedef struct de265_image {
                         and changed on decoding errors.
                       */
   uint8_t sei_hash_check_result;
+
+  nal_header nal_header;
 
   // --- multi core ---
 
