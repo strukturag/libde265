@@ -480,10 +480,9 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 
     push_current_picture_to_output_queue(ctx);
 
-    while (ctx->reorder_output_queue_length>0) {
-      flush_next_picture_from_reorder_buffer(ctx);
-      if (more) { *more=1; }
-    }
+    bool images_in_reorder_buffer;
+    images_in_reorder_buffer = flush_reorder_buffer(&ctx->dpb);
+    if (more && images_in_reorder_buffer) { *more=1; }
 
     return DE265_OK;
   }
@@ -502,7 +501,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   // when there are no free image buffers in the DPB, pause decoding
   // -> output stalled
 
-  if (!has_free_dpb_picture(ctx, false)) {
+  if (!has_free_dpb_picture(&ctx->dpb, false)) {
     if (more) *more = 1;
     return DE265_ERROR_IMAGE_BUFFER_FULL;
   }
@@ -914,18 +913,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
   if (1) { /* TODO: alternatively, we could just leave the pictures in the queue,
               but then, old pictures decoded before calling 'reset' will be shown afterwards. */
-    for (int i=0;i<DE265_DPB_SIZE;i++) {
-      if (ctx->dpb[i].PicOutputFlag ||
-          ctx->dpb[i].PicState != UnusedForReference)
-        {
-          ctx->dpb[i].PicOutputFlag = false;
-          ctx->dpb[i].PicState = UnusedForReference;
-          cleanup_image(ctx, &ctx->dpb[i]);
-        }
-    }
-
-    ctx->reorder_output_queue_length=0;
-    ctx->image_output_queue_length=0;
+    dpb_clear_images(&ctx->dpb, ctx);
     ctx->first_decoded_picture = true;
   }
 
@@ -952,7 +940,7 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->image_output_queue[0];
+  return dpb_get_next_picture_in_output_queue(&ctx->dpb);
 }
 
 
@@ -962,31 +950,18 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   // no active output picture -> ignore release request
 
-  if (ctx->image_output_queue_length==0) { return; }
+  if (dpb_num_pictures_in_output_queue(&ctx->dpb)==0) { return; }
 
+  de265_image* next_image = dpb_get_next_picture_in_output_queue(&ctx->dpb);
 
-  loginfo(LogDPB, "release DPB with POC=%d\n",ctx->image_output_queue[0]->PicOrderCntVal);
+  loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
 
-  ctx->image_output_queue[0]->PicOutputFlag = false;
-  cleanup_image(ctx, ctx->image_output_queue[0]);
+  next_image->PicOutputFlag = false;
+  cleanup_image(ctx, next_image);
 
   // pop output queue
 
-  for (int i=1;i<ctx->image_output_queue_length;i++)
-    {
-      ctx->image_output_queue[i-1] = ctx->image_output_queue[i];
-    }
-
-  ctx->image_output_queue_length--;
-
-  ctx->image_output_queue[ ctx->image_output_queue_length ] = NULL;
-
-
-  loginfo(LogDPB, "DPB output queue: ");
-  for (int i=0;i<ctx->image_output_queue_length;i++) {
-    loginfo(LogDPB, "*%d ", ctx->image_output_queue[i]->PicOrderCntVal);
-  }
-  loginfo(LogDPB,"*\n");
+  dpb_pop_next_picture_in_output_queue(&ctx->dpb);
 }
 
 

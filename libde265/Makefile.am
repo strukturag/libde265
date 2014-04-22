@@ -15,6 +15,8 @@ libde265_la_SOURCES = \
   de265.c \
   deblock.c \
   decctx.c \
+  dpb.c \
+  dpb.h \
   image.c \
   intrapred.c \
   md5.c \

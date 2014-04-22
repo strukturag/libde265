@@ -29,6 +29,7 @@
 #include "libde265/image.h"
 #include "libde265/motion.h"
 #include "libde265/de265.h"
+#include "libde265/dpb.h"
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
 
@@ -39,9 +40,9 @@
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
 // TODO: check required value
-#define DE265_DPB_OUTPUT_IMAGES  20
-#define DE265_DPB_RESILIENCE_IMAGES 5
-#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
+//#define DE265_DPB_OUTPUT_IMAGES  20
+//#define DE265_DPB_RESILIENCE_IMAGES 5
+//#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
 #define DE265_NAL_FREE_LIST_SIZE 16
 #define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
@@ -209,6 +210,8 @@ typedef struct decoder_context {
 
   // --- decoded picture buffer ---
 
+  decoded_picture_buffer dpb;
+  /*
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
   de265_image* reorder_output_queue[DE265_DPB_SIZE];
@@ -216,6 +219,7 @@ typedef struct decoder_context {
 
   de265_image* image_output_queue[DE265_DPB_SIZE];
   int          image_output_queue_length;
+  */
 
   de265_image* last_decoded_image;
 
@@ -298,8 +302,8 @@ NAL_unit* pop_from_NAL_queue(decoder_context*);
 void      push_to_NAL_queue(decoder_context*,NAL_unit*);
 
 
-void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
-int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps);
+//void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
+//int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps);
 
 seq_parameter_set* get_sps(decoder_context* ctx, int id);
 
@@ -341,7 +345,7 @@ bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
 
-bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority);
+//bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority);
 void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
