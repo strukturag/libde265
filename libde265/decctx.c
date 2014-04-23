@@ -667,8 +667,10 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
           {
             if (dpbimg->PicState != UnusedForReference) {
               dpbimg->PicState = UnusedForReference;
-              
-              cleanup_image(ctx, dpbimg);
+
+              if (dpbimg->PicOutputFlag==false) {
+                cleanup_image(ctx, dpbimg);
+              }
             }
           }
       }
