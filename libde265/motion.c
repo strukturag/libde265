@@ -1097,7 +1097,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       return;
     }
 
-    const PredVectorInfo* mvi = get_img_mv_info(ctx,colImg,xColPb,yColPb);
+    const PredVectorInfo* mvi = get_img_mv_info(colImg,xColPb,yColPb);
     int listCol;
     int refIdxCol;
     MotionVector mvCol;

@@ -333,8 +333,7 @@ slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctb
 
 
 const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y);
-const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
-                                      const de265_image* img, int x,int y);
+const PredVectorInfo* get_img_mv_info(const de265_image* img, int x,int y);
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
 // TODO: move to some utility file
@@ -360,5 +359,6 @@ void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t val
 void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
 void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
 void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
+void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
 
 #endif

@@ -1135,11 +1135,10 @@ const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
 }
 
 
-const PredVectorInfo* get_img_mv_info(const decoder_context* ctx,
-                                      const de265_image* img, int x,int y)
+const PredVectorInfo* get_img_mv_info(const de265_image* img, int x,int y)
 {
   int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
-  int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
+  int idx = (x>>log2PuSize) + (y>>log2PuSize)*img->pb_info_stride;
 
   //int rootIdx = img->pb_rootIdx[idx];
   //return &img->pb_info[rootIdx].mvi;
@@ -1464,6 +1463,34 @@ void draw_QuantPY_block(const de265_image* srcimg,uint8_t* img,int stride,
 }
 
 
+void draw_line(uint8_t* img,int stride,uint32_t color,int pixelSize,
+               int width,int height,
+               int x0,int y0,int x1,int y1)
+{
+  if (x1==x0 && y1==y0) {
+    set_pixel(img,x0,y0,stride,color,pixelSize);
+  }
+  else if (abs(x1-x0) < abs(y1-y0)) {
+    for (int y=y0;y<=y1;y += Sign(y1-y0))
+      {
+        int x = (y-y0)*(x1-x0)/(y1-y0) + x0;
+
+        if (x>=0 && x<width && y>=0 && y<height)
+         set_pixel(img,x,y,stride,color,pixelSize);
+      }
+  }
+  else {
+    for (int x=x0;x<=x1;x += Sign(x1-x0))
+      {
+        int y = (x-x0)*(y1-y0)/(x1-x0) + y0;
+
+        if (x>=0 && x<width && y>=0 && y<height)
+          set_pixel(img,x,y,stride,color,pixelSize);
+      }
+  }
+}
+
+
 void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
                    int x0,int y0, int w,int h, enum DrawMode what, uint32_t color, int pixelSize)
 {
@@ -1478,7 +1505,17 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
-    assert(false); // TODO
+    const PredVectorInfo* mvi = get_img_mv_info(srcimg,x0,y0);
+    int x = x0+w/2;
+    int y = y0+h/2;
+    if (mvi->predFlag[0]) {
+      draw_line(img,stride,0xFF0000,pixelSize,srcimg->width,srcimg->height,
+                x,y,x+mvi->mv[0].x,y+mvi->mv[0].y);
+    }
+    if (mvi->predFlag[1]) {
+      draw_line(img,stride,0x00FF00,pixelSize,srcimg->width,srcimg->height,
+                x,y,x+mvi->mv[1].x,y+mvi->mv[1].y);
+    }
   }
 }
 
@@ -1619,6 +1656,11 @@ void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pi
 void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   draw_tree_grid(img,dst,stride,0,pixelSize, QuantP_Y);
+}
+
+void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+{
+  draw_tree_grid(img,dst,stride,0,pixelSize, PBMotionVectors);
 }
 
 

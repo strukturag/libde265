@@ -246,7 +246,7 @@ void VideoDecoder::show_frame(const de265_image* img)
 
   if (mShowMotionVec)
     {
-      //draw_CB_grid(img, qimg->bits(), bpl,0x00FFFFFF,4);
+      draw_Motion(img, qimg->bits(), bpl,4);
     }
 
   emit displayImage(qimg);
