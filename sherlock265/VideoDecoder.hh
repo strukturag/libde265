@@ -50,6 +50,8 @@ public slots:
   void showPBPartitioning(bool flag);
   void showIntraPredMode(bool flag);
   void showPBPredMode(bool flag);
+  void showQuantPY(bool flag);
+  void showMotionVec(bool flag);
   void showDecodedImage(bool flag);
 
 signals:
@@ -73,11 +75,13 @@ private:
 
 
   bool   mShowDecodedImage;
+  bool   mShowQuantPY;
   bool   mCBShowPartitioning;
   bool   mTBShowPartitioning;
   bool   mPBShowPartitioning;
   bool   mShowIntraPredMode;
   bool   mShowPBPredMode;
+  bool   mShowMotionVec;
 
   void decoder_loop();
 

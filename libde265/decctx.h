@@ -359,5 +359,6 @@ void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t val
 void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
 void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
 void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
+void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
 
 #endif

@@ -41,6 +41,7 @@ VideoDecoder::VideoDecoder()
     mPBShowPartitioning(false),
     mShowPBPredMode(false),
     mShowIntraPredMode(false),
+    mShowQuantPY(false),
     mFH(NULL)
 {
 }
@@ -213,6 +214,11 @@ void VideoDecoder::show_frame(const de265_image* img)
 
   // --- overlay coding-mode visualization ---
 
+  if (mShowQuantPY)
+    {
+      draw_QuantPY(img, qimg->bits(),bpl,4);
+    }
+
   if (mShowPBPredMode)
     {
       draw_PB_pred_modes(img, qimg->bits(), bpl, 4);
@@ -238,7 +244,10 @@ void VideoDecoder::show_frame(const de265_image* img)
       draw_CB_grid(img, qimg->bits(), bpl,0x00FFFFFF,4);
     }
 
-  //draw_QuantPY(img, qimg->bits(),bpl,4);
+  if (mShowMotionVec)
+    {
+      //draw_CB_grid(img, qimg->bits(), bpl,0x00FFFFFF,4);
+    }
 
   emit displayImage(qimg);
   mNextBuffer = 1-mNextBuffer;
@@ -282,6 +291,22 @@ void VideoDecoder::showIntraPredMode(bool flag)
 void VideoDecoder::showPBPredMode(bool flag)
 {
   mShowPBPredMode=flag;
+
+  const de265_image* img = de265_peek_next_picture(ctx);
+  if (img != NULL) { show_frame(img); }
+}
+
+void VideoDecoder::showQuantPY(bool flag)
+{
+  mShowQuantPY=flag;
+
+  const de265_image* img = de265_peek_next_picture(ctx);
+  if (img != NULL) { show_frame(img); }
+}
+
+void VideoDecoder::showMotionVec(bool flag)
+{
+  mShowMotionVec=flag;
 
   const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }

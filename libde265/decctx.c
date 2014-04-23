@@ -1429,16 +1429,38 @@ void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint32_t col
       }
 }
 
+void fill_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint32_t color, int pixelSize)
+{
+  for (int y=0;y<h;y++)
+    for (int x=0;x<w;x++)
+      {
+        int xp = x0+x;
+        int yp = y0+y;
+
+        for (int i=0;i<pixelSize;i++) {
+          uint8_t col = (color>>(i*8)) & 0xFF;
+          img[yp*stride+xp*pixelSize + i] = col;
+        }
+      }
+}
+
 
 void draw_QuantPY_block(const de265_image* srcimg,uint8_t* img,int stride,
                         int x0,int y0, int w,int h, int pixelSize)
 {
-  /*
-  int skipFlag = get_cu_skip_flag(srcimg->sps, srcimg, x0,y0);
-  if (skipFlag) {
-    tint_rect(img,stride, x0,y0,w,h, color, pixelSize);
-  }
-  */
+  int q = get_QPY(srcimg,srcimg->sps, x0,y0);
+
+  const int MIN_DRAW_Q = 20;
+  const int MAX_DRAW_Q = 40;
+
+  if (q<MIN_DRAW_Q) q=MIN_DRAW_Q;
+  if (q>MAX_DRAW_Q) q=MAX_DRAW_Q;
+
+  float f = ((float)q-MIN_DRAW_Q)/(MAX_DRAW_Q-MIN_DRAW_Q);
+  uint32_t col = 0xFF * f;
+  col = col | (col<<8) | (col<<16);
+
+  fill_rect(img,stride, x0,y0,w,h, col, pixelSize);
 }
 
 
