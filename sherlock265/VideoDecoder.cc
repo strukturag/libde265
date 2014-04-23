@@ -159,6 +159,9 @@ void VideoDecoder::show_frame(const de265_image* img)
 {
   Image<Pixel> debugvisu;
 
+
+  // --- convert to RGB (or generate a black image if video image is disabled) ---
+
   if (mShowDecodedImage) {
     Image<Pixel> visu;
     visu.Create(img->width, img->height, Colorspace_YUV, Chroma_420);
@@ -181,50 +184,6 @@ void VideoDecoder::show_frame(const de265_image* img)
   else {
     debugvisu.Create(img->width,img->height, Colorspace_RGB);
     Clear(debugvisu, Color<Pixel>(0,0,0));
-  }
-
-
-  const decoder_context* cx = (const decoder_context*)ctx;
-
-  if (1) {
-    if (mShowPBPredMode)
-      {
-        /* TODO
-        draw_PB_pred_modes(img,
-                           debugvisu.AskFrameR()[0],
-                           debugvisu.AskFrameG()[0],
-                           debugvisu.AskFrameB()[0],
-                           debugvisu.AskBitmapB().AskStride());
-        */
-      }
-
-    if (mShowIntraPredMode)
-      {
-        draw_intra_pred_modes(img,debugvisu.AskFrameR()[0],debugvisu.AskBitmapR().AskStride(),140,1);
-        draw_intra_pred_modes(img,debugvisu.AskFrameG()[0],debugvisu.AskBitmapG().AskStride(),140,1);
-        draw_intra_pred_modes(img,debugvisu.AskFrameB()[0],debugvisu.AskBitmapB().AskStride(),255,1);
-      }
-
-    if (mTBShowPartitioning)
-      {
-        draw_TB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255,1);
-        draw_TB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(), 80,1);
-        draw_TB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0,1);
-      }
-
-    if (mPBShowPartitioning)
-      {
-        draw_PB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),  0,1);
-        draw_PB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),200,1);
-        draw_PB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0,1);
-      }
-
-    if (mCBShowPartitioning)
-      {
-        draw_CB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255,1);
-        draw_CB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),255,1);
-        draw_CB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),255,1);
-      }
   }
 
 
@@ -251,20 +210,35 @@ void VideoDecoder::show_frame(const de265_image* img)
       ptr += bpl;
     }
 
-  /*
-  if (0) {
-    if (mTBShowPartitioning)
-      {
-        draw_TB_grid(img, qimg->bits(), bpl, 0xff9000);
-      }
 
-    if (mCBShowPartitioning)
-      {
-        draw_CB_grid(img, qimg->bits(), bpl, 0xffffff);
-      }
-  }
-  */
+  // --- overlay coding-mode visualization ---
 
+  if (mShowPBPredMode)
+    {
+      draw_PB_pred_modes(img, qimg->bits(), bpl, 4);
+    }
+
+  if (mShowIntraPredMode)
+    {
+      draw_intra_pred_modes(img, qimg->bits(), bpl, 0x009090ff,4);
+    }
+
+  if (mTBShowPartitioning)
+    {
+      draw_TB_grid(img, qimg->bits(), bpl, 0x00ff6000,4);
+    }
+
+  if (mPBShowPartitioning)
+    {
+      draw_PB_grid(img, qimg->bits(), bpl, 0x00e000, 4);
+    }
+
+  if (mCBShowPartitioning)
+    {
+      draw_CB_grid(img, qimg->bits(), bpl,0x00FFFFFF,4);
+    }
+
+  //draw_QuantPY(img, qimg->bits(),bpl,4);
 
   emit displayImage(qimg);
   mNextBuffer = 1-mNextBuffer;

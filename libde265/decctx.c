@@ -1291,7 +1291,8 @@ void write_picture_to_file(const de265_image* img, const char* filename)
 void set_pixel(uint8_t* img, int x,int y, int stride, uint32_t color, int pixelSize)
 {
   for (int i=0;i<pixelSize;i++) {
-    uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
+    //uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
+    uint8_t col = (color>>(i*8)) & 0xFF;
     img[y*stride + x*pixelSize + i] = col;
   }
 }
@@ -1408,7 +1409,8 @@ enum DrawMode {
   Partitioning_PB,
   IntraPredMode,
   PBPredMode,
-  PBMotionVectors
+  PBMotionVectors,
+  QuantP_Y
 };
 
 
@@ -1421,10 +1423,22 @@ void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint32_t col
         int yp = y0+y;
 
         for (int i=0;i<pixelSize;i++) {
-          uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
+          uint8_t col = (color>>(i*8)) & 0xFF;
           img[yp*stride+xp*pixelSize + i] = (img[yp*stride+xp*pixelSize + i] + col)/2;
         }
       }
+}
+
+
+void draw_QuantPY_block(const de265_image* srcimg,uint8_t* img,int stride,
+                        int x0,int y0, int w,int h, int pixelSize)
+{
+  /*
+  int skipFlag = get_cu_skip_flag(srcimg->sps, srcimg, x0,y0);
+  if (skipFlag) {
+    tint_rect(img,stride, x0,y0,w,h, color, pixelSize);
+  }
+  */
 }
 
 
@@ -1464,6 +1478,7 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
         int xb = x0*minCbSize;
         int yb = y0*minCbSize;
 
+        int CbSize = 1<<log2CbSize;
 
         if (what == Partitioning_TB) {
           drawTBgrid(srcimg,img,stride,x0*minCbSize,y0*minCbSize, color,pixelSize, log2CbSize, 0);
@@ -1471,11 +1486,16 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
         else if (what == Partitioning_CB) {
           draw_block_boundary(srcimg,img,stride,xb,yb, 1<<log2CbSize,1<<log2CbSize, color,pixelSize);
         }
+        else if (what == PBPredMode) {
+          draw_PB_block(srcimg,img,stride,xb,yb,CbSize,CbSize, what,color,pixelSize);
+        }
+        else if (what == QuantP_Y) {
+          draw_QuantPY_block(srcimg,img,stride,xb,yb,CbSize,CbSize,pixelSize);
+        }
         else if (what == Partitioning_PB ||
-                 what == PBPredMode) {
+                 what == PBMotionVectors) {
           enum PartMode partMode = get_PartMode(srcimg,sps,xb,yb);
 
-          int CbSize = 1<<log2CbSize;
           int HalfCbSize = (1<<(log2CbSize-1));
 
           switch (partMode) {
@@ -1572,6 +1592,11 @@ void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uin
 void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   draw_tree_grid(img,dst,stride,0,pixelSize, PBPredMode);
+}
+
+void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+{
+  draw_tree_grid(img,dst,stride,0,pixelSize, QuantP_Y);
 }
 
 
