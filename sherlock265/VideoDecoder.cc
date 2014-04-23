@@ -93,43 +93,30 @@ void VideoDecoder::decoder_loop()
   for (;;)
     {
       if (mPlayingVideo) {
+        img = NULL;
         de265_release_next_picture(ctx);
 
-        const de265_image* img = de265_peek_next_picture(ctx);
+        img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
-            /*
-            int err;
-            err = read_nal_unit(&inputctx.ctx, &buf);
-            if (err!=DE265_OK)
+            int more=1;
+            de265_error err = de265_decode(ctx, &more);
+            if (more && err == DE265_OK) {
+              // try again to get picture
+
+              img = de265_peek_next_picture(ctx);
+            }
+            else if (more && err == DE265_ERROR_WAITING_FOR_INPUT_DATA) {
+              uint8_t buf[4096];
+              int buf_size = fread(buf,1,sizeof(buf),mFH);
+              int err = de265_push_data(ctx,buf,buf_size ,0,0);
+            }
+            else if (!more)
               {
                 mVideoEnded=true;
                 mPlayingVideo=false; // TODO: send signal back
                 break;
               }
-            
-            err = de265_decode_NAL(&ctx, &buf);
-            if (err!=DE265_OK)
-              {
-                mVideoEnded=true;
-                mPlayingVideo=false; // TODO: send signal back
-                break;
-              }
-            */
-
-            uint8_t buf[4096];
-            int buf_size = fread(buf,1,sizeof(buf),mFH);
-            int err = de265_decode_data(ctx,buf,buf_size);
-            if (err!=DE265_OK)
-              {
-                mVideoEnded=true;
-                mPlayingVideo=false; // TODO: send signal back
-                break;
-              }
-
-            // try again to get picture
-
-            img = de265_peek_next_picture(ctx);
           }
 
 
@@ -259,7 +246,6 @@ void VideoDecoder::showCBPartitioning(bool flag)
 {
   mCBShowPartitioning=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -268,7 +254,6 @@ void VideoDecoder::showTBPartitioning(bool flag)
 {
   mTBShowPartitioning=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -276,7 +261,6 @@ void VideoDecoder::showPBPartitioning(bool flag)
 {
   mPBShowPartitioning=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -284,7 +268,6 @@ void VideoDecoder::showIntraPredMode(bool flag)
 {
   mShowIntraPredMode=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -292,7 +275,6 @@ void VideoDecoder::showPBPredMode(bool flag)
 {
   mShowPBPredMode=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -300,7 +282,6 @@ void VideoDecoder::showQuantPY(bool flag)
 {
   mShowQuantPY=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -308,7 +289,6 @@ void VideoDecoder::showMotionVec(bool flag)
 {
   mShowMotionVec=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 
@@ -316,7 +296,6 @@ void VideoDecoder::showDecodedImage(bool flag)
 {
   mShowDecodedImage=flag;
 
-  const de265_image* img = de265_peek_next_picture(ctx);
   if (img != NULL) { show_frame(img); }
 }
 

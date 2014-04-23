@@ -64,6 +64,7 @@ private:
   //input_context_FILE inputctx;
   //rbsp_buffer buf;
   de265_decoder_context* ctx;
+  const de265_image* img;
 
   QImage mImgBuffers[2];
   int    mNextBuffer;
