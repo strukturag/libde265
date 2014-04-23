@@ -450,7 +450,9 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
           img->PicOrderCntVal < currentPOC) {
         img->PicState = UnusedForReference;
 
-        cleanup_image(ctx, img);
+        if (img->PicOutputFlag==false) {
+          cleanup_image(ctx, img);
+        }
       }
     }
   }
@@ -847,6 +849,8 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
       
       shdr->inUse = false;
     }
+
+  //printf("cleanup %p %s\n",img,why);
 
   img->sps = NULL; // this may not be valid anymore in the future
   img->pps = NULL; // this may not be valid anymore in the future

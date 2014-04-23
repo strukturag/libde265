@@ -93,9 +93,13 @@ void VideoDecoder::decoder_loop()
   for (;;)
     {
       if (mPlayingVideo) {
-        img = NULL;
-        de265_release_next_picture(ctx);
+        mutex.lock();
 
+        if (img) {
+          img = NULL;
+          de265_release_next_picture(ctx);
+        }
+        
         img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
@@ -131,6 +135,7 @@ void VideoDecoder::decoder_loop()
           }
         }
 
+        mutex.unlock();
 
         // process events
 
@@ -246,7 +251,9 @@ void VideoDecoder::showCBPartitioning(bool flag)
 {
   mCBShowPartitioning=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 
@@ -254,49 +261,63 @@ void VideoDecoder::showTBPartitioning(bool flag)
 {
   mTBShowPartitioning=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showPBPartitioning(bool flag)
 {
   mPBShowPartitioning=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showIntraPredMode(bool flag)
 {
   mShowIntraPredMode=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showPBPredMode(bool flag)
 {
   mShowPBPredMode=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showQuantPY(bool flag)
 {
   mShowQuantPY=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showMotionVec(bool flag)
 {
   mShowMotionVec=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 void VideoDecoder::showDecodedImage(bool flag)
 {
   mShowDecodedImage=flag;
 
+  mutex.lock();
   if (img != NULL) { show_frame(img); }
+  mutex.unlock();
 }
 
 

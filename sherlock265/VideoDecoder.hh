@@ -66,6 +66,8 @@ private:
   de265_decoder_context* ctx;
   const de265_image* img;
 
+  QMutex mutex;
+
   QImage mImgBuffers[2];
   int    mNextBuffer;
   int    mFrameCount;
