@@ -255,7 +255,7 @@ int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* s
 
 void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
 int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
-int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
+int  get_log2CbSize_cbUnits(const de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
 
 
 void          set_PartMode(      de265_image*, const seq_parameter_set*, int x,int y, enum PartMode);

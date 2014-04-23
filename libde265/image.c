@@ -474,7 +474,7 @@ void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int 
 }
 
 // coordinates in CB units
-int  get_log2CbSize_cbUnits(de265_image* img, const seq_parameter_set* sps, int x0, int y0)
+int  get_log2CbSize_cbUnits(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
 {
   return (enum PredMode)img->cb_info[ x0 + y0*sps->PicWidthInMinCbsY ].log2CbSize;
 }

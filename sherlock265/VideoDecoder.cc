@@ -189,7 +189,7 @@ void VideoDecoder::show_frame(const de265_image* img)
   if (1) {
     if (mShowPBPredMode)
       {
-        draw_PB_pred_modes(cx,
+        draw_PB_pred_modes(img,
                            debugvisu.AskFrameR()[0],
                            debugvisu.AskFrameG()[0],
                            debugvisu.AskFrameB()[0],
@@ -198,30 +198,30 @@ void VideoDecoder::show_frame(const de265_image* img)
 
     if (mShowIntraPredMode)
       {
-        draw_intra_pred_modes(cx,debugvisu.AskFrameR()[0],debugvisu.AskBitmapR().AskStride(),140);
-        draw_intra_pred_modes(cx,debugvisu.AskFrameG()[0],debugvisu.AskBitmapG().AskStride(),140);
-        draw_intra_pred_modes(cx,debugvisu.AskFrameB()[0],debugvisu.AskBitmapB().AskStride(),255);
+        draw_intra_pred_modes(img,debugvisu.AskFrameR()[0],debugvisu.AskBitmapR().AskStride(),140);
+        draw_intra_pred_modes(img,debugvisu.AskFrameG()[0],debugvisu.AskBitmapG().AskStride(),140);
+        draw_intra_pred_modes(img,debugvisu.AskFrameB()[0],debugvisu.AskBitmapB().AskStride(),255);
       }
 
     if (mTBShowPartitioning)
       {
-        draw_TB_grid(cx, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255);
-        draw_TB_grid(cx, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(), 80);
-        draw_TB_grid(cx, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0);
+        draw_TB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255);
+        draw_TB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(), 80);
+        draw_TB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0);
       }
 
     if (mPBShowPartitioning)
       {
-        draw_PB_grid(cx, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),  0);
-        draw_PB_grid(cx, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),200);
-        draw_PB_grid(cx, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0);
+        draw_PB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),  0);
+        draw_PB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),200);
+        draw_PB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),  0);
       }
 
     if (mCBShowPartitioning)
       {
-        draw_CB_grid(cx, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255);
-        draw_CB_grid(cx, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),255);
-        draw_CB_grid(cx, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),255);
+        draw_CB_grid(img, debugvisu.AskFrameR()[0], debugvisu.AskBitmapR().AskStride(),255);
+        draw_CB_grid(img, debugvisu.AskFrameG()[0], debugvisu.AskBitmapG().AskStride(),255);
+        draw_CB_grid(img, debugvisu.AskFrameB()[0], debugvisu.AskBitmapB().AskStride(),255);
       }
   }
 
@@ -253,12 +253,12 @@ void VideoDecoder::show_frame(const de265_image* img)
   if (0) {
     if (mTBShowPartitioning)
       {
-        draw_TB_grid(cx, qimg->bits(), bpl, 0xff9000);
+        draw_TB_grid(img, qimg->bits(), bpl, 0xff9000);
       }
 
     if (mCBShowPartitioning)
       {
-        draw_CB_grid(cx, qimg->bits(), bpl, 0xffffff);
+        draw_CB_grid(img, qimg->bits(), bpl, 0xffffff);
       }
   }
 

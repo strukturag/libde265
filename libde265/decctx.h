@@ -354,10 +354,10 @@ LIBDE265_API void set_output_filename(const char* filename);
 LIBDE265_API void write_picture(const de265_image* img);
 void write_picture_to_file(const de265_image* img, const char* filename);
 
-void draw_CB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
-void draw_TB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
-void draw_PB_grid(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
-void draw_PB_pred_modes(const decoder_context* ctx, uint8_t* r, uint8_t* g, uint8_t* b, int stride);
-void draw_intra_pred_modes(const decoder_context* ctx, uint8_t* img, int stride, uint8_t value);
+void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value);
+void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value);
+void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value);
+void draw_PB_pred_modes(const de265_image* img, uint8_t* r, uint8_t* g, uint8_t* b, int stride);
+void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint8_t value);
 
 #endif
