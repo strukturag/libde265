@@ -25,6 +25,7 @@ OBJS=\
 	de265.obj \
 	deblock.obj \
 	decctx.obj \
+	dpb.obj \
 	fallback-dct.obj \
 	fallback-motion.obj \
 	fallback.obj \
