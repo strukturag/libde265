@@ -233,50 +233,42 @@ void img_clear_decoding_data(de265_image*);
 
 
 
-uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y);
+uint8_t get_cu_skip_flag(const de265_image* img, int x,int y);
 
-void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
-                   int x,int y, int log2BlkWidth, enum PredMode mode);
-enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+void set_pred_mode(de265_image* img, int x,int y, int log2BlkWidth, enum PredMode mode);
+enum PredMode get_pred_mode(const de265_image* img, int x,int y);
 
-void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
-                  int x,int y, int log2BlkWidth);
-int get_pcm_flag(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+void set_pcm_flag(de265_image* img, int x,int y, int log2BlkWidth);
+int get_pcm_flag(const de265_image* img, int x,int y);
 
 
-void set_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps,
-                              int x,int y, int log2BlkWidth);
-int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+void set_cu_transquant_bypass(const de265_image* img, int x,int y, int log2BlkWidth);
+int  get_cu_transquant_bypass(const de265_image* img, int x,int y);
 
 
-void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize);
-int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0);
-int  get_log2CbSize_cbUnits(const de265_image* img, const seq_parameter_set* sps, int xCb, int yCb);
+void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize);
+int  get_log2CbSize(const de265_image* img, int x0, int y0);
+int  get_log2CbSize_cbUnits(const de265_image* img, int xCb, int yCb);
 
 
-void          set_PartMode(      de265_image*, const seq_parameter_set*, int x,int y, enum PartMode);
-enum PartMode get_PartMode(const de265_image*, const seq_parameter_set*, int x,int y);
+void          set_PartMode(      de265_image*, int x,int y, enum PartMode);
+enum PartMode get_PartMode(const de265_image*, int x,int y);
 
 
-void set_ctDepth(de265_image*, const seq_parameter_set*, int x,int y, int log2BlkWidth, int depth);
-int get_ctDepth(const de265_image*, const seq_parameter_set*, int x,int y);
+void set_ctDepth(de265_image*, int x,int y, int log2BlkWidth, int depth);
+int get_ctDepth(const de265_image*, int x,int y);
 
-void set_QPY(de265_image*, const seq_parameter_set*,
-             const pic_parameter_set* pps, int x,int y, int log2BlkWidth, int QP_Y);
-int  get_QPY(const de265_image*, const seq_parameter_set*,int x0,int y0);
+void set_QPY(de265_image*, int x,int y, int log2BlkWidth, int QP_Y);
+int  get_QPY(const de265_image*, int x0,int y0);
 
-void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
-                              int x0,int y0,int trafoDepth);
-int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
-                              int x0,int y0,int trafoDepth);
+void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth);
+int  get_split_transform_flag(const de265_image* img, int x0,int y0,int trafoDepth);
 
-void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
-                             int x,int y, int log2TrafoSize);
+void set_nonzero_coefficient(de265_image* img, int x,int y, int log2TrafoSize);
 
-int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
-                             int x,int y);
+int  get_nonzero_coefficient(const de265_image* img, int x,int y);
 
-enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y);
+enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y);
 
 
 void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags);
@@ -287,19 +279,16 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
 
 
 // address of first CTB in slice
-void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
-                     int ctbX, int ctbY, int SliceAddrRS);
-int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY);
-int  get_SliceAddrRS_atCtbRS(const de265_image* img, const seq_parameter_set* sps, int ctbRS);
+void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS);
+int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY);
+int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS);
 
 
-void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
-                          int x, int y, int SliceHeaderIndex);
-int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y);
+void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex);
+int  get_SliceHeaderIndex(const de265_image* img, int x, int y);
 
-void set_sao_info(de265_image* img,const seq_parameter_set* sps,
-                  int ctbX,int ctbY,const sao_info* saoinfo);
-const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY);
+void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo);
+const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY);
 
 
 // --- value logging ---

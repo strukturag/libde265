@@ -35,7 +35,7 @@ void markTransformBlockBoundary(decoder_context* ctx, int x0,int y0,
   logtrace(LogDeblock,"markTransformBlockBoundary(%d,%d, %d,%d, %d,%d)\n",x0,y0,
            log2TrafoSize,trafoDepth, filterLeftCbEdge,filterTopCbEdge);
 
-  int split_transform = get_split_transform_flag(ctx->img,ctx->current_sps,x0,y0,trafoDepth);
+  int split_transform = get_split_transform_flag(ctx->img,x0,y0,trafoDepth);
   if (split_transform) {
     int x1 = x0 + ((1<<log2TrafoSize)>>1);
     int y1 = y0 + ((1<<log2TrafoSize)>>1);
@@ -70,7 +70,7 @@ void markPredictionBlockBoundary(decoder_context* ctx, int x0,int y0,
   logtrace(LogDeblock,"markPredictionBlockBoundary(%d,%d, %d, %d,%d)\n",x0,y0,
            log2CbSize, filterLeftCbEdge,filterTopCbEdge);
 
-  enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,x0,y0);
+  enum PartMode partMode = get_PartMode(ctx->img,x0,y0);
 
   int cbSize = 1<<log2CbSize;
   int cbSize2 = 1<<(log2CbSize-1);
@@ -141,7 +141,7 @@ char derive_edgeFlags(decoder_context* ctx)
   for (int cb_y=0;cb_y<ctx->current_sps->PicHeightInMinCbsY;cb_y++)
     for (int cb_x=0;cb_x<ctx->current_sps->PicWidthInMinCbsY;cb_x++)
       {
-        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,ctx->current_sps,cb_x,cb_y);
+        int log2CbSize = get_log2CbSize_cbUnits(ctx->img,cb_x,cb_y);
         if (log2CbSize==0) {
           continue;
         }
@@ -250,8 +250,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
         //int p0 = ctx->img.y[(xDi-xOffs)+(yDi-yOffs)*stride]; TODO: UNUSED
         //int q0 = ctx->img.y[xDi+yDi*stride];                 TODO: UNUSED
 
-        bool p_is_intra_pred = (get_pred_mode(ctx->img,ctx->current_sps,xDi-xOffs, yDi-yOffs) == MODE_INTRA);
-        bool q_is_intra_pred = (get_pred_mode(ctx->img,ctx->current_sps,xDi,       yDi      ) == MODE_INTRA);
+        bool p_is_intra_pred = (get_pred_mode(ctx->img,xDi-xOffs, yDi-yOffs) == MODE_INTRA);
+        bool q_is_intra_pred = (get_pred_mode(ctx->img,xDi,       yDi      ) == MODE_INTRA);
 
         int bS;
 
@@ -488,15 +488,15 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 #endif
 
 
-        int QP_Q = get_QPY(ctx->img, ctx->current_sps, xDi,yDi);
+        int QP_Q = get_QPY(ctx->img, xDi,yDi);
         int QP_P = (vertical ?
-                    get_QPY(ctx->img, ctx->current_sps, xDi-1,yDi) :
-                    get_QPY(ctx->img, ctx->current_sps, xDi,yDi-1) );
+                    get_QPY(ctx->img, xDi-1,yDi) :
+                    get_QPY(ctx->img, xDi,yDi-1) );
         int qP_L = (QP_Q+QP_P+1)>>1;
 
         logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
 
-        int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,ctx->current_sps,xDi,yDi);
+        int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,xDi,yDi);
         int beta_offset = ctx->slice[sliceIndexQ00].slice_beta_offset;
         int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
 
@@ -561,18 +561,18 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
           bool filterQ = true;
 
           if (vertical) {
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi-1,yDi)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,xDi-1,yDi)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,xDi-1,yDi)) filterP=false;
+            if (get_cu_transquant_bypass(img,xDi-1,yDi)) filterP=false;
 
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,xDi,yDi)) filterQ=false;
           }
           else {
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi-1)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi-1)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,xDi,yDi-1)) filterP=false;
+            if (get_cu_transquant_bypass(img,xDi,yDi-1)) filterP=false;
 
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,xDi,yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,xDi,yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,xDi,yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,xDi,yDi)) filterQ=false;
           }
 
           for (int k=0;k<4;k++) {
@@ -767,10 +767,10 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
             }
 #endif
 
-          int QP_Q = get_QPY(ctx->img, ctx->current_sps, 2*xDi,2*yDi);
+          int QP_Q = get_QPY(ctx->img, 2*xDi,2*yDi);
           int QP_P = (vertical ?
-                      get_QPY(ctx->img,ctx->current_sps, 2*xDi-1,2*yDi) :
-                      get_QPY(ctx->img,ctx->current_sps, 2*xDi,2*yDi-1));
+                      get_QPY(ctx->img, 2*xDi-1,2*yDi) :
+                      get_QPY(ctx->img, 2*xDi,2*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C = table8_22(qP_i);
 
@@ -778,7 +778,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
                    2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
 
-          int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,ctx->current_sps,2*xDi,2*yDi);
+          int sliceIndexQ00 = get_SliceHeaderIndex(ctx->img,2*xDi,2*yDi);
           //int tc_offset   = ctx->current_pps->tc_offset;
           int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
 
@@ -791,12 +791,12 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
           if (vertical) {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi-1,2*yDi)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,2*xDi-1,2*yDi)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,2*xDi-1,2*yDi)) filterP=false;
+            if (get_cu_transquant_bypass(img,2*xDi-1,2*yDi)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,2*xDi,2*yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,2*xDi,2*yDi)) filterQ=false;
 
 
             for (int k=0;k<4;k++) {
@@ -808,12 +808,12 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           }
           else {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi-1)) filterP=false;
-            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi-1)) filterP=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,2*xDi,2*yDi-1)) filterP=false;
+            if (get_cu_transquant_bypass(img,2*xDi,2*yDi-1)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,sps,2*xDi,2*yDi)) filterQ=false;
-            if (get_cu_transquant_bypass(img,sps,2*xDi,2*yDi)) filterQ=false;
+            if (sps->pcm_loop_filter_disable_flag && get_pcm_flag(img,2*xDi,2*yDi)) filterQ=false;
+            if (get_cu_transquant_bypass(img,2*xDi,2*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));

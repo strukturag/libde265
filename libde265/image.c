@@ -370,190 +370,170 @@ void img_clear_decoding_data(de265_image* img)
 }
 
 
-#define PIXEL2CB(x) (x >> sps->Log2MinCbSizeY)
-#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*sps->PicWidthInMinCbsY)
+#define PIXEL2CB(x) (x >> img->sps->Log2MinCbSizeY)
+#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->sps->PicWidthInMinCbsY)
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
   int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - sps->Log2MinCbSizeY);                \
+  int width = 1 << (log2BlkWidth - img->sps->Log2MinCbSizeY);           \
   for (int cby=cbY;cby<cbY+width;cby++)                                 \
     for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
       {                                                                 \
-        img->cb_info[ cbx + cby*sps->PicWidthInMinCbsY ].Field = value; \
-      }
-
-#define SET_CB_BLK_SAVE(x,y,log2BlkWidth,  Field,value)                 \
-  int cbX = PIXEL2CB(x);                                                \
-  int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - sps->Log2MinCbSizeY);                \
-  for (int cby=cbY;cby<cbY+width;cby++)                                 \
-    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
-      if (cbx < sps->PicWidthInMinCbsY &&                               \
-          cby < sps->PicHeightInMinCbsY)                                \
-      {                                                                 \
-        img->cb_info[ cbx + cby*sps->PicWidthInMinCbsY ].Field = value; \
+        img->cb_info[ cbx + cby*img->sps->PicWidthInMinCbsY ].Field = value; \
       }
 
 
-uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y)
+uint8_t get_cu_skip_flag(const de265_image* img, int x,int y)
 {
-  return get_pred_mode(img,sps,x,y)==MODE_SKIP;
+  return get_pred_mode(img,x,y)==MODE_SKIP;
 }
 
 
-void set_pred_mode(de265_image* img, const seq_parameter_set* sps,
+void set_pred_mode(de265_image* img,
                    int x,int y, int log2BlkWidth, enum PredMode mode)
 {
   SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
 }
 
-enum PredMode get_pred_mode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+enum PredMode get_pred_mode(const de265_image* img, int x,int y)
 {
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return (enum PredMode)img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].PredMode;
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].PredMode;
 }
 
 
-void set_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps,
+void set_cu_transquant_bypass(const de265_image* img,
                               int x,int y, int log2BlkWidth)
 {
   SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
 }
 
-int  get_cu_transquant_bypass(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+int  get_cu_transquant_bypass(const de265_image* img, int x,int y)
 {
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_transquant_bypass;
+  return img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].cu_transquant_bypass;
 }
 
 
-void set_pcm_flag(de265_image* img, const seq_parameter_set* sps,
-                  int x,int y, int log2BlkWidth)
+void set_pcm_flag(de265_image* img, int x,int y, int log2BlkWidth)
 {
   SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
 }
 
-int get_pcm_flag(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+int get_pcm_flag(const de265_image* img, int x,int y)
 {
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].pcm_flag;
+  return img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].pcm_flag;
 }
 
 
-int  get_log2CbSize(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
+int  get_log2CbSize(const de265_image* img, int x0, int y0)
 {
   int cbX = PIXEL2CB(x0);
   int cbY = PIXEL2CB(y0);
 
-  return (enum PredMode)img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].log2CbSize;
 }
 
-void set_log2CbSize(de265_image* img, const seq_parameter_set* sps, int x0, int y0, int log2CbSize)
+void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
 {
   int cbX = PIXEL2CB(x0);
   int cbY = PIXEL2CB(y0);
 
-  img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
+  img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
 
   // assume that remaining cb_info blocks are initialized to zero
 }
 
 // coordinates in CB units
-int  get_log2CbSize_cbUnits(const de265_image* img, const seq_parameter_set* sps, int x0, int y0)
+int  get_log2CbSize_cbUnits(const de265_image* img, int x0, int y0)
 {
-  return (enum PredMode)img->cb_info[ x0 + y0*sps->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info[ x0 + y0*img->sps->PicWidthInMinCbsY ].log2CbSize;
 }
 
 
-void          set_PartMode(de265_image* img, const seq_parameter_set* sps,
-                           int x,int y, enum PartMode mode)
+void set_PartMode(de265_image* img, int x,int y, enum PartMode mode)
 {
   img->cb_info[ CB_IDX(x,y) ].PartMode = mode;
 }
 
-enum PartMode get_PartMode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+enum PartMode get_PartMode(const de265_image* img, int x,int y)
 {
   return (enum PartMode)img->cb_info[ CB_IDX(x,y) ].PartMode;
 }
 
 
-void set_ctDepth(de265_image* img, const seq_parameter_set* sps,
-                 int x,int y, int log2BlkWidth, int depth)
+void set_ctDepth(de265_image* img, int x,int y, int log2BlkWidth, int depth)
 {
   SET_CB_BLK(x,y,log2BlkWidth, ctDepth, depth);
 }
 
-int get_ctDepth(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+int get_ctDepth(const de265_image* img, int x,int y)
 {
   return img->cb_info[ CB_IDX(x,y) ].ctDepth;
 }
 
 
-void set_QPY(de265_image* img, const seq_parameter_set* sps,
-             const pic_parameter_set* pps, int x,int y, int log2BlkWidth, int QP_Y)
+void set_QPY(de265_image* img, int x,int y, int log2BlkWidth, int QP_Y)
 {
-  assert(x>=0 && x<sps->pic_width_in_luma_samples);
-  assert(y>=0 && y<sps->pic_height_in_luma_samples);
+  assert(x>=0 && x<img->sps->pic_width_in_luma_samples);
+  assert(y>=0 && y<img->sps->pic_height_in_luma_samples);
 
   SET_CB_BLK (x, y, log2BlkWidth, QP_Y, QP_Y);
 }
 
-int  get_QPY(const de265_image* img, const seq_parameter_set* sps,int x,int y)
+int  get_QPY(const de265_image* img, int x,int y)
 {
   return img->cb_info[CB_IDX(x,y)].QP_Y;
 }
 
 
-#define PIXEL2TU(x) (x >> sps->Log2MinTrafoSize)
-#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*sps->PicWidthInTbsY)
+#define PIXEL2TU(x) (x >> img->sps->Log2MinTrafoSize)
+#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->sps->PicWidthInTbsY)
 
 #define OR_TU_BLK(x,y,log2BlkWidth,  value)                             \
   int tuX = PIXEL2TU(x);                                                \
   int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - sps->Log2MinTrafoSize);              \
+  int width = 1 << (log2BlkWidth - img->sps->Log2MinTrafoSize);         \
   for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
     for (int tux=tuX;tux<tuX+width;tux++)                               \
       {                                                                 \
-        img->tu_info[ tux + tuy*sps->PicWidthInTbsY ] |= value;         \
+        img->tu_info[ tux + tuy*img->sps->PicWidthInTbsY ] |= value;    \
       }
 
-void set_split_transform_flag(de265_image* img,const seq_parameter_set* sps,
-                              int x0,int y0,int trafoDepth)
+void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth)
 {
   img->tu_info[TU_IDX(x0,y0)] |= (1<<trafoDepth);
 }
 
-int  get_split_transform_flag(const de265_image* img, const seq_parameter_set* sps,
-                              int x0,int y0,int trafoDepth)
+int  get_split_transform_flag(const de265_image* img, int x0,int y0,int trafoDepth)
 {
   int idx = TU_IDX(x0,y0);
   return (img->tu_info[idx] & (1<<trafoDepth));
 }
 
 
-void set_nonzero_coefficient(de265_image* img,const seq_parameter_set* sps,
-                             int x,int y, int log2TrafoSize)
+void set_nonzero_coefficient(de265_image* img, int x,int y, int log2TrafoSize)
 {
   OR_TU_BLK(x,y,log2TrafoSize, TU_FLAG_NONZERO_COEFF);
 }
 
 
-int  get_nonzero_coefficient(const de265_image* img,const seq_parameter_set* sps,
-                             int x,int y)
+int  get_nonzero_coefficient(const de265_image* img, int x,int y)
 {
   return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
 }
 
 
-enum IntraPredMode get_IntraPredMode(const de265_image* img, const seq_parameter_set* sps, int x,int y)
+enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y)
 {
-  int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize) * sps->PicWidthInMinPUs;
+  int PUidx = (x>>img->sps->Log2MinPUSize) + (y>>img->sps->Log2MinPUSize) * img->sps->PicWidthInMinPUs;
 
   return (enum IntraPredMode) img->intraPredMode[PUidx];
 }
@@ -591,51 +571,48 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
 }
 
 
-void set_SliceAddrRS(de265_image* img, const seq_parameter_set* sps,
-                     int ctbX, int ctbY, int SliceAddrRS)
+void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS)
 {
-  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
-  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
+  img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
 }
 
-int  get_SliceAddrRS(const de265_image* img, const seq_parameter_set* sps, int ctbX, int ctbY)
+int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY)
 {
-  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceAddrRS;
+  return img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceAddrRS;
 }
 
-int  get_SliceAddrRS_atCtbRS(const de265_image* img, const seq_parameter_set* sps, int ctbRS)
+int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS)
 {
   return img->ctb_info[ctbRS].SliceAddrRS;
 }
 
-void set_SliceHeaderIndex(de265_image* img, const seq_parameter_set* sps,
-                          int x, int y, int SliceHeaderIndex)
+void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex)
 {
-  int ctbX = x >> sps->Log2CtbSizeY;
-  int ctbY = y >> sps->Log2CtbSizeY;
-  img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+  int ctbX = x >> img->sps->Log2CtbSizeY;
+  int ctbY = y >> img->sps->Log2CtbSizeY;
+  img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
 }
 
-int  get_SliceHeaderIndex(const de265_image* img, const seq_parameter_set* sps, int x, int y)
+int  get_SliceHeaderIndex(const de265_image* img, int x, int y)
 {
-  int ctbX = x >> sps->Log2CtbSizeY;
-  int ctbY = y >> sps->Log2CtbSizeY;
-  return img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].SliceHeaderIndex;
+  int ctbX = x >> img->sps->Log2CtbSizeY;
+  int ctbY = y >> img->sps->Log2CtbSizeY;
+  return img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceHeaderIndex;
 }
 
 
 
-void set_sao_info(de265_image* img,const seq_parameter_set* sps,
-                  int ctbX,int ctbY,const sao_info* saoinfo)
+void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo)
 {
-  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
-  memcpy(&img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo,
+  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
+  memcpy(&img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].saoInfo,
          saoinfo,
          sizeof(sao_info));
 }
 
-const sao_info* get_sao_info(const de265_image* img,const seq_parameter_set* sps, int ctbX,int ctbY)
+const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY)
 {
-  assert(ctbX + ctbY*sps->PicWidthInCtbsY < img->ctb_info_size);
-  return &img->ctb_info[ctbX + ctbY*sps->PicWidthInCtbsY].saoInfo;
+  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].saoInfo;
 }

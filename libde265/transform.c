@@ -157,7 +157,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     int ctbAddrA = minTbAddrA >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
-      qPYA = get_QPY(ctx->img,sps,xQG-1,yQG);
+      qPYA = get_QPY(ctx->img,xQG-1,yQG);
     }
     else {
       qPYA = qPY_PRED;
@@ -173,7 +173,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     int minTbAddrB = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     int ctbAddrB = minTbAddrB >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
     if (ctbAddrB == tctx->CtbAddrInTS) {
-      qPYB = get_QPY(ctx->img,sps,xQG,yQG-1);
+      qPYB = get_QPY(ctx->img,xQG,yQG-1);
     }
     else {
       qPYB = qPY_PRED;
@@ -205,8 +205,8 @@ void decode_quantization_parameters(decoder_context* ctx,
   tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
   tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
 
-  int log2CbSize = get_log2CbSize (ctx->img, sps, xCUBase, yCUBase);
-  set_QPY(ctx->img, sps, pps,xCUBase, yCUBase, log2CbSize, QPY);
+  int log2CbSize = get_log2CbSize (ctx->img, xCUBase, yCUBase);
+  set_QPY(ctx->img, xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
   /*
@@ -398,7 +398,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     else {
       int trType;
 
-      if (nT==4 && cIdx==0 && get_pred_mode(ctx->img,ctx->current_sps,xT,yT)==MODE_INTRA) {
+      if (nT==4 && cIdx==0 && get_pred_mode(ctx->img,xT,yT)==MODE_INTRA) {
         trType=1;
       }
       else {

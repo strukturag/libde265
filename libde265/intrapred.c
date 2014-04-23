@@ -133,11 +133,11 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int xRightCtb = (xBLuma+nTLuma) >> log2CtbSize;
   int yTopCtb   = (yBLuma-1) >> log2CtbSize;
 
-  int currCTBSlice = get_SliceAddrRS(ctx->img,sps, xCurrCtb,yCurrCtb);
-  int leftCTBSlice = availableLeft ? get_SliceAddrRS(ctx->img,sps, xLeftCtb, yCurrCtb) : -1;
-  int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx->img,sps, xCurrCtb, yTopCtb) : -1;
-  int toprightCTBSlice = availableTopRight ? get_SliceAddrRS(ctx->img,sps, xRightCtb, yTopCtb) : -1;
-  int topleftCTBSlice  = availableTopLeft  ? get_SliceAddrRS(ctx->img,sps, xLeftCtb, yTopCtb) : -1;
+  int currCTBSlice = get_SliceAddrRS(ctx->img, xCurrCtb,yCurrCtb);
+  int leftCTBSlice = availableLeft ? get_SliceAddrRS(ctx->img, xLeftCtb, yCurrCtb) : -1;
+  int topCTBSlice  = availableTop ? get_SliceAddrRS(ctx->img, xCurrCtb, yTopCtb) : -1;
+  int toprightCTBSlice = availableTopRight ? get_SliceAddrRS(ctx->img, xRightCtb, yTopCtb) : -1;
+  int topleftCTBSlice  = availableTopLeft  ? get_SliceAddrRS(ctx->img, xLeftCtb, yTopCtb) : -1;
 
   int currCTBTileID = pps->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
   int leftCTBTileID = availableLeft ? pps->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
@@ -181,7 +181,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (ctx->current_pps->constrained_intra_pred_flag) {
-            if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+            if (get_pred_mode(ctx->img,(xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
               availableN = false;
           }
 
@@ -207,7 +207,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
         bool availableN = NBlockAddr < currBlockAddr;
 
         if (ctx->current_pps->constrained_intra_pred_flag) {
-          if (get_pred_mode(ctx->img,sps,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+          if (get_pred_mode(ctx->img,(xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
             availableN = false;
           }
         }
@@ -236,7 +236,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (ctx->current_pps->constrained_intra_pred_flag) {
-            if (get_pred_mode(ctx->img,sps,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+            if (get_pred_mode(ctx->img,(xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
               availableN = false;
             }
           }

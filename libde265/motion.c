@@ -771,7 +771,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   const pic_parameter_set* pps = ctx->current_pps;
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
-  enum PartMode PartMode = get_PartMode(ctx->img,ctx->current_sps,xC,yC);
+  enum PartMode PartMode = get_PartMode(ctx->img,xC,yC);
 
   // --- A1 ---
 
@@ -1076,7 +1076,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
   // TODO: has to get pred_mode from reference picture
   const de265_image* colImg = dpb_get_image(&ctx->dpb, colPic);
-  enum PredMode predMode = get_pred_mode(colImg,ctx->current_sps, xColPb,yColPb);
+  enum PredMode predMode = get_pred_mode(colImg, xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
     out_mvLXCol->x = 0;
@@ -1157,7 +1157,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 
 
-    slice_segment_header* colShdr = &ctx->slice[ get_SliceHeaderIndex(colImg,ctx->current_sps,xColPb,yColPb) ];
+    slice_segment_header* colShdr = &ctx->slice[ get_SliceHeaderIndex(colImg,xColPb,yColPb) ];
 
     if (shdr->LongTermRefPic[X][refIdxLX] != 
         colShdr->LongTermRefPic[listCol][refIdxCol]) {
@@ -1500,7 +1500,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 && // no A?-predictor so far
-        get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
+        get_pred_mode(ctx->img,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
       
@@ -1539,7 +1539,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
     if (availableA[k] &&
         // TODO: we could remove this call by storing the result of the similar computation above
-        get_pred_mode(ctx->img,ctx->current_sps,xA[k],yA[k]) != MODE_INTRA) {
+        get_pred_mode(ctx->img,xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
       
@@ -1822,7 +1822,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   int xP = xC+xB;
   int yP = yC+yB;
 
-  enum PredMode predMode = get_pred_mode(ctx->img,ctx->current_sps, xC,yC);
+  enum PredMode predMode = get_pred_mode(ctx->img, xC,yC);
 
   if (predMode == MODE_SKIP ||
       (predMode == MODE_INTER && tctx->merge_flag))
@@ -1911,7 +1911,7 @@ void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
   //int nCS_C = nCS_L>>1;
   int nCS1L = nCS_L>>1;
 
-  enum PartMode partMode = get_PartMode(ctx->img,ctx->current_sps,xC,yC);
+  enum PartMode partMode = get_PartMode(ctx->img,xC,yC);
   switch (partMode) {
   case PART_2Nx2N:
     decode_prediction_unit(ctx,shdr,xC,yC, 0,0, nCS_L, nCS_L,nCS_L, 0);

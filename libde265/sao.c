@@ -37,7 +37,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
   int xC = xCtb*nS;
   int yC = yCtb*nS;
 
-  const sao_info* saoinfo = get_sao_info(ctx->img,ctx->current_sps,xCtb,yCtb);
+  const sao_info* saoinfo = get_sao_info(ctx->img,xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
@@ -109,8 +109,8 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
         }
 
         if ((sps->pcm_loop_filter_disable_flag &&
-             get_pcm_flag(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-            get_cu_transquant_bypass(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
+             get_pcm_flag(ctx->img,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            get_cu_transquant_bypass(ctx->img,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
 
@@ -206,8 +206,8 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
         }
 
         if ((sps->pcm_loop_filter_disable_flag &&
-             get_pcm_flag(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-            get_cu_transquant_bypass(ctx->img,sps,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
+             get_pcm_flag(ctx->img,(xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            get_cu_transquant_bypass(ctx->img,(xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
 
