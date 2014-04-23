@@ -309,6 +309,7 @@ void VideoDecoder::init_decoder(const char* filename)
   //rbsp_buffer_init(&buf);
 
   ctx = de265_new_decoder();
+  de265_start_worker_threads(ctx, 4); // start 4 background threads
 }
 
 void VideoDecoder::free_decoder()
