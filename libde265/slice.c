@@ -3311,8 +3311,6 @@ void read_coding_unit(decoder_context* ctx,
     cu_skip_flag = decode_cu_skip_flag(tctx,x0,y0,ctDepth);
   }
 
-  set_cu_skip_flag(ctx->current_sps,ctx->img,x0,y0,log2CbSize, cu_skip_flag);
-
   int IntraSplitFlag = 0;
 
   enum PredMode cuPredMode;

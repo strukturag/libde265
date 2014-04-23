@@ -395,18 +395,9 @@ void img_clear_decoding_data(de265_image* img)
       }
 
 
-void    set_cu_skip_flag(const seq_parameter_set* sps, de265_image* img,
-                         int x,int y, int log2BlkWidth, uint8_t flag)
-{
-  SET_CB_BLK(x,y,log2BlkWidth, cu_skip_flag, flag);
-}
-
 uint8_t get_cu_skip_flag(const seq_parameter_set* sps, const de265_image* img, int x,int y)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return img->cb_info[ cbX + cbY*sps->PicWidthInMinCbsY ].cu_skip_flag;
+  return get_pred_mode(img,sps,x,y)==MODE_SKIP;
 }
 
 
