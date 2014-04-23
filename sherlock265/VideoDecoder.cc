@@ -103,8 +103,11 @@ void VideoDecoder::decoder_loop()
         img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
+            mutex.unlock();
             int more=1;
             de265_error err = de265_decode(ctx, &more);
+            mutex.lock();
+
             if (more && err == DE265_OK) {
               // try again to get picture
 
