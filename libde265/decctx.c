@@ -1288,16 +1288,25 @@ void write_picture_to_file(const de265_image* img, const char* filename)
 }
 
 
+void set_pixel(uint8_t* img, int x,int y, int stride, uint32_t color, int pixelSize)
+{
+  for (int i=0;i<pixelSize;i++) {
+    uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
+    img[y*stride + x*pixelSize + i] = col;
+  }
+}
+
+
 void draw_block_boundary(const de265_image* srcimg,
                          uint8_t* img,int stride,
-                         int x,int y,int hBlkSize, int vBlkSize, uint8_t value)
+                         int x,int y,int hBlkSize, int vBlkSize, uint32_t color, int pixelSize)
 {
   for (int i=0;i<vBlkSize;i++)
     {
       int yi = y + i;
       
       if (yi < srcimg->sps->pic_height_in_luma_samples) {
-        img[yi*stride + x] = value;
+        set_pixel(img,x,yi,stride,color,pixelSize);
       }
     }
 
@@ -1306,7 +1315,7 @@ void draw_block_boundary(const de265_image* srcimg,
       int xi = x + i;
       
       if (xi < srcimg->sps->pic_width_in_luma_samples) {
-        img[y*stride + xi] = value;
+        set_pixel(img,xi,y,stride,color,pixelSize);
       }
     }
 }
@@ -1317,7 +1326,7 @@ void draw_block_boundary(const de265_image* srcimg,
 void draw_intra_pred_mode(const de265_image* srcimg,
                           uint8_t* img,int stride,
                           int x0,int y0,int log2BlkSize,
-                          enum IntraPredMode mode, uint8_t value)
+                          enum IntraPredMode mode, uint32_t color,int pixelSize)
 {
   int w = 1<<log2BlkSize;
 
@@ -1326,10 +1335,10 @@ void draw_intra_pred_mode(const de265_image* srcimg,
 
     for (int i=-w*1/4;i<=w*1/4;i++)
       {
-        img[(y0+w/2+i)*stride + x0+w*1/4] = value;
-        img[(y0+w/2+i)*stride + x0+w*3/4] = value;
-        img[(y0+w*1/4)*stride + x0+w/2+i] = value;
-        img[(y0+w*3/4)*stride + x0+w/2+i] = value;
+        set_pixel(img, x0+w*1/4, y0+w/2+i,stride, color, pixelSize);
+        set_pixel(img, x0+w*3/4, y0+w/2+i,stride, color, pixelSize);
+        set_pixel(img, x0+w/2+i, y0+w*1/4,stride, color, pixelSize);
+        set_pixel(img, x0+w/2+i, y0+w*3/4,stride, color, pixelSize);
       }
   }
   else if (mode==1) {
@@ -1339,10 +1348,10 @@ void draw_intra_pred_mode(const de265_image* srcimg,
       {
         int k = (sqrt((double)(w*w - i*i*16))+2)/4;
 
-        img[(y0+w/2+k)*stride + x0+w/2+i] = value;
-        img[(y0+w/2-k)*stride + x0+w/2+i] = value;
-        img[(y0+w/2+i)*stride + x0+w/2+k] = value;
-        img[(y0+w/2+i)*stride + x0+w/2-k] = value;
+        set_pixel(img, x0+w/2+i, y0+w/2+k, stride, color, pixelSize);
+        set_pixel(img, x0+w/2+i, y0+w/2-k, stride, color, pixelSize);
+        set_pixel(img, x0+w/2+k, y0+w/2+i, stride, color, pixelSize);
+        set_pixel(img, x0+w/2-k, y0+w/2+i, stride, color, pixelSize);
       }
   }
   else {
@@ -1357,7 +1366,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
           int dy = (slope*i+Sign(slope*i)*16)/32;
           int y = y0+w/2-dy;
           if (y>=0 && y<srcimg->sps->pic_height_in_luma_samples) {
-            img[y*stride + x0+i+w/2] = value;
+            set_pixel(img, x0+i+w/2, y, stride, color, pixelSize);
           }
         }
     }
@@ -1367,7 +1376,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
           int dx = (slope*i+Sign(slope*i)*16)/32;
           int x = x0+w/2-dx;
           if (x>=0 && x<srcimg->sps->pic_width_in_luma_samples) {
-            img[(y0+i+w/2)*stride + x] = value;
+            set_pixel(img, x, y0+i+w/2, stride, color, pixelSize);
           }
         }
     }
@@ -1376,19 +1385,19 @@ void draw_intra_pred_mode(const de265_image* srcimg,
 
 
 void drawTBgrid(const de265_image* srcimg, uint8_t* img, int stride,
-                int x0,int y0, uint8_t value, int log2CbSize, int trafoDepth)
+                int x0,int y0, uint32_t color, int pixelSize, int log2CbSize, int trafoDepth)
 {
   int split_transform_flag = get_split_transform_flag(srcimg, srcimg->sps,x0,y0,trafoDepth);
   if (split_transform_flag) {
     int x1 = x0 + ((1<<(log2CbSize-trafoDepth))>>1);
     int y1 = y0 + ((1<<(log2CbSize-trafoDepth))>>1);
-    drawTBgrid(srcimg,img,stride,x0,y0,value,log2CbSize,trafoDepth+1);
-    drawTBgrid(srcimg,img,stride,x1,y0,value,log2CbSize,trafoDepth+1);
-    drawTBgrid(srcimg,img,stride,x0,y1,value,log2CbSize,trafoDepth+1);
-    drawTBgrid(srcimg,img,stride,x1,y1,value,log2CbSize,trafoDepth+1);
+    drawTBgrid(srcimg,img,stride,x0,y0,color,pixelSize,log2CbSize,trafoDepth+1);
+    drawTBgrid(srcimg,img,stride,x1,y0,color,pixelSize,log2CbSize,trafoDepth+1);
+    drawTBgrid(srcimg,img,stride,x0,y1,color,pixelSize,log2CbSize,trafoDepth+1);
+    drawTBgrid(srcimg,img,stride,x1,y1,color,pixelSize,log2CbSize,trafoDepth+1);
   }
   else {
-    draw_block_boundary(srcimg,img,stride,x0,y0,1<<(log2CbSize-trafoDepth),1<<(log2CbSize-trafoDepth), value);
+    draw_block_boundary(srcimg,img,stride,x0,y0,1<<(log2CbSize-trafoDepth),1<<(log2CbSize-trafoDepth), color, pixelSize);
   }
 }
 
@@ -1403,7 +1412,7 @@ enum DrawMode {
 };
 
 
-void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint8_t color)
+void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint32_t color, int pixelSize)
 {
   for (int y=0;y<h;y++)
     for (int x=0;x<w;x++)
@@ -1411,23 +1420,26 @@ void tint_rect(uint8_t* img, int stride, int x0,int y0,int w,int h, uint8_t colo
         int xp = x0+x;
         int yp = y0+y;
 
-        img[xp+yp*stride] = (img[xp+yp*stride] + color)/2;
+        for (int i=0;i<pixelSize;i++) {
+          uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
+          img[yp*stride+xp*pixelSize + i] = (img[yp*stride+xp*pixelSize + i] + col)/2;
+        }
       }
 }
 
 
 void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
-                   int x0,int y0, int w,int h, enum DrawMode what, uint8_t value)
+                   int x0,int y0, int w,int h, enum DrawMode what, uint32_t color, int pixelSize)
 {
   if (what == Partitioning_PB) {
-    draw_block_boundary(srcimg,img,stride,x0,y0,w,h, value);
+    draw_block_boundary(srcimg,img,stride,x0,y0,w,h, color,pixelSize);
   }
   else if (what == PBPredMode) {
     enum PredMode predMode = get_pred_mode(srcimg,srcimg->sps,x0,y0);
 
-    uint8_t cols[3][3] = { { 255,0,0 }, { 0,0,255 }, { 0,255,0 } };
+    uint32_t cols[3] = { 0xff0000, 0x0000ff, 0x00ff00 };
 
-    tint_rect(img,stride, x0,y0,w,h, cols[predMode][value]);
+    tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
     assert(false); // TODO
@@ -1436,7 +1448,7 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
 
 
 void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
-                    uint8_t value, enum DrawMode what)
+                    uint32_t color, int pixelSize, enum DrawMode what)
 {
   const seq_parameter_set* sps = srcimg->sps;
   int minCbSize = sps->MinCbSizeY;
@@ -1454,10 +1466,10 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
 
 
         if (what == Partitioning_TB) {
-          drawTBgrid(srcimg,img,stride,x0*minCbSize,y0*minCbSize, value, log2CbSize, 0);
+          drawTBgrid(srcimg,img,stride,x0*minCbSize,y0*minCbSize, color,pixelSize, log2CbSize, 0);
         }
         else if (what == Partitioning_CB) {
-          draw_block_boundary(srcimg,img,stride,xb,yb, 1<<log2CbSize,1<<log2CbSize, value);
+          draw_block_boundary(srcimg,img,stride,xb,yb, 1<<log2CbSize,1<<log2CbSize, color,pixelSize);
         }
         else if (what == Partitioning_PB ||
                  what == PBPredMode) {
@@ -1468,37 +1480,37 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
 
           switch (partMode) {
           case PART_2Nx2N:
-            draw_PB_block(srcimg,img,stride,xb,yb,CbSize,CbSize, what,value);
+            draw_PB_block(srcimg,img,stride,xb,yb,CbSize,CbSize, what,color,pixelSize);
             break;
           case PART_NxN:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/2,CbSize/2, what,value);
-            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize/2, what,value);
-            draw_PB_block(srcimg,img,stride,xb           ,yb+HalfCbSize,CbSize/2,CbSize/2, what,value);
-            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb+HalfCbSize,CbSize/2,CbSize/2, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/2,CbSize/2, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize/2, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb           ,yb+HalfCbSize,CbSize/2,CbSize/2, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb+HalfCbSize,CbSize/2,CbSize/2, what,color,pixelSize);
             break;
           case PART_2NxN:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize/2, what,value);
-            draw_PB_block(srcimg,img,stride,xb,           yb+HalfCbSize,CbSize  ,CbSize/2, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize/2, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb,           yb+HalfCbSize,CbSize  ,CbSize/2, what,color,pixelSize);
             break;
           case PART_Nx2N:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/2,CbSize, what,value);
-            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/2,CbSize, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb+HalfCbSize,yb,           CbSize/2,CbSize, what,color,pixelSize);
             break;
           case PART_2NxnU:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize/4,   what,value);
-            draw_PB_block(srcimg,img,stride,xb,           yb+CbSize/4  ,CbSize  ,CbSize*3/4, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize/4,   what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb,           yb+CbSize/4  ,CbSize  ,CbSize*3/4, what,color,pixelSize);
             break;
           case PART_2NxnD:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize*3/4, what,value);
-            draw_PB_block(srcimg,img,stride,xb,           yb+CbSize*3/4,CbSize  ,CbSize/4,   what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize  ,CbSize*3/4, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb,           yb+CbSize*3/4,CbSize  ,CbSize/4,   what,color,pixelSize);
             break;
           case PART_nLx2N:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/4  ,CbSize, what,value);
-            draw_PB_block(srcimg,img,stride,xb+CbSize/4  ,yb,           CbSize*3/4,CbSize, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize/4  ,CbSize, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb+CbSize/4  ,yb,           CbSize*3/4,CbSize, what,color,pixelSize);
             break;
           case PART_nRx2N:
-            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize*3/4,CbSize, what,value);
-            draw_PB_block(srcimg,img,stride,xb+CbSize*3/4,yb,           CbSize/4  ,CbSize, what,value);
+            draw_PB_block(srcimg,img,stride,xb,           yb,           CbSize*3/4,CbSize, what,color,pixelSize);
+            draw_PB_block(srcimg,img,stride,xb+CbSize*3/4,yb,           CbSize/4  ,CbSize, what,color,pixelSize);
             break;
           default:
             assert(false);
@@ -1515,17 +1527,17 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
             switch (partMode) {
             case PART_2Nx2N:
               draw_intra_pred_mode(srcimg,img,stride,xb,yb,log2CbSize,
-                                   get_IntraPredMode(srcimg,sps,xb,yb), value);
+                                   get_IntraPredMode(srcimg,sps,xb,yb), color,pixelSize);
               break;
             case PART_NxN:
               draw_intra_pred_mode(srcimg,img,stride,xb,           yb,           log2CbSize-1,
-                                   get_IntraPredMode(srcimg,sps,xb,yb), value);
+                                   get_IntraPredMode(srcimg,sps,xb,yb), color,pixelSize);
               draw_intra_pred_mode(srcimg,img,stride,xb+HalfCbSize,yb,           log2CbSize-1,
-                                   get_IntraPredMode(srcimg,sps,xb+HalfCbSize,yb), value);
+                                   get_IntraPredMode(srcimg,sps,xb+HalfCbSize,yb), color,pixelSize);
               draw_intra_pred_mode(srcimg,img,stride,xb           ,yb+HalfCbSize,log2CbSize-1,
-                                   get_IntraPredMode(srcimg,sps,xb,yb+HalfCbSize), value);
+                                   get_IntraPredMode(srcimg,sps,xb,yb+HalfCbSize), color,pixelSize);
               draw_intra_pred_mode(srcimg,img,stride,xb+HalfCbSize,yb+HalfCbSize,log2CbSize-1,
-                                   get_IntraPredMode(srcimg,sps,xb+HalfCbSize,yb+HalfCbSize), value);
+                                   get_IntraPredMode(srcimg,sps,xb+HalfCbSize,yb+HalfCbSize), color,pixelSize);
               break;
             default:
               assert(false);
@@ -1537,31 +1549,29 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
 }
 
 
-void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value)
+void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
-  draw_tree_grid(img,dst,stride,value, Partitioning_CB);
+  draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_CB);
 }
 
-void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value)
+void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
-  draw_tree_grid(img,dst,stride,value, Partitioning_TB);
+  draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_TB);
 }
 
-void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint8_t value)
+void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
-  draw_tree_grid(img,dst,stride,value, Partitioning_PB);
+  draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_PB);
 }
 
-void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint8_t value)
+void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
-  draw_tree_grid(img,dst,stride,value, IntraPredMode);
+  draw_tree_grid(img,dst,stride,color,pixelSize, IntraPredMode);
 }
 
-void draw_PB_pred_modes(const de265_image* img, uint8_t* r, uint8_t* g, uint8_t* b, int stride)
+void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
-  draw_tree_grid(img,r,stride,0, PBPredMode);
-  draw_tree_grid(img,g,stride,1, PBPredMode);
-  draw_tree_grid(img,b,stride,2, PBPredMode);
+  draw_tree_grid(img,dst,stride,0,pixelSize, PBPredMode);
 }
 
 
