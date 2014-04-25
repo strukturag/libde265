@@ -21,7 +21,20 @@
 #ifndef VIDEODECODER_HH
 #define VIDEODECODER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <QtGui>
+#ifdef HAVE_SWSCALE
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libswscale/swscale.h>
+#ifdef __cplusplus
+}
+#endif
+#endif
 
 #include "VideoWidget.hh"
 #include "de265.h"
@@ -92,6 +105,15 @@ private:
   void free_decoder();                     
 
   void show_frame(const de265_image* img);
+#ifdef HAVE_VIDEOGFX
+  void convert_frame_libvideogfx(const de265_image* img, QImage & qimg);
+#endif
+#ifdef HAVE_SWSCALE
+  SwsContext* sws;
+  int width;
+  int height;
+  void convert_frame_swscale(const de265_image* img, QImage & qimg);
+#endif
 };
 
 #endif
