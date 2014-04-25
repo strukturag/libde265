@@ -204,6 +204,11 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 
 # --- output configuration results ---
 
+AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
+AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
+AC_MSG_NOTICE([---------------------------------------])
+
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
@@ -212,9 +217,3 @@ AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_CONFIG_FILES([libde265.pc])
 AC_OUTPUT
-
-
-echo "---------------------------------------"
-echo "Building dec265 example:" $enable_dec265
-echo "Building sherlock265 example:" $enable_sherlock265
-echo "---------------------------------------"
