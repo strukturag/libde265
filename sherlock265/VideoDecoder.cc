@@ -34,7 +34,9 @@ extern "C" {
 
 
 VideoDecoder::VideoDecoder()
-  : mNextBuffer(0),
+  : ctx(NULL),
+    img(NULL),
+    mNextBuffer(0),
     mFrameCount(0),
     mPlayingVideo(false),
     mVideoEnded(false),
@@ -384,5 +386,5 @@ void VideoDecoder::free_decoder()
 {
   if (mFH) { fclose(mFH); }
 
-  de265_free_decoder(ctx);
+  if (ctx) { de265_free_decoder(ctx); }
 }
