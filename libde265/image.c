@@ -26,6 +26,12 @@
 #include <malloc.h>
 #endif
 
+#ifdef HAVE_SSE4_1
+#define MEMORY_PADDING  8
+#else
+#define MEMORY_PADDING  0
+#endif
+
 #ifdef HAVE___MINGW_ALIGNED_MALLOC
 #define ALLOC_ALIGNED(alignment, size)         __mingw_aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                      __mingw_aligned_free((mem))
@@ -98,14 +104,14 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     img->chroma_format= c;
 
     FREE_ALIGNED(img->y_mem);
-    img->y_mem = (uint8_t *)ALLOC_ALIGNED_16(img->stride * (h+2*border));
+    img->y_mem = (uint8_t *)ALLOC_ALIGNED_16(img->stride * (h+2*border) + MEMORY_PADDING);
     img->y     = img->y_mem + border + 2*border*img->stride;
 
     if (c != de265_chroma_mono) {
       FREE_ALIGNED(img->cb_mem);
       FREE_ALIGNED(img->cr_mem);
-      img->cb_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border));
-      img->cr_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border));
+      img->cb_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border) + MEMORY_PADDING);
+      img->cr_mem = (uint8_t *)ALLOC_ALIGNED_16(img->chroma_stride * (chroma_height+2*border) + MEMORY_PADDING);
 
       img->cb     = img->cb_mem + border + 2*border*img->chroma_stride;
       img->cr     = img->cr_mem + border + 2*border*img->chroma_stride;
