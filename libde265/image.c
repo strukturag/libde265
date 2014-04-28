@@ -165,6 +165,8 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       img->pb_info_stride = puWidth;
       free(img->pb_info);
       img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
+      img->Log2MinPUSize = sps->Log2MinPUSize;
+      img->PicWidthInMinPUs = sps->PicWidthInMinPUs;
     }
 
 
@@ -381,7 +383,7 @@ void img_clear_decoding_data(de265_image* img)
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
   int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - img->sps->Log2MinCbSizeY);           \
+  int width = 1 << (log2BlkWidth - img->Log2MinCbSizeY);                \
   for (int cby=cbY;cby<cbY+width;cby++)                                 \
     for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
       {                                                                 \
@@ -539,7 +541,7 @@ int  get_nonzero_coefficient(const de265_image* img, int x,int y)
 
 enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y)
 {
-  int PUidx = (x>>img->sps->Log2MinPUSize) + (y>>img->sps->Log2MinPUSize) * img->sps->PicWidthInMinPUs;
+  int PUidx = (x>>img->Log2MinPUSize) + (y>>img->Log2MinPUSize) * img->PicWidthInMinPUs;
 
   return (enum IntraPredMode) img->intraPredMode[PUidx];
 }

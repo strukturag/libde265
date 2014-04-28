@@ -175,6 +175,8 @@ typedef struct de265_image {
   PB_ref_info* pb_info;
   int pb_info_size;
   int pb_info_stride;
+  int Log2MinPUSize;
+  int PicWidthInMinPUs;
 
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
