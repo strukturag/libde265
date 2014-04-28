@@ -19,10 +19,14 @@
  */
 
 #include "VideoDecoder.hh"
+#ifdef HAVE_VIDEOGFX
 #include <libvideogfx.hh>
+#endif
 
 
+#ifdef HAVE_VIDEOGFX
 using namespace videogfx;
+#endif
 
 extern "C" {
 #include "decctx.h"
@@ -30,7 +34,9 @@ extern "C" {
 
 
 VideoDecoder::VideoDecoder()
-  : mNextBuffer(0),
+  : ctx(NULL),
+    img(NULL),
+    mNextBuffer(0),
     mFrameCount(0),
     mPlayingVideo(false),
     mVideoEnded(false),
@@ -43,6 +49,11 @@ VideoDecoder::VideoDecoder()
     mShowIntraPredMode(false),
     mShowQuantPY(false),
     mFH(NULL)
+#ifdef HAVE_SWSCALE
+    , sws(NULL)
+    , width(0)
+    , height(0)
+#endif
 {
 }
 
@@ -50,6 +61,11 @@ VideoDecoder::VideoDecoder()
 VideoDecoder::~VideoDecoder()
 {
   free_decoder();
+#ifdef HAVE_SWSCALE
+  if (sws != NULL) {
+    sws_freeContext(sws);
+  }
+#endif
 }
 
 void VideoDecoder::run()
@@ -150,49 +166,33 @@ void VideoDecoder::decoder_loop()
     }
 }
 
-
-void VideoDecoder::show_frame(const de265_image* img)
+#ifdef HAVE_VIDEOGFX
+void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qimg)
 {
+  // --- convert to RGB ---
+
+  Image<Pixel> visu;
+  visu.Create(img->width, img->height, Colorspace_YUV, Chroma_420);
+
+  for (int y=0;y<img->height;y++) {
+    memcpy(visu.AskFrameY()[y], img->y + y*img->stride, img->width);
+  }
+
+  for (int y=0;y<img->chroma_height;y++) {
+    memcpy(visu.AskFrameU()[y], img->cb + y*img->chroma_stride, img->chroma_width);
+  }
+
+  for (int y=0;y<img->chroma_height;y++) {
+    memcpy(visu.AskFrameV()[y], img->cr + y*img->chroma_stride, img->chroma_width);
+  }
+
   Image<Pixel> debugvisu;
+  ChangeColorspace(debugvisu, visu, Colorspace_RGB);
 
+  // --- convert to QImage ---
 
-  // --- convert to RGB (or generate a black image if video image is disabled) ---
-
-  if (mShowDecodedImage) {
-    Image<Pixel> visu;
-    visu.Create(img->width, img->height, Colorspace_YUV, Chroma_420);
-
-    for (int y=0;y<img->height;y++) {
-      memcpy(visu.AskFrameY()[y], img->y + y*img->stride, img->width);
-    }
-
-    for (int y=0;y<img->chroma_height;y++) {
-      memcpy(visu.AskFrameU()[y], img->cb + y*img->chroma_stride, img->chroma_width);
-    }
-
-    for (int y=0;y<img->chroma_height;y++) {
-      memcpy(visu.AskFrameV()[y], img->cr + y*img->chroma_stride, img->chroma_width);
-    }
-
-
-    ChangeColorspace(debugvisu, visu, Colorspace_RGB);
-  }
-  else {
-    debugvisu.Create(img->width,img->height, Colorspace_RGB);
-    Clear(debugvisu, Color<Pixel>(0,0,0));
-  }
-
-
-  // --- convert to QImage and show ---
-
-  if (mFrameCount==0) {
-    mImgBuffers[0] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
-    mImgBuffers[1] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
-  }
-
-  QImage* qimg = &mImgBuffers[mNextBuffer];
-  uchar* ptr = qimg->bits();
-  int bpl = qimg->bytesPerLine();
+  uchar* ptr = qimg.bits();
+  int bpl = qimg.bytesPerLine();
 
   for (int y=0;y<img->height;y++)
     {
@@ -205,43 +205,89 @@ void VideoDecoder::show_frame(const de265_image* img)
 
       ptr += bpl;
     }
+}
+#endif
 
+#ifdef HAVE_SWSCALE
+void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
+{
+  if (sws == NULL || img->width != width || img->height != height) {
+    if (sws != NULL) {
+      sws_freeContext(sws);
+    }
+    width = img->width;
+    height = img->height;
+    sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+  }
+
+  int stride[3] = { img->stride, img->chroma_stride, img->chroma_stride };
+  uint8_t *data[3] = { img->y, img->cb, img->cr };
+  uint8_t *qdata[1] = { (uint8_t *) qimg.bits() };
+  int qstride[1] = { qimg.bytesPerLine() };
+  sws_scale(sws, data, stride, 0, img->height, qdata, qstride);
+}
+#endif
+
+void VideoDecoder::show_frame(const de265_image* img)
+{
+  if (mFrameCount==0) {
+    mImgBuffers[0] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
+    mImgBuffers[1] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
+  }
+
+  // --- convert to RGB (or generate a black image if video image is disabled) ---
+
+  QImage* qimg = &mImgBuffers[mNextBuffer];
+  uchar* ptr = qimg->bits();
+  int bpl = qimg->bytesPerLine();
+
+  if (mShowDecodedImage) {
+#ifdef HAVE_VIDEOGFX
+    convert_frame_libvideogfx(img, *qimg);
+#elif HAVE_SWSCALE
+    convert_frame_swscale(img, *qimg);
+#else
+    qimg->fill(QColor(0, 0, 0));
+#endif
+  } else {
+    qimg->fill(QColor(0, 0, 0));
+  }
 
   // --- overlay coding-mode visualization ---
 
   if (mShowQuantPY)
     {
-      draw_QuantPY(img, qimg->bits(),bpl,4);
+      draw_QuantPY(img, ptr, bpl, 4);
     }
 
   if (mShowPBPredMode)
     {
-      draw_PB_pred_modes(img, qimg->bits(), bpl, 4);
+      draw_PB_pred_modes(img, ptr, bpl, 4);
     }
 
   if (mShowIntraPredMode)
     {
-      draw_intra_pred_modes(img, qimg->bits(), bpl, 0x009090ff,4);
+      draw_intra_pred_modes(img, ptr, bpl, 0x009090ff, 4);
     }
 
   if (mTBShowPartitioning)
     {
-      draw_TB_grid(img, qimg->bits(), bpl, 0x00ff6000,4);
+      draw_TB_grid(img, ptr, bpl, 0x00ff6000, 4);
     }
 
   if (mPBShowPartitioning)
     {
-      draw_PB_grid(img, qimg->bits(), bpl, 0x00e000, 4);
+      draw_PB_grid(img, ptr, bpl, 0x00e000, 4);
     }
 
   if (mCBShowPartitioning)
     {
-      draw_CB_grid(img, qimg->bits(), bpl,0x00FFFFFF,4);
+      draw_CB_grid(img, ptr, bpl, 0x00FFFFFF, 4);
     }
 
   if (mShowMotionVec)
     {
-      draw_Motion(img, qimg->bits(), bpl,4);
+      draw_Motion(img, ptr, bpl, 4);
     }
 
   emit displayImage(qimg);
@@ -340,5 +386,5 @@ void VideoDecoder::free_decoder()
 {
   if (mFH) { fclose(mFH); }
 
-  de265_free_decoder(ctx);
+  if (ctx) { de265_free_decoder(ctx); }
 }

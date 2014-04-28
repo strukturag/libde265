@@ -155,24 +155,44 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
    PKG_CHECK_MODULES([VIDEOGFX], [libvideogfx],
                      [AC_DEFINE([HAVE_VIDEOGFX], [1], [Whether libvideogfx was found.])
                       AC_SUBST(VIDEOGFX_CFLAGS)
-                      AC_SUBST(VIDEOGFX_LIBS)],
-                     [enable_sherlock265="no"
-                      AC_MSG_WARN([Did not find libvideogfx, compilation of sherlock265 will be disabled.])]
+                      AC_SUBST(VIDEOGFX_LIBS)
+                      have_videogfx="yes"],
+                     [have_videogfx="no"]
                      )
 fi
 
-if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes" ; then
+if eval "test x$enable_dec265 = xyes" && eval "test x$have_videogfx != xyes"; then
    PKG_CHECK_MODULES([SDL], [sdl],
-                     [AC_DEFINE([HAVE_SDL], [1], [Whether libSDL was found.])
+                     [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl was found.])
                       AC_SUBST(SDL_CFLAGS)
                       AC_SUBST(SDL_LIBS)
                       have_sdl="yes"],
-                     [have_sdl="no"
-                      AC_MSG_WARN([Did not find libsdl, video output of dec265 will be disabled.])]
+                     [have_sdl="no"]
                      )
 fi
 
+if eval "test x$enable_sherlock265 = xyes" && eval "test x$have_videogfx != xyes" ; then
+   PKG_CHECK_MODULES([SWSCALE], [libswscale],
+                     [AC_DEFINE([HAVE_SWSCALE], [1], [Whether libswscale was found.])
+                      AC_SUBST(SWSCALE_CFLAGS)
+                      AC_SUBST(SWSCALE_LIBS)
+                      have_swscale="yes"],
+                     [have_swscale="no"]
+                     )
+fi
+
+AM_CONDITIONAL([HAVE_VIDEOGFX], [test "x$have_videogfx" != "xno"])
+AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" != "xno"])
 AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" != "xno"])
+
+if eval "test $enable_dec265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_sdl != yes" ; then
+  AC_MSG_WARN([Did not find libvideogfx or libsdl, video output of dec265 will be disabled.])
+fi
+
+if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_swscale != yes" ; then
+  AC_MSG_WARN([Did not find libvideogfx or libswscale, compilation of sherlock265 will be disabled.])
+  enable_sherlock265="no"
+fi
 
 if eval "test $enable_sherlock265 = yes" ; then
   PKG_CHECK_MODULES([QT], [QtCore QtGui])
@@ -184,6 +204,11 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 
 # --- output configuration results ---
 
+AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
+AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
+AC_MSG_NOTICE([---------------------------------------])
+
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
@@ -192,9 +217,3 @@ AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_CONFIG_FILES([libde265.pc])
 AC_OUTPUT
-
-
-echo "---------------------------------------"
-echo "Building dec265 example:" $enable_dec265
-echo "Building sherlock265 example:" $enable_sherlock265
-echo "---------------------------------------"

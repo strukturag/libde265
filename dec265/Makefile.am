@@ -4,12 +4,19 @@ bin_PROGRAMS = dec265
 AM_CPPFLAGS = -I../libde265
 
 dec265_DEPENDENCIES = ../libde265/libde265.la
-dec265_CXXFLAGS = $(VIDEOGFX_CFLAGS) $(SDL_CFLAGS)
-dec265_LDFLAGS = $(VIDEOGFX_LIBS) $(SDL_LIBS)
+dec265_CXXFLAGS =
+dec265_LDFLAGS =
 dec265_LDADD = ../libde265/libde265.la -lstdc++
 dec265_SOURCES = dec265.cc
 
+if HAVE_VIDEOGFX
+  dec265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
+  dec265_LDFLAGS += $(VIDEOGFX_LIBS)
+endif
+
 if HAVE_SDL
+  dec265_CXXFLAGS += $(SDL_CFLAGS)
+  dec265_LDFLAGS += $(SDL_LIBS)
   dec265_SOURCES += sdl.cc sdl.hh
 endif
 
