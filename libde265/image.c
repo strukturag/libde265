@@ -175,6 +175,8 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       img->tu_info_size = sps->PicSizeInTbsY;
       free(img->tu_info);
       img->tu_info = (uint8_t*)malloc(sizeof(uint8_t) * img->tu_info_size);
+      img->Log2MinTrafoSize = sps->Log2MinTrafoSize;
+      img->PicWidthInTbsY = sps->PicWidthInTbsY;
     }
 
 
@@ -498,17 +500,17 @@ int  get_QPY(const de265_image* img, int x,int y)
 }
 
 
-#define PIXEL2TU(x) (x >> img->sps->Log2MinTrafoSize)
-#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->sps->PicWidthInTbsY)
+#define PIXEL2TU(x) (x >> img->Log2MinTrafoSize)
+#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->PicWidthInTbsY)
 
 #define OR_TU_BLK(x,y,log2BlkWidth,  value)                             \
   int tuX = PIXEL2TU(x);                                                \
   int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - img->sps->Log2MinTrafoSize);         \
+  int width = 1 << (log2BlkWidth - img->Log2MinTrafoSize);              \
   for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
     for (int tux=tuX;tux<tuX+width;tux++)                               \
       {                                                                 \
-        img->tu_info[ tux + tuy*img->sps->PicWidthInTbsY ] |= value;    \
+        img->tu_info[ tux + tuy*img->PicWidthInTbsY ] |= value;         \
       }
 
 void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth)

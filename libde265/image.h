@@ -181,6 +181,8 @@ typedef struct de265_image {
 
   uint8_t* tu_info;
   int tu_info_size;
+  int Log2MinTrafoSize;
+  int PicWidthInTbsY;
 
   uint8_t* deblk_info;
   int deblk_info_size;
