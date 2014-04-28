@@ -33,6 +33,8 @@ if CPU_COUNT > 2:
 else:
     THREAD_COUNT = '2'
 
+PROCESS_COUNT = max(4, CPU_COUNT)
+
 DEFAULT_ROOT = '/var/lib/libde265-teststreams'
 
 def decode_file(filename):
@@ -62,7 +64,7 @@ if multiprocessing is not None:
 
         def __init__(self, *args, **kw):
             super(MultiprocessingProcessor, self).__init__(*args, **kw)
-            self.pool = multiprocessing.Pool()
+            self.pool = multiprocessing.Pool(PROCESS_COUNT)
             self.pending_jobs = []
 
         def process(self, *args, **kw):
@@ -117,6 +119,7 @@ def main():
     
     filenames = glob.glob(os.path.join(root, '*.bin'))
     print 'Processing %d streams in %s' % (len(filenames), root)
+    print 'Using %d processes with %s threads each' % (PROCESS_COUNT, THREAD_COUNT)
     
     processor = ProcessorClass(filenames)
     try:
