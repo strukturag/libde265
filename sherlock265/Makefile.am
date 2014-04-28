@@ -37,3 +37,6 @@ moc_VideoPlayer.cpp: VideoPlayer.hh
 
 moc_VideoDecoder.cpp: VideoDecoder.hh
 	/usr/bin/moc-qt4 $(DEFINES) $(INCPATH) VideoDecoder.hh -o moc_VideoDecoder.cpp
+
+EXTRA_DIST = \
+  README
