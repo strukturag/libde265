@@ -217,6 +217,11 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
         img->ctb_info     = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
         img->ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
                                                           * img->ctb_info_size);
+        if (img->ctb_progress == NULL) {
+          img->ctb_info_size = 0;
+          de265_free_image(img);
+          return DE265_ERROR_OUT_OF_MEMORY;
+        }
         img->Log2CtbSizeY = sps->Log2CtbSizeY;
         img->PicWidthInCtbsY = sps->PicWidthInCtbsY;
 
