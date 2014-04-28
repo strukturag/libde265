@@ -164,6 +164,8 @@ typedef struct de265_image {
 
   CTB_info* ctb_info; // in raster scan
   int ctb_info_size;
+  int Log2CtbSizeY;
+  int PicWidthInCtbsY;
 
   CB_ref_info* cb_info;
   int cb_info_size;

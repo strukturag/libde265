@@ -207,6 +207,8 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
         img->ctb_info     = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
         img->ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
                                                           * img->ctb_info_size);
+        img->Log2CtbSizeY = sps->Log2CtbSizeY;
+        img->PicWidthInCtbsY = sps->PicWidthInCtbsY;
 
         for (int i=0;i<img->ctb_info_size;i++)
           { de265_progress_lock_init(&img->ctb_progress[i]); }
@@ -575,13 +577,13 @@ uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
 
 void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS)
 {
-  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
-  img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
 }
 
 int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY)
 {
-  return img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceAddrRS;
+  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS;
 }
 
 int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS)
@@ -591,30 +593,30 @@ int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS)
 
 void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex)
 {
-  int ctbX = x >> img->sps->Log2CtbSizeY;
-  int ctbY = y >> img->sps->Log2CtbSizeY;
-  img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+  int ctbX = x >> img->Log2CtbSizeY;
+  int ctbY = y >> img->Log2CtbSizeY;
+  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
 }
 
 int  get_SliceHeaderIndex(const de265_image* img, int x, int y)
 {
-  int ctbX = x >> img->sps->Log2CtbSizeY;
-  int ctbY = y >> img->sps->Log2CtbSizeY;
-  return img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].SliceHeaderIndex;
+  int ctbX = x >> img->Log2CtbSizeY;
+  int ctbY = y >> img->Log2CtbSizeY;
+  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex;
 }
 
 
 
 void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo)
 {
-  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
-  memcpy(&img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].saoInfo,
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  memcpy(&img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo,
          saoinfo,
          sizeof(sao_info));
 }
 
 const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY)
 {
-  assert(ctbX + ctbY*img->sps->PicWidthInCtbsY < img->ctb_info_size);
-  return &img->ctb_info[ctbX + ctbY*img->sps->PicWidthInCtbsY].saoInfo;
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo;
 }
