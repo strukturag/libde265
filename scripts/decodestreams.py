@@ -33,7 +33,7 @@ if CPU_COUNT > 2:
 else:
     THREAD_COUNT = '2'
 
-PROCESS_COUNT = max(4, CPU_COUNT)
+PROCESS_COUNT = min(4, CPU_COUNT)
 
 DEFAULT_ROOT = '/var/lib/libde265-teststreams'
 
