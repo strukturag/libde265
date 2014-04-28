@@ -389,8 +389,6 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 {
   assert(has_free_dpb_picture(&ctx->dpb, true));
 
-  //printf("generate_unavailable_reference_picture(%d,%d)\n",POC,longTerm);
-
   int idx = initialize_new_DPB_image(&ctx->dpb, ctx->current_sps);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
@@ -803,7 +801,7 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
             hdr->RefPicList[0][rIdx],
-            ctx->dpb[hdr->RefPicList[0][rIdx]].PicOrderCntVal
+            ctx->dpb.dpb[hdr->RefPicList[0][rIdx]].PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
@@ -812,7 +810,7 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
             hdr->RefPicList[1][rIdx],
-            ctx->dpb[hdr->RefPicList[1][rIdx]].PicOrderCntVal
+            ctx->dpb.dpb[hdr->RefPicList[1][rIdx]].PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
@@ -830,7 +828,7 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
   if (img->sps==NULL) { return; } // might be an unavailable-reference replacement image
 
 
-  //printf("cleanup_image POC=%d\n",img->PicOrderCntVal);
+  //printf("cleanup_image POC=%d  (%p) from %s\n",img->PicOrderCntVal,img,why);
 
   // mark all slice-headers locked by this image as unused
 

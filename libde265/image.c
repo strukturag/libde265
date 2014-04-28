@@ -147,6 +147,8 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     if (img->cb_info_size != sps->PicSizeInMinCbsY ||
         img->cb_info == NULL) {
       img->cb_info_size = sps->PicSizeInMinCbsY;
+      img->Log2MinCbSizeY = sps->Log2MinCbSizeY;
+      img->PicWidthInMinCbsY = sps->PicWidthInMinCbsY;
       free(img->cb_info);
       img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * img->cb_info_size);
     }
@@ -370,8 +372,8 @@ void img_clear_decoding_data(de265_image* img)
 }
 
 
-#define PIXEL2CB(x) (x >> img->sps->Log2MinCbSizeY)
-#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->sps->PicWidthInMinCbsY)
+#define PIXEL2CB(x) (x >> img->Log2MinCbSizeY)
+#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->PicWidthInMinCbsY)
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
   int cbY = PIXEL2CB(y);                                                \
@@ -379,7 +381,7 @@ void img_clear_decoding_data(de265_image* img)
   for (int cby=cbY;cby<cbY+width;cby++)                                 \
     for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
       {                                                                 \
-        img->cb_info[ cbx + cby*img->sps->PicWidthInMinCbsY ].Field = value; \
+        img->cb_info[ cbx + cby*img->PicWidthInMinCbsY ].Field = value; \
       }
 
 
@@ -400,7 +402,7 @@ enum PredMode get_pred_mode(const de265_image* img, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return (enum PredMode)img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].PredMode;
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].PredMode;
 }
 
 
@@ -415,7 +417,7 @@ int  get_cu_transquant_bypass(const de265_image* img, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].cu_transquant_bypass;
+  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].cu_transquant_bypass;
 }
 
 
@@ -429,7 +431,7 @@ int get_pcm_flag(const de265_image* img, int x,int y)
   int cbX = PIXEL2CB(x);
   int cbY = PIXEL2CB(y);
 
-  return img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].pcm_flag;
+  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].pcm_flag;
 }
 
 
@@ -438,7 +440,7 @@ int  get_log2CbSize(const de265_image* img, int x0, int y0)
   int cbX = PIXEL2CB(x0);
   int cbY = PIXEL2CB(y0);
 
-  return (enum PredMode)img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize;
 }
 
 void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
@@ -446,7 +448,7 @@ void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
   int cbX = PIXEL2CB(x0);
   int cbY = PIXEL2CB(y0);
 
-  img->cb_info[ cbX + cbY*img->sps->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
+  img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
 
   // assume that remaining cb_info blocks are initialized to zero
 }
@@ -454,7 +456,7 @@ void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
 // coordinates in CB units
 int  get_log2CbSize_cbUnits(const de265_image* img, int x0, int y0)
 {
-  return (enum PredMode)img->cb_info[ x0 + y0*img->sps->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info[ x0 + y0*img->PicWidthInMinCbsY ].log2CbSize;
 }
 
 

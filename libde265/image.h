@@ -167,6 +167,8 @@ typedef struct de265_image {
 
   CB_ref_info* cb_info;
   int cb_info_size;
+  int Log2MinCbSizeY;
+  int PicWidthInMinCbsY;
 
   PB_ref_info* pb_info;
   int pb_info_size;
