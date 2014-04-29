@@ -102,6 +102,12 @@ class NAL_Parser
     return size;
   }
 
+  void free_NAL_unit(NAL_unit*);
+
+
+  int get_NAL_queue_length() const { return NAL_queue_len; }
+  bool is_end_of_stream() const { return end_of_stream; }
+
  private:
   // --- input stream data ---
 
@@ -124,7 +130,6 @@ class NAL_Parser
   int NAL_free_list_size;
 
   NAL_unit* alloc_NAL_unit(int size, int skipped_size);
-  void      free_NAL_unit(NAL_unit*);
 };
 
 

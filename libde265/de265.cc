@@ -302,14 +302,11 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
 
 LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more)
 {
-#if 0
-  // TMP TODO: 
-
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
-  if (ctx->NAL_queue_len == 0 && ctx->end_of_stream) {
+  if (ctx->nal_parser.get_NAL_queue_length() == 0 && ctx->nal_parser.is_end_of_stream()) {
     if (more) { *more=0; } // 0 if no more pictures in queue
 
     push_current_picture_to_output_queue(ctx);
@@ -325,7 +322,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   // if NAL-queue is empty, we need more data
   // -> input stalled
 
-  if (ctx->NAL_queue_len == 0) {
+  if (ctx->nal_parser.get_NAL_queue_length() == 0) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
@@ -343,10 +340,10 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 
   // decode one NAL from the queue
 
-  NAL_unit* nal = pop_from_NAL_queue(ctx);
+  NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
   assert(nal);
   de265_error err = de265_decode_NAL(de265ctx, nal);
-  free_NAL_unit(ctx,nal);
+  ctx->nal_parser.free_NAL_unit(nal);
 
   if (more) {
     // decoding error is assumed to be unrecoverable
@@ -354,10 +351,6 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   }
 
   return err;
-#endif
-
-  assert(0);
-  return DE265_OK;
 }
 
 
