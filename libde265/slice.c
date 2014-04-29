@@ -882,7 +882,6 @@ static void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
 
   // model state will always be between [0;62]
 
-  assert(model->state >= 0);
   assert(model->state <= 62);
 }
 
