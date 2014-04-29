@@ -120,7 +120,7 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   if (pps->tiles_enabled_flag ) {
     pps->num_tile_columns = get_uvlc(br);
     if (pps->num_tile_columns == UVLC_ERROR ||
-	pps->num_tile_columns > DE265_MAX_TILE_COLUMNS) {
+	pps->num_tile_columns+1 > DE265_MAX_TILE_COLUMNS) {
       add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -128,7 +128,7 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
     pps->num_tile_rows = get_uvlc(br);
     if (pps->num_tile_rows == UVLC_ERROR ||
-	pps->num_tile_rows > DE265_MAX_TILE_ROWS) {
+	pps->num_tile_rows+1 > DE265_MAX_TILE_ROWS) {
       add_warning(ctx, DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -567,6 +567,12 @@ void free_pps(pic_parameter_set* pps)
   if (pps->TileId)   { free(pps->TileId); }
   if (pps->TileIdRS) { free(pps->TileIdRS); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
+
+  pps->CtbAddrRStoTS=NULL;
+  pps->CtbAddrTStoRS=NULL;
+  pps->TileId=NULL;
+  pps->TileIdRS=NULL;
+  pps->MinTbAddrZS=NULL;
 }
 
 
