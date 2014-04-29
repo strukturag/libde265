@@ -780,6 +780,8 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
   enum PartMode PartMode = get_PartMode(ctx->img,xC,yC);
 
+  const de265_image* img = ctx->img;
+
   // --- A1 ---
 
   // a pixel within A1
@@ -812,7 +814,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   }
   else {
     out_cand->available[PRED_A1] = 1;
-    out_cand->pred_vector[PRED_A1] = *get_mv_info(ctx,xA1,yA1);
+    out_cand->pred_vector[PRED_A1] = *get_mv_info(img,xA1,yA1);
 
     logtrace(LogMotion,"spatial merging candidate A1:\n");
     logmvcand(out_cand->pred_vector[PRED_A1]);
@@ -850,7 +852,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   }
   else {
     out_cand->available[PRED_B1] = 1;
-    out_cand->pred_vector[PRED_B1] = *get_mv_info(ctx,xB1,yB1);
+    out_cand->pred_vector[PRED_B1] = *get_mv_info(img,xB1,yB1);
 
     if (availableA1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_A1],
@@ -888,7 +890,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   }
   else {
     out_cand->available[PRED_B0] = 1;
-    out_cand->pred_vector[PRED_B0] = *get_mv_info(ctx,xB0,yB0);
+    out_cand->pred_vector[PRED_B0] = *get_mv_info(img,xB0,yB0);
 
     if (availableB1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_B1],
@@ -926,7 +928,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   }
   else {
     out_cand->available[PRED_A0] = 1;
-    out_cand->pred_vector[PRED_A0] = *get_mv_info(ctx,xA0,yA0);
+    out_cand->pred_vector[PRED_A0] = *get_mv_info(img,xA0,yA0);
 
     if (availableA1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_A1],
@@ -969,7 +971,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
   }
   else {
     out_cand->available[PRED_B2] = 1;
-    out_cand->pred_vector[PRED_B2] = *get_mv_info(ctx,xB2,yB2);
+    out_cand->pred_vector[PRED_B2] = *get_mv_info(img,xB2,yB2);
 
     if (availableB1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_B1],
@@ -1104,7 +1106,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       return;
     }
 
-    const PredVectorInfo* mvi = get_img_mv_info(colImg,xColPb,yColPb);
+    const PredVectorInfo* mvi = get_mv_info(colImg,xColPb,yColPb);
     int listCol;
     int refIdxCol;
     MotionVector mvCol;
@@ -1511,7 +1513,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
       int Y=1-X;
       
-      const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
+      const PredVectorInfo* vi = get_mv_info(ctx->img, xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
 
@@ -1550,7 +1552,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
       int Y=1-X;
       
-      const PredVectorInfo* vi = get_mv_info(ctx, xA[k],yA[k]);
+      const PredVectorInfo* vi = get_mv_info(ctx->img, xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
 
@@ -1628,7 +1630,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       
       int Y=1-X;
       
-      const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
+      const PredVectorInfo* vi = get_mv_info(ctx->img, xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(*vi);
 
@@ -1681,7 +1683,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       if (availableB[k]) {
         int Y=1-X;
       
-        const PredVectorInfo* vi = get_mv_info(ctx, xB[k],yB[k]);
+        const PredVectorInfo* vi = get_mv_info(ctx->img, xB[k],yB[k]);
         if (vi->predFlag[X]==1 &&
             shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
           out_availableFlagLXN[B]=1;
@@ -1910,61 +1912,3 @@ void decode_prediction_unit(decoder_context* ctx,
   set_mv_info(ctx->img,xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
 }
 
-
-// 8.5.2
-#if 0
-void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
-                      int xC,int yC, int log2CbSize)
-{
-  int nCS_L = 1<<log2CbSize;
-  //int nCS_C = nCS_L>>1;
-  int nCS1L = nCS_L>>1;
-
-  enum PartMode partMode = get_PartMode(ctx->img,xC,yC);
-  switch (partMode) {
-  case PART_2Nx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,0, nCS_L, nCS_L,nCS_L, 0);
-    break;
-
-  case PART_2NxN:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,     nCS_L, nCS_L,nCS1L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L, nCS_L, nCS_L,nCS1L, 1);
-    break;
-
-  case PART_Nx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0, nCS_L, nCS1L,nCS_L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0, nCS_L, nCS1L,nCS_L, 1);
-    break;
-
-  case PART_2NxnU:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,        nCS_L, nCS_L,nCS1L>>1, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L>>1, nCS_L, nCS_L,nCS1L + (nCS1L>>1), 1);
-    break;
-
-  case PART_2NxnD:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,0,                  nCS_L, nCS_L,nCS1L + (nCS1L>>1), 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,nCS1L + (nCS1L>>1), nCS_L, nCS_L,nCS1L>>1, 1);
-    break;
-
-  case PART_nLx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,       0, nCS_L, nCS1L>>1,          nCS_L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L>>1,0, nCS_L, nCS1L + (nCS1L>>1),nCS_L, 1);
-    break;
-
-  case PART_nRx2N:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,                 0, nCS_L, nCS1L + (nCS1L>>1),nCS_L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L + (nCS1L>>1),0, nCS_L, nCS1L>>1,nCS_L, 1);
-    break;
-
-  case PART_NxN:
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,    0,     nCS_L, nCS1L,nCS1L, 0);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,0,     nCS_L, nCS1L,nCS1L, 1);
-    decode_prediction_unit(ctx,shdr,xC,yC, 0,    nCS1L, nCS_L, nCS1L,nCS1L, 2);
-    decode_prediction_unit(ctx,shdr,xC,yC, nCS1L,nCS1L, nCS_L, nCS1L,nCS1L, 3);
-    break;
-
-  default:
-    assert(false); // undefined partitioning mode
-  }
-}
-#endif

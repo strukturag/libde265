@@ -1440,7 +1440,7 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
-    const PredVectorInfo* mvi = get_img_mv_info(srcimg,x0,y0);
+    const PredVectorInfo* mvi = get_mv_info(srcimg,x0,y0);
     int x = x0+w/2;
     int y = y0+h/2;
     if (mvi->predFlag[0]) {

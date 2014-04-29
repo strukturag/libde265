@@ -339,11 +339,6 @@ LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context*
 }
 
 
-LIBDE265_INLINE static const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
-{
-  return get_img_mv_info(ctx->img,x,y);
-}
-
 // TODO: move to some utility file
 bool available_zscan(const de265_image* ctx,
                      int xCurr,int yCurr, int xN,int yN);
