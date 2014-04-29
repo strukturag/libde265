@@ -28,9 +28,9 @@
 using namespace videogfx;
 #endif
 
-extern "C" {
+//extern "C" {
 #include "decctx.h"
-}
+//}
 
 
 VideoDecoder::VideoDecoder()

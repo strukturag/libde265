@@ -146,20 +146,20 @@ bool flush_reorder_buffer(decoded_picture_buffer* dpb)
 }
 
 
-void dpb_clear_images(decoded_picture_buffer* dpb, decoder_context* ctx)
+void decoded_picture_buffer::clear_images(decoder_context* ctx)
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    if (dpb->dpb[i].PicOutputFlag ||
-        dpb->dpb[i].PicState != UnusedForReference)
+    if (dpb[i].PicOutputFlag ||
+        dpb[i].PicState != UnusedForReference)
       {
-        dpb->dpb[i].PicOutputFlag = false;
-        dpb->dpb[i].PicState = UnusedForReference;
-        cleanup_image(ctx, &dpb->dpb[i]);
+        dpb[i].PicOutputFlag = false;
+        dpb[i].PicState = UnusedForReference;
+        cleanup_image(ctx, &dpb[i]);
       }
   }
 
-  dpb->reorder_output_queue_length=0;
-  dpb->image_output_queue_length=0;
+  reorder_output_queue_length=0;
+  image_output_queue_length=0;
 }
 
 

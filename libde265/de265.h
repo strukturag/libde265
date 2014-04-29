@@ -31,7 +31,9 @@ extern "C" {
 //#define inline static __inline
 
 
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS 1
+#endif
 #include <stdint.h>
 
 #if defined(_MSC_VER) && !defined(LIBDE265_STATIC_BUILD)

@@ -374,8 +374,11 @@ void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---
 
+extern "C" {
 LIBDE265_API void set_output_filename(const char* filename);
 LIBDE265_API void write_picture(const de265_image* img);
+}
+
 void write_picture_to_file(const de265_image* img, const char* filename);
 
 void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);

@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT([libde265], [0.6], [farin@struktur.de])
-AC_CONFIG_SRCDIR([libde265/de265.c])
+AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
 NUMERIC_VERSION=0x00060000 # Numeric representation of the version

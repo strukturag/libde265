@@ -34,6 +34,7 @@ int nAvailPart;
 int nAvailAll;
 int nAvailSz[32*2+32*2+1+1];
 
+extern "C" {
 LIBDE265_API void showIntraPredictionProfile()
 {
   printf("nIntraPredictions: %d\n", nIntraPredictions);
@@ -47,6 +48,7 @@ LIBDE265_API void showIntraPredictionProfile()
       printf("%d ",nAvailSz[i]);
     printf("\n");
   }
+}
 }
 
 

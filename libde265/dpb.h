@@ -33,6 +33,8 @@
 
 typedef struct decoded_picture_buffer {
 
+  void clear_images(struct decoder_context* ctx);
+
   // --- decoded picture buffer ---
 
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
@@ -50,8 +52,6 @@ typedef struct decoded_picture_buffer {
 
 void init_dpb(decoded_picture_buffer*);
 void free_dpb(decoded_picture_buffer*);
-
-void dpb_clear_images(decoded_picture_buffer* dpb, struct decoder_context* ctx);
 
 // output next picture from reorder buffer, TODO: rename function
 void flush_next_picture_from_reorder_buffer(decoded_picture_buffer* dpb);

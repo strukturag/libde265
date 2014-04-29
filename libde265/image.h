@@ -218,7 +218,7 @@ typedef struct de265_image {
                       */
   uint8_t sei_hash_check_result;
 
-  nal_header nal_header;
+  nal_header nal_hdr;
 
   // --- multi core ---
 

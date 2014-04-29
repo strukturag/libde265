@@ -85,6 +85,7 @@ int FullpelBipredCnt;
 int FullpelPredCnt;
 int TotalPredCnt;  // number of prediction blocks
 
+extern "C" {
 LIBDE265_API void showMotionProfile()
 {
   fprintf(stderr,"fractional pel positions:\n");
@@ -109,6 +110,7 @@ LIBDE265_API void showMotionProfile()
   fprintf(stderr,"bi-pred: %d (%4.1f %%)\n", BipredCnt, BipredCnt*100.0/TotalPredCnt);
   fprintf(stderr,"full-pel bi-pred: %d (%4.1f %%)\n", FullpelBipredCnt, FullpelBipredCnt*100.0/TotalPredCnt);
   fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
+}
 }
 
 

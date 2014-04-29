@@ -36,12 +36,17 @@
 #include <stdlib.h>
 
 
+extern void thread_decode_CTB_row(void* d);
+extern void thread_decode_slice_segment(void* d);
+
+extern "C" {
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal);
+}
 
 // TODO: should be in some vps.c related header
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 
-
+extern "C" {
 LIBDE265_API const char *de265_get_version(void)
 {
     return (LIBDE265_VERSION);
@@ -565,9 +570,6 @@ void init_thread_context(thread_context* tctx)
 }
 
 
-extern void thread_decode_CTB_row(void* d);
-extern void thread_decode_slice_segment(void* d);
-
 
 void add_task_decode_CTB_row(decoder_context* ctx, int thread_id, bool initCABAC)
 {
@@ -644,7 +646,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           return err;
         }
 
-      ctx->img->nal_header = nal_hdr;
+      ctx->img->nal_hdr = nal_hdr;
 
       skip_bits(&reader,1); // TODO: why?
       prepare_for_CABAC(&reader);
@@ -913,10 +915,24 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
   if (1) { /* TODO: alternatively, we could just leave the pictures in the queue,
               but then, old pictures decoded before calling 'reset' will be shown afterwards. */
-    dpb_clear_images(&ctx->dpb, ctx);
+    ctx->dpb.clear_images(ctx);
     ctx->first_decoded_picture = true;
   }
 
+
+  // --- remove pending input data ---
+
+  ctx->nBytes_in_NAL_queue = 0;
+  free_NAL_unit(ctx,ctx->pending_input_NAL);
+  for (;;) {
+    NAL_unit* nal = pop_from_NAL_queue(ctx);
+    if (nal) { free_NAL_unit(ctx,nal); }
+    else break;
+  }
+  ctx->input_push_state = 0;
+
+
+  // --- start threads again ---
 
   if (num_worker_threads>0) {
     // TODO: need error checking
@@ -1129,9 +1145,10 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id)
 {
-  if (nal_unit_type)   *nal_unit_type   = img->nal_header.nal_unit_type;
-  if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_header.nal_unit_type);
-  if (nuh_layer_id)    *nuh_layer_id    = img->nal_header.nuh_layer_id;
-  if (nuh_temporal_id) *nuh_temporal_id = img->nal_header.nuh_temporal_id;
+  if (nal_unit_type)   *nal_unit_type   = img->nal_hdr.nal_unit_type;
+  if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_hdr.nal_unit_type);
+  if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
+  if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
+}
 }
 
