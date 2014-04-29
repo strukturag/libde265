@@ -71,8 +71,6 @@ void init_decoder_context(decoder_context* ctx)
     init_sps(&ctx->sps[i]);
   }
 
-  init_dpb(&ctx->dpb);
-
   ctx->first_decoded_picture = true;
   //ctx->FirstAfterEndOfSequenceNAL = true;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
@@ -235,8 +233,6 @@ void free_decoder_context(decoder_context* ctx)
   for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
     free_sps(&ctx->sps[i]);
   }
-
-  free_dpb(&ctx->dpb);
 
   for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
     free_pps(&ctx->pps[i]);

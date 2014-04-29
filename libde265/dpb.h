@@ -33,6 +33,9 @@
 
 typedef struct decoded_picture_buffer {
 
+  decoded_picture_buffer();
+  ~decoded_picture_buffer();
+
   void clear_images(struct decoder_context* ctx);
 
   void pop_next_picture_in_output_queue();
@@ -78,8 +81,5 @@ typedef struct decoded_picture_buffer {
 
 } decoded_picture_buffer;
 
-
-void init_dpb(decoded_picture_buffer*);
-void free_dpb(decoded_picture_buffer*);
 
 #endif
