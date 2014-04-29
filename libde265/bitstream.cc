@@ -79,11 +79,23 @@ void rbsp_buffer_pop(rbsp_buffer* buffer, int n)
 }
 
 
-
+/*
 void bitreader_init(bitreader* br, rbsp_buffer* buffer)
 {
   br->data = buffer->data;
   br->bytes_remaining = buffer->size;
+
+  br->nextbits=0;
+  br->nextbits_cnt=0;
+
+  bitreader_refill(br);
+}
+*/
+
+void bitreader_init(bitreader* br, unsigned char* buffer, int len)
+{
+  br->data = buffer;
+  br->bytes_remaining = len;
 
   br->nextbits=0;
   br->nextbits_cnt=0;

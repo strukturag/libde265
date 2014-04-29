@@ -45,6 +45,64 @@
 #define SAVE_INTERMEDIATE_IMAGES 0
 
 
+
+NAL_unit::NAL_unit()
+{
+  nal_data = NULL;
+  data_size = 0;
+  capacity = 0;
+}
+
+NAL_unit::~NAL_unit()
+{
+  if (nal_data) {
+    ::free(nal_data);
+
+    nal_data = NULL;
+    data_size = 0;
+    capacity = 0;
+  }
+}
+
+void NAL_unit::init()
+{
+  nal_data = NULL;
+  data_size = 0;
+  capacity = 0;
+}
+
+void NAL_unit::free() { if (nal_data) { ::free(nal_data); nal_data=NULL; } } // TODO TMP
+
+void NAL_unit::resize(int new_size)
+{
+  if (capacity < new_size) {
+    unsigned char* newbuffer = (unsigned char*)malloc(new_size);
+
+    if (nal_data != NULL) {
+      memcpy(newbuffer, nal_data, data_size);
+      ::free(nal_data);
+    }
+
+    nal_data = newbuffer;
+    capacity = new_size;
+  }
+}
+
+void NAL_unit::append(const unsigned char* in_data, int n)
+{
+  resize(data_size + n);
+  memcpy(nal_data + data_size, in_data, n);
+  data_size += n;
+}
+
+void NAL_unit::set_data(const unsigned char* in_data, int n)
+{
+  resize(n);
+  memcpy(nal_data, in_data, n);
+  data_size = n;
+}
+
+
 void init_decoder_context(decoder_context* ctx)
 {
   memset(ctx, 0, sizeof(decoder_context));
@@ -119,7 +177,7 @@ NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
   if (ctx->NAL_free_list == NULL ||
       ctx->NAL_free_list_len==0) {
     nal = (NAL_unit*)calloc( sizeof(NAL_unit),1 );
-    rbsp_buffer_init(&nal->nal_data);
+    nal->init();
   }
   else {
     ctx->NAL_free_list_len--;
@@ -135,8 +193,8 @@ NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
   }
 
   nal->num_skipped_bytes = 0;
-  nal->nal_data.size = 0;
-  rbsp_buffer_resize(&nal->nal_data, size);
+  //nal->nal_data.size = 0;
+  nal->resize(size);
 
   return nal;
 }
@@ -158,7 +216,7 @@ void      free_NAL_unit(decoder_context* ctx, NAL_unit* nal)
     ctx->NAL_free_list_len++;
   }
   else {
-    rbsp_buffer_free(&nal->nal_data);
+    nal->free();
     free(nal->skipped_bytes);
     free(nal);
   }
@@ -176,7 +234,7 @@ NAL_unit* pop_from_NAL_queue(decoder_context* ctx)
     NAL_unit* nal = ctx->NAL_queue[0];
     memmove(ctx->NAL_queue, ctx->NAL_queue+1, sizeof(NAL_unit*)* ctx->NAL_queue_len);
 
-    ctx->nBytes_in_NAL_queue -= nal->nal_data.size;
+    ctx->nBytes_in_NAL_queue -= nal->size();
 
     return nal;
   }
@@ -194,7 +252,7 @@ void push_to_NAL_queue(decoder_context* ctx,NAL_unit* nal)
   ctx->NAL_queue[ ctx->NAL_queue_len ] = nal;
   ctx->NAL_queue_len++;
 
-  ctx->nBytes_in_NAL_queue += nal->nal_data.size;
+  ctx->nBytes_in_NAL_queue += nal->size();
 }
 
 
@@ -219,7 +277,7 @@ void free_decoder_context(decoder_context* ctx)
 
   for (int i=0;i<ctx->NAL_free_list_len;i++)
     {
-      rbsp_buffer_free(&ctx->NAL_free_list[i]->nal_data);
+      ctx->NAL_free_list[i]->free();
       free(ctx->NAL_free_list[i]->skipped_bytes);
       free(ctx->NAL_free_list[i]);
     }

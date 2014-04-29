@@ -58,7 +58,8 @@ typedef struct {
   int nextbits_cnt;
 } bitreader;
 
-void bitreader_init(bitreader*, rbsp_buffer*);
+//void bitreader_init(bitreader*, rbsp_buffer*);
+void bitreader_init(bitreader*, unsigned char* buffer, int len);
 void bitreader_refill(bitreader*); // refill to at least 56+1 bits
 int  next_bit(bitreader*);
 int  next_bit_norefill(bitreader*);

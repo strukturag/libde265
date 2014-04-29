@@ -60,9 +60,16 @@
 
 
 typedef struct NAL_unit {
+
+  NAL_unit();
+  ~NAL_unit();
+
+  void init(); // TODO TMP
+  void free(); // TODO TMP
+
   nal_header  header;
 
-  rbsp_buffer nal_data;
+  //rbsp_buffer nal_data;
 
   de265_PTS pts;
   void*     user_data;
@@ -76,6 +83,20 @@ typedef struct NAL_unit {
     pic_parameter_set pps;
     // slice_segment_header slice_hdr;
   };
+
+  void resize(int new_size);
+  void append(const unsigned char* data, int n);
+  void set_data(const unsigned char* data, int n);
+
+  int size() const { return data_size; }
+  void set_size(int s) { data_size=s; }
+  unsigned char* data() { return nal_data; }
+  const unsigned char* data() const { return nal_data; }
+
+private:
+  unsigned char* nal_data;
+  int data_size;
+  int capacity;
 } NAL_unit;
 
 

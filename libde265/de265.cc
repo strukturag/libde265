@@ -314,9 +314,9 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
 
   // Resize output buffer so that complete input would fit.
   // We add 3, because in the worst case 3 extra bytes are created for an input byte.
-  rbsp_buffer_resize(&nal->nal_data, nal->nal_data.size + len + 3);
+  nal->resize(nal->size() + len + 3);
 
-  unsigned char* out = nal->nal_data.data + nal->nal_data.size;
+  unsigned char* out = nal->data() + nal->size();
 
   for (int i=0;i<len;i++) {
     /*
@@ -364,7 +364,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
         *out++ = 0; *out++ = 0; ctx->input_push_state=5;
 
         // remember which byte we removed
-        nal_insert_skipped_byte(nal, (out - nal->nal_data.data) + nal->num_skipped_bytes);
+        nal_insert_skipped_byte(nal, (out - nal->data()) + nal->num_skipped_bytes);
       }
       else if (*data==1) {
 
@@ -378,7 +378,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
         }
 #endif
 
-        nal->nal_data.size = out - nal->nal_data.data;
+        nal->set_size(out - nal->data());;
 
         // push this NAL decoder queue
         push_to_NAL_queue(ctx, nal);
@@ -389,7 +389,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
         ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
         ctx->pending_input_NAL->pts = pts;
         nal = ctx->pending_input_NAL;
-        out = nal->nal_data.data;
+        out = nal->data();
 
         ctx->input_push_state=3;
         nal->num_skipped_bytes=0;
@@ -407,21 +407,21 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
     data++;
   }
 
-  nal->nal_data.size = out - nal->nal_data.data;
+  nal->set_size(out - nal->data());
   return DE265_OK;
 }
 
 
 void remove_stuffing_bytes(NAL_unit* nal)
 {
-  uint8_t* p = nal->nal_data.data;
+  uint8_t* p = nal->data();
 
-  for (int i=0;i<nal->nal_data.size-2;i++)
+  for (int i=0;i<nal->size()-2;i++)
     {
 #if 0
         for (int k=i;k<i+64;k++) 
-          if (i*0+k<nal->nal_data.size) {
-            printf("%c%02x", (k==i) ? '[':' ', nal->nal_data.data[k]);
+          if (i*0+k<nal->size()) {
+            printf("%c%02x", (k==i) ? '[':' ', nal->data()[k]);
           }
         printf("\n");
 #endif
@@ -436,8 +436,8 @@ void remove_stuffing_bytes(NAL_unit* nal)
           //printf("SKIP NAL @ %d\n",i+2+nal->num_skipped_bytes);
           nal_insert_skipped_byte(nal, i+2 + nal->num_skipped_bytes);
 
-          memmove(p+2, p+3, nal->nal_data.size-i-3);
-          nal->nal_data.size--;
+          memmove(p+2, p+3, nal->size()-i-3);
+          nal->set_size(nal->size()-1);
 
           p++;
           i++;
@@ -460,11 +460,9 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   assert(ctx->pending_input_NAL == NULL);
 
   NAL_unit* nal = alloc_NAL_unit(ctx, len, DE265_SKIPPED_BYTES_INITIAL_SIZE);
-  rbsp_buffer_resize(&nal->nal_data, len);
-  nal->nal_data.size = len;
+  nal->set_data(data, len);
   nal->pts = pts;
   nal->user_data = user_data;
-  memcpy(nal->nal_data.data, data, len);
 
   remove_stuffing_bytes(nal);
 
@@ -538,8 +536,8 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 
     // append bytes that are implied by the push state
 
-    if (ctx->input_push_state==6) { rbsp_buffer_append(&nal->nal_data,null,1); }
-    if (ctx->input_push_state==7) { rbsp_buffer_append(&nal->nal_data,null,2); }
+    if (ctx->input_push_state==6) { nal->append(null,1); }
+    if (ctx->input_push_state==7) { nal->append(null,2); }
 
 
     // only push the NAL if it contains at least the NAL header
@@ -599,19 +597,19 @@ void add_task_decode_slice_segment(decoder_context* ctx, int thread_id)
 de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  rbsp_buffer* data = &nal->nal_data;
+  //rbsp_buffer* data = &nal->nal_data;
 
   de265_error err = DE265_OK;
 
   bitreader reader;
-  bitreader_init(&reader, data);
+  bitreader_init(&reader, nal->data(), nal->size());
 
   nal_header nal_hdr;
   nal_read_header(&reader, &nal_hdr);
   process_nal_hdr(ctx, &nal_hdr);
 
   loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
-          data->data[0], data->data[1],
+          nal->data()[0], nal->data()[1],
           get_NAL_name(nal_hdr.nal_unit_type),
           nal_hdr.nuh_temporal_id);
 
@@ -654,7 +652,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
       // modify entry_point_offsets
 
-      int headerLength = reader.data - data->data;
+      int headerLength = reader.data - nal->data();
       for (int i=0;i<nal->num_skipped_bytes;i++)
         {
           nal->skipped_bytes[i] -= headerLength;
@@ -1117,7 +1115,7 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context* 
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   int size = ctx->nBytes_in_NAL_queue;
-  if (ctx->pending_input_NAL) { size += ctx->pending_input_NAL->nal_data.size; }
+  if (ctx->pending_input_NAL) { size += ctx->pending_input_NAL->size(); }
   return size;
 }
 
