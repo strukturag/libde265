@@ -243,25 +243,6 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 }
 
 
-void nal_insert_skipped_byte(NAL_unit* nal, int pos)
-{
-  if (nal->max_skipped_bytes == nal->num_skipped_bytes) {
-    if (nal->max_skipped_bytes == 0) {
-      nal->max_skipped_bytes = DE265_SKIPPED_BYTES_INITIAL_SIZE;
-    } else {
-      nal->max_skipped_bytes <<= 2;
-    }
-
-    // TODO: handle case where realloc fails
-    nal->skipped_bytes = (int *)realloc(nal->skipped_bytes,
-                                        nal->max_skipped_bytes * sizeof(int));
-  }
-
-  nal->skipped_bytes[nal->num_skipped_bytes] = pos;
-  nal->num_skipped_bytes++;
-}
-
-
 #ifndef LIBDE265_DISABLE_DEPRECATED
 LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
                                            const void* data8, int len)
@@ -304,148 +285,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
 
-  if (ctx->pending_input_NAL == NULL) {
-    ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
-    ctx->pending_input_NAL->pts = pts;
-    ctx->pending_input_NAL->user_data = user_data;
-  }
-
-  NAL_unit* nal = ctx->pending_input_NAL; // shortcut
-
-  // Resize output buffer so that complete input would fit.
-  // We add 3, because in the worst case 3 extra bytes are created for an input byte.
-  nal->resize(nal->size() + len + 3);
-
-  unsigned char* out = nal->data() + nal->size();
-
-  for (int i=0;i<len;i++) {
-    /*
-    printf("state=%d input=%02x (%p) (output size: %d)\n",ctx->input_push_state, *data, data,
-           out - ctx->nal_data.data);
-    */
-
-    switch (ctx->input_push_state) {
-    case 0:
-    case 1:
-      if (*data == 0) { ctx->input_push_state++; }
-      else { ctx->input_push_state=0; }
-      break;
-    case 2:
-      if      (*data == 1) { ctx->input_push_state=3; nal->num_skipped_bytes=0; }
-      else if (*data == 0) { } // *out++ = 0; }
-      else { ctx->input_push_state=0; }
-      break;
-    case 3:
-      *out++ = *data;
-      ctx->input_push_state = 4;
-      break;
-    case 4:
-      *out++ = *data;
-      ctx->input_push_state = 5;
-      break;
-
-    case 5:
-      if (*data==0) { ctx->input_push_state=6; }
-      else { *out++ = *data; }
-      break;
-
-    case 6:
-      if (*data==0) { ctx->input_push_state=7; }
-      else {
-        *out++ = 0;
-        *out++ = *data;
-        ctx->input_push_state=5;
-      }
-      break;
-
-    case 7:
-      if      (*data==0) { *out++ = 0; }
-      else if (*data==3) {
-        *out++ = 0; *out++ = 0; ctx->input_push_state=5;
-
-        // remember which byte we removed
-        nal_insert_skipped_byte(nal, (out - nal->data()) + nal->num_skipped_bytes);
-      }
-      else if (*data==1) {
-
-#if DEBUG_INSERT_STREAM_ERRORS
-        if ((rand()%100)<90 && ctx->nal_data.size>0) {
-          int pos = rand()%ctx->nal_data.size;
-          int bit = rand()%8;
-          nal->nal_data.data[pos] ^= 1<<bit;
-
-          //printf("inserted error...\n");
-        }
-#endif
-
-        nal->set_size(out - nal->data());;
-
-        // push this NAL decoder queue
-        push_to_NAL_queue(ctx, nal);
-
-
-        // initialize new, empty NAL unit
-
-        ctx->pending_input_NAL = alloc_NAL_unit(ctx, len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
-        ctx->pending_input_NAL->pts = pts;
-        nal = ctx->pending_input_NAL;
-        out = nal->data();
-
-        ctx->input_push_state=3;
-        nal->num_skipped_bytes=0;
-      }
-      else {
-        *out++ = 0;
-        *out++ = 0;
-        *out++ = *data;
-
-        ctx->input_push_state=5;
-      }
-      break;
-    }
-
-    data++;
-  }
-
-  nal->set_size(out - nal->data());
-  return DE265_OK;
-}
-
-
-void remove_stuffing_bytes(NAL_unit* nal)
-{
-  uint8_t* p = nal->data();
-
-  for (int i=0;i<nal->size()-2;i++)
-    {
-#if 0
-        for (int k=i;k<i+64;k++) 
-          if (i*0+k<nal->size()) {
-            printf("%c%02x", (k==i) ? '[':' ', nal->data()[k]);
-          }
-        printf("\n");
-#endif
-
-      if (p[2]!=3 && p[2]!=0) {
-        // fast forward 3 bytes (2+1)
-        p+=2;
-        i+=2;
-      }
-      else {
-        if (p[0]==0 && p[1]==0 && p[2]==3) {
-          //printf("SKIP NAL @ %d\n",i+2+nal->num_skipped_bytes);
-          nal_insert_skipped_byte(nal, i+2 + nal->num_skipped_bytes);
-
-          memmove(p+2, p+3, nal->size()-i-3);
-          nal->set_size(nal->size()-1);
-
-          p++;
-          i++;
-        }
-      }
-
-      p++;
-    }
+  return ctx->nal_parser.push_data(data,len,pts,user_data);
 }
 
 
@@ -456,24 +296,15 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
 
-  // Cannot use byte-stream input and NAL input at the same time.
-  assert(ctx->pending_input_NAL == NULL);
-
-  NAL_unit* nal = alloc_NAL_unit(ctx, len, DE265_SKIPPED_BYTES_INITIAL_SIZE);
-  nal->set_data(data, len);
-  nal->pts = pts;
-  nal->user_data = user_data;
-
-  remove_stuffing_bytes(nal);
-
-  push_to_NAL_queue(ctx, nal);
-
-  return DE265_OK;
+  return ctx->nal_parser.push_NAL(data,len,pts,user_data);
 }
 
 
 LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more)
 {
+#if 0
+  // TMP TODO: 
+
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
@@ -523,6 +354,10 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   }
 
   return err;
+#endif
+
+  assert(0);
+  return DE265_OK;
 }
 
 
@@ -530,29 +365,7 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (ctx->pending_input_NAL) {
-    NAL_unit* nal = ctx->pending_input_NAL;
-    uint8_t null[2] = { 0,0 };
-
-    // append bytes that are implied by the push state
-
-    if (ctx->input_push_state==6) { nal->append(null,1); }
-    if (ctx->input_push_state==7) { nal->append(null,2); }
-
-
-    // only push the NAL if it contains at least the NAL header
-
-    if (ctx->input_push_state>=5) {
-      push_to_NAL_queue(ctx, nal);
-      ctx->pending_input_NAL = NULL;
-    }
-
-    ctx->input_push_state = 0;
-  }
-
-  ctx->end_of_stream = true;
-
-  return DE265_OK;
+  return ctx->nal_parser.flush_data();
 }
 
 
@@ -956,21 +769,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
   ctx->dpb.clear_images(ctx);
 
 
-  // --- remove pending input data ---
-
-  if (ctx->pending_input_NAL) {
-    free_NAL_unit(ctx,ctx->pending_input_NAL);
-    ctx->pending_input_NAL = NULL;
-  }
-
-  for (;;) {
-    NAL_unit* nal = pop_from_NAL_queue(ctx);
-    if (nal) { free_NAL_unit(ctx,nal); }
-    else break;
-  }
-
-  ctx->input_push_state = 0;
-  ctx->nBytes_in_NAL_queue = 0;
+  ctx->nal_parser.remove_pending_input_data();
 
 
   // --- start threads again ---
@@ -1114,9 +913,7 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context* 
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  int size = ctx->nBytes_in_NAL_queue;
-  if (ctx->pending_input_NAL) { size += ctx->pending_input_NAL->size(); }
-  return size;
+  return ctx->nal_parser.bytes_in_input_queue();
 }
 
 
@@ -1124,10 +921,7 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context* de
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  int size = ctx->NAL_queue_len;
-  if (ctx->pending_input_NAL) { size++; }
-
-  return size;
+  return ctx->nal_parser.number_of_NAL_units_pending();
 }
 
 

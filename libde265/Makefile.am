@@ -15,6 +15,8 @@ libde265_la_SOURCES = \
   de265.cc \
   deblock.cc \
   decctx.cc \
+  nal-parser.cc \
+  nal-parser.hh \
   dpb.cc \
   dpb.h \
   image.cc \

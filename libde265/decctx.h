@@ -32,6 +32,7 @@
 #include "libde265/dpb.h"
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
+#include "libde265/nal-parser.h"
 
 #define DE265_MAX_VPS_SETS 16
 #define DE265_MAX_SPS_SETS 16
@@ -39,50 +40,7 @@
 #define DE265_MAX_SLICES   512  // TODO: make this dynamic
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
-#define DE265_NAL_FREE_LIST_SIZE 16
-#define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
-
 #define MAX_WARNINGS 20
-
-
-typedef struct NAL_unit {
-
-  NAL_unit();
-  ~NAL_unit();
-
-  void init(); // TODO TMP
-  void free(); // TODO TMP
-
-  nal_header  header;
-
-  de265_PTS pts;
-  void*     user_data;
-
-  int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
-  int   num_skipped_bytes;
-  int   max_skipped_bytes;
-
-  union {
-    seq_parameter_set sps;
-    pic_parameter_set pps;
-    // slice_segment_header slice_hdr;
-  };
-
-  void resize(int new_size);
-  void append(const unsigned char* data, int n);
-  void set_data(const unsigned char* data, int n);
-
-  int size() const { return data_size; }
-  void set_size(int s) { data_size=s; }
-  unsigned char* data() { return nal_data; }
-  const unsigned char* data() const { return nal_data; }
-
-private:
-  unsigned char* nal_data;
-  int data_size;
-  int capacity;
-} NAL_unit;
-
 
 
 struct slice_segment_header;
@@ -174,23 +132,7 @@ typedef struct decoder_context {
 
   // --- input stream data ---
 
-  // byte-stream level
-
-  bool end_of_stream; // data in pending_input_data is end of stream
-  int  input_push_state;
-  NAL_unit* pending_input_NAL;
-
-  // NAL level
-
-  NAL_unit** NAL_queue;  // enqueued NALs have suffing bytes removed
-  int NAL_queue_len;
-  int NAL_queue_size;
-
-  int nBytes_in_NAL_queue;
-
-  NAL_unit** NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
-  int NAL_free_list_len;
-  int NAL_free_list_size;
+  NAL_Parser nal_parser;
 
 
   // --- internal data ---
@@ -286,12 +228,6 @@ void free_decoder_context(decoder_context*);
 
 
 void cleanup_image(decoder_context* ctx, de265_image* img);
-
-NAL_unit* alloc_NAL_unit(decoder_context*, int size, int skipped_size);
-void      free_NAL_unit(decoder_context*, NAL_unit*);
-
-NAL_unit* pop_from_NAL_queue(decoder_context*);
-void      push_to_NAL_queue(decoder_context*,NAL_unit*);
 
 
 seq_parameter_set* get_sps(decoder_context* ctx, int id);
