@@ -169,8 +169,6 @@ typedef struct slice_segment_header {
   int  num_ref_idx_l0_active; // [1;16]
   int  num_ref_idx_l1_active; // [1;16]
 
-  //ref_pic_lists_modification()
-
   char ref_pic_list_modification_flag_l0;
   char ref_pic_list_modification_flag_l1;
   uint8_t list_entry_l0[16];

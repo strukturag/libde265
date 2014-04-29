@@ -39,24 +39,10 @@
 #define DE265_MAX_SLICES   512  // TODO: make this dynamic
 #define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
 
-// TODO: check required value
-//#define DE265_DPB_OUTPUT_IMAGES  20
-//#define DE265_DPB_RESILIENCE_IMAGES 5
-//#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
-
 #define DE265_NAL_FREE_LIST_SIZE 16
 #define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
 
 #define MAX_WARNINGS 20
-
-
-// split_cu_flag             CB (MinCbSizeY)
-// skip_flag                 CB
-// pcm_flag                  CB
-// prev_intra_luma_pred_flag CB
-// rem_intra_luma_pred_mode  CB
-// mpm_idx                   CB
-// intra_chroma_pred_mode    CB
 
 
 typedef struct NAL_unit {
@@ -68,8 +54,6 @@ typedef struct NAL_unit {
   void free(); // TODO TMP
 
   nal_header  header;
-
-  //rbsp_buffer nal_data;
 
   de265_PTS pts;
   void*     user_data;
@@ -232,15 +216,6 @@ typedef struct decoder_context {
   // --- decoded picture buffer ---
 
   decoded_picture_buffer dpb;
-  /*
-  de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
-
-  de265_image* reorder_output_queue[DE265_DPB_SIZE];
-  int          reorder_output_queue_length;
-
-  de265_image* image_output_queue[DE265_DPB_SIZE];
-  int          image_output_queue_length;
-  */
 
   de265_image* last_decoded_image;
 
@@ -287,10 +262,6 @@ typedef struct decoder_context {
   int RefPicSetLtFoll[DE265_DPB_SIZE];
 
 
-  // --- decoded image data --- TODO: all this should move into de265_image
-
-  // de265_image coeff; // transform coefficients / TODO: don't use de265_image for this
-
   // --- parameters derived from parameter sets ---
 
   // NAL
@@ -323,9 +294,6 @@ NAL_unit* pop_from_NAL_queue(decoder_context*);
 void      push_to_NAL_queue(decoder_context*,NAL_unit*);
 
 
-//void flush_next_picture_from_reorder_buffer(decoder_context* ctx);
-//int initialize_new_DPB_image(decoder_context* ctx,const seq_parameter_set* sps);
-
 seq_parameter_set* get_sps(decoder_context* ctx, int id);
 
 void process_nal_hdr(decoder_context*, nal_header*);
@@ -340,8 +308,6 @@ int get_next_thread_context_index(decoder_context* ctx);
 
 void add_warning(decoder_context* ctx, de265_error warning, bool once);
 de265_error get_warning(decoder_context* ctx);
-
-// TODO void free_currently_unused_memory(decoder_context* ctx); // system is low on memory, free some (e.g. unused images in the DPB)
 
 
 // --- decoder 2D data arrays ---
@@ -368,7 +334,6 @@ bool available_pred_blk(const decoder_context* ctx,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
 
-//bool has_free_dpb_picture(const decoder_context* ctx, bool high_priority);
 void push_current_picture_to_output_queue(decoder_context* ctx);
 
 // --- debug ---

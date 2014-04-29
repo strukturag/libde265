@@ -599,20 +599,16 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
     }
   }
 
-  //byte_alignment();
-  //skip_to_byte_boundary(br);
-
 
   // --- init variables ---
 
   shdr->SliceQPY = pps->pic_init_qp + shdr->slice_qp_delta;
-  //shdr->CuQpDelta = 0;
 
   switch (shdr->slice_type)
     {
     case SLICE_TYPE_I: shdr->initType = 0; break;
-    case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag + 1/*shdr->cabac_init_flag ? 2 : 1*/; break;
-    case SLICE_TYPE_B: shdr->initType = 2 - shdr->cabac_init_flag/*shdr->cabac_init_flag ? 1 : 2*/; break;
+    case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag + 1; break;
+    case SLICE_TYPE_B: shdr->initType = 2 - shdr->cabac_init_flag; break;
     }
 
   *continueDecoding = true;
@@ -1829,30 +1825,10 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 }
 
 
-/*
 static int decode_coeff_abs_level_remaining(thread_context* tctx,
-					    int cRiceParam, int cTRMax)
-{
-  logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
-
-  int prefix = decode_CABAC_TR_bypass(&tctx->cabac_decoder,cRiceParam,cTRMax);
-
-  if (prefix==cTRMax) {
-    int value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder,cRiceParam+1);
-    value += cTRMax;
-    return value;
-  }
-  else {
-    return prefix;
-  }
-}
-*/
-
-
-static int decode_coeff_abs_level_remaining_HM(thread_context* tctx,
 					       int param)
 {
-  logtrace(LogSlice,"# decode_coeff_abs_level_remaining_HM\n");
+  logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
   int prefix=0;
   int codeword=0;
@@ -2697,7 +2673,7 @@ int residual_coding(decoder_context* ctx,
 
         if (coeff_has_max_base_level[n]) {
           coeff_abs_level_remaining =
-            decode_coeff_abs_level_remaining_HM(tctx, uiGoRiceParam);
+            decode_coeff_abs_level_remaining(tctx, uiGoRiceParam);
 
           if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
             uiGoRiceParam++;
@@ -2738,26 +2714,6 @@ int residual_coding(decoder_context* ctx,
     }  // if nonZero
   }  // next sub-block
 
-
-
-#ifdef DE265_LOG_TRACE
-  /*
-  int xB = x0;
-  int yB = y0;
-  if (cIdx>0) { xB/=2; yB/=2; }
-
-  logtrace(LogSlice,"coefficients [cIdx=%d,at %d,%d] ----------------------------------------\n",cIdx,xB,yB);
-
-  for (int y=0;y<(1<<log2TrafoSize);y++) {
-    logtrace(LogSlice,"  ");
-    for (int x=0;x<(1<<log2TrafoSize);x++) {
-      logtrace(LogSlice,"*%3d ", TransCoeffLevel[y*CoeffStride + x]);
-    }
-    logtrace(LogSlice,"*\n");
-  }
-  */
-#endif
-
   return DE265_OK;
 }
 
@@ -2774,8 +2730,6 @@ int read_transform_unit(decoder_context* ctx,
 {
   logtrace(LogSlice,"- read_transform_unit x0:%d y0:%d xBase:%d yBase:%d nT:%d cbf:%d:%d:%d\n",
            x0,y0,xBase,yBase, 1<<log2TrafoSize, cbf_luma, cbf_cb, cbf_cr);
-
-  //slice_segment_header* shdr = tctx->shdr;
 
   assert(cbf_cb != -1);
   assert(cbf_cr != -1);
@@ -3045,8 +2999,6 @@ static const char* part_mode_name(enum PartMode pm)
 void read_mvd_coding(thread_context* tctx,
                      int x0,int y0, int refList)
 {
-  //slice_segment_header* shdr = tctx->shdr;
-
   int abs_mvd_greater0_flag[2];
   abs_mvd_greater0_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
                                               &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+0]);

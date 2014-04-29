@@ -193,7 +193,6 @@ NAL_unit* alloc_NAL_unit(decoder_context* ctx, int size, int skipped_size)
   }
 
   nal->num_skipped_bytes = 0;
-  //nal->nal_data.size = 0;
   nal->resize(size);
 
   return nal;
@@ -731,24 +730,6 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
 }
 
 
-// 8.3.3
-/*
-void generate_unavailable_reference_pictures(decoder_context* ctx, slice_segment_header* hdr)
-{
-  for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
-    if (ctx->RefPicSetStCurrBefore[i] < 0) {
-      //int idx = generate_unavailable_picture(ctx,ctx->current_sps,
-    }
-  }
-
-  for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
-    if (ctx->RefPicSetStCurrAfter[i] < 0) {
-      //int idx = initialize_new_DPB_image(ctx, ctx->current_sps);
-    }
-  }
-}
-*/
-
 // 8.3.4
 // Returns whether we can continue decoding (or whether there is a severe error).
 /* Called at beginning of each slice.
@@ -1061,7 +1042,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
   
   // --- prepare decoding of new picture ---
 
-  //if (hdr->slice_pic_order_cnt_lsb != ctx->current_image_poc_lsb) {
   if (hdr->first_slice_segment_in_pic_flag) {
 
     // previous picture has been completely decoded
@@ -1134,8 +1114,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     }
 
     img->PicState = UsedForShortTermReference;
-
-    //generate_unavailable_reference_pictures(ctx,hdr);
 
     log_set_current_POC(ctx->img->PicOrderCntVal);
   }
@@ -1283,7 +1261,6 @@ void write_picture_to_file(const de265_image* img, const char* filename)
 void set_pixel(uint8_t* img, int x,int y, int stride, uint32_t color, int pixelSize)
 {
   for (int i=0;i<pixelSize;i++) {
-    //uint8_t col = (color>>((pixelSize-1-i)*8)) & 0xFF;
     uint8_t col = (color>>(i*8)) & 0xFF;
     img[y*stride + x*pixelSize + i] = col;
   }
