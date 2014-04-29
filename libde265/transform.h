@@ -24,7 +24,7 @@
 #include "libde265/de265.h"
 #include "libde265/decctx.h"
 
-static const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
+extern const int tab8_22[];
 
 LIBDE265_INLINE static int table8_22(int qPi)
 {

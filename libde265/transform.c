@@ -25,6 +25,9 @@
 #include <assert.h>
 
 
+const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
+
+
 static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
 static int nSkip_4x4;
 static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
