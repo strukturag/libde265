@@ -383,3 +383,22 @@ void img_clear_decoding_data(de265_image* img)
     img->ctb_progress[i].progress = CTB_PROGRESS_NONE;
   }
 }
+
+
+void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
+{
+  int log2PuSize = 2;
+
+  int xPu = x >> log2PuSize;
+  int yPu = y >> log2PuSize;
+  int wPu = nPbW >> log2PuSize;
+  int hPu = nPbH >> log2PuSize;
+
+  int stride = img->pb_info_stride;
+
+  for (int pby=0;pby<hPu;pby++)
+    for (int pbx=0;pbx<wPu;pbx++)
+      {               
+        img->pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
+      }
+}

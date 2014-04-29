@@ -1113,38 +1113,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
 
 
-void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
-{
-  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
-
-  int xPu = x >> log2PuSize;
-  int yPu = y >> log2PuSize;
-  int wPu = nPbW >> log2PuSize;
-  int hPu = nPbH >> log2PuSize;
-
-  int stride = ctx->img->pb_info_stride; // ctx->current_sps->PicWidthInMinCbsY << f;
-
-  //int rootIdx = ctx->img->pb_info_nextRootIdx++;
-  //ctx->img->pb_info[rootIdx].mvi = *mv;
-
-  for (int pby=0;pby<hPu;pby++)
-    for (int pbx=0;pbx<wPu;pbx++)
-      {               
-        //ctx->img->pb_rootIdx[ xPu+pbx + (yPu+pby)*stride ] = rootIdx;
-        ctx->img->pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
-      }
-
-  //printf("%dx%d -> %dx%d  size %d\n",nPbW,nPbH, wPu,hPu,sizeof(*mv));
-
-  /*
-  fprintf(stderr,"set_mv_info %d;%d [%d;%d] to %d;%d (POC=%d)\n",x,y,nPbW,nPbH,
-          mv->mv[0].x,mv->mv[0].y,
-          ctx->img->PicOrderCntVal);
-  */
-}
-
-
-
 bool available_zscan(const de265_image* img,
                      int xCurr,int yCurr, int xN,int yN)
 {

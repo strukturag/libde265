@@ -470,6 +470,18 @@ LIBDE265_INLINE static const sao_info* get_sao_info(const de265_image* img, int 
   return &img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo;
 }
 
+LIBDE265_INLINE static const PredVectorInfo* get_img_mv_info(const de265_image* img, int x,int y)
+{
+  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
+  int idx = (x>>log2PuSize) + (y>>log2PuSize)*img->pb_info_stride;
+
+  //int rootIdx = img->pb_rootIdx[idx];
+  //return &img->pb_info[rootIdx].mvi;
+
+  return &img->pb_info[idx].mvi;
+}
+
+void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
 // --- value logging ---
 

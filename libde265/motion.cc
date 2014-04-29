@@ -1907,7 +1907,7 @@ void decode_prediction_unit(decoder_context* ctx,
   generate_inter_prediction_samples(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
-  set_mv_info(ctx,xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
+  set_mv_info(ctx->img,xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
 }
 
 
