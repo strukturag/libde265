@@ -923,12 +923,18 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
   // --- remove pending input data ---
 
   ctx->nBytes_in_NAL_queue = 0;
-  free_NAL_unit(ctx,ctx->pending_input_NAL);
+
+  if (ctx->pending_input_NAL) {
+    free_NAL_unit(ctx,ctx->pending_input_NAL);
+    ctx->pending_input_NAL = NULL;
+  }
+
   for (;;) {
     NAL_unit* nal = pop_from_NAL_queue(ctx);
     if (nal) { free_NAL_unit(ctx,nal); }
     else break;
   }
+
   ctx->input_push_state = 0;
 
 
