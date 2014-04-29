@@ -21,9 +21,17 @@
 #ifndef DE265_TRANSFORM_H
 #define DE265_TRANSFORM_H
 
+#include "libde265/de265.h"
 #include "libde265/decctx.h"
 
-int table8_22(int qPi);
+static const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
+
+LIBDE265_INLINE static int table8_22(int qPi)
+{
+  if (qPi<30) return qPi;
+  if (qPi>=43) return qPi-6;
+  return tab8_22[qPi-30];
+}
 
 // (8.6.1)
 void decode_quantization_parameters(decoder_context* ctx,

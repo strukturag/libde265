@@ -668,7 +668,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
   }
 
-
+#ifdef DE265_LOG_TRACE
   logtrace(LogTransform,"MC pixels (luma), position %d %d:\n", xP,yP);
 
   for (int y=0;y<nPbH;y++) {
@@ -706,9 +706,11 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
     logtrace(LogTransform,"*\n");
   }  
+#endif
 }
 
 
+#ifdef DE265_LOG_TRACE
 void logmvcand(PredVectorInfo p)
 {
   for (int v=0;v<2;v++) {
@@ -720,9 +722,12 @@ void logmvcand(PredVectorInfo p)
     }
   }
 }
+#else
+#define logmvcand(p)
+#endif
 
 
-bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
+LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
 {
   // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
 
@@ -1794,9 +1799,9 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
   return mvpList[ tctx->mvp_lX_flag[l] ];
 }
 
+#if DE265_LOG_TRACE
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* mv)
 {
-#if DE265_LOG_TRACE
   int pred0 = mv->lum.predFlag[0];
   int pred1 = mv->lum.predFlag[1];
 
@@ -1806,8 +1811,10 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const VectorInfo* m
            pred0 ? mv->lum.mv[0].x : 0,pred0 ? mv->lum.mv[0].y : 0, pred0 ? mv->lum.refIdx[0] : 0,
            pred1,
            pred1 ? mv->lum.mv[1].x : 0,pred1 ? mv->lum.mv[1].y : 0, pred1 ? mv->lum.refIdx[1] : 0);
-#endif
 }
+#else
+#define logMV(x0,y0,nPbW,nPbH,mode,mv)
+#endif
 
 
 

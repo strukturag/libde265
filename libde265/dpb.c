@@ -209,26 +209,6 @@ int initialize_new_DPB_image(decoded_picture_buffer* dpb,const seq_parameter_set
 }
 
 
-de265_image* dpb_get_next_picture_in_output_queue(decoded_picture_buffer* dpb)
-{
-  //assert(dpb->image_output_queue_length>0);
-
-  return dpb->image_output_queue[0];
-}
-
-
-int  dpb_num_pictures_in_output_queue(const decoded_picture_buffer* dpb)
-{
-  return dpb->image_output_queue_length;
-}
-
-
-int dpb_num_pictures_in_reorder_buffer(const decoded_picture_buffer* dpb)
-{
-  return dpb->reorder_output_queue_length;
-}
-
-
 void dpb_pop_next_picture_in_output_queue(decoded_picture_buffer* dpb)
 {
   for (int i=1;i<dpb->image_output_queue_length;i++)
@@ -249,12 +229,6 @@ void dpb_pop_next_picture_in_output_queue(decoded_picture_buffer* dpb)
 }
 
 
-void dpb_insert_image_into_reorder_buffer(decoded_picture_buffer* dpb, de265_image* img)
-{
-  dpb->reorder_output_queue[ dpb->reorder_output_queue_length++ ] = img;
-}
-
-
 void log_dpb_queues(const decoded_picture_buffer* dpb)
 {
     loginfo(LogDPB, "DPB reorder queue (after push): ");
@@ -268,14 +242,4 @@ void log_dpb_queues(const decoded_picture_buffer* dpb)
       loginfo(LogDPB, "*%d ", dpb->image_output_queue[i]->PicOrderCntVal);
     }
     loginfo(LogDPB,"*\n");
-}
-
-de265_image* dpb_get_image(decoded_picture_buffer* dpb, int index)
-{
-  return &dpb->dpb[index];
-}
-
-const de265_image* dpb_get_image_const(const decoded_picture_buffer* dpb, int index)
-{
-  return &dpb->dpb[index];
 }

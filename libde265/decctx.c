@@ -1116,40 +1116,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 }
 
 
-slice_segment_header* get_SliceHeader(decoder_context* ctx, int x, int y)
-{
-  return &ctx->slice[ get_SliceHeaderIndex(ctx->img, x,y) ];
-}
-
-slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)
-{
-  return &ctx->slice[ ctx->img->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
-}
-
-
-const PredVectorInfo* get_mv_info(const decoder_context* ctx,int x,int y)
-{
-  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
-  int idx = (x>>log2PuSize) + (y>>log2PuSize)*ctx->img->pb_info_stride;
-
-  //int rootIdx = ctx->img->pb_rootIdx[idx];
-  //return &ctx->img->pb_info[rootIdx].mvi;
-
-  return &ctx->img->pb_info[idx].mvi;
-}
-
-
-const PredVectorInfo* get_img_mv_info(const de265_image* img, int x,int y)
-{
-  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
-  int idx = (x>>log2PuSize) + (y>>log2PuSize)*img->pb_info_stride;
-
-  //int rootIdx = img->pb_rootIdx[idx];
-  //return &img->pb_info[rootIdx].mvi;
-
-  return &img->pb_info[idx].mvi;
-}
-
 
 void set_mv_info(decoder_context* ctx,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
