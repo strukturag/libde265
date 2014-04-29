@@ -567,6 +567,12 @@ void free_pps(pic_parameter_set* pps)
   if (pps->TileId)   { free(pps->TileId); }
   if (pps->TileIdRS) { free(pps->TileIdRS); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
+
+  pps->CtbAddrRStoTS=NULL;
+  pps->CtbAddrTStoRS=NULL;
+  pps->TileId=NULL;
+  pps->TileIdRS=NULL;
+  pps->MinTbAddrZS=NULL;
 }
 
 

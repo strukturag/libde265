@@ -908,14 +908,55 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
     //flush_thread_pool(&ctx->thread_pool);
     stop_thread_pool(&ctx->thread_pool);
   }
-  
+
+  // --------------------------------------------------
+
+#if 0
+  ctx->end_of_stream = false;
+  ctx->pending_input_NAL = NULL;
+  ctx->current_vps = NULL;
+  ctx->current_sps = NULL;
+  ctx->current_pps = NULL;
+  ctx->num_worker_threads = 0;
+  ctx->HighestTid = 0;
+  ctx->last_decoded_image = NULL;
+  ctx->current_image_poc_lsb = 0;
+  ctx->first_decoded_picture = 0;
+  ctx->NoRaslOutputFlag = 0;
+  ctx->HandleCraAsBlaFlag = 0;
+  ctx->FirstAfterEndOfSequenceNAL = 0;
+  ctx->PicOrderCntMsb = 0;
+  ctx->prevPicOrderCntLsb = 0;
+  ctx->prevPicOrderCntMsb = 0;
+  ctx->NumPocStCurrBefore=0;
+  ctx->NumPocStCurrAfter=0;
+  ctx->NumPocStFoll=0;
+  ctx->NumPocLtCurr=0;
+  ctx->NumPocLtFoll=0;
+  ctx->nal_unit_type=0;
+  ctx->IdrPicFlag=0;
+  ctx->RapPicFlag=0;
+#endif
+  ctx->img = NULL;
+
+
+
+  // --- decoded picture buffer ---
+
+  ctx->current_image_poc_lsb = -1; // any invalid number
+  ctx->first_decoded_picture = true;
+
+
   // --- remove all pictures from output queue ---
 
-  if (1) { /* TODO: alternatively, we could just leave the pictures in the queue,
-              but then, old pictures decoded before calling 'reset' will be shown afterwards. */
-    dpb_clear_images(&ctx->dpb, ctx);
-    ctx->first_decoded_picture = true;
-  }
+#if 0
+  // actually, this should be sufficient to reset the DPB, but the decoder hangs
+  // for ToS in VLC while scrubbing, so we have to free/init again
+  dpb_clear_images(&ctx->dpb, ctx);
+#else
+  free_dpb(&ctx->dpb);
+  init_dpb(&ctx->dpb);
+#endif
 
 
   // --- remove pending input data ---
