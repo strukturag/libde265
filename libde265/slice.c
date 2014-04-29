@@ -2255,7 +2255,7 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
 }
 
 
-int luma_pos_to_ctbAddrRS(decoder_context* ctx, int x,int y)
+LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(decoder_context* ctx, int x,int y)
 {
   int ctbX = x >> (ctx->current_sps->Log2CtbSizeY);
   int ctbY = y >> (ctx->current_sps->Log2CtbSizeY);

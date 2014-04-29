@@ -25,36 +25,6 @@
 #include <stdio.h>
 
 
-int ceil_div(int num,int denom)
-{
-  num += denom-1;
-  return num/denom;
-}
-
-
-int ceil_log2(int val)
-{
-  int n=0;
-  while (val > (1<<n)) {
-    n++;
-  }
-
-  return n;
-}
-
-
-int Log2(int v)
-{
-  int n=0;
-  while (v>1) {
-    n++;
-    v>>=1;
-  }
-
-  return n;
-}
-
-
 #ifdef DE265_LOGGING
 static int current_poc=0;
 static int log_poc_start=-9999; // frame-numbers can be negative

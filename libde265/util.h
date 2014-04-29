@@ -27,6 +27,8 @@
 
 #include <stdio.h>
 
+#include "libde265/de265.h"
+
 
 #ifdef _MSC_VER
 #define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
@@ -53,10 +55,30 @@
 #define libde265_min(a,b) (((a)<(b)) ? (a) : (b))
 #define libde265_max(a,b) (((a)>(b)) ? (a) : (b))
 
-int ceil_div(int num,int denom);
-int ceil_log2(int val);
-int Log2(int v);
+LIBDE265_INLINE static int ceil_div(int num,int denom)
+{
+  num += denom-1;
+  return num/denom;
+}
+LIBDE265_INLINE static int ceil_log2(int val)
+{
+  int n=0;
+  while (val > (1<<n)) {
+    n++;
+  }
 
+  return n;
+}
+LIBDE265_INLINE static int Log2(int v)
+{
+  int n=0;
+  while (v>1) {
+    n++;
+    v>>=1;
+  }
+
+  return n;
+}
 
 
 // === logging ===

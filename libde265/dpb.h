@@ -70,14 +70,34 @@ int DPB_index_of_picture_with_LSB(decoded_picture_buffer* dpb, int lsb);
 void log_dpb_content(const decoded_picture_buffer* dpb);
 void log_dpb_queues(const decoded_picture_buffer* dpb);
 
-de265_image* dpb_get_next_picture_in_output_queue(decoded_picture_buffer* dpb);
-int dpb_num_pictures_in_output_queue(const decoded_picture_buffer* dpb);
-int dpb_num_pictures_in_reorder_buffer(const decoded_picture_buffer* dpb);
+LIBDE265_INLINE static de265_image* dpb_get_next_picture_in_output_queue(decoded_picture_buffer* dpb)
+{
+  //assert(dpb->image_output_queue_length>0);
+
+  return dpb->image_output_queue[0];
+}
+LIBDE265_INLINE static int dpb_num_pictures_in_output_queue(const decoded_picture_buffer* dpb)
+{
+  return dpb->image_output_queue_length;
+}
+LIBDE265_INLINE static int dpb_num_pictures_in_reorder_buffer(const decoded_picture_buffer* dpb)
+{
+  return dpb->reorder_output_queue_length;
+}
 void dpb_pop_next_picture_in_output_queue(decoded_picture_buffer* dpb);
 
-de265_image* dpb_get_image(decoded_picture_buffer* dpb, int index);
-const de265_image* dpb_get_image_const(const decoded_picture_buffer* dpb, int index);
+LIBDE265_INLINE static de265_image* dpb_get_image(decoded_picture_buffer* dpb, int index)
+{
+  return &dpb->dpb[index];
+}
+LIBDE265_INLINE static const de265_image* dpb_get_image_const(const decoded_picture_buffer* dpb, int index)
+{
+  return &dpb->dpb[index];
+}
 
-void dpb_insert_image_into_reorder_buffer(decoded_picture_buffer* dpb, de265_image* img);
+LIBDE265_INLINE static void dpb_insert_image_into_reorder_buffer(decoded_picture_buffer* dpb, de265_image* img)
+{
+  dpb->reorder_output_queue[ dpb->reorder_output_queue_length++ ] = img;
+}
 
 #endif

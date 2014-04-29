@@ -50,6 +50,7 @@ LIBDE265_API void showIntraPredictionProfile()
 }
 
 
+#ifdef DE265_LOG_TRACE
 void print_border(uint8_t* data, uint8_t* available, int nT)
 {
   for (int i=-2*nT ; i<=2*nT ; i++) {
@@ -67,6 +68,9 @@ void print_border(uint8_t* data, uint8_t* available, int nT)
     }
   }
 }
+#else
+#define print_border(data, available, nT)
+#endif
 
 
 // (8.4.4.2.2)
@@ -363,7 +367,7 @@ static const int invAngle_table[25-10] =
 
 
 // TODO: clip to read BitDepthY
-int Clip1Y(int x) { if (x<0) return 0; else if (x>255) return 255; else return x; }
+LIBDE265_INLINE static int Clip1Y(int x) { if (x<0) return 0; else if (x>255) return 255; else return x; }
 
 
 // (8.4.4.2.6)

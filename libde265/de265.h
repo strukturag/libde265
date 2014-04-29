@@ -52,6 +52,12 @@ extern "C" {
 #define LIBDE265_DEPRECATED
 #endif
 
+#if defined(_MSC_VER)
+#define LIBDE265_INLINE __inline
+#else
+#define LIBDE265_INLINE inline
+#endif
+
 /* === version numbers === */
 
 // version of linked libde265 library

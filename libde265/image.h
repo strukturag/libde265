@@ -25,7 +25,9 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
 #include <stdint.h>
+#include <string.h>
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
@@ -72,6 +74,18 @@ enum PictureState {
 #define CTB_PROGRESS_NONE      0
 #define CTB_PROGRESS_PREFILTER 1
 #define CTB_PROGRESS_FILTERED  2
+
+#define PIXEL2CB(x) (x >> img->Log2MinCbSizeY)
+#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->PicWidthInMinCbsY)
+#define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
+  int cbX = PIXEL2CB(x);                                                \
+  int cbY = PIXEL2CB(y);                                                \
+  int width = 1 << (log2BlkWidth - img->Log2MinCbSizeY);                \
+  for (int cby=cbY;cby<cbY+width;cby++)                                 \
+    for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+      {                                                                 \
+        img->cb_info[ cbx + cby*img->PicWidthInMinCbsY ].Field = value; \
+      }
 
 typedef struct {
   uint16_t SliceAddrRS;
@@ -225,7 +239,15 @@ void de265_free_image (de265_image* img);
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
-void get_image_plane(const de265_image*, int cIdx, uint8_t** image, int* stride);
+LIBDE265_INLINE static void get_image_plane(const de265_image* img, int cIdx, uint8_t** image, int* stride)
+{
+  switch (cIdx) {
+  case 0: *image = img->y;  if (stride) *stride = img->stride; break;
+  case 1: *image = img->cb; if (stride) *stride = img->chroma_stride; break;
+  case 2: *image = img->cr; if (stride) *stride = img->chroma_stride; break;
+  default: *image = NULL; if (stride) *stride = 0; break;
+  }
+}
 void set_conformance_window(de265_image* img, int left,int right,int top,int bottom);
 
 
@@ -241,62 +263,212 @@ void img_clear_decoding_data(de265_image*);
 
 
 
-uint8_t get_cu_skip_flag(const de265_image* img, int x,int y);
+LIBDE265_INLINE static void set_pred_mode(de265_image* img, int x,int y, int log2BlkWidth, enum PredMode mode)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+}
+LIBDE265_INLINE static enum PredMode get_pred_mode(const de265_image* img, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
 
-void set_pred_mode(de265_image* img, int x,int y, int log2BlkWidth, enum PredMode mode);
-enum PredMode get_pred_mode(const de265_image* img, int x,int y);
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].PredMode;
+}
 
-void set_pcm_flag(de265_image* img, int x,int y, int log2BlkWidth);
-int get_pcm_flag(const de265_image* img, int x,int y);
+LIBDE265_INLINE static uint8_t get_cu_skip_flag(const de265_image* img, int x,int y)
+{
+  return get_pred_mode(img,x,y)==MODE_SKIP;
+}
+
+LIBDE265_INLINE static void set_pcm_flag(de265_image* img, int x,int y, int log2BlkWidth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
+}
+LIBDE265_INLINE static int get_pcm_flag(const de265_image* img, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].pcm_flag;
+}
+
+LIBDE265_INLINE static void set_cu_transquant_bypass(const de265_image* img, int x,int y, int log2BlkWidth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
+}
+LIBDE265_INLINE static int  get_cu_transquant_bypass(const de265_image* img, int x,int y)
+{
+  int cbX = PIXEL2CB(x);
+  int cbY = PIXEL2CB(y);
+
+  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].cu_transquant_bypass;
+}
+
+LIBDE265_INLINE static void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
+{
+  int cbX = PIXEL2CB(x0);
+  int cbY = PIXEL2CB(y0);
+
+  img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
+
+  // assume that remaining cb_info blocks are initialized to zero
+}
+LIBDE265_INLINE static int  get_log2CbSize(const de265_image* img, int x0, int y0)
+{
+  int cbX = PIXEL2CB(x0);
+  int cbY = PIXEL2CB(y0);
+
+  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize;
+}
+// coordinates in CB units
+LIBDE265_INLINE static int  get_log2CbSize_cbUnits(const de265_image* img, int xCb, int yCb)
+{
+  return (enum PredMode)img->cb_info[ xCb + yCb*img->PicWidthInMinCbsY ].log2CbSize;
+}
+
+LIBDE265_INLINE static void          set_PartMode(      de265_image* img, int x,int y, enum PartMode mode)
+{
+  img->cb_info[ CB_IDX(x,y) ].PartMode = mode;
+}
+LIBDE265_INLINE static enum PartMode get_PartMode(const de265_image* img, int x,int y)
+{
+  return (enum PartMode)img->cb_info[ CB_IDX(x,y) ].PartMode;
+}
 
 
-void set_cu_transquant_bypass(const de265_image* img, int x,int y, int log2BlkWidth);
-int  get_cu_transquant_bypass(const de265_image* img, int x,int y);
+LIBDE265_INLINE static void set_ctDepth(de265_image* img, int x,int y, int log2BlkWidth, int depth)
+{
+  SET_CB_BLK(x,y,log2BlkWidth, ctDepth, depth);
+}
+LIBDE265_INLINE static int get_ctDepth(const de265_image* img, int x,int y)
+{
+  return img->cb_info[ CB_IDX(x,y) ].ctDepth;
+}
+
+LIBDE265_INLINE static void set_QPY(de265_image* img, int x,int y, int log2BlkWidth, int QP_Y)
+{
+  assert(x>=0 && x<img->sps->pic_width_in_luma_samples);
+  assert(y>=0 && y<img->sps->pic_height_in_luma_samples);
+
+  SET_CB_BLK (x, y, log2BlkWidth, QP_Y, QP_Y);
+}
+LIBDE265_INLINE static int  get_QPY(const de265_image* img, int x0,int y0)
+{
+  return img->cb_info[CB_IDX(x0,y0)].QP_Y;
+}
+
+#define PIXEL2TU(x) (x >> img->Log2MinTrafoSize)
+#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->PicWidthInTbsY)
+
+#define OR_TU_BLK(x,y,log2BlkWidth,  value)                             \
+  int tuX = PIXEL2TU(x);                                                \
+  int tuY = PIXEL2TU(y);                                                \
+  int width = 1 << (log2BlkWidth - img->Log2MinTrafoSize);              \
+  for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
+    for (int tux=tuX;tux<tuX+width;tux++)                               \
+      {                                                                 \
+        img->tu_info[ tux + tuy*img->PicWidthInTbsY ] |= value;         \
+      }
+
+LIBDE265_INLINE static void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth)
+{
+  img->tu_info[TU_IDX(x0,y0)] |= (1<<trafoDepth);
+}
+LIBDE265_INLINE static int  get_split_transform_flag(const de265_image* img, int x0,int y0,int trafoDepth)
+{
+  int idx = TU_IDX(x0,y0);
+  return (img->tu_info[idx] & (1<<trafoDepth));
+}
+
+LIBDE265_INLINE static void set_nonzero_coefficient(de265_image* img, int x,int y, int log2TrafoSize)
+{
+  OR_TU_BLK(x,y,log2TrafoSize, TU_FLAG_NONZERO_COEFF);
+}
+
+LIBDE265_INLINE static int  get_nonzero_coefficient(const de265_image* img, int x,int y)
+{
+  return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
+}
+
+LIBDE265_INLINE static enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y)
+{
+  int PUidx = (x>>img->Log2MinPUSize) + (y>>img->Log2MinPUSize) * img->PicWidthInMinPUs;
+
+  return (enum IntraPredMode) img->intraPredMode[PUidx];
+}
 
 
-void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize);
-int  get_log2CbSize(const de265_image* img, int x0, int y0);
-int  get_log2CbSize_cbUnits(const de265_image* img, int xCb, int yCb);
+LIBDE265_INLINE static void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
 
+  if (xd<img->deblk_width && yd<img->deblk_height) {
+    img->deblk_info[xd + yd*img->deblk_width] |= flags;
+  }
+}
+LIBDE265_INLINE static uint8_t get_deblk_flags(const de265_image* img, int x0,int y0)
+{
+  const int xd = x0/4;
+  const int yd = y0/4;
+  assert (xd<img->deblk_width && yd<img->deblk_height);
 
-void          set_PartMode(      de265_image*, int x,int y, enum PartMode);
-enum PartMode get_PartMode(const de265_image*, int x,int y);
+  return img->deblk_info[xd + yd*img->deblk_width];
+}
 
-
-void set_ctDepth(de265_image*, int x,int y, int log2BlkWidth, int depth);
-int get_ctDepth(const de265_image*, int x,int y);
-
-void set_QPY(de265_image*, int x,int y, int log2BlkWidth, int QP_Y);
-int  get_QPY(const de265_image*, int x0,int y0);
-
-void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth);
-int  get_split_transform_flag(const de265_image* img, int x0,int y0,int trafoDepth);
-
-void set_nonzero_coefficient(de265_image* img, int x,int y, int log2TrafoSize);
-
-int  get_nonzero_coefficient(const de265_image* img, int x,int y);
-
-enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y);
-
-
-void    set_deblk_flags(de265_image* img, int x0,int y0, uint8_t flags);
-uint8_t get_deblk_flags(const de265_image* img, int x0,int y0);
-
-void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS);
-uint8_t get_deblk_bS(const de265_image* img, int x0,int y0);
+LIBDE265_INLINE static void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS)
+{
+  uint8_t* data = &img->deblk_info[x0/4 + y0/4*img->deblk_width];
+  *data &= ~DEBLOCK_BS_MASK;
+  *data |= bS;
+}
+LIBDE265_INLINE static uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
+{
+  return img->deblk_info[x0/4 + y0/4*img->deblk_width] & DEBLOCK_BS_MASK;
+}
 
 
 // address of first CTB in slice
-void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS);
-int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY);
-int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS);
+LIBDE265_INLINE static void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS)
+{
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+}
+LIBDE265_INLINE static int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY)
+{
+  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS;
+}
+LIBDE265_INLINE static int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS)
+{
+  return img->ctb_info[ctbRS].SliceAddrRS;
+}
 
 
-void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex);
-int  get_SliceHeaderIndex(const de265_image* img, int x, int y);
+LIBDE265_INLINE static void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex)
+{
+  int ctbX = x >> img->Log2CtbSizeY;
+  int ctbY = y >> img->Log2CtbSizeY;
+  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+}
+LIBDE265_INLINE static int  get_SliceHeaderIndex(const de265_image* img, int x, int y)
+{
+  int ctbX = x >> img->Log2CtbSizeY;
+  int ctbY = y >> img->Log2CtbSizeY;
+  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex;
+}
 
-void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo);
-const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY);
+LIBDE265_INLINE static void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo)
+{
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  memcpy(&img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo,
+         saoinfo,
+         sizeof(sao_info));
+}
+LIBDE265_INLINE static const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY)
+{
+  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo;
+}
 
 
 // --- value logging ---
