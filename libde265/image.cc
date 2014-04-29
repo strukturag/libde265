@@ -285,14 +285,25 @@ void de265_fill_image(de265_image* img, int y,int cb,int cr)
 
 void de265_copy_image(de265_image* dest, const de265_image* src)
 {
-  for (int y=0;y<src->height;y++) {
-    memcpy(dest->y+y*dest->stride, src->y+y*src->stride, src->width);
+  if (src->stride == dest->stride) {
+    memcpy(dest->y, src->y, src->height*src->stride);
+  }
+  else {
+    for (int y=0;y<src->height;y++) {
+      memcpy(dest->y+y*dest->stride, src->y+y*src->stride, src->width);
+    }
   }
 
   if (src->chroma_format != de265_chroma_mono) {
-    for (int y=0;y<src->chroma_height;y++) {
-      memcpy(dest->cb+y*dest->chroma_stride, src->cb+y*src->chroma_stride, src->chroma_width);
-      memcpy(dest->cr+y*dest->chroma_stride, src->cr+y*src->chroma_stride, src->chroma_width);
+    if (src->chroma_stride == dest->chroma_stride) {
+      memcpy(dest->cb, src->cb, src->chroma_height*src->chroma_stride);
+      memcpy(dest->cr, src->cr, src->chroma_height*src->chroma_stride);
+    }
+    else {
+      for (int y=0;y<src->chroma_height;y++) {
+        memcpy(dest->cb+y*dest->chroma_stride, src->cb+y*src->chroma_stride, src->chroma_width);
+        memcpy(dest->cr+y*dest->chroma_stride, src->cr+y*src->chroma_stride, src->chroma_width);
+      }
     }
   }
 }
