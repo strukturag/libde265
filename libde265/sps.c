@@ -710,7 +710,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           }
 
           nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
-          if (nextCoef < 0 || nextCoef > 255) {
+          if (nextCoef < 0) {
             return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
           }
 
