@@ -42,23 +42,23 @@ void free_dpb(decoded_picture_buffer* dpb)
 }
 
 
-void log_dpb_content(const decoded_picture_buffer *dpb)
+void decoded_picture_buffer::log_dpb_content() const
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, dpb->dpb[i].PicOrderCntVal,
-            dpb->dpb[i].PicState == UnusedForReference ? "unused" :
-            dpb->dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
-            dpb->dpb[i].PicOutputFlag ? "output" : "---");
+    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, dpb[i].PicOrderCntVal,
+            dpb[i].PicState == UnusedForReference ? "unused" :
+            dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
+            dpb[i].PicOutputFlag ? "output" : "---");
   }
 }
 
 
-bool has_free_dpb_picture(const decoded_picture_buffer* dpb, bool high_priority)
+bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 {
   int nImages = high_priority ? DE265_DPB_SIZE : DE265_DPB_OUTPUT_IMAGES;
 
   for (int i=0;i<nImages;i++) {
-    if (dpb->dpb[i].PicOutputFlag==false && dpb->dpb[i].PicState == UnusedForReference) {
+    if (dpb[i].PicOutputFlag==false && dpb[i].PicState == UnusedForReference) {
       return true;
     }
   }
@@ -67,7 +67,7 @@ bool has_free_dpb_picture(const decoded_picture_buffer* dpb, bool high_priority)
 }
 
 
-int DPB_index_of_picture_with_POC(decoded_picture_buffer* dpb, int poc)
+int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc) const
 {
   logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=\n",poc);
 
@@ -75,8 +75,8 @@ int DPB_index_of_picture_with_POC(decoded_picture_buffer* dpb, int poc)
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    if (dpb->dpb[k].PicOrderCntVal == poc &&
-        dpb->dpb[k].PicState != UnusedForReference) {
+    if (dpb[k].PicOrderCntVal == poc &&
+        dpb[k].PicState != UnusedForReference) {
       return k;
     }
   }
@@ -85,13 +85,13 @@ int DPB_index_of_picture_with_POC(decoded_picture_buffer* dpb, int poc)
 }
 
 
-int DPB_index_of_picture_with_LSB(decoded_picture_buffer* dpb, int lsb)
+int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb) const
 {
   logdebug(LogHeaders,"get access to picture with PSB %d from DPB\n",lsb);
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    if (dpb->dpb[k].picture_order_cnt_lsb == lsb &&
-        dpb->dpb[k].PicState != UnusedForReference) {
+    if (dpb[k].picture_order_cnt_lsb == lsb &&
+        dpb[k].PicState != UnusedForReference) {
       return k;
     }
   }
@@ -100,18 +100,18 @@ int DPB_index_of_picture_with_LSB(decoded_picture_buffer* dpb, int lsb)
 }
 
 
-void flush_next_picture_from_reorder_buffer(decoded_picture_buffer *dpb)
+void decoded_picture_buffer::flush_next_picture_from_reorder_buffer()
 {
-  assert(dpb->reorder_output_queue_length>0);
+  assert(reorder_output_queue_length>0);
 
   // search for picture in reorder buffer with minimum POC
 
-  int minPOC = dpb->reorder_output_queue[0]->PicOrderCntVal;
+  int minPOC = reorder_output_queue[0]->PicOrderCntVal;
   int minIdx = 0;
-  for (int i=1;i<dpb->reorder_output_queue_length;i++)
+  for (int i=1;i<reorder_output_queue_length;i++)
     {
-      if (dpb->reorder_output_queue[i]->PicOrderCntVal < minPOC) {
-        minPOC = dpb->reorder_output_queue[i]->PicOrderCntVal;
+      if (reorder_output_queue[i]->PicOrderCntVal < minPOC) {
+        minPOC = reorder_output_queue[i]->PicOrderCntVal;
         minIdx = i;
       }
     }
@@ -119,27 +119,27 @@ void flush_next_picture_from_reorder_buffer(decoded_picture_buffer *dpb)
 
   // put image into output queue
 
-  assert(dpb->image_output_queue_length < DE265_DPB_SIZE);
-  dpb->image_output_queue[ dpb->image_output_queue_length ] = dpb->reorder_output_queue[minIdx];
-  dpb->image_output_queue_length++;
+  assert(image_output_queue_length < DE265_DPB_SIZE);
+  image_output_queue[ image_output_queue_length ] = reorder_output_queue[minIdx];
+  image_output_queue_length++;
 
 
   // remove image from reorder buffer
 
-  for (int i=minIdx+1; i<dpb->reorder_output_queue_length; i++) {
-    dpb->reorder_output_queue[i-1] = dpb->reorder_output_queue[i];
+  for (int i=minIdx+1; i<reorder_output_queue_length; i++) {
+    reorder_output_queue[i-1] = reorder_output_queue[i];
   }
-  dpb->reorder_output_queue_length--;
+  reorder_output_queue_length--;
 }
 
 
-bool flush_reorder_buffer(decoded_picture_buffer* dpb)
+bool decoded_picture_buffer::flush_reorder_buffer()
 {
   // return 'false' when there are no pictures in reorder buffer
-  if (dpb->reorder_output_queue_length==0) return false;
+  if (reorder_output_queue_length==0) return false;
 
-  while (dpb->reorder_output_queue_length>0) {
-    flush_next_picture_from_reorder_buffer(dpb);
+  while (reorder_output_queue_length>0) {
+    flush_next_picture_from_reorder_buffer();
   }
 
   return true;
@@ -166,16 +166,16 @@ void decoded_picture_buffer::clear_images(decoder_context* ctx)
 /* Alloc a new image in the DPB and return its index.
    If there is no space for a new image, return -1.
  */
-int initialize_new_DPB_image(decoded_picture_buffer* dpb,const seq_parameter_set* sps)
+int decoded_picture_buffer::initialize_new_DPB_image(const seq_parameter_set* sps)
 {
   loginfo(LogHeaders,"initialize_new_DPB_image\n");
 
   //printf("initialize_new_DPB_image()\n");
-  log_dpb_content(dpb);
+  log_dpb_content();
 
   int free_image_buffer_idx = -1;
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    if (dpb->dpb[i].PicOutputFlag==false && dpb->dpb[i].PicState == UnusedForReference) {
+    if (dpb[i].PicOutputFlag==false && dpb[i].PicState == UnusedForReference) {
       free_image_buffer_idx = i;
       break;
     }
@@ -187,7 +187,7 @@ int initialize_new_DPB_image(decoded_picture_buffer* dpb,const seq_parameter_set
     return -1;
   }
 
-  de265_image* img = &dpb->dpb[free_image_buffer_idx];
+  de265_image* img = &dpb[free_image_buffer_idx];
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
@@ -209,37 +209,37 @@ int initialize_new_DPB_image(decoded_picture_buffer* dpb,const seq_parameter_set
 }
 
 
-void dpb_pop_next_picture_in_output_queue(decoded_picture_buffer* dpb)
+void decoded_picture_buffer::pop_next_picture_in_output_queue()
 {
-  for (int i=1;i<dpb->image_output_queue_length;i++)
+  for (int i=1;i<image_output_queue_length;i++)
     {
-      dpb->image_output_queue[i-1] = dpb->image_output_queue[i];
+      image_output_queue[i-1] = image_output_queue[i];
     }
 
-  dpb->image_output_queue_length--;
+  image_output_queue_length--;
 
-  dpb->image_output_queue[ dpb->image_output_queue_length ] = NULL;
+  image_output_queue[ image_output_queue_length ] = NULL;
 
 
   loginfo(LogDPB, "DPB output queue: ");
-  for (int i=0;i<dpb->image_output_queue_length;i++) {
-    loginfo(LogDPB, "*%d ", dpb->image_output_queue[i]->PicOrderCntVal);
+  for (int i=0;i<image_output_queue_length;i++) {
+    loginfo(LogDPB, "*%d ", image_output_queue[i]->PicOrderCntVal);
   }
   loginfo(LogDPB,"*\n");
 }
 
 
-void log_dpb_queues(const decoded_picture_buffer* dpb)
+void decoded_picture_buffer::log_dpb_queues() const
 {
     loginfo(LogDPB, "DPB reorder queue (after push): ");
-    for (int i=0;i<dpb_num_pictures_in_reorder_buffer(dpb);i++) {
-      loginfo(LogDPB, "*%d ", dpb->reorder_output_queue[i]->PicOrderCntVal);
+    for (int i=0;i<num_pictures_in_reorder_buffer();i++) {
+      loginfo(LogDPB, "*%d ", reorder_output_queue[i]->PicOrderCntVal);
     }
     loginfo(LogDPB,"*\n");
 
     loginfo(LogDPB, "DPB output queue (after push): ");
-    for (int i=0;i<dpb_num_pictures_in_output_queue(dpb);i++) {
-      loginfo(LogDPB, "*%d ", dpb->image_output_queue[i]->PicOrderCntVal);
+    for (int i=0;i<num_pictures_in_output_queue();i++) {
+      loginfo(LogDPB, "*%d ", image_output_queue[i]->PicOrderCntVal);
     }
     loginfo(LogDPB,"*\n");
 }

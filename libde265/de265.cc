@@ -486,7 +486,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
     push_current_picture_to_output_queue(ctx);
 
     bool images_in_reorder_buffer;
-    images_in_reorder_buffer = flush_reorder_buffer(&ctx->dpb);
+    images_in_reorder_buffer = ctx->dpb.flush_reorder_buffer();
     if (more && images_in_reorder_buffer) { *more=1; }
 
     return DE265_OK;
@@ -506,7 +506,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   // when there are no free image buffers in the DPB, pause decoding
   // -> output stalled
 
-  if (!has_free_dpb_picture(&ctx->dpb, false)) {
+  if (!ctx->dpb.has_free_dpb_picture(false)) {
     if (more) *more = 1;
     return DE265_ERROR_IMAGE_BUFFER_FULL;
   }
@@ -962,7 +962,7 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return dpb_get_next_picture_in_output_queue(&ctx->dpb);
+  return ctx->dpb.get_next_picture_in_output_queue();
 }
 
 
@@ -972,9 +972,9 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   // no active output picture -> ignore release request
 
-  if (dpb_num_pictures_in_output_queue(&ctx->dpb)==0) { return; }
+  if (ctx->dpb.num_pictures_in_output_queue()==0) { return; }
 
-  de265_image* next_image = dpb_get_next_picture_in_output_queue(&ctx->dpb);
+  de265_image* next_image = ctx->dpb.get_next_picture_in_output_queue();
 
   loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
 
@@ -983,7 +983,7 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   // pop output queue
 
-  dpb_pop_next_picture_in_output_queue(&ctx->dpb);
+  ctx->dpb.pop_next_picture_in_output_queue();
 }
 
 

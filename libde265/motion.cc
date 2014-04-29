@@ -410,7 +410,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       }
 
       de265_image* refPic;
-      refPic = dpb_get_image(&ctx->dpb, shdr->RefPicList[l][vi->lum.refIdx[l]]);
+      refPic = ctx->dpb.get_image(shdr->RefPicList[l][vi->lum.refIdx[l]]);
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->lum.refIdx[l], shdr->RefPicList[l][vi->lum.refIdx[l]]);
 
@@ -1082,7 +1082,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
   // TODO: has to get pred_mode from reference picture
-  const de265_image* colImg = dpb_get_image(&ctx->dpb, colPic);
+  const de265_image* colImg = ctx->dpb.get_image(colPic);
   enum PredMode predMode = get_pred_mode(colImg, xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
@@ -1130,7 +1130,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            de265_image* imgA = dpb_get_image(&ctx->dpb, shdr->RefPicList[0][rIdx]);
+            de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[0][rIdx]);
             int aPOC = imgA->PicOrderCntVal;
 
             if (aPOC > PicOrderCntVal) {
@@ -1140,7 +1140,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            de265_image* imgA = dpb_get_image(&ctx->dpb, shdr->RefPicList[1][rIdx]);
+            de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[1][rIdx]);
             int aPOC = imgA->PicOrderCntVal;
 
             if (aPOC > PicOrderCntVal) {
@@ -1312,8 +1312,8 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(*l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(*l1Cand);
 
-      const de265_image* img0 = dpb_get_image_const(&ctx->dpb, shdr->RefPicList[0][l0Cand->refIdx[0]]);
-      const de265_image* img1 = dpb_get_image_const(&ctx->dpb, shdr->RefPicList[1][l1Cand->refIdx[1]]);
+      const de265_image* img0 = ctx->dpb.get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]);
+      const de265_image* img1 = ctx->dpb.get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]);
 
       if (l0Cand->predFlag[0] && l1Cand->predFlag[1] &&
           (img0->PicOrderCntVal != img1->PicOrderCntVal     ||
@@ -1502,7 +1502,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
-  const int referenced_POC = dpb_get_image(&ctx->dpb, shdr->RefPicList[X][ refIdxLX ])->PicOrderCntVal;
+  const int referenced_POC = ctx->dpb.get_image(shdr->RefPicList[X][ refIdxLX ])->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
@@ -1517,7 +1517,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
       // check whether the predictor X is available and references the same POC
       if (vi->predFlag[X] &&
-          dpb_get_image(&ctx->dpb, shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
+          ctx->dpb.get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,X);
 
@@ -1527,7 +1527,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       }
       // check whether the other predictor (Y) is available and references the same POC
       else if (vi->predFlag[Y] &&
-               dpb_get_image(&ctx->dpb, shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
+               ctx->dpb.get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,Y);
 
@@ -1577,8 +1577,8 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       assert(refIdxA>=0);
       assert(refPicList>=0);
 
-      const de265_image* refPicA = dpb_get_image(&ctx->dpb,shdr->RefPicList[refPicList][refIdxA ]);
-      const de265_image* refPicX = dpb_get_image(&ctx->dpb,shdr->RefPicList[X         ][refIdxLX]);
+      const de265_image* refPicA = ctx->dpb.get_image(shdr->RefPicList[refPicList][refIdxA ]);
+      const de265_image* refPicX = ctx->dpb.get_image(shdr->RefPicList[X         ][refIdxLX]);
 
       logtrace(LogMotion,"scale MVP A: A-POC:%d X-POC:%d\n",
                refPicA->PicOrderCntVal,refPicX->PicOrderCntVal);
@@ -1633,7 +1633,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
       logmvcand(*vi);
 
       if (vi->predFlag[X] &&
-          dpb_get_image(&ctx->dpb,shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
+          ctx->dpb.get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
 
         logtrace(LogMotion,"take B%d/L%d as B candidate with same POC\n",k,X);
 
@@ -1642,7 +1642,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
         refIdxB = vi->refIdx[X];
       }
       else if (vi->predFlag[Y] &&
-               dpb_get_image(&ctx->dpb,shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
+               ctx->dpb.get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
 
         logtrace(LogMotion,"take B%d/L%d as B candidate with same POC\n",k,Y);
 
@@ -1702,8 +1702,8 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
-        const de265_image* refPicB=dpb_get_image(&ctx->dpb,shdr->RefPicList[refPicList][refIdxB ]);
-        const de265_image* refPicX=dpb_get_image(&ctx->dpb,shdr->RefPicList[X         ][refIdxLX]);
+        const de265_image* refPicB=ctx->dpb.get_image(shdr->RefPicList[refPicList][refIdxB ]);
+        const de265_image* refPicX=ctx->dpb.get_image(shdr->RefPicList[X         ][refIdxLX]);
         if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
             refPicB->PicState == UsedForShortTermReference &&
             refPicX->PicState == UsedForShortTermReference) {
