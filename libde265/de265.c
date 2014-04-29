@@ -949,9 +949,11 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
   // --- remove all pictures from output queue ---
 
-#if 0
-  // actually, this should be sufficient to reset the DPB, but the decoder hangs
-  // for ToS in VLC while scrubbing, so we have to free/init again
+#if 1
+  // there was a bug the peek_next_image did not return NULL on empty output queues.
+  // This was (indirectly) fixed by recreating the DPB buffer, but it should actually
+  // be sufficient to clear it like this.
+  // The error showed while scrubbing the ToS video in VLC.
   dpb_clear_images(&ctx->dpb, ctx);
 #else
   free_dpb(&ctx->dpb);
@@ -1001,7 +1003,13 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return dpb_get_next_picture_in_output_queue(&ctx->dpb);
+  if (dpb_num_pictures_in_output_queue(&ctx->dpb)>0) {
+    de265_image* img = dpb_get_next_picture_in_output_queue(&ctx->dpb);
+    return img;
+  }
+  else {
+    return NULL;
+  }
 }
 
 

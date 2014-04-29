@@ -72,8 +72,7 @@ void log_dpb_queues(const decoded_picture_buffer* dpb);
 
 LIBDE265_INLINE static de265_image* dpb_get_next_picture_in_output_queue(decoded_picture_buffer* dpb)
 {
-  //assert(dpb->image_output_queue_length>0);
-
+  assert(dpb->image_output_queue_length>0);
   return dpb->image_output_queue[0];
 }
 LIBDE265_INLINE static int dpb_num_pictures_in_output_queue(const decoded_picture_buffer* dpb)
