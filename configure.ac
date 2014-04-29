@@ -181,9 +181,9 @@ if eval "test x$enable_sherlock265 = xyes" && eval "test x$have_videogfx != xyes
                      )
 fi
 
-AM_CONDITIONAL([HAVE_VIDEOGFX], [test "x$have_videogfx" != "xno"])
-AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" != "xno"])
-AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" != "xno"])
+AM_CONDITIONAL([HAVE_VIDEOGFX], [test "x$have_videogfx" = "xyes"])
+AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" = "xyes"])
+AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" = "xyes"])
 
 if eval "test $enable_dec265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_sdl != yes" ; then
   AC_MSG_WARN([Did not find libvideogfx or libsdl, video output of dec265 will be disabled.])
