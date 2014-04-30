@@ -24,21 +24,20 @@
 #include <assert.h>
 
 
-decoded_picture_buffer::decoded_picture_buffer()
+void init_dpb(decoded_picture_buffer* dpb)
 {
-  reorder_output_queue_length = 0;
-  image_output_queue_length = 0;
+  memset(dpb, 0, sizeof(decoded_picture_buffer));
 
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    de265_init_image(&dpb[i]);
+    de265_init_image(&dpb->dpb[i]);
   }
 }
 
 
-decoded_picture_buffer::~decoded_picture_buffer()
+void free_dpb(decoded_picture_buffer* dpb)
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    de265_free_image(&dpb[i]);
+    de265_free_image(&dpb->dpb[i]);
   }
 }
 

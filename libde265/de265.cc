@@ -755,11 +755,16 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
   // --- remove all pictures from output queue ---
 
+#if 1
   // there was a bug the peek_next_image did not return NULL on empty output queues.
   // This was (indirectly) fixed by recreating the DPB buffer, but it should actually
   // be sufficient to clear it like this.
   // The error showed while scrubbing the ToS video in VLC.
   ctx->dpb.clear_images(ctx);
+#else
+  free_dpb(&ctx->dpb);
+  init_dpb(&ctx->dpb);
+#endif
 
 
   ctx->nal_parser.remove_pending_input_data();
