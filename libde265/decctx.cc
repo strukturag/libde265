@@ -46,53 +46,53 @@
 
 
 
-void init_decoder_context(decoder_context* ctx)
+decoder_context::decoder_context()
 {
   //memset(ctx, 0, sizeof(decoder_context));
 
   // --- parameters ---
 
-  ctx->param_sei_check_hash = false;
-  ctx->param_HighestTid = 999; // unlimited
-  ctx->param_conceal_stream_errors = true;
-  ctx->param_suppress_faulty_pictures = false;
+  param_sei_check_hash = false;
+  param_HighestTid = 999; // unlimited
+  param_conceal_stream_errors = true;
+  param_suppress_faulty_pictures = false;
 
   // --- processing ---
 
-  ctx->param_sps_headers_fd = -1;
-  ctx->param_vps_headers_fd = -1;
-  ctx->param_pps_headers_fd = -1;
-  ctx->param_slice_headers_fd = -1;
+  param_sps_headers_fd = -1;
+  param_vps_headers_fd = -1;
+  param_pps_headers_fd = -1;
+  param_slice_headers_fd = -1;
 
-  set_acceleration_functions(ctx,de265_acceleration_AUTO);
+  set_acceleration_functions(this,de265_acceleration_AUTO);
 
 
 
-  memset(&ctx->vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
-  memset(&ctx->sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
-  memset(&ctx->pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
-  memset(&ctx->slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
+  memset(&vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
+  memset(&sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
+  memset(&pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
+  memset(&slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
 
-  ctx->current_vps = NULL;
-  ctx->current_sps = NULL;
-  ctx->current_pps = NULL;
+  current_vps = NULL;
+  current_sps = NULL;
+  current_pps = NULL;
 
-  memset(&ctx->thread_pool,0,sizeof(struct thread_pool));
-  ctx->num_worker_threads = 0;
+  memset(&thread_pool,0,sizeof(struct thread_pool));
+  num_worker_threads = 0;
 
-  ctx->HighestTid = 0;
+  HighestTid = 0;
 
-  ctx->last_decoded_image = NULL;
+  last_decoded_image = NULL;
 
-  ctx->current_image_poc_lsb = 0;
-  ctx->first_decoded_picture = 0;
-  ctx->NoRaslOutputFlag = 0;
-  ctx->HandleCraAsBlaFlag = 0;
-  ctx->FirstAfterEndOfSequenceNAL = 0;
-  ctx->PicOrderCntMsb = 0;
-  ctx->prevPicOrderCntLsb = 0;
-  ctx->prevPicOrderCntMsb = 0;
-  ctx->img = NULL;
+  current_image_poc_lsb = 0;
+  first_decoded_picture = 0;
+  NoRaslOutputFlag = 0;
+  HandleCraAsBlaFlag = 0;
+  FirstAfterEndOfSequenceNAL = 0;
+  PicOrderCntMsb = 0;
+  prevPicOrderCntLsb = 0;
+  prevPicOrderCntMsb = 0;
+  img = NULL;
 
   /*
   int PocLsbLt[MAX_NUM_REF_PICS];
@@ -128,18 +128,18 @@ void init_decoder_context(decoder_context* ctx)
   char RapPicFlag;
   */
 
-  memset(ctx->thread_context,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
+  memset(thread_context,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
 
 
   // --- internal data ---
 
   for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
-    init_sps(&ctx->sps[i]);
+    init_sps(&sps[i]);
   }
 
-  init_dpb(&ctx->dpb);
+  init_dpb(&dpb);
 
-  ctx->first_decoded_picture = true;
+  first_decoded_picture = true;
   //ctx->FirstAfterEndOfSequenceNAL = true;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
@@ -147,15 +147,16 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- decoded picture buffer ---
 
-  ctx->current_image_poc_lsb = -1; // any invalid number
+  current_image_poc_lsb = -1; // any invalid number
 
   for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
-    ctx->thread_context[i].coeffBuf = (int16_t *) &ctx->thread_context[i]._coeffBuf;
+    thread_context[i].coeffBuf = (int16_t *) &thread_context[i]._coeffBuf;
     // some compilers/linkers don't align struct members correctly,
     // adjust if necessary
-    int offset = (uintptr_t) ctx->thread_context[i].coeffBuf & 0x0f;
+    int offset = (uintptr_t)thread_context[i].coeffBuf & 0x0f;
     if (offset != 0) {
-        ctx->thread_context[i].coeffBuf = (int16_t *) (((uint8_t *)ctx->thread_context[i].coeffBuf) + (16-offset));
+      thread_context[i].coeffBuf = (int16_t *) (((uint8_t *)thread_context[i].coeffBuf) +
+                                                (16-offset));
     }
   }
 }

@@ -198,8 +198,6 @@ LIBDE265_API de265_decoder_context* de265_new_decoder()
     return NULL;
   }
 
-  init_decoder_context(ctx);
-
   return (de265_decoder_context*)ctx;
 }
 
