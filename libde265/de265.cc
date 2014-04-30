@@ -211,8 +211,7 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context* de265ctx)
     stop_thread_pool(&ctx->thread_pool);
   }
 
-  free_decoder_context(ctx);
-  delete de265ctx;
+  delete ctx;
 
   return de265_free();
 }

@@ -162,6 +162,20 @@ decoder_context::decoder_context()
 }
 
 
+decoder_context::~decoder_context()
+{
+  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
+    free_sps(&sps[i]);
+  }
+
+  free_dpb(&dpb);
+
+  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
+    free_pps(&pps[i]);
+  }
+}
+
+
 void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration l)
 {
   // fill scalar functions first (so that function table is completely filled)
@@ -176,20 +190,6 @@ void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration l)
     init_acceleration_functions_sse(&ctx->acceleration);
   }
 #endif
-}
-
-
-void free_decoder_context(decoder_context* ctx)
-{
-  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
-    free_sps(&ctx->sps[i]);
-  }
-
-  free_dpb(&ctx->dpb);
-
-  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
-    free_pps(&ctx->pps[i]);
-  }
 }
 
 

@@ -124,6 +124,7 @@ class error_queue
 struct decoder_context : public error_queue {
 
   decoder_context();
+  ~decoder_context();
 
   // --- parameters ---
 
@@ -235,7 +236,6 @@ struct decoder_context : public error_queue {
 
 void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration);
 void reset_decoder_context_for_new_picture(decoder_context* ctx);
-void free_decoder_context(decoder_context*);
 
 
 void cleanup_image(decoder_context* ctx, de265_image* img);
