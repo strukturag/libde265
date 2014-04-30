@@ -140,15 +140,6 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
   if (sps) {
     // intra pred mode
 
-    /*
-    int intraPredModeSize = sps->PicWidthInMinPUs * sps->PicHeightInMinPUs;
-    if (intraPredModeSize != img->intraPredModeSize) {
-      img->intraPredModeSize = intraPredModeSize;
-      free(img->intraPredMode);
-      img->intraPredMode = (uint8_t *) malloc(intraPredModeSize * sizeof(*img->intraPredMode));
-    }
-    */
-
     img->intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
                              sps->Log2MinPUSize);
 
@@ -157,48 +148,18 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     img->cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
                        sps->Log2MinCbSizeY);
 
-    /*
-    if (img->cb_info_size != sps->PicSizeInMinCbsY ||
-        img->cb_info == NULL) {
-      img->cb_info_size = sps->PicSizeInMinCbsY;
-      img->Log2MinCbSizeY = sps->Log2MinCbSizeY;
-      img->PicWidthInMinCbsY = sps->PicWidthInMinCbsY;
-      free(img->cb_info);
-      img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * img->cb_info_size);
-    }
-    */
-
     // pb info
 
     int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
     int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
-
-    /*
-    if (img->pb_info_size != puWidth*puHeight ||
-        img->pb_info == NULL) {
-      img->pb_info_size   = puWidth*puHeight;
-      img->pb_info_stride = puWidth;
-      free(img->pb_info);
-      img->pb_info = (PB_ref_info*)malloc(sizeof(PB_ref_info) * img->pb_info_size);
-      img->Log2MinPUSize = sps->Log2MinPUSize;
-      img->PicWidthInMinPUs = sps->PicWidthInMinPUs;
-    }
-    */
 
     img->pb_info.alloc(puWidth,puHeight, 2);
 
 
     // tu info
 
-    if (img->tu_info_size != sps->PicSizeInTbsY ||
-        img->tu_info == NULL) {
-      img->tu_info_size = sps->PicSizeInTbsY;
-      free(img->tu_info);
-      img->tu_info = (uint8_t*)malloc(sizeof(uint8_t) * img->tu_info_size);
-      img->Log2MinTrafoSize = sps->Log2MinTrafoSize;
-      img->PicWidthInTbsY = sps->PicWidthInTbsY;
-    }
-
+    img->tu_info.alloc(sps->PicWidthInTbsY, sps->PicHeightInTbsY,
+                       sps->Log2MinTrafoSize);
 
     // deblk info
 
@@ -246,7 +207,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
         //img->intraPredMode == NULL ||
         //img->cb_info == NULL ||
         //img->pb_info == NULL ||
-        img->tu_info == NULL ||
+        //img->tu_info == NULL ||
         img->deblk_info == NULL)
       {
         de265_free_image(img);
@@ -270,7 +231,7 @@ void de265_free_image(de265_image* img)
   free(img->ctb_progress);
   //free(img->cb_info);
   //free(img->pb_info);
-  free(img->tu_info);
+  //free(img->tu_info);
   free(img->deblk_info);
   //free(img->ctb_info);
   // free(img->intraPredMode);
@@ -385,13 +346,11 @@ void img_clear_decoding_data(de265_image* img)
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
-  //memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
   img->cb_info.clear();
-
-  memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
-  memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
-  //memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
+  img->tu_info.clear();
   img->ctb_info.clear();
+
+  memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
 
 
   // --- reset CTB progresses ---

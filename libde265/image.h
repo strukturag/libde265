@@ -248,11 +248,7 @@ typedef struct de265_image {
   MetaDataArray<CB_ref_info> cb_info;
   MetaDataArray<PB_ref_info> pb_info;
   MetaDataArray<uint8_t>     intraPredMode;
-
-  uint8_t* tu_info;
-  int tu_info_size;
-  int Log2MinTrafoSize;
-  int PicWidthInTbsY;
+  MetaDataArray<uint8_t>     tu_info;
 
   uint8_t* deblk_info;
   int deblk_info_size;
@@ -397,27 +393,27 @@ LIBDE265_INLINE static int  get_QPY(const de265_image* img, int x0,int y0)
   return img->cb_info[CB_IDX(x0,y0)].QP_Y;
 }
 
-#define PIXEL2TU(x) (x >> img->Log2MinTrafoSize)
-#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->PicWidthInTbsY)
+#define PIXEL2TU(x) (x >> img->tu_info.log2unitSize)
+#define TU_IDX(x0,y0) (PIXEL2TU(x0) + PIXEL2TU(y0)*img->tu_info.width_in_units)
 
 #define OR_TU_BLK(x,y,log2BlkWidth,  value)                             \
   int tuX = PIXEL2TU(x);                                                \
   int tuY = PIXEL2TU(y);                                                \
-  int width = 1 << (log2BlkWidth - img->Log2MinTrafoSize);              \
+  int width = 1 << (log2BlkWidth - img->tu_info.log2unitSize);          \
   for (int tuy=tuY;tuy<tuY+width;tuy++)                                 \
     for (int tux=tuX;tux<tuX+width;tux++)                               \
       {                                                                 \
-        img->tu_info[ tux + tuy*img->PicWidthInTbsY ] |= value;         \
+        img->tu_info[ tux + tuy*img->tu_info.width_in_units ] |= value; \
       }
 
 LIBDE265_INLINE static void set_split_transform_flag(de265_image* img, int x0,int y0,int trafoDepth)
 {
-  img->tu_info[TU_IDX(x0,y0)] |= (1<<trafoDepth);
+  img->tu_info.get(x0,y0) |= (1<<trafoDepth);
 }
+
 LIBDE265_INLINE static int  get_split_transform_flag(const de265_image* img, int x0,int y0,int trafoDepth)
 {
-  int idx = TU_IDX(x0,y0);
-  return (img->tu_info[idx] & (1<<trafoDepth));
+  return (img->tu_info.get(x0,y0) & (1<<trafoDepth));
 }
 
 LIBDE265_INLINE static void set_nonzero_coefficient(de265_image* img, int x,int y, int log2TrafoSize)
@@ -427,7 +423,7 @@ LIBDE265_INLINE static void set_nonzero_coefficient(de265_image* img, int x,int 
 
 LIBDE265_INLINE static int  get_nonzero_coefficient(const de265_image* img, int x,int y)
 {
-  return img->tu_info[TU_IDX(x,y)] & TU_FLAG_NONZERO_COEFF;
+  return img->tu_info.get(x,y) & TU_FLAG_NONZERO_COEFF;
 }
 
 LIBDE265_INLINE static enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y)
