@@ -192,7 +192,7 @@ LIBDE265_API de265_decoder_context* de265_new_decoder()
     return NULL;
   }
 
-  decoder_context* ctx = (decoder_context*)calloc(sizeof(decoder_context),1);
+  decoder_context* ctx = new decoder_context;
   if (!ctx) {
     de265_free();
     return NULL;
@@ -214,7 +214,7 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context* de265ctx)
   }
 
   free_decoder_context(ctx);
-  free(de265ctx);
+  delete de265ctx;
 
   return de265_free();
 }

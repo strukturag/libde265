@@ -48,7 +48,7 @@
 
 void init_decoder_context(decoder_context* ctx)
 {
-  memset(ctx, 0, sizeof(decoder_context));
+  //memset(ctx, 0, sizeof(decoder_context));
 
   // --- parameters ---
 
