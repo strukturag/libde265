@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
@@ -74,6 +75,61 @@ enum PictureState {
 #define CTB_PROGRESS_NONE      0
 #define CTB_PROGRESS_PREFILTER 1
 #define CTB_PROGRESS_FILTERED  2
+
+template <class DataUnit> class MetaDataArray
+{
+ public:
+  MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; }
+  ~MetaDataArray() { free(data); }
+
+  void alloc(int w,int h, int _log2unitSize) {
+    int size = w*h;
+    if (size != data_size) {
+      free(data);
+      data = (DataUnit*)malloc(size * sizeof(DataUnit));
+      data_size = size;
+      width_in_units = w;
+    }
+
+    log2unitSize = _log2unitSize;
+  }
+
+  const DataUnit& get(int x,int y) const {
+    int unitX = x>>log2unitSize;
+    int unitY = y>>log2unitSize;
+
+    return data[ unitX + unitY*width_in_units ];
+  }
+
+  void set(int x,int y, const DataUnit& d) {
+    int unitX = x>>log2unitSize;
+    int unitY = y>>log2unitSize;
+
+    data[ unitX + unitY*width_in_units ] = d;
+  }
+
+  DataUnit& operator[](int idx) { return data[idx]; }
+
+  /*
+  void set_QQQ(int x,int y, int log2BlkWidth, TTT value)
+  {
+    int cbX = PIXEL2CB(x);                                                \
+    int cbY = PIXEL2CB(y);                                                \
+    int width = 1 << (log2BlkWidth - img->Log2MinCbSizeY);                \
+    for (int cby=cbY;cby<cbY+width;cby++)                                 \
+      for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
+        {                                                                 \
+          img->cb_info[ cbx + cby*img->PicWidthInMinCbsY ].Field = value; \
+        }
+  }
+  */
+
+  // private:
+  DataUnit* data;
+  int data_size;
+  int log2unitSize;
+  int width_in_units;
+};
 
 #define PIXEL2CB(x) (x >> img->Log2MinCbSizeY)
 #define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->PicWidthInMinCbsY)
@@ -192,8 +248,12 @@ typedef struct de265_image {
   int Log2MinPUSize;
   int PicWidthInMinPUs;
 
+  /*
   uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
   int intraPredModeSize;
+  */
+
+  MetaDataArray<uint8_t> intraPredMode;
 
   uint8_t* tu_info;
   int tu_info_size;
@@ -392,9 +452,13 @@ LIBDE265_INLINE static int  get_nonzero_coefficient(const de265_image* img, int 
 
 LIBDE265_INLINE static enum IntraPredMode get_IntraPredMode(const de265_image* img, int x,int y)
 {
+  /*
   int PUidx = (x>>img->Log2MinPUSize) + (y>>img->Log2MinPUSize) * img->PicWidthInMinPUs;
 
   return (enum IntraPredMode) img->intraPredMode[PUidx];
+  */
+
+  return (enum IntraPredMode) img->intraPredMode.get(x,y);
 }
 
 

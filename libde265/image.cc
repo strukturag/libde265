@@ -140,13 +140,17 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
   if (sps) {
     // intra pred mode
 
+    /*
     int intraPredModeSize = sps->PicWidthInMinPUs * sps->PicHeightInMinPUs;
     if (intraPredModeSize != img->intraPredModeSize) {
       img->intraPredModeSize = intraPredModeSize;
       free(img->intraPredMode);
       img->intraPredMode = (uint8_t *) malloc(intraPredModeSize * sizeof(*img->intraPredMode));
     }
+    */
 
+    img->intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
+                             sps->Log2MinPUSize);
 
     // cb info
 
@@ -228,7 +232,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     // check for memory shortage
 
     if (img->ctb_info == NULL ||
-        img->intraPredMode == NULL ||
+        //img->intraPredMode == NULL ||
         img->cb_info == NULL ||
         img->pb_info == NULL ||
         img->tu_info == NULL ||
@@ -258,7 +262,7 @@ void de265_free_image(de265_image* img)
   free(img->tu_info);
   free(img->deblk_info);
   free(img->ctb_info);
-  free(img->intraPredMode);
+  // free(img->intraPredMode);
 
   de265_cond_destroy(&img->finished_cond);
   de265_mutex_destroy(&img->mutex);
