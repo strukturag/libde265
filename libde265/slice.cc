@@ -3847,10 +3847,9 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
 
     slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->ctb_info[prevCtb ].SliceHeaderIndex ];
 
-    if (is_tile_start_CTB(pps,
-                          shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
-                          shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY
-                          )) {
+    if (pps->is_tile_start_CTB(shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
+                               shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY
+                               )) {
       initialize_CABAC(ctx,tctx);
     }
     else {

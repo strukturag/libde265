@@ -132,7 +132,7 @@ void decode_quantization_parameters(decoder_context* ctx,
         int ctbX = xQG >> sps->Log2CtbSizeY;
         int ctbY = yQG >> sps->Log2CtbSizeY;
 
-        firstQGInTile = is_tile_start_CTB(pps,ctbX,ctbY);
+        firstQGInTile = pps->is_tile_start_CTB(ctbX,ctbY);
       }
   }
 

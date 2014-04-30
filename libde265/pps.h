@@ -34,6 +34,10 @@ struct pic_parameter_set {
   pic_parameter_set();
   ~pic_parameter_set();
 
+  bool is_tile_start_CTB(int ctbX,int ctbY) const;
+  void dump_pps(int fd) const;
+
+
   bool pps_read; // whether this pps has been read from bitstream
 
   char pic_parameter_set_id;

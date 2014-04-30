@@ -458,7 +458,7 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 }
 
 
-void dump_pps(pic_parameter_set* pps, int fd)
+void pic_parameter_set::dump_pps(int fd) const
 {
   FILE* fh;
   if (fd==1) fh=stdout;
@@ -469,47 +469,47 @@ void dump_pps(pic_parameter_set* pps, int fd)
 #define LOG1(t,d) log2fh(fh, t,d)
 
   LOG0("----------------- PPS -----------------\n");
-  LOG1("pic_parameter_set_id       : %d\n", pps->pic_parameter_set_id);
-  LOG1("seq_parameter_set_id       : %d\n", pps->seq_parameter_set_id);
-  LOG1("dependent_slice_segments_enabled_flag : %d\n", pps->dependent_slice_segments_enabled_flag);
-  LOG1("sign_data_hiding_flag      : %d\n", pps->sign_data_hiding_flag);
-  LOG1("cabac_init_present_flag    : %d\n", pps->cabac_init_present_flag);
-  LOG1("num_ref_idx_l0_default_active : %d\n", pps->num_ref_idx_l0_default_active);
-  LOG1("num_ref_idx_l1_default_active : %d\n", pps->num_ref_idx_l1_default_active);
+  LOG1("pic_parameter_set_id       : %d\n", pic_parameter_set_id);
+  LOG1("seq_parameter_set_id       : %d\n", seq_parameter_set_id);
+  LOG1("dependent_slice_segments_enabled_flag : %d\n", dependent_slice_segments_enabled_flag);
+  LOG1("sign_data_hiding_flag      : %d\n", sign_data_hiding_flag);
+  LOG1("cabac_init_present_flag    : %d\n", cabac_init_present_flag);
+  LOG1("num_ref_idx_l0_default_active : %d\n", num_ref_idx_l0_default_active);
+  LOG1("num_ref_idx_l1_default_active : %d\n", num_ref_idx_l1_default_active);
 
-  LOG1("pic_init_qp                : %d\n", pps->pic_init_qp);
-  LOG1("constrained_intra_pred_flag: %d\n", pps->constrained_intra_pred_flag);
-  LOG1("transform_skip_enabled_flag: %d\n", pps->transform_skip_enabled_flag);
-  LOG1("cu_qp_delta_enabled_flag   : %d\n", pps->cu_qp_delta_enabled_flag);
+  LOG1("pic_init_qp                : %d\n", pic_init_qp);
+  LOG1("constrained_intra_pred_flag: %d\n", constrained_intra_pred_flag);
+  LOG1("transform_skip_enabled_flag: %d\n", transform_skip_enabled_flag);
+  LOG1("cu_qp_delta_enabled_flag   : %d\n", cu_qp_delta_enabled_flag);
 
-  if (pps->cu_qp_delta_enabled_flag) {
-    LOG1("diff_cu_qp_delta_depth     : %d\n", pps->diff_cu_qp_delta_depth);
+  if (cu_qp_delta_enabled_flag) {
+    LOG1("diff_cu_qp_delta_depth     : %d\n", diff_cu_qp_delta_depth);
   }
 
-  LOG1("pic_cb_qp_offset             : %d\n", pps->pic_cb_qp_offset);
-  LOG1("pic_cr_qp_offset             : %d\n", pps->pic_cr_qp_offset);
-  LOG1("pps_slice_chroma_qp_offsets_present_flag : %d\n", pps->pps_slice_chroma_qp_offsets_present_flag);
-  LOG1("weighted_pred_flag           : %d\n", pps->weighted_pred_flag);
-  LOG1("weighted_bipred_flag         : %d\n", pps->weighted_bipred_flag);
-  LOG1("output_flag_present_flag     : %d\n", pps->output_flag_present_flag);
-  LOG1("transquant_bypass_enable_flag: %d\n", pps->transquant_bypass_enable_flag);
-  LOG1("tiles_enabled_flag           : %d\n", pps->tiles_enabled_flag);
-  LOG1("entropy_coding_sync_enabled_flag: %d\n", pps->entropy_coding_sync_enabled_flag);
+  LOG1("pic_cb_qp_offset             : %d\n", pic_cb_qp_offset);
+  LOG1("pic_cr_qp_offset             : %d\n", pic_cr_qp_offset);
+  LOG1("pps_slice_chroma_qp_offsets_present_flag : %d\n", pps_slice_chroma_qp_offsets_present_flag);
+  LOG1("weighted_pred_flag           : %d\n", weighted_pred_flag);
+  LOG1("weighted_bipred_flag         : %d\n", weighted_bipred_flag);
+  LOG1("output_flag_present_flag     : %d\n", output_flag_present_flag);
+  LOG1("transquant_bypass_enable_flag: %d\n", transquant_bypass_enable_flag);
+  LOG1("tiles_enabled_flag           : %d\n", tiles_enabled_flag);
+  LOG1("entropy_coding_sync_enabled_flag: %d\n", entropy_coding_sync_enabled_flag);
 
-  if (pps->tiles_enabled_flag) {
-    LOG1("num_tile_columns    : %d\n", pps->num_tile_columns);
-    LOG1("num_tile_rows       : %d\n", pps->num_tile_rows);
-    LOG1("uniform_spacing_flag: %d\n", pps->uniform_spacing_flag);
+  if (tiles_enabled_flag) {
+    LOG1("num_tile_columns    : %d\n", num_tile_columns);
+    LOG1("num_tile_rows       : %d\n", num_tile_rows);
+    LOG1("uniform_spacing_flag: %d\n", uniform_spacing_flag);
 
     LOG0("tile column boundaries: ");
-    for (int i=0;i<=pps->num_tile_columns;i++) {
-      LOG1("*%d ",pps->colBd[i]);
+    for (int i=0;i<=num_tile_columns;i++) {
+      LOG1("*%d ",colBd[i]);
     }
     LOG0("*\n");
 
     LOG0("tile row boundaries: ");
-    for (int i=0;i<=pps->num_tile_rows;i++) {
-      LOG1("*%d ",pps->rowBd[i]);
+    for (int i=0;i<=num_tile_rows;i++) {
+      LOG1("*%d ",rowBd[i]);
     }
     LOG0("*\n");
 
@@ -526,47 +526,47 @@ void dump_pps(pic_parameter_set* pps, int fd)
                     }
   */
 
-    LOG1("loop_filter_across_tiles_enabled_flag : %d\n", pps->loop_filter_across_tiles_enabled_flag);
+    LOG1("loop_filter_across_tiles_enabled_flag : %d\n", loop_filter_across_tiles_enabled_flag);
   }
 
-  LOG1("pps_loop_filter_across_slices_enabled_flag: %d\n", pps->pps_loop_filter_across_slices_enabled_flag);
-  LOG1("deblocking_filter_control_present_flag: %d\n", pps->deblocking_filter_control_present_flag);
+  LOG1("pps_loop_filter_across_slices_enabled_flag: %d\n", pps_loop_filter_across_slices_enabled_flag);
+  LOG1("deblocking_filter_control_present_flag: %d\n", deblocking_filter_control_present_flag);
 
-  if (pps->deblocking_filter_control_present_flag) {
-    LOG1("deblocking_filter_override_enabled_flag: %d\n", pps->deblocking_filter_override_enabled_flag);
-    LOG1("pic_disable_deblocking_filter_flag: %d\n", pps->pic_disable_deblocking_filter_flag);
+  if (deblocking_filter_control_present_flag) {
+    LOG1("deblocking_filter_override_enabled_flag: %d\n", deblocking_filter_override_enabled_flag);
+    LOG1("pic_disable_deblocking_filter_flag: %d\n", pic_disable_deblocking_filter_flag);
 
-    LOG1("beta_offset:  %d\n", pps->beta_offset);
-    LOG1("tc_offset:     %d\n", pps->tc_offset);
+    LOG1("beta_offset:  %d\n", beta_offset);
+    LOG1("tc_offset:     %d\n", tc_offset);
   }
 
-  LOG1("pic_scaling_list_data_present_flag: %d\n", pps->pic_scaling_list_data_present_flag);
-  if (pps->pic_scaling_list_data_present_flag) {
+  LOG1("pic_scaling_list_data_present_flag: %d\n", pic_scaling_list_data_present_flag);
+  if (pic_scaling_list_data_present_flag) {
     //scaling_list_data()
   }
 
-  LOG1("lists_modification_present_flag: %d\n", pps->lists_modification_present_flag);
-  LOG1("log2_parallel_merge_level      : %d\n", pps->log2_parallel_merge_level);
-  LOG1("num_extra_slice_header_bits    : %d\n", pps->num_extra_slice_header_bits);
-  LOG1("slice_segment_header_extension_present_flag : %d\n", pps->slice_segment_header_extension_present_flag);
-  LOG1("pps_extension_flag : %d\n", pps->pps_extension_flag);
+  LOG1("lists_modification_present_flag: %d\n", lists_modification_present_flag);
+  LOG1("log2_parallel_merge_level      : %d\n", log2_parallel_merge_level);
+  LOG1("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
+  LOG1("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
+  LOG1("pps_extension_flag : %d\n", pps_extension_flag);
 #undef LOG0
 #undef LOG1
 }
 
 
-bool is_tile_start_CTB(const pic_parameter_set* pps,int ctbX,int ctbY)
+bool pic_parameter_set::is_tile_start_CTB(int ctbX,int ctbY) const
 {
   // fast check
-  if (pps->tiles_enabled_flag==0) {
+  if (tiles_enabled_flag==0) {
     return ctbX == 0 && ctbY == 0;
   }
 
-  for (int i=0;i<pps->num_tile_columns;i++)
-    if (pps->colBd[i]==ctbX)
+  for (int i=0;i<num_tile_columns;i++)
+    if (colBd[i]==ctbX)
       {
-        for (int k=0;k<pps->num_tile_rows;k++)
-          if (pps->rowBd[k]==ctbY)
+        for (int k=0;k<num_tile_rows;k++)
+          if (rowBd[k]==ctbY)
             {
               return true;
             }
