@@ -214,28 +214,31 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
 
     // CTB info
 
-    if (img->ctb_info_size != sps->PicSizeInCtbsY)
+    if (img->ctb_info.data_size != sps->PicSizeInCtbsY)
       {
-        for (int i=0;i<img->ctb_info_size;i++)
+        for (int i=0;i<img->ctb_info.data_size;i++)
           { de265_progress_lock_destroy(&img->ctb_progress[i]); }
 
-        free(img->ctb_info);
+        //free(img->ctb_info);
         free(img->ctb_progress);
-        img->ctb_info_size  = sps->PicSizeInCtbsY;
-        img->ctb_info     = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
-        img->ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
-                                                          * img->ctb_info_size);
-        img->Log2CtbSizeY = sps->Log2CtbSizeY;
-        img->PicWidthInCtbsY = sps->PicWidthInCtbsY;
+        //img->ctb_info.data_size  = sps->PicSizeInCtbsY;
+        //img->ctb_info     = (CTB_info *)malloc( sizeof(CTB_info)   * img->ctb_info_size);
 
-        for (int i=0;i<img->ctb_info_size;i++)
+        img->ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY, sps->Log2CtbSizeY);
+
+        img->ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
+                                                          * img->ctb_info.data_size);
+        //img->Log2CtbSizeY = sps->Log2CtbSizeY;
+        //img->PicWidthInCtbsY = sps->PicWidthInCtbsY;
+
+        for (int i=0;i<img->ctb_info.data_size;i++)
           { de265_progress_lock_init(&img->ctb_progress[i]); }
       }
 
 
     // check for memory shortage
 
-    if (img->ctb_info == NULL ||
+    if (//img->ctb_info == NULL ||
         //img->intraPredMode == NULL ||
         img->cb_info == NULL ||
         //img->pb_info == NULL ||
@@ -257,7 +260,7 @@ void de265_free_image(de265_image* img)
   if (img->cb) FREE_ALIGNED(img->cb_mem);
   if (img->cr) FREE_ALIGNED(img->cr_mem);
 
-  for (int i=0;i<img->ctb_info_size;i++)
+  for (int i=0;i<img->ctb_info.data_size;i++)
     { de265_progress_lock_destroy(&img->ctb_progress[i]); }
 
   free(img->ctb_progress);
@@ -265,7 +268,7 @@ void de265_free_image(de265_image* img)
   //free(img->pb_info);
   free(img->tu_info);
   free(img->deblk_info);
-  free(img->ctb_info);
+  //free(img->ctb_info);
   // free(img->intraPredMode);
 
   de265_cond_destroy(&img->finished_cond);
@@ -382,12 +385,13 @@ void img_clear_decoding_data(de265_image* img)
 
   memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
   memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
-  memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
+  //memset(img->ctb_info,  0,img->ctb_info_size   * sizeof(CTB_info));
+  img->ctb_info.clear();
 
 
   // --- reset CTB progresses ---
 
-  for (int i=0;i<img->ctb_info_size;i++) {
+  for (int i=0;i<img->ctb_info.data_size;i++) {
     img->ctb_progress[i].progress = CTB_PROGRESS_NONE;
   }
 }

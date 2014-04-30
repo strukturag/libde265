@@ -756,7 +756,7 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
      new SPS was sent before cleaning up this image.
   */
 
-  for (int i=0;i<img->ctb_info_size;i++)
+  for (int i=0;i<img->ctb_info.data_size;i++)
     {
       int sliceHeaderIdx = img->ctb_info[i].SliceHeaderIndex;
 

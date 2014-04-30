@@ -94,7 +94,18 @@ template <class DataUnit> class MetaDataArray
     log2unitSize = _log2unitSize;
   }
 
+  void clear() {
+    if (data) memset(data, 0, sizeof(DataUnit) * data_size);
+  }
+
   const DataUnit& get(int x,int y) const {
+    int unitX = x>>log2unitSize;
+    int unitY = y>>log2unitSize;
+
+    return data[ unitX + unitY*width_in_units ];
+  }
+
+  DataUnit& get(int x,int y) {
     int unitX = x>>log2unitSize;
     int unitY = y>>log2unitSize;
 
@@ -109,6 +120,7 @@ template <class DataUnit> class MetaDataArray
   }
 
   DataUnit& operator[](int idx) { return data[idx]; }
+  const DataUnit& operator[](int idx) const { return data[idx]; }
 
   /*
   void set_QQQ(int x,int y, int log2BlkWidth, TTT value)
@@ -232,10 +244,7 @@ typedef struct de265_image {
   pic_parameter_set* pps;  // the PPS used for decoding this image
 
 
-  CTB_info* ctb_info; // in raster scan
-  int ctb_info_size;
-  int Log2CtbSizeY;
-  int PicWidthInCtbsY;
+  MetaDataArray<CTB_info> ctb_info;
 
   CB_ref_info* cb_info;
   int cb_info_size;
@@ -485,12 +494,15 @@ LIBDE265_INLINE static uint8_t get_deblk_bS(const de265_image* img, int x0,int y
 // address of first CTB in slice
 LIBDE265_INLINE static void set_SliceAddrRS(de265_image* img, int ctbX, int ctbY, int SliceAddrRS)
 {
-  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
-  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+  //assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  //img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS = SliceAddrRS;
+  int idx = ctbX + ctbY*img->ctb_info.width_in_units;
+  img->ctb_info[idx].SliceAddrRS = SliceAddrRS;
 }
+
 LIBDE265_INLINE static int  get_SliceAddrRS(const de265_image* img, int ctbX, int ctbY)
 {
-  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceAddrRS;
+  return img->ctb_info[ctbX + ctbY*img->ctb_info.width_in_units].SliceAddrRS;
 }
 LIBDE265_INLINE static int  get_SliceAddrRS_atCtbRS(const de265_image* img, int ctbRS)
 {
@@ -500,28 +512,30 @@ LIBDE265_INLINE static int  get_SliceAddrRS_atCtbRS(const de265_image* img, int 
 
 LIBDE265_INLINE static void set_SliceHeaderIndex(de265_image* img, int x, int y, int SliceHeaderIndex)
 {
-  int ctbX = x >> img->Log2CtbSizeY;
-  int ctbY = y >> img->Log2CtbSizeY;
-  img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex = SliceHeaderIndex;
+  //int ctbX = x >> img->Log2CtbSizeY;
+  //int ctbY = y >> img->Log2CtbSizeY;
+  img->ctb_info.get(x,y).SliceHeaderIndex = SliceHeaderIndex;
 }
 LIBDE265_INLINE static int  get_SliceHeaderIndex(const de265_image* img, int x, int y)
 {
-  int ctbX = x >> img->Log2CtbSizeY;
-  int ctbY = y >> img->Log2CtbSizeY;
-  return img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].SliceHeaderIndex;
+  //int ctbX = x >> img->Log2CtbSizeY;
+  //int ctbY = y >> img->Log2CtbSizeY;
+  return img->ctb_info.get(x,y).SliceHeaderIndex;
 }
 
 LIBDE265_INLINE static void set_sao_info(de265_image* img, int ctbX,int ctbY,const sao_info* saoinfo)
 {
-  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
-  memcpy(&img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo,
+  //assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  sao_info* sao = &img->ctb_info[ctbX + ctbY*img->ctb_info.width_in_units].saoInfo;
+
+  memcpy(sao,
          saoinfo,
          sizeof(sao_info));
 }
 LIBDE265_INLINE static const sao_info* get_sao_info(const de265_image* img, int ctbX,int ctbY)
 {
-  assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
-  return &img->ctb_info[ctbX + ctbY*img->PicWidthInCtbsY].saoInfo;
+  //assert(ctbX + ctbY*img->PicWidthInCtbsY < img->ctb_info_size);
+  return &img->ctb_info[ctbX + ctbY*img->ctb_info.width_in_units].saoInfo;
 }
 
 LIBDE265_INLINE static const PredVectorInfo* get_mv_info(const de265_image* img, int x,int y)
