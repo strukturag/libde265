@@ -26,7 +26,7 @@
 #include "libde265/nal.h"
 
 #include <vector>
-//#include <queue>
+#include <queue>
 
 #define DE265_NAL_FREE_LIST_SIZE 16
 #define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
@@ -130,7 +130,7 @@ class NAL_Parser
 
   // NAL level
 
-  std::vector<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
+  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
   int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
 
 
