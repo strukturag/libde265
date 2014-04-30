@@ -29,9 +29,10 @@
 #include "libde265/util.h"
 #include "libde265/refpic.h"
 
+#include <vector>
+
 
 #define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
-#define MAX_ENTRY_POINTS    MAX_CTB_ROWS
 #define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
 #define MAX_NUM_REF_PICS    16
 
@@ -210,7 +211,7 @@ typedef struct slice_segment_header {
 
   int  num_entry_point_offsets;
   int  offset_len;
-  int  entry_point_offset[MAX_ENTRY_POINTS];
+  std::vector<int> entry_point_offset;
 
   int  slice_segment_header_extension_length;
 

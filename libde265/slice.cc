@@ -378,7 +378,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
     }
 
 
-      // --- SAO ---
+    // --- SAO ---
       
     if (sps->sample_adaptive_offset_enabled_flag) {
       shdr->slice_sao_luma_flag   = get_bits(br,1);
@@ -563,11 +563,12 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
     shdr->num_entry_point_offsets = get_uvlc(br);
-    if (shdr->num_entry_point_offsets == UVLC_ERROR ||
-	shdr->num_entry_point_offsets > MAX_ENTRY_POINTS) {  // TODO: make entry points array dynamic
+    if (shdr->num_entry_point_offsets == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+
+    shdr->entry_point_offset.resize( shdr->num_entry_point_offsets );
 
     if (shdr->num_entry_point_offsets > 0) {
       shdr->offset_len = get_uvlc(br);
