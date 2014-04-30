@@ -64,7 +64,7 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
                                  bitreader* br,
                                  ref_pic_set* out_set, // where to store the read set
                                  int idxRps,  // index of the set to be read
-                                 const ref_pic_set* sets, // previously read sets
+                                 const std::vector<ref_pic_set>& sets, // previously read sets
                                  bool sliceRefPicSet) // is this in the slice header?
 {
   // --- is this set coded in prediction mode (not possible for the first set)

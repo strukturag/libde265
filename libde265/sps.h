@@ -26,6 +26,8 @@
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
 
+#include <vector>
+
 #define MAX_REF_PIC_SETS 64  // maximum according to standard
 #define MAX_NUM_LT_REF_PICS_SPS 32
 
@@ -109,7 +111,7 @@ struct seq_parameter_set {
   char pcm_loop_filter_disable_flag;
 
   int num_short_term_ref_pic_sets;
-  ref_pic_set* ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
+  std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
 
   /*
     for( i = 0; i < num_short_term_ref_pic_sets; i++)
@@ -182,7 +184,6 @@ struct seq_parameter_set {
   int Log2MaxIpcmCbSizeY;
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
-
 };
 
 

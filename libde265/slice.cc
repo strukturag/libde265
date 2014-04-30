@@ -45,7 +45,7 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         bitreader* br,
                                         ref_pic_set* out_set,
                                         int idxRps,  // index of the set to be read
-                                        const ref_pic_set* sets,
+                                        const std::vector<ref_pic_set>& sets,
                                         bool sliceRefPicSet);
 
 

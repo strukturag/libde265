@@ -51,23 +51,22 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         bitreader* br,
                                         ref_pic_set* out_set,
                                         int idxRps,  // index of the set to be read
-                                        const ref_pic_set* sets,
+                                        const std::vector<ref_pic_set>& sets,
                                         bool sliceRefPicSet);
 
 seq_parameter_set::seq_parameter_set()
 {
   // TODO: this is dangerous
-  memset(this,0,sizeof(seq_parameter_set));
-
+  //memset(this,0,sizeof(seq_parameter_set));
 
   sps_read = false;
-  ref_pic_sets = NULL;
+  //ref_pic_sets = NULL;
 }
 
 
 seq_parameter_set::~seq_parameter_set()
 {
-  free(ref_pic_sets);
+  //free(ref_pic_sets);
 }
 
 
@@ -252,8 +251,11 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
   // --- allocate reference pic set ---
 
   // we do not allocate the ref-pic-set for the slice header here, but in the slice header itself
+  /*
   sps->ref_pic_sets = (ref_pic_set*)realloc(sps->ref_pic_sets,
                                             sizeof(ref_pic_set)*sps->num_short_term_ref_pic_sets);
+  */
+  sps->ref_pic_sets.resize(sps->num_short_term_ref_pic_sets);
 
   for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
 
@@ -791,6 +793,6 @@ void set_default_scaling_lists(scaling_list_data* sclist)
 void move_sps(seq_parameter_set* dest,
               seq_parameter_set* src)
 {
-  memcpy(dest, src, sizeof(seq_parameter_set));
-  memset(src, 0, sizeof(seq_parameter_set));
+  //memcpy(dest, src, sizeof(seq_parameter_set));
+  //memset(src, 0, sizeof(seq_parameter_set));
 }
