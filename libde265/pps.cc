@@ -33,6 +33,17 @@
 #endif
 
 
+pic_parameter_set::pic_parameter_set()
+{
+  pps_read = false;
+}
+
+
+pic_parameter_set::~pic_parameter_set()
+{
+}
+
+
 bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 {
   pps->pps_read = false; // incomplete pps
@@ -221,17 +232,11 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
 
   // alloc raster scan arrays
 
-  if (pps->CtbAddrRStoTS) { free(pps->CtbAddrRStoTS); }
-  if (pps->CtbAddrTStoRS) { free(pps->CtbAddrTStoRS); }
-  if (pps->TileId)   { free(pps->TileId); }
-  if (pps->TileIdRS) { free(pps->TileIdRS); }
-  if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
-
-  pps->CtbAddrRStoTS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->CtbAddrTStoRS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->TileId        = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->TileIdRS      = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
-  pps->MinTbAddrZS   = (int *)malloc( sizeof(int) * sps->PicSizeInTbsY  );
+  pps->CtbAddrRStoTS.resize(sps->PicSizeInCtbsY);
+  pps->CtbAddrTStoRS.resize(sps->PicSizeInCtbsY);
+  pps->TileId       .resize(sps->PicSizeInCtbsY);
+  pps->TileIdRS     .resize(sps->PicSizeInCtbsY);
+  pps->MinTbAddrZS  .resize(sps->PicSizeInTbsY );
 
 
   // raster scan (RS) <-> tile scan (TS) conversion
@@ -547,32 +552,6 @@ void dump_pps(pic_parameter_set* pps, int fd)
   LOG1("pps_extension_flag : %d\n", pps->pps_extension_flag);
 #undef LOG0
 #undef LOG1
-}
-
-
-void init_pps(pic_parameter_set* pps)
-{
-  pps->CtbAddrRStoTS = NULL;
-  pps->CtbAddrTStoRS = NULL;
-  pps->TileId = NULL;
-  pps->TileIdRS = NULL;
-  pps->MinTbAddrZS = NULL;
-}
-
-
-void free_pps(pic_parameter_set* pps)
-{
-  if (pps->CtbAddrRStoTS) { free(pps->CtbAddrRStoTS); }
-  if (pps->CtbAddrTStoRS) { free(pps->CtbAddrTStoRS); }
-  if (pps->TileId)   { free(pps->TileId); }
-  if (pps->TileIdRS) { free(pps->TileIdRS); }
-  if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
-
-  pps->CtbAddrRStoTS=NULL;
-  pps->CtbAddrTStoRS=NULL;
-  pps->TileId=NULL;
-  pps->TileIdRS=NULL;
-  pps->MinTbAddrZS=NULL;
 }
 
 

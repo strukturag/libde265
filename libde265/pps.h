@@ -24,11 +24,16 @@
 #include "libde265/bitstream.h"
 #include "libde265/sps.h" // for scaling list only
 
+#include <vector>
+
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
 
 
-typedef struct {
+struct pic_parameter_set {
+  pic_parameter_set();
+  ~pic_parameter_set();
+
   bool pps_read; // whether this pps has been read from bitstream
 
   char pic_parameter_set_id;
@@ -71,11 +76,11 @@ typedef struct {
   int colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
   int rowBd    [ DE265_MAX_TILE_ROWS+1 ];
 
-  int* CtbAddrRStoTS; // #CTBs
-  int* CtbAddrTStoRS; // #CTBs
-  int* TileId;        // #CTBs
-  int* TileIdRS;      // #CTBs
-  int* MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
+  std::vector<int> CtbAddrRStoTS; // #CTBs
+  std::vector<int> CtbAddrTStoRS; // #CTBs
+  std::vector<int> TileId;        // #CTBs
+  std::vector<int> TileIdRS;      // #CTBs
+  std::vector<int> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
 
 
   // --- QP ---
@@ -104,6 +109,6 @@ typedef struct {
   char slice_segment_header_extension_present_flag;
   char pps_extension_flag;
 
-} pic_parameter_set;
+};
 
 #endif

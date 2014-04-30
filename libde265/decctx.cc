@@ -161,10 +161,6 @@ decoder_context::decoder_context()
 decoder_context::~decoder_context()
 {
   free_dpb(&dpb);
-
-  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
-    free_pps(&pps[i]);
-  }
 }
 
 
@@ -216,8 +212,7 @@ void process_pps(decoder_context* ctx, pic_parameter_set* pps)
 {
   push_current_picture_to_output_queue(ctx);
 
-  free_pps(&ctx->pps[ (int)pps->pic_parameter_set_id ]);
-  memcpy(&ctx->pps[ (int)pps->pic_parameter_set_id ], pps, sizeof(pic_parameter_set));
+  ctx->pps[ (int)pps->pic_parameter_set_id ] = *pps;
 }
 
 

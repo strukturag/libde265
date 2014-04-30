@@ -62,7 +62,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
   if (cIdx>0) { width =(width+1)/2; height =(height+1)/2; }
 
   int ctbSliceAddrRS = get_SliceHeader(ctx,xC,yC)->SliceAddrRS;
-  int* MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
+  const std::vector<int>& MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
   int  PicWidthInTbsY = ctx->current_sps->PicWidthInTbsY;
   int  Log2MinTrafoSize = ctx->current_sps->Log2MinTrafoSize;
   int  chromaLog2MinTrafoSize = Log2MinTrafoSize;
