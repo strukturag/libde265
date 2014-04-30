@@ -169,6 +169,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
     int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
 
+    /*
     if (img->pb_info_size != puWidth*puHeight ||
         img->pb_info == NULL) {
       img->pb_info_size   = puWidth*puHeight;
@@ -178,6 +179,9 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       img->Log2MinPUSize = sps->Log2MinPUSize;
       img->PicWidthInMinPUs = sps->PicWidthInMinPUs;
     }
+    */
+
+    img->pb_info.alloc(puWidth,puHeight, 2);
 
 
     // tu info
@@ -234,7 +238,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     if (img->ctb_info == NULL ||
         //img->intraPredMode == NULL ||
         img->cb_info == NULL ||
-        img->pb_info == NULL ||
+        //img->pb_info == NULL ||
         img->tu_info == NULL ||
         img->deblk_info == NULL)
       {
@@ -258,7 +262,7 @@ void de265_free_image(de265_image* img)
 
   free(img->ctb_progress);
   free(img->cb_info);
-  free(img->pb_info);
+  //free(img->pb_info);
   free(img->tu_info);
   free(img->deblk_info);
   free(img->ctb_info);
@@ -398,7 +402,7 @@ void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVect
   int wPu = nPbW >> log2PuSize;
   int hPu = nPbH >> log2PuSize;
 
-  int stride = img->pb_info_stride;
+  int stride = img->pb_info.width_in_units;
 
   for (int pby=0;pby<hPu;pby++)
     for (int pbx=0;pbx<wPu;pbx++)

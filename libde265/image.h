@@ -242,17 +242,7 @@ typedef struct de265_image {
   int Log2MinCbSizeY;
   int PicWidthInMinCbsY;
 
-  PB_ref_info* pb_info;
-  int pb_info_size;
-  int pb_info_stride;
-  int Log2MinPUSize;
-  int PicWidthInMinPUs;
-
-  /*
-  uint8_t* intraPredMode; // sps->PicWidthInMinPUs * sps->PicHeightInMinPUs
-  int intraPredModeSize;
-  */
-
+  MetaDataArray<PB_ref_info> pb_info;
   MetaDataArray<uint8_t> intraPredMode;
 
   uint8_t* tu_info;
@@ -536,13 +526,7 @@ LIBDE265_INLINE static const sao_info* get_sao_info(const de265_image* img, int 
 
 LIBDE265_INLINE static const PredVectorInfo* get_mv_info(const de265_image* img, int x,int y)
 {
-  int log2PuSize = 2; // (ctx->current_sps->Log2MinCbSizeY-f);
-  int idx = (x>>log2PuSize) + (y>>log2PuSize)*img->pb_info_stride;
-
-  //int rootIdx = img->pb_rootIdx[idx];
-  //return &img->pb_info[rootIdx].mvi;
-
-  return &img->pb_info[idx].mvi;
+  return &img->pb_info.get(x,y).mvi;
 }
 
 void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
