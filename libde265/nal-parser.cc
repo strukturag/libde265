@@ -49,22 +49,6 @@ NAL_unit::~NAL_unit()
   }
 }
 
-void NAL_unit::init()
-{
-  nal_data = NULL;
-  data_size = 0;
-  capacity = 0;
-}
-
-void NAL_unit::free() // TODO TMP
-{
-  if (nal_data)
-    {
-      ::free(nal_data);
-      nal_data=NULL;
-    }
-}
-
 void NAL_unit::resize(int new_size)
 {
   if (capacity < new_size) {
@@ -151,7 +135,10 @@ void NAL_unit::remove_stuffing_bytes()
 
 NAL_Parser::NAL_Parser()
 {
-  memset(this, 0, sizeof(NAL_Parser));
+  end_of_stream = false;
+  input_push_state = 0;
+  pending_input_NAL = NULL;
+  nBytes_in_NAL_queue = 0;
 }
 
 

@@ -37,9 +37,6 @@ class NAL_unit {
   NAL_unit();
   ~NAL_unit();
 
-  void init(); // TODO TMP
-  void free(); // TODO TMP
-
   nal_header  header;
 
   de265_PTS pts;
@@ -120,13 +117,13 @@ class NAL_Parser
   bool is_end_of_stream() const { return end_of_stream; }
 
  private:
-  // --- input stream data ---
-
   // byte-stream level
 
   bool end_of_stream; // data in pending_input_data is end of stream
   int  input_push_state;
+
   NAL_unit* pending_input_NAL;
+
 
   // NAL level
 
