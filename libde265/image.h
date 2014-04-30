@@ -79,7 +79,7 @@ enum PictureState {
 template <class DataUnit> class MetaDataArray
 {
  public:
-  MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; }
+  MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; height_in_units=0; }
   ~MetaDataArray() { free(data); }
 
   void alloc(int w,int h, int _log2unitSize) {
@@ -89,6 +89,7 @@ template <class DataUnit> class MetaDataArray
       data = (DataUnit*)malloc(size * sizeof(DataUnit));
       data_size = size;
       width_in_units = w;
+      height_in_units = h;
     }
 
     log2unitSize = _log2unitSize;
@@ -141,6 +142,7 @@ template <class DataUnit> class MetaDataArray
   int data_size;
   int log2unitSize;
   int width_in_units;
+  int height_in_units;
 };
 
 #define PIXEL2CB(x) (x >> img->cb_info.log2unitSize)
@@ -249,11 +251,7 @@ typedef struct de265_image {
   MetaDataArray<PB_ref_info> pb_info;
   MetaDataArray<uint8_t>     intraPredMode;
   MetaDataArray<uint8_t>     tu_info;
-
-  uint8_t* deblk_info;
-  int deblk_info_size;
-  int deblk_width;
-  int deblk_height;
+  MetaDataArray<uint8_t>     deblk_info;
 
   // TODO CHECK: should this move to slice header? Can this be different for each slice in the image?
 
@@ -443,28 +441,30 @@ LIBDE265_INLINE static void    set_deblk_flags(de265_image* img, int x0,int y0, 
   const int xd = x0/4;
   const int yd = y0/4;
 
-  if (xd<img->deblk_width && yd<img->deblk_height) {
-    img->deblk_info[xd + yd*img->deblk_width] |= flags;
+  if (xd<img->deblk_info.width_in_units &&
+      yd<img->deblk_info.height_in_units) {
+    img->deblk_info[xd + yd*img->deblk_info.width_in_units] |= flags;
   }
 }
 LIBDE265_INLINE static uint8_t get_deblk_flags(const de265_image* img, int x0,int y0)
 {
   const int xd = x0/4;
   const int yd = y0/4;
-  assert (xd<img->deblk_width && yd<img->deblk_height);
+  assert (xd<img->deblk_info.width_in_units &&
+          yd<img->deblk_info.height_in_units);
 
-  return img->deblk_info[xd + yd*img->deblk_width];
+  return img->deblk_info[xd + yd*img->deblk_info.width_in_units];
 }
 
 LIBDE265_INLINE static void    set_deblk_bS(de265_image* img, int x0,int y0, uint8_t bS)
 {
-  uint8_t* data = &img->deblk_info[x0/4 + y0/4*img->deblk_width];
+  uint8_t* data = &img->deblk_info[x0/4 + y0/4*img->deblk_info.width_in_units];
   *data &= ~DEBLOCK_BS_MASK;
   *data |= bS;
 }
 LIBDE265_INLINE static uint8_t get_deblk_bS(const de265_image* img, int x0,int y0)
 {
-  return img->deblk_info[x0/4 + y0/4*img->deblk_width] & DEBLOCK_BS_MASK;
+  return img->deblk_info[x0/4 + y0/4*img->deblk_info.width_in_units] & DEBLOCK_BS_MASK;
 }
 
 

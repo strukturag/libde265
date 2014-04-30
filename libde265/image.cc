@@ -166,16 +166,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
     int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
     int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
 
-    if (img->deblk_width  != deblk_w ||
-        img->deblk_height != deblk_h ||
-        img->deblk_info == NULL) {
-      img->deblk_width  = deblk_w;
-      img->deblk_height = deblk_h;
-      img->deblk_info_size = deblk_w*deblk_h;
-      free(img->deblk_info);
-      img->deblk_info = (uint8_t*)malloc(sizeof(uint8_t) * img->deblk_info_size);
-    }
-
+    img->deblk_info.alloc(deblk_w, deblk_h, 2);
 
     // CTB info
 
@@ -208,7 +199,8 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
         //img->cb_info == NULL ||
         //img->pb_info == NULL ||
         //img->tu_info == NULL ||
-        img->deblk_info == NULL)
+        //img->deblk_info == NULL ||
+        0)
       {
         de265_free_image(img);
         return DE265_ERROR_OUT_OF_MEMORY;
@@ -232,7 +224,7 @@ void de265_free_image(de265_image* img)
   //free(img->cb_info);
   //free(img->pb_info);
   //free(img->tu_info);
-  free(img->deblk_info);
+  //free(img->deblk_info);
   //free(img->ctb_info);
   // free(img->intraPredMode);
 
@@ -349,9 +341,7 @@ void img_clear_decoding_data(de265_image* img)
   img->cb_info.clear();
   img->tu_info.clear();
   img->ctb_info.clear();
-
-  memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));
-
+  img->deblk_info.clear();
 
   // --- reset CTB progresses ---
 

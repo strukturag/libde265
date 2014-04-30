@@ -230,8 +230,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
 
   de265_image* img = ctx->img;
 
-  xEnd = libde265_min(xEnd,img->deblk_width);
-  yEnd = libde265_min(yEnd,img->deblk_height);
+  xEnd = libde265_min(xEnd,img->deblk_info.width_in_units);
+  yEnd = libde265_min(yEnd,img->deblk_info.height_in_units);
 
   int TUShift = ctx->current_sps->Log2MinTrafoSize;
   int TUStride= ctx->current_sps->PicWidthInTbsY;
@@ -406,8 +406,8 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
   de265_image* img = ctx->img;
   int bitDepth_Y = ctx->current_sps->BitDepth_Y;
 
-  xEnd = libde265_min(xEnd,img->deblk_width);
-  yEnd = libde265_min(yEnd,img->deblk_height);
+  xEnd = libde265_min(xEnd,img->deblk_info.width_in_units);
+  yEnd = libde265_min(yEnd,img->deblk_info.height_in_units);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -711,8 +711,8 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
 
   const int stride = img->chroma_stride;
 
-  xEnd = libde265_min(xEnd,img->deblk_width);
-  yEnd = libde265_min(yEnd,img->deblk_height);
+  xEnd = libde265_min(xEnd,img->deblk_info.width_in_units);
+  yEnd = libde265_min(yEnd,img->deblk_info.height_in_units);
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -846,7 +846,7 @@ static void thread_deblock(void* d)
   de265_image* img = ctx->img;
 
   int xStart=0;
-  int xEnd = img->deblk_width;
+  int xEnd = img->deblk_info.width_in_units;
 
   derive_boundaryStrength(ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_luma    (ctx, data->vertical, data->first,data->last, xStart,xEnd);
@@ -920,9 +920,9 @@ void apply_deblocking_filter(decoder_context* ctx)
         // vertical filtering
 
         logtrace(LogDeblock,"VERTICAL\n");
-        derive_boundaryStrength(ctx, true ,0,img->deblk_height,0,img->deblk_width);
-        edge_filtering_luma    (ctx, true ,0,img->deblk_height,0,img->deblk_width);
-        edge_filtering_chroma  (ctx, true ,0,img->deblk_height,0,img->deblk_width);
+        derive_boundaryStrength(ctx, true ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
+        edge_filtering_luma    (ctx, true ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
+        edge_filtering_chroma  (ctx, true ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
 
 #if 0
           char buf[1000];
@@ -933,9 +933,9 @@ void apply_deblocking_filter(decoder_context* ctx)
         // horizontal filtering
 
         logtrace(LogDeblock,"HORIZONTAL\n");
-        derive_boundaryStrength(ctx, false ,0,img->deblk_height,0,img->deblk_width);
-        edge_filtering_luma    (ctx, false ,0,img->deblk_height,0,img->deblk_width);
-        edge_filtering_chroma  (ctx, false ,0,img->deblk_height,0,img->deblk_width);
+        derive_boundaryStrength(ctx, false ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
+        edge_filtering_luma    (ctx, false ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
+        edge_filtering_chroma  (ctx, false ,0,img->deblk_info.height_in_units,0,img->deblk_info.width_in_units);
 
 #if 0
         sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
@@ -958,8 +958,8 @@ void apply_deblocking_filter(decoder_context* ctx)
 
           for (int i=0;i<numStripes;i++)
             {
-              int ys = i*img->deblk_height/numStripes;
-              int ye = (i+1)*img->deblk_height/numStripes;
+              int ys = i*img->deblk_info.height_in_units/numStripes;
+              int ye = (i+1)*img->deblk_info.height_in_units/numStripes;
 
               // required because multi-threading might cut odd strips
               ys &= ~3;
