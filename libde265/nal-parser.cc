@@ -152,24 +152,6 @@ void NAL_unit::remove_stuffing_bytes()
 NAL_Parser::NAL_Parser()
 {
   memset(this, 0, sizeof(NAL_Parser));
-
-  /*
-  bool end_of_stream; // data in pending_input_data is end of stream
-  int  input_push_state;
-  NAL_unit* pending_input_NAL;
-
-  // NAL level
-
-  NAL_unit** NAL_queue;  // enqueued NALs have suffing bytes removed
-  int NAL_queue_len;
-  int NAL_queue_size;
-
-  int nBytes_in_NAL_queue;
-
-  NAL_unit** NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
-  int NAL_free_list_len;
-  int NAL_free_list_size;
-  */
 }
 
 
@@ -189,10 +171,6 @@ NAL_Parser::~NAL_Parser()
   if (pending_input_NAL != NULL) {
     free_NAL_unit(pending_input_NAL);
   }
-
-  // remove lists themselves
-
-  ::free(NAL_queue);
 
   // free all NALs in free-list
 
@@ -233,15 +211,12 @@ void NAL_Parser::free_NAL_unit(NAL_unit* nal)
 
 NAL_unit* NAL_Parser::pop_from_NAL_queue()
 {
-  if (NAL_queue_len==0) {
+  if (NAL_queue.empty()) {
     return NULL;
   }
   else {
-    assert(NAL_queue != NULL);
-    NAL_queue_len--;
-
-    NAL_unit* nal = NAL_queue[0];
-    memmove(NAL_queue, NAL_queue+1, sizeof(NAL_unit*) * NAL_queue_len);
+    NAL_unit* nal = NAL_queue.front();
+    NAL_queue.pop();
 
     nBytes_in_NAL_queue -= nal->size();
 
@@ -251,16 +226,7 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
 
 void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
 {
-  if (NAL_queue == NULL ||
-      NAL_queue_len == NAL_queue_size) {
-    NAL_queue_size += 10;
-    NAL_queue = (NAL_unit**)realloc(NAL_queue,
-                                    sizeof(NAL_unit*) * NAL_queue_size);
-  }
-
-  NAL_queue[ NAL_queue_len ] = nal;
-  NAL_queue_len++;
-
+  NAL_queue.push(nal);
   nBytes_in_NAL_queue += nal->size();
 }
 

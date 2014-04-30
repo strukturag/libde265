@@ -26,6 +26,7 @@
 #include "libde265/nal.h"
 
 #include <vector>
+#include <queue>
 
 #define DE265_NAL_FREE_LIST_SIZE 16
 #define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
@@ -107,7 +108,7 @@ class NAL_Parser
   }
 
   int number_of_NAL_units_pending() const {
-    int size = NAL_queue_len;
+    int size = NAL_queue.size();
     if (pending_input_NAL) { size++; }
     return size;
   }
@@ -115,7 +116,7 @@ class NAL_Parser
   void free_NAL_unit(NAL_unit*);
 
 
-  int get_NAL_queue_length() const { return NAL_queue_len; }
+  int get_NAL_queue_length() const { return NAL_queue.size(); }
   bool is_end_of_stream() const { return end_of_stream; }
 
  private:
@@ -129,13 +130,11 @@ class NAL_Parser
 
   // NAL level
 
-  NAL_unit** NAL_queue;  // enqueued NALs have suffing bytes removed
-  int NAL_queue_len;
-  int NAL_queue_size;
+  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
 
   int nBytes_in_NAL_queue;
 
-  std::vector<NAL_unit*> NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
+  std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
 
   NAL_unit* alloc_NAL_unit(int size);
 };
