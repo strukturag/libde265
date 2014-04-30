@@ -589,6 +589,9 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       }
     }
   }
+  else {
+    shdr->num_entry_point_offsets = 0;
+  }
 
   if (pps->slice_segment_header_extension_present_flag) {
     shdr->slice_segment_header_extension_length = get_uvlc(br);
