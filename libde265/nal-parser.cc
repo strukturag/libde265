@@ -175,12 +175,30 @@ NAL_Parser::NAL_Parser()
 
 NAL_Parser::~NAL_Parser()
 {
+  // --- free NAL queues ---
+
+  // empty NAL queue
+
+  NAL_unit* nal;
+  while ( (nal = pop_from_NAL_queue()) ) {
+    free_NAL_unit(nal);
+  }
+
+  // free the pending input NAL
+
+  if (pending_input_NAL != NULL) {
+    free_NAL_unit(pending_input_NAL);
+  }
+
+  // remove lists themselves
+
+  ::free(NAL_queue);
+
   // free all NALs in free-list
 
-  for (int i=0;i<NAL_free_list.size();i++)
-    {
-      delete NAL_free_list[i];
-    }
+  for (int i=0;i<NAL_free_list.size();i++) {
+    delete NAL_free_list[i];
+  }
 }
 
 
@@ -424,27 +442,4 @@ void NAL_Parser::remove_pending_input_data()
   nBytes_in_NAL_queue = 0;
 }
 
-
-void NAL_Parser::clear()
-{
-
-  // --- free NAL queues ---
-
-  // empty NAL queue
-
-  NAL_unit* nal;
-  while ( (nal = pop_from_NAL_queue()) ) {
-    free_NAL_unit(nal);
-  }
-
-  // free the pending input NAL
-
-  if (pending_input_NAL != NULL) {
-    free_NAL_unit(pending_input_NAL);
-  }
-
-  // remove lists themselves
-
-  free(NAL_queue);
-}
 

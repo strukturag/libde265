@@ -88,8 +88,6 @@ class NAL_Parser
   NAL_Parser();
   ~NAL_Parser();
 
-  void clear();
-
   de265_error push_data(const unsigned char* data, int len,
                         de265_PTS pts, void* user_data);
 

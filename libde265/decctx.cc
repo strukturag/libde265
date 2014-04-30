@@ -115,9 +115,6 @@ void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration l)
 
 void free_decoder_context(decoder_context* ctx)
 {
-  ctx->nal_parser.clear();
-
-
   for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
     free_sps(&ctx->sps[i]);
   }
