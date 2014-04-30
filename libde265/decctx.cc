@@ -59,12 +59,80 @@ void init_decoder_context(decoder_context* ctx)
 
   // --- processing ---
 
-  set_acceleration_functions(ctx,de265_acceleration_AUTO);
-
   ctx->param_sps_headers_fd = -1;
   ctx->param_vps_headers_fd = -1;
   ctx->param_pps_headers_fd = -1;
   ctx->param_slice_headers_fd = -1;
+
+  set_acceleration_functions(ctx,de265_acceleration_AUTO);
+
+
+
+  ctx->nWarnings = 0;
+  ctx->nWarningsShown = 0;
+
+  memset(&ctx->vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
+  memset(&ctx->sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
+  memset(&ctx->pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
+  memset(&ctx->slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
+
+  ctx->current_vps = NULL;
+  ctx->current_sps = NULL;
+  ctx->current_pps = NULL;
+
+  memset(&ctx->thread_pool,0,sizeof(struct thread_pool));
+  ctx->num_worker_threads = 0;
+
+  ctx->HighestTid = 0;
+
+  ctx->last_decoded_image = NULL;
+
+  ctx->current_image_poc_lsb = 0;
+  ctx->first_decoded_picture = 0;
+  ctx->NoRaslOutputFlag = 0;
+  ctx->HandleCraAsBlaFlag = 0;
+  ctx->FirstAfterEndOfSequenceNAL = 0;
+  ctx->PicOrderCntMsb = 0;
+  ctx->prevPicOrderCntLsb = 0;
+  ctx->prevPicOrderCntMsb = 0;
+  ctx->img = NULL;
+
+  /*
+  int PocLsbLt[MAX_NUM_REF_PICS];
+  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
+  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+
+  int NumPocStCurrBefore;
+  int NumPocStCurrAfter;
+  int NumPocStFoll;
+  int NumPocLtCurr;
+  int NumPocLtFoll;
+
+  // These lists contain absolute POC values.
+  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
+  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
+  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
+  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
+  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
+
+  // These lists contain indices into the DPB.
+  int RefPicSetStCurrBefore[DE265_DPB_SIZE];
+  int RefPicSetStCurrAfter[DE265_DPB_SIZE];
+  int RefPicSetStFoll[DE265_DPB_SIZE];
+  int RefPicSetLtCurr[DE265_DPB_SIZE];
+  int RefPicSetLtFoll[DE265_DPB_SIZE];
+
+
+  uint8_t nal_unit_type;
+
+  char IdrPicFlag;
+  char RapPicFlag;
+  */
+
+  memset(ctx->thread_context,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
+
 
   // --- internal data ---
 
