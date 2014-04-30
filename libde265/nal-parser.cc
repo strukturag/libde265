@@ -46,6 +46,18 @@ NAL_unit::~NAL_unit()
   free(nal_data);
 }
 
+void NAL_unit::clear()
+{
+  header = nal_header();
+  pts = 0;
+  user_data = NULL;
+
+  // set size to zero but keep memory
+  data_size = 0;
+
+  skipped_bytes.clear();
+}
+
 void NAL_unit::resize(int new_size)
 {
   if (capacity < new_size) {
@@ -178,6 +190,7 @@ NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
     nal = new NAL_unit;
   }
 
+  nal->clear();
   nal->resize(size);
 
   return nal;
@@ -391,5 +404,3 @@ void NAL_Parser::remove_pending_input_data()
   input_push_state = 0;
   nBytes_in_NAL_queue = 0;
 }
-
-

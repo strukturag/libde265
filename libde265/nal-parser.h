@@ -37,17 +37,13 @@ class NAL_unit {
   NAL_unit();
   ~NAL_unit();
 
-  nal_header  header;
+  nal_header header;
 
-  de265_PTS pts;
-  void*     user_data;
+  de265_PTS  pts;
+  void*      user_data;
 
-  union {
-    seq_parameter_set sps;
-    pic_parameter_set pps;
-    // slice_segment_header slice_hdr;
-  };
 
+  void clear();
 
   // --- rbsp data ---
 
@@ -64,11 +60,18 @@ class NAL_unit {
   // --- skipped stuffing bytes ---
 
   int num_skipped_bytes_before(int byte_position, int headerLength) const;
-
-  void insert_skipped_byte(int pos);
   int  num_skipped_bytes() const { return skipped_bytes.size(); }
+
   void clear_skipped_bytes() { skipped_bytes.clear(); }
 
+  /* Mark a byte as skipped. It is assumed that the byte is already removed
+     from the input data. The NAL data is not modified.
+  */
+  void insert_skipped_byte(int pos);
+
+  /* Remove all stuffing bytes from NAL data. The NAL data is modified and
+     the removed bytes are marked as skipped bytes.
+   */
   void remove_stuffing_bytes();
 
  private:
@@ -128,8 +131,10 @@ class NAL_Parser
   // NAL level
 
   std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
+  int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
 
-  int nBytes_in_NAL_queue;
+
+  // pool of unused NAL memory
 
   std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
 
