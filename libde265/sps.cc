@@ -29,7 +29,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false); \
+    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
   } \
   variable = vlc + offset;
@@ -105,7 +105,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
 
   if (sps->chroma_format_idc<0 ||
       sps->chroma_format_idc>3) {
-    add_warning(ctx, DE265_WARNING_INVALID_CHROMA_FORMAT, false);
+    ctx->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
@@ -164,7 +164,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
     vlc=get_uvlc(br);
     if (vlc == UVLC_ERROR ||
         vlc+1 > MAX_NUM_REF_PICS) {
-      add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
@@ -241,7 +241,7 @@ de265_error read_sps(decoder_context* ctx, bitreader* br,
   READ_VLC(sps->num_short_term_ref_pic_sets, uvlc);
   if (sps->num_short_term_ref_pic_sets < 0 ||
       sps->num_short_term_ref_pic_sets > 64) {
-    add_warning(ctx, DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
+    ctx->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 

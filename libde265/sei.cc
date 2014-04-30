@@ -188,7 +188,7 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
 static de265_error process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
 {
   if (ctx->current_sps == NULL || ctx->last_decoded_image == NULL) {
-    add_warning(ctx,DE265_ERROR_CANNOT_PROCESS_SEI, false);
+    ctx->add_warning(DE265_ERROR_CANNOT_PROCESS_SEI, false);
     return DE265_OK;
   }
 

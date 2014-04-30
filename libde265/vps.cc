@@ -77,7 +77,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
 
   if (vps->vps_num_layer_sets<0 ||
       vps->vps_num_layer_sets>=1024) {
-    add_warning(ctx, DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 

@@ -405,7 +405,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
       if (vi->lum.refIdx[l] >= MAX_NUM_REF_PICS) {
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        add_warning(ctx,DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
         return;
       }
 
@@ -421,7 +421,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       //assert(refPic->PicState != UnusedForReference);
       if (refPic->PicState == UnusedForReference) {
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        add_warning(ctx,DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
       }
       else {
         // 8.5.3.2.2
@@ -471,7 +471,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                             predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
       }
       else {
-        add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
       }
 
@@ -511,7 +511,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                           chroma1_w0, chroma1_o0, chroma_log2WD);
       }
       else {
-        add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
         ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
       }
     }
@@ -665,7 +665,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       // TODO: check why it can actually happen that both predFlags[] are false.
       // For now, we ignore this and continue decoding.
 
-      add_warning(ctx, DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+      ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
       ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
     }
   }
@@ -1193,7 +1193,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       else {
         if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
           //printf("A\n");
-          add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+          ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         }
 
@@ -1592,7 +1592,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
         int distX = ctx->img->PicOrderCntVal - referenced_POC;
 
         if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
-          add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+          ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
           ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         }
       }
@@ -1716,7 +1716,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
           logtrace(LogMotion,"scale MVP B: B-POC:%d X-POC:%d\n",refPicB->PicOrderCntVal,refPicX->PicOrderCntVal);
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
-            add_warning(ctx, DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+            ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
           }
         }

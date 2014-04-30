@@ -305,7 +305,7 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
               int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
 
               if (numMV_P!=numMV_Q) {
-                add_warning(ctx, DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
+                ctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
                 ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
               }
 

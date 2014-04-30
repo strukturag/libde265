@@ -104,8 +104,24 @@ typedef struct thread_context
 
 
 
+class error_queue
+{
+ public:
+  error_queue();
 
-typedef struct decoder_context {
+  void add_warning(de265_error warning, bool once);
+  de265_error get_warning();
+
+ private:
+  de265_error warnings[MAX_WARNINGS];
+  int nWarnings;
+  de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
+  int nWarningsShown;
+};
+
+
+
+struct decoder_context : public error_queue {
 
   // --- parameters ---
 
@@ -123,11 +139,6 @@ typedef struct decoder_context {
   // --- decoder administration ---
 
   struct acceleration_functions acceleration; // CPU optimized functions
-
-  de265_error warnings[MAX_WARNINGS];
-  int nWarnings;
-  de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
-  int nWarningsShown;
 
 
   // --- input stream data ---
@@ -217,8 +228,7 @@ typedef struct decoder_context {
   // --- decoder runtime data ---
 
   struct thread_context thread_context[MAX_THREAD_CONTEXTS];
-
-} decoder_context;
+};
 
 
 void init_decoder_context(decoder_context*);
@@ -241,9 +251,6 @@ bool process_slice_segment_header(decoder_context*, slice_segment_header*,
 
 int get_next_slice_index(decoder_context* ctx);
 int get_next_thread_context_index(decoder_context* ctx);
-
-void add_warning(decoder_context* ctx, de265_error warning, bool once);
-de265_error get_warning(decoder_context* ctx);
 
 
 // --- decoder 2D data arrays ---

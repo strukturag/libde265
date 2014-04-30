@@ -68,9 +68,6 @@ void init_decoder_context(decoder_context* ctx)
 
 
 
-  ctx->nWarnings = 0;
-  ctx->nWarningsShown = 0;
-
   memset(&ctx->vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
   memset(&ctx->sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
   memset(&ctx->pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
@@ -671,13 +668,13 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
-      add_warning(ctx, DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
       return false;
     }
   }
 
   if (hdr->num_ref_idx_l0_active > 15) {
-    add_warning(ctx, DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
     return false;
   }
 
@@ -1532,13 +1529,13 @@ void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize
 }
 
 
-void add_warning(decoder_context* ctx, de265_error warning, bool once)
+void error_queue::add_warning(de265_error warning, bool once)
 {
   // check if warning was already shown
   bool add=true;
   if (once) {
-    for (int i=0;i<ctx->nWarningsShown;i++) {
-      if (ctx->warnings_shown[i] == warning) {
+    for (int i=0;i<nWarningsShown;i++) {
+      if (warnings_shown[i] == warning) {
         add=false;
         break;
       }
@@ -1553,32 +1550,37 @@ void add_warning(decoder_context* ctx, de265_error warning, bool once)
   // if this is a one-time warning, remember that it was shown
 
   if (once) {
-    if (ctx->nWarningsShown < MAX_WARNINGS) {
-      ctx->warnings_shown[ctx->nWarningsShown++] = warning;
+    if (nWarningsShown < MAX_WARNINGS) {
+      warnings_shown[nWarningsShown++] = warning;
     }
   }
 
 
   // add warning to output queue
 
-  if (ctx->nWarnings == MAX_WARNINGS) {
-    ctx->warnings[MAX_WARNINGS-1] = DE265_WARNING_WARNING_BUFFER_FULL;
+  if (nWarnings == MAX_WARNINGS) {
+    warnings[MAX_WARNINGS-1] = DE265_WARNING_WARNING_BUFFER_FULL;
     return;
   }
 
-  ctx->warnings[ctx->nWarnings++] = warning;
-
+  warnings[nWarnings++] = warning;
 }
 
-de265_error get_warning(decoder_context* ctx)
+error_queue::error_queue()
 {
-  if (ctx->nWarnings==0) {
+  nWarnings = 0;
+  nWarningsShown = 0;
+}
+
+de265_error error_queue::get_warning()
+{
+  if (nWarnings==0) {
     return DE265_OK;
   }
 
-  de265_error warn = ctx->warnings[0];
-  ctx->nWarnings--;
-  memmove(ctx->warnings, &ctx->warnings[1], ctx->nWarnings*sizeof(de265_error));
+  de265_error warn = warnings[0];
+  nWarnings--;
+  memmove(warnings, &warnings[1], nWarnings*sizeof(de265_error));
 
   return warn;
 }

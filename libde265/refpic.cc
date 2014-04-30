@@ -213,7 +213,7 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
-      add_warning(ctx, DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
 

@@ -426,7 +426,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
     int sliceIndex = get_next_slice_index(ctx);
     if (sliceIndex<0) {
-      add_warning(ctx,DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED, true);
+      ctx->add_warning(DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED, true);
       return DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED;
     }
 
@@ -484,7 +484,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           ctx->current_pps->tiles_enabled_flag == false) {
 
         // TODO: new error should be: no WPP and no Tiles ...
-        add_warning(ctx, DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
+        ctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
       }
 
       if (!use_WPP && !use_tiles) {
@@ -820,7 +820,7 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return get_warning(ctx);
+  return ctx->get_warning();
 }
 
 LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
