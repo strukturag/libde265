@@ -154,6 +154,10 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
 
     // cb info
 
+    img->cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
+                       sps->Log2MinCbSizeY);
+
+    /*
     if (img->cb_info_size != sps->PicSizeInMinCbsY ||
         img->cb_info == NULL) {
       img->cb_info_size = sps->PicSizeInMinCbsY;
@@ -162,7 +166,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
       free(img->cb_info);
       img->cb_info = (CB_ref_info*)malloc(sizeof(CB_ref_info) * img->cb_info_size);
     }
-
+    */
 
     // pb info
 
@@ -240,7 +244,7 @@ de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c
 
     if (//img->ctb_info == NULL ||
         //img->intraPredMode == NULL ||
-        img->cb_info == NULL ||
+        //img->cb_info == NULL ||
         //img->pb_info == NULL ||
         img->tu_info == NULL ||
         img->deblk_info == NULL)
@@ -264,7 +268,7 @@ void de265_free_image(de265_image* img)
     { de265_progress_lock_destroy(&img->ctb_progress[i]); }
 
   free(img->ctb_progress);
-  free(img->cb_info);
+  //free(img->cb_info);
   //free(img->pb_info);
   free(img->tu_info);
   free(img->deblk_info);
@@ -381,7 +385,8 @@ void img_clear_decoding_data(de265_image* img)
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
-  memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
+  //memset(img->cb_info,  0,img->cb_info_size * sizeof(CB_ref_info));
+  img->cb_info.clear();
 
   memset(img->tu_info,   0,img->tu_info_size    * sizeof(uint8_t));
   memset(img->deblk_info,0,img->deblk_info_size * sizeof(uint8_t));

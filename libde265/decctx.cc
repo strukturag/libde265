@@ -338,7 +338,7 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
   memset( img->cb- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
   memset( img->cr- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
 
-  for (int i=0;i<img->cb_info_size;i++)
+  for (int i=0;i<img->cb_info.data_size;i++)
     { img->cb_info[i].PredMode = MODE_INTRA; }
 
 

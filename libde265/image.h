@@ -143,16 +143,16 @@ template <class DataUnit> class MetaDataArray
   int width_in_units;
 };
 
-#define PIXEL2CB(x) (x >> img->Log2MinCbSizeY)
-#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->PicWidthInMinCbsY)
+#define PIXEL2CB(x) (x >> img->cb_info.log2unitSize)
+#define CB_IDX(x0,y0) (PIXEL2CB(x0) + PIXEL2CB(y0)*img->cb_info.width_in_units)
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)                      \
   int cbX = PIXEL2CB(x);                                                \
   int cbY = PIXEL2CB(y);                                                \
-  int width = 1 << (log2BlkWidth - img->Log2MinCbSizeY);                \
+  int width = 1 << (log2BlkWidth - img->cb_info.log2unitSize);          \
   for (int cby=cbY;cby<cbY+width;cby++)                                 \
     for (int cbx=cbX;cbx<cbX+width;cbx++)                               \
       {                                                                 \
-        img->cb_info[ cbx + cby*img->PicWidthInMinCbsY ].Field = value; \
+        img->cb_info[ cbx + cby*img->cb_info.width_in_units ].Field = value; \
       }
 
 typedef struct {
@@ -244,15 +244,10 @@ typedef struct de265_image {
   pic_parameter_set* pps;  // the PPS used for decoding this image
 
 
-  MetaDataArray<CTB_info> ctb_info;
-
-  CB_ref_info* cb_info;
-  int cb_info_size;
-  int Log2MinCbSizeY;
-  int PicWidthInMinCbsY;
-
+  MetaDataArray<CTB_info>    ctb_info;
+  MetaDataArray<CB_ref_info> cb_info;
   MetaDataArray<PB_ref_info> pb_info;
-  MetaDataArray<uint8_t> intraPredMode;
+  MetaDataArray<uint8_t>     intraPredMode;
 
   uint8_t* tu_info;
   int tu_info_size;
@@ -328,10 +323,7 @@ LIBDE265_INLINE static void set_pred_mode(de265_image* img, int x,int y, int log
 }
 LIBDE265_INLINE static enum PredMode get_pred_mode(const de265_image* img, int x,int y)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].PredMode;
+  return (enum PredMode)img->cb_info.get(x,y).PredMode;
 }
 
 LIBDE265_INLINE static uint8_t get_cu_skip_flag(const de265_image* img, int x,int y)
@@ -343,46 +335,35 @@ LIBDE265_INLINE static void set_pcm_flag(de265_image* img, int x,int y, int log2
 {
   SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
 }
+
 LIBDE265_INLINE static int get_pcm_flag(const de265_image* img, int x,int y)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].pcm_flag;
+  return img->cb_info.get(x,y).pcm_flag;
 }
 
-LIBDE265_INLINE static void set_cu_transquant_bypass(const de265_image* img, int x,int y, int log2BlkWidth)
+LIBDE265_INLINE static void set_cu_transquant_bypass(de265_image* img, int x,int y, int log2BlkWidth)
 {
   SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
 }
 LIBDE265_INLINE static int  get_cu_transquant_bypass(const de265_image* img, int x,int y)
 {
-  int cbX = PIXEL2CB(x);
-  int cbY = PIXEL2CB(y);
-
-  return img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].cu_transquant_bypass;
+  return img->cb_info.get(x,y).cu_transquant_bypass;
 }
 
 LIBDE265_INLINE static void set_log2CbSize(de265_image* img, int x0, int y0, int log2CbSize)
 {
-  int cbX = PIXEL2CB(x0);
-  int cbY = PIXEL2CB(y0);
-
-  img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize = log2CbSize;
+  img->cb_info.get(x0,y0).log2CbSize = log2CbSize;
 
   // assume that remaining cb_info blocks are initialized to zero
 }
 LIBDE265_INLINE static int  get_log2CbSize(const de265_image* img, int x0, int y0)
 {
-  int cbX = PIXEL2CB(x0);
-  int cbY = PIXEL2CB(y0);
-
-  return (enum PredMode)img->cb_info[ cbX + cbY*img->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info.get(x0,y0).log2CbSize;
 }
 // coordinates in CB units
 LIBDE265_INLINE static int  get_log2CbSize_cbUnits(const de265_image* img, int xCb, int yCb)
 {
-  return (enum PredMode)img->cb_info[ xCb + yCb*img->PicWidthInMinCbsY ].log2CbSize;
+  return (enum PredMode)img->cb_info[ xCb + yCb*img->cb_info.width_in_units ].log2CbSize;
 }
 
 LIBDE265_INLINE static void          set_PartMode(      de265_image* img, int x,int y, enum PartMode mode)
