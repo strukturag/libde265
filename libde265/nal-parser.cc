@@ -213,7 +213,10 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
   }
   else {
     NAL_unit* nal = NAL_queue.front();
-    NAL_queue.pop();
+    //NAL_queue.pop();
+    for (int k=0;k<NAL_queue.size()-1;k++)
+      NAL_queue[k]=NAL_queue[k+1];
+    NAL_queue.pop_back();
 
     nBytes_in_NAL_queue -= nal->size();
 
@@ -223,7 +226,7 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
 
 void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
 {
-  NAL_queue.push(nal);
+  NAL_queue.push_back(nal);
   nBytes_in_NAL_queue += nal->size();
 }
 
