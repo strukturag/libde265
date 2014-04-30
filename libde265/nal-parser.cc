@@ -257,7 +257,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
       else { input_push_state=0; }
       break;
     case 2:
-      if      (*data == 1) { input_push_state=3; nal->clear_skipped_bytes(); }
+      if      (*data == 1) { input_push_state=3; } // nal->clear_skipped_bytes(); }
       else if (*data == 0) { } // *out++ = 0; }
       else { input_push_state=0; }
       break;
@@ -318,7 +318,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
         out = nal->data();
 
         input_push_state=3;
-        nal->clear_skipped_bytes();
+        //nal->clear_skipped_bytes();
       }
       else {
         *out++ = 0;

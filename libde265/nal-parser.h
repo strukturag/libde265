@@ -62,7 +62,7 @@ class NAL_unit {
   int num_skipped_bytes_before(int byte_position, int headerLength) const;
   int  num_skipped_bytes() const { return skipped_bytes.size(); }
 
-  void clear_skipped_bytes() { skipped_bytes.clear(); }
+  //void clear_skipped_bytes() { skipped_bytes.clear(); }
 
   /* Mark a byte as skipped. It is assumed that the byte is already removed
      from the input data. The NAL data is not modified.
