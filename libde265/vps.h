@@ -81,7 +81,7 @@ void read_profile_tier_level(bitreader* reader,
                              struct profile_tier_level* hdr,
                              int max_sub_layers);
 
-void dump_profile_tier_level(struct profile_tier_level* hdr,
+void dump_profile_tier_level(const struct profile_tier_level* hdr,
                              int max_sub_layers, FILE* fh);
 
 

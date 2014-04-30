@@ -25,12 +25,8 @@
 #include "libde265/decctx.h"
 
 de265_error read_sps(decoder_context*, bitreader*, seq_parameter_set*); //, ref_pic_set**);
-void dump_sps(seq_parameter_set*, /*ref_pic_set* sets,*/ int fd);
-void move_sps(seq_parameter_set* dest, seq_parameter_set* src);
 
 de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
 void set_default_scaling_lists(scaling_list_data*);
-
-void free_ref_pic_sets(ref_pic_set**);
 
 #endif

@@ -642,7 +642,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         }
 
         if (ctx->param_sps_headers_fd>=0) {
-          dump_sps(&sps, ctx->param_sps_headers_fd);
+          sps.dump_sps(ctx->param_sps_headers_fd);
         }
 
         process_sps(ctx, &sps);

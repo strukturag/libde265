@@ -204,7 +204,7 @@ void process_sps(decoder_context* ctx, seq_parameter_set* sps)
   push_current_picture_to_output_queue(ctx);
 
   ctx->sps[ sps->seq_parameter_set_id ] = *sps;
-  //move_sps(&ctx->sps[ sps->seq_parameter_set_id ], sps);
+
   ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
 }
 

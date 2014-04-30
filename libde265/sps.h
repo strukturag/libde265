@@ -55,6 +55,8 @@ struct seq_parameter_set {
   seq_parameter_set();
   ~seq_parameter_set();
 
+  void dump_sps(int fd) const;
+
   bool sps_read; // whether the sps has been read from the bitstream
 
 

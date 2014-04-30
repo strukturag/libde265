@@ -297,7 +297,7 @@ void dump_vps(video_parameter_set* vps, int fd)
 }
 
 
-void dump_profile_tier_level(struct profile_tier_level* hdr,
+void dump_profile_tier_level(const struct profile_tier_level* hdr,
                              int max_sub_layers, FILE* fh)
 {
   LOG1("  general_profile_space     : %d\n", hdr->general_profile_space);
