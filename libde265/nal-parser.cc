@@ -33,6 +33,9 @@
 NAL_unit::NAL_unit()
   : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
 {
+  pts=0;
+  user_data = NULL;
+
   nal_data = NULL;
   data_size = 0;
   capacity = 0;
@@ -40,13 +43,7 @@ NAL_unit::NAL_unit()
 
 NAL_unit::~NAL_unit()
 {
-  if (nal_data) {
-    ::free(nal_data);
-
-    nal_data = NULL;
-    data_size = 0;
-    capacity = 0;
-  }
+  free(nal_data);
 }
 
 void NAL_unit::resize(int new_size)
@@ -56,7 +53,7 @@ void NAL_unit::resize(int new_size)
 
     if (nal_data != NULL) {
       memcpy(newbuffer, nal_data, data_size);
-      ::free(nal_data);
+      free(nal_data);
     }
 
     nal_data = newbuffer;

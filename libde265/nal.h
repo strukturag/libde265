@@ -32,11 +32,17 @@
 
 #include "libde265/bitstream.h"
 
-typedef struct {
+struct nal_header {
+  nal_header() {
+    nal_unit_type = 0;
+    nuh_layer_id = 0;
+    nuh_temporal_id = 0;
+  }
+
   int nal_unit_type;
   int nuh_layer_id;
   int nuh_temporal_id;
-} nal_header;
+};
 
 #define NAL_UNIT_TRAIL_N  0
 #define NAL_UNIT_TRAIL_R  1
