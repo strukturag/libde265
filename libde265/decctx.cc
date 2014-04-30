@@ -133,10 +133,6 @@ decoder_context::decoder_context()
 
   // --- internal data ---
 
-  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
-    init_sps(&sps[i]);
-  }
-
   init_dpb(&dpb);
 
   first_decoded_picture = true;
@@ -164,10 +160,6 @@ decoder_context::decoder_context()
 
 decoder_context::~decoder_context()
 {
-  for (int i=0;i<DE265_MAX_SPS_SETS;i++) {
-    free_sps(&sps[i]);
-  }
-
   free_dpb(&dpb);
 
   for (int i=0;i<DE265_MAX_PPS_SETS;i++) {

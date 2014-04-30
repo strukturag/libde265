@@ -54,16 +54,20 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         const ref_pic_set* sets,
                                         bool sliceRefPicSet);
 
-void init_sps(seq_parameter_set* sps)
+seq_parameter_set::seq_parameter_set()
 {
-  memset(sps,0,sizeof(seq_parameter_set));
+  // TODO: this is dangerous
+  memset(this,0,sizeof(seq_parameter_set));
+
+
+  sps_read = false;
+  ref_pic_sets = NULL;
 }
 
 
-void free_sps(seq_parameter_set* sps)
+seq_parameter_set::~seq_parameter_set()
 {
-  free(sps->ref_pic_sets);
-  sps->ref_pic_sets = NULL;
+  free(ref_pic_sets);
 }
 
 

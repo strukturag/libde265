@@ -40,6 +40,8 @@ enum {
 
 
 typedef struct scaling_list_data {
+  // structure size: approx. 4 kB
+
   uint8_t ScalingFactor_Size0[6][4][4];
   uint8_t ScalingFactor_Size1[6][8][8];
   uint8_t ScalingFactor_Size2[6][16][16];
@@ -47,7 +49,10 @@ typedef struct scaling_list_data {
 } scaling_list_data;
 
 
-typedef struct {
+struct seq_parameter_set {
+  seq_parameter_set();
+  ~seq_parameter_set();
+
   bool sps_read; // whether the sps has been read from the bitstream
 
 
@@ -178,7 +183,7 @@ typedef struct {
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
 
-} seq_parameter_set;
+};
 
 
 #endif

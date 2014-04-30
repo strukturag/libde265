@@ -636,7 +636,6 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         logdebug(LogHeaders,"----> read SPS\n");
 
         seq_parameter_set sps;
-        init_sps(&sps);
 
         if ((err=read_sps(ctx, &reader,&sps)) != DE265_OK) {
           break;
