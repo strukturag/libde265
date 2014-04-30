@@ -67,11 +67,12 @@ decoder_context::decoder_context()
   set_acceleration_functions(this,de265_acceleration_AUTO);
 
 
-
+  /*
   memset(&vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
   memset(&sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
   memset(&pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
   memset(&slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
+  */
 
   current_vps = NULL;
   current_sps = NULL;

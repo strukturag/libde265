@@ -134,6 +134,8 @@ enum context_model_indices {
 
 
 typedef struct slice_segment_header {
+  slice_segment_header() { inUse=false; }
+
   int  slice_index; // index through all slices in a picture
   char inUse; // slice is used by a picture currently in the buffer
 

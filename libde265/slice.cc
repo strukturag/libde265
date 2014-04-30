@@ -359,6 +359,10 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
           }
         }
       }
+      else {
+        shdr->num_long_term_sps = 0;
+        shdr->num_long_term_pics= 0;
+      }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
         shdr->slice_temporal_mvp_enabled_flag = get_bits(br,1);
