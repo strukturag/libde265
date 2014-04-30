@@ -31,6 +31,7 @@
 
 
 NAL_unit::NAL_unit()
+  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
 {
   nal_data = NULL;
   data_size = 0;
@@ -55,7 +56,14 @@ void NAL_unit::init()
   capacity = 0;
 }
 
-void NAL_unit::free() { if (nal_data) { ::free(nal_data); nal_data=NULL; } } // TODO TMP
+void NAL_unit::free() // TODO TMP
+{
+  if (nal_data)
+    {
+      ::free(nal_data);
+      nal_data=NULL;
+    }
+}
 
 void NAL_unit::resize(int new_size)
 {
@@ -88,20 +96,17 @@ void NAL_unit::set_data(const unsigned char* in_data, int n)
 
 void NAL_unit::insert_skipped_byte(int pos)
 {
-  if (max_skipped_bytes == num_skipped_bytes) {
-    if (max_skipped_bytes == 0) {
-      max_skipped_bytes = DE265_SKIPPED_BYTES_INITIAL_SIZE;
-    } else {
-      max_skipped_bytes <<= 2;
+  skipped_bytes.push_back(pos);
+}
+
+int NAL_unit::num_skipped_bytes_before(int byte_position, int headerLength) const
+{
+  for (int k=skipped_bytes.size()-1;k>=0;k--)
+    if (skipped_bytes[k]-headerLength <= byte_position) {
+      return k+1;
     }
 
-    // TODO: handle case where realloc fails
-    skipped_bytes = (int *)realloc(skipped_bytes,
-                                   max_skipped_bytes * sizeof(int));
-  }
-
-  skipped_bytes[num_skipped_bytes] = pos;
-  num_skipped_bytes++;
+  return 0;
 }
 
 void NAL_unit::remove_stuffing_bytes()
@@ -126,7 +131,7 @@ void NAL_unit::remove_stuffing_bytes()
       else {
         if (p[0]==0 && p[1]==0 && p[2]==3) {
           //printf("SKIP NAL @ %d\n",i+2+num_skipped_bytes);
-          insert_skipped_byte(i+2 + num_skipped_bytes);
+          insert_skipped_byte(i+2 + num_skipped_bytes());
 
           memmove(p+2, p+3, size()-i-3);
           set_size(size()-1);
@@ -168,31 +173,31 @@ NAL_Parser::NAL_Parser()
 }
 
 
-NAL_unit* NAL_Parser::alloc_NAL_unit(int size, int skipped_size)
+NAL_Parser::~NAL_Parser()
+{
+  // free all NALs in free-list
+
+  for (int i=0;i<NAL_free_list.size();i++)
+    {
+      delete NAL_free_list[i];
+    }
+}
+
+
+NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
 {
   NAL_unit* nal;
 
   // --- get NAL-unit object ---
 
-  if (NAL_free_list == NULL ||
-      NAL_free_list_len==0) {
-    nal = (NAL_unit*)calloc( sizeof(NAL_unit),1 );
-    nal->init();
+  if (NAL_free_list.size() > 0) {
+    nal = NAL_free_list.back();
+    NAL_free_list.pop_back();
   }
   else {
-    NAL_free_list_len--;
-    nal = NAL_free_list[NAL_free_list_len];
+    nal = new NAL_unit;
   }
 
-
-  // --- allocate skipped-bytes set ---
-
-  if (skipped_size>0 && skipped_size>nal->max_skipped_bytes) {
-    nal->skipped_bytes = (int*)realloc( nal->skipped_bytes, skipped_size*sizeof(int) );
-    nal->max_skipped_bytes = skipped_size;
-  }
-
-  nal->num_skipped_bytes = 0;
   nal->resize(size);
 
   return nal;
@@ -200,24 +205,11 @@ NAL_unit* NAL_Parser::alloc_NAL_unit(int size, int skipped_size)
 
 void NAL_Parser::free_NAL_unit(NAL_unit* nal)
 {
-  // --- allocate free list if not already there ---
-
-  if (NAL_free_list == NULL) {
-    NAL_free_list_size = DE265_NAL_FREE_LIST_SIZE;
-    NAL_free_list = (NAL_unit**)malloc( NAL_free_list_size * sizeof(NAL_unit*) );
-  }
-
-
-  // --- put into free-list if not full ---
-
-  if (NAL_free_list_len < NAL_free_list_size) {
-    NAL_free_list[ NAL_free_list_len ] = nal;
-    NAL_free_list_len++;
+  if (NAL_free_list.size() < DE265_NAL_FREE_LIST_SIZE) {
+    NAL_free_list.push_back(nal);
   }
   else {
-    nal->free();
-    free(nal->skipped_bytes);
-    free(nal);
+    delete nal;
   }
 }
 
@@ -258,7 +250,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
                                   de265_PTS pts, void* user_data)
 {
   if (pending_input_NAL == NULL) {
-    pending_input_NAL = alloc_NAL_unit(len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
+    pending_input_NAL = alloc_NAL_unit(len+3);
     pending_input_NAL->pts = pts;
     pending_input_NAL->user_data = user_data;
   }
@@ -284,7 +276,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
       else { input_push_state=0; }
       break;
     case 2:
-      if      (*data == 1) { input_push_state=3; nal->num_skipped_bytes=0; }
+      if      (*data == 1) { input_push_state=3; nal->clear_skipped_bytes(); }
       else if (*data == 0) { } // *out++ = 0; }
       else { input_push_state=0; }
       break;
@@ -317,7 +309,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
         *out++ = 0; *out++ = 0; input_push_state=5;
 
         // remember which byte we removed
-        nal->insert_skipped_byte((out - nal->data()) + nal->num_skipped_bytes);
+        nal->insert_skipped_byte((out - nal->data()) + nal->num_skipped_bytes());
       }
       else if (*data==1) {
 
@@ -339,13 +331,13 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
         // initialize new, empty NAL unit
 
-        pending_input_NAL = alloc_NAL_unit(len+3, DE265_SKIPPED_BYTES_INITIAL_SIZE);
+        pending_input_NAL = alloc_NAL_unit(len+3);
         pending_input_NAL->pts = pts;
         nal = pending_input_NAL;
         out = nal->data();
 
         input_push_state=3;
-        nal->num_skipped_bytes=0;
+        nal->clear_skipped_bytes();
       }
       else {
         *out++ = 0;
@@ -372,7 +364,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
   // Cannot use byte-stream input and NAL input at the same time.
   assert(pending_input_NAL == NULL);
 
-  NAL_unit* nal = alloc_NAL_unit(len, DE265_SKIPPED_BYTES_INITIAL_SIZE);
+  NAL_unit* nal = alloc_NAL_unit(len);
   nal->set_data(data, len);
   nal->pts = pts;
   nal->user_data = user_data;
@@ -451,18 +443,8 @@ void NAL_Parser::clear()
     free_NAL_unit(pending_input_NAL);
   }
 
-  // free all NALs in free-list
-
-  for (int i=0;i<NAL_free_list_len;i++)
-    {
-      NAL_free_list[i]->free();
-      free(NAL_free_list[i]->skipped_bytes);
-      free(NAL_free_list[i]);
-    }
-
   // remove lists themselves
 
   free(NAL_queue);
-  free(NAL_free_list);
 }
 

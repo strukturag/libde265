@@ -459,19 +459,10 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       // modify entry_point_offsets
 
       int headerLength = reader.data - nal->data();
-      for (int i=0;i<nal->num_skipped_bytes;i++)
-        {
-          nal->skipped_bytes[i] -= headerLength;
-        }
-
       for (int i=0;i<hdr->num_entry_point_offsets;i++) {
-        for (int k=nal->num_skipped_bytes-1;k>=0;k--)
-          if (nal->skipped_bytes[k] <= hdr->entry_point_offset[i]) {
-            hdr->entry_point_offset[i] -= k+1;
-            break;
-          }
+        hdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(hdr->entry_point_offset[i],
+                                                                    headerLength);
       }
-
 
       const pic_parameter_set* pps = ctx->current_pps;
       int ctbsWidth = ctx->current_sps->PicWidthInCtbsY;

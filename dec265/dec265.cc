@@ -36,9 +36,7 @@
 #ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
-extern "C" {
 #include "libde265/decctx.h"
-}
 #else
 // VS2008 didn't support C99, compile all everything as C++
 #include "libde265/decctx.h"

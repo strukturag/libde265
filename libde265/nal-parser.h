@@ -25,12 +25,14 @@
 #include "libde265/pps.h"
 #include "libde265/nal.h"
 
+#include <vector>
+
 #define DE265_NAL_FREE_LIST_SIZE 16
 #define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
 
 
-typedef struct NAL_unit {
-
+class NAL_unit {
+ public:
   NAL_unit();
   ~NAL_unit();
 
@@ -42,15 +44,14 @@ typedef struct NAL_unit {
   de265_PTS pts;
   void*     user_data;
 
-  int*  skipped_bytes;  // up to position[x], there were 'x' skipped bytes
-  int   num_skipped_bytes;
-  int   max_skipped_bytes;
-
   union {
     seq_parameter_set sps;
     pic_parameter_set pps;
     // slice_segment_header slice_hdr;
   };
+
+
+  // --- rbsp data ---
 
   void resize(int new_size);
   void append(const unsigned char* data, int n);
@@ -61,20 +62,31 @@ typedef struct NAL_unit {
   unsigned char* data() { return nal_data; }
   const unsigned char* data() const { return nal_data; }
 
+
+  // --- skipped stuffing bytes ---
+
+  int num_skipped_bytes_before(int byte_position, int headerLength) const;
+
   void insert_skipped_byte(int pos);
+  int  num_skipped_bytes() const { return skipped_bytes.size(); }
+  void clear_skipped_bytes() { skipped_bytes.clear(); }
+
   void remove_stuffing_bytes();
 
-private:
+ private:
   unsigned char* nal_data;
   int data_size;
   int capacity;
-} NAL_unit;
+
+  std::vector<int> skipped_bytes; // up to position[x], there were 'x' skipped bytes
+};
 
 
 class NAL_Parser
 {
  public:
   NAL_Parser();
+  ~NAL_Parser();
 
   void clear();
 
@@ -125,11 +137,9 @@ class NAL_Parser
 
   int nBytes_in_NAL_queue;
 
-  NAL_unit** NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
-  int NAL_free_list_len;
-  int NAL_free_list_size;
+  std::vector<NAL_unit*> NAL_free_list;  // DE265_NAL_FREE_LIST_SIZE
 
-  NAL_unit* alloc_NAL_unit(int size, int skipped_size);
+  NAL_unit* alloc_NAL_unit(int size);
 };
 
 
