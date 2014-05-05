@@ -275,7 +275,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   uint8_t* pred;
   int      stride;
-  pred = tctx->img->get_image_plane(cIdx, xT,yT);
+  pred = tctx->img->get_image_plane_at_pos(cIdx, xT,yT);
   stride = tctx->img->get_image_stride(cIdx);
 
   //fprintf(stderr,"POC=%d pred: %p (%d;%d stride=%d)\n",ctx->img->PicOrderCntVal,pred,xT,yT,stride);
