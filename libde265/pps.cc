@@ -19,7 +19,6 @@
  */
 
 #include "pps.h"
-#include "pps_func.h"
 #include "sps_func.h"
 #include "util.h"
 

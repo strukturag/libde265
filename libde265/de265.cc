@@ -24,7 +24,6 @@
 #include "de265.h"
 #include "decctx.h"
 #include "slice_func.h"
-#include "pps_func.h"
 #include "sps_func.h"
 #include "util.h"
 #include "scan.h"
@@ -640,7 +639,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         seq_parameter_set sps;
 
-        if ((err=read_sps(ctx, &reader,&sps)) != DE265_OK) {
+        if ((err=sps.read(ctx, &reader)) != DE265_OK) {
           break;
         }
 
