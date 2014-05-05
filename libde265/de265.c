@@ -628,7 +628,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
     bool continueDecoding;
     err = read_slice_segment_header(&reader,hdr,ctx, &continueDecoding);
     if (!continueDecoding) {
-      ctx->img->integrity = INTEGRITY_NOT_DECODED;
+      if (ctx->img) { ctx->img->integrity = INTEGRITY_NOT_DECODED; }
       return err;
     }
     else {
