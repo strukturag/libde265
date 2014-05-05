@@ -211,12 +211,12 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
 #ifdef HAVE_SWSCALE
 void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
 {
-  if (sws == NULL || img->width != width || img->height != height) {
+  if (sws == NULL || img->get_width() != width || img->get_height() != height) {
     if (sws != NULL) {
       sws_freeContext(sws);
     }
-    width = img->width;
-    height = img->height;
+    width = img->get_width();
+    height = img->get_height();
     sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
   }
 
