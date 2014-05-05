@@ -186,10 +186,8 @@ struct de265_image {
   void fill_image(int y,int u,int v);
   void copy_image(const de265_image* src);
 
-  uint8_t* get_image_plane(int cIdx)
-  {
-    return pixels[cIdx];
-  }
+  /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
+  const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
 
   uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
