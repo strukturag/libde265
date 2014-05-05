@@ -217,7 +217,7 @@ struct de265_image {
 
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
-  void set_conformance_window(int left,int right,int top,int bottom);
+  void set_conformance_window();
 
 private:
   uint8_t* pixels[3];   // pointer to pixels in the conformance window
@@ -251,8 +251,8 @@ public:
   enum PictureState PicState;
 
 
-  seq_parameter_set* sps;  // the SPS used for decoding this image
-  pic_parameter_set* pps;  // the PPS used for decoding this image
+  seq_parameter_set sps;  // the SPS used for decoding this image
+  pic_parameter_set pps;  // the PPS used for decoding this image
 
 private:
   MetaDataArray<CTB_info>    ctb_info;

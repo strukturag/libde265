@@ -742,8 +742,6 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
   if (img->PicState != UnusedForReference) { return; } // still required for reference
   if (img->PicOutputFlag) { return; } // required for output
 
-  if (img->sps==NULL) { return; } // might be an unavailable-reference replacement image
-
 
   //printf("cleanup_image POC=%d  (%p) from %s\n",img->PicOrderCntVal,img,why);
 
@@ -753,11 +751,6 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
      new SPS was sent before cleaning up this image.
   */
   img->mark_slice_headers_as_unused(ctx);
-
-  //printf("cleanup %p %s\n",img,why);
-
-  img->sps = NULL; // this may not be valid anymore in the future
-  img->pps = NULL; // this may not be valid anymore in the future
 }
 
 
@@ -831,10 +824,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     // push image into output queue
 
     if (ctx->img->PicOutputFlag) {
-      ctx->img->set_conformance_window(ctx->img->sps->conf_win_left_offset,
-                                       ctx->img->sps->conf_win_right_offset,
-                                       ctx->img->sps->conf_win_top_offset,
-                                       ctx->img->sps->conf_win_bottom_offset);
+      ctx->img->set_conformance_window();
 
       loginfo(LogDPB,"new picture has output-flag=true\n");
 
@@ -938,8 +928,8 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     img->user_data = user_data;
     ctx->img = img;
 
-    img->sps = ctx->current_sps;
-    img->pps = ctx->current_pps;
+    img->sps = *ctx->current_sps;
+    img->pps = *ctx->current_pps;
 
     img->clear_metadata();
 
@@ -1022,32 +1012,32 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 bool available_zscan(const de265_image* img,
                      int xCurr,int yCurr, int xN,int yN)
 {
-  seq_parameter_set* sps = img->sps;
-  pic_parameter_set* pps = img->pps;
+  const seq_parameter_set& sps = img->sps;
+  const pic_parameter_set& pps = img->pps;
 
   if (xN<0 || yN<0) return false;
-  if (xN>=sps->pic_width_in_luma_samples ||
-      yN>=sps->pic_height_in_luma_samples) return false;
+  if (xN>=sps.pic_width_in_luma_samples ||
+      yN>=sps.pic_height_in_luma_samples) return false;
 
-  int minBlockAddrN = pps->MinTbAddrZS[ (xN>>sps->Log2MinTrafoSize) +
-                                        (yN>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
-  int minBlockAddrCurr = pps->MinTbAddrZS[ (xCurr>>sps->Log2MinTrafoSize) +
-                                           (yCurr>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
+  int minBlockAddrN = pps.MinTbAddrZS[ (xN>>sps.Log2MinTrafoSize) +
+                                       (yN>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
+  int minBlockAddrCurr = pps.MinTbAddrZS[ (xCurr>>sps.Log2MinTrafoSize) +
+                                          (yCurr>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
 
   if (minBlockAddrN > minBlockAddrCurr) return false;
 
-  int xCurrCtb = xCurr >> sps->Log2CtbSizeY;
-  int yCurrCtb = yCurr >> sps->Log2CtbSizeY;
-  int xNCtb = xN >> sps->Log2CtbSizeY;
-  int yNCtb = yN >> sps->Log2CtbSizeY;
+  int xCurrCtb = xCurr >> sps.Log2CtbSizeY;
+  int yCurrCtb = yCurr >> sps.Log2CtbSizeY;
+  int xNCtb = xN >> sps.Log2CtbSizeY;
+  int yNCtb = yN >> sps.Log2CtbSizeY;
 
   if (img->get_SliceAddrRS(xCurrCtb,yCurrCtb) !=
       img->get_SliceAddrRS(xNCtb,   yNCtb)) {
     return false;
   }
 
-  if (pps->TileIdRS[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
-      pps->TileIdRS[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
+  if (pps.TileIdRS[xCurrCtb + yCurrCtb*sps.PicWidthInCtbsY] !=
+      pps.TileIdRS[xNCtb    + yNCtb   *sps.PicWidthInCtbsY]) {
     return false;
   }
 
@@ -1135,7 +1125,7 @@ void draw_block_boundary(const de265_image* srcimg,
     {
       int yi = y + i;
       
-      if (yi < srcimg->sps->pic_height_in_luma_samples) {
+      if (yi < srcimg->sps.pic_height_in_luma_samples) {
         set_pixel(img,x,yi,stride,color,pixelSize);
       }
     }
@@ -1144,7 +1134,7 @@ void draw_block_boundary(const de265_image* srcimg,
     {
       int xi = x + i;
       
-      if (xi < srcimg->sps->pic_width_in_luma_samples) {
+      if (xi < srcimg->sps.pic_width_in_luma_samples) {
         set_pixel(img,xi,y,stride,color,pixelSize);
       }
     }
@@ -1195,7 +1185,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
         {
           int dy = (slope*i+Sign(slope*i)*16)/32;
           int y = y0+w/2-dy;
-          if (y>=0 && y<srcimg->sps->pic_height_in_luma_samples) {
+          if (y>=0 && y<srcimg->sps.pic_height_in_luma_samples) {
             set_pixel(img, x0+i+w/2, y, stride, color, pixelSize);
           }
         }
@@ -1205,7 +1195,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
         {
           int dx = (slope*i+Sign(slope*i)*16)/32;
           int x = x0+w/2-dx;
-          if (x>=0 && x<srcimg->sps->pic_width_in_luma_samples) {
+          if (x>=0 && x<srcimg->sps.pic_width_in_luma_samples) {
             set_pixel(img, x, y0+i+w/2, stride, color, pixelSize);
           }
         }
@@ -1357,7 +1347,7 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
 void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
                     uint32_t color, int pixelSize, enum DrawMode what)
 {
-  const seq_parameter_set* sps = srcimg->sps;
+  const seq_parameter_set* sps = &srcimg->sps;
   int minCbSize = sps->MinCbSizeY;
 
   for (int y0=0;y0<sps->PicHeightInMinCbsY;y0++)

@@ -81,8 +81,8 @@ void decode_quantization_parameters(decoder_context* ctx,
     //raise(SIGINT);
   }
 
-  pic_parameter_set* pps = tctx->img->pps;
-  seq_parameter_set* sps = tctx->img->sps;
+  pic_parameter_set* pps = &tctx->img->pps;
+  seq_parameter_set* sps = &tctx->img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
   // top left pixel position of current quantization group
@@ -246,8 +246,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
                         int nT, int cIdx,
                         bool transform_skip_flag, bool intra)
 {
-  seq_parameter_set* sps = tctx->img->sps;
-  pic_parameter_set* pps = tctx->img->pps;
+  seq_parameter_set* sps = &tctx->img->sps;
+  pic_parameter_set* pps = &tctx->img->pps;
   slice_segment_header* shdr = tctx->shdr;
 
   int qP;

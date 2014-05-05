@@ -533,6 +533,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
             ctx->thread_context[tile].shdr = hdr;
             ctx->thread_context[tile].decctx = ctx;
+            ctx->thread_context[tile].img    = ctx->img;
 
             ctx->thread_context[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
 

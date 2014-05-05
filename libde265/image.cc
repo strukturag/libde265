@@ -264,8 +264,13 @@ void de265_image::copy_image(const de265_image* src)
 }
 
 
-void de265_image::set_conformance_window(int left,int right,int top,int bottom)
+void de265_image::set_conformance_window()
 {
+  int left   = sps.conf_win_left_offset;
+  int right  = sps.conf_win_right_offset;
+  int top    = sps.conf_win_top_offset;
+  int bottom = sps.conf_win_bottom_offset;
+
   int WinUnitX, WinUnitY;
 
   switch (chroma_format) {
@@ -357,6 +362,11 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorIn
 
 void de265_image::mark_slice_headers_as_unused(decoder_context* ctx)
 {
+  if (integrity == INTEGRITY_UNAVAILABLE_REFERENCE) {
+    return;
+  }
+
+
   for (int i=0;i<ctb_info.data_size;i++)
     {
       int sliceHeaderIdx = ctb_info[i].SliceHeaderIndex;

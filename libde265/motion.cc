@@ -121,7 +121,7 @@ void mc_luma(const decoder_context* ctx,
              uint8_t* ref, int ref_stride,
              int nPbW, int nPbH)
 {
-  const seq_parameter_set* sps = img->sps;
+  const seq_parameter_set* sps = &img->sps;
 
   int xFracL = mv_x & 3;
   int yFracL = mv_y & 3;
@@ -262,7 +262,7 @@ void mc_chroma(const decoder_context* ctx,
                uint8_t* ref, int ref_stride,
                int nPbWC, int nPbHC)
 {
-  const seq_parameter_set* sps = img->sps;
+  const seq_parameter_set* sps = &img->sps;
 
   // chroma sample interpolation process (8.5.3.2.2.2)
 
@@ -391,7 +391,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   // Identify this case and use only one MV.
 
   // do this only without weighted prediction, because the weights/offsets may be different
-  if (img->pps->weighted_pred_flag==0) {
+  if (img->pps.weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
       if (vi->lum.mv[0].x == vi->lum.mv[1].x &&
           vi->lum.mv[0].y == vi->lum.mv[1].y &&
@@ -459,7 +459,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {
-    if (img->pps->weighted_pred_flag==0) {
+    if (img->pps.weighted_pred_flag==0) {
       if (predFlag[0]==1 && predFlag[1]==0) {
         if ((vi->lum.mv[0].x & 3) == 0 &&
             (vi->lum.mv[0].y & 3) == 0)
@@ -529,7 +529,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     //printf("unweighted\n");
 
     if (predFlag[0]==1 && predFlag[1]==1) {
-      if (img->pps->weighted_bipred_flag==0) {
+      if (img->pps.weighted_bipred_flag==0) {
         //const int shift2  = 15-8; // TODO: real bit depth
         //const int offset2 = 1<<(shift2-1);
 
@@ -620,7 +620,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     else if (predFlag[0]==1 || predFlag[1]==1) {
       int l = predFlag[0] ? 0 : 1;
 
-      if (img->pps->weighted_bipred_flag==0) {
+      if (img->pps.weighted_bipred_flag==0) {
         if ((vi->lum.mv[l].x & 3) == 0 &&
             (vi->lum.mv[l].y & 3) == 0)
           {
@@ -782,7 +782,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
                                        int partIdx,
                                        MergingCandidates* out_cand)
 {
-  const pic_parameter_set* pps = img->pps;
+  const pic_parameter_set* pps = &img->pps;
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
   enum PartMode PartMode = img->get_PartMode(xC,yC);
@@ -1228,7 +1228,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     return;
   }
 
-  int Log2CtbSizeY = img->sps->Log2CtbSizeY;
+  int Log2CtbSizeY = img->sps.Log2CtbSizeY;
 
   int colPic; // TODO: this is the same for the whole slice. We can precompute it.
 
@@ -1256,8 +1256,8 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
   int xColBr = xP + nPbW;
 
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
-      xColBr < img->sps->pic_width_in_luma_samples &&
-      yColBr < img->sps->pic_height_in_luma_samples)
+      xColBr < img->sps.pic_width_in_luma_samples &&
+      yColBr < img->sps.pic_height_in_luma_samples)
     {
       xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
@@ -1365,7 +1365,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int nOrigPbH = nPbH;
 
   int singleMCLFlag;
-  singleMCLFlag = (tctx->img->pps->log2_parallel_merge_level > 2 && nCS==8);
+  singleMCLFlag = (tctx->img->pps.log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
     xP=xC;
