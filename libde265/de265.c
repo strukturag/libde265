@@ -523,7 +523,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 }
 
 
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
@@ -545,7 +545,15 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
     }
 
     ctx->input_push_state = 0;
-  }
+  }  
+}
+
+
+LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+{
+  de265_push_end_of_NAL(de265ctx);
+
+  decoder_context* ctx = (decoder_context*)de265ctx;
 
   ctx->end_of_stream = true;
 
