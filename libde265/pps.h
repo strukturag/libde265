@@ -34,6 +34,8 @@ struct pic_parameter_set {
   pic_parameter_set();
   ~pic_parameter_set();
 
+  bool read(bitreader*, struct decoder_context*);
+
   bool is_tile_start_CTB(int ctbX,int ctbY) const;
   void dump_pps(int fd) const;
 

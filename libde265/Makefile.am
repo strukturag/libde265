@@ -43,7 +43,6 @@ libde265_la_SOURCES = \
   md5.h \
   nal.h \
   pps.h \
-  pps_func.h \
   transform.h \
   refpic.h \
   sao.h \

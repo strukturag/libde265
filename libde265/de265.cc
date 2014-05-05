@@ -658,7 +658,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         pic_parameter_set pps;
 
-        bool success = read_pps(&reader,&pps,ctx);
+        bool success = pps.read(&reader,ctx);
 
         if (ctx->param_pps_headers_fd>=0) {
           pps.dump_pps(ctx->param_pps_headers_fd);
