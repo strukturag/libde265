@@ -281,21 +281,4 @@ bool available_pred_blk(const de265_image* img,
 
 void push_current_picture_to_output_queue(decoder_context* ctx);
 
-// --- debug ---
-
-extern "C" {
-LIBDE265_API void set_output_filename(const char* filename);
-LIBDE265_API void write_picture(const de265_image* img);
-}
-
-void write_picture_to_file(const de265_image* img, const char* filename);
-
-void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-
 #endif

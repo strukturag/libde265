@@ -41,6 +41,7 @@
 // VS2008 didn't support C99, compile all everything as C++
 #include "libde265/decctx.h"
 #endif
+#include "libde265/visualize.h"
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
