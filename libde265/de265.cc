@@ -427,7 +427,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
     slice_segment_header* hdr = &ctx->slice[sliceIndex];
     bool continueDecoding;
-    err = read_slice_segment_header(&reader,hdr,ctx, &continueDecoding);
+    err = hdr->read(&reader,ctx, &continueDecoding);
     if (!continueDecoding) {
       ctx->img->integrity = INTEGRITY_NOT_DECODED;
       return err;

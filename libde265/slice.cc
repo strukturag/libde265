@@ -155,32 +155,32 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 }
 
 
-de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr, decoder_context* ctx,
-                                      bool* continueDecoding)
+de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
+                                       bool* continueDecoding)
 {
   *continueDecoding = false;
 
   // set defaults
 
-  shdr->dependent_slice_segment_flag = 0;
+  dependent_slice_segment_flag = 0;
 
 
   // read bitstream
 
-  shdr->first_slice_segment_in_pic_flag = get_bits(br,1);
+  first_slice_segment_in_pic_flag = get_bits(br,1);
 
   if (ctx->RapPicFlag) { // TODO: is this still correct ? Should we drop RapPicFlag ?
-    shdr->no_output_of_prior_pics_flag = get_bits(br,1);
+    no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
-  shdr->slice_pic_parameter_set_id = get_uvlc(br);
-  if (shdr->slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
-      shdr->slice_pic_parameter_set_id == UVLC_ERROR) {
+  slice_pic_parameter_set_id = get_uvlc(br);
+  if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
+      slice_pic_parameter_set_id == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  pic_parameter_set* pps = &ctx->pps[(int)shdr->slice_pic_parameter_set_id];
+  pic_parameter_set* pps = &ctx->pps[(int)slice_pic_parameter_set_id];
   if (!pps->pps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
@@ -193,16 +193,16 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
     return DE265_OK;
   }
 
-  if (!shdr->first_slice_segment_in_pic_flag) {
+  if (!first_slice_segment_in_pic_flag) {
     if (pps->dependent_slice_segments_enabled_flag) {
-      shdr->dependent_slice_segment_flag = get_bits(br,1);
+      dependent_slice_segment_flag = get_bits(br,1);
     } else {
-      shdr->dependent_slice_segment_flag = 0;
+      dependent_slice_segment_flag = 0;
     }
 
     int slice_segment_address = get_bits(br, ceil_log2(sps->PicSizeInCtbsY));
 
-    if (shdr->dependent_slice_segment_flag) {
+    if (dependent_slice_segment_flag) {
       if (slice_segment_address == 0) {
         *continueDecoding = false;
         ctx->add_warning(DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
@@ -211,82 +211,82 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
       int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
       slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
-      memcpy(shdr, prevCtbHdr, sizeof(slice_segment_header));
+      memcpy(this, prevCtbHdr, sizeof(slice_segment_header));
 
-      shdr->first_slice_segment_in_pic_flag = 0;
-      shdr->dependent_slice_segment_flag = 1;
+      first_slice_segment_in_pic_flag = 0;
+      dependent_slice_segment_flag = 1;
     }
 
-    shdr->slice_segment_address = slice_segment_address;
+    slice_segment_address = slice_segment_address;
   } else {
-    shdr->dependent_slice_segment_flag = 0;
-    shdr->slice_segment_address = 0;
+    dependent_slice_segment_flag = 0;
+    slice_segment_address = 0;
   }
 
-  if (shdr->slice_segment_address < 0 ||
-      shdr->slice_segment_address > sps->PicSizeInCtbsY) {
+  if (slice_segment_address < 0 ||
+      slice_segment_address > sps->PicSizeInCtbsY) {
     ctx->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
 
 
-  if (!shdr->dependent_slice_segment_flag) {
+  if (!dependent_slice_segment_flag) {
     for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
       //slice_reserved_undetermined_flag[i]
       skip_bits(br,1); 
     }
 
-    shdr->slice_type = get_uvlc(br);
-    if (shdr->slice_type > 2 ||
-	shdr->slice_type == UVLC_ERROR) {
+    slice_type = get_uvlc(br);
+    if (slice_type > 2 ||
+	slice_type == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       *continueDecoding = false;
       return DE265_OK;
     }
 
     if (pps->output_flag_present_flag) {
-      shdr->pic_output_flag = get_bits(br,1);
+      pic_output_flag = get_bits(br,1);
     }
     else {
-      shdr->pic_output_flag = 1;
+      pic_output_flag = 1;
     }
 
     if (sps->separate_colour_plane_flag == 1) {
-      shdr->colour_plane_id = get_bits(br,1);
+      colour_plane_id = get_bits(br,1);
     }
 
 
-    shdr->slice_pic_order_cnt_lsb = 0;
-    shdr->short_term_ref_pic_set_sps_flag = 0;
+    slice_pic_order_cnt_lsb = 0;
+    short_term_ref_pic_set_sps_flag = 0;
 
     if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
         ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
-      shdr->slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
-      shdr->short_term_ref_pic_set_sps_flag = get_bits(br,1);
+      slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
+      short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
-      if (!shdr->short_term_ref_pic_set_sps_flag) {
+      if (!short_term_ref_pic_set_sps_flag) {
         read_short_term_ref_pic_set(ctx, sps,
-                                    br, &shdr->slice_ref_pic_set,
+                                    br, &slice_ref_pic_set,
                                     sps->num_short_term_ref_pic_sets,
                                     sps->ref_pic_sets,
                                     true);
 
-        shdr->CurrRpsIdx = sps->num_short_term_ref_pic_sets;
-        shdr->CurrRps    = &shdr->slice_ref_pic_set;
+        CurrRpsIdx = sps->num_short_term_ref_pic_sets;
+        CurrRps    = &slice_ref_pic_set;
       }
       else {
         int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
-        if (nBits>0) shdr->short_term_ref_pic_set_idx = get_bits(br,nBits);
-        else         shdr->short_term_ref_pic_set_idx = 0;
+        if (nBits>0) short_term_ref_pic_set_idx = get_bits(br,nBits);
+        else         short_term_ref_pic_set_idx = 0;
 
-        if (shdr->short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
+        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
           ctx->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 
-        shdr->CurrRpsIdx = shdr->short_term_ref_pic_set_idx;
-        shdr->CurrRps    = &sps->ref_pic_sets[shdr->CurrRpsIdx];
+        CurrRpsIdx = short_term_ref_pic_set_idx;
+        CurrRps    = &sps->ref_pic_sets[CurrRpsIdx];
       }
 
 
@@ -294,21 +294,21 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
-          shdr->num_long_term_sps = get_uvlc(br);
+          num_long_term_sps = get_uvlc(br);
         }
         else {
-          shdr->num_long_term_sps = 0;
+          num_long_term_sps = 0;
         }
 
-        shdr->num_long_term_pics= get_uvlc(br);
+        num_long_term_pics= get_uvlc(br);
 
 
         // check maximum number of reference frames
 
-        if (shdr->num_long_term_sps +
-            shdr->num_long_term_pics +
-            shdr->CurrRps->NumNegativePics +
-            shdr->CurrRps->NumPositivePics
+        if (num_long_term_sps +
+            num_long_term_pics +
+            CurrRps->NumNegativePics +
+            CurrRps->NumPositivePics
             > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
           {
             ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
@@ -316,291 +316,291 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
             return DE265_OK;
           }
 
-        for (int i=0; i<shdr->num_long_term_sps + shdr->num_long_term_pics; i++) {
-          if (i < shdr->num_long_term_sps) {
+        for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
+          if (i < num_long_term_sps) {
             int nBits = ceil_log2(sps->num_long_term_ref_pics_sps);
-            shdr->lt_idx_sps[i] = get_bits(br, nBits);
+            lt_idx_sps[i] = get_bits(br, nBits);
 
             // check that the referenced lt-reference really exists
 
-            if (shdr->lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
+            if (lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
               ctx->add_warning(DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER, false);
               *continueDecoding = false;
               return DE265_OK;
             }
 
-            ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ shdr->lt_idx_sps[i] ];
-            ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ shdr->lt_idx_sps[i] ];
+            ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
+            ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
-            shdr->poc_lsb_lt[i] = get_bits(br, nBits);
-            shdr->used_by_curr_pic_lt_flag[i] = get_bits(br,1);
+            poc_lsb_lt[i] = get_bits(br, nBits);
+            used_by_curr_pic_lt_flag[i] = get_bits(br,1);
 
-            ctx->PocLsbLt[i] = shdr->poc_lsb_lt[i];
-            ctx->UsedByCurrPicLt[i] = shdr->used_by_curr_pic_lt_flag[i];
+            ctx->PocLsbLt[i] = poc_lsb_lt[i];
+            ctx->UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
           }
 
-          shdr->delta_poc_msb_present_flag[i] = get_bits(br,1);
-          if (shdr->delta_poc_msb_present_flag[i]) {
-            shdr->delta_poc_msb_cycle_lt[i] = get_uvlc(br);
+          delta_poc_msb_present_flag[i] = get_bits(br,1);
+          if (delta_poc_msb_present_flag[i]) {
+            delta_poc_msb_cycle_lt[i] = get_uvlc(br);
           }
           else {
-            shdr->delta_poc_msb_cycle_lt[i] = 0;
+            delta_poc_msb_cycle_lt[i] = 0;
           }
 
-          if (i==0 || i==shdr->num_long_term_sps) {
-            ctx->DeltaPocMsbCycleLt[i] = shdr->delta_poc_msb_cycle_lt[i];
+          if (i==0 || i==num_long_term_sps) {
+            ctx->DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
           }
           else {
-            ctx->DeltaPocMsbCycleLt[i] = (shdr->delta_poc_msb_cycle_lt[i] +
+            ctx->DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
                                           ctx->DeltaPocMsbCycleLt[i-1]);
           }
         }
       }
       else {
-        shdr->num_long_term_sps = 0;
-        shdr->num_long_term_pics= 0;
+        num_long_term_sps = 0;
+        num_long_term_pics= 0;
       }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
-        shdr->slice_temporal_mvp_enabled_flag = get_bits(br,1);
+        slice_temporal_mvp_enabled_flag = get_bits(br,1);
       }
       else {
-        shdr->slice_temporal_mvp_enabled_flag = 0;
+        slice_temporal_mvp_enabled_flag = 0;
       }
     }
     else {
-      shdr->slice_pic_order_cnt_lsb = 0;
-      shdr->num_long_term_sps = 0;
-      shdr->num_long_term_pics= 0;
+      slice_pic_order_cnt_lsb = 0;
+      num_long_term_sps = 0;
+      num_long_term_pics= 0;
     }
 
 
     // --- SAO ---
       
     if (sps->sample_adaptive_offset_enabled_flag) {
-      shdr->slice_sao_luma_flag   = get_bits(br,1);
-      shdr->slice_sao_chroma_flag = get_bits(br,1);
+      slice_sao_luma_flag   = get_bits(br,1);
+      slice_sao_chroma_flag = get_bits(br,1);
     }
     else {
-      shdr->slice_sao_luma_flag   = 0;
-      shdr->slice_sao_chroma_flag = 0;
+      slice_sao_luma_flag   = 0;
+      slice_sao_chroma_flag = 0;
     }
 
-    if (shdr->slice_type == SLICE_TYPE_P  ||
-        shdr->slice_type == SLICE_TYPE_B) {
-      shdr->num_ref_idx_active_override_flag = get_bits(br,1);
-      if (shdr->num_ref_idx_active_override_flag) {
-        shdr->num_ref_idx_l0_active = get_uvlc(br);
-        if (shdr->num_ref_idx_l0_active == UVLC_ERROR) {
+    if (slice_type == SLICE_TYPE_P  ||
+        slice_type == SLICE_TYPE_B) {
+      num_ref_idx_active_override_flag = get_bits(br,1);
+      if (num_ref_idx_active_override_flag) {
+        num_ref_idx_l0_active = get_uvlc(br);
+        if (num_ref_idx_l0_active == UVLC_ERROR) {
 	  ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	}
-        shdr->num_ref_idx_l0_active++;;
+        num_ref_idx_l0_active++;;
 
-        if (shdr->slice_type == SLICE_TYPE_B) {
-          shdr->num_ref_idx_l1_active = get_uvlc(br);
-          if (shdr->num_ref_idx_l1_active == UVLC_ERROR) {
+        if (slice_type == SLICE_TYPE_B) {
+          num_ref_idx_l1_active = get_uvlc(br);
+          if (num_ref_idx_l1_active == UVLC_ERROR) {
 	    ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	  }
-          shdr->num_ref_idx_l1_active++;
+          num_ref_idx_l1_active++;
         }
       }
       else {
-        shdr->num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
-        shdr->num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
+        num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
+        num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = shdr->CurrRps->NumPocTotalCurr;
+      int NumPocTotalCurr = CurrRps->NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
 
         int nBits = ceil_log2(NumPocTotalCurr);
 
-        shdr->ref_pic_list_modification_flag_l0 = get_bits(br,1);
-        if (shdr->ref_pic_list_modification_flag_l0) {
-          for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
-            shdr->list_entry_l0[i] = get_bits(br, nBits);
+        ref_pic_list_modification_flag_l0 = get_bits(br,1);
+        if (ref_pic_list_modification_flag_l0) {
+          for (int i=0;i<num_ref_idx_l0_active;i++) {
+            list_entry_l0[i] = get_bits(br, nBits);
           }
         }
 
-        if (shdr->slice_type == SLICE_TYPE_B) {
-          shdr->ref_pic_list_modification_flag_l1 = get_bits(br,1);
-          if (shdr->ref_pic_list_modification_flag_l1) {
-            for (int i=0;i<shdr->num_ref_idx_l1_active;i++) {
-              shdr->list_entry_l1[i] = get_bits(br, nBits);
+        if (slice_type == SLICE_TYPE_B) {
+          ref_pic_list_modification_flag_l1 = get_bits(br,1);
+          if (ref_pic_list_modification_flag_l1) {
+            for (int i=0;i<num_ref_idx_l1_active;i++) {
+              list_entry_l1[i] = get_bits(br, nBits);
             }
           }
         }
         else {
-          shdr->ref_pic_list_modification_flag_l1 = 0;
+          ref_pic_list_modification_flag_l1 = 0;
         }
       }
       else {
-        shdr->ref_pic_list_modification_flag_l0 = 0;
-        shdr->ref_pic_list_modification_flag_l1 = 0;
+        ref_pic_list_modification_flag_l0 = 0;
+        ref_pic_list_modification_flag_l1 = 0;
       }
 
-      if (shdr->slice_type == SLICE_TYPE_B) {
-        shdr->mvd_l1_zero_flag = get_bits(br,1);
+      if (slice_type == SLICE_TYPE_B) {
+        mvd_l1_zero_flag = get_bits(br,1);
       }
 
       if (pps->cabac_init_present_flag) {
-        shdr->cabac_init_flag = get_bits(br,1);
+        cabac_init_flag = get_bits(br,1);
       }
       else {
-        shdr->cabac_init_flag = 0;
+        cabac_init_flag = 0;
       }
 
-      if (shdr->slice_temporal_mvp_enabled_flag) {
-        if (shdr->slice_type == SLICE_TYPE_B)
-          shdr->collocated_from_l0_flag = get_bits(br,1);
+      if (slice_temporal_mvp_enabled_flag) {
+        if (slice_type == SLICE_TYPE_B)
+          collocated_from_l0_flag = get_bits(br,1);
         else
-          shdr->collocated_from_l0_flag = 1;
+          collocated_from_l0_flag = 1;
 
-        if (( shdr->collocated_from_l0_flag && shdr->num_ref_idx_l0_active > 1) ||
-            (!shdr->collocated_from_l0_flag && shdr->num_ref_idx_l1_active > 1)) {
-          shdr->collocated_ref_idx = get_uvlc(br);
-          if (shdr->collocated_ref_idx == UVLC_ERROR) {
+        if (( collocated_from_l0_flag && num_ref_idx_l0_active > 1) ||
+            (!collocated_from_l0_flag && num_ref_idx_l1_active > 1)) {
+          collocated_ref_idx = get_uvlc(br);
+          if (collocated_ref_idx == UVLC_ERROR) {
 	    ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	  }
         }
         else {
-          shdr->collocated_ref_idx = 0;
+          collocated_ref_idx = 0;
         }
       }
 
-      if ((pps->weighted_pred_flag   && shdr->slice_type == SLICE_TYPE_P) ||
-          (pps->weighted_bipred_flag && shdr->slice_type == SLICE_TYPE_B)) {
+      if ((pps->weighted_pred_flag   && slice_type == SLICE_TYPE_P) ||
+          (pps->weighted_bipred_flag && slice_type == SLICE_TYPE_B)) {
 
-        if (!read_pred_weight_table(br,shdr,ctx))
+        if (!read_pred_weight_table(br,this,ctx))
           {
 	    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
 	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
           }
       }
 
-      shdr->five_minus_max_num_merge_cand = get_uvlc(br);
-      if (shdr->five_minus_max_num_merge_cand == UVLC_ERROR) {
+      five_minus_max_num_merge_cand = get_uvlc(br);
+      if (five_minus_max_num_merge_cand == UVLC_ERROR) {
 	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
-      shdr->MaxNumMergeCand = 5-shdr->five_minus_max_num_merge_cand;
+      MaxNumMergeCand = 5-five_minus_max_num_merge_cand;
     }
     
-    shdr->slice_qp_delta = get_svlc(br);
-    if (shdr->slice_qp_delta == UVLC_ERROR) {
+    slice_qp_delta = get_svlc(br);
+    if (slice_qp_delta == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
     //logtrace(LogSlice,"slice_qp_delta: %d\n",shdr->slice_qp_delta);
 
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
-      shdr->slice_cb_qp_offset = get_svlc(br);
-      if (shdr->slice_cb_qp_offset == UVLC_ERROR) {
+      slice_cb_qp_offset = get_svlc(br);
+      if (slice_cb_qp_offset == UVLC_ERROR) {
 	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
 
-      shdr->slice_cr_qp_offset = get_svlc(br);
-      if (shdr->slice_cr_qp_offset == UVLC_ERROR) {
+      slice_cr_qp_offset = get_svlc(br);
+      if (slice_cr_qp_offset == UVLC_ERROR) {
 	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
     }
     else {
-      shdr->slice_cb_qp_offset = 0;
-      shdr->slice_cr_qp_offset = 0;
+      slice_cb_qp_offset = 0;
+      slice_cr_qp_offset = 0;
     }
 
     if (pps->deblocking_filter_override_enabled_flag) {
-      shdr->deblocking_filter_override_flag = get_bits(br,1);
+      deblocking_filter_override_flag = get_bits(br,1);
     }
     else {
-      shdr->deblocking_filter_override_flag = 0;
+      deblocking_filter_override_flag = 0;
     }
 
-    shdr->slice_beta_offset = pps->beta_offset;
-    shdr->slice_tc_offset   = pps->tc_offset;
+    slice_beta_offset = pps->beta_offset;
+    slice_tc_offset   = pps->tc_offset;
 
-    if (shdr->deblocking_filter_override_flag) {
-      shdr->slice_deblocking_filter_disabled_flag = get_bits(br,1);
-      if (!shdr->slice_deblocking_filter_disabled_flag) {
-        shdr->slice_beta_offset = get_svlc(br);
-        if (shdr->slice_beta_offset == UVLC_ERROR) {
+    if (deblocking_filter_override_flag) {
+      slice_deblocking_filter_disabled_flag = get_bits(br,1);
+      if (!slice_deblocking_filter_disabled_flag) {
+        slice_beta_offset = get_svlc(br);
+        if (slice_beta_offset == UVLC_ERROR) {
 	  ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	  return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	}
-        shdr->slice_beta_offset *= 2;
+        slice_beta_offset *= 2;
 
-        shdr->slice_tc_offset   = get_svlc(br);
-        if (shdr->slice_tc_offset == UVLC_ERROR) {
+        slice_tc_offset   = get_svlc(br);
+        if (slice_tc_offset == UVLC_ERROR) {
 	  ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	  return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	}
-        shdr->slice_tc_offset   *= 2;
+        slice_tc_offset   *= 2;
       }
     }
     else {
-      shdr->slice_deblocking_filter_disabled_flag = pps->pic_disable_deblocking_filter_flag;
+      slice_deblocking_filter_disabled_flag = pps->pic_disable_deblocking_filter_flag;
     }
 
     if (pps->pps_loop_filter_across_slices_enabled_flag  &&
-        (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag ||
-         !shdr->slice_deblocking_filter_disabled_flag )) {
-      shdr->slice_loop_filter_across_slices_enabled_flag = get_bits(br,1);
+        (slice_sao_luma_flag || slice_sao_chroma_flag ||
+         !slice_deblocking_filter_disabled_flag )) {
+      slice_loop_filter_across_slices_enabled_flag = get_bits(br,1);
     }
     else {
-      shdr->slice_loop_filter_across_slices_enabled_flag =
+      slice_loop_filter_across_slices_enabled_flag =
         pps->pps_loop_filter_across_slices_enabled_flag;
     }
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
-    shdr->num_entry_point_offsets = get_uvlc(br);
-    if (shdr->num_entry_point_offsets == UVLC_ERROR) {
+    num_entry_point_offsets = get_uvlc(br);
+    if (num_entry_point_offsets == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
-    shdr->entry_point_offset.resize( shdr->num_entry_point_offsets );
+    entry_point_offset.resize( num_entry_point_offsets );
 
-    if (shdr->num_entry_point_offsets > 0) {
-      shdr->offset_len = get_uvlc(br);
-      if (shdr->offset_len == UVLC_ERROR) {
+    if (num_entry_point_offsets > 0) {
+      offset_len = get_uvlc(br);
+      if (offset_len == UVLC_ERROR) {
 	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
-      shdr->offset_len++;
+      offset_len++;
 
-      for (int i=0; i<shdr->num_entry_point_offsets; i++) {
+      for (int i=0; i<num_entry_point_offsets; i++) {
         {
-          shdr->entry_point_offset[i] = get_bits(br,shdr->offset_len)+1;
+          entry_point_offset[i] = get_bits(br,offset_len)+1;
         }
 
         if (i>0) {
-          shdr->entry_point_offset[i] += shdr->entry_point_offset[i-1];
+          entry_point_offset[i] += entry_point_offset[i-1];
         }
       }
     }
   }
   else {
-    shdr->num_entry_point_offsets = 0;
+    num_entry_point_offsets = 0;
   }
 
   if (pps->slice_segment_header_extension_present_flag) {
-    shdr->slice_segment_header_extension_length = get_uvlc(br);
-    if (shdr->slice_segment_header_extension_length == UVLC_ERROR ||
-	shdr->slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
+    slice_segment_header_extension_length = get_uvlc(br);
+    if (slice_segment_header_extension_length == UVLC_ERROR ||
+	slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
     
-    for (int i=0; i<shdr->slice_segment_header_extension_length; i++) {
+    for (int i=0; i<slice_segment_header_extension_length; i++) {
       //slice_segment_header_extension_data_byte[i]
       get_bits(br,8);
     }
@@ -609,13 +609,13 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
 
   // --- init variables ---
 
-  shdr->SliceQPY = pps->pic_init_qp + shdr->slice_qp_delta;
+  SliceQPY = pps->pic_init_qp + slice_qp_delta;
 
-  switch (shdr->slice_type)
+  switch (slice_type)
     {
-    case SLICE_TYPE_I: shdr->initType = 0; break;
-    case SLICE_TYPE_P: shdr->initType = shdr->cabac_init_flag + 1; break;
-    case SLICE_TYPE_B: shdr->initType = 2 - shdr->cabac_init_flag; break;
+    case SLICE_TYPE_I: initType = 0; break;
+    case SLICE_TYPE_P: initType = cabac_init_flag + 1; break;
+    case SLICE_TYPE_B: initType = 2 - cabac_init_flag; break;
     }
 
   *continueDecoding = true;
