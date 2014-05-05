@@ -271,10 +271,10 @@ LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context*
 
 
 // TODO: move to some utility file
-bool available_zscan(const de265_image* ctx,
+bool available_zscan(const de265_image* img,
                      int xCurr,int yCurr, int xN,int yN);
 
-bool available_pred_blk(const decoder_context* ctx,
+bool available_pred_blk(const de265_image* img,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN);
 

@@ -1055,7 +1055,7 @@ bool available_zscan(const de265_image* img,
 }
 
 
-bool available_pred_blk(const decoder_context* ctx,
+bool available_pred_blk(const de265_image* img,
                         int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
                         int xN,int yN)
 {
@@ -1067,7 +1067,7 @@ bool available_pred_blk(const decoder_context* ctx,
   bool availableN;
 
   if (!sameCb) {
-    availableN = available_zscan(ctx->img,xP,yP,xN,yN);
+    availableN = available_zscan(img,xP,yP,xN,yN);
   }
   else {
     availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
@@ -1075,7 +1075,7 @@ bool available_pred_blk(const decoder_context* ctx,
                    yN >= yC+nPbH && xN < xC+nPbW);
   }
 
-  if (availableN && ctx->img->get_pred_mode(xN,yN) == MODE_INTRA) {
+  if (availableN && img->get_pred_mode(xN,yN) == MODE_INTRA) {
     availableN = false;
   }
 
