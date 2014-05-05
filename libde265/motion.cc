@@ -775,19 +775,17 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
 
 // 8.5.3.1.2
 // TODO: check: can we fill the candidate list directly in this function and omit to copy later
-void derive_spatial_merging_candidates(const decoder_context* ctx,
+void derive_spatial_merging_candidates(const de265_image* img,
                                        int xC, int yC, int nCS, int xP, int yP,
                                        uint8_t singleMCLFlag,
                                        int nPbW, int nPbH,
                                        int partIdx,
                                        MergingCandidates* out_cand)
 {
-  const pic_parameter_set* pps = ctx->current_pps;
+  const pic_parameter_set* pps = img->pps;
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
-  enum PartMode PartMode = ctx->img->get_PartMode(xC,yC);
-
-  const de265_image* img = ctx->img;
+  enum PartMode PartMode = img->get_PartMode(xC,yC);
 
   // --- A1 ---
 
@@ -811,7 +809,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logtrace(LogMotion,"spatial merging candidate A1: second part ignore\n");
   }
   else {
-    availableA1 = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
+    availableA1 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
     if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
 
@@ -849,7 +847,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logtrace(LogMotion,"spatial merging candidate B1: second part ignore\n");
   }
   else {
-    availableB1 = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
+    availableB1 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
     if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
   }
 
@@ -887,7 +885,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logtrace(LogMotion,"spatial merging candidate B0: below parallel merge level\n");
   }
   else {
-    availableB0 = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
+    availableB0 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
     if (!availableB0) logtrace(LogMotion,"spatial merging candidate B0: unavailable\n");
   }
 
@@ -925,7 +923,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logtrace(LogMotion,"spatial merging candidate A0: below parallel merge level\n");
   }
   else {
-    availableA0 = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
+    availableA0 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
     if (!availableA0) logtrace(LogMotion,"spatial merging candidate A0: unavailable\n");
   }
 
@@ -968,7 +966,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
     logtrace(LogMotion,"spatial merging candidate B2: below parallel merge level\n");
   }
   else {
-    availableB2 = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
+    availableB2 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
     if (!availableB2) logtrace(LogMotion,"spatial merging candidate B2: unavailable\n");
   }
 
@@ -1001,8 +999,7 @@ void derive_spatial_merging_candidates(const decoder_context* ctx,
 
 
 // 8.5.3.1.4
-void derive_zero_motion_vector_candidates(decoder_context* ctx,
-                                          slice_segment_header* shdr,
+void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
                                           PredVectorInfo* inout_mergeCandList,
                                           int* inout_numCurrMergeCand)
 {
@@ -1377,7 +1374,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   }
 
   MergingCandidates mergeCand;
-  derive_spatial_merging_candidates(ctx, xC,yC, nCS, xP,yP, singleMCLFlag,
+  derive_spatial_merging_candidates(tctx->img, xC,yC, nCS, xP,yP, singleMCLFlag,
                                     nPbW,nPbH,partIdx, &mergeCand);
 
   int refIdxCol[2] = { 0,0 };
@@ -1439,8 +1436,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 7.
 
-  derive_zero_motion_vector_candidates(ctx, shdr,
-                                       mergeCandList, &numMergeCand);
+  derive_zero_motion_vector_candidates(shdr, mergeCandList, &numMergeCand);
 
   // 8.
 
