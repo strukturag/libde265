@@ -19,7 +19,7 @@
  */
 
 #include "pps.h"
-#include "sps_func.h"
+#include "decctx.h"
 #include "util.h"
 
 #include <assert.h>

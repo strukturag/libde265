@@ -20,7 +20,6 @@
 
 #include "decctx.h"
 #include "util.h"
-#include "sps_func.h"
 #include "sao.h"
 #include "sei.h"
 #include "deblock.h"

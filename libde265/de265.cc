@@ -24,7 +24,6 @@
 #include "de265.h"
 #include "decctx.h"
 #include "slice_func.h"
-#include "sps_func.h"
 #include "util.h"
 #include "scan.h"
 #include "image.h"

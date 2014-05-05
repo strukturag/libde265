@@ -51,7 +51,6 @@ libde265_la_SOURCES = \
   slice.h \
   slice_func.h \
   sps.h \
-  sps_func.h \
   util.h \
   vps.h \
   motion.cc motion.h motion_func.h \

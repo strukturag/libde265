@@ -190,6 +190,7 @@ struct seq_parameter_set {
   int SpsMaxLatencyPictures[7]; // [temporal layer]
 };
 
+de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
+void set_default_scaling_lists(scaling_list_data*);
 
 #endif
-

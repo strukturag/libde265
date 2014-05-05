@@ -19,9 +19,9 @@
  */
 
 #include "sps.h"
-#include "sps_func.h"
 #include "util.h"
 #include "scan.h"
+#include "decctx.h"
 
 #include <assert.h>
 #include <stdlib.h>
