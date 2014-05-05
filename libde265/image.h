@@ -196,14 +196,21 @@ struct de265_image {
   de265_image();
   ~de265_image();
 
-  uint8_t* y;   // pointer to pixel at (0,0), which is inside the optional image borders
+
+  de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps);
+  void fill_image(int y,int u,int v);
+
+
+  uint8_t* y;   // pointer to pixels in the conformance window
   uint8_t* cb;
   uint8_t* cr;
 
+private:
   uint8_t* y_mem;  // usually, you don't use these, but the pointers above
   uint8_t* cb_mem;
   uint8_t* cr_mem;
 
+public:
   enum de265_chroma chroma_format;
 
   int width, height;  // size in luma pixels
@@ -494,10 +501,6 @@ struct de265_image {
 };
 
 
-de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
-                              const seq_parameter_set* sps);
-
-void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);
 
 LIBDE265_INLINE static void get_image_plane(const de265_image* img, int cIdx, uint8_t** image, int* stride)

@@ -236,7 +236,7 @@ void apply_sample_adaptive_offset(decoder_context* ctx)
   }
 
   de265_image inputCopy;
-  de265_alloc_image(&inputCopy, ctx->img->width, ctx->img->height, de265_chroma_420, NULL);
+  inputCopy.alloc_image(ctx->img->width, ctx->img->height, de265_chroma_420, NULL);
 
   de265_copy_image(&inputCopy, ctx->img);
 

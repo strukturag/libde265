@@ -334,9 +334,9 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
   de265_image* img = ctx->dpb.get_image(idx);
   assert(img->border==0);
 
-  memset( img->y - img->border, 1<<(sps->BitDepth_Y-1), img->stride * img->height );
-  memset( img->cb- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
-  memset( img->cr- img->border, 1<<(sps->BitDepth_C-1), img->chroma_stride * img->chroma_height );
+  img->fill_image(1<<(sps->BitDepth_Y-1),
+                  1<<(sps->BitDepth_C-1),
+                  1<<(sps->BitDepth_C-1));
 
   for (int i=0;i<img->cb_info.data_size;i++)
     { img->cb_info[i].PredMode = MODE_INTRA; }

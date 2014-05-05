@@ -198,7 +198,7 @@ int decoded_picture_buffer::initialize_new_DPB_image(const seq_parameter_set* sp
   default: chroma = de265_chroma_420; assert(0); break; // should never happen
   }
 
-  de265_alloc_image(img, w,h, chroma, sps);
+  img->alloc_image(w,h, chroma, sps);
 
   img->integrity = INTEGRITY_CORRECT;
 
