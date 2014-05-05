@@ -261,7 +261,7 @@ void debug_dump_cb_info(const decoder_context*);
 
 LIBDE265_INLINE static slice_segment_header* get_SliceHeader(decoder_context* ctx, int x, int y)
 {
-  return &ctx->slice[ get_SliceHeaderIndex(ctx->img, x,y) ];
+  return &ctx->slice[ ctx->img->get_SliceHeaderIndex(x,y) ];
 }
 
 LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)

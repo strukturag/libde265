@@ -351,7 +351,7 @@ void img_clear_decoding_data(de265_image* img)
 }
 
 
-void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
+void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv)
 {
   int log2PuSize = 2;
 
@@ -360,11 +360,11 @@ void set_mv_info(de265_image* img,int x,int y, int nPbW,int nPbH, const PredVect
   int wPu = nPbW >> log2PuSize;
   int hPu = nPbH >> log2PuSize;
 
-  int stride = img->pb_info.width_in_units;
+  int stride = pb_info.width_in_units;
 
   for (int pby=0;pby<hPu;pby++)
     for (int pbx=0;pbx<wPu;pbx++)
-      {               
-        img->pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
+      {
+        pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
       }
 }
