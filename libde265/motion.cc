@@ -432,13 +432,16 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
         mc_luma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-                predSamplesL[l],nCS, refPic->get_image_plane(0),refPic->stride, nPbW,nPbH);
+                predSamplesL[l],nCS,
+                refPic->get_image_plane(0),refPic->get_luma_stride(), nPbW,nPbH);
 
 
         mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-                  predSamplesC[0][l],nCS, refPic->get_image_plane(1),refPic->chroma_stride, nPbW/2,nPbH/2);
+                  predSamplesC[0][l],nCS, refPic->get_image_plane(1),
+                  refPic->get_chroma_stride(), nPbW/2,nPbH/2);
         mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
-                  predSamplesC[1][l],nCS, refPic->get_image_plane(2),refPic->chroma_stride, nPbW/2,nPbH/2);
+                  predSamplesC[1][l],nCS, refPic->get_image_plane(2),
+                  refPic->get_chroma_stride(), nPbW/2,nPbH/2);
       }
     }
   }
@@ -461,14 +464,14 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           }
 
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                            ctx->img->stride,
-                                            predSamplesL[0],nCS, nPbW,nPbH);
+                                                ctx->img->get_image_stride(0),
+                                                predSamplesL[0],nCS, nPbW,nPbH);
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                            ctx->img->chroma_stride,
-                                            predSamplesC[0][0],nCS, nPbW/2,nPbH/2);
+                                                ctx->img->get_image_stride(1),
+                                                predSamplesC[0][0],nCS, nPbW/2,nPbH/2);
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                            ctx->img->chroma_stride,
-                                            predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
+                                                ctx->img->get_image_stride(2),
+                                                predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
@@ -498,17 +501,17 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
 
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                          ctx->img->stride,
-                                          predSamplesL[0],nCS, nPbW,nPbH,
-                                          luma_w0, luma_o0, luma_log2WD);
+                                              ctx->img->get_image_stride(0),
+                                              predSamplesL[0],nCS, nPbW,nPbH,
+                                              luma_w0, luma_o0, luma_log2WD);
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                          ctx->img->chroma_stride,
-                                          predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
-                                          chroma0_w0, chroma0_o0, chroma_log2WD);
+                                              ctx->img->get_image_stride(1),
+                                              predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
+                                              chroma0_w0, chroma0_o0, chroma_log2WD);
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                          ctx->img->chroma_stride,
-                                          predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
-                                          chroma1_w0, chroma1_o0, chroma_log2WD);
+                                              ctx->img->get_image_stride(2),
+                                              predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
+                                              chroma1_w0, chroma1_o0, chroma_log2WD);
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
@@ -540,7 +543,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in1 = predSamplesL[1];
         uint8_t* out = ctx->img->get_image_plane_at_pos(0, xP,yP);
 
-        ctx->acceleration.put_weighted_pred_avg_8(out, ctx->img->stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out, ctx->img->get_luma_stride(),
                                               in0,in1, nCS, nPbW, nPbH);
 
         int16_t* in00 = predSamplesC[0][0];
@@ -550,9 +553,9 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         uint8_t* out0 = ctx->img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = ctx->img->get_image_plane_at_pos(2,xP/2,yP/2);
       
-        ctx->acceleration.put_weighted_pred_avg_8(out0, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out0, ctx->img->get_chroma_stride(),
                                               in00,in01, nCS, nPbW/2, nPbH/2);
-        ctx->acceleration.put_weighted_pred_avg_8(out1, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_pred_avg_8(out1, ctx->img->get_chroma_stride(),
                                               in10,in11, nCS, nPbW/2, nPbH/2);
       }
       else {
@@ -585,7 +588,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in1 = predSamplesL[1];
         uint8_t* out = ctx->img->get_image_plane_at_pos(0, xP,yP);
 
-        ctx->acceleration.put_weighted_bipred_8(out, ctx->img->stride,
+        ctx->acceleration.put_weighted_bipred_8(out, ctx->img->get_luma_stride(),
                                             in0,in1, nCS, nPbW, nPbH,
                                             luma_w0,luma_o0,
                                             luma_w1,luma_o1,
@@ -598,12 +601,12 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         uint8_t* out0 = ctx->img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = ctx->img->get_image_plane_at_pos(2,xP/2,yP/2);
       
-        ctx->acceleration.put_weighted_bipred_8(out0, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_bipred_8(out0, ctx->img->get_chroma_stride(),
                                             in00,in01, nCS, nPbW/2, nPbH/2,
                                             chroma0_w0,chroma0_o0,
                                             chroma0_w1,chroma0_o1,
                                             chroma_log2WD);
-        ctx->acceleration.put_weighted_bipred_8(out1, ctx->img->chroma_stride,
+        ctx->acceleration.put_weighted_bipred_8(out1, ctx->img->get_chroma_stride(),
                                             in10,in11, nCS, nPbW/2, nPbH/2,
                                             chroma1_w0,chroma1_o0,
                                             chroma1_w1,chroma1_o1,
@@ -622,14 +625,14 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
 
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                            ctx->img->stride,
-                                            predSamplesL[l],nCS, nPbW,nPbH);
+                                                ctx->img->get_image_stride(0),
+                                                predSamplesL[l],nCS, nPbW,nPbH);
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                            ctx->img->chroma_stride,
-                                            predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
+                                                ctx->img->get_image_stride(1),
+                                                predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
         ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                            ctx->img->chroma_stride,
-                                            predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
+                                                ctx->img->get_image_stride(2),
+                                                predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
       }
       else {
         int refIdx = vi->lum.refIdx[l];
@@ -648,17 +651,17 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                          ctx->img->stride,
-                                          predSamplesL[l],nCS, nPbW,nPbH,
-                                          luma_w, luma_o, luma_log2WD);
+                                              ctx->img->get_image_stride(0),
+                                              predSamplesL[l],nCS, nPbW,nPbH,
+                                              luma_w, luma_o, luma_log2WD);
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                          ctx->img->chroma_stride,
-                                          predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
-                                          chroma0_w, chroma0_o, chroma_log2WD);
+                                              ctx->img->get_image_stride(1),
+                                              predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
+                                              chroma0_w, chroma0_o, chroma_log2WD);
         ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                          ctx->img->chroma_stride,
-                                          predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
-                                          chroma1_w, chroma1_o, chroma_log2WD);
+                                              ctx->img->get_image_stride(2),
+                                              predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
+                                              chroma1_w, chroma1_o, chroma_log2WD);
       }
     }
     else {

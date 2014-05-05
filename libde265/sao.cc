@@ -237,7 +237,9 @@ void apply_sample_adaptive_offset(decoder_context* ctx)
   }
 
   de265_image inputCopy;
-  inputCopy.alloc_image(ctx->img->width, ctx->img->height, de265_chroma_420, NULL);
+  inputCopy.alloc_image(ctx->img->get_width(),
+                        ctx->img->get_height(),
+                        de265_chroma_420, NULL);
   inputCopy.copy_image(ctx->img);
 
   for (int yCtb=0; yCtb<ctx->current_sps->PicHeightInCtbsY; yCtb++)
@@ -247,15 +249,15 @@ void apply_sample_adaptive_offset(decoder_context* ctx)
 
         if (shdr->slice_sao_luma_flag) {
           apply_sao(ctx, xCtb,yCtb, shdr, 0, 1<<ctx->current_sps->Log2CtbSizeY,
-                    inputCopy.get_image_plane(0), inputCopy.stride);
+                    inputCopy.get_image_plane(0), inputCopy.get_image_stride(0));
         }
 
         if (shdr->slice_sao_chroma_flag) {
           apply_sao(ctx, xCtb,yCtb, shdr, 1, 1<<(ctx->current_sps->Log2CtbSizeY-1),
-                    inputCopy.get_image_plane(1), inputCopy.chroma_stride);
+                    inputCopy.get_image_plane(1), inputCopy.get_image_stride(1));
 
           apply_sao(ctx, xCtb,yCtb, shdr, 2, 1<<(ctx->current_sps->Log2CtbSizeY-1),
-                    inputCopy.get_image_plane(2), inputCopy.chroma_stride);
+                    inputCopy.get_image_plane(2), inputCopy.get_image_stride(2));
         }
       }
 }

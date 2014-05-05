@@ -332,15 +332,12 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
   //printf("-> fill with unavailable POC %d\n",POC);
 
   de265_image* img = ctx->dpb.get_image(idx);
-  assert(img->border==0);
 
   img->fill_image(1<<(sps->BitDepth_Y-1),
                   1<<(sps->BitDepth_C-1),
                   1<<(sps->BitDepth_C-1));
 
-  for (int i=0;i<img->cb_info.data_size;i++)
-    { img->cb_info[i].PredMode = MODE_INTRA; }
-
+  img->fill_pred_mode(MODE_INTRA);
 
   img->PicOrderCntVal = POC;
   img->picture_order_cnt_lsb = POC & (sps->MaxPicOrderCntLsb-1);
@@ -755,18 +752,7 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
   /* Note: cannot use SPS here, because this may already be outdated when a
      new SPS was sent before cleaning up this image.
   */
-
-  for (int i=0;i<img->ctb_info.data_size;i++)
-    {
-      int sliceHeaderIdx = img->ctb_info[i].SliceHeaderIndex;
-
-      slice_segment_header* shdr;
-      shdr = &ctx->slice[ sliceHeaderIdx ];
-      
-      //printf("cleanup SHDR %d\n",sliceHeaderIdx);
-      
-      shdr->inUse = false;
-    }
+  img->mark_slice_headers_as_unused(ctx);
 
   //printf("cleanup %p %s\n",img,why);
 
@@ -777,12 +763,12 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
 
 void writeFrame_Y(decoder_context* ctx,const char* filename)
 {
-  int w = ctx->img->width;
-  int h = ctx->img->height;
+  int w = ctx->img->get_width();
+  int h = ctx->img->get_height();
   //int c_idx=0;
   int ctb_size = 64; // HACK
 
-  int stride = ctx->img->stride;
+  int stride = ctx->img->get_luma_stride();
 
   for (int ctbY=0;ctbY<ctx->current_sps->PicHeightInCtbsY;ctbY++)
     for (int ctbX=0;ctbX<ctx->current_sps->PicWidthInCtbsY;ctbX++)
@@ -1023,7 +1009,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     const pic_parameter_set* pps = ctx->current_pps;
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[hdr->slice_segment_address] -1 ];
 
-    hdr->SliceAddrRS = ctx->img->ctb_info[prevCtb].SliceAddrRS;
+    hdr->SliceAddrRS = ctx->img->get_SliceAddrRS_atCtbRS(prevCtb);
   }
 
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);
@@ -1353,11 +1339,15 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     int x = x0+w/2;
     int y = y0+h/2;
     if (mvi->predFlag[0]) {
-      draw_line(img,stride,0xFF0000,pixelSize,srcimg->width,srcimg->height,
+      draw_line(img,stride,0xFF0000,pixelSize,
+                srcimg->get_width(),
+                srcimg->get_height(),
                 x,y,x+mvi->mv[0].x,y+mvi->mv[0].y);
     }
     if (mvi->predFlag[1]) {
-      draw_line(img,stride,0x00FF00,pixelSize,srcimg->width,srcimg->height,
+      draw_line(img,stride,0x00FF00,pixelSize,
+                srcimg->get_width(),
+                srcimg->get_height(),
                 x,y,x+mvi->mv[1].x,y+mvi->mv[1].y);
     }
   }

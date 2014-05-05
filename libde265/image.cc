@@ -19,6 +19,8 @@
  */
 
 #include "image.h"
+#include "decctx.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -350,4 +352,20 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorIn
       {
         pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = *mv;
       }
+}
+
+
+void de265_image::mark_slice_headers_as_unused(decoder_context* ctx)
+{
+  for (int i=0;i<ctb_info.data_size;i++)
+    {
+      int sliceHeaderIdx = ctb_info[i].SliceHeaderIndex;
+
+      slice_segment_header* shdr;
+      shdr = &ctx->slice[ sliceHeaderIdx ];
+      
+      //printf("cleanup SHDR %d\n",sliceHeaderIdx);
+      
+      shdr->inUse = false;
+    }
 }

@@ -172,18 +172,18 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
   // --- convert to RGB ---
 
   Image<Pixel> visu;
-  visu.Create(img->width, img->height, Colorspace_YUV, Chroma_420);
+  visu.Create(img->get_width(), img->get_height(), Colorspace_YUV, Chroma_420);
 
-  for (int y=0;y<img->height;y++) {
-    memcpy(visu.AskFrameY()[y], img->get_image_plane_at_pos(0, 0,y), img->width);
+  for (int y=0;y<img->get_height(0);y++) {
+    memcpy(visu.AskFrameY()[y], img->get_image_plane_at_pos(0, 0,y), img->get_width(0));
   }
 
-  for (int y=0;y<img->chroma_height;y++) {
-    memcpy(visu.AskFrameU()[y], img->get_image_plane_at_pos(1, 0,y), img->chroma_width);
+  for (int y=0;y<img->get_height(1);y++) {
+    memcpy(visu.AskFrameU()[y], img->get_image_plane_at_pos(1, 0,y), img->get_width(1));
   }
 
-  for (int y=0;y<img->chroma_height;y++) {
-    memcpy(visu.AskFrameV()[y], img->get_image_plane_at_pos(2, 0,y), img->chroma_width);
+  for (int y=0;y<img->get_height(2);y++) {
+    memcpy(visu.AskFrameV()[y], img->get_image_plane_at_pos(2, 0,y), img->get_width(2));
   }
 
   Image<Pixel> debugvisu;
@@ -194,9 +194,9 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
   uchar* ptr = qimg.bits();
   int bpl = qimg.bytesPerLine();
 
-  for (int y=0;y<img->height;y++)
+  for (int y=0;y<img->get_height();y++)
     {
-      for (int x=0;x<img->width;x++)
+      for (int x=0;x<img->get_width();x++)
         {
           *(uint32_t*)(ptr+x*4) = ((debugvisu.AskFrameR()[y][x] << 16) |
                                    (debugvisu.AskFrameG()[y][x] <<  8) |
@@ -220,8 +220,13 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
     sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
   }
 
-  int stride[3] = { img->stride, img->chroma_stride, img->chroma_stride };
-  uint8_t *data[3] = { img->y, img->cb, img->cr };
+  int stride[3];
+  uint8_t *data[3];
+  for (int c=0;c<3;c++) {
+    data[3]   = img->get_image_plane(c);
+    stride[3] = img->get_image_stride(c);
+  }
+
   uint8_t *qdata[1] = { (uint8_t *) qimg.bits() };
   int qstride[1] = { qimg.bytesPerLine() };
   sws_scale(sws, data, stride, 0, img->height, qdata, qstride);
@@ -231,8 +236,8 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
 void VideoDecoder::show_frame(const de265_image* img)
 {
   if (mFrameCount==0) {
-    mImgBuffers[0] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
-    mImgBuffers[1] = QImage(QSize(img->width,img->height), QImage::Format_RGB32);
+    mImgBuffers[0] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
+    mImgBuffers[1] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
   }
 
   // --- convert to RGB (or generate a black image if video image is disabled) ---

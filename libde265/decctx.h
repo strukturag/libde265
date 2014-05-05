@@ -266,7 +266,7 @@ LIBDE265_INLINE static slice_segment_header* get_SliceHeader(decoder_context* ct
 
 LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)
 {
-  return &ctx->slice[ ctx->img->ctb_info[ctbX + ctbY*ctx->current_sps->PicWidthInCtbsY].SliceHeaderIndex ];
+  return &ctx->slice[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
 }
 
 

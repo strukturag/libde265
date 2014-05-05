@@ -224,23 +224,30 @@ struct de265_image {
     else         return chroma_stride;
   }
 
+  int get_luma_stride() const { return stride; }
+  int get_chroma_stride() const { return chroma_stride; }
+
+  int get_width (int cIdx=0) const { return cIdx==0 ? width  : chroma_width;  }
+  int get_height(int cIdx=0) const { return cIdx==0 ? height : chroma_height; }
+
+  enum de265_chroma get_chroma_format() const { return chroma_format; }
+
   void set_conformance_window(int left,int right,int top,int bottom);
 
 private:
   uint8_t* pixels[3];   // pointer to pixels in the conformance window
-
-private:
   uint8_t* pixels_mem[3];  // usually, you don't use these, but the pointers above
 
-public:
   enum de265_chroma chroma_format;
 
   int width, height;  // size in luma pixels
+
   int chroma_width, chroma_height;
   int stride, chroma_stride;
 
   int border;
 
+public:
 
   // --- conformance cropping window ---
 
@@ -262,7 +269,7 @@ public:
   seq_parameter_set* sps;  // the SPS used for decoding this image
   pic_parameter_set* pps;  // the PPS used for decoding this image
 
-
+private:
   MetaDataArray<CTB_info>    ctb_info;
   MetaDataArray<CB_ref_info> cb_info;
   MetaDataArray<PB_ref_info> pb_info;
@@ -272,6 +279,7 @@ public:
 
   // TODO CHECK: should this move to slice header? Can this be different for each slice in the image?
 
+public:
   // --- meta information ---
 
   de265_PTS pts;
@@ -307,6 +315,7 @@ public:
   */
   void clear_metadata();
 
+  void mark_slice_headers_as_unused(class decoder_context* ctx);
 
 
   // --- CB metadata access ---
@@ -314,6 +323,12 @@ public:
   void set_pred_mode(int x,int y, int log2BlkWidth, enum PredMode mode)
   {
     SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+  }
+
+  void fill_pred_mode(enum PredMode mode)
+  {
+    for (int i=0;i<cb_info.data_size;i++)
+      { cb_info[i].PredMode = MODE_INTRA; }
   }
 
   enum PredMode get_pred_mode(int x,int y) const
@@ -432,6 +447,11 @@ public:
     return (enum IntraPredMode)intraPredMode.get(x,y);
   }
 
+  enum IntraPredMode get_IntraPredMode_atIndex(int idx) const
+  {
+    return (enum IntraPredMode)intraPredMode[idx];
+  }
+
   void set_IntraPredMode(int PUidx,int log2blkSize, enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
@@ -472,6 +492,16 @@ public:
     return ctb_info.get(x,y).SliceHeaderIndex;
   }
 
+  int  get_SliceHeaderIndexCtb(int ctbX, int ctbY) const
+  {
+    return ctb_info[ctbX + ctbY*ctb_info.width_in_units].SliceHeaderIndex;
+  }
+
+  int  get_SliceHeaderIndex_atIndex(int ctb) const
+  {
+    return ctb_info[ctb].SliceHeaderIndex;
+  }
+
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
   {
     sao_info* sao = &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
@@ -487,8 +517,21 @@ public:
   }
 
 
+  void set_ThreadContextID(int ctbX, int ctbY, int context)
+  {
+    ctb_info[ctbX+ctbY*ctb_info.width_in_units].thread_context_id = context;
+  }
+
+  int  get_ThreadContextID(int ctbX, int ctbY) const
+  {
+    return ctb_info[ctbX+ctbY*ctb_info.width_in_units].thread_context_id;
+  }
+
 
   // --- DEBLK metadata access ---
+
+  int  get_deblk_width()  const { return deblk_info.width_in_units; }
+  int  get_deblk_height() const { return deblk_info.height_in_units; }
 
   void    set_deblk_flags(int x0,int y0, uint8_t flags)
   {

@@ -577,7 +577,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           // set thread context
 
           for (int x=0;x<ctbsWidth;x++) {
-            ctx->img->ctb_info[x+y*ctbsWidth].thread_context_id = y; // TODO: shouldn't be hardcoded
+            ctx->img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded
           }
 
           ctx->thread_context[y].shdr = hdr;
@@ -937,7 +937,7 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
 
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
-  return img->chroma_format;
+  return img->get_chroma_format();
 }
 
 LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)

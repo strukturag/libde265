@@ -211,7 +211,7 @@ de265_error read_slice_segment_header(bitreader* br, slice_segment_header* shdr,
       }
 
       int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
-      slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->ctb_info[prevCtb].SliceHeaderIndex];
+      slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
       memcpy(shdr, prevCtbHdr, sizeof(slice_segment_header));
 
       shdr->first_slice_segment_in_pic_flag = 0;
@@ -2373,7 +2373,7 @@ int residual_coding(decoder_context* ctx,
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
       if (log2TrafoSize==2 || log2TrafoSize==3) {
-        enum IntraPredMode predMode = (enum IntraPredMode) ctx->img->intraPredMode.get(x0,y0);
+        enum IntraPredMode predMode = ctx->img->get_IntraPredMode(x0,y0);
         logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
 
         if (predMode >= 6 && predMode <= 14) scanIdx=2;
@@ -2935,7 +2935,7 @@ void read_transform_tree(decoder_context* ctx,
 
     if (cuPredMode == MODE_INTRA) // if intra mode
       {
-        enum IntraPredMode intraPredMode = (enum IntraPredMode) ctx->img->intraPredMode.get(x0,y0);
+        enum IntraPredMode intraPredMode = ctx->img->get_IntraPredMode(x0,y0);
 
         decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
 
@@ -3388,7 +3388,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeA=INTRA_DC;
               }
               else {
-                candIntraPredModeA = (enum IntraPredMode) ctx->img->intraPredMode[PUidx-1];
+                candIntraPredModeA = ctx->img->get_IntraPredMode_atIndex(PUidx-1);
               }
 
               // block above
@@ -3404,7 +3404,7 @@ void read_coding_unit(decoder_context* ctx,
                 candIntraPredModeB=INTRA_DC;
               }
               else {
-                candIntraPredModeB = (enum IntraPredMode) ctx->img->intraPredMode[PUidx-sps->PicWidthInMinPUs];
+                candIntraPredModeB = ctx->img->get_IntraPredMode_atIndex(PUidx-sps->PicWidthInMinPUs);
               }
 
               // build candidate list
@@ -3484,7 +3484,7 @@ void read_coding_unit(decoder_context* ctx,
 
         int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
 
-        int IntraPredMode = ctx->img->intraPredMode.get(x0,y0);
+        int IntraPredMode = ctx->img->get_IntraPredMode(x0,y0);
         logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
 
         int IntraPredModeC;
@@ -3817,7 +3817,7 @@ void thread_decode_CTB_row(void* d)
 
   int destThreadContext = 0;
   if (ctby+1 < sps->PicHeightInCtbsY) {
-    destThreadContext = ctx->img->ctb_info[0 + (ctby+1)*ctbW].thread_context_id;
+    destThreadContext = ctx->img->get_ThreadContextID(0,ctby+1);
   }
 
   /*enum DecodeResult result =*/ decode_substream(tctx, true, 1,
@@ -3846,7 +3846,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
-    slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->ctb_info[prevCtb ].SliceHeaderIndex ];
+    slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
 
     if (pps->is_tile_start_CTB(shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
                                shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY

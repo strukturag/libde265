@@ -212,22 +212,11 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
     uint8_t* data;
     int w,h,stride;
 
-    switch (i) {
-    case 0:
-      w = img->width;
-      h = img->height;
-      stride = img->stride;
-      break;
-
-    case 1:
-    case 2:
-      w = img->chroma_width;
-      h = img->chroma_height;
-      stride = img->chroma_stride;
-      break;
-    }
+    w = img->get_width(i);
+    h = img->get_height(i);
 
     data = img->get_image_plane(i);
+    stride = img->get_image_stride(i);
 
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:
