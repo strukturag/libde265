@@ -400,7 +400,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
     ctx->NumPocLtFoll = 0;
   }
   else {
-    const ref_pic_set* rps = hdr->CurrRps;
+    const ref_pic_set* rps = &hdr->CurrRps;
 
     // (8-98)
 
@@ -621,7 +621,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
  */
 bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
-  int NumPocTotalCurr = hdr->CurrRps->NumPocTotalCurr;
+  int NumPocTotalCurr = hdr->CurrRps.NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together

@@ -229,7 +229,7 @@ typedef struct slice_segment_header {
 
   int MaxNumMergeCand;
   int CurrRpsIdx;
-  const ref_pic_set* CurrRps;  // the active reference-picture set
+  ref_pic_set CurrRps;  // the active reference-picture set
 
   int RefPicList[2][MAX_NUM_REF_PICS]; // contains indices into DPB
   int RefPicList_POC[2][MAX_NUM_REF_PICS];

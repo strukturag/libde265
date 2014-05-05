@@ -272,7 +272,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
                                     true);
 
         CurrRpsIdx = sps->num_short_term_ref_pic_sets;
-        CurrRps    = &slice_ref_pic_set;
+        CurrRps    = slice_ref_pic_set;
       }
       else {
         int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
@@ -285,7 +285,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         }
 
         CurrRpsIdx = short_term_ref_pic_set_idx;
-        CurrRps    = &sps->ref_pic_sets[CurrRpsIdx];
+        CurrRps    = sps->ref_pic_sets[CurrRpsIdx];
       }
 
 
@@ -306,8 +306,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
         if (num_long_term_sps +
             num_long_term_pics +
-            CurrRps->NumNegativePics +
-            CurrRps->NumPositivePics
+            CurrRps.NumNegativePics +
+            CurrRps.NumPositivePics
             > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
           {
             ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
@@ -412,7 +412,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = CurrRps->NumPocTotalCurr;
+      int NumPocTotalCurr = CurrRps.NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
@@ -730,7 +730,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
              num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
 
-      int NumPocTotalCurr = CurrRps->NumPocTotalCurr;
+      int NumPocTotalCurr = CurrRps.NumPocTotalCurr;
       // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)
