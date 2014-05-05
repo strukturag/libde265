@@ -505,6 +505,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
                            reader.bytes_remaining);
 
         tctx->shdr = hdr;
+        tctx->img  = ctx->img;
         tctx->decctx = ctx;
         tctx->CtbAddrInTS = pps->CtbAddrRStoTS[hdr->slice_segment_address];
 
@@ -582,6 +583,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
           ctx->thread_context[y].shdr = hdr;
           ctx->thread_context[y].decctx = ctx;
+          ctx->thread_context[y].img    = ctx->img;
           ctx->thread_context[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
 
 

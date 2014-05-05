@@ -114,13 +114,14 @@ LIBDE265_API void showMotionProfile()
 }
 
 
-void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
+void mc_luma(const decoder_context* ctx,
+             const de265_image* img, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
-             uint8_t* img, int img_stride,
+             uint8_t* ref, int ref_stride,
              int nPbW, int nPbH)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
+  const seq_parameter_set* sps = img->sps;
 
   int xFracL = mv_x & 3;
   int yFracL = mv_y & 3;
@@ -159,8 +160,8 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
 
       ctx->acceleration.put_hevc_qpel_8[0][0](out, out_stride,
-                                          &img[yIntOffsL*img_stride + xIntOffsL],
-                                          img_stride,
+                                          &ref[yIntOffsL*ref_stride + xIntOffsL],
+                                          ref_stride,
                                           nPbW,nPbH, mcbuffer);
     }
     else {
@@ -170,7 +171,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
         
-          out[y*out_stride+x] = img[ xA + yA*img_stride ] << shift3;
+          out[y*out_stride+x] = ref[ xA + yA*ref_stride ] << shift3;
         }
     }
 
@@ -183,7 +184,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
         int xA = Clip3(0,w-1,x + xIntOffsL);
         int yA = Clip3(0,h-1,y + yIntOffsL);
         
-        logtrace(LogMotion,"%02x ", img[ xA + yA*img_stride ]);
+        logtrace(LogMotion,"%02x ", ref[ xA + yA*ref_stride ]);
       }
       logtrace(LogMotion,"\n");
     }
@@ -218,8 +219,8 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
         -extra_top  + yIntOffsL >= 0 &&
         nPbW+extra_right  + xIntOffsL < w &&
         nPbH+extra_bottom + yIntOffsL < h) {
-      src_ptr = &img[xIntOffsL + yIntOffsL*img_stride];
-      src_stride = img_stride;
+      src_ptr = &ref[xIntOffsL + yIntOffsL*ref_stride];
+      src_stride = ref_stride;
     }
     else {
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
@@ -228,7 +229,7 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
         
-          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = img[ xA + yA*img_stride ];
+          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
 
@@ -253,13 +254,15 @@ void mc_luma(const decoder_context* ctx, int mv_x, int mv_y,
 
 
 
-void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
+void mc_chroma(const decoder_context* ctx,
+               const de265_image* img,
+               int mv_x, int mv_y,
                int xP,int yP,
                int16_t* out, int out_stride,
-               uint8_t* img, int img_stride,
+               uint8_t* ref, int ref_stride,
                int nPbWC, int nPbHC)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
+  const seq_parameter_set* sps = img->sps;
 
   // chroma sample interpolation process (8.5.3.2.2.2)
 
@@ -282,7 +285,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
         yIntOffsC>=0 && nPbHC+yIntOffsC<=hC) {
       ctx->acceleration.put_hevc_epel_8(out, out_stride,
-                                    &img[xIntOffsC + yIntOffsC*img_stride], img_stride,
+                                    &ref[xIntOffsC + yIntOffsC*ref_stride], ref_stride,
                                     nPbWC,nPbHC, 0,0, NULL);
     }
     else
@@ -293,7 +296,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
             int xB = Clip3(0,wC-1,x + xIntOffsC);
             int yB = Clip3(0,hC-1,y + yIntOffsC);
 
-            out[y*out_stride+x] = img[ xB + yB*img_stride ] << shift3;
+            out[y*out_stride+x] = ref[ xB + yB*ref_stride ] << shift3;
           }
       }
   }
@@ -310,8 +313,8 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
 
     if (xIntOffsC>=1 && nPbWC+xIntOffsC<=wC-2 &&
         yIntOffsC>=1 && nPbHC+yIntOffsC<=hC-2) {
-      src_ptr = &img[xIntOffsC + yIntOffsC*img_stride];
-      src_stride = img_stride;
+      src_ptr = &ref[xIntOffsC + yIntOffsC*ref_stride];
+      src_stride = ref_stride;
     }
     else {
       for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
@@ -320,7 +323,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
           int xA = Clip3(0,wC-1,x + xIntOffsC);
           int yA = Clip3(0,hC-1,y + yIntOffsC);
         
-          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = img[ xA + yA*img_stride ];
+          padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
 
@@ -355,6 +358,7 @@ void mc_chroma(const decoder_context* ctx, int mv_x, int mv_y,
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(decoder_context* ctx,
+                                       de265_image* img,
                                        slice_segment_header* shdr,
                                        int xC,int yC,
                                        int xB,int yB,
@@ -387,7 +391,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   // Identify this case and use only one MV.
 
   // do this only without weighted prediction, because the weights/offsets may be different
-  if (ctx->current_pps->weighted_pred_flag==0) {
+  if (img->pps->weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
       if (vi->lum.mv[0].x == vi->lum.mv[1].x &&
           vi->lum.mv[0].y == vi->lum.mv[1].y &&
@@ -404,7 +408,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       // 8.5.3.2.1
 
       if (vi->lum.refIdx[l] >= MAX_NUM_REF_PICS) {
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
         return;
       }
@@ -420,7 +424,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
       //assert(refPic->PicState != UnusedForReference);
       if (refPic->PicState == UnusedForReference) {
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
       }
       else {
@@ -431,15 +435,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
 
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
-        mc_luma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+        mc_luma(ctx, img, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                 predSamplesL[l],nCS,
                 refPic->get_image_plane(0),refPic->get_luma_stride(), nPbW,nPbH);
 
 
-        mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+        mc_chroma(ctx, img, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                   predSamplesC[0][l],nCS, refPic->get_image_plane(1),
                   refPic->get_chroma_stride(), nPbW/2,nPbH/2);
-        mc_chroma(ctx, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
+        mc_chroma(ctx, img, vi->lum.mv[l].x, vi->lum.mv[l].y, xP,yP,
                   predSamplesC[1][l],nCS, refPic->get_image_plane(2),
                   refPic->get_chroma_stride(), nPbW/2,nPbH/2);
       }
@@ -455,7 +459,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {
-    if (ctx->current_pps->weighted_pred_flag==0) {
+    if (img->pps->weighted_pred_flag==0) {
       if (predFlag[0]==1 && predFlag[1]==0) {
         if ((vi->lum.mv[0].x & 3) == 0 &&
             (vi->lum.mv[0].y & 3) == 0)
@@ -463,19 +467,19 @@ void generate_inter_prediction_samples(decoder_context* ctx,
             FullpelPredCnt++;
           }
 
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                                ctx->img->get_image_stride(0),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
+                                                img->get_image_stride(0),
                                                 predSamplesL[0],nCS, nPbW,nPbH);
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                                ctx->img->get_image_stride(1),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(1,xP/2,yP/2),
+                                                img->get_image_stride(1),
                                                 predSamplesC[0][0],nCS, nPbW/2,nPbH/2);
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                                ctx->img->get_image_stride(2),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(2,xP/2,yP/2),
+                                                img->get_image_stride(2),
                                                 predSamplesC[1][0],nCS, nPbW/2,nPbH/2);
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        img->integrity = INTEGRITY_DECODING_ERRORS;
       }
 
       //printf("unweighted\n");
@@ -500,22 +504,22 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
 
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                              ctx->img->get_image_stride(0),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
+                                              img->get_image_stride(0),
                                               predSamplesL[0],nCS, nPbW,nPbH,
                                               luma_w0, luma_o0, luma_log2WD);
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                              ctx->img->get_image_stride(1),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(1,xP/2,yP/2),
+                                              img->get_image_stride(1),
                                               predSamplesC[0][0],nCS, nPbW/2,nPbH/2,
                                               chroma0_w0, chroma0_o0, chroma_log2WD);
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                              ctx->img->get_image_stride(2),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(2,xP/2,yP/2),
+                                              img->get_image_stride(2),
                                               predSamplesC[1][0],nCS, nPbW/2,nPbH/2,
                                               chroma1_w0, chroma1_o0, chroma_log2WD);
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        img->integrity = INTEGRITY_DECODING_ERRORS;
       }
     }
   }
@@ -525,7 +529,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     //printf("unweighted\n");
 
     if (predFlag[0]==1 && predFlag[1]==1) {
-      if (ctx->current_pps->weighted_bipred_flag==0) {
+      if (img->pps->weighted_bipred_flag==0) {
         //const int shift2  = 15-8; // TODO: real bit depth
         //const int offset2 = 1<<(shift2-1);
 
@@ -541,21 +545,21 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         int16_t* in0 = predSamplesL[0];
         int16_t* in1 = predSamplesL[1];
-        uint8_t* out = ctx->img->get_image_plane_at_pos(0, xP,yP);
+        uint8_t* out = img->get_image_plane_at_pos(0, xP,yP);
 
-        ctx->acceleration.put_weighted_pred_avg_8(out, ctx->img->get_luma_stride(),
+        ctx->acceleration.put_weighted_pred_avg_8(out, img->get_luma_stride(),
                                               in0,in1, nCS, nPbW, nPbH);
 
         int16_t* in00 = predSamplesC[0][0];
         int16_t* in01 = predSamplesC[0][1];
         int16_t* in10 = predSamplesC[1][0];
         int16_t* in11 = predSamplesC[1][1];
-        uint8_t* out0 = ctx->img->get_image_plane_at_pos(1,xP/2,yP/2);
-        uint8_t* out1 = ctx->img->get_image_plane_at_pos(2,xP/2,yP/2);
+        uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
+        uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
       
-        ctx->acceleration.put_weighted_pred_avg_8(out0, ctx->img->get_chroma_stride(),
+        ctx->acceleration.put_weighted_pred_avg_8(out0, img->get_chroma_stride(),
                                               in00,in01, nCS, nPbW/2, nPbH/2);
-        ctx->acceleration.put_weighted_pred_avg_8(out1, ctx->img->get_chroma_stride(),
+        ctx->acceleration.put_weighted_pred_avg_8(out1, img->get_chroma_stride(),
                                               in10,in11, nCS, nPbW/2, nPbH/2);
       }
       else {
@@ -586,9 +590,9 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         int16_t* in0 = predSamplesL[0];
         int16_t* in1 = predSamplesL[1];
-        uint8_t* out = ctx->img->get_image_plane_at_pos(0, xP,yP);
+        uint8_t* out = img->get_image_plane_at_pos(0, xP,yP);
 
-        ctx->acceleration.put_weighted_bipred_8(out, ctx->img->get_luma_stride(),
+        ctx->acceleration.put_weighted_bipred_8(out, img->get_luma_stride(),
                                             in0,in1, nCS, nPbW, nPbH,
                                             luma_w0,luma_o0,
                                             luma_w1,luma_o1,
@@ -598,15 +602,15 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in01 = predSamplesC[0][1];
         int16_t* in10 = predSamplesC[1][0];
         int16_t* in11 = predSamplesC[1][1];
-        uint8_t* out0 = ctx->img->get_image_plane_at_pos(1,xP/2,yP/2);
-        uint8_t* out1 = ctx->img->get_image_plane_at_pos(2,xP/2,yP/2);
+        uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
+        uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
       
-        ctx->acceleration.put_weighted_bipred_8(out0, ctx->img->get_chroma_stride(),
+        ctx->acceleration.put_weighted_bipred_8(out0, img->get_chroma_stride(),
                                             in00,in01, nCS, nPbW/2, nPbH/2,
                                             chroma0_w0,chroma0_o0,
                                             chroma0_w1,chroma0_o1,
                                             chroma_log2WD);
-        ctx->acceleration.put_weighted_bipred_8(out1, ctx->img->get_chroma_stride(),
+        ctx->acceleration.put_weighted_bipred_8(out1, img->get_chroma_stride(),
                                             in10,in11, nCS, nPbW/2, nPbH/2,
                                             chroma1_w0,chroma1_o0,
                                             chroma1_w1,chroma1_o1,
@@ -616,7 +620,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     else if (predFlag[0]==1 || predFlag[1]==1) {
       int l = predFlag[0] ? 0 : 1;
 
-      if (ctx->current_pps->weighted_bipred_flag==0) {
+      if (img->pps->weighted_bipred_flag==0) {
         if ((vi->lum.mv[l].x & 3) == 0 &&
             (vi->lum.mv[l].y & 3) == 0)
           {
@@ -624,14 +628,14 @@ void generate_inter_prediction_samples(decoder_context* ctx,
           }
 
 
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                                ctx->img->get_image_stride(0),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
+                                                img->get_image_stride(0),
                                                 predSamplesL[l],nCS, nPbW,nPbH);
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                                ctx->img->get_image_stride(1),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(1,xP/2,yP/2),
+                                                img->get_image_stride(1),
                                                 predSamplesC[0][l],nCS, nPbW/2,nPbH/2);
-        ctx->acceleration.put_unweighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                                ctx->img->get_image_stride(2),
+        ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(2,xP/2,yP/2),
+                                                img->get_image_stride(2),
                                                 predSamplesC[1][l],nCS, nPbW/2,nPbH/2);
       }
       else {
@@ -650,16 +654,16 @@ void generate_inter_prediction_samples(decoder_context* ctx,
 
         logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(0,xP,yP),
-                                              ctx->img->get_image_stride(0),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
+                                              img->get_image_stride(0),
                                               predSamplesL[l],nCS, nPbW,nPbH,
                                               luma_w, luma_o, luma_log2WD);
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(1,xP/2,yP/2),
-                                              ctx->img->get_image_stride(1),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(1,xP/2,yP/2),
+                                              img->get_image_stride(1),
                                               predSamplesC[0][l],nCS, nPbW/2,nPbH/2,
                                               chroma0_w, chroma0_o, chroma_log2WD);
-        ctx->acceleration.put_weighted_pred_8(ctx->img->get_image_plane_at_pos(2,xP/2,yP/2),
-                                              ctx->img->get_image_stride(2),
+        ctx->acceleration.put_weighted_pred_8(img->get_image_plane_at_pos(2,xP/2,yP/2),
+                                              img->get_image_stride(2),
                                               predSamplesC[1][l],nCS, nPbW/2,nPbH/2,
                                               chroma1_w, chroma1_o, chroma_log2WD);
       }
@@ -669,7 +673,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       // For now, we ignore this and continue decoding.
 
       ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
-      ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+      img->integrity = INTEGRITY_DECODING_ERRORS;
     }
   }
 
@@ -680,7 +684,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     logtrace(LogTransform,"MC-y-%d-%d ",xP,yP+y);
 
     for (int x=0;x<nPbW;x++) {
-      logtrace(LogTransform,"*%02x ", ctx->img->y[xP+x+(yP+y)*ctx->img->stride]);
+      logtrace(LogTransform,"*%02x ", img->y[xP+x+(yP+y)*img->stride]);
     }
 
     logtrace(LogTransform,"*\n");
@@ -693,7 +697,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     logtrace(LogTransform,"MC-cb-%d-%d ",xP/2,yP/2+y);
 
     for (int x=0;x<nPbW/2;x++) {
-      logtrace(LogTransform,"*%02x ", ctx->img->cb[xP/2+x+(yP/2+y)*ctx->img->chroma_stride]);
+      logtrace(LogTransform,"*%02x ", img->cb[xP/2+x+(yP/2+y)*img->chroma_stride]);
     }
 
     logtrace(LogTransform,"*\n");
@@ -706,7 +710,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     logtrace(LogTransform,"MC-cr-%d-%d ",xP/2,yP/2+y);
 
     for (int x=0;x<nPbW/2;x++) {
-      logtrace(LogTransform,"*%02x ", ctx->img->cr[xP/2+x+(yP/2+y)*ctx->img->chroma_stride]);
+      logtrace(LogTransform,"*%02x ", img->cr[xP/2+x+(yP/2+y)*img->chroma_stride]);
     }
 
     logtrace(LogTransform,"*\n");
@@ -1909,7 +1913,7 @@ void decode_prediction_unit(decoder_context* ctx,
 
   // 2.
 
-  generate_inter_prediction_samples(ctx,shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
   ctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi.lum);

@@ -99,6 +99,7 @@ typedef struct thread_context
   context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
 
   struct decoder_context* decctx;
+  struct de265_image *img;
   struct slice_segment_header* shdr;
 } thread_context;
 
