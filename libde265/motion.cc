@@ -1077,6 +1077,7 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 // (L1003) 8.5.3.2.8
 
 void derive_collocated_motion_vectors(decoder_context* ctx,
+                                      de265_image* img,
                                       const slice_segment_header* shdr,
                                       int xP,int yP,
                                       int colPic,
@@ -1132,11 +1133,11 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       else {
         int AllDiffPicOrderCntLEZero = true;
 
-        const int PicOrderCntVal = ctx->img->PicOrderCntVal;
+        const int PicOrderCntVal = img->PicOrderCntVal;
 
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[0][rIdx]);
+            const de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[0][rIdx]);
             int aPOC = imgA->PicOrderCntVal;
 
             if (aPOC > PicOrderCntVal) {
@@ -1146,7 +1147,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
         for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
           {
-            de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[1][rIdx]);
+            const de265_image* imgA = ctx->dpb.get_image(shdr->RefPicList[1][rIdx]);
             int aPOC = imgA->PicOrderCntVal;
 
             if (aPOC > PicOrderCntVal) {
@@ -1170,7 +1171,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 
 
-    slice_segment_header* colShdr = &ctx->slice[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
+    const slice_segment_header* colShdr = &ctx->slice[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
     if (shdr->LongTermRefPic[X][refIdxLX] != 
         colShdr->LongTermRefPic[listCol][refIdxCol]) {
@@ -1184,11 +1185,11 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
       const bool isLongTerm = shdr->LongTermRefPic[X][refIdxLX];
 
       int colDist  = colImg->PicOrderCntVal - colShdr->RefPicList_POC[listCol][refIdxCol];
-      int currDist = ctx->img->PicOrderCntVal - shdr->RefPicList_POC[X][refIdxLX];
+      int currDist = img->PicOrderCntVal - shdr->RefPicList_POC[X][refIdxLX];
 
       logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
                colImg->PicOrderCntVal, colShdr->RefPicList_POC[listCol][refIdxCol],
-               ctx->img->PicOrderCntVal, shdr->RefPicList_POC[X][refIdxLX]
+               img->PicOrderCntVal, shdr->RefPicList_POC[X][refIdxLX]
                );
 
       if (isLongTerm || colDist == currDist) {
@@ -1198,7 +1199,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
         if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
           //printf("A\n");
           ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-          ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+          img->integrity = INTEGRITY_DECODING_ERRORS;
         }
 
         logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
@@ -1211,6 +1212,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 // 8.5.3.1.7
 void derive_temporal_luma_vector_prediction(decoder_context* ctx,
+                                            de265_image* img,
                                             const slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
@@ -1226,7 +1228,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     return;
   }
 
-  int Log2CtbSizeY = ctx->current_sps->Log2CtbSizeY;
+  int Log2CtbSizeY = img->sps->Log2CtbSizeY;
 
   int colPic; // TODO: this is the same for the whole slice. We can precompute it.
 
@@ -1254,13 +1256,13 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
   int xColBr = xP + nPbW;
 
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
-      xColBr < ctx->current_sps->pic_width_in_luma_samples &&
-      yColBr < ctx->current_sps->pic_height_in_luma_samples)
+      xColBr < img->sps->pic_width_in_luma_samples &&
+      yColBr < img->sps->pic_height_in_luma_samples)
     {
       xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
 
-      derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+      derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
                                        out_mvLXCol, out_availableFlagLXCol);
     }
   else
@@ -1279,7 +1281,7 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     xColPb = xColCtr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
     yColPb = yColCtr & ~0x0F;
 
-    derive_collocated_motion_vectors(ctx,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+    derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
                                      out_mvLXCol, out_availableFlagLXCol);
   }
 }
@@ -1381,14 +1383,16 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   MotionVector mvCol[2];
   uint8_t predFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[0],0, &mvCol[0],
+  derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr, xP,yP,nPbW,nPbH,
+                                         refIdxCol[0],0, &mvCol[0],
                                          &predFlagLCol[0]);
 
   uint8_t availableFlagCol = predFlagLCol[0];
   predFlagLCol[1] = 0;
 
   if (shdr->slice_type == SLICE_TYPE_B) {
-    derive_temporal_luma_vector_prediction(ctx,shdr, xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
+    derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
+                                           xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
                                            &predFlagLCol[1]);
     availableFlagCol |= predFlagLCol[1];
   }
@@ -1759,7 +1763,7 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
     availableFlagLXCol = 0;
   }
   else {
-    derive_temporal_luma_vector_prediction(ctx, shdr, xP,yP, nPbW,nPbH, refIdx,l,
+    derive_temporal_luma_vector_prediction(ctx, tctx->img, shdr, xP,yP, nPbW,nPbH, refIdx,l,
                                            &mvLXCol, &availableFlagLXCol);
   }
 
@@ -1836,7 +1840,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   int xP = xC+xB;
   int yP = yC+yB;
 
-  enum PredMode predMode = ctx->img->get_pred_mode(xC,yC);
+  enum PredMode predMode = tctx->img->get_pred_mode(xC,yC);
 
   if (predMode == MODE_SKIP ||
       (predMode == MODE_INTER && tctx->merge_flag))
@@ -1898,7 +1902,7 @@ void decode_prediction_unit(decoder_context* ctx,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
   logtrace(LogMotion,"decode_prediction_unit POC=%d %d;%d %dx%d\n",
-           ctx->img->PicOrderCntVal, xC+xB,yC+yB, nPbW,nPbH);
+           tctx->img->PicOrderCntVal, xC+xB,yC+yB, nPbW,nPbH);
 
   slice_segment_header* shdr = tctx->shdr;
 
@@ -1912,6 +1916,6 @@ void decode_prediction_unit(decoder_context* ctx,
   generate_inter_prediction_samples(ctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
-  ctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
+  tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
 }
 
