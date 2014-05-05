@@ -82,8 +82,9 @@ template <class DataUnit> class MetaDataArray
   MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; height_in_units=0; }
   ~MetaDataArray() { free(data); }
 
-  void alloc(int w,int h, int _log2unitSize) {
+  bool alloc(int w,int h, int _log2unitSize) {
     int size = w*h;
+
     if (size != data_size) {
       free(data);
       data = (DataUnit*)malloc(size * sizeof(DataUnit));
@@ -93,6 +94,8 @@ template <class DataUnit> class MetaDataArray
     }
 
     log2unitSize = _log2unitSize;
+
+    return data != NULL;
   }
 
   void clear() {
@@ -190,6 +193,9 @@ typedef struct {
 
 
 struct de265_image {
+  de265_image();
+  ~de265_image();
+
   uint8_t* y;   // pointer to pixel at (0,0), which is inside the optional image borders
   uint8_t* cb;
   uint8_t* cr;
@@ -488,10 +494,8 @@ struct de265_image {
 };
 
 
-void de265_init_image (de265_image* img); // (optional) init variables, do not alloc image
 de265_error de265_alloc_image(de265_image* img, int w,int h, enum de265_chroma c,
                               const seq_parameter_set* sps);
-void de265_free_image (de265_image* img);
 
 void de265_fill_image(de265_image* img, int y,int u,int v);
 void de265_copy_image(de265_image* dest, const de265_image* src);

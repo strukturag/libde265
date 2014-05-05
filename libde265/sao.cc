@@ -236,7 +236,6 @@ void apply_sample_adaptive_offset(decoder_context* ctx)
   }
 
   de265_image inputCopy;
-  de265_init_image(&inputCopy);
   de265_alloc_image(&inputCopy, ctx->img->width, ctx->img->height, de265_chroma_420, NULL);
 
   de265_copy_image(&inputCopy, ctx->img);
@@ -259,8 +258,6 @@ void apply_sample_adaptive_offset(decoder_context* ctx)
                     inputCopy.cr, inputCopy.chroma_stride);
         }
       }
-
-  de265_free_image(&inputCopy);
 }
 
 

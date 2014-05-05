@@ -26,19 +26,16 @@
 
 void init_dpb(decoded_picture_buffer* dpb)
 {
-  memset(dpb, 0, sizeof(decoded_picture_buffer));
+  memset(dpb->reorder_output_queue, 0, sizeof(de265_image*) * DE265_DPB_SIZE);
+  memset(dpb->image_output_queue,   0, sizeof(de265_image*) * DE265_DPB_SIZE);
 
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    de265_init_image(&dpb->dpb[i]);
-  }
+  dpb->reorder_output_queue_length = 0;
+  dpb->image_output_queue_length = 0;
 }
 
 
 void free_dpb(decoded_picture_buffer* dpb)
 {
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
-    de265_free_image(&dpb->dpb[i]);
-  }
 }
 
 
