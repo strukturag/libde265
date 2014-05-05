@@ -52,7 +52,7 @@ libde265_la_SOURCES = \
   sps.h \
   util.h \
   vps.h \
-  motion.cc motion.h motion_func.h \
+  motion.cc motion.h \
   threads.cc threads.h \
   acceleration.h \
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h \

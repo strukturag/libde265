@@ -19,7 +19,6 @@
  */
 
 #include "motion.h"
-#include "motion_func.h"
 #include "decctx.h"
 #include "util.h"
 #include "dpb.h"

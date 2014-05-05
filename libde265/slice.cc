@@ -22,7 +22,7 @@
  */
 
 #include "slice.h"
-#include "motion_func.h"
+#include "motion.h"
 #include "util.h"
 #include "scan.h"
 #include "intrapred.h"
