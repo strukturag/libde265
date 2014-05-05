@@ -81,8 +81,8 @@ void decode_quantization_parameters(decoder_context* ctx,
     //raise(SIGINT);
   }
 
-  pic_parameter_set* pps = ctx->current_pps;
-  seq_parameter_set* sps = ctx->current_sps;
+  pic_parameter_set* pps = tctx->img->pps;
+  seq_parameter_set* sps = tctx->img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
   // top left pixel position of current quantization group
@@ -147,13 +147,13 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   int qPYA,qPYB;
 
-  if (available_zscan(ctx->img,xQG,yQG, xQG-1,yQG)) {
+  if (available_zscan(tctx->img,xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
     int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     int ctbAddrA = minTbAddrA >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
-      qPYA = ctx->img->get_QPY(xQG-1,yQG);
+      qPYA = tctx->img->get_QPY(xQG-1,yQG);
     }
     else {
       qPYA = qPY_PRED;
@@ -163,13 +163,13 @@ void decode_quantization_parameters(decoder_context* ctx,
     qPYA = qPY_PRED;
   }
 
-  if (available_zscan(ctx->img,xQG,yQG, xQG,yQG-1)) {
+  if (available_zscan(tctx->img,xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
     int minTbAddrB = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
     int ctbAddrB = minTbAddrB >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
     if (ctbAddrB == tctx->CtbAddrInTS) {
-      qPYB = ctx->img->get_QPY(xQG,yQG-1);
+      qPYB = tctx->img->get_QPY(xQG,yQG-1);
     }
     else {
       qPYB = qPY_PRED;
@@ -201,8 +201,8 @@ void decode_quantization_parameters(decoder_context* ctx,
   tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
   tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
 
-  int log2CbSize = ctx->img->get_log2CbSize(xCUBase, yCUBase);
-  ctx->img->set_QPY(xCUBase, yCUBase, log2CbSize, QPY);
+  int log2CbSize = tctx->img->get_log2CbSize(xCUBase, yCUBase);
+  tctx->img->set_QPY(xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
   /*
@@ -246,8 +246,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
                         int nT, int cIdx,
                         bool transform_skip_flag, bool intra)
 {
-  seq_parameter_set* sps = ctx->current_sps;
-  pic_parameter_set* pps = ctx->current_pps;
+  seq_parameter_set* sps = tctx->img->sps;
+  pic_parameter_set* pps = tctx->img->pps;
   slice_segment_header* shdr = tctx->shdr;
 
   int qP;
@@ -275,9 +275,8 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
   uint8_t* pred;
   int      stride;
-  pred = ctx->img->get_image_plane(cIdx);
-  stride = ctx->img->get_image_stride(cIdx);
-  pred += xT + yT*stride;
+  pred = tctx->img->get_image_plane(cIdx, xT,yT);
+  stride = tctx->img->get_image_stride(cIdx);
 
   //fprintf(stderr,"POC=%d pred: %p (%d;%d stride=%d)\n",ctx->img->PicOrderCntVal,pred,xT,yT,stride);
 
@@ -395,7 +394,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
     else {
       int trType;
 
-      if (nT==4 && cIdx==0 && ctx->img->get_pred_mode(xT,yT)==MODE_INTRA) {
+      if (nT==4 && cIdx==0 && tctx->img->get_pred_mode(xT,yT)==MODE_INTRA) {
         trType=1;
       }
       else {
