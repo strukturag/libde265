@@ -227,9 +227,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
       break;
     }
 
-    /**/ if (i==0) data = img->y;
-    else if (i==1) data = img->cb;
-    else           data = img->cr;
+    data = img->get_image_plane(i);
 
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:

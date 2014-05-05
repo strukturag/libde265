@@ -791,7 +791,7 @@ void writeFrame_Y(decoder_context* ctx,const char* filename)
         int y0 = ctbY*ctb_size;
 
         
-        uint8_t *src = &ctx->img->y[y0 * stride + x0];
+        uint8_t *src = ctx->img->get_image_plane_at_pos(0,x0,y0);
 
         printf("%s %d %d\n",filename,x0,y0);
         int dx,dy;
@@ -845,11 +845,10 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     // push image into output queue
 
     if (ctx->img->PicOutputFlag) {
-      set_conformance_window(ctx->img,
-                             ctx->current_sps->conf_win_left_offset,
-                             ctx->current_sps->conf_win_right_offset,
-                             ctx->current_sps->conf_win_top_offset,
-                             ctx->current_sps->conf_win_bottom_offset);
+      ctx->img->set_conformance_window(ctx->img->sps->conf_win_left_offset,
+                                       ctx->img->sps->conf_win_right_offset,
+                                       ctx->img->sps->conf_win_top_offset,
+                                       ctx->img->sps->conf_win_bottom_offset);
 
       loginfo(LogDPB,"new picture has output-flag=true\n");
 
@@ -956,7 +955,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     img->sps = ctx->current_sps;
     img->pps = ctx->current_pps;
 
-    img_clear_decoding_data(ctx->img);
+    img->clear_metadata();
 
 
     if (isIRAP(ctx->nal_unit_type)) {
@@ -1111,14 +1110,9 @@ LIBDE265_API void write_picture(const de265_image* img)
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 
-  for (int y=0;y<de265_get_image_height(img,0);y++)
-    fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fh);
-
-  for (int y=0;y<de265_get_image_height(img,1);y++)
-    fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fh);
-
-  for (int y=0;y<de265_get_image_height(img,2);y++)
-    fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fh);
+  for (int c=0;c<3;c++)
+    for (int y=0;y<de265_get_image_height(img,c);y++)
+      fwrite(img->get_image_plane_at_pos(c, 0,y), de265_get_image_width(img,c), 1, fh);
 
   fflush(fh);
   //fclose(fh);
@@ -1129,14 +1123,9 @@ void write_picture_to_file(const de265_image* img, const char* filename)
 {
   FILE* fh = fopen(filename, "wb");
 
-  for (int y=0;y<de265_get_image_height(img,0);y++)
-    fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fh);
-
-  for (int y=0;y<de265_get_image_height(img,1);y++)
-    fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fh);
-
-  for (int y=0;y<de265_get_image_height(img,2);y++)
-    fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fh);
+  for (int c=0;c<3;c++)
+    for (int y=0;y<de265_get_image_height(img,c);y++)
+      fwrite(img->get_image_plane_at_pos(c, 0,y), de265_get_image_width(img,c), 1, fh);
 
   fflush(fh);
   fclose(fh);

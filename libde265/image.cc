@@ -102,32 +102,30 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
     chroma_format= c;
 
-    FREE_ALIGNED(y_mem);
-    y_mem = (uint8_t *)ALLOC_ALIGNED_16(stride * (h+2*border) + MEMORY_PADDING);
-    y     = y_mem + border + 2*border*stride;
+    FREE_ALIGNED(pixels_mem[0]);
+    pixels_mem[0] = (uint8_t *)ALLOC_ALIGNED_16(stride * (h+2*border) + MEMORY_PADDING);
+    pixels[0]     = pixels_mem[0] + border + 2*border*stride;
 
     if (c != de265_chroma_mono) {
-      FREE_ALIGNED(cb_mem);
-      FREE_ALIGNED(cr_mem);
-      cb_mem = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * (chroma_height+2*border) + MEMORY_PADDING);
-      cr_mem = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * (chroma_height+2*border) + MEMORY_PADDING);
+      for (int col=1;col<=2;col++) {
+        FREE_ALIGNED(pixels_mem[col]);
+        pixels_mem[col] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride *
+                                                      (chroma_height+2*border) + MEMORY_PADDING);
 
-      cb     = cb_mem + border + 2*border*chroma_stride;
-      cr     = cr_mem + border + 2*border*chroma_stride;
+        pixels[col] = pixels_mem[col] + border + 2*border*chroma_stride;
+      }
     } else {
-      cb_mem = NULL;
-      cr_mem = NULL;
-      cb     = NULL;
-      cr     = NULL;
+      pixels[1] = pixels[2] = NULL;
+      pixels_mem[1] = pixels_mem[2] = NULL;
     }
   }
 
 
   // check for memory shortage
 
-  if (y_mem  == NULL ||
-      cb_mem == NULL ||
-      cr_mem == NULL)
+  if (pixels_mem[0]  == NULL ||
+      pixels_mem[1] == NULL ||
+      pixels_mem[2] == NULL)
     {
       return DE265_ERROR_OUT_OF_MEMORY;
     }
@@ -202,9 +200,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
 de265_image::~de265_image()
 {
-  if (y)  FREE_ALIGNED(y_mem);
-  if (cb) FREE_ALIGNED(cb_mem);
-  if (cr) FREE_ALIGNED(cr_mem);
+  for (int c=0;c<3;c++) {
+    if (pixels_mem[c])  FREE_ALIGNED(pixels_mem[c]);
+  }
 
   for (int i=0;i<ctb_info.data_size;i++)
     { de265_progress_lock_destroy(&ctb_progress[i]); }
@@ -219,50 +217,56 @@ de265_image::~de265_image()
 void de265_image::fill_image(int y,int cb,int cr)
 {
   if (y>=0) {
-    memset(y_mem, y, stride * (height+2*border));
+    memset(pixels_mem[0], y, stride * (height+2*border));
   }
 
   if (cb>=0) {
-    memset(cb_mem, cb, chroma_stride * (chroma_height+2*border));
+    memset(pixels_mem[1], cb, chroma_stride * (chroma_height+2*border));
   }
 
   if (cr>=0) {
-    memset(cr_mem, cr, chroma_stride * (chroma_height+2*border));
+    memset(pixels_mem[2], cr, chroma_stride * (chroma_height+2*border));
   }
 }
 
 
-void de265_copy_image(de265_image* dest, const de265_image* src)
+void de265_image::copy_image(const de265_image* src)
 {
-  if (src->stride == dest->stride) {
-    memcpy(dest->y, src->y, src->height*src->stride);
+  alloc_image(src->width, src->height, src->chroma_format, NULL);
+
+  assert(src->stride == stride &&
+         src->chroma_stride == chroma_stride);
+
+
+  if (src->stride == stride) {
+    memcpy(pixels[0], src->pixels[0], src->height*src->stride);
   }
   else {
-    for (int y=0;y<src->height;y++) {
-      memcpy(dest->y+y*dest->stride, src->y+y*src->stride, src->width);
+    for (int yp=0;yp<src->height;yp++) {
+      memcpy(pixels[0]+yp*stride, src->pixels[0]+yp*src->stride, src->width);
     }
   }
 
   if (src->chroma_format != de265_chroma_mono) {
-    if (src->chroma_stride == dest->chroma_stride) {
-      memcpy(dest->cb, src->cb, src->chroma_height*src->chroma_stride);
-      memcpy(dest->cr, src->cr, src->chroma_height*src->chroma_stride);
+    if (src->chroma_stride == chroma_stride) {
+      memcpy(pixels[1], src->pixels[1], src->chroma_height*src->chroma_stride);
+      memcpy(pixels[2], src->pixels[2], src->chroma_height*src->chroma_stride);
     }
     else {
       for (int y=0;y<src->chroma_height;y++) {
-        memcpy(dest->cb+y*dest->chroma_stride, src->cb+y*src->chroma_stride, src->chroma_width);
-        memcpy(dest->cr+y*dest->chroma_stride, src->cr+y*src->chroma_stride, src->chroma_width);
+        memcpy(pixels[1]+y*chroma_stride, src->pixels[1]+y*src->chroma_stride, src->chroma_width);
+        memcpy(pixels[2]+y*chroma_stride, src->pixels[2]+y*src->chroma_stride, src->chroma_width);
       }
     }
   }
 }
 
 
-void set_conformance_window(de265_image* img, int left,int right,int top,int bottom)
+void de265_image::set_conformance_window(int left,int right,int top,int bottom)
 {
   int WinUnitX, WinUnitY;
 
-  switch (img->chroma_format) {
+  switch (chroma_format) {
   case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
   case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
   case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
@@ -271,61 +275,61 @@ void set_conformance_window(de265_image* img, int left,int right,int top,int bot
     assert(0);
   }
 
-  img->y_confwin = img->y + left*WinUnitX + top*WinUnitY*img->stride;
-  img->cb_confwin= img->cb+ left + top*img->chroma_stride;
-  img->cr_confwin= img->cr+ left + top*img->chroma_stride;
+  pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
+  pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
+  pixels_confwin[2] = pixels[2] + left + top*chroma_stride;
 
-  img->width_confwin = img->width - (left+right)*WinUnitX;
-  img->height_confwin= img->height- (top+bottom)*WinUnitY;
-  img->chroma_width_confwin = img->chroma_width -left-right;
-  img->chroma_height_confwin= img->chroma_height-top-bottom;
+  width_confwin = width - (left+right)*WinUnitX;
+  height_confwin= height- (top+bottom)*WinUnitY;
+  chroma_width_confwin = chroma_width -left-right;
+  chroma_height_confwin= chroma_height-top-bottom;
 }
 
-void increase_pending_tasks(de265_image* img, int n)
+void de265_image::increase_pending_tasks(int n)
 {
-  de265_sync_add_and_fetch(&img->tasks_pending, n);
+  de265_sync_add_and_fetch(&tasks_pending, n);
 }
 
-void decrease_pending_tasks(de265_image* img, int n)
+void de265_image::decrease_pending_tasks(int n)
 {
-  de265_mutex_lock(&img->mutex);
+  de265_mutex_lock(&mutex);
 
-  int pending = de265_sync_sub_and_fetch(&img->tasks_pending, n);
+  int pending = de265_sync_sub_and_fetch(&tasks_pending, n);
 
   assert(pending >= 0);
 
   if (pending==0) {
-    de265_cond_broadcast(&img->finished_cond, &img->mutex);
+    de265_cond_broadcast(&finished_cond, &mutex);
   }
 
-  de265_mutex_unlock(&img->mutex);
+  de265_mutex_unlock(&mutex);
 }
 
-void wait_for_completion(de265_image* img)
+void de265_image::wait_for_completion()
 {
-  de265_mutex_lock(&img->mutex);
-  while (img->tasks_pending>0) {
-    de265_cond_wait(&img->finished_cond, &img->mutex);
+  de265_mutex_lock(&mutex);
+  while (tasks_pending>0) {
+    de265_cond_wait(&finished_cond, &mutex);
   }
-  de265_mutex_unlock(&img->mutex);
+  de265_mutex_unlock(&mutex);
 }
 
 
 
-void img_clear_decoding_data(de265_image* img)
+void de265_image::clear_metadata()
 {
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
-  img->cb_info.clear();
-  img->tu_info.clear();
-  img->ctb_info.clear();
-  img->deblk_info.clear();
+  cb_info.clear();
+  tu_info.clear();
+  ctb_info.clear();
+  deblk_info.clear();
 
   // --- reset CTB progresses ---
 
-  for (int i=0;i<img->ctb_info.data_size;i++) {
-    img->ctb_progress[i].progress = CTB_PROGRESS_NONE;
+  for (int i=0;i<ctb_info.data_size;i++) {
+    ctb_progress[i].progress = CTB_PROGRESS_NONE;
   }
 }
 

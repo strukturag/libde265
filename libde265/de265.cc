@@ -521,8 +521,8 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
         assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
 
-        assert(ctx->img->tasks_pending == 0);
-        increase_pending_tasks(ctx->img, nTiles);
+        assert(ctx->img->num_tasks_pending() == 0);
+        ctx->img->increase_pending_tasks(nTiles);
 
         for (int ty=0;ty<pps->num_tile_rows;ty++)
           for (int tx=0;tx<pps->num_tile_columns;tx++) {
@@ -559,15 +559,15 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           add_task_decode_slice_segment(ctx, i);
         }
 
-        wait_for_completion(ctx->img);
+        ctx->img->wait_for_completion();
       }
       else {
         if (nRows > MAX_THREAD_CONTEXTS) {
           return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
         }
 
-        assert(ctx->img->tasks_pending == 0);
-        increase_pending_tasks(ctx->img, nRows);
+        assert(ctx->img->num_tasks_pending() == 0);
+        ctx->img->increase_pending_tasks(nRows);
 
         //printf("-------- decode --------\n");
 
@@ -608,7 +608,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           add_task_decode_CTB_row(ctx, y, y==0);
         }
 
-        wait_for_completion(ctx->img);
+        ctx->img->wait_for_completion();
       }
     }
   }
@@ -942,14 +942,11 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
 
 LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)
 {
-  uint8_t* data;
+  assert(channel>=0 && channel <= 2);
 
-  switch (channel) {
-  case 0: data = img->y_confwin;  if (stride) *stride = img->stride; break;
-  case 1: data = img->cb_confwin; if (stride) *stride = img->chroma_stride; break;
-  case 2: data = img->cr_confwin; if (stride) *stride = img->chroma_stride; break;
-  default: data = NULL; if (stride) *stride = 0; break;
-  }
+  uint8_t* data = img->pixels_confwin[channel];
+
+  if (stride) *stride = img->get_image_stride(channel);
 
   return data;
 }

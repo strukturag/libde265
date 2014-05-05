@@ -3189,9 +3189,11 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   uint8_t* crPtr;
   int stride;
   int chroma_stride;
-  get_image_plane(tctx->decctx->img, 0, &yPtr, &stride);
-  get_image_plane(tctx->decctx->img, 1, &cbPtr, &chroma_stride);
-  get_image_plane(tctx->decctx->img, 2, &crPtr, &chroma_stride);
+  yPtr  = tctx->decctx->img->get_image_plane(0);
+  cbPtr = tctx->decctx->img->get_image_plane(1);
+  crPtr = tctx->decctx->img->get_image_plane(2);
+  stride = tctx->decctx->img->get_image_stride(0);
+  chroma_stride = tctx->decctx->img->get_image_stride(1);
 
   yPtr  = &yPtr [y0*stride + x0];
   cbPtr = &cbPtr[y0/2*chroma_stride + x0/2];
@@ -3785,7 +3787,7 @@ void thread_decode_slice_segment(void* d)
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
 
-  decrease_pending_tasks(ctx->img, 1);
+  ctx->img->decrease_pending_tasks();
 
   return; // DE265_OK;
 }
@@ -3830,7 +3832,7 @@ void thread_decode_CTB_row(void* d)
     }
   }
 
-  decrease_pending_tasks(ctx->img, 1);
+  ctx->img->decrease_pending_tasks();
 }
 
 

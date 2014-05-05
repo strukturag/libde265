@@ -453,7 +453,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
         // 8.7.2.4.3
 
-        uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
+        uint8_t* ptr = ctx->img->get_image_plane_at_pos(0, xDi,yDi);
 
         uint8_t q[4][4], p[4][4];
         for (int k=0;k<4;k++)
@@ -728,8 +728,7 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
                               ctx->current_pps->pic_cb_qp_offset :
                               ctx->current_pps->pic_cr_qp_offset);
 
-          uint8_t* ptr = (cplane==0 ? ctx->img->cb : ctx->img->cr);
-          ptr += stride*yDi + xDi;
+          uint8_t* ptr = ctx->img->get_image_plane_at_pos(cplane+1, xDi,yDi);
 
           uint8_t p[2][4];
           uint8_t q[2][4];
@@ -852,7 +851,7 @@ static void thread_deblock(void* d)
   edge_filtering_luma    (ctx, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_chroma  (ctx, data->vertical, data->first,data->last, xStart,xEnd);
 
-  decrease_pending_tasks(ctx->img, 1);
+  ctx->img->decrease_pending_tasks(1);
 }
 
 
@@ -866,7 +865,7 @@ static void thread_deblock_ctb(void* d)
   edge_filtering_luma_CTB    (ctx, data->vertical, data->ctb_x,data->ctb_y);
   edge_filtering_chroma_CTB  (ctx, data->vertical, data->ctb_x,data->ctb_y);
 
-  decrease_pending_tasks(ctx->img, 1);
+  ctx->img->decrease_pending_tasks(1);
 }
 #endif
 
@@ -954,7 +953,7 @@ void apply_deblocking_filter(decoder_context* ctx)
 
           int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
           //ctx->thread_pool.tasks_pending = numStripes;
-          increase_pending_tasks(ctx->img, numStripes);
+          ctx->img->increase_pending_tasks(numStripes);
 
           for (int i=0;i<numStripes;i++)
             {
@@ -974,7 +973,7 @@ void apply_deblocking_filter(decoder_context* ctx)
               add_task(&ctx->thread_pool, &task);
             }
 
-          wait_for_completion(ctx->img);
+          ctx->img->wait_for_completion();
         }
 #endif
 #if 0

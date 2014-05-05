@@ -199,16 +199,38 @@ struct de265_image {
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps);
   void fill_image(int y,int u,int v);
+  void copy_image(const de265_image* src);
 
+  uint8_t* get_image_plane(int cIdx)
+  {
+    return pixels[cIdx];
+  }
 
-  uint8_t* y;   // pointer to pixels in the conformance window
-  uint8_t* cb;
-  uint8_t* cr;
+  uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
+  {
+    int stride = get_image_stride(cIdx);
+    return pixels[cIdx] + xpos + ypos*stride;
+  }
+
+  const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
+  {
+    int stride = get_image_stride(cIdx);
+    return pixels[cIdx] + xpos + ypos*stride;
+  }
+
+  int get_image_stride(int cIdx) const
+  {
+    if (cIdx==0) return stride;
+    else         return chroma_stride;
+  }
+
+  void set_conformance_window(int left,int right,int top,int bottom);
 
 private:
-  uint8_t* y_mem;  // usually, you don't use these, but the pointers above
-  uint8_t* cb_mem;
-  uint8_t* cr_mem;
+  uint8_t* pixels[3];   // pointer to pixels in the conformance window
+
+private:
+  uint8_t* pixels_mem[3];  // usually, you don't use these, but the pointers above
 
 public:
   enum de265_chroma chroma_format;
@@ -222,13 +244,10 @@ public:
 
   // --- conformance cropping window ---
 
-  uint8_t* y_confwin;
-  uint8_t* cb_confwin;
-  uint8_t* cr_confwin;
+  uint8_t* pixels_confwin[3];
 
   int width_confwin, height_confwin;
   int chroma_width_confwin, chroma_height_confwin;
-
 
   // --- decoding info ---
 
@@ -270,9 +289,25 @@ public:
 
   de265_progress_lock* ctb_progress; // ctb_info_size
 
+
+  void increase_pending_tasks(int n=1);
+  void decrease_pending_tasks(int n=1);
+  void wait_for_completion();  // block until image is decoded by background threads
+  int  num_tasks_pending() const { return tasks_pending; } // for debug only
+
+private:
   ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
   de265_mutex mutex;
   de265_cond  finished_cond;
+
+public:
+
+  /* Clear all CTB/CB/PB decoding data of this image.
+     All CTB's processing states are set to 'unprocessed'.
+  */
+  void clear_metadata();
+
+
 
   // --- CB metadata access ---
 
@@ -499,31 +534,6 @@ public:
 // --- value logging ---
 
 };
-
-
-void de265_copy_image(de265_image* dest, const de265_image* src);
-
-LIBDE265_INLINE static void get_image_plane(const de265_image* img, int cIdx, uint8_t** image, int* stride)
-{
-  switch (cIdx) {
-  case 0: *image = img->y;  if (stride) *stride = img->stride; break;
-  case 1: *image = img->cb; if (stride) *stride = img->chroma_stride; break;
-  case 2: *image = img->cr; if (stride) *stride = img->chroma_stride; break;
-  default: *image = NULL; if (stride) *stride = 0; break;
-  }
-}
-void set_conformance_window(de265_image* img, int left,int right,int top,int bottom);
-
-
-void increase_pending_tasks(de265_image* img, int n);
-void decrease_pending_tasks(de265_image* img, int n);
-void wait_for_completion(de265_image* img);  // block until image is decoded by background threads
-
-
-/* Clear all CTB/CB/PB decoding data of this image.
-   All CTB's processing states are set to 'unprocessed'.
- */
-void img_clear_decoding_data(de265_image*);
 
 
 #endif

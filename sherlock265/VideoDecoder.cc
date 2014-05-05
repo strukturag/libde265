@@ -175,15 +175,15 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
   visu.Create(img->width, img->height, Colorspace_YUV, Chroma_420);
 
   for (int y=0;y<img->height;y++) {
-    memcpy(visu.AskFrameY()[y], img->y + y*img->stride, img->width);
+    memcpy(visu.AskFrameY()[y], img->get_image_plane_at_pos(0, 0,y), img->width);
   }
 
   for (int y=0;y<img->chroma_height;y++) {
-    memcpy(visu.AskFrameU()[y], img->cb + y*img->chroma_stride, img->chroma_width);
+    memcpy(visu.AskFrameU()[y], img->get_image_plane_at_pos(1, 0,y), img->chroma_width);
   }
 
   for (int y=0;y<img->chroma_height;y++) {
-    memcpy(visu.AskFrameV()[y], img->cr + y*img->chroma_stride, img->chroma_width);
+    memcpy(visu.AskFrameV()[y], img->get_image_plane_at_pos(2, 0,y), img->chroma_width);
   }
 
   Image<Pixel> debugvisu;
