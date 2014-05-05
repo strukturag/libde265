@@ -49,7 +49,6 @@ libde265_la_SOURCES = \
   scan.h \
   sei.h \
   slice.h \
-  slice_func.h \
   sps.h \
   util.h \
   vps.h \

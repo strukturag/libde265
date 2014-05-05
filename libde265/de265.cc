@@ -23,7 +23,6 @@
 
 #include "de265.h"
 #include "decctx.h"
-#include "slice_func.h"
 #include "util.h"
 #include "scan.h"
 #include "image.h"
@@ -436,7 +435,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       hdr->slice_index = sliceIndex;
 
       if (ctx->param_slice_headers_fd>=0) {
-        dump_slice_segment_header(hdr, ctx, ctx->param_slice_headers_fd);
+        hdr->dump_slice_segment_header(ctx, ctx->param_slice_headers_fd);
       }
 
       if (process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)

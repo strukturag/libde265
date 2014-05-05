@@ -138,6 +138,8 @@ typedef struct slice_segment_header {
   slice_segment_header() { inUse=false; }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
+  void dump_slice_segment_header(const decoder_context*, int fd) const;
+
 
   int  slice_index; // index through all slices in a picture
   char inUse; // slice is used by a picture currently in the buffer
@@ -252,5 +254,12 @@ typedef struct {
   int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
 } sao_info;
 
+
+
+
+de265_error read_slice_segment_data(struct decoder_context*, struct thread_context* tctx);
+
+bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+void free_significant_coeff_ctxIdx_lookupTable();
 
 #endif

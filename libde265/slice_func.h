@@ -26,13 +26,4 @@
 #include "libde265/bitstream.h"
 #include "libde265/threads.h"
 
-
-void dump_slice_segment_header(const slice_segment_header* shdr, const decoder_context*, int fd);
-
-
-de265_error read_slice_segment_data(decoder_context*, thread_context* tctx);
-
-bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
-void free_significant_coeff_ctxIdx_lookupTable();
-
 #endif
