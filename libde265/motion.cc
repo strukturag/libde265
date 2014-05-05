@@ -1365,7 +1365,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int nOrigPbH = nPbH;
 
   int singleMCLFlag;
-  singleMCLFlag = (ctx->current_pps->log2_parallel_merge_level > 2 && nCS==8);
+  singleMCLFlag = (tctx->img->pps->log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
     xP=xC;
