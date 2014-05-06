@@ -2207,10 +2207,11 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 }
 
 
-void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
+void read_coding_tree_unit(thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
-  seq_parameter_set* sps = ctx->current_sps;
+  de265_image* img = tctx->img;
+  seq_parameter_set* sps = &img->sps;
 
   int xCtb = (tctx->CtbAddrInRS % sps->PicWidthInCtbsY);
   int yCtb = (tctx->CtbAddrInRS / sps->PicWidthInCtbsY);
@@ -2218,11 +2219,11 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
   int yCtbPixels = yCtb << sps->Log2CtbSizeY;
 
   logtrace(LogSlice,"----- decode CTB %d;%d (%d;%d) POC=%d\n",xCtbPixels,yCtbPixels, xCtb,yCtb,
-           ctx->img->PicOrderCntVal);
+           tctx->img->PicOrderCntVal);
 
-  ctx->img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
+  img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
 
-  ctx->img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
+  img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
 
   int CtbAddrInSliceSeg = tctx->CtbAddrInRS - shdr->slice_segment_address;
 
@@ -3686,7 +3687,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     // read and decode CTB
 
-    read_coding_tree_unit(ctx, tctx);
+    read_coding_tree_unit(tctx);
 
     if (pps->entropy_coding_sync_enabled_flag &&
         ctbx == context_copy_ctbx &&
