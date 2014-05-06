@@ -61,9 +61,6 @@ static const int alignment = 16;
 
 de265_image::de265_image() // (optional) init variables, do not alloc image
 {
-  // TODO: dangerous
-  //memset(this, 0, sizeof(de265_image));
-
   for (int c=0;c<3;c++) {
     pixels[c] = NULL;
     pixels_mem[c] = NULL;
@@ -80,6 +77,7 @@ de265_image::de265_image() // (optional) init variables, do not alloc image
   picture_order_cnt_lsb = -1; // undefined
   PicOrderCntVal = -1; // undefined
   PicState = UnusedForReference;
+  PicOutputFlag = false;
 
   de265_mutex_init(&mutex);
   de265_cond_init(&finished_cond);
