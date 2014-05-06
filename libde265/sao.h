@@ -23,6 +23,6 @@
 
 #include "libde265/decctx.h"
 
-void apply_sample_adaptive_offset(decoder_context* ctx);
+void apply_sample_adaptive_offset(de265_image* img);
 
 #endif

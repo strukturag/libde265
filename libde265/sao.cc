@@ -25,19 +25,19 @@
 #include <string.h>
 
 
-void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
+void apply_sao(de265_image* img, int xCtb,int yCtb,
                const slice_segment_header* shdr, int cIdx, int nS,
                const uint8_t* in_img, int in_stride)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
-  const pic_parameter_set* pps = ctx->current_pps;
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
   int bitDepth = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C);
   int maxPixelValue = (1<<bitDepth)-1;
 
   int xC = xCtb*nS;
   int yC = yCtb*nS;
 
-  const sao_info* saoinfo = ctx->img->get_sao_info(xCtb,yCtb);
+  const sao_info* saoinfo = img->get_sao_info(xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
@@ -56,28 +56,28 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
     }
   */
 
-  int width  = ctx->current_sps->pic_width_in_luma_samples;
-  int height = ctx->current_sps->pic_height_in_luma_samples;
+  int width  = sps->pic_width_in_luma_samples;
+  int height = sps->pic_height_in_luma_samples;
 
   if (cIdx>0) { width =(width+1)/2; height =(height+1)/2; }
 
-  int ctbSliceAddrRS = ctx->img->get_SliceHeader(xC,yC)->SliceAddrRS;
-  const std::vector<int>& MinTbAddrZS = ctx->current_pps->MinTbAddrZS;
-  int  PicWidthInTbsY = ctx->current_sps->PicWidthInTbsY;
-  int  Log2MinTrafoSize = ctx->current_sps->Log2MinTrafoSize;
+  int ctbSliceAddrRS = img->get_SliceHeader(xC,yC)->SliceAddrRS;
+  const std::vector<int>& MinTbAddrZS = pps->MinTbAddrZS;
+  int  PicWidthInTbsY = sps->PicWidthInTbsY;
+  int  Log2MinTrafoSize = sps->Log2MinTrafoSize;
   int  chromaLog2MinTrafoSize = Log2MinTrafoSize;
   if (cIdx>0) { chromaLog2MinTrafoSize-=1; }
 
-  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
-  int  ctbshift = ctx->current_sps->Log2CtbSizeY;
+  int picWidthInCtbs = sps->PicWidthInCtbsY;
+  int  ctbshift = sps->Log2CtbSizeY;
   int  chromashift = 0;
   if (cIdx>0) { ctbshift-=1; chromashift=1; }
 
 
   uint8_t* out_img;
   int out_stride;
-  out_img = ctx->img->get_image_plane(cIdx);
-  out_stride = ctx->img->get_image_stride(cIdx);
+  out_img = img->get_image_plane(cIdx);
+  out_stride = img->get_image_stride(cIdx);
 
 
   for (int i=0;i<5;i++)
@@ -110,8 +110,8 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
         }
 
         if ((sps->pcm_loop_filter_disable_flag &&
-             ctx->img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-            ctx->img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
+             img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
 
@@ -130,11 +130,11 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           // slice anyway) reduced computation time only by 1.3%.
           // TODO: however, this may still be a big part of SAO itself.
 
-          int sliceAddrRS = ctx->img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
+          int sliceAddrRS = img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
           if (sliceAddrRS != ctbSliceAddrRS &&
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
               MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              ctx->img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+              img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
             edgeIdx=0;
             break;
           }
@@ -142,7 +142,7 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
           if (sliceAddrRS != ctbSliceAddrRS &&
               MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] <
               MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              ctx->img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+              img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
             edgeIdx=0;
             break;
           }
@@ -207,8 +207,8 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
         }
 
         if ((sps->pcm_loop_filter_disable_flag &&
-             ctx->img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-            ctx->img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
+             img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+            img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
 
@@ -230,33 +230,33 @@ void apply_sao(decoder_context* ctx, int xCtb,int yCtb,
 }
 
 
-void apply_sample_adaptive_offset(decoder_context* ctx)
+void apply_sample_adaptive_offset(de265_image* img)
 {
-  if (ctx->current_sps->sample_adaptive_offset_enabled_flag==0) {
+  if (img->sps.sample_adaptive_offset_enabled_flag==0) {
     return;
   }
 
   de265_image inputCopy;
-  inputCopy.alloc_image(ctx->img->get_width(),
-                        ctx->img->get_height(),
+  inputCopy.alloc_image(img->get_width(),
+                        img->get_height(),
                         de265_chroma_420, NULL);
-  inputCopy.copy_image(ctx->img);
+  inputCopy.copy_image(img);
 
-  for (int yCtb=0; yCtb<ctx->current_sps->PicHeightInCtbsY; yCtb++)
-    for (int xCtb=0; xCtb<ctx->current_sps->PicWidthInCtbsY; xCtb++)
+  for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
+    for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
       {
-        const slice_segment_header* shdr = ctx->img->get_SliceHeaderCtb(xCtb,yCtb);
+        const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
 
         if (shdr->slice_sao_luma_flag) {
-          apply_sao(ctx, xCtb,yCtb, shdr, 0, 1<<ctx->current_sps->Log2CtbSizeY,
+          apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
                     inputCopy.get_image_plane(0), inputCopy.get_image_stride(0));
         }
 
         if (shdr->slice_sao_chroma_flag) {
-          apply_sao(ctx, xCtb,yCtb, shdr, 1, 1<<(ctx->current_sps->Log2CtbSizeY-1),
+          apply_sao(img, xCtb,yCtb, shdr, 1, 1<<(img->sps.Log2CtbSizeY-1),
                     inputCopy.get_image_plane(1), inputCopy.get_image_stride(1));
 
-          apply_sao(ctx, xCtb,yCtb, shdr, 2, 1<<(ctx->current_sps->Log2CtbSizeY-1),
+          apply_sao(img, xCtb,yCtb, shdr, 2, 1<<(img->sps.Log2CtbSizeY-1),
                     inputCopy.get_image_plane(2), inputCopy.get_image_stride(2));
         }
       }

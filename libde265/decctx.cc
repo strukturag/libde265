@@ -773,7 +773,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     write_picture_to_file(ctx->img, buf);
 #endif
 
-    apply_sample_adaptive_offset(ctx);
+    apply_sample_adaptive_offset(ctx->img);
     //writeFrame_Y(ctx,"sao");
 
 #if SAVE_INTERMEDIATE_IMAGES
