@@ -375,7 +375,7 @@ void add_task_decode_CTB_row(decoder_context* ctx, int thread_id, bool initCABAC
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
   task.work_routine = thread_decode_CTB_row;
-  task.data.task_ctb_row.ctx = ctx;
+  task.data.task_ctb_row.img = ctx->img;
   task.data.task_ctb_row.initCABAC = initCABAC;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&ctx->thread_pool, &task);
@@ -388,7 +388,7 @@ void add_task_decode_slice_segment(decoder_context* ctx, int thread_id)
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
   task.work_routine = thread_decode_slice_segment;
-  task.data.task_ctb_row.ctx = ctx;
+  task.data.task_ctb_row.img = ctx->img;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&ctx->thread_pool, &task);
 }

@@ -47,7 +47,7 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         bool sliceRefPicSet);
 
 
-void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx);
+void read_coding_tree_unit(thread_context* tctx);
 void read_coding_quadtree(thread_context* tctx,
                           int xCtb, int yCtb, 
                           int Log2CtbSizeY,
@@ -1055,7 +1055,7 @@ static int decode_transquant_bypass_flag(thread_context* tctx)
 static int decode_split_cu_flag(thread_context* tctx,
 				int x0, int y0, int ctDepth)
 {
-  decoder_context* ctx = tctx->decctx;
+  //decoder_context* ctx = tctx->decctx;
 
   // check if neighbors are available
 
@@ -1065,8 +1065,8 @@ static int decode_split_cu_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ctx->img->get_ctDepth(x0-1,y0) > ctDepth) condL=1;
-  if (availableA && ctx->img->get_ctDepth(x0,y0-1) > ctDepth) condA=1;
+  if (availableL && tctx->img->get_ctDepth(x0-1,y0) > ctDepth) condL=1;
+  if (availableA && tctx->img->get_ctDepth(x0,y0-1) > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
@@ -1096,8 +1096,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ctx->img->get_cu_skip_flag(x0-1,y0)) condL=1;
-  if (availableA && ctx->img->get_cu_skip_flag(x0,y0-1)) condA=1;
+  if (availableL && tctx->img->get_cu_skip_flag(x0-1,y0)) condL=1;
+  if (availableA && tctx->img->get_cu_skip_flag(x0,y0-1)) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
@@ -3644,7 +3644,6 @@ enum DecodeResult decode_substream(thread_context* tctx,
                       int context_copy_ctbx, // copy CABAC-context after decoding this CTB
                       context_model* context_storage) // copy CABAC-context to this storage space
 {
-  //decoder_context* ctx = tctx->decctx;
   const pic_parameter_set* pps = &tctx->img->pps;
   const seq_parameter_set* sps = &tctx->img->sps;
 
@@ -3737,8 +3736,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
 void thread_decode_slice_segment(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
-  decoder_context* ctx = data->ctx;
-  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
+  de265_image* img = data->img;
+  thread_context* tctx = &img->decctx->thread_context[data->thread_context_id];
 
   setCtbAddrFromTS(tctx);
 
@@ -3749,7 +3748,7 @@ void thread_decode_slice_segment(void* d)
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
 
-  ctx->img->decrease_pending_tasks();
+  img->decrease_pending_tasks();
 
   return; // DE265_OK;
 }
@@ -3758,10 +3757,10 @@ void thread_decode_slice_segment(void* d)
 void thread_decode_CTB_row(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
-  decoder_context* ctx = data->ctx;
-  thread_context* tctx = &ctx->thread_context[data->thread_context_id];
+  de265_image* img = data->img;
+  thread_context* tctx = &img->decctx->thread_context[data->thread_context_id];
 
-  seq_parameter_set* sps = ctx->current_sps;
+  seq_parameter_set* sps = &img->sps;
   int ctbW = sps->PicWidthInCtbsY;
 
   setCtbAddrFromTS(tctx);
@@ -3779,22 +3778,22 @@ void thread_decode_CTB_row(void* d)
 
   int destThreadContext = 0;
   if (ctby+1 < sps->PicHeightInCtbsY) {
-    destThreadContext = ctx->img->get_ThreadContextID(0,ctby+1);
+    destThreadContext = img->get_ThreadContextID(0,ctby+1);
   }
 
   /*enum DecodeResult result =*/ decode_substream(tctx, true, 1,
-                                                  ctx->thread_context[destThreadContext].ctx_model);
+                                                  tctx->decctx->thread_context[destThreadContext].ctx_model);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
-      de265_announce_progress(&ctx->img->ctb_progress[myCtbRow*ctbW + x], CTB_PROGRESS_PREFILTER);
+      de265_announce_progress(&img->ctb_progress[myCtbRow*ctbW + x], CTB_PROGRESS_PREFILTER);
     }
   }
 
-  ctx->img->decrease_pending_tasks();
+  img->decrease_pending_tasks();
 }
 
 

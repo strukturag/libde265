@@ -123,7 +123,7 @@ struct thread_task_ctb_row
 {
   int thread_context_id;
   bool initCABAC;
-  struct decoder_context* ctx;
+  struct de265_image* img;
 };
 
 struct thread_task_deblock
