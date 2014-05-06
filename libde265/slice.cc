@@ -216,7 +216,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       dependent_slice_segment_flag = 1;
     }
 
-    slice_segment_address = slice_segment_address;
+    this->slice_segment_address = slice_segment_address;
   } else {
     dependent_slice_segment_flag = 0;
     slice_segment_address = 0;
