@@ -52,7 +52,7 @@ void read_coding_quadtree(thread_context* tctx,
                           int xCtb, int yCtb, 
                           int Log2CtbSizeY,
                           int ctDepth);
-int check_CTB_available(decoder_context* ctx,
+int check_CTB_available(de265_image* img,
                         slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN);
 /*
@@ -1060,8 +1060,8 @@ static int decode_split_cu_flag(thread_context* tctx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ctx,tctx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ctx,tctx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1091,8 +1091,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ctx,tctx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ctx,tctx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -2236,53 +2236,40 @@ void read_coding_tree_unit(thread_context* tctx)
 }
 
 
-LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(decoder_context* ctx, int x,int y)
+LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(seq_parameter_set* sps, int x,int y)
 {
-  int ctbX = x >> (ctx->current_sps->Log2CtbSizeY);
-  int ctbY = y >> (ctx->current_sps->Log2CtbSizeY);
+  int ctbX = x >> sps->Log2CtbSizeY;
+  int ctbY = y >> sps->Log2CtbSizeY;
 
-  return ctbY * ctx->current_sps->PicWidthInCtbsY + ctbX;
+  return ctbY * sps->PicWidthInCtbsY + ctbX;
 }
 
 
-int check_CTB_available(decoder_context* ctx,
+int check_CTB_available(de265_image* img,
                         slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN)
 {
   // check whether neighbor is outside of frame
 
   if (xN < 0 || yN < 0) { return 0; }
-  if (xN >= ctx->current_sps->pic_width_in_luma_samples)  { return 0; }
-  if (yN >= ctx->current_sps->pic_height_in_luma_samples) { return 0; }
+  if (xN >= img->sps.pic_width_in_luma_samples)  { return 0; }
+  if (yN >= img->sps.pic_height_in_luma_samples) { return 0; }
 
 
-  int current_ctbAddrRS  = luma_pos_to_ctbAddrRS(ctx, xC,yC);
-  int neighbor_ctbAddrRS = luma_pos_to_ctbAddrRS(ctx, xN,yN);
+  int current_ctbAddrRS  = luma_pos_to_ctbAddrRS(&img->sps, xC,yC);
+  int neighbor_ctbAddrRS = luma_pos_to_ctbAddrRS(&img->sps, xN,yN);
 
   // TODO: check if this is correct (6.4.1)
 
-#if 0
-  int neighbor_ctbAddrTS = ctx->current_pps->CtbAddrRStoTS[ neighbor_ctbAddrRS ];
-
-
-  // check whether neighbor is in the same slice
-
-  int first_ctb_in_slice_TS = ctx->current_pps->CtbAddrRStoTS[ shdr->slice_segment_address ];
-
-  if (neighbor_ctbAddrTS < first_ctb_in_slice_TS) {
+  if (img->get_SliceAddrRS_atCtbRS(current_ctbAddrRS) !=
+      img->get_SliceAddrRS_atCtbRS(neighbor_ctbAddrRS)) {
     return 0;
   }
-#else
-  if (ctx->img->get_SliceAddrRS_atCtbRS(current_ctbAddrRS) !=
-      ctx->img->get_SliceAddrRS_atCtbRS(neighbor_ctbAddrRS)) {
-    return 0;
-  }
-#endif
 
   // check if both CTBs are in the same tile.
 
-  if (ctx->current_pps->TileIdRS[current_ctbAddrRS] !=
-      ctx->current_pps->TileIdRS[neighbor_ctbAddrRS]) {
+  if (img->pps.TileIdRS[current_ctbAddrRS] !=
+      img->pps.TileIdRS[neighbor_ctbAddrRS]) {
     return 0;
   }
 
@@ -2290,8 +2277,7 @@ int check_CTB_available(decoder_context* ctx,
 }
 
 
-int residual_coding(decoder_context* ctx,
-                    thread_context* tctx,
+int residual_coding(thread_context* tctx,
                     int x0, int y0,  // position of TU in frame
                     int xL, int yL,  // position of TU in local CU
                     int log2TrafoSize,
@@ -2301,17 +2287,17 @@ int residual_coding(decoder_context* ctx,
 
   //slice_segment_header* shdr = tctx->shdr;
 
-  const seq_parameter_set* sps = ctx->current_sps;
+  de265_image* img = tctx->img;
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
 
 
   if (cIdx==0) {
-    ctx->img->set_nonzero_coefficient(x0,y0,log2TrafoSize);
+    img->set_nonzero_coefficient(x0,y0,log2TrafoSize);
   }
 
 
-  //tctx->cu_transquant_bypass_flag=0; // TODO
-
-  if (ctx->current_pps->transform_skip_enabled_flag &&
+  if (pps->transform_skip_enabled_flag &&
       !tctx->cu_transquant_bypass_flag &&
       (log2TrafoSize==2))
     {
@@ -2366,13 +2352,13 @@ int residual_coding(decoder_context* ctx,
 
   int scanIdx;
 
-  enum PredMode PredMode = ctx->img->get_pred_mode(x0,y0);
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
 
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
       if (log2TrafoSize==2 || log2TrafoSize==3) {
-        enum IntraPredMode predMode = ctx->img->get_IntraPredMode(x0,y0);
+        enum IntraPredMode predMode = img->get_IntraPredMode(x0,y0);
         logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
 
         if (predMode >= 6 && predMode <= 14) scanIdx=2;
@@ -2656,7 +2642,7 @@ int residual_coding(decoder_context* ctx,
       }
 
       // n==nCoefficients-1
-      if (!ctx->current_pps->sign_data_hiding_flag || !signHidden) {
+      if (!pps->sign_data_hiding_flag || !signHidden) {
         coeff_sign[nCoefficients-1] = decode_CABAC_bypass(&tctx->cabac_decoder);
         logtrace(LogSlice,"sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
       }
@@ -2694,7 +2680,7 @@ int residual_coding(decoder_context* ctx,
           currCoeff = -currCoeff;
         }
 
-        if (ctx->current_pps->sign_data_hiding_flag && signHidden) {
+        if (pps->sign_data_hiding_flag && signHidden) {
           sumAbsLevel += baseLevel + coeff_abs_level_remaining;
 
           if (n==nCoefficients-1 && (sumAbsLevel & 1)) {
@@ -2777,26 +2763,26 @@ int read_transform_unit(decoder_context* ctx,
 
       int err;
       if (cbf_luma) {
-        if ((err=residual_coding(ctx,tctx,x0,y0, xL,yL,log2TrafoSize,0)) != DE265_OK) return err;
+        if ((err=residual_coding(tctx,x0,y0, xL,yL,log2TrafoSize,0)) != DE265_OK) return err;
       }
 
       if (log2TrafoSize>2) {
         if (cbf_cb) {
-          if ((err=residual_coding(ctx,tctx,x0,y0,xL,yL,log2TrafoSize-1,1)) != DE265_OK) return err;
+          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,1)) != DE265_OK) return err;
         }
 
         if (cbf_cr) {
-          if ((err=residual_coding(ctx,tctx,x0,y0,xL,yL,log2TrafoSize-1,2)) != DE265_OK) return err;
+          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,2)) != DE265_OK) return err;
         }
       }
       else if (blkIdx==3) {
         if (cbf_cb) {
-          if ((err=residual_coding(ctx,tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
+          if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
                                    log2TrafoSize,1)) != DE265_OK) return err;
         }
 
         if (cbf_cr) {
-          if ((err=residual_coding(ctx,tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
+          if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
                                    log2TrafoSize,2)) != DE265_OK) return err;
         }
       }
@@ -3363,8 +3349,8 @@ void read_coding_unit(decoder_context* ctx,
 
               int IntraPredMode;
 
-              int availableA = check_CTB_available(ctx, shdr, x,y, x-1,y);
-              int availableB = check_CTB_available(ctx, shdr, x,y, x,y-1);
+              int availableA = check_CTB_available(ctx->img, shdr, x,y, x-1,y);
+              int availableB = check_CTB_available(ctx->img, shdr, x,y, x,y-1);
 
               int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
