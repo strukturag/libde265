@@ -2708,8 +2708,7 @@ int residual_coding(thread_context* tctx,
 }
 
 
-int read_transform_unit(decoder_context* ctx,
-                        thread_context* tctx,
+int read_transform_unit(thread_context* tctx,
                         int x0, int y0,        // position of TU in frame
                         int xBase, int yBase,  // position of parent TU in frame
                         int xCUBase,int yCUBase,  // position of CU in frame
@@ -2732,7 +2731,7 @@ int read_transform_unit(decoder_context* ctx,
 
   if (cbf_luma || cbf_cb || cbf_cr)
     {
-      if (ctx->current_pps->cu_qp_delta_enabled_flag &&
+      if (tctx->img->pps.cu_qp_delta_enabled_flag &&
           !tctx->IsCuQpDeltaCoded) {
 
         int cu_qp_delta_abs = decode_cu_qp_delta_abs(tctx);
@@ -2792,8 +2791,7 @@ int read_transform_unit(decoder_context* ctx,
 }
 
 
-void read_transform_tree(decoder_context* ctx,
-                         thread_context* tctx,
+void read_transform_tree(thread_context* tctx,
                          int x0, int y0,        // position of TU in frame
                          int xBase, int yBase,  // position of parent TU in frame
                          int xCUBase, int yCUBase, // position of CU in frame
@@ -2809,10 +2807,11 @@ void read_transform_tree(decoder_context* ctx,
            "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
            x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth);
 
-  const seq_parameter_set* sps = ctx->current_sps;
+  de265_image* img = tctx->img;
+  const seq_parameter_set* sps = &img->sps;
 
-  enum PredMode PredMode = ctx->img->get_pred_mode(x0,y0);
-  enum PartMode PartMode = ctx->img->get_PartMode(x0,y0);
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  enum PartMode PartMode = img->get_PartMode(x0,y0);
 
   int split_transform_flag;
   
@@ -2828,8 +2827,8 @@ void read_transform_tree(decoder_context* ctx,
       If intra-prediction is NxN mode            -> split automatically (only at level 0)
       Otherwise  ->  read split flag
   */
-  if (log2TrafoSize <= ctx->current_sps->Log2MaxTrafoSize &&
-      log2TrafoSize >  ctx->current_sps->Log2MinTrafoSize &&
+  if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
+      log2TrafoSize >  sps->Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && trafoDepth==0))
     {
@@ -2837,7 +2836,7 @@ void read_transform_tree(decoder_context* ctx,
     }
   else
     {
-      split_transform_flag = (log2TrafoSize > ctx->current_sps->Log2MaxTrafoSize ||
+      split_transform_flag = (log2TrafoSize > sps->Log2MaxTrafoSize ||
                               (IntraSplitFlag==1 && trafoDepth==0) ||
                               interSplitFlag==1) ? 1:0;
     }
@@ -2845,7 +2844,7 @@ void read_transform_tree(decoder_context* ctx,
 
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
-    ctx->img->set_split_transform_flag(x0,y0,trafoDepth);
+    img->set_split_transform_flag(x0,y0,trafoDepth);
   }
 
 
@@ -2889,13 +2888,13 @@ void read_transform_tree(decoder_context* ctx,
 
     logtrace(LogSlice,"transform split.\n");
 
-    read_transform_tree(ctx,tctx, x0,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 0,
+    read_transform_tree(tctx, x0,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 0,
                         MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
-    read_transform_tree(ctx,tctx, x1,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 1,
+    read_transform_tree(tctx, x1,y0, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 1,
                         MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
-    read_transform_tree(ctx,tctx, x0,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 2,
+    read_transform_tree(tctx, x0,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 2,
                         MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
-    read_transform_tree(ctx,tctx, x1,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 3,
+    read_transform_tree(tctx, x1,y1, x0,y0, xCUBase,yCUBase, log2TrafoSize-1, trafoDepth+1, 3,
                         MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
   }
   else {
@@ -2907,7 +2906,7 @@ void read_transform_tree(decoder_context* ctx,
 
     logtrace(LogSlice,"call read_transform_unit %d/%d\n",x0,y0);
 
-    read_transform_unit(ctx,tctx, x0,y0,xBase,yBase, xCUBase,yCUBase, log2TrafoSize,trafoDepth, blkIdx,
+    read_transform_unit(tctx, x0,y0,xBase,yBase, xCUBase,yCUBase, log2TrafoSize,trafoDepth, blkIdx,
                         cbf_luma, cbf_cb, cbf_cr);
 
 
@@ -2916,19 +2915,19 @@ void read_transform_tree(decoder_context* ctx,
 
     if (cuPredMode == MODE_INTRA) // if intra mode
       {
-        enum IntraPredMode intraPredMode = ctx->img->get_IntraPredMode(x0,y0);
+        enum IntraPredMode intraPredMode = img->get_IntraPredMode(x0,y0);
 
-        decode_intra_prediction(ctx->img, x0,y0, intraPredMode, nT, 0);
+        decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
 
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
 
         if (nT>=8) {
-          decode_intra_prediction(ctx->img, x0/2,y0/2, chromaPredMode, nT/2, 1);
-          decode_intra_prediction(ctx->img, x0/2,y0/2, chromaPredMode, nT/2, 2);
+          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 1);
+          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 2);
         }
         else if (blkIdx==3) {
-          decode_intra_prediction(ctx->img, xBase/2,yBase/2, chromaPredMode, nT, 1);
-          decode_intra_prediction(ctx->img, xBase/2,yBase/2, chromaPredMode, nT, 2);
+          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 1);
+          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 2);
         }
       }
 
@@ -3559,7 +3558,7 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
-        read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
+        read_transform_tree(tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
                             MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
       }
     } // !pcm
