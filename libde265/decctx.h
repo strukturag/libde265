@@ -37,7 +37,6 @@
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
-#define DE265_MAX_SLICES   512  // TODO: make this dynamic
 #define MAX_THREAD_CONTEXTS 68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
 
 #define MAX_WARNINGS 20
@@ -157,7 +156,6 @@ struct decoder_context : public error_queue {
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
   pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
-  //slice_segment_header slice[ DE265_MAX_SLICES ];
 
   video_parameter_set* current_vps;
   seq_parameter_set*   current_sps;
@@ -258,19 +256,6 @@ int get_next_thread_context_index(decoder_context* ctx);
 // All coordinates are in pixels if not stated otherwise.
 
 void debug_dump_cb_info(const decoder_context*);
-
-LIBDE265_INLINE static slice_segment_header* get_SliceHeader(decoder_context* ctx, int x, int y)
-{
-  return ctx->img->slices[ ctx->img->get_SliceHeaderIndex(x,y) ];
-  //return &ctx->slice[ ctx->img->get_SliceHeaderIndex(x,y) ];
-}
-
-LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)
-{
-  return ctx->img->slices[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
-  //return &ctx->slice[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
-}
-
 
 void push_current_picture_to_output_queue(decoder_context* ctx);
 

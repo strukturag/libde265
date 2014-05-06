@@ -504,6 +504,16 @@ public:
     return ctb_info[ctb].SliceHeaderIndex;
   }
 
+  slice_segment_header* get_SliceHeader(int x, int y)
+  {
+    return slices[ get_SliceHeaderIndex(x,y) ];
+  }
+
+  slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY)
+  {
+    return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+  }
+  
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
   {
     sao_info* sao = &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
