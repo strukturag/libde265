@@ -24,17 +24,17 @@
 #include <assert.h>
 
 
-void init_dpb(decoded_picture_buffer* dpb)
+decoded_picture_buffer::decoded_picture_buffer()
 {
-  memset(dpb->reorder_output_queue, 0, sizeof(de265_image*) * DE265_DPB_SIZE);
-  memset(dpb->image_output_queue,   0, sizeof(de265_image*) * DE265_DPB_SIZE);
+  memset(reorder_output_queue, 0, sizeof(de265_image*) * DE265_DPB_SIZE);
+  memset(image_output_queue,   0, sizeof(de265_image*) * DE265_DPB_SIZE);
 
-  dpb->reorder_output_queue_length = 0;
-  dpb->image_output_queue_length = 0;
+  reorder_output_queue_length = 0;
+  image_output_queue_length = 0;
 }
 
 
-void free_dpb(decoded_picture_buffer* dpb)
+decoded_picture_buffer::~decoded_picture_buffer()
 {
 }
 
@@ -97,7 +97,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb) const
 }
 
 
-void decoded_picture_buffer::flush_next_picture_from_reorder_buffer()
+void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 {
   assert(reorder_output_queue_length>0);
 
@@ -136,14 +136,14 @@ bool decoded_picture_buffer::flush_reorder_buffer()
   if (reorder_output_queue_length==0) return false;
 
   while (reorder_output_queue_length>0) {
-    flush_next_picture_from_reorder_buffer();
+    output_next_picture_in_reorder_buffer();
   }
 
   return true;
 }
 
 
-void decoded_picture_buffer::clear_images(decoder_context* ctx)
+void decoded_picture_buffer::clear(decoder_context* ctx)
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     if (dpb[i].PicOutputFlag ||
@@ -160,15 +160,12 @@ void decoded_picture_buffer::clear_images(decoder_context* ctx)
 }
 
 
-/* Alloc a new image in the DPB and return its index.
-   If there is no space for a new image, return -1.
- */
-int decoded_picture_buffer::initialize_new_DPB_image(const seq_parameter_set* sps)
+int decoded_picture_buffer::new_image(const seq_parameter_set* sps)
 {
-  loginfo(LogHeaders,"initialize_new_DPB_image\n");
-
-  //printf("initialize_new_DPB_image()\n");
+  loginfo(LogHeaders,"DPB::new_image\n");
   log_dpb_content();
+
+  // --- search for a free slot in the DPB ---
 
   int free_image_buffer_idx = -1;
   for (int i=0;i<DE265_DPB_SIZE;i++) {
@@ -178,11 +175,14 @@ int decoded_picture_buffer::initialize_new_DPB_image(const seq_parameter_set* sp
     }
   }
 
-  //printf("free buffer index = %d\n", free_image_buffer_idx);
+  // no free slot
 
   if (free_image_buffer_idx == -1) {
     return -1;
   }
+
+
+  // --- allocate new image ---
 
   de265_image* img = &dpb[free_image_buffer_idx];
 

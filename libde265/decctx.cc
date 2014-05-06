@@ -132,8 +132,6 @@ decoder_context::decoder_context()
 
   // --- internal data ---
 
-  init_dpb(&dpb);
-
   first_decoded_picture = true;
   //ctx->FirstAfterEndOfSequenceNAL = true;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
@@ -159,7 +157,6 @@ decoder_context::decoder_context()
 
 decoder_context::~decoder_context()
 {
-  free_dpb(&dpb);
 }
 
 
@@ -325,7 +322,7 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 {
   assert(ctx->dpb.has_free_dpb_picture(true));
 
-  int idx = ctx->dpb.initialize_new_DPB_image(ctx->current_sps);
+  int idx = ctx->dpb.new_image(ctx->current_sps);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
@@ -833,7 +830,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     */
 
     if (ctx->dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
-      ctx->dpb.flush_next_picture_from_reorder_buffer();
+      ctx->dpb.output_next_picture_in_reorder_buffer();
     }
 
 
@@ -878,7 +875,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
     // --- find and allocate image buffer for decoding ---
 
     int image_buffer_idx;
-    image_buffer_idx = ctx->dpb.initialize_new_DPB_image(sps);
+    image_buffer_idx = ctx->dpb.new_image(sps);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;

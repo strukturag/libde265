@@ -22,7 +22,6 @@
 #define DE265_DPB_H
 
 #include "libde265/image.h"
-#include "libde265/de265.h"
 #include "libde265/sps.h"
 
 // TODO: check required value
@@ -31,41 +30,64 @@
 #define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
 
-typedef struct decoded_picture_buffer {
+struct decoded_picture_buffer {
+  decoded_picture_buffer();
+  ~decoded_picture_buffer();
 
-  void clear_images(struct decoder_context* ctx);
+  /* Alloc a new image in the DPB and return its index.
+     If there is no space for a new image, return -1. */
+  int new_image(const seq_parameter_set* sps);
+  
+  /* Check for a free slot in the DPB. There are some slots reserved for
+     unavailable reference frames. If high_priority==true, these reserved slots
+     are included in the check. */
+  bool has_free_dpb_picture(bool high_priority) const;
 
-  void pop_next_picture_in_output_queue();
+  /* Remove all pictures from DPB and queues. Decoding should be stopped when calling this. */
+  void clear(struct decoder_context* ctx);
 
-  // output next picture from reorder buffer, TODO: rename function
-  void flush_next_picture_from_reorder_buffer();
+
+  /* Raw access to the images. */
+  /* */ de265_image* get_image(int index)       { return &dpb[index]; }
+  const de265_image* get_image(int index) const { return &dpb[index]; }
+
+  /* Search DPB for the slot index of a specific picture. */
+  int DPB_index_of_picture_with_POC(int poc) const;
+  int DPB_index_of_picture_with_LSB(int lsb) const;
+  
+
+  // --- reorder buffer ---
+
+  void insert_image_into_reorder_buffer(de265_image* img) {
+    reorder_output_queue[ reorder_output_queue_length++ ] = img;
+  }
+
+  int num_pictures_in_reorder_buffer() const { return reorder_output_queue_length; }
+
+  // move next picture in reorder buffer to output queue
+  void output_next_picture_in_reorder_buffer();
   
   // Move all pictures in reorder buffer to output buffer. Return true if there were any pictures.
   bool flush_reorder_buffer();
   
-  int initialize_new_DPB_image(const seq_parameter_set* sps);
-  
-  bool has_free_dpb_picture(bool high_priority) const;
-  //void push_current_picture_to_output_queue(decoded_picture_buffer* dpb);
-  
-  int DPB_index_of_picture_with_POC(int poc) const;
-  int DPB_index_of_picture_with_LSB(int lsb) const;
-  
+
+  // --- output buffer ---
+
+  int num_pictures_in_output_queue() const { return image_output_queue_length; }
+
+  /* Get the next picture in the output queue, but do not remove it from the queue. */
+  de265_image* get_next_picture_in_output_queue() const { return image_output_queue[0]; }
+
+  /* Remove the next picture in the output queue. */
+  void pop_next_picture_in_output_queue();
+
+
+  // --- debug ---
+
   void log_dpb_content() const;
   void log_dpb_queues() const;
   
-  de265_image* get_next_picture_in_output_queue() const { return image_output_queue[0]; }
-  int num_pictures_in_output_queue() const { return image_output_queue_length; }
-  int num_pictures_in_reorder_buffer() const { return reorder_output_queue_length; }
-
-  /* */ de265_image* get_image(int index)       { return &dpb[index]; }
-  const de265_image* get_image(int index) const { return &dpb[index]; }
-
-  void insert_image_into_reorder_buffer(de265_image* img) { reorder_output_queue[ reorder_output_queue_length++ ] = img; }
-
-
-  // --- decoded picture buffer ---
-
+private:
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
   de265_image* reorder_output_queue[DE265_DPB_SIZE];
@@ -74,12 +96,9 @@ typedef struct decoded_picture_buffer {
   de265_image* image_output_queue[DE265_DPB_SIZE];
   int          image_output_queue_length;
 
-  //de265_image* last_decoded_image;
-
-} decoded_picture_buffer;
-
-
-void init_dpb(decoded_picture_buffer*);
-void free_dpb(decoded_picture_buffer*);
+private:
+  decoded_picture_buffer(const decoded_picture_buffer&); // no copy
+  decoded_picture_buffer& operator=(const decoded_picture_buffer&); // no copy
+};
 
 #endif
