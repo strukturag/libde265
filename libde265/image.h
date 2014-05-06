@@ -218,6 +218,12 @@ struct de265_image {
   void set_conformance_window();
 
 
+  void add_slice_segment_header(slice_segment_header* shdr) {
+    shdr->slice_index = slices.size();
+    slices.push_back(shdr);
+  }
+
+
   bool available_zscan(int xCurr,int yCurr, int xN,int yN) const;
 
   bool available_pred_blk(int xC,int yC, int nCbS,
@@ -237,6 +243,10 @@ private:
   int stride, chroma_stride;
 
   int border;
+
+
+public:
+  std::vector<slice_segment_header*> slices;
 
 public:
 

@@ -62,7 +62,20 @@ static const int alignment = 16;
 de265_image::de265_image() // (optional) init variables, do not alloc image
 {
   // TODO: dangerous
-  memset(this, 0, sizeof(de265_image));
+  //memset(this, 0, sizeof(de265_image));
+
+  for (int c=0;c<3;c++) {
+    pixels[c] = NULL;
+    pixels_mem[c] = NULL;
+    pixels_confwin[c] = NULL;
+  }
+
+  width=height=0;
+
+  ctb_progress = NULL;
+
+  pts = 0;
+  user_data = NULL;
 
   picture_order_cnt_lsb = -1; // undefined
   PicOrderCntVal = -1; // undefined
@@ -209,6 +222,12 @@ de265_image::~de265_image()
   for (int i=0;i<ctb_info.data_size;i++)
     { de265_progress_lock_destroy(&ctb_progress[i]); }
 
+
+  for (int i=0;i<slices.size();i++) {
+    delete slices[i];
+  }
+  slices.clear();
+
   free(ctb_progress);
 
   de265_cond_destroy(&finished_cond);
@@ -325,6 +344,10 @@ void de265_image::wait_for_completion()
 
 void de265_image::clear_metadata()
 {
+  for (int i=0;i<slices.size();i++)
+    delete slices[i];
+  slices.clear();
+
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
@@ -366,17 +389,17 @@ void de265_image::mark_slice_headers_as_unused(decoder_context* ctx)
     return;
   }
 
-
   for (int i=0;i<ctb_info.data_size;i++)
     {
       int sliceHeaderIdx = ctb_info[i].SliceHeaderIndex;
 
       slice_segment_header* shdr;
-      shdr = &ctx->slice[ sliceHeaderIdx ];
+      //shdr = ctx->img->slices[ sliceHeaderIdx ];
+      //shdr = &ctx->slice[ sliceHeaderIdx ];
       
       //printf("cleanup SHDR %d\n",sliceHeaderIdx);
       
-      shdr->inUse = false;
+      //shdr->inUse = false;
     }
 }
 

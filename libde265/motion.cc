@@ -1170,7 +1170,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 
 
-    const slice_segment_header* colShdr = &ctx->slice[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
+    //const slice_segment_header* colShdr = &ctx->slice[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
+    const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
     if (shdr->LongTermRefPic[X][refIdxLX] != 
         colShdr->LongTermRefPic[listCol][refIdxCol]) {

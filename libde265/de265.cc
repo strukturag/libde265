@@ -418,21 +418,25 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
     //printf("-------- slice header --------\n");
 
+    /*
     int sliceIndex = get_next_slice_index(ctx);
     if (sliceIndex<0) {
       ctx->add_warning(DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED, true);
       return DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED;
     }
+    */
 
-    slice_segment_header* hdr = &ctx->slice[sliceIndex];
+    //slice_segment_header* hdr = &ctx->slice[sliceIndex];
+    slice_segment_header* hdr = new slice_segment_header;
     bool continueDecoding;
     err = hdr->read(&reader,ctx, &continueDecoding);
     if (!continueDecoding) {
       ctx->img->integrity = INTEGRITY_NOT_DECODED;
+      delete hdr;
       return err;
     }
     else {
-      hdr->slice_index = sliceIndex;
+      //hdr->slice_index = sliceIndex;
 
       if (ctx->param_slice_headers_fd>=0) {
         hdr->dump_slice_segment_header(ctx, ctx->param_slice_headers_fd);
@@ -441,9 +445,11 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
       if (process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)
         {
           ctx->img->integrity = INTEGRITY_NOT_DECODED;
+          delete hdr;
           return err;
         }
 
+      ctx->img->add_slice_segment_header(hdr);
       ctx->img->nal_hdr = nal_hdr;
 
       skip_bits(&reader,1); // TODO: why?

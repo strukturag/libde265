@@ -227,6 +227,7 @@ seq_parameter_set* get_sps(decoder_context* ctx, int id)
 /* The returned index rotates through [0;DE265_MAX_SLICES) and is not reset at each new picture.
    Returns -1 if no more slice data structure available.
  */
+#if 0
 int get_next_slice_index(decoder_context* ctx)
 {
   for (int i=0;i<DE265_MAX_SLICES;i++) {
@@ -239,6 +240,7 @@ int get_next_slice_index(decoder_context* ctx)
 
   return -1;
 }
+#endif
 
 
 /* The returned index rotates through [0;MAX_THREAD_CONTEXTS) and is not reset at each new picture.

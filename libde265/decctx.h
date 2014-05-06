@@ -157,7 +157,7 @@ struct decoder_context : public error_queue {
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
   pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
-  slice_segment_header slice[ DE265_MAX_SLICES ];
+  //slice_segment_header slice[ DE265_MAX_SLICES ];
 
   video_parameter_set* current_vps;
   seq_parameter_set*   current_sps;
@@ -261,12 +261,14 @@ void debug_dump_cb_info(const decoder_context*);
 
 LIBDE265_INLINE static slice_segment_header* get_SliceHeader(decoder_context* ctx, int x, int y)
 {
-  return &ctx->slice[ ctx->img->get_SliceHeaderIndex(x,y) ];
+  return ctx->img->slices[ ctx->img->get_SliceHeaderIndex(x,y) ];
+  //return &ctx->slice[ ctx->img->get_SliceHeaderIndex(x,y) ];
 }
 
 LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context* ctx, int ctbX, int ctbY)
 {
-  return &ctx->slice[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+  return ctx->img->slices[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+  //return &ctx->slice[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
 }
 
 

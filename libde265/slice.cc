@@ -209,7 +209,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
 
       int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
-      slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
+      //slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
+      slice_segment_header* prevCtbHdr = ctx->img->slices[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
       memcpy(this, prevCtbHdr, sizeof(slice_segment_header));
 
       first_slice_segment_in_pic_flag = 0;
@@ -2222,7 +2223,8 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
   ctx->img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
 
   ctx->img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
-  ctx->slice[ shdr->slice_index ].inUse=true; // mark that we are using this header
+  ctx->img->slices[ shdr->slice_index ]->inUse=true; // mark that we are using this header (TODO: simplify)
+  //ctx->slice[ shdr->slice_index ].inUse=true; // mark that we are using this header (TODO: simplify)
 
   int CtbAddrInSliceSeg = tctx->CtbAddrInRS - shdr->slice_segment_address;
 
@@ -3844,7 +3846,8 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
-    slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+    slice_segment_header* prevCtbHdr = ctx->img->slices[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+    //slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
 
     if (pps->is_tile_start_CTB(shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
                                shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY
