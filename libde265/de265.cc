@@ -304,7 +304,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 
     // flush all pending pictures into output queue
 
-    push_current_picture_to_output_queue(ctx);
+    ctx->push_current_picture_to_output_queue();
     ctx->dpb.flush_reorder_buffer();
 
     if (more) { *more = ctx->dpb.num_pictures_in_output_queue(); }
@@ -406,7 +406,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
   nal_header nal_hdr;
   nal_read_header(&reader, &nal_hdr);
-  process_nal_hdr(ctx, &nal_hdr);
+  ctx->process_nal_hdr(&nal_hdr);
 
   loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
           nal->data()[0], nal->data()[1],
@@ -431,7 +431,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
     bool continueDecoding;
     err = hdr->read(&reader,ctx, &continueDecoding);
     if (!continueDecoding) {
-      ctx->img->integrity = INTEGRITY_NOT_DECODED;
+      if (ctx->img) ctx->img->integrity = INTEGRITY_NOT_DECODED;
       delete hdr;
       return err;
     }
@@ -442,7 +442,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         hdr->dump_slice_segment_header(ctx, ctx->param_slice_headers_fd);
       }
 
-      if (process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)
+      if (ctx->process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)
         {
           ctx->img->integrity = INTEGRITY_NOT_DECODED;
           delete hdr;
@@ -633,7 +633,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           dump_vps(&vps, ctx->param_vps_headers_fd);
         }
 
-        process_vps(ctx, &vps);
+        ctx->process_vps(&vps);
       }
       break;
 
@@ -651,7 +651,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
           sps.dump_sps(ctx->param_sps_headers_fd);
         }
 
-        process_sps(ctx, &sps);
+        ctx->process_sps(&sps);
       }
       break;
 
@@ -668,7 +668,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         }
 
         if (success) {
-          process_pps(ctx,&pps);
+          ctx->process_pps(&pps);
         }
       }
       break;
@@ -679,7 +679,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
 
       sei_message sei;
 
-      push_current_picture_to_output_queue(ctx);
+      ctx->push_current_picture_to_output_queue();
 
       if (read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx)) {
         dump_sei(&sei, ctx);

@@ -121,10 +121,23 @@ class error_queue
 
 
 
-struct decoder_context : public error_queue {
-
+class decoder_context : public error_queue {
+ public:
   decoder_context();
   ~decoder_context();
+
+  void process_nal_hdr(nal_header*);
+  void process_vps(video_parameter_set*);
+  void process_sps(seq_parameter_set*);
+  void process_pps(pic_parameter_set*);
+
+  bool process_slice_segment_header(decoder_context*, slice_segment_header*,
+                                    de265_error*, de265_PTS pts, void* user_data);
+
+  int get_next_thread_context_index(decoder_context* ctx);
+
+  void push_current_picture_to_output_queue();
+
 
   // --- parameters ---
 
@@ -234,17 +247,5 @@ struct decoder_context : public error_queue {
   struct thread_context thread_context[MAX_THREAD_CONTEXTS];
 };
 
-
-void process_nal_hdr(decoder_context*, nal_header*);
-void process_vps(decoder_context*, video_parameter_set*);
-void process_sps(decoder_context*, seq_parameter_set*);
-void process_pps(decoder_context*, pic_parameter_set*);
-bool process_slice_segment_header(decoder_context*, slice_segment_header*,
-                                  de265_error*, de265_PTS pts, void* user_data);
-
-int get_next_slice_index(decoder_context* ctx);
-int get_next_thread_context_index(decoder_context* ctx);
-
-void push_current_picture_to_output_queue(decoder_context* ctx);
 
 #endif

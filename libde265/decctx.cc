@@ -177,39 +177,39 @@ void decoder_context::set_acceleration_functions(enum de265_acceleration l)
 }
 
 
-void process_nal_hdr(decoder_context* ctx, nal_header* nal)
+void decoder_context::process_nal_hdr(nal_header* nal)
 {
-  ctx->nal_unit_type = nal->nal_unit_type;
+  nal_unit_type = nal->nal_unit_type;
 
-  ctx->IdrPicFlag = (nal->nal_unit_type == NAL_UNIT_IDR_W_RADL ||
-                     nal->nal_unit_type == NAL_UNIT_IDR_N_LP);
+  IdrPicFlag = (nal->nal_unit_type == NAL_UNIT_IDR_W_RADL ||
+                nal->nal_unit_type == NAL_UNIT_IDR_N_LP);
 
-  ctx->RapPicFlag = (nal->nal_unit_type >= 16 &&
-                     nal->nal_unit_type <= 23);
+  RapPicFlag = (nal->nal_unit_type >= 16 &&
+                nal->nal_unit_type <= 23);
 }
 
 
-void process_vps(decoder_context* ctx, video_parameter_set* vps)
+void decoder_context::process_vps(video_parameter_set* vps)
 {
-  memcpy(&ctx->vps[ vps->video_parameter_set_id ], vps, sizeof(video_parameter_set));
+  this->vps[ vps->video_parameter_set_id ] = *vps;
 }
 
 
-void process_sps(decoder_context* ctx, seq_parameter_set* sps)
+void decoder_context::process_sps(seq_parameter_set* sps)
 {
-  push_current_picture_to_output_queue(ctx);
+  push_current_picture_to_output_queue();
 
-  ctx->sps[ sps->seq_parameter_set_id ] = *sps;
+  this->sps[ sps->seq_parameter_set_id ] = *sps;
 
-  ctx->HighestTid = libde265_min(sps->sps_max_sub_layers-1, ctx->param_HighestTid);
+  HighestTid = libde265_min(sps->sps_max_sub_layers-1, param_HighestTid);
 }
 
 
-void process_pps(decoder_context* ctx, pic_parameter_set* pps)
+void decoder_context::process_pps(pic_parameter_set* pps)
 {
-  push_current_picture_to_output_queue(ctx);
+  push_current_picture_to_output_queue();
 
-  ctx->pps[ (int)pps->pic_parameter_set_id ] = *pps;
+  this->pps[ (int)pps->pic_parameter_set_id ] = *pps;
 }
 
 
@@ -719,59 +719,58 @@ void run_postprocessing_filters(de265_image* img)
 #endif
 }
 
-void push_current_picture_to_output_queue(decoder_context* ctx)
+void decoder_context::push_current_picture_to_output_queue()
 {
-  if (ctx->img) {
-
-    // run post-processing filters (deblocking & SAO)
-
-    run_postprocessing_filters(ctx->img);
+  if (img==NULL) { return; }
 
 
-    // push image into output queue
+  // run post-processing filters (deblocking & SAO)
 
-    if (ctx->img->PicOutputFlag) {
-      ctx->img->set_conformance_window();
+  run_postprocessing_filters(img);
 
-      loginfo(LogDPB,"new picture has output-flag=true\n");
 
-      if (ctx->img->integrity != INTEGRITY_CORRECT &&
-          ctx->param_suppress_faulty_pictures) {
-      }
-      else {
-        assert(ctx->dpb.num_pictures_in_output_queue() < DE265_DPB_SIZE);
-        ctx->dpb.insert_image_into_reorder_buffer(ctx->img);
-      }
+  // push image into output queue
 
-      loginfo(LogDPB,"push image %d into reordering queue\n", ctx->img->PicOrderCntVal);
+  if (img->PicOutputFlag) {
+    img->set_conformance_window();
+
+    loginfo(LogDPB,"new picture has output-flag=true\n");
+
+    if (img->integrity != INTEGRITY_CORRECT &&
+        param_suppress_faulty_pictures) {
+    }
+    else {
+      assert(dpb.num_pictures_in_output_queue() < DE265_DPB_SIZE);
+      dpb.insert_image_into_reorder_buffer(img);
     }
 
-    ctx->last_decoded_image = ctx->img;
-    ctx->img = NULL;
-
-    // next image is not the first anymore
-
-    ctx->first_decoded_picture = false;
-
-
-    // check for full reorder buffers
-
-    int sublayer = ctx->current_vps->vps_max_sub_layers -1;
-    int maxNumPicsInReorderBuffer = ctx->current_vps->layer[sublayer].vps_max_num_reorder_pics;
-
-    if (ctx->dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
-      ctx->dpb.output_next_picture_in_reorder_buffer();
-    }
-
-
-    ctx->dpb.log_dpb_queues();
+    loginfo(LogDPB,"push image %d into reordering queue\n", img->PicOrderCntVal);
   }
+
+  last_decoded_image = img;
+  img = NULL;
+
+  // next image is not the first anymore
+
+  first_decoded_picture = false;
+
+
+  // check for full reorder buffers
+
+  int sublayer = current_vps->vps_max_sub_layers -1;
+  int maxNumPicsInReorderBuffer = current_vps->layer[sublayer].vps_max_num_reorder_pics;
+
+  if (dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
+    dpb.output_next_picture_in_reorder_buffer();
+  }
+
+  dpb.log_dpb_queues();
 }
 
 
 // returns whether we can continue decoding the stream or whether we should give up
-bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
-                                  de265_error* err, de265_PTS pts, void* user_data)
+bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
+                                                   de265_error* err, de265_PTS pts, void* user_data)
 {
   *err = DE265_OK;
 
@@ -794,7 +793,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
     // previous picture has been completely decoded
 
-    push_current_picture_to_output_queue(ctx);
+    ctx->push_current_picture_to_output_queue();
 
     ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 

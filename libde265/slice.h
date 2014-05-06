@@ -132,14 +132,13 @@ enum context_model_indices {
 
 
 typedef struct slice_segment_header {
-  slice_segment_header() { inUse=false; }
+  slice_segment_header() { }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
 
   int  slice_index; // index through all slices in a picture
-  char inUse; // slice is used by a picture currently in the buffer
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
