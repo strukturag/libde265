@@ -98,6 +98,7 @@ class NAL_Parser
   NAL_unit*   pop_from_NAL_queue();
   void        push_to_NAL_queue(NAL_unit*);
   de265_error flush_data();
+  void        mark_end_of_stream() { end_of_stream=true; }
 
   void  remove_pending_input_data();
 

@@ -380,8 +380,6 @@ de265_error NAL_Parser::flush_data()
     input_push_state = 0;
   }
 
-  end_of_stream = true;
-
   return DE265_OK;
 }
 

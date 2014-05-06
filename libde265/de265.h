@@ -205,6 +205,11 @@ LIBDE265_API LIBDE265_DEPRECATED de265_error de265_decode_data(de265_decoder_con
 LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* data, int length,
                                          de265_PTS pts, void* user_data);
 
+/* Indicate that de265_push_data has just received data until the end of a NAL.
+   The remaining pending input data is put into a NAL package and forwarded to the decoder.
+*/
+LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context*);
+
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
    This function only pushes data into the decoder, nothing will be decoded.

@@ -348,11 +348,24 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 }
 
 
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->nal_parser.flush_data();
+  ctx->nal_parser.flush_data();
+}
+
+
+LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+{
+  de265_push_end_of_NAL(de265ctx);
+
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->nal_parser.flush_data();
+  ctx->nal_parser.mark_end_of_stream();
+
+  return DE265_OK;
 }
 
 
@@ -422,7 +435,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
     bool continueDecoding;
     err = hdr->read(&reader,ctx, &continueDecoding);
     if (!continueDecoding) {
-      if (ctx->img) ctx->img->integrity = INTEGRITY_NOT_DECODED;
+      if (ctx->img) { ctx->img->integrity = INTEGRITY_NOT_DECODED; }
       delete hdr;
       return err;
     }

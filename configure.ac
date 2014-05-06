@@ -160,7 +160,7 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
                      )
 fi
 
-if eval "test x$enable_dec265 = xyes" && eval "test x$have_videogfx != xyes"; then
+if eval "test x$enable_dec265 = xyes" ; then
    PKG_CHECK_MODULES([SDL], [sdl],
                      [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl was found.])
                       AC_SUBST(SDL_CFLAGS)
