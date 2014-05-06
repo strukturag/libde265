@@ -128,7 +128,7 @@ struct thread_task_ctb_row
 
 struct thread_task_deblock
 {
-  struct decoder_context* ctx;
+  struct de265_image* img;
   int first;  // stripe row
   int last;
   int ctb_x,ctb_y;
