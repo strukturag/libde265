@@ -763,7 +763,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 #endif
 
     //writeFrame_Y(ctx,"raw");
-    apply_deblocking_filter(ctx);
+    apply_deblocking_filter(ctx->img);
     //writeFrame_Y(ctx,"deblk");
 
 #if SAVE_INTERMEDIATE_IMAGES
@@ -888,6 +888,7 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
     img->sps = *ctx->current_sps;
     img->pps = *ctx->current_pps;
+    img->decctx = ctx;
 
     img->clear_metadata();
 

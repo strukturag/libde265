@@ -259,6 +259,7 @@ public:
 
   seq_parameter_set sps;  // the SPS used for decoding this image
   pic_parameter_set pps;  // the PPS used for decoding this image
+  decoder_context*  decctx;
 
 private:
   MetaDataArray<CTB_info>    ctb_info;

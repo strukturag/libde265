@@ -127,21 +127,21 @@ void markPredictionBlockBoundary(decoder_context* ctx, int x0,int y0,
 }
 
 
-char derive_edgeFlags(decoder_context* ctx)
+char derive_edgeFlags(de265_image* img)
 {
-  const int minCbSize = ctx->current_sps->MinCbSizeY;
+  const int minCbSize = img->sps.MinCbSizeY;
   char deblocking_enabled=0; // whether deblocking is enabled in some part of the image
 
-  int ctb_mask = (1<<ctx->current_sps->Log2CtbSizeY)-1;
-  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
-  int ctbshift = ctx->current_sps->Log2CtbSizeY;
+  int ctb_mask = (1<<img->sps.Log2CtbSizeY)-1;
+  int picWidthInCtbs = img->sps.PicWidthInCtbsY;
+  int ctbshift = img->sps.Log2CtbSizeY;
 
-  const pic_parameter_set* pps = ctx->current_pps;
+  const pic_parameter_set* pps = &img->pps;
 
-  for (int cb_y=0;cb_y<ctx->current_sps->PicHeightInMinCbsY;cb_y++)
-    for (int cb_x=0;cb_x<ctx->current_sps->PicWidthInMinCbsY;cb_x++)
+  for (int cb_y=0;cb_y<img->sps.PicHeightInMinCbsY;cb_y++)
+    for (int cb_x=0;cb_x<img->sps.PicWidthInMinCbsY;cb_x++)
       {
-        int log2CbSize = ctx->img->get_log2CbSize_cbUnits(cb_x,cb_y);
+        int log2CbSize = img->get_log2CbSize_cbUnits(cb_x,cb_y);
         if (log2CbSize==0) {
           continue;
         }
@@ -156,7 +156,7 @@ char derive_edgeFlags(decoder_context* ctx)
 
         // check whether we should filter this slice
 
-        slice_segment_header* shdr = get_SliceHeader(ctx,x0,y0);
+        slice_segment_header* shdr = get_SliceHeader(img->decctx,x0,y0);  // TODO: decctx
 
         // check whether to filter left and top edge
 
@@ -170,7 +170,7 @@ char derive_edgeFlags(decoder_context* ctx)
         if (x0 && ((x0 & ctb_mask) == 0)) { // left edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
               //shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0-1,y0))
-              shdr->SliceAddrRS != get_SliceHeader(ctx,x0-1,y0)->SliceAddrRS)
+              shdr->SliceAddrRS != get_SliceHeader(img->decctx,x0-1,y0)->SliceAddrRS) // TODO: decctx
             {
               filterLeftCbEdge = 0;
             }
@@ -183,8 +183,7 @@ char derive_edgeFlags(decoder_context* ctx)
 
         if (y0 && ((y0 & ctb_mask) == 0)) { // top edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
-              //shdr->slice_index != get_SliceHeaderIndex(ctx->img,ctx->current_sps,x0,y0-1))
-              shdr->SliceAddrRS != get_SliceHeader(ctx,x0,y0-1)->SliceAddrRS)
+              shdr->SliceAddrRS != get_SliceHeader(img->decctx,x0,y0-1)->SliceAddrRS) // TODO: decctx
             {
               filterTopCbEdge = 0;
             }
@@ -201,10 +200,10 @@ char derive_edgeFlags(decoder_context* ctx)
         if (shdr->slice_deblocking_filter_disabled_flag==0) {
           deblocking_enabled=1;
 
-          markTransformBlockBoundary(ctx, x0,y0, log2CbSize,0,
+          markTransformBlockBoundary(img->decctx, x0,y0, log2CbSize,0,
                                      filterLeftCbEdge, filterTopCbEdge);
 
-          markPredictionBlockBoundary(ctx, x0,y0, log2CbSize,
+          markPredictionBlockBoundary(img->decctx, x0,y0, log2CbSize,
                                       filterLeftCbEdge, filterTopCbEdge);
         }
       }
@@ -215,7 +214,7 @@ char derive_edgeFlags(decoder_context* ctx)
 
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
-void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int yEnd,
+void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEnd,
                              int xStart,int xEnd)
 {
   //int stride = ctx->img.stride; TODO: UNUSED
@@ -228,13 +227,11 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  de265_image* img = ctx->img;
-
   xEnd = libde265_min(xEnd,img->get_deblk_width());
   yEnd = libde265_min(yEnd,img->get_deblk_height());
 
-  int TUShift = ctx->current_sps->Log2MinTrafoSize;
-  int TUStride= ctx->current_sps->PicWidthInTbsY;
+  int TUShift = img->sps.Log2MinTrafoSize;
+  int TUStride= img->sps.PicWidthInTbsY;
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -242,16 +239,16 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
       int yDi = y*4;
 
       logtrace(LogDeblock,"%d %d %s = %s\n",xDi,yDi, vertical?"Vertical":"Horizontal",
-               (get_deblk_flags(ctx->img,xDi,yDi) & edgeMask) ? "edge" : "...");
+               (get_deblk_flags(img,xDi,yDi) & edgeMask) ? "edge" : "...");
 
-      uint8_t edgeFlags = ctx->img->get_deblk_flags(xDi,yDi);
+      uint8_t edgeFlags = img->get_deblk_flags(xDi,yDi);
 
       if (edgeFlags & edgeMask) {
         //int p0 = ctx->img.y[(xDi-xOffs)+(yDi-yOffs)*stride]; TODO: UNUSED
         //int q0 = ctx->img.y[xDi+yDi*stride];                 TODO: UNUSED
 
-        bool p_is_intra_pred = (ctx->img->get_pred_mode(xDi-xOffs, yDi-yOffs) == MODE_INTRA);
-        bool q_is_intra_pred = (ctx->img->get_pred_mode(xDi,       yDi      ) == MODE_INTRA);
+        bool p_is_intra_pred = (img->get_pred_mode(xDi-xOffs, yDi-yOffs) == MODE_INTRA);
+        bool q_is_intra_pred = (img->get_pred_mode(xDi,       yDi      ) == MODE_INTRA);
 
         int bS;
 
@@ -274,19 +271,19 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
               (ctx->img->tu_info[(xDi   >>TUShift) + (yDi   >>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF ||
                ctx->img->tu_info[(xDiOpp>>TUShift) + (yDiOpp>>TUShift)*TUStride] & TU_FLAG_NONZERO_COEFF)) {
               */
-              (ctx->img->get_nonzero_coefficient(xDi   ,yDi) ||
-               ctx->img->get_nonzero_coefficient(xDiOpp,yDiOpp))) {
+              (img->get_nonzero_coefficient(xDi   ,yDi) ||
+               img->get_nonzero_coefficient(xDiOpp,yDiOpp))) {
             bS = 1;
           }
           else {
 
             bS = 0;
 
-            const PredVectorInfo* mviP = ctx->img->get_mv_info(xDiOpp,yDiOpp);
-            const PredVectorInfo* mviQ = ctx->img->get_mv_info(xDi   ,yDi);
+            const PredVectorInfo* mviP = img->get_mv_info(xDiOpp,yDiOpp);
+            const PredVectorInfo* mviQ = img->get_mv_info(xDi   ,yDi);
 
-            slice_segment_header* shdrP = get_SliceHeader(ctx,xDiOpp,yDiOpp);
-            slice_segment_header* shdrQ = get_SliceHeader(ctx,xDi   ,yDi);
+            slice_segment_header* shdrP = get_SliceHeader(img->decctx,xDiOpp,yDiOpp); // TODO: decctx
+            slice_segment_header* shdrQ = get_SliceHeader(img->decctx,xDi   ,yDi);    // TODO: decctx
 
             int refPicP0 = mviP->predFlag[0] ? shdrP->RefPicList[0][ mviP->refIdx[0] ] : -1;
             int refPicP1 = mviP->predFlag[1] ? shdrP->RefPicList[1][ mviP->refIdx[1] ] : -1;
@@ -309,8 +306,8 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
               int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
 
               if (numMV_P!=numMV_Q) {
-                ctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
-                ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+                img->decctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
+                img->integrity = INTEGRITY_DECODING_ERRORS;
               }
 
               // two different reference pictures or only one reference picture
@@ -359,10 +356,10 @@ void derive_boundaryStrength(decoder_context* ctx, bool vertical, int yStart,int
           }
         }
 
-        ctx->img->set_deblk_bS(xDi,yDi, bS);
+        img->set_deblk_bS(xDi,yDi, bS);
       }
       else {
-        ctx->img->set_deblk_bS(xDi,yDi, 0);
+        img->set_deblk_bS(xDi,yDi, 0);
       }
     }
 }
@@ -373,7 +370,7 @@ void derive_boundaryStrength_CTB(decoder_context* ctx, bool vertical, int xCtb,i
   int ctbSize = ctx->current_sps->CtbSizeY;
   int deblkSize = ctbSize/4;
 
-  derive_boundaryStrength(ctx,vertical,
+  derive_boundaryStrength(ctx->img,vertical,
                           yCtb*deblkSize, (yCtb+1)*deblkSize,
                           xCtb*deblkSize, (xCtb+1)*deblkSize);
 }
@@ -394,21 +391,16 @@ static uint8_t table_8_23_tc[54] = {
 
 
 // 8.7.2.4
-void edge_filtering_luma(decoder_context* ctx, bool vertical,
+void edge_filtering_luma(de265_image* img, bool vertical,
                          int yStart,int yEnd, int xStart,int xEnd)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
-
   //int minCbSize = ctx->current_sps->MinCbSizeY;
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
 
-  const int stride = ctx->img->get_image_stride(0);
+  const int stride = img->get_image_stride(0);
 
-  //printf("-> %d %d\n",yStart,yEnd);
-
-  de265_image* img = ctx->img;
-  int bitDepth_Y = ctx->current_sps->BitDepth_Y;
+  int bitDepth_Y = img->sps.BitDepth_Y;
 
   xEnd = libde265_min(xEnd,img->get_deblk_width());
   yEnd = libde265_min(yEnd,img->get_deblk_height());
@@ -417,14 +409,14 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
     for (int x=xStart;x<xEnd;x+=xIncr) {
       int xDi = x*4;
       int yDi = y*4;
-      int bS = ctx->img->get_deblk_bS(xDi,yDi);
+      int bS = img->get_deblk_bS(xDi,yDi);
 
       logtrace(LogDeblock,"deblock POC=%d %c --- x:%d y:%d bS:%d---\n",
                img->PicOrderCntVal,vertical ? 'V':'H',xDi,yDi,bS);
 
 #if 0
       {
-        uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
+        uint8_t* ptr = img->y + stride*yDi + xDi;
 
         for (int dy=-4;dy<4;dy++) {
           for (int dx=-4;dx<4;dx++) {
@@ -440,7 +432,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 #if 0
       if (!vertical)
         {
-          uint8_t* ptr = ctx->img->y + stride*yDi + xDi;
+          uint8_t* ptr = img->y + stride*yDi + xDi;
 
           for (int dy=-4;dy<4;dy++) {
             for (int dx=0;dx<4;dx++) {
@@ -457,7 +449,7 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 
         // 8.7.2.4.3
 
-        uint8_t* ptr = ctx->img->get_image_plane_at_pos(0, xDi,yDi);
+        uint8_t* ptr = img->get_image_plane_at_pos(0, xDi,yDi);
 
         uint8_t q[4][4], p[4][4];
         for (int k=0;k<4;k++)
@@ -492,17 +484,17 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
 #endif
 
 
-        int QP_Q = ctx->img->get_QPY(xDi,yDi);
+        int QP_Q = img->get_QPY(xDi,yDi);
         int QP_P = (vertical ?
-                    ctx->img->get_QPY(xDi-1,yDi) :
-                    ctx->img->get_QPY(xDi,yDi-1) );
+                    img->get_QPY(xDi-1,yDi) :
+                    img->get_QPY(xDi,yDi-1) );
         int qP_L = (QP_Q+QP_P+1)>>1;
 
         logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
 
-        int sliceIndexQ00 = ctx->img->get_SliceHeaderIndex(xDi,yDi);
-        int beta_offset = ctx->slice[sliceIndexQ00].slice_beta_offset;
-        int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
+        int sliceIndexQ00 = img->get_SliceHeaderIndex(xDi,yDi);
+        int beta_offset = img->decctx->slice[sliceIndexQ00].slice_beta_offset;
+        int tc_offset   = img->decctx->slice[sliceIndexQ00].slice_tc_offset;
 
         int Q_beta = Clip3(0,51, qP_L + beta_offset);
         int betaPrime = table_8_23_beta[Q_beta];
@@ -565,17 +557,17 @@ void edge_filtering_luma(decoder_context* ctx, bool vertical,
           bool filterQ = true;
 
           if (vertical) {
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi-1,yDi)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi-1,yDi)) filterP=false;
             if (img->get_cu_transquant_bypass(xDi-1,yDi)) filterP=false;
 
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
             if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
           }
           else {
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi-1)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi-1)) filterP=false;
             if (img->get_cu_transquant_bypass(xDi,yDi-1)) filterP=false;
 
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
             if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
           }
 
@@ -694,7 +686,7 @@ void edge_filtering_luma_CTB(decoder_context* ctx, bool vertical, int xCtb,int y
   int ctbSize = ctx->current_sps->CtbSizeY;
   int deblkSize = ctbSize/4;
 
-  edge_filtering_luma(ctx,vertical,
+  edge_filtering_luma(ctx->img,vertical,
                       yCtb*deblkSize, (yCtb+1)*deblkSize,
                       xCtb*deblkSize, (xCtb+1)*deblkSize);
 }
@@ -703,15 +695,12 @@ void edge_filtering_luma_CTB(decoder_context* ctx, bool vertical, int xCtb,int y
 
 
 // 8.7.2.4
-void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int yEnd,
+void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
                            int xStart,int xEnd)
 {
   //int minCbSize = ctx->current_sps->MinCbSizeY;
   int xIncr = vertical ? 4 : 2;
   int yIncr = vertical ? 2 : 4;
-
-  de265_image* img = ctx->img;
-  seq_parameter_set* sps = ctx->current_sps;
 
   const int stride = img->get_image_stride(1);
 
@@ -722,17 +711,17 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
     for (int x=xStart;x<xEnd;x+=xIncr) {
       int xDi = x*2;
       int yDi = y*2;
-      int bS = ctx->img->get_deblk_bS(2*xDi,2*yDi);
+      int bS = img->get_deblk_bS(2*xDi,2*yDi);
 
       if (bS>1) {
         // 8.7.2.4.5
 
         for (int cplane=0;cplane<2;cplane++) {
           int cQpPicOffset = (cplane==0 ?
-                              ctx->current_pps->pic_cb_qp_offset :
-                              ctx->current_pps->pic_cr_qp_offset);
+                              img->pps.pic_cb_qp_offset :
+                              img->pps.pic_cr_qp_offset);
 
-          uint8_t* ptr = ctx->img->get_image_plane_at_pos(cplane+1, xDi,yDi);
+          uint8_t* ptr = img->get_image_plane_at_pos(cplane+1, xDi,yDi);
 
           uint8_t p[2][4];
           uint8_t q[2][4];
@@ -770,10 +759,10 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
             }
 #endif
 
-          int QP_Q = ctx->img->get_QPY(2*xDi,2*yDi);
+          int QP_Q = img->get_QPY(2*xDi,2*yDi);
           int QP_P = (vertical ?
-                      ctx->img->get_QPY(2*xDi-1,2*yDi) :
-                      ctx->img->get_QPY(2*xDi,2*yDi-1));
+                      img->get_QPY(2*xDi-1,2*yDi) :
+                      img->get_QPY(2*xDi,2*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C = table8_22(qP_i);
 
@@ -781,24 +770,24 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
                    2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
 
-          int sliceIndexQ00 = ctx->img->get_SliceHeaderIndex(2*xDi,2*yDi);
+          int sliceIndexQ00 = img->get_SliceHeaderIndex(2*xDi,2*yDi);
           //int tc_offset   = ctx->current_pps->tc_offset;
-          int tc_offset   = ctx->slice[sliceIndexQ00].slice_tc_offset;
+          int tc_offset   = img->decctx->slice[sliceIndexQ00].slice_tc_offset; // TODO: decctx
 
           int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);
 
           int tcPrime = table_8_23_tc[Q];
-          int tc = tcPrime * (1<<(ctx->current_sps->BitDepth_C - 8));
+          int tc = tcPrime * (1<<(img->sps.BitDepth_C - 8));
 
           logtrace(LogDeblock,"tc_offset=%d Q=%d tc'=%d tc=%d\n",tc_offset,Q,tcPrime,tc);
 
           if (vertical) {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi-1,2*yDi)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi-1,2*yDi)) filterP=false;
             if (img->get_cu_transquant_bypass(2*xDi-1,2*yDi)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
             if (img->get_cu_transquant_bypass(2*xDi,2*yDi)) filterQ=false;
 
 
@@ -811,11 +800,11 @@ void edge_filtering_chroma(decoder_context* ctx, bool vertical, int yStart,int y
           }
           else {
             bool filterP = true;
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi-1)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi-1)) filterP=false;
             if (img->get_cu_transquant_bypass(2*xDi,2*yDi-1)) filterP=false;
 
             bool filterQ = true;
-            if (sps->pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
             if (img->get_cu_transquant_bypass(2*xDi,2*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
@@ -834,7 +823,7 @@ void edge_filtering_chroma_CTB(decoder_context* ctx, bool vertical, int xCtb,int
   int ctbSize = ctx->current_sps->CtbSizeY;
   int deblkSize = ctbSize/4;
 
-  edge_filtering_chroma(ctx,vertical,
+  edge_filtering_chroma(ctx->img,vertical,
                         yCtb*deblkSize, (yCtb+1)*deblkSize,
                         xCtb*deblkSize, (xCtb+1)*deblkSize);
 }
@@ -851,9 +840,9 @@ static void thread_deblock(void* d)
   int xStart=0;
   int xEnd = img->get_deblk_width();
 
-  derive_boundaryStrength(ctx, data->vertical, data->first,data->last, xStart,xEnd);
-  edge_filtering_luma    (ctx, data->vertical, data->first,data->last, xStart,xEnd);
-  edge_filtering_chroma  (ctx, data->vertical, data->first,data->last, xStart,xEnd);
+  derive_boundaryStrength(img, data->vertical, data->first,data->last, xStart,xEnd);
+  edge_filtering_luma    (img, data->vertical, data->first,data->last, xStart,xEnd);
+  edge_filtering_chroma  (img, data->vertical, data->first,data->last, xStart,xEnd);
 
   ctx->img->decrease_pending_tasks(1);
 }
@@ -909,11 +898,10 @@ static void thread_deblock_full_ctb_row(void* d)
 */
 
 
-void apply_deblocking_filter(decoder_context* ctx)
+void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 {
-  char enabled_deblocking = derive_edgeFlags(ctx);
-
-  de265_image* img = ctx->img;
+  char enabled_deblocking = derive_edgeFlags(img);
+  decoder_context* ctx = img->decctx;
 
 
   if (enabled_deblocking)
@@ -923,9 +911,9 @@ void apply_deblocking_filter(decoder_context* ctx)
         // vertical filtering
 
         logtrace(LogDeblock,"VERTICAL\n");
-        derive_boundaryStrength(ctx, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_luma    (ctx, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_chroma  (ctx, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
 #if 0
           char buf[1000];
@@ -936,9 +924,9 @@ void apply_deblocking_filter(decoder_context* ctx)
         // horizontal filtering
 
         logtrace(LogDeblock,"HORIZONTAL\n");
-        derive_boundaryStrength(ctx, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_luma    (ctx, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_chroma  (ctx, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+        edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
 #if 0
         sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
@@ -957,7 +945,7 @@ void apply_deblocking_filter(decoder_context* ctx)
 
           int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
           //ctx->thread_pool.tasks_pending = numStripes;
-          ctx->img->increase_pending_tasks(numStripes);
+          img->increase_pending_tasks(numStripes);
 
           for (int i=0;i<numStripes;i++)
             {
@@ -977,7 +965,7 @@ void apply_deblocking_filter(decoder_context* ctx)
               add_task(&ctx->thread_pool, &task);
             }
 
-          ctx->img->wait_for_completion();
+          img->wait_for_completion();
         }
 #endif
 #if 0
