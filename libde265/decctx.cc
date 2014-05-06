@@ -751,35 +751,37 @@ void cleanup_image(decoder_context* ctx, de265_image* img)
 }
 
 
+void run_postprocessing_filters(de265_image* img)
+{
+#if SAVE_INTERMEDIATE_IMAGES
+    char buf[1000];
+    sprintf(buf,"pre-lf-%05d.yuv", img->PicOrderCntVal);
+    write_picture_to_file(img, buf);
+#endif
+
+    apply_deblocking_filter(img);
+
+#if SAVE_INTERMEDIATE_IMAGES
+    sprintf(buf,"pre-sao-%05d.yuv", img->PicOrderCntVal);
+    write_picture_to_file(img, buf);
+#endif
+
+    apply_sample_adaptive_offset(img);
+
+#if SAVE_INTERMEDIATE_IMAGES
+    sprintf(buf,"sao-%05d.yuv", img->PicOrderCntVal);
+    write_picture_to_file(img, buf);
+#endif
+}
+
 void push_current_picture_to_output_queue(decoder_context* ctx)
 {
   if (ctx->img) {
-    //ctx->img->PicState = UsedForShortTermReference;
 
-    // post-process image
+    // run post-processing filters (deblocking & SAO)
 
-#if SAVE_INTERMEDIATE_IMAGES
-    char buf[1000];
-    sprintf(buf,"pre-lf-%05d.yuv", ctx->img->PicOrderCntVal);
-    write_picture_to_file(ctx->img, buf);
-#endif
+    run_postprocessing_filters(ctx->img);
 
-    //writeFrame_Y(ctx,"raw");
-    apply_deblocking_filter(ctx->img);
-    //writeFrame_Y(ctx,"deblk");
-
-#if SAVE_INTERMEDIATE_IMAGES
-    sprintf(buf,"pre-sao-%05d.yuv", ctx->img->PicOrderCntVal);
-    write_picture_to_file(ctx->img, buf);
-#endif
-
-    apply_sample_adaptive_offset(ctx->img);
-    //writeFrame_Y(ctx,"sao");
-
-#if SAVE_INTERMEDIATE_IMAGES
-    sprintf(buf,"sao-%05d.yuv", ctx->img->PicOrderCntVal);
-    write_picture_to_file(ctx->img, buf);
-#endif
 
     // push image into output queue
 
@@ -803,15 +805,6 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     ctx->last_decoded_image = ctx->img;
     ctx->img = NULL;
 
-    /*
-      if (isRAP(ctx->nal_unit_type)) {
-      ctx->last_RAP_picture_NAL_type = ctx->nal_unit_type;
-
-      ctx->last_RAP_was_CRA_and_first_image_of_sequence =
-      isCRA(ctx->nal_unit_type) && ctx->first_decoded_picture;
-      }
-    */
-
     // next image is not the first anymore
 
     ctx->first_decoded_picture = false;
@@ -820,16 +813,7 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
     // check for full reorder buffers
 
     int sublayer = ctx->current_vps->vps_max_sub_layers -1;
-
     int maxNumPicsInReorderBuffer = ctx->current_vps->layer[sublayer].vps_max_num_reorder_pics;
-
-    /*
-    printf("reorder buffer: ");
-    for (int i=0;i<ctx->reorder_output_queue_length;i++) {
-      printf("%d ",ctx->reorder_output_queue[i]->PicOrderCntVal);
-    }
-    printf("\n");
-    */
 
     if (ctx->dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
       ctx->dpb.output_next_picture_in_reorder_buffer();
