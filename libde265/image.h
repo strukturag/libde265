@@ -217,6 +217,14 @@ struct de265_image {
 
   void set_conformance_window();
 
+
+  bool available_zscan(int xCurr,int yCurr, int xN,int yN) const;
+
+  bool available_pred_blk(int xC,int yC, int nCbS,
+                          int xP, int yP, int nPbW, int nPbH, int partIdx,
+                          int xN,int yN) const;
+
+
 private:
   uint8_t* pixels[3];   // pointer to pixels in the conformance window
   uint8_t* pixels_mem[3];  // usually, you don't use these, but the pointers above

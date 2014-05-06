@@ -236,7 +236,6 @@ struct decoder_context : public error_queue {
 
 
 void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration);
-void reset_decoder_context_for_new_picture(decoder_context* ctx);
 
 
 void cleanup_image(decoder_context* ctx, de265_image* img);
@@ -270,14 +269,6 @@ LIBDE265_INLINE static slice_segment_header* get_SliceHeaderCtb(decoder_context*
   return &ctx->slice[ ctx->img->get_SliceHeaderIndexCtb(ctbX,ctbY) ];
 }
 
-
-// TODO: move to some utility file
-bool available_zscan(const de265_image* img,
-                     int xCurr,int yCurr, int xN,int yN);
-
-bool available_pred_blk(const de265_image* img,
-                        int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
-                        int xN,int yN);
 
 void push_current_picture_to_output_queue(decoder_context* ctx);
 

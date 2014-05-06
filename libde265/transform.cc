@@ -146,7 +146,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
   int qPYA,qPYB;
 
-  if (available_zscan(tctx->img,xQG,yQG, xQG-1,yQG)) {
+  if (tctx->img->available_zscan(xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
     int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
@@ -162,7 +162,7 @@ void decode_quantization_parameters(decoder_context* ctx,
     qPYA = qPY_PRED;
   }
 
-  if (available_zscan(tctx->img,xQG,yQG, xQG,yQG-1)) {
+  if (tctx->img->available_zscan(xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
     int minTbAddrB = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];

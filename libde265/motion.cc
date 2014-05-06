@@ -808,7 +808,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate A1: second part ignore\n");
   }
   else {
-    availableA1 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
+    availableA1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
     if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
 
@@ -846,7 +846,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate B1: second part ignore\n");
   }
   else {
-    availableB1 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
+    availableB1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
     if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
   }
 
@@ -884,7 +884,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate B0: below parallel merge level\n");
   }
   else {
-    availableB0 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
+    availableB0 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
     if (!availableB0) logtrace(LogMotion,"spatial merging candidate B0: unavailable\n");
   }
 
@@ -922,7 +922,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate A0: below parallel merge level\n");
   }
   else {
-    availableA0 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
+    availableA0 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
     if (!availableA0) logtrace(LogMotion,"spatial merging candidate A0: unavailable\n");
   }
 
@@ -965,7 +965,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate B2: below parallel merge level\n");
   }
   else {
-    availableB2 = available_pred_blk(img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
+    availableB2 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
     if (!availableB2) logtrace(LogMotion,"spatial merging candidate B2: unavailable\n");
   }
 
@@ -1496,8 +1496,8 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
   // 3. / 4.
 
   bool availableA[2];
-  availableA[0] = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
-  availableA[1] = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
+  availableA[0] = ctx->img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
+  availableA[1] = ctx->img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
 
   // 5.
 
@@ -1630,7 +1630,7 @@ void derive_spatial_luma_vector_prediction(decoder_context* ctx,
 
   bool availableB[3];
   for (int k=0;k<3;k++) {
-    availableB[k] = available_pred_blk(ctx->img, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
+    availableB[k] = ctx->img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
 
     if (availableB[k] && out_availableFlagLXN[B]==0) {
       

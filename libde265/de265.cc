@@ -301,13 +301,13 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
   if (ctx->nal_parser.get_NAL_queue_length() == 0 && ctx->nal_parser.is_end_of_stream()) {
-    if (more) { *more=0; } // 0 if no more pictures in queue
+
+    // flush all pending pictures into output queue
 
     push_current_picture_to_output_queue(ctx);
+    ctx->dpb.flush_reorder_buffer();
 
-    bool images_in_reorder_buffer;
-    images_in_reorder_buffer = ctx->dpb.flush_reorder_buffer();
-    if (more && images_in_reorder_buffer) { *more=1; }
+    if (more) { *more = ctx->dpb.num_pictures_in_output_queue(); }
 
     return DE265_OK;
   }

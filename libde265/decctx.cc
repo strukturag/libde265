@@ -967,69 +967,6 @@ bool process_slice_segment_header(decoder_context* ctx, slice_segment_header* hd
 
 
 
-bool available_zscan(const de265_image* img,
-                     int xCurr,int yCurr, int xN,int yN)
-{
-  const seq_parameter_set& sps = img->sps;
-  const pic_parameter_set& pps = img->pps;
-
-  if (xN<0 || yN<0) return false;
-  if (xN>=sps.pic_width_in_luma_samples ||
-      yN>=sps.pic_height_in_luma_samples) return false;
-
-  int minBlockAddrN = pps.MinTbAddrZS[ (xN>>sps.Log2MinTrafoSize) +
-                                       (yN>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
-  int minBlockAddrCurr = pps.MinTbAddrZS[ (xCurr>>sps.Log2MinTrafoSize) +
-                                          (yCurr>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
-
-  if (minBlockAddrN > minBlockAddrCurr) return false;
-
-  int xCurrCtb = xCurr >> sps.Log2CtbSizeY;
-  int yCurrCtb = yCurr >> sps.Log2CtbSizeY;
-  int xNCtb = xN >> sps.Log2CtbSizeY;
-  int yNCtb = yN >> sps.Log2CtbSizeY;
-
-  if (img->get_SliceAddrRS(xCurrCtb,yCurrCtb) !=
-      img->get_SliceAddrRS(xNCtb,   yNCtb)) {
-    return false;
-  }
-
-  if (pps.TileIdRS[xCurrCtb + yCurrCtb*sps.PicWidthInCtbsY] !=
-      pps.TileIdRS[xNCtb    + yNCtb   *sps.PicWidthInCtbsY]) {
-    return false;
-  }
-
-  return true;
-}
-
-
-bool available_pred_blk(const de265_image* img,
-                        int xC,int yC, int nCbS, int xP, int yP, int nPbW, int nPbH, int partIdx,
-                        int xN,int yN)
-{
-  logtrace(LogMotion,"C:%d;%d P:%d;%d N:%d;%d size=%d;%d\n",xC,yC,xP,yP,xN,yN,nPbW,nPbH);
-
-  int sameCb = (xC <= xN && xN < xC+nCbS &&
-                yC <= yN && yN < yC+nCbS);
-
-  bool availableN;
-
-  if (!sameCb) {
-    availableN = available_zscan(img,xP,yP,xN,yN);
-  }
-  else {
-    availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
-                   partIdx==1 &&
-                   yN >= yC+nPbH && xN < xC+nPbW);
-  }
-
-  if (availableN && img->get_pred_mode(xN,yN) == MODE_INTRA) {
-    availableN = false;
-  }
-
-  return availableN;
-}
-
 
 void error_queue::add_warning(de265_error warning, bool once)
 {

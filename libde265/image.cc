@@ -379,3 +379,64 @@ void de265_image::mark_slice_headers_as_unused(decoder_context* ctx)
       shdr->inUse = false;
     }
 }
+
+
+
+bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
+{
+  if (xN<0 || yN<0) return false;
+  if (xN>=sps.pic_width_in_luma_samples ||
+      yN>=sps.pic_height_in_luma_samples) return false;
+
+  int minBlockAddrN = pps.MinTbAddrZS[ (xN>>sps.Log2MinTrafoSize) +
+                                       (yN>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
+  int minBlockAddrCurr = pps.MinTbAddrZS[ (xCurr>>sps.Log2MinTrafoSize) +
+                                          (yCurr>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
+
+  if (minBlockAddrN > minBlockAddrCurr) return false;
+
+  int xCurrCtb = xCurr >> sps.Log2CtbSizeY;
+  int yCurrCtb = yCurr >> sps.Log2CtbSizeY;
+  int xNCtb = xN >> sps.Log2CtbSizeY;
+  int yNCtb = yN >> sps.Log2CtbSizeY;
+
+  if (get_SliceAddrRS(xCurrCtb,yCurrCtb) !=
+      get_SliceAddrRS(xNCtb,   yNCtb)) {
+    return false;
+  }
+
+  if (pps.TileIdRS[xCurrCtb + yCurrCtb*sps.PicWidthInCtbsY] !=
+      pps.TileIdRS[xNCtb    + yNCtb   *sps.PicWidthInCtbsY]) {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool de265_image::available_pred_blk(int xC,int yC, int nCbS, int xP, int yP,
+                                     int nPbW, int nPbH, int partIdx, int xN,int yN) const
+{
+  logtrace(LogMotion,"C:%d;%d P:%d;%d N:%d;%d size=%d;%d\n",xC,yC,xP,yP,xN,yN,nPbW,nPbH);
+
+  int sameCb = (xC <= xN && xN < xC+nCbS &&
+                yC <= yN && yN < yC+nCbS);
+
+  bool availableN;
+
+  if (!sameCb) {
+    availableN = available_zscan(xP,yP,xN,yN);
+  }
+  else {
+    availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
+                   partIdx==1 &&
+                   yN >= yC+nPbH && xN < xC+nPbW);
+  }
+
+  if (availableN && get_pred_mode(xN,yN) == MODE_INTRA) {
+    availableN = false;
+  }
+
+  return availableN;
+}
+
