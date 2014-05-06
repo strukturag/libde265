@@ -76,19 +76,20 @@ void print_border(uint8_t* data, uint8_t* available, int nT)
 
 
 // (8.4.4.2.2)
-void fill_border_samples(decoder_context* ctx, int xB,int yB,
+void fill_border_samples(de265_image* img, int xB,int yB,
                          int nT, int cIdx,
                          uint8_t* out_border)
 {
-  seq_parameter_set* sps = ctx->current_sps;
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
 
   uint8_t available_data[2*64 + 1];
   uint8_t* available = &available_data[64];
 
   uint8_t* image;
   int stride;
-  image  = ctx->img->get_image_plane(cIdx);
-  stride = ctx->img->get_image_stride(cIdx);
+  image  = img->get_image_plane(cIdx);
+  stride = img->get_image_stride(cIdx);
 
   const int chromaShift = (cIdx==0) ? 0 : 1;
   const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
@@ -101,8 +102,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int nTLuma = (cIdx==0) ? nT : 2*nT;
 
   int log2CtbSize = sps->Log2CtbSizeY;
-  int picWidthInCtbs = ctx->current_sps->PicWidthInCtbsY;
-  const pic_parameter_set* pps = ctx->current_pps;
+  int picWidthInCtbs = sps->PicWidthInCtbsY;
 
   bool availableLeft=true;    // is CTB at left side available?
   bool availableTop=true;     // is CTB at top side available?
@@ -140,11 +140,11 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
   int xRightCtb = (xBLuma+nTLuma) >> log2CtbSize;
   int yTopCtb   = (yBLuma-1) >> log2CtbSize;
 
-  int currCTBSlice = ctx->img->get_SliceAddrRS(xCurrCtb,yCurrCtb);
-  int leftCTBSlice = availableLeft ? ctx->img->get_SliceAddrRS(xLeftCtb, yCurrCtb) : -1;
-  int topCTBSlice  = availableTop ? ctx->img->get_SliceAddrRS(xCurrCtb, yTopCtb) : -1;
-  int toprightCTBSlice = availableTopRight ? ctx->img->get_SliceAddrRS(xRightCtb, yTopCtb) : -1;
-  int topleftCTBSlice  = availableTopLeft  ? ctx->img->get_SliceAddrRS(xLeftCtb, yTopCtb) : -1;
+  int currCTBSlice = img->get_SliceAddrRS(xCurrCtb,yCurrCtb);
+  int leftCTBSlice = availableLeft ? img->get_SliceAddrRS(xLeftCtb, yCurrCtb) : -1;
+  int topCTBSlice  = availableTop ? img->get_SliceAddrRS(xCurrCtb, yTopCtb) : -1;
+  int toprightCTBSlice = availableTopRight ? img->get_SliceAddrRS(xRightCtb, yTopCtb) : -1;
+  int topleftCTBSlice  = availableTopLeft  ? img->get_SliceAddrRS(xLeftCtb, yTopCtb) : -1;
 
   int currCTBTileID = pps->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
   int leftCTBTileID = availableLeft ? pps->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
@@ -187,8 +187,8 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
         
           bool availableN = NBlockAddr < currBlockAddr;
 
-          if (ctx->current_pps->constrained_intra_pred_flag) {
-            if (ctx->img->get_pred_mode((xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+          if (pps->constrained_intra_pred_flag) {
+            if (img->get_pred_mode((xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
               availableN = false;
           }
 
@@ -213,8 +213,8 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
         bool availableN = NBlockAddr < currBlockAddr;
 
-        if (ctx->current_pps->constrained_intra_pred_flag) {
-          if (ctx->img->get_pred_mode((xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+        if (pps->constrained_intra_pred_flag) {
+          if (img->get_pred_mode((xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
             availableN = false;
           }
         }
@@ -242,8 +242,8 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
           bool availableN = NBlockAddr < currBlockAddr;
 
-          if (ctx->current_pps->constrained_intra_pred_flag) {
-            if (ctx->img->get_pred_mode((xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+          if (pps->constrained_intra_pred_flag) {
+            if (img->get_pred_mode((xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
               availableN = false;
             }
           }
@@ -293,7 +293,7 @@ void fill_border_samples(decoder_context* ctx, int xB,int yB,
 
 
 // (8.4.4.2.3)
-void intra_prediction_sample_filtering(decoder_context* ctx,
+void intra_prediction_sample_filtering(de265_image* img,
                                        uint8_t* p,
                                        int nT,
                                        enum IntraPredMode intraPredMode)
@@ -316,10 +316,10 @@ void intra_prediction_sample_filtering(decoder_context* ctx,
 
 
   if (filterFlag) {
-    int biIntFlag = (ctx->current_sps->strong_intra_smoothing_enable_flag &&
+    int biIntFlag = (img->sps.strong_intra_smoothing_enable_flag &&
                      nT==32 &&
-                     abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(ctx->current_sps->bit_depth_luma-5)) &&
-                     abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(ctx->current_sps->bit_depth_luma-5)))
+                     abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(img->sps.bit_depth_luma-5)) &&
+                     abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(img->sps.bit_depth_luma-5)))
       ? 1 : 0;
 
     uint8_t  pF_mem[2*64+1];
@@ -374,7 +374,7 @@ LIBDE265_INLINE static int Clip1Y(int x) { if (x<0) return 0; else if (x>255) re
 
 
 // (8.4.4.2.6)
-void intra_prediction_angular(decoder_context* ctx,
+void intra_prediction_angular(de265_image* img,
                               int xB0,int yB0,
                               enum IntraPredMode intraPredMode,
                               int nT,int cIdx,
@@ -385,8 +385,8 @@ void intra_prediction_angular(decoder_context* ctx,
 
   uint8_t* pred;
   int      stride;
-  pred   = ctx->img->get_image_plane_at_pos(cIdx,xB0,yB0);
-  stride = ctx->img->get_image_stride(cIdx);
+  pred   = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  stride = img->get_image_stride(cIdx);
 
   int intraPredAngle = intraPredAngle_table[intraPredMode];
 
@@ -480,13 +480,13 @@ void intra_prediction_angular(decoder_context* ctx,
 }
 
 
-void intra_prediction_planar(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
+void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
                              uint8_t* border)
 {
   uint8_t* pred;
   int      stride;
-  pred = ctx->img->get_image_plane_at_pos(cIdx,xB0,yB0);
-  stride = ctx->img->get_image_stride(cIdx);
+  pred = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  stride = img->get_image_stride(cIdx);
 
   int Log2_nT = Log2(nT);
 
@@ -510,13 +510,13 @@ void intra_prediction_planar(decoder_context* ctx,int xB0,int yB0,int nT,int cId
 }
 
 
-void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
+void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
                          uint8_t* border)
 {
   uint8_t* pred;
   int      stride;
-  pred = ctx->img->get_image_plane_at_pos(cIdx,xB0,yB0);
-  stride = ctx->img->get_image_stride(cIdx);
+  pred = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  stride = img->get_image_stride(cIdx);
 
   int Log2_nT = Log2(nT);
 
@@ -564,7 +564,7 @@ void intra_prediction_DC(decoder_context* ctx,int xB0,int yB0,int nT,int cIdx,
 
 
 // (8.4.4.2.1)
-void decode_intra_prediction(decoder_context* ctx,
+void decode_intra_prediction(de265_image* img,
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx)
@@ -581,22 +581,22 @@ void decode_intra_prediction(decoder_context* ctx,
   uint8_t  border_pixels_mem[2*64+1];
   uint8_t* border_pixels = &border_pixels_mem[64];
 
-  fill_border_samples(ctx, xB0,yB0, nT, cIdx, border_pixels);
+  fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
   if (cIdx==0) {
-    intra_prediction_sample_filtering(ctx, border_pixels, nT, intraPredMode);
+    intra_prediction_sample_filtering(img, border_pixels, nT, intraPredMode);
   }
 
 
   switch (intraPredMode) {
   case INTRA_PLANAR:
-    intra_prediction_planar(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_planar(img,xB0,yB0,nT,cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(ctx,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_DC(img,xB0,yB0,nT,cIdx, border_pixels);
     break;
   default:
-    intra_prediction_angular(ctx,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    intra_prediction_angular(img,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
     break;
   }
 }

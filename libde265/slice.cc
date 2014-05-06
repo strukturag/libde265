@@ -2937,17 +2937,17 @@ void read_transform_tree(decoder_context* ctx,
       {
         enum IntraPredMode intraPredMode = ctx->img->get_IntraPredMode(x0,y0);
 
-        decode_intra_prediction(ctx, x0,y0, intraPredMode, nT, 0);
+        decode_intra_prediction(ctx->img, x0,y0, intraPredMode, nT, 0);
 
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
 
         if (nT>=8) {
-          decode_intra_prediction(ctx, x0/2,y0/2, chromaPredMode, nT/2, 1);
-          decode_intra_prediction(ctx, x0/2,y0/2, chromaPredMode, nT/2, 2);
+          decode_intra_prediction(ctx->img, x0/2,y0/2, chromaPredMode, nT/2, 1);
+          decode_intra_prediction(ctx->img, x0/2,y0/2, chromaPredMode, nT/2, 2);
         }
         else if (blkIdx==3) {
-          decode_intra_prediction(ctx, xBase/2,yBase/2, chromaPredMode, nT, 1);
-          decode_intra_prediction(ctx, xBase/2,yBase/2, chromaPredMode, nT, 2);
+          decode_intra_prediction(ctx->img, xBase/2,yBase/2, chromaPredMode, nT, 1);
+          decode_intra_prediction(ctx->img, xBase/2,yBase/2, chromaPredMode, nT, 2);
         }
       }
 
