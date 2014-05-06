@@ -1889,8 +1889,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
 
 // 8.5.3
-void decode_prediction_unit(decoder_context* ctx,
-                            thread_context* tctx,
+void decode_prediction_unit(thread_context* tctx,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
   logtrace(LogMotion,"decode_prediction_unit POC=%d %d;%d %dx%d\n",
@@ -1901,11 +1900,11 @@ void decode_prediction_unit(decoder_context* ctx,
   // 1.
 
   VectorInfo vi;
-  motion_vectors_and_ref_indices(ctx,tctx, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
+  motion_vectors_and_ref_indices(tctx->decctx,tctx, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 
   // 2.
 
-  generate_inter_prediction_samples(ctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(tctx->decctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
   tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi.lum);

@@ -3036,8 +3036,7 @@ void read_mvd_coding(thread_context* tctx,
 }
 
 
-void read_prediction_unit_SKIP(decoder_context* ctx,
-                               thread_context* tctx,
+void read_prediction_unit_SKIP(thread_context* tctx,
                                int x0, int y0,
                                int nPbW, int nPbH)
 {
@@ -3058,8 +3057,7 @@ void read_prediction_unit_SKIP(decoder_context* ctx,
 }
 
 
-void read_prediction_unit(decoder_context* ctx,
-                          thread_context* tctx,
+void read_prediction_unit(thread_context* tctx,
                           int xC,int yC, int xB,int yB,
                           int nPbW, int nPbH,
                           int ctDepth, int nCS,int partIdx)
@@ -3140,7 +3138,7 @@ void read_prediction_unit(decoder_context* ctx,
 
 
 
-  decode_prediction_unit(ctx,tctx, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
+  decode_prediction_unit(tctx, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
 }
 
 
@@ -3208,36 +3206,34 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
 }
 
 
-void read_coding_unit(decoder_context* ctx,
-                      thread_context* tctx,
+void read_coding_unit(thread_context* tctx,
                       int x0, int y0,  // position of coding unit in frame
                       int log2CbSize,
                       int ctDepth)
 {
-  const seq_parameter_set* sps = ctx->current_sps;
-
-  //int nS = 1 << log2CbSize;
+  de265_image* img = tctx->img;
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
+  slice_segment_header* shdr = tctx->shdr;
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
 
-  slice_segment_header* shdr = tctx->shdr;
-
-  ctx->img->set_log2CbSize(x0,y0, log2CbSize);
+  img->set_log2CbSize(x0,y0, log2CbSize);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
   decode_quantization_parameters(tctx, x0,y0, x0, y0);
 
 
-  if (ctx->current_pps->transquant_bypass_enable_flag)
+  if (pps->transquant_bypass_enable_flag)
     {
       int transquant_bypass = decode_transquant_bypass_flag(tctx);
 
       tctx->cu_transquant_bypass_flag = transquant_bypass;
 
       if (transquant_bypass) {
-        ctx->img->set_cu_transquant_bypass(x0,y0,log2CbSize);
+        img->set_cu_transquant_bypass(x0,y0,log2CbSize);
       }
     }
 
@@ -3251,10 +3247,10 @@ void read_coding_unit(decoder_context* ctx,
   enum PredMode cuPredMode;
 
   if (cu_skip_flag) {
-    read_prediction_unit_SKIP(ctx,tctx,x0,y0,nCbS,nCbS);
+    read_prediction_unit_SKIP(tctx,x0,y0,nCbS,nCbS);
 
-    ctx->img->set_PartMode(x0,y0, PART_2Nx2N); // need this for deblocking filter
-    ctx->img->set_pred_mode(x0,y0,log2CbSize, MODE_SKIP);
+    img->set_PartMode(x0,y0, PART_2Nx2N); // need this for deblocking filter
+    img->set_pred_mode(x0,y0,log2CbSize, MODE_SKIP);
     cuPredMode = MODE_SKIP;
 
     logtrace(LogSlice,"CU pred mode: SKIP\n");
@@ -3263,7 +3259,7 @@ void read_coding_unit(decoder_context* ctx,
     // DECODE
 
     int nCS_L = 1<<log2CbSize;
-    decode_prediction_unit(ctx,tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
+    decode_prediction_unit(tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {
@@ -3274,7 +3270,7 @@ void read_coding_unit(decoder_context* ctx,
       cuPredMode = MODE_INTRA;
     }
 
-    ctx->img->set_pred_mode(x0,y0,log2CbSize, cuPredMode);
+    img->set_pred_mode(x0,y0,log2CbSize, cuPredMode);
 
     logtrace(LogSlice,"CU pred mode: %s\n", cuPredMode==MODE_INTRA ? "INTRA" : "INTER");
 
@@ -3292,7 +3288,7 @@ void read_coding_unit(decoder_context* ctx,
       PartMode = PART_2Nx2N;
     }
 
-    ctx->img->set_PartMode(x0,y0, PartMode); // needed for deblocking ?
+    img->set_PartMode(x0,y0, PartMode); // needed for deblocking ?
 
     logtrace(LogSlice, "PartMode: %s\n", part_mode_name(PartMode));
 
@@ -3307,7 +3303,7 @@ void read_coding_unit(decoder_context* ctx,
       }
 
       if (pcm_flag) {
-        ctx->img->set_pcm_flag(x0,y0,log2CbSize);
+        img->set_pcm_flag(x0,y0,log2CbSize);
 
         read_pcm_samples(tctx, x0,y0, log2CbSize);
       }
@@ -3347,8 +3343,8 @@ void read_coding_unit(decoder_context* ctx,
 
               int IntraPredMode;
 
-              int availableA = check_CTB_available(ctx->img, shdr, x,y, x-1,y);
-              int availableB = check_CTB_available(ctx->img, shdr, x,y, x,y-1);
+              int availableA = check_CTB_available(img, shdr, x,y, x-1,y);
+              int availableB = check_CTB_available(img, shdr, x,y, x,y-1);
 
               int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
@@ -3358,12 +3354,12 @@ void read_coding_unit(decoder_context* ctx,
               if (availableA==false) {
                 candIntraPredModeA=INTRA_DC;
               }
-              else if (ctx->img->get_pred_mode(x-1,y) != MODE_INTRA ||
-                       ctx->img->get_pcm_flag (x-1,y)) {
+              else if (img->get_pred_mode(x-1,y) != MODE_INTRA ||
+                       img->get_pcm_flag (x-1,y)) {
                 candIntraPredModeA=INTRA_DC;
               }
               else {
-                candIntraPredModeA = ctx->img->get_IntraPredMode_atIndex(PUidx-1);
+                candIntraPredModeA = img->get_IntraPredMode_atIndex(PUidx-1);
               }
 
               // block above
@@ -3371,15 +3367,15 @@ void read_coding_unit(decoder_context* ctx,
               if (availableB==false) {
                 candIntraPredModeB=INTRA_DC;
               }
-              else if (ctx->img->get_pred_mode(x,y-1) != MODE_INTRA ||
-                       ctx->img->get_pcm_flag (x,y-1)) {
+              else if (img->get_pred_mode(x,y-1) != MODE_INTRA ||
+                       img->get_pcm_flag (x,y-1)) {
                 candIntraPredModeB=INTRA_DC;
               }
               else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {
                 candIntraPredModeB=INTRA_DC;
               }
               else {
-                candIntraPredModeB = ctx->img->get_IntraPredMode_atIndex(PUidx-sps->PicWidthInMinPUs);
+                candIntraPredModeB = img->get_IntraPredMode_atIndex(PUidx-sps->PicWidthInMinPUs);
               }
 
               // build candidate list
@@ -3448,8 +3444,8 @@ void read_coding_unit(decoder_context* ctx,
 
               logtrace(LogSlice,"IntraPredMode[%d][%d] = %d (log2blk:%d)\n",x,y,IntraPredMode, log2IntraPredSize);
 
-              ctx->img->set_IntraPredMode(PUidx, log2IntraPredSize,
-                                          (enum IntraPredMode)IntraPredMode);
+              img->set_IntraPredMode(PUidx, log2IntraPredSize,
+                                     (enum IntraPredMode)IntraPredMode);
 
               idx++;
             }
@@ -3459,7 +3455,7 @@ void read_coding_unit(decoder_context* ctx,
 
         int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
 
-        int IntraPredMode = ctx->img->get_IntraPredMode(x0,y0);
+        int IntraPredMode = img->get_IntraPredMode(x0,y0);
         logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
 
         int IntraPredModeC;
@@ -3489,37 +3485,37 @@ void read_coding_unit(decoder_context* ctx,
       int nCS = 1<<log2CbSize;
 
       if (PartMode == PART_2Nx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,nCbS,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,0,0,nCbS,nCbS,ctDepth,nCS,0);
       }
       else if (PartMode == PART_2NxN) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0     ,nCbS,nCbS/2,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/2,nCbS,nCbS/2,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0     ,nCbS,nCbS/2,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,0,nCbS/2,nCbS,nCbS/2,ctDepth,nCS,1);
       }
       else if (PartMode == PART_Nx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0  ,   nCbS/2,nCbS,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,0,nCbS/2,nCbS,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0  ,   nCbS/2,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,nCbS/2,0,nCbS/2,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_2NxnU) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,     nCbS,nCbS/4,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/4,nCbS,nCbS*3/4,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0,     nCbS,nCbS/4,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,0,nCbS/4,nCbS,nCbS*3/4,ctDepth,nCS,1);
       }
       else if (PartMode == PART_2NxnD) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,       nCbS,nCbS*3/4,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS*3/4,nCbS,nCbS/4,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0,       nCbS,nCbS*3/4,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,0,nCbS*3/4,nCbS,nCbS/4,ctDepth,nCS,1);
       }
       else if (PartMode == PART_nLx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,     nCbS/4,nCbS,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/4,0,nCbS*3/4,nCbS,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0,     nCbS/4,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,nCbS/4,0,nCbS*3/4,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_nRx2N) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,       nCbS*3/4,nCbS,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS*3/4,0,nCbS/4,nCbS,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,0,       nCbS*3/4,nCbS,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,nCbS*3/4,0,nCbS/4,nCbS,ctDepth,nCS,1);
       }
       else if (PartMode == PART_NxN) {
-        read_prediction_unit(ctx,tctx,x0,y0,0,0,          nCbS/2,nCbS/2,ctDepth,nCS,0);
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,0,     nCbS/2,nCbS/2,ctDepth,nCS,1);
-        read_prediction_unit(ctx,tctx,x0,y0,0,nCbS/2,     nCbS/2,nCbS/2,ctDepth,nCS,2);
-        read_prediction_unit(ctx,tctx,x0,y0,nCbS/2,nCbS/2,nCbS/2,nCbS/2,ctDepth,nCS,3);
+        read_prediction_unit(tctx,x0,y0,0,0,          nCbS/2,nCbS/2,ctDepth,nCS,0);
+        read_prediction_unit(tctx,x0,y0,nCbS/2,0,     nCbS/2,nCbS/2,ctDepth,nCS,1);
+        read_prediction_unit(tctx,x0,y0,0,nCbS/2,     nCbS/2,nCbS/2,ctDepth,nCS,2);
+        read_prediction_unit(tctx,x0,y0,nCbS/2,nCbS/2,nCbS/2,nCbS/2,ctDepth,nCS,3);
       }
       else {
         assert(0); // undefined PartMode
@@ -3549,10 +3545,10 @@ void read_coding_unit(decoder_context* ctx,
         int MaxTrafoDepth;
 
         if (cuPredMode==MODE_INTRA) {
-          MaxTrafoDepth = ctx->current_sps->max_transform_hierarchy_depth_intra + IntraSplitFlag;
+          MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag;
         }
         else {
-          MaxTrafoDepth = ctx->current_sps->max_transform_hierarchy_depth_inter;
+          MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter;
         }
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
@@ -3626,7 +3622,7 @@ void read_coding_quadtree(thread_context* tctx,
 
     img->set_ctDepth(x0,y0, log2CbSize, ctDepth);
 
-    read_coding_unit(tctx->decctx,tctx, x0,y0, log2CbSize, ctDepth);
+    read_coding_unit(tctx, x0,y0, log2CbSize, ctDepth);
   }
 
   logtrace(LogSlice,"-\n");

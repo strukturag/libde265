@@ -45,7 +45,7 @@ typedef struct
 } VectorInfo;
 
 
-void decode_prediction_unit(struct decoder_context* ctx,struct thread_context* shdr,
+void decode_prediction_unit(struct thread_context* shdr,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
 void inter_prediction(struct decoder_context* ctx,struct slice_segment_header* shdr,
