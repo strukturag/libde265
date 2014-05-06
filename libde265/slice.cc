@@ -1118,7 +1118,7 @@ static int decode_cu_skip_flag(thread_context* tctx,
 static enum PartMode decode_part_mode(thread_context* tctx,
 				      enum PredMode pred_mode, int cLog2CbSize)
 {
-  decoder_context* ctx = tctx->decctx;
+  de265_image* img = tctx->img;
 
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
@@ -1135,8 +1135,8 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 
     // CHECK_ME: I optimize code and fix bug here, need more VERIFY!
     int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+1]);
-    if (cLog2CbSize > ctx->current_sps->Log2MinCbSizeY) {
-      if (!ctx->current_sps->amp_enabled_flag) {
+    if (cLog2CbSize > img->sps.Log2MinCbSizeY) {
+      if (!img->sps.amp_enabled_flag) {
         return bit1 ? PART_2NxN : PART_Nx2N;
       }
       else {
