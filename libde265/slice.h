@@ -253,7 +253,7 @@ typedef struct {
 
 
 
-de265_error read_slice_segment_data(struct decoder_context*, struct thread_context* tctx);
+de265_error read_slice_segment_data(struct thread_context* tctx);
 
 bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();

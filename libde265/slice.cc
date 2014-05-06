@@ -2004,7 +2004,7 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 
 
 
-void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
+void initialize_CABAC(thread_context* tctx)
 {
   const int initType = tctx->shdr->initType;
   assert(initType >= 0 && initType <= 2);
@@ -3744,7 +3744,7 @@ void thread_decode_slice_segment(void* d)
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
-  initialize_CABAC(ctx,tctx);
+  initialize_CABAC(tctx);
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
@@ -3772,7 +3772,7 @@ void thread_decode_CTB_row(void* d)
   // printf("start decoding at %d/%d\n", ctbx,ctby);
 
   if (data->initCABAC) {
-    initialize_CABAC(ctx,tctx);
+    initialize_CABAC(tctx);
   }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
@@ -3798,23 +3798,24 @@ void thread_decode_CTB_row(void* d)
 }
 
 
-de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
+de265_error read_slice_segment_data(thread_context* tctx)
 {
   setCtbAddrFromTS(tctx);
 
-  const pic_parameter_set* pps = ctx->current_pps;
+  de265_image* img = tctx->img;
+  const pic_parameter_set* pps = &img->pps;
+  const seq_parameter_set* sps = &img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
-    slice_segment_header* prevCtbHdr = ctx->img->slices[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
-    //slice_segment_header* prevCtbHdr = &ctx->slice[ ctx->img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+    slice_segment_header* prevCtbHdr = img->slices[ img->get_SliceHeaderIndex_atIndex(prevCtb) ];
 
-    if (pps->is_tile_start_CTB(shdr->slice_segment_address % ctx->current_sps->PicWidthInCtbsY,
-                               shdr->slice_segment_address / ctx->current_sps->PicWidthInCtbsY
+    if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
+                               shdr->slice_segment_address / sps->PicWidthInCtbsY
                                )) {
-      initialize_CABAC(ctx,tctx);
+      initialize_CABAC(tctx);
     }
     else {
       memcpy(tctx->ctx_model,
@@ -3823,7 +3824,7 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
     }
   }
   else {
-    initialize_CABAC(ctx,tctx);
+    initialize_CABAC(tctx);
   }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
@@ -3846,14 +3847,14 @@ de265_error read_slice_segment_data(decoder_context* ctx, thread_context* tctx)
       break;
     }
 
-    if (ctx->current_pps->entropy_coding_sync_enabled_flag) {
+    if (pps->entropy_coding_sync_enabled_flag) {
       memcpy(tctx->ctx_model,
              shdr->ctx_model_storage,
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
     }
 
-    if (ctx->current_pps->tiles_enabled_flag) {
-      initialize_CABAC(ctx,tctx);
+    if (pps->tiles_enabled_flag) {
+      initialize_CABAC(tctx);
     }
   } while (true);
 

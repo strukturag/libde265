@@ -513,7 +513,7 @@ de265_error de265_decode_NAL(de265_decoder_context* de265ctx, NAL_unit* nal)
         tctx->CtbAddrInTS = pps->CtbAddrRStoTS[hdr->slice_segment_address];
 
         // fixed context 0
-        if ((err=read_slice_segment_data(ctx, tctx)) != DE265_OK)
+        if ((err=read_slice_segment_data(tctx)) != DE265_OK)
           { return err; }
       }
       else if (use_tiles && !use_WPP) {
