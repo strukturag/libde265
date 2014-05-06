@@ -34,11 +34,11 @@
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
 
-#define DE265_MAX_VPS_SETS 16
-#define DE265_MAX_SPS_SETS 16
-#define DE265_MAX_PPS_SETS 64
+#define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
+#define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
+#define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
 #define DE265_MAX_SLICES   512  // TODO: make this dynamic
-#define DE265_IMAGE_OUTPUT_QUEUE_LEN 2
+#define MAX_THREAD_CONTEXTS 68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
 
 #define MAX_WARNINGS 20
 

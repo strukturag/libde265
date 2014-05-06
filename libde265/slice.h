@@ -31,9 +31,6 @@
 
 #include <vector>
 
-
-#define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
-#define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
 #define MAX_NUM_REF_PICS    16
 
 #define SLICE_TYPE_B 0
