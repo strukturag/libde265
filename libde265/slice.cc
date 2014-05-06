@@ -2047,9 +2047,9 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
  */
 bool setCtbAddrFromTS(thread_context* tctx)
 {
-  const seq_parameter_set* sps = tctx->decctx->current_sps;
+  const seq_parameter_set* sps = &tctx->img->sps;
 
-  if (tctx->CtbAddrInTS < tctx->decctx->current_sps->PicSizeInCtbsY) {
+  if (tctx->CtbAddrInTS < sps->PicSizeInCtbsY) {
     tctx->CtbAddrInRS = tctx->img->pps.CtbAddrTStoRS[tctx->CtbAddrInTS];
 
     tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
@@ -2057,7 +2057,7 @@ bool setCtbAddrFromTS(thread_context* tctx)
     return false;
   }
   else {
-    tctx->CtbAddrInRS = tctx->decctx->current_sps->PicSizeInCtbsY;
+    tctx->CtbAddrInRS = sps->PicSizeInCtbsY;
 
     tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
     tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
