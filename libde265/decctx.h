@@ -235,10 +235,6 @@ struct decoder_context : public error_queue {
 };
 
 
-
-void cleanup_image(decoder_context* ctx, de265_image* img);
-
-
 void process_nal_hdr(decoder_context*, nal_header*);
 void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);

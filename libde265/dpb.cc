@@ -143,7 +143,7 @@ bool decoded_picture_buffer::flush_reorder_buffer()
 }
 
 
-void decoded_picture_buffer::clear(decoder_context* ctx)
+void decoded_picture_buffer::clear()
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
     if (dpb[i].PicOutputFlag ||
@@ -151,7 +151,6 @@ void decoded_picture_buffer::clear(decoder_context* ctx)
       {
         dpb[i].PicOutputFlag = false;
         dpb[i].PicState = UnusedForReference;
-        cleanup_image(ctx, &dpb[i]);
       }
   }
 

@@ -349,10 +349,6 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC) {
         img->PicState = UnusedForReference;
-
-        if (img->PicOutputFlag==false) {
-          cleanup_image(ctx, img);
-        }
       }
     }
   }
@@ -569,10 +565,6 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
           {
             if (dpbimg->PicState != UnusedForReference) {
               dpbimg->PicState = UnusedForReference;
-
-              if (dpbimg->PicOutputFlag==false) {
-                cleanup_image(ctx, dpbimg);
-              }
             }
           }
       }
@@ -704,23 +696,6 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
 
 
-void cleanup_image(decoder_context* ctx, de265_image* img)
-{
-  if (img->PicState != UnusedForReference) { return; } // still required for reference
-  if (img->PicOutputFlag) { return; } // required for output
-
-
-  //printf("cleanup_image POC=%d  (%p) from %s\n",img->PicOrderCntVal,img,why);
-
-  // mark all slice-headers locked by this image as unused
-
-  /* Note: cannot use SPS here, because this may already be outdated when a
-     new SPS was sent before cleaning up this image.
-  */
-  img->mark_slice_headers_as_unused(ctx);
-}
-
-
 void run_postprocessing_filters(de265_image* img)
 {
 #if SAVE_INTERMEDIATE_IMAGES
@@ -762,7 +737,6 @@ void push_current_picture_to_output_queue(decoder_context* ctx)
 
       if (ctx->img->integrity != INTEGRITY_CORRECT &&
           ctx->param_suppress_faulty_pictures) {
-        cleanup_image(ctx, ctx->img);
       }
       else {
         assert(ctx->dpb.num_pictures_in_output_queue() < DE265_DPB_SIZE);

@@ -384,28 +384,6 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorIn
 }
 
 
-void de265_image::mark_slice_headers_as_unused(decoder_context* ctx)
-{
-  if (integrity == INTEGRITY_UNAVAILABLE_REFERENCE) {
-    return;
-  }
-
-  for (int i=0;i<ctb_info.data_size;i++)
-    {
-      int sliceHeaderIdx = ctb_info[i].SliceHeaderIndex;
-
-      slice_segment_header* shdr;
-      //shdr = ctx->img->slices[ sliceHeaderIdx ];
-      //shdr = &ctx->slice[ sliceHeaderIdx ];
-      
-      //printf("cleanup SHDR %d\n",sliceHeaderIdx);
-      
-      //shdr->inUse = false;
-    }
-}
-
-
-
 bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
 {
   if (xN<0 || yN<0) return false;

@@ -44,7 +44,7 @@ struct decoded_picture_buffer {
   bool has_free_dpb_picture(bool high_priority) const;
 
   /* Remove all pictures from DPB and queues. Decoding should be stopped when calling this. */
-  void clear(struct decoder_context* ctx);
+  void clear();
 
 
   /* Raw access to the images. */

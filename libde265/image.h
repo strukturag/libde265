@@ -317,8 +317,6 @@ public:
   */
   void clear_metadata();
 
-  void mark_slice_headers_as_unused(class decoder_context* ctx);
-
 
   // --- CB metadata access ---
 

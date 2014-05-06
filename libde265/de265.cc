@@ -751,7 +751,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
   // This was (indirectly) fixed by recreating the DPB buffer, but it should actually
   // be sufficient to clear it like this.
   // The error showed while scrubbing the ToS video in VLC.
-  ctx->dpb.clear(ctx);
+  ctx->dpb.clear();
 
   ctx->nal_parser.remove_pending_input_data();
 
@@ -803,7 +803,6 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
   loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
 
   next_image->PicOutputFlag = false;
-  cleanup_image(ctx, next_image);
 
   // pop output queue
 
