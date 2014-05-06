@@ -884,7 +884,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   if (hdr->dependent_slice_segment_flag==0) {
     hdr->SliceAddrRS = hdr->slice_segment_address;
   } else {
-    const pic_parameter_set* pps = img->pps;
+    const pic_parameter_set* pps = &img->pps;
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[hdr->slice_segment_address] -1 ];
 
     hdr->SliceAddrRS = ctx->img->get_SliceAddrRS_atCtbRS(prevCtb);
