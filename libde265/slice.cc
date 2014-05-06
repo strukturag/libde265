@@ -868,7 +868,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
 
 
-static void set_initValue(decoder_context* ctx, slice_segment_header* shdr,
+static void set_initValue(slice_segment_header* shdr,
                           context_model* model, int initValue)
 {
   int slopeIdx = initValue >> 4;
@@ -952,14 +952,13 @@ static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
 static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
 
 
-static void init_context(decoder_context* ctx,
-                         thread_context* tctx,
+static void init_context(thread_context* tctx,
                          enum context_model_indices idx,
                          const int* initValues, int len)
 {
   for (int i=0;i<len;i++)
     {
-      set_initValue(ctx,tctx->shdr,
+      set_initValue(tctx->shdr,
                     &tctx->ctx_model[idx+i],
                     initValues[i]);
     }
@@ -2010,35 +2009,35 @@ void initialize_CABAC(decoder_context* ctx, thread_context* tctx)
   const int initType = tctx->shdr->initType;
   assert(initType >= 0 && initType <= 2);
 
-  init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
+  init_context(tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
   if (initType > 0) {
-    init_context(ctx,tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
+    init_context(tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
   }
-  init_context(ctx,tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
-  init_context(ctx,tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
-  init_context(ctx,tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
-  init_context(ctx,tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
-  init_context(ctx,tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
-  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
-  init_context(ctx,tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
-  init_context(ctx,tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
-  init_context(ctx,tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
-  init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
-  init_context(ctx,tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
-  init_context(ctx,tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
-  init_context(ctx,tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
-  init_context(ctx,tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
-  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
-  init_context(ctx,tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         &initValue_pred_mode_flag[initType-1], 1);
-  init_context(ctx,tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
-  init_context(ctx,tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
-  init_context(ctx,tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
-  init_context(ctx,tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
-  init_context(ctx,tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
-  init_context(ctx,tctx, CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
+  init_context(tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
+  init_context(tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
+  init_context(tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
+  init_context(tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
+  init_context(tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
+  init_context(tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
+  init_context(tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
+  init_context(tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
+  init_context(tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
+  init_context(tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
+  init_context(tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
+  init_context(tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
+  init_context(tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
+  init_context(tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
+  init_context(tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
+  init_context(tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
+  init_context(tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         &initValue_pred_mode_flag[initType-1], 1);
+  init_context(tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
+  init_context(tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
+  init_context(tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
+  init_context(tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
+  init_context(tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
+  init_context(tctx, CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
 }
 
 
@@ -3649,9 +3648,9 @@ enum DecodeResult decode_substream(thread_context* tctx,
                       int context_copy_ctbx, // copy CABAC-context after decoding this CTB
                       context_model* context_storage) // copy CABAC-context to this storage space
 {
-  decoder_context* ctx = tctx->decctx;
-  const pic_parameter_set* pps = ctx->current_pps;
-  const seq_parameter_set* sps = ctx->current_sps;
+  //decoder_context* ctx = tctx->decctx;
+  const pic_parameter_set* pps = &tctx->img->pps;
+  const seq_parameter_set* sps = &tctx->img->sps;
 
   const int ctbW = sps->PicWidthInCtbsY;
 
@@ -3663,7 +3662,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
       // TODO: ctx->img should be tctx->img
-      de265_wait_for_progress(&ctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW],
+      de265_wait_for_progress(&tctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW],
                               CTB_PROGRESS_PREFILTER);
     }
 
@@ -3685,7 +3684,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       }
 
     // TODO: ctx->img should be tctx->img
-    de265_announce_progress(&ctx->img->ctb_progress[ctbx+ctby*ctbW], CTB_PROGRESS_PREFILTER);
+    de265_announce_progress(&tctx->img->ctb_progress[ctbx+ctby*ctbW], CTB_PROGRESS_PREFILTER);
 
     //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
 
@@ -3703,8 +3702,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
     if (endOfPicture &&
         end_of_slice_segment_flag == false)
       {
-        ctx->add_warning(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
-        ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        tctx->decctx->add_warning(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         return Decode_Error;
       }
 
@@ -3724,8 +3723,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
       if (end_of_sub_stream) {
         int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
         if (!end_of_sub_stream_one_bit) {
-          ctx->add_warning(DE265_WARNING_EOSS_BIT_NOT_SET, false);
-          ctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+          tctx->decctx->add_warning(DE265_WARNING_EOSS_BIT_NOT_SET, false);
+          tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
         return Decode_Error;
         }
 
