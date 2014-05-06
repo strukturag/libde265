@@ -34,12 +34,11 @@ LIBDE265_INLINE static int table8_22(int qPi)
 }
 
 // (8.6.1)
-void decode_quantization_parameters(decoder_context* ctx,
-                                    thread_context* shdr, int xC,int yC,
+void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
                                     int xCUBase, int yCUBase);
 
 // (8.6.2)
-void scale_coefficients(decoder_context* ctx, thread_context* shdr,
+void scale_coefficients(thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,

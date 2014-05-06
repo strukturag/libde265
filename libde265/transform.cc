@@ -66,19 +66,11 @@ LIBDE265_API void showTransformProfile()
 }
 
 
-#include <sys/types.h>
-#include <signal.h>
-
 // (8.6.1)
-void decode_quantization_parameters(decoder_context* ctx,
-                                    thread_context* tctx, int xC,int yC,
+void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
                                     int xCUBase, int yCUBase)
 {
   logtrace(LogTransform,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
-
-  if (/*ctx->img->PicOrderCntVal==3 &&*/ xC==168 && yC==128) {
-    //raise(SIGINT);
-  }
 
   pic_parameter_set* pps = &tctx->img->pps;
   seq_parameter_set* sps = &tctx->img->sps;
@@ -215,7 +207,7 @@ void decode_quantization_parameters(decoder_context* ctx,
 
 
 
-void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
+void transform_coefficients(decoder_context* ctx,
                             int16_t* coeff, int coeffStride, int nT, int trType, int postShift,
                             uint8_t* dst, int dstStride)
 {
@@ -239,7 +231,7 @@ void transform_coefficients(decoder_context* ctx, slice_segment_header* shdr,
 static const int levelScale[] = { 40,45,51,57,64,72 };
 
 // (8.6.2) and (8.6.3)
-void scale_coefficients(decoder_context* ctx, thread_context* tctx,
+void scale_coefficients(thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
@@ -247,7 +239,6 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 {
   seq_parameter_set* sps = &tctx->img->sps;
   pic_parameter_set* pps = &tctx->img->pps;
-  slice_segment_header* shdr = tctx->shdr;
 
   int qP;
   switch (cIdx) {
@@ -302,7 +293,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
 
-    ctx->acceleration.transform_bypass_8(pred, coeff, nT, stride);
+    tctx->decctx->acceleration.transform_bypass_8(pred, coeff, nT, stride);
   }
   else {
     // (8.6.3)
@@ -386,7 +377,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
 
     if (transform_skip_flag) {
 
-      ctx->acceleration.transform_skip_8(pred, coeff, stride);
+      tctx->decctx->acceleration.transform_skip_8(pred, coeff, stride);
 
       nSkip_4x4++;
     }
@@ -400,7 +391,7 @@ void scale_coefficients(decoder_context* ctx, thread_context* tctx,
         trType=0;
       }
 
-      transform_coefficients(ctx,shdr, coeff, coeffStride, nT, trType, bdShift2,
+      transform_coefficients(tctx->decctx, coeff, coeffStride, nT, trType, bdShift2,
                              pred, stride);
     }
   }

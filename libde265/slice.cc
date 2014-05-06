@@ -2765,14 +2765,10 @@ int read_transform_unit(decoder_context* ctx,
         logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
         logtrace(LogSlice,"CuQpDelta = %d\n",tctx->CuQpDelta);
 
-        decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
+        decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
       }
     }
 
-  /*
-  if (x0 == xCUBase && y0 == yCUBase)
-    decode_quantization_parameters(ctx,tctx, x0,y0, xCUBase, yCUBase);
-  */
 
   if (cbf_luma || cbf_cb || cbf_cr)
     {
@@ -2952,27 +2948,27 @@ void read_transform_tree(decoder_context* ctx,
       }
 
     if (cbf_luma) {
-      scale_coefficients(ctx, tctx, x0,y0, xCUBase,yCUBase, nT, 0,
+      scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, 0,
                          tctx->transform_skip_flag[0], PredMode==MODE_INTRA);
     }
 
     if (nT>=8) {
       if (cbf_cb) {
-        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
+        scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
                            tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
       }
       if (cbf_cr) {
-        scale_coefficients(ctx, tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
+        scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
                            tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
       }
     }
     else if (blkIdx==3) {
       if (cbf_cb) {
-        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
+        scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
                            tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
       }
       if (cbf_cr) {
-        scale_coefficients(ctx, tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
+        scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
                            tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
       }
     }
@@ -3248,7 +3244,7 @@ void read_coding_unit(decoder_context* ctx,
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
-  decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
+  decode_quantization_parameters(tctx, x0,y0, x0, y0);
 
 
   if (ctx->current_pps->transquant_bypass_enable_flag)
@@ -3282,8 +3278,6 @@ void read_coding_unit(decoder_context* ctx,
 
 
     // DECODE
-
-    //UNIFY decode_quantization_parameters(ctx, tctx, x0, y0, x0, y0);
 
     int nCS_L = 1<<log2CbSize;
     decode_prediction_unit(ctx,tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
@@ -3331,8 +3325,6 @@ void read_coding_unit(decoder_context* ctx,
 
       if (pcm_flag) {
         ctx->img->set_pcm_flag(x0,y0,log2CbSize);
-
-        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
 
         read_pcm_samples(tctx, x0,y0, log2CbSize);
       }
@@ -3554,9 +3546,6 @@ void read_coding_unit(decoder_context* ctx,
 
     // decode residual
 
-    //decode_quantization_parameters(ctx,tctx, x0,y0);
-
-
     if (!pcm_flag) { // !pcm
       bool rqt_root_cbf;
 
@@ -3585,13 +3574,8 @@ void read_coding_unit(decoder_context* ctx,
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
-        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
-
         read_transform_tree(ctx,tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
                             MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
-      }
-      else {
-        //UNIFY decode_quantization_parameters(ctx,tctx, x0,y0, x0, y0);
       }
     } // !pcm
   }
