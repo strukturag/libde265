@@ -239,8 +239,6 @@ struct decoder_context : public error_queue {
 void cleanup_image(decoder_context* ctx, de265_image* img);
 
 
-seq_parameter_set* get_sps(decoder_context* ctx, int id);
-
 void process_nal_hdr(decoder_context*, nal_header*);
 void process_vps(decoder_context*, video_parameter_set*);
 void process_sps(decoder_context*, seq_parameter_set*);
@@ -250,12 +248,6 @@ bool process_slice_segment_header(decoder_context*, slice_segment_header*,
 
 int get_next_slice_index(decoder_context* ctx);
 int get_next_thread_context_index(decoder_context* ctx);
-
-
-// --- decoder 2D data arrays ---
-// All coordinates are in pixels if not stated otherwise.
-
-void debug_dump_cb_info(const decoder_context*);
 
 void push_current_picture_to_output_queue(decoder_context* ctx);
 

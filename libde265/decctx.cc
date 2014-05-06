@@ -213,36 +213,6 @@ void process_pps(decoder_context* ctx, pic_parameter_set* pps)
 }
 
 
-seq_parameter_set* get_sps(decoder_context* ctx, int id)
-{
-  if (ctx->sps[id].sps_read==false) {
-    logerror(LogHeaders, "SPS %d has not been read\n", id);
-    return NULL;
-  }
-
-  return &ctx->sps[id];
-}
-
-
-/* The returned index rotates through [0;DE265_MAX_SLICES) and is not reset at each new picture.
-   Returns -1 if no more slice data structure available.
- */
-#if 0
-int get_next_slice_index(decoder_context* ctx)
-{
-  for (int i=0;i<DE265_MAX_SLICES;i++) {
-    if (ctx->slice[i].inUse == false) {
-      return i;
-    }
-  }
-
-  // TODO: make this dynamic, increase storage when completely full
-
-  return -1;
-}
-#endif
-
-
 /* The returned index rotates through [0;MAX_THREAD_CONTEXTS) and is not reset at each new picture.
    Returns -1 if no more context data structure available.
  */
