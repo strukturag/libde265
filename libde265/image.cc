@@ -69,10 +69,13 @@ de265_image::de265_image() // (optional) init variables, do not alloc image
 
   width=height=0;
 
-  ctb_progress = NULL;
-
   pts = 0;
   user_data = NULL;
+
+  ctb_progress = NULL;
+
+  tasks_pending = 0;
+  integrity = INTEGRITY_NOT_DECODED;
 
   picture_order_cnt_lsb = -1; // undefined
   PicOrderCntVal = -1; // undefined
