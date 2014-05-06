@@ -2050,7 +2050,7 @@ bool setCtbAddrFromTS(thread_context* tctx)
   const seq_parameter_set* sps = tctx->decctx->current_sps;
 
   if (tctx->CtbAddrInTS < tctx->decctx->current_sps->PicSizeInCtbsY) {
-    tctx->CtbAddrInRS = tctx->decctx->current_pps->CtbAddrTStoRS[tctx->CtbAddrInTS];
+    tctx->CtbAddrInRS = tctx->img->pps.CtbAddrTStoRS[tctx->CtbAddrInTS];
 
     tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
     tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
@@ -2074,12 +2074,13 @@ bool advanceCtbAddr(thread_context* tctx)
 }
 
 
-void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
+void read_sao(thread_context* tctx, int xCtb,int yCtb,
               int CtbAddrInSliceSeg)
 {
   slice_segment_header* shdr = tctx->shdr;
-  const seq_parameter_set* sps = ctx->current_sps;
-  const pic_parameter_set* pps = ctx->current_pps;
+  de265_image* img = tctx->img;
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
 
   logtrace(LogSlice,"# read_sao(%d,%d)\n",xCtb,yCtb);
 
@@ -2106,9 +2107,9 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
   if (yCtb>0 && sao_merge_left_flag==0) {
     logtrace(LogSlice,"CtbAddrInRS:%d PicWidthInCtbsY:%d slice_segment_address:%d\n",
              tctx->CtbAddrInRS,
-             ctx->current_sps->PicWidthInCtbsY,
+             sps->PicWidthInCtbsY,
              shdr->slice_segment_address);
-    char upCtbInSliceSeg = (tctx->CtbAddrInRS - ctx->current_sps->PicWidthInCtbsY) >= shdr->SliceAddrRS;
+    char upCtbInSliceSeg = (tctx->CtbAddrInRS - sps->PicWidthInCtbsY) >= shdr->SliceAddrRS;
     char upCtbInTile = (pps->TileIdRS[xCtb +  yCtb    * sps->PicWidthInCtbsY] ==
                         pps->TileIdRS[xCtb + (yCtb-1) * sps->PicWidthInCtbsY]);
 
@@ -2181,8 +2182,8 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
           }
 
           int bitDepth = (cIdx==0 ?
-                          ctx->current_sps->BitDepth_Y :
-                          ctx->current_sps->BitDepth_C);
+                          sps->BitDepth_Y :
+                          sps->BitDepth_C);
           int shift = bitDepth-libde265_min(bitDepth,10);
 
           for (int i=0;i<4;i++) {
@@ -2192,16 +2193,16 @@ void read_sao(decoder_context* ctx, thread_context* tctx, int xCtb,int yCtb,
       }
     }
 
-    ctx->img->set_sao_info(xCtb,yCtb,  &saoinfo);
+    img->set_sao_info(xCtb,yCtb,  &saoinfo);
   }
 
 
   if (sao_merge_left_flag) {
-    ctx->img->set_sao_info(xCtb,yCtb,  ctx->img->get_sao_info(xCtb-1,yCtb));
+    img->set_sao_info(xCtb,yCtb,  img->get_sao_info(xCtb-1,yCtb));
   }
 
   if (sao_merge_up_flag) {
-    ctx->img->set_sao_info(xCtb,yCtb,  ctx->img->get_sao_info(xCtb,yCtb-1));
+    img->set_sao_info(xCtb,yCtb,  img->get_sao_info(xCtb,yCtb-1));
   }
 }
 
@@ -2227,7 +2228,7 @@ void read_coding_tree_unit(decoder_context* ctx, thread_context* tctx)
 
   if (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag)
     {
-      read_sao(ctx,tctx, xCtb,yCtb, CtbAddrInSliceSeg);
+      read_sao(tctx, xCtb,yCtb, CtbAddrInSliceSeg);
     }
 
   read_coding_quadtree(tctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY, 0);
