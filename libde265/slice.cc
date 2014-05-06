@@ -3152,7 +3152,7 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   br.nextbits = 0;
   br.nextbits_cnt = 0;
 
-  const seq_parameter_set* sps = tctx->decctx->current_sps;
+  const seq_parameter_set* sps = &tctx->img->sps;
   //fprintf(stderr,"PCM pos: %d %d (POC=%d)\n",x0,y0,tctx->decctx->img->PicOrderCntVal);
 
   int nBitsY = sps->pcm_sample_bit_depth_luma;
@@ -3166,11 +3166,11 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   uint8_t* crPtr;
   int stride;
   int chroma_stride;
-  yPtr  = tctx->decctx->img->get_image_plane(0);
-  cbPtr = tctx->decctx->img->get_image_plane(1);
-  crPtr = tctx->decctx->img->get_image_plane(2);
-  stride = tctx->decctx->img->get_image_stride(0);
-  chroma_stride = tctx->decctx->img->get_image_stride(1);
+  yPtr  = tctx->img->get_image_plane(0);
+  cbPtr = tctx->img->get_image_plane(1);
+  crPtr = tctx->img->get_image_plane(2);
+  stride = tctx->img->get_image_stride(0);
+  chroma_stride = tctx->img->get_image_stride(1);
 
   yPtr  = &yPtr [y0*stride + x0];
   cbPtr = &cbPtr[y0/2*chroma_stride + x0/2];
