@@ -140,7 +140,9 @@ struct decoder_context : public error_queue {
   int  param_slice_headers_fd;
 
 
-  // --- decoder administration ---
+  // --- accelerated DSP functions ---
+
+  void set_acceleration_functions(enum de265_acceleration);
 
   struct acceleration_functions acceleration; // CPU optimized functions
 
@@ -234,8 +236,6 @@ struct decoder_context : public error_queue {
   struct thread_context thread_context[MAX_THREAD_CONTEXTS];
 };
 
-
-void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration);
 
 
 void cleanup_image(decoder_context* ctx, de265_image* img);

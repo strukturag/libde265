@@ -62,7 +62,7 @@ decoder_context::decoder_context()
   param_pps_headers_fd = -1;
   param_slice_headers_fd = -1;
 
-  set_acceleration_functions(this,de265_acceleration_AUTO);
+  set_acceleration_functions(de265_acceleration_AUTO);
 
 
   /*
@@ -160,18 +160,18 @@ decoder_context::~decoder_context()
 }
 
 
-void set_acceleration_functions(decoder_context* ctx, enum de265_acceleration l)
+void decoder_context::set_acceleration_functions(enum de265_acceleration l)
 {
   // fill scalar functions first (so that function table is completely filled)
 
-  init_acceleration_functions_fallback(&ctx->acceleration);
+  init_acceleration_functions_fallback(&acceleration);
 
 
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
   if (l>=de265_acceleration_SSE) {
-    init_acceleration_functions_sse(&ctx->acceleration);
+    init_acceleration_functions_sse(&acceleration);
   }
 #endif
 }
