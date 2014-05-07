@@ -44,7 +44,7 @@
 
 struct slice_segment_header;
 
-typedef struct thread_context
+struct thread_context
 {
   uint8_t inUse;  // thread_context is used for the current decoding process
 
@@ -100,7 +100,7 @@ typedef struct thread_context
   struct decoder_context* decctx;
   struct de265_image *img;
   struct slice_segment_header* shdr;
-} thread_context;
+};
 
 
 
@@ -125,6 +125,27 @@ class decoder_context : public error_queue {
  public:
   decoder_context();
   ~decoder_context();
+
+  de265_error start_thread_pool(int nThreads);
+  void        stop_thread_pool();
+
+  void reset();
+
+  /* */ seq_parameter_set* get_sps(int id)       { return &sps[id]; }
+  const seq_parameter_set* get_sps(int id) const { return &sps[id]; }
+  /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }
+  const pic_parameter_set* get_pps(int id) const { return &pps[id]; }
+
+  const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
+    return img->slices[img->get_SliceHeaderIndex_atIndex(ctb)];
+  }
+
+  uint8_t get_nal_unit_type() const { return nal_unit_type; }
+  bool    get_RapPicFlag() const { return RapPicFlag; }
+
+  de265_error decode_NAL(NAL_unit* nal);
+
+  de265_error decode(int* more);
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
@@ -164,6 +185,17 @@ class decoder_context : public error_queue {
   NAL_Parser nal_parser;
 
 
+  int get_num_worker_threads() const { return num_worker_threads; }
+
+  /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+
+  de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
+  int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
+  void         pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
+
+
+ private:
   // --- internal data ---
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
@@ -174,7 +206,10 @@ class decoder_context : public error_queue {
   seq_parameter_set*   current_sps;
   pic_parameter_set*   current_pps;
 
+ public:
   struct thread_pool thread_pool;
+
+ private:
   int num_worker_threads;
 
 
@@ -204,9 +239,11 @@ class decoder_context : public error_queue {
 
   // --- motion compensation ---
 
+ public:
   int PocLsbLt[MAX_NUM_REF_PICS];
   int UsedByCurrPicLt[MAX_NUM_REF_PICS];
   int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+ private:
   int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
   int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
 
@@ -244,7 +281,20 @@ class decoder_context : public error_queue {
 
   // --- decoder runtime data ---
 
-  struct thread_context thread_context[MAX_THREAD_CONTEXTS];
+ public:
+  struct thread_context thread_contexts[MAX_THREAD_CONTEXTS];
+
+ private:
+  void init_thread_context(class thread_context* tctx);
+  void add_task_decode_CTB_row(int thread_id, bool initCABAC);
+  void add_task_decode_slice_segment(int thread_id);
+
+
+  void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
+  int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
+                                             int POC, bool longTerm);
+  void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
+  bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
 };
 
 

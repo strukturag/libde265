@@ -42,6 +42,9 @@
 
 #define SAVE_INTERMEDIATE_IMAGES 0
 
+extern void thread_decode_CTB_row(void* d);
+extern void thread_decode_slice_segment(void* d);
+
 
 
 decoder_context::decoder_context()
@@ -127,7 +130,7 @@ decoder_context::decoder_context()
   char RapPicFlag;
   */
 
-  memset(thread_context,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
+  memset(thread_contexts,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
 
 
   // --- internal data ---
@@ -143,13 +146,13 @@ decoder_context::decoder_context()
   current_image_poc_lsb = -1; // any invalid number
 
   for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
-    thread_context[i].coeffBuf = (int16_t *) &thread_context[i]._coeffBuf;
+    thread_contexts[i].coeffBuf = (int16_t *) &thread_contexts[i]._coeffBuf;
     // some compilers/linkers don't align struct members correctly,
     // adjust if necessary
-    int offset = (uintptr_t)thread_context[i].coeffBuf & 0x0f;
+    int offset = (uintptr_t)thread_contexts[i].coeffBuf & 0x0f;
     if (offset != 0) {
-      thread_context[i].coeffBuf = (int16_t *) (((uint8_t *)thread_context[i].coeffBuf) +
-                                                (16-offset));
+      thread_contexts[i].coeffBuf = (int16_t *) (((uint8_t *)thread_contexts[i].coeffBuf) +
+                                                 (16-offset));
     }
   }
 }
@@ -159,6 +162,86 @@ decoder_context::~decoder_context()
 {
 }
 
+
+de265_error decoder_context::start_thread_pool(int nThreads)
+{
+  ::start_thread_pool(&thread_pool, nThreads);
+
+  num_worker_threads = nThreads;
+}
+
+
+void decoder_context::stop_thread_pool()
+{
+  if (get_num_worker_threads()>0) {
+    //flush_thread_pool(&ctx->thread_pool);
+    ::stop_thread_pool(&thread_pool);
+  }
+}
+
+
+void decoder_context::reset()
+{
+  if (num_worker_threads>0) {
+    //flush_thread_pool(&ctx->thread_pool);
+    ::stop_thread_pool(&thread_pool);
+  }
+
+  // --------------------------------------------------
+
+#if 0
+  ctx->end_of_stream = false;
+  ctx->pending_input_NAL = NULL;
+  ctx->current_vps = NULL;
+  ctx->current_sps = NULL;
+  ctx->current_pps = NULL;
+  ctx->num_worker_threads = 0;
+  ctx->HighestTid = 0;
+  ctx->last_decoded_image = NULL;
+  ctx->current_image_poc_lsb = 0;
+  ctx->first_decoded_picture = 0;
+  ctx->NoRaslOutputFlag = 0;
+  ctx->HandleCraAsBlaFlag = 0;
+  ctx->FirstAfterEndOfSequenceNAL = 0;
+  ctx->PicOrderCntMsb = 0;
+  ctx->prevPicOrderCntLsb = 0;
+  ctx->prevPicOrderCntMsb = 0;
+  ctx->NumPocStCurrBefore=0;
+  ctx->NumPocStCurrAfter=0;
+  ctx->NumPocStFoll=0;
+  ctx->NumPocLtCurr=0;
+  ctx->NumPocLtFoll=0;
+  ctx->nal_unit_type=0;
+  ctx->IdrPicFlag=0;
+  ctx->RapPicFlag=0;
+#endif
+
+  img = NULL;
+
+  // --- decoded picture buffer ---
+
+  current_image_poc_lsb = -1; // any invalid number
+  first_decoded_picture = true;
+
+
+  // --- remove all pictures from output queue ---
+
+  // there was a bug the peek_next_image did not return NULL on empty output queues.
+  // This was (indirectly) fixed by recreating the DPB buffer, but it should actually
+  // be sufficient to clear it like this.
+  // The error showed while scrubbing the ToS video in VLC.
+  dpb.clear();
+
+  nal_parser.remove_pending_input_data();
+
+
+  // --- start threads again ---
+
+  if (num_worker_threads>0) {
+    // TODO: need error checking
+    start_thread_pool(num_worker_threads);
+  }
+}
 
 void decoder_context::set_acceleration_functions(enum de265_acceleration l)
 {
@@ -174,6 +257,390 @@ void decoder_context::set_acceleration_functions(enum de265_acceleration l)
     init_acceleration_functions_sse(&acceleration);
   }
 #endif
+}
+
+
+void decoder_context::init_thread_context(thread_context* tctx)
+{
+  // zero scrap memory for coefficient blocks
+  memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));
+
+  tctx->currentQG_x = -1;
+  tctx->currentQG_y = -1;
+
+  tctx->inUse = true;
+}
+
+
+void decoder_context::add_task_decode_CTB_row(int thread_id, bool initCABAC)
+{
+  thread_task task;
+  task.task_id = 0; // no ID
+  task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
+  task.work_routine = thread_decode_CTB_row;
+  task.data.task_ctb_row.img = img;
+  task.data.task_ctb_row.initCABAC = initCABAC;
+  task.data.task_ctb_row.thread_context_id = thread_id;
+  add_task(&thread_pool, &task);
+}
+
+
+void decoder_context::add_task_decode_slice_segment(int thread_id)
+{
+  thread_task task;
+  task.task_id = 0; // no ID
+  task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
+  task.work_routine = thread_decode_slice_segment;
+  task.data.task_ctb_row.img = img;
+  task.data.task_ctb_row.thread_context_id = thread_id;
+  add_task(&thread_pool, &task);
+}
+
+
+de265_error decoder_context::decode_NAL(NAL_unit* nal)
+{
+  decoder_context* ctx = this;
+
+  de265_error err = DE265_OK;
+
+  bitreader reader;
+  bitreader_init(&reader, nal->data(), nal->size());
+
+  nal_header nal_hdr;
+  nal_read_header(&reader, &nal_hdr);
+  ctx->process_nal_hdr(&nal_hdr);
+
+  loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
+          nal->data()[0], nal->data()[1],
+          get_NAL_name(nal_hdr.nal_unit_type),
+          nal_hdr.nuh_temporal_id);
+
+  if (nal_hdr.nal_unit_type<32) {
+    logdebug(LogHeaders,"---> read slice segment header\n");
+
+    //printf("-------- slice header --------\n");
+
+    slice_segment_header* hdr = new slice_segment_header;
+    bool continueDecoding;
+    err = hdr->read(&reader,ctx, &continueDecoding);
+    if (!continueDecoding) {
+      if (ctx->img) { ctx->img->integrity = INTEGRITY_NOT_DECODED; }
+      delete hdr;
+      return err;
+    }
+    else {
+      if (ctx->param_slice_headers_fd>=0) {
+        hdr->dump_slice_segment_header(ctx, ctx->param_slice_headers_fd);
+      }
+
+      if (ctx->process_slice_segment_header(ctx, hdr, &err, nal->pts, nal->user_data) == false)
+        {
+          ctx->img->integrity = INTEGRITY_NOT_DECODED;
+          delete hdr;
+          return err;
+        }
+
+      ctx->img->add_slice_segment_header(hdr);
+      ctx->img->nal_hdr = nal_hdr;
+
+      skip_bits(&reader,1); // TODO: why?
+      prepare_for_CABAC(&reader);
+
+
+      // modify entry_point_offsets
+
+      int headerLength = reader.data - nal->data();
+      for (int i=0;i<hdr->num_entry_point_offsets;i++) {
+        hdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(hdr->entry_point_offset[i],
+                                                                    headerLength);
+      }
+
+      const pic_parameter_set* pps = ctx->current_pps;
+      int ctbsWidth = ctx->current_sps->PicWidthInCtbsY;
+
+      int nRows = hdr->num_entry_point_offsets +1;
+
+      bool use_WPP = (ctx->num_worker_threads > 0 &&
+                      ctx->current_pps->entropy_coding_sync_enabled_flag);
+
+      bool use_tiles = (ctx->num_worker_threads > 0 &&
+                        ctx->current_pps->tiles_enabled_flag);
+
+      if (use_WPP && use_tiles) {
+        //add_warning(ctx, DE265_WARNING_STREAMS_APPLIES_TILES_AND_WPP, true);
+      }
+
+      if (ctx->num_worker_threads > 0 &&
+          ctx->current_pps->entropy_coding_sync_enabled_flag == false &&
+          ctx->current_pps->tiles_enabled_flag == false) {
+
+        // TODO: new error should be: no WPP and no Tiles ...
+        ctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
+      }
+
+      if (!use_WPP && !use_tiles) {
+        // --- single threaded decoding ---
+
+#if 0
+        int thread_context_idx = get_next_thread_context_index(ctx);
+        if (thread_context_idx<0) {
+          assert(false); // TODO
+        }
+#else
+        int thread_context_idx=0;
+#endif
+
+        thread_context* tctx = &ctx->thread_contexts[thread_context_idx];
+
+        init_thread_context(tctx);
+
+        init_CABAC_decoder(&tctx->cabac_decoder,
+                           reader.data,
+                           reader.bytes_remaining);
+
+        tctx->shdr = hdr;
+        tctx->img  = ctx->img;
+        tctx->decctx = ctx;
+        tctx->CtbAddrInTS = pps->CtbAddrRStoTS[hdr->slice_segment_address];
+
+        // fixed context 0
+        if ((err=read_slice_segment_data(tctx)) != DE265_OK)
+          { return err; }
+      }
+      else if (use_tiles && !use_WPP) {
+        int nTiles = nRows;  // TODO: rename 'nRows'
+
+        if (nTiles > MAX_THREAD_CONTEXTS) {
+          return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+        }
+
+        assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
+
+        assert(ctx->img->num_tasks_pending() == 0);
+        ctx->img->increase_pending_tasks(nTiles);
+
+        for (int ty=0;ty<pps->num_tile_rows;ty++)
+          for (int tx=0;tx<pps->num_tile_columns;tx++) {
+            int tile = tx + ty*pps->num_tile_columns;
+
+            // set thread context
+
+            ctx->thread_contexts[tile].shdr = hdr;
+            ctx->thread_contexts[tile].decctx = ctx;
+            ctx->thread_contexts[tile].img    = ctx->img;
+
+            ctx->thread_contexts[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
+
+
+            // init CABAC
+
+            int dataStartIndex;
+            if (tile==0) { dataStartIndex=0; }
+            else         { dataStartIndex=hdr->entry_point_offset[tile-1]; }
+
+            int dataEnd;
+            if (tile==nRows-1) dataEnd = reader.bytes_remaining;
+            else               dataEnd = hdr->entry_point_offset[tile];
+
+            init_thread_context(&ctx->thread_contexts[tile]);
+
+            init_CABAC_decoder(&ctx->thread_contexts[tile].cabac_decoder,
+                               &reader.data[dataStartIndex],
+                               dataEnd-dataStartIndex);
+          }
+
+        // add tasks
+
+        for (int i=0;i<nTiles;i++) {
+          add_task_decode_slice_segment(i);
+        }
+
+        ctx->img->wait_for_completion();
+      }
+      else {
+        if (nRows > MAX_THREAD_CONTEXTS) {
+          return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+        }
+
+        assert(ctx->img->num_tasks_pending() == 0);
+        ctx->img->increase_pending_tasks(nRows);
+
+        //printf("-------- decode --------\n");
+
+
+        for (int y=0;y<nRows;y++) {
+
+          // set thread context
+
+          for (int x=0;x<ctbsWidth;x++) {
+            ctx->img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded
+          }
+
+          ctx->thread_contexts[y].shdr = hdr;
+          ctx->thread_contexts[y].decctx = ctx;
+          ctx->thread_contexts[y].img    = ctx->img;
+          ctx->thread_contexts[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
+
+
+          // init CABAC
+
+          int dataStartIndex;
+          if (y==0) { dataStartIndex=0; }
+          else      { dataStartIndex=hdr->entry_point_offset[y-1]; }
+
+          int dataEnd;
+          if (y==nRows-1) dataEnd = reader.bytes_remaining;
+          else            dataEnd = hdr->entry_point_offset[y];
+
+          init_thread_context(&ctx->thread_contexts[y]);
+
+          init_CABAC_decoder(&ctx->thread_contexts[y].cabac_decoder,
+                             &reader.data[dataStartIndex],
+                             dataEnd-dataStartIndex);
+        }
+
+        // add tasks
+
+        for (int y=0;y<nRows;y++) {
+          add_task_decode_CTB_row(y, y==0);
+        }
+
+        ctx->img->wait_for_completion();
+      }
+    }
+  }
+  else switch (nal_hdr.nal_unit_type) {
+    case NAL_UNIT_VPS_NUT:
+      {
+        logdebug(LogHeaders,"---> read VPS\n");
+
+        video_parameter_set vps;
+        err=::read_vps(ctx,&reader,&vps);
+        if (err != DE265_OK) {
+          break;
+        }
+
+        if (ctx->param_vps_headers_fd>=0) {
+          dump_vps(&vps, ctx->param_vps_headers_fd);
+        }
+
+        ctx->process_vps(&vps);
+      }
+      break;
+
+    case NAL_UNIT_SPS_NUT:
+      {
+        logdebug(LogHeaders,"----> read SPS\n");
+
+        seq_parameter_set sps;
+
+        if ((err=sps.read(ctx, &reader)) != DE265_OK) {
+          break;
+        }
+
+        if (ctx->param_sps_headers_fd>=0) {
+          sps.dump_sps(ctx->param_sps_headers_fd);
+        }
+
+        ctx->process_sps(&sps);
+      }
+      break;
+
+    case NAL_UNIT_PPS_NUT:
+      {
+        logdebug(LogHeaders,"----> read PPS\n");
+
+        pic_parameter_set pps;
+
+        bool success = pps.read(&reader,ctx);
+
+        if (ctx->param_pps_headers_fd>=0) {
+          pps.dump_pps(ctx->param_pps_headers_fd);
+        }
+
+        if (success) {
+          ctx->process_pps(&pps);
+        }
+      }
+      break;
+
+    case NAL_UNIT_PREFIX_SEI_NUT:
+    case NAL_UNIT_SUFFIX_SEI_NUT:
+      logdebug(LogHeaders,"----> read SEI\n");
+
+      sei_message sei;
+
+      ctx->push_current_picture_to_output_queue();
+
+      if (read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx->current_sps)) {
+        dump_sei(&sei, ctx->current_sps);
+
+        if (ctx->last_decoded_image) {
+          err = process_sei(&sei, ctx->last_decoded_image);
+        }
+      }
+      break;
+
+    case NAL_UNIT_EOS_NUT:
+      ctx->FirstAfterEndOfSequenceNAL = true;
+      break;
+    }
+
+  return err;
+}
+
+
+de265_error decoder_context::decode(int* more)
+{
+  decoder_context* ctx = this;
+
+  // if the stream has ended, and no more NALs are to be decoded, flush all pictures
+
+  if (ctx->nal_parser.get_NAL_queue_length() == 0 && ctx->nal_parser.is_end_of_stream()) {
+
+    // flush all pending pictures into output queue
+
+    ctx->push_current_picture_to_output_queue();
+    ctx->dpb.flush_reorder_buffer();
+
+    if (more) { *more = ctx->dpb.num_pictures_in_output_queue(); }
+
+    return DE265_OK;
+  }
+
+
+  // if NAL-queue is empty, we need more data
+  // -> input stalled
+
+  if (ctx->nal_parser.get_NAL_queue_length() == 0) {
+    if (more) { *more=1; }
+
+    return DE265_ERROR_WAITING_FOR_INPUT_DATA;
+  }
+
+
+  // when there are no free image buffers in the DPB, pause decoding
+  // -> output stalled
+
+  if (!ctx->dpb.has_free_dpb_picture(false)) {
+    if (more) *more = 1;
+    return DE265_ERROR_IMAGE_BUFFER_FULL;
+  }
+
+
+  // decode one NAL from the queue
+
+  NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
+  assert(nal);
+  de265_error err = ctx->decode_NAL(nal);
+  ctx->nal_parser.free_NAL_unit(nal);
+
+  if (more) {
+    // decoding error is assumed to be unrecoverable
+    *more = (err==DE265_OK);
+  }
+
+  return err;
 }
 
 
@@ -216,10 +683,10 @@ void decoder_context::process_pps(pic_parameter_set* pps)
 /* The returned index rotates through [0;MAX_THREAD_CONTEXTS) and is not reset at each new picture.
    Returns -1 if no more context data structure available.
  */
-int get_next_thread_context_index(decoder_context* ctx)
+int decoder_context::get_next_thread_context_index(decoder_context* ctx)
 {
   for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
-    if (ctx->thread_context[i].inUse == false) {
+    if (ctx->thread_contexts[i].inUse == false) {
       return i;
     }
   }
@@ -232,7 +699,7 @@ int get_next_thread_context_index(decoder_context* ctx)
 
 /* 8.3.1
  */
-void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
+void decoder_context::process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
 {
   loginfo(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
            hdr->slice_pic_order_cnt_lsb,
@@ -289,8 +756,9 @@ void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr
 /* 8.3.3.2
    Returns DPB index of the generated picture.
  */
-int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
-                                           int POC, bool longTerm)
+int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx,
+                                                            const seq_parameter_set* sps,
+                                                            int POC, bool longTerm)
 {
   assert(ctx->dpb.has_free_dpb_picture(true));
 
@@ -326,7 +794,7 @@ int generate_unavailable_reference_picture(decoder_context* ctx, const seq_param
 
    This function will mark pictures in the DPB as 'unused' or 'used for long-term reference'
  */
-void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
+void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
   if (isIRAP(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
 
@@ -580,7 +1048,7 @@ void process_reference_picture_set(decoder_context* ctx, slice_segment_header* h
    - the RefPicList_POC[2][], containing POCs.
    - LongTermRefPic[2][] is also set to true if it is a long-term reference
  */
-bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
+bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
   int NumPocTotalCurr = hdr->CurrRps.NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
@@ -673,11 +1141,12 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
 
   // show reference picture lists
 
+#if 0
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
             hdr->RefPicList[0][rIdx],
-            ctx->dpb.dpb[hdr->RefPicList[0][rIdx]].PicOrderCntVal
+            ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
@@ -686,10 +1155,11 @@ bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_heade
   for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
             hdr->RefPicList[1][rIdx],
-            ctx->dpb.dpb[hdr->RefPicList[1][rIdx]].PicOrderCntVal
+            ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicOrderCntVal
             );
   }
   loginfo(LogHeaders,"*\n");
+#endif
 
   return true;
 }

@@ -23,8 +23,8 @@
 
 #include <math.h>
 
-
-void writeFrame_Y(decoder_context* ctx,const char* filename)
+#if 0
+void writeFrame_Y(de265_image* img,const char* filename)
 {
   int w = ctx->img->get_width();
   int h = ctx->img->get_height();
@@ -59,6 +59,7 @@ void writeFrame_Y(decoder_context* ctx,const char* filename)
             }
       }
 }
+#endif
 
 
 static const char *output_filename;

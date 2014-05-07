@@ -887,7 +887,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 
   if (enabled_deblocking)
     {
-      if (ctx->num_worker_threads==0) {  // TMP HACK / TODO / switched off multi-core
+      if (ctx->get_num_worker_threads()==0) {  // TMP HACK / TODO / switched off multi-core
 
         // vertical filtering
 
@@ -924,7 +924,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
           task.task_cmd = THREAD_TASK_DEBLOCK;
           task.work_routine = thread_deblock;
 
-          int numStripes= ctx->num_worker_threads * 4; // TODO: what is a good number of stripes?
+          int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
           //ctx->thread_pool.tasks_pending = numStripes;
           img->increase_pending_tasks(numStripes);
 

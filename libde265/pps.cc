@@ -82,7 +82,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   num_ref_idx_l1_default_active++;
 
 
-  seq_parameter_set* sps = &ctx->sps[seq_parameter_set_id];
+  seq_parameter_set* sps = ctx->get_sps(seq_parameter_set_id);
   if (sps->sps_read==false) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;

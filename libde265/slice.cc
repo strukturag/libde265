@@ -64,9 +64,9 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 {
   int vlc;
 
-  pic_parameter_set* pps = &ctx->pps[(int)shdr->slice_pic_parameter_set_id];
+  pic_parameter_set* pps = ctx->get_pps((int)shdr->slice_pic_parameter_set_id);
   assert(pps);
-  seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
+  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
   assert(sps);
 
   shdr->luma_log2_weight_denom = vlc = get_uvlc(br);
@@ -167,7 +167,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   first_slice_segment_in_pic_flag = get_bits(br,1);
 
-  if (ctx->RapPicFlag) { // TODO: is this still correct ? Should we drop RapPicFlag ?
+  if (ctx->get_RapPicFlag()) { // TODO: is this still correct ? Should we drop RapPicFlag ?
     no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
@@ -178,13 +178,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  pic_parameter_set* pps = &ctx->pps[(int)slice_pic_parameter_set_id];
+  pic_parameter_set* pps = ctx->get_pps((int)slice_pic_parameter_set_id);
   if (!pps->pps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
+  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
@@ -208,9 +208,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
 
       int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
-      //slice_segment_header* prevCtbHdr = &ctx->slice[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
-      slice_segment_header* prevCtbHdr = ctx->img->slices[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
-      memcpy(this, prevCtbHdr, sizeof(slice_segment_header));
+
+      const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(prevCtb);
+        //ctx->img->slices[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
+      *this = *prevCtbHdr;
 
       first_slice_segment_in_pic_flag = 0;
       dependent_slice_segment_flag = 1;
@@ -259,8 +260,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     slice_pic_order_cnt_lsb = 0;
     short_term_ref_pic_set_sps_flag = 0;
 
-    if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
-        ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
+    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
+        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
@@ -639,17 +640,17 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
 #define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
 
-  const pic_parameter_set* pps = &ctx->pps[slice_pic_parameter_set_id];
+  const pic_parameter_set* pps = ctx->get_pps(slice_pic_parameter_set_id);
   assert(pps->pps_read); // TODO: error handling
 
-  const seq_parameter_set* sps = &ctx->sps[(int)pps->seq_parameter_set_id];
+  const seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
   assert(sps->sps_read); // TODO: error handling
 
 
   LOG0("----------------- SLICE -----------------\n");
   LOG1("first_slice_segment_in_pic_flag        : %d\n", first_slice_segment_in_pic_flag);
-  if (ctx->nal_unit_type >= NAL_UNIT_BLA_W_LP &&
-      ctx->nal_unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23) {
+  if (ctx->get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
+      ctx->get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
     LOG1("no_output_of_prior_pics_flag           : %d\n", no_output_of_prior_pics_flag);
   }
 
@@ -680,8 +681,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
     LOG1("slice_pic_order_cnt_lsb              : %d\n", slice_pic_order_cnt_lsb);
 
-    if (ctx->nal_unit_type != NAL_UNIT_IDR_W_RADL &&
-        ctx->nal_unit_type != NAL_UNIT_IDR_N_LP) {
+    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
+        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
 
       if (!short_term_ref_pic_set_sps_flag) {
@@ -699,12 +700,14 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
         }
 
         LOG1("num_long_term_pics                       : %d\n", num_long_term_pics);
-          
+
+#if 0          
         for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
           LOG2("PocLsbLt[%d]            : %d\n", i, ctx->PocLsbLt[i]);
           LOG2("UsedByCurrPicLt[%d]     : %d\n", i, ctx->UsedByCurrPicLt[i]);
           LOG2("DeltaPocMsbCycleLt[%d]  : %d\n", i, ctx->DeltaPocMsbCycleLt[i]);
         }
+#endif
       }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
@@ -3737,7 +3740,7 @@ void thread_decode_slice_segment(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
   de265_image* img = data->img;
-  thread_context* tctx = &img->decctx->thread_context[data->thread_context_id];
+  thread_context* tctx = &img->decctx->thread_contexts[data->thread_context_id];
 
   setCtbAddrFromTS(tctx);
 
@@ -3758,7 +3761,7 @@ void thread_decode_CTB_row(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
   de265_image* img = data->img;
-  thread_context* tctx = &img->decctx->thread_context[data->thread_context_id];
+  thread_context* tctx = &img->decctx->thread_contexts[data->thread_context_id];
 
   seq_parameter_set* sps = &img->sps;
   int ctbW = sps->PicWidthInCtbsY;
@@ -3782,7 +3785,7 @@ void thread_decode_CTB_row(void* d)
   }
 
   /*enum DecodeResult result =*/ decode_substream(tctx, true, 1,
-                                                  tctx->decctx->thread_context[destThreadContext].ctx_model);
+                                                  tctx->decctx->thread_contexts[destThreadContext].ctx_model);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
@@ -3861,5 +3864,3 @@ de265_error read_slice_segment_data(thread_context* tctx)
 }
 
 
-
-// &ctx->thread_context[destThreadContext].ctx_model,

@@ -124,6 +124,7 @@ void de265_announce_progress(de265_progress_lock* lock, int progress)
 
 #include "libde265/decctx.h"
 
+#if 0
 const char* line="--------------------------------------------------";
 void printblks(const thread_pool* pool)
 {
@@ -161,6 +162,7 @@ void printblks(const thread_pool* pool)
     }
   printf("+%s+\n",line+50-w);
 }
+#endif
 
 
 static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)

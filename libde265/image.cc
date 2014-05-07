@@ -93,6 +93,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 {
   const int _border=0;  // TODO: remove the border altogether
 
+  decctx = NULL;
+
   // --- allocate image buffer (or reuse old one) ---
 
   if (width != w || height != h || chroma_format != c || border != _border) {

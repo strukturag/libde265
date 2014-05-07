@@ -81,8 +81,8 @@ typedef struct {
 
 const char* sei_type_name(enum sei_payload_type type);
 
-bool read_sei(bitreader* reader, sei_message*, bool suffix, const decoder_context* ctx);
-void dump_sei(const sei_message*, const decoder_context* ctx);
-de265_error process_sei(const sei_message*, decoder_context* ctx);
+bool read_sei(bitreader* reader, sei_message*, bool suffix, const seq_parameter_set* sps);
+void dump_sei(const sei_message*, const seq_parameter_set* sps);
+de265_error process_sei(const sei_message*, class de265_image* img);
 
 #endif

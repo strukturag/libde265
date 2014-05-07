@@ -149,6 +149,7 @@ typedef struct {
 } video_parameter_set;
 
 
+de265_error read_vps(struct decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 void dump_vps(video_parameter_set*, int fd);
 
 #endif

@@ -26,18 +26,13 @@
 
 
 static bool read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
-                                          const decoder_context* ctx)
+                                          const seq_parameter_set* sps)
 {
-  // cannot read hash SEI, because SPS is not defined
-  if (ctx->current_sps == NULL) {
-    return false;
-  }
-
   sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
 
-  int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
+  int nHashes = sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:
@@ -59,7 +54,7 @@ static bool read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
 
 
 static void dump_sei_decoded_picture_hash(const sei_message* sei,
-                                          const decoder_context* ctx)
+                                          const seq_parameter_set* sps)
 {
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
@@ -70,7 +65,7 @@ static void dump_sei_decoded_picture_hash(const sei_message* sei,
   case sei_decoded_picture_hash_type_checksum: loginfo(LogSEI,"checksum\n"); break;
   }
 
-  int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
+  int nHashes = sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     switch (seihash->hash_type) {
     case sei_decoded_picture_hash_type_MD5:
@@ -185,17 +180,9 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
 }
 
 
-static de265_error process_sei_decoded_picture_hash(const sei_message* sei, decoder_context* ctx)
+static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de265_image* img)
 {
-  if (ctx->current_sps == NULL || ctx->last_decoded_image == NULL) {
-    ctx->add_warning(DE265_ERROR_CANNOT_PROCESS_SEI, false);
-    return DE265_OK;
-  }
-
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
-
-  de265_image* img = ctx->last_decoded_image;
-  assert(img != NULL);
 
   /* Do not check SEI on pictures that are not output.
      Hash may be wrong, because of a broken link (BLA).
@@ -207,7 +194,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
 
   //write_picture(img);
 
-  int nHashes = ctx->current_sps->chroma_format_idc==0 ? 1 : 3;
+  int nHashes = img->sps.chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     uint8_t* data;
     int w,h,stride;
@@ -276,7 +263,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, deco
 }
 
 
-bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_context* ctx)
+bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parameter_set* sps)
 {
   int payload_type = 0;
   for (;;)
@@ -304,7 +291,7 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_co
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    success = read_sei_decoded_picture_hash(reader,sei,ctx);
+    success = read_sei_decoded_picture_hash(reader,sei,sps);
     break;
 
   default:
@@ -315,13 +302,13 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const decoder_co
   return success;
 }
 
-void dump_sei(const sei_message* sei, const decoder_context* ctx)
+void dump_sei(const sei_message* sei, const seq_parameter_set* sps)
 {
   loginfo(LogHeaders,"SEI message: %s\n", sei_type_name(sei->payload_type));
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    dump_sei_decoded_picture_hash(sei, ctx);
+    dump_sei_decoded_picture_hash(sei, sps);
     break;
 
   default:
@@ -331,14 +318,14 @@ void dump_sei(const sei_message* sei, const decoder_context* ctx)
 }
 
 
-de265_error process_sei(const sei_message* sei, decoder_context* ctx)
+de265_error process_sei(const sei_message* sei, de265_image* img)
 {
   de265_error err = DE265_OK;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    if (ctx->param_sei_check_hash) {
-      err = process_sei_decoded_picture_hash(sei, ctx);
+    if (img->decctx->param_sei_check_hash) {
+      err = process_sei_decoded_picture_hash(sei, img);
     }
 
     break;
