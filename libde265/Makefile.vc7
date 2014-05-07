@@ -6,7 +6,7 @@ CC=cl /nologo
 LINK=link /nologo /subsystem:console
 DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1
 
-CFLAGS=$(CFLAGS) /MT /Ox /Ob2 /Oi /TP /W4 /GL
+CFLAGS=$(CFLAGS) /MT /Ox /Ob2 /Oi /TP /W4 /GL /EHsc
 
 # type conversion, possible loss of data
 CFLAGS=$(CFLAGS) /wd4244
@@ -16,6 +16,8 @@ CFLAGS=$(CFLAGS) /wd4100
 CFLAGS=$(CFLAGS) /wd4189
 # unreferenced local function has been removed
 CFLAGS=$(CFLAGS) /wd4505
+# padded structures
+CFLAGS=$(CFLAGS) /wd4324
 
 CFLAGS=$(CFLAGS) $(DEFINES)
 
@@ -34,6 +36,7 @@ OBJS=\
 	md5.obj \
 	motion.obj \
 	nal.obj \
+	nal-parser.obj \
 	pps.obj \
 	refpic.obj \
 	sao.obj \
@@ -54,6 +57,9 @@ all: libde265.dll
 
 .c.obj:
 	$(CC) /c $*.c /Fo$*.obj $(CFLAGS)
+
+.cc.obj:
+	$(CC) /c $*.cc /Fo$*.obj $(CFLAGS)
 
 libde265.dll: $(OBJS)
 	$(LINK) /dll /out:libde265.dll $**
