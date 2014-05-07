@@ -169,7 +169,7 @@ de265_error decoder_context::start_thread_pool(int nThreads)
 
   num_worker_threads = nThreads;
 
-  retrun DE265_OK;
+  return DE265_OK;
 }
 
 
