@@ -111,7 +111,7 @@ AC_ARG_ENABLE(log-error,
   [enable_log_error=$enableval],
   [enable_log_error=yes])
 if eval "test $enable_log_error = yes"; then
-  CFLAGS+=" -DDE265_LOG_ERROR"
+  CXXFLAGS+=" -DDE265_LOG_ERROR"
 fi
 
 AC_ARG_ENABLE(log-info,
@@ -120,7 +120,7 @@ AC_ARG_ENABLE(log-info,
   [enable_log_info=$enableval],
   [enable_log_info=no])
 if eval "test $enable_log_info = yes"; then
-  CFLAGS+=" -DDE265_LOG_INFO"
+  CXXFLAGS+=" -DDE265_LOG_INFO"
 fi
 
 AC_ARG_ENABLE(log-debug,
@@ -129,7 +129,7 @@ AC_ARG_ENABLE(log-debug,
   [enable_log_debug=$enableval],
   [enable_log_debug=no])
 if eval "test $enable_log_debug = yes"; then
-  CFLAGS+=" -DDE265_LOG_DEBUG"
+  CXXFLAGS+=" -DDE265_LOG_DEBUG"
 fi
 
 AC_ARG_ENABLE(log-trace,
@@ -138,7 +138,7 @@ AC_ARG_ENABLE(log-trace,
   [enable_log_trace=$enableval],
   [enable_log_trace=no])
 if eval "test $enable_log_trace = yes"; then
-  CFLAGS+=" -DDE265_LOG_TRACE"
+  CXXFLAGS+=" -DDE265_LOG_TRACE"
 fi
 
 
