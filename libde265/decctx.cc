@@ -382,8 +382,155 @@ de265_error decoder_context::read_eos_NAL(bitreader& reader)
   return DE265_OK;
 }
 
+de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
+{
+  logdebug(LogHeaders,"---> read slice segment header\n");
+
+
+  // --- read slice header ---
+
+  slice_segment_header* shdr = new slice_segment_header;
+  bool continueDecoding;
+  de265_error err = shdr->read(&reader,this, &continueDecoding);
+  if (!continueDecoding) {
+    if (img) { img->integrity = INTEGRITY_NOT_DECODED; }
+    delete shdr;
+    return err;
+  }
+
+  if (param_slice_headers_fd>=0) {
+    shdr->dump_slice_segment_header(this, param_slice_headers_fd);
+  }
+
+
+  if (process_slice_segment_header(this, shdr, &err, nal->pts, nal->user_data) == false)
+    {
+      img->integrity = INTEGRITY_NOT_DECODED;
+      delete shdr;
+      return err;
+    }
+
+  this->img->add_slice_segment_header(shdr);
+  this->img->nal_hdr = nal_hdr;
+
+  skip_bits(&reader,1); // TODO: why?
+  prepare_for_CABAC(&reader);
+
+
+  // modify entry_point_offsets
+
+  int headerLength = reader.data - nal->data();
+  for (int i=0;i<shdr->num_entry_point_offsets;i++) {
+    shdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
+                                                                 headerLength);
+  }
+
+
+
+  // --- start a new image if this is the first slice ---
+
+  if (shdr->first_slice_segment_in_pic_flag) {
+    image_unit* imgunit = new image_unit;
+    imgunit->img = this->img;
+    image_units.push_back(imgunit);
+  }
+
+
+  // --- add slice to current picture ---
+
+  if ( ! image_units.empty() ) {
+
+    slice_unit* sliceunit = new slice_unit;
+    sliceunit->nal = nal;
+    sliceunit->shdr = shdr;
+    sliceunit->reader = reader;
+
+    //image_units.back()->slice_units.push_back(sliceunit);
+    decode_slice_unit_sequential(image_units.back(), sliceunit);
+  }
+
+  return DE265_OK;
+}
+
+
+de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
+                                                          slice_unit* sliceunit)
+{
+  de265_error err = DE265_OK;
+
+  remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
+
+
+  int thread_context_idx=0;
+  struct thread_context* tctx = &thread_contexts[thread_context_idx];
+
+  init_thread_context(tctx);
+
+  init_CABAC_decoder(&tctx->cabac_decoder,
+                     sliceunit->reader.data,
+                     sliceunit->reader.bytes_remaining);
+
+  tctx->shdr = sliceunit->shdr;
+  tctx->img  = imgunit->img;
+  tctx->decctx = this;
+  tctx->CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address];
+
+  // fixed context 0
+  if ((err=read_slice_segment_data(tctx)) != DE265_OK)
+    { return err; }
+
+  return err;
+}
 
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
+{
+  decoder_context* ctx = this;
+
+  de265_error err = DE265_OK;
+
+  bitreader reader;
+  bitreader_init(&reader, nal->data(), nal->size());
+
+  nal_header nal_hdr;
+  nal_read_header(&reader, &nal_hdr);
+  ctx->process_nal_hdr(&nal_hdr);
+
+  loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
+          nal->data()[0], nal->data()[1],
+          get_NAL_name(nal_hdr.nal_unit_type),
+          nal_hdr.nuh_temporal_id);
+
+  if (nal_hdr.nal_unit_type<32) {
+    err = read_slice_NAL(reader, nal, nal_hdr);
+  }
+  else switch (nal_hdr.nal_unit_type) {
+    case NAL_UNIT_VPS_NUT:
+      err = read_vps_NAL(reader);
+      break;
+
+    case NAL_UNIT_SPS_NUT:
+      err = read_sps_NAL(reader);
+      break;
+
+    case NAL_UNIT_PPS_NUT:
+      err = read_pps_NAL(reader);
+      break;
+
+    case NAL_UNIT_PREFIX_SEI_NUT:
+    case NAL_UNIT_SUFFIX_SEI_NUT:
+      err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
+      break;
+
+    case NAL_UNIT_EOS_NUT:
+      ctx->FirstAfterEndOfSequenceNAL = true;
+      break;
+    }
+
+  return err;
+}
+
+
+de265_error decoder_context::decode_NAL_OLD(NAL_unit* nal)
 {
   decoder_context* ctx = this;
 
@@ -1075,7 +1222,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 
   hdr->RemoveReferencesList = removeReferencesList;
 
-  remove_images_from_dpb(hdr->RemoveReferencesList);
+  //remove_images_from_dpb(hdr->RemoveReferencesList);
 }
 
 
@@ -1412,7 +1559,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImageList)
 {
   for (int i=0;i<removeImageList.size();i++) {
-    printf("remove image with ID : %d\n",removeImageList[i]);
+    //printf("remove image with ID : %d\n",removeImageList[i]);
 
     int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
     de265_image* dpbimg = dpb.get_image( idx );

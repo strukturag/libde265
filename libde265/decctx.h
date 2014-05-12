@@ -178,8 +178,11 @@ class decoder_context : public error_queue {
   bool    get_RapPicFlag() const { return RapPicFlag; }
 
   de265_error decode_NAL(NAL_unit* nal);
+  de265_error decode_NAL_OLD(NAL_unit* nal);
 
   de265_error decode(int* more);
+
+  de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
