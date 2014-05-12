@@ -423,8 +423,6 @@ void de265_image::wait_for_completion()
 
 void de265_image::clear_metadata()
 {
-  // TODO: we may remove this, because these are freed during release() anyway
-
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
