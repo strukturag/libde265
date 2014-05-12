@@ -820,6 +820,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC) {
         img->PicState = UnusedForReference;
+        if (img->can_be_released()) { img->release(); }
       }
     }
   }
@@ -1036,6 +1037,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
           {
             if (dpbimg->PicState != UnusedForReference) {
               dpbimg->PicState = UnusedForReference;
+              if (dpbimg->can_be_released()) { dpbimg->release(); }
             }
           }
       }

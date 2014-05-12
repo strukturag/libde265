@@ -222,6 +222,9 @@ struct de265_image {
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
 
+  bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
+
+
   void add_slice_segment_header(slice_segment_header* shdr) {
     shdr->slice_index = slices.size();
     slices.push_back(shdr);
@@ -267,9 +270,8 @@ public:
 
   int  picture_order_cnt_lsb;
   int  PicOrderCntVal;
-  bool PicOutputFlag;
   enum PictureState PicState;
-
+  bool PicOutputFlag;
 
   seq_parameter_set sps;  // the SPS used for decoding this image
   pic_parameter_set pps;  // the PPS used for decoding this image

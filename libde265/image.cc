@@ -299,26 +299,6 @@ de265_image::~de265_image()
 {
   release();
 
-  de265_cond_destroy(&finished_cond);
-  de265_mutex_destroy(&mutex);
-}
-
-
-void de265_image::release()
-{
-  // free image memory
-
-  if (alloc_functions.release_buffer) {
-    alloc_functions.release_buffer(this);
-
-    for (int i=0;i<3;i++)
-      {
-        pixels[i] = NULL;
-        pixels_confwin[i] = NULL;
-      }
-  }
-
-
   // free progress locks
 
   if (ctb_progress) {
@@ -329,6 +309,28 @@ void de265_image::release()
 
     ctb_progress=NULL;
   }
+
+
+  de265_cond_destroy(&finished_cond);
+  de265_mutex_destroy(&mutex);
+}
+
+
+void de265_image::release()
+{
+  // free image memory
+
+  if (alloc_functions.release_buffer &&
+      pixels[0])
+    {
+      alloc_functions.release_buffer(this);
+
+      for (int i=0;i<3;i++)
+        {
+          pixels[i] = NULL;
+          pixels_confwin[i] = NULL;
+        }
+    }
 
 
   // free slices
@@ -421,9 +423,7 @@ void de265_image::wait_for_completion()
 
 void de265_image::clear_metadata()
 {
-  for (int i=0;i<slices.size();i++)
-    delete slices[i];
-  slices.clear();
+  // TODO: we may remove this, because these are freed during release() anyway
 
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.

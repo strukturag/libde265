@@ -151,6 +151,7 @@ void decoded_picture_buffer::clear()
       {
         dpb[i].PicOutputFlag = false;
         dpb[i].PicState = UnusedForReference;
+        dpb[i].release();
       }
   }
 
@@ -169,7 +170,11 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
 
   int free_image_buffer_idx = -1;
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    if (dpb[i].PicOutputFlag==false && dpb[i].PicState == UnusedForReference) {
+    if (dpb[i].can_be_released()) {
+      dpb[i].release(); /* TODO: this is surely not the best place to free the image, but
+                           we have to do it here because releasing it in de265_release_image()
+                           would break the API compatibility. */
+
       free_image_buffer_idx = i;
       break;
     }

@@ -358,6 +358,11 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   next_image->PicOutputFlag = false;
 
+  // TODO: actually, we want to release it here, but we cannot without breaking API
+  // compatibility, because get_next_picture calls this immediately. Hence, we release
+  // images while scanning for available slots in the DPB.
+  // if (next_image->can_be_released()) { next_image->release(); }
+
   // pop output queue
 
   ctx->pop_next_picture_in_output_queue();
