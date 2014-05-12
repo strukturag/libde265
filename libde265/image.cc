@@ -113,6 +113,8 @@ void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride)
 }
 
 
+uint32_t de265_image::s_next_image_ID = 0;
+
 de265_image::de265_image()
 {
   alloc_functions.get_buffer = NULL;
@@ -148,6 +150,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps,
                                      const de265_image_allocation* allocfunc)
 {
+  ID = s_next_image_ID++;
+
   decctx = NULL;
 
   // --- allocate image buffer ---

@@ -190,6 +190,9 @@ struct de265_image {
   void fill_image(int y,int u,int v);
   void copy_image(const de265_image* src);
 
+  uint32_t get_ID() const { return ID; }
+
+
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
 
@@ -241,6 +244,9 @@ struct de265_image {
   static de265_image_allocation default_image_allocation;
 
 private:
+  uint32_t ID;
+  static uint32_t s_next_image_ID;
+
   uint8_t* pixels[3];
 
   enum de265_chroma chroma_format;
