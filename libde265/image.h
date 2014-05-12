@@ -184,6 +184,9 @@ struct de265_image {
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
                           const de265_image_allocation* allocfunc);
+
+  void release();
+
   void fill_image(int y,int u,int v);
   void copy_image(const de265_image* src);
 

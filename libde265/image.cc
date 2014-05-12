@@ -150,91 +150,87 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 {
   decctx = NULL;
 
-  // --- allocate image buffer (or reuse old one) ---
+  // --- allocate image buffer ---
 
-  if (width != w || height != h || chroma_format != c) {
+  chroma_format= c;
 
-    chroma_format= c;
+  width = w;
+  height = h;
+  chroma_width = w;
+  chroma_height= h;
 
-    width = w;
-    height = h;
-    chroma_width = w;
-    chroma_height= h;
+  de265_image_spec spec;
 
-    de265_image_spec spec;
+  int WinUnitX, WinUnitY;
 
-    int WinUnitX, WinUnitY;
-
-    switch (chroma_format) {
-    case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
-    case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
-    case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
-    case de265_chroma_444:  WinUnitX=1; WinUnitY=1; break;
-    default:
-      assert(0);
-    }
-
-    switch (chroma_format) {
-    case de265_chroma_420:
-      spec.format = de265_image_format_YUV420P8;
-      chroma_width  = (chroma_width +1)/2;
-      chroma_height = (chroma_height+1)/2;
-      break;
-
-    case de265_chroma_422:
-      spec.format = de265_image_format_YUV422P8;
-      chroma_height = (chroma_height+1)/2;
-      break;
-    }
-
-    spec.width  = w;
-    spec.height = h;
-    spec.alignment = 16;
-
-
-    // conformance window cropping
-
-    int left   = sps ? sps->conf_win_left_offset : 0;
-    int right  = sps ? sps->conf_win_right_offset : 0;
-    int top    = sps ? sps->conf_win_top_offset : 0;
-    int bottom = sps ? sps->conf_win_bottom_offset : 0;
-
-    width_confwin = width - (left+right)*WinUnitX;
-    height_confwin= height- (top+bottom)*WinUnitY;
-    chroma_width_confwin = chroma_width -left-right;
-    chroma_height_confwin= chroma_height-top-bottom;
-
-    spec.crop_left  = left *WinUnitX;
-    spec.crop_right = right*WinUnitX;
-    spec.crop_top   = top   *WinUnitY;
-    spec.crop_bottom= bottom*WinUnitY;
-
-    spec.visible_width = width_confwin;
-    spec.visible_height= height_confwin;
-
-
-    // allocate memory and set conformance window pointers
-
-    int success = allocfunc->get_buffer(&spec, this);
-
-    pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
-    pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
-    pixels_confwin[2] = pixels[2] + left + top*chroma_stride;
-
-
-    // check for memory shortage
-
-    if (!success)
-      {
-        return DE265_ERROR_OUT_OF_MEMORY;
-      }
-
-    alloc_functions = *allocfunc;
+  switch (chroma_format) {
+  case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
+  case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
+  case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
+  case de265_chroma_444:  WinUnitX=1; WinUnitY=1; break;
+  default:
+    assert(0);
   }
 
-  // --- allocate decoding info arrays ---
+  switch (chroma_format) {
+  case de265_chroma_420:
+    spec.format = de265_image_format_YUV420P8;
+    chroma_width  = (chroma_width +1)/2;
+    chroma_height = (chroma_height+1)/2;
+    break;
 
-  bool mem_alloc_success = true;
+  case de265_chroma_422:
+    spec.format = de265_image_format_YUV422P8;
+    chroma_height = (chroma_height+1)/2;
+    break;
+  }
+
+  spec.width  = w;
+  spec.height = h;
+  spec.alignment = 16;
+
+
+  // conformance window cropping
+
+  int left   = sps ? sps->conf_win_left_offset : 0;
+  int right  = sps ? sps->conf_win_right_offset : 0;
+  int top    = sps ? sps->conf_win_top_offset : 0;
+  int bottom = sps ? sps->conf_win_bottom_offset : 0;
+
+  width_confwin = width - (left+right)*WinUnitX;
+  height_confwin= height- (top+bottom)*WinUnitY;
+  chroma_width_confwin = chroma_width -left-right;
+  chroma_height_confwin= chroma_height-top-bottom;
+
+  spec.crop_left  = left *WinUnitX;
+  spec.crop_right = right*WinUnitX;
+  spec.crop_top   = top   *WinUnitY;
+  spec.crop_bottom= bottom*WinUnitY;
+
+  spec.visible_width = width_confwin;
+  spec.visible_height= height_confwin;
+
+
+  // allocate memory and set conformance window pointers
+
+  bool mem_alloc_success = allocfunc->get_buffer(&spec, this);
+
+  pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
+  pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
+  pixels_confwin[2] = pixels[2] + left + top*chroma_stride;
+
+
+  // check for memory shortage
+
+  if (!mem_alloc_success)
+    {
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
+
+  alloc_functions = *allocfunc;
+
+
+  // --- allocate decoding info arrays ---
 
   if (sps) {
     // intra pred mode
@@ -301,23 +297,46 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
 de265_image::~de265_image()
 {
+  release();
+
+  de265_cond_destroy(&finished_cond);
+  de265_mutex_destroy(&mutex);
+}
+
+
+void de265_image::release()
+{
+  // free image memory
+
   if (alloc_functions.release_buffer) {
     alloc_functions.release_buffer(this);
+
+    for (int i=0;i<3;i++)
+      {
+        pixels[i] = NULL;
+        pixels_confwin[i] = NULL;
+      }
   }
 
-  for (int i=0;i<ctb_info.data_size;i++)
-    { de265_progress_lock_destroy(&ctb_progress[i]); }
 
+  // free progress locks
+
+  if (ctb_progress) {
+    for (int i=0;i<ctb_info.data_size;i++)
+      { de265_progress_lock_destroy(&ctb_progress[i]); }
+
+    free(ctb_progress);
+
+    ctb_progress=NULL;
+  }
+
+
+  // free slices
 
   for (int i=0;i<slices.size();i++) {
     delete slices[i];
   }
   slices.clear();
-
-  free(ctb_progress);
-
-  de265_cond_destroy(&finished_cond);
-  de265_mutex_destroy(&mutex);
 }
 
 
