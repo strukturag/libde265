@@ -1205,8 +1205,6 @@ void decoder_context::push_current_picture_to_output_queue()
   // push image into output queue
 
   if (img->PicOutputFlag) {
-    img->set_conformance_window();
-
     loginfo(LogDPB,"new picture has output-flag=true\n");
 
     if (img->integrity != INTEGRITY_CORRECT &&

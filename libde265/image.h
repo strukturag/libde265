@@ -218,8 +218,6 @@ struct de265_image {
 
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
-  void set_conformance_window();
-
 
   void add_slice_segment_header(slice_segment_header* shdr) {
     shdr->slice_index = slices.size();
