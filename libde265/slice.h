@@ -236,6 +236,8 @@ typedef struct slice_segment_header {
   // context storage for dependent slices and WPP in single-thread mode
   context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
+  std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
+
 } slice_segment_header;
 
 

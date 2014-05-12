@@ -828,6 +828,8 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
  */
 void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
 {
+  std::vector<int> removeReferencesList;
+
   if (isIRAP(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
 
     int currentPOC = ctx->img->PicOrderCntVal;
@@ -848,8 +850,8 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC) {
-        img->PicState = UnusedForReference;
-        if (img->can_be_released()) { img->release(); }
+
+        removeReferencesList.push_back(img->get_ID());
       }
     }
   }
@@ -1065,11 +1067,15 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
         if (dpbimg != ctx->img)  // not the current picture
           {
             if (dpbimg->PicState != UnusedForReference) {
-              dpbimg->PicState = UnusedForReference;
-              if (dpbimg->can_be_released()) { dpbimg->release(); }
+
+              removeReferencesList.push_back(dpbimg->get_ID());
             }
           }
       }
+
+  hdr->RemoveReferencesList = removeReferencesList;
+
+  remove_images_from_dpb(hdr->RemoveReferencesList);
 }
 
 
@@ -1395,6 +1401,18 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);
 
   return true;
+}
+
+
+void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImageList)
+{
+  for (int i=0;i<removeImageList.size();i++) {
+    printf("remove image with ID : %d\n",removeImageList[i]);
+
+    int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
+    de265_image* dpbimg = dpb.get_image( idx );
+    dpbimg->PicState = UnusedForReference;
+  }
 }
 
 

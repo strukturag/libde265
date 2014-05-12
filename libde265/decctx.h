@@ -346,6 +346,9 @@ class decoder_context : public error_queue {
                                              int POC, bool longTerm);
   void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
   bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
+
+
+  void remove_images_from_dpb(const std::vector<int>& removeImageList);
 };
 
 
