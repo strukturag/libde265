@@ -84,11 +84,25 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc) const
 
 int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb) const
 {
-  logdebug(LogHeaders,"get access to picture with PSB %d from DPB\n",lsb);
+  logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (dpb[k].picture_order_cnt_lsb == lsb &&
         dpb[k].PicState != UnusedForReference) {
+      return k;
+    }
+  }
+
+  return -1;
+}
+
+
+int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
+{
+  logdebug(LogHeaders,"get access to picture with ID %d from DPB\n",id);
+
+  for (int k=0;k<DE265_DPB_SIZE;k++) {
+    if (dpb[k].get_ID() == id) {
       return k;
     }
   }

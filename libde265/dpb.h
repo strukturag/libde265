@@ -54,6 +54,7 @@ struct decoded_picture_buffer {
   /* Search DPB for the slot index of a specific picture. */
   int DPB_index_of_picture_with_POC(int poc) const;
   int DPB_index_of_picture_with_LSB(int lsb) const;
+  int DPB_index_of_picture_with_ID (int id) const;
   
 
   // --- reorder buffer ---
