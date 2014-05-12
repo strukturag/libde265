@@ -1261,7 +1261,7 @@ void decoder_context::push_picture_to_output_queue(de265_image* outimg)
   }
 
   last_decoded_image = outimg;
-  this->outimg = NULL;
+  this->img = NULL;
 
   // next image is not the first anymore
 
