@@ -69,14 +69,14 @@ typedef struct {
 } sei_decoded_picture_hash;
 
 
-typedef struct {
+struct sei_message {
   enum sei_payload_type payload_type;
   int payload_size;
 
   union {
     sei_decoded_picture_hash decoded_picture_hash;
   } data;
-} sei_message;
+};
 
 
 const char* sei_type_name(enum sei_payload_type type);

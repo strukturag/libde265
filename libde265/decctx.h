@@ -121,6 +121,40 @@ class error_queue
 
 
 
+struct slice_unit
+{
+slice_unit() : nal(NULL), shdr(NULL), decoding_finished(false) { }
+  ~slice_unit() { delete nal; }
+
+  NAL_unit* nal;   // we are the owner
+  slice_segment_header* shdr;  // not the owner
+  bitreader reader;
+
+  bool decoding_finished;  // TODO: do we actually need this ? we could just remove the unit after decoding
+};
+
+
+struct image_unit
+{
+  image_unit() { img=NULL; role=Invalid; }
+  ~image_unit() { } // TODO
+
+  de265_image* img;
+
+  std::vector<slice_unit*> slice_units;
+  std::vector<NAL_unit*> SEIs;
+
+  enum { Invalid, // headers not read yet
+         Unknown, // SPS/PPS available
+         Reference, // will be used as reference
+         Leaf       // not a reference picture
+  } role;
+
+  std::vector<thread_context*> thread_contexts;
+};
+
+
+
 class decoder_context : public error_queue {
  public:
   decoder_context();
@@ -199,6 +233,13 @@ class decoder_context : public error_queue {
   int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
   void         pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
 
+ private:
+  de265_error read_vps_NAL(bitreader&);
+  de265_error read_sps_NAL(bitreader&);
+  de265_error read_pps_NAL(bitreader&);
+  de265_error read_sei_NAL(bitreader& reader, bool suffix);
+  de265_error read_eos_NAL(bitreader& reader);
+  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
 
  private:
   // --- internal data ---
@@ -282,6 +323,11 @@ class decoder_context : public error_queue {
 
   char IdrPicFlag;
   char RapPicFlag;
+
+
+  // --- image unit queue ---
+
+  std::vector<image_unit*> image_units;
 
 
   // --- decoder runtime data ---

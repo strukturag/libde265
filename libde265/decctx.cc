@@ -300,6 +300,89 @@ void decoder_context::add_task_decode_slice_segment(int thread_id)
 }
 
 
+de265_error decoder_context::read_vps_NAL(bitreader& reader)
+{
+  logdebug(LogHeaders,"---> read VPS\n");
+
+  video_parameter_set vps;
+  de265_error err = ::read_vps(this,&reader,&vps);
+  if (err != DE265_OK) {
+    return err;
+  }
+
+  if (param_vps_headers_fd>=0) {
+    dump_vps(&vps, param_vps_headers_fd);
+  }
+
+  process_vps(&vps);
+
+  return DE265_OK;
+}
+
+de265_error decoder_context::read_sps_NAL(bitreader& reader)
+{
+  logdebug(LogHeaders,"----> read SPS\n");
+
+  seq_parameter_set sps;
+  de265_error err;
+
+  if ((err=sps.read(this, &reader)) != DE265_OK) {
+    return err;
+  }
+
+  if (param_sps_headers_fd>=0) {
+    sps.dump_sps(param_sps_headers_fd);
+  }
+
+  process_sps(&sps);
+
+  return DE265_OK;
+}
+
+de265_error decoder_context::read_pps_NAL(bitreader& reader)
+{
+  logdebug(LogHeaders,"----> read PPS\n");
+
+  pic_parameter_set pps;
+
+  bool success = pps.read(&reader,this);
+
+  if (param_pps_headers_fd>=0) {
+    pps.dump_pps(param_pps_headers_fd);
+  }
+
+  if (success) {
+    process_pps(&pps);
+  }
+
+  return success ? DE265_OK : DE265_WARNING_PPS_HEADER_INVALID;
+}
+
+de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
+{
+  logdebug(LogHeaders,"----> read SEI\n");
+
+  sei_message sei;
+
+  push_current_picture_to_output_queue();
+
+  if (read_sei(&reader,&sei, suffix, current_sps)) {
+    dump_sei(&sei, current_sps);
+
+    de265_error err = process_sei(&sei, last_decoded_image);
+    return err;
+  }
+
+  return DE265_OK;
+}
+
+de265_error decoder_context::read_eos_NAL(bitreader& reader)
+{
+  FirstAfterEndOfSequenceNAL = true;
+  return DE265_OK;
+}
+
+
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
 {
   decoder_context* ctx = this;
@@ -514,74 +597,20 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
-      {
-        logdebug(LogHeaders,"---> read VPS\n");
-
-        video_parameter_set vps;
-        err=::read_vps(ctx,&reader,&vps);
-        if (err != DE265_OK) {
-          break;
-        }
-
-        if (ctx->param_vps_headers_fd>=0) {
-          dump_vps(&vps, ctx->param_vps_headers_fd);
-        }
-
-        ctx->process_vps(&vps);
-      }
+      err = read_vps_NAL(reader);
       break;
 
     case NAL_UNIT_SPS_NUT:
-      {
-        logdebug(LogHeaders,"----> read SPS\n");
-
-        seq_parameter_set sps;
-
-        if ((err=sps.read(ctx, &reader)) != DE265_OK) {
-          break;
-        }
-
-        if (ctx->param_sps_headers_fd>=0) {
-          sps.dump_sps(ctx->param_sps_headers_fd);
-        }
-
-        ctx->process_sps(&sps);
-      }
+      err = read_sps_NAL(reader);
       break;
 
     case NAL_UNIT_PPS_NUT:
-      {
-        logdebug(LogHeaders,"----> read PPS\n");
-
-        pic_parameter_set pps;
-
-        bool success = pps.read(&reader,ctx);
-
-        if (ctx->param_pps_headers_fd>=0) {
-          pps.dump_pps(ctx->param_pps_headers_fd);
-        }
-
-        if (success) {
-          ctx->process_pps(&pps);
-        }
-      }
+      err = read_pps_NAL(reader);
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
-      logdebug(LogHeaders,"----> read SEI\n");
-
-      sei_message sei;
-
-      ctx->push_current_picture_to_output_queue();
-
-      if (read_sei(&reader,&sei, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT, ctx->current_sps)) {
-        dump_sei(&sei, ctx->current_sps);
-
-        if (ctx->last_decoded_image) {
-          err = process_sei(&sei, ctx->last_decoded_image);
-        }
-      }
+      err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
       break;
 
     case NAL_UNIT_EOS_NUT:
