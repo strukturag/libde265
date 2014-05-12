@@ -192,6 +192,7 @@ class decoder_context : public error_queue {
   int get_next_thread_context_index(decoder_context* ctx);
 
   void push_current_picture_to_output_queue();
+  void push_picture_to_output_queue(de265_image*);
 
 
   // --- parameters ---

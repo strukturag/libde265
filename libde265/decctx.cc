@@ -1231,32 +1231,37 @@ void run_postprocessing_filters(de265_image* img)
 
 void decoder_context::push_current_picture_to_output_queue()
 {
-  if (img==NULL) { return; }
+  push_picture_to_output_queue(img);
+}
+
+void decoder_context::push_picture_to_output_queue(de265_image* outimg)
+{
+  if (outimg==NULL) { return; }
 
 
   // run post-processing filters (deblocking & SAO)
 
-  run_postprocessing_filters(img);
+  run_postprocessing_filters(outimg);
 
 
   // push image into output queue
 
-  if (img->PicOutputFlag) {
+  if (outimg->PicOutputFlag) {
     loginfo(LogDPB,"new picture has output-flag=true\n");
 
-    if (img->integrity != INTEGRITY_CORRECT &&
+    if (outimg->integrity != INTEGRITY_CORRECT &&
         param_suppress_faulty_pictures) {
     }
     else {
       assert(dpb.num_pictures_in_output_queue() < DE265_DPB_SIZE);
-      dpb.insert_image_into_reorder_buffer(img);
+      dpb.insert_image_into_reorder_buffer(outimg);
     }
 
-    loginfo(LogDPB,"push image %d into reordering queue\n", img->PicOrderCntVal);
+    loginfo(LogDPB,"push image %d into reordering queue\n", outimg->PicOrderCntVal);
   }
 
-  last_decoded_image = img;
-  img = NULL;
+  last_decoded_image = outimg;
+  this->outimg = NULL;
 
   // next image is not the first anymore
 
