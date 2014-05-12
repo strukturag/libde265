@@ -237,9 +237,6 @@ void apply_sample_adaptive_offset(de265_image* img)
   }
 
   de265_image inputCopy;
-  inputCopy.alloc_image(img->get_width(),
-                        img->get_height(),
-                        de265_chroma_420, NULL);
   inputCopy.copy_image(img);
 
   for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)

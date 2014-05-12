@@ -59,11 +59,67 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 static const int alignment = 16;
 
 
-de265_image::de265_image() // (optional) init variables, do not alloc image
+static int  de265_image_get_buffer(de265_image_spec* spec, de265_image* img)
 {
+  int luma_stride   = (spec->width   + spec->alignment-1) / spec->alignment * spec->alignment;
+  int chroma_stride = (spec->width/2 + spec->alignment-1) / spec->alignment * spec->alignment;
+
+  int luma_height   = spec->height;
+  int chroma_height = (spec->height+1)/2;
+
+  uint8_t* p[3] = { 0,0,0 };
+  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_stride   * luma_height   + MEMORY_PADDING);
+  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
+  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
+
+  if (p[0]==NULL || p[1]==NULL || p[2]==NULL) {
+    for (int i=0;i<3;i++)
+      if (p[i]) {
+        FREE_ALIGNED(p[i]);
+      }
+
+    return 0;
+  }
+
+  de265_image_set_image_plane(img, 0, p[0], luma_stride);
+  de265_image_set_image_plane(img, 1, p[1], chroma_stride);
+  de265_image_set_image_plane(img, 2, p[2], chroma_stride);
+
+  return 1;
+}
+
+static void de265_image_release_buffer(de265_image* img)
+{
+  for (int i=0;i<3;i++) {
+    uint8_t* p = (uint8_t*)img->get_image_plane(i);
+    assert(p);
+    FREE_ALIGNED(p);
+  }
+}
+
+
+de265_image_allocation de265_image::default_image_allocation = {
+  de265_image_get_buffer,
+  de265_image_release_buffer
+};
+
+
+void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride)
+{
+  pixels[cIdx] = mem;
+
+  if (cIdx==0) { this->stride        = stride; }
+  else         { this->chroma_stride = stride; }
+}
+
+
+de265_image::de265_image()
+{
+  alloc_functions.get_buffer = NULL;
+  alloc_functions.release_buffer = NULL;
+
   for (int c=0;c<3;c++) {
     pixels[c] = NULL;
-    pixels_mem[c] = NULL;
     pixels_confwin[c] = NULL;
   }
 
@@ -89,65 +145,57 @@ de265_image::de265_image() // (optional) init variables, do not alloc image
 
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
-                                     const seq_parameter_set* sps)
+                                     const seq_parameter_set* sps,
+                                     const de265_image_allocation* allocfunc)
 {
-  const int _border=0;  // TODO: remove the border altogether
-
   decctx = NULL;
 
   // --- allocate image buffer (or reuse old one) ---
 
-  if (width != w || height != h || chroma_format != c || border != _border) {
-
-    chroma_width = w;
-    chroma_height= h;
-
-    if (c==de265_chroma_420) {
-      chroma_width  = (chroma_width +1)/2;
-      chroma_height = (chroma_height+1)/2;
-    }
-
-    if (c==de265_chroma_422) {
-      chroma_height = (chroma_height+1)/2;
-    }
-
-    stride        = (w           +2*_border+alignment-1) / alignment * alignment;
-    chroma_stride = (chroma_width+2*_border+alignment-1) / alignment * alignment;
-
-    width = w;
-    height= h;
-    border=_border;
+  if (width != w || height != h || chroma_format != c) {
 
     chroma_format= c;
 
-    FREE_ALIGNED(pixels_mem[0]);
-    pixels_mem[0] = (uint8_t *)ALLOC_ALIGNED_16(stride * (h+2*border) + MEMORY_PADDING);
-    pixels[0]     = pixels_mem[0] + border + 2*border*stride;
+    width = w;
+    height = h;
+    chroma_width = w;
+    chroma_height= h;
 
-    if (c != de265_chroma_mono) {
-      for (int col=1;col<=2;col++) {
-        FREE_ALIGNED(pixels_mem[col]);
-        pixels_mem[col] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride *
-                                                      (chroma_height+2*border) + MEMORY_PADDING);
+    de265_image_spec spec;
 
-        pixels[col] = pixels_mem[col] + border + 2*border*chroma_stride;
-      }
-    } else {
-      pixels[1] = pixels[2] = NULL;
-      pixels_mem[1] = pixels_mem[2] = NULL;
+    switch (chroma_format) {
+    case de265_chroma_420:
+      spec.format = de265_image_format_YUV420P8;
+      chroma_width  = (chroma_width +1)/2;
+      chroma_height = (chroma_height+1)/2;
+      break;
+
+    case de265_chroma_422:
+      spec.format = de265_image_format_YUV422P8;
+      chroma_height = (chroma_height+1)/2;
+      break;
     }
-  }
+
+    spec.width  = w;
+    spec.height = h;
+    spec.alignment = 16;
+
+    // TODO: conformance window
+    spec.visible_width = w;
+    spec.visible_height = h;
+
+    int success = allocfunc->get_buffer(&spec, this);
+
+    alloc_functions = *allocfunc;
 
 
-  // check for memory shortage
+    // check for memory shortage
 
-  if (pixels_mem[0]  == NULL ||
-      pixels_mem[1] == NULL ||
-      pixels_mem[2] == NULL)
+    if (!success)
     {
       return DE265_ERROR_OUT_OF_MEMORY;
     }
-
+  }
 
   // --- allocate decoding info arrays ---
 
@@ -218,8 +266,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
 de265_image::~de265_image()
 {
-  for (int c=0;c<3;c++) {
-    if (pixels_mem[c])  FREE_ALIGNED(pixels_mem[c]);
+  if (alloc_functions.release_buffer) {
+    alloc_functions.release_buffer(this);
   }
 
   for (int i=0;i<ctb_info.data_size;i++)
@@ -241,22 +289,22 @@ de265_image::~de265_image()
 void de265_image::fill_image(int y,int cb,int cr)
 {
   if (y>=0) {
-    memset(pixels_mem[0], y, stride * (height+2*border));
+    memset(pixels[0], y, stride * height);
   }
 
   if (cb>=0) {
-    memset(pixels_mem[1], cb, chroma_stride * (chroma_height+2*border));
+    memset(pixels[1], cb, chroma_stride * chroma_height);
   }
 
   if (cr>=0) {
-    memset(pixels_mem[2], cr, chroma_stride * (chroma_height+2*border));
+    memset(pixels[2], cr, chroma_stride * chroma_height);
   }
 }
 
 
 void de265_image::copy_image(const de265_image* src)
 {
-  alloc_image(src->width, src->height, src->chroma_format, NULL);
+  alloc_image(src->width, src->height, src->chroma_format, NULL, &src->alloc_functions);
 
   assert(src->stride == stride &&
          src->chroma_stride == chroma_stride);

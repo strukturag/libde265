@@ -504,6 +504,19 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int ch
   return data;
 }
 
+LIBDE265_API void de265_image_set_image_plane(de265_image* img, int cIdx, void* mem, int stride)
+{
+  img->set_image_plane(cIdx, (uint8_t*)mem, stride);
+}
+
+LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context* de265ctx,
+                                                       de265_image_allocation* allocfunc)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->set_image_allocation_functions(allocfunc);
+}
+
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image* img)
 {
   return img->pts;

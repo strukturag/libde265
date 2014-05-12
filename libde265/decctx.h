@@ -172,6 +172,11 @@ class decoder_context : public error_queue {
   int  param_pps_headers_fd;
   int  param_slice_headers_fd;
 
+  void set_image_allocation_functions(de265_image_allocation* allocfunc) {
+    param_image_allocation_functions = *allocfunc; }
+
+  de265_image_allocation param_image_allocation_functions;
+
 
   // --- accelerated DSP functions ---
 

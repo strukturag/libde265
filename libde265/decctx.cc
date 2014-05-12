@@ -67,6 +67,7 @@ decoder_context::decoder_context()
 
   set_acceleration_functions(de265_acceleration_AUTO);
 
+  param_image_allocation_functions = de265_image::default_image_allocation;
 
   /*
   memset(&vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
@@ -764,7 +765,7 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
 {
   assert(ctx->dpb.has_free_dpb_picture(true));
 
-  int idx = ctx->dpb.new_image(ctx->current_sps);
+  int idx = ctx->dpb.new_image(ctx->current_sps, &param_image_allocation_functions);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
@@ -1276,7 +1277,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     // --- find and allocate image buffer for decoding ---
 
     int image_buffer_idx;
-    image_buffer_idx = ctx->dpb.new_image(sps);
+    image_buffer_idx = ctx->dpb.new_image(sps, &param_image_allocation_functions);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;

@@ -182,12 +182,15 @@ struct de265_image {
   ~de265_image();
 
 
-  de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps);
+  de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
+                          const de265_image_allocation* allocfunc);
   void fill_image(int y,int u,int v);
   void copy_image(const de265_image* src);
 
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
+
+  void set_image_plane(int cIdx, uint8_t* mem, int stride);
 
   uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
@@ -231,9 +234,10 @@ struct de265_image {
                           int xN,int yN) const;
 
 
+  static de265_image_allocation default_image_allocation;
+
 private:
-  uint8_t* pixels[3];   // pointer to pixels in the conformance window
-  uint8_t* pixels_mem[3];  // usually, you don't use these, but the pointers above
+  uint8_t* pixels[3];
 
   enum de265_chroma chroma_format;
 
@@ -242,8 +246,7 @@ private:
   int chroma_width, chroma_height;
   int stride, chroma_stride;
 
-  int border;
-
+  de265_image_allocation alloc_functions;
 
 public:
   std::vector<slice_segment_header*> slices;
@@ -252,7 +255,7 @@ public:
 
   // --- conformance cropping window ---
 
-  uint8_t* pixels_confwin[3];
+  uint8_t* pixels_confwin[3];   // pointer to pixels in the conformance window
 
   int width_confwin, height_confwin;
   int chroma_width_confwin, chroma_height_confwin;

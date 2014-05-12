@@ -159,7 +159,8 @@ void decoded_picture_buffer::clear()
 }
 
 
-int decoded_picture_buffer::new_image(const seq_parameter_set* sps)
+int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
+                                      de265_image_allocation* allocation)
 {
   loginfo(LogHeaders,"DPB::new_image\n");
   log_dpb_content();
@@ -197,7 +198,7 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps)
   default: chroma = de265_chroma_420; assert(0); break; // should never happen
   }
 
-  img->alloc_image(w,h, chroma, sps);
+  img->alloc_image(w,h, chroma, sps, allocation);
 
   img->integrity = INTEGRITY_CORRECT;
 

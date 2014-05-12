@@ -269,6 +269,44 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 
+enum de265_image_format {
+  de265_image_format_mono8    = 1,
+  de265_image_format_YUV420P8 = 2,
+  de265_image_format_YUV422P8 = 3,
+  de265_image_format_YUV444P8 = 4
+};
+
+struct de265_image_spec
+{
+  enum de265_image_format format;
+  int width;
+  int height;
+  int alignment;
+
+  // conformance window
+
+  int crop_left;
+  int crop_right;
+  int crop_top;
+  int crop_bottom;
+
+  int visible_width;  // convenience, width  - crop_left - crop_right
+  int visible_height; // convenience, height - crop_top - crop_bottom
+};
+
+struct de265_image_allocation
+{
+  int  (*get_buffer)(de265_image_spec* spec, de265_image* img);
+  void (*release_buffer)(de265_image* img);
+};
+
+LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
+                                                       de265_image_allocation*);
+
+LIBDE265_API void de265_image_set_image_plane(de265_image* img, int cIdx, void* mem, int stride);
+LIBDE265_API void de265_image_display_supports_conformance_window(de265_image* img, bool support);
+
+
 /* --- decoding parameters --- */
 
 enum de265_param {

@@ -36,7 +36,7 @@ struct decoded_picture_buffer {
 
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, return -1. */
-  int new_image(const seq_parameter_set* sps);
+  int new_image(const seq_parameter_set* sps, de265_image_allocation* alloc);
   
   /* Check for a free slot in the DPB. There are some slots reserved for
      unavailable reference frames. If high_priority==true, these reserved slots
