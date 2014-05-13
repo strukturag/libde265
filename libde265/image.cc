@@ -117,6 +117,8 @@ uint32_t de265_image::s_next_image_ID = 0;
 
 de265_image::de265_image()
 {
+  ID = -1;
+
   alloc_functions.get_buffer = NULL;
   alloc_functions.release_buffer = NULL;
 
