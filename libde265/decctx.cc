@@ -497,8 +497,8 @@ de265_error decoder_context::decode_some()
 
 
   if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
-       ( image_units.size()>=1 && image_units[0]->slice_units.empty() ) &&
-       nal_parser.is_end_of_stream() ) {
+       ( image_units.size()>=1 && image_units[0]->slice_units.empty() &&
+         nal_parser.number_of_NAL_units_pending()==0 && nal_parser.is_end_of_stream() )) {
 
     image_unit* imgunit = image_units[0];
 
