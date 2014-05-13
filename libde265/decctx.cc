@@ -46,6 +46,11 @@ extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);
 
 
+slice_unit::~slice_unit()
+{
+  ctx->nal_parser.free_NAL_unit(nal);
+}
+
 
 decoder_context::decoder_context()
 {
@@ -362,6 +367,9 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 {
   logdebug(LogHeaders,"----> read SEI\n");
 
+  return DE265_OK;
+  assert(false); // TODO: currently broken
+
   sei_message sei;
 
   push_current_picture_to_output_queue();
@@ -440,16 +448,79 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   if ( ! image_units.empty() ) {
 
-    slice_unit* sliceunit = new slice_unit;
+    slice_unit* sliceunit = new slice_unit(this);
     sliceunit->nal = nal;
     sliceunit->shdr = shdr;
     sliceunit->reader = reader;
 
-    //image_units.back()->slice_units.push_back(sliceunit);
-    decode_slice_unit_sequential(image_units.back(), sliceunit);
+    image_units.back()->slice_units.push_back(sliceunit);
+    //decode_slice_unit_sequential(image_units.back(), sliceunit);
+
+    decode_some();
   }
 
   return DE265_OK;
+}
+
+
+de265_error decoder_context::decode_some()
+{
+  de265_error err = DE265_OK;
+
+  if (image_units.empty()) { return DE265_OK; }  // nothing to do
+
+  if (image_units.size()>=2) {
+    err = decode_image_unit_sequential(image_units.front());
+
+
+    // remove just decoded image unit from queue
+
+    delete image_units[0];
+
+    for (int i=0;i<image_units.size()-1;i++)
+      image_units[i] = image_units[i+1];
+
+    image_units.pop_back();
+  }
+
+  return err;
+}
+
+
+
+de265_error decoder_context::decode_image_unit_sequential(image_unit* imgunit)
+{
+  slice_unit* sliceunit;
+  de265_error err = DE265_OK;
+
+  printf("decode image unit sequential ----------------------------- POC = %d\n",
+         imgunit->img->PicOrderCntVal);
+
+  dpb.log_dpb_content();
+
+  //remove_images_from_dpb(imgunit->slice_units[0]->shdr->RemoveImageList);
+
+  printf("removed images:\n");
+  dpb.log_dpb_content();
+
+  for (int i=0;i<imgunit->slice_units.size();i++) {
+    sliceunit = imgunit->slice_units[i];
+
+    err = decode_slice_unit_sequential(imgunit, sliceunit);
+    if (err) {
+      break;
+    }
+  }
+
+
+  if (err==DE265_OK) {
+    push_picture_to_output_queue(imgunit->img);
+
+    printf("output decoded image:\n");
+    dpb.log_dpb_content();
+  }
+
+  return err;
 }
 
 
@@ -484,6 +555,8 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
 {
+  //return decode_NAL_OLD(nal);
+
   decoder_context* ctx = this;
 
   de265_error err = DE265_OK;
@@ -775,11 +848,13 @@ de265_error decoder_context::decode(int* more)
 
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
-  if (ctx->nal_parser.get_NAL_queue_length() == 0 && ctx->nal_parser.is_end_of_stream()) {
+  if (ctx->nal_parser.get_NAL_queue_length() == 0 &&
+      ctx->nal_parser.is_end_of_stream() &&
+      ctx->image_units.empty()) {
 
     // flush all pending pictures into output queue
 
-    ctx->push_current_picture_to_output_queue();
+    // ctx->push_current_picture_to_output_queue(); // TODO: not with new queue
     ctx->dpb.flush_reorder_buffer();
 
     if (more) { *more = ctx->dpb.num_pictures_in_output_queue(); }
@@ -791,7 +866,8 @@ de265_error decoder_context::decode(int* more)
   // if NAL-queue is empty, we need more data
   // -> input stalled
 
-  if (ctx->nal_parser.get_NAL_queue_length() == 0) {
+  if (ctx->nal_parser.is_end_of_stream() == false &&
+      ctx->nal_parser.get_NAL_queue_length() == 0) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
@@ -812,7 +888,7 @@ de265_error decoder_context::decode(int* more)
   NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
   assert(nal);
   de265_error err = ctx->decode_NAL(nal);
-  ctx->nal_parser.free_NAL_unit(nal);
+  // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
 
   if (more) {
     // decoding error is assumed to be unrecoverable
@@ -843,7 +919,7 @@ void decoder_context::process_vps(video_parameter_set* vps)
 
 void decoder_context::process_sps(seq_parameter_set* sps)
 {
-  push_current_picture_to_output_queue();
+  //push_current_picture_to_output_queue();
 
   this->sps[ sps->seq_parameter_set_id ] = *sps;
 
@@ -853,7 +929,7 @@ void decoder_context::process_sps(seq_parameter_set* sps)
 
 void decoder_context::process_pps(pic_parameter_set* pps)
 {
-  push_current_picture_to_output_queue();
+  //push_current_picture_to_output_queue();
 
   this->pps[ (int)pps->pic_parameter_set_id ] = *pps;
 }
@@ -1453,7 +1529,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
     // previous picture has been completely decoded
 
-    ctx->push_current_picture_to_output_queue();
+    //ctx->push_current_picture_to_output_queue();
 
     ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 
