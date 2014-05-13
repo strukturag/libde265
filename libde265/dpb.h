@@ -52,8 +52,8 @@ struct decoded_picture_buffer {
   const de265_image* get_image(int index) const { return &dpb[index]; }
 
   /* Search DPB for the slot index of a specific picture. */
-  int DPB_index_of_picture_with_POC(int poc) const;
-  int DPB_index_of_picture_with_LSB(int lsb) const;
+  int DPB_index_of_picture_with_POC(int poc, bool preferLongTerm=false) const;
+  int DPB_index_of_picture_with_LSB(int lsb, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_ID (int id) const;
   
 

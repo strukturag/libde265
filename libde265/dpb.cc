@@ -42,7 +42,7 @@ decoded_picture_buffer::~decoded_picture_buffer()
 void decoded_picture_buffer::log_dpb_content() const
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    loginfo(LogHighlevel, " DPB %d: POC=%d %s %s\n", i, dpb[i].PicOrderCntVal,
+    loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i, dpb[i].PicOrderCntVal, dpb[i].get_ID(),
             dpb[i].PicState == UnusedForReference ? "unused" :
             dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
             dpb[i].PicOutputFlag ? "output" : "---");
@@ -64,12 +64,21 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 }
 
 
-int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc) const
+int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, bool preferLongTerm) const
 {
   logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=\n",poc);
 
   //log_dpb_content(ctx);
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
+
+  if (preferLongTerm) {
+    for (int k=0;k<DE265_DPB_SIZE;k++) {
+      if (dpb[k].PicOrderCntVal == poc &&
+          dpb[k].PicState == UsedForLongTermReference) {
+        return k;
+      }
+    }
+  }
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (dpb[k].PicOrderCntVal == poc &&
@@ -82,11 +91,24 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc) const
 }
 
 
-int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb) const
+int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, bool preferLongTerm) const
 {
   logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
+  if (preferLongTerm) {
+    for (int k=0;k<DE265_DPB_SIZE;k++) {
+      printf("lsb[%d] = %d (LT pass)\n",k,dpb[k].picture_order_cnt_lsb);
+
+      if (dpb[k].picture_order_cnt_lsb == lsb &&
+          dpb[k].PicState == UsedForLongTermReference) {
+        return k;
+      }
+    }
+  }
+
   for (int k=0;k<DE265_DPB_SIZE;k++) {
+    printf("lsb[%d] = %d\n",k,dpb[k].picture_order_cnt_lsb);
+
     if (dpb[k].picture_order_cnt_lsb == lsb &&
         dpb[k].PicState != UnusedForReference) {
       return k;

@@ -1124,6 +1124,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC) {
 
+        printf("will remove ID %d later (a)\n",img->get_ID());
         removeReferencesList.push_back(img->get_ID());
       }
     }
@@ -1222,13 +1223,18 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   memset(picInAnyList,0, DE265_DPB_SIZE*sizeof(bool));
 
 
+  dpb.log_dpb_content();
+
   for (int i=0;i<ctx->NumPocLtCurr;i++) {
     int k;
     if (!ctx->CurrDeltaPocMsbPresentFlag[i]) {
-      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtCurr[i]);
+      printf("LSB %d\n", ctx->PocLtCurr[i]);
+      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtCurr[i], true);
+      printf("-> index = %d\n",k);
     }
     else {
-      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtCurr[i]);
+      printf("POC %d\n", ctx->PocLtCurr[i]);
+      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtCurr[i], true);
     }
 
     ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
@@ -1341,6 +1347,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
           {
             if (dpbimg->PicState != UnusedForReference) {
 
+              printf("will remove ID %d later (b)\n",dpbimg->get_ID());
               removeReferencesList.push_back(dpbimg->get_ID());
             }
           }
