@@ -5,12 +5,12 @@ libde265 - open h.265 codec implementation
 ![libde265](libde265.png)
 
 libde265 is an open source implementation of the h.265 video codec.
-It is written from scratch in plain C for simplicity and efficiency.
-Its simple API makes it easy to integrate it into other software.
+It is written from scratch and has a plain C API to enable
+a simple integration into other software.
 
 libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
-All features of the Main profile except long-term MC (which is currently unused
-by the available encoders) are supported.
+The decoder includes all features of the Main profile and correctly decodes almost all
+conformance streams (see [[wiki page](https://github.com/strukturag/libde265/wiki/Decoder-conformance)]).
 
 For latest news check our website at http://www.libde265.org
 
@@ -96,6 +96,8 @@ Software using libde265
 Libde265 has been integrated into these applications:
 
 - gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
+
+- VLC plugin
 
 - Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
 
