@@ -22,6 +22,10 @@
 #include "util.h"
 #include "md5.h"
 
+#include "libde265/sps.h"
+#include "libde265/image.h"
+#include "libde265/decctx.h"
+
 #include <assert.h>
 
 

@@ -30,6 +30,7 @@
 #include "libde265/motion.h"
 #include "libde265/de265.h"
 #include "libde265/dpb.h"
+#include "libde265/sei.h"
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
@@ -148,7 +149,7 @@ struct image_unit
   de265_image* img;
 
   std::vector<slice_unit*> slice_units;
-  std::vector<NAL_unit*> SEIs;
+  std::vector<sei_message> suffix_SEIs;
 
   enum { Invalid, // headers not read yet
          Unknown, // SPS/PPS available
@@ -202,8 +203,8 @@ class decoder_context : public error_queue {
 
   int get_next_thread_context_index(decoder_context* ctx);
 
-  void push_current_picture_to_output_queue();
-  void push_picture_to_output_queue(de265_image*);
+  //void push_current_picture_to_output_queue();
+  de265_error push_picture_to_output_queue(image_unit*);
 
 
   // --- parameters ---

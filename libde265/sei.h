@@ -22,7 +22,7 @@
 #define DE265_SEI_H
 
 #include "libde265/bitstream.h"
-#include "libde265/decctx.h"
+#include "libde265/de265.h"
 
 
 enum sei_payload_type {
@@ -78,6 +78,8 @@ struct sei_message {
   } data;
 };
 
+
+class seq_parameter_set;
 
 const char* sei_type_name(enum sei_payload_type type);
 

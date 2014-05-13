@@ -371,18 +371,16 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 {
   logdebug(LogHeaders,"----> read SEI\n");
 
-  return DE265_OK;
-  assert(false); // TODO: currently broken
-
   sei_message sei;
 
-  push_current_picture_to_output_queue();
+  //push_current_picture_to_output_queue();
 
   if (read_sei(&reader,&sei, suffix, current_sps)) {
     dump_sei(&sei, current_sps);
 
-    de265_error err = process_sei(&sei, last_decoded_image);
-    return err;
+    if (image_units.empty()==false && suffix) {
+      image_units.back()->suffix_SEIs.push_back(sei);
+    }
   }
 
   return DE265_OK;
@@ -509,7 +507,7 @@ de265_error decoder_context::decode_some()
 
     image_unit* imgunit = image_units[0];
 
-    push_picture_to_output_queue(imgunit->img);
+    err = push_picture_to_output_queue(imgunit);
 
     // remove just decoded image unit from queue
 
@@ -549,7 +547,7 @@ de265_error decoder_context::decode_image_unit_sequential(image_unit* imgunit)
 
 
   if (err==DE265_OK) {
-    push_picture_to_output_queue(imgunit->img);
+    err = push_picture_to_output_queue(imgunit);
 
     printf("output decoded image:\n");
     dpb.log_dpb_content();
@@ -1065,6 +1063,8 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
                                                             const seq_parameter_set* sps,
                                                             int POC, bool longTerm)
 {
+  printf("UNAVAIL %d\n",POC);
+
   assert(ctx->dpb.has_free_dpb_picture(true));
 
   int idx = ctx->dpb.new_image(ctx->current_sps, &param_image_allocation_functions);
@@ -1502,19 +1502,35 @@ void run_postprocessing_filters(de265_image* img)
 #endif
 }
 
+/*
 void decoder_context::push_current_picture_to_output_queue()
 {
   push_picture_to_output_queue(img);
 }
+*/
 
-void decoder_context::push_picture_to_output_queue(de265_image* outimg)
+de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 {
-  if (outimg==NULL) { return; }
+  de265_image* outimg = imgunit->img;
+
+  if (outimg==NULL) { return DE265_OK; }
 
 
   // run post-processing filters (deblocking & SAO)
 
   run_postprocessing_filters(outimg);
+
+
+  // process suffix SEIs
+
+  for (int i=0;i<imgunit->suffix_SEIs.size();i++) {
+    const sei_message& sei = imgunit->suffix_SEIs[i];
+
+    de265_error err = process_sei(&sei, outimg);
+    if (err) {
+      return err;
+    }
+  }
 
 
   // push image into output queue
@@ -1546,6 +1562,8 @@ void decoder_context::push_picture_to_output_queue(de265_image* outimg)
   }
 
   dpb.log_dpb_queues();
+
+  return DE265_OK;
 }
 
 
