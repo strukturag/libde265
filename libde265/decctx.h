@@ -296,7 +296,8 @@ class decoder_context : public error_queue {
   de265_image* img;
 
  public:
-  int prevSliceAddrRS;
+  int prevSliceAddrRS; /* Remember the last slice's address for a successive
+                          dependent slice. */
 
 
   // --- motion compensation ---

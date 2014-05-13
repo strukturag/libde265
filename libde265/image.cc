@@ -24,6 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include <limits>
+
+
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -153,6 +157,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const de265_image_allocation* allocfunc)
 {
   ID = s_next_image_ID++;
+  removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
   decctx = NULL;
 

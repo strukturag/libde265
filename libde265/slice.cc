@@ -207,13 +207,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
-
-      //const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(prevCtb);
-
       const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(ctx->prevSliceAddrRS);
 
-        //ctx->img->slices[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
       *this = *prevCtbHdr;
 
       first_slice_segment_in_pic_flag = 0;

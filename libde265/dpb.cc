@@ -64,7 +64,7 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 }
 
 
-int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, bool preferLongTerm) const
+int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm) const
 {
   logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=\n",poc);
 
@@ -74,6 +74,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, bool preferLo
   if (preferLongTerm) {
     for (int k=0;k<DE265_DPB_SIZE;k++) {
       if (dpb[k].PicOrderCntVal == poc &&
+          dpb[k].removed_at_picture_id > currentID &&
           dpb[k].PicState == UsedForLongTermReference) {
         return k;
       }
@@ -82,6 +83,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, bool preferLo
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (dpb[k].PicOrderCntVal == poc &&
+        dpb[k].removed_at_picture_id > currentID &&
         dpb[k].PicState != UnusedForReference) {
       return k;
     }
@@ -91,13 +93,14 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, bool preferLo
 }
 
 
-int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, bool preferLongTerm) const
+int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm) const
 {
   logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
   if (preferLongTerm) {
     for (int k=0;k<DE265_DPB_SIZE;k++) {
       if (dpb[k].picture_order_cnt_lsb == lsb &&
+          dpb[k].removed_at_picture_id > currentID &&
           dpb[k].PicState == UsedForLongTermReference) {
         return k;
       }
@@ -106,6 +109,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, bool preferLo
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
     if (dpb[k].picture_order_cnt_lsb == lsb &&
+        dpb[k].removed_at_picture_id > currentID &&
         dpb[k].PicState != UnusedForReference) {
       return k;
     }

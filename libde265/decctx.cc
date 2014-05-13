@@ -481,7 +481,14 @@ de265_error decoder_context::decode_some()
 {
   de265_error err = DE265_OK;
 
+  static int cnt=0;
+  cnt++;
+  if (cnt<5) return DE265_OK;
+
   if (image_units.empty()) { return DE265_OK; }  // nothing to do
+
+
+  // decode something if there is work to do
 
   if ( ! image_units.empty() && ! image_units[0]->slice_units.empty() ) {
 
@@ -500,6 +507,10 @@ de265_error decoder_context::decode_some()
     }
   }
 
+
+
+  // if we decoded all slices of the current image and there will not
+  // be added any more slices to the image, output the image
 
   if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
        ( image_units.size()>=1 && image_units[0]->slice_units.empty() &&
@@ -560,12 +571,10 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
-  /*
   printf("decode slice POC=%d addr=%d, img=%p\n",
          sliceunit->shdr->slice_pic_order_cnt_lsb,
          sliceunit->shdr->slice_segment_address,
          imgunit->img);
-  */
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
@@ -1100,6 +1109,9 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 {
   std::vector<int> removeReferencesList;
 
+  const int currentID = ctx->img->get_ID();
+
+
   if (isIRAP(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
 
     int currentPOC = ctx->img->PicOrderCntVal;
@@ -1119,9 +1131,13 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
       de265_image* img = ctx->dpb.get_image(i);
 
       if (img->PicState != UnusedForReference &&
-          img->PicOrderCntVal < currentPOC) {
+          img->PicOrderCntVal < currentPOC &&
+          img->removed_at_picture_id > ctx->img->get_ID()) {
 
         removeReferencesList.push_back(img->get_ID());
+        img->removed_at_picture_id = ctx->img->get_ID();
+
+        printf("will remove ID %d (a)\n",img->get_ID());
       }
     }
   }
@@ -1224,10 +1240,10 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   for (int i=0;i<ctx->NumPocLtCurr;i++) {
     int k;
     if (!ctx->CurrDeltaPocMsbPresentFlag[i]) {
-      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtCurr[i], true);
+      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtCurr[i], currentID, true);
     }
     else {
-      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtCurr[i], true);
+      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtCurr[i], currentID, true);
     }
 
     ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
@@ -1250,10 +1266,10 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   for (int i=0;i<ctx->NumPocLtFoll;i++) {
     int k;
     if (!ctx->FollDeltaPocMsbPresentFlag[i]) {
-      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtFoll[i]);
+      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtFoll[i], currentID, true);
     }
     else {
-      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtFoll[i]);
+      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtFoll[i], currentID, true);
     }
 
     ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
@@ -1281,7 +1297,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   // 3.
 
   for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrBefore[i]);
+    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrBefore[i], currentID);
 
     //printf("st curr before, poc=%d -> idx=%d\n",ctx->PocStCurrBefore[i], k);
 
@@ -1302,7 +1318,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   }
 
   for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrAfter[i]);
+    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrAfter[i], currentID);
 
     //printf("st curr after, poc=%d -> idx=%d\n",ctx->PocStCurrAfter[i], k);
 
@@ -1323,7 +1339,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   }
 
   for (int i=0;i<ctx->NumPocStFoll;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStFoll[i]);
+    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStFoll[i], currentID);
     // if (k<0) { assert(false); } // IGNORE
 
     ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
@@ -1336,10 +1352,14 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
     if (!picInAnyList[i])        // no reference
       {
         de265_image* dpbimg = ctx->dpb.get_image(i);
-        if (dpbimg != ctx->img)  // not the current picture
+        if (dpbimg != ctx->img &&  // not the current picture
+            dpbimg->removed_at_picture_id > ctx->img->get_ID()) // has not been removed before
           {
             if (dpbimg->PicState != UnusedForReference) {
               removeReferencesList.push_back(dpbimg->get_ID());
+              printf("will remove ID %d (b)\n",dpbimg->get_ID());
+
+              dpbimg->removed_at_picture_id = ctx->img->get_ID();
             }
           }
       }
@@ -1692,10 +1712,6 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   if (hdr->dependent_slice_segment_flag==0) {
     hdr->SliceAddrRS = hdr->slice_segment_address;
   } else {
-    const pic_parameter_set* pps = &img->pps;
-    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[hdr->slice_segment_address] -1 ];
-
-    //hdr->SliceAddrRS = ctx->img->get_SliceAddrRS_atCtbRS(prevCtb);
     hdr->SliceAddrRS = ctx->prevSliceAddrRS;
   }
 
@@ -1713,6 +1729,7 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
   for (int i=0;i<removeImageList.size();i++) {
     int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
     if (idx>=0) {
+      printf("remove ID %d\n", removeImageList[i]);
       de265_image* dpbimg = dpb.get_image( idx );
       dpbimg->PicState = UnusedForReference;
     }
@@ -1721,9 +1738,15 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
 
 
 
+#include <sys/types.h>
+#include <signal.h>
 
 void error_queue::add_warning(de265_error warning, bool once)
 {
+  printf("================================================== WARNING: %d\n", warning);
+  raise(SIGINT);
+  exit(0);
+
   // check if warning was already shown
   bool add=true;
   if (once) {

@@ -279,6 +279,8 @@ public:
   enum PictureState PicState;
   bool PicOutputFlag;
 
+  int32_t removed_at_picture_id;
+
   video_parameter_set vps;
   seq_parameter_set   sps;  // the SPS used for decoding this image
   pic_parameter_set   pps;  // the PPS used for decoding this image
@@ -292,8 +294,6 @@ private:
   MetaDataArray<uint8_t>     tu_info;
   MetaDataArray<uint8_t>     deblk_info;
 
-  // TODO CHECK: should this move to slice header? Can this be different for each slice in the image?
-
 public:
   // --- meta information ---
 
@@ -304,7 +304,7 @@ public:
                         When generated, this is initialized to INTEGRITY_CORRECT,
                         and changed on decoding errors.
                       */
-  uint8_t sei_hash_check_result;
+  bool sei_hash_check_result;
 
   nal_header nal_hdr;
 
