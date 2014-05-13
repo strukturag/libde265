@@ -226,6 +226,10 @@ void decoder_context::reset()
 
   img = NULL;
 
+
+  // TODO: remove all pending image_units
+
+
   // --- decoded picture buffer ---
 
   current_image_poc_lsb = -1; // any invalid number
@@ -463,24 +467,48 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 }
 
 
+template <class T> void pop_front(std::vector<T>& vec)
+{
+  for (int i=1;i<vec.size();i++)
+    vec[i-1] = vec[i];
+
+  vec.pop_back();
+}
+
+
 de265_error decoder_context::decode_some()
 {
   de265_error err = DE265_OK;
 
   if (image_units.empty()) { return DE265_OK; }  // nothing to do
 
-  if (image_units.size()>=2) {
-    err = decode_image_unit_sequential(image_units.front());
+  if ( ! image_units.empty() && ! image_units[0]->slice_units.empty() ) {
 
+    image_unit* imgunit = image_units[0];
+    slice_unit* sliceunit = imgunit->slice_units[0];
+
+    pop_front(imgunit->slice_units);
+
+    err = decode_slice_unit_sequential(imgunit, sliceunit);
+    if (err) {
+      return err;
+    }
+  }
+
+
+  if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
+       ( image_units.size()>=1 && image_units[0]->slice_units.empty() ) &&
+       nal_parser.is_end_of_stream() ) {
+
+    image_unit* imgunit = image_units[0];
+
+    push_picture_to_output_queue(imgunit->img);
 
     // remove just decoded image unit from queue
 
-    delete image_units[0];
+    delete imgunit;
 
-    for (int i=0;i<image_units.size()-1;i++)
-      image_units[i] = image_units[i+1];
-
-    image_units.pop_back();
+    pop_front(image_units);
   }
 
   return err;
@@ -545,6 +573,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->img  = imgunit->img;
   tctx->decctx = this;
   tctx->CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address];
+
+
+  printf("decode slice POC=%d addr=%d, img=%p\n",
+         tctx->shdr->slice_pic_order_cnt_lsb,
+         tctx->shdr->slice_segment_address,
+         tctx->img);
 
   // fixed context 0
   if ((err=read_slice_segment_data(tctx)) != DE265_OK)
@@ -885,10 +919,17 @@ de265_error decoder_context::decode(int* more)
 
   // decode one NAL from the queue
 
-  NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
-  assert(nal);
-  de265_error err = ctx->decode_NAL(nal);
-  // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
+  de265_error err = DE265_OK;
+
+  if (ctx->nal_parser.number_of_NAL_units_pending()) {
+    NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
+    assert(nal);
+    err = ctx->decode_NAL(nal);
+    // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
+  }
+  else {
+    err = decode_some();
+  }
 
   if (more) {
     // decoding error is assumed to be unrecoverable
@@ -1483,8 +1524,8 @@ void decoder_context::push_picture_to_output_queue(de265_image* outimg)
     loginfo(LogDPB,"push image %d into reordering queue\n", outimg->PicOrderCntVal);
   }
 
-  last_decoded_image = outimg;
-  this->img = NULL;
+  // last_decoded_image = outimg;    TODO: not with new loop
+  // this->img = NULL;               TODO: not with new loop
 
   // next image is not the first anymore
 
@@ -1635,11 +1676,14 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImageList)
 {
   for (int i=0;i<removeImageList.size();i++) {
-    //printf("remove image with ID : %d\n",removeImageList[i]);
+    printf("remove image with ID : %d\n",removeImageList[i]);
 
     int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
-    de265_image* dpbimg = dpb.get_image( idx );
-    dpbimg->PicState = UnusedForReference;
+    if (idx>=0) {
+      printf("idx = %d\n",idx);
+      de265_image* dpbimg = dpb.get_image( idx );
+      dpbimg->PicState = UnusedForReference;
+    }
   }
 }
 
@@ -1648,6 +1692,9 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
 
 void error_queue::add_warning(de265_error warning, bool once)
 {
+  printf("---------------------------------------------------------------- WARN: %d\n",warning);
+  //exit(0);
+
   // check if warning was already shown
   bool add=true;
   if (once) {

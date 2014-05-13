@@ -663,7 +663,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
     LOG1("slice_segment_address                : %d\n", slice_segment_address);
   }
 
-  if (!dependent_slice_segment_flag) {
+  //if (!dependent_slice_segment_flag)
+    {
     //for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
     //slice_reserved_flag[i]
 
