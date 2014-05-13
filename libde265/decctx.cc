@@ -1413,6 +1413,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
     // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
     hdr->RefPicList_POC[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicOrderCntVal;
+    hdr->RefPicList_PicState[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicState;
   }
 
 
@@ -1448,6 +1449,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
       hdr->RefPicList_POC[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicOrderCntVal;
+      hdr->RefPicList_PicState[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicState;
     }
   }
 

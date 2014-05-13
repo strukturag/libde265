@@ -1581,11 +1581,14 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
       const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
 
+      int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
+      int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
+
       logtrace(LogMotion,"scale MVP A: A-POC:%d X-POC:%d\n",
                refPicA->PicOrderCntVal,refPicX->PicOrderCntVal);
 
-      if (refPicA->PicState == UsedForShortTermReference &&
-          refPicX->PicState == UsedForShortTermReference) {
+      if (picStateA == UsedForShortTermReference &&
+          picStateX == UsedForShortTermReference) {
 
         int distA = img->PicOrderCntVal - refPicA->PicOrderCntVal;
         int distX = img->PicOrderCntVal - referenced_POC;
@@ -1705,9 +1708,12 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
         const de265_image* refPicB=img->decctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
         const de265_image* refPicX=img->decctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+        int picStateB = shdr->RefPicList_PicState[refPicList][refIdxB ];
+        int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
+
         if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
-            refPicB->PicState == UsedForShortTermReference &&
-            refPicX->PicState == UsedForShortTermReference) {
+            picStateB == UsedForShortTermReference &&
+            picStateX == UsedForShortTermReference) {
 
           int distB = img->PicOrderCntVal - refPicB->PicOrderCntVal;
           int distX = img->PicOrderCntVal - referenced_POC;
