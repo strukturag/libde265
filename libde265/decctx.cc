@@ -1664,8 +1664,12 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     const pic_parameter_set* pps = &img->pps;
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[hdr->slice_segment_address] -1 ];
 
-    hdr->SliceAddrRS = ctx->img->get_SliceAddrRS_atCtbRS(prevCtb);
+    //hdr->SliceAddrRS = ctx->img->get_SliceAddrRS_atCtbRS(prevCtb);
+    hdr->SliceAddrRS = ctx->prevSliceAddrRS;
   }
+
+  ctx->prevSliceAddrRS = hdr->SliceAddrRS;
+
 
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);
 
@@ -1693,7 +1697,7 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
 void error_queue::add_warning(de265_error warning, bool once)
 {
   printf("---------------------------------------------------------------- WARN: %d\n",warning);
-  //exit(0);
+  exit(0);
 
   // check if warning was already shown
   bool add=true;

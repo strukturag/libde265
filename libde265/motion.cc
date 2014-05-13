@@ -667,7 +667,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
   }
 
-#ifdef DE265_LOG_TRACE
+#if defined(DE265_LOG_TRACE) && 0
   logtrace(LogTransform,"MC pixels (luma), position %d %d:\n", xP,yP);
 
   for (int y=0;y<nPbH;y++) {

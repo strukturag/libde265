@@ -237,7 +237,7 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
       int yDi = y*4;
 
       logtrace(LogDeblock,"%d %d %s = %s\n",xDi,yDi, vertical?"Vertical":"Horizontal",
-               (get_deblk_flags(img,xDi,yDi) & edgeMask) ? "edge" : "...");
+               (img->get_deblk_flags(xDi,yDi) & edgeMask) ? "edge" : "...");
 
       uint8_t edgeFlags = img->get_deblk_flags(xDi,yDi);
 

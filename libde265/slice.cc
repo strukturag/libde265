@@ -209,7 +209,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
       int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[slice_segment_address] -1 ];
 
-      const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(prevCtb);
+      //const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(prevCtb);
+
+      const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(ctx->prevSliceAddrRS);
+
         //ctx->img->slices[ctx->img->get_SliceHeaderIndex_atIndex(prevCtb)];
       *this = *prevCtbHdr;
 
@@ -1056,10 +1059,17 @@ static int decode_transquant_bypass_flag(thread_context* tctx)
 }
 
 
+#include <sys/types.h>
+#include <signal.h>
+
 static int decode_split_cu_flag(thread_context* tctx,
 				int x0, int y0, int ctDepth)
 {
   //decoder_context* ctx = tctx->decctx;
+
+  if (x0==64 && y0==448) {
+    //raise(SIGINT);
+  }
 
   // check if neighbors are available
 
@@ -2221,8 +2231,9 @@ void read_coding_tree_unit(thread_context* tctx)
   int xCtbPixels = xCtb << sps->Log2CtbSizeY;
   int yCtbPixels = yCtb << sps->Log2CtbSizeY;
 
-  logtrace(LogSlice,"----- decode CTB %d;%d (%d;%d) POC=%d\n",xCtbPixels,yCtbPixels, xCtb,yCtb,
-           tctx->img->PicOrderCntVal);
+  logtrace(LogSlice,"----- decode CTB %d;%d (%d;%d) POC=%d, SliceAddrRS=%d\n",
+           xCtbPixels,yCtbPixels, xCtb,yCtb,
+           tctx->img->PicOrderCntVal, tctx->shdr->SliceAddrRS);
 
   img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
 

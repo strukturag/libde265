@@ -292,6 +292,9 @@ class decoder_context : public error_queue {
 
   de265_image* img;
 
+ public:
+  int prevSliceAddrRS;
+
 
   // --- motion compensation ---
 
