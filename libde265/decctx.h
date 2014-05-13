@@ -124,12 +124,14 @@ class error_queue
 struct slice_unit
 {
   slice_unit(decoder_context* decctx)
-  : ctx(decctx), nal(NULL), shdr(NULL), decoding_finished(false) { }
+  : ctx(decctx), nal(NULL), shdr(NULL), decoding_finished(false), flush_reorder_buffer(false) { }
   ~slice_unit();
 
   NAL_unit* nal;   // we are the owner
   slice_segment_header* shdr;  // not the owner
   bitreader reader;
+
+  bool flush_reorder_buffer;
 
   bool decoding_finished;  // TODO: do we actually need this ? we could just remove the unit after decoding
 
@@ -341,6 +343,8 @@ class decoder_context : public error_queue {
   // --- image unit queue ---
 
   std::vector<image_unit*> image_units;
+
+  bool flush_reorder_buffer_at_this_frame;
 
 
   // --- decoder runtime data ---

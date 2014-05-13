@@ -189,7 +189,7 @@ bool output_image(const de265_image* img)
   height = de265_get_image_height(img,0);
 
   framecnt++;
-  //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
+  printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
 
   if (0) {

@@ -457,6 +457,9 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     sliceunit->shdr = shdr;
     sliceunit->reader = reader;
 
+    sliceunit->flush_reorder_buffer = flush_reorder_buffer_at_this_frame;
+
+
     image_units.back()->slice_units.push_back(sliceunit);
     //decode_slice_unit_sequential(image_units.back(), sliceunit);
 
@@ -488,6 +491,10 @@ de265_error decoder_context::decode_some()
     slice_unit* sliceunit = imgunit->slice_units[0];
 
     pop_front(imgunit->slice_units);
+
+    if (sliceunit->flush_reorder_buffer) {
+      dpb.flush_reorder_buffer();
+    }
 
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     if (err) {
@@ -557,6 +564,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
+  printf("decode slice POC=%d addr=%d, img=%p\n",
+         sliceunit->shdr->slice_pic_order_cnt_lsb,
+         sliceunit->shdr->slice_segment_address,
+         imgunit->img);
+
+
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
 
@@ -574,11 +587,6 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->decctx = this;
   tctx->CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address];
 
-
-  printf("decode slice POC=%d addr=%d, img=%p\n",
-         tctx->shdr->slice_pic_order_cnt_lsb,
-         tctx->shdr->slice_segment_address,
-         tctx->img);
 
   // fixed context 0
   if ((err=read_slice_segment_data(tctx)) != DE265_OK)
@@ -1010,7 +1018,8 @@ void decoder_context::process_picture_order_count(decoder_context* ctx, slice_se
 
       // flush all images from reorder buffer
 
-      ctx->dpb.flush_reorder_buffer();
+      flush_reorder_buffer_at_this_frame = true;
+      //ctx->dpb.flush_reorder_buffer();
     }
   else
     {
@@ -1527,15 +1536,10 @@ void decoder_context::push_picture_to_output_queue(de265_image* outimg)
   // last_decoded_image = outimg;    TODO: not with new loop
   // this->img = NULL;               TODO: not with new loop
 
-  // next image is not the first anymore
-
-  first_decoded_picture = false;
-
-
   // check for full reorder buffers
 
-  int sublayer = current_vps->vps_max_sub_layers -1;
-  int maxNumPicsInReorderBuffer = current_vps->layer[sublayer].vps_max_num_reorder_pics;
+  int sublayer = outimg->vps.vps_max_sub_layers -1;
+  int maxNumPicsInReorderBuffer = outimg->vps.layer[sublayer].vps_max_num_reorder_pics;
 
   if (dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
     dpb.output_next_picture_in_reorder_buffer();
@@ -1550,6 +1554,9 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
                                                    de265_error* err, de265_PTS pts, void* user_data)
 {
   *err = DE265_OK;
+
+  flush_reorder_buffer_at_this_frame = false;
+
 
   // get PPS and SPS for this slice
 
@@ -1592,6 +1599,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     img->user_data = user_data;
     ctx->img = img;
 
+    img->vps = *ctx->current_vps;
     img->sps = *ctx->current_sps;
     img->pps = *ctx->current_pps;
     img->decctx = ctx;
@@ -1641,6 +1649,11 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     img->PicState = UsedForShortTermReference;
 
     log_set_current_POC(ctx->img->PicOrderCntVal);
+
+
+    // next image is not the first anymore
+
+    first_decoded_picture = false;
   }
 
   if (hdr->slice_type == SLICE_TYPE_B ||
