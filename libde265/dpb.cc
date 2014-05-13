@@ -97,8 +97,6 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, bool preferLo
 
   if (preferLongTerm) {
     for (int k=0;k<DE265_DPB_SIZE;k++) {
-      printf("lsb[%d] = %d (LT pass)\n",k,dpb[k].picture_order_cnt_lsb);
-
       if (dpb[k].picture_order_cnt_lsb == lsb &&
           dpb[k].PicState == UsedForLongTermReference) {
         return k;
@@ -107,8 +105,6 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, bool preferLo
   }
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    printf("lsb[%d] = %d\n",k,dpb[k].picture_order_cnt_lsb);
-
     if (dpb[k].picture_order_cnt_lsb == lsb &&
         dpb[k].PicState != UnusedForReference) {
       return k;
