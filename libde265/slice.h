@@ -229,7 +229,10 @@ typedef struct slice_segment_header {
 
   int RefPicList[2][MAX_NUM_REF_PICS]; // contains indices into DPB
   int RefPicList_POC[2][MAX_NUM_REF_PICS];
-  int RefPicList_PicState[2][MAX_NUM_REF_PICS];
+  int RefPicList_PicState[2][MAX_NUM_REF_PICS]; /* We have to save the PicState, because the decoding
+                                                   of an image may be delayed and the PicState can
+                                                   change in the mean-time (e.g. from ShortTerm to
+                                                   LongTerm). PicState is used in motion.cc */
 
   char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
                                                is a long-term picture. */
