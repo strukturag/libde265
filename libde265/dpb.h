@@ -24,6 +24,8 @@
 #include "libde265/image.h"
 #include "libde265/sps.h"
 
+#include <deque>
+
 // TODO: check required value
 #define DE265_DPB_OUTPUT_IMAGES  20
 #define DE265_DPB_RESILIENCE_IMAGES 5
@@ -74,10 +76,10 @@ struct decoded_picture_buffer {
 
   // --- output buffer ---
 
-  int num_pictures_in_output_queue() const { return image_output_queue_length; }
+  int num_pictures_in_output_queue() const { return image_output_queue.size(); }
 
   /* Get the next picture in the output queue, but do not remove it from the queue. */
-  de265_image* get_next_picture_in_output_queue() const { return image_output_queue[0]; }
+  de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
 
   /* Remove the next picture in the output queue. */
   void pop_next_picture_in_output_queue();
@@ -94,8 +96,7 @@ private:
   de265_image* reorder_output_queue[DE265_DPB_SIZE];
   int          reorder_output_queue_length;
 
-  de265_image* image_output_queue[DE265_DPB_SIZE];
-  int          image_output_queue_length;
+  std::deque<de265_image*> image_output_queue;
 
 private:
   decoded_picture_buffer(const decoded_picture_buffer&); // no copy

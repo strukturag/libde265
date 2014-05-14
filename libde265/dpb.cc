@@ -27,10 +27,8 @@
 decoded_picture_buffer::decoded_picture_buffer()
 {
   memset(reorder_output_queue, 0, sizeof(de265_image*) * DE265_DPB_SIZE);
-  memset(image_output_queue,   0, sizeof(de265_image*) * DE265_DPB_SIZE);
 
   reorder_output_queue_length = 0;
-  image_output_queue_length = 0;
 }
 
 
@@ -152,9 +150,7 @@ void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 
   // put image into output queue
 
-  assert(image_output_queue_length < DE265_DPB_SIZE);
-  image_output_queue[ image_output_queue_length ] = reorder_output_queue[minIdx];
-  image_output_queue_length++;
+  image_output_queue.push_back(reorder_output_queue[minIdx]);
 
 
   // remove image from reorder buffer
@@ -192,7 +188,7 @@ void decoded_picture_buffer::clear()
   }
 
   reorder_output_queue_length=0;
-  image_output_queue_length=0;
+  image_output_queue.clear();
 }
 
 
@@ -249,18 +245,11 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
 
 void decoded_picture_buffer::pop_next_picture_in_output_queue()
 {
-  for (int i=1;i<image_output_queue_length;i++)
-    {
-      image_output_queue[i-1] = image_output_queue[i];
-    }
-
-  image_output_queue_length--;
-
-  image_output_queue[ image_output_queue_length ] = NULL;
+  image_output_queue.pop_front();
 
 
   loginfo(LogDPB, "DPB output queue: ");
-  for (int i=0;i<image_output_queue_length;i++) {
+  for (int i=0;i<image_output_queue.size();i++) {
     loginfo(LogDPB, "*%d ", image_output_queue[i]->PicOrderCntVal);
   }
   loginfo(LogDPB,"*\n");
