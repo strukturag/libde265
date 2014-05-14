@@ -571,10 +571,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
+  /*
   printf("decode slice POC=%d addr=%d, img=%p\n",
          sliceunit->shdr->slice_pic_order_cnt_lsb,
          sliceunit->shdr->slice_segment_address,
          imgunit->img);
+  */
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
@@ -1137,7 +1139,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
         removeReferencesList.push_back(img->get_ID());
         img->removed_at_picture_id = ctx->img->get_ID();
 
-        printf("will remove ID %d (a)\n",img->get_ID());
+        //printf("will remove ID %d (a)\n",img->get_ID());
       }
     }
   }
@@ -1357,7 +1359,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
           {
             if (dpbimg->PicState != UnusedForReference) {
               removeReferencesList.push_back(dpbimg->get_ID());
-              printf("will remove ID %d (b)\n",dpbimg->get_ID());
+              //printf("will remove ID %d (b)\n",dpbimg->get_ID());
 
               dpbimg->removed_at_picture_id = ctx->img->get_ID();
             }
@@ -1728,7 +1730,7 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
   for (int i=0;i<removeImageList.size();i++) {
     int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
     if (idx>=0) {
-      printf("remove ID %d\n", removeImageList[i]);
+      //printf("remove ID %d\n", removeImageList[i]);
       de265_image* dpbimg = dpb.get_image( idx );
       dpbimg->PicState = UnusedForReference;
     }
@@ -1742,9 +1744,9 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
 
 void error_queue::add_warning(de265_error warning, bool once)
 {
-  printf("================================================== WARNING: %d\n", warning);
-  raise(SIGINT);
-  exit(0);
+  //printf("================================================== WARNING: %d\n", warning);
+  //raise(SIGINT);
+  //exit(0);
 
   // check if warning was already shown
   bool add=true;
