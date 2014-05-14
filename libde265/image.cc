@@ -122,6 +122,7 @@ uint32_t de265_image::s_next_image_ID = 0;
 de265_image::de265_image()
 {
   ID = -1;
+  removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
   alloc_functions.get_buffer = NULL;
   alloc_functions.release_buffer = NULL;
