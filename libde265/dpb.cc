@@ -24,18 +24,13 @@
 #include <assert.h>
 
 
-// TODO: check required value
-#define DE265_DPB_OUTPUT_IMAGES  20
-#define DE265_DPB_RESILIENCE_IMAGES 5
-#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
-
+#define DPB_DEFAULT_MAX_IMAGES  30
 
 
 decoded_picture_buffer::decoded_picture_buffer()
-  : dpb(DE265_DPB_SIZE)
 {
-  for (int i=0;i<DE265_DPB_SIZE;i++)
-    dpb[i] = new de265_image;
+  max_images_in_DPB  = DPB_DEFAULT_MAX_IMAGES;
+  norm_images_in_DPB = DPB_DEFAULT_MAX_IMAGES;
 }
 
 
@@ -48,7 +43,7 @@ decoded_picture_buffer::~decoded_picture_buffer()
 
 void decoded_picture_buffer::log_dpb_content() const
 {
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
+  for (int i=0;i<dpb.size();i++) {
     loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i,
             dpb[i]->PicOrderCntVal,
             dpb[i]->get_ID(),
@@ -61,9 +56,14 @@ void decoded_picture_buffer::log_dpb_content() const
 
 bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 {
-  int nImages = high_priority ? DE265_DPB_SIZE : DE265_DPB_OUTPUT_IMAGES;
+  // we will always adapt the buffer to insert high-priority images
+  if (high_priority) return true;
 
-  for (int i=0;i<nImages;i++) {
+  // quick test to check for free slots
+  if (dpb.size() < max_images_in_DPB) return true;
+
+  // scan for empty slots
+  for (int i=0;i<dpb.size();i++) {
     if (dpb[i]->PicOutputFlag==false && dpb[i]->PicState == UnusedForReference) {
       return true;
     }
@@ -81,7 +81,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
 
   if (preferLongTerm) {
-    for (int k=0;k<DE265_DPB_SIZE;k++) {
+    for (int k=0;k<dpb.size();k++) {
       if (dpb[k]->PicOrderCntVal == poc &&
           dpb[k]->removed_at_picture_id > currentID &&
           dpb[k]->PicState == UsedForLongTermReference) {
@@ -90,7 +90,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
     }
   }
 
-  for (int k=0;k<DE265_DPB_SIZE;k++) {
+  for (int k=0;k<dpb.size();k++) {
     if (dpb[k]->PicOrderCntVal == poc &&
         dpb[k]->removed_at_picture_id > currentID &&
         dpb[k]->PicState != UnusedForReference) {
@@ -107,7 +107,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
   logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
   if (preferLongTerm) {
-    for (int k=0;k<DE265_DPB_SIZE;k++) {
+    for (int k=0;k<dpb.size();k++) {
       if (dpb[k]->picture_order_cnt_lsb == lsb &&
           dpb[k]->removed_at_picture_id > currentID &&
           dpb[k]->PicState == UsedForLongTermReference) {
@@ -116,7 +116,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
     }
   }
 
-  for (int k=0;k<DE265_DPB_SIZE;k++) {
+  for (int k=0;k<dpb.size();k++) {
     if (dpb[k]->picture_order_cnt_lsb == lsb &&
         dpb[k]->removed_at_picture_id > currentID &&
         dpb[k]->PicState != UnusedForReference) {
@@ -132,7 +132,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 {
   logdebug(LogHeaders,"get access to picture with ID %d from DPB\n",id);
 
-  for (int k=0;k<DE265_DPB_SIZE;k++) {
+  for (int k=0;k<dpb.size();k++) {
     if (dpb[k]->get_ID() == id) {
       return k;
     }
@@ -186,7 +186,7 @@ bool decoded_picture_buffer::flush_reorder_buffer()
 
 void decoded_picture_buffer::clear()
 {
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
+  for (int i=0;i<dpb.size();i++) {
     if (dpb[i]->PicOutputFlag ||
         dpb[i]->PicState != UnusedForReference)
       {
@@ -210,7 +210,7 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
   // --- search for a free slot in the DPB ---
 
   int free_image_buffer_idx = -1;
-  for (int i=0;i<DE265_DPB_SIZE;i++) {
+  for (int i=0;i<dpb.size();i++) {
     if (dpb[i]->can_be_released()) {
       dpb[i]->release(); /* TODO: this is surely not the best place to free the image, but
                             we have to do it here because releasing it in de265_release_image()
@@ -221,10 +221,24 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
     }
   }
 
-  // no free slot
+
+  // Try to free a buffer at the end if the DPB got too large.
+  /* This should also probably move to a better place as soon as the API allows for this. */
+
+  if (dpb.size() > norm_images_in_DPB &&           // buffer too large
+      free_image_buffer_idx != dpb.size()-1 &&     // last slot not reused in this alloc
+      dpb.back()->can_be_released())               // last slot is free
+    {
+      delete dpb.back();
+      dpb.pop_back();
+    }
+
+
+  // create a new image slot if no empty slot remaining
 
   if (free_image_buffer_idx == -1) {
-    return -1;
+    free_image_buffer_idx = dpb.size();
+    dpb.push_back(new de265_image);
   }
 
 

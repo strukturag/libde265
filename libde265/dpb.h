@@ -33,6 +33,8 @@ struct decoded_picture_buffer {
   decoded_picture_buffer();
   ~decoded_picture_buffer();
 
+  void set_max_size_of_DPB(int n) { max_images_in_DPB=n; norm_images_in_DPB=n; }
+
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, return -1. */
   int new_image(const seq_parameter_set* sps, de265_image_allocation* alloc);
@@ -89,6 +91,9 @@ struct decoded_picture_buffer {
   void log_dpb_queues() const;
   
 private:
+  int max_images_in_DPB;
+  int norm_images_in_DPB;
+
   std::vector<de265_image*> dpb; // decoded picture buffer
 
   std::vector<de265_image*> reorder_output_queue;
