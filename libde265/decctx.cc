@@ -1672,10 +1672,10 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   if (hdr->dependent_slice_segment_flag==0) {
     hdr->SliceAddrRS = hdr->slice_segment_address;
   } else {
-    hdr->SliceAddrRS = ctx->prevSliceAddrRS;
+    hdr->SliceAddrRS = ctx->previous_slice_header->SliceAddrRS;
   }
 
-  ctx->prevSliceAddrRS = hdr->SliceAddrRS;
+  ctx->previous_slice_header = hdr;
 
 
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);

@@ -207,9 +207,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      const slice_segment_header* prevCtbHdr = ctx->get_SliceHeader_atCtb(ctx->prevSliceAddrRS);
-
-      *this = *prevCtbHdr;
+      *this = *ctx->previous_slice_header;
 
       first_slice_segment_in_pic_flag = 0;
       dependent_slice_segment_flag = 1;

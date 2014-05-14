@@ -177,9 +177,11 @@ class decoder_context : public error_queue {
   /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }
   const pic_parameter_set* get_pps(int id) const { return &pps[id]; }
 
+  /*
   const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
     return img->slices[img->get_SliceHeaderIndex_atIndex(ctb)];
   }
+  */
 
   uint8_t get_nal_unit_type() const { return nal_unit_type; }
   bool    get_RapPicFlag() const { return RapPicFlag; }
@@ -293,8 +295,8 @@ class decoder_context : public error_queue {
   de265_image* img;
 
  public:
-  int prevSliceAddrRS; /* Remember the last slice's address for a successive
-                          dependent slice. */
+  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
+                                                        dependent slice. */
 
 
   // --- motion compensation ---
