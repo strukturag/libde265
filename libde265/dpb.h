@@ -27,10 +27,6 @@
 #include <deque>
 #include <vector>
 
-// TODO: check required value
-#define DE265_DPB_OUTPUT_IMAGES  20
-#define DE265_DPB_RESILIENCE_IMAGES 5
-#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
 
 
 struct decoded_picture_buffer {
@@ -49,6 +45,7 @@ struct decoded_picture_buffer {
   /* Remove all pictures from DPB and queues. Decoding should be stopped while calling this. */
   void clear();
 
+  int size() const { return dpb.size(); }
 
   /* Raw access to the images. */
   /* */ de265_image* get_image(int index)       { return dpb[index]; }

@@ -325,11 +325,11 @@ class decoder_context : public error_queue {
   int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
 
   // These lists contain indices into the DPB.
-  int RefPicSetStCurrBefore[DE265_DPB_SIZE];
-  int RefPicSetStCurrAfter[DE265_DPB_SIZE];
-  int RefPicSetStFoll[DE265_DPB_SIZE];
-  int RefPicSetLtCurr[DE265_DPB_SIZE];
-  int RefPicSetLtFoll[DE265_DPB_SIZE];
+  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS];
+  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS];
+  int RefPicSetStFoll[MAX_NUM_REF_PICS];
+  int RefPicSetLtCurr[MAX_NUM_REF_PICS];
+  int RefPicSetLtFoll[MAX_NUM_REF_PICS];
 
 
   // --- parameters derived from parameter sets ---

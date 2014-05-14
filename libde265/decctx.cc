@@ -1127,7 +1127,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
        lower POCs seems to be compliant to the reference decoder.
     */
 
-    for (int i=0;i<DE265_DPB_SIZE;i++) {
+    for (int i=0;i<dpb.size();i++) {
       de265_image* img = ctx->dpb.get_image(i);
 
       if (img->PicState != UnusedForReference &&
@@ -1231,8 +1231,8 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   // (old 8-99) / (new 8-106)
   // 1.
 
-  bool picInAnyList[DE265_DPB_SIZE];
-  memset(picInAnyList,0, DE265_DPB_SIZE*sizeof(bool));
+  bool picInAnyList[dpb.size()];
+  memset(picInAnyList,0, dpb.size()*sizeof(bool));
 
 
   dpb.log_dpb_content();
@@ -1348,7 +1348,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 
   // 4. any picture that is not marked for reference is put into the "UnusedForReference" state
 
-  for (int i=0;i<DE265_DPB_SIZE;i++)
+  for (int i=0;i<dpb.size();i++)
     if (!picInAnyList[i])        // no reference
       {
         de265_image* dpbimg = ctx->dpb.get_image(i);
@@ -1386,11 +1386,11 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
   // TODO: fold code for both lists together
 
-  int RefPicListTemp0[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
-  int RefPicListTemp1[DE265_DPB_SIZE]; // TODO: what would be the correct maximum ?
-  char isLongTerm[2][DE265_DPB_SIZE];
+  int RefPicListTemp0[3*MAX_NUM_REF_PICS]; // TODO: what would be the correct maximum ?
+  int RefPicListTemp1[3*MAX_NUM_REF_PICS]; // TODO: what would be the correct maximum ?
+  char isLongTerm[2][3*MAX_NUM_REF_PICS];
 
-  memset(isLongTerm,0,2*DE265_DPB_SIZE);
+  memset(isLongTerm,0,2*3*MAX_NUM_REF_PICS);
 
   /* --- Fill RefPicListTmp0 with reference pictures in this order:
      1) short term, past POC
@@ -1562,7 +1562,6 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
         param_suppress_faulty_pictures) {
     }
     else {
-      assert(dpb.num_pictures_in_output_queue() < DE265_DPB_SIZE);
       dpb.insert_image_into_reorder_buffer(outimg);
     }
 

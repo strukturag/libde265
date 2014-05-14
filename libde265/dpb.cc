@@ -24,6 +24,13 @@
 #include <assert.h>
 
 
+// TODO: check required value
+#define DE265_DPB_OUTPUT_IMAGES  20
+#define DE265_DPB_RESILIENCE_IMAGES 5
+#define DE265_DPB_SIZE  (DE265_DPB_OUTPUT_IMAGES + DE265_DPB_RESILIENCE_IMAGES)
+
+
+
 decoded_picture_buffer::decoded_picture_buffer()
   : dpb(DE265_DPB_SIZE)
 {
