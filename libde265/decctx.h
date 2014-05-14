@@ -191,7 +191,6 @@ class decoder_context : public error_queue {
   de265_error decode_some();
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
-  de265_error decode_image_unit_sequential(image_unit* imgunit);
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
@@ -280,8 +279,6 @@ class decoder_context : public error_queue {
   // --- decoded picture buffer ---
 
   decoded_picture_buffer dpb;
-
-  de265_image* last_decoded_image;
 
   int current_image_poc_lsb;
   bool first_decoded_picture;

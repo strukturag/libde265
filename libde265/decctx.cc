@@ -90,8 +90,6 @@ decoder_context::decoder_context()
 
   HighestTid = 0;
 
-  last_decoded_image = NULL;
-
   current_image_poc_lsb = 0;
   first_decoded_picture = 0;
   NoRaslOutputFlag = 0;
@@ -205,7 +203,6 @@ void decoder_context::reset()
   ctx->current_pps = NULL;
   ctx->num_worker_threads = 0;
   ctx->HighestTid = 0;
-  ctx->last_decoded_image = NULL;
   ctx->current_image_poc_lsb = 0;
   ctx->first_decoded_picture = 0;
   ctx->NoRaslOutputFlag = 0;
@@ -525,41 +522,6 @@ de265_error decoder_context::decode_some()
     delete imgunit;
 
     pop_front(image_units);
-  }
-
-  return err;
-}
-
-
-
-de265_error decoder_context::decode_image_unit_sequential(image_unit* imgunit)
-{
-  slice_unit* sliceunit;
-  de265_error err = DE265_OK;
-
-  /*
-  printf("decode image unit sequential ----------------------------- POC = %d\n",
-         imgunit->img->PicOrderCntVal);
-  */
-
-  //remove_images_from_dpb(imgunit->slice_units[0]->shdr->RemoveImageList);
-
-  dpb.log_dpb_content();
-
-  for (int i=0;i<imgunit->slice_units.size();i++) {
-    sliceunit = imgunit->slice_units[i];
-
-    err = decode_slice_unit_sequential(imgunit, sliceunit);
-    if (err) {
-      break;
-    }
-  }
-
-
-  if (err==DE265_OK) {
-    err = push_picture_to_output_queue(imgunit);
-
-    dpb.log_dpb_content();
   }
 
   return err;
@@ -1569,9 +1531,6 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
     loginfo(LogDPB,"push image %d into reordering queue\n", outimg->PicOrderCntVal);
   }
-
-  // last_decoded_image = outimg;    TODO: not with new loop
-  // this->img = NULL;               TODO: not with new loop
 
   // check for full reorder buffers
 
