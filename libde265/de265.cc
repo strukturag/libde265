@@ -423,6 +423,10 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
       ctx->set_acceleration_functions((enum de265_acceleration)value);
       break;
 
+    case DE265_DECODER_PARAM_HIGHEST_TID:
+      ctx->param_HighestTid = value;
+      break;
+
     default:
       assert(false);
       break;

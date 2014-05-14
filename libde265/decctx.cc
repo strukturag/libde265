@@ -88,7 +88,8 @@ decoder_context::decoder_context()
   memset(&thread_pool,0,sizeof(struct thread_pool));
   num_worker_threads = 0;
 
-  HighestTid = 0;
+  HighestTid = 999;
+  current_HighestTid = HighestTid;
 
   current_image_poc_lsb = 0;
   first_decoded_picture = 0;
@@ -585,6 +586,16 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
           get_NAL_name(nal_hdr.nal_unit_type),
           nal_hdr.nuh_temporal_id);
 
+
+  // throw away NALs from higher TIDs than currently selected
+  // TODO: better online switching of HighestTID
+
+  if (nal_hdr.nuh_temporal_id > current_HighestTid) {
+    nal_parser.free_NAL_unit(nal);
+    return DE265_OK;
+  }
+
+
   if (nal_hdr.nal_unit_type<32) {
     err = read_slice_NAL(reader, nal, nal_hdr);
   }
@@ -943,6 +954,7 @@ void decoder_context::process_sps(seq_parameter_set* sps)
   this->sps[ sps->seq_parameter_set_id ] = *sps;
 
   HighestTid = libde265_min(sps->sps_max_sub_layers-1, param_HighestTid);
+  current_HighestTid = HighestTid;
 }
 
 

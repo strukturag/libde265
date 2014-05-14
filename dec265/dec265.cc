@@ -88,6 +88,7 @@ const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 bool write_bytestream=false;
 const char *bytestream_filename;
+int highestTID = 100;
 int verbosity=0;
 
 static struct option long_options[] = {
@@ -104,6 +105,7 @@ static struct option long_options[] = {
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
+  {"highest-TID", required_argument, 0, 'T' },
   {"verbose",    no_argument,       0, 'v' },
   {0,         0,                 0,  0 }
 };
@@ -299,7 +301,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0v"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -323,6 +325,7 @@ int main(int argc, char** argv)
     case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
+    case 'T': highestTID=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
   }
@@ -348,6 +351,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
+    fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -366,6 +370,8 @@ int main(int argc, char** argv)
 
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+
+  de265_set_parameter_int(ctx, DE265_DECODER_PARAM_HIGHEST_TID, highestTID);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);

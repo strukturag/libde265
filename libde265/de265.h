@@ -315,7 +315,8 @@ enum de265_param {
   DE265_DECODER_PARAM_DUMP_PPS_HEADERS=3,
   DE265_DECODER_PARAM_DUMP_SLICE_HEADERS=4,
   DE265_DECODER_PARAM_ACCELERATION_CODE=5,   // (int)  enum de265_acceleration, default: AUTO
-  DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6 // (bool)  do not output frames with decoding errors, default: no (output all images)
+  DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6, // (bool)  do not output frames with decoding errors, default: no (output all images)
+  DE265_DECODER_PARAM_HIGHEST_TID=7 // (int) highest temporal substream to decode
 };
 
 // sorted such that a large ID includes all optimizations from lower IDs

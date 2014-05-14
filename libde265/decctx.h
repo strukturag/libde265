@@ -276,7 +276,7 @@ class decoder_context : public error_queue {
   // --- sequence level ---
 
   int HighestTid;
-
+  int current_HighestTid;
 
   // --- decoded picture buffer ---
 
