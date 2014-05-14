@@ -33,7 +33,8 @@ struct decoded_picture_buffer {
   decoded_picture_buffer();
   ~decoded_picture_buffer();
 
-  void set_max_size_of_DPB(int n) { max_images_in_DPB=n; norm_images_in_DPB=n; }
+  void set_max_size_of_DPB(int n)  { max_images_in_DPB=n; }
+  void set_norm_size_of_DPB(int n) { norm_images_in_DPB=n; }
 
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, return -1. */
