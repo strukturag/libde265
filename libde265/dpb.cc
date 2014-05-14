@@ -25,22 +25,29 @@
 
 
 decoded_picture_buffer::decoded_picture_buffer()
+  : dpb(DE265_DPB_SIZE)
 {
+  for (int i=0;i<DE265_DPB_SIZE;i++)
+    dpb[i] = new de265_image;
 }
 
 
 decoded_picture_buffer::~decoded_picture_buffer()
 {
+  for (int i=0;i<dpb.size();i++)
+    delete dpb[i];
 }
 
 
 void decoded_picture_buffer::log_dpb_content() const
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i, dpb[i].PicOrderCntVal, dpb[i].get_ID(),
-            dpb[i].PicState == UnusedForReference ? "unused" :
-            dpb[i].PicState == UsedForShortTermReference ? "short-term" : "long-term",
-            dpb[i].PicOutputFlag ? "output" : "---");
+    loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i,
+            dpb[i]->PicOrderCntVal,
+            dpb[i]->get_ID(),
+            dpb[i]->PicState == UnusedForReference ? "unused" :
+            dpb[i]->PicState == UsedForShortTermReference ? "short-term" : "long-term",
+            dpb[i]->PicOutputFlag ? "output" : "---");
   }
 }
 
@@ -50,7 +57,7 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
   int nImages = high_priority ? DE265_DPB_SIZE : DE265_DPB_OUTPUT_IMAGES;
 
   for (int i=0;i<nImages;i++) {
-    if (dpb[i].PicOutputFlag==false && dpb[i].PicState == UnusedForReference) {
+    if (dpb[i]->PicOutputFlag==false && dpb[i]->PicState == UnusedForReference) {
       return true;
     }
   }
@@ -68,18 +75,18 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
 
   if (preferLongTerm) {
     for (int k=0;k<DE265_DPB_SIZE;k++) {
-      if (dpb[k].PicOrderCntVal == poc &&
-          dpb[k].removed_at_picture_id > currentID &&
-          dpb[k].PicState == UsedForLongTermReference) {
+      if (dpb[k]->PicOrderCntVal == poc &&
+          dpb[k]->removed_at_picture_id > currentID &&
+          dpb[k]->PicState == UsedForLongTermReference) {
         return k;
       }
     }
   }
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    if (dpb[k].PicOrderCntVal == poc &&
-        dpb[k].removed_at_picture_id > currentID &&
-        dpb[k].PicState != UnusedForReference) {
+    if (dpb[k]->PicOrderCntVal == poc &&
+        dpb[k]->removed_at_picture_id > currentID &&
+        dpb[k]->PicState != UnusedForReference) {
       return k;
     }
   }
@@ -94,18 +101,18 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
 
   if (preferLongTerm) {
     for (int k=0;k<DE265_DPB_SIZE;k++) {
-      if (dpb[k].picture_order_cnt_lsb == lsb &&
-          dpb[k].removed_at_picture_id > currentID &&
-          dpb[k].PicState == UsedForLongTermReference) {
+      if (dpb[k]->picture_order_cnt_lsb == lsb &&
+          dpb[k]->removed_at_picture_id > currentID &&
+          dpb[k]->PicState == UsedForLongTermReference) {
         return k;
       }
     }
   }
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    if (dpb[k].picture_order_cnt_lsb == lsb &&
-        dpb[k].removed_at_picture_id > currentID &&
-        dpb[k].PicState != UnusedForReference) {
+    if (dpb[k]->picture_order_cnt_lsb == lsb &&
+        dpb[k]->removed_at_picture_id > currentID &&
+        dpb[k]->PicState != UnusedForReference) {
       return k;
     }
   }
@@ -119,7 +126,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
   logdebug(LogHeaders,"get access to picture with ID %d from DPB\n",id);
 
   for (int k=0;k<DE265_DPB_SIZE;k++) {
-    if (dpb[k].get_ID() == id) {
+    if (dpb[k]->get_ID() == id) {
       return k;
     }
   }
@@ -173,12 +180,12 @@ bool decoded_picture_buffer::flush_reorder_buffer()
 void decoded_picture_buffer::clear()
 {
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    if (dpb[i].PicOutputFlag ||
-        dpb[i].PicState != UnusedForReference)
+    if (dpb[i]->PicOutputFlag ||
+        dpb[i]->PicState != UnusedForReference)
       {
-        dpb[i].PicOutputFlag = false;
-        dpb[i].PicState = UnusedForReference;
-        dpb[i].release();
+        dpb[i]->PicOutputFlag = false;
+        dpb[i]->PicState = UnusedForReference;
+        dpb[i]->release();
       }
   }
 
@@ -197,10 +204,10 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
 
   int free_image_buffer_idx = -1;
   for (int i=0;i<DE265_DPB_SIZE;i++) {
-    if (dpb[i].can_be_released()) {
-      dpb[i].release(); /* TODO: this is surely not the best place to free the image, but
-                           we have to do it here because releasing it in de265_release_image()
-                           would break the API compatibility. */
+    if (dpb[i]->can_be_released()) {
+      dpb[i]->release(); /* TODO: this is surely not the best place to free the image, but
+                            we have to do it here because releasing it in de265_release_image()
+                            would break the API compatibility. */
 
       free_image_buffer_idx = i;
       break;
@@ -216,7 +223,7 @@ int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
 
   // --- allocate new image ---
 
-  de265_image* img = &dpb[free_image_buffer_idx];
+  de265_image* img = dpb[free_image_buffer_idx];
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;

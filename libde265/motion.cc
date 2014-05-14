@@ -1310,8 +1310,8 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(*l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(*l1Cand);
 
-      const de265_image* img0 = ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]);
-      const de265_image* img1 = ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]);
+      const de265_image* img0 = l0Cand->predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]) : NULL;
+      const de265_image* img1 = l1Cand->predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]) : NULL;
 
       if (l0Cand->predFlag[0] && l1Cand->predFlag[1] &&
           (img0->PicOrderCntVal != img1->PicOrderCntVal     ||

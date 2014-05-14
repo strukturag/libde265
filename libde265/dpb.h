@@ -46,13 +46,13 @@ struct decoded_picture_buffer {
      are included in the check. */
   bool has_free_dpb_picture(bool high_priority) const;
 
-  /* Remove all pictures from DPB and queues. Decoding should be stopped when calling this. */
+  /* Remove all pictures from DPB and queues. Decoding should be stopped while calling this. */
   void clear();
 
 
   /* Raw access to the images. */
-  /* */ de265_image* get_image(int index)       { return &dpb[index]; }
-  const de265_image* get_image(int index) const { return &dpb[index]; }
+  /* */ de265_image* get_image(int index)       { return dpb[index]; }
+  const de265_image* get_image(int index) const { return dpb[index]; }
 
   /* Search DPB for the slot index of a specific picture. */
   int DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm=false) const;
@@ -92,7 +92,7 @@ struct decoded_picture_buffer {
   void log_dpb_queues() const;
   
 private:
-  de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
+  std::vector<de265_image*> dpb; // decoded picture buffer
 
   std::vector<de265_image*> reorder_output_queue;
   std::deque<de265_image*>  image_output_queue;
