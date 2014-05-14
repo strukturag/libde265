@@ -26,9 +26,6 @@
 
 decoded_picture_buffer::decoded_picture_buffer()
 {
-  memset(reorder_output_queue, 0, sizeof(de265_image*) * DE265_DPB_SIZE);
-
-  reorder_output_queue_length = 0;
 }
 
 
@@ -133,13 +130,13 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 
 void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 {
-  assert(reorder_output_queue_length>0);
+  assert(!reorder_output_queue.empty());
 
   // search for picture in reorder buffer with minimum POC
 
   int minPOC = reorder_output_queue[0]->PicOrderCntVal;
   int minIdx = 0;
-  for (int i=1;i<reorder_output_queue_length;i++)
+  for (int i=1;i<reorder_output_queue.size();i++)
     {
       if (reorder_output_queue[i]->PicOrderCntVal < minPOC) {
         minPOC = reorder_output_queue[i]->PicOrderCntVal;
@@ -155,19 +152,17 @@ void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 
   // remove image from reorder buffer
 
-  for (int i=minIdx+1; i<reorder_output_queue_length; i++) {
-    reorder_output_queue[i-1] = reorder_output_queue[i];
-  }
-  reorder_output_queue_length--;
+  reorder_output_queue[minIdx] = reorder_output_queue.back();
+  reorder_output_queue.pop_back();
 }
 
 
 bool decoded_picture_buffer::flush_reorder_buffer()
 {
   // return 'false' when there are no pictures in reorder buffer
-  if (reorder_output_queue_length==0) return false;
+  if (reorder_output_queue.empty()) return false;
 
-  while (reorder_output_queue_length>0) {
+  while (!reorder_output_queue.empty()) {
     output_next_picture_in_reorder_buffer();
   }
 
@@ -187,7 +182,7 @@ void decoded_picture_buffer::clear()
       }
   }
 
-  reorder_output_queue_length=0;
+  reorder_output_queue.clear();
   image_output_queue.clear();
 }
 

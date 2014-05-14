@@ -25,6 +25,7 @@
 #include "libde265/sps.h"
 
 #include <deque>
+#include <vector>
 
 // TODO: check required value
 #define DE265_DPB_OUTPUT_IMAGES  20
@@ -62,10 +63,10 @@ struct decoded_picture_buffer {
   // --- reorder buffer ---
 
   void insert_image_into_reorder_buffer(de265_image* img) {
-    reorder_output_queue[ reorder_output_queue_length++ ] = img;
+    reorder_output_queue.push_back(img);
   }
 
-  int num_pictures_in_reorder_buffer() const { return reorder_output_queue_length; }
+  int num_pictures_in_reorder_buffer() const { return reorder_output_queue.size(); }
 
   // move next picture in reorder buffer to output queue
   void output_next_picture_in_reorder_buffer();
@@ -93,10 +94,8 @@ struct decoded_picture_buffer {
 private:
   de265_image dpb[DE265_DPB_SIZE]; // decoded picture buffer
 
-  de265_image* reorder_output_queue[DE265_DPB_SIZE];
-  int          reorder_output_queue_length;
-
-  std::deque<de265_image*> image_output_queue;
+  std::vector<de265_image*> reorder_output_queue;
+  std::deque<de265_image*>  image_output_queue;
 
 private:
   decoded_picture_buffer(const decoded_picture_buffer&); // no copy
