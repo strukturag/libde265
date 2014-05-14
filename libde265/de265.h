@@ -306,6 +306,33 @@ LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
 LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride);
 
 
+/* --- frame dropping API ---
+
+   To limit decoding to a maximum temporal layer (TID), use de265_set_limit_TID().
+   The maximum layer ID in the stream can be queried with de265_get_highest_TID().
+   Note that the maximum layer ID can change throughout the stream.
+
+   For a fine-grained selection of the frame-rate, use de265_set-framerate_ratio().
+   A percentage of 100% will decode all frames in all temporal layers. A lower percentage
+   will drop approximately as many frames. Note that this only accurate if the frames
+   are distributed evenly among the layers. Otherwise, the mapping is non-linear.
+
+   The limit_TID has a higher precedence than framerate_ratio. Hence, setting a higher
+   framerate-ratio will decode at limit_TID without dropping.
+
+   With change_framerate(), the output frame-rate can be increased/decreased to some
+   discrete preferable values. Currently, these are non-dropped decoding at various
+   TID layers.
+*/
+
+LIBDE265_API int  de265_get_highest_TID(de265_decoder_context*); // highest temporal substream to decode
+LIBDE265_API int  de265_get_current_TID(de265_decoder_context*); // currently decoded temporal substream
+
+LIBDE265_API void de265_set_limit_TID(de265_decoder_context*,int max_tid); // highest temporal substream to decode
+LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent); // percentage of frames to decode (approx)
+LIBDE265_API int  de265_change_framerate(de265_decoder_context*,int more_vs_less); // 1: more, -1: less, returns corresponding framerate_ratio
+
+
 /* --- decoding parameters --- */
 
 enum de265_param {
@@ -315,8 +342,7 @@ enum de265_param {
   DE265_DECODER_PARAM_DUMP_PPS_HEADERS=3,
   DE265_DECODER_PARAM_DUMP_SLICE_HEADERS=4,
   DE265_DECODER_PARAM_ACCELERATION_CODE=5,   // (int)  enum de265_acceleration, default: AUTO
-  DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6, // (bool)  do not output frames with decoding errors, default: no (output all images)
-  DE265_DECODER_PARAM_HIGHEST_TID=7 // (int) highest temporal substream to decode
+  DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6 // (bool)  do not output frames with decoding errors, default: no (output all images)
 };
 
 // sorted such that a large ID includes all optimizations from lower IDs

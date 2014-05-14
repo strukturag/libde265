@@ -362,16 +362,8 @@ int main(int argc, char** argv)
 
   de265_decoder_context* ctx = de265_new_decoder();
 
-  if (argc>=3) {
-    if (nThreads>0) {
-      err = de265_start_worker_threads(ctx, nThreads);
-    }
-  }
-
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
-
-  de265_set_parameter_int(ctx, DE265_DECODER_PARAM_HIGHEST_TID, highestTID);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
@@ -389,6 +381,17 @@ int main(int argc, char** argv)
   }
 
   de265_set_verbosity(verbosity);
+
+
+  if (argc>=3) {
+    if (nThreads>0) {
+      err = de265_start_worker_threads(ctx, nThreads);
+    }
+  }
+
+  de265_set_limit_TID(ctx, highestTID);
+
+
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
@@ -411,6 +414,9 @@ int main(int argc, char** argv)
 
   while (!stop)
     {
+      //tid = (framecnt/1000) & 1;
+      //de265_set_limit_TID(ctx, tid);
+
       if (nal_input) {
         uint8_t len[4];
         int n = fread(len,1,4,fh);

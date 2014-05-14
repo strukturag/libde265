@@ -59,7 +59,6 @@ decoder_context::decoder_context()
   // --- parameters ---
 
   param_sei_check_hash = false;
-  param_HighestTid = 999; // unlimited
   param_conceal_stream_errors = true;
   param_suppress_faulty_pictures = false;
 
@@ -88,8 +87,20 @@ decoder_context::decoder_context()
   memset(&thread_pool,0,sizeof(struct thread_pool));
   num_worker_threads = 0;
 
-  HighestTid = 999;
-  current_HighestTid = HighestTid;
+
+  // frame-rate
+
+  limit_HighestTid = 6;   // decode all temporal layers (up to layer 6)
+  framerate_ratio = 100;  // decode all 100%
+
+  goal_HighestTid = 6;
+  current_HighestTid = 6;
+  layer_framerate_ratio = 100;
+
+  compute_framedrop_table();
+
+
+  //
 
   current_image_poc_lsb = 0;
   first_decoded_picture = 0;
@@ -203,7 +214,6 @@ void decoder_context::reset()
   ctx->current_sps = NULL;
   ctx->current_pps = NULL;
   ctx->num_worker_threads = 0;
-  ctx->HighestTid = 0;
   ctx->current_image_poc_lsb = 0;
   ctx->first_decoded_picture = 0;
   ctx->NoRaslOutputFlag = 0;
@@ -590,6 +600,8 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   // throw away NALs from higher TIDs than currently selected
   // TODO: better online switching of HighestTID
 
+  //printf("hTid: %d\n", current_HighestTid);
+
   if (nal_hdr.nuh_temporal_id > current_HighestTid) {
     nal_parser.free_NAL_unit(nal);
     return DE265_OK;
@@ -952,9 +964,6 @@ void decoder_context::process_sps(seq_parameter_set* sps)
   //push_current_picture_to_output_queue();
 
   this->sps[ sps->seq_parameter_set_id ] = *sps;
-
-  HighestTid = libde265_min(sps->sps_max_sub_layers-1, param_HighestTid);
-  current_HighestTid = HighestTid;
 }
 
 
@@ -1580,6 +1589,8 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
   ctx->current_vps = &ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ];
 
+  calc_tid_and_framerate_ratio();
+
   
   // --- prepare decoding of new picture ---
 
@@ -1710,15 +1721,109 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
 
 
 
-#include <sys/types.h>
-#include <signal.h>
+/*
+  .     0     1     2       <- goal_HighestTid
+  +-----+-----+-----+
+  | -0->| -1->| -2->|
+  +-----+-----+-----+
+  0     33    66    100     <- framerate_ratio
+ */
+
+int  decoder_context::get_highest_TID() const
+{
+  if (current_sps) { return current_sps->sps_max_sub_layers-1; }
+  if (current_vps) { return current_vps->vps_max_sub_layers-1; }
+
+  return 6;
+}
+
+void decoder_context::set_limit_TID(int max_tid)
+{
+  limit_HighestTid = max_tid;
+  calc_tid_and_framerate_ratio();
+}
+
+int decoder_context::change_framerate(int more)
+{
+  if (current_sps == NULL) { return framerate_ratio; }
+
+  int highestTid = get_highest_TID();
+
+  assert(more>=-1 && more<=1);
+
+  goal_HighestTid += more;
+  goal_HighestTid = std::max(goal_HighestTid, 0);
+  goal_HighestTid = std::min(goal_HighestTid, highestTid);
+
+  framerate_ratio = framedrop_tid_index[goal_HighestTid];
+
+  calc_tid_and_framerate_ratio();
+
+  return framerate_ratio;
+}
+
+void decoder_context::set_framerate_ratio(int percent)
+{
+  framerate_ratio = percent;
+  calc_tid_and_framerate_ratio();
+}
+
+void decoder_context::compute_framedrop_table()
+{
+  int highestTID = get_highest_TID();
+
+  for (int tid=highestTID ; tid>=0 ; tid--) {
+    int lower  = 100 *  tid   /(highestTID+1);
+    int higher = 100 * (tid+1)/(highestTID+1);
+
+    for (int l=lower; l<=higher; l++) {
+      int ratio = 100 * (l-lower) / (higher-lower);
+
+      // if we would exceed our TID limit, decode the highest TID at full frame-rate
+      if (tid > limit_HighestTid) {
+        tid   = limit_HighestTid;
+        ratio = 100;
+      }
+
+      framedrop_tab[l].tid   = tid;
+      framedrop_tab[l].ratio = ratio;
+    }
+
+    framedrop_tid_index[tid] = higher;
+  }
+
+#if 0
+  for (int i=0;i<=100;i++) {
+    printf("%d%%: %d/%d",i, framedrop_tab[i].tid, framedrop_tab[i].ratio);
+    for (int k=0;k<=highestTID;k++) {
+      if (framedrop_tid_index[k] == i) printf(" ** TID=%d **",k);
+    }
+    printf("\n");
+  }
+#endif
+}
+
+void decoder_context::calc_tid_and_framerate_ratio()
+{
+  int highestTID = get_highest_TID();
+
+
+  // if number of temporal layers changed, we have to recompute the framedrop table
+
+  if (framedrop_tab[100].tid != highestTID) {
+    compute_framedrop_table();
+  }
+
+  goal_HighestTid       = framedrop_tab[framerate_ratio].tid;
+  layer_framerate_ratio = framedrop_tab[framerate_ratio].ratio;
+
+  // TODO: for now, we switch immediately
+  current_HighestTid = goal_HighestTid;
+}
+
 
 void error_queue::add_warning(de265_error warning, bool once)
 {
-  //printf("================================================== WARNING: %d\n", warning);
-  //raise(SIGINT);
-  //exit(0);
-
   // check if warning was already shown
   bool add=true;
   if (once) {

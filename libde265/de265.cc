@@ -369,6 +369,38 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 }
 
 
+
+LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->get_highest_TID();
+}
+
+LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->get_current_TID();
+}
+
+LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->set_limit_TID(max_tid);
+}
+
+LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context* de265ctx,int percent)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->set_framerate_ratio(percent);
+}
+
+LIBDE265_API int  de265_change_framerate(de265_decoder_context* de265ctx,int more)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->change_framerate(more);
+}
+
+
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
@@ -421,10 +453,6 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
 
     case DE265_DECODER_PARAM_ACCELERATION_CODE:
       ctx->set_acceleration_functions((enum de265_acceleration)value);
-      break;
-
-    case DE265_DECODER_PARAM_HIGHEST_TID:
-      ctx->param_HighestTid = value;
       break;
 
     default:

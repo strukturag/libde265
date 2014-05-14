@@ -211,7 +211,6 @@ class decoder_context : public error_queue {
   // --- parameters ---
 
   bool param_sei_check_hash;
-  int  param_HighestTid;
   bool param_conceal_stream_errors;
   bool param_suppress_faulty_pictures;
 
@@ -273,11 +272,36 @@ class decoder_context : public error_queue {
   int num_worker_threads;
 
 
-  // --- sequence level ---
+ public:
+  // --- frame dropping ---
 
-  int HighestTid;
-  int current_HighestTid;
+  void set_limit_TID(int tid);
+  int  get_highest_TID() const;
+  int  get_current_TID() const { return current_HighestTid; }
+  int  change_framerate(int more_vs_less); // 1: more, -1: less
+  void set_framerate_ratio(int percent);
 
+ private:
+  // input parameters
+  int limit_HighestTid;    // never switch to a layer above this one
+  int framerate_ratio;
+
+  // current control parameters
+  int goal_HighestTid;     // this is the layer we want to decode at
+  int layer_framerate_ratio; // ratio of frames to keep in the current layer
+
+  int current_HighestTid;  // the layer which we are currently decoding
+
+  struct {
+    int8_t tid;
+    int8_t ratio;
+  } framedrop_tab[100+1];
+  int framedrop_tid_index[6+1];
+
+  void compute_framedrop_table();
+  void calc_tid_and_framerate_ratio();
+
+ private:
   // --- decoded picture buffer ---
 
   decoded_picture_buffer dpb;
