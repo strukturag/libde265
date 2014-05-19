@@ -350,13 +350,39 @@ void decoder_context::set_acceleration_functions(enum de265_acceleration l)
 
 void decoder_context::init_thread_context(thread_context* tctx)
 {
+  tctx->inUse = true;
+
   // zero scrap memory for coefficient blocks
   memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));
 
   tctx->currentQG_x = -1;
   tctx->currentQG_y = -1;
 
-  tctx->inUse = true;
+
+
+  // --- find QPY that was active at the end of the previous slice ---
+
+  // find the previous CTB in TS order
+
+  const pic_parameter_set* pps = &tctx->img->pps;
+  const seq_parameter_set* sps = &tctx->img->sps;
+  int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
+
+  int ctbX = prevCtb % sps->PicWidthInCtbsY;
+  int ctbY = prevCtb / sps->PicWidthInCtbsY;
+
+
+  // take the pixel at the bottom right corner (but consider that the image size might be smaller)
+
+  int x = ((ctbX+1) << sps->Log2CtbSizeY)-1;
+  int y = ((ctbY+1) << sps->Log2CtbSizeY)-1;
+
+  x = std::min(x,sps->pic_width_in_luma_samples-1);
+  y = std::min(y,sps->pic_height_in_luma_samples-1);
+
+  //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
+
+  tctx->currentQPY = tctx->img->get_QPY(x,y);
 }
 
 
@@ -622,8 +648,13 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
 
-  int thread_context_idx=0;
-  struct thread_context* tctx = &thread_contexts[thread_context_idx];
+  //int thread_context_idx=0;
+  struct thread_context tc;
+  struct thread_context* tctx = &tc; //&thread_contexts[thread_context_idx];
+
+  tctx->shdr = sliceunit->shdr;
+  tctx->img  = imgunit->img;
+  tctx->decctx = this;
 
   init_thread_context(tctx);
 
@@ -631,9 +662,6 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
                      sliceunit->reader.data,
                      sliceunit->reader.bytes_remaining);
 
-  tctx->shdr = sliceunit->shdr;
-  tctx->img  = imgunit->img;
-  tctx->decctx = this;
   tctx->CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address];
 
 
