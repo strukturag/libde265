@@ -353,7 +353,7 @@ void decoder_context::init_thread_context(thread_context* tctx)
   tctx->inUse = true;
 
   // zero scrap memory for coefficient blocks
-  memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));
+  memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));  // TODO: check if we can safely remove this
 
   tctx->currentQG_x = -1;
   tctx->currentQG_y = -1;
@@ -623,6 +623,23 @@ de265_error decoder_context::decode_some()
          nal_parser.number_of_NAL_units_pending()==0 && nal_parser.is_end_of_stream() )) {
 
     image_unit* imgunit = image_units[0];
+
+    // run post-processing filters (deblocking & SAO)
+
+    run_postprocessing_filters(imgunit->img);
+
+
+    // process suffix SEIs
+
+    for (int i=0;i<imgunit->suffix_SEIs.size();i++) {
+      const sei_message& sei = imgunit->suffix_SEIs[i];
+
+      de265_error err = process_sei(&sei, imgunit->img);
+      if (err) {
+        return err;
+      }
+    }
+
 
     err = push_picture_to_output_queue(imgunit);
 
@@ -1584,7 +1601,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
 
 
-void run_postprocessing_filters(de265_image* img)
+void decoder_context::run_postprocessing_filters(de265_image* img)
 {
 #if SAVE_INTERMEDIATE_IMAGES
     char buf[1000];
@@ -1619,23 +1636,6 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
   de265_image* outimg = imgunit->img;
 
   if (outimg==NULL) { return DE265_OK; }
-
-
-  // run post-processing filters (deblocking & SAO)
-
-  run_postprocessing_filters(outimg);
-
-
-  // process suffix SEIs
-
-  for (int i=0;i<imgunit->suffix_SEIs.size();i++) {
-    const sei_message& sei = imgunit->suffix_SEIs[i];
-
-    de265_error err = process_sei(&sei, outimg);
-    if (err) {
-      return err;
-    }
-  }
 
 
   // push image into output queue
