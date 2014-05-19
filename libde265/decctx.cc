@@ -813,6 +813,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 
   img->wait_for_completion();
+
+  return DE265_OK;
 }
 
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
@@ -874,6 +876,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   }
 
   img->wait_for_completion();
+
+  return DE265_OK;
 }
 
 
