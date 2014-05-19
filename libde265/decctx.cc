@@ -46,6 +46,86 @@ extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);
 
 
+thread_context::thread_context()
+{
+  inUse = false;
+
+  /*
+  CtbAddrInRS = 0;
+  CtbAddrInTS = 0;
+
+  CtbX = 0;
+  CtbY = 0;
+  */
+
+  /*
+  refIdx[0] = refIdx[1] = 0;
+  mvd[0][0] = mvd[0][1] = mvd[1][0] = mvd[1][1] = 0;
+  merge_flag = 0;
+  merge_idx = 0;
+  mvp_lX_flag[0] = mvp_lX_flag[1] = 0;
+  inter_pred_idc = 0;
+  */
+
+  /*
+  enum IntraPredMode IntraPredModeC; // chroma intra-prediction mode for current CB
+  */
+
+  /*
+  cu_transquant_bypass_flag = false;
+  memset(transform_skip_flag,0, 3*sizeof(uint8_t));
+  */
+
+
+  //memset(coeffList,0,sizeof(int16_t)*3*32*32);
+  //memset(coeffPos,0,sizeof(int16_t)*3*32*32);
+  //memset(nCoeff,0,sizeof(int16_t)*3);
+
+
+
+  IsCuQpDeltaCoded = false;
+  CuQpDelta = 0;
+
+  /*
+  currentQPY = 0;
+  currentQG_x = 0;
+  currentQG_y = 0;
+  lastQPYinPreviousQG = 0;
+  */
+
+  /*
+  qPYPrime = 0;
+  qPCbPrime = 0;
+  qPCrPrime = 0;
+  */
+
+  /*
+  memset(&cabac_decoder, 0, sizeof(CABAC_decoder));
+  memset(&ctx_model, 0, sizeof(ctx_model));
+  */
+
+  decctx = NULL;
+  img = NULL;
+  shdr = NULL;
+
+
+  //memset(this,0,sizeof(thread_context));
+
+  // some compilers/linkers don't align struct members correctly,
+  // adjust if necessary
+  int offset = (uintptr_t)_coeffBuf & 0x0f;
+
+  if (offset == 0) {
+    coeffBuf = (int16_t *) &_coeffBuf;  // correctly aligned already
+  }
+  else {
+    coeffBuf = (int16_t *) (((uint8_t *)_coeffBuf) + (16-offset));
+  }
+
+  memset(coeffBuf, 0, 32*32*sizeof(int16_t));
+}
+
+
 slice_unit::~slice_unit()
 {
   ctx->nal_parser.free_NAL_unit(nal);
@@ -146,7 +226,6 @@ decoder_context::decoder_context()
   char RapPicFlag;
   */
 
-  memset(thread_contexts,0,sizeof(struct thread_context)*MAX_THREAD_CONTEXTS);
 
 
   // --- internal data ---
@@ -160,17 +239,6 @@ decoder_context::decoder_context()
   // --- decoded picture buffer ---
 
   current_image_poc_lsb = -1; // any invalid number
-
-  for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
-    thread_contexts[i].coeffBuf = (int16_t *) &thread_contexts[i]._coeffBuf;
-    // some compilers/linkers don't align struct members correctly,
-    // adjust if necessary
-    int offset = (uintptr_t)thread_contexts[i].coeffBuf & 0x0f;
-    if (offset != 0) {
-      thread_contexts[i].coeffBuf = (int16_t *) (((uint8_t *)thread_contexts[i].coeffBuf) +
-                                                 (16-offset));
-    }
-  }
 }
 
 

@@ -3244,6 +3244,9 @@ void read_coding_unit(thread_context* tctx,
         img->set_cu_transquant_bypass(x0,y0,log2CbSize);
       }
     }
+  else {
+    tctx->cu_transquant_bypass_flag = 0;
+  }
 
   uint8_t cu_skip_flag = 0;
   if (shdr->slice_type != SLICE_TYPE_I) {
