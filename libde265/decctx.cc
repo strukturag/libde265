@@ -1042,23 +1042,6 @@ void decoder_context::process_pps(pic_parameter_set* pps)
 }
 
 
-/* The returned index rotates through [0;MAX_THREAD_CONTEXTS) and is not reset at each new picture.
-   Returns -1 if no more context data structure available.
- */
-int decoder_context::get_next_thread_context_index(decoder_context* ctx)
-{
-  for (int i=0;i<MAX_THREAD_CONTEXTS;i++) {
-    if (ctx->thread_contexts[i].inUse == false) {
-      return i;
-    }
-  }
-
-  // TODO: make this dynamic, increase storage when completely full
-
-  return -1;
-}
-
-
 /* 8.3.1
  */
 void decoder_context::process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
