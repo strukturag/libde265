@@ -150,8 +150,6 @@ typedef struct {
   uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
 
   sao_info saoInfo;
-
-  uint16_t thread_context_id; // which thread-context is used to decode this CTB
 } CTB_info;
 
 
@@ -537,17 +535,6 @@ public:
   const sao_info* get_sao_info(int ctbX,int ctbY) const
   {
     return &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
-  }
-
-
-  void set_ThreadContextID(int ctbX, int ctbY, int context)
-  {
-    ctb_info[ctbX+ctbY*ctb_info.width_in_units].thread_context_id = context;
-  }
-
-  int  get_ThreadContextID(int ctbX, int ctbY) const
-  {
-    return ctb_info[ctbX+ctbY*ctb_info.width_in_units].thread_context_id;
   }
 
 

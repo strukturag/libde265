@@ -142,6 +142,8 @@ struct slice_unit
 
   bool decoding_finished;  // TODO: do we actually need this ? we could just remove the unit after decoding
 
+  std::vector<thread_context> thread_contexts;
+
 private:
   decoder_context* ctx;
 };
@@ -165,8 +167,6 @@ struct image_unit
 
   /* saved context models. For WPP, we have nRows models. Otherwise, this vector is unused. */
   std::vector<context_model> ctx_models;
-
-  std::vector<thread_context*> thread_contexts;
 };
 
 

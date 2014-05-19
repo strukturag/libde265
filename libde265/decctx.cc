@@ -774,13 +774,12 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 
 
+  sliceunit->thread_contexts.resize(nRows);
+
+
   for (int y=0;y<nRows;y++) {
 
-    // set thread context
-
-    for (int x=0;x<ctbsWidth;x++) {
-      img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded *** REMOVE THIS
-    }
+    // prepare thread context
 
     img->decctx->thread_contexts[y].shdr    = shdr;
     img->decctx->thread_contexts[y].decctx  = img->decctx;
