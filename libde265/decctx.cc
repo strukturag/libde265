@@ -778,16 +778,17 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   sliceunit->thread_contexts.resize(nRows);
 
-
   for (int y=0;y<nRows;y++) {
+
+    thread_context* tctx = &img->decctx->thread_contexts[y];
 
     // prepare thread context
 
-    img->decctx->thread_contexts[y].shdr    = shdr;
-    img->decctx->thread_contexts[y].decctx  = img->decctx;
-    img->decctx->thread_contexts[y].img     = img;
-    img->decctx->thread_contexts[y].imgunit = imgunit;
-    img->decctx->thread_contexts[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
+    tctx->shdr    = shdr;
+    tctx->decctx  = img->decctx;
+    tctx->img     = img;
+    tctx->imgunit = imgunit;
+    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
 
 
     // init CABAC
@@ -800,17 +801,15 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     if (y==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
     else            dataEnd = shdr->entry_point_offset[y];
 
-    init_thread_context(&img->decctx->thread_contexts[y]);
+    init_thread_context(tctx);
 
-    init_CABAC_decoder(&img->decctx->thread_contexts[y].cabac_decoder,
+    init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
                        dataEnd-dataStartIndex);
-  }
 
-  // add tasks
+    // add task
 
-  for (int y=0;y<nRows;y++) {
-    add_task_decode_CTB_row(&img->decctx->thread_contexts[y], y==0, img);
+    add_task_decode_CTB_row(tctx, y==0, img);
   }
 
   img->wait_for_completion();
@@ -844,13 +843,15 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     for (int tx=0;tx<pps->num_tile_columns;tx++) {
       int tile = tx + ty*pps->num_tile_columns;
 
+      thread_context* tctx = &img->decctx->thread_contexts[tile];
+
       // set thread context
 
-      img->decctx->thread_contexts[tile].shdr   = shdr;
-      img->decctx->thread_contexts[tile].decctx = img->decctx;
-      img->decctx->thread_contexts[tile].img    = img;
-      img->decctx->thread_contexts[tile].imgunit = imgunit;
-      img->decctx->thread_contexts[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
+      tctx->shdr   = shdr;
+      tctx->decctx = img->decctx;
+      tctx->img    = img;
+      tctx->imgunit = imgunit;
+      tctx->CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
 
 
       // init CABAC
@@ -863,18 +864,16 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       if (tile==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
       else                dataEnd = shdr->entry_point_offset[tile];
 
-      init_thread_context(&img->decctx->thread_contexts[tile]);
+      init_thread_context(tctx);
 
-      init_CABAC_decoder(&img->decctx->thread_contexts[tile].cabac_decoder,
+      init_CABAC_decoder(&tctx->cabac_decoder,
                          &sliceunit->reader.data[dataStartIndex],
                          dataEnd-dataStartIndex);
+
+      // add task
+
+      add_task_decode_slice_segment(tctx, img);
     }
-
-  // add tasks
-
-  for (int i=0;i<nTiles;i++) {
-    add_task_decode_slice_segment(&img->decctx->thread_contexts[i], img);
-  }
 
   img->wait_for_completion();
 
