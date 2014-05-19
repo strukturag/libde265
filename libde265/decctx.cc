@@ -801,7 +801,62 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
                                                      slice_unit* sliceunit)
 {
-  assert(0); // TODO
+  de265_error err = DE265_OK;
+
+  de265_image* img = imgunit->img;
+  slice_segment_header* shdr = sliceunit->shdr;
+  const pic_parameter_set* pps = &img->pps;
+
+  int nTiles = shdr->num_entry_point_offsets +1;
+  int ctbsWidth = img->sps.PicWidthInCtbsY;
+
+
+  if (nTiles > MAX_THREAD_CONTEXTS) {
+    return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+  }
+  
+  assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
+
+  assert(img->num_tasks_pending() == 0);
+  img->increase_pending_tasks(nTiles);
+
+  for (int ty=0;ty<pps->num_tile_rows;ty++)
+    for (int tx=0;tx<pps->num_tile_columns;tx++) {
+      int tile = tx + ty*pps->num_tile_columns;
+
+      // set thread context
+
+      img->decctx->thread_contexts[tile].shdr   = shdr;
+      img->decctx->thread_contexts[tile].decctx = img->decctx;
+      img->decctx->thread_contexts[tile].img    = img;
+
+      img->decctx->thread_contexts[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
+
+
+      // init CABAC
+
+      int dataStartIndex;
+      if (tile==0) { dataStartIndex=0; }
+      else         { dataStartIndex=shdr->entry_point_offset[tile-1]; }
+
+      int dataEnd;
+      if (tile==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
+      else                dataEnd = shdr->entry_point_offset[tile];
+
+      init_thread_context(&img->decctx->thread_contexts[tile]);
+
+      init_CABAC_decoder(&img->decctx->thread_contexts[tile].cabac_decoder,
+                         &sliceunit->reader.data[dataStartIndex],
+                         dataEnd-dataStartIndex);
+    }
+
+  // add tasks
+
+  for (int i=0;i<nTiles;i++) {
+    add_task_decode_slice_segment(i, img);
+  }
+
+  img->wait_for_completion();
 }
 
 
