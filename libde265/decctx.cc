@@ -626,7 +626,7 @@ de265_error decoder_context::decode_some()
 
     // run post-processing filters (deblocking & SAO)
 
-    run_postprocessing_filters(imgunit->img);
+    run_postprocessing_filters_sequential(imgunit->img);
 
 
     // process suffix SEIs
@@ -669,25 +669,22 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
 
-  //int thread_context_idx=0;
-  struct thread_context tc;
-  struct thread_context* tctx = &tc; //&thread_contexts[thread_context_idx];
+  struct thread_context tctx;
 
-  tctx->shdr = sliceunit->shdr;
-  tctx->img  = imgunit->img;
-  tctx->decctx = this;
+  tctx.shdr = sliceunit->shdr;
+  tctx.img  = imgunit->img;
+  tctx.decctx = this;
 
-  init_thread_context(tctx);
+  init_thread_context(&tctx);
 
-  init_CABAC_decoder(&tctx->cabac_decoder,
+  init_CABAC_decoder(&tctx.cabac_decoder,
                      sliceunit->reader.data,
                      sliceunit->reader.bytes_remaining);
 
-  tctx->CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address];
+  tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
 
 
-  // fixed context 0
-  if ((err=read_slice_segment_data(tctx)) != DE265_OK)
+  if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
     { return err; }
 
   return err;
@@ -1601,7 +1598,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
 
 
-void decoder_context::run_postprocessing_filters(de265_image* img)
+void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
 {
 #if SAVE_INTERMEDIATE_IMAGES
     char buf[1000];
