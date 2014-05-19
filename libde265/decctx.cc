@@ -767,17 +767,25 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   //printf("-------- decode --------\n");
 
 
+  // reserve space to store entropy coding context models for each CTB row
+
+  if (shdr->first_slice_segment_in_pic_flag) {
+    imgunit->ctx_models.resize( img->sps.PicHeightInCtbsY * CONTEXT_MODEL_TABLE_LENGTH );
+  }
+
+
   for (int y=0;y<nRows;y++) {
 
     // set thread context
 
     for (int x=0;x<ctbsWidth;x++) {
-      img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded
+      img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded *** REMOVE THIS
     }
 
-    img->decctx->thread_contexts[y].shdr   = shdr;
-    img->decctx->thread_contexts[y].decctx = img->decctx;
-    img->decctx->thread_contexts[y].img    = img;
+    img->decctx->thread_contexts[y].shdr    = shdr;
+    img->decctx->thread_contexts[y].decctx  = img->decctx;
+    img->decctx->thread_contexts[y].img     = img;
+    img->decctx->thread_contexts[y].imgunit = imgunit;
     img->decctx->thread_contexts[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
 
 

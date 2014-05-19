@@ -44,6 +44,8 @@
 
 
 struct slice_segment_header;
+struct image_unit;
+
 
 struct thread_context
 {
@@ -103,6 +105,8 @@ struct thread_context
   struct decoder_context* decctx;
   struct de265_image *img;
   struct slice_segment_header* shdr;
+
+  struct image_unit* imgunit;
 };
 
 
@@ -158,6 +162,9 @@ struct image_unit
          Reference, // will be used as reference
          Leaf       // not a reference picture
   } role;
+
+  /* saved context models. For WPP, we have nRows models. Otherwise, this vector is unused. */
+  std::vector<context_model> ctx_models;
 
   std::vector<thread_context*> thread_contexts;
 };

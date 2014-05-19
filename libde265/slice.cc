@@ -3681,9 +3681,9 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     if (pps->entropy_coding_sync_enabled_flag &&
         ctbx == context_copy_ctbx &&
-        ctby+1 < sps->PicHeightInCtbsY)
+        ctby+1 < sps->PicHeightInCtbsY &&
+        context_storage != NULL)
       {
-        assert(context_storage);
         memcpy(context_storage,
                &tctx->ctx_model,
                CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
@@ -3784,16 +3784,30 @@ void thread_decode_CTB_row(void* d)
   if (data->initCABAC) {
     initialize_CABAC(tctx);
   }
+  else if (1) {
+    assert(ctby>=1);
+
+    // we have to wait until the context model data is there
+    de265_wait_for_progress(&tctx->img->ctb_progress[1+(ctby-1)*ctbW],
+                            CTB_PROGRESS_PREFILTER);
+
+    memcpy(tctx->ctx_model,
+           &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH],
+           CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+  }
+
+  //printf("read from %p\n", &tctx->imgunit->ctx_models[ctby],
+
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  int destThreadContext = 0;
+  context_model* ctx_store = NULL;
   if (ctby+1 < sps->PicHeightInCtbsY) {
-    destThreadContext = img->get_ThreadContextID(0,ctby+1);
+    ctx_store = &tctx->imgunit->ctx_models[(ctby+1) * CONTEXT_MODEL_TABLE_LENGTH];
   }
 
-  /*enum DecodeResult result =*/ decode_substream(tctx, true, 1,
-                                                  tctx->decctx->thread_contexts[destThreadContext].ctx_model);
+  /*enum DecodeResult result =*/
+  decode_substream(tctx, true, 1, ctx_store);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
