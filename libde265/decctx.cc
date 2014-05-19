@@ -366,23 +366,27 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
   const pic_parameter_set* pps = &tctx->img->pps;
   const seq_parameter_set* sps = &tctx->img->sps;
-  int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
-
-  int ctbX = prevCtb % sps->PicWidthInCtbsY;
-  int ctbY = prevCtb / sps->PicWidthInCtbsY;
 
 
-  // take the pixel at the bottom right corner (but consider that the image size might be smaller)
+  if (tctx->shdr->slice_segment_address > 0) {
+    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
 
-  int x = ((ctbX+1) << sps->Log2CtbSizeY)-1;
-  int y = ((ctbY+1) << sps->Log2CtbSizeY)-1;
+    int ctbX = prevCtb % sps->PicWidthInCtbsY;
+    int ctbY = prevCtb / sps->PicWidthInCtbsY;
 
-  x = std::min(x,sps->pic_width_in_luma_samples-1);
-  y = std::min(y,sps->pic_height_in_luma_samples-1);
 
-  //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
+    // take the pixel at the bottom right corner (but consider that the image size might be smaller)
 
-  tctx->currentQPY = tctx->img->get_QPY(x,y);
+    int x = ((ctbX+1) << sps->Log2CtbSizeY)-1;
+    int y = ((ctbY+1) << sps->Log2CtbSizeY)-1;
+
+    x = std::min(x,sps->pic_width_in_luma_samples-1);
+    y = std::min(y,sps->pic_height_in_luma_samples-1);
+
+    //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
+
+    tctx->currentQPY = tctx->img->get_QPY(x,y);
+  }
 }
 
 
