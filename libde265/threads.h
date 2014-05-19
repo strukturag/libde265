@@ -121,9 +121,9 @@ struct thread_task_ctb
 
 struct thread_task_ctb_row
 {
-  int thread_context_id;
   bool initCABAC;
   struct de265_image* img;
+  struct thread_context* tctx;
 };
 
 struct thread_task_deblock

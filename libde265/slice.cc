@@ -3748,7 +3748,7 @@ void thread_decode_slice_segment(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
   de265_image* img = data->img;
-  thread_context* tctx = &img->decctx->thread_contexts[data->thread_context_id];
+  thread_context* tctx = data->tctx;
 
   setCtbAddrFromTS(tctx);
 
@@ -3769,7 +3769,7 @@ void thread_decode_CTB_row(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
   de265_image* img = data->img;
-  thread_context* tctx = &img->decctx->thread_contexts[data->thread_context_id];
+  thread_context* tctx = data->tctx;
 
   seq_parameter_set* sps = &img->sps;
   int ctbW = sps->PicWidthInCtbsY;

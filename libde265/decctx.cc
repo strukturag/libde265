@@ -390,7 +390,8 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(int thread_id, bool initCABAC, de265_image* image)
+void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
+                                              bool initCABAC, de265_image* image)
 {
   thread_task task;
   task.task_id = 0; // no ID
@@ -398,19 +399,20 @@ void decoder_context::add_task_decode_CTB_row(int thread_id, bool initCABAC, de2
   task.work_routine = thread_decode_CTB_row;
   task.data.task_ctb_row.img = image;
   task.data.task_ctb_row.initCABAC = initCABAC;
-  task.data.task_ctb_row.thread_context_id = thread_id;
+  task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }
 
 
-void decoder_context::add_task_decode_slice_segment(int thread_id, de265_image* image)
+void decoder_context::add_task_decode_slice_segment(thread_context* tctx,
+                                                    de265_image* image)
 {
   thread_task task;
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
   task.work_routine = thread_decode_slice_segment;
   task.data.task_ctb_row.img = image;
-  task.data.task_ctb_row.thread_context_id = thread_id;
+  task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }
 
@@ -808,7 +810,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   // add tasks
 
   for (int y=0;y<nRows;y++) {
-    add_task_decode_CTB_row(y, y==0, img);
+    add_task_decode_CTB_row(&img->decctx->thread_contexts[y], y==0, img);
   }
 
   img->wait_for_completion();
@@ -847,7 +849,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       img->decctx->thread_contexts[tile].shdr   = shdr;
       img->decctx->thread_contexts[tile].decctx = img->decctx;
       img->decctx->thread_contexts[tile].img    = img;
-
+      img->decctx->thread_contexts[tile].imgunit = imgunit;
       img->decctx->thread_contexts[tile].CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
 
 
@@ -871,7 +873,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   // add tasks
 
   for (int i=0;i<nTiles;i++) {
-    add_task_decode_slice_segment(i, img);
+    add_task_decode_slice_segment(&img->decctx->thread_contexts[i], img);
   }
 
   img->wait_for_completion();
