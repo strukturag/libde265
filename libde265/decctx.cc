@@ -390,26 +390,26 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(int thread_id, bool initCABAC)
+void decoder_context::add_task_decode_CTB_row(int thread_id, bool initCABAC, de265_image* image)
 {
   thread_task task;
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
   task.work_routine = thread_decode_CTB_row;
-  task.data.task_ctb_row.img = img;
+  task.data.task_ctb_row.img = image;
   task.data.task_ctb_row.initCABAC = initCABAC;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&thread_pool, &task);
 }
 
 
-void decoder_context::add_task_decode_slice_segment(int thread_id)
+void decoder_context::add_task_decode_slice_segment(int thread_id, de265_image* image)
 {
   thread_task task;
   task.task_id = 0; // no ID
   task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
   task.work_routine = thread_decode_slice_segment;
-  task.data.task_ctb_row.img = img;
+  task.data.task_ctb_row.img = image;
   task.data.task_ctb_row.thread_context_id = thread_id;
   add_task(&thread_pool, &task);
 }
@@ -565,7 +565,6 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
 
     image_units.back()->slice_units.push_back(sliceunit);
-    //decode_slice_unit_sequential(image_units.back(), sliceunit);
 
     decode_some();
   }
@@ -607,7 +606,8 @@ de265_error decoder_context::decode_some()
       dpb.flush_reorder_buffer();
     }
 
-    err = decode_slice_unit_sequential(imgunit, sliceunit);
+    //err = decode_slice_unit_sequential(imgunit, sliceunit);
+    err = decode_slice_unit_parallel(imgunit, sliceunit);
     if (err) {
       return err;
     }
@@ -689,6 +689,121 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   return err;
 }
+
+
+de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
+                                                        slice_unit* sliceunit)
+{
+  de265_error err = DE265_OK;
+
+  remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
+
+
+
+  de265_image* img = imgunit->img;
+  const pic_parameter_set* pps = &img->pps;
+
+  bool use_WPP = (img->decctx->num_worker_threads > 0 &&
+                  pps->entropy_coding_sync_enabled_flag);
+
+  bool use_tiles = (img->decctx->num_worker_threads > 0 &&
+                    pps->tiles_enabled_flag);
+
+
+  // TODO: even though we cannot split this into several tasks, we should run it
+  // as a background thread
+  if (!use_WPP && !use_tiles) {
+    return decode_slice_unit_sequential(imgunit, sliceunit);
+  }
+
+
+  if (use_WPP && use_tiles) {
+    // TODO: this is not allowed ... output some warning or error
+  }
+
+
+  if (use_WPP) {
+    return decode_slice_unit_WPP(imgunit, sliceunit);
+  }
+  else if (use_tiles) {
+    return decode_slice_unit_tiles(imgunit, sliceunit);
+  }
+
+  assert(false);
+  return DE265_OK;
+}
+
+
+de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
+                                                   slice_unit* sliceunit)
+{
+  de265_error err = DE265_OK;
+
+  de265_image* img = imgunit->img;
+  slice_segment_header* shdr = sliceunit->shdr;
+  const pic_parameter_set* pps = &img->pps;
+
+  int nRows = shdr->num_entry_point_offsets +1;
+  int ctbsWidth = img->sps.PicWidthInCtbsY;
+
+
+
+  if (nRows > MAX_THREAD_CONTEXTS) {
+    return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
+  }
+
+  assert(img->num_tasks_pending() == 0);
+  img->increase_pending_tasks(nRows);
+
+  //printf("-------- decode --------\n");
+
+
+  for (int y=0;y<nRows;y++) {
+
+    // set thread context
+
+    for (int x=0;x<ctbsWidth;x++) {
+      img->set_ThreadContextID(x,y, y); // TODO: shouldn't be hardcoded
+    }
+
+    img->decctx->thread_contexts[y].shdr   = shdr;
+    img->decctx->thread_contexts[y].decctx = img->decctx;
+    img->decctx->thread_contexts[y].img    = img;
+    img->decctx->thread_contexts[y].CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
+
+
+    // init CABAC
+
+    int dataStartIndex;
+    if (y==0) { dataStartIndex=0; }
+    else      { dataStartIndex=shdr->entry_point_offset[y-1]; }
+
+    int dataEnd;
+    if (y==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
+    else            dataEnd = shdr->entry_point_offset[y];
+
+    init_thread_context(&img->decctx->thread_contexts[y]);
+
+    init_CABAC_decoder(&img->decctx->thread_contexts[y].cabac_decoder,
+                       &sliceunit->reader.data[dataStartIndex],
+                       dataEnd-dataStartIndex);
+  }
+
+  // add tasks
+
+  for (int y=0;y<nRows;y++) {
+    add_task_decode_CTB_row(y, y==0, img);
+  }
+
+  img->wait_for_completion();
+}
+
+de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
+                                                     slice_unit* sliceunit)
+{
+  assert(0); // TODO
+}
+
 
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
 {
@@ -836,15 +951,7 @@ de265_error decoder_context::decode_NAL_OLD(NAL_unit* nal)
       if (!use_WPP && !use_tiles) {
         // --- single threaded decoding ---
 
-#if 0
-        int thread_context_idx = get_next_thread_context_index(ctx);
-        if (thread_context_idx<0) {
-          assert(false); // TODO
-        }
-#else
         int thread_context_idx=0;
-#endif
-
         thread_context* tctx = &ctx->thread_contexts[thread_context_idx];
 
         init_thread_context(tctx);
@@ -907,7 +1014,7 @@ de265_error decoder_context::decode_NAL_OLD(NAL_unit* nal)
         // add tasks
 
         for (int i=0;i<nTiles;i++) {
-          add_task_decode_slice_segment(i);
+          add_task_decode_slice_segment(i, ctx->img);
         }
 
         ctx->img->wait_for_completion();
@@ -957,7 +1064,7 @@ de265_error decoder_context::decode_NAL_OLD(NAL_unit* nal)
         // add tasks
 
         for (int y=0;y<nRows;y++) {
-          add_task_decode_CTB_row(y, y==0);
+          add_task_decode_CTB_row(y, y==0, ctx->img);
         }
 
         ctx->img->wait_for_completion();

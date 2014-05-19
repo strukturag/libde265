@@ -195,6 +195,9 @@ class decoder_context : public error_queue {
   de265_error decode_some();
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
+  de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
+  de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
+  de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
@@ -381,8 +384,8 @@ class decoder_context : public error_queue {
 
  private:
   void init_thread_context(class thread_context* tctx);
-  void add_task_decode_CTB_row(int thread_id, bool initCABAC);
-  void add_task_decode_slice_segment(int thread_id);
+  void add_task_decode_CTB_row(int thread_id, bool initCABAC, de265_image* image);
+  void add_task_decode_slice_segment(int thread_id, de265_image* image);
 
 
   void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
