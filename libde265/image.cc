@@ -195,6 +195,10 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     spec.format = de265_image_format_YUV422P8;
     chroma_height = (chroma_height+1)/2;
     break;
+
+  default:
+    assert(false); // TODO: not implemented yet
+    break;
   }
 
   spec.width  = w;
