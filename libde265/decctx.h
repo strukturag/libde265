@@ -107,6 +107,10 @@ struct thread_context
   struct slice_segment_header* shdr;
 
   struct image_unit* imgunit;
+
+private:
+  thread_context(const thread_context&); // not allowed
+  const thread_context& operator=(const thread_context&); // not allowed
 };
 
 
@@ -131,7 +135,8 @@ class error_queue
 struct slice_unit
 {
   slice_unit(decoder_context* decctx)
-  : ctx(decctx), nal(NULL), shdr(NULL), decoding_finished(false), flush_reorder_buffer(false) { }
+  : ctx(decctx), nal(NULL), shdr(NULL), decoding_finished(false), flush_reorder_buffer(false),
+    thread_contexts(NULL) { }
   ~slice_unit();
 
   NAL_unit* nal;   // we are the owner
@@ -142,10 +147,16 @@ struct slice_unit
 
   bool decoding_finished;  // TODO: do we actually need this ? we could just remove the unit after decoding
 
-  std::vector<thread_context> thread_contexts;
+  thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
+                                      no copy constructor. */
+
+  void allocate_thread_contexts(int n);
 
 private:
   decoder_context* ctx;
+
+  slice_unit(const slice_unit&); // not allowed
+  const slice_unit& operator=(const slice_unit&); // not allowed
 };
 
 
@@ -379,12 +390,6 @@ class decoder_context : public error_queue {
   std::vector<image_unit*> image_units;
 
   bool flush_reorder_buffer_at_this_frame;
-
-
-  // --- decoder runtime data ---
-
- public:
-  struct thread_context thread_contexts[MAX_THREAD_CONTEXTS];
 
  private:
   void init_thread_context(class thread_context* tctx);
