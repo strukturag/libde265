@@ -109,12 +109,6 @@ private:
   de265_cond  cond;
 };
 
-/*
-void de265_progress_lock_init(de265_progress_lock* lock);
-void de265_progress_lock_destroy(de265_progress_lock* lock);
-int  de265_wait_for_progress(de265_progress_lock* lock, int progress);
-void de265_announce_progress(de265_progress_lock* lock, int progress);
-*/
 
 
 
