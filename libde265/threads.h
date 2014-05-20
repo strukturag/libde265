@@ -158,6 +158,12 @@ typedef struct
 #define MAX_THREAD_TASKS 1024
 #define MAX_THREADS 32
 
+/* TODO NOTE: When unblocking a task, we have to check first
+   if there are threads waiting because of the run-count limit.
+   If there are higher-priority tasks, those should be run instead
+   of the just unblocked task.
+ */
+
 typedef struct thread_pool
 {
   bool stopped;

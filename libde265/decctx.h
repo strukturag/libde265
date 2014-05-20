@@ -188,6 +188,8 @@ struct image_unit
   } state;
 
 
+  // Image is completely decoded when all of these are zero.
+
   de265_sync_int nDecodingTasks;
   de265_sync_int nDeblockingTasks;
   de265_sync_int nSAOTasks;

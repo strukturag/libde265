@@ -619,9 +619,9 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
 
     image_units.back()->slice_units.push_back(sliceunit);
-
-    decode_some();
   }
+
+  decode_some();
 
   return DE265_OK;
 }
