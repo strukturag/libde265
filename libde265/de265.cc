@@ -260,12 +260,24 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
 }
 #endif
 
+static void dumpdata(const void* data, int len)
+{
+  for (int i=0;i<len;i++) {
+    printf("%02x ", ((uint8_t*)data)[i]);
+  }
+  printf("\n");
+}
+
+
 LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
                                          const void* data8, int len,
                                          de265_PTS pts, void* user_data)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
+
+  //printf("push data (size %d)\n",len);
+  //dumpdata(data8,16);
 
   return ctx->nal_parser.push_data(data,len,pts,user_data);
 }
@@ -277,6 +289,9 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   uint8_t* data = (uint8_t*)data8;
+
+  //printf("push NAL (size %d)\n",len);
+  //dumpdata(data8,16);
 
   return ctx->nal_parser.push_NAL(data,len,pts,user_data);
 }
@@ -314,6 +329,8 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
+
+  //printf("--- reset ---\n");
 
   ctx->reset();
 }

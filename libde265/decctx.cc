@@ -256,6 +256,10 @@ decoder_context::decoder_context()
 
 decoder_context::~decoder_context()
 {
+  while (!image_units.empty()) {
+    delete image_units.back();
+    image_units.pop_back();
+  }
 }
 
 
@@ -334,6 +338,11 @@ void decoder_context::reset()
 
   nal_parser.remove_pending_input_data();
 
+
+  while (!image_units.empty()) {
+    delete image_units.back();
+    image_units.pop_back();
+  }
 
   // --- start threads again ---
 
@@ -600,9 +609,11 @@ de265_error decoder_context::decode_some()
 {
   de265_error err = DE265_OK;
 
-  static int cnt=0;
-  cnt++;
-  if (cnt<5) return DE265_OK;
+  if (0) {
+    static int cnt=0;
+    cnt++;
+    if (cnt<5) return DE265_OK;
+  }
 
   if (image_units.empty()) { return DE265_OK; }  // nothing to do
 
@@ -803,6 +814,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->imgunit = imgunit;
     tctx->CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
 
+    init_thread_context(tctx);
+
 
     // init CABAC
 
@@ -813,8 +826,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     int dataEnd;
     if (y==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
     else            dataEnd = shdr->entry_point_offset[y];
-
-    init_thread_context(tctx);
 
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
@@ -847,6 +858,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
   }
   
+  //printf("%d = %d * %d\n",nTiles,pps->num_tile_columns,pps->num_tile_rows); // TODO: handle other cases
   assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
 
   assert(img->num_tasks_pending() == 0);
@@ -868,6 +880,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       tctx->imgunit = imgunit;
       tctx->CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
 
+      init_thread_context(tctx);
+
 
       // init CABAC
 
@@ -878,8 +892,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       int dataEnd;
       if (tile==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
       else                dataEnd = shdr->entry_point_offset[tile];
-
-      init_thread_context(tctx);
 
       init_CABAC_decoder(&tctx->cabac_decoder,
                          &sliceunit->reader.data[dataStartIndex],
@@ -916,6 +928,12 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
           get_NAL_name(nal_hdr.nal_unit_type),
           nal_hdr.nuh_temporal_id);
 
+  /*
+  printf("NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
+          nal->data()[0], nal->data()[1],
+          get_NAL_name(nal_hdr.nal_unit_type),
+          nal_hdr.nuh_temporal_id);
+  */
 
   // throw away NALs from higher TIDs than currently selected
   // TODO: better online switching of HighestTID
@@ -1139,12 +1157,6 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
   img->PicOutputFlag = false;
   img->PicState = (longTerm ? UsedForLongTermReference : UsedForShortTermReference);
   img->integrity = INTEGRITY_UNAVAILABLE_REFERENCE;
-  /*
-  int w = sps->pic_width_in_luma_samples;
-  int h = sps->pic_height_in_luma_samples;
-  de265_alloc_image(ctx->img, w,h, chroma, sps);
-  QQQ
-  */
 
   return idx;
 }
