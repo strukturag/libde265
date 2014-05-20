@@ -437,7 +437,7 @@ void de265_image::clear_metadata()
   // --- reset CTB progresses ---
 
   for (int i=0;i<ctb_info.data_size;i++) {
-    ctb_progress[i].set_progress(CTB_PROGRESS_NONE);
+    ctb_progress[i].reset(CTB_PROGRESS_NONE);
   }
 }
 
