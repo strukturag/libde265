@@ -114,16 +114,6 @@ private:
 
 enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
 
-struct thread_task_ctb
-{
-  int ctb_x, ctb_y;
-  struct decoder_context* ctx;
-  struct thread_context* tctx;
-  struct slice_segment_header* shdr;
-
-  enum thread_task_ctb_init_type CABAC_init;
-};
-
 struct thread_task_ctb_row
 {
   bool initCABAC;
@@ -139,6 +129,7 @@ struct thread_task_deblock
   int ctb_x,ctb_y;
   bool vertical;
 };
+
 
 enum thread_task_id {
   THREAD_TASK_SYNTAX_DECODE_CTB,
@@ -157,7 +148,6 @@ typedef struct
   void (*work_routine)(void* data);
 
   union {
-    struct thread_task_ctb task_ctb;
     struct thread_task_ctb_row task_ctb_row;
     struct thread_task_deblock task_deblock;
   } data;

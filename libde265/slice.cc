@@ -3809,6 +3809,8 @@ void thread_decode_CTB_row(void* d)
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
+  // TODO: what about slices that end properly in the middle of a CTB row?
+
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {

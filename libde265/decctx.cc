@@ -131,7 +131,8 @@ slice_unit::slice_unit(decoder_context* decctx)
     nal(NULL),
     shdr(NULL),
     flush_reorder_buffer(false),
-    thread_contexts(NULL)
+    thread_contexts(NULL),
+    imgunit(NULL)
 {
   state = Unprocessed;
 }
@@ -151,6 +152,18 @@ void slice_unit::allocate_thread_contexts(int n)
   assert(thread_contexts==NULL);
 
   thread_contexts = new thread_context[n];
+}
+
+
+image_unit::image_unit()
+{
+  img=NULL;
+  role=Invalid;
+  state=Unprocessed;
+
+  nDecodingTasks=0;
+  nDeblockingTasks=0;
+  nSAOTasks=0;
 }
 
 

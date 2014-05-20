@@ -141,6 +141,8 @@ struct slice_unit
   slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 
+  struct image_unit* imgunit;
+
   bool flush_reorder_buffer;
 
   enum { Unprocessed,
@@ -165,7 +167,7 @@ private:
 
 struct image_unit
 {
-  image_unit() { img=NULL; role=Invalid; state=Unprocessed; }
+  image_unit();
   ~image_unit();
 
   de265_image* img;
@@ -184,6 +186,11 @@ struct image_unit
          Decoded,
          Dropped         // will not be decoded
   } state;
+
+
+  de265_sync_int nDecodingTasks;
+  de265_sync_int nDeblockingTasks;
+  de265_sync_int nSAOTasks;
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.

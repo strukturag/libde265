@@ -201,21 +201,6 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
       return NULL;
     }
 
-    if (0)
-      {
-        printf("%03d [%d]: ",pool->num_tasks,pool->num_threads_working);
-
-        for (int i=0;i<pool->num_tasks;i++) {
-          printf("%d%c%d ",
-                 pool->tasks[i].data.task_ctb.ctb_x,
-                 i==0 ? 'X' :
-                 '*',
-                 pool->tasks[i].data.task_ctb.ctb_y);
-        }
-
-        printf("\n");
-      }
-
 
     // get a task
 
