@@ -1323,8 +1323,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   // (old 8-99) / (new 8-106)
   // 1.
 
-  bool picInAnyList[dpb.size()];
-  memset(picInAnyList,0, dpb.size()*sizeof(bool));
+  std::vector<bool> picInAnyList(dpb.size(), false);
 
 
   dpb.log_dpb_content();
