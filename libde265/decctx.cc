@@ -126,6 +126,16 @@ thread_context::thread_context()
 }
 
 
+slice_unit::slice_unit(decoder_context* decctx)
+  : ctx(decctx),
+    nal(NULL),
+    shdr(NULL),
+    flush_reorder_buffer(false),
+    thread_contexts(NULL)
+{
+  state = Unprocessed;
+}
+
 slice_unit::~slice_unit()
 {
   ctx->nal_parser.free_NAL_unit(nal);
@@ -141,6 +151,14 @@ void slice_unit::allocate_thread_contexts(int n)
   assert(thread_contexts==NULL);
 
   thread_contexts = new thread_context[n];
+}
+
+
+image_unit::~image_unit()
+{
+  for (int i=0;i<slice_units.size();i++) {
+    delete slice_units[i];
+  }
 }
 
 
@@ -803,7 +821,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   for (int y=0;y<nRows;y++) {
 
-    thread_context* tctx = &sliceunit->thread_contexts[y];
+    thread_context* tctx = sliceunit->get_thread_context(y);
 
 
     // prepare thread context
@@ -870,7 +888,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     for (int tx=0;tx<pps->num_tile_columns;tx++) {
       int tile = tx + ty*pps->num_tile_columns;
 
-      thread_context* tctx = &sliceunit->thread_contexts[tile];
+      thread_context* tctx = sliceunit->get_thread_context(tile);
 
       // set thread context
 

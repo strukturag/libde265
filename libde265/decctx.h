@@ -134,26 +134,29 @@ class error_queue
 
 struct slice_unit
 {
-  slice_unit(decoder_context* decctx)
-  : ctx(decctx), nal(NULL), shdr(NULL), decoding_finished(false), flush_reorder_buffer(false),
-    thread_contexts(NULL) { }
+  slice_unit(decoder_context* decctx);
   ~slice_unit();
 
   NAL_unit* nal;   // we are the owner
-  slice_segment_header* shdr;  // not the owner
+  slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 
   bool flush_reorder_buffer;
 
-  bool decoding_finished;  // TODO: do we actually need this ? we could just remove the unit after decoding
+  enum { Unprocessed,
+         Inprogress,
+         Decoded
+  } state;
 
+  void allocate_thread_contexts(int n);
+  thread_context* get_thread_context(int n) { return &thread_contexts[n]; }
+
+private:
   thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
                                       no copy constructor. */
 
-  void allocate_thread_contexts(int n);
-
-private:
   decoder_context* ctx;
+
 
   slice_unit(const slice_unit&); // not allowed
   const slice_unit& operator=(const slice_unit&); // not allowed
@@ -162,8 +165,8 @@ private:
 
 struct image_unit
 {
-  image_unit() { img=NULL; role=Invalid; }
-  ~image_unit() { } // TODO
+  image_unit() { img=NULL; role=Invalid; state=Unprocessed; }
+  ~image_unit();
 
   de265_image* img;
 
@@ -176,7 +179,15 @@ struct image_unit
          Leaf       // not a reference picture
   } role;
 
-  /* saved context models. For WPP, we have nRows models. Otherwise, this vector is unused. */
+  enum { Unprocessed,
+         Inprogress,
+         Decoded,
+         Dropped         // will not be decoded
+  } state;
+
+  /* Saved context models for WPP.
+     There is one saved model for the initialization of each CTB row.
+     ctx_models[0] is not used. The array is unused for non-WPP streams. */
   std::vector<context_model> ctx_models;
 };
 
