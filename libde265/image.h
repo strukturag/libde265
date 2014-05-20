@@ -74,7 +74,9 @@ enum PictureState {
 
 #define CTB_PROGRESS_NONE      0
 #define CTB_PROGRESS_PREFILTER 1
-#define CTB_PROGRESS_FILTERED  2
+#define CTB_PROGRESS_DEBLK_V   2
+#define CTB_PROGRESS_DEBLK_H   3
+#define CTB_PROGRESS_SAO       4
 
 template <class DataUnit> class MetaDataArray
 {
