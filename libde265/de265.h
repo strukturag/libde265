@@ -296,14 +296,14 @@ struct de265_image_spec
 
 struct de265_image_allocation
 {
-  int  (*get_buffer)(de265_image_spec* spec, de265_image* img);
-  void (*release_buffer)(de265_image* img);
+  int  (*get_buffer)(struct de265_image_spec* spec, struct de265_image* img);
+  void (*release_buffer)(struct de265_image* img);
 };
 
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
-                                                       de265_image_allocation*);
+                                                       struct de265_image_allocation*);
 
-LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride);
+LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride);
 
 
 /* --- frame dropping API ---
