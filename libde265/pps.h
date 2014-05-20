@@ -84,8 +84,8 @@ struct pic_parameter_set {
 
   std::vector<int> CtbAddrRStoTS; // #CTBs
   std::vector<int> CtbAddrTStoRS; // #CTBs
-  std::vector<int> TileId;        // #CTBs
-  std::vector<int> TileIdRS;      // #CTBs
+  std::vector<int> TileId;        // #CTBs  // index in tile-scan order
+  std::vector<int> TileIdRS;      // #CTBs  // index in raster-scan order
   std::vector<int> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
 
 
