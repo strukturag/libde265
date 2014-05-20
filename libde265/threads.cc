@@ -81,42 +81,49 @@ void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 
 
 
-void de265_progress_lock_init(de265_progress_lock* lock)
+de265_progress_lock::de265_progress_lock()
 {
-  lock->progress = 0;
+  mProgress = 0;
 
-  de265_mutex_init(&lock->mutex);
-  de265_cond_init(&lock->cond);
+  de265_mutex_init(&mutex);
+  de265_cond_init(&cond);
 }
 
-void de265_progress_lock_destroy(de265_progress_lock* lock)
+de265_progress_lock::~de265_progress_lock()
 {
-  de265_mutex_destroy(&lock->mutex);
-  de265_cond_destroy(&lock->cond);
+  de265_mutex_destroy(&mutex);
+  de265_cond_destroy(&cond);
 }
 
-int de265_wait_for_progress(de265_progress_lock* lock, int progress)
+void de265_progress_lock::wait_for_progress(int progress)
 {
-  if (lock->progress >= progress) {
-    return lock->progress;
+  if (mProgress >= progress) {
+    return;
   }
 
-  de265_mutex_lock(&lock->mutex);
-  while (lock->progress < progress) {
-    de265_cond_wait(&lock->cond, &lock->mutex);
+  de265_mutex_lock(&mutex);
+  while (mProgress < progress) {
+    de265_cond_wait(&cond, &mutex);
   }
-  de265_mutex_unlock(&lock->mutex);
-
-  return lock->progress;
+  de265_mutex_unlock(&mutex);
 }
 
-void de265_announce_progress(de265_progress_lock* lock, int progress)
+void de265_progress_lock::set_progress(int progress)
 {
-  de265_mutex_lock(&lock->mutex);
-  lock->progress = progress;
+  de265_mutex_lock(&mutex);
 
-  de265_cond_broadcast(&lock->cond, &lock->mutex);
-  de265_mutex_unlock(&lock->mutex);
+  if (progress>mProgress) {
+    mProgress = progress;
+
+    de265_cond_broadcast(&cond, &mutex);
+  }
+
+  de265_mutex_unlock(&mutex);
+}
+
+int  de265_progress_lock::get_progress() const
+{
+  return mProgress;
 }
 
 

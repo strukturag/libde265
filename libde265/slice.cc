@@ -3668,8 +3668,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
       // TODO: ctx->img should be tctx->img
-      de265_wait_for_progress(&tctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW],
-                              CTB_PROGRESS_PREFILTER);
+      tctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW].wait_for_progress(CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d|%d\n", tctx, tctx->CtbY,tctx->CtbX);
@@ -3690,7 +3689,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       }
 
     // TODO: ctx->img should be tctx->img
-    de265_announce_progress(&tctx->img->ctb_progress[ctbx+ctby*ctbW], CTB_PROGRESS_PREFILTER);
+    tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
 
     //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
 
@@ -3788,8 +3787,7 @@ void thread_decode_CTB_row(void* d)
     assert(ctby>=1);
 
     // we have to wait until the context model data is there
-    de265_wait_for_progress(&tctx->img->ctb_progress[1+(ctby-1)*ctbW],
-                            CTB_PROGRESS_PREFILTER);
+    tctx->img->ctb_progress[1+(ctby-1)*ctbW].wait_for_progress(CTB_PROGRESS_PREFILTER);
 
     memcpy(tctx->ctx_model,
            &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH],
@@ -3814,7 +3812,7 @@ void thread_decode_CTB_row(void* d)
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
-      de265_announce_progress(&img->ctb_progress[myCtbRow*ctbW + x], CTB_PROGRESS_PREFILTER);
+      img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
     }
   }
 

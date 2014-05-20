@@ -283,19 +283,12 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
     if (ctb_info.data_size != sps->PicSizeInCtbsY)
       {
-        for (int i=0;i<ctb_info.data_size;i++)
-          { de265_progress_lock_destroy(&ctb_progress[i]); }
-
-        free(ctb_progress);
+        delete[] ctb_progress;
 
         mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
                                             sps->Log2CtbSizeY);
 
-        ctb_progress = (de265_progress_lock*)malloc( sizeof(de265_progress_lock)
-                                                     * ctb_info.data_size);
-
-        for (int i=0;i<ctb_info.data_size;i++)
-          { de265_progress_lock_init(&ctb_progress[i]); }
+        ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
       }
 
 
@@ -318,14 +311,8 @@ de265_image::~de265_image()
   // free progress locks
 
   if (ctb_progress) {
-    for (int i=0;i<ctb_info.data_size;i++)
-      { de265_progress_lock_destroy(&ctb_progress[i]); }
-
-    free(ctb_progress);
-
-    ctb_progress=NULL;
+    delete[] ctb_progress;
   }
-
 
   de265_cond_destroy(&finished_cond);
   de265_mutex_destroy(&mutex);
@@ -450,7 +437,7 @@ void de265_image::clear_metadata()
   // --- reset CTB progresses ---
 
   for (int i=0;i<ctb_info.data_size;i++) {
-    ctb_progress[i].progress = CTB_PROGRESS_NONE;
+    ctb_progress[i].set_progress(CTB_PROGRESS_NONE);
   }
 }
 

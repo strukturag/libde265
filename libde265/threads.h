@@ -90,20 +90,31 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
-typedef struct de265_progress_lock
+class de265_progress_lock
 {
-  int progress;
+public:
+  de265_progress_lock();
+  ~de265_progress_lock();
+
+  void wait_for_progress(int progress);
+  void set_progress(int progress);
+  int  get_progress() const;
+
+private:
+  int mProgress;
 
   // private data
 
   de265_mutex mutex;
   de265_cond  cond;
-} de265_progress_lock;
+};
 
+/*
 void de265_progress_lock_init(de265_progress_lock* lock);
 void de265_progress_lock_destroy(de265_progress_lock* lock);
 int  de265_wait_for_progress(de265_progress_lock* lock, int progress);
 void de265_announce_progress(de265_progress_lock* lock, int progress);
+*/
 
 
 
