@@ -31,6 +31,8 @@
 #include <stdbool.h>
 #endif
 
+#include <deque>
+
 #ifndef _WIN32
 #include <pthread.h>
 
@@ -112,32 +114,44 @@ private:
 
 
 
-
-struct thread_task_ctb_row
+class thread_task
 {
+public:
+  virtual ~thread_task() { }
+
+  virtual void work() = 0;
+};
+
+
+class thread_task_ctb_row : public thread_task
+{
+public:
+  void work();
+
   bool   firstSliceSubstream;
   struct thread_context* tctx;
 };
 
-struct thread_task_deblock
+class thread_task_slice_segment : public thread_task
 {
+public:
+  void work();
+
+  bool   firstSliceSubstream;
+  struct thread_context* tctx;
+};
+
+class thread_task_deblock : public thread_task
+{
+public:
+  void work();
+
   struct de265_image* img;
   int first;  // stripe row
   int last;
   int ctb_x,ctb_y;
   bool vertical;
 };
-
-
-typedef struct
-{
-  void (*work_routine)(void* data);
-
-  union {
-    struct thread_task_ctb_row task_ctb_row;
-    struct thread_task_deblock task_deblock;
-  } data;
-} thread_task;
 
 
 #define MAX_THREAD_TASKS 1024
@@ -149,12 +163,12 @@ typedef struct
    of the just unblocked task.
  */
 
-typedef struct thread_pool
+class thread_pool
 {
+ public:
   bool stopped;
 
-  thread_task tasks[MAX_THREAD_TASKS];
-  int num_tasks;
+  std::deque<thread_task*> tasks;  // we are not the owner
 
   de265_thread thread[MAX_THREADS];
   int num_threads;
@@ -167,12 +181,12 @@ typedef struct thread_pool
 
   de265_mutex  mutex;
   de265_cond   cond_var;
-} thread_pool;
+};
 
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads);
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
-void        add_task(thread_pool* pool, const thread_task* task);
+void        add_task(thread_pool* pool, thread_task* task); // TOCO: can make thread_task const
 
 #endif

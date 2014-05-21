@@ -186,7 +186,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     for (;;) {
       // end waiting if thread-pool has been stopped or we have a task to execute
 
-      if (pool->stopped || pool->num_tasks>0) {
+      if (pool->stopped || pool->tasks.size()>0) {
         break;
       }
 
@@ -204,19 +204,8 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     // get a task
 
-    thread_task task = pool->tasks[0];
-    pool->num_tasks--;
-
-    if (pool->num_tasks>0) {
-      if (1) {
-        memmove(&pool->tasks[0],
-                &pool->tasks[1],
-                pool->num_tasks*sizeof(thread_task));
-      }
-      else {
-        pool->tasks[0] = pool->tasks[pool->num_tasks];
-      }
-    }
+    thread_task* task = pool->tasks.front();
+    pool->tasks.pop_front();
 
     pool->num_threads_working++;
     
@@ -227,10 +216,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     // execute the task
 
-    if (task.work_routine != NULL) {
-      task.work_routine( &task.data );
-    }
-
+    task->work();
 
     // end processing and check if this was the last task to be processed
 
@@ -255,7 +241,6 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
     err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
   }
 
-  pool->num_tasks = 0;
   pool->num_threads = 0; // will be increased below
   pool->num_threads_working = 0;
   pool->stopped = false;
@@ -297,14 +282,12 @@ void stop_thread_pool(thread_pool* pool)
 }
 
 
-void   add_task(thread_pool* pool, const thread_task* task)
+void   add_task(thread_pool* pool, thread_task* task)
 {
   de265_mutex_lock(&pool->mutex);
   if (!pool->stopped) {
 
-    assert(pool->num_tasks < MAX_THREAD_TASKS);
-    pool->tasks[pool->num_tasks] = *task;
-    pool->num_tasks++;
+    pool->tasks.push_back(task);
 
     // wake up one thread
 

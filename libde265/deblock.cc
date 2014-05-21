@@ -813,19 +813,16 @@ void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCt
 
 
 
-static void thread_deblock(void* d)
+void thread_task_deblock::work()
 {
-  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
-  de265_image* img = data->img;
-
   img->thread_run();
 
   int xStart=0;
   int xEnd = img->get_deblk_width();
 
-  derive_boundaryStrength(img, data->vertical, data->first,data->last, xStart,xEnd);
-  edge_filtering_luma    (img, data->vertical, data->first,data->last, xStart,xEnd);
-  edge_filtering_chroma  (img, data->vertical, data->first,data->last, xStart,xEnd);
+  derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
+  edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
+  edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
 
   img->thread_finishes();
 }
@@ -920,12 +917,10 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 #if 1
         for (int pass=0;pass<2;pass++) {
 
-          thread_task task;
-
-          task.work_routine = thread_deblock;
-
           int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
-          //ctx->thread_pool.tasks_pending = numStripes;
+
+          thread_task_deblock tasks[numStripes];
+
           img->thread_start(numStripes);
 
           for (int i=0;i<numStripes;i++)
@@ -937,13 +932,12 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
               ys &= ~3;
               if (i != numStripes-1) ye &= ~3;
 
+              tasks[i].img   = img;
+              tasks[i].first = ys;
+              tasks[i].last  = ye;
+              tasks[i].vertical = (pass==0);
 
-              task.data.task_deblock.img   = img;
-              task.data.task_deblock.first = ys;
-              task.data.task_deblock.last  = ye;
-              task.data.task_deblock.vertical = (pass==0);
-
-              add_task(&ctx->thread_pool, &task);
+              add_task(&ctx->thread_pool, &tasks[i]);
             }
 
           img->wait_for_completion();

@@ -168,6 +168,10 @@ image_unit::~image_unit()
   for (int i=0;i<slice_units.size();i++) {
     delete slice_units[i];
   }
+
+  for (int i=0;i<tasks.size();i++) {
+    delete tasks[i];
+  }
 }
 
 
@@ -223,7 +227,7 @@ decoder_context::decoder_context()
   current_sps = NULL;
   current_pps = NULL;
 
-  memset(&thread_pool,0,sizeof(struct thread_pool));
+  //memset(&thread_pool,0,sizeof(struct thread_pool));
   num_worker_threads = 0;
 
 
@@ -460,21 +464,23 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
 void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream)
 {
-  thread_task task;
-  task.work_routine = thread_decode_CTB_row;
-  task.data.task_ctb_row.firstSliceSubstream = firstSliceSubstream;
-  task.data.task_ctb_row.tctx = tctx;
-  add_task(&thread_pool, &task);
+  thread_task_ctb_row* task = new thread_task_ctb_row;
+  task->firstSliceSubstream = firstSliceSubstream;
+  task->tctx = tctx;
+  add_task(&thread_pool, task);
+
+  tctx->imgunit->tasks.push_back(task);
 }
 
 
 void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream)
 {
-  thread_task task;
-  task.work_routine = thread_decode_slice_segment;
-  task.data.task_ctb_row.firstSliceSubstream = firstSliceSubstream;
-  task.data.task_ctb_row.tctx = tctx;
-  add_task(&thread_pool, &task);
+  thread_task_slice_segment* task = new thread_task_slice_segment;
+  task->firstSliceSubstream = firstSliceSubstream;
+  task->tctx = tctx;
+  add_task(&thread_pool, task);
+
+  tctx->imgunit->tasks.push_back(task);
 }
 
 
@@ -739,14 +745,15 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.shdr = sliceunit->shdr;
   tctx.img  = imgunit->img;
   tctx.decctx = this;
+  tctx.imgunit = imgunit;
+  tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
+
 
   init_thread_context(&tctx);
 
   init_CABAC_decoder(&tctx.cabac_decoder,
                      sliceunit->reader.data,
                      sliceunit->reader.bytes_remaining);
-
-  tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
 
 
   if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
@@ -897,6 +904,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   img->wait_for_completion();
 
+  for (int i=0;i<imgunit->tasks.size();i++)
+    delete imgunit->tasks[i];
+  imgunit->tasks.clear();
+
   return DE265_OK;
 }
 
@@ -965,6 +976,10 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   }
 
   img->wait_for_completion();
+
+  for (int i=0;i<imgunit->tasks.size();i++)
+    delete imgunit->tasks[i];
+  imgunit->tasks.clear();
 
   return DE265_OK;
 }

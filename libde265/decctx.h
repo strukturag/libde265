@@ -190,6 +190,8 @@ struct image_unit
   void wait_for_progress(int ctbx,int ctby, int progress);
   void wait_for_progress(int ctbAddrRS, int progress);
 
+  std::vector<thread_task*> tasks; // we are the owner
+
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
      ctx_models[0] is not used. The array is unused for non-WPP streams. */

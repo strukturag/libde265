@@ -3784,9 +3784,9 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 }
 
 
-void thread_decode_slice_segment(void* d)
+void thread_task_slice_segment::work()
 {
-  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
+  struct thread_task_slice_segment* data = this;
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
@@ -3813,9 +3813,9 @@ void thread_decode_slice_segment(void* d)
 }
 
 
-void thread_decode_CTB_row(void* d)
+void thread_task_ctb_row::work()
 {
-  struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
+  struct thread_task_ctb_row* data = this;
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
@@ -3916,3 +3916,8 @@ de265_error read_slice_segment_data(thread_context* tctx)
 }
 
 
+/* TODO:
+   When a task wants to block, but is the first in the list of pending tasks,
+   do some error concealment instead of blocking, since it will never be deblocked.
+   This will only happen in the case of input error.
+ */
