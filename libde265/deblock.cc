@@ -920,8 +920,6 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 
           thread_task task;
 
-          task.task_id = -1;
-          task.task_cmd = THREAD_TASK_DEBLOCK;
           task.work_routine = thread_deblock;
 
           int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
@@ -954,8 +952,6 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
           {
             thread_task task;
 
-            task.task_id = -1;
-            task.task_cmd = THREAD_TASK_DEBLOCK;
             task.work_routine = thread_deblock_ctb;
 
             //ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
@@ -980,8 +976,6 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
           {
             thread_task task;
 
-            task.task_id = -1;
-            task.task_cmd = THREAD_TASK_DEBLOCK;
             task.work_routine = thread_deblock_ctb_row;
 
             ctx->thread_pool.tasks_pending = img->sps.PicHeightInCtbsY;
@@ -1003,8 +997,6 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
           {
             thread_task task;
 
-            task.task_id = -1;
-            task.task_cmd = THREAD_TASK_DEBLOCK;
             task.work_routine = thread_deblock_full_ctb_row;
 
             ctx->thread_pool.tasks_pending = img->sps.PicHeightInCtbsY;

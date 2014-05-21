@@ -443,28 +443,24 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
 
 void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
-                                              bool initCABAC, de265_image* image)
+                                              bool sliceSegmentStart, de265_image* image)
 {
   thread_task task;
-  task.task_id = 0; // no ID
-  task.task_cmd = THREAD_TASK_DECODE_CTB_ROW;
   task.work_routine = thread_decode_CTB_row;
   task.data.task_ctb_row.img = image;
-  task.data.task_ctb_row.initCABAC = initCABAC;
+  task.data.task_ctb_row.sliceSegmentStart= sliceSegmentStart;
   task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }
 
 
 void decoder_context::add_task_decode_slice_segment(thread_context* tctx,
-                                                    bool initCABAC, de265_image* image)
+                                                    bool sliceSegmentStart, de265_image* image)
 {
   thread_task task;
-  task.task_id = 0; // no ID
-  task.task_cmd = THREAD_TASK_DECODE_SLICE_SEGMENT;
   task.work_routine = thread_decode_slice_segment;
   task.data.task_ctb_row.img = image;
-  task.data.task_ctb_row.initCABAC = initCABAC;
+  task.data.task_ctb_row.sliceSegmentStart= sliceSegmentStart;
   task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }

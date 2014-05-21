@@ -3795,7 +3795,7 @@ void thread_decode_slice_segment(void* d)
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
-  if (data->initCABAC) {
+  if (data->sliceSegmentStart) {
     initialize_CABAC_at_slice_segment_start(tctx);
   }
   else {
@@ -3828,7 +3828,7 @@ void thread_decode_CTB_row(void* d)
 
   // printf("start decoding at %d/%d\n", ctbx,ctby);
 
-  if (data->initCABAC) {
+  if (data->sliceSegmentStart) {
     initialize_CABAC_at_slice_segment_start(tctx);
     //initialize_CABAC(tctx);
   }

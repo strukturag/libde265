@@ -113,11 +113,9 @@ private:
 
 
 
-enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
-
 struct thread_task_ctb_row
 {
-  bool initCABAC;
+  bool   sliceSegmentStart;
   struct de265_image* img;
   struct thread_context* tctx;
 };
@@ -132,20 +130,8 @@ struct thread_task_deblock
 };
 
 
-enum thread_task_id {
-  THREAD_TASK_SYNTAX_DECODE_CTB,
-  THREAD_TASK_DEBLOCK,
-  THREAD_TASK_DECODE_CTB_ROW,
-  THREAD_TASK_DECODE_SLICE_SEGMENT,
-  //THREAD_TASK_PIXEL_DECODE_CTB,
-  //THREAD_TASK_POSTPROC_CTB
-};
-
 typedef struct
 {
-  int task_id;
-  enum thread_task_id task_cmd;
-
   void (*work_routine)(void* data);
 
   union {
