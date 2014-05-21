@@ -885,53 +885,56 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   int ctbsWidth = img->sps.PicWidthInCtbsY;
 
 
-  if (nTiles > MAX_THREAD_CONTEXTS) {
-    return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
-  }
-  
-  //printf("%d = %d * %d\n",nTiles,pps->num_tile_columns,pps->num_tile_rows); // TODO: handle other cases
-  assert(nTiles == pps->num_tile_columns * pps->num_tile_rows); // TODO: handle other cases
-
   assert(img->num_tasks_pending() == 0);
   img->increase_pending_tasks(nTiles);
 
   sliceunit->allocate_thread_contexts(nTiles);
 
-  for (int ty=0;ty<pps->num_tile_rows;ty++)
-    for (int tx=0;tx<pps->num_tile_columns;tx++) {
-      int tile = tx + ty*pps->num_tile_columns;
 
-      thread_context* tctx = sliceunit->get_thread_context(tile);
+  // first CTB in this slice
+  int ctbAddrRS = shdr->slice_segment_address;
+  int tileID = pps->TileIdRS[ctbAddrRS];
 
-      // set thread context
-
-      tctx->shdr   = shdr;
-      tctx->decctx = img->decctx;
-      tctx->img    = img;
-      tctx->imgunit = imgunit;
-      tctx->CtbAddrInTS = pps->CtbAddrRStoTS[pps->colBd[tx] + pps->rowBd[ty]*ctbsWidth];
-
-      init_thread_context(tctx);
-
-
-      // init CABAC
-
-      int dataStartIndex;
-      if (tile==0) { dataStartIndex=0; }
-      else         { dataStartIndex=shdr->entry_point_offset[tile-1]; }
-
-      int dataEnd;
-      if (tile==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
-      else                dataEnd = shdr->entry_point_offset[tile];
-
-      init_CABAC_decoder(&tctx->cabac_decoder,
-                         &sliceunit->reader.data[dataStartIndex],
-                         dataEnd-dataStartIndex);
-
-      // add task
-
-      add_task_decode_slice_segment(tctx, img);
+  for (int entryPt=0;entryPt<nTiles;entryPt++) {
+    // entry points other than the first start at tile beginnings
+    if (entryPt>0) {
+      tileID++;
+      int ctbX = pps->colBd[tileID % pps->num_tile_columns];
+      int ctbY = pps->rowBd[tileID / pps->num_tile_columns];
+      ctbAddrRS = ctbY * ctbsWidth + ctbX;
     }
+
+    // set thread context
+
+    thread_context* tctx = sliceunit->get_thread_context(entryPt);
+
+    tctx->shdr   = shdr;
+    tctx->decctx = img->decctx;
+    tctx->img    = img;
+    tctx->imgunit = imgunit;
+    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
+
+    init_thread_context(tctx);
+
+
+    // init CABAC
+
+    int dataStartIndex;
+    if (entryPt==0) { dataStartIndex=0; }
+    else            { dataStartIndex=shdr->entry_point_offset[entryPt-1]; }
+
+    int dataEnd;
+    if (entryPt==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
+    else                   dataEnd = shdr->entry_point_offset[entryPt];
+
+    init_CABAC_decoder(&tctx->cabac_decoder,
+                       &sliceunit->reader.data[dataStartIndex],
+                       dataEnd-dataStartIndex);
+
+    // add task
+
+    add_task_decode_slice_segment(tctx, img);
+  }
 
   img->wait_for_completion();
 
