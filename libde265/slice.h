@@ -237,7 +237,7 @@ typedef struct slice_segment_header {
   char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
                                                is a long-term picture. */
 
-  // context storage for dependent slices and WPP in single-thread mode
+  // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice

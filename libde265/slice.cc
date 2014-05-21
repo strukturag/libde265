@@ -3651,9 +3651,9 @@ enum DecodeResult {
 /* Decode CTBs until the end of sub-stream, the end-of-slice, or some error occurs.
  */
 enum DecodeResult decode_substream(thread_context* tctx,
-                      bool block_wpp, // block on WPP dependencies
-                      int context_copy_ctbx, // copy CABAC-context after decoding this CTB
-                      context_model* context_storage) // copy CABAC-context to this storage space
+                                   bool block_wpp, // block on WPP dependencies
+                                   int context_copy_ctbx, // copy CABAC-context after decoding this CTB
+                                   context_model* context_storage) // copy CABAC-context to this storage space
 {
   const pic_parameter_set* pps = &tctx->img->pps;
   const seq_parameter_set* sps = &tctx->img->sps;
@@ -3688,15 +3688,26 @@ enum DecodeResult decode_substream(thread_context* tctx,
                CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
       }
 
-    // TODO: ctx->img should be tctx->img
-    tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
-
-    //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
-
 
     // end of slice segment ?
 
     int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+
+    if (end_of_slice_segment_flag) {
+      // at the end of the slice segment, we store the CABAC model if we need it
+      // because a dependent slice may follow
+
+      if (pps->dependent_slice_segments_enabled_flag) {
+        memcpy(tctx->shdr->ctx_model_storage,
+               tctx->ctx_model,
+               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      }
+    }
+
+    tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+
+    //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
+
 
     logtrace(LogSlice,"read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
 
@@ -3730,17 +3741,48 @@ enum DecodeResult decode_substream(thread_context* tctx,
         if (!end_of_sub_stream_one_bit) {
           tctx->decctx->add_warning(DE265_WARNING_EOSS_BIT_NOT_SET, false);
           tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        return Decode_Error;
+          return Decode_Error;
         }
 
         init_CABAC_decoder_2(&tctx->cabac_decoder); // byte alignment
-          return Decode_EndOfSubstream;
+        return Decode_EndOfSubstream;
       }
     }
 
   } while (true);
 }
 
+
+
+void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
+{
+  de265_image* img = tctx->img;
+  const pic_parameter_set* pps = &img->pps;
+  const seq_parameter_set* sps = &img->sps;
+  slice_segment_header* shdr = tctx->shdr;
+
+  if (shdr->dependent_slice_segment_flag) {
+    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
+
+    slice_segment_header* prevCtbHdr = img->slices[ img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+
+    if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
+                               shdr->slice_segment_address / sps->PicWidthInCtbsY
+                               )) {
+      initialize_CABAC(tctx);
+    }
+    else {
+      tctx->img->ctb_progress[prevCtb].wait_for_progress(CTB_PROGRESS_PREFILTER);
+
+      memcpy(tctx->ctx_model,
+             prevCtbHdr->ctx_model_storage,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+  }
+  else {
+    initialize_CABAC(tctx);
+  }
+}
 
 
 void thread_decode_slice_segment(void* d)
@@ -3753,7 +3795,13 @@ void thread_decode_slice_segment(void* d)
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
-  initialize_CABAC(tctx);
+  if (data->initCABAC) {
+    initialize_CABAC_at_slice_segment_start(tctx);
+  }
+  else {
+    initialize_CABAC(tctx);
+  }
+
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
@@ -3781,7 +3829,8 @@ void thread_decode_CTB_row(void* d)
   // printf("start decoding at %d/%d\n", ctbx,ctby);
 
   if (data->initCABAC) {
-    initialize_CABAC(tctx);
+    initialize_CABAC_at_slice_segment_start(tctx);
+    //initialize_CABAC(tctx);
   }
   else if (1) {
     assert(ctby>=1);
@@ -3831,25 +3880,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
   const seq_parameter_set* sps = &img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
-  if (shdr->dependent_slice_segment_flag) {
-    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
-
-    slice_segment_header* prevCtbHdr = img->slices[ img->get_SliceHeaderIndex_atIndex(prevCtb) ];
-
-    if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
-                               shdr->slice_segment_address / sps->PicWidthInCtbsY
-                               )) {
-      initialize_CABAC(tctx);
-    }
-    else {
-      memcpy(tctx->ctx_model,
-             prevCtbHdr->ctx_model_storage,
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-    }
-  }
-  else {
-    initialize_CABAC(tctx);
-  }
+  initialize_CABAC_at_slice_segment_start(tctx);
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
@@ -3862,19 +3893,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
-
-      if (pps->dependent_slice_segments_enabled_flag) {
-        memcpy(shdr->ctx_model_storage,
-               tctx->ctx_model,
-               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-      }
       break;
-    }
-
-    if (pps->entropy_coding_sync_enabled_flag) {
-      memcpy(tctx->ctx_model,
-             shdr->ctx_model_storage,
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
     }
 
     if (pps->tiles_enabled_flag) {
