@@ -812,11 +812,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbsWidth = img->sps.PicWidthInCtbsY;
 
 
-
-  if (nRows > MAX_THREAD_CONTEXTS) {
-    return DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED;
-  }
-
   assert(img->num_tasks_pending() == 0);
   img->increase_pending_tasks(nRows);
 
