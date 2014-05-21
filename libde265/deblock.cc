@@ -818,6 +818,8 @@ static void thread_deblock(void* d)
   struct thread_task_deblock* data = (struct thread_task_deblock*)d;
   de265_image* img = data->img;
 
+  img->thread_run();
+
   int xStart=0;
   int xEnd = img->get_deblk_width();
 
@@ -924,7 +926,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 
           int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
           //ctx->thread_pool.tasks_pending = numStripes;
-          img->thread_run(numStripes);
+          img->thread_start(numStripes);
 
           for (int i=0;i<numStripes;i++)
             {

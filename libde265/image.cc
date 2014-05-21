@@ -161,6 +161,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   decctx = NULL;
 
+  nThreadsQueued   = 0;
   nThreadsRunning  = 0;
   nThreadsBlocked  = 0;
   nThreadsFinished = 0;
@@ -397,13 +398,21 @@ void de265_image::copy_image(const de265_image* src)
 }
 
 
-void de265_image::thread_run(int nThreads)
+void de265_image::thread_start(int nThreads)
 {
   de265_mutex_lock(&mutex);
 
-  nThreadsRunning += nThreads;
+  nThreadsQueued += nThreads;
   nThreadsTotal += nThreads;
 
+  de265_mutex_unlock(&mutex);
+}
+
+void de265_image::thread_run()
+{
+  de265_mutex_lock(&mutex);
+  nThreadsQueued--;
+  nThreadsRunning++;
   de265_mutex_unlock(&mutex);
 }
 
@@ -445,6 +454,11 @@ void de265_image::wait_for_completion()
     de265_cond_wait(&finished_cond, &mutex);
   }
   de265_mutex_unlock(&mutex);
+}
+
+bool de265_image::debug_is_completed() const
+{
+  return nThreadsFinished==nThreadsTotal;
 }
 
 

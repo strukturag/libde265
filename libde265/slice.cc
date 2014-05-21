@@ -3790,6 +3790,8 @@ void thread_decode_slice_segment(void* d)
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
+  img->thread_run();
+
   setCtbAddrFromTS(tctx);
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
@@ -3819,6 +3821,8 @@ void thread_decode_CTB_row(void* d)
 
   seq_parameter_set* sps = &img->sps;
   int ctbW = sps->PicWidthInCtbsY;
+
+  img->thread_run();
 
   setCtbAddrFromTS(tctx);
 
@@ -3859,12 +3863,14 @@ void thread_decode_CTB_row(void* d)
 
   // TODO: what about slices that end properly in the middle of a CTB row?
 
+#if 1
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
       img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
     }
   }
+#endif
 
   img->thread_finishes();
 }

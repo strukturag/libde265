@@ -807,7 +807,7 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   return DE265_OK;
 }
 
-
+#include <unistd.h> // TODO REMOVE
 de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
                                                    slice_unit* sliceunit)
 {
@@ -822,7 +822,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_run(nRows);
+  img->thread_start(nRows);
 
   //printf("-------- decode --------\n");
 
@@ -881,6 +881,20 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     add_task_decode_CTB_row(tctx, entryPt==0);
   }
 
+#if 0
+  for (;;) {
+    printf("q:%d r:%d b:%d f:%d\n",
+           img->nThreadsQueued,
+           img->nThreadsRunning,
+           img->nThreadsBlocked,
+           img->nThreadsFinished);
+
+    if (img->debug_is_completed()) break;
+
+    usleep(1000);
+  }
+#endif
+
   img->wait_for_completion();
 
   return DE265_OK;
@@ -900,7 +914,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_run(nTiles);
+  img->thread_start(nTiles);
 
   sliceunit->allocate_thread_contexts(nTiles);
 

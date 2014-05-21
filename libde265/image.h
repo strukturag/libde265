@@ -313,15 +313,18 @@ public:
   de265_progress_lock* ctb_progress; // ctb_info_size
 
 
-  void thread_run(int nThreads);
+  void thread_start(int nThreads);
+  void thread_run();
   void thread_blocks();
   void thread_unblocks();
   void thread_finishes();
 
   void wait_for_completion();  // block until image is decoded by background threads
+  bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
 
-private:
+  //private:
+  int   nThreadsQueued;
   int   nThreadsRunning;
   int   nThreadsBlocked;
   int   nThreadsFinished;
