@@ -28,6 +28,7 @@
 #include "libde265/de265.h"
 #include "libde265/util.h"
 #include "libde265/refpic.h"
+#include "libde265/threads.h"
 
 #include <vector>
 
@@ -263,5 +264,26 @@ de265_error read_slice_segment_data(struct thread_context* tctx);
 
 bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
+
+
+class thread_task_ctb_row : public thread_task
+{
+public:
+  bool   firstSliceSubstream;
+  struct thread_context* tctx;
+
+ protected:
+  void work();
+};
+
+class thread_task_slice_segment : public thread_task
+{
+public:
+  bool   firstSliceSubstream;
+  struct thread_context* tctx;
+
+ protected:
+  void work();
+};
 
 #endif

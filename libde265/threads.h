@@ -117,44 +117,18 @@ private:
 class thread_task
 {
 public:
+  thread_task() : state(Queued) { }
   virtual ~thread_task() { }
 
+  enum { Queued, Running, Blocked, Finished } state;
+
+  void start();
+
+protected:
   virtual void work() = 0;
 };
 
 
-class thread_task_ctb_row : public thread_task
-{
-public:
-  void work();
-
-  bool   firstSliceSubstream;
-  struct thread_context* tctx;
-};
-
-class thread_task_slice_segment : public thread_task
-{
-public:
-  void work();
-
-  bool   firstSliceSubstream;
-  struct thread_context* tctx;
-};
-
-class thread_task_deblock : public thread_task
-{
-public:
-  void work();
-
-  struct de265_image* img;
-  int first;  // stripe row
-  int last;
-  int ctb_x,ctb_y;
-  bool vertical;
-};
-
-
-#define MAX_THREAD_TASKS 1024
 #define MAX_THREADS 32
 
 /* TODO NOTE: When unblocking a task, we have to check first
@@ -174,7 +148,6 @@ class thread_pool
   int num_threads;
 
   int num_threads_working;
-  //long tasks_pending;
 
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];

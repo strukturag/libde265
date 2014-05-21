@@ -813,6 +813,20 @@ void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCt
 
 
 
+class thread_task_deblock : public thread_task
+{
+public:
+  struct de265_image* img;
+  int first;  // stripe row
+  int last;
+  int ctb_x,ctb_y;
+  bool vertical;
+
+ protected:
+  void work();
+};
+
+
 void thread_task_deblock::work()
 {
   img->thread_run();
