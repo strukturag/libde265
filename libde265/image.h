@@ -524,6 +524,11 @@ public:
   {
     return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
   }
+
+  const slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY) const
+  {
+    return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+  }
   
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
   {

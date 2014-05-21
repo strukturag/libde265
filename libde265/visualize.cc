@@ -476,3 +476,100 @@ void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize
   draw_tree_grid(img,dst,stride,0,pixelSize, PBMotionVectors);
 }
 
+void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+{
+  // --- mark first CTB in slice (red - independent / green - dependent) ---
+
+  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++)
+      {
+        const int blkw = img->sps.Log2CtbSizeY;
+
+        int ctbAddrRS = ctby*img->sps.PicWidthInCtbsY + ctbx;
+        int prevCtbRS = -1;
+        if (ctbx>0 || ctby>0) { prevCtbRS = img->pps.CtbAddrTStoRS[ img->pps.CtbAddrRStoTS[ctbAddrRS] -1 ]; }
+
+        if (prevCtbRS<0 ||
+            img->get_SliceHeaderIndex_atIndex(ctbAddrRS) !=
+            img->get_SliceHeaderIndex_atIndex(prevCtbRS)) {
+          int step=2;
+          int fillcolor = 0xFF0000;
+
+          if (img->get_SliceHeaderCtb(ctbx,ctby)->dependent_slice_segment_flag) {
+            step=2;
+            fillcolor = 0x00FF00;
+          }
+
+          for (int x=0;x<1<<blkw;x+=step)
+            for (int y=0;y<1<<blkw;y+=step)
+              if (x<img->sps.pic_width_in_luma_samples &&
+                  y<img->sps.pic_height_in_luma_samples)
+                {
+                  set_pixel(dst,x + (ctbx<<blkw),y + (ctby<<blkw),stride,fillcolor,pixelSize);
+                }
+        }
+      }
+
+
+
+  // --- draw slice boundaries ---
+
+  const uint32_t color = 0xff0000;
+
+  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++) {
+      if (ctbx>0 && (img->get_SliceHeaderIndexCtb(ctbx  ,ctby) !=
+                     img->get_SliceHeaderIndexCtb(ctbx-1,ctby))) {
+        int x  = ctbx << img->sps.Log2CtbSizeY;
+        int y0 = ctby << img->sps.Log2CtbSizeY;
+
+        for (int y=y0;
+             (y<y0+(1<<img->sps.Log2CtbSizeY) &&
+              y<img->sps.pic_height_in_luma_samples) ;
+             y++) {
+          set_pixel(dst,x,y,stride,color,pixelSize);
+        }
+      }
+    }
+
+
+  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++) {
+      if (ctby>0 && (img->get_SliceHeaderIndexCtb(ctbx,ctby  ) !=
+                     img->get_SliceHeaderIndexCtb(ctbx,ctby-1))) {
+        int x0 = ctbx << img->sps.Log2CtbSizeY;
+        int y  = ctby << img->sps.Log2CtbSizeY;
+
+        for (int x=x0 ;
+             (x<x0+(1<<img->sps.Log2CtbSizeY) &&
+              x<img->sps.pic_width_in_luma_samples) ;
+             x++) {
+          set_pixel(dst,x,y,stride,color,pixelSize);
+        }
+      }
+    }
+
+
+}
+
+void draw_Tiles(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+{
+  const uint32_t color = 0xffff00;
+
+  for (int tx=1;tx<img->pps.num_tile_columns;tx++) {
+    int x = img->pps.colBd[tx] << img->sps.Log2CtbSizeY;
+
+    for (int y=0;y<img->sps.pic_height_in_luma_samples;y++) {
+      set_pixel(dst,x,y,stride,color,pixelSize);
+    }
+  }
+
+  for (int ty=1;ty<img->pps.num_tile_rows;ty++) {
+    int y = img->pps.rowBd[ty] << img->sps.Log2CtbSizeY;
+
+    for (int x=0;x<img->sps.pic_width_in_luma_samples;x++) {
+      set_pixel(dst,x,y,stride,color,pixelSize);
+    }
+  }
+}
+

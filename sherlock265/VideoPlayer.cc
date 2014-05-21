@@ -79,6 +79,16 @@ VideoPlayer::VideoPlayer(const char* filename)
   QObject::connect(showMotionVecButton, SIGNAL(toggled(bool)),
                    mDecoder, SLOT(showMotionVec(bool)));
 
+  QPushButton* showTilesButton = new QPushButton("Tiles");
+  showTilesButton->setCheckable(true);
+  QObject::connect(showTilesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showTiles(bool)));
+
+  QPushButton* showSlicesButton = new QPushButton("Slices");
+  showSlicesButton->setCheckable(true);
+  QObject::connect(showSlicesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showSlices(bool)));
+
   QPushButton* showDecodedImageButton = new QPushButton("image");
   showDecodedImageButton->setCheckable(true);
   showDecodedImageButton->setChecked(true);
@@ -91,6 +101,8 @@ VideoPlayer::VideoPlayer(const char* filename)
   layout->addWidget(stopButton,  1,1,1,1);
   layout->addWidget(stepButton,  1,2,1,1);
   layout->addWidget(showDecodedImageButton,  1,6,1,1);
+  layout->addWidget(showTilesButton,         1,5,1,1);
+  layout->addWidget(showSlicesButton,        1,4,1,1);
   layout->addWidget(showCBPartitioningButton,2,0,1,1);
   layout->addWidget(showTBPartitioningButton,2,1,1,1);
   layout->addWidget(showPBPartitioningButton,2,2,1,1);

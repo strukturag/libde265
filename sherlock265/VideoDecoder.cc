@@ -47,6 +47,8 @@ VideoDecoder::VideoDecoder()
     mShowPBPredMode(false),
     mShowIntraPredMode(false),
     mShowQuantPY(false),
+    mShowSlices(false),
+    mShowTiles(false),
     mFH(NULL)
 #ifdef HAVE_SWSCALE
     , sws(NULL)
@@ -294,6 +296,16 @@ void VideoDecoder::show_frame(const de265_image* img)
       draw_Motion(img, ptr, bpl, 4);
     }
 
+  if (mShowSlices)
+    {
+      draw_Slices(img, ptr, bpl, 4);
+    }
+
+  if (mShowTiles)
+    {
+      draw_Tiles(img, ptr, bpl, 4);
+    }
+
   emit displayImage(qimg);
   mNextBuffer = 1-mNextBuffer;
   mFrameCount++;
@@ -367,6 +379,24 @@ void VideoDecoder::showMotionVec(bool flag)
 void VideoDecoder::showDecodedImage(bool flag)
 {
   mShowDecodedImage=flag;
+
+  mutex.lock();
+  if (img != NULL) { show_frame(img); }
+  mutex.unlock();
+}
+
+void VideoDecoder::showTiles(bool flag)
+{
+  mShowTiles=flag;
+
+  mutex.lock();
+  if (img != NULL) { show_frame(img); }
+  mutex.unlock();
+}
+
+void VideoDecoder::showSlices(bool flag)
+{
+  mShowSlices=flag;
 
   mutex.lock();
   if (img != NULL) { show_frame(img); }

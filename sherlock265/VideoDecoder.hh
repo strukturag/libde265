@@ -65,6 +65,8 @@ public slots:
   void showPBPredMode(bool flag);
   void showQuantPY(bool flag);
   void showMotionVec(bool flag);
+  void showTiles(bool flag);
+  void showSlices(bool flag);
   void showDecodedImage(bool flag);
 
 signals:
@@ -98,6 +100,8 @@ private:
   bool   mShowIntraPredMode;
   bool   mShowPBPredMode;
   bool   mShowMotionVec;
+  bool   mShowTiles;
+  bool   mShowSlices;
 
   void decoder_loop();
 
