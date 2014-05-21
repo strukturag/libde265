@@ -832,18 +832,28 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   sliceunit->allocate_thread_contexts(nRows);
 
-  for (int y=0;y<nRows;y++) {
 
-    thread_context* tctx = sliceunit->get_thread_context(y);
+  // first CTB in this slice
+  int ctbAddrRS = shdr->slice_segment_address;
+  int ctbRow    = ctbAddrRS / ctbsWidth;
+
+  for (int entryPt=0;entryPt<nRows;entryPt++) {
+    // entry points other than the first start at CTB rows
+    if (entryPt>0) {
+      ctbRow++;
+      ctbAddrRS = ctbRow * ctbsWidth;
+    }
 
 
     // prepare thread context
+
+    thread_context* tctx = sliceunit->get_thread_context(entryPt);
 
     tctx->shdr    = shdr;
     tctx->decctx  = img->decctx;
     tctx->img     = img;
     tctx->imgunit = imgunit;
-    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[0 + y*ctbsWidth];
+    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
 
@@ -851,12 +861,12 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     // init CABAC
 
     int dataStartIndex;
-    if (y==0) { dataStartIndex=0; }
-    else      { dataStartIndex=shdr->entry_point_offset[y-1]; }
+    if (entryPt==0) { dataStartIndex=0; }
+    else            { dataStartIndex=shdr->entry_point_offset[entryPt-1]; }
 
     int dataEnd;
-    if (y==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
-    else            dataEnd = shdr->entry_point_offset[y];
+    if (entryPt==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
+    else                  dataEnd = shdr->entry_point_offset[entryPt];
 
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
@@ -864,7 +874,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     // add task
 
-    add_task_decode_CTB_row(tctx, y==0, img);
+    add_task_decode_CTB_row(tctx, entryPt==0, img);
   }
 
   img->wait_for_completion();
