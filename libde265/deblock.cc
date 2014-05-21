@@ -933,7 +933,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 
           int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
 
-          thread_task_deblock tasks[numStripes];
+	  std::vector<thread_task_deblock> tasks(numStripes);
 
           img->thread_start(numStripes);
 
