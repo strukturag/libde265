@@ -132,7 +132,9 @@ void thread_task::start()
 {
   state = Running;
   work();
-  state = Finished;
+  // state = Finished;
+  /* TODO: cannot set state here, because task
+     may be destroyed at end of work. */
 }
 
 
