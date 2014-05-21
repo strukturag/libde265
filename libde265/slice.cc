@@ -3667,8 +3667,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
-      // TODO: ctx->img should be tctx->img
-      tctx->img->ctb_progress[ctbx+1+(ctby-1)*ctbW].wait_for_progress(CTB_PROGRESS_PREFILTER);
+      tctx->imgunit->wait_for_progress(ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d|%d\n", tctx, tctx->CtbY,tctx->CtbX);
@@ -3772,7 +3771,7 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       initialize_CABAC(tctx);
     }
     else {
-      tctx->img->ctb_progress[prevCtb].wait_for_progress(CTB_PROGRESS_PREFILTER);
+      tctx->imgunit->wait_for_progress(prevCtb, CTB_PROGRESS_PREFILTER);
 
       memcpy(tctx->ctx_model,
              prevCtbHdr->ctx_model_storage,
@@ -3806,7 +3805,7 @@ void thread_decode_slice_segment(void* d)
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
 
-  img->decrease_pending_tasks();
+  img->thread_finishes();
 
   return; // DE265_OK;
 }
@@ -3836,7 +3835,7 @@ void thread_decode_CTB_row(void* d)
     assert(ctby>=1);
 
     // we have to wait until the context model data is there
-    tctx->img->ctb_progress[1+(ctby-1)*ctbW].wait_for_progress(CTB_PROGRESS_PREFILTER);
+    tctx->imgunit->wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
 
     memcpy(tctx->ctx_model,
            &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH],
@@ -3867,7 +3866,7 @@ void thread_decode_CTB_row(void* d)
     }
   }
 
-  img->decrease_pending_tasks();
+  img->thread_finishes();
 }
 
 

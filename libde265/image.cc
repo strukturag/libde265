@@ -139,7 +139,6 @@ de265_image::de265_image()
 
   ctb_progress = NULL;
 
-  tasks_pending = 0;
   integrity = INTEGRITY_NOT_DECODED;
 
   picture_order_cnt_lsb = -1; // undefined
@@ -161,6 +160,11 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
   decctx = NULL;
+
+  nThreadsRunning  = 0;
+  nThreadsBlocked  = 0;
+  nThreadsFinished = 0;
+  nThreadsTotal    = 0;
 
   // --- allocate image buffer ---
 
@@ -393,20 +397,41 @@ void de265_image::copy_image(const de265_image* src)
 }
 
 
-void de265_image::increase_pending_tasks(int n)
-{
-  de265_sync_add_and_fetch(&tasks_pending, n);
-}
-
-void de265_image::decrease_pending_tasks(int n)
+void de265_image::thread_run(int nThreads)
 {
   de265_mutex_lock(&mutex);
 
-  int pending = de265_sync_sub_and_fetch(&tasks_pending, n);
+  nThreadsRunning += nThreads;
+  nThreadsTotal += nThreads;
 
-  assert(pending >= 0);
+  de265_mutex_unlock(&mutex);
+}
 
-  if (pending==0) {
+void de265_image::thread_blocks()
+{
+  de265_mutex_lock(&mutex);
+  nThreadsRunning--;
+  nThreadsBlocked++;
+  de265_mutex_unlock(&mutex);
+}
+
+void de265_image::thread_unblocks()
+{
+  de265_mutex_lock(&mutex);
+  nThreadsBlocked--;
+  nThreadsRunning++;
+  de265_mutex_unlock(&mutex);
+}
+
+void de265_image::thread_finishes()
+{
+  de265_mutex_lock(&mutex);
+
+  nThreadsRunning--;
+  nThreadsFinished++;
+  assert(nThreadsRunning >= 0);
+
+  if (nThreadsFinished==nThreadsTotal) {
     de265_cond_broadcast(&finished_cond, &mutex);
   }
 
@@ -416,7 +441,7 @@ void de265_image::decrease_pending_tasks(int n)
 void de265_image::wait_for_completion()
 {
   de265_mutex_lock(&mutex);
-  while (tasks_pending>0) {
+  while (nThreadsFinished!=nThreadsTotal) {
     de265_cond_wait(&finished_cond, &mutex);
   }
   de265_mutex_unlock(&mutex);

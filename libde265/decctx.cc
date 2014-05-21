@@ -160,10 +160,6 @@ image_unit::image_unit()
   img=NULL;
   role=Invalid;
   state=Unprocessed;
-
-  nDecodingTasks=0;
-  nDeblockingTasks=0;
-  nSAOTasks=0;
 }
 
 
@@ -173,6 +169,26 @@ image_unit::~image_unit()
     delete slice_units[i];
   }
 }
+
+
+void image_unit::wait_for_progress(int ctbx,int ctby, int progress)
+{
+  const int ctbW = img->sps.PicWidthInCtbsY;
+
+  wait_for_progress(ctbx + ctbW*ctby, progress);
+}
+
+void image_unit::wait_for_progress(int ctbAddrRS, int progress)
+{
+  de265_progress_lock* progresslock = &img->ctb_progress[ctbAddrRS];
+  if (progresslock->get_progress() < progress) {
+    img->thread_blocks();
+    progresslock->wait_for_progress(progress);
+    img->thread_unblocks();
+  }
+}
+
+
 
 
 decoder_context::decoder_context()
@@ -805,8 +821,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbsWidth = img->sps.PicWidthInCtbsY;
 
 
-  assert(img->num_tasks_pending() == 0);
-  img->increase_pending_tasks(nRows);
+  assert(img->num_threads_active() == 0);
+  img->thread_run(nRows);
 
   //printf("-------- decode --------\n");
 
@@ -883,8 +899,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   int ctbsWidth = img->sps.PicWidthInCtbsY;
 
 
-  assert(img->num_tasks_pending() == 0);
-  img->increase_pending_tasks(nTiles);
+  assert(img->num_threads_active() == 0);
+  img->thread_run(nTiles);
 
   sliceunit->allocate_thread_contexts(nTiles);
 

@@ -825,7 +825,7 @@ static void thread_deblock(void* d)
   edge_filtering_luma    (img, data->vertical, data->first,data->last, xStart,xEnd);
   edge_filtering_chroma  (img, data->vertical, data->first,data->last, xStart,xEnd);
 
-  img->decrease_pending_tasks(1);
+  img->thread_finishes();
 }
 
 
@@ -924,7 +924,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 
           int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
           //ctx->thread_pool.tasks_pending = numStripes;
-          img->increase_pending_tasks(numStripes);
+          img->thread_run(numStripes);
 
           for (int i=0;i<numStripes;i++)
             {

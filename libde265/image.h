@@ -313,13 +313,21 @@ public:
   de265_progress_lock* ctb_progress; // ctb_info_size
 
 
-  void increase_pending_tasks(int n=1);
-  void decrease_pending_tasks(int n=1);
+  void thread_run(int nThreads);
+  void thread_blocks();
+  void thread_unblocks();
+  void thread_finishes();
+
   void wait_for_completion();  // block until image is decoded by background threads
-  int  num_tasks_pending() const { return tasks_pending; } // for debug only
+  int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
 
 private:
-  ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
+  int   nThreadsRunning;
+  int   nThreadsBlocked;
+  int   nThreadsFinished;
+  int   nThreadsTotal;
+
+  // ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
   de265_mutex mutex;
   de265_cond  finished_cond;
 

@@ -187,12 +187,8 @@ struct image_unit
          Dropped         // will not be decoded
   } state;
 
-
-  // Image is completely decoded when all of these are zero.
-
-  de265_sync_int nDecodingTasks;
-  de265_sync_int nDeblockingTasks;
-  de265_sync_int nSAOTasks;
+  void wait_for_progress(int ctbx,int ctby, int progress);
+  void wait_for_progress(int ctbAddrRS, int progress);
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
