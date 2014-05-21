@@ -442,25 +442,21 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
-                                              bool sliceSegmentStart, de265_image* image)
+void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream)
 {
   thread_task task;
   task.work_routine = thread_decode_CTB_row;
-  task.data.task_ctb_row.img = image;
-  task.data.task_ctb_row.sliceSegmentStart= sliceSegmentStart;
+  task.data.task_ctb_row.firstSliceSubstream = firstSliceSubstream;
   task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }
 
 
-void decoder_context::add_task_decode_slice_segment(thread_context* tctx,
-                                                    bool sliceSegmentStart, de265_image* image)
+void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream)
 {
   thread_task task;
   task.work_routine = thread_decode_slice_segment;
-  task.data.task_ctb_row.img = image;
-  task.data.task_ctb_row.sliceSegmentStart= sliceSegmentStart;
+  task.data.task_ctb_row.firstSliceSubstream = firstSliceSubstream;
   task.data.task_ctb_row.tctx = tctx;
   add_task(&thread_pool, &task);
 }
@@ -866,7 +862,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     // add task
 
-    add_task_decode_CTB_row(tctx, entryPt==0, img);
+    add_task_decode_CTB_row(tctx, entryPt==0);
   }
 
   img->wait_for_completion();
@@ -935,7 +931,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
-    add_task_decode_slice_segment(tctx, entryPt==0, img);
+    add_task_decode_slice_segment(tctx, entryPt==0);
   }
 
   img->wait_for_completion();

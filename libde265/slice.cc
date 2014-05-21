@@ -3788,14 +3788,14 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 void thread_decode_slice_segment(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
-  de265_image* img = data->img;
   thread_context* tctx = data->tctx;
+  de265_image* img = tctx->img;
 
   setCtbAddrFromTS(tctx);
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
-  if (data->sliceSegmentStart) {
+  if (data->firstSliceSubstream) {
     initialize_CABAC_at_slice_segment_start(tctx);
   }
   else {
@@ -3815,8 +3815,8 @@ void thread_decode_slice_segment(void* d)
 void thread_decode_CTB_row(void* d)
 {
   struct thread_task_ctb_row* data = (struct thread_task_ctb_row*)d;
-  de265_image* img = data->img;
   thread_context* tctx = data->tctx;
+  de265_image* img = tctx->img;
 
   seq_parameter_set* sps = &img->sps;
   int ctbW = sps->PicWidthInCtbsY;
@@ -3828,7 +3828,7 @@ void thread_decode_CTB_row(void* d)
 
   // printf("start decoding at %d/%d\n", ctbx,ctby);
 
-  if (data->sliceSegmentStart) {
+  if (data->firstSliceSubstream) {
     initialize_CABAC_at_slice_segment_start(tctx);
     //initialize_CABAC(tctx);
   }

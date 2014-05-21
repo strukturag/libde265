@@ -413,8 +413,8 @@ class decoder_context : public error_queue {
 
  private:
   void init_thread_context(class thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool sliceSegmentStart, de265_image* image);
-  void add_task_decode_slice_segment(thread_context* tctx, bool sliceSegmentStart, de265_image* image);
+  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream);
+  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
 
 
   void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);

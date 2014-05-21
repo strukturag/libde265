@@ -115,8 +115,7 @@ private:
 
 struct thread_task_ctb_row
 {
-  bool   sliceSegmentStart;
-  struct de265_image* img;
+  bool   firstSliceSubstream;
   struct thread_context* tctx;
 };
 
