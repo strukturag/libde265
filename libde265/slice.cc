@@ -3896,6 +3896,12 @@ de265_error read_slice_segment_data(thread_context* tctx)
       break;
     }
 
+    if (pps->entropy_coding_sync_enabled_flag) {
+      memcpy(tctx->ctx_model,
+             shdr->ctx_model_storage,
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+
     if (pps->tiles_enabled_flag) {
       initialize_CABAC(tctx);
     }
