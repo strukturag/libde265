@@ -1213,29 +1213,29 @@ bool available_pred_blk(const decoder_context* ctx,
 }
 
 
-static const char *output_filename;
-
-LIBDE265_API void set_output_filename(const char* filename)
+LIBDE265_API size_t de265_write_image(const de265_image* img, FILE *fp)
 {
-  output_filename = filename;
-}
+  for (int y=0;y<de265_get_image_height(img,0);y++) {
+    if (fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fp) == 0) {
+      return -1;
+    }
+  }
 
-LIBDE265_API void write_picture(const de265_image* img)
-{
-  static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
+  for (int y=0;y<de265_get_image_height(img,1);y++) {
+    if (fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fp) == 0) {
+      return -1;
+    }
+  }
 
-  for (int y=0;y<de265_get_image_height(img,0);y++)
-    fwrite(img->y + y*img->stride, de265_get_image_width(img,0), 1, fh);
+  for (int y=0;y<de265_get_image_height(img,2);y++) {
+    if (fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fp) == 0) {
+      return -1;
+    }
+  }
 
-  for (int y=0;y<de265_get_image_height(img,1);y++)
-    fwrite(img->cb + y*img->chroma_stride, de265_get_image_width(img,1), 1, fh);
-
-  for (int y=0;y<de265_get_image_height(img,2);y++)
-    fwrite(img->cr + y*img->chroma_stride, de265_get_image_width(img,2), 1, fh);
-
-  fflush(fh);
-  //fclose(fh);
+  return (de265_get_image_height(img,0) * de265_get_image_width(img,0)) +
+         (de265_get_image_height(img,1) * de265_get_image_width(img,1)) +
+         (de265_get_image_height(img,2) * de265_get_image_width(img,2));
 }
 
 
