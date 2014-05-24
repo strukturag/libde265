@@ -227,12 +227,17 @@ bool read_pps(bitreader* br, pic_parameter_set* pps, decoder_context* ctx)
   if (pps->TileIdRS) { free(pps->TileIdRS); }
   if (pps->MinTbAddrZS) { free(pps->MinTbAddrZS); }
 
+  // TODO: return error message instead of asserting
   pps->CtbAddrRStoTS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  assert(pps->CtbAddrRStoTS != NULL);
   pps->CtbAddrTStoRS = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  assert(pps->CtbAddrTStoRS != NULL);
   pps->TileId        = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  assert(pps->TileId != NULL);
   pps->TileIdRS      = (int *)malloc( sizeof(int) * sps->PicSizeInCtbsY );
+  assert(pps->TileIdRS != NULL);
   pps->MinTbAddrZS   = (int *)malloc( sizeof(int) * sps->PicSizeInTbsY  );
-
+  assert(pps->MinTbAddrZS != NULL);
 
   // raster scan (RS) <-> tile scan (TS) conversion
 

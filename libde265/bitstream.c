@@ -38,6 +38,8 @@ void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size)
 {
   if (buffer->capacity < new_size) {
     unsigned char* newbuffer = (unsigned char*)malloc(new_size);
+    // TODO: return error message instead of asserting
+    assert(newbuffer != NULL);
 
     if (buffer->data != NULL) {
       memcpy(newbuffer, buffer->data, buffer->size);

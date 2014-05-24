@@ -150,6 +150,9 @@ void      free_NAL_unit(decoder_context* ctx, NAL_unit* nal)
   if (ctx->NAL_free_list == NULL) {
     ctx->NAL_free_list_size = DE265_NAL_FREE_LIST_SIZE;
     ctx->NAL_free_list = (NAL_unit**)malloc( ctx->NAL_free_list_size * sizeof(NAL_unit*) );
+    if (ctx->NAL_free_list == NULL) {
+      ctx->NAL_free_list_size = 0;
+    }
   }
 
 
