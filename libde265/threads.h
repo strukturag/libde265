@@ -122,9 +122,6 @@ public:
 
   enum { Queued, Running, Blocked, Finished } state;
 
-  void start();
-
-protected:
   virtual void work() = 0;
 };
 

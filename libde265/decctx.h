@@ -107,6 +107,7 @@ struct thread_context
   struct slice_segment_header* shdr;
 
   struct image_unit* imgunit;
+  struct thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
   thread_context(const thread_context&); // not allowed
@@ -187,8 +188,8 @@ struct image_unit
          Dropped         // will not be decoded
   } state;
 
-  void wait_for_progress(int ctbx,int ctby, int progress);
-  void wait_for_progress(int ctbAddrRS, int progress);
+  void wait_for_progress(thread_task*, int ctbx,int ctby, int progress);
+  void wait_for_progress(thread_task*, int ctbAddrRS, int progress);
 
   std::vector<thread_task*> tasks; // we are the owner
 

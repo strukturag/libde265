@@ -272,8 +272,7 @@ public:
   bool   firstSliceSubstream;
   struct thread_context* tctx;
 
- protected:
-  void work();
+  virtual void work();
 };
 
 class thread_task_slice_segment : public thread_task
@@ -282,8 +281,7 @@ public:
   bool   firstSliceSubstream;
   struct thread_context* tctx;
 
- protected:
-  void work();
+  virtual void work();
 };
 
 #endif

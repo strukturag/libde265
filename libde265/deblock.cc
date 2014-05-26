@@ -822,13 +822,13 @@ public:
   int ctb_x,ctb_y;
   bool vertical;
 
- protected:
-  void work();
+  virtual void work();
 };
 
 
 void thread_task_deblock::work()
 {
+  state = Running;
   img->thread_run();
 
   int xStart=0;
@@ -838,6 +838,7 @@ void thread_task_deblock::work()
   edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
   edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
 
+  state = Finished;
   img->thread_finishes();
 }
 

@@ -317,7 +317,9 @@ public:
   void thread_run();
   void thread_blocks();
   void thread_unblocks();
-  void thread_finishes();
+  void thread_finishes(); /* NOTE: you should not access any data in the thread_task after
+                             calling this, as this function may unlock other threads that
+                             will push this image to the output queue and free all decoder data. */
 
   void wait_for_completion();  // block until image is decoded by background threads
   bool debug_is_completed() const;

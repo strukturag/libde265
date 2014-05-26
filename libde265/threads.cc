@@ -128,17 +128,6 @@ int  de265_progress_lock::get_progress() const
 
 
 
-void thread_task::start()
-{
-  state = Running;
-  work();
-  // state = Finished;
-  /* TODO: cannot set state here, because task
-     may be destroyed at end of work. */
-}
-
-
-
 
 #include "libde265/decctx.h"
 
@@ -227,7 +216,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     // execute the task
 
-    task->start();
+    task->work();
 
     // end processing and check if this was the last task to be processed
 

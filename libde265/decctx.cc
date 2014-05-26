@@ -175,19 +175,29 @@ image_unit::~image_unit()
 }
 
 
-void image_unit::wait_for_progress(int ctbx,int ctby, int progress)
+void image_unit::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
 {
   const int ctbW = img->sps.PicWidthInCtbsY;
 
-  wait_for_progress(ctbx + ctbW*ctby, progress);
+  wait_for_progress(task, ctbx + ctbW*ctby, progress);
 }
 
-void image_unit::wait_for_progress(int ctbAddrRS, int progress)
+void image_unit::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 {
   de265_progress_lock* progresslock = &img->ctb_progress[ctbAddrRS];
   if (progresslock->get_progress() < progress) {
     img->thread_blocks();
+
+    assert(task!=NULL);
+    task->state = thread_task::Blocked;
+
+    /* TODO: check whether we are the first blocked task in the list.
+       If we are, we have to conceal input errors.
+       Simplest concealment: do not block.
+    */
+
     progresslock->wait_for_progress(progress);
+    task->state = thread_task::Running;
     img->thread_unblocks();
   }
 }
@@ -467,6 +477,8 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSl
   thread_task_ctb_row* task = new thread_task_ctb_row;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  tctx->task = task;
+
   add_task(&thread_pool, task);
 
   tctx->imgunit->tasks.push_back(task);
@@ -478,6 +490,8 @@ void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool f
   thread_task_slice_segment* task = new thread_task_slice_segment;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  tctx->task = task;
+
   add_task(&thread_pool, task);
 
   tctx->imgunit->tasks.push_back(task);
@@ -747,7 +761,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.decctx = this;
   tctx.imgunit = imgunit;
   tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
-
+  tctx.task = NULL;
 
   init_thread_context(&tctx);
 
