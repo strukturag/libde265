@@ -142,6 +142,8 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
   int cb_y_start = ( ctby    << img->sps.Log2CtbSizeY) >> img->sps.Log2MinCbSizeY;
   int cb_y_end   = ((ctby+1) << img->sps.Log2CtbSizeY) >> img->sps.Log2MinCbSizeY;
 
+  cb_y_end = std::min(cb_y_end, img->sps.PicHeightInMinCbsY);
+
   for (int cb_y=cb_y_start;cb_y<cb_y_end;cb_y++)
     for (int cb_x=0;cb_x<img->sps.PicWidthInMinCbsY;cb_x++)
       {
@@ -885,25 +887,40 @@ void thread_task_deblock_CTBRow::work()
     last = img->get_deblk_height();
   }
 
+  int finalProgress = CTB_PROGRESS_DEBLK_V;
+  if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
+
   int rightCtb = img->sps.PicWidthInCtbsY-1;
-  int CtbRow   = std::min(ctb_y+1 , img->sps.PicHeightInCtbsY-1);
-  int initProgress = CTB_PROGRESS_PREFILTER;
-  if (!vertical) initProgress = CTB_PROGRESS_DEBLK_V;
 
-  img->wait_for_progress(this, rightCtb,CtbRow, initProgress);
+  if (vertical) {
+    // pass 1: vertical
 
-  // printf("deblock %d to %d orientation: %d\n",first,last,vertical);
+    int CtbRow = std::min(ctb_y+1 , img->sps.PicHeightInCtbsY-1);
+    img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+  }
+  else {
+    // pass 2: horizontal
+
+    if (ctb_y>0) {
+      img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
+    }
+
+    img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
+
+    if (ctb_y+1<img->sps.PicHeightInCtbsY) {
+      img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
+    }
+  }
+
+  //printf("deblock %d to %d orientation: %d\n",first,last,vertical);
 
   derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
   edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
   edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
 
-  int finalProgress = CTB_PROGRESS_DEBLK_V;
-  if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
-
   for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = img->sps.PicWidthInCtbsY;
-    img->ctb_progress[x+CtbRow*CtbWidth].set_progress(finalProgress);
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
   state = Finished;
@@ -923,11 +940,10 @@ void add_deblocking_tasks(de265_image* img)
       std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
 
       int n=0;
+      img->thread_start(nRows*2);
 
       for (int pass=0;pass<2;pass++)
         {
-          img->thread_start(nRows);
-
           for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
             {
               tasks[n].img   = img;
@@ -937,10 +953,9 @@ void add_deblocking_tasks(de265_image* img)
               add_task(&ctx->thread_pool, &tasks[n]);
               n++;
             }
-
-          img->wait_for_completion();
         }
 
+      img->wait_for_completion();
     }
   else
     {
