@@ -127,7 +127,7 @@ void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
 }
 
 
-bool derive_edgeFlags(de265_image* img)
+bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
 {
   const int minCbSize = img->sps.MinCbSizeY;
   bool deblocking_enabled=false; // whether deblocking is enabled in some part of the image
@@ -138,7 +138,11 @@ bool derive_edgeFlags(de265_image* img)
 
   const pic_parameter_set* pps = &img->pps;
 
-  for (int cb_y=0;cb_y<img->sps.PicHeightInMinCbsY;cb_y++)
+
+  int cb_y_start = ( ctby    << img->sps.Log2CtbSizeY) >> img->sps.Log2MinCbSizeY;
+  int cb_y_end   = ((ctby+1) << img->sps.Log2CtbSizeY) >> img->sps.Log2MinCbSizeY;
+
+  for (int cb_y=cb_y_start;cb_y<cb_y_end;cb_y++)
     for (int cb_x=0;cb_x<img->sps.PicWidthInMinCbsY;cb_x++)
       {
         int log2CbSize = img->get_log2CbSize_cbUnits(cb_x,cb_y);
@@ -210,6 +214,17 @@ bool derive_edgeFlags(de265_image* img)
   return deblocking_enabled;
 }
 
+
+bool derive_edgeFlags(de265_image* img)
+{
+  bool deblocking_enabled=false;
+
+  for (int y=0;y<img->sps.PicHeightInCtbsY;y++) {
+    deblocking_enabled |= derive_edgeFlags_CTBRow(img,y);
+  }
+
+  return deblocking_enabled;
+}
 
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
@@ -907,11 +922,12 @@ void add_deblocking_tasks(de265_image* img)
       int nRows = img->sps.PicHeightInCtbsY;
       std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
 
-      img->thread_start(nRows*2);
       int n=0;
 
       for (int pass=0;pass<2;pass++)
         {
+          img->thread_start(nRows);
+
           for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
             {
               tasks[n].img   = img;
@@ -922,9 +938,9 @@ void add_deblocking_tasks(de265_image* img)
               n++;
             }
 
+          img->wait_for_completion();
         }
 
-      img->wait_for_completion();
     }
   else
     {
