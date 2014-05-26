@@ -3667,7 +3667,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
-      tctx->imgunit->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
+      tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d|%d\n", tctx, tctx->CtbY,tctx->CtbX);
@@ -3771,7 +3771,7 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       initialize_CABAC(tctx);
     }
     else {
-      tctx->imgunit->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
+      tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
 
       memcpy(tctx->ctx_model,
              prevCtbHdr->ctx_model_storage,
@@ -3842,7 +3842,7 @@ void thread_task_ctb_row::work()
     assert(ctby>=1);
 
     // we have to wait until the context model data is there
-    tctx->imgunit->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
+    tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
 
     memcpy(tctx->ctx_model,
            &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH],

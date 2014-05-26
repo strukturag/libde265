@@ -175,36 +175,6 @@ image_unit::~image_unit()
 }
 
 
-void image_unit::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
-{
-  const int ctbW = img->sps.PicWidthInCtbsY;
-
-  wait_for_progress(task, ctbx + ctbW*ctby, progress);
-}
-
-void image_unit::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
-{
-  de265_progress_lock* progresslock = &img->ctb_progress[ctbAddrRS];
-  if (progresslock->get_progress() < progress) {
-    img->thread_blocks();
-
-    assert(task!=NULL);
-    task->state = thread_task::Blocked;
-
-    /* TODO: check whether we are the first blocked task in the list.
-       If we are, we have to conceal input errors.
-       Simplest concealment: do not block.
-    */
-
-    progresslock->wait_for_progress(progress);
-    task->state = thread_task::Running;
-    img->thread_unblocks();
-  }
-}
-
-
-
-
 decoder_context::decoder_context()
 {
   //memset(ctx, 0, sizeof(decoder_context));

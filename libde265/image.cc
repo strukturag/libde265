@@ -447,6 +447,34 @@ void de265_image::thread_finishes()
   de265_mutex_unlock(&mutex);
 }
 
+void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
+{
+  const int ctbW = sps.PicWidthInCtbsY;
+
+  wait_for_progress(task, ctbx + ctbW*ctby, progress);
+}
+
+void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
+{
+  de265_progress_lock* progresslock = &ctb_progress[ctbAddrRS];
+  if (progresslock->get_progress() < progress) {
+    thread_blocks();
+
+    assert(task!=NULL);
+    task->state = thread_task::Blocked;
+
+    /* TODO: check whether we are the first blocked task in the list.
+       If we are, we have to conceal input errors.
+       Simplest concealment: do not block.
+    */
+
+    progresslock->wait_for_progress(progress);
+    task->state = thread_task::Running;
+    thread_unblocks();
+  }
+}
+
+
 void de265_image::wait_for_completion()
 {
   de265_mutex_lock(&mutex);

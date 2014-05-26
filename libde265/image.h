@@ -321,6 +321,9 @@ public:
                              calling this, as this function may unlock other threads that
                              will push this image to the output queue and free all decoder data. */
 
+  void wait_for_progress(thread_task* task, int ctbx,int ctby, int progress);
+  void wait_for_progress(thread_task* task, int ctbAddrRS, int progress);
+
   void wait_for_completion();  // block until image is decoded by background threads
   bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
