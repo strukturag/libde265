@@ -914,9 +914,25 @@ void thread_task_deblock_CTBRow::work()
 
   //printf("deblock %d to %d orientation: %d\n",first,last,vertical);
 
-  derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
-  edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
-  edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
+  bool deblocking_enabled;
+
+  // first pass: check edge flags and whether we have to deblock
+  if (vertical) {
+    deblocking_enabled = derive_edgeFlags_CTBRow(img, ctb_y);
+
+    //for (int x=0;x<=rightCtb;x++) {
+    int x=0; img->set_CtbDeblockFlag(x,ctb_y, deblocking_enabled);
+    //}
+  }
+  else {
+    int x=0; deblocking_enabled=img->get_CtbDeblockFlag(x,ctb_y);
+  }
+
+  if (deblocking_enabled) {
+    derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
+    edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
+    edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
+  }
 
   for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = img->sps.PicWidthInCtbsY;
@@ -930,7 +946,7 @@ void thread_task_deblock_CTBRow::work()
 
 void add_deblocking_tasks(de265_image* img)
 {
-  char enabled_deblocking = derive_edgeFlags(img);
+  char enabled_deblocking = true;
   decoder_context* ctx = img->decctx;
 
 
@@ -966,14 +982,14 @@ void add_deblocking_tasks(de265_image* img)
 
 void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 {
-  char enabled_deblocking = derive_edgeFlags(img);
   decoder_context* ctx = img->decctx;
 
+  if (ctx->get_num_worker_threads()==0) {  // TMP HACK / TODO / switched off multi-core
 
-  if (enabled_deblocking)
-    {
-      if (ctx->get_num_worker_threads()==0) {  // TMP HACK / TODO / switched off multi-core
+    char enabled_deblocking = derive_edgeFlags(img);
 
+    if (enabled_deblocking)
+      {
         // vertical filtering
 
         logtrace(LogDeblock,"VERTICAL\n");
@@ -999,8 +1015,8 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
         write_picture_to_file(ctx->img, buf);
 #endif
       }
-      else {
-        add_deblocking_tasks(img);
-      }
-    }
+  }
+  else {
+    add_deblocking_tasks(img);
+  }
 }

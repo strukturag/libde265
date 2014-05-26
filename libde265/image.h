@@ -152,6 +152,7 @@ typedef struct {
   uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
 
   sao_info saoInfo;
+  bool     deblock;         // this CTB has to be deblocked
 } CTB_info;
 
 
@@ -559,6 +560,19 @@ public:
   {
     return &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
   }
+
+
+  void set_CtbDeblockFlag(int ctbX, int ctbY, bool flag)
+  {
+    int idx = ctbX + ctbY*ctb_info.width_in_units;
+    ctb_info[idx].deblock = flag;
+  }
+
+  bool get_CtbDeblockFlag(int ctbX, int ctbY) const
+  {
+    return ctb_info[ctbX + ctbY*ctb_info.width_in_units].deblock;
+  }
+
 
 
   // --- DEBLK metadata access ---
