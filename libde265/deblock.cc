@@ -946,37 +946,28 @@ void thread_task_deblock_CTBRow::work()
 
 void add_deblocking_tasks(de265_image* img)
 {
-  char enabled_deblocking = true;
   decoder_context* ctx = img->decctx;
 
+  int nRows = img->sps.PicHeightInCtbsY;
+  std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
 
-  if (enabled_deblocking)
+  int n=0;
+  img->thread_start(nRows*2);
+
+  for (int pass=0;pass<2;pass++)
     {
-      int nRows = img->sps.PicHeightInCtbsY;
-      std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
-
-      int n=0;
-      img->thread_start(nRows*2);
-
-      for (int pass=0;pass<2;pass++)
+      for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
         {
-          for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
-            {
-              tasks[n].img   = img;
-              tasks[n].ctb_y = y;
-              tasks[n].vertical = (pass==0);
+          tasks[n].img   = img;
+          tasks[n].ctb_y = y;
+          tasks[n].vertical = (pass==0);
                 
-              add_task(&ctx->thread_pool, &tasks[n]);
-              n++;
-            }
+          add_task(&ctx->thread_pool, &tasks[n]);
+          n++;
         }
+    }
 
-      img->wait_for_completion();
-    }
-  else
-    {
-      assert(0); // TODO: add dummy tasks that advance the progress states
-    }
+  img->wait_for_completion();
 }
 
 
@@ -984,39 +975,33 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 {
   decoder_context* ctx = img->decctx;
 
-  if (ctx->get_num_worker_threads()==0) {  // TMP HACK / TODO / switched off multi-core
+  char enabled_deblocking = derive_edgeFlags(img);
 
-    char enabled_deblocking = derive_edgeFlags(img);
+  if (enabled_deblocking)
+    {
+      // vertical filtering
 
-    if (enabled_deblocking)
-      {
-        // vertical filtering
-
-        logtrace(LogDeblock,"VERTICAL\n");
-        derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      logtrace(LogDeblock,"VERTICAL\n");
+      derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
 #if 0
-        char buf[1000];
-        sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
-        write_picture_to_file(ctx->img, buf);
+      char buf[1000];
+      sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
+      write_picture_to_file(ctx->img, buf);
 #endif
 
-        // horizontal filtering
+      // horizontal filtering
 
-        logtrace(LogDeblock,"HORIZONTAL\n");
-        derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-        edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      logtrace(LogDeblock,"HORIZONTAL\n");
+      derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
 #if 0
-        sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
-        write_picture_to_file(ctx->img, buf);
+      sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
+      write_picture_to_file(ctx->img, buf);
 #endif
-      }
-  }
-  else {
-    add_deblocking_tasks(img);
-  }
+    }
 }

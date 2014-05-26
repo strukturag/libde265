@@ -425,6 +425,7 @@ class decoder_context : public error_queue {
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
   void run_postprocessing_filters_sequential(de265_image* img);
+  void run_postprocessing_filters_parallel(de265_image* img);
 };
 
 

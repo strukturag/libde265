@@ -679,9 +679,14 @@ de265_error decoder_context::decode_some()
 
     image_unit* imgunit = image_units[0];
 
+
+
     // run post-processing filters (deblocking & SAO)
 
-    run_postprocessing_filters_sequential(imgunit->img);
+    if (img->decctx->num_worker_threads)
+      run_postprocessing_filters_parallel(imgunit->img);
+    else
+      run_postprocessing_filters_sequential(imgunit->img);
 
 
     // process suffix SEIs
@@ -886,8 +891,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 #endif
 
-  //add_deblocking_tasks(img);
-
   img->wait_for_completion();
 
   for (int i=0;i<imgunit->tasks.size();i++)
@@ -960,8 +963,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     add_task_decode_slice_segment(tctx, entryPt==0);
   }
-
-  //add_deblocking_tasks(img);
 
   img->wait_for_completion();
 
@@ -1645,6 +1646,15 @@ void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
     sprintf(buf,"sao-%05d.yuv", img->PicOrderCntVal);
     write_picture_to_file(img, buf);
 #endif
+}
+
+
+void decoder_context::run_postprocessing_filters_parallel(de265_image* img)
+{
+  add_deblocking_tasks(img);
+  img->wait_for_completion();
+
+  apply_sample_adaptive_offset(img);
 }
 
 /*
