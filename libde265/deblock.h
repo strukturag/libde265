@@ -23,6 +23,7 @@
 
 #include "libde265/decctx.h"
 
+void add_deblocking_tasks(de265_image* img);
 void apply_deblocking_filter(de265_image* img); //decoder_context* ctx);
 
 #endif

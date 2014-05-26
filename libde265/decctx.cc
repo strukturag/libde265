@@ -886,6 +886,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 #endif
 
+  //add_deblocking_tasks(img);
+
   img->wait_for_completion();
 
   for (int i=0;i<imgunit->tasks.size();i++)
@@ -958,6 +960,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     add_task_decode_slice_segment(tctx, entryPt==0);
   }
+
+  //add_deblocking_tasks(img);
 
   img->wait_for_completion();
 

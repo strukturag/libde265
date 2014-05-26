@@ -127,10 +127,10 @@ void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
 }
 
 
-char derive_edgeFlags(de265_image* img)
+bool derive_edgeFlags(de265_image* img)
 {
   const int minCbSize = img->sps.MinCbSizeY;
-  char deblocking_enabled=0; // whether deblocking is enabled in some part of the image
+  bool deblocking_enabled=false; // whether deblocking is enabled in some part of the image
 
   int ctb_mask = (1<<img->sps.Log2CtbSizeY)-1;
   int picWidthInCtbs = img->sps.PicWidthInCtbsY;
@@ -197,7 +197,7 @@ char derive_edgeFlags(de265_image* img)
         // mark edges
 
         if (shdr->slice_deblocking_filter_disabled_flag==0) {
-          deblocking_enabled=1;
+          deblocking_enabled=true;
 
           markTransformBlockBoundary(img, x0,y0, log2CbSize,0,
                                      filterLeftCbEdge, filterTopCbEdge);
@@ -819,7 +819,6 @@ public:
   struct de265_image* img;
   int first;  // stripe row
   int last;
-  int ctb_x,ctb_y;
   bool vertical;
 
   virtual void work();
@@ -843,54 +842,95 @@ void thread_task_deblock::work()
 }
 
 
-#if 0
-static void thread_deblock_ctb(void* d)
+class thread_task_deblock_CTBRow : public thread_task
 {
-  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
-  struct decoder_context* ctx = data->ctx;
+public:
+  struct de265_image* img;
+  int  ctb_y;
+  bool vertical;
 
-  derive_boundaryStrength_CTB(ctx, data->vertical, data->ctb_x,data->ctb_y);
-  edge_filtering_luma_CTB    (ctx, data->vertical, data->ctb_x,data->ctb_y);
-  edge_filtering_chroma_CTB  (ctx, data->vertical, data->ctb_x,data->ctb_y);
+  virtual void work();
+};
 
-  ctx->img->decrease_pending_tasks(1);
-}
-#endif
 
-/*
-static void thread_deblock_ctb_row(void* d)
+void thread_task_deblock_CTBRow::work()
 {
-  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
-  struct decoder_context* ctx = data->ctx;
-
-  for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++) {
-    derive_boundaryStrength_CTB(ctx, data->vertical, x,data->ctb_y);
-    edge_filtering_luma_CTB    (ctx, data->vertical, x,data->ctb_y);
-    edge_filtering_chroma_CTB  (ctx, data->vertical, x,data->ctb_y);
-  }
-}
-
-static void thread_deblock_full_ctb_row(void* d)
-{
-  struct thread_task_deblock* data = (struct thread_task_deblock*)d;
-  struct decoder_context* ctx = data->ctx;
-
-  de265_image* img = ctx->img;
-
-  int ctbSize = ctx->current_sps->CtbSizeY;
-  int deblkSize = ctbSize/4;
+  state = Running;
+  img->thread_run();
 
   int xStart=0;
-  int xEnd = img->deblk_width;
+  int xEnd = img->get_deblk_width();
 
-  int yStart =  data->ctb_y   *deblkSize;
-  int yEnd   = (data->ctb_y+1)*deblkSize;
+  int ctbSize = img->sps.CtbSizeY;
+  int deblkSize = ctbSize/4;
 
-  derive_boundaryStrength(ctx, data->vertical, yStart,yEnd, xStart,xEnd);
-  edge_filtering_luma    (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
-  edge_filtering_chroma  (ctx, data->vertical, yStart,yEnd, xStart,xEnd);
+  int first =  ctb_y    * deblkSize;
+  int last  = (ctb_y+1) * deblkSize;
+  if (last > img->get_deblk_height()) {
+    last = img->get_deblk_height();
+  }
+
+  int rightCtb = img->sps.PicWidthInCtbsY-1;
+  int CtbRow   = std::min(ctb_y+1 , img->sps.PicHeightInCtbsY-1);
+  int initProgress = CTB_PROGRESS_PREFILTER;
+  if (!vertical) initProgress = CTB_PROGRESS_DEBLK_V;
+
+  img->wait_for_progress(this, rightCtb,CtbRow, initProgress);
+
+  // printf("deblock %d to %d orientation: %d\n",first,last,vertical);
+
+  derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
+  edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
+  edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
+
+  int finalProgress = CTB_PROGRESS_DEBLK_V;
+  if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
+
+  for (int x=0;x<=rightCtb;x++) {
+    const int CtbWidth = img->sps.PicWidthInCtbsY;
+    img->ctb_progress[x+CtbRow*CtbWidth].set_progress(finalProgress);
+  }
+
+  state = Finished;
+  img->thread_finishes();
 }
-*/
+
+
+void add_deblocking_tasks(de265_image* img)
+{
+  char enabled_deblocking = derive_edgeFlags(img);
+  decoder_context* ctx = img->decctx;
+
+
+  if (enabled_deblocking)
+    {
+      int nRows = img->sps.PicHeightInCtbsY;
+      std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
+
+      img->thread_start(nRows*2);
+      int n=0;
+
+      for (int pass=0;pass<2;pass++)
+        {
+          for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
+            {
+              tasks[n].img   = img;
+              tasks[n].ctb_y = y;
+              tasks[n].vertical = (pass==0);
+                
+              add_task(&ctx->thread_pool, &tasks[n]);
+              n++;
+            }
+
+        }
+
+      img->wait_for_completion();
+    }
+  else
+    {
+      assert(0); // TODO: add dummy tasks that advance the progress states
+    }
+}
 
 
 void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
@@ -911,9 +951,9 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
         edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
 #if 0
-          char buf[1000];
-          sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
-          write_picture_to_file(ctx->img, buf);
+        char buf[1000];
+        sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
+        write_picture_to_file(ctx->img, buf);
 #endif
 
         // horizontal filtering
@@ -929,101 +969,7 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 #endif
       }
       else {
-#if 1
-        for (int pass=0;pass<2;pass++) {
-
-          int numStripes= ctx->get_num_worker_threads() * 4; // TODO: what is a good number of stripes?
-
-	  std::vector<thread_task_deblock> tasks(numStripes);
-
-          img->thread_start(numStripes);
-
-          for (int i=0;i<numStripes;i++)
-            {
-              int ys =  i   *img->get_deblk_height()/numStripes;
-              int ye = (i+1)*img->get_deblk_height()/numStripes;
-
-              // required because multi-threading might cut odd strips
-              ys &= ~3;
-              if (i != numStripes-1) ye &= ~3;
-
-              tasks[i].img   = img;
-              tasks[i].first = ys;
-              tasks[i].last  = ye;
-              tasks[i].vertical = (pass==0);
-
-              add_task(&ctx->thread_pool, &tasks[i]);
-            }
-
-          img->wait_for_completion();
-        }
-#endif
-#if 0
-        for (int pass=0;pass<2;pass++)
-          {
-            thread_task task;
-
-            task.work_routine = thread_deblock_ctb;
-
-            //ctx->thread_pool.tasks_pending = ctx->current_sps->PicSizeInCtbsY;
-            increase_pending_tasks(img, img_>sps.PicSizeInCtbsY);
-
-            for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
-              for (int x=0;x<img->sps.PicWidthInCtbsY;x++)
-                {
-                  task.data.task_deblock.img   = img;
-                  task.data.task_deblock.ctb_x = x;
-                  task.data.task_deblock.ctb_y = y;
-                  task.data.task_deblock.vertical = (pass==0);
-                
-                  add_task(&ctx->thread_pool, &task);
-                }
-
-            wait_for_completion(img);
-          }
-#endif
-#if 0
-        for (int pass=0;pass<2;pass++)
-          {
-            thread_task task;
-
-            task.work_routine = thread_deblock_ctb_row;
-
-            ctx->thread_pool.tasks_pending = img->sps.PicHeightInCtbsY;
-
-            for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
-              //for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
-                {
-                  task.data.task_deblock.img   = img;
-                  //task.data.task_deblock.ctb_x = x;
-                  task.data.task_deblock.ctb_y = y;
-                  task.data.task_deblock.vertical = (pass==0);
-                
-                  add_task(&ctx->thread_pool, &task);
-                }
-          }
-#endif
-#if 0
-        for (int pass=0;pass<2;pass++)
-          {
-            thread_task task;
-
-            task.work_routine = thread_deblock_full_ctb_row;
-
-            ctx->thread_pool.tasks_pending = img->sps.PicHeightInCtbsY;
-
-            for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
-              //for (int x=0;x<ctx->current_sps->PicWidthInCtbsY;x++)
-                {
-                  task.data.task_deblock.img   = img;
-                  //task.data.task_deblock.ctb_x = x;
-                  task.data.task_deblock.ctb_y = y;
-                  task.data.task_deblock.vertical = (pass==0);
-                
-                  add_task(&ctx->thread_pool, &task);
-                }
-          }
-#endif
+        add_deblocking_tasks(img);
       }
     }
 }
