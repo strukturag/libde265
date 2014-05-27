@@ -501,12 +501,16 @@ void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize
           }
 
           for (int x=0;x<1<<blkw;x+=step)
-            for (int y=0;y<1<<blkw;y+=step)
-              if (x<img->sps.pic_width_in_luma_samples &&
-                  y<img->sps.pic_height_in_luma_samples)
+            for (int y=0;y<1<<blkw;y+=step) {
+              int x1 = x + (ctbx<<blkw);
+              int y1 = y + (ctby<<blkw);
+
+              if (x1<img->sps.pic_width_in_luma_samples &&
+                  y1<img->sps.pic_height_in_luma_samples)
                 {
-                  set_pixel(dst,x + (ctbx<<blkw),y + (ctby<<blkw),stride,fillcolor,pixelSize);
+                  set_pixel(dst,x1,y1,stride,fillcolor,pixelSize);
                 }
+            }
         }
       }
 
