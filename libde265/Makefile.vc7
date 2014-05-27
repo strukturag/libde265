@@ -55,6 +55,7 @@ OBJS=\
 	threads.obj \
 	transform.obj \
 	util.obj \
+	visualize.obj \
 	vps.obj \
 	x86\sse.obj \
 	x86\sse-dct.obj \
