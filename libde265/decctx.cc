@@ -803,7 +803,9 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   return DE265_OK;
 }
 
+#ifndef _MSC_VER
 #include <unistd.h> // TODO REMOVE
+#endif
 de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
                                                    slice_unit* sliceunit)
 {

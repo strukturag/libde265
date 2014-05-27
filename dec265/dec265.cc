@@ -57,17 +57,11 @@ extern "C" {
 }
 
 
-#ifndef _MSC_VER
 extern "C" {
 void showMotionProfile();
 void showIntraPredictionProfile();
 void showTransformProfile();
 }
-#else
-void showMotionProfile();
-void showIntraPredictionProfile();
-void showTransformProfile();
-#endif
 
 
 #define BUFFER_SIZE 40960
