@@ -3651,7 +3651,8 @@ enum DecodeResult {
 /* Decode CTBs until the end of sub-stream, the end-of-slice, or some error occurs.
  */
 enum DecodeResult decode_substream(thread_context* tctx,
-                                   bool block_wpp) // block on WPP dependencies
+                                   bool block_wpp, // block on WPP dependencies
+                                   bool first_independent_substream)
 {
   const pic_parameter_set* pps = &tctx->img->pps;
   const seq_parameter_set* sps = &tctx->img->sps;
@@ -3659,23 +3660,28 @@ enum DecodeResult decode_substream(thread_context* tctx,
   const int ctbW = sps->PicWidthInCtbsY;
 
 
+  const int startCtbY = tctx->CtbY;
+
   // in WPP mode: initialize CABAC model with stored model from row above
 
-  if (pps->entropy_coding_sync_enabled_flag && tctx->CtbY>=1 && tctx->CtbX==0) {
-    if (sps->PicWidthInCtbsY>1) {
-      // we have to wait until the context model data is there
-      tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+  if ((!first_independent_substream || tctx->CtbY != startCtbY) &&
+      pps->entropy_coding_sync_enabled_flag &&
+      tctx->CtbY>=1 && tctx->CtbX==0)
+    {
+      if (sps->PicWidthInCtbsY>1) {
+        // we have to wait until the context model data is there
+        tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
 
-      // copy CABAC model from previous CTB row
-      memcpy(tctx->ctx_model,
-             &tctx->imgunit->ctx_models[(tctx->CtbY-1) * CONTEXT_MODEL_TABLE_LENGTH],
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+        // copy CABAC model from previous CTB row
+        memcpy(tctx->ctx_model,
+               &tctx->imgunit->ctx_models[(tctx->CtbY-1) * CONTEXT_MODEL_TABLE_LENGTH],
+               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      }
+      else {
+        tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+        initialize_CABAC(tctx);
+      }
     }
-    else {
-      tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
-      initialize_CABAC(tctx);
-    }
-  }
 
 
   do {
@@ -3688,7 +3694,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
-    //printf("%p: decode %d|%d\n", tctx, tctx->CtbY,tctx->CtbX);
+    //printf("%p: decode %d;%d\n", tctx, tctx->CtbY,tctx->CtbX);
 
 
     // read and decode CTB
@@ -3829,7 +3835,7 @@ void thread_task_slice_segment::work()
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  /*enum DecodeResult result =*/ decode_substream(tctx, false);
+  /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
   state = Finished;
   img->thread_finishes();
@@ -3864,8 +3870,11 @@ void thread_task_ctb_row::work()
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
+  bool firstIndependentSubstream =
+    data->firstSliceSubstream && !tctx->shdr->dependent_slice_segment_flag;
+
   /*enum DecodeResult result =*/
-  decode_substream(tctx, true);
+  decode_substream(tctx, true, firstIndependentSubstream);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
@@ -3900,17 +3909,20 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   // printf("-----\n");
 
+  bool first_slice_substream = !shdr->dependent_slice_segment_flag;
+
   enum DecodeResult result;
   do {
     int ctby = tctx->CtbY;
 
-    result = decode_substream(tctx, false);
+    result = decode_substream(tctx, false, first_slice_substream);
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
       break;
     }
 
+    first_slice_substream = false;
 
     if (pps->tiles_enabled_flag) {
       initialize_CABAC(tctx);
