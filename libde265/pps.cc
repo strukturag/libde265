@@ -549,6 +549,9 @@ void pic_parameter_set::dump_pps(int fd) const
   LOG1("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
   LOG1("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
   LOG1("pps_extension_flag : %d\n", pps_extension_flag);
+
+  LOG1("Log2MinCuQpDeltaSize : %d\n", Log2MinCuQpDeltaSize);
+
 #undef LOG0
 #undef LOG1
 }

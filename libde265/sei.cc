@@ -262,6 +262,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
   }
 
   loginfo(LogSEI,"decoded picture hash checked: OK\n");
+  //printf("checked picture %d SEI: OK\n", img->PicOrderCntVal);
 
   return DE265_OK;
 }

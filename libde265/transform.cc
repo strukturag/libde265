@@ -105,17 +105,24 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
     }
 
   int qPY_PRED;
-  bool firstQGInSlice;
-  bool firstQGInTile = false;
-  bool firstInCTBRow = (xQG==0); // TODO: Tiles
+
+  // first QG in CTB row ?
   
-  int first_ctb_in_slice_RS = tctx->shdr->SliceAddrRS; // slice_segment_address;
+  int ctbLSBMask = ((1<<sps->Log2CtbSizeY)-1);
+  bool firstInCTBRow = (xQG == 0 && ((yQG & ctbLSBMask)==0));
+
+  // first QG in slice ?    TODO: a "firstQG" flag in the thread context would be faster
+
+  int first_ctb_in_slice_RS = tctx->shdr->SliceAddrRS;
 
   int SliceStartX = (first_ctb_in_slice_RS % sps->PicWidthInCtbsY) * sps->CtbSizeY;
   int SliceStartY = (first_ctb_in_slice_RS / sps->PicWidthInCtbsY) * sps->CtbSizeY;
 
-  firstQGInSlice = (SliceStartX == xQG && SliceStartY == yQG);
+  bool firstQGInSlice = (SliceStartX == xQG && SliceStartY == yQG);
 
+  // first QG in tile ?
+
+  bool firstQGInTile = false;
   if (pps->tiles_enabled_flag) {
     if ((xQG & ((1 << sps->Log2CtbSizeY)-1)) == 0 &&
         (yQG & ((1 << sps->Log2CtbSizeY)-1)) == 0)
@@ -123,9 +130,10 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
         int ctbX = xQG >> sps->Log2CtbSizeY;
         int ctbY = yQG >> sps->Log2CtbSizeY;
 
-        firstQGInTile = pps->is_tile_start_CTB(ctbX,ctbY);
+        firstQGInTile = pps->is_tile_start_CTB(ctbX,ctbY); // TODO: this is slow
       }
   }
+
 
   if (firstQGInSlice || firstQGInTile ||
       (firstInCTBRow && pps->entropy_coding_sync_enabled_flag)) {
