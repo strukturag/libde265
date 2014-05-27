@@ -224,8 +224,8 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
   int stride[3];
   const uint8_t *data[3];
   for (int c=0;c<3;c++) {
-    data[3]   = img->get_image_plane(c);
-    stride[3] = img->get_image_stride(c);
+    data[c]   = img->get_image_plane(c);
+    stride[c] = img->get_image_stride(c);
   }
 
   uint8_t *qdata[1] = { (uint8_t *) qimg.bits() };
