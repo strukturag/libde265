@@ -183,7 +183,7 @@ struct image_unit
   } role;
 
   enum { Unprocessed,
-         Inprogress,
+         InProgress,
          Decoded,
          Dropped         // will not be decoded
   } state;
@@ -192,7 +192,7 @@ struct image_unit
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
-     ctx_models[0] is not used. The array is unused for non-WPP streams. */
+     The array is unused for non-WPP streams. */
   std::vector<context_model> ctx_models;
 };
 

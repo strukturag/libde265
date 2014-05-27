@@ -828,7 +828,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   // reserve space to store entropy coding context models for each CTB row
 
   if (shdr->first_slice_segment_in_pic_flag) {
-    imgunit->ctx_models.resize( img->sps.PicHeightInCtbsY * CONTEXT_MODEL_TABLE_LENGTH );
+    // reserve space for nRows-1 because we don't need to save the CABAC model in the last CTB row
+    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) * CONTEXT_MODEL_TABLE_LENGTH );
   }
 
 

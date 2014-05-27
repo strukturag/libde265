@@ -3844,19 +3844,19 @@ void thread_task_ctb_row::work()
     // we have to wait until the context model data is there
     tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
 
+    // copy CABAC model from previous CTB row
     memcpy(tctx->ctx_model,
-           &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH],
+           &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
            CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
   }
-
-  //printf("read from %p\n", &tctx->imgunit->ctx_models[ctby],
 
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
   context_model* ctx_store = NULL;
-  if (ctby+1 < sps->PicHeightInCtbsY) {
-    ctx_store = &tctx->imgunit->ctx_models[(ctby+1) * CONTEXT_MODEL_TABLE_LENGTH];
+  // store CABAC model except for the last CTB row
+  if (ctby < sps->PicHeightInCtbsY-1) {
+    ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
   }
 
   /*enum DecodeResult result =*/
