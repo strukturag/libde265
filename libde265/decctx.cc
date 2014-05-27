@@ -744,6 +744,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
                      sliceunit->reader.data,
                      sliceunit->reader.bytes_remaining);
 
+  // alloc CABAC-model array if entropy_coding_sync is enabled
+
+  if (pps->entropy_coding_sync_enabled_flag &&
+      sliceunit->shdr->first_slice_segment_in_pic_flag) {
+    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) * CONTEXT_MODEL_TABLE_LENGTH );
+  }
 
   if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
     { return err; }

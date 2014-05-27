@@ -3837,8 +3837,8 @@ void thread_task_ctb_row::work()
     initialize_CABAC_at_slice_segment_start(tctx);
     //initialize_CABAC(tctx);
   }
-  else if (1) {
-    assert(ctby>=1);
+
+  if (img->pps.entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
 
     // we have to wait until the context model data is there
     tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
@@ -3896,18 +3896,28 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   enum DecodeResult result;
   do {
-    result = decode_substream(tctx, false, shdr->ctx_model_storage);
+    int ctby = tctx->CtbY;
+
+    context_model* ctx_store = NULL;
+    // store CABAC model except for the last CTB row
+    if (ctby < sps->PicHeightInCtbsY-1) {
+      ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
+    }
+
+
+    if (pps->entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
+      memcpy(tctx->ctx_model,
+             &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+
+    result = decode_substream(tctx, false, ctx_store);
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
       break;
     }
 
-    if (pps->entropy_coding_sync_enabled_flag) {
-      memcpy(tctx->ctx_model,
-             shdr->ctx_model_storage,
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-    }
 
     if (pps->tiles_enabled_flag) {
       initialize_CABAC(tctx);
