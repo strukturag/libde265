@@ -62,7 +62,10 @@ have dependencies on:
 
 - Qt (required for sherlock265),
 
-- libvideogfx (required for sherlock265, optional for dec265).
+- libswscale (required for sherlock265 if libvideogfx is not available).
+
+- libvideogfx (required for sherlock265 if libswscale is not available,
+  optional for dec265).
 
 Libvideogfx can be obtained from
   http://www.dirk-farin.net/software/libvideogfx/index.html
