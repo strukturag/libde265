@@ -12,6 +12,8 @@ libde265 supports WPP and tile-based multithreading and includes SSE optimizatio
 The decoder includes all features of the Main profile and correctly decodes almost all
 conformance streams (see [[wiki page](https://github.com/strukturag/libde265/wiki/Decoder-conformance)]).
 
+A list of supported features are available in the [wiki](https://github.com/strukturag/libde265/wiki/Supported-decoding-features).
+
 For latest news check our website at http://www.libde265.org
 
 The library comes with two example programs:
@@ -62,7 +64,10 @@ have dependencies on:
 
 - Qt (required for sherlock265),
 
-- libvideogfx (required for sherlock265, optional for dec265).
+- libswscale (required for sherlock265 if libvideogfx is not available).
+
+- libvideogfx (required for sherlock265 if libswscale is not available,
+  optional for dec265).
 
 Libvideogfx can be obtained from
   http://www.dirk-farin.net/software/libvideogfx/index.html
