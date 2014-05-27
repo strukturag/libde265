@@ -97,11 +97,15 @@ Libde265 has been integrated into these applications:
 
 - gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
-- VLC plugin
+- VLC plugin [source](https://github.com/strukturag/vlc-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
 - Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
 
 - ffmpeg fork, https://github.com/farindk/ffmpeg
+
+- ffmpeg decoder [source](https://github.com/strukturag/libde265-ffmpeg)
+
+- libde265.js JavaScript decoder [source](https://github.com/strukturag/libde265.js), [demo](https://strukturag.github.io/libde265.js/).
 
 
 License
