@@ -193,7 +193,7 @@ struct image_unit
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
      The array is unused for non-WPP streams. */
-  std::vector<context_model> ctx_models;
+  std::vector<context_model> ctx_models;  // TODO: move this into image ?
 };
 
 

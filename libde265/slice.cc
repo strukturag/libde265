@@ -3651,8 +3651,7 @@ enum DecodeResult {
 /* Decode CTBs until the end of sub-stream, the end-of-slice, or some error occurs.
  */
 enum DecodeResult decode_substream(thread_context* tctx,
-                                   bool block_wpp, // block on WPP dependencies
-                                   context_model* context_storage) // copy CABAC-context to this storage space
+                                   bool block_wpp) // block on WPP dependencies
 {
   const pic_parameter_set* pps = &tctx->img->pps;
   const seq_parameter_set* sps = &tctx->img->sps;
@@ -3676,12 +3675,16 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     read_coding_tree_unit(tctx);
 
+
+    // save CABAC-model for WPP (except in last CTB row)
+
     if (pps->entropy_coding_sync_enabled_flag &&
         ctbx == 1 &&
-        ctby+1 < sps->PicHeightInCtbsY &&
-        context_storage != NULL)
+        ctby < sps->PicHeightInCtbsY-1)
       {
-        memcpy(context_storage,
+        context_model* ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
+
+        memcpy(ctx_store,
                &tctx->ctx_model,
                CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
       }
@@ -3806,7 +3809,7 @@ void thread_task_slice_segment::work()
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  /*enum DecodeResult result =*/ decode_substream(tctx, false, NULL);
+  /*enum DecodeResult result =*/ decode_substream(tctx, false);
 
   state = Finished;
   img->thread_finishes();
@@ -3858,14 +3861,8 @@ void thread_task_ctb_row::work()
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  context_model* ctx_store = NULL;
-  // store CABAC model except for the last CTB row
-  if (ctby < sps->PicHeightInCtbsY-1) {
-    ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
-  }
-
   /*enum DecodeResult result =*/
-  decode_substream(tctx, true, ctx_store);
+  decode_substream(tctx, true);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
@@ -3904,12 +3901,6 @@ de265_error read_slice_segment_data(thread_context* tctx)
   do {
     int ctby = tctx->CtbY;
 
-    context_model* ctx_store = NULL;
-    // store CABAC model except for the last CTB row
-    if (ctby < sps->PicHeightInCtbsY-1) {
-      ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
-    }
-
 
     if (pps->entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
       if (sps->PicWidthInCtbsY>1) {
@@ -3922,7 +3913,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
       }
     }
 
-    result = decode_substream(tctx, false, ctx_store);
+    result = decode_substream(tctx, false);
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
