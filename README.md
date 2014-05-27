@@ -97,7 +97,7 @@ Libde265 has been integrated into these applications:
 
 - gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
-- VLC plugin
+- VLC plugin [source](https://github.com/strukturag/vlc-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
 - Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
 
