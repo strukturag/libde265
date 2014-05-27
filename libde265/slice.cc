@@ -3708,6 +3708,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
     logtrace(LogSlice,"read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
+    //printf("read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
 
     const int lastCtbY = tctx->CtbY;
 
@@ -3839,14 +3840,19 @@ void thread_task_ctb_row::work()
   }
 
   if (img->pps.entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
+    if (sps->PicWidthInCtbsY>1) {
+      // we have to wait until the context model data is there
+      tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
 
-    // we have to wait until the context model data is there
-    tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
-
-    // copy CABAC model from previous CTB row
-    memcpy(tctx->ctx_model,
-           &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
-           CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      // copy CABAC model from previous CTB row
+      memcpy(tctx->ctx_model,
+             &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+    else {
+      tctx->img->wait_for_progress(tctx->task, 0,ctby-1,CTB_PROGRESS_PREFILTER);
+      initialize_CABAC(tctx);
+    }
   }
 
 
@@ -3906,9 +3912,14 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
 
     if (pps->entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
-      memcpy(tctx->ctx_model,
-             &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      if (sps->PicWidthInCtbsY>1) {
+        memcpy(tctx->ctx_model,
+               &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
+               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+      }
+      else {
+        initialize_CABAC(tctx);
+      }
     }
 
     result = decode_substream(tctx, false, ctx_store);
