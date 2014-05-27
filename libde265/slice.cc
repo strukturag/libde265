@@ -3652,7 +3652,6 @@ enum DecodeResult {
  */
 enum DecodeResult decode_substream(thread_context* tctx,
                                    bool block_wpp, // block on WPP dependencies
-                                   int context_copy_ctbx, // copy CABAC-context after decoding this CTB
                                    context_model* context_storage) // copy CABAC-context to this storage space
 {
   const pic_parameter_set* pps = &tctx->img->pps;
@@ -3678,7 +3677,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     read_coding_tree_unit(tctx);
 
     if (pps->entropy_coding_sync_enabled_flag &&
-        ctbx == context_copy_ctbx &&
+        ctbx == 1 &&
         ctby+1 < sps->PicHeightInCtbsY &&
         context_storage != NULL)
       {
@@ -3806,7 +3805,7 @@ void thread_task_slice_segment::work()
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  /*enum DecodeResult result =*/ decode_substream(tctx, false, -1,NULL);
+  /*enum DecodeResult result =*/ decode_substream(tctx, false, NULL);
 
   state = Finished;
   img->thread_finishes();
@@ -3860,7 +3859,7 @@ void thread_task_ctb_row::work()
   }
 
   /*enum DecodeResult result =*/
-  decode_substream(tctx, true, 1, ctx_store);
+  decode_substream(tctx, true, ctx_store);
 
   // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
@@ -3897,8 +3896,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   enum DecodeResult result;
   do {
-    result = decode_substream(tctx, false, 1,
-                              shdr->ctx_model_storage);
+    result = decode_substream(tctx, false, shdr->ctx_model_storage);
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
