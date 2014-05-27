@@ -3658,6 +3658,26 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
   const int ctbW = sps->PicWidthInCtbsY;
 
+
+  // in WPP mode: initialize CABAC model with stored model from row above
+
+  if (pps->entropy_coding_sync_enabled_flag && tctx->CtbY>=1 && tctx->CtbX==0) {
+    if (sps->PicWidthInCtbsY>1) {
+      // we have to wait until the context model data is there
+      tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+
+      // copy CABAC model from previous CTB row
+      memcpy(tctx->ctx_model,
+             &tctx->imgunit->ctx_models[(tctx->CtbY-1) * CONTEXT_MODEL_TABLE_LENGTH],
+             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+    }
+    else {
+      tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+      initialize_CABAC(tctx);
+    }
+  }
+
+
   do {
     const int ctbx = tctx->CtbX;
     const int ctby = tctx->CtbY;
@@ -3842,23 +3862,6 @@ void thread_task_ctb_row::work()
     //initialize_CABAC(tctx);
   }
 
-  if (img->pps.entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
-    if (sps->PicWidthInCtbsY>1) {
-      // we have to wait until the context model data is there
-      tctx->img->wait_for_progress(tctx->task, 1,ctby-1,CTB_PROGRESS_PREFILTER);
-
-      // copy CABAC model from previous CTB row
-      memcpy(tctx->ctx_model,
-             &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
-             CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-    }
-    else {
-      tctx->img->wait_for_progress(tctx->task, 0,ctby-1,CTB_PROGRESS_PREFILTER);
-      initialize_CABAC(tctx);
-    }
-  }
-
-
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
   /*enum DecodeResult result =*/
@@ -3900,18 +3903,6 @@ de265_error read_slice_segment_data(thread_context* tctx)
   enum DecodeResult result;
   do {
     int ctby = tctx->CtbY;
-
-
-    if (pps->entropy_coding_sync_enabled_flag && ctby>=1 && tctx->CtbX==0) {
-      if (sps->PicWidthInCtbsY>1) {
-        memcpy(tctx->ctx_model,
-               &tctx->imgunit->ctx_models[(ctby-1) * CONTEXT_MODEL_TABLE_LENGTH],
-               CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
-      }
-      else {
-        initialize_CABAC(tctx);
-      }
-    }
 
     result = decode_substream(tctx, false);
 
