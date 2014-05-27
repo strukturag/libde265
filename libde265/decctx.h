@@ -51,8 +51,6 @@ struct thread_context
 {
   thread_context();
 
-  uint8_t inUse;  // thread_context is used for the current decoding process
-
   int CtbAddrInRS;
   int CtbAddrInTS;
 

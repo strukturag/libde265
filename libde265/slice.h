@@ -219,7 +219,7 @@ typedef struct slice_segment_header {
 
   // --- derived data ---
 
-  int SliceAddrRS;  // start if last independent slice
+  int SliceAddrRS;  // start of last independent slice
   int SliceQPY;
 
   int initType;

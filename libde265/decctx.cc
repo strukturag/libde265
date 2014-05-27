@@ -48,8 +48,6 @@ extern void thread_decode_slice_segment(void* d);
 
 thread_context::thread_context()
 {
-  inUse = false;
-
   /*
   CtbAddrInRS = 0;
   CtbAddrInTS = 0;
@@ -402,8 +400,6 @@ void decoder_context::set_acceleration_functions(enum de265_acceleration l)
 
 void decoder_context::init_thread_context(thread_context* tctx)
 {
-  tctx->inUse = true;
-
   // zero scrap memory for coefficient blocks
   memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));  // TODO: check if we can safely remove this
 
@@ -437,7 +433,9 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
     //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
 
+    //if (tctx->shdr->dependent_slice_segment_flag) {  // TODO: do we need this condition ?
     tctx->currentQPY = tctx->img->get_QPY(x,y);
+    //}
   }
 }
 
@@ -809,9 +807,7 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   return DE265_OK;
 }
 
-#ifndef _MSC_VER
-#include <unistd.h> // TODO REMOVE
-#endif
+
 de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
                                                    slice_unit* sliceunit)
 {
