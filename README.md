@@ -103,6 +103,8 @@ Libde265 has been integrated into these applications:
 
 - ffmpeg fork, https://github.com/farindk/ffmpeg
 
+- ffmpeg decoder [source](https://github.com/strukturag/libde265-ffmpeg)
+
 - libde265.js JavaScript decoder [source](https://github.com/strukturag/libde265.js), [demo](https://strukturag.github.io/libde265.js/).
 
 
