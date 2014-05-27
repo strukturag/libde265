@@ -18,6 +18,14 @@ CFLAGS=$(CFLAGS) /wd4189
 CFLAGS=$(CFLAGS) /wd4505
 # padded structures
 CFLAGS=$(CFLAGS) /wd4324
+# conversion signed/unsigned
+CFLAGS=$(CFLAGS) /wd4245
+# comparison signed/unsigned
+CFLAGS=$(CFLAGS) /wd4018 /wd4389
+# possible loss of data with return
+CFLAGS=$(CFLAGS) /wd4267
+# forcing value to bool (performance warning)
+CFLAGS=$(CFLAGS) /wd4800
 
 CFLAGS=$(CFLAGS) $(DEFINES)
 
