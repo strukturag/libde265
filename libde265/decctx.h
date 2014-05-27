@@ -188,9 +188,6 @@ struct image_unit
          Dropped         // will not be decoded
   } state;
 
-  void wait_for_progress(thread_task*, int ctbx,int ctby, int progress);
-  void wait_for_progress(thread_task*, int ctbAddrRS, int progress);
-
   std::vector<thread_task*> tasks; // we are the owner
 
   /* Saved context models for WPP.
