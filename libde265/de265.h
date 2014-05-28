@@ -312,6 +312,7 @@ struct de265_image_allocation
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
                                                        struct de265_image_allocation*,
                                                        void* userdata);
+LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
 
 LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride, void *userdata);
 
