@@ -167,7 +167,7 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
 
 /* === decoder === */
 
-typedef void de265_decoder_context; // private structure
+typedef void* de265_decoder_context; // private structure
 
 
 

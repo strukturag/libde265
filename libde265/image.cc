@@ -377,7 +377,7 @@ void de265_image::fill_image(int y,int cb,int cr)
 
 void de265_image::copy_image(const de265_image* src)
 {
-  alloc_image(src->width, src->height, src->chroma_format, NULL, decctx);
+  alloc_image(src->width, src->height, src->chroma_format, NULL, src->decctx);
 
   assert(src->stride == stride &&
          src->chroma_stride == chroma_stride);
