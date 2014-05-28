@@ -1588,7 +1588,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     hdr->RefPicList[0][rIdx] = RefPicListTemp0[idx];
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
-    // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
+    // remember POC of referenced image (needed in motion.c, derive_collocated_motion_vector)
     hdr->RefPicList_POC[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicOrderCntVal;
     hdr->RefPicList_PicState[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicState;
   }
@@ -1633,7 +1633,6 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
   // show reference picture lists
 
-#if 0
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
@@ -1651,7 +1650,6 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
             );
   }
   loginfo(LogHeaders,"*\n");
-#endif
 
   return true;
 }

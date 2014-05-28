@@ -2018,8 +2018,17 @@ void initialize_CABAC(thread_context* tctx)
 
   init_context(tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
   if (initType > 0) {
-    init_context(tctx, CONTEXT_MODEL_CU_SKIP_FLAG,  initValue_cu_skip_flag[initType-1],  3);
+    init_context(tctx, CONTEXT_MODEL_CU_SKIP_FLAG,    initValue_cu_skip_flag[initType-1],  3);
+    init_context(tctx, CONTEXT_MODEL_PRED_MODE_FLAG, &initValue_pred_mode_flag[initType-1], 1);
+    init_context(tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
+    init_context(tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
+    init_context(tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
+    init_context(tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
+    init_context(tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
+    init_context(tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
+    init_context(tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
   }
+
   init_context(tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
   init_context(tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
   init_context(tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
@@ -2036,14 +2045,6 @@ void initialize_CABAC(thread_context* tctx)
   init_context(tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
   init_context(tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
   init_context(tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
-  init_context(tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
-  init_context(tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
-  init_context(tctx, CONTEXT_MODEL_PRED_MODE_FLAG,         &initValue_pred_mode_flag[initType-1], 1);
-  init_context(tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
-  init_context(tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
-  init_context(tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
-  init_context(tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
-  init_context(tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
   init_context(tctx, CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
 }
 

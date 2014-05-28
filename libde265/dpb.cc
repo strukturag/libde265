@@ -75,7 +75,7 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 
 int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm) const
 {
-  logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=\n",poc);
+  logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=%d\n",poc);
 
   //log_dpb_content(ctx);
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
