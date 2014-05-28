@@ -197,7 +197,7 @@ struct de265_image {
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
 
-  void set_image_plane(int cIdx, uint8_t* mem, int stride);
+  void set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata);
 
   uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
@@ -298,6 +298,7 @@ public:
 
   de265_PTS pts;
   void*     user_data;
+  void*     plane_user_data[3];
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,
