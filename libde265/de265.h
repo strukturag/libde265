@@ -296,12 +296,20 @@ struct de265_image_spec
 
 struct de265_image_allocation
 {
-  int  (*get_buffer)(struct de265_image_spec* spec, struct de265_image* img);
-  void (*release_buffer)(struct de265_image* img);
+  int  (*get_buffer)(de265_decoder_context* ctx,
+                     struct de265_image_spec* spec,
+                     struct de265_image* img,
+                     void* userdata);
+  void (*release_buffer)(de265_decoder_context* ctx,
+                         struct de265_image* img,
+                         void* userdata);
 };
 
+/* The user data pointer will be given to the get_buffer() and release_buffer() functions
+   in de265_image_allocation. */
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
-                                                       struct de265_image_allocation*);
+                                                       struct de265_image_allocation*,
+                                                       void* userdata);
 
 LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride);
 
@@ -312,7 +320,7 @@ LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void*
    The maximum layer ID in the stream can be queried with de265_get_highest_TID().
    Note that the maximum layer ID can change throughout the stream.
 
-   For a fine-grained selection of the frame-rate, use de265_set-framerate_ratio().
+   For a fine-grained selection of the frame-rate, use de265_set_framerate_ratio().
    A percentage of 100% will decode all frames in all temporal layers. A lower percentage
    will drop approximately as many frames. Note that this only accurate if the frames
    are distributed evenly among the layers. Otherwise, the mapping is non-linear.

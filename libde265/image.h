@@ -184,7 +184,7 @@ struct de265_image {
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
-                          const de265_image_allocation* allocfunc);
+                          decoder_context* ctx);
 
   void release();
 
@@ -256,8 +256,6 @@ private:
 
   int chroma_width, chroma_height;
   int stride, chroma_stride;
-
-  de265_image_allocation alloc_functions;
 
 public:
   std::vector<slice_segment_header*> slices;

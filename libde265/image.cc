@@ -63,7 +63,8 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 static const int alignment = 16;
 
 
-static int  de265_image_get_buffer(de265_image_spec* spec, de265_image* img)
+static int  de265_image_get_buffer(de265_decoder_context* ctx,
+                                   de265_image_spec* spec, de265_image* img, void* userdata)
 {
   int luma_stride   = (spec->width   + spec->alignment-1) / spec->alignment * spec->alignment;
   int chroma_stride = (spec->width/2 + spec->alignment-1) / spec->alignment * spec->alignment;
@@ -92,7 +93,8 @@ static int  de265_image_get_buffer(de265_image_spec* spec, de265_image* img)
   return 1;
 }
 
-static void de265_image_release_buffer(de265_image* img)
+static void de265_image_release_buffer(de265_decoder_context* ctx,
+                                       de265_image* img, void* userdata)
 {
   for (int i=0;i<3;i++) {
     uint8_t* p = (uint8_t*)img->get_image_plane(i);
@@ -124,8 +126,10 @@ de265_image::de265_image()
   ID = -1;
   removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
-  alloc_functions.get_buffer = NULL;
-  alloc_functions.release_buffer = NULL;
+  decctx = NULL;
+
+  //alloc_functions.get_buffer = NULL;
+  //alloc_functions.release_buffer = NULL;
 
   for (int c=0;c<3;c++) {
     pixels[c] = NULL;
@@ -154,12 +158,14 @@ de265_image::de265_image()
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps,
-                                     const de265_image_allocation* allocfunc)
+                                     decoder_context* ctx)
+                                     //const de265_image_allocation* allocfunc,
+                                     //void* userdata)
 {
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
-  decctx = NULL;
+  decctx = ctx;
 
   nThreadsQueued   = 0;
   nThreadsRunning  = 0;
@@ -234,7 +240,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  bool mem_alloc_success = allocfunc->get_buffer(&spec, this);
+  void* alloc_userdata = decctx->param_image_allocation_userdata;
+  bool mem_alloc_success = decctx->param_image_allocation_functions.get_buffer((de265_decoder_context*)decctx, &spec, this,
+                                                                               alloc_userdata);
 
   pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
   pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
@@ -248,8 +256,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
       return DE265_ERROR_OUT_OF_MEMORY;
     }
 
-  alloc_functions = *allocfunc;
-
+  //alloc_functions = *allocfunc;
+  //alloc_userdata  = userdata;
 
   // --- allocate decoding info arrays ---
 
@@ -328,10 +336,11 @@ void de265_image::release()
 {
   // free image memory
 
-  if (alloc_functions.release_buffer &&
+  de265_image_allocation* allocfunc = &decctx->param_image_allocation_functions;
+  if (allocfunc->release_buffer &&
       pixels[0])
     {
-      alloc_functions.release_buffer(this);
+      allocfunc->release_buffer((de265_decoder_context*)decctx, this, decctx->param_image_allocation_userdata);
 
       for (int i=0;i<3;i++)
         {
@@ -368,7 +377,7 @@ void de265_image::fill_image(int y,int cb,int cr)
 
 void de265_image::copy_image(const de265_image* src)
 {
-  alloc_image(src->width, src->height, src->chroma_format, NULL, &src->alloc_functions);
+  alloc_image(src->width, src->height, src->chroma_format, NULL, decctx);
 
   assert(src->stride == stride &&
          src->chroma_stride == chroma_stride);
