@@ -681,6 +681,8 @@ de265_error decoder_context::decode_some()
     if (err) {
       return err;
     }
+
+    delete sliceunit;
   }
 
 
@@ -1017,10 +1019,10 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
           nal_hdr.nuh_temporal_id);
 
   /*
-  printf("NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
-          nal->data()[0], nal->data()[1],
-          get_NAL_name(nal_hdr.nal_unit_type),
-          nal_hdr.nuh_temporal_id);
+    printf("NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
+    nal->data()[0], nal->data()[1],
+    get_NAL_name(nal_hdr.nal_unit_type),
+    nal_hdr.nuh_temporal_id);
   */
 
   // throw away NALs from higher TIDs than currently selected
@@ -1040,23 +1042,28 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
       err = read_vps_NAL(reader);
+      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_SPS_NUT:
       err = read_sps_NAL(reader);
+      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PPS_NUT:
       err = read_pps_NAL(reader);
+      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
       err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
+      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_EOS_NUT:
       ctx->FirstAfterEndOfSequenceNAL = true;
+      nal_parser.free_NAL_unit(nal);
       break;
     }
 
