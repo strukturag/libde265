@@ -236,7 +236,8 @@ class decoder_context : public error_queue {
   void process_pps(pic_parameter_set*);
 
   bool process_slice_segment_header(decoder_context*, slice_segment_header*,
-                                    de265_error*, de265_PTS pts, void* user_data);
+                                    de265_error*, de265_PTS pts,
+                                    nal_header* nal_hdr, void* user_data);
 
   //void push_current_picture_to_output_queue();
   de265_error push_picture_to_output_queue(image_unit*);

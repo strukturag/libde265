@@ -592,7 +592,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   }
 
 
-  if (process_slice_segment_header(this, shdr, &err, nal->pts, nal->user_data) == false)
+  if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       img->integrity = INTEGRITY_NOT_DECODED;
       delete shdr;
@@ -600,7 +600,6 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     }
 
   this->img->add_slice_segment_header(shdr);
-  this->img->nal_hdr = nal_hdr;
 
   skip_bits(&reader,1); // TODO: why?
   prepare_for_CABAC(&reader);
@@ -1217,7 +1216,7 @@ void decoder_context::process_picture_order_count(decoder_context* ctx, slice_se
            ctx->PicOrderCntMsb,
            ctx->img->PicOrderCntVal);
 
-  if (1 /* TemporalID==0 */ && // TODO
+  if (ctx->img->nal_hdr.nuh_temporal_id==0 &&
       (isReferenceNALU(ctx->nal_unit_type) &&
        (!isRASL(ctx->nal_unit_type) && !isRADL(ctx->nal_unit_type))) &&
       1 /* sub-layer non-reference picture */) // TODO
@@ -1637,19 +1636,21 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     loginfo(LogHeaders,"* [%d]=%d",
             hdr->RefPicList[0][rIdx],
-            ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicOrderCntVal
+            hdr->RefPicList_POC[0][rIdx]
             );
   }
   loginfo(LogHeaders,"*\n");
 
-  loginfo(LogHeaders,"RefPicList[1] =");
-  for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-    loginfo(LogHeaders,"* [%d]=%d",
-            hdr->RefPicList[1][rIdx],
-            ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicOrderCntVal
-            );
+  if (hdr->slice_type == SLICE_TYPE_B) {
+    loginfo(LogHeaders,"RefPicList[1] =");
+    for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
+      loginfo(LogHeaders,"* [%d]=%d",
+              hdr->RefPicList[1][rIdx],
+              hdr->RefPicList_POC[1][rIdx]
+              );
+    }
+    loginfo(LogHeaders,"*\n");
   }
-  loginfo(LogHeaders,"*\n");
 
   return true;
 }
@@ -1742,7 +1743,9 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
 // returns whether we can continue decoding the stream or whether we should give up
 bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
-                                                   de265_error* err, de265_PTS pts, void* user_data)
+                                                   de265_error* err, de265_PTS pts,
+                                                   nal_header* nal_hdr,
+                                                   void* user_data)
 {
   *err = DE265_OK;
 
@@ -1790,6 +1793,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     de265_image* img = ctx->dpb.get_image(image_buffer_idx);
     img->pts = pts;
     img->user_data = user_data;
+    img->nal_hdr = *nal_hdr;
     ctx->img = img;
 
     img->vps = *ctx->current_vps;
