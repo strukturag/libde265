@@ -253,6 +253,11 @@ class decoder_context : public error_queue {
   int  param_pps_headers_fd;
   int  param_slice_headers_fd;
 
+  bool param_disable_deblocking;
+  bool param_disable_sao;
+  //bool param_disable_mc_residual_idct;  // not implemented yet
+  //bool param_disable_intra_residual_idct;  // not implemented yet
+
   void set_image_allocation_functions(de265_image_allocation* allocfunc, void* userdata);
 
   de265_image_allocation param_image_allocation_functions;

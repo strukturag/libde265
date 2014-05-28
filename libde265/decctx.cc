@@ -183,6 +183,11 @@ decoder_context::decoder_context()
   param_conceal_stream_errors = true;
   param_suppress_faulty_pictures = false;
 
+  param_disable_deblocking = false;
+  param_disable_sao = false;
+  //param_disable_mc_residual_idct = false;
+  //param_disable_intra_residual_idct = false;
+
   // --- processing ---
 
   param_sps_headers_fd = -1;
@@ -704,7 +709,6 @@ de265_error decoder_context::decode_some()
       run_postprocessing_filters_parallel(imgunit->img);
     else
       run_postprocessing_filters_sequential(imgunit->img);
-
 
     // process suffix SEIs
 
@@ -1662,14 +1666,18 @@ void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
     write_picture_to_file(img, buf);
 #endif
 
-    apply_deblocking_filter(img);
+    if (!img->decctx->param_disable_deblocking) {
+      apply_deblocking_filter(img);
+    }
 
 #if SAVE_INTERMEDIATE_IMAGES
     sprintf(buf,"pre-sao-%05d.yuv", img->PicOrderCntVal);
     write_picture_to_file(img, buf);
 #endif
 
-    apply_sample_adaptive_offset_sequential(img);
+    if (!img->decctx->param_disable_sao) {
+      apply_sample_adaptive_offset_sequential(img);
+    }
 
 #if SAVE_INTERMEDIATE_IMAGES
     sprintf(buf,"sao-%05d.yuv", img->PicOrderCntVal);
@@ -1680,10 +1688,14 @@ void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
 
 void decoder_context::run_postprocessing_filters_parallel(de265_image* img)
 {
-  add_deblocking_tasks(img);
-  img->wait_for_completion();
+  if (!img->decctx->param_disable_deblocking) {
+    add_deblocking_tasks(img);
+    img->wait_for_completion();
+  }
 
-  apply_sample_adaptive_offset(img);
+  if (!img->decctx->param_disable_sao) {
+    apply_sample_adaptive_offset(img);
+  }
 }
 
 /*

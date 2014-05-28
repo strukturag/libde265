@@ -441,6 +441,24 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum
       ctx->param_suppress_faulty_pictures = !!value;
       break;
 
+    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
+      ctx->param_disable_deblocking = !!value;
+      break;
+
+    case DE265_DECODER_PARAM_DISABLE_SAO:
+      ctx->param_disable_sao = !!value;
+      break;
+
+      /*
+    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
+      ctx->param_disable_mc_residual_idct = !!value;
+      break;
+
+    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
+      ctx->param_disable_intra_residual_idct = !!value;
+      break;
+      */
+
     default:
       assert(false);
       break;
@@ -494,6 +512,20 @@ LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum 
 
     case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
       return ctx->param_suppress_faulty_pictures;
+
+    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
+      return ctx->param_disable_deblocking;
+
+    case DE265_DECODER_PARAM_DISABLE_SAO:
+      return ctx->param_disable_sao;
+
+      /*
+    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
+      return ctx->param_disable_mc_residual_idct;
+
+    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
+      return ctx->param_disable_intra_residual_idct;
+      */
 
     default:
       assert(false);

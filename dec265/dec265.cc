@@ -84,6 +84,8 @@ bool write_bytestream=false;
 const char *bytestream_filename;
 int highestTID = 100;
 int verbosity=0;
+int disable_deblocking=0;
+int disable_sao=0;
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
@@ -101,6 +103,8 @@ static struct option long_options[] = {
   {"write-bytestream", required_argument,0, 'B' },
   {"highest-TID", required_argument, 0, 'T' },
   {"verbose",    no_argument,       0, 'v' },
+  {"disable-deblocking", no_argument, &disable_deblocking, 1 },
+  {"disable-sao",        no_argument, &disable_sao, 1 },
   {0,         0,                 0,  0 }
 };
 
@@ -346,6 +350,8 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
+    fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
+    fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -358,6 +364,9 @@ int main(int argc, char** argv)
 
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
