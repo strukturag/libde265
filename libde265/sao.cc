@@ -283,7 +283,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
     int stride = img->get_image_stride(cIdx);
     int height = img->get_height(cIdx);
 
-    memcpy(inputCopy, img->get_image_plane(0), stride * height);
+    memcpy(inputCopy, img->get_image_plane(cIdx), stride * height);
 
     for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
       for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
