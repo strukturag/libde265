@@ -256,6 +256,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     slice_pic_order_cnt_lsb = 0;
     short_term_ref_pic_set_sps_flag = 0;
 
+    int NumLtPics = 0;
+
     if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
         ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
@@ -327,6 +329,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
             ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
+
+            if (ctx->UsedByCurrPicLt[i]) {
+              NumLtPics++;
+            }
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
@@ -409,8 +415,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = CurrRps.NumPocTotalCurr;
-      // TODO: add number of longterm images
+      int NumPocTotalCurr = CurrRps.NumPocTotalCurr + NumLtPics;
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
 
