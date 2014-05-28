@@ -161,8 +161,6 @@ de265_image::de265_image()
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps,
                                      decoder_context* ctx)
-                                     //const de265_image_allocation* allocfunc,
-                                     //void* userdata)
 {
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
@@ -379,6 +377,12 @@ void de265_image::fill_image(int y,int cb,int cr)
 
 de265_error de265_image::copy_image(const de265_image* src)
 {
+  /* TODO: actually, since we allocate the image only for internal purpose, we
+     do not have to call the external allocation routines for this. However, then
+     we have to track for each image how to release it again.
+     Another option would be to safe the copied data not in an de265_image at all.
+  */
+
   de265_error err = alloc_image(src->width, src->height, src->chroma_format, NULL, src->decctx);
   if (err != DE265_OK) {
     return err;
