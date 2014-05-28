@@ -264,3 +264,45 @@ void apply_sample_adaptive_offset(de265_image* img)
 }
 
 
+void apply_sample_adaptive_offset_sequential(de265_image* img)
+{
+  if (img->sps.sample_adaptive_offset_enabled_flag==0) {
+    return;
+  }
+
+
+  uint8_t* inputCopy = new uint8_t[ img->get_image_stride(0) * img->get_height(0) ];
+  if (inputCopy == NULL) {
+    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+    return;
+  }
+
+
+  for (int cIdx=0;cIdx<3;cIdx++) {
+
+    int stride = img->get_image_stride(cIdx);
+    int height = img->get_height(cIdx);
+
+    memcpy(inputCopy, img->get_image_plane(0), stride * height);
+
+    for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
+      for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
+        {
+          const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
+
+          if (cIdx==0 && shdr->slice_sao_luma_flag) {
+            apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
+                      inputCopy, stride);
+          }
+
+          if (cIdx!=0 && shdr->slice_sao_chroma_flag) {
+            apply_sao(img, xCtb,yCtb, shdr, cIdx, 1<<(img->sps.Log2CtbSizeY-1),
+                      inputCopy, stride);
+          }
+        }
+  }
+
+  delete[] inputCopy;
+}
+
+

@@ -1669,7 +1669,7 @@ void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
     write_picture_to_file(img, buf);
 #endif
 
-    apply_sample_adaptive_offset(img);
+    apply_sample_adaptive_offset_sequential(img);
 
 #if SAVE_INTERMEDIATE_IMAGES
     sprintf(buf,"sao-%05d.yuv", img->PicOrderCntVal);

@@ -25,4 +25,7 @@
 
 void apply_sample_adaptive_offset(de265_image* img);
 
+/* requires less memory than the function above */
+void apply_sample_adaptive_offset_sequential(de265_image* img);
+
 #endif
