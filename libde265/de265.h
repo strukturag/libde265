@@ -152,6 +152,7 @@ LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
 LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
+LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
 
@@ -311,7 +312,7 @@ LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
                                                        struct de265_image_allocation*,
                                                        void* userdata);
 
-LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride);
+LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride, void *userdata);
 
 
 /* --- frame dropping API ---

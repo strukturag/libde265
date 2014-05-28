@@ -86,9 +86,9 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
     return 0;
   }
 
-  img->set_image_plane(0, p[0], luma_stride);
-  img->set_image_plane(1, p[1], chroma_stride);
-  img->set_image_plane(2, p[2], chroma_stride);
+  img->set_image_plane(0, p[0], luma_stride, NULL);
+  img->set_image_plane(1, p[1], chroma_stride, NULL);
+  img->set_image_plane(2, p[2], chroma_stride, NULL);
 
   return 1;
 }
@@ -110,9 +110,10 @@ de265_image_allocation de265_image::default_image_allocation = {
 };
 
 
-void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride)
+void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
 {
   pixels[cIdx] = mem;
+  plane_user_data[cIdx] = userdata;
 
   if (cIdx==0) { this->stride        = stride; }
   else         { this->chroma_stride = stride; }
@@ -134,6 +135,7 @@ de265_image::de265_image()
   for (int c=0;c<3;c++) {
     pixels[c] = NULL;
     pixels_confwin[c] = NULL;
+    plane_user_data[c] = NULL;
   }
 
   width=height=0;
