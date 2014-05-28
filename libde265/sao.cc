@@ -237,7 +237,11 @@ void apply_sample_adaptive_offset(de265_image* img)
   }
 
   de265_image inputCopy;
-  inputCopy.copy_image(img);
+  de265_error err = inputCopy.copy_image(img);
+  if (err != DE265_OK) {
+    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+    return;
+  }
 
   for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
     for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)

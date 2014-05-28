@@ -189,7 +189,7 @@ struct de265_image {
   void release();
 
   void fill_image(int y,int u,int v);
-  void copy_image(const de265_image* src);
+  de265_error copy_image(const de265_image* src);
 
   uint32_t get_ID() const { return ID; }
 

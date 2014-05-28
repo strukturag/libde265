@@ -377,9 +377,12 @@ void de265_image::fill_image(int y,int cb,int cr)
 }
 
 
-void de265_image::copy_image(const de265_image* src)
+de265_error de265_image::copy_image(const de265_image* src)
 {
-  alloc_image(src->width, src->height, src->chroma_format, NULL, src->decctx);
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format, NULL, src->decctx);
+  if (err != DE265_OK) {
+    return err;
+  }
 
   assert(src->stride == stride &&
          src->chroma_stride == chroma_stride);
@@ -406,6 +409,8 @@ void de265_image::copy_image(const de265_image* src)
       }
     }
   }
+
+  return err;
 }
 
 

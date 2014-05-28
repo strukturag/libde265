@@ -123,6 +123,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "number of threads limited to maximum amount";
   case DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER:
     return "non-existing long-term reference candidate specified in slice header";
+  case DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY:
+    return "cannot apply SAO because we ran out of memory";
 
   default: return "unknown error";
   }
