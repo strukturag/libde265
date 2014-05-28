@@ -241,7 +241,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   // allocate memory and set conformance window pointers
 
   void* alloc_userdata = decctx->param_image_allocation_userdata;
-  bool mem_alloc_success = decctx->param_image_allocation_functions.get_buffer((de265_decoder_context*)decctx, &spec, this,
+  bool mem_alloc_success = decctx->param_image_allocation_functions.get_buffer(decctx, &spec, this,
                                                                                alloc_userdata);
 
   pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
@@ -340,7 +340,7 @@ void de265_image::release()
   if (allocfunc->release_buffer &&
       pixels[0])
     {
-      allocfunc->release_buffer((de265_decoder_context*)decctx, this, decctx->param_image_allocation_userdata);
+      allocfunc->release_buffer(decctx, this, decctx->param_image_allocation_userdata);
 
       for (int i=0;i<3;i++)
         {
