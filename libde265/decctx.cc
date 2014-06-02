@@ -1363,7 +1363,8 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
     // find used / future long-term references
 
     for (i=0, j=0, k=0;
-         i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
+         //i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
+         i<hdr->num_long_term_sps + hdr->num_long_term_pics;
          i++)
       {
         int pocLt = ctx->PocLsbLt[i];
