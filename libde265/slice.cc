@@ -327,6 +327,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
               return DE265_OK;
             }
 
+            // delta_poc_msb_present_flag[i] = 0; // TODO ?
+
             ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
             ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
           }
