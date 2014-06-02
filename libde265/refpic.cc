@@ -33,17 +33,20 @@
 
 static void compute_NumPoc(ref_pic_set* rpset)
 {
-  rpset->NumPocTotalCurr = 0;
+  rpset->NumPocTotalCurr_shortterm_only = 0;
   
   for (int i=0; i<rpset->NumNegativePics; i++)
     if (rpset->UsedByCurrPicS0[i])
-      rpset->NumPocTotalCurr++;
+      rpset->NumPocTotalCurr_shortterm_only++;
 
   for (int i=0; i<rpset->NumPositivePics; i++)
     if (rpset->UsedByCurrPicS1[i])
-      rpset->NumPocTotalCurr++;
+      rpset->NumPocTotalCurr_shortterm_only++;
 
   /*
+    NOTE: this is done when reading the slice header.
+    The value numPocTotalCurr is then stored in the slice header.
+
   for (int i = 0; i < num_long_term_sps + num_long_term_pics; i++ )
             if( UsedByCurrPicLt[i] )
               NumPocTotalCurr++

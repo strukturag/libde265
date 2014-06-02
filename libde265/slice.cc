@@ -329,10 +329,6 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
             ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
-
-            if (ctx->UsedByCurrPicLt[i]) {
-              NumLtPics++;
-            }
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
@@ -341,6 +337,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             ctx->PocLsbLt[i] = poc_lsb_lt[i];
             ctx->UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
+          }
+
+          if (ctx->UsedByCurrPicLt[i]) {
+            NumLtPics++;
           }
 
           delta_poc_msb_present_flag[i] = get_bits(br,1);
@@ -415,7 +415,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      int NumPocTotalCurr = CurrRps.NumPocTotalCurr + NumLtPics;
+      NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
+      printf("num_refs: %d + %d = %d\n",CurrRps.NumPocTotalCurr_shortterm_only,NumLtPics,NumPocTotalCurr);
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
 
@@ -734,9 +735,6 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
         LOG2("num_ref_idx_l1_active          : %d %s\n", num_ref_idx_l1_active,
              num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
-
-      int NumPocTotalCurr = CurrRps.NumPocTotalCurr;
-      // TODO: add number of longterm images
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)
         {

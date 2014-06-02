@@ -31,8 +31,8 @@ typedef struct {
   uint8_t NumPositivePics;  // number of future reference pictures
   uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
 
-  uint8_t NumPocTotalCurr; /* Total number of reference pictures that may actually be used
-                              for prediction in the current frame. */
+  uint8_t NumPocTotalCurr_shortterm_only; /* Total number of reference pictures that may actually
+                                             be used for prediction in the current frame. */
 
   // Lists of pictures that have to be kept in the decoded picture buffer for future
   // reference and that may optionally be used for prediction in the current frame.

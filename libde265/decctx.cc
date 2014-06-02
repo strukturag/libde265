@@ -1444,10 +1444,12 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   // 2. Mark all pictures in RefPicSetLtCurr / RefPicSetLtFoll as UsedForLongTermReference
 
   for (int i=0;i<ctx->NumPocLtCurr;i++) {
+    printf("Mark LongTerm LTCURR: %d\n", ctx->RefPicSetLtCurr[i]);
     ctx->dpb.get_image(ctx->RefPicSetLtCurr[i])->PicState = UsedForLongTermReference;
   }
 
   for (int i=0;i<ctx->NumPocLtFoll;i++) {
+    printf("Mark LongTerm LTFOLL: %d\n", ctx->RefPicSetLtCurr[i]);
     ctx->dpb.get_image(ctx->RefPicSetLtFoll[i])->PicState = UsedForLongTermReference;
   }
 
@@ -1539,7 +1541,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
  */
 bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
-  int NumPocTotalCurr = hdr->CurrRps.NumPocTotalCurr;
+  int NumPocTotalCurr = hdr->NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together
@@ -1568,6 +1570,12 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
       isLongTerm[0][rIdx] = true;
     }
+
+    printf("L0 cand: ");
+    for (int i=0;i<rIdx;i++) {
+      printf("%d ", RefPicListTemp0[i]);
+    }
+    printf("\n");
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
@@ -1616,6 +1624,13 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       }
     }
 
+    printf("L1 cand: ");
+    for (int i=0;i<rIdx;i++) {
+      printf("%d ", RefPicListTemp1[i]);
+    }
+    printf("\n");
+
+
     assert(hdr->num_ref_idx_l1_active <= 15);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
@@ -1634,9 +1649,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
-    loginfo(LogHeaders,"* [%d]=%d",
+    loginfo(LogHeaders,"* [%d]=%d (LT=%d)",
             hdr->RefPicList[0][rIdx],
-            hdr->RefPicList_POC[0][rIdx]
+            hdr->RefPicList_POC[0][rIdx],
+            hdr->LongTermRefPic[0][rIdx]
             );
   }
   loginfo(LogHeaders,"*\n");
@@ -1644,9 +1660,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
   if (hdr->slice_type == SLICE_TYPE_B) {
     loginfo(LogHeaders,"RefPicList[1] =");
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
-      loginfo(LogHeaders,"* [%d]=%d",
+      loginfo(LogHeaders,"* [%d]=%d (LT=%d)",
               hdr->RefPicList[1][rIdx],
-              hdr->RefPicList_POC[1][rIdx]
+              hdr->RefPicList_POC[1][rIdx],
+              hdr->LongTermRefPic[1][rIdx]
               );
     }
     loginfo(LogHeaders,"*\n");
