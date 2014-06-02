@@ -112,9 +112,18 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     vPosStride[0] = vPos[0] * in_stride;
     vPosStride[1] = vPos[1] * in_stride;
 
+    /* Reorder sao_info.saoOffsetVal[] array, so that we can index it
+       directly with the sum of the two pixel-difference signs. */
+    int8_t  saoOffsetVal[5]; // [2] unused
+    saoOffsetVal[0] = saoinfo->saoOffsetVal[cIdx][1-1];
+    saoOffsetVal[1] = saoinfo->saoOffsetVal[cIdx][2-1];
+    saoOffsetVal[3] = saoinfo->saoOffsetVal[cIdx][3-1];
+    saoOffsetVal[4] = saoinfo->saoOffsetVal[cIdx][4-1];
+
+
     for (int j=0;j<ctbH;j++) {
       const uint8_t* in_ptr  = &in_img [xC+(yC+j)*in_stride];
-      uint8_t* out_ptr = &out_img[xC+(yC+j)*out_stride];
+      /* */ uint8_t* out_ptr = &out_img[xC+(yC+j)*out_stride];
 
       for (int i=0;i<ctbW;i++) {
         int edgeIdx = -1;
@@ -177,32 +186,15 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
         if (edgeIdx != 0) {
 
-          logtrace(LogSAO,"edge: %x vs %x %x\n",
-                   in_img[xC+i+(yC+j)*in_stride],
-                   in_img[xC+i+hPos[0]+(yC+j+vPos[0])*in_stride],
-                   in_img[xC+i+hPos[1]+(yC+j+vPos[1])*in_stride]);
+          edgeIdx = ( Sign(in_ptr[i] - in_ptr[i+hPos[0]+vPosStride[0]]) +
+                      Sign(in_ptr[i] - in_ptr[i+hPos[1]+vPosStride[1]])   );
 
-          edgeIdx = 2 +
-            Sign(in_ptr[i] - in_ptr[i+hPos[0]+vPosStride[0]]) +
-            Sign(in_ptr[i] - in_ptr[i+hPos[1]+vPosStride[1]]);
+          if (edgeIdx != 0) {
+            int offset = saoOffsetVal[edgeIdx+2];
 
-          if (edgeIdx<=2) {
-            edgeIdx = (edgeIdx==2) ? 0 : (edgeIdx+1);
+            out_ptr[i] = Clip3(0,maxPixelValue,
+                               in_ptr[i] + offset);
           }
-        }
-
-        if (edgeIdx != 0) {
-          int offset = saoinfo->saoOffsetVal[cIdx][edgeIdx-1];
-
-
-          out_ptr[i] = Clip3(0,maxPixelValue,
-                             in_ptr[i] + offset);
-
-          logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x = %x\n",xC+i,yC+j,edgeIdx,
-                   offset,
-                   in_img[xC+i+(yC+j)*in_stride],
-                   in_img[xC+i+(yC+j)*in_stride]+offset,
-                   out_img[xC+i+(yC+j)*out_stride]);
         }
       }
     }
