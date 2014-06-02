@@ -503,6 +503,11 @@ void thread_task_sao::work()
 
 void add_sao_tasks(de265_image* img)
 {
+  if (img->sps.sample_adaptive_offset_enabled_flag==0) {
+    return;
+  }
+
+
   decoder_context* ctx = img->decctx;
 
   de265_image inputCopy;
