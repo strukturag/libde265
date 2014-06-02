@@ -153,6 +153,8 @@ typedef struct {
 
   sao_info saoInfo;
   bool     deblock;         // this CTB has to be deblocked
+  bool     has_pcm;         // pcm is used in this CTB
+  bool     has_cu_transquant_bypass; // transquant_bypass is used in this CTB
 } CTB_info;
 
 
@@ -373,6 +375,7 @@ public:
   void set_pcm_flag(int x,int y, int log2BlkWidth)
   {
     SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
+    ctb_info.get(x,y).has_pcm = true;
   }
 
   int  get_pcm_flag(int x,int y) const
@@ -383,6 +386,7 @@ public:
   void set_cu_transquant_bypass(int x,int y, int log2BlkWidth)
   {
     SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
+    ctb_info.get(x,y).has_cu_transquant_bypass = true;
   }
 
   int  get_cu_transquant_bypass(int x,int y) const
@@ -570,6 +574,19 @@ public:
   bool get_CtbDeblockFlag(int ctbX, int ctbY) const
   {
     return ctb_info[ctbX + ctbY*ctb_info.width_in_units].deblock;
+  }
+
+
+  bool get_CTB_has_pcm(int ctbX,int ctbY) const
+  {
+    int idx = ctbX + ctbY*ctb_info.width_in_units;
+    return ctb_info[idx].has_pcm;
+  }
+
+  bool get_CTB_has_cu_transquant_bypass(int ctbX,int ctbY) const
+  {
+    int idx = ctbX + ctbY*ctb_info.width_in_units;
+    return ctb_info[idx].has_cu_transquant_bypass;
   }
 
 

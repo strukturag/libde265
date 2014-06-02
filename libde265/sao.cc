@@ -48,11 +48,11 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
   }
 
   /*
-  if ((sps->pcm_loop_filter_disable_flag && get_pcm_flag(ctx->img,sps,xC,yC)) ||
-       get_cu_transquant_bypass(ctx->img,sps,xC,yC) ||
-       SaoTypeIdx == 0)
+    if ((sps->pcm_loop_filter_disable_flag && get_pcm_flag(ctx->img,sps,xC,yC)) ||
+    get_cu_transquant_bypass(ctx->img,sps,xC,yC) ||
+    SaoTypeIdx == 0)
     {
-      return;
+    return;
     }
   */
 
@@ -157,10 +157,10 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
         if (edgeIdx != 0) {
 
-            logtrace(LogSAO,"edge: %x vs %x %x\n",
-            in_img[xC+i+(yC+j)*in_stride],
-            in_img[xC+i+hPos[0]+(yC+j+vPos[0])*in_stride],
-            in_img[xC+i+hPos[1]+(yC+j+vPos[1])*in_stride]);
+          logtrace(LogSAO,"edge: %x vs %x %x\n",
+                   in_img[xC+i+(yC+j)*in_stride],
+                   in_img[xC+i+hPos[0]+(yC+j+vPos[0])*in_stride],
+                   in_img[xC+i+hPos[1]+(yC+j+vPos[1])*in_stride]);
 
           edgeIdx = 2 +
             Sign(in_img[xC+i+(yC+j)*in_stride] - in_img[xC+i+hPos[0]+(yC+j+vPos[0])*in_stride]) +
@@ -179,10 +179,10 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
                                                   in_img[xC+i+(yC+j)*in_stride] + offset);
 
           logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x = %x\n",xC+i,yC+j,edgeIdx,
-                 offset,
-                 in_img[xC+i+(yC+j)*in_stride],
-                 in_img[xC+i+(yC+j)*in_stride]+offset,
-                 out_img[xC+i+(yC+j)*out_stride]);
+                   offset,
+                   in_img[xC+i+(yC+j)*in_stride],
+                   in_img[xC+i+(yC+j)*in_stride]+offset,
+                   out_img[xC+i+(yC+j)*out_stride]);
         }
       }
   }
@@ -199,32 +199,64 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     }
 
 
-    for (int j=0;j<nS;j++)
-      for (int i=0;i<nS;i++) {
+    int ctbW = nS;
+    int ctbH = nS;
+    if (xC+ctbW>width)  ctbW = width -xC;
+    if (yC+ctbH>height) ctbH = height-yC;
 
-        if (xC+i>=width || yC+j>=height) {
-          break;
-        }
 
-        if ((sps->pcm_loop_filter_disable_flag &&
-             img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-            img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
-          continue;
-        }
+    /* If PCM or transquant_bypass is used in this CTB, we have to
+       run all checks (A).
+       Otherwise, we run a simplified version of the code (B).
 
-        int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+       NOTE: this whole part of SAO does not seem to be a significant part of the time spent
+    */
 
-        if (bandIdx>0) {
-          int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
+    if (img->get_CTB_has_pcm(xCtb,yCtb) ||
+        img->get_CTB_has_cu_transquant_bypass(xCtb,yCtb)) {
 
-          logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,bandIdx,
-                 offset,
-                 in_img[xC+i+(yC+j)*in_stride],
-                 in_img[xC+i+(yC+j)*in_stride]+offset);
+      // (A) full version with all checks
+
+      for (int j=0;j<ctbH;j++)
+        for (int i=0;i<ctbW;i++) {
+
+          if ((sps->pcm_loop_filter_disable_flag &&
+               img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+              img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
+            continue;
+          }
+
+          int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+
+          if (bandIdx>0) {
+            int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
+
+            logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,bandIdx,
+                     offset,
+                     in_img[xC+i+(yC+j)*in_stride],
+                     in_img[xC+i+(yC+j)*in_stride]+offset);
           
-          out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                  in_img[xC+i+(yC+j)*in_stride] + offset);
+            out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                    in_img[xC+i+(yC+j)*in_stride] + offset);
+          }
         }
+    }
+    else
+      {
+        // (B) simplified version (only works if no PCM and transquant_bypass is active)
+
+        for (int j=0;j<ctbH;j++)
+          for (int i=0;i<ctbW;i++) {
+
+            int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+
+            if (bandIdx>0) {
+              int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
+
+              out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                      in_img[xC+i+(yC+j)*in_stride] + offset);
+            }
+          }
       }
   }
 }
