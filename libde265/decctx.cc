@@ -40,7 +40,7 @@
 #include "x86/sse.h"
 #endif
 
-#define SAVE_INTERMEDIATE_IMAGES 1
+#define SAVE_INTERMEDIATE_IMAGES 0
 
 #if SAVE_INTERMEDIATE_IMAGES
 #include "visualize.h"
@@ -1448,12 +1448,10 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   // 2. Mark all pictures in RefPicSetLtCurr / RefPicSetLtFoll as UsedForLongTermReference
 
   for (int i=0;i<ctx->NumPocLtCurr;i++) {
-    printf("Mark LongTerm LTCURR: %d\n", ctx->RefPicSetLtCurr[i]);
     ctx->dpb.get_image(ctx->RefPicSetLtCurr[i])->PicState = UsedForLongTermReference;
   }
 
   for (int i=0;i<ctx->NumPocLtFoll;i++) {
-    printf("Mark LongTerm LTFOLL: %d\n", ctx->RefPicSetLtCurr[i]);
     ctx->dpb.get_image(ctx->RefPicSetLtFoll[i])->PicState = UsedForLongTermReference;
   }
 
@@ -1575,12 +1573,6 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       isLongTerm[0][rIdx] = true;
     }
 
-    printf("L0 cand: ");
-    for (int i=0;i<rIdx;i++) {
-      printf("%d ", RefPicListTemp0[i]);
-    }
-    printf("\n");
-
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
       ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
@@ -1627,13 +1619,6 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
         isLongTerm[1][rIdx] = true;
       }
     }
-
-    printf("L1 cand: ");
-    for (int i=0;i<rIdx;i++) {
-      printf("%d ", RefPicListTemp1[i]);
-    }
-    printf("\n");
-
 
     assert(hdr->num_ref_idx_l1_active <= 15);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {

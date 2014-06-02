@@ -416,7 +416,6 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
 
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
-      printf("num_refs: %d + %d = %d\n",CurrRps.NumPocTotalCurr_shortterm_only,NumLtPics,NumPocTotalCurr);
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
 
