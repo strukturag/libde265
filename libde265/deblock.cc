@@ -829,36 +829,6 @@ void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCt
 
 
 
-
-class thread_task_deblock : public thread_task
-{
-public:
-  struct de265_image* img;
-  int first;  // stripe row
-  int last;
-  bool vertical;
-
-  virtual void work();
-};
-
-
-void thread_task_deblock::work()
-{
-  state = Running;
-  img->thread_run();
-
-  int xStart=0;
-  int xEnd = img->get_deblk_width();
-
-  derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
-  edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
-  edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
-
-  state = Finished;
-  img->thread_finishes();
-}
-
-
 class thread_task_deblock_CTBRow : public thread_task
 {
 public:
