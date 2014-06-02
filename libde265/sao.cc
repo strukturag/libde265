@@ -344,3 +344,101 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
 }
 
 
+
+
+
+class thread_task_sao : public thread_task
+{
+public:
+  struct de265_image* img;
+  int  ctb_y;
+  uint8_t* inputCopy;
+
+  virtual void work();
+};
+
+
+void thread_task_sao::work()
+{
+#if 0
+  state = Running;
+  img->thread_run();
+
+  //img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+
+  int ctbSize = img->sps.CtbSizeY;
+  int ctbHeight = ctbSize;
+
+  int y0_luma = ctb_y * ctbSize;
+
+  for (int cIdx=0;cIdx<3;cIdx++) {
+
+    int stride = img->get_image_stride(cIdx);
+    int height = img->get_height(cIdx);
+    int y0 = (cIdx==0 ? y0_luma : (y0_luma>>1));
+
+    memcpy(inputCopy                  + y0 * stride,
+           img->get_image_plane(cIdx) + y0 * stride,
+           stride * ctbHeight);
+
+    for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
+      for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
+        {
+          const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
+
+          if (cIdx==0 && shdr->slice_sao_luma_flag) {
+            apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
+                      inputCopy, stride);
+          }
+
+          if (cIdx!=0 && shdr->slice_sao_chroma_flag) {
+            apply_sao(img, xCtb,yCtb, shdr, cIdx, 1<<(img->sps.Log2CtbSizeY-1),
+                      inputCopy, stride);
+          }
+        }
+  }
+
+  /*
+  for (int x=0;x<=rightCtb;x++) {
+    const int CtbWidth = img->sps.PicWidthInCtbsY;
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
+  }
+  */
+
+  state = Finished;
+  img->thread_finishes();
+#endif
+}
+
+
+void add_sao_tasks(de265_image* img)
+{
+  decoder_context* ctx = img->decctx;
+
+  uint8_t* inputCopy = new uint8_t[ img->get_image_stride(0) * img->get_height(0) ];
+  if (inputCopy == NULL) {
+    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+    return;
+  }
+
+
+  int nRows = img->sps.PicHeightInCtbsY;
+  std::vector<thread_task_sao> tasks(nRows);
+
+  int n=0;
+  img->thread_start(nRows);
+
+  for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
+    {
+      tasks[n].img   = img;
+      tasks[n].ctb_y = y;
+      tasks[n].inputCopy = inputCopy;
+                
+      add_task(&ctx->thread_pool, &tasks[n]);
+      n++;
+    }
+
+  img->wait_for_completion();
+
+  delete[] inputCopy;
+}
