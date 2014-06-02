@@ -92,8 +92,12 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
   if (yC+ctbH>height) ctbH = height-yC;
 
 
+  const bool extendedTests = (img->get_CTB_has_pcm(xCtb,yCtb) ||
+                              img->get_CTB_has_cu_transquant_bypass(xCtb,yCtb));
+
   if (SaoTypeIdx==2) {
     int hPos[2], vPos[2];
+    int vPosStride[2]; // vPos[] multiplied by image stride
     int SaoEoClass = (saoinfo->SaoEoClass >> (2*cIdx)) & 0x3;
 
     //logtrace(LogSAO,"SaoEoClass = %d\n", SaoEoClass);
@@ -105,60 +109,71 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     case 3: hPos[0]= 1; hPos[1]=-1; vPos[0]=-1; vPos[1]=1; break;
     }
 
+    vPosStride[0] = vPos[0] * in_stride;
+    vPosStride[1] = vPos[1] * in_stride;
 
-    for (int j=0;j<ctbH;j++)
+    for (int j=0;j<ctbH;j++) {
+      const uint8_t* in_ptr  = &in_img [xC+(yC+j)*in_stride];
+      uint8_t* out_ptr = &out_img[xC+(yC+j)*out_stride];
+
       for (int i=0;i<ctbW;i++) {
         int edgeIdx = -1;
 
         logtrace(LogSAO, "pos %d,%d\n",xC+i,yC+j);
 
-        if ((sps->pcm_loop_filter_disable_flag &&
+        if (extendedTests &&
+            (sps->pcm_loop_filter_disable_flag &&
              img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
             img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
 
+        // do the expensive test for boundaries only at the boundaries
+        bool testBoundary = (i==0 || j==0 || i==ctbW-1 || j==ctbH-1);
 
-        for (int k=0;k<2;k++) {
-          int xS = xC+i+hPos[k];
-          int yS = yC+j+vPos[k];
+        if (testBoundary)
+          for (int k=0;k<2;k++) {
+            int xS = xC+i+hPos[k];
+            int yS = yC+j+vPos[k];
 
-          if (xS<0 || yS<0 || xS>=width || yS>=height) {
-            edgeIdx=0;
-            break;
+            if (xS<0 || yS<0 || xS>=width || yS>=height) {
+              edgeIdx=0;
+              break;
+            }
+
+
+            // This part seems inefficient with all the get_SliceHeaderIndex() calls,
+            // but removing this part (because the input was known to have only a single
+            // slice anyway) reduced computation time only by 1.3%.
+            // TODO: however, this may still be a big part of SAO itself.
+
+            int sliceAddrRS = img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
+            if (sliceAddrRS <  ctbSliceAddrRS && // much simpler test that the two conditions below
+                //sliceAddrRS != ctbSliceAddrRS &&
+                //MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
+                //MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&
+                img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+              edgeIdx=0;
+              break;
+            }
+
+            if (sliceAddrRS >  ctbSliceAddrRS && // much simpler test that the two conditions below
+                //sliceAddrRS != ctbSliceAddrRS &&
+                //MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] <
+                //MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] &&
+                img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+              edgeIdx=0;
+              break;
+            }
+
+
+            if (pps->loop_filter_across_tiles_enabled_flag==0 && 
+                pps->TileIdRS[(xS>>ctbshift) + (yS>>ctbshift)*picWidthInCtbs] !=
+                pps->TileIdRS[(xC>>ctbshift) + (yC>>ctbshift)*picWidthInCtbs]) {
+              edgeIdx=0;
+              break;
+            }
           }
-
-
-          // This part seems inefficient with all the get_SliceHeaderIndex() calls,
-          // but removing this part (because the input was known to have only a single
-          // slice anyway) reduced computation time only by 1.3%.
-          // TODO: however, this may still be a big part of SAO itself.
-
-          int sliceAddrRS = img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
-          if (sliceAddrRS != ctbSliceAddrRS &&
-              MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
-              MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
-            edgeIdx=0;
-            break;
-          }
-
-          if (sliceAddrRS != ctbSliceAddrRS &&
-              MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] <
-              MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] &&
-              img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
-            edgeIdx=0;
-            break;
-          }
-
-
-          if (pps->loop_filter_across_tiles_enabled_flag==0 && 
-              pps->TileIdRS[(xS>>ctbshift) + (yS>>ctbshift)*picWidthInCtbs] !=
-              pps->TileIdRS[(xC>>ctbshift) + (yC>>ctbshift)*picWidthInCtbs]) {
-            edgeIdx=0;
-            break;
-          }
-        }
 
         if (edgeIdx != 0) {
 
@@ -168,8 +183,8 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
                    in_img[xC+i+hPos[1]+(yC+j+vPos[1])*in_stride]);
 
           edgeIdx = 2 +
-            Sign(in_img[xC+i+(yC+j)*in_stride] - in_img[xC+i+hPos[0]+(yC+j+vPos[0])*in_stride]) +
-            Sign(in_img[xC+i+(yC+j)*in_stride] - in_img[xC+i+hPos[1]+(yC+j+vPos[1])*in_stride]);
+            Sign(in_ptr[i] - in_ptr[i+hPos[0]+vPosStride[0]]) +
+            Sign(in_ptr[i] - in_ptr[i+hPos[1]+vPosStride[1]]);
 
           if (edgeIdx<=2) {
             edgeIdx = (edgeIdx==2) ? 0 : (edgeIdx+1);
@@ -180,8 +195,8 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
           int offset = saoinfo->saoOffsetVal[cIdx][edgeIdx-1];
 
 
-          out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                  in_img[xC+i+(yC+j)*in_stride] + offset);
+          out_ptr[i] = Clip3(0,maxPixelValue,
+                             in_ptr[i] + offset);
 
           logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x = %x\n",xC+i,yC+j,edgeIdx,
                    offset,
@@ -190,6 +205,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
                    out_img[xC+i+(yC+j)*out_stride]);
         }
       }
+    }
   }
   else {
     int bandShift = bitDepth-5;
@@ -211,8 +227,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
        NOTE: this whole part of SAO does not seem to be a significant part of the time spent
     */
 
-    if (img->get_CTB_has_pcm(xCtb,yCtb) ||
-        img->get_CTB_has_cu_transquant_bypass(xCtb,yCtb)) {
+    if (extendedTests) {
 
       // (A) full version with all checks
 
