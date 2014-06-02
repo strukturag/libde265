@@ -40,7 +40,11 @@
 #include "x86/sse.h"
 #endif
 
-#define SAVE_INTERMEDIATE_IMAGES 0
+#define SAVE_INTERMEDIATE_IMAGES 1
+
+#if SAVE_INTERMEDIATE_IMAGES
+#include "visualize.h"
+#endif
 
 extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);

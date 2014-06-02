@@ -1638,7 +1638,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
   int refIdxB=-1;
 
-  if (img->PicOrderCntVal==4 && xC==256 && yC==80) {
+  if (img->PicOrderCntVal==31 && xC==0 && yC==128) {
     printf("MARK\n");
   }
 
@@ -1663,8 +1663,8 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
 
       if (vi->predFlag[X] &&
-          //ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
-        vi->refIdx[X] == referenced_refIdx) {
+          ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
+        //vi->refIdx[X] == referenced_refIdx) {
 
         printf("X ref-image referenced POC=%d  (refIdxLX=%d)\n",
                ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal,
