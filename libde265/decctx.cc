@@ -1700,7 +1700,8 @@ void decoder_context::run_postprocessing_filters_parallel(de265_image* img)
   }
 
   if (!img->decctx->param_disable_sao) {
-    apply_sample_adaptive_offset(img);
+    add_sao_tasks(img);
+    //apply_sample_adaptive_offset(img);
   }
 }
 
