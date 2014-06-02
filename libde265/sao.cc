@@ -85,6 +85,13 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
       logtrace(LogSAO,"offset[%d] = %d\n", i, i==0 ? 0 : saoinfo->saoOffsetVal[cIdx][i-1]);
     }
 
+
+  int ctbW = nS;
+  int ctbH = nS;
+  if (xC+ctbW>width)  ctbW = width -xC;
+  if (yC+ctbH>height) ctbH = height-yC;
+
+
   if (SaoTypeIdx==2) {
     int hPos[2], vPos[2];
     int SaoEoClass = (saoinfo->SaoEoClass >> (2*cIdx)) & 0x3;
@@ -99,21 +106,18 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     }
 
 
-    for (int j=0;j<nS;j++)
-      for (int i=0;i<nS;i++) {
+    for (int j=0;j<ctbH;j++)
+      for (int i=0;i<ctbW;i++) {
         int edgeIdx = -1;
 
         logtrace(LogSAO, "pos %d,%d\n",xC+i,yC+j);
-
-        if (xC+i>=width || yC+j>=height) {
-          continue;
-        }
 
         if ((sps->pcm_loop_filter_disable_flag &&
              img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
             img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }
+
 
         for (int k=0;k<2;k++) {
           int xS = xC+i+hPos[k];
@@ -152,6 +156,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
               pps->TileIdRS[(xS>>ctbshift) + (yS>>ctbshift)*picWidthInCtbs] !=
               pps->TileIdRS[(xC>>ctbshift) + (yC>>ctbshift)*picWidthInCtbs]) {
             edgeIdx=0;
+            break;
           }
         }
 
@@ -197,12 +202,6 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     for (int k=0;k<4;k++) {
       bandTable[ (k+saoLeftClass)&31 ] = k+1;
     }
-
-
-    int ctbW = nS;
-    int ctbH = nS;
-    if (xC+ctbW>width)  ctbW = width -xC;
-    if (yC+ctbH>height) ctbH = height-yC;
 
 
     /* If PCM or transquant_bypass is used in this CTB, we have to
