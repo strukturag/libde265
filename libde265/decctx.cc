@@ -718,14 +718,13 @@ de265_error decoder_context::decode_some()
     for (int i=0;i<imgunit->suffix_SEIs.size();i++) {
       const sei_message& sei = imgunit->suffix_SEIs[i];
 
-      de265_error err = process_sei(&sei, imgunit->img);
-      if (err) {
-        return err;
-      }
+      err = process_sei(&sei, imgunit->img);
+      if (err != DE265_OK)
+        break;
     }
 
 
-    err = push_picture_to_output_queue(imgunit);
+    push_picture_to_output_queue(imgunit);
 
     // remove just decoded image unit from queue
 
