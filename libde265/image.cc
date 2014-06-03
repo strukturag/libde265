@@ -336,19 +336,20 @@ void de265_image::release()
 {
   // free image memory
 
-  de265_image_allocation* allocfunc = &decctx->param_image_allocation_functions;
-  if (allocfunc->release_buffer &&
-      pixels[0])
-    {
-      allocfunc->release_buffer(decctx, this, decctx->param_image_allocation_userdata);
+  if (decctx) {
+    de265_image_allocation* allocfunc = &decctx->param_image_allocation_functions;
+    if (allocfunc->release_buffer &&
+        pixels[0])
+      {
+        allocfunc->release_buffer(decctx, this, decctx->param_image_allocation_userdata);
 
-      for (int i=0;i<3;i++)
-        {
-          pixels[i] = NULL;
-          pixels_confwin[i] = NULL;
-        }
-    }
-
+        for (int i=0;i<3;i++)
+          {
+            pixels[i] = NULL;
+            pixels_confwin[i] = NULL;
+          }
+      }
+  }
 
   // free slices
 

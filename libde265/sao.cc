@@ -27,7 +27,8 @@
 
 void apply_sao(de265_image* img, int xCtb,int yCtb,
                const slice_segment_header* shdr, int cIdx, int nS,
-               const uint8_t* in_img, int in_stride)
+               const uint8_t* in_img,  int in_stride,
+               /* */ uint8_t* out_img, int out_stride)
 {
   const seq_parameter_set* sps = &img->sps;
   const pic_parameter_set* pps = &img->pps;
@@ -74,11 +75,12 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
   if (cIdx>0) { ctbshift-=1; chromashift=1; }
 
 
+  /*
   uint8_t* out_img;
   int out_stride;
   out_img = img->get_image_plane(cIdx);
   out_stride = img->get_image_stride(cIdx);
-
+  */
 
   for (int i=0;i<5;i++)
     {
@@ -288,15 +290,18 @@ void apply_sample_adaptive_offset(de265_image* img)
 
         if (shdr->slice_sao_luma_flag) {
           apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
-                    inputCopy.get_image_plane(0), inputCopy.get_image_stride(0));
+                    inputCopy.get_image_plane(0), inputCopy.get_image_stride(0),
+                    img->get_image_plane(0), img->get_image_stride(0));
         }
 
         if (shdr->slice_sao_chroma_flag) {
           apply_sao(img, xCtb,yCtb, shdr, 1, 1<<(img->sps.Log2CtbSizeY-1),
-                    inputCopy.get_image_plane(1), inputCopy.get_image_stride(1));
+                    inputCopy.get_image_plane(1), inputCopy.get_image_stride(1),
+                    img->get_image_plane(1), img->get_image_stride(1));
 
           apply_sao(img, xCtb,yCtb, shdr, 2, 1<<(img->sps.Log2CtbSizeY-1),
-                    inputCopy.get_image_plane(2), inputCopy.get_image_stride(2));
+                    inputCopy.get_image_plane(2), inputCopy.get_image_stride(2),
+                    img->get_image_plane(2), img->get_image_stride(2));
         }
       }
 }
@@ -330,119 +335,17 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
 
           if (cIdx==0 && shdr->slice_sao_luma_flag) {
             apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
-                      inputCopy, stride);
+                      inputCopy, stride,
+                      img->get_image_plane(0), img->get_image_stride(0));
           }
 
           if (cIdx!=0 && shdr->slice_sao_chroma_flag) {
             apply_sao(img, xCtb,yCtb, shdr, cIdx, 1<<(img->sps.Log2CtbSizeY-1),
-                      inputCopy, stride);
+                      inputCopy, stride,
+                      img->get_image_plane(cIdx), img->get_image_stride(cIdx));
           }
         }
   }
-
-  delete[] inputCopy;
-}
-
-
-
-
-
-class thread_task_sao_nonwork : public thread_task
-{
-public:
-  struct de265_image* img;
-  int  ctb_y;
-  uint8_t* inputCopy;
-
-  virtual void work();
-};
-
-
-void thread_task_sao_nonwork::work()
-{
-  state = Running;
-  img->thread_run();
-
-  //img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
-
-  int ctbSize = img->sps.CtbSizeY;
-  int ctbHeight_luma = ctbSize;
-
-  int y0_luma = ctb_y * ctbSize;
-
-
-  for (int cIdx=0;cIdx<3;cIdx++) {
-
-    int stride = img->get_image_stride(cIdx);
-    int height = img->get_height(cIdx);
-
-    int y0 = (cIdx==0 ? y0_luma : (y0_luma>>1));
-    int ctbHeight = (cIdx==0 ? ctbHeight_luma : (ctbHeight_luma>>1));
-
-    int n = ctbHeight;
-    if (y0+n > height) n=height-y0;
-
-    memcpy(inputCopy                  + y0 * stride,
-           img->get_image_plane(cIdx) + y0 * stride,
-           n * stride);
-
-    for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
-      {
-        const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
-
-        if (cIdx==0 && shdr->slice_sao_luma_flag) {
-          apply_sao(img, xCtb,ctb_y, shdr, 0, 1<<img->sps.Log2CtbSizeY,
-                    inputCopy, stride);
-        }
-
-        if (cIdx!=0 && shdr->slice_sao_chroma_flag) {
-          apply_sao(img, xCtb,ctb_y, shdr, cIdx, 1<<(img->sps.Log2CtbSizeY-1),
-                    inputCopy, stride);
-        }
-      }
-  }
-
-  /*
-    for (int x=0;x<=rightCtb;x++) {
-    const int CtbWidth = img->sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
-    }
-  */
-
-  state = Finished;
-  img->thread_finishes();
-}
-
-
-void add_sao_tasks_nonwork(de265_image* img)
-{
-  decoder_context* ctx = img->decctx;
-
-  uint8_t* inputCopy = new uint8_t[ img->get_image_stride(0) * img->get_height(0) ];
-  if (inputCopy == NULL) {
-    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
-    return;
-  }
-
-
-  int nRows = img->sps.PicHeightInCtbsY;
-  std::vector<thread_task_sao_nonwork> tasks(nRows);
-
-  int n=0;
-  //img->thread_start(nRows);
-
-  for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
-    {
-      tasks[n].img   = img;
-      tasks[n].ctb_y = y;
-      tasks[n].inputCopy = inputCopy;
-                
-      //add_task(&ctx->thread_pool, &tasks[n]);
-      tasks[n].work();
-      n++;
-    }
-
-  //img->wait_for_completion();
 
   delete[] inputCopy;
 }
@@ -453,9 +356,9 @@ void add_sao_tasks_nonwork(de265_image* img)
 class thread_task_sao : public thread_task
 {
 public:
-  struct de265_image* img;
   int  ctb_y;
-  de265_image* inputCopy;
+  de265_image* inputImg;
+  de265_image* outputImg;
   int inputProgress;
 
   virtual void work();
@@ -464,6 +367,8 @@ public:
 
 void thread_task_sao::work()
 {
+  de265_image* img = outputImg;
+
   state = Running;
   img->thread_run();
 
@@ -494,16 +399,19 @@ void thread_task_sao::work()
       const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
 
       if (shdr->slice_sao_luma_flag) {
-        apply_sao(img, xCtb,ctb_y, shdr, 0, 1<<img->sps.Log2CtbSizeY,
-                  inputCopy->get_image_plane(0), inputCopy->get_image_stride(0));
+        apply_sao(outputImg, xCtb,ctb_y, shdr, 0, 1<<img->sps.Log2CtbSizeY,
+                  inputImg ->get_image_plane(0), inputImg ->get_image_stride(0),
+                  outputImg->get_image_plane(0), outputImg->get_image_stride(0));
       }
 
       if (shdr->slice_sao_chroma_flag) {
-        apply_sao(img, xCtb,ctb_y, shdr, 1, 1<<(img->sps.Log2CtbSizeY-1),
-                  inputCopy->get_image_plane(1), inputCopy->get_image_stride(1));
+        apply_sao(outputImg, xCtb,ctb_y, shdr, 1, 1<<(img->sps.Log2CtbSizeY-1),
+                  inputImg ->get_image_plane(1), inputImg ->get_image_stride(1),
+                  outputImg->get_image_plane(1), outputImg->get_image_stride(1));
 
         apply_sao(img, xCtb,ctb_y, shdr, 2, 1<<(img->sps.Log2CtbSizeY-1),
-                  inputCopy->get_image_plane(2), inputCopy->get_image_stride(2));
+                  inputImg ->get_image_plane(2), inputImg ->get_image_stride(2),
+                  outputImg->get_image_plane(2), outputImg->get_image_stride(2));
       }
     }
 
@@ -548,9 +456,9 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
     {
       thread_task_sao* task = new thread_task_sao;
 
-      task->img   = img;
+      task->inputImg  = &inputCopy;
+      task->outputImg = img;
       task->ctb_y = y;
-      task->inputCopy = &inputCopy;
       task->inputProgress = saoInputProgress;
 
       imgunit->tasks.push_back(task);

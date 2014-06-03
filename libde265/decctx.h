@@ -170,6 +170,7 @@ struct image_unit
   ~image_unit();
 
   de265_image* img;
+  de265_image  sao_output;
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
