@@ -382,12 +382,11 @@ void thread_task_sao::work()
   int rightCtb = img->sps.PicWidthInCtbsY-1;
   int ctbSize  = (1<<img->sps.Log2CtbSizeY);
 
-  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
-
-  outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
   // wait until also the CTB-rows below and above are ready
+
+  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
 
   if (ctb_y>0) {
     img->wait_for_progress(this, rightCtb,ctb_y-1, inputProgress);
@@ -396,6 +395,8 @@ void thread_task_sao::work()
   if (ctb_y+1<img->sps.PicHeightInCtbsY) {
     img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
   }
+
+  outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
 
