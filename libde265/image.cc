@@ -389,33 +389,53 @@ de265_error de265_image::copy_image(const de265_image* src)
     return err;
   }
 
+  copy_lines_from(src, 0, src->height);
+
+  return err;
+}
+
+
+// end = last line + 1
+void de265_image::copy_lines_from(const de265_image* src, int first, int end)
+{
   assert(src->stride == stride &&
          src->chroma_stride == chroma_stride);
 
+  if (end > src->height) end=src->height;
+
+  assert(first % 2 == 0);
+  assert(end   % 2 == 0);
 
   if (src->stride == stride) {
-    memcpy(pixels[0], src->pixels[0], src->height*src->stride);
+    memcpy(pixels[0]      + first*stride,
+           src->pixels[0] + first*src->stride,
+           (end-first)*stride);
   }
   else {
-    for (int yp=0;yp<src->height;yp++) {
+    for (int yp=first;yp<end;yp++) {
       memcpy(pixels[0]+yp*stride, src->pixels[0]+yp*src->stride, src->width);
     }
   }
 
+  int first_chroma = first>>1;
+  int end_chroma   = end>>1;
+
   if (src->chroma_format != de265_chroma_mono) {
     if (src->chroma_stride == chroma_stride) {
-      memcpy(pixels[1], src->pixels[1], src->chroma_height*src->chroma_stride);
-      memcpy(pixels[2], src->pixels[2], src->chroma_height*src->chroma_stride);
+      memcpy(pixels[1]      + first_chroma*chroma_stride,
+             src->pixels[1] + first_chroma*chroma_stride,
+             (end_chroma-first_chroma) * chroma_stride);
+      memcpy(pixels[2]      + first_chroma*chroma_stride,
+             src->pixels[2] + first_chroma*chroma_stride,
+             (end_chroma-first_chroma) * chroma_stride);
     }
     else {
-      for (int y=0;y<src->chroma_height;y++) {
+      for (int y=first_chroma;y<end_chroma;y++) {
         memcpy(pixels[1]+y*chroma_stride, src->pixels[1]+y*src->chroma_stride, src->chroma_width);
         memcpy(pixels[2]+y*chroma_stride, src->pixels[2]+y*src->chroma_stride, src->chroma_width);
       }
     }
   }
-
-  return err;
 }
 
 

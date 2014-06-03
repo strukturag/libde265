@@ -357,6 +357,10 @@ class thread_task_sao : public thread_task
 {
 public:
   int  ctb_y;
+  de265_image* img; /* this is where we get the SPS from
+                       (either inputImg or outputImg can be a dummy image)
+                    */
+
   de265_image* inputImg;
   de265_image* outputImg;
   int inputProgress;
@@ -367,8 +371,6 @@ public:
 
 void thread_task_sao::work()
 {
-  de265_image* img = outputImg;
-
   state = Running;
   img->thread_run();
 
@@ -378,6 +380,11 @@ void thread_task_sao::work()
   //int ctbHeight_luma = ctbSize;
   //int y0_luma = ctb_y * ctbSize;
   int rightCtb = img->sps.PicWidthInCtbsY-1;
+  int ctbSize  = (1<<img->sps.Log2CtbSizeY);
+
+  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
+
+  //outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
   // wait until also the CTB-rows below and above are ready
@@ -385,8 +392,6 @@ void thread_task_sao::work()
   if (ctb_y>0) {
     img->wait_for_progress(this, rightCtb,ctb_y-1, inputProgress);
   }
-  
-  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
   
   if (ctb_y+1<img->sps.PicHeightInCtbsY) {
     img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
@@ -399,17 +404,17 @@ void thread_task_sao::work()
       const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
 
       if (shdr->slice_sao_luma_flag) {
-        apply_sao(outputImg, xCtb,ctb_y, shdr, 0, 1<<img->sps.Log2CtbSizeY,
+        apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize,
                   inputImg ->get_image_plane(0), inputImg ->get_image_stride(0),
                   outputImg->get_image_plane(0), outputImg->get_image_stride(0));
       }
 
       if (shdr->slice_sao_chroma_flag) {
-        apply_sao(outputImg, xCtb,ctb_y, shdr, 1, 1<<(img->sps.Log2CtbSizeY-1),
+        apply_sao(img, xCtb,ctb_y, shdr, 1, ctbSize>>1,
                   inputImg ->get_image_plane(1), inputImg ->get_image_stride(1),
                   outputImg->get_image_plane(1), outputImg->get_image_stride(1));
 
-        apply_sao(img, xCtb,ctb_y, shdr, 2, 1<<(img->sps.Log2CtbSizeY-1),
+        apply_sao(img, xCtb,ctb_y, shdr, 2, ctbSize>>1,
                   inputImg ->get_image_plane(2), inputImg ->get_image_stride(2),
                   outputImg->get_image_plane(2), outputImg->get_image_stride(2));
       }
@@ -440,12 +445,18 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   img->wait_for_completion(); // currently need barrier because we copy input image
 
-  de265_image inputCopy;
-  de265_error err = inputCopy.copy_image(img);
+#if 0
+  de265_error err = imgunit->sao_output.alloc_image(img->get_width(), img->get_height(),
+                                                    img->get_chroma_format(), NULL, img->decctx);
+#else
+  de265_error err = imgunit->sao_output.copy_image(img);
+#endif
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;
   }
+
+  //imgunit->sao_output.copy_lines_from(img, 0, img->get_height()); //img->sps.PicHeightInCtbsY * img->sps.Log2CtbSizeY);
 
   int nRows = img->sps.PicHeightInCtbsY;
 
@@ -456,8 +467,9 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
     {
       thread_task_sao* task = new thread_task_sao;
 
-      task->inputImg  = &inputCopy;
+      task->inputImg  = &imgunit->sao_output;
       task->outputImg = img;
+      task->img = img;
       task->ctb_y = y;
       task->inputProgress = saoInputProgress;
 
