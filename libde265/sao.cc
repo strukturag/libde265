@@ -370,6 +370,7 @@ void thread_task_sao_nonwork::work()
 
   int y0_luma = ctb_y * ctbSize;
 
+
   for (int cIdx=0;cIdx<3;cIdx++) {
 
     int stride = img->get_image_stride(cIdx);
@@ -455,6 +456,7 @@ public:
   struct de265_image* img;
   int  ctb_y;
   de265_image* inputCopy;
+  int inputProgress;
 
   virtual void work();
 };
@@ -470,6 +472,22 @@ void thread_task_sao::work()
   //int ctbSize = img->sps.CtbSizeY;
   //int ctbHeight_luma = ctbSize;
   //int y0_luma = ctb_y * ctbSize;
+  int rightCtb = img->sps.PicWidthInCtbsY-1;
+
+
+  // wait until also the CTB-rows below and above are ready
+
+  if (ctb_y>0) {
+    img->wait_for_progress(this, rightCtb,ctb_y-1, inputProgress);
+  }
+  
+  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
+  
+  if (ctb_y+1<img->sps.PicHeightInCtbsY) {
+    img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
+  }
+
+
 
   for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
     {
@@ -501,10 +519,12 @@ void thread_task_sao::work()
 }
 
 
-void add_sao_tasks(de265_image* img)
+bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 {
+  de265_image* img = imgunit->img;
+
   if (img->sps.sample_adaptive_offset_enabled_flag==0) {
-    return;
+    return false;
   }
 
 
@@ -514,25 +534,28 @@ void add_sao_tasks(de265_image* img)
   de265_error err = inputCopy.copy_image(img);
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
-    return;
+    return false;
   }
 
   int nRows = img->sps.PicHeightInCtbsY;
-  std::vector<thread_task_sao> tasks(nRows);
 
   int n=0;
   img->thread_start(nRows);
 
   for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
     {
-      tasks[n].img   = img;
-      tasks[n].ctb_y = y;
-      tasks[n].inputCopy = &inputCopy;
-                
-      add_task(&ctx->thread_pool, &tasks[n]);
-      //tasks[n].work();
+      thread_task_sao* task = new thread_task_sao;
+
+      task->img   = img;
+      task->ctb_y = y;
+      task->inputCopy = &inputCopy;
+      task->inputProgress = saoInputProgress;
+
+      imgunit->tasks.push_back(task);
+      add_task(&ctx->thread_pool, task);
       n++;
     }
 
-  img->wait_for_completion();
+  img->wait_for_completion(); // currently need barrier here because 'inputCopy' is local
+  return true;
 }

@@ -709,7 +709,7 @@ de265_error decoder_context::decode_some()
     // run post-processing filters (deblocking & SAO)
 
     if (img->decctx->num_worker_threads)
-      run_postprocessing_filters_parallel(imgunit->img);
+      run_postprocessing_filters_parallel(imgunit);
     else
       run_postprocessing_filters_sequential(imgunit->img);
 
@@ -1692,17 +1692,24 @@ void decoder_context::run_postprocessing_filters_sequential(de265_image* img)
 }
 
 
-void decoder_context::run_postprocessing_filters_parallel(de265_image* img)
+void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
 {
+  de265_image* img = imgunit->img;
+
+  int saoWaitsForProgress = CTB_PROGRESS_PREFILTER;
+  bool waitForCompletion = false;
+
   if (!img->decctx->param_disable_deblocking) {
     add_deblocking_tasks(img);
-    img->wait_for_completion();
+    saoWaitsForProgress = CTB_PROGRESS_DEBLK_H;
   }
 
   if (!img->decctx->param_disable_sao) {
-    add_sao_tasks(img);
+    waitForCompletion |= add_sao_tasks(imgunit, saoWaitsForProgress);
     //apply_sample_adaptive_offset(img);
   }
+
+  img->wait_for_completion();
 }
 
 /*
