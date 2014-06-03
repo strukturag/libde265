@@ -30,14 +30,6 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
                const uint8_t* in_img,  int in_stride,
                /* */ uint8_t* out_img, int out_stride)
 {
-  const seq_parameter_set* sps = &img->sps;
-  const pic_parameter_set* pps = &img->pps;
-  int bitDepth = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C);
-  int maxPixelValue = (1<<bitDepth)-1;
-
-  int xC = xCtb*nS;
-  int yC = yCtb*nS;
-
   const sao_info* saoinfo = img->get_sao_info(xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
@@ -48,39 +40,24 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     return;
   }
 
-  /*
-    if ((sps->pcm_loop_filter_disable_flag && get_pcm_flag(ctx->img,sps,xC,yC)) ||
-    get_cu_transquant_bypass(ctx->img,sps,xC,yC) ||
-    SaoTypeIdx == 0)
-    {
-    return;
-    }
-  */
+  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set* pps = &img->pps;
+  const int bitDepth = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C);
+  const int maxPixelValue = (1<<bitDepth)-1;
 
-  int width  = sps->pic_width_in_luma_samples;
-  int height = sps->pic_height_in_luma_samples;
+  // top left position of CTB in pixels
+  const int xC = xCtb*nS;
+  const int yC = yCtb*nS;
 
-  if (cIdx>0) { width =(width+1)/2; height =(height+1)/2; }
+  const int width  = img->get_width(cIdx);
+  const int height = img->get_height(cIdx);
 
-  int ctbSliceAddrRS = img->get_SliceHeader(xC,yC)->SliceAddrRS;
-  const std::vector<int>& MinTbAddrZS = pps->MinTbAddrZS;
-  int  PicWidthInTbsY = sps->PicWidthInTbsY;
-  int  Log2MinTrafoSize = sps->Log2MinTrafoSize;
-  int  chromaLog2MinTrafoSize = Log2MinTrafoSize;
-  if (cIdx>0) { chromaLog2MinTrafoSize-=1; }
+  const int ctbSliceAddrRS = img->get_SliceHeader(xC,yC)->SliceAddrRS;
 
-  int picWidthInCtbs = sps->PicWidthInCtbsY;
-  int  ctbshift = sps->Log2CtbSizeY;
-  int  chromashift = 0;
-  if (cIdx>0) { ctbshift-=1; chromashift=1; }
+  const int picWidthInCtbs = sps->PicWidthInCtbsY;
+  const int ctbshift = sps->Log2CtbSizeY - (cIdx>0 ? 1 : 0);
+  const int chromashift = (cIdx>0 ? 1 : 0);
 
-
-  /*
-  uint8_t* out_img;
-  int out_stride;
-  out_img = img->get_image_plane(cIdx);
-  out_stride = img->get_image_stride(cIdx);
-  */
 
   for (int i=0;i<5;i++)
     {
@@ -88,10 +65,9 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     }
 
 
-  int ctbW = nS;
-  int ctbH = nS;
-  if (xC+ctbW>width)  ctbW = width -xC;
-  if (yC+ctbH>height) ctbH = height-yC;
+  // actual size of CTB to be processed (can be smaller when partially outside of image)
+  const int ctbW = (xC+ctbW>width)  ? width -xC : nS;
+  const int ctbH = (yC+ctbH>height) ? height-yC : nS;
 
 
   const bool extendedTests = (img->get_CTB_has_pcm(xCtb,yCtb) ||
@@ -101,8 +77,6 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     int hPos[2], vPos[2];
     int vPosStride[2]; // vPos[] multiplied by image stride
     int SaoEoClass = (saoinfo->SaoEoClass >> (2*cIdx)) & 0x3;
-
-    //logtrace(LogSAO,"SaoEoClass = %d\n", SaoEoClass);
 
     switch (SaoEoClass) {
     case 0: hPos[0]=-1; hPos[1]= 1; vPos[0]= 0; vPos[1]=0; break;
@@ -159,19 +133,13 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
             // TODO: however, this may still be a big part of SAO itself.
 
             int sliceAddrRS = img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
-            if (sliceAddrRS <  ctbSliceAddrRS && // much simpler test that the two conditions below
-                //sliceAddrRS != ctbSliceAddrRS &&
-                //MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] <
-                //MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] &&
+            if (sliceAddrRS <  ctbSliceAddrRS &&
                 img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
               edgeIdx=0;
               break;
             }
 
-            if (sliceAddrRS >  ctbSliceAddrRS && // much simpler test that the two conditions below
-                //sliceAddrRS != ctbSliceAddrRS &&
-                //MinTbAddrZS[((xC+i)>>Log2MinTrafoSize) + ((yC+j)>>Log2MinTrafoSize)*PicWidthInTbsY] <
-                //MinTbAddrZS[( xS   >>Log2MinTrafoSize) +  (yS   >>Log2MinTrafoSize)*PicWidthInTbsY] &&
+            if (sliceAddrRS >  ctbSliceAddrRS &&
                 img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
               edgeIdx=0;
               break;
@@ -374,14 +342,8 @@ void thread_task_sao::work()
   state = Running;
   img->thread_run();
 
-  //img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
-
-  //int ctbSize = img->sps.CtbSizeY;
-  //int ctbHeight_luma = ctbSize;
-  //int y0_luma = ctb_y * ctbSize;
-  int rightCtb = img->sps.PicWidthInCtbsY-1;
-  int ctbSize  = (1<<img->sps.Log2CtbSizeY);
-
+  const int rightCtb = img->sps.PicWidthInCtbsY-1;
+  const int ctbSize  = (1<<img->sps.Log2CtbSizeY);
 
 
   // wait until also the CTB-rows below and above are ready
