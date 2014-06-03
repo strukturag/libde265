@@ -439,6 +439,19 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 }
 
 
+void de265_image::exchange_pixel_data_with(de265_image& b)
+{
+  for (int i=0;i<3;i++) {
+    std::swap(pixels[i], b.pixels[i]);
+    std::swap(pixels_confwin[i], b.pixels_confwin[i]);
+    std::swap(plane_user_data[i], b.plane_user_data[i]);
+  }
+
+  std::swap(stride, b.stride);
+  std::swap(chroma_stride, b.chroma_stride);
+}
+
+
 void de265_image::thread_start(int nThreads)
 {
   de265_mutex_lock(&mutex);

@@ -384,7 +384,7 @@ void thread_task_sao::work()
 
   img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
 
-  //outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
+  outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
   // wait until also the CTB-rows below and above are ready
@@ -443,20 +443,12 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   decoder_context* ctx = img->decctx;
 
-  img->wait_for_completion(); // currently need barrier because we copy input image
-
-#if 0
   de265_error err = imgunit->sao_output.alloc_image(img->get_width(), img->get_height(),
                                                     img->get_chroma_format(), NULL, img->decctx);
-#else
-  de265_error err = imgunit->sao_output.copy_image(img);
-#endif
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;
   }
-
-  //imgunit->sao_output.copy_lines_from(img, 0, img->get_height()); //img->sps.PicHeightInCtbsY * img->sps.Log2CtbSizeY);
 
   int nRows = img->sps.PicHeightInCtbsY;
 
@@ -467,8 +459,8 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
     {
       thread_task_sao* task = new thread_task_sao;
 
-      task->inputImg  = &imgunit->sao_output;
-      task->outputImg = img;
+      task->inputImg  = img;
+      task->outputImg = &imgunit->sao_output;
       task->img = img;
       task->ctb_y = y;
       task->inputProgress = saoInputProgress;
@@ -478,6 +470,11 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
       n++;
     }
 
-  img->wait_for_completion(); // currently need barrier here because 'inputCopy' is local
+  /* Currently need barrier here because when finished, we have to swap the pixel
+     data back into the main image. */
+  img->wait_for_completion();
+
+  img->exchange_pixel_data_with(imgunit->sao_output);
+
   return true;
 }

@@ -195,6 +195,7 @@ struct de265_image {
   void fill_image(int y,int u,int v);
   de265_error copy_image(const de265_image* src);
   void copy_lines_from(const de265_image* src, int first, int end);
+  void exchange_pixel_data_with(de265_image&);
 
   uint32_t get_ID() const { return ID; }
 
@@ -303,7 +304,7 @@ public:
 
   de265_PTS pts;
   void*     user_data;
-  void*     plane_user_data[3];
+  void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,
