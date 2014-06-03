@@ -66,8 +66,8 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
 
   // actual size of CTB to be processed (can be smaller when partially outside of image)
-  const int ctbW = (xC+ctbW>width)  ? width -xC : nS;
-  const int ctbH = (yC+ctbH>height) ? height-yC : nS;
+  const int ctbW = (xC+nS>width)  ? width -xC : nS;
+  const int ctbH = (yC+nS>height) ? height-yC : nS;
 
 
   const bool extendedTests = (img->get_CTB_has_pcm(xCtb,yCtb) ||
