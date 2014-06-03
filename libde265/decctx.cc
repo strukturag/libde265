@@ -1700,7 +1700,7 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
   bool waitForCompletion = false;
 
   if (!img->decctx->param_disable_deblocking) {
-    add_deblocking_tasks(img);
+    add_deblocking_tasks(imgunit);
     saoWaitsForProgress = CTB_PROGRESS_DEBLK_H;
   }
 

@@ -530,6 +530,8 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   decoder_context* ctx = img->decctx;
 
+  img->wait_for_completion(); // currently need barrier because we copy input image
+
   de265_image inputCopy;
   de265_error err = inputCopy.copy_image(img);
   if (err != DE265_OK) {

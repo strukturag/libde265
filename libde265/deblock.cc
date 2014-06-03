@@ -914,12 +914,12 @@ void thread_task_deblock_CTBRow::work()
 }
 
 
-void add_deblocking_tasks(de265_image* img)
+void add_deblocking_tasks(image_unit* imgunit)
 {
+  de265_image* img = imgunit->img;
   decoder_context* ctx = img->decctx;
 
   int nRows = img->sps.PicHeightInCtbsY;
-  std::vector<thread_task_deblock_CTBRow> tasks(2*nRows);
 
   int n=0;
   img->thread_start(nRows*2);
@@ -928,16 +928,17 @@ void add_deblocking_tasks(de265_image* img)
     {
       for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
         {
-          tasks[n].img   = img;
-          tasks[n].ctb_y = y;
-          tasks[n].vertical = (pass==0);
-                
-          add_task(&ctx->thread_pool, &tasks[n]);
+          thread_task_deblock_CTBRow* task = new thread_task_deblock_CTBRow;
+
+          task->img   = img;
+          task->ctb_y = y;
+          task->vertical = (pass==0);
+
+          imgunit->tasks.push_back(task);
+          add_task(&ctx->thread_pool, task);
           n++;
         }
     }
-
-  img->wait_for_completion();
 }
 
 
