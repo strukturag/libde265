@@ -170,7 +170,7 @@ struct image_unit
   ~image_unit();
 
   de265_image* img;
-  de265_image  sao_output;
+  de265_image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;

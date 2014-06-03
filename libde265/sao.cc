@@ -396,9 +396,13 @@ void thread_task_sao::work()
     img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
   }
 
+
+  // copy input image to output for this CTB-row
+
   outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
+  // process SAO in the CTB-row
 
   for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
     {
@@ -421,12 +425,14 @@ void thread_task_sao::work()
       }
     }
 
-  /*
-    for (int x=0;x<=rightCtb;x++) {
+
+  // mark SAO progress
+
+  for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = img->sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
-    }
-  */
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO);
+  }
+
 
   state = Finished;
   img->thread_finishes();
@@ -471,7 +477,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
       n++;
     }
 
-  /* Currently need barrier here because when finished, we have to swap the pixel
+  /* Currently need barrier here because when are finished, we have to swap the pixel
      data back into the main image. */
   img->wait_for_completion();
 
