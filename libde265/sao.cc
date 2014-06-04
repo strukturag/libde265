@@ -93,6 +93,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
     int8_t  saoOffsetVal[5]; // [2] unused
     saoOffsetVal[0] = saoinfo->saoOffsetVal[cIdx][1-1];
     saoOffsetVal[1] = saoinfo->saoOffsetVal[cIdx][2-1];
+    saoOffsetVal[2] = 0;
     saoOffsetVal[3] = saoinfo->saoOffsetVal[cIdx][3-1];
     saoOffsetVal[4] = saoinfo->saoOffsetVal[cIdx][4-1];
 
@@ -159,7 +160,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
           edgeIdx = ( Sign(in_ptr[i] - in_ptr[i+hPos[0]+vPosStride[0]]) +
                       Sign(in_ptr[i] - in_ptr[i+hPos[1]+vPosStride[1]])   );
 
-          if (edgeIdx != 0) {
+          if (1) { // edgeIdx != 0) {   // seems to be faster without this check (zero in offset table)
             int offset = saoOffsetVal[edgeIdx+2];
 
             out_ptr[i] = Clip3(0,maxPixelValue,
