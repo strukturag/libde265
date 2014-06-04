@@ -50,7 +50,7 @@
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
-#define Sign(value) (((value)>0) ? 1 : ((value)<0) ? -1 : 0)
+#define Sign(value) (((value)<0) ? -1 : ((value)>0) ? 1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))
 #define libde265_min(a,b) (((a)<(b)) ? (a) : (b))
 #define libde265_max(a,b) (((a)>(b)) ? (a) : (b))
