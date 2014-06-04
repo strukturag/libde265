@@ -250,8 +250,8 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
-      int xDi = x*4;
-      int yDi = y*4;
+      int xDi = x<<2;
+      int yDi = y<<2;
 
       logtrace(LogDeblock,"%d %d %s = %s\n",xDi,yDi, vertical?"Vertical":"Horizontal",
                (img->get_deblk_flags(xDi,yDi) & edgeMask) ? "edge" : "...");
@@ -292,11 +292,6 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             int refPicQ0 = mviQ->predFlag[0] ? shdrQ->RefPicList[0][ mviQ->refIdx[0] ] : -1;
             int refPicQ1 = mviQ->predFlag[1] ? shdrQ->RefPicList[1][ mviQ->refIdx[1] ] : -1;
 
-            MotionVector mvP0 = mviP->mv[0]; if (!mviP->predFlag[0]) { mvP0.x=mvP0.y=0; }
-            MotionVector mvP1 = mviP->mv[1]; if (!mviP->predFlag[1]) { mvP1.x=mvP1.y=0; }
-            MotionVector mvQ0 = mviQ->mv[0]; if (!mviQ->predFlag[0]) { mvQ0.x=mvQ0.y=0; }
-            MotionVector mvQ1 = mviQ->mv[1]; if (!mviQ->predFlag[1]) { mvQ1.x=mvQ1.y=0; }
-
             bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
                              (refPicP0==refPicQ1 && refPicP1==refPicQ0));
 
@@ -304,6 +299,11 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
               bS = 1;
             }
             else {
+              MotionVector mvP0 = mviP->mv[0]; if (!mviP->predFlag[0]) { mvP0.x=mvP0.y=0; }
+              MotionVector mvP1 = mviP->mv[1]; if (!mviP->predFlag[1]) { mvP1.x=mvP1.y=0; }
+              MotionVector mvQ0 = mviQ->mv[0]; if (!mviQ->predFlag[0]) { mvQ0.x=mvQ0.y=0; }
+              MotionVector mvQ1 = mviQ->mv[1]; if (!mviQ->predFlag[1]) { mvQ1.x=mvQ1.y=0; }
+
               int numMV_P = mviP->predFlag[0] + mviP->predFlag[1];
               int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
 
@@ -350,10 +350,10 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             }
 
             /*
-            printf("unimplemented deblocking code for CU at %d;%d\n",xDi,yDi);
+              printf("unimplemented deblocking code for CU at %d;%d\n",xDi,yDi);
 
-            logerror(LogDeblock, "unimplemented code reached (file %s, line %d)\n",
-                     __FILE__, __LINE__);
+              logerror(LogDeblock, "unimplemented code reached (file %s, line %d)\n",
+              __FILE__, __LINE__);
             */
           }
         }
@@ -408,8 +408,8 @@ void edge_filtering_luma(de265_image* img, bool vertical,
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
-      int xDi = x*4;
-      int yDi = y*4;
+      int xDi = x<<2;
+      int yDi = y<<2;
       int bS = img->get_deblk_bS(xDi,yDi);
 
       logtrace(LogDeblock,"deblock POC=%d %c --- x:%d y:%d bS:%d---\n",
