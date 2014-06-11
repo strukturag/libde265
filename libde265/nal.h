@@ -39,6 +39,9 @@ struct nal_header {
     nuh_temporal_id = 0;
   }
 
+  void read(bitreader* reader);
+  void write(class CABAC_encoder* writer) const;
+
   int nal_unit_type;
   int nuh_layer_id;
   int nuh_temporal_id;
@@ -94,8 +97,6 @@ struct nal_header {
 #define NAL_UNIT_RESERVED_NVCL47     47
 
 #define NAL_UNIT_UNDEFINED    255
-
-void nal_read_header(bitreader* reader, nal_header*);
 
 bool isIDR(uint8_t unit_type);
 bool isBLA(uint8_t unit_type);

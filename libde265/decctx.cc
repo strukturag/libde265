@@ -1016,7 +1016,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   bitreader_init(&reader, nal->data(), nal->size());
 
   nal_header nal_hdr;
-  nal_read_header(&reader, &nal_hdr);
+  nal_hdr.read(&reader);
   ctx->process_nal_hdr(&nal_hdr);
 
   loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
