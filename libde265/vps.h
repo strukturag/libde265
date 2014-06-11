@@ -59,7 +59,18 @@ struct profile_data {
 };
 
 
-struct profile_tier_level {
+class profile_tier_level
+{
+public:
+  void read(bitreader* reader,
+            int max_sub_layers);
+
+  void write(class CABAC_encoder* writer,
+             int max_sub_layers) const;
+
+  void dump(int max_sub_layers, FILE* fh) const;
+
+
   int general_profile_space;
   int general_tier_flag;
   int general_profile_idc;
@@ -75,18 +86,6 @@ struct profile_tier_level {
 
   struct profile_data profile[MAX_TEMPORAL_SUBLAYERS];
 };
-
-
-void read_profile_tier_level(bitreader* reader,
-                             struct profile_tier_level* hdr,
-                             int max_sub_layers);
-
-void write_profile_tier_level(class CABAC_encoder* writer,
-                              struct profile_tier_level* hdr,
-                              int max_sub_layers);
-
-void dump_profile_tier_level(const struct profile_tier_level* hdr,
-                             int max_sub_layers, FILE* fh);
 
 
 /*

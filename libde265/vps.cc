@@ -42,8 +42,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
   vps->vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
 
-  read_profile_tier_level(reader, &vps->profile_tier_level,
-                          vps->vps_max_sub_layers);
+  vps->profile_tier_level.read(reader, vps->vps_max_sub_layers);
 
   /*
   read_bit_rate_pic_rate_info(reader, &vps->bit_rate_pic_rate_info,
@@ -130,31 +129,30 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
 }
 
 
-void read_profile_tier_level(bitreader* reader,
-                             struct profile_tier_level* hdr,
-                             int max_sub_layers)
+void profile_tier_level::read(bitreader* reader,
+                              int max_sub_layers)
 {
-  hdr->general_profile_space = get_bits(reader,2);
-  hdr->general_tier_flag = get_bits(reader,1);
-  hdr->general_profile_idc = get_bits(reader,5);
+  general_profile_space = get_bits(reader,2);
+  general_tier_flag = get_bits(reader,1);
+  general_profile_idc = get_bits(reader,5);
 
   for (int i=0; i<32; i++) {
-    hdr->general_profile_compatibility_flag[i] = get_bits(reader,1);
+    general_profile_compatibility_flag[i] = get_bits(reader,1);
   }
 
-  hdr->general_progressive_source_flag = get_bits(reader,1);
-  hdr->general_interlaced_source_flag  = get_bits(reader,1);
-  hdr->general_non_packed_constraint_flag = get_bits(reader,1);
-  hdr->general_frame_only_constraint_flag = get_bits(reader,1);
+  general_progressive_source_flag = get_bits(reader,1);
+  general_interlaced_source_flag  = get_bits(reader,1);
+  general_non_packed_constraint_flag = get_bits(reader,1);
+  general_frame_only_constraint_flag = get_bits(reader,1);
   skip_bits(reader,44);
 
-  hdr->general_level_idc = get_bits(reader,8);
+  general_level_idc = get_bits(reader,8);
 
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      hdr->profile[i].sub_layer_profile_present_flag = get_bits(reader,1);
-      hdr->profile[i].sub_layer_level_present_flag   = get_bits(reader,1);
+      profile[i].sub_layer_profile_present_flag = get_bits(reader,1);
+      profile[i].sub_layer_level_present_flag   = get_bits(reader,1);
     }
 
   if (max_sub_layers > 1)
@@ -167,57 +165,55 @@ void read_profile_tier_level(bitreader* reader,
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      if (hdr->profile[i].sub_layer_profile_present_flag)
+      if (profile[i].sub_layer_profile_present_flag)
         {
-          hdr->profile[i].sub_layer_profile_space = get_bits(reader,2);
-          hdr->profile[i].sub_layer_tier_flag = get_bits(reader,1);
-          hdr->profile[i].sub_layer_profile_idc = get_bits(reader,5);
+          profile[i].sub_layer_profile_space = get_bits(reader,2);
+          profile[i].sub_layer_tier_flag = get_bits(reader,1);
+          profile[i].sub_layer_profile_idc = get_bits(reader,5);
 
           for (int j=0; j<32; j++)
             {
-              hdr->profile[i].sub_layer_profile_compatibility_flag[j] = get_bits(reader,1);
+              profile[i].sub_layer_profile_compatibility_flag[j] = get_bits(reader,1);
             }
 
-          hdr->profile[i].sub_layer_progressive_source_flag = get_bits(reader,1);
-          hdr->profile[i].sub_layer_interlaced_source_flag  = get_bits(reader,1);
-          hdr->profile[i].sub_layer_non_packed_constraint_flag = get_bits(reader,1);
-          hdr->profile[i].sub_layer_frame_only_constraint_flag = get_bits(reader,1);
+          profile[i].sub_layer_progressive_source_flag = get_bits(reader,1);
+          profile[i].sub_layer_interlaced_source_flag  = get_bits(reader,1);
+          profile[i].sub_layer_non_packed_constraint_flag = get_bits(reader,1);
+          profile[i].sub_layer_frame_only_constraint_flag = get_bits(reader,1);
           skip_bits(reader,44);
         }
 
-      if (hdr->profile[i].sub_layer_level_present_flag)
+      if (profile[i].sub_layer_level_present_flag)
         {
-          hdr->profile[i].sub_layer_level_idc = get_bits(reader,8);
+          profile[i].sub_layer_level_idc = get_bits(reader,8);
         }
     }
 }
 
 
-void write_profile_tier_level(CABAC_encoder* out,
-                              struct profile_tier_level* hdr,
-                              int max_sub_layers)
+void profile_tier_level::write(CABAC_encoder* out, int max_sub_layers) const
 {
-  out->write_bits(hdr->general_profile_space,2);
-  out->write_bit (hdr->general_tier_flag);
-  out->write_bits(hdr->general_profile_idc, 5);
+  out->write_bits(general_profile_space,2);
+  out->write_bit (general_tier_flag);
+  out->write_bits(general_profile_idc, 5);
 
   for (int i=0; i<32; i++) {
-    out->write_bit(hdr->general_profile_compatibility_flag[i]);
+    out->write_bit(general_profile_compatibility_flag[i]);
   }
 
-  out->write_bit(hdr->general_progressive_source_flag);
-  out->write_bit(hdr->general_interlaced_source_flag);
-  out->write_bit(hdr->general_non_packed_constraint_flag);
-  out->write_bit(hdr->general_frame_only_constraint_flag);
+  out->write_bit(general_progressive_source_flag);
+  out->write_bit(general_interlaced_source_flag);
+  out->write_bit(general_non_packed_constraint_flag);
+  out->write_bit(general_frame_only_constraint_flag);
   out->skip_bits(44);
 
-  out->write_bits(hdr->general_level_idc,8);
+  out->write_bits(general_level_idc,8);
 
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      out->write_bit(hdr->profile[i].sub_layer_profile_present_flag);
-      out->write_bit(hdr->profile[i].sub_layer_level_present_flag);
+      out->write_bit(profile[i].sub_layer_profile_present_flag);
+      out->write_bit(profile[i].sub_layer_level_present_flag);
     }
 
   if (max_sub_layers > 1)
@@ -230,27 +226,27 @@ void write_profile_tier_level(CABAC_encoder* out,
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      if (hdr->profile[i].sub_layer_profile_present_flag)
+      if (profile[i].sub_layer_profile_present_flag)
         {
-          out->write_bits(hdr->profile[i].sub_layer_profile_space,2);
-          out->write_bit (hdr->profile[i].sub_layer_tier_flag);
-          out->write_bits(hdr->profile[i].sub_layer_profile_idc,5);
+          out->write_bits(profile[i].sub_layer_profile_space,2);
+          out->write_bit (profile[i].sub_layer_tier_flag);
+          out->write_bits(profile[i].sub_layer_profile_idc,5);
 
           for (int j=0; j<32; j++)
             {
-              out->write_bit(hdr->profile[i].sub_layer_profile_compatibility_flag[j]);
+              out->write_bit(profile[i].sub_layer_profile_compatibility_flag[j]);
             }
 
-          out->write_bit(hdr->profile[i].sub_layer_progressive_source_flag);
-          out->write_bit(hdr->profile[i].sub_layer_interlaced_source_flag);
-          out->write_bit(hdr->profile[i].sub_layer_non_packed_constraint_flag);
-          out->write_bit(hdr->profile[i].sub_layer_frame_only_constraint_flag);
+          out->write_bit(profile[i].sub_layer_progressive_source_flag);
+          out->write_bit(profile[i].sub_layer_interlaced_source_flag);
+          out->write_bit(profile[i].sub_layer_non_packed_constraint_flag);
+          out->write_bit(profile[i].sub_layer_frame_only_constraint_flag);
           out->skip_bits(44);
         }
 
-      if (hdr->profile[i].sub_layer_level_present_flag)
+      if (profile[i].sub_layer_level_present_flag)
         {
-          out->write_bits(hdr->profile[i].sub_layer_level_idc,8);
+          out->write_bits(profile[i].sub_layer_level_idc,8);
         }
     }
 }
@@ -300,7 +296,7 @@ void dump_vps(video_parameter_set* vps, int fd)
   LOG1("vps_max_sub_layers                    : %d\n", vps->vps_max_sub_layers);
   LOG1("vps_temporal_id_nesting_flag          : %d\n", vps->vps_temporal_id_nesting_flag);
 
-  dump_profile_tier_level(&vps->profile_tier_level, vps->vps_max_sub_layers, fh);
+  vps->profile_tier_level.dump(vps->vps_max_sub_layers, fh);
   //dump_bit_rate_pic_rate_info(&vps->bit_rate_pic_rate_info, 0, vps->vps_max_sub_layers-1);
 
   LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
@@ -360,48 +356,47 @@ void dump_vps(video_parameter_set* vps, int fd)
 }
 
 
-void dump_profile_tier_level(const struct profile_tier_level* hdr,
-                             int max_sub_layers, FILE* fh)
+void profile_tier_level::dump(int max_sub_layers, FILE* fh) const
 {
-  LOG1("  general_profile_space     : %d\n", hdr->general_profile_space);
-  LOG1("  general_tier_flag         : %d\n", hdr->general_tier_flag);
-  LOG1("  general_profile_idc       : %d\n", hdr->general_profile_idc);
+  LOG1("  general_profile_space     : %d\n", general_profile_space);
+  LOG1("  general_tier_flag         : %d\n", general_tier_flag);
+  LOG1("  general_profile_idc       : %d\n", general_profile_idc);
 
   LOG0("  general_profile_compatibility_flags: ");
   for (int i=0; i<32; i++) {
     if (i) LOG0("*,");
-    LOG1("*%d",hdr->general_profile_compatibility_flag[i]);
+    LOG1("*%d",general_profile_compatibility_flag[i]);
   }
   LOG0("*\n");
 
-  LOG1("  general_level_idc         : %d\n", hdr->general_level_idc);
+  LOG1("  general_level_idc         : %d\n", general_level_idc);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
       LOG1("  Profile/Tier/Level [Layer %d]\n",i);
 
-      if (hdr->profile[i].sub_layer_profile_present_flag) {
+      if (profile[i].sub_layer_profile_present_flag) {
 
-        LOG1("    sub_layer_profile_space : %d\n",hdr->profile[i].sub_layer_profile_space);
-        LOG1("    sub_layer_tier_flag     : %d\n",hdr->profile[i].sub_layer_tier_flag);
-        LOG1("    sub_layer_profile_idc   : %d\n",hdr->profile[i].sub_layer_profile_idc);
+        LOG1("    sub_layer_profile_space : %d\n",profile[i].sub_layer_profile_space);
+        LOG1("    sub_layer_tier_flag     : %d\n",profile[i].sub_layer_tier_flag);
+        LOG1("    sub_layer_profile_idc   : %d\n",profile[i].sub_layer_profile_idc);
 
         LOG0("    sub_layer_profile_compatibility_flags: ");
         for (int j=0; j<32; j++) {
           if (j) LOG0(",");
-          LOG1("%d",hdr->profile[i].sub_layer_profile_compatibility_flag[j]);
+          LOG1("%d",profile[i].sub_layer_profile_compatibility_flag[j]);
         }
         LOG0("\n");
 
-        LOG1("    sub_layer_progressive_source_flag : %d\n",hdr->profile[i].sub_layer_progressive_source_flag);
-        LOG1("    sub_layer_interlaced_source_flag : %d\n",hdr->profile[i].sub_layer_interlaced_source_flag);
-        LOG1("    sub_layer_non_packed_constraint_flag : %d\n",hdr->profile[i].sub_layer_non_packed_constraint_flag);
-        LOG1("    sub_layer_frame_only_constraint_flag : %d\n",hdr->profile[i].sub_layer_frame_only_constraint_flag);
+        LOG1("    sub_layer_progressive_source_flag : %d\n",profile[i].sub_layer_progressive_source_flag);
+        LOG1("    sub_layer_interlaced_source_flag : %d\n",profile[i].sub_layer_interlaced_source_flag);
+        LOG1("    sub_layer_non_packed_constraint_flag : %d\n",profile[i].sub_layer_non_packed_constraint_flag);
+        LOG1("    sub_layer_frame_only_constraint_flag : %d\n",profile[i].sub_layer_frame_only_constraint_flag);
       }
 
 
-      if (hdr->profile[i].sub_layer_level_present_flag) {
-        LOG1("    sub_layer_level_idc   : %d\n", hdr->profile[i].sub_layer_level_idc);
+      if (profile[i].sub_layer_level_present_flag) {
+        LOG1("    sub_layer_level_idc   : %d\n", profile[i].sub_layer_level_idc);
       }
     }
 }
