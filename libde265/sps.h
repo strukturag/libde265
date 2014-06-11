@@ -192,6 +192,8 @@ struct seq_parameter_set {
 };
 
 de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
+de265_error write_scaling_list(CABAC_encoder* out, const seq_parameter_set* sps,
+                               scaling_list_data* sclist, bool inPPS);
 void set_default_scaling_lists(scaling_list_data*);
 
 #endif

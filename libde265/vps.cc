@@ -129,6 +129,92 @@ de265_error video_parameter_set::read(decoder_context* ctx, bitreader* reader)
 }
 
 
+de265_error video_parameter_set::write(struct error_queue* errqueue, struct CABAC_encoder* out) const
+{
+  if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  out->write_bits(video_parameter_set_id,4);
+
+  out->skip_bits(2);
+  out->write_bits(vps_max_layers-1,6);
+
+  if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  out->write_bits(vps_max_sub_layers-1,3);
+
+  out->write_bit(vps_temporal_id_nesting_flag);
+  out->skip_bits(16);
+
+  profile_tier_level.write(out, vps_max_sub_layers);
+
+  /*
+  read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
+                              0, vps_max_sub_layers-1);
+  */
+
+  out->write_bit(vps_sub_layer_ordering_info_present_flag);
+  //assert(vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
+
+  int firstLayerRead = vps_sub_layer_ordering_info_present_flag ? 0 : (vps_max_sub_layers-1);
+
+  for (int i=firstLayerRead;i<vps_max_sub_layers;i++) {
+    out->write_uvlc(layer[i].vps_max_dec_pic_buffering);
+    out->write_uvlc(layer[i].vps_max_num_reorder_pics);
+    out->write_uvlc(layer[i].vps_max_latency_increase);
+  }
+
+  if (vps_num_layer_sets<0 ||
+      vps_num_layer_sets>=1024) {
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  out->write_bits(vps_max_layer_id,6);
+  out->write_uvlc(vps_num_layer_sets-1);
+
+  for (int i=1; i <= vps_num_layer_sets-1; i++)
+    for (int j=0; j <= vps_max_layer_id; j++)
+      {
+        out->write_bit(layer_id_included_flag[i][j]);
+      }
+
+  out->write_bit(vps_timing_info_present_flag);
+
+  if (vps_timing_info_present_flag) {
+    out->write_bits(vps_num_units_in_tick,32);
+    out->write_bits(vps_time_scale       ,32);
+    out->write_bit (vps_poc_proportional_to_timing_flag);
+
+    if (vps_poc_proportional_to_timing_flag) {
+      out->write_uvlc(vps_num_ticks_poc_diff_one-1);
+      out->write_uvlc(vps_num_hrd_parameters);
+
+      for (int i=0; i<vps_num_hrd_parameters; i++) {
+        out->write_uvlc(hrd_layer_set_idx[i]);
+
+        if (i > 0) {
+          out->write_bit(cprms_present_flag[i]);
+        }
+
+        //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
+
+        return DE265_OK; // TODO: decode hrd_parameters()
+      }
+    }
+  }
+  
+  out->write_bit(vps_extension_flag);
+
+  if (vps_extension_flag) {
+    /*
+    while( more_rbsp_data() )
+    vps_extension_data_flag u(1)
+    rbsp_trailing_bits()
+    */
+  }
+
+  return DE265_OK;
+}
+
+
 void profile_tier_level::read(bitreader* reader,
                               int max_sub_layers)
 {

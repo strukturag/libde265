@@ -123,6 +123,7 @@ class video_parameter_set
 {
 public:
   de265_error read(struct decoder_context* ctx, bitreader* reader);
+  de265_error write(struct error_queue* errqueue, struct CABAC_encoder* out) const;
   void dump(int fd) const;
 
 
