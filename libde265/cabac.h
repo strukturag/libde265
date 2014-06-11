@@ -86,7 +86,7 @@ private:
   uint8_t* data;
   uint32_t data_capacity;
   uint32_t data_size;
-
+  char     state; // for inserting emulation-prevention bytes
 
   // VLC
 

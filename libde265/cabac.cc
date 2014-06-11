@@ -438,6 +438,7 @@ CABAC_encoder::CABAC_encoder()
   data = NULL;
   data_capacity = 0;
   data_size = 0;
+  state = 0;
 
   vlc_buffer_len = 0;
 
@@ -526,6 +527,32 @@ void CABAC_encoder::append_byte(int byte)
 
     data = (uint8_t*)realloc(data,data_capacity);
   }
+
+
+  // --- emulation prevention ---
+
+  /* These byte sequences may never occur in the bitstream:
+     0x000000 / 0x000001 / 0x000002
+
+     Hence, we have to add a 0x03 before the third byte.
+     We also have to add a 0x03 for this sequence: 0x000003, because
+     the escape byte itself also has to be escaped.
+  */
+
+  // S0 --(0)--> S1 --(0)--> S2 --(0,1,2,3)--> add stuffing
+
+  if (byte<=3) {
+    /**/ if (state< 2 && byte==0) { state++; }
+    else if (state==2 && byte<=3) {
+      data[ data_size++ ] = 3;
+      state=0;
+    }
+    else { state=0; }
+  }
+  else { state=0; }
+
+
+  // write actual data byte
 
   data[ data_size++ ] = byte;
 }
