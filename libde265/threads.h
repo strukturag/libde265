@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -30,6 +30,8 @@
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
+
+#include <deque>
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -90,102 +92,71 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
-typedef struct de265_progress_lock
+class de265_progress_lock
 {
-  int progress;
+public:
+  de265_progress_lock();
+  ~de265_progress_lock();
+
+  void wait_for_progress(int progress);
+  void set_progress(int progress);
+  int  get_progress() const;
+  void reset(int value=0) { mProgress=value; }
+
+private:
+  int mProgress;
 
   // private data
 
   de265_mutex mutex;
   de265_cond  cond;
-} de265_progress_lock;
-
-void de265_progress_lock_init(de265_progress_lock* lock);
-void de265_progress_lock_destroy(de265_progress_lock* lock);
-int  de265_wait_for_progress(de265_progress_lock* lock, int progress);
-void de265_announce_progress(de265_progress_lock* lock, int progress);
-
-
-
-enum thread_task_ctb_init_type { INIT_RESET, INIT_COPY, INIT_NONE };
-
-struct thread_task_ctb
-{
-  int ctb_x, ctb_y;
-  struct decoder_context* ctx;
-  struct thread_context* tctx;
-  struct slice_segment_header* shdr;
-
-  enum thread_task_ctb_init_type CABAC_init;
 };
 
-struct thread_task_ctb_row
+
+
+class thread_task
 {
-  int thread_context_id;
-  bool initCABAC;
-  struct decoder_context* ctx;
+public:
+  thread_task() : state(Queued) { }
+  virtual ~thread_task() { }
+
+  enum { Queued, Running, Blocked, Finished } state;
+
+  virtual void work() = 0;
 };
 
-struct thread_task_deblock
-{
-  struct decoder_context* ctx;
-  int first;  // stripe row
-  int last;
-  int ctb_x,ctb_y;
-  bool vertical;
-};
 
-enum thread_task_id {
-  THREAD_TASK_SYNTAX_DECODE_CTB,
-  THREAD_TASK_DEBLOCK,
-  THREAD_TASK_DECODE_CTB_ROW,
-  THREAD_TASK_DECODE_SLICE_SEGMENT,
-  //THREAD_TASK_PIXEL_DECODE_CTB,
-  //THREAD_TASK_POSTPROC_CTB
-};
-
-typedef struct
-{
-  int task_id;
-  enum thread_task_id task_cmd;
-
-  void (*work_routine)(void* data);
-
-  union {
-    struct thread_task_ctb task_ctb;
-    struct thread_task_ctb_row task_ctb_row;
-    struct thread_task_deblock task_deblock;
-  } data;
-} thread_task;
-
-
-#define MAX_THREAD_TASKS 1024
 #define MAX_THREADS 32
 
-typedef struct thread_pool
+/* TODO NOTE: When unblocking a task, we have to check first
+   if there are threads waiting because of the run-count limit.
+   If there are higher-priority tasks, those should be run instead
+   of the just unblocked task.
+ */
+
+class thread_pool
 {
+ public:
   bool stopped;
 
-  thread_task tasks[MAX_THREAD_TASKS];
-  int num_tasks;
+  std::deque<thread_task*> tasks;  // we are not the owner
 
   de265_thread thread[MAX_THREADS];
   int num_threads;
 
   int num_threads_working;
-  //long tasks_pending;
 
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];
 
   de265_mutex  mutex;
   de265_cond   cond_var;
-} thread_pool;
+};
 
 
 de265_error start_thread_pool(thread_pool* pool, int num_threads);
 void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
 
-void        add_task(thread_pool* pool, const thread_task* task);
+void        add_task(thread_pool* pool, thread_task* task); // TOCO: can make thread_task const
 
 #endif

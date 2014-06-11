@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -44,5 +44,11 @@ typedef struct
   MotionVector mvC[2];
 } VectorInfo;
 
+
+void decode_prediction_unit(struct thread_context* shdr,
+                            int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
+
+void inter_prediction(struct decoder_context* ctx,struct slice_segment_header* shdr,
+                      int xC,int yC, int log2CbSize);
 
 #endif

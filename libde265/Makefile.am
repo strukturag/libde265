@@ -8,27 +8,32 @@ libde265_ladir = \
 libde265_la_CPPFLAGS =
 
 libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(LIBDE265_AGE)
+libde265_la_LIBADD = -lstdc++
 
 libde265_la_SOURCES = \
-  bitstream.c \
-  cabac.c \
-  de265.c \
-  deblock.c \
-  decctx.c \
-  image.c \
-  intrapred.c \
-  md5.c \
-  nal.c \
-  pps.c \
-  transform.c \
-  refpic.c \
-  sao.c \
-  scan.c \
-  sei.c \
-  slice.c \
-  sps.c \
-  util.c \
-  vps.c \
+  bitstream.cc \
+  cabac.cc \
+  de265.cc \
+  deblock.cc \
+  decctx.cc \
+  nal-parser.cc \
+  nal-parser.h \
+  dpb.cc \
+  dpb.h \
+  image.cc \
+  intrapred.cc \
+  md5.cc \
+  nal.cc \
+  pps.cc \
+  transform.cc \
+  refpic.cc \
+  sao.cc \
+  scan.cc \
+  sei.cc \
+  slice.cc \
+  sps.cc \
+  util.cc \
+  vps.cc \
   bitstream.h \
   cabac.h \
   deblock.h \
@@ -38,27 +43,25 @@ libde265_la_SOURCES = \
   md5.h \
   nal.h \
   pps.h \
-  pps_func.h \
   transform.h \
   refpic.h \
   sao.h \
   scan.h \
   sei.h \
   slice.h \
-  slice_func.h \
   sps.h \
-  sps_func.h \
   util.h \
   vps.h \
-  motion.c motion.h motion_func.h \
-  threads.c threads.h \
-  lowlevel.h \
-  fallback.c fallback.h fallback-motion.c fallback-motion.h \
-  fallback-dct.h fallback-dct.c
+  motion.cc motion.h \
+  threads.cc threads.h \
+  visualize.cc visualize.h \
+  acceleration.h \
+  fallback.cc fallback.h fallback-motion.cc fallback-motion.h \
+  fallback-dct.h fallback-dct.cc
 
 if ENABLE_SSE_OPT
   SUBDIRS = x86
-  libde265_la_LIBADD = x86/libde265_x86.la
+  libde265_la_LIBADD += x86/libde265_x86.la
 endif
 
 if MINGW

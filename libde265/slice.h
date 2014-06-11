@@ -1,8 +1,8 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
- * Authors: StrukturAG, Dirk Farin <farin@struktur.de>
+ * Authors: struktur AG, Dirk Farin <farin@struktur.de>
  *          Min Chen <chenm003@163.com>
  *
  * This file is part of libde265.
@@ -27,12 +27,12 @@
 #include "libde265/cabac.h"
 #include "libde265/de265.h"
 #include "libde265/util.h"
+#include "libde265/refpic.h"
+#include "libde265/threads.h"
 
+#include <vector>
 
-#define MAX_CTB_ROWS   68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
-#define MAX_ENTRY_POINTS    MAX_CTB_ROWS
-#define MAX_THREAD_CONTEXTS MAX_CTB_ROWS
-#define MAX_REF_PIC_LIST (14+1)
+#define MAX_NUM_REF_PICS    16
 
 #define SLICE_TYPE_B 0
 #define SLICE_TYPE_P 1
@@ -127,12 +127,19 @@ enum context_model_indices {
   CONTEXT_MODEL_RQT_ROOT_CBF           = CONTEXT_MODEL_MVP_LX_FLAG + 1,
   CONTEXT_MODEL_REF_IDX_LX             = CONTEXT_MODEL_RQT_ROOT_CBF + 1,
   CONTEXT_MODEL_INTER_PRED_IDC         = CONTEXT_MODEL_REF_IDX_LX + 2,
-  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_INTER_PRED_IDC + 5
+  CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG = CONTEXT_MODEL_INTER_PRED_IDC + 5,
+  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
 };
 
 
 typedef struct slice_segment_header {
-  int slice_index; // index through all slices in a picture
+  slice_segment_header() { }
+
+  de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
+  void dump_slice_segment_header(const decoder_context*, int fd) const;
+
+
+  int  slice_index; // index through all slices in a picture
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
@@ -145,17 +152,18 @@ typedef struct slice_segment_header {
   char colour_plane_id;
   int  slice_pic_order_cnt_lsb;
   char short_term_ref_pic_set_sps_flag;
-  //short_term_ref_pic_set(num_short_term_ref_pic_sets)
+  ref_pic_set slice_ref_pic_set;
+
   int  short_term_ref_pic_set_idx;
   int  num_long_term_sps;
   int  num_long_term_pics;
 
-  //int lt_idx_sps[i];
-  //int poc_lsb_lt[i];
-  //char used_by_curr_pic_lt_flag[i];
+  uint8_t lt_idx_sps[MAX_NUM_REF_PICS];
+  int     poc_lsb_lt[MAX_NUM_REF_PICS];
+  char    used_by_curr_pic_lt_flag[MAX_NUM_REF_PICS];
 
-  //char delta_poc_msb_present_flag[i];
-  //int delta_poc_msb_cycle_lt[i];
+  char delta_poc_msb_present_flag[MAX_NUM_REF_PICS];
+  int delta_poc_msb_cycle_lt[MAX_NUM_REF_PICS];
 
   char slice_temporal_mvp_enabled_flag;
   char slice_sao_luma_flag;
@@ -165,12 +173,10 @@ typedef struct slice_segment_header {
   int  num_ref_idx_l0_active; // [1;16]
   int  num_ref_idx_l1_active; // [1;16]
 
-  //ref_pic_lists_modification()
-
   char ref_pic_list_modification_flag_l0;
   char ref_pic_list_modification_flag_l1;
-  int list_entry_l0[1]; // TODO
-  int list_entry_l1[1]; // TODO
+  uint8_t list_entry_l0[16];
+  uint8_t list_entry_l1[16];
 
   char mvd_l1_zero_flag;
   char cabac_init_flag;
@@ -206,24 +212,38 @@ typedef struct slice_segment_header {
 
   int  num_entry_point_offsets;
   int  offset_len;
-  int entry_point_offset[MAX_ENTRY_POINTS];
+  std::vector<int> entry_point_offset;
 
   int  slice_segment_header_extension_length;
 
 
   // --- derived data ---
 
-  int SliceAddrRS;
+  int SliceAddrRS;  // start of last independent slice
   int SliceQPY;
 
   int initType;
 
-  int cu_transquant_bypass_flag;
-
-  int CurrRpsIdx;
   int MaxNumMergeCand;
+  int CurrRpsIdx;
+  ref_pic_set CurrRps;  // the active reference-picture set
+  int NumPocTotalCurr;
 
-  int RefPicList[2][MAX_REF_PIC_LIST];
+  int RefPicList[2][MAX_NUM_REF_PICS]; // contains indices into DPB
+  int RefPicList_POC[2][MAX_NUM_REF_PICS];
+  int RefPicList_PicState[2][MAX_NUM_REF_PICS]; /* We have to save the PicState because the decoding
+                                                   of an image may be delayed and the PicState can
+                                                   change in the mean-time (e.g. from ShortTerm to
+                                                   LongTerm). PicState is used in motion.cc */
+
+  char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
+                                               is a long-term picture. */
+
+  // context storage for dependent slices (stores CABAC model at end of slice segment)
+  context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
+
+  std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
+
 } slice_segment_header;
 
 
@@ -238,5 +258,31 @@ typedef struct {
   int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
 } sao_info;
 
+
+
+
+de265_error read_slice_segment_data(struct thread_context* tctx);
+
+bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+void free_significant_coeff_ctxIdx_lookupTable();
+
+
+class thread_task_ctb_row : public thread_task
+{
+public:
+  bool   firstSliceSubstream;
+  struct thread_context* tctx;
+
+  virtual void work();
+};
+
+class thread_task_slice_segment : public thread_task
+{
+public:
+  bool   firstSliceSubstream;
+  struct thread_context* tctx;
+
+  virtual void work();
+};
 
 #endif

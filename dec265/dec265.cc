@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -28,19 +28,20 @@
 #include <stdlib.h>
 #include <limits>
 #include <getopt.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <signal.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
-extern "C" {
 #include "libde265/decctx.h"
-}
 #else
 // VS2008 didn't support C99, compile all everything as C++
 #include "libde265/decctx.h"
 #endif
+#include "libde265/visualize.h"
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -56,17 +57,11 @@ extern "C" {
 }
 
 
-#ifndef _MSC_VER
 extern "C" {
 void showMotionProfile();
 void showIntraPredictionProfile();
 void showTransformProfile();
 }
-#else
-void showMotionProfile();
-void showIntraPredictionProfile();
-void showTransformProfile();
-#endif
 
 
 #define BUFFER_SIZE 40960
@@ -82,8 +77,15 @@ bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
 bool logging=true;
+bool no_acceleration=false;
 const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
+bool write_bytestream=false;
+const char *bytestream_filename;
+int highestTID = 100;
+int verbosity=0;
+int disable_deblocking=0;
+int disable_sao=0;
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
@@ -97,7 +99,12 @@ static struct option long_options[] = {
   {"videogfx",   no_argument,       0, 'V' },
   {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
-  //{"verbose",    no_argument,       0, 'v' },
+  {"noaccel",    no_argument,       0, '0' },
+  {"write-bytestream", required_argument,0, 'B' },
+  {"highest-TID", required_argument, 0, 'T' },
+  {"verbose",    no_argument,       0, 'v' },
+  {"disable-deblocking", no_argument, &disable_deblocking, 1 },
+  {"disable-sao",        no_argument, &disable_sao, 1 },
   {0,         0,                 0,  0 }
 };
 
@@ -141,7 +148,7 @@ void display_image(const struct de265_image* img)
   }
 
   win.Display(visu);
-  //win.WaitForKeypress();
+  win.WaitForKeypress();
 }
 #endif
 
@@ -182,7 +189,18 @@ bool output_image(const de265_image* img)
   height = de265_get_image_height(img,0);
 
   framecnt++;
-  //printf("SHOW POC: %d / PTS: %ld\n",img->PicOrderCntVal, img->pts);
+  //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
+
+
+  if (0) {
+    const char* nal_unit_name;
+    int nuh_layer_id;
+    int nuh_temporal_id;
+    de265_get_image_NAL_header(img, NULL, &nal_unit_name, &nuh_layer_id, &nuh_temporal_id);
+
+    printf("NAL: %s layer:%d temporal:%d\n",nal_unit_name, nuh_layer_id, nuh_temporal_id);
+  }
+
 
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
@@ -196,10 +214,9 @@ bool output_image(const de265_image* img)
 #elif HAVE_VIDEOGFX
     display_image(img);
 #endif
-
-    if (write_yuv) {
-      write_picture(img);
-    }
+  }
+  if (write_yuv) {
+    write_picture(img);
   }
 
   if ((framecnt%100)==0) {
@@ -282,7 +299,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLn"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -304,6 +321,10 @@ int main(int argc, char** argv)
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
     case 'L': logging=false; break;
+    case '0': no_acceleration=true; break;
+    case 'B': write_bytestream=true; bytestream_filename=optarg; break;
+    case 'T': highestTID=atoi(optarg); break;
+    case 'v': verbosity++; break;
     }
   }
 
@@ -325,7 +346,12 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
+    fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
+    fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
+    fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
+    fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
+    fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -336,13 +362,11 @@ int main(int argc, char** argv)
 
   de265_decoder_context* ctx = de265_new_decoder();
 
-  if (argc>=3) {
-    if (nThreads>0) {
-      err = de265_start_worker_threads(ctx, nThreads);
-    }
-  }
-
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
+  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
@@ -351,14 +375,37 @@ int main(int argc, char** argv)
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
   }
 
+  if (no_acceleration) {
+    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
+  }
+
   if (!logging) {
     de265_disable_logging();
   }
+
+  de265_set_verbosity(verbosity);
+
+
+  if (argc>=3) {
+    if (nThreads>0) {
+      err = de265_start_worker_threads(ctx, nThreads);
+    }
+  }
+
+  de265_set_limit_TID(ctx, highestTID);
+
+
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
     fprintf(stderr,"cannot open file %s!\n", argv[1]);
     exit(10);
+  }
+
+  FILE* bytestream_fh = NULL;
+
+  if (write_bytestream) {
+    bytestream_fh = fopen(bytestream_filename, "wb");
   }
 
   bool stop=false;
@@ -370,6 +417,9 @@ int main(int argc, char** argv)
 
   while (!stop)
     {
+      //tid = (framecnt/1000) & 1;
+      //de265_set_limit_TID(ctx, tid);
+
       if (nal_input) {
         uint8_t len[4];
         int n = fread(len,1,4,fh);
@@ -378,8 +428,14 @@ int main(int argc, char** argv)
         uint8_t* buf = (uint8_t*)malloc(length);
         n = fread(buf,1,length,fh);
         err = de265_push_NAL(ctx, buf,n,  pos,NULL);
-        free(buf);
 
+        if (write_bytestream) {
+          uint8_t sc[3] = { 0,0,1 };
+          fwrite(sc ,1,3,bytestream_fh);
+          fwrite(buf,1,n,bytestream_fh);
+        }
+
+        free(buf);
         pos+=n;
       }
       else {
@@ -396,6 +452,16 @@ int main(int argc, char** argv)
         }
 
         pos+=n;
+
+        if (0) { // fake skipping
+          if (pos>1000000) {
+            printf("RESET\n");
+            de265_reset(ctx);
+            pos=0;
+
+            fseek(fh,-200000,SEEK_CUR);
+          }
+        }
       }
 
       // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
@@ -417,6 +483,8 @@ int main(int argc, char** argv)
 
           err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
+            if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
+              stop = 1;
             more = 0;
             break;
           }
@@ -445,13 +513,17 @@ int main(int argc, char** argv)
 
   fclose(fh);
 
+  if (write_bytestream) {
+    fclose(bytestream_fh);
+  }
+
   de265_free_decoder(ctx);
 
   struct timeval tv_end;
   gettimeofday(&tv_end, NULL);
 
   if (err != DE265_OK) {
-    fprintf(stderr,"decoding error: %s (%d)\n", de265_get_error_text(err), err);
+    fprintf(stderr,"decoding error: %s (code=%d)\n", de265_get_error_text(err), err);
   }
 
   double secs = tv_end.tv_sec-tv_start.tv_sec;

@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -69,6 +69,26 @@ VideoPlayer::VideoPlayer(const char* filename)
   QObject::connect(showPBPredModeButton, SIGNAL(toggled(bool)),
                    mDecoder, SLOT(showPBPredMode(bool)));
 
+  QPushButton* showQuantPYButton = new QPushButton("Quant");
+  showQuantPYButton->setCheckable(true);
+  QObject::connect(showQuantPYButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showQuantPY(bool)));
+
+  QPushButton* showMotionVecButton = new QPushButton("MotionVec");
+  showMotionVecButton->setCheckable(true);
+  QObject::connect(showMotionVecButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showMotionVec(bool)));
+
+  QPushButton* showTilesButton = new QPushButton("Tiles");
+  showTilesButton->setCheckable(true);
+  QObject::connect(showTilesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showTiles(bool)));
+
+  QPushButton* showSlicesButton = new QPushButton("Slices");
+  showSlicesButton->setCheckable(true);
+  QObject::connect(showSlicesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showSlices(bool)));
+
   QPushButton* showDecodedImageButton = new QPushButton("image");
   showDecodedImageButton->setCheckable(true);
   showDecodedImageButton->setChecked(true);
@@ -76,16 +96,20 @@ VideoPlayer::VideoPlayer(const char* filename)
                    mDecoder, SLOT(showDecodedImage(bool)));
 
   QGridLayout *layout = new QGridLayout;
-  layout->addWidget(videoWidget, 0,0,1,6);
+  layout->addWidget(videoWidget, 0,0,1,7);
   layout->addWidget(startButton, 1,0,1,1);
   layout->addWidget(stopButton,  1,1,1,1);
   layout->addWidget(stepButton,  1,2,1,1);
+  layout->addWidget(showDecodedImageButton,  1,6,1,1);
+  layout->addWidget(showTilesButton,         1,5,1,1);
+  layout->addWidget(showSlicesButton,        1,4,1,1);
   layout->addWidget(showCBPartitioningButton,2,0,1,1);
   layout->addWidget(showTBPartitioningButton,2,1,1,1);
   layout->addWidget(showPBPartitioningButton,2,2,1,1);
   layout->addWidget(showIntraPredModeButton, 2,3,1,1);
   layout->addWidget(showPBPredModeButton,    2,4,1,1);
-  layout->addWidget(showDecodedImageButton,  2,5,1,1);
+  layout->addWidget(showQuantPYButton,       2,5,1,1);
+  layout->addWidget(showMotionVecButton,     2,6,1,1);
   setLayout(layout);
 
 

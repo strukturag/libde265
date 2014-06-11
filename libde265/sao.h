@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -23,6 +23,14 @@
 
 #include "libde265/decctx.h"
 
-void apply_sample_adaptive_offset(decoder_context* ctx);
+void apply_sample_adaptive_offset(de265_image* img);
+
+/* requires less memory than the function above */
+void apply_sample_adaptive_offset_sequential(de265_image* img);
+
+/* saoInputProgress - the CTB progress that SAO will wait for before beginning processing.
+   Returns 'true' if any tasks have been added.
+ */
+bool add_sao_tasks(image_unit* imgunit, int saoInputProgress);
 
 #endif

@@ -4,9 +4,9 @@
 CFLAGS=/I..\extra /I.. /I.
 CC=cl /nologo 
 LINK=link /nologo /subsystem:console
-DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1
+DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1 /DNOMINMAX
 
-CFLAGS=$(CFLAGS) /MT /Ox /Ob2 /Oi /TP /W4 /GL
+CFLAGS=$(CFLAGS) /MT /Ox /Ob2 /Oi /TP /W4 /GL /EHsc
 
 # type conversion, possible loss of data
 CFLAGS=$(CFLAGS) /wd4244
@@ -16,6 +16,16 @@ CFLAGS=$(CFLAGS) /wd4100
 CFLAGS=$(CFLAGS) /wd4189
 # unreferenced local function has been removed
 CFLAGS=$(CFLAGS) /wd4505
+# padded structures
+CFLAGS=$(CFLAGS) /wd4324
+# conversion signed/unsigned
+CFLAGS=$(CFLAGS) /wd4245
+# comparison signed/unsigned
+CFLAGS=$(CFLAGS) /wd4018 /wd4389
+# possible loss of data with return
+CFLAGS=$(CFLAGS) /wd4267
+# forcing value to bool (performance warning)
+CFLAGS=$(CFLAGS) /wd4800
 
 CFLAGS=$(CFLAGS) $(DEFINES)
 
@@ -25,6 +35,7 @@ OBJS=\
 	de265.obj \
 	deblock.obj \
 	decctx.obj \
+	dpb.obj \
 	fallback-dct.obj \
 	fallback-motion.obj \
 	fallback.obj \
@@ -33,6 +44,7 @@ OBJS=\
 	md5.obj \
 	motion.obj \
 	nal.obj \
+	nal-parser.obj \
 	pps.obj \
 	refpic.obj \
 	sao.obj \
@@ -43,6 +55,7 @@ OBJS=\
 	threads.obj \
 	transform.obj \
 	util.obj \
+	visualize.obj \
 	vps.obj \
 	x86\sse.obj \
 	x86\sse-dct.obj \
@@ -53,6 +66,9 @@ all: libde265.dll
 
 .c.obj:
 	$(CC) /c $*.c /Fo$*.obj $(CFLAGS)
+
+.cc.obj:
+	$(CC) /c $*.cc /Fo$*.obj $(CFLAGS)
 
 libde265.dll: $(OBJS)
 	$(LINK) /dll /out:libde265.dll $**

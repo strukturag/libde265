@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -35,20 +35,6 @@
 #define MAX_UVLC_LEADING_ZEROS 20
 #define UVLC_ERROR -99999
 
-typedef struct {
-  unsigned char* data;
-  int size;
-  int capacity;
-} rbsp_buffer;
-
-void rbsp_buffer_init(rbsp_buffer* buffer);
-void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size);
-void rbsp_buffer_free(rbsp_buffer* buffer);
-void rbsp_buffer_append(rbsp_buffer* buffer, const unsigned char* data, int n);
-void rbsp_buffer_pop(rbsp_buffer* buffer, int n);
-
-
-
 
 typedef struct {
   uint8_t* data;
@@ -58,7 +44,7 @@ typedef struct {
   int nextbits_cnt;
 } bitreader;
 
-void bitreader_init(bitreader*, rbsp_buffer*);
+void bitreader_init(bitreader*, unsigned char* buffer, int len);
 void bitreader_refill(bitreader*); // refill to at least 56+1 bits
 int  next_bit(bitreader*);
 int  next_bit_norefill(bitreader*);

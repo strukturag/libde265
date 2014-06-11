@@ -48,10 +48,18 @@ typedef struct
   // allows us to optimize the code if we're just signaling.
 } win32_cond_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int win32_cond_init(win32_cond_t *cv);
 int win32_cond_destroy(win32_cond_t *cv);
 int win32_cond_wait(win32_cond_t *cv, HANDLE *external_mutex);
 int win32_cond_signal(win32_cond_t *cv);
 int win32_cond_broadcast(win32_cond_t *cv);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

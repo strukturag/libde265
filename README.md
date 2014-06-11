@@ -5,12 +5,16 @@ libde265 - open h.265 codec implementation
 ![libde265](libde265.png)
 
 libde265 is an open source implementation of the h.265 video codec.
-It is written from scratch in plain C for simplicity and efficiency.
-Its simple API makes it easy to integrate it into other software.
+It is written from scratch and has a plain C API to enable
+a simple integration into other software.
 
 libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
-All features of the Main profile except long-term MC (which is currently unused
-by the available encoders) are supported.
+The decoder includes all features of the Main profile and correctly decodes almost all
+conformance streams (see [[wiki page](https://github.com/strukturag/libde265/wiki/Decoder-conformance)]).
+
+A list of supported features are available in the [wiki](https://github.com/strukturag/libde265/wiki/Supported-decoding-features).
+
+For latest news check our website at http://www.libde265.org
 
 The library comes with two example programs:
 
@@ -24,16 +28,25 @@ The library comes with two example programs:
 Example bitstreams can be found, e.g., at this site:
   ftp://ftp.kw.bbc.co.uk/hevc/hm-10.1-anchors/bitstreams/ra_main/
 
-Approximate performance for WPP, non-tiles streams (measured using the totem video
-player with libde265-gstreamer plugin on a Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz with
-8 CPU cores on Ubuntu 12.04, 64bit):
+Approximate performance for WPP, non-tiles streams (measured using the `timehevc`
+tool from [the GStreamer plugin](https://github.com/strukturag/gstreamer-libde265)).
+The tool plays a Matroska movie to the GStreamer fakesink and measures
+the average framerate.
 
-| Resolution        | fps     | CPU usage @ 24 fps |
-| ----------------- | ------- | ------------------ |
-| 720p              | 685 fps | ~28 %              |
-| 1080p             | 240 fps | ~80 %              |
-| 4K                | 51 fps  | ~380 %             |
+| Resolution        | avg. fps | CPU usage |
+| ----------------- | -------- | --------- |
+| [720p][1]         |  284 fps |      39 % |
+| [1080p][2]        |  150 fps |      45 % |
+| [4K][3]           |   36 fps |      56 % |
 
+Environment:
+- Intel(R) Core(TM) i7-2700K CPU @ 3.50GHz (4 physical CPU cores)
+- Ubuntu 12.04, 64bit
+- GStreamer 0.10.36
+
+[1]: http://trailers.divx.com/hevc/TearsOfSteel_720p_24fps_27qp_831kbps_720p_GPSNR_41.65_HM11_2aud_7subs.mkv
+[2]: http://trailers.divx.com/hevc/TearsOfSteel_1080p_24fps_27qp_1474kbps_GPSNR_42.29_HM11_2aud_7subs.mkv
+[3]: http://trailers.divx.com/hevc/TearsOfSteel_4K_24fps_9500kbps_2aud_9subs.mkv
 
 
 Building
@@ -51,7 +64,10 @@ have dependencies on:
 
 - Qt (required for sherlock265),
 
-- libvideogfx (required for sherlock265, optional for dec265).
+- libswscale (required for sherlock265 if libvideogfx is not available).
+
+- libvideogfx (required for sherlock265 if libswscale is not available,
+  optional for dec265).
 
 Libvideogfx can be obtained from
   http://www.dirk-farin.net/software/libvideogfx/index.html
@@ -86,9 +102,15 @@ Libde265 has been integrated into these applications:
 
 - gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
+- VLC plugin [source](https://github.com/strukturag/vlc-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
+
 - Windows DirectShow filters, https://github.com/strukturag/LAVFilters/releases
 
 - ffmpeg fork, https://github.com/farindk/ffmpeg
+
+- ffmpeg decoder [source](https://github.com/strukturag/libde265-ffmpeg)
+
+- libde265.js JavaScript decoder [source](https://github.com/strukturag/libde265.js), [demo](https://strukturag.github.io/libde265.js/).
 
 
 License

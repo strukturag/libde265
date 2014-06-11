@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -26,6 +26,12 @@
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
 
+#include <vector>
+
+#define MAX_REF_PIC_SETS 64  // maximum according to standard
+#define MAX_NUM_LT_REF_PICS_SPS 32
+
+
 enum {
   CHROMA_MONO = 0,
   CHROMA_420 = 1,
@@ -35,7 +41,24 @@ enum {
 };
 
 
-typedef struct {
+typedef struct scaling_list_data {
+  // structure size: approx. 4 kB
+
+  uint8_t ScalingFactor_Size0[6][4][4];
+  uint8_t ScalingFactor_Size1[6][8][8];
+  uint8_t ScalingFactor_Size2[6][16][16];
+  uint8_t ScalingFactor_Size3[2][32][32];
+} scaling_list_data;
+
+
+struct seq_parameter_set {
+  seq_parameter_set();
+  ~seq_parameter_set();
+
+  de265_error read(struct decoder_context*, bitreader*);
+
+  void dump_sps(int fd) const;
+
   bool sps_read; // whether the sps has been read from the bitstream
 
 
@@ -64,9 +87,9 @@ typedef struct {
   int  log2_max_pic_order_cnt_lsb;
   char sps_sub_layer_ordering_info_present_flag;
 
-  int sps_max_dec_pic_buffering[7];
+  int sps_max_dec_pic_buffering[7]; // for each temporal layer
   int sps_max_num_reorder_pics[7];
-  int sps_max_latency_increase[7];
+  int sps_max_latency_increase_plus1[7];
 
   int  log2_min_luma_coding_block_size;
   int  log2_diff_max_min_luma_coding_block_size;
@@ -74,11 +97,12 @@ typedef struct {
   int  log2_diff_max_min_transform_block_size;
   int  max_transform_hierarchy_depth_inter;
   int  max_transform_hierarchy_depth_intra;
+
   char scaling_list_enable_flag;
+  char sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
+                                              in scaling_list */
 
-  char sps_scaling_list_data_present_flag;
-
-  // scaling_list_data()
+  struct scaling_list_data scaling_list;
 
   char amp_enabled_flag;
   char sample_adaptive_offset_enabled_flag;
@@ -91,6 +115,7 @@ typedef struct {
   char pcm_loop_filter_disable_flag;
 
   int num_short_term_ref_pic_sets;
+  std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
 
   /*
     for( i = 0; i < num_short_term_ref_pic_sets; i++)
@@ -101,8 +126,8 @@ typedef struct {
 
   int num_long_term_ref_pics_sps;
 
-  int  lt_ref_pic_poc_lsb_sps[32];
-  char used_by_curr_pic_lt_sps_flag[32];
+  int  lt_ref_pic_poc_lsb_sps[MAX_NUM_LT_REF_PICS_SPS];
+  char used_by_curr_pic_lt_sps_flag[MAX_NUM_LT_REF_PICS_SPS];
 
   char sps_temporal_mvp_enabled_flag;
   char strong_intra_smoothing_enable_flag;
@@ -162,8 +187,10 @@ typedef struct {
   int Log2MinIpcmCbSizeY;
   int Log2MaxIpcmCbSizeY;
 
-} seq_parameter_set;
+  int SpsMaxLatencyPictures[7]; // [temporal layer]
+};
 
+de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
+void set_default_scaling_lists(scaling_list_data*);
 
 #endif
-

@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -81,7 +81,7 @@ void read_profile_tier_level(bitreader* reader,
                              struct profile_tier_level* hdr,
                              int max_sub_layers);
 
-void dump_profile_tier_level(struct profile_tier_level* hdr,
+void dump_profile_tier_level(const struct profile_tier_level* hdr,
                              int max_sub_layers, FILE* fh);
 
 
@@ -149,6 +149,7 @@ typedef struct {
 } video_parameter_set;
 
 
+de265_error read_vps(struct decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 void dump_vps(video_parameter_set*, int fd);
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -22,12 +22,24 @@
 #define DE265_PPS_H
 
 #include "libde265/bitstream.h"
+#include "libde265/sps.h" // for scaling list only
+
+#include <vector>
 
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
 
 
-typedef struct {
+struct pic_parameter_set {
+  pic_parameter_set();
+  ~pic_parameter_set();
+
+  bool read(bitreader*, struct decoder_context*);
+
+  bool is_tile_start_CTB(int ctbX,int ctbY) const;
+  void dump_pps(int fd) const;
+
+
   bool pps_read; // whether this pps has been read from bitstream
 
   char pic_parameter_set_id;
@@ -70,11 +82,11 @@ typedef struct {
   int colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
   int rowBd    [ DE265_MAX_TILE_ROWS+1 ];
 
-  int* CtbAddrRStoTS; // #CTBs
-  int* CtbAddrTStoRS; // #CTBs
-  int* TileId;        // #CTBs
-  int* TileIdRS;      // #CTBs
-  int* MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
+  std::vector<int> CtbAddrRStoTS; // #CTBs
+  std::vector<int> CtbAddrTStoRS; // #CTBs
+  std::vector<int> TileId;        // #CTBs  // index in tile-scan order
+  std::vector<int> TileIdRS;      // #CTBs  // index in raster-scan order
+  std::vector<int> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
 
 
   // --- QP ---
@@ -95,7 +107,7 @@ typedef struct {
   int tc_offset;
 
   char pic_scaling_list_data_present_flag;
-  //scaling_list_data()
+  struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
 
   char lists_modification_present_flag;
   int log2_parallel_merge_level;
@@ -103,6 +115,6 @@ typedef struct {
   char slice_segment_header_extension_present_flag;
   char pps_extension_flag;
 
-} pic_parameter_set;
+};
 
 #endif

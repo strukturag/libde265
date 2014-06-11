@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -21,19 +21,27 @@
 #ifndef DE265_TRANSFORM_H
 #define DE265_TRANSFORM_H
 
+#include "libde265/de265.h"
 #include "libde265/decctx.h"
 
-int table8_22(int qPi);
+extern const int tab8_22[];
+
+LIBDE265_INLINE static int table8_22(int qPi)
+{
+  if (qPi<30) return qPi;
+  if (qPi>=43) return qPi-6;
+  return tab8_22[qPi-30];
+}
 
 // (8.6.1)
-void decode_quantization_parameters(decoder_context* ctx,
-                                    thread_context* shdr, int xC,int yC);
+void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
+                                    int xCUBase, int yCUBase);
 
 // (8.6.2)
-void scale_coefficients(decoder_context* ctx, thread_context* shdr,
+void scale_coefficients(thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
-                        bool transform_skip_flag);
+                        bool transform_skip_flag, bool intra);
 
 #endif
