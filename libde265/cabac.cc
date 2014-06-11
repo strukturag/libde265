@@ -370,12 +370,7 @@ int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
 {
   int value=0;
 
-<<<<<<< HEAD:libde265/cabac.c
-  if (nBits<=8) {
-=======
-
   if (likely(nBits<=8)) {
->>>>>>> master:libde265/cabac.cc
     if (nBits==0) {
       return 0;
     }
