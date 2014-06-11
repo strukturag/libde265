@@ -90,10 +90,10 @@ class NAL_Parser
   ~NAL_Parser();
 
   de265_error push_data(const unsigned char* data, int len,
-                        de265_PTS pts, void* user_data);
+                        de265_PTS pts, void* user_data = NULL);
 
   de265_error push_NAL(const unsigned char* data, int len,
-                       de265_PTS pts, void* user_data);
+                       de265_PTS pts, void* user_data = NULL);
 
   NAL_unit*   pop_from_NAL_queue();
   de265_error flush_data();
