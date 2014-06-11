@@ -81,6 +81,10 @@ void read_profile_tier_level(bitreader* reader,
                              struct profile_tier_level* hdr,
                              int max_sub_layers);
 
+void write_profile_tier_level(class CABAC_encoder* writer,
+                              struct profile_tier_level* hdr,
+                              int max_sub_layers);
+
 void dump_profile_tier_level(const struct profile_tier_level* hdr,
                              int max_sub_layers, FILE* fh);
 

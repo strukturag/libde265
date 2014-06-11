@@ -54,6 +54,15 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
                                         const std::vector<ref_pic_set>& sets,
                                         bool sliceRefPicSet);
 
+extern bool write_short_term_ref_pic_set(error_queue* errqueue,
+                                         const seq_parameter_set* sps,
+                                         CABAC_encoder* out,
+                                         const ref_pic_set* in_set, // which set to write
+                                         int idxRps,  // index of the set to be read
+                                         const std::vector<ref_pic_set>& sets, // previously read sets
+                                         bool sliceRefPicSet); // is this in the slice header?
+
+
 seq_parameter_set::seq_parameter_set()
 {
   // TODO: this is dangerous
@@ -747,6 +756,14 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 }
 
 
+de265_error write_scaling_list(CABAC_encoder* out, const seq_parameter_set* sps,
+                              scaling_list_data* sclist, bool inPPS)
+{
+  assert(false);
+  // TODO
+}
+
+
 void set_default_scaling_lists(scaling_list_data* sclist)
 {
   // 4x4
@@ -780,5 +797,238 @@ void set_default_scaling_lists(scaling_list_data* sclist)
                       default_ScalingList_8x8_intra, 3);
   fill_scaling_factor(&sclist->ScalingFactor_Size3[1][0][0],
                       default_ScalingList_8x8_inter, 3);
+}
+
+
+de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
+{
+  out->write_bits(video_parameter_set_id, 4);
+  if (sps_max_sub_layers>7) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  out->write_bits(sps_max_sub_layers-1, 3);
+
+  out->write_bit(sps_temporal_id_nesting_flag);
+
+  write_profile_tier_level(out,&profile_tier_level, sps_max_sub_layers);
+
+  out->write_uvlc(seq_parameter_set_id);
+
+
+  // --- encode chroma type ---
+
+  out->write_uvlc(chroma_format_idc);
+
+  if (chroma_format_idc<0 ||
+      chroma_format_idc>3) {
+    errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (chroma_format_idc == 3) {
+    out->write_bit(separate_colour_plane_flag);
+  }
+
+
+  // --- picture size ---
+
+  out->write_uvlc(pic_width_in_luma_samples);
+  out->write_uvlc(pic_height_in_luma_samples);
+
+  out->write_bit(conformance_window_flag);
+
+  if (conformance_window_flag) {
+    out->write_uvlc(conf_win_left_offset);
+    out->write_uvlc(conf_win_right_offset);
+    out->write_uvlc(conf_win_top_offset);
+    out->write_uvlc(conf_win_bottom_offset);
+  }
+
+
+  out->write_uvlc(bit_depth_luma-8);
+  out->write_uvlc(bit_depth_chroma-8);
+
+  out->write_uvlc(log2_max_pic_order_cnt_lsb-4);
+
+
+  // --- sub_layer_ordering_info ---
+
+  out->write_bit(sps_sub_layer_ordering_info_present_flag);
+
+  int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
+                    0 : sps_max_sub_layers-1 );
+
+  for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
+
+    // sps_max_dec_pic_buffering[i]
+
+    if (sps_max_dec_pic_buffering[i] > MAX_NUM_REF_PICS) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    out->write_uvlc(sps_max_dec_pic_buffering[i]-1);
+
+    // sps_max_num_reorder_pics[i]
+
+    out->write_uvlc(sps_max_num_reorder_pics[i]);
+
+
+    // sps_max_latency_increase[i]
+
+    out->write_uvlc(sps_max_latency_increase_plus1[i]);
+  }
+
+
+  out->write_uvlc(log2_min_luma_coding_block_size-3);
+  out->write_uvlc(log2_diff_max_min_luma_coding_block_size);
+  out->write_uvlc(log2_min_transform_block_size-2);
+  out->write_uvlc(log2_diff_max_min_transform_block_size);
+  out->write_uvlc(max_transform_hierarchy_depth_inter);
+  out->write_uvlc(max_transform_hierarchy_depth_intra);
+  out->write_bit(scaling_list_enable_flag);
+
+  if (scaling_list_enable_flag) {
+
+    out->write_bit(sps_scaling_list_data_present_flag);
+    if (sps_scaling_list_data_present_flag) {
+
+      de265_error err;
+      if ((err=write_scaling_list(out,this, &scaling_list, false)) != DE265_OK) {
+        return err;
+      }
+    }
+  }
+
+  out->write_bit(amp_enabled_flag);
+  out->write_bit(sample_adaptive_offset_enabled_flag);
+  out->write_bit(pcm_enabled_flag);
+  if (pcm_enabled_flag) {
+    out->write_bits(pcm_sample_bit_depth_luma  -1,4);
+    out->write_bits(pcm_sample_bit_depth_chroma-1,4);
+    out->write_uvlc(log2_min_pcm_luma_coding_block_size-3);
+    out->write_uvlc(log2_diff_max_min_pcm_luma_coding_block_size);
+    out->write_bit(pcm_loop_filter_disable_flag);
+  }
+
+  if (num_short_term_ref_pic_sets < 0 ||
+      num_short_term_ref_pic_sets > 64) {
+    errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  out->write_uvlc(num_short_term_ref_pic_sets);
+
+  // --- allocate reference pic set ---
+
+  // we do not allocate the ref-pic-set for the slice header here, but in the slice header itself
+
+  for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
+
+    bool success = write_short_term_ref_pic_set(errqueue,this,out,
+                                                &ref_pic_sets[i], i,
+                                                ref_pic_sets,
+                                                false);
+
+    if (!success) {
+      return DE265_WARNING_SPS_HEADER_INVALID;
+    }
+
+    // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
+  }
+
+  out->write_bit(long_term_ref_pics_present_flag);
+
+  if (long_term_ref_pics_present_flag) {
+
+    if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    out->write_uvlc(num_long_term_ref_pics_sps);
+
+    for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
+      out->write_bits(lt_ref_pic_poc_lsb_sps[i], log2_max_pic_order_cnt_lsb);
+      out->write_bit (used_by_curr_pic_lt_sps_flag[i]);
+    }
+  }
+
+  out->write_bit(sps_temporal_mvp_enabled_flag);
+  out->write_bit(strong_intra_smoothing_enable_flag);
+  out->write_bit(vui_parameters_present_flag);
+
+#if 0
+  if (vui_parameters_present_flag) {
+    assert(false);
+    /*
+      vui_parameters()
+
+        sps_extension_flag
+        u(1)
+        if( sps_extension_flag )
+
+          while( more_rbsp_data() )
+
+            sps_extension_data_flag
+              u(1)
+              rbsp_trailing_bits()
+    */
+  }
+
+  sps_extension_flag = get_bits(br,1);
+  if (sps_extension_flag) {
+    assert(false);
+  }
+
+  check_rbsp_trailing_bits(br);
+#endif
+
+  // --- compute derived values ---
+
+#if 0
+  BitDepth_Y   = bit_depth_luma;
+  QpBdOffset_Y = 6*(bit_depth_luma-8);
+  BitDepth_C   = bit_depth_chroma;
+  QpBdOffset_C = 6*(bit_depth_chroma-8);
+
+  Log2MinCbSizeY = log2_min_luma_coding_block_size;
+  Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
+  MinCbSizeY = 1 << Log2MinCbSizeY;
+  CtbSizeY = 1 << Log2CtbSizeY;
+  PicWidthInMinCbsY = pic_width_in_luma_samples / MinCbSizeY;
+  PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
+  PicHeightInMinCbsY = pic_height_in_luma_samples / MinCbSizeY;
+  PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
+  PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
+  PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
+  PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
+
+  if (chroma_format_idc==0 || separate_colour_plane_flag) {
+    CtbWidthC  = 0;
+    CtbHeightC = 0;
+  }
+  else {
+    CtbWidthC  = CtbSizeY / SubWidthC;
+    CtbHeightC = CtbSizeY / SubHeightC;
+  }
+
+  Log2MinTrafoSize = log2_min_transform_block_size;
+  Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
+
+  Log2MinPUSize = Log2MinCbSizeY-1;
+  PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);
+  PicHeightInMinPUs = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinPUSize);
+
+  Log2MinIpcmCbSizeY = log2_min_pcm_luma_coding_block_size;
+  Log2MaxIpcmCbSizeY = (log2_min_pcm_luma_coding_block_size +
+                        log2_diff_max_min_pcm_luma_coding_block_size);
+
+  // the following are not in the standard
+  PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
+  PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
+  PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
+
+  sps_read = true;
+#endif
+
+  return DE265_OK;
 }
 

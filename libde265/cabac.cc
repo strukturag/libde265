@@ -433,106 +433,173 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 
 // ---------------------------------------------------------------------------
 
-void init_CABAC_encoder(CABAC_encoder* encoder)
+CABAC_encoder::CABAC_encoder()
 {
-  encoder->data = NULL;
-  encoder->data_capacity = 0;
-  encoder->data_size = 0;
+  data = NULL;
+  data_capacity = 0;
+  data_size = 0;
 
-  encoder->range = 510;
-  encoder->bits_left = 23;
-  encoder->buffered_byte = 0xFF;
-  encoder->num_buffered_bytes = 0;
+  vlc_buffer_len = 0;
+
+  range = 510;
+  bits_left = 23;
+  buffered_byte = 0xFF;
+  num_buffered_bytes = 0;
 }
 
 
-static void append_byte(CABAC_encoder* encoder, int byte, int bits)
+CABAC_encoder::~CABAC_encoder()
 {
-  assert(bits==8);
+  delete[] data;
+}
 
-  if (encoder->data_size == encoder->data_capacity) {
-    if (encoder->data_capacity==0) {
-      encoder->data_capacity = INITIAL_CABAC_BUFFER_CAPACITY;
-    } else {
-      encoder->data_capacity *= 2;
-    }
 
-    encoder->data = (uint8_t*)realloc(encoder->data,encoder->data_capacity);
+void CABAC_encoder::write_bits(uint32_t bits,int n)
+{
+  vlc_buffer <<= n;
+  vlc_buffer |= bits;
+  vlc_buffer_len += n;
+
+  if (vlc_buffer_len>=8) {
+    append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
+    vlc_buffer_len -= 8;
+  }
+}
+
+void CABAC_encoder::write_uvlc(int value)
+{
+  int nLeadingZeros=0;
+  int base=0;
+  int range=1;
+
+  while (value>=base+range) {
+    base += range;
+    range <<= 1;
+    nLeadingZeros++;
   }
 
-  encoder->data[ encoder->data_size++ ] = byte;
+  value -= base;
+  write_bits((1<<nLeadingZeros) | (value-base),2*nLeadingZeros+1);
+}
+
+void CABAC_encoder::write_svlc(int value)
+{
+  if      (value==0) write_bits(1,1);
+  else if (value>0)  write_uvlc(2*value-1);
+  else               write_uvlc(-2*value);
+}
+
+void CABAC_encoder::flush_VLC()
+{
+  while (vlc_buffer_len>=8) {
+    append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
+    vlc_buffer_len -= 8;
+  }
+
+  if (vlc_buffer_len>0) {
+    append_byte(vlc_buffer << (8-vlc_buffer_len));
+    vlc_buffer_len = 0;
+  }
+}
+
+void CABAC_encoder::skip_bits(int nBits)
+{
+  while (nBits>=8) {
+    write_bits(0,8);
+    nBits-=8;
+  }
+
+  if (nBits>0) {
+    write_bits(0,nBits);
+  }
+}
+
+
+void CABAC_encoder::append_byte(int byte)
+{
+  if (data_size == data_capacity) {
+    if (data_capacity==0) {
+      data_capacity = INITIAL_CABAC_BUFFER_CAPACITY;
+    } else {
+      data_capacity *= 2;
+    }
+
+    data = (uint8_t*)realloc(data,data_capacity);
+  }
+
+  data[ data_size++ ] = byte;
 }
 
 
 /**
  * \brief Move bits from register into bitstream
  */
-static void write_out(CABAC_encoder* encoder)
+void CABAC_encoder::write_out()
 {
-  int leadByte = encoder->low >> (24 - encoder->bits_left);
-  encoder->bits_left += 8;
-  encoder->low &= 0xffffffffu >> encoder->bits_left;
+  int leadByte = low >> (24 - bits_left);
+  bits_left += 8;
+  low &= 0xffffffffu >> bits_left;
 
   //printf("write byte %02x\n",leadByte);
   
   if (leadByte == 0xff)
     {
-      encoder->num_buffered_bytes++;
+      num_buffered_bytes++;
     }
   else
     {
-      if (encoder->num_buffered_bytes > 0)
+      if (num_buffered_bytes > 0)
         {
           int carry = leadByte >> 8;
-          int byte = encoder->buffered_byte + carry;
-          encoder->buffered_byte = leadByte & 0xff;
-          append_byte(encoder, byte, 8);
+          int byte = buffered_byte + carry;
+          buffered_byte = leadByte & 0xff;
+          append_byte(byte);
       
           byte = ( 0xff + carry ) & 0xff;
-          while ( encoder->num_buffered_bytes > 1 )
+          while ( num_buffered_bytes > 1 )
             {
-              append_byte(encoder, byte, 8);
-              encoder->num_buffered_bytes--;
+              append_byte(byte);
+              num_buffered_bytes--;
             }
         }
       else
         {
-          encoder->num_buffered_bytes = 1;
-          encoder->buffered_byte = leadByte;
+          num_buffered_bytes = 1;
+          buffered_byte = leadByte;
         }      
     }    
 }
 
-static void testAndWriteOut(CABAC_encoder* encoder)
+void CABAC_encoder::testAndWriteOut()
 {
   //printf("bits_left = %d\n",encoder->bits_left);
 
-  if (encoder->bits_left < 12)
+  if (bits_left < 12)
     {
-      write_out(encoder);
+      write_out();
     }
 }
 
 
-void encode_CABAC_bit(CABAC_encoder* encoder,context_model* model, int bin)
+void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 {
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
   
-  uint32_t LPS = LPS_table[model->state][ ( encoder->range >> 6 ) - 4 ];
-  encoder->range -= LPS;
+  uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
+  range -= LPS;
   
   if (bin != model->MPSbit)
     {
       //printf("LPS\n");
 
       int num_bits = renorm_table[ LPS >> 3 ];
-      encoder->low = (encoder->low + encoder->range) << num_bits;
-      encoder->range   = LPS << num_bits;
+      low = (low + range) << num_bits;
+      range   = LPS << num_bits;
 
       model->state = next_state_LPS[model->state];
   
-      encoder->bits_left -= num_bits;
+      bits_left -= num_bits;
     }
   else
     {
@@ -540,30 +607,30 @@ void encode_CABAC_bit(CABAC_encoder* encoder,context_model* model, int bin)
 
       model->state = next_state_MPS[model->state];
 
-      if (encoder->range >= 256)
+      if (range >= 256)
         {
           return;
         }
     
-      encoder->low <<= 1;
-      encoder->range <<= 1;
-      encoder->bits_left--;
+      low <<= 1;
+      range <<= 1;
+      bits_left--;
     }
   
-  testAndWriteOut(encoder);
+  testAndWriteOut();
 }
 
-void encode_CABAC_bypass(CABAC_encoder* encoder, int bin)
+void CABAC_encoder::write_CABAC_bypass(int bin)
 {
-  // encoder->BinsCoded += m_binCountIncrement;
-  encoder->low <<= 1;
+  // BinsCoded += m_binCountIncrement;
+  low <<= 1;
 
   if (bin)
     {
-      encoder->low += encoder->range;
+      low += range;
     }
-  encoder->bits_left--;
+  bits_left--;
   
-  testAndWriteOut(encoder);
+  testAndWriteOut();
 }
 

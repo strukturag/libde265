@@ -56,20 +56,56 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 
 // ---------------------------------------------------------------------------
 
-typedef struct {
+class CABAC_encoder
+{
+public:
+  CABAC_encoder();
+  ~CABAC_encoder();
+
+  // --- VLC ---
+
+  void write_bits(uint32_t bits,int n);
+  void write_bit(int bit) { write_bits(bit,1); }
+  void write_uvlc(int value);
+  void write_svlc(int value);
+  void skip_bits(int nBits);
+
+  // output all remaining bits and fill with zeros to next byte boundary
+  void flush_VLC();
+
+
+  // --- CABAC ---
+
+  void write_CABAC_bit(context_model* model, int bit);
+  void write_CABAC_bypass(int bit);
+  void flush_CABAC() { /* TODO */ }
+
+private:
+  // data buffer
+
   uint8_t* data;
   uint32_t data_capacity;
   uint32_t data_size;
+
+
+  // VLC
+
+  uint32_t vlc_buffer;
+  uint32_t vlc_buffer_len;
+
+
+  // CABAC
 
   uint32_t range;
   uint32_t low;
   int8_t   bits_left;
   uint8_t  buffered_byte;
   uint16_t num_buffered_bytes;
-} CABAC_encoder;
 
-void init_CABAC_encoder(CABAC_encoder* encoder);
-void encode_CABAC_bit(CABAC_encoder* encoder,context_model* model, int bit);
-void encode_CABAC_bypass(CABAC_encoder* encoder, int bit);
+
+  void testAndWriteOut();
+  void write_out();
+  void append_byte(int byte);
+};
 
 #endif

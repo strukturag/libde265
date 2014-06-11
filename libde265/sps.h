@@ -56,6 +56,7 @@ struct seq_parameter_set {
   ~seq_parameter_set();
 
   de265_error read(struct decoder_context*, bitreader*);
+  de265_error write(struct error_queue*, class CABAC_encoder*);
 
   void dump_sps(int fd) const;
 

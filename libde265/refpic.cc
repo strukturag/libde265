@@ -260,6 +260,17 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 }
 
 
+bool write_short_term_ref_pic_set(error_queue* errqueue,
+                                  const seq_parameter_set* sps,
+                                  CABAC_encoder* out,
+                                  const ref_pic_set* in_set, // which set to write
+                                  int idxRps,  // index of the set to be read
+                                  const std::vector<ref_pic_set>& sets, // previously read sets
+                                  bool sliceRefPicSet) // is this in the slice header?
+{
+  assert(0); // TODO
+}
+
 void dump_short_term_ref_pic_set(const ref_pic_set* set, FILE* fh)
 {
   log2fh(fh,"NumDeltaPocs: %d [-:%d +:%d]\n", set->NumDeltaPocs,

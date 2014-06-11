@@ -193,6 +193,69 @@ void read_profile_tier_level(bitreader* reader,
 }
 
 
+void write_profile_tier_level(CABAC_encoder* out,
+                              struct profile_tier_level* hdr,
+                              int max_sub_layers)
+{
+  out->write_bits(hdr->general_profile_space,2);
+  out->write_bit (hdr->general_tier_flag);
+  out->write_bits(hdr->general_profile_idc, 5);
+
+  for (int i=0; i<32; i++) {
+    out->write_bit(hdr->general_profile_compatibility_flag[i]);
+  }
+
+  out->write_bit(hdr->general_progressive_source_flag);
+  out->write_bit(hdr->general_interlaced_source_flag);
+  out->write_bit(hdr->general_non_packed_constraint_flag);
+  out->write_bit(hdr->general_frame_only_constraint_flag);
+  out->skip_bits(44);
+
+  out->write_bits(hdr->general_level_idc,8);
+
+
+  for (int i=0; i<max_sub_layers-1; i++)
+    {
+      out->write_bit(hdr->profile[i].sub_layer_profile_present_flag);
+      out->write_bit(hdr->profile[i].sub_layer_level_present_flag);
+    }
+
+  if (max_sub_layers > 1)
+    {
+      for (int i=max_sub_layers-1; i<8; i++)
+        {
+          out->skip_bits(2);
+        }
+    }
+
+  for (int i=0; i<max_sub_layers-1; i++)
+    {
+      if (hdr->profile[i].sub_layer_profile_present_flag)
+        {
+          out->write_bits(hdr->profile[i].sub_layer_profile_space,2);
+          out->write_bit (hdr->profile[i].sub_layer_tier_flag);
+          out->write_bits(hdr->profile[i].sub_layer_profile_idc,5);
+
+          for (int j=0; j<32; j++)
+            {
+              out->write_bit(hdr->profile[i].sub_layer_profile_compatibility_flag[j]);
+            }
+
+          out->write_bit(hdr->profile[i].sub_layer_progressive_source_flag);
+          out->write_bit(hdr->profile[i].sub_layer_interlaced_source_flag);
+          out->write_bit(hdr->profile[i].sub_layer_non_packed_constraint_flag);
+          out->write_bit(hdr->profile[i].sub_layer_frame_only_constraint_flag);
+          out->skip_bits(44);
+        }
+
+      if (hdr->profile[i].sub_layer_level_present_flag)
+        {
+          out->write_bits(hdr->profile[i].sub_layer_level_idc,8);
+        }
+    }
+}
+
+
 /*
 void read_bit_rate_pic_rate_info(bitreader* reader,
                                  struct bit_rate_pic_rate_info* hdr,
