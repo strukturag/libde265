@@ -62,12 +62,8 @@ struct profile_data {
 class profile_tier_level
 {
 public:
-  void read(bitreader* reader,
-            int max_sub_layers);
-
-  void write(class CABAC_encoder* writer,
-             int max_sub_layers) const;
-
+  void read(bitreader* reader, int max_sub_layers);
+  void write(class CABAC_encoder* writer, int max_sub_layers) const;
   void dump(int max_sub_layers, FILE* fh) const;
 
 
@@ -122,7 +118,7 @@ typedef struct {
 class video_parameter_set
 {
 public:
-  de265_error read(struct decoder_context* ctx, bitreader* reader);
+  de265_error read(struct error_queue* errqueue, bitreader* reader);
   de265_error write(struct error_queue* errqueue, struct CABAC_encoder* out) const;
   void dump(int fd) const;
 

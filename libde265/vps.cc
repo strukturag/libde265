@@ -25,7 +25,7 @@
 #include <assert.h>
 
 
-de265_error video_parameter_set::read(decoder_context* ctx, bitreader* reader)
+de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 {
   int vlc;
 
@@ -76,7 +76,7 @@ de265_error video_parameter_set::read(decoder_context* ctx, bitreader* reader)
 
   if (vps_num_layer_sets<0 ||
       vps_num_layer_sets>=1024) {
-    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
