@@ -25,87 +25,87 @@
 #include <assert.h>
 
 
-de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps)
+de265_error video_parameter_set::read(decoder_context* ctx, bitreader* reader)
 {
   int vlc;
 
-  vps->video_parameter_set_id = vlc = get_bits(reader, 4);
+  video_parameter_set_id = vlc = get_bits(reader, 4);
   if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
   skip_bits(reader, 2);
-  vps->vps_max_layers = vlc = get_bits(reader,6) +1;
+  vps_max_layers = vlc = get_bits(reader,6) +1;
   if (vlc != 1) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // TODO: out of specification
 
-  vps->vps_max_sub_layers = vlc = get_bits(reader,3) +1;
+  vps_max_sub_layers = vlc = get_bits(reader,3) +1;
   if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
-  vps->vps_temporal_id_nesting_flag = get_bits(reader,1);
+  vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
 
-  vps->profile_tier_level.read(reader, vps->vps_max_sub_layers);
+  profile_tier_level.read(reader, vps_max_sub_layers);
 
   /*
-  read_bit_rate_pic_rate_info(reader, &vps->bit_rate_pic_rate_info,
-                              0, vps->vps_max_sub_layers-1);
+  read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
+                              0, vps_max_sub_layers-1);
   */
 
-  vps->vps_sub_layer_ordering_info_present_flag = get_bits(reader,1);
-  //assert(vps->vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
+  vps_sub_layer_ordering_info_present_flag = get_bits(reader,1);
+  //assert(vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
 
-  int firstLayerRead = vps->vps_sub_layer_ordering_info_present_flag ? 0 : (vps->vps_max_sub_layers-1);
+  int firstLayerRead = vps_sub_layer_ordering_info_present_flag ? 0 : (vps_max_sub_layers-1);
 
-  for (int i=firstLayerRead;i<vps->vps_max_sub_layers;i++) {
-    vps->layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
-    vps->layer[i].vps_max_num_reorder_pics  = get_uvlc(reader);
-    vps->layer[i].vps_max_latency_increase  = get_uvlc(reader);
+  for (int i=firstLayerRead;i<vps_max_sub_layers;i++) {
+    layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
+    layer[i].vps_max_num_reorder_pics  = get_uvlc(reader);
+    layer[i].vps_max_latency_increase  = get_uvlc(reader);
   }
 
-  if (!vps->vps_sub_layer_ordering_info_present_flag) {
+  if (!vps_sub_layer_ordering_info_present_flag) {
     assert(firstLayerRead < MAX_TEMPORAL_SUBLAYERS);
 
     for (int i=0;i<firstLayerRead;i++) {
-      vps->layer[i].vps_max_dec_pic_buffering = vps->layer[firstLayerRead].vps_max_dec_pic_buffering;
-      vps->layer[i].vps_max_num_reorder_pics  = vps->layer[firstLayerRead].vps_max_num_reorder_pics;
-      vps->layer[i].vps_max_latency_increase  = vps->layer[firstLayerRead].vps_max_latency_increase;
+      layer[i].vps_max_dec_pic_buffering = layer[firstLayerRead].vps_max_dec_pic_buffering;
+      layer[i].vps_max_num_reorder_pics  = layer[firstLayerRead].vps_max_num_reorder_pics;
+      layer[i].vps_max_latency_increase  = layer[firstLayerRead].vps_max_latency_increase;
     }
   }
 
 
-  vps->vps_max_layer_id = get_bits(reader,6);
-  vps->vps_num_layer_sets = get_uvlc(reader)+1;
+  vps_max_layer_id = get_bits(reader,6);
+  vps_num_layer_sets = get_uvlc(reader)+1;
 
-  if (vps->vps_num_layer_sets<0 ||
-      vps->vps_num_layer_sets>=1024) {
+  if (vps_num_layer_sets<0 ||
+      vps_num_layer_sets>=1024) {
     ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  for (int i=1; i <= vps->vps_num_layer_sets-1; i++)
-    for (int j=0; j <= vps->vps_max_layer_id; j++)
+  for (int i=1; i <= vps_num_layer_sets-1; i++)
+    for (int j=0; j <= vps_max_layer_id; j++)
       {
-        vps->layer_id_included_flag[i][j] = get_bits(reader,1);
+        layer_id_included_flag[i][j] = get_bits(reader,1);
       }
 
-  vps->vps_timing_info_present_flag = get_bits(reader,1);
+  vps_timing_info_present_flag = get_bits(reader,1);
 
-  if (vps->vps_timing_info_present_flag) {
-    vps->vps_num_units_in_tick = get_bits(reader,32);
-    vps->vps_time_scale        = get_bits(reader,32);
-    vps->vps_poc_proportional_to_timing_flag = get_bits(reader,1);
+  if (vps_timing_info_present_flag) {
+    vps_num_units_in_tick = get_bits(reader,32);
+    vps_time_scale        = get_bits(reader,32);
+    vps_poc_proportional_to_timing_flag = get_bits(reader,1);
 
-    if (vps->vps_poc_proportional_to_timing_flag) {
-      vps->vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
-      vps->vps_num_hrd_parameters     = get_uvlc(reader);
+    if (vps_poc_proportional_to_timing_flag) {
+      vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
+      vps_num_hrd_parameters     = get_uvlc(reader);
 
-      if (vps->vps_num_hrd_parameters >= 1024) {
+      if (vps_num_hrd_parameters >= 1024) {
         assert(false); // TODO: return bitstream error
       }
 
-      for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
-        vps->hrd_layer_set_idx[i] = get_uvlc(reader);
+      for (int i=0; i<vps_num_hrd_parameters; i++) {
+        hrd_layer_set_idx[i] = get_uvlc(reader);
 
         if (i > 0) {
-          vps->cprms_present_flag[i] = get_bits(reader,1);
+          cprms_present_flag[i] = get_bits(reader,1);
         }
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
@@ -115,9 +115,9 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
     }
   }
   
-  vps->vps_extension_flag = get_bits(reader,1);
+  vps_extension_flag = get_bits(reader,1);
 
-  if (vps->vps_extension_flag) {
+  if (vps_extension_flag) {
     /*
     while( more_rbsp_data() )
     vps_extension_data_flag u(1)
@@ -283,7 +283,7 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 #define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
 
-void dump_vps(video_parameter_set* vps, int fd)
+void video_parameter_set::dump(int fd) const
 {
   FILE* fh;
   if (fd==1) fh=stdout;
@@ -291,58 +291,58 @@ void dump_vps(video_parameter_set* vps, int fd)
   else { return; }
 
   LOG0("----------------- VPS -----------------\n");
-  LOG1("video_parameter_set_id                : %d\n", vps->video_parameter_set_id);
-  LOG1("vps_max_layers                        : %d\n", vps->vps_max_layers);
-  LOG1("vps_max_sub_layers                    : %d\n", vps->vps_max_sub_layers);
-  LOG1("vps_temporal_id_nesting_flag          : %d\n", vps->vps_temporal_id_nesting_flag);
+  LOG1("video_parameter_set_id                : %d\n", video_parameter_set_id);
+  LOG1("vps_max_layers                        : %d\n", vps_max_layers);
+  LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
+  LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
 
-  vps->profile_tier_level.dump(vps->vps_max_sub_layers, fh);
-  //dump_bit_rate_pic_rate_info(&vps->bit_rate_pic_rate_info, 0, vps->vps_max_sub_layers-1);
+  profile_tier_level.dump(vps_max_sub_layers, fh);
+  //dump_bit_rate_pic_rate_info(&bit_rate_pic_rate_info, 0, vps_max_sub_layers-1);
 
   LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
-       vps->vps_sub_layer_ordering_info_present_flag);
+       vps_sub_layer_ordering_info_present_flag);
 
-  if (vps->vps_sub_layer_ordering_info_present_flag) {
-    for (int i=0;i<vps->vps_max_sub_layers;i++) {
-      LOG2("layer %d: vps_max_dec_pic_buffering = %d\n",i,vps->layer[i].vps_max_dec_pic_buffering);
-      LOG1("         vps_max_num_reorder_pics  = %d\n",vps->layer[i].vps_max_num_reorder_pics);
-      LOG1("         vps_max_latency_increase  = %d\n",vps->layer[i].vps_max_latency_increase);
+  if (vps_sub_layer_ordering_info_present_flag) {
+    for (int i=0;i<vps_max_sub_layers;i++) {
+      LOG2("layer %d: vps_max_dec_pic_buffering = %d\n",i,layer[i].vps_max_dec_pic_buffering);
+      LOG1("         vps_max_num_reorder_pics  = %d\n",layer[i].vps_max_num_reorder_pics);
+      LOG1("         vps_max_latency_increase  = %d\n",layer[i].vps_max_latency_increase);
     }
   }
   else {
-    LOG1("layer (all): vps_max_dec_pic_buffering = %d\n",vps->layer[0].vps_max_dec_pic_buffering);
-    LOG1("             vps_max_num_reorder_pics  = %d\n",vps->layer[0].vps_max_num_reorder_pics);
-    LOG1("             vps_max_latency_increase  = %d\n",vps->layer[0].vps_max_latency_increase);
+    LOG1("layer (all): vps_max_dec_pic_buffering = %d\n",layer[0].vps_max_dec_pic_buffering);
+    LOG1("             vps_max_num_reorder_pics  = %d\n",layer[0].vps_max_num_reorder_pics);
+    LOG1("             vps_max_latency_increase  = %d\n",layer[0].vps_max_latency_increase);
   }
 
 
-  LOG1("vps_max_layer_id   = %d\n", vps->vps_max_layer_id);
-  LOG1("vps_num_layer_sets = %d\n", vps->vps_num_layer_sets);
+  LOG1("vps_max_layer_id   = %d\n", vps_max_layer_id);
+  LOG1("vps_num_layer_sets = %d\n", vps_num_layer_sets);
 
-  for (int i=1; i <= vps->vps_num_layer_sets-1; i++)
-    for (int j=0; j <= vps->vps_max_layer_id; j++)
+  for (int i=1; i <= vps_num_layer_sets-1; i++)
+    for (int j=0; j <= vps_max_layer_id; j++)
       {
         LOG3("layer_id_included_flag[%d][%d] = %d\n",i,j,
-             vps->layer_id_included_flag[i][j]);
+             layer_id_included_flag[i][j]);
       }
 
   LOG1("vps_timing_info_present_flag = %d\n",
-       vps->vps_timing_info_present_flag);
+       vps_timing_info_present_flag);
 
-  if (vps->vps_timing_info_present_flag) {
-    LOG1("vps_num_units_in_tick = %d\n", vps->vps_num_units_in_tick);
-    LOG1("vps_time_scale        = %d\n", vps->vps_time_scale);
-    LOG1("vps_poc_proportional_to_timing_flag = %d\n", vps->vps_poc_proportional_to_timing_flag);
+  if (vps_timing_info_present_flag) {
+    LOG1("vps_num_units_in_tick = %d\n", vps_num_units_in_tick);
+    LOG1("vps_time_scale        = %d\n", vps_time_scale);
+    LOG1("vps_poc_proportional_to_timing_flag = %d\n", vps_poc_proportional_to_timing_flag);
 
-    if (vps->vps_poc_proportional_to_timing_flag) {
-      LOG1("vps_num_ticks_poc_diff_one = %d\n", vps->vps_num_ticks_poc_diff_one);
-      LOG1("vps_num_hrd_parameters     = %d\n", vps->vps_num_hrd_parameters);
+    if (vps_poc_proportional_to_timing_flag) {
+      LOG1("vps_num_ticks_poc_diff_one = %d\n", vps_num_ticks_poc_diff_one);
+      LOG1("vps_num_hrd_parameters     = %d\n", vps_num_hrd_parameters);
 
-      for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
-        LOG2("hrd_layer_set_idx[%d] = %d\n", i, vps->hrd_layer_set_idx[i]);
+      for (int i=0; i<vps_num_hrd_parameters; i++) {
+        LOG2("hrd_layer_set_idx[%d] = %d\n", i, hrd_layer_set_idx[i]);
 
         if (i > 0) {
-          LOG2("cprms_present_flag[%d] = %d\n", i, vps->cprms_present_flag[i]);
+          LOG2("cprms_present_flag[%d] = %d\n", i, cprms_present_flag[i]);
         }
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
@@ -352,7 +352,7 @@ void dump_vps(video_parameter_set* vps, int fd)
     }
   }
   
-  LOG1("vps_extension_flag = %d\n", vps->vps_extension_flag);
+  LOG1("vps_extension_flag = %d\n", vps_extension_flag);
 }
 
 

@@ -118,7 +118,14 @@ typedef struct {
   int vps_max_latency_increase;
 } layer_data;
 
-typedef struct {
+
+class video_parameter_set
+{
+public:
+  de265_error read(struct decoder_context* ctx, bitreader* reader);
+  void dump(int fd) const;
+
+
   int video_parameter_set_id;
   int vps_max_layers;
   int vps_max_sub_layers;
@@ -148,11 +155,7 @@ typedef struct {
   // hrd_parameters(cprms_present_flag[i], vps_max_sub_layers-1)
 
   char vps_extension_flag;
+};
 
-} video_parameter_set;
-
-
-de265_error read_vps(struct decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
-void dump_vps(video_parameter_set*, int fd);
 
 #endif
