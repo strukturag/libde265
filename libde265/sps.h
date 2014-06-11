@@ -55,10 +55,10 @@ struct seq_parameter_set {
   seq_parameter_set();
   ~seq_parameter_set();
 
-  de265_error read(struct decoder_context*, bitreader*);
+  de265_error read(struct error_queue*, bitreader*);
   de265_error write(struct error_queue*, class CABAC_encoder*);
 
-  void dump_sps(int fd) const;
+  void dump(int fd) const;
 
   bool sps_read; // whether the sps has been read from the bitstream
 

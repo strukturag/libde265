@@ -62,7 +62,7 @@ static void compute_NumPoc(ref_pic_set* rpset)
    When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
-bool read_short_term_ref_pic_set(decoder_context* ctx,
+bool read_short_term_ref_pic_set(error_queue* errqueue,
                                  const seq_parameter_set* sps,
                                  bitreader* br,
                                  ref_pic_set* out_set, // where to store the read set
@@ -216,7 +216,7 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
-      ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
 

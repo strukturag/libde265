@@ -523,7 +523,7 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
   }
 
   if (param_sps_headers_fd>=0) {
-    sps.dump_sps(param_sps_headers_fd);
+    sps.dump(param_sps_headers_fd);
   }
 
   process_sps(&sps);
@@ -540,7 +540,7 @@ de265_error decoder_context::read_pps_NAL(bitreader& reader)
   bool success = pps.read(&reader,this);
 
   if (param_pps_headers_fd>=0) {
-    pps.dump_pps(param_pps_headers_fd);
+    pps.dump(param_pps_headers_fd);
   }
 
   if (success) {

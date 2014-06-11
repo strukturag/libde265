@@ -62,7 +62,10 @@ void process_nal(NAL_unit* nal)
       break;
 
     case NAL_UNIT_SPS_NUT:
-      //err = sps.read(reader);
+      sps.read(&errqueue, &reader);
+      sps.dump(1);
+      sps.write(&errqueue, &writer);
+      writer.flush_VLC();
       break;
 
     case NAL_UNIT_PPS_NUT:

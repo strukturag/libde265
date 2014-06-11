@@ -596,7 +596,7 @@ bool pic_parameter_set::write(class CABAC_encoder* out, struct error_queue* errq
 }
 
 
-void pic_parameter_set::dump_pps(int fd) const
+void pic_parameter_set::dump(int fd) const
 {
   FILE* fh;
   if (fd==1) fh=stdout;

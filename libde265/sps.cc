@@ -29,7 +29,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
   } \
   variable = vlc + offset;
@@ -46,7 +46,7 @@ static int SubHeightC_tab[] = { -1,2,1,1 };
 
 
 // TODO: should be in some header-file of refpic.c
-extern bool read_short_term_ref_pic_set(decoder_context* ctx,
+extern bool read_short_term_ref_pic_set(error_queue* errqueue,
                                         const seq_parameter_set* sps,
                                         bitreader* br,
                                         ref_pic_set* out_set,
@@ -79,7 +79,7 @@ seq_parameter_set::~seq_parameter_set()
 }
 
 
-de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
+de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 {
   int vlc;
 
@@ -116,7 +116,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
-    ctx->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
+    errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
@@ -175,7 +175,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
     vlc=get_uvlc(br);
     if (vlc == UVLC_ERROR ||
         vlc+1 > MAX_NUM_REF_PICS) {
-      ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
@@ -252,7 +252,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   READ_VLC(num_short_term_ref_pic_sets, uvlc);
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
-    ctx->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
+    errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
@@ -264,7 +264,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
 
   for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
 
-    bool success = read_short_term_ref_pic_set(ctx,this,br,
+    bool success = read_short_term_ref_pic_set(errqueue,this,br,
                                                &ref_pic_sets[i], i,
                                                ref_pic_sets,
                                                false);
@@ -375,7 +375,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
 
 
 
-void seq_parameter_set::dump_sps(int fd) const
+void seq_parameter_set::dump(int fd) const
 {
   //#if (_MSC_VER >= 1500)
   //#define LOG0(t) loginfo(LogHeaders, t)

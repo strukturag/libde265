@@ -38,7 +38,7 @@
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)
 
-extern bool read_short_term_ref_pic_set(decoder_context* ctx,
+extern bool read_short_term_ref_pic_set(error_queue* errqueue,
                                         const seq_parameter_set* sps,
                                         bitreader* br,
                                         ref_pic_set* out_set,

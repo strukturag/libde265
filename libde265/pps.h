@@ -39,7 +39,7 @@ struct pic_parameter_set {
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;
-  void dump_pps(int fd) const;
+  void dump(int fd) const;
 
 
   bool pps_read; // whether this pps has been read from bitstream
