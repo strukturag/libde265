@@ -134,14 +134,14 @@ de265_error video_parameter_set::write(struct error_queue* errqueue, struct CABA
   if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   out->write_bits(video_parameter_set_id,4);
 
-  out->skip_bits(2);
+  out->write_bits(0x3,2);
   out->write_bits(vps_max_layers-1,6);
 
   if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   out->write_bits(vps_max_sub_layers-1,3);
 
   out->write_bit(vps_temporal_id_nesting_flag);
-  out->skip_bits(16);
+  out->write_bits(0xFFFF, 16);
 
   profile_tier_level.write(out, vps_max_sub_layers);
 

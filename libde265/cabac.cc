@@ -435,7 +435,7 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 
 CABAC_encoder::CABAC_encoder()
 {
-  data = NULL;
+  data_mem = NULL;
   data_capacity = 0;
   data_size = 0;
   state = 0;
@@ -451,7 +451,7 @@ CABAC_encoder::CABAC_encoder()
 
 CABAC_encoder::~CABAC_encoder()
 {
-  delete[] data;
+  delete[] data_mem;
 }
 
 
@@ -461,7 +461,7 @@ void CABAC_encoder::write_bits(uint32_t bits,int n)
   vlc_buffer |= bits;
   vlc_buffer_len += n;
 
-  if (vlc_buffer_len>=8) {
+  while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
     vlc_buffer_len -= 8;
   }
@@ -479,7 +479,6 @@ void CABAC_encoder::write_uvlc(int value)
     nLeadingZeros++;
   }
 
-  value -= base;
   write_bits((1<<nLeadingZeros) | (value-base),2*nLeadingZeros+1);
 }
 
@@ -516,18 +515,23 @@ void CABAC_encoder::skip_bits(int nBits)
 }
 
 
-void CABAC_encoder::append_byte(int byte)
+void CABAC_encoder::check_size_and_resize(int nBytes)
 {
-  if (data_size == data_capacity) {
+  if (data_size+nBytes > data_capacity) { // 1 extra byte for stuffing
     if (data_capacity==0) {
       data_capacity = INITIAL_CABAC_BUFFER_CAPACITY;
     } else {
       data_capacity *= 2;
     }
 
-    data = (uint8_t*)realloc(data,data_capacity);
+    data_mem = (uint8_t*)realloc(data_mem,data_capacity);
   }
+}
 
+
+void CABAC_encoder::append_byte(int byte)
+{
+  check_size_and_resize(2);
 
   // --- emulation prevention ---
 
@@ -544,8 +548,10 @@ void CABAC_encoder::append_byte(int byte)
   if (byte<=3) {
     /**/ if (state< 2 && byte==0) { state++; }
     else if (state==2 && byte<=3) {
-      data[ data_size++ ] = 3;
-      state=0;
+      data_mem[ data_size++ ] = 3;
+
+      if (byte==0) state=1;
+      else         state=0;
     }
     else { state=0; }
   }
@@ -554,9 +560,19 @@ void CABAC_encoder::append_byte(int byte)
 
   // write actual data byte
 
-  data[ data_size++ ] = byte;
+  data_mem[ data_size++ ] = byte;
 }
 
+
+void CABAC_encoder::write_startcode()
+{
+  check_size_and_resize(3);
+
+  data_mem[ data_size+0 ] = 0;
+  data_mem[ data_size+1 ] = 0;
+  data_mem[ data_size+2 ] = 1;
+  data_size+=3;
+}
 
 /**
  * \brief Move bits from register into bitstream

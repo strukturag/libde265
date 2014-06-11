@@ -62,12 +62,16 @@ public:
   CABAC_encoder();
   ~CABAC_encoder();
 
+  int size() const { return data_size; }
+  uint8_t* data() const { return data_mem; }
+
   // --- VLC ---
 
   void write_bits(uint32_t bits,int n);
   void write_bit(int bit) { write_bits(bit,1); }
   void write_uvlc(int value);
   void write_svlc(int value);
+  void write_startcode();
   void skip_bits(int nBits);
 
   // output all remaining bits and fill with zeros to next byte boundary
@@ -80,10 +84,11 @@ public:
   void write_CABAC_bypass(int bit);
   void flush_CABAC() { /* TODO */ }
 
+
 private:
   // data buffer
 
-  uint8_t* data;
+  uint8_t* data_mem;
   uint32_t data_capacity;
   uint32_t data_size;
   char     state; // for inserting emulation-prevention bytes
@@ -103,6 +108,7 @@ private:
   uint16_t num_buffered_bytes;
 
 
+  void check_size_and_resize(int nBytes);
   void testAndWriteOut();
   void write_out();
   void append_byte(int byte);
