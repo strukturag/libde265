@@ -96,7 +96,6 @@ class NAL_Parser
                        de265_PTS pts, void* user_data);
 
   NAL_unit*   pop_from_NAL_queue();
-  void        push_to_NAL_queue(NAL_unit*);
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true; }
 
@@ -133,6 +132,8 @@ class NAL_Parser
 
   std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
   int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
+
+  void push_to_NAL_queue(NAL_unit*);
 
 
   // pool of unused NAL memory
