@@ -457,7 +457,7 @@ static void append_byte(CABAC_encoder* encoder, int byte, int bits)
       encoder->data_capacity *= 2;
     }
 
-    encoder->data = realloc(encoder->data,encoder->data_capacity);
+    encoder->data = (uint8_t*)realloc(encoder->data,encoder->data_capacity);
   }
 
   encoder->data[ encoder->data_size++ ] = byte;
