@@ -64,7 +64,7 @@ struct seq_parameter_set {
 
   void dump(int fd) const;
 
-  void set_defaults(enum PresetSet);
+  void set_defaults(enum PresetSet = Preset_Default);
   void set_CB_log2size_range(int mini,int maxi);
   void set_TB_log2size_range(int mini,int maxi);
 

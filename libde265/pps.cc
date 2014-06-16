@@ -43,6 +43,66 @@ pic_parameter_set::~pic_parameter_set()
 }
 
 
+void pic_parameter_set::set_defaults(enum PresetSet)
+{
+  pps_read = false;
+
+  pic_parameter_set_id = 0;
+  seq_parameter_set_id = 0;
+  dependent_slice_segments_enabled_flag = 0;
+  sign_data_hiding_flag = 0;
+  cabac_init_present_flag = 0;
+  num_ref_idx_l0_default_active = 1;
+  num_ref_idx_l1_default_active = 1;
+
+  pic_init_qp = 27;
+  constrained_intra_pred_flag = 0;
+  transform_skip_enabled_flag = 0;
+
+  cu_qp_delta_enabled_flag = 0;
+  diff_cu_qp_delta_depth = 0;
+
+  pic_cb_qp_offset = 0;
+  pic_cr_qp_offset = 0;
+  pps_slice_chroma_qp_offsets_present_flag = 0;
+  weighted_pred_flag  = 0;
+  weighted_bipred_flag= 0;
+  output_flag_present_flag = 0;
+  transquant_bypass_enable_flag = 0;
+  entropy_coding_sync_enabled_flag = 0;
+
+
+  // --- tiles ---
+
+  tiles_enabled_flag = 0;
+  num_tile_columns = 1;
+  num_tile_rows    = 1;
+  uniform_spacing_flag = 1;
+
+
+  // --- ---
+
+  loop_filter_across_tiles_enabled_flag = 1;
+  pps_loop_filter_across_slices_enabled_flag = 1;
+  deblocking_filter_control_present_flag = 0;
+
+  deblocking_filter_override_enabled_flag = 0;
+  pic_disable_deblocking_filter_flag = 0;
+
+  beta_offset = 0;
+  tc_offset   = 0;
+
+  pic_scaling_list_data_present_flag = 0;
+  // TODO struct scaling_list_data scaling_list;
+
+  lists_modification_present_flag = 0;
+  log2_parallel_merge_level = 2;
+  num_extra_slice_header_bits = 0;
+  slice_segment_header_extension_present_flag = 0;
+  pps_extension_flag = 0;
+}
+
+
 bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 {
   pps_read = false; // incomplete pps
@@ -188,6 +248,103 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
 
+
+  // END tiles
+
+
+
+  beta_offset = 0; // default value
+  tc_offset   = 0; // default value
+
+  pps_loop_filter_across_slices_enabled_flag = get_bits(br,1);
+  deblocking_filter_control_present_flag = get_bits(br,1);
+  if (deblocking_filter_control_present_flag) {
+    deblocking_filter_override_enabled_flag = get_bits(br,1);
+    pic_disable_deblocking_filter_flag = get_bits(br,1);
+    if (!pic_disable_deblocking_filter_flag) {
+      beta_offset = get_svlc(br);
+      if (beta_offset == UVLC_ERROR) {
+	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+	return false;
+      }
+      beta_offset *= 2;
+
+      tc_offset   = get_svlc(br);
+      if (tc_offset == UVLC_ERROR) {
+	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+	return false;
+      }
+      tc_offset   *= 2;
+    }
+  }
+  else {
+    deblocking_filter_override_enabled_flag = 0;
+    pic_disable_deblocking_filter_flag = 0;
+  }
+
+
+  // --- scaling list ---
+
+  pic_scaling_list_data_present_flag = get_bits(br,1);
+
+  // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
+  // must be FALSE
+  if (sps->scaling_list_enable_flag==0 &&
+      pic_scaling_list_data_present_flag != 0) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+
+  if (pic_scaling_list_data_present_flag) {
+    de265_error err = read_scaling_list(br, sps, &scaling_list, true);
+    if (err != DE265_OK) {
+      ctx->add_warning(err, false);
+      return false;
+    }
+  }
+  else {
+    memcpy(&scaling_list, &sps->scaling_list, sizeof(scaling_list_data));
+  }
+
+
+
+
+  lists_modification_present_flag = get_bits(br,1);
+  log2_parallel_merge_level = get_uvlc(br);
+  if (log2_parallel_merge_level == UVLC_ERROR) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+  log2_parallel_merge_level += 2;
+
+  slice_segment_header_extension_present_flag = get_bits(br,1);
+  pps_extension_flag = get_bits(br,1);
+
+  if (pps_extension_flag) {
+    //assert(false);
+    /*
+      while( more_rbsp_data() )
+
+      pps_extension_data_flag
+      u(1)
+      rbsp_trailing_bits()
+
+      }
+    */
+  }
+
+
+  set_derived_values(sps);
+
+  pps_read = true;
+
+  return true;
+}
+
+
+void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
+{
+  Log2MinCuQpDeltaSize = sps->Log2CtbSizeY - diff_cu_qp_delta_depth;
 
   if (uniform_spacing_flag) {
 
@@ -363,97 +520,6 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     }
     }
   */
-
-  // END tiles
-
-
-  Log2MinCuQpDeltaSize = sps->Log2CtbSizeY - diff_cu_qp_delta_depth;
-
-
-  beta_offset = 0; // default value
-  tc_offset   = 0; // default value
-
-  pps_loop_filter_across_slices_enabled_flag = get_bits(br,1);
-  deblocking_filter_control_present_flag = get_bits(br,1);
-  if (deblocking_filter_control_present_flag) {
-    deblocking_filter_override_enabled_flag = get_bits(br,1);
-    pic_disable_deblocking_filter_flag = get_bits(br,1);
-    if (!pic_disable_deblocking_filter_flag) {
-      beta_offset = get_svlc(br);
-      if (beta_offset == UVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	return false;
-      }
-      beta_offset *= 2;
-
-      tc_offset   = get_svlc(br);
-      if (tc_offset == UVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	return false;
-      }
-      tc_offset   *= 2;
-    }
-  }
-  else {
-    deblocking_filter_override_enabled_flag = 0;
-    pic_disable_deblocking_filter_flag = 0;
-  }
-
-
-  // --- scaling list ---
-
-  pic_scaling_list_data_present_flag = get_bits(br,1);
-
-  // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
-  // must be FALSE
-  if (sps->scaling_list_enable_flag==0 &&
-      pic_scaling_list_data_present_flag != 0) {
-    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-    return false;
-  }
-
-  if (pic_scaling_list_data_present_flag) {
-    de265_error err = read_scaling_list(br, sps, &scaling_list, true);
-    if (err != DE265_OK) {
-      ctx->add_warning(err, false);
-      return false;
-    }
-  }
-  else {
-    memcpy(&scaling_list, &sps->scaling_list, sizeof(scaling_list_data));
-  }
-
-
-
-
-  lists_modification_present_flag = get_bits(br,1);
-  log2_parallel_merge_level = get_uvlc(br);
-  if (log2_parallel_merge_level == UVLC_ERROR) {
-    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-    return false;
-  }
-  log2_parallel_merge_level += 2;
-
-  slice_segment_header_extension_present_flag = get_bits(br,1);
-  pps_extension_flag = get_bits(br,1);
-
-  if (pps_extension_flag) {
-    //assert(false);
-    /*
-      while( more_rbsp_data() )
-
-      pps_extension_data_flag
-      u(1)
-      rbsp_trailing_bits()
-
-      }
-    */
-  }
-
-
-  pps_read = true;
-
-  return true;
 }
 
 
