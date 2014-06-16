@@ -215,30 +215,46 @@ de265_error video_parameter_set::write(struct error_queue* errqueue, struct CABA
 }
 
 
+void profile_data::read(bitreader* reader)
+{
+  if (profile_present_flag) {
+    profile_space = get_bits(reader,2);
+    tier_flag = get_bits(reader,1);
+    profile_idc = (enum profile_idc)get_bits(reader,5);
+
+    for (int i=0; i<32; i++) {
+      profile_compatibility_flag[i] = get_bits(reader,1);
+    }
+
+    progressive_source_flag = get_bits(reader,1);
+    interlaced_source_flag  = get_bits(reader,1);
+    non_packed_constraint_flag = get_bits(reader,1);
+    frame_only_constraint_flag = get_bits(reader,1);
+    skip_bits(reader,44);
+  }
+
+  if (level_present_flag) {
+    level_idc = get_bits(reader,8);
+  }
+}
+
+
 void profile_tier_level::read(bitreader* reader,
                               int max_sub_layers)
 {
-  general_profile_space = get_bits(reader,2);
-  general_tier_flag = get_bits(reader,1);
-  general_profile_idc = get_bits(reader,5);
+  // --- read the general profile ---
 
-  for (int i=0; i<32; i++) {
-    general_profile_compatibility_flag[i] = get_bits(reader,1);
-  }
+  general.profile_present_flag = true;
+  general.level_present_flag = true;
+  general.read(reader);
 
-  general_progressive_source_flag = get_bits(reader,1);
-  general_interlaced_source_flag  = get_bits(reader,1);
-  general_non_packed_constraint_flag = get_bits(reader,1);
-  general_frame_only_constraint_flag = get_bits(reader,1);
-  skip_bits(reader,44);
 
-  general_level_idc = get_bits(reader,8);
-
+  // --- read the profile/levels of the sub-layers ---
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      profile[i].sub_layer_profile_present_flag = get_bits(reader,1);
-      profile[i].sub_layer_level_present_flag   = get_bits(reader,1);
+      sub_layer[i].profile_present_flag = get_bits(reader,1);
+      sub_layer[i].level_present_flag   = get_bits(reader,1);
     }
 
   if (max_sub_layers > 1)
@@ -251,55 +267,48 @@ void profile_tier_level::read(bitreader* reader,
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      if (profile[i].sub_layer_profile_present_flag)
-        {
-          profile[i].sub_layer_profile_space = get_bits(reader,2);
-          profile[i].sub_layer_tier_flag = get_bits(reader,1);
-          profile[i].sub_layer_profile_idc = get_bits(reader,5);
-
-          for (int j=0; j<32; j++)
-            {
-              profile[i].sub_layer_profile_compatibility_flag[j] = get_bits(reader,1);
-            }
-
-          profile[i].sub_layer_progressive_source_flag = get_bits(reader,1);
-          profile[i].sub_layer_interlaced_source_flag  = get_bits(reader,1);
-          profile[i].sub_layer_non_packed_constraint_flag = get_bits(reader,1);
-          profile[i].sub_layer_frame_only_constraint_flag = get_bits(reader,1);
-          skip_bits(reader,44);
-        }
-
-      if (profile[i].sub_layer_level_present_flag)
-        {
-          profile[i].sub_layer_level_idc = get_bits(reader,8);
-        }
+      sub_layer[i].read(reader);
     }
 }
 
 
+void profile_data::write(CABAC_encoder* out) const
+{
+  if (profile_present_flag)
+    {
+      out->write_bits(profile_space,2);
+      out->write_bit (tier_flag);
+      out->write_bits(profile_idc,5);
+
+      for (int j=0; j<32; j++)
+        {
+          out->write_bit(profile_compatibility_flag[j]);
+        }
+
+      out->write_bit(progressive_source_flag);
+      out->write_bit(interlaced_source_flag);
+      out->write_bit(non_packed_constraint_flag);
+      out->write_bit(frame_only_constraint_flag);
+      out->skip_bits(44);
+    }
+
+  if (level_present_flag)
+    {
+      out->write_bits(level_idc,8);
+    }
+}
+
 void profile_tier_level::write(CABAC_encoder* out, int max_sub_layers) const
 {
-  out->write_bits(general_profile_space,2);
-  out->write_bit (general_tier_flag);
-  out->write_bits(general_profile_idc, 5);
+  assert(general.profile_present_flag==true);
+  assert(general.level_present_flag==true);
 
-  for (int i=0; i<32; i++) {
-    out->write_bit(general_profile_compatibility_flag[i]);
-  }
-
-  out->write_bit(general_progressive_source_flag);
-  out->write_bit(general_interlaced_source_flag);
-  out->write_bit(general_non_packed_constraint_flag);
-  out->write_bit(general_frame_only_constraint_flag);
-  out->skip_bits(44);
-
-  out->write_bits(general_level_idc,8);
-
+  general.write(out);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      out->write_bit(profile[i].sub_layer_profile_present_flag);
-      out->write_bit(profile[i].sub_layer_level_present_flag);
+      out->write_bit(sub_layer[i].profile_present_flag);
+      out->write_bit(sub_layer[i].level_present_flag);
     }
 
   if (max_sub_layers > 1)
@@ -312,28 +321,7 @@ void profile_tier_level::write(CABAC_encoder* out, int max_sub_layers) const
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      if (profile[i].sub_layer_profile_present_flag)
-        {
-          out->write_bits(profile[i].sub_layer_profile_space,2);
-          out->write_bit (profile[i].sub_layer_tier_flag);
-          out->write_bits(profile[i].sub_layer_profile_idc,5);
-
-          for (int j=0; j<32; j++)
-            {
-              out->write_bit(profile[i].sub_layer_profile_compatibility_flag[j]);
-            }
-
-          out->write_bit(profile[i].sub_layer_progressive_source_flag);
-          out->write_bit(profile[i].sub_layer_interlaced_source_flag);
-          out->write_bit(profile[i].sub_layer_non_packed_constraint_flag);
-          out->write_bit(profile[i].sub_layer_frame_only_constraint_flag);
-          out->skip_bits(44);
-        }
-
-      if (profile[i].sub_layer_level_present_flag)
-        {
-          out->write_bits(profile[i].sub_layer_level_idc,8);
-        }
+      sub_layer[i].write(out);
     }
 }
 
@@ -442,48 +430,53 @@ void video_parameter_set::dump(int fd) const
 }
 
 
+static const char* profile_name(profile_idc p)
+{
+  switch (p) {
+  case Profile_Main: return "Main";
+  case Profile_Main10: return "Main10";
+  case Profile_MainStillPicture: return "MainStillPicture";
+  default:
+    return "(unknown)";
+  }
+}
+
+
+void profile_data::dump(bool general, FILE* fh) const
+{
+  const char* prefix = (general ? "general" : "sub_layer");
+
+  if (profile_present_flag) {
+    LOG2("  %s_profile_space     : %d\n", prefix,profile_space);
+    LOG2("  %s_tier_flag         : %d\n", prefix,tier_flag);
+    LOG2("  %s_profile_idc       : %s\n", prefix, profile_name(profile_idc));
+
+    LOG1("  %s_profile_compatibility_flags: ", prefix);
+    for (int i=0; i<32; i++) {
+      if (i) LOG0("*,");
+      LOG1("*%d",profile_compatibility_flag[i]);
+    }
+    LOG0("*\n");
+    LOG2("    %s_progressive_source_flag : %d\n",prefix,progressive_source_flag);
+    LOG2("    %s_interlaced_source_flag : %d\n",prefix,interlaced_source_flag);
+    LOG2("    %s_non_packed_constraint_flag : %d\n",prefix,non_packed_constraint_flag);
+    LOG2("    %s_frame_only_constraint_flag : %d\n",prefix,frame_only_constraint_flag);
+  }
+
+  if (level_present_flag) {
+    LOG3("  %s_level_idc         : %d (%4.2f)\n", prefix,level_idc, level_idc/30.0f);
+  }
+}
+
+
 void profile_tier_level::dump(int max_sub_layers, FILE* fh) const
 {
-  LOG1("  general_profile_space     : %d\n", general_profile_space);
-  LOG1("  general_tier_flag         : %d\n", general_tier_flag);
-  LOG1("  general_profile_idc       : %d\n", general_profile_idc);
-
-  LOG0("  general_profile_compatibility_flags: ");
-  for (int i=0; i<32; i++) {
-    if (i) LOG0("*,");
-    LOG1("*%d",general_profile_compatibility_flag[i]);
-  }
-  LOG0("*\n");
-
-  LOG1("  general_level_idc         : %d\n", general_level_idc);
+  general.dump(true, fh);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
       LOG1("  Profile/Tier/Level [Layer %d]\n",i);
-
-      if (profile[i].sub_layer_profile_present_flag) {
-
-        LOG1("    sub_layer_profile_space : %d\n",profile[i].sub_layer_profile_space);
-        LOG1("    sub_layer_tier_flag     : %d\n",profile[i].sub_layer_tier_flag);
-        LOG1("    sub_layer_profile_idc   : %d\n",profile[i].sub_layer_profile_idc);
-
-        LOG0("    sub_layer_profile_compatibility_flags: ");
-        for (int j=0; j<32; j++) {
-          if (j) LOG0(",");
-          LOG1("%d",profile[i].sub_layer_profile_compatibility_flag[j]);
-        }
-        LOG0("\n");
-
-        LOG1("    sub_layer_progressive_source_flag : %d\n",profile[i].sub_layer_progressive_source_flag);
-        LOG1("    sub_layer_interlaced_source_flag : %d\n",profile[i].sub_layer_interlaced_source_flag);
-        LOG1("    sub_layer_non_packed_constraint_flag : %d\n",profile[i].sub_layer_non_packed_constraint_flag);
-        LOG1("    sub_layer_frame_only_constraint_flag : %d\n",profile[i].sub_layer_frame_only_constraint_flag);
-      }
-
-
-      if (profile[i].sub_layer_level_present_flag) {
-        LOG1("    sub_layer_level_idc   : %d\n", profile[i].sub_layer_level_idc);
-      }
+      sub_layer[i].dump(false, fh);
     }
 }
 

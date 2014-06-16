@@ -35,27 +35,39 @@
 #define MAX_TEMPORAL_SUBLAYERS 8
 
 
+enum profile_idc {
+  Profile_Main   = 1,
+  Profile_Main10 = 2,
+  Profile_MainStillPicture = 3
+};
+
+
 struct profile_data {
+
+  void read(bitreader* reader);
+  void write(class CABAC_encoder* writer) const;
+  void dump(bool general, FILE* fh) const;
+
   // --- profile ---
 
-  char sub_layer_profile_present_flag;
+  char profile_present_flag;  // always true for general profile
 
-  char sub_layer_profile_space;
-  char sub_layer_tier_flag;
-  char sub_layer_profile_idc;
+  char profile_space;
+  char tier_flag;
+  enum profile_idc profile_idc;
 
-  char sub_layer_profile_compatibility_flag[32];
+  char profile_compatibility_flag[32];
 
-  char sub_layer_progressive_source_flag;
-  char sub_layer_interlaced_source_flag;
-  char sub_layer_non_packed_constraint_flag;
-  char sub_layer_frame_only_constraint_flag;
+  char progressive_source_flag;
+  char interlaced_source_flag;
+  char non_packed_constraint_flag;
+  char frame_only_constraint_flag;
 
 
   // --- level ---
 
-  char sub_layer_level_present_flag;
-  int  sub_layer_level_idc;
+  char level_present_flag;  // always true for general level
+  int  level_idc;
 };
 
 
@@ -66,21 +78,12 @@ public:
   void write(class CABAC_encoder* writer, int max_sub_layers) const;
   void dump(int max_sub_layers, FILE* fh) const;
 
+  struct profile_data general;
 
-  int general_profile_space;
-  int general_tier_flag;
-  int general_profile_idc;
+  //bool sub_layer_profile_present[MAX_TEMPORAL_SUBLAYERS];
+  //bool sub_layer_level_present[MAX_TEMPORAL_SUBLAYERS];
 
-  char general_profile_compatibility_flag[32];
-
-  char general_progressive_source_flag;
-  char general_interlaced_source_flag;
-  char general_non_packed_constraint_flag;
-  char general_frame_only_constraint_flag;
-
-  int general_level_idc;
-
-  struct profile_data profile[MAX_TEMPORAL_SUBLAYERS];
+  struct profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
 };
 
 
