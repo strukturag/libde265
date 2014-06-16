@@ -136,10 +136,16 @@ typedef struct slice_segment_header {
   slice_segment_header() { }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
+  bool write(class CABAC_encoder*, struct error_queue*,
+             const class seq_parameter_set* sps,
+             const class pic_parameter_set* pps,
+             uint8_t nal_unit_type,
+             uint8_t RapPicFlag);
+
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
 
-  int  slice_index; // index through all slices in a picture
+  int  slice_index; // index through all slices in a picture  (internal only)
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
@@ -219,10 +225,15 @@ typedef struct slice_segment_header {
 
   // --- derived data ---
 
-  int SliceAddrRS;  // start of last independent slice
   int SliceQPY;
-
   int initType;
+
+  void compute_derived_values(const class pic_parameter_set* pps);
+
+
+  // --- data for external modules ---
+
+  int SliceAddrRS;  // start of last independent slice
 
   int MaxNumMergeCand;
   int CurrRpsIdx;
