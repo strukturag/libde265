@@ -152,6 +152,11 @@ struct seq_parameter_set {
     rbsp_trailing_bits()
   */
 
+
+  // --- derived values ---
+
+  void compute_derived_values();
+
   int BitDepth_Y;
   int QpBdOffset_Y;
   int BitDepth_C;

@@ -416,6 +416,17 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   check_rbsp_trailing_bits(br);
 #endif
 
+
+  compute_derived_values();
+
+  sps_read = true;
+
+  return DE265_OK;
+}
+
+
+void seq_parameter_set::compute_derived_values()
+{
   // --- compute derived values ---
 
   BitDepth_Y   = bit_depth_luma;
@@ -459,10 +470,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
   PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
-
-  sps_read = true;
-
-  return DE265_OK;
 }
 
 
