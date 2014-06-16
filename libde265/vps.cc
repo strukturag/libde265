@@ -82,8 +82,8 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   profile_tier_level.read(reader, vps_max_sub_layers);
 
   /*
-  read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
-                              0, vps_max_sub_layers-1);
+    read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
+    0, vps_max_sub_layers-1);
   */
 
   vps_sub_layer_ordering_info_present_flag = get_bits(reader,1);
@@ -117,11 +117,17 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  layer_id_included_flag.resize(vps_num_layer_sets);
+
   for (int i=1; i <= vps_num_layer_sets-1; i++)
-    for (int j=0; j <= vps_max_layer_id; j++)
-      {
-        layer_id_included_flag[i][j] = get_bits(reader,1);
-      }
+    {
+      layer_id_included_flag[i].resize(vps_max_layer_id+1);
+
+      for (int j=0; j <= vps_max_layer_id; j++)
+        {
+          layer_id_included_flag[i][j] = get_bits(reader,1);
+        }
+    }
 
   vps_timing_info_present_flag = get_bits(reader,1);
 
@@ -137,6 +143,9 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
       if (vps_num_hrd_parameters >= 1024) {
         assert(false); // TODO: return bitstream error
       }
+
+      hrd_layer_set_idx .resize(vps_num_hrd_parameters);
+      cprms_present_flag.resize(vps_num_hrd_parameters);
 
       for (int i=0; i<vps_num_hrd_parameters; i++) {
         hrd_layer_set_idx[i] = get_uvlc(reader);
@@ -156,9 +165,9 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 
   if (vps_extension_flag) {
     /*
-    while( more_rbsp_data() )
-    vps_extension_data_flag u(1)
-    rbsp_trailing_bits()
+      while( more_rbsp_data() )
+      vps_extension_data_flag u(1)
+      rbsp_trailing_bits()
     */
   }
 

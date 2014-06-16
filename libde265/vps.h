@@ -32,6 +32,8 @@
 #include "libde265/bitstream.h"
 #include "libde265/de265.h"
 
+#include <vector>
+
 #define MAX_TEMPORAL_SUBLAYERS 8
 
 
@@ -130,19 +132,21 @@ public:
 
 
   int video_parameter_set_id;
-  int vps_max_layers;
-  int vps_max_sub_layers;
+  int vps_max_layers;            // [1; ]
+  int vps_max_sub_layers;        // [1; ]
   int vps_temporal_id_nesting_flag;
   struct profile_tier_level profile_tier_level;
-  //struct bit_rate_pic_rate_info bit_rate_pic_rate_info;
-  int vps_sub_layer_ordering_info_present_flag;
 
+  int vps_sub_layer_ordering_info_present_flag;
   layer_data layer[MAX_TEMPORAL_SUBLAYERS];
 
   uint8_t vps_max_layer_id;
   int     vps_num_layer_sets;
 
-  char layer_id_included_flag[1024][64];
+  std::vector<std::vector<bool> > layer_id_included_flag; // max size = [1024][64]
+
+
+  // --- timing info ---
 
   char     vps_timing_info_present_flag;
   uint32_t vps_num_units_in_tick;
@@ -152,10 +156,11 @@ public:
   int vps_num_ticks_poc_diff_one;
   int vps_num_hrd_parameters;
 
-  uint16_t hrd_layer_set_idx[1024];
-  char     cprms_present_flag[1024];
+  std::vector<uint16_t> hrd_layer_set_idx;  // max size = 1024
+  std::vector<char>     cprms_present_flag; // max size = 1024
 
-  // hrd_parameters(cprms_present_flag[i], vps_max_sub_layers-1)
+
+  // --- vps extension ---
 
   char vps_extension_flag;
 };
