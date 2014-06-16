@@ -136,13 +136,14 @@ typedef struct slice_segment_header {
   slice_segment_header() { }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
-  bool write(class CABAC_encoder*, struct error_queue*,
+  bool write(struct error_queue*, class CABAC_encoder*,
              const class seq_parameter_set* sps,
              const class pic_parameter_set* pps,
-             uint8_t nal_unit_type,
-             uint8_t RapPicFlag);
+             uint8_t nal_unit_type);
 
   void dump_slice_segment_header(const decoder_context*, int fd) const;
+
+  void set_defaults(const pic_parameter_set* pps);
 
 
   int  slice_index; // index through all slices in a picture  (internal only)

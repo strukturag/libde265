@@ -48,9 +48,9 @@ struct nal_header {
     nuh_temporal_id=temporal_id;
   }
 
-  int nal_unit_type;
-  int nuh_layer_id;
-  int nuh_temporal_id;
+  uint8_t nal_unit_type;
+  uint8_t nuh_layer_id;
+  uint8_t nuh_temporal_id;
 };
 
 #define NAL_UNIT_TRAIL_N  0
@@ -114,5 +114,14 @@ bool isRADL(uint8_t unit_type);
 bool isReferenceNALU(uint8_t unit_type);
 
 const char* get_NAL_name(uint8_t unit_type);
+
+inline bool isIdrPic(uint8_t nal_unit_type) {
+  return (nal_unit_type == NAL_UNIT_IDR_W_RADL ||
+          nal_unit_type == NAL_UNIT_IDR_N_LP);
+}
+
+inline bool isRapPic(uint8_t nal_unit_type) {
+  return nal_unit_type >= 16 && nal_unit_type <= 23;
+}
 
 #endif

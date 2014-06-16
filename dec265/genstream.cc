@@ -28,6 +28,7 @@ error_queue errqueue;
 video_parameter_set vps;
 seq_parameter_set   sps;
 pic_parameter_set   pps;
+slice_segment_header shdr;
 
 CABAC_encoder writer;
 
@@ -47,6 +48,16 @@ void write_stream_1()
   sps.set_resolution(384,288);
 
 
+  // PPS
+
+  pps.set_defaults();
+
+
+  // slice
+
+  shdr.set_defaults(&pps);
+
+
   // write headers
 
   writer.write_startcode();
@@ -59,6 +70,18 @@ void write_stream_1()
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(&writer);
   sps.write(&errqueue, &writer);
+  writer.flush_VLC();
+
+  writer.write_startcode();
+  nal.set(NAL_UNIT_PPS_NUT);
+  nal.write(&writer);
+  pps.write(&errqueue, &writer, &sps);
+  writer.flush_VLC();
+
+  writer.write_startcode();
+  nal.set(NAL_UNIT_IDR_W_RADL);
+  nal.write(&writer);
+  shdr.write(&errqueue, &writer, &sps, &pps, nal.nal_unit_type);
   writer.flush_VLC();
 }
 

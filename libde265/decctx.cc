@@ -1145,11 +1145,8 @@ void decoder_context::process_nal_hdr(nal_header* nal)
 {
   nal_unit_type = nal->nal_unit_type;
 
-  IdrPicFlag = (nal->nal_unit_type == NAL_UNIT_IDR_W_RADL ||
-                nal->nal_unit_type == NAL_UNIT_IDR_N_LP);
-
-  RapPicFlag = (nal->nal_unit_type >= 16 &&
-                nal->nal_unit_type <= 23);
+  IdrPicFlag = isIdrPic(nal->nal_unit_type);
+  RapPicFlag = isRapPic(nal->nal_unit_type);
 }
 
 

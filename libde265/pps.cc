@@ -523,7 +523,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 }
 
 
-bool pic_parameter_set::write(class CABAC_encoder* out, struct error_queue* errqueue,
+bool pic_parameter_set::write(struct error_queue* errqueue, class CABAC_encoder* out,
                               const seq_parameter_set* sps)
 {
   if (pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
