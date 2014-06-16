@@ -469,6 +469,8 @@ void CABAC_encoder::write_bits(uint32_t bits,int n)
 
 void CABAC_encoder::write_uvlc(int value)
 {
+  assert(value>=0);
+
   int nLeadingZeros=0;
   int base=0;
   int range=1;

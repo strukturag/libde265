@@ -27,7 +27,7 @@
 
 void profile_data::set_defaults(enum profile_idc profile, int level_major, int level_minor)
 {
-  profile_present_flag = true;
+  profile_present_flag = 1;
 
   profile_space = 0;
   tier_flag = 0;
@@ -59,6 +59,43 @@ void profile_data::set_defaults(enum profile_idc profile, int level_major, int l
 
   level_present_flag = 1;
   level_idc = level_major*30 + level_minor*3;
+}
+
+
+void video_parameter_set::set_defaults(enum profile_idc profile, int level_major, int level_minor)
+{
+  video_parameter_set_id = 0;
+  vps_max_layers = 1; // always =1 in current version of standard
+  vps_max_sub_layers = 1; // temporal sub-layers
+  vps_temporal_id_nesting_flag = 1;
+
+  profile_tier_level.general.set_defaults(profile,level_major,level_minor);
+
+  vps_sub_layer_ordering_info_present_flag = 0;
+  layer[0].vps_max_dec_pic_buffering = 1;
+  layer[0].vps_max_num_reorder_pics  = 0;
+  layer[0].vps_max_latency_increase  = 0;
+
+  vps_max_layer_id = 0;
+  vps_num_layer_sets = 1;
+
+  layer_id_included_flag.resize(vps_num_layer_sets);
+
+
+  // --- timing info ---
+
+  vps_timing_info_present_flag = 0;
+  vps_num_units_in_tick = 0;
+  vps_time_scale = 0;
+  vps_poc_proportional_to_timing_flag = 0;
+
+  vps_num_ticks_poc_diff_one = 0;
+  vps_num_hrd_parameters = 0;
+
+
+  // --- vps extension ---
+
+  vps_extension_flag = 0;
 }
 
 
@@ -109,13 +146,15 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 
 
   vps_max_layer_id = get_bits(reader,6);
-  vps_num_layer_sets = get_uvlc(reader)+1;
+  vps_num_layer_sets = get_uvlc(reader);
 
-  if (vps_num_layer_sets<0 ||
-      vps_num_layer_sets>=1024) {
+  if (vps_num_layer_sets+1<0 ||
+      vps_num_layer_sets+1>=1024 ||
+      vps_num_layer_sets == UVLC_ERROR) {
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
+  vps_num_layer_sets += 1;
 
   layer_id_included_flag.resize(vps_num_layer_sets);
 

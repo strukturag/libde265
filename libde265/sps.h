@@ -67,6 +67,7 @@ struct seq_parameter_set {
   void set_defaults(enum PresetSet = Preset_Default);
   void set_CB_log2size_range(int mini,int maxi);
   void set_TB_log2size_range(int mini,int maxi);
+  void set_resolution(int w,int h);
 
   bool sps_read; // whether the sps has been read from the bitstream
 

@@ -117,9 +117,9 @@ void dump_bit_rate_pic_rate_info(struct bit_rate_pic_rate_info* hdr,
 
 
 typedef struct {
-  int vps_max_dec_pic_buffering;
-  int vps_max_num_reorder_pics;
-  int vps_max_latency_increase;
+  int vps_max_dec_pic_buffering; // [1 ; ]
+  int vps_max_num_reorder_pics;  // [0 ; ]
+  int vps_max_latency_increase;  // 0 -> no limit, otherwise value is (x-1)
 } layer_data;
 
 
@@ -130,18 +130,19 @@ public:
   de265_error write(struct error_queue* errqueue, struct CABAC_encoder* out) const;
   void dump(int fd) const;
 
+  void set_defaults(enum profile_idc profile, int level_major, int level_minor);
 
   int video_parameter_set_id;
-  int vps_max_layers;            // [1; ]
-  int vps_max_sub_layers;        // [1; ]
-  int vps_temporal_id_nesting_flag;
+  int vps_max_layers;            // [1;?]  currently always 1
+  int vps_max_sub_layers;        // [1;7]  number of temporal sub-layers
+  int vps_temporal_id_nesting_flag; // indicate temporal up-switching always possible
   struct profile_tier_level profile_tier_level;
 
   int vps_sub_layer_ordering_info_present_flag;
   layer_data layer[MAX_TEMPORAL_SUBLAYERS];
 
-  uint8_t vps_max_layer_id;
-  int     vps_num_layer_sets;
+  uint8_t vps_max_layer_id;   // max value for nuh_layer_id in NALs
+  int     vps_num_layer_sets; // [1;1024], currently always 1
 
   std::vector<std::vector<bool> > layer_id_included_flag; // max size = [1024][64]
 
@@ -152,9 +153,9 @@ public:
   uint32_t vps_num_units_in_tick;
   uint32_t vps_time_scale;
   char     vps_poc_proportional_to_timing_flag;
+  int        vps_num_ticks_poc_diff_one;
 
-  int vps_num_ticks_poc_diff_one;
-  int vps_num_hrd_parameters;
+  int vps_num_hrd_parameters;     // currently [0;1]
 
   std::vector<uint16_t> hrd_layer_set_idx;  // max size = 1024
   std::vector<char>     cprms_present_flag; // max size = 1024

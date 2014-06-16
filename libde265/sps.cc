@@ -85,7 +85,7 @@ void seq_parameter_set::set_defaults(enum PresetSet)
   sps_max_sub_layers = 1;
   sps_temporal_id_nesting_flag = 0;
 
-  // TODO struct profile_tier_level profile_tier_level;
+  profile_tier_level.general.set_defaults(Profile_Main, 6,2); // TODO
 
   seq_parameter_set_id = 0;
   chroma_format_idc = 1;
@@ -106,11 +106,9 @@ void seq_parameter_set::set_defaults(enum PresetSet)
   log2_max_pic_order_cnt_lsb = 8;
   sps_sub_layer_ordering_info_present_flag = 0;
 
-  /* TODO
-  int sps_max_dec_pic_buffering[7]; // for each temporal layer
-  int sps_max_num_reorder_pics[7];
-  int sps_max_latency_increase_plus1[7];
-  */
+  sps_max_dec_pic_buffering[0] = 1;
+  sps_max_num_reorder_pics[0]  = 0;
+  sps_max_latency_increase_plus1[0] = 0;
 
   set_CB_log2size_range(4,4);
   set_TB_log2size_range(3,4);
@@ -167,7 +165,14 @@ void seq_parameter_set::set_CB_log2size_range(int mini,int maxi)
 void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
 {
   log2_min_transform_block_size = mini;
-  log2_diff_max_min_transform_block_size = maxi;
+  log2_diff_max_min_transform_block_size = maxi-mini;
+}
+
+
+void seq_parameter_set::set_resolution(int w,int h)
+{
+  pic_width_in_luma_samples  = w;
+  pic_height_in_luma_samples = h;
 }
 
 
