@@ -3895,13 +3895,13 @@ void read_coding_unit(thread_context* tctx,
                 // sort candModeList
 
                 if (candModeList[0] > candModeList[1]) {
-                  int t = candModeList[0]; candModeList[0]=candModeList[1]; candModeList[1]=t;
+                  std::swap(candModeList[0],candModeList[1]);
                 }
                 if (candModeList[0] > candModeList[2]) {
-                  int t = candModeList[0]; candModeList[0]=candModeList[2]; candModeList[2]=t;
+                  std::swap(candModeList[0],candModeList[2]);
                 }
                 if (candModeList[1] > candModeList[2]) {
-                  int t = candModeList[1]; candModeList[1]=candModeList[2]; candModeList[2]=t;
+                  std::swap(candModeList[1],candModeList[2]);
                 }
 
                 // skip modes in the list
