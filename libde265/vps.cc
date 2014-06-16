@@ -436,6 +436,7 @@ static const char* profile_name(profile_idc p)
   case Profile_Main: return "Main";
   case Profile_Main10: return "Main10";
   case Profile_MainStillPicture: return "MainStillPicture";
+  case Profile_FormatRangeExtensions: return "FormatRangeExtensions";
   default:
     return "(unknown)";
   }

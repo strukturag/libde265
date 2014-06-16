@@ -38,7 +38,8 @@
 enum profile_idc {
   Profile_Main   = 1,
   Profile_Main10 = 2,
-  Profile_MainStillPicture = 3
+  Profile_MainStillPicture = 3,
+  Profile_FormatRangeExtensions = 4
 };
 
 
@@ -52,11 +53,11 @@ struct profile_data {
 
   char profile_present_flag;  // always true for general profile
 
-  char profile_space;
-  char tier_flag;
-  enum profile_idc profile_idc;
+  char profile_space;  // currently always 0
+  char tier_flag;      // main tier or low tier (see Table A-66/A-67)
+  enum profile_idc profile_idc; // profile
 
-  char profile_compatibility_flag[32];
+  char profile_compatibility_flag[32]; // to which profile we are compatible
 
   char progressive_source_flag;
   char interlaced_source_flag;
@@ -66,8 +67,8 @@ struct profile_data {
 
   // --- level ---
 
-  char level_present_flag;  // always true for general level
-  int  level_idc;
+  char level_present_flag; // always true for general level
+  int  level_idc;          // level * 30
 };
 
 
