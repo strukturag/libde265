@@ -51,6 +51,10 @@ typedef struct scaling_list_data {
 } scaling_list_data;
 
 
+enum PresetSet {
+  Preset_Default
+};
+
 struct seq_parameter_set {
   seq_parameter_set();
   ~seq_parameter_set();
@@ -60,11 +64,15 @@ struct seq_parameter_set {
 
   void dump(int fd) const;
 
+  void set_defaults(enum PresetSet);
+  void set_CB_log2size_range(int mini,int maxi);
+  void set_TB_log2size_range(int mini,int maxi);
+
   bool sps_read; // whether the sps has been read from the bitstream
 
 
   char video_parameter_set_id;
-  char sps_max_sub_layers;
+  char sps_max_sub_layers;            // [1;7]
   char sps_temporal_id_nesting_flag;
 
   struct profile_tier_level profile_tier_level;
@@ -92,10 +100,10 @@ struct seq_parameter_set {
   int sps_max_num_reorder_pics[7];
   int sps_max_latency_increase_plus1[7];
 
-  int  log2_min_luma_coding_block_size;
-  int  log2_diff_max_min_luma_coding_block_size;
-  int  log2_min_transform_block_size;
-  int  log2_diff_max_min_transform_block_size;
+  int  log2_min_luma_coding_block_size;             // smallest CB size [3;6]
+  int  log2_diff_max_min_luma_coding_block_size;    // largest  CB size
+  int  log2_min_transform_block_size;               // smallest TB size [2;5]
+  int  log2_diff_max_min_transform_block_size;      // largest  TB size
   int  max_transform_hierarchy_depth_inter;
   int  max_transform_hierarchy_depth_intra;
 
@@ -117,11 +125,6 @@ struct seq_parameter_set {
 
   int num_short_term_ref_pic_sets;
   std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
-
-  /*
-    for( i = 0; i < num_short_term_ref_pic_sets; i++)
-    short_term_ref_pic_set(i)
-  */
 
   char long_term_ref_pics_present_flag;
 

@@ -79,6 +79,98 @@ seq_parameter_set::~seq_parameter_set()
 }
 
 
+void seq_parameter_set::set_defaults(enum PresetSet)
+{
+  video_parameter_set_id = 0;
+  sps_max_sub_layers = 1;
+  sps_temporal_id_nesting_flag = 0;
+
+  // TODO struct profile_tier_level profile_tier_level;
+
+  seq_parameter_set_id = 0;
+  chroma_format_idc = 1;
+
+  separate_colour_plane_flag = 0;
+  pic_width_in_luma_samples = 0;
+  pic_height_in_luma_samples = 0;
+  conformance_window_flag = 0;
+
+  conf_win_left_offset   = 0;
+  conf_win_right_offset  = 0;
+  conf_win_top_offset    = 0;
+  conf_win_bottom_offset = 0;
+
+  bit_depth_luma  =8;
+  bit_depth_chroma=8;
+
+  log2_max_pic_order_cnt_lsb = 8;
+  sps_sub_layer_ordering_info_present_flag = 0;
+
+  /* TODO
+  int sps_max_dec_pic_buffering[7]; // for each temporal layer
+  int sps_max_num_reorder_pics[7];
+  int sps_max_latency_increase_plus1[7];
+  */
+
+  set_CB_log2size_range(4,4);
+  set_TB_log2size_range(3,4);
+  max_transform_hierarchy_depth_inter = 1;
+  max_transform_hierarchy_depth_intra = 1;
+
+  scaling_list_enable_flag = 0;
+  sps_scaling_list_data_present_flag = 0;
+
+  // TODO struct scaling_list_data scaling_list;
+
+  amp_enabled_flag = 0;
+  sample_adaptive_offset_enabled_flag = 0;
+  pcm_enabled_flag = 0;
+
+  pcm_sample_bit_depth_luma = 8;
+  pcm_sample_bit_depth_chroma = 8;
+  // TODO log2_min_pcm_luma_coding_block_size;
+  // TODO log2_diff_max_min_pcm_luma_coding_block_size;
+  pcm_loop_filter_disable_flag = 1;
+
+  num_short_term_ref_pic_sets = 0;
+  // std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
+
+  long_term_ref_pics_present_flag = 0;
+
+  num_long_term_ref_pics_sps = 0;
+
+  /* TODO
+  int  lt_ref_pic_poc_lsb_sps[MAX_NUM_LT_REF_PICS_SPS];
+  char used_by_curr_pic_lt_sps_flag[MAX_NUM_LT_REF_PICS_SPS];
+  */
+
+  sps_temporal_mvp_enabled_flag = 0;
+  strong_intra_smoothing_enable_flag = 0;
+  vui_parameters_present_flag = 0;
+
+  /*
+    if( vui_parameters_present_flag )
+      vui_parameters()
+  */
+
+  sps_extension_flag = 0;
+}
+
+
+void seq_parameter_set::set_CB_log2size_range(int mini,int maxi)
+{
+  log2_min_luma_coding_block_size = mini;
+  log2_diff_max_min_luma_coding_block_size = maxi-mini;
+}
+
+
+void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
+{
+  log2_min_transform_block_size = mini;
+  log2_diff_max_min_transform_block_size = maxi;
+}
+
+
 de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 {
   int vlc;
