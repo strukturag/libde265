@@ -25,6 +25,43 @@
 #include <assert.h>
 
 
+void profile_data::set_defaults(enum profile_idc profile, int level_major, int level_minor)
+{
+  profile_present_flag = true;
+
+  profile_space = 0;
+  tier_flag = 0;
+  profile_idc = profile;
+
+  for (int i=0;i<32;i++) {
+    profile_compatibility_flag[i]=0;
+  }
+
+  switch (profile) {
+  case Profile_Main:
+    profile_compatibility_flag[Profile_Main]=1;
+    profile_compatibility_flag[Profile_Main10]=1;
+    break;
+  case Profile_Main10:
+    profile_compatibility_flag[Profile_Main10]=1;
+    break;
+  default:
+    assert(0);
+  }
+
+  progressive_source_flag = 0;
+  interlaced_source_flag  = 0;
+  non_packed_constraint_flag = 0;
+  frame_only_constraint_flag = 0;
+
+
+  // --- level ---
+
+  level_present_flag = 1;
+  level_idc = level_major*30 + level_minor*3;
+}
+
+
 de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 {
   int vlc;

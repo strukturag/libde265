@@ -49,6 +49,8 @@ struct profile_data {
   void write(class CABAC_encoder* writer) const;
   void dump(bool general, FILE* fh) const;
 
+  void set_defaults(enum profile_idc, int level_major, int level_minor);
+
   // --- profile ---
 
   char profile_present_flag;  // always true for general profile
