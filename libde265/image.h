@@ -162,7 +162,7 @@ typedef struct {
   uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // TODO: could be removed if prediction-block-boundaries would be
-                            // set during decoding
+                            // set during decoding (but we need this for encoding)
   uint8_t ctDepth : 2;      // [0:3]? (for CTB size 64: 0:64, 1:32, 2:16, 3:8)
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
   uint8_t pcm_flag : 1;     //
@@ -498,6 +498,15 @@ public:
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
   }
 
+  void set_IntraPredMode(int x,int y,int log2blkSize, enum IntraPredMode mode)
+  {
+    int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
+    int PUidx  = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+
+    for (int y=0;y<pbSize;y++)
+      for (int x=0;x<pbSize;x++)
+        intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
+  }
 
   // --- CTB metadata access ---
 

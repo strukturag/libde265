@@ -435,6 +435,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
     }
 
 
+#if 0
   logtrace(LogHeaders,"6.5.1 CtbAddrRSToTS\n");
   for (int y=0;y<sps->PicHeightInCtbsY;y++)
     {
@@ -445,7 +446,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
       logtrace(LogHeaders,"\n");
     }
-
+#endif
 
   // tile id
 
@@ -463,6 +464,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
         tIdx++;
       }
 
+#if 0
   logtrace(LogHeaders,"Tile IDs RS:\n");
   for (int y=0;y<sps->PicHeightInCtbsY;y++) {
     for (int x=0;x<sps->PicWidthInCtbsY;x++) {
@@ -470,6 +472,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
     }
     logtrace(LogHeaders,"\n");
   }
+#endif
 
   // 6.5.2 Z-scan order array initialization process
 

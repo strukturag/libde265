@@ -51,8 +51,12 @@ void draw_image()
   for (int y=0;y<sps.PicHeightInCtbsY;y++)
     for (int x=0;x<sps.PicWidthInCtbsY;x++)
       {
-        img.set_ctDepth(x<<Log2CtbSize,y<<Log2CtbSize,
-                        Log2CtbSize, 1);
+        int x0 = x<<Log2CtbSize;
+        int y0 = y<<Log2CtbSize;
+        img.set_ctDepth(x0,y0, Log2CtbSize, ((x+y)&1)==0);
+        img.set_pred_mode(x0,y0, Log2CtbSize, MODE_INTRA);
+        img.set_PartMode(x0,y0, PART_2Nx2N);
+        img.set_IntraPredMode(x0,y0, Log2CtbSize, (enum IntraPredMode)1);
       }
 }
 
@@ -132,6 +136,8 @@ void write_stream_1()
 
 int main(int argc, char** argv)
 {
+  de265_set_verbosity(3);
+
   write_stream_1();
 
   FILE* fh = fopen("out.bin","wb");

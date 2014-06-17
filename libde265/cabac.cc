@@ -583,11 +583,13 @@ void CABAC_encoder::write_startcode()
  */
 void CABAC_encoder::write_out()
 {
+  printf("low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;
   low &= 0xffffffffu >> bits_left;
 
   printf("write byte %02x\n",leadByte);
+  printf("-> low = %08x\n",low);
   
   if (leadByte == 0xff)
     {
@@ -661,12 +663,11 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 
       // renorm
 
-      if (range < 256)
-        {
-          low <<= 1;
-          range <<= 1;
-          bits_left--;
-        }
+      if (range >= 256) { return; }
+
+      low <<= 1;
+      range <<= 1;
+      bits_left--;
     }
   
   testAndWriteOut();
@@ -686,3 +687,21 @@ void CABAC_encoder::write_CABAC_bypass(int bin)
   testAndWriteOut();
 }
 
+void CABAC_encoder::write_CABAC_TU_bypass(int value, int cMax)
+{
+  for (int i=0;i<value;i++) {
+    write_CABAC_bypass(1);
+  }
+
+  if (value<cMax) {
+    write_CABAC_bypass(0);
+  }
+}
+
+void CABAC_encoder::write_CABAC_FL_bypass(int value, int n)
+{
+  while (n>0) {
+    n--;
+    write_CABAC_bypass(value & (1<<n));
+  }
+}

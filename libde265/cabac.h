@@ -82,6 +82,8 @@ public:
 
   void write_CABAC_bit(context_model* model, int bit);
   void write_CABAC_bypass(int bit);
+  void write_CABAC_TU_bypass(int value, int cMax);
+  void write_CABAC_FL_bypass(int value, int nBits);
   void flush_CABAC() { /* TODO */ }
 
 

@@ -22,6 +22,7 @@
 
 #include "encode.h"
 #include "slice.h"
+#include "intrapred.h"
 
 
 static void encode_split_cu_flag(encoder_context* ectx,
@@ -43,9 +44,119 @@ static void encode_split_cu_flag(encoder_context* ectx,
 
   // decode bit
 
+  logtrace(LogSlice,"> split_cu_flag = %d\n",split_flag);
+
   ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context], split_flag);
 }
 
+
+static void encode_part_mode(encoder_context* ectx,
+                             enum PredMode PredMode, enum PartMode PartMode)
+{
+  logtrace(LogSlice,"> part_mode = %d\n",PartMode);
+
+  if (PredMode == MODE_INTRA) {
+    int bin = (PartMode==PART_2Nx2N);
+    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PART_MODE], bin);
+  }
+  else {
+    assert(0); // TODO
+  }
+}
+
+
+static void encode_prev_intra_luma_pred_flag(encoder_context* ectx, int intraPred)
+{
+  int bin = (intraPred>=0);
+
+  logtrace(LogSlice,"> prev_intra_luma_pred_flag = %d\n",bin);
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], bin);
+}
+
+static void encode_intra_mpm_or_rem(encoder_context* ectx, int intraPred)
+{
+  if (intraPred>=0) {
+    logtrace(LogSlice,"> mpm_idx = %d\n",intraPred);
+    ectx->cabac_encoder->write_CABAC_TU_bypass(intraPred, 2);
+  }
+  else {
+    logtrace(LogSlice,"> rem_intra_luma_pred_mode = %d\n",-intraPred-1);
+    ectx->cabac_encoder->write_CABAC_FL_bypass(-intraPred-1, 5);
+  }
+}
+
+
+void encode_coding_unit(encoder_context* ectx,
+                        int x0,int y0, int log2CbSize)
+{
+  de265_image* img = ectx->img;
+  const slice_segment_header* shdr = ectx->shdr;
+  const seq_parameter_set* sps = &img->sps;
+
+
+  int nCbS = 1<<log2CbSize;
+
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  enum PartMode PartMode = PART_2Nx2N;
+
+  if (PredMode != MODE_INTRA ||
+      log2CbSize == sps->Log2MinCbSizeY) {
+    PartMode = img->get_PartMode(x0,y0);
+    encode_part_mode(ectx, PredMode, PartMode);
+  }
+
+  if (PredMode == MODE_INTRA) {
+
+    int availableA0 = check_CTB_available(img, shdr, x0,y0, x0-1,y0);
+    int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
+
+    if (PartMode==PART_2Nx2N) {
+      int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+
+      int candModeList[3];
+      fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
+                                  availableA0,availableB0, img);
+
+      enum IntraPredMode mode = img->get_IntraPredMode(x0,y0);
+      int intraPred = find_intra_pred_mode(mode, candModeList);
+      encode_prev_intra_luma_pred_flag(ectx, intraPred);
+      encode_intra_mpm_or_rem(ectx, intraPred);
+    }
+    else {
+      int pbOffset = nCbS/2;
+      int PUidx;
+
+      int intraPred[4];
+
+      for (int j=0;j<nCbS;j+=pbOffset)
+        for (int i=0;i<nCbS;i+=pbOffset)
+          {
+            int x=x0+i, y=y0+j;
+
+            int availableA = availableA0 || (i>0); // left candidate always available for right blk
+            int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
+
+            PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+
+            int candModeList[3];
+            fillIntraPredModeCandidates(candModeList,x,y,PUidx,
+                                        availableA,availableB, img);
+
+            enum IntraPredMode mode = img->get_IntraPredMode(x,y);
+            intraPred[2*j+i] = find_intra_pred_mode(mode, candModeList);
+          }
+
+      for (int i=0;i<4;i++)
+        encode_prev_intra_luma_pred_flag(ectx, intraPred[i]);
+
+      for (int i=0;i<4;i++)
+        encode_intra_mpm_or_rem(ectx, intraPred[i]);
+    }
+    
+    
+  }
+}
 
 
 void encode_quadtree(encoder_context* ectx,
@@ -102,6 +213,7 @@ void encode_quadtree(encoder_context* ectx,
       encode_quadtree(ectx,x1,y1, log2CbSize-1, ctDepth+1);
   }
   else {
+    encode_coding_unit(ectx,x0,y0, log2CbSize);
   }
 }
 

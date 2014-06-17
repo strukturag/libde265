@@ -37,6 +37,15 @@ void fillIntraPredModeCandidates(int candModeList[3],
                                  bool availableB, // top
                                  const de265_image* img);
 
+/* Return value >= 0 -> use mpm_idx(return value)
+   else              -> use rem_intra(-return value-1)
+
+   This function may modify the candModeList !
+ */
+int find_intra_pred_mode(enum IntraPredMode mode,
+                         int candModeList[3]);
+
+
 void decode_intra_block(decoder_context* ctx,
                         thread_context* tctx,
                         int cIdx,

@@ -52,9 +52,6 @@ void read_coding_quadtree(thread_context* tctx,
                           int xCtb, int yCtb, 
                           int Log2CtbSizeY,
                           int ctDepth);
-int check_CTB_available(de265_image* img,
-                        slice_segment_header* shdr,
-                        int xC,int yC, int xN,int yN);
 /*
 void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
@@ -1332,7 +1329,7 @@ static void set_initValue(int SliceQPY,
   int n = (intersecIdx<<3) - 16;
   int preCtxState = Clip3(1,126, ((m*Clip3(0,51, SliceQPY))>>4)+n);
   
-  logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
+  // logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
   
   model->MPSbit=(preCtxState<=63) ? 0 : 1;
   model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
@@ -2703,7 +2700,7 @@ void read_coding_tree_unit(thread_context* tctx)
 }
 
 
-LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(seq_parameter_set* sps, int x,int y)
+LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(const seq_parameter_set* sps, int x,int y)
 {
   int ctbX = x >> sps->Log2CtbSizeY;
   int ctbY = y >> sps->Log2CtbSizeY;
@@ -2712,8 +2709,8 @@ LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(seq_parameter_set* sps, int x,i
 }
 
 
-int check_CTB_available(de265_image* img,
-                        slice_segment_header* shdr,
+int check_CTB_available(const de265_image* img,
+                        const slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN)
 {
   // check whether neighbor is outside of frame

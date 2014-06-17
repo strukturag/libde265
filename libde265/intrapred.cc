@@ -147,6 +147,48 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
       candModeList[2] = INTRA_ANGULAR_26; 
     }
   }
+
+
+  printf("candModeList: %d %d %d\n",
+         candModeList[0],
+         candModeList[1],
+         candModeList[2]
+         );
+}
+
+
+int find_intra_pred_mode(enum IntraPredMode mode,
+                         int candModeList[3])
+{
+  // check whether the mode is in the candidate list
+
+  for (int i=0;i<3;i++) {
+    if (candModeList[i] == mode) {
+      return i;
+    }
+  }
+
+  // sort candModeList
+
+  if (candModeList[0] > candModeList[1]) {
+    std::swap(candModeList[0],candModeList[1]);
+  }
+  if (candModeList[0] > candModeList[2]) {
+    std::swap(candModeList[0],candModeList[2]);
+  }
+  if (candModeList[1] > candModeList[2]) {
+    std::swap(candModeList[1],candModeList[2]);
+  }
+
+  // skip modes already in the candidate list
+
+  int intraMode = mode;
+
+  for (int i=0;i<2;i++) {
+    if (intraMode >= candModeList[i]) { intraMode--; }
+  }
+
+  return -intraMode-1;
 }
 
 
