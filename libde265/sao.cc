@@ -34,7 +34,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
 
-  logtrace(LogSAO,"apply_sao CTB %d;%d cIdx:%d type=%d (%dx%d)\n",xC,yC,cIdx, SaoTypeIdx, nS,nS);
+  logtrace(LogSAO,"apply_sao CTB %d;%d cIdx:%d type=%d (%dx%d)\n",xCtb,yCtb,cIdx, SaoTypeIdx, nS,nS);
 
   if (SaoTypeIdx==0) {
     return;
