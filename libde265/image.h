@@ -163,7 +163,7 @@ typedef struct {
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding
-  uint8_t ctDepth : 2;      // [0:3]? (0:64, 1:32, 2:16, 3:8)
+  uint8_t ctDepth : 2;      // [0:3]? (for CTB size 64: 0:64, 1:32, 2:16, 3:8)
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
   uint8_t pcm_flag : 1;     //
   uint8_t cu_transquant_bypass : 1;

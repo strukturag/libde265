@@ -1323,16 +1323,16 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
 
 
-static void set_initValue(slice_segment_header* shdr,
+static void set_initValue(int SliceQPY,
                           context_model* model, int initValue)
 {
   int slopeIdx = initValue >> 4;
   int intersecIdx = initValue & 0xF;
   int m = slopeIdx*5 - 45;
   int n = (intersecIdx<<3) - 16;
-  int preCtxState = Clip3(1,126, ((m*Clip3(0,51, shdr->SliceQPY))>>4)+n);
+  int preCtxState = Clip3(1,126, ((m*Clip3(0,51, SliceQPY))>>4)+n);
   
-  logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",shdr->SliceQPY,slopeIdx,intersecIdx,m,n);
+  logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
   
   model->MPSbit=(preCtxState<=63) ? 0 : 1;
   model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
@@ -1407,14 +1407,13 @@ static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
 static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
 
 
-static void init_context(thread_context* tctx,
-                         enum context_model_indices idx,
+static void init_context(int SliceQPY,
+                         context_model* model,
                          const int* initValues, int len)
 {
   for (int i=0;i<len;i++)
     {
-      set_initValue(tctx->shdr,
-                    &tctx->ctx_model[idx+i],
+      set_initValue(SliceQPY, &model[i],
                     initValues[i]);
     }
 }
@@ -1513,12 +1512,6 @@ static int decode_transquant_bypass_flag(thread_context* tctx)
 static int decode_split_cu_flag(thread_context* tctx,
 				int x0, int y0, int ctDepth)
 {
-  //decoder_context* ctx = tctx->decctx;
-
-  if (x0==64 && y0==448) {
-    //raise(SIGINT);
-  }
-
   // check if neighbors are available
 
   int availableL = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0-1,y0);
@@ -2466,41 +2459,52 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 
 
 
+void initialize_CABAC(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
+                      int initType,
+                      int QPY)
+{
+  context_model* cm = context_model_table; // just an abbreviation
+
+  if (initType > 0) {
+    init_context(QPY, cm+CONTEXT_MODEL_CU_SKIP_FLAG,    initValue_cu_skip_flag[initType-1],  3);
+    init_context(QPY, cm+CONTEXT_MODEL_PRED_MODE_FLAG, &initValue_pred_mode_flag[initType-1], 1);
+    init_context(QPY, cm+CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
+    init_context(QPY, cm+CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
+    init_context(QPY, cm+CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
+    init_context(QPY, cm+CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
+    init_context(QPY, cm+CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
+    init_context(QPY, cm+CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
+    init_context(QPY, cm+CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
+  }
+
+  init_context(QPY, cm+CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
+  init_context(QPY, cm+CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
+  init_context(QPY, cm+CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
+  init_context(QPY, cm+CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
+  init_context(QPY, cm+CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
+  init_context(QPY, cm+CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
+  init_context(QPY, cm+CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
+  init_context(QPY, cm+CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(QPY, cm+CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(QPY, cm+CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
+  init_context(QPY, cm+CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
+  init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
+  init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
+  init_context(QPY, cm+CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
+  init_context(QPY, cm+CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
+  init_context(QPY, cm+CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
+  init_context(QPY, cm+CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
+  init_context(QPY, cm+CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
+}
+
+
 void initialize_CABAC(thread_context* tctx)
 {
+  const int QPY = tctx->shdr->SliceQPY;
   const int initType = tctx->shdr->initType;
   assert(initType >= 0 && initType <= 2);
 
-  init_context(tctx, CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
-  if (initType > 0) {
-    init_context(tctx, CONTEXT_MODEL_CU_SKIP_FLAG,    initValue_cu_skip_flag[initType-1],  3);
-    init_context(tctx, CONTEXT_MODEL_PRED_MODE_FLAG, &initValue_pred_mode_flag[initType-1], 1);
-    init_context(tctx, CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
-    init_context(tctx, CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
-    init_context(tctx, CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
-    init_context(tctx, CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
-    init_context(tctx, CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
-    init_context(tctx, CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
-    init_context(tctx, CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
-  }
-
-  init_context(tctx, CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
-  init_context(tctx, CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
-  init_context(tctx, CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
-  init_context(tctx, CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
-  init_context(tctx, CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
-  init_context(tctx, CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
-  init_context(tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
-  init_context(tctx, CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
-  init_context(tctx, CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
-  init_context(tctx, CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
-  init_context(tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
-  init_context(tctx, CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
-  init_context(tctx, CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
-  init_context(tctx, CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
-  init_context(tctx, CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
-  init_context(tctx, CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
-  init_context(tctx, CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
+  initialize_CABAC(tctx->ctx_model, initType, QPY);
 }
 
 
