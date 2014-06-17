@@ -25,6 +25,18 @@
 
 extern const int intraPredAngle_table[1+34];
 
+
+/* Fill the three intra-pred-mode candidates into candModeList.
+   Block position is (x,y) and you also have to give the PUidx for this
+   block (which is (x>>Log2MinPUSize) + (y>>Log2MinPUSize)*PicWidthInMinPUs).
+   availableA/B is the output of check_CTB_available().
+ */
+void fillIntraPredModeCandidates(int candModeList[3],
+                                 int x,int y, int PUidx,
+                                 bool availableA, // left
+                                 bool availableB, // top
+                                 const de265_image* img);
+
 void decode_intra_block(decoder_context* ctx,
                         thread_context* tctx,
                         int cIdx,

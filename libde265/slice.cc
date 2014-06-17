@@ -3819,74 +3819,14 @@ void read_coding_unit(thread_context* tctx,
               int availableA = availableA0 || (i>0); // left candidate always available for right blk
               int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
 
+
+
               int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
-
-              // block on left side
-
-              enum IntraPredMode candIntraPredModeA, candIntraPredModeB;
-              if (availableA==false) {
-                candIntraPredModeA=INTRA_DC;
-              }
-              else if (img->get_pred_mode(x-1,y) != MODE_INTRA ||
-                       img->get_pcm_flag (x-1,y)) {
-                candIntraPredModeA=INTRA_DC;
-              }
-              else {
-                candIntraPredModeA = img->get_IntraPredMode_atIndex(PUidx-1);
-              }
-
-              // block above
-
-              if (availableB==false) {
-                candIntraPredModeB=INTRA_DC;
-              }
-              else if (img->get_pred_mode(x,y-1) != MODE_INTRA ||
-                       img->get_pcm_flag (x,y-1)) {
-                candIntraPredModeB=INTRA_DC;
-              }
-              else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {
-                candIntraPredModeB=INTRA_DC;
-              }
-              else {
-                candIntraPredModeB = img->get_IntraPredMode_atIndex(PUidx-sps->PicWidthInMinPUs);
-              }
-
-              // build candidate list
 
               int candModeList[3];
 
-              logtrace(LogSlice,"availableA:%d candA:%d & availableB:%d candB:%d\n",
-                       availableA, candIntraPredModeA,
-                       availableB, candIntraPredModeB);
-
-              if (candIntraPredModeA == candIntraPredModeB) {
-                if (candIntraPredModeA < 2) {
-                  candModeList[0] = INTRA_PLANAR;
-                  candModeList[1] = INTRA_DC;
-                  candModeList[2] = INTRA_ANGULAR_26; 
-                }
-                else {
-                  candModeList[0] = candIntraPredModeA;
-                  candModeList[1] = 2 + ((candIntraPredModeA-2 -1 +32) % 32);
-                  candModeList[2] = 2 + ((candIntraPredModeA-2 +1    ) % 32);
-                }
-              }
-              else {
-                candModeList[0] = candIntraPredModeA;
-                candModeList[1] = candIntraPredModeB;
-
-                if (candIntraPredModeA != INTRA_PLANAR &&
-                    candIntraPredModeB != INTRA_PLANAR) {
-                  candModeList[2] = INTRA_PLANAR;
-                }
-                else if (candIntraPredModeA != INTRA_DC &&
-                         candIntraPredModeB != INTRA_DC) {
-                  candModeList[2] = INTRA_DC;
-                }
-                else {
-                  candModeList[2] = INTRA_ANGULAR_26; 
-                }
-              }
+              fillIntraPredModeCandidates(candModeList,x,y,PUidx,
+                                          availableA, availableB, img);
 
               for (int i=0;i<3;i++)
                 logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
