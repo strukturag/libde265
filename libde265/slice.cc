@@ -1634,7 +1634,7 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 }
 
 
-static int decode_prev_intra_luma_pred_flag(thread_context* tctx)
+static inline int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 {
   logtrace(LogSlice,"# prev_intra_luma_pred_flag\n");
   int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG]);
@@ -1642,7 +1642,7 @@ static int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 }
 
 
-static int decode_mpm_idx(thread_context* tctx)
+static inline int decode_mpm_idx(thread_context* tctx)
 {
   logtrace(LogSlice,"# mpm_idx (TU:2)\n");
   int mpm = decode_CABAC_TU_bypass(&tctx->cabac_decoder, 2);
@@ -1651,7 +1651,7 @@ static int decode_mpm_idx(thread_context* tctx)
 }
 
 
-static int decode_rem_intra_luma_pred_mode(thread_context* tctx)
+static inline int decode_rem_intra_luma_pred_mode(thread_context* tctx)
 {
   logtrace(LogSlice,"# rem_intra_luma_pred_mode (5 bits)\n");
   return decode_CABAC_FL_bypass(&tctx->cabac_decoder, 5);
