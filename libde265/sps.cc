@@ -217,9 +217,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  SubWidthC  = SubWidthC_tab [chroma_format_idc];
-  SubHeightC = SubHeightC_tab[chroma_format_idc];
-
 
   // --- picture size ---
 
@@ -240,16 +237,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     conf_win_top_offset   = 0;
     conf_win_bottom_offset= 0;
   }
-
-  if (ChromaArrayType==0) {
-    WinUnitX = 1;
-    WinUnitY = 1;
-  }
-  else {
-    WinUnitX = SubWidthC_tab [chroma_format_idc];
-    WinUnitY = SubHeightC_tab[chroma_format_idc];
-  }
-
 
   READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);
   READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
@@ -433,6 +420,20 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 void seq_parameter_set::compute_derived_values()
 {
   // --- compute derived values ---
+
+  SubWidthC  = SubWidthC_tab [chroma_format_idc];
+  SubHeightC = SubHeightC_tab[chroma_format_idc];
+
+  if (ChromaArrayType==0) {
+    WinUnitX = 1;
+    WinUnitY = 1;
+  }
+  else {
+    WinUnitX = SubWidthC_tab [chroma_format_idc];
+    WinUnitY = SubHeightC_tab[chroma_format_idc];
+  }
+
+
 
   BitDepth_Y   = bit_depth_luma;
   QpBdOffset_Y = 6*(bit_depth_luma-8);

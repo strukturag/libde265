@@ -46,7 +46,14 @@ void draw_image()
 
   initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);
 
-  
+  int Log2CtbSize = sps.Log2CtbSizeY;
+
+  for (int y=0;y<sps.PicHeightInCtbsY;y++)
+    for (int x=0;x<sps.PicWidthInCtbsY;x++)
+      {
+        img.set_ctDepth(x<<Log2CtbSize,y<<Log2CtbSize,
+                        Log2CtbSize, 1);
+      }
 }
 
 
@@ -62,18 +69,23 @@ void write_stream_1()
   // SPS
 
   sps.set_defaults();
-  sps.set_resolution(384,288);
-
+  sps.set_CB_log2size_range(4,5);
+  sps.set_resolution(3840,2880);
+  sps.compute_derived_values();
 
   // PPS
 
   pps.set_defaults();
+  pps.set_derived_values(&sps);
 
 
   // slice
 
   shdr.set_defaults(&pps);
 
+  img.vps  = vps;
+  img.sps  = sps;
+  img.pps  = pps;
 
   draw_image();
 
@@ -109,7 +121,11 @@ void write_stream_1()
   nal.set(NAL_UNIT_IDR_W_RADL);
   nal.write(&writer);
   shdr.write(&errqueue, &writer, &sps, &pps, nal.nal_unit_type);
+  writer.skip_bits(1);
   writer.flush_VLC();
+
+  encode_image(&ectx);
+  writer.flush_CABAC();
 }
 
 

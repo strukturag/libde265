@@ -83,6 +83,26 @@ void encode_quadtree(encoder_context* ectx,
     else                                  { split_flag=0; }
   }
 
+
+
+  if (split_flag) {
+    int x1 = x0 + (1<<(log2CbSize-1));
+    int y1 = y0 + (1<<(log2CbSize-1));
+
+    encode_quadtree(ectx,x0,y0, log2CbSize-1, ctDepth+1);
+
+    if (x1<sps->pic_width_in_luma_samples)
+      encode_quadtree(ectx,x1,y0, log2CbSize-1, ctDepth+1);
+
+    if (y1<sps->pic_height_in_luma_samples)
+      encode_quadtree(ectx,x0,y1, log2CbSize-1, ctDepth+1);
+
+    if (x1<sps->pic_width_in_luma_samples &&
+        y1<sps->pic_height_in_luma_samples)
+      encode_quadtree(ectx,x1,y1, log2CbSize-1, ctDepth+1);
+  }
+  else {
+  }
 }
 
 

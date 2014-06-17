@@ -41,6 +41,6 @@ struct encoder_context
 /* Image contains the input image with all its metadata and will be
    overwritten by the reconstructed image.
 */
-void encode_image(CABAC_encoder*, de265_image* img);
+void encode_image(encoder_context*);
 
 #endif

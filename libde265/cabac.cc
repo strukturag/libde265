@@ -443,6 +443,8 @@ CABAC_encoder::CABAC_encoder()
   vlc_buffer_len = 0;
 
   range = 510;
+  low = 0;
+
   bits_left = 23;
   buffered_byte = 0xFF;
   num_buffered_bytes = 0;
@@ -585,7 +587,7 @@ void CABAC_encoder::write_out()
   bits_left += 8;
   low &= 0xffffffffu >> bits_left;
 
-  //printf("write byte %02x\n",leadByte);
+  printf("write byte %02x\n",leadByte);
   
   if (leadByte == 0xff)
     {
@@ -617,7 +619,7 @@ void CABAC_encoder::write_out()
 
 void CABAC_encoder::testAndWriteOut()
 {
-  //printf("bits_left = %d\n",encoder->bits_left);
+  printf("bits_left = %d\n",bits_left);
 
   if (bits_left < 12)
     {
@@ -630,17 +632,21 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 {
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
+
+  printf("range=%x low=%x state=%d, bin=%d\n",range,low, model->state,bin);
   
   uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
   range -= LPS;
   
   if (bin != model->MPSbit)
     {
-      //printf("LPS\n");
+      printf("LPS\n");
 
       int num_bits = renorm_table[ LPS >> 3 ];
       low = (low + range) << num_bits;
       range   = LPS << num_bits;
+
+      if (model->state==0) { model->MPSbit = 1-model->MPSbit; }
 
       model->state = next_state_LPS[model->state];
   
@@ -648,18 +654,19 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
     }
   else
     {
-      //printf("MPS\n");
+      printf("MPS\n");
 
       model->state = next_state_MPS[model->state];
 
-      if (range >= 256)
+
+      // renorm
+
+      if (range < 256)
         {
-          return;
+          low <<= 1;
+          range <<= 1;
+          bits_left--;
         }
-    
-      low <<= 1;
-      range <<= 1;
-      bits_left--;
     }
   
   testAndWriteOut();
