@@ -56,14 +56,29 @@ void encode_quadtree(encoder_context* ectx,
 
   int split_flag;
 
+  /*
+     CU split flag:
+
+          | overlaps | minimum ||
+     case | border   | size    ||  split
+     -----+----------+---------++----------
+       A  |    0     |     0   || optional
+       B  |    0     |     1   ||    0
+       C  |    1     |     0   ||    1
+       D  |    1     |     1   ||    0
+   */
   if (x0+(1<<log2CbSize) <= sps->pic_width_in_luma_samples &&
       y0+(1<<log2CbSize) <= sps->pic_height_in_luma_samples &&
       log2CbSize > sps->Log2MinCbSizeY) {
+
+    // case A
 
     split_flag = (img->get_ctDepth(x0,y0) != ctDepth);
 
     encode_split_cu_flag(ectx, x0,y0, ctDepth, split_flag);
   } else {
+    // case B/C/D
+
     if (log2CbSize > sps->Log2MinCbSizeY) { split_flag=1; }
     else                                  { split_flag=0; }
   }
