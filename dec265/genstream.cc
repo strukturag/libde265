@@ -39,13 +39,14 @@ encoder_context ectx;
 
 void draw_image()
 {
-  img.alloc_image(sps.pic_width_in_luma_samples,
-                  sps.pic_height_in_luma_samples,
-                  de265_chroma_420,
-                  &sps,
-                  NULL); // no decctx
+  int w = sps.pic_width_in_luma_samples;
+  int h = sps.pic_height_in_luma_samples;
+
+  img.alloc_image(w,h, de265_chroma_420, &sps, NULL /* no decctx */);
 
   initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);
+
+  
 }
 
 
