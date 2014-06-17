@@ -3795,6 +3795,9 @@ void read_coding_unit(thread_context* tctx,
         int mpm_idx[4], rem_intra_luma_pred_mode[4];
         idx=0;
 
+        int availableA0 = check_CTB_available(img, shdr, x0,y0, x0-1,y0);
+        int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
+
         for (int j=0;j<nCbS;j+=pbOffset)
           for (int i=0;i<nCbS;i+=pbOffset)
             {
@@ -3813,8 +3816,8 @@ void read_coding_unit(thread_context* tctx,
 
               int IntraPredMode;
 
-              int availableA = check_CTB_available(img, shdr, x,y, x-1,y);
-              int availableB = check_CTB_available(img, shdr, x,y, x,y-1);
+              int availableA = availableA0 || (i>0); // left candidate always available for right blk
+              int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
 
               int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
