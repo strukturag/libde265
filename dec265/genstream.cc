@@ -21,6 +21,7 @@
 
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
+#include "libde265/encode.h"
 #include <assert.h>
 
 error_queue errqueue;
@@ -31,6 +32,21 @@ pic_parameter_set   pps;
 slice_segment_header shdr;
 
 CABAC_encoder writer;
+
+de265_image img;
+encoder_context ectx;
+
+
+void draw_image()
+{
+  img.alloc_image(sps.pic_width_in_luma_samples,
+                  sps.pic_height_in_luma_samples,
+                  de265_chroma_420,
+                  &sps,
+                  NULL); // no decctx
+
+  initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);
+}
 
 
 void write_stream_1()
@@ -56,6 +72,16 @@ void write_stream_1()
   // slice
 
   shdr.set_defaults(&pps);
+
+
+  draw_image();
+
+  ectx.img = &img;
+  ectx.shdr = &shdr;
+  ectx.cabac_encoder = &writer;
+
+  //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+
 
 
   // write headers

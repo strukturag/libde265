@@ -2459,7 +2459,7 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 
 
 
-void initialize_CABAC(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
+void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
                       int initType,
                       int QPY)
 {
@@ -2498,13 +2498,13 @@ void initialize_CABAC(context_model context_model_table[CONTEXT_MODEL_TABLE_LENG
 }
 
 
-void initialize_CABAC(thread_context* tctx)
+void initialize_CABAC_models(thread_context* tctx)
 {
   const int QPY = tctx->shdr->SliceQPY;
   const int initType = tctx->shdr->initType;
   assert(initType >= 0 && initType <= 2);
 
-  initialize_CABAC(tctx->ctx_model, initType, QPY);
+  initialize_CABAC_models(tctx->ctx_model, initType, QPY);
 }
 
 
@@ -4085,7 +4085,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       }
       else {
         tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
-        initialize_CABAC(tctx);
+        initialize_CABAC_models(tctx);
       }
     }
 
@@ -4203,7 +4203,7 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
                                shdr->slice_segment_address / sps->PicWidthInCtbsY
                                )) {
-      initialize_CABAC(tctx);
+      initialize_CABAC_models(tctx);
     }
     else {
       tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
@@ -4214,7 +4214,7 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     }
   }
   else {
-    initialize_CABAC(tctx);
+    initialize_CABAC_models(tctx);
   }
 }
 
@@ -4236,7 +4236,7 @@ void thread_task_slice_segment::work()
     initialize_CABAC_at_slice_segment_start(tctx);
   }
   else {
-    initialize_CABAC(tctx);
+    initialize_CABAC_models(tctx);
   }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
@@ -4331,7 +4331,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
     first_slice_substream = false;
 
     if (pps->tiles_enabled_flag) {
-      initialize_CABAC(tctx);
+      initialize_CABAC_models(tctx);
     }
   } while (true);
 

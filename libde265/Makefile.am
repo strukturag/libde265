@@ -38,6 +38,7 @@ libde265_la_SOURCES = \
   cabac.h \
   deblock.h \
   decctx.h \
+  encode.h encode.cc \
   image.h \
   intrapred.h \
   md5.h \

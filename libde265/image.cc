@@ -240,9 +240,15 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  void* alloc_userdata = decctx->param_image_allocation_userdata;
-  bool mem_alloc_success = decctx->param_image_allocation_functions.get_buffer(decctx, &spec, this,
-                                                                               alloc_userdata);
+  de265_image_allocation* funcs = &de265_image::default_image_allocation;
+  void* alloc_userdata = NULL;
+
+  if (decctx) {
+    alloc_userdata = decctx->param_image_allocation_userdata;
+    funcs = &decctx->param_image_allocation_functions;
+  }
+
+  bool mem_alloc_success = funcs->get_buffer(decctx, &spec, this, alloc_userdata);
 
   pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
   pixels_confwin[1] = pixels[1] + left + top*chroma_stride;

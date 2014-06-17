@@ -297,4 +297,13 @@ public:
   virtual void work();
 };
 
+
+void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
+                             int initType,
+                             int QPY);
+
+int check_CTB_available(de265_image* img,
+                        slice_segment_header* shdr,
+                        int xC,int yC, int xN,int yN);
+
 #endif
