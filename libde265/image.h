@@ -512,11 +512,13 @@ public:
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
   }
 
+  // NOTE: encoder only
   void set_IntraChromaPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
   {
     SET_CB_BLK (x, y, log2BlkWidth, intra_chroma_pred_mode, mode);
   }
 
+  // NOTE: encoder only
   enum IntraChromaPredMode get_IntraChromaPredMode(int x,int y) const
   {
     return (enum IntraChromaPredMode)(cb_info.get(x,y).intra_chroma_pred_mode);
