@@ -87,6 +87,20 @@ static void encode_intra_mpm_or_rem(encoder_context* ectx, int intraPred)
 }
 
 
+static void encode_intra_chroma_pred_mode(encoder_context* ectx, int mode)
+{
+  logtrace(LogSlice,"> intra_chroma_pred_mode = %d\n",mode);
+
+  if (mode==4) {
+    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],0);
+  }
+  else {
+    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],1);
+    ectx->cabac_encoder->write_CABAC_FL_bypass(mode, 2);
+  }
+}
+
+
 void encode_coding_unit(encoder_context* ectx,
                         int x0,int y0, int log2CbSize)
 {
