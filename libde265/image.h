@@ -164,10 +164,14 @@ typedef struct {
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding (but we need this for encoding)
   uint8_t ctDepth : 2;      // [0:3]? (for CTB size 64: 0:64, 1:32, 2:16, 3:8)
+  // --- byte boundary ---
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
   uint8_t pcm_flag : 1;     //
   uint8_t cu_transquant_bypass : 1;
+  uint8_t intra_chroma_pred_mode : 3; // Encoder only: [0:5] (enum IntraChromaPredMode)
+  // note: one bit left
 
+  // --- byte boundary ---
   int8_t  QP_Y;
 
   // uint8_t pcm_flag;  // TODO
@@ -506,6 +510,16 @@ public:
     for (int y=0;y<pbSize;y++)
       for (int x=0;x<pbSize;x++)
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
+  }
+
+  void set_IntraChromaPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
+  {
+    SET_CB_BLK (x, y, log2BlkWidth, intra_chroma_pred_mode, mode);
+  }
+
+  enum IntraChromaPredMode get_IntraChromaPredMode(int x,int y) const
+  {
+    return (enum IntraChromaPredMode)(cb_info.get(x,y).intra_chroma_pred_mode);
   }
 
   // --- CTB metadata access ---

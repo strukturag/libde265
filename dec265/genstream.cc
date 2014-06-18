@@ -57,6 +57,7 @@ void draw_image()
         img.set_pred_mode(x0,y0, Log2CtbSize, MODE_INTRA);
         img.set_PartMode(x0,y0, PART_2Nx2N);
         img.set_IntraPredMode(x0,y0, Log2CtbSize, (enum IntraPredMode)1);
+        img.set_IntraChromaPredMode(x0,y0, Log2CtbSize, INTRA_CHROMA_LIKE_LUMA);
       }
 }
 

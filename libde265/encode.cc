@@ -168,7 +168,7 @@ void encode_coding_unit(encoder_context* ectx,
         encode_intra_mpm_or_rem(ectx, intraPred[i]);
     }
     
-    
+    encode_intra_chroma_pred_mode(ectx, img->get_IntraChromaPredMode(x0,y0));
   }
 }
 
