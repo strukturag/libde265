@@ -3274,16 +3274,9 @@ void read_transform_tree(thread_context* tctx,
   de265_image* img = tctx->img;
   const seq_parameter_set* sps = &img->sps;
 
-  enum PredMode PredMode = img->get_pred_mode(x0,y0);
-  enum PartMode PartMode = img->get_PartMode(x0,y0);
-
   int split_transform_flag;
   
-  int interSplitFlag= (sps->max_transform_hierarchy_depth_inter==0 &&
-                       PredMode == MODE_INTER &&
-                       PartMode != PART_2Nx2N &&
-                       trafoDepth == 0);
-
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
@@ -3300,6 +3293,13 @@ void read_transform_tree(thread_context* tctx,
     }
   else
     {
+      enum PartMode PartMode = img->get_PartMode(x0,y0);
+
+      int interSplitFlag= (sps->max_transform_hierarchy_depth_inter==0 &&
+                           trafoDepth == 0 &&
+                           PredMode == MODE_INTER &&
+                           PartMode != PART_2Nx2N);
+
       split_transform_flag = (log2TrafoSize > sps->Log2MaxTrafoSize ||
                               (IntraSplitFlag==1 && trafoDepth==0) ||
                               interSplitFlag==1) ? 1:0;
