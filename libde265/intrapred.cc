@@ -148,12 +148,13 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
     }
   }
 
-
+  /*
   printf("candModeList: %d %d %d\n",
          candModeList[0],
          candModeList[1],
          candModeList[2]
          );
+  */
 }
 
 
