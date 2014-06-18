@@ -26,6 +26,39 @@
 #include "libde265/image.h"
 #include "libde265/decctx.h"
 
+struct enc_tb
+{
+  uint8_t split_transform_flag;
+  uint8_t cbf[3];
+
+  union {
+    struct {
+      enc_tb* children[4];
+    } split;
+
+    struct {
+      int16_t* coeff[3];
+    } leaf;
+  };
+};
+
+struct enc_cb
+{
+  uint8_t split_cu_flag;
+  uint8_t cu_transquant_bypass_flag; // currently unused
+  uint8_t root_rqt_cbf;
+
+  union {
+    struct {
+      enc_cb* children[4];   // undefined when split_cu_flag==false
+    } split;
+
+    struct {
+      enc_tb* transform_tree;
+    } leaf;
+  };
+};
+
 
 struct encoder_context
 {
