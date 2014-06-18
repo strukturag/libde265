@@ -101,6 +101,46 @@ static void encode_intra_chroma_pred_mode(encoder_context* ectx, int mode)
 }
 
 
+static void encode_split_transform_flag(encoder_context* ectx, int log2TrafoSize, int split_flag)
+{
+  logtrace(LogSlice,"> split_transform_flag = %d\n",split_flag);
+
+  int context = 5-log2TrafoSize;
+  assert(context >= 0 && context <= 2);
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context], split_flag);
+}
+
+
+void encode_transform_tree(encoder_context* ectx,
+                           int x0,int y0, int xBase,int yBase,
+                           int log2TrafoSize, int trafoDepth, int blkIdx,
+                           int MaxTrafoDepth, int IntraSplitFlag)
+{
+  de265_image* img = ectx->img;
+  const seq_parameter_set* sps = &img->sps;
+
+  if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
+      log2TrafoSize >  sps->Log2MinTrafoSize &&
+      trafoDepth < MaxTrafoDepth &&
+      !(IntraSplitFlag && trafoDepth==0))
+    {
+      int split_transform_flag = !!img->get_split_transform_flag(x0,y0, trafoDepth);
+      encode_split_transform_flag(ectx, log2TrafoSize, split_transform_flag);
+    }
+  else
+    {
+      int interSplitFlag=0; // TODO
+
+      bool split_transform_flag = (log2TrafoSize > sps->Log2MaxTrafoSize ||
+                                   (IntraSplitFlag==1 && trafoDepth==0) ||
+                                   interSplitFlag==1) ? 1:0;
+
+      assert(img->get_split_transform_flag(x0,y0, trafoDepth) == split_transform_flag);
+    }
+}
+
+
 void encode_coding_unit(encoder_context* ectx,
                         int x0,int y0, int log2CbSize)
 {
@@ -113,6 +153,7 @@ void encode_coding_unit(encoder_context* ectx,
 
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
   enum PartMode PartMode = PART_2Nx2N;
+  int IntraSplitFlag=0;
 
   if (PredMode != MODE_INTRA ||
       log2CbSize == sps->Log2MinCbSizeY) {
@@ -138,6 +179,8 @@ void encode_coding_unit(encoder_context* ectx,
       encode_intra_mpm_or_rem(ectx, intraPred);
     }
     else {
+      IntraSplitFlag=1;
+
       int pbOffset = nCbS/2;
       int PUidx;
 
@@ -170,6 +213,15 @@ void encode_coding_unit(encoder_context* ectx,
     
     encode_intra_chroma_pred_mode(ectx, img->get_IntraChromaPredMode(x0,y0));
   }
+
+
+  int MaxTrafoDepth;
+  if (PredMode == MODE_INTRA)
+    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
+  else 
+    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
+
+  encode_transform_tree(ectx, x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
 }
 
 

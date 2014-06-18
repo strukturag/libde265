@@ -146,6 +146,16 @@ template <class DataUnit> class MetaDataArray
         cb_info[ cbx + cby*cb_info.width_in_units ].Field = value;  \
       }
 
+#define SET_TB_BLK(x,y,log2BlkWidth,  Field,value)              \
+  int tbX = x >> tb_info.log2unitSize; \
+  int tbY = y >> tb_info.log2unitSize; \
+  int width = 1 << (log2BlkWidth - tb_info.log2unitSize);           \
+  for (int tby=tbY;tby<tbY+width;tby++)                             \
+    for (int tbx=tbX;tbx<tbX+width;tbx++)                           \
+      {                                                             \
+        tb_info[ tbx + tby*tb_info.width_in_units ].Field = value;  \
+      }
+
 
 typedef struct {
   uint16_t SliceAddrRS;
@@ -183,6 +193,12 @@ typedef struct {
 } PB_ref_info;
 
 
+typedef struct {
+  uint8_t cbf_luma; // bit-mask indexed by (1<<log2TbSize)
+  uint8_t cbf_cb;   // bit-mask indexed by (1<<log2TbSize)
+  uint8_t cbf_cr;   // bit-mask indexed by (1<<log2TbSize)
+} TB_ref_info;
+
 
 struct de265_image {
   de265_image();
@@ -191,6 +207,8 @@ struct de265_image {
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
                           decoder_context* ctx);
+
+  de265_error alloc_encoder_data(const seq_parameter_set* sps);
 
   bool is_allocated() const { return pixels[0] != NULL; }
 
@@ -302,6 +320,7 @@ private:
   MetaDataArray<uint8_t>     intraPredMode;
   MetaDataArray<uint8_t>     tu_info;
   MetaDataArray<uint8_t>     deblk_info;
+  MetaDataArray<TB_ref_info> tb_info;     // note: encoder only
 
 public:
   // --- meta information ---
@@ -478,6 +497,64 @@ public:
   int  get_nonzero_coefficient(int x,int y) const
   {
     return tu_info.get(x,y) & TU_FLAG_NONZERO_COEFF;
+  }
+
+
+  // --- encoder TU metadata access ---
+
+  void set_cbf_luma(int x,int y,int log2TrafoSize)
+  {
+    const int tuX = x >> tb_info.log2unitSize;
+    const int tuY = y >> tb_info.log2unitSize;
+    const int width = 1 << (log2TrafoSize - tb_info.log2unitSize);
+
+    for (int tuy=tuY;tuy<tuY+width;tuy++)
+      for (int tux=tuX;tux<tuX+width;tux++)
+        {
+          tb_info[ tux + tuy*tb_info.width_in_units ].cbf_luma |= (1<<log2TrafoSize);
+        }
+  }
+
+  void set_cbf_cb(int x,int y,int log2TrafoSize)
+  {
+    const int tuX = x >> tb_info.log2unitSize;
+    const int tuY = y >> tb_info.log2unitSize;
+    const int width = 1 << (log2TrafoSize - tb_info.log2unitSize);
+
+    for (int tuy=tuY;tuy<tuY+width;tuy++)
+      for (int tux=tuX;tux<tuX+width;tux++)
+        {
+          tb_info[ tux + tuy*tb_info.width_in_units ].cbf_cb |= (1<<log2TrafoSize);
+        }
+  }
+
+  void set_cbf_cr(int x,int y,int log2TrafoSize)
+  {
+    const int tuX = x >> tb_info.log2unitSize;
+    const int tuY = y >> tb_info.log2unitSize;
+    const int width = 1 << (log2TrafoSize - tb_info.log2unitSize);
+
+    for (int tuy=tuY;tuy<tuY+width;tuy++)
+      for (int tux=tuX;tux<tuX+width;tux++)
+        {
+          tb_info[ tux + tuy*tb_info.width_in_units ].cbf_cr |= (1<<log2TrafoSize);
+        }
+  }
+
+
+  int get_cbf_luma(int x,int y,int log2TrafoSize)
+  {
+    return tb_info.get(x,y).cbf_luma & (1<<log2TrafoSize);
+  }
+
+  int get_cbf_cb(int x,int y,int log2TrafoSize)
+  {
+    return tb_info.get(x,y).cbf_cb & (1<<log2TrafoSize);
+  }
+
+  int get_cbf_cr(int x,int y,int log2TrafoSize)
+  {
+    return tb_info.get(x,y).cbf_cr & (1<<log2TrafoSize);
   }
 
 

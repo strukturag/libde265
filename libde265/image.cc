@@ -323,6 +323,27 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 }
 
 
+de265_error de265_image::alloc_encoder_data(const seq_parameter_set* sps)
+{
+  bool mem_alloc_success = true;
+
+  int tbWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY - sps->Log2MinTrafoSize);
+  int tbHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY - sps->Log2MinTrafoSize);
+
+  mem_alloc_success &= tb_info.alloc(tbWidth,tbHeight, sps->Log2MinTrafoSize);
+
+
+  // check for memory shortage
+
+  if (!mem_alloc_success)
+    {
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
+
+  return DE265_OK;
+}
+
+
 de265_image::~de265_image()
 {
   release();
@@ -560,6 +581,9 @@ void de265_image::clear_metadata()
   tu_info.clear();
   ctb_info.clear();
   deblk_info.clear();
+
+  tb_info.clear(); // note: encoder only
+
 
   // --- reset CTB progresses ---
 
