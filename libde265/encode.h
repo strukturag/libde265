@@ -34,11 +34,11 @@ struct enc_tb
   union {
     struct {
       enc_tb* children[4];
-    } split;
+    };
 
     struct {
       int16_t* coeff[3];
-    } leaf;
+    };
   };
 };
 
@@ -49,7 +49,7 @@ struct enc_cb
   union {
     struct {
       enc_cb* children[4];   // undefined when split_cu_flag==false
-    } split;
+    };
 
     struct {
       uint8_t cu_transquant_bypass_flag; // currently unused
@@ -63,7 +63,7 @@ struct enc_cb
       enum IntraChromaPredMode intra_chroma_pred_mode;
 
       enc_tb* transform_tree;
-    } leaf;
+    };
   };
 };
 

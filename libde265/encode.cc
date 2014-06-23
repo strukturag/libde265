@@ -155,13 +155,13 @@ void encode_coding_unit(encoder_context* ectx,
 
   int nCbS = 1<<log2CbSize;
 
-  enum PredMode PredMode = cb->leaf.PredMode;
+  enum PredMode PredMode = cb->PredMode;
   enum PartMode PartMode = PART_2Nx2N;
   int IntraSplitFlag=0;
 
   if (PredMode != MODE_INTRA ||
       log2CbSize == sps->Log2MinCbSizeY) {
-    PartMode = cb->leaf.PartMode;
+    PartMode = cb->PartMode;
     encode_part_mode(ectx, PredMode, PartMode);
   }
 
@@ -177,7 +177,7 @@ void encode_coding_unit(encoder_context* ectx,
       fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
                                   availableA0,availableB0, img);
 
-      enum IntraPredMode mode = cb->leaf.intra_luma_pred_mode;
+      enum IntraPredMode mode = cb->intra_luma_pred_mode;
       int intraPred = find_intra_pred_mode(mode, candModeList);
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
@@ -270,17 +270,17 @@ void encode_quadtree(encoder_context* ectx,
     int x1 = x0 + (1<<(log2CbSize-1));
     int y1 = y0 + (1<<(log2CbSize-1));
 
-    encode_quadtree(ectx, cb->split.children[0], x0,y0, log2CbSize-1, ctDepth+1);
+    encode_quadtree(ectx, cb->children[0], x0,y0, log2CbSize-1, ctDepth+1);
 
     if (x1<sps->pic_width_in_luma_samples)
-      encode_quadtree(ectx, cb->split.children[1], x1,y0, log2CbSize-1, ctDepth+1);
+      encode_quadtree(ectx, cb->children[1], x1,y0, log2CbSize-1, ctDepth+1);
 
     if (y1<sps->pic_height_in_luma_samples)
-      encode_quadtree(ectx, cb->split.children[2], x0,y1, log2CbSize-1, ctDepth+1);
+      encode_quadtree(ectx, cb->children[2], x0,y1, log2CbSize-1, ctDepth+1);
 
     if (x1<sps->pic_width_in_luma_samples &&
         y1<sps->pic_height_in_luma_samples)
-      encode_quadtree(ectx, cb->split.children[3], x1,y1, log2CbSize-1, ctDepth+1);
+      encode_quadtree(ectx, cb->children[3], x1,y1, log2CbSize-1, ctDepth+1);
   }
   else {
     encode_coding_unit(ectx, cb,x0,y0, log2CbSize);
