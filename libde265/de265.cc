@@ -82,7 +82,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT:
     return "Premature end of slice segment";
   case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
-    return "Incorrect entry-point offset";
+    return "Incorrect entry-point offsets";
   case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
     return "CTB outside of image area (concealing stream error...)";
   case DE265_WARNING_SPS_HEADER_INVALID:
