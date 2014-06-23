@@ -558,15 +558,20 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 
   //push_current_picture_to_output_queue();
 
-  if (read_sei(&reader,&sei, suffix, current_sps)) {
+  de265_error err = DE265_OK;
+
+  if ((err=read_sei(&reader,&sei, suffix, current_sps)) == DE265_OK) {
     dump_sei(&sei, current_sps);
 
     if (image_units.empty()==false && suffix) {
       image_units.back()->suffix_SEIs.push_back(sei);
     }
   }
+  else {
+    add_warning(err, false);
+  }
 
-  return DE265_OK;
+  return err;
 }
 
 de265_error decoder_context::read_eos_NAL(bitreader& reader)
