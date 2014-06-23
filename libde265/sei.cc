@@ -29,12 +29,16 @@
 #include <assert.h>
 
 
-static bool read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
-                                          const seq_parameter_set* sps)
+static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
+                                                 const seq_parameter_set* sps)
 {
   sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
+
+  if (sps==NULL) {
+    return DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI;
+  }
 
   int nHashes = sps->chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
@@ -53,7 +57,7 @@ static bool read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,
     }
   }
 
-  return true;
+  return DE265_OK;
 }
 
 
@@ -268,7 +272,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 }
 
 
-bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parameter_set* sps)
+de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parameter_set* sps)
 {
   int payload_type = 0;
   for (;;)
@@ -292,11 +296,11 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parame
 
   // --- sei message dispatch
 
-  bool success=false;
+  de265_error err = DE265_OK;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
-    success = read_sei_decoded_picture_hash(reader,sei,sps);
+    err = read_sei_decoded_picture_hash(reader,sei,sps);
     break;
 
   default:
@@ -304,7 +308,7 @@ bool read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parame
     break;
   }
 
-  return success;
+  return err;
 }
 
 void dump_sei(const sei_message* sei, const seq_parameter_set* sps)

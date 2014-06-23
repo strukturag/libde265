@@ -125,6 +125,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "non-existing long-term reference candidate specified in slice header";
   case DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY:
     return "cannot apply SAO because we ran out of memory";
+  case DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI:
+    return "SPS header missing, cannot decode SEI";
 
   default: return "unknown error";
   }
