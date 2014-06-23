@@ -155,13 +155,13 @@ void encode_coding_unit(encoder_context* ectx,
 
   int nCbS = 1<<log2CbSize;
 
-  enum PredMode PredMode = cb->PredMode;
+  enum PredMode PredMode = cb->leaf.PredMode;
   enum PartMode PartMode = PART_2Nx2N;
   int IntraSplitFlag=0;
 
   if (PredMode != MODE_INTRA ||
       log2CbSize == sps->Log2MinCbSizeY) {
-    PartMode = cb->PartMode;
+    PartMode = cb->leaf.PartMode;
     encode_part_mode(ectx, PredMode, PartMode);
   }
 
@@ -177,7 +177,7 @@ void encode_coding_unit(encoder_context* ectx,
       fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
                                   availableA0,availableB0, img);
 
-      enum IntraPredMode mode = cb->intra_luma_pred_mode;
+      enum IntraPredMode mode = cb->leaf.intra_luma_pred_mode;
       int intraPred = find_intra_pred_mode(mode, candModeList);
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
@@ -225,7 +225,7 @@ void encode_coding_unit(encoder_context* ectx,
   else 
     { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
-  encode_transform_tree(ectx, x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
+  //encode_transform_tree(ectx, x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
 }
 
 
@@ -254,7 +254,7 @@ void encode_quadtree(encoder_context* ectx,
 
     // case A
 
-    split_flag = enc_cb->split_cu_flag;
+    split_flag = cb->split_cu_flag;
 
     encode_split_cu_flag(ectx, x0,y0, ctDepth, split_flag);
   } else {
