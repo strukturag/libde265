@@ -3919,11 +3919,28 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   bool first_slice_substream = !shdr->dependent_slice_segment_flag;
 
+  int substream=0;
+
   enum DecodeResult result;
   do {
     int ctby = tctx->CtbY;
 
+
+    // check whether entry_points[] are correct in the bitstream
+
+    if (substream>0) {
+      if (substream-1 >= tctx->shdr->entry_point_offset.size() ||
+          tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start -2 /* -2 because of CABAC init */
+          != tctx->shdr->entry_point_offset[substream-1]) {
+        tctx->decctx->add_warning(DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, true);
+      }
+    }
+
+    substream++;
+        
+
     result = decode_substream(tctx, false, first_slice_substream);
+
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
