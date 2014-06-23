@@ -45,8 +45,6 @@ struct enc_tb
 struct enc_cb
 {
   uint8_t split_cu_flag;
-  uint8_t cu_transquant_bypass_flag; // currently unused
-  uint8_t root_rqt_cbf;
 
   union {
     struct {
@@ -54,6 +52,16 @@ struct enc_cb
     } split;
 
     struct {
+      uint8_t cu_transquant_bypass_flag; // currently unused
+      uint8_t root_rqt_cbf;
+      uint8_t pcm_flag;
+
+      enum PredMode PredMode;
+      enum PartMode PartMode;
+
+      enum IntraPredMode       intra_luma_pred_mode;
+      enum IntraChromaPredMode intra_chroma_pred_mode;
+
       enc_tb* transform_tree;
     } leaf;
   };
