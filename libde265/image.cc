@@ -156,7 +156,6 @@ de265_image::de265_image()
   de265_cond_init(&finished_cond);
 }
 
-#include <signal.h>
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps, bool allocMetadata,
