@@ -156,12 +156,14 @@ de265_image::de265_image()
   de265_cond_init(&finished_cond);
 }
 
-
+#include <signal.h>
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
-                                     const seq_parameter_set* sps,
+                                     const seq_parameter_set* sps, bool allocMetadata,
                                      decoder_context* ctx)
 {
+  if (allocMetadata) { assert(sps); }
+
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
@@ -261,7 +263,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   // --- allocate decoding info arrays ---
 
-  if (sps) {
+  if (allocMetadata) {
     // intra pred mode
 
     mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
@@ -384,7 +386,7 @@ de265_error de265_image::copy_image(const de265_image* src)
      Another option would be to safe the copied data not in an de265_image at all.
   */
 
-  de265_error err = alloc_image(src->width, src->height, src->chroma_format, NULL, src->decctx);
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false, src->decctx);
   if (err != DE265_OK) {
     return err;
   }

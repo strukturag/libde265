@@ -1842,7 +1842,7 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
 
 static int decode_coeff_abs_level_remaining(thread_context* tctx,
-					       int param)
+                                            int cRiceParam)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
@@ -1860,12 +1860,13 @@ static int decode_coeff_abs_level_remaining(thread_context* tctx,
   int value;
 
   if (prefix < /* COEF_REMAIN_BIN_REDUCTION */ 3) {
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, param);
-    value = (prefix<<param) + codeword;
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
+    value = (prefix<<cRiceParam) + codeword;
   }
   else {
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+param);
-    value = (((1<<(prefix-3))+3-1)<<param)+codeword;
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
+    //printf("codeword: %d\n",codeword);
+    value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
   }
 
   return value;
@@ -2677,6 +2678,7 @@ int residual_coding(thread_context* tctx,
           coeff_abs_level_remaining =
             decode_coeff_abs_level_remaining(tctx, uiGoRiceParam);
 
+          // (9-462)
           if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
             uiGoRiceParam++;
             if (uiGoRiceParam>4) uiGoRiceParam=4;
