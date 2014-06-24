@@ -1846,26 +1846,29 @@ static int decode_coeff_abs_level_remaining(thread_context* tctx,
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
-  int prefix=0;
+  int prefix=-1;
   int codeword=0;
   do {
     prefix++;
     codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
   }
   while (codeword);
-  codeword = 1-codeword;
-  prefix -= codeword;
-  codeword=0;
+
+  // prefix = nb. 1 bits
 
   int value;
 
-  if (prefix < /* COEF_REMAIN_BIN_REDUCTION */ 3) {
+  if (prefix <= 3) {
+    // when code only TR part (level < TRMax)
+
     codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
     value = (prefix<<cRiceParam) + codeword;
   }
   else {
+    // Suffix coded with EGk. Note that the unary part of EGk is already
+    // included in the 'prefix' counter above.
+
     codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
-    //printf("codeword: %d\n",codeword);
     value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
   }
 
