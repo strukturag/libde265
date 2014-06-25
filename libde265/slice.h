@@ -94,12 +94,11 @@ enum IntraPredMode
 
 enum IntraChromaPredMode
   {
-    INTRA_CHROMA_PLANAR     = 0,
-    INTRA_CHROMA_ANGULAR_26 = 1,
-    INTRA_CHROMA_ANGULAR_10 = 2,
-    INTRA_CHROMA_DC         = 3,
-    INTRA_CHROMA_LIKE_LUMA  = 4,
-    INTRA_CHROMA_ANGULAR_34 = 5  // only possible if luma mode == (DC, PLANAR, A10, or A26)
+    INTRA_CHROMA_PLANAR_OR_34     = 0,
+    INTRA_CHROMA_ANGULAR_26_OR_34 = 1,
+    INTRA_CHROMA_ANGULAR_10_OR_34 = 2,
+    INTRA_CHROMA_DC_OR_34         = 3,
+    INTRA_CHROMA_LIKE_LUMA  = 4
   };
 
 enum InterPredIdc

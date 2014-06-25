@@ -32,39 +32,120 @@ struct enc_tb
   uint8_t cbf[3];
 
   union {
+    // split
     struct {
       enc_tb* children[4];
     };
 
+    // non-split
     struct {
       int16_t* coeff[3];
     };
   };
 };
 
+
+struct enc_pb_intra
+{
+  // context
+
+  uint8_t* border_pixels;
+  //enum IntraPredMode pred_mode_left_cand;
+  //enum IntraPredMode pred_mode_top_cand;
+  //uint8_t  has_left_cand : 1;
+  //uint8_t  has_top_cand  : 1;
+
+  // coding mode
+
+  enum IntraPredMode pred_mode;
+  enum IntraPredMode pred_mode_chroma;
+};
+
+
+struct enc_pb_inter
+{
+  enum PredMode PredMode;
+};
+
+
 struct enc_cb
 {
   uint8_t split_cu_flag;
 
   union {
+    // split
     struct {
       enc_cb* children[4];   // undefined when split_cu_flag==false
     };
 
+    // non-split
     struct {
       uint8_t cu_transquant_bypass_flag; // currently unused
-      uint8_t root_rqt_cbf;
       uint8_t pcm_flag;
+      //uint8_t root_rqt_cbf;
 
       enum PredMode PredMode;
       enum PartMode PartMode;
 
-      enum IntraPredMode       intra_luma_pred_mode;
-      enum IntraChromaPredMode intra_chroma_pred_mode;
+      union {
+        enc_pb_intra* intra_pb[4];
+        enc_pb_inter* inter_pb[4];
+      };
 
       enc_tb* transform_tree;
     };
   };
+
+
+  void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice);
+};
+
+
+template <class T> class alloc_pool
+{
+public:
+  ~alloc_pool() {
+    for (int i=0;i<mem.size();i++) {
+      delete[] mem[i].data;
+    }
+  }
+
+
+  void free_all() {
+    for (int i=0;i<mem.size();i++) {
+      mem[i].nUsed=0;
+    }
+  }
+
+  T* get_new(int nCBs=1) {
+    if (mem.empty() || mem.back().nUsed + nCBs > mem.back().size) {
+      range r;
+      r.data = new T[BLKSIZE];
+      r.size = BLKSIZE;
+      r.nUsed= 0;
+      mem.push_back(r);
+    }
+
+    range& r = mem.back();
+
+    assert(r.nUsed + nCBs <= r.size);
+
+    T* t = r.data + r.nUsed;
+    r.nUsed += nCBs;
+
+    return t;
+  }
+
+ private:
+  static const int BLKSIZE = 128;
+
+  struct range {
+    T* data;
+    int size;
+    int nUsed;
+  };
+
+  std::vector<range> mem;
 };
 
 
@@ -72,6 +153,10 @@ struct encoder_context
 {
   de265_image* img;
   slice_segment_header* shdr;
+
+  alloc_pool<enc_cb> enc_cb_pool;
+  alloc_pool<enc_tb> enc_tb_pool;
+  alloc_pool<enc_pb_intra> enc_pb_intra_pool;
 
   CABAC_encoder* cabac_encoder;
 
@@ -83,5 +168,7 @@ struct encoder_context
    overwritten by the reconstructed image.
 */
 void encode_image(encoder_context*);
+
+void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
 
 #endif

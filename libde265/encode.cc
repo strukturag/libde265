@@ -25,6 +25,27 @@
 #include "intrapred.h"
 
 
+void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra)
+{
+  if (!split_cu_flag) {
+    if (intra) {
+      img->set_IntraPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode);
+      //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);
+
+      if (PartMode == PART_NxN) {
+        int h = 1<<(log2blkSize-1);
+        img->set_IntraPredMode(x+h,y  ,log2blkSize-1, intra_pb[1]->pred_mode);
+        img->set_IntraPredMode(x  ,y+h,log2blkSize-1, intra_pb[2]->pred_mode);
+        img->set_IntraPredMode(x+h,y+h,log2blkSize-1, intra_pb[3]->pred_mode);
+      }
+    }
+    else {
+      assert(0); // TODO: inter mode
+    }
+  }
+}
+
+
 static void encode_split_cu_flag(encoder_context* ectx,
                                  int x0, int y0, int ctDepth, int split_flag)
 {
@@ -95,10 +116,40 @@ static void encode_intra_chroma_pred_mode(encoder_context* ectx, int mode)
     ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],0);
   }
   else {
+    assert(mode<4);
+
     ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],1);
     ectx->cabac_encoder->write_CABAC_FL_bypass(mode, 2);
   }
 }
+
+
+enum IntraChromaPredMode find_chroma_pred_mode(enum IntraPredMode chroma_mode,
+                                               enum IntraPredMode luma_mode)
+{
+  enum IntraPredMode chroma_cand[5] = {
+    INTRA_PLANAR,
+    INTRA_ANGULAR_26,
+    INTRA_ANGULAR_10,
+    INTRA_DC,
+    luma_mode
+  };
+
+  switch (luma_mode) {
+  case INTRA_PLANAR:     chroma_cand[0] = INTRA_ANGULAR_34; break;
+  case INTRA_ANGULAR_26: chroma_cand[1] = INTRA_ANGULAR_34; break;
+  case INTRA_ANGULAR_10: chroma_cand[2] = INTRA_ANGULAR_34; break;
+  case INTRA_DC:         chroma_cand[3] = INTRA_ANGULAR_34; break;
+  }
+
+  for (int i=0;i<5;i++) {
+    if (chroma_cand[i] == chroma_mode)
+      return (enum IntraChromaPredMode)i;
+  }
+
+  assert(false); // this chroma mode cannot be coded
+}
+
 
 
 static void encode_split_transform_flag(encoder_context* ectx, int log2TrafoSize, int split_flag)
@@ -177,7 +228,7 @@ void encode_coding_unit(encoder_context* ectx,
       fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
                                   availableA0,availableB0, img);
 
-      enum IntraPredMode mode = cb->intra_luma_pred_mode;
+      enum IntraPredMode mode = cb->intra_pb[0]->pred_mode;
       int intraPred = find_intra_pred_mode(mode, candModeList);
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
@@ -189,9 +240,10 @@ void encode_coding_unit(encoder_context* ectx,
       int PUidx;
 
       int intraPred[4];
+      int childIdx=0;
 
       for (int j=0;j<nCbS;j+=pbOffset)
-        for (int i=0;i<nCbS;i+=pbOffset)
+        for (int i=0;i<nCbS;i+=pbOffset, childIdx++)
           {
             int x=x0+i, y=y0+j;
 
@@ -204,7 +256,7 @@ void encode_coding_unit(encoder_context* ectx,
             fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                         availableA,availableB, img);
 
-            enum IntraPredMode mode = img->get_IntraPredMode(x,y);
+            enum IntraPredMode mode = cb->intra_pb[childIdx]->pred_mode;
             intraPred[2*j+i] = find_intra_pred_mode(mode, candModeList);
           }
 
@@ -215,7 +267,9 @@ void encode_coding_unit(encoder_context* ectx,
         encode_intra_mpm_or_rem(ectx, intraPred[i]);
     }
     
-    encode_intra_chroma_pred_mode(ectx, img->get_IntraChromaPredMode(x0,y0));
+    encode_intra_chroma_pred_mode(ectx,
+                                  find_chroma_pred_mode(cb->intra_pb[0]->pred_mode_chroma,
+                                                        cb->intra_pb[0]->pred_mode));
   }
 
 
@@ -285,6 +339,15 @@ void encode_quadtree(encoder_context* ectx,
   else {
     encode_coding_unit(ectx, cb,x0,y0, log2CbSize);
   }
+}
+
+
+void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
+{
+  de265_image* img = ectx->img;
+  int log2ctbSize = img->sps.Log2CtbSizeY;
+
+  encode_quadtree(ectx, cb, ctbX,ctbY, log2ctbSize, 0);
 }
 
 

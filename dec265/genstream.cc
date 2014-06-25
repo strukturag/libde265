@@ -22,6 +22,7 @@
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include "libde265/encode.h"
+#include "libde265/slice.h"
 #include <assert.h>
 
 error_queue errqueue;
@@ -37,7 +38,7 @@ de265_image img;
 encoder_context ectx;
 
 
-void draw_image()
+void encode_image()
 {
   int w = sps.pic_width_in_luma_samples;
   int h = sps.pic_height_in_luma_samples;
@@ -72,6 +73,33 @@ void draw_image()
         img.set_cbf_cb  (x0,y0, Log2CtbSize-1);
         img.set_cbf_cr  (x0,y0, Log2CtbSize-1);
       }
+
+
+  // encode CTB by CTB
+
+  for (int y=0;y<sps.PicHeightInCtbsY;y++)
+    for (int x=0;x<sps.PicWidthInCtbsY;x++)
+      {
+        enc_cb* cb = ectx.enc_cb_pool.get_new();
+        cb->split_cu_flag = false;
+
+        cb->cu_transquant_bypass_flag = false;
+        cb->PredMode = MODE_INTRA;
+        cb->PartMode = PART_2Nx2N;
+
+        enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
+        cb->intra_pb[0] = pb;
+        pb->pred_mode = INTRA_DC;
+        pb->pred_mode_chroma = INTRA_DC;
+
+        ectx.enc_cb_pool.free_all();
+        ectx.enc_tb_pool.free_all();
+        ectx.enc_pb_intra_pool.free_all();
+
+        encode_ctb(&ectx, cb, x,y);
+
+        cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
+      }
 }
 
 
@@ -104,8 +132,6 @@ void write_stream_1()
   img.vps  = vps;
   img.sps  = sps;
   img.pps  = pps;
-
-  draw_image();
 
   ectx.img = &img;
   ectx.shdr = &shdr;
@@ -142,7 +168,9 @@ void write_stream_1()
   writer.skip_bits(1);
   writer.flush_VLC();
 
-  encode_image(&ectx);
+  encode_image();
+
+  //encode_image(&ectx);
   writer.flush_CABAC();
 }
 
