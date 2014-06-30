@@ -178,7 +178,7 @@ typedef struct {
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
   uint8_t pcm_flag : 1;     //
   uint8_t cu_transquant_bypass : 1;
-  uint8_t intra_chroma_pred_mode : 3; // Encoder only: [0:5] (enum IntraChromaPredMode)
+  //uint8_t intra_chroma_pred_mode : 3; // Encoder only: [0:5] (enum IntraChromaPredMode)
   // note: one bit left
 
   // --- byte boundary ---
@@ -589,6 +589,7 @@ public:
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
   }
 
+  /*
   // NOTE: encoder only
   void set_IntraChromaPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
   {
@@ -600,6 +601,7 @@ public:
   {
     return (enum IntraChromaPredMode)(cb_info.get(x,y).intra_chroma_pred_mode);
   }
+  */
 
   // --- CTB metadata access ---
 

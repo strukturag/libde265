@@ -193,6 +193,25 @@ int find_intra_pred_mode(enum IntraPredMode mode,
 }
 
 
+void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
+                                 enum IntraPredMode luma_mode)
+{
+  enum IntraPredMode chroma_cand[5];
+  chroma_cand[0] = INTRA_PLANAR;
+  chroma_cand[1] = INTRA_ANGULAR_26;
+  chroma_cand[2] = INTRA_ANGULAR_10;
+  chroma_cand[3] = INTRA_DC;
+  chroma_cand[4] = luma_mode;
+
+  switch (luma_mode) {
+  case INTRA_PLANAR:     chroma_cand[0] = INTRA_ANGULAR_34; break;
+  case INTRA_ANGULAR_26: chroma_cand[1] = INTRA_ANGULAR_34; break;
+  case INTRA_ANGULAR_10: chroma_cand[2] = INTRA_ANGULAR_34; break;
+  case INTRA_DC:         chroma_cand[3] = INTRA_ANGULAR_34; break;
+  }
+}
+
+
 // (8.4.4.2.2)
 void fill_border_samples(de265_image* img, int xB,int yB,
                          int nT, int cIdx,

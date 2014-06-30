@@ -124,30 +124,35 @@ static void encode_intra_chroma_pred_mode(encoder_context* ectx, int mode)
 }
 
 
+/* Optimized variant that tests most likely branch first.
+ */
 enum IntraChromaPredMode find_chroma_pred_mode(enum IntraPredMode chroma_mode,
                                                enum IntraPredMode luma_mode)
 {
-  enum IntraPredMode chroma_cand[5] = {
-    INTRA_PLANAR,
-    INTRA_ANGULAR_26,
-    INTRA_ANGULAR_10,
-    INTRA_DC,
-    luma_mode
-  };
+  // most likely mode: chroma mode = luma mode
 
-  switch (luma_mode) {
-  case INTRA_PLANAR:     chroma_cand[0] = INTRA_ANGULAR_34; break;
-  case INTRA_ANGULAR_26: chroma_cand[1] = INTRA_ANGULAR_34; break;
-  case INTRA_ANGULAR_10: chroma_cand[2] = INTRA_ANGULAR_34; break;
-  case INTRA_DC:         chroma_cand[3] = INTRA_ANGULAR_34; break;
+  if (luma_mode==chroma_mode) {
+    return INTRA_CHROMA_LIKE_LUMA;
   }
 
-  for (int i=0;i<5;i++) {
-    if (chroma_cand[i] == chroma_mode)
-      return (enum IntraChromaPredMode)i;
+
+  // check remaining candidates
+
+  IntraPredMode mode = chroma_mode;
+
+  // angular-34 is coded by setting the coded mode equal to the luma_mode
+  if (chroma_mode == INTRA_ANGULAR_34) {
+    mode = luma_mode;
   }
 
-  assert(false); // this chroma mode cannot be coded
+  switch (mode) {
+  case INTRA_PLANAR:     return INTRA_CHROMA_PLANAR_OR_34;
+  case INTRA_ANGULAR_26: return INTRA_CHROMA_ANGULAR_26_OR_34;
+  case INTRA_ANGULAR_10: return INTRA_CHROMA_ANGULAR_10_OR_34;
+  case INTRA_DC:         return INTRA_CHROMA_DC_OR_34;
+  }
+
+  assert(false);
 }
 
 
@@ -353,7 +358,7 @@ void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
 
 // ---------------------------------------------------------------------------
 
-
+/*
 void encode_transform_tree(encoder_context* ectx,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
@@ -465,8 +470,9 @@ void encode_coding_unit(encoder_context* ectx,
 
   encode_transform_tree(ectx, x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
 }
+*/
 
-
+#if 0
 void encode_quadtree(encoder_context* ectx,
                      int x0,int y0, int log2CbSize, int ctDepth)
 {
@@ -537,3 +543,4 @@ void encode_image(encoder_context* ectx)
         encode_quadtree(ectx, ctbX,ctbY, log2ctbSize, 0);
       }
 }
+#endif

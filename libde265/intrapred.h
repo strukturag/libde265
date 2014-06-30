@@ -45,6 +45,9 @@ void fillIntraPredModeCandidates(int candModeList[3],
 int find_intra_pred_mode(enum IntraPredMode mode,
                          int candModeList[3]);
 
+void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
+                                 enum IntraPredMode luma_mode);
+
 
 void decode_intra_block(decoder_context* ctx,
                         thread_context* tctx,

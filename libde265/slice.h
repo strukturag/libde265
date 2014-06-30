@@ -92,6 +92,7 @@ enum IntraPredMode
     INTRA_ANGULAR_34 = 34
   };
 
+
 enum IntraChromaPredMode
   {
     INTRA_CHROMA_PLANAR_OR_34     = 0,
@@ -100,6 +101,7 @@ enum IntraChromaPredMode
     INTRA_CHROMA_DC_OR_34         = 3,
     INTRA_CHROMA_LIKE_LUMA  = 4
   };
+
 
 enum InterPredIdc
   {
