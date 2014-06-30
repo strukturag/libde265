@@ -23,6 +23,7 @@
 #include "encode.h"
 #include "slice.h"
 #include "intrapred.h"
+#include "scan.h"
 
 
 void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra)
@@ -195,16 +196,29 @@ static void encode_cbf_chroma(encoder_context* ectx, int trafoDepth, int cbf_chr
 
 // ---------------------------------------------------------------------------
 
-void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
-                              int* lastSignificantX, int* lastSignificantY)
+void findLastSignificantCoeff(const position* sbScan, const position* cScan,
+                              const int16_t* coeff, int log2TrafoSize,
+                              int* lastSignificantX, int* lastSignificantY,
+                              int* lastSb, int* lastPos)
 {
-  int n = (1<<(log2TrafoSize<<1));
+  int nSb = 1<<((log2TrafoSize-2)<<1); // number of sub-blocks
 
-  for (int i=n ;i-->0 ;) {
-    if (coeff[i] != 0) {
-      *lastSignificantX = i & ((1<<log2TrafoSize)-1);
-      *lastSignificantY = i >> log2TrafoSize;
-      return;
+  // find last significant coefficient
+
+  for (int i=nSb ; i-->0 ;) {
+    int x0 = sbScan[i].x << 2;
+    int y0 = sbScan[i].y << 2;
+    for (int c=16 ; c-->0 ;) {
+      int x = x0 + cScan[c].x;
+      int y = y0 + cScan[c].y;
+
+      if (coeff[x+(y<<log2TrafoSize)]) {
+        *lastSignificantX = x;
+        *lastSignificantY = y;
+        *lastSb = i;
+        *lastPos= c;
+        return;
+      }
     }
   }
 
@@ -212,6 +226,22 @@ void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
   assert(false);
 }
 
+
+bool subblock_has_nonzero_coefficient(const int16_t* coeff, int coeffStride,
+                                      const position& sbPos)
+{
+  int x0 = sbPos.x << 2;
+  int y0 = sbPos.y << 2;
+
+  coeff += x0 + y0*coeffStride;
+
+  for (int y=0;y<4;y++) {
+    if (coeff[0] || coeff[1] || coeff[2] || coeff[3]) { return true; }
+    coeff += coeffStride;
+  }
+
+  return false;
+}
 
 /*
   Example 16x16:  prefix in [0;7]
@@ -304,9 +334,41 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
   }
 
+
+  // --- get scan orders ---
+
+  enum PredMode PredMode = cb->PredMode;
+  int scanIdx;
+
+  if (PredMode == MODE_INTRA) {
+    if (cIdx==0) {
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
+    }
+    else {
+      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, cb->intra_pb[0]->pred_mode_chroma);
+    }
+  }
+  else {
+    scanIdx=0;
+  }
+
+
+  const position* ScanOrderSub = get_scan_order(log2TrafoSize-2, scanIdx);
+  const position* ScanOrderPos = get_scan_order(2, scanIdx);
+
   int lastSignificantX, lastSignificantY;
-  findLastSignificantCoeff(tb->coeff[cIdx], log2TrafoSize,
-                           &lastSignificantX, &lastSignificantY);
+  int lastScanPos;
+  int lastSubBlock;
+  findLastSignificantCoeff(ScanOrderSub, ScanOrderPos,
+                           tb->coeff[cIdx], log2TrafoSize,
+                           &lastSignificantX, &lastSignificantY,
+                           &lastSubBlock, &lastScanPos);
+
+  if (scanIdx==2) {
+    std::swap(lastSignificantX, lastSignificantY);
+  }
+
+
 
   int prefixX, suffixX, suffixBitsX;
   int prefixY, suffixY, suffixBitsY;
@@ -329,30 +391,52 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   }
 
 
-  // --- get scan orders ---
 
-  enum PredMode PredMode = cb->PredMode;
-  int scanIdx;
+  int sbWidth = 1<<(log2TrafoSize-2);
+  int CoeffStride = 1<<log2TrafoSize;
 
-  if (PredMode == MODE_INTRA) {
-    if (cIdx==0) {
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
+  uint8_t coded_sub_block_neighbors[32/4*32/4];  // 64*2 flags
+  memset(coded_sub_block_neighbors,0,sbWidth*sbWidth);
+
+
+
+  // ----- encode coefficients -----
+
+  //tctx->nCoeff[cIdx] = 0;
+
+
+  // i - subblock index
+  // n - coefficient index in subblock
+
+  for (int i=lastSubBlock;i>=0;i--) {
+    position S = ScanOrderSub[i];
+    int inferSbDcSigCoeffFlag=0;
+
+    logtrace(LogSlice,"sub block scan idx: %d\n",i);
+
+
+    // --- check whether this sub-block has to be coded ---
+
+    int sub_block_is_coded = 0;
+
+    if ((i<lastSubBlock) && (i>0)) {
+      sub_block_is_coded = subblock_has_nonzero_coefficient(tb->coeff[cIdx], CoeffStride,
+                                                            ScanOrderSub[i]);
+      inferSbDcSigCoeffFlag=1;
     }
-    else {
-      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, cb->intra_pb[0]->pred_mode_chroma);
+    else if (i==0 || i==lastSubBlock) {
+      // first (DC) and last sub-block are always coded
+      // - the first will most probably contain coefficients
+      // - the last obviously contains the last coded coefficient
+
+      sub_block_is_coded = 1;
+    }
+
+    if (sub_block_is_coded) {
+      if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
+      if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
     }
   }
-  else {
-    scanIdx=0;
-  }
-
-  if (scanIdx==2) {
-    std::swap(LastSignificantCoeffX, LastSignificantCoeffY);
-  }
-
-  const position* ScanOrderSub = get_scan_order(log2TrafoSize-2, scanIdx);
-  const position* ScanOrderPos = get_scan_order(2, scanIdx);
-
 }
 
 

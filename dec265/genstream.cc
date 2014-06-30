@@ -23,6 +23,7 @@
 #include "libde265/decctx.h"
 #include "libde265/encode.h"
 #include "libde265/slice.h"
+#include "libde265/scan.h"
 #include <assert.h>
 
 error_queue errqueue;
@@ -218,6 +219,8 @@ void write_stream_1()
 
 int main(int argc, char** argv)
 {
+  init_scan_orders();
+
   de265_set_verbosity(3);
 
   write_stream_1();
