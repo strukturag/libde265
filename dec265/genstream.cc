@@ -50,6 +50,7 @@ void encode_image()
 
   int Log2CtbSize = sps.Log2CtbSizeY;
 
+#if 0
   for (int y=0;y<sps.PicHeightInCtbsY;y++)
     for (int x=0;x<sps.PicWidthInCtbsY;x++)
       {
@@ -73,7 +74,7 @@ void encode_image()
         img.set_cbf_cb  (x0,y0, Log2CtbSize-1);
         img.set_cbf_cr  (x0,y0, Log2CtbSize-1);
       }
-
+#endif
 
   // encode CTB by CTB
 
@@ -105,14 +106,39 @@ void encode_image()
         int16_t coeff[16*16];
         memset(coeff,0,16*16*sizeof(int16_t));
         coeff[0] = ((x+y)&1) * 10 - 5;
+        tb->coeff[0] = coeff;
 
-        encode_ctb(&ectx, cb, x,y);
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
+        encode_ctb(&ectx, cb, x,y);
 
         ectx.enc_cb_pool.free_all();
         ectx.enc_tb_pool.free_all();
         ectx.enc_pb_intra_pool.free_all();
       }
+}
+
+extern void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSuffixBits);
+
+static void test_last_significant_coeff_pos()
+{
+  for (int i=0;i<64;i++)
+    {
+      int prefix,suffix,bits;
+      split_last_significant_position(i,&prefix,&suffix,&bits);
+
+      int v;
+      if (prefix>3) {
+        int b = (prefix>>1)-1;
+        assert(b==bits);
+        v = ((2+(prefix&1))<<b) + suffix;
+      }
+      else {
+        v = prefix;
+      }
+
+      printf("%d : %d %d %d  -> %d\n",i,prefix,suffix,bits,v);
+      assert(v==i);
+    }
 }
 
 

@@ -29,14 +29,17 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
 {
   if (!split_cu_flag) {
     if (intra) {
-      img->set_IntraPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode);
       //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);
 
       if (PartMode == PART_NxN) {
         int h = 1<<(log2blkSize-1);
+        img->set_IntraPredMode(x  ,y  ,log2blkSize-1, intra_pb[0]->pred_mode);
         img->set_IntraPredMode(x+h,y  ,log2blkSize-1, intra_pb[1]->pred_mode);
         img->set_IntraPredMode(x  ,y+h,log2blkSize-1, intra_pb[2]->pred_mode);
         img->set_IntraPredMode(x+h,y+h,log2blkSize-1, intra_pb[3]->pred_mode);
+      }
+      else {
+        img->set_IntraPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode);
       }
     }
     else {
@@ -197,7 +200,7 @@ void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
 {
   int n = (1<<(log2TrafoSize<<1));
 
-  for (int i=n ;n-->0 ;) {
+  for (int i=n ;i-->0 ;) {
     if (coeff[i] != 0) {
       *lastSignificantX = i & ((1<<log2TrafoSize)-1);
       *lastSignificantY = i >> log2TrafoSize;
@@ -210,17 +213,93 @@ void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
 }
 
 
+/*
+  Example 16x16:  prefix in [0;7]
+
+  prefix       | last pos
+  =============|=============
+  0            |   0
+  1            |   1
+  2            |   2
+  3            |   3
+  -------------+-------------
+     lsb nBits |
+  4   0    1   |   4, 5
+  5   1    1   |   6, 7
+  6   0    2   |   8, 9,10,11
+  7   1    2   |  12,13,14,15
+*/
 void encode_last_signficiant_coeff_prefix(encoder_context* ectx, int log2TrafoSize,
-                                          int cIdx, int lastSignificantX)
+                                          int cIdx, int lastSignificant,
+                                          context_model* model)
 {
+  logtrace(LogSlice,"> last_significant_coeff_prefix=%d log2TrafoSize:%d cIdx:%d\n",
+           lastSignificant,log2TrafoSize,cIdx);
+
+  int cMax = (log2TrafoSize<<1)-1;
+
+  int ctxOffset, ctxShift;
+  if (cIdx==0) {
+    ctxOffset = 3*(log2TrafoSize-2) + ((log2TrafoSize-1)>>2);
+    ctxShift  = (log2TrafoSize+1)>>2;
+  }
+  else {
+    ctxOffset = 15;
+    ctxShift  = log2TrafoSize-2;
+  }
+
+  for (int binIdx=0;binIdx<lastSignificant;binIdx++)
+    {
+      int ctxIdxInc = (binIdx >> ctxShift);
+      ectx->cabac_encoder->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 1);
+    }
+
+  if (lastSignificant != cMax) {
+    int binIdx = lastSignificant;
+    int ctxIdxInc = (binIdx >> ctxShift);
+    ectx->cabac_encoder->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 0);
+  }
 }
 
 
-void encode_residual(encoder_context* ectx, const enc_tb* tb,
-                     int xBase,int yBase,int log2TrafoSize,int cIdx)
+void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSuffixBits)
 {
-  const seq_parameter_set& sps = ectx->img->sps;
-  const pic_parameter_set& pps = ectx->img->pps;
+  // most frequent case
+
+  if (pos<=3) {
+    *prefix=pos;
+    *nSuffixBits=0;
+    return;
+  }
+
+  pos -= 4;
+  int nBits=1;
+  int range=4;
+  while (pos>=range) {
+    nBits++;
+    pos-=range;
+    range<<=1;
+  }
+
+  *prefix = (1+nBits)<<1;
+  if (pos >= (range>>1)) {
+    *prefix |= 1;
+    pos -= (range>>1);
+  }
+  *suffix = pos;
+  *nSuffixBits = nBits;
+}
+
+
+/* These values are read from the image metadata:
+   - intra prediction mode (x0;y0)
+ */
+void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
+                     int x0,int y0,int log2TrafoSize,int cIdx)
+{
+  const de265_image* img = ectx->img;
+  const seq_parameter_set& sps = img->sps;
+  const pic_parameter_set& pps = img->pps;
 
   if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
   }
@@ -229,12 +308,55 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb,
   findLastSignificantCoeff(tb->coeff[cIdx], log2TrafoSize,
                            &lastSignificantX, &lastSignificantY);
 
-  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantX);
-  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantY);
+  int prefixX, suffixX, suffixBitsX;
+  int prefixY, suffixY, suffixBitsY;
+
+  split_last_significant_position(lastSignificantX, &prefixX,&suffixX,&suffixBitsX);
+  split_last_significant_position(lastSignificantY, &prefixX,&suffixY,&suffixBitsY);
+
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantX,
+                                       &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX]);
+
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantY,
+                                       &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX]);
+
+
+  if (lastSignificantX > 3) {
+    ectx->cabac_encoder->write_CABAC_FL_bypass(suffixX, suffixBitsX);
+  }
+  if (lastSignificantY > 3) {
+    ectx->cabac_encoder->write_CABAC_FL_bypass(suffixY, suffixBitsY);
+  }
+
+
+  // --- get scan orders ---
+
+  enum PredMode PredMode = cb->PredMode;
+  int scanIdx;
+
+  if (PredMode == MODE_INTRA) {
+    if (cIdx==0) {
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
+    }
+    else {
+      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, cb->intra_pb[0]->pred_mode_chroma);
+    }
+  }
+  else {
+    scanIdx=0;
+  }
+
+  if (scanIdx==2) {
+    std::swap(LastSignificantCoeffX, LastSignificantCoeffY);
+  }
+
+  const position* ScanOrderSub = get_scan_order(log2TrafoSize-2, scanIdx);
+  const position* ScanOrderPos = get_scan_order(2, scanIdx);
+
 }
 
 
-void encode_transform_unit(encoder_context* ectx, const enc_tb* tb,
+void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx)
 {
@@ -245,24 +367,24 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb,
     }
 
     if (tb->cbf_luma) {
-      encode_residual(ectx,tb,x0,y0,log2TrafoSize,0);
+      encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize,0);
     }
 
     // larger than 4x4
     if (log2TrafoSize>2) {
       if (tb->cbf_cb) {
-        encode_residual(ectx,tb,x0,y0,log2TrafoSize-1,1);
+        encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize-1,1);
       }
       if (tb->cbf_cr) {
-        encode_residual(ectx,tb,x0,y0,log2TrafoSize-1,2);
+        encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize-1,2);
       }
     }
     else if (blkIdx==3) {
       if (tb->parent->cbf_cb) {
-        encode_residual(ectx,tb,xBase,yBase,log2TrafoSize,1);
+        encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,1);
       }
       if (tb->parent->cbf_cr) {
-        encode_residual(ectx,tb,xBase,yBase,log2TrafoSize,2);
+        encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,2);
       }
     }
   }
@@ -321,7 +443,7 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
       assert(tb->cbf_luma==true);
     }
 
-    encode_transform_unit(ectx, tb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
+    encode_transform_unit(ectx, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
   }
 }
 

@@ -2818,46 +2818,23 @@ int residual_coding(thread_context* tctx,
 
   // --- determine scanIdx ---
 
-  int scanIdx;
-
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
-
+  int scanIdx;
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      if (log2TrafoSize==2 || log2TrafoSize==3) {
-        enum IntraPredMode predMode = img->get_IntraPredMode(x0,y0);
-        logtrace(LogSlice,"IntraPredMode[%d,%d] = %d\n",x0,y0,predMode);
-
-        if (predMode >= 6 && predMode <= 14) scanIdx=2;
-        else if (predMode >= 22 && predMode <= 30) scanIdx=1;
-        else scanIdx=0;
-      }
-      else { scanIdx=0; }
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
     }
     else {
-      if (log2TrafoSize==1 || log2TrafoSize==2) {
-        enum IntraPredMode predMode = tctx->IntraPredModeC;
-
-        if (predMode >= 6 && predMode <= 14) scanIdx=2;
-        else if (predMode >= 22 && predMode <= 30) scanIdx=1;
-        else scanIdx=0;
-      }
-      else { scanIdx=0; }
+      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, tctx->IntraPredModeC);
     }
-
-    logtrace(LogSlice,"pred: %d -> scan: %d\n",PredMode,scanIdx);
   }
   else {
     scanIdx=0;
   }
 
-
-  // HM 9 only ?
   if (scanIdx==2) {
-    int t = LastSignificantCoeffX;
-    LastSignificantCoeffX = LastSignificantCoeffY;
-    LastSignificantCoeffY = t;
+    std::swap(LastSignificantCoeffX, LastSignificantCoeffY);
   }
 
   logtrace(LogSlice,"LastSignificantCoeff: x=%d;y=%d\n",LastSignificantCoeffX,LastSignificantCoeffY);

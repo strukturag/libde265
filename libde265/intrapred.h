@@ -48,6 +48,8 @@ int find_intra_pred_mode(enum IntraPredMode mode,
 void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
                                  enum IntraPredMode luma_mode);
 
+int get_intra_scan_idx_luma  (int log2TrafoSize, enum IntraPredMode intraPredMode);
+int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMode);
 
 void decode_intra_block(decoder_context* ctx,
                         thread_context* tctx,
