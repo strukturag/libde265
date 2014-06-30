@@ -43,7 +43,7 @@ void encode_image()
   int w = sps.pic_width_in_luma_samples;
   int h = sps.pic_height_in_luma_samples;
 
-  img.alloc_image(w,h, de265_chroma_420, &sps, NULL /* no decctx */);
+  img.alloc_image(w,h, de265_chroma_420, &sps, true, NULL /* no decctx */);
   img.alloc_encoder_data(&sps);
 
   initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);

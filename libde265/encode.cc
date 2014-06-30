@@ -210,6 +210,12 @@ void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
 }
 
 
+void encode_last_signficiant_coeff_prefix(encoder_context* ectx, int log2TrafoSize,
+                                          int cIdx, int lastSignificantX)
+{
+}
+
+
 void encode_residual(encoder_context* ectx, const enc_tb* tb,
                      int xBase,int yBase,int log2TrafoSize,int cIdx)
 {
@@ -220,7 +226,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb,
   }
 
   int lastSignificantX, lastSignificantY;
-  findLastSignificantCoeff(tb->coeff[blkIdx], log2TrafoSize,
+  findLastSignificantCoeff(tb->coeff[cIdx], log2TrafoSize,
                            &lastSignificantX, &lastSignificantY);
 
   encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantX);
