@@ -2343,8 +2343,8 @@ int residual_coding(thread_context* tctx,
     int nBits = (last_significant_coeff_x_prefix>>1)-1;
     int last_significant_coeff_x_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder,nBits);
 
-    LastSignificantCoeffX = (1<<nBits) *
-      (2+(last_significant_coeff_x_prefix & 1)) + last_significant_coeff_x_suffix;
+    LastSignificantCoeffX =
+      ((2+(last_significant_coeff_x_prefix & 1)) << nBits) + last_significant_coeff_x_suffix;
   }
   else {
     LastSignificantCoeffX = last_significant_coeff_x_prefix;
@@ -2355,8 +2355,8 @@ int residual_coding(thread_context* tctx,
     int nBits = (last_significant_coeff_y_prefix>>1)-1;
     int last_significant_coeff_y_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder,nBits);
 
-    LastSignificantCoeffY = (1<<nBits) *
-      (2+(last_significant_coeff_y_prefix & 1)) + last_significant_coeff_y_suffix;
+    LastSignificantCoeffY =
+      ((2+(last_significant_coeff_y_prefix & 1)) << nBits) + last_significant_coeff_y_suffix;
   }
   else {
     LastSignificantCoeffY = last_significant_coeff_y_prefix;
