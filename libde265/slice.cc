@@ -2283,30 +2283,34 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
 
 static int decode_coeff_abs_level_remaining(thread_context* tctx,
-					       int param)
+                                            int cRiceParam)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
-  int prefix=0;
+  int prefix=-1;
   int codeword=0;
   do {
     prefix++;
     codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
   }
   while (codeword);
-  codeword = 1-codeword;
-  prefix -= codeword;
-  codeword=0;
+
+  // prefix = nb. 1 bits
 
   int value;
 
-  if (prefix < /* COEF_REMAIN_BIN_REDUCTION */ 3) {
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, param);
-    value = (prefix<<param) + codeword;
+  if (prefix <= 3) {
+    // when code only TR part (level < TRMax)
+
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
+    value = (prefix<<cRiceParam) + codeword;
   }
   else {
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+param);
-    value = (((1<<(prefix-3))+3-1)<<param)+codeword;
+    // Suffix coded with EGk. Note that the unary part of EGk is already
+    // included in the 'prefix' counter above.
+
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
+    value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
   }
 
   return value;
@@ -2791,8 +2795,8 @@ int residual_coding(thread_context* tctx,
     int nBits = (last_significant_coeff_x_prefix>>1)-1;
     int last_significant_coeff_x_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder,nBits);
 
-    LastSignificantCoeffX = (1<<nBits) *
-      (2+(last_significant_coeff_x_prefix & 1)) + last_significant_coeff_x_suffix;
+    LastSignificantCoeffX =
+      ((2+(last_significant_coeff_x_prefix & 1)) << nBits) + last_significant_coeff_x_suffix;
   }
   else {
     LastSignificantCoeffX = last_significant_coeff_x_prefix;
@@ -2803,8 +2807,8 @@ int residual_coding(thread_context* tctx,
     int nBits = (last_significant_coeff_y_prefix>>1)-1;
     int last_significant_coeff_y_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder,nBits);
 
-    LastSignificantCoeffY = (1<<nBits) *
-      (2+(last_significant_coeff_y_prefix & 1)) + last_significant_coeff_y_suffix;
+    LastSignificantCoeffY =
+      ((2+(last_significant_coeff_y_prefix & 1)) << nBits) + last_significant_coeff_y_suffix;
   }
   else {
     LastSignificantCoeffY = last_significant_coeff_y_prefix;
@@ -3129,6 +3133,7 @@ int residual_coding(thread_context* tctx,
           coeff_abs_level_remaining =
             decode_coeff_abs_level_remaining(tctx, uiGoRiceParam);
 
+          // (9-462)
           if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
             uiGoRiceParam++;
             if (uiGoRiceParam>4) uiGoRiceParam=4;
