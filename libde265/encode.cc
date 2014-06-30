@@ -168,23 +168,115 @@ static void encode_split_transform_flag(encoder_context* ectx, int log2TrafoSize
 }
 
 
+static void encode_cbf_luma(encoder_context* ectx, bool zeroTrafoDepth, int cbf_luma)
+{
+  logtrace(LogSlice,"> cbf_luma = %d\n",cbf_luma);
+
+  int context = (zeroTrafoDepth ? 1 : 0);
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_LUMA + context],
+                                       cbf_luma);
+}
+
+
+static void encode_cbf_chroma(encoder_context* ectx, int trafoDepth, int cbf_chroma)
+{
+  logtrace(LogSlice,"> cbf_chroma = %d\n",cbf_chroma);
+
+  int context = trafoDepth;
+  assert(context >= 0 && context <= 3);
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + context],
+                                       cbf_chroma);
+}
+
 // ---------------------------------------------------------------------------
 
-#if 0
-void encode_transform_tree(encoder_context* ectx,
+void findLastSignificantCoeff(int16_t* coeff, int log2TrafoSize,
+                              int* lastSignificantX, int* lastSignificantY)
+{
+  int n = (1<<(log2TrafoSize<<1));
+
+  for (int i=n ;n-->0 ;) {
+    if (coeff[i] != 0) {
+      *lastSignificantX = i & ((1<<log2TrafoSize)-1);
+      *lastSignificantY = i >> log2TrafoSize;
+      return;
+    }
+  }
+
+  // all coefficients == 0 ? cannot be since cbf should be false in this case
+  assert(false);
+}
+
+
+void encode_residual(encoder_context* ectx, const enc_tb* tb,
+                     int xBase,int yBase,int log2TrafoSize,int cIdx)
+{
+  const seq_parameter_set& sps = ectx->img->sps;
+  const pic_parameter_set& pps = ectx->img->pps;
+
+  if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
+  }
+
+  int lastSignificantX, lastSignificantY;
+  findLastSignificantCoeff(tb->coeff[blkIdx], log2TrafoSize,
+                           &lastSignificantX, &lastSignificantY);
+
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantX);
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantY);
+}
+
+
+void encode_transform_unit(encoder_context* ectx, const enc_tb* tb,
+                           int x0,int y0, int xBase,int yBase,
+                           int log2TrafoSize, int trafoDepth, int blkIdx)
+{
+  if (tb->cbf_luma || tb->cbf_cb || tb->cbf_cr) {
+    if (ectx->img->pps.cu_qp_delta_enabled_flag &&
+        1 /*!ectx->IsCuQpDeltaCoded*/) {
+      assert(0);
+    }
+
+    if (tb->cbf_luma) {
+      encode_residual(ectx,tb,x0,y0,log2TrafoSize,0);
+    }
+
+    // larger than 4x4
+    if (log2TrafoSize>2) {
+      if (tb->cbf_cb) {
+        encode_residual(ectx,tb,x0,y0,log2TrafoSize-1,1);
+      }
+      if (tb->cbf_cr) {
+        encode_residual(ectx,tb,x0,y0,log2TrafoSize-1,2);
+      }
+    }
+    else if (blkIdx==3) {
+      if (tb->parent->cbf_cb) {
+        encode_residual(ectx,tb,xBase,yBase,log2TrafoSize,1);
+      }
+      if (tb->parent->cbf_cr) {
+        encode_residual(ectx,tb,xBase,yBase,log2TrafoSize,2);
+      }
+    }
+  }
+}
+
+
+void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
                            int MaxTrafoDepth, int IntraSplitFlag)
 {
-  de265_image* img = ectx->img;
-  const seq_parameter_set* sps = &img->sps;
+  //de265_image* img = ectx->img;
+  const seq_parameter_set* sps = &ectx->img->sps;
 
   if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
       log2TrafoSize >  sps->Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && trafoDepth==0))
     {
-      int split_transform_flag = !!img->get_split_transform_flag(x0,y0, trafoDepth);
+      int split_transform_flag = tb->split_transform_flag;
       encode_split_transform_flag(ectx, log2TrafoSize, split_transform_flag);
     }
   else
@@ -195,10 +287,37 @@ void encode_transform_tree(encoder_context* ectx,
                                    (IntraSplitFlag==1 && trafoDepth==0) ||
                                    interSplitFlag==1) ? 1:0;
 
-      assert(img->get_split_transform_flag(x0,y0, trafoDepth) == split_transform_flag);
+      assert(tb->split_transform_flag == split_transform_flag);
     }
+
+  // --- CBF CB/CR ---
+
+  // For 4x4 luma, there is no signaling of chroma CBF, because only the
+  // chroma CBF for 8x8 is relevant.
+  if (log2TrafoSize>2) {
+    if (trafoDepth==0 || tb->parent->cbf_cb) {
+      encode_cbf_chroma(ectx, trafoDepth, tb->cbf_cb);
+    }
+    if (trafoDepth==0 || tb->parent->cbf_cr) {
+      encode_cbf_chroma(ectx, trafoDepth, tb->cbf_cr);
+    }
+  }
+
+  if (tb->split_transform_flag) {
+    assert(0); // TODO
+  }
+  else {
+    if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
+        tb->cbf_cb || tb->cbf_cr) {
+      encode_cbf_luma(ectx, trafoDepth==0, tb->cbf_luma);
+    }
+    else {
+      assert(tb->cbf_luma==true);
+    }
+
+    encode_transform_unit(ectx, tb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
+  }
 }
-#endif
 
 
 void encode_coding_unit(encoder_context* ectx,
@@ -284,7 +403,9 @@ void encode_coding_unit(encoder_context* ectx,
   else 
     { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
-  //encode_transform_tree(ectx, x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
+
+  encode_transform_tree(ectx, cb->transform_tree, cb,
+                        x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
 }
 
 

@@ -92,13 +92,26 @@ void encode_image()
         pb->pred_mode = INTRA_DC;
         pb->pred_mode_chroma = INTRA_DC;
 
+
+        enc_tb* tb = ectx.enc_tb_pool.get_new();
+        cb->transform_tree = tb;
+
+        tb->parent = NULL;
+        tb->split_transform_flag = false;
+        tb->cbf_luma = true;
+        tb->cbf_cb   = false;
+        tb->cbf_cr   = false;
+
+        int16_t coeff[16*16];
+        memset(coeff,0,16*16*sizeof(int16_t));
+        coeff[0] = ((x+y)&1) * 10 - 5;
+
+        encode_ctb(&ectx, cb, x,y);
+        cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
+
         ectx.enc_cb_pool.free_all();
         ectx.enc_tb_pool.free_all();
         ectx.enc_pb_intra_pool.free_all();
-
-        encode_ctb(&ectx, cb, x,y);
-
-        cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
       }
 }
 
@@ -115,8 +128,9 @@ void write_stream_1()
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(4,5);
-  sps.set_resolution(3840,2880);
+  sps.set_CB_log2size_range(4,4);
+  sps.set_TB_log2size_range(4,4);
+  sps.set_resolution(352,288);
   sps.compute_derived_values();
 
   // PPS

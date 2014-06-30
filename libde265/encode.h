@@ -28,8 +28,12 @@
 
 struct enc_tb
 {
-  uint8_t split_transform_flag;
-  uint8_t cbf[3];
+  enc_tb* parent;
+
+  uint8_t split_transform_flag : 1;
+  uint8_t cbf_luma : 1;
+  uint8_t cbf_cb : 1;
+  uint8_t cbf_cr : 1;
 
   union {
     // split
