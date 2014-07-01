@@ -106,7 +106,9 @@ void encode_image()
 
         int16_t coeff[16*16];
         memset(coeff,0,16*16*sizeof(int16_t));
-        coeff[0] = ((x+y)&1) * 40 - 20;
+        coeff[0] = 5; //((x+y)/*&1*/) * 5 - 101;
+        coeff[7] = 7;
+        if (x+y==0) coeff[0]=-26;
         tb->coeff[0] = coeff;
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);

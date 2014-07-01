@@ -428,6 +428,9 @@ void findLastSignificantCoeff(const position* sbScan, const position* cScan,
         *lastSignificantY = y;
         *lastSb = i;
         *lastPos= c;
+
+        printf("last significant coeff at: %d;%d, Sb:%d Pos:%d\n", x,y,i,c);
+
         return;
       }
     }
@@ -505,11 +508,14 @@ void encode_last_signficiant_coeff_prefix(encoder_context* ectx, int log2TrafoSi
 
 void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSuffixBits)
 {
+  printf("split position %d : ",pos);
+
   // most frequent case
 
   if (pos<=3) {
     *prefix=pos;
     *nSuffixBits=0;
+    printf("prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
     return;
   }
 
@@ -529,6 +535,8 @@ void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSu
   }
   *suffix = pos;
   *nSuffixBits = nBits;
+
+  printf("prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
 }
 
 
@@ -589,12 +597,12 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   int prefixY, suffixY, suffixBitsY;
 
   split_last_significant_position(lastSignificantX, &prefixX,&suffixX,&suffixBitsX);
-  split_last_significant_position(lastSignificantY, &prefixX,&suffixY,&suffixBitsY);
+  split_last_significant_position(lastSignificantY, &prefixY,&suffixY,&suffixBitsY);
 
-  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantX,
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, prefixX,
                                        &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX]);
 
-  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, lastSignificantY,
+  encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, prefixY,
                                        &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX]);
 
 
