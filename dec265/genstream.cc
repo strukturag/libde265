@@ -51,31 +51,6 @@ void encode_image()
 
   int Log2CtbSize = sps.Log2CtbSizeY;
 
-#if 0
-  for (int y=0;y<sps.PicHeightInCtbsY;y++)
-    for (int x=0;x<sps.PicWidthInCtbsY;x++)
-      {
-        int x0 = x<<Log2CtbSize;
-        int y0 = y<<Log2CtbSize;
-        img.set_ctDepth(x0,y0, Log2CtbSize, 1); //((x+y)&1)==0);  // all CBs 16x16
-        img.set_pred_mode(x0,y0, Log2CtbSize, MODE_INTRA);
-        img.set_PartMode(x0,y0, PART_2Nx2N);
-        img.set_IntraPredMode(x0,y0, Log2CtbSize, (enum IntraPredMode)1);
-        //img.set_IntraChromaPredMode(x0,y0, Log2CtbSize, INTRA_CHROMA_LIKE_LUMA);
-      }
-
-
-  for (int y=0;y<sps.PicHeightInCtbsY*2;y++)
-    for (int x=0;x<sps.PicWidthInCtbsY*2;x++)
-      {
-        int x0 = x<<(Log2CtbSize-1);
-        int y0 = y<<(Log2CtbSize-1);
-
-        img.set_cbf_luma(x0,y0, Log2CtbSize-1);
-        img.set_cbf_cb  (x0,y0, Log2CtbSize-1);
-        img.set_cbf_cr  (x0,y0, Log2CtbSize-1);
-      }
-#endif
 
   // encode CTB by CTB
 
@@ -106,9 +81,13 @@ void encode_image()
 
         int16_t coeff[16*16];
         memset(coeff,0,16*16*sizeof(int16_t));
-        coeff[0] = 5; //((x+y)/*&1*/) * 5 - 101;
-        coeff[7] = 7;
-        if (x+y==0) coeff[0]=-26;
+        coeff[0] = 1; //((x+y)/*&1*/) * 5 - 101;
+        //coeff[2+1*16] = 25;
+        //coeff[3+4*16] = 30;
+        if (x%2==0 && y%2==0)
+          coeff[((x/2)%16) + ((y/2)%16)*16] = 100;
+
+        //if (x+y==0) coeff[0]=-80;
         tb->coeff[0] = coeff;
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
@@ -229,6 +208,8 @@ void write_stream_1()
 
 int main(int argc, char** argv)
 {
+  de265_set_verbosity(3);
+
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 

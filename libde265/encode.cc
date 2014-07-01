@@ -194,6 +194,26 @@ static void encode_cbf_chroma(encoder_context* ectx, int trafoDepth, int cbf_chr
                                        cbf_chroma);
 }
 
+static inline void encode_coded_sub_block_flag(encoder_context* ectx,
+                                               int cIdx,
+                                               uint8_t coded_sub_block_neighbors,
+                                               int flag)
+{
+  logtrace(LogSlice,"# coded_sub_block_flag = %d\n",flag);
+
+  // tricky computation of csbfCtx
+  int csbfCtx = ((coded_sub_block_neighbors &  1) |  // right neighbor set  or
+                 (coded_sub_block_neighbors >> 1));  // bottom neighbor set   -> csbfCtx=1
+
+  int ctxIdxInc = csbfCtx;
+  if (cIdx!=0) {
+    ctxIdxInc += 2;
+  }
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc],
+                                       flag);
+}
+
 static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
                                                         uint8_t ctxIdxInc,
                                                         int significantFlag)
@@ -646,6 +666,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
     int inferSbDcSigCoeffFlag=0;
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
+    printf("coding sub block %d\n",i);
 
 
     // --- check whether this sub-block has to be coded ---
@@ -654,6 +675,9 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
     if ((i<lastSubBlock) && (i>0)) {
       sub_block_is_coded = subblock_has_nonzero_coefficient(coeff, CoeffStride, S);
+      encode_coded_sub_block_flag(ectx, cIdx,
+                                  coded_sub_block_neighbors[S.x+S.y*sbWidth],
+                                  sub_block_is_coded);
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0 || i==lastSubBlock) {
@@ -668,6 +692,8 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
     }
+
+    printf("subblock is coded: %s\n", sub_block_is_coded ? "yes":"no");
 
 
     // --- write significant coefficient flags ---
@@ -696,14 +722,14 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
 
       if (i==lastSubBlock) {
-        coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+        coeff_value[nCoefficients] = coeff[lastSignificantX+(lastSignificantY<<log2TrafoSize)];
         coeff_has_max_base_level[nCoefficients] = 1;  // TODO
         coeff_scan_pos[nCoefficients] = lastScanPos;
         nCoefficients++;
       }
 
 
-      // --- decode all coefficients' significant_coeff flags except for the DC coefficient ---
+      // --- encode all coefficients' significant_coeff flags except for the DC coefficient ---
 
       for (int n= last_coeff ; n>0 ; n--) {
         int subX = ScanOrderPos[n].x;
@@ -714,7 +740,11 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-        int isSignificant = tb->coeff[cIdx][xC + (yC<<log2TrafoSize)];
+        int isSignificant = !!tb->coeff[cIdx][xC + (yC<<log2TrafoSize)];
+
+        printf("coeff %d is significant: %d\n", n, isSignificant);
+
+        printf("context idx: %d;%d\n",xC,yC);
 
         encode_significant_coeff_flag_lookup(ectx,
                                              ctxIdxMap[xC+(yC<<log2TrafoSize)],
@@ -722,7 +752,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
         //ctxIdxMap[(i<<4)+n]);
 
         if (isSignificant) {
-          coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+          coeff_value[nCoefficients] = coeff[xC+(yC<<log2TrafoSize)];
           coeff_has_max_base_level[nCoefficients] = 1;
           coeff_scan_pos[nCoefficients] = n;
           nCoefficients++;
@@ -740,7 +770,10 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
-            int isSignificant = tb->coeff[cIdx][x0 + (y0<<log2TrafoSize)];
+            int isSignificant = !!tb->coeff[cIdx][x0 + (y0<<log2TrafoSize)];
+
+            printf("DC coeff is significant: %d\n", isSignificant);
+
             encode_significant_coeff_flag_lookup(ectx,
                                                  ctxIdxMap[x0+(y0<<log2TrafoSize)],
                                                  isSignificant);
@@ -1041,16 +1074,24 @@ void encode_coding_unit(encoder_context* ectx,
     int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
 
     if (PartMode==PART_2Nx2N) {
+      printf("x0,y0: %d,%d\n",x0,y0);
       int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
       int candModeList[3];
       fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
                                   availableA0,availableB0, img);
 
+      for (int i=0;i<3;i++)
+        logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
+
       enum IntraPredMode mode = cb->intra_pb[0]->pred_mode;
       int intraPred = find_intra_pred_mode(mode, candModeList);
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
+
+      printf("IntraPredMode: %d (candidates: %d %d %d)\n", mode,
+             candModeList[0], candModeList[1], candModeList[2]);
+      printf("  MPM/REM = %d\n",intraPred);
     }
     else {
       IntraSplitFlag=1;
@@ -1170,7 +1211,7 @@ void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
   de265_image* img = ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;
 
-  encode_quadtree(ectx, cb, ctbX,ctbY, log2ctbSize, 0);
+  encode_quadtree(ectx, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0);
 }
 
 
