@@ -284,36 +284,124 @@ static void encode_coeff_abs_level_greater2(encoder_context* ectx,
 }
 
 
-static void decode_coeff_abs_level_remaining(encoder_context* ectx,
-                                             int cRiceParam,
-                                             int value)
+bool TU(int val, int maxi)
 {
-  logtrace(LogSlice,"# decode_coeff_abs_level_remaining = %d\n",value);
-
-  int prefix=-1;
-  int codeword=0;
-  do {
-    prefix++;
-    codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
+  for (int i=0;i<val;i++) {
+    printf("1");
   }
-  while (codeword);
+  if (val<maxi) { printf("0"); return false; }
+  else return true;
+}
 
-  // prefix = nb. 1 bits
-
-  int value;
-
-  if (prefix <= 3) {
-    // when code only TR part (level < TRMax)
-
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
-    value = (prefix<<cRiceParam) + codeword;
+void bin(int val, int bits)
+{
+  for (int i=0;i<bits;i++) {
+    int bit = (1<<(bits-1-i));
+    if (val&bit) printf("1"); else printf("0");
   }
-  else {
-    // Suffix coded with EGk. Note that the unary part of EGk is already
-    // included in the 'prefix' counter above.
+}
 
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
-    value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
+void ExpG(int level, int riceParam)
+{
+  int prefix = level >> riceParam;
+  int suffix = level - (prefix<<riceParam);
+  
+  //printf("%d %d ",prefix,suffix);
+  
+  int base=0;
+  int range=1;
+  int nBits=0;
+  while (prefix >= base+range) {
+    printf("1");
+    base+=range;
+    range*=2;
+    nBits++;
+  }
+  
+  printf("0.");
+  bin(prefix-base, nBits);
+  printf(":");
+  bin(suffix,riceParam);
+}
+
+int blamain()
+{
+  int riceParam=2;
+  int TRMax = 4<<riceParam;
+
+  for (int level=0;level<128;level++)
+    {
+      printf("%d: ",level);
+
+      int prefixPart = std::min(TRMax, level);
+
+      // code TR prefix
+
+      bool isMaxi = TU(prefixPart>>riceParam, TRMax>>riceParam);
+      printf(":");
+      if (TRMax>prefixPart) {
+        int remain = prefixPart & ((1<<riceParam)-1);
+        bin(remain, riceParam);
+      }
+      printf("|");
+
+      if (isMaxi) {
+        ExpG(level-TRMax, riceParam+1);
+      }
+
+      printf("\n");
+    }
+
+  return 0;
+}
+
+
+static void encode_coeff_abs_level_remaining(encoder_context* ectx,
+                                             int cRiceParam,
+                                             int level)
+{
+  logtrace(LogSlice,"# encode_coeff_abs_level_remaining = %d\n",level);
+
+  int cTRMax = 4<<cRiceParam;
+  int prefixPart = std::min(level, cTRMax);
+
+  // --- code prefix with TR ---
+
+  // TU part, length 4 (cTRMax>>riceParam)
+
+  int nOnes = (prefixPart>>cRiceParam);
+  ectx->cabac_encoder->write_CABAC_TU_bypass(nOnes, 4);
+
+  // TR suffix
+
+  if (cTRMax > prefixPart) {
+    int remain = prefixPart & ((1<<cRiceParam)-1);
+    ectx->cabac_encoder->write_CABAC_FL_bypass(remain, cRiceParam);
+  }
+
+
+  // --- remainder suffix ---
+
+  if (nOnes==4) {
+    int remain = level-cTRMax;
+    int ExpGRiceParam = cRiceParam+1;
+
+    int prefix = remain >> ExpGRiceParam;
+    int suffix = remain - (prefix<<ExpGRiceParam);
+  
+    int base=0;
+    int range=1;
+    int nBits=0;
+    while (prefix >= base+range) {
+      ectx->cabac_encoder->write_CABAC_bypass(1);
+      base+=range;
+      range*=2;
+      nBits++;
+    }
+  
+    ectx->cabac_encoder->write_CABAC_bypass(0);
+    ectx->cabac_encoder->write_CABAC_FL_bypass(prefix-base, nBits);
+    ectx->cabac_encoder->write_CABAC_FL_bypass(suffix, ExpGRiceParam);
   }
 }
 
@@ -674,7 +762,11 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
       // separate absolute coefficient value and sign
 
+      printf("coefficients to code: ");
+
       for (int l=0;l<nCoefficients;l++) {
+        printf("%d ",coeff_value[l]);
+
         if (coeff_value[l]<0) {
           coeff_value[l] = -coeff_value[l];
           coeff_sign[l] = 1;
@@ -683,8 +775,12 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
           coeff_sign[l] = 0;
         }
 
-        coeff_baseLevel[l] = coeff_value[l];
+        coeff_baseLevel[l] = 1;
+
+        printf("(%d) ",coeff_value[l]);
       }
+
+      printf("\n");
 
 
       int ctxSet;
@@ -774,6 +870,8 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
         int coeff_abs_level_remaining;
 
         if (coeff_has_max_base_level[n]) {
+          printf("value[%d]=%d, base level: %d\n",n,coeff_value[n],coeff_baseLevel[n]);
+
           coeff_abs_level_remaining = coeff_value[n] - coeff_baseLevel[n];
 
           encode_coeff_abs_level_remaining(ectx, uiGoRiceParam,
@@ -792,6 +890,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
         // --- DEBUG: check coefficient ---
 
+#if 0
         int16_t currCoeff = baseLevel + coeff_abs_level_remaining;
         if (coeff_sign[n]) {
           currCoeff = -currCoeff;
@@ -806,6 +905,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
         }
 
         assert(currCoeff == coeff_value[n]);
+#endif
       }  // iterate through coefficients in sub-block
     }  // if nonZero
 
@@ -908,6 +1008,8 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
 void encode_coding_unit(encoder_context* ectx,
                         const enc_cb* cb, int x0,int y0, int log2CbSize)
 {
+  printf("--- encode CU (%d;%d) ---\n",x0,y0);
+
   de265_image* img = ectx->img;
   const slice_segment_header* shdr = ectx->shdr;
   const seq_parameter_set* sps = &ectx->img->sps;
@@ -1055,6 +1157,8 @@ void encode_quadtree(encoder_context* ectx,
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
 {
+  printf("----- encode CTB (%d;%d) -----\n",ctbX,ctbY);
+
   de265_image* img = ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;
 

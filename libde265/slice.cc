@@ -3120,6 +3120,8 @@ int residual_coding(thread_context* tctx,
           coeff_abs_level_remaining = 0;
         }
 
+        logtrace(LogSlice, "coeff_abs_level_remaining=%d\n",coeff_abs_level_remaining);
+
 
         int16_t currCoeff = baseLevel + coeff_abs_level_remaining;
         if (coeff_sign[n]) {
@@ -3133,6 +3135,8 @@ int residual_coding(thread_context* tctx,
             currCoeff = -currCoeff;
           }
         }
+
+        logtrace(LogSlice, "quantized coefficient=%d\n",currCoeff);
 
 #ifdef DE265_LOG_TRACE
         //TransCoeffLevel[yC*CoeffStride + xC] = currCoeff;
@@ -4104,6 +4108,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     // end of slice segment ?
 
     int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+    printf("end-of-slice flag: %d\n", end_of_slice_segment_flag);
 
     if (end_of_slice_segment_flag) {
       // at the end of the slice segment, we store the CABAC model if we need it

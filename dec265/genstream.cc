@@ -106,11 +106,19 @@ void encode_image()
 
         int16_t coeff[16*16];
         memset(coeff,0,16*16*sizeof(int16_t));
-        coeff[0] = ((x+y)&1) * 10 - 5;
+        coeff[0] = ((x+y)&1) * 40 - 20;
         tb->coeff[0] = coeff;
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
         encode_ctb(&ectx, cb, x,y);
+
+        int last = (y==sps.PicHeightInCtbsY-1 &&
+                    x==sps.PicWidthInCtbsY-1);
+
+        printf("wrote CTB at %d;%d\n",x*16,y*16);
+        printf("write term bit: %d\n",last);
+        writer.write_CABAC_term_bit(last);
+
 
         ectx.enc_cb_pool.free_all();
         ectx.enc_tb_pool.free_all();

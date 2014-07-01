@@ -242,6 +242,8 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
 int  decode_CABAC_term_bit(CABAC_decoder* decoder)
 {
+  printf("CABAC term: range=%x\n", decoder->range);
+
   decoder->range -= 2;
   uint32_t scaledRange = decoder->range << 7;
 
@@ -578,9 +580,50 @@ void CABAC_encoder::write_startcode()
   data_size+=3;
 }
 
-/**
- * \brief Move bits from register into bitstream
- */
+void CABAC_encoder::flush_CABAC()
+{
+  if (low >> (32 - bits_left))
+    {
+      append_byte(buffered_byte + 1);
+      while (num_buffered_bytes > 1)
+        {
+          append_byte(0x00);
+          num_buffered_bytes--;
+        }
+
+      low -= 1 << (32 - bits_left);
+    }
+  else
+    {
+      if (num_buffered_bytes > 0)
+        {
+          append_byte(buffered_byte);
+        }
+
+      while (num_buffered_bytes > 1)
+        {
+          append_byte(0xff);
+          num_buffered_bytes--;
+        }    
+    }
+
+  int n = 24-bits_left;
+  int val = (low>>8);
+
+  // make sure, we output full bytes
+
+  while (n%8) {
+    val<<=1;
+    n++;
+  }
+
+  while (n>0) {
+    append_byte( (val>>(n-8)) & 0xFF );
+    n-=8;
+  }
+}
+
+
 void CABAC_encoder::write_out()
 {
   printf("low = %08x (bits_left=%d)\n",low,bits_left);
@@ -630,13 +673,16 @@ void CABAC_encoder::testAndWriteOut()
 }
 
 
+static int encBinCnt=1;
+
 void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 {
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
 
-  printf("range=%x low=%x state=%d, bin=%d\n",range,low, model->state,bin);
-  
+  printf("[%d] range=%x low=%x state=%d, bin=%d\n",encBinCnt, range,low, model->state,bin);
+  encBinCnt++;
+
   uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
   range -= LPS;
   
@@ -675,6 +721,9 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 
 void CABAC_encoder::write_CABAC_bypass(int bin)
 {
+  printf("[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
+  encBinCnt++;
+
   // BinsCoded += m_binCountIncrement;
   low <<= 1;
 
@@ -705,3 +754,31 @@ void CABAC_encoder::write_CABAC_FL_bypass(int value, int n)
     write_CABAC_bypass(value & (1<<n));
   }
 }
+
+void CABAC_encoder::write_CABAC_term_bit(int bit)
+{
+  printf("CABAC term: range=%x\n", range);
+
+  range -= 2;
+
+  if (bit) {
+    low += range;
+
+    low <<= 7;
+    range = 2 << 7;
+    bits_left -= 7;
+  }
+  else if (range >= 256)
+    {
+      return;
+    }
+  else
+    {
+      low   <<= 1;
+      range <<= 1;
+      bits_left--;
+    }
+  
+  testAndWriteOut();
+}
+
