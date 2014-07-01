@@ -4108,7 +4108,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     // end of slice segment ?
 
     int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
-    printf("end-of-slice flag: %d\n", end_of_slice_segment_flag);
+    //printf("end-of-slice flag: %d\n", end_of_slice_segment_flag);
 
     if (end_of_slice_segment_flag) {
       // at the end of the slice segment, we store the CABAC model if we need it
