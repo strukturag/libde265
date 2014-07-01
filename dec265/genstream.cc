@@ -220,6 +220,7 @@ void write_stream_1()
 int main(int argc, char** argv)
 {
   init_scan_orders();
+  alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 
   de265_set_verbosity(3);
 

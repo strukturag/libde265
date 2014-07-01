@@ -194,6 +194,129 @@ static void encode_cbf_chroma(encoder_context* ectx, int trafoDepth, int cbf_chr
                                        cbf_chroma);
 }
 
+static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
+                                                        uint8_t ctxIdxInc,
+                                                        int significantFlag)
+{
+  logtrace(LogSlice,"# significant_coeff_flag = significantFlag\n");
+  logtrace(LogSlice,"context: %d\n",ctxIdxInc);
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc],
+                                       significantFlag);
+}
+
+static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
+                                                   int cIdx, int i,
+                                                   bool firstCoeffInSubblock,
+                                                   bool firstSubblock,
+                                                   int  lastSubblock_greater1Ctx,
+                                                   int* lastInvocation_greater1Ctx,
+                                                   int* lastInvocation_coeff_abs_level_greater1_flag,
+                                                   int* lastInvocation_ctxSet, int c1,
+                                                   int value)
+{
+  logtrace(LogSlice,"# coeff_abs_level_greater1 = %d\n",value);
+
+  logtrace(LogSlice,"  cIdx:%d i:%d firstCoeffInSB:%d firstSB:%d lastSB>1:%d last>1Ctx:%d lastLev>1:%d lastCtxSet:%d\n", cIdx,i,firstCoeffInSubblock,firstSubblock,lastSubblock_greater1Ctx,
+	   *lastInvocation_greater1Ctx,
+	   *lastInvocation_coeff_abs_level_greater1_flag,
+	   *lastInvocation_ctxSet);
+
+  int lastGreater1Ctx;
+  int greater1Ctx;
+  int ctxSet;
+
+  logtrace(LogSlice,"c1: %d\n",c1);
+
+  if (firstCoeffInSubblock) {
+    // block with real DC -> ctx 0
+    if (i==0 || cIdx>0) { ctxSet=0; }
+    else { ctxSet=2; }
+
+    if (firstSubblock) { lastGreater1Ctx=1; }
+    else { lastGreater1Ctx = lastSubblock_greater1Ctx; }
+
+    if (lastGreater1Ctx==0) { ctxSet++; }
+
+    logtrace(LogSlice,"ctxSet: %d\n",ctxSet);
+
+    greater1Ctx=1;
+  }
+  else { // !firstCoeffInSubblock
+    ctxSet = *lastInvocation_ctxSet;
+    logtrace(LogSlice,"ctxSet (old): %d\n",ctxSet);
+
+    greater1Ctx = *lastInvocation_greater1Ctx;
+    if (greater1Ctx>0) {
+      int lastGreater1Flag=*lastInvocation_coeff_abs_level_greater1_flag;
+      if (lastGreater1Flag==1) greater1Ctx=0;
+      else { /*if (greater1Ctx>0)*/ greater1Ctx++; }
+    }
+  }
+
+  ctxSet = c1; // use HM algo
+
+  int ctxIdxInc = (ctxSet*4) + (greater1Ctx>=3 ? 3 : greater1Ctx);
+
+  if (cIdx>0) { ctxIdxInc+=16; }
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + ctxIdxInc],
+                                       value);
+
+  *lastInvocation_greater1Ctx = greater1Ctx;
+  *lastInvocation_coeff_abs_level_greater1_flag = value;
+  *lastInvocation_ctxSet = ctxSet;
+}
+
+static void encode_coeff_abs_level_greater2(encoder_context* ectx,
+                                            int cIdx, // int i,int n,
+                                            int ctxSet,
+                                            int value)
+{
+  logtrace(LogSlice,"# coeff_abs_level_greater2 = %d\n",value);
+
+  int ctxIdxInc = ctxSet;
+
+  if (cIdx>0) ctxIdxInc+=4;
+
+  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + ctxIdxInc],
+                                       value);
+}
+
+
+static void decode_coeff_abs_level_remaining(encoder_context* ectx,
+                                             int cRiceParam,
+                                             int value)
+{
+  logtrace(LogSlice,"# decode_coeff_abs_level_remaining = %d\n",value);
+
+  int prefix=-1;
+  int codeword=0;
+  do {
+    prefix++;
+    codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
+  }
+  while (codeword);
+
+  // prefix = nb. 1 bits
+
+  int value;
+
+  if (prefix <= 3) {
+    // when code only TR part (level < TRMax)
+
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
+    value = (prefix<<cRiceParam) + codeword;
+  }
+  else {
+    // Suffix coded with EGk. Note that the unary part of EGk is already
+    // included in the 'prefix' counter above.
+
+    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
+    value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
+  }
+}
+
 // ---------------------------------------------------------------------------
 
 void findLastSignificantCoeff(const position* sbScan, const position* cScan,
@@ -321,6 +444,8 @@ void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSu
 }
 
 
+extern uint8_t* ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx */][4 /* prevCsbf */];
+
 /* These values are read from the image metadata:
    - intra prediction mode (x0;y0)
  */
@@ -330,6 +455,8 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   const de265_image* img = ectx->img;
   const seq_parameter_set& sps = img->sps;
   const pic_parameter_set& pps = img->pps;
+
+  int16_t* coeff = tb->coeff[cIdx];
 
   if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
   }
@@ -360,7 +487,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   int lastScanPos;
   int lastSubBlock;
   findLastSignificantCoeff(ScanOrderSub, ScanOrderPos,
-                           tb->coeff[cIdx], log2TrafoSize,
+                           coeff, log2TrafoSize,
                            &lastSignificantX, &lastSignificantY,
                            &lastSubBlock, &lastScanPos);
 
@@ -398,6 +525,16 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   uint8_t coded_sub_block_neighbors[32/4*32/4];  // 64*2 flags
   memset(coded_sub_block_neighbors,0,sbWidth*sbWidth);
 
+  int  c1 = 1;
+  bool firstSubblock = true;           // for coeff_abs_level_greater1_flag context model
+  int  lastSubblock_greater1Ctx=false; /* for coeff_abs_level_greater1_flag context model
+                                          (initialization not strictly needed)
+                                       */
+
+  int  lastInvocation_greater1Ctx=0;
+  int  lastInvocation_coeff_abs_level_greater1_flag=0;
+  int  lastInvocation_ctxSet=0;
+
 
 
   // ----- encode coefficients -----
@@ -420,8 +557,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
     int sub_block_is_coded = 0;
 
     if ((i<lastSubBlock) && (i>0)) {
-      sub_block_is_coded = subblock_has_nonzero_coefficient(tb->coeff[cIdx], CoeffStride,
-                                                            ScanOrderSub[i]);
+      sub_block_is_coded = subblock_has_nonzero_coefficient(coeff, CoeffStride, S);
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0 || i==lastSubBlock) {
@@ -436,6 +572,243 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
     }
+
+
+    // --- write significant coefficient flags ---
+
+    int16_t  coeff_value[16];
+    int16_t  coeff_baseLevel[16];
+    int8_t   coeff_scan_pos[16];
+    int8_t   coeff_sign[16];
+    int8_t   coeff_has_max_base_level[16];
+    int nCoefficients=0;
+
+
+    if (sub_block_is_coded) {
+      int x0 = S.x<<2;
+      int y0 = S.y<<2;
+
+      int log2w = log2TrafoSize-2;
+      int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
+      uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
+
+
+
+
+      // set the last coded coefficient in the last subblock
+
+      int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
+
+      if (i==lastSubBlock) {
+        coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+        coeff_has_max_base_level[nCoefficients] = 1;  // TODO
+        coeff_scan_pos[nCoefficients] = lastScanPos;
+        nCoefficients++;
+      }
+
+
+      // --- decode all coefficients' significant_coeff flags except for the DC coefficient ---
+
+      for (int n= last_coeff ; n>0 ; n--) {
+        int subX = ScanOrderPos[n].x;
+        int subY = ScanOrderPos[n].y;
+        int xC = x0 + subX;
+        int yC = y0 + subY;
+
+
+        // for all AC coefficients in sub-block, a significant_coeff flag is coded
+
+        int isSignificant = tb->coeff[cIdx][xC + (yC<<log2TrafoSize)];
+
+        encode_significant_coeff_flag_lookup(ectx,
+                                             ctxIdxMap[xC+(yC<<log2TrafoSize)],
+                                             isSignificant);
+        //ctxIdxMap[(i<<4)+n]);
+
+        if (isSignificant) {
+          coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+          coeff_has_max_base_level[nCoefficients] = 1;
+          coeff_scan_pos[nCoefficients] = n;
+          nCoefficients++;
+
+          // since we have a coefficient in the sub-block,
+          // we cannot infer the DC coefficient anymore
+          inferSbDcSigCoeffFlag = 0;
+        }
+      }
+
+
+      // --- decode DC coefficient significance ---
+
+      if (last_coeff>=0) // last coded coefficient (always set to 1) is not the DC coefficient
+        {
+          if (inferSbDcSigCoeffFlag==0) {
+            // if we cannot infert the DC coefficient, it is coded
+            int isSignificant = tb->coeff[cIdx][x0 + (y0<<log2TrafoSize)];
+            encode_significant_coeff_flag_lookup(ectx,
+                                                 ctxIdxMap[x0+(y0<<log2TrafoSize)],
+                                                 isSignificant);
+
+            if (isSignificant) {
+              coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+              coeff_has_max_base_level[nCoefficients] = 1;
+              coeff_scan_pos[nCoefficients] = 0;
+              nCoefficients++;
+            }
+          }
+          else {
+            // we can infer that the DC coefficient must be present
+            coeff_value[nCoefficients] = coeff[x0+(y0<<log2TrafoSize)];
+            coeff_has_max_base_level[nCoefficients] = 1;
+            coeff_scan_pos[nCoefficients] = 0;
+            nCoefficients++;
+          }
+        }
+    }
+
+
+
+    // --- encode coefficient values ---
+
+    if (nCoefficients) {
+
+      // separate absolute coefficient value and sign
+
+      for (int l=0;l<nCoefficients;l++) {
+        if (coeff_value[l]<0) {
+          coeff_value[l] = -coeff_value[l];
+          coeff_sign[l] = 1;
+        }
+        else {
+          coeff_sign[l] = 0;
+        }
+
+        coeff_baseLevel[l] = coeff_value[l];
+      }
+
+
+      int ctxSet;
+      if (i==0 || cIdx>0) { ctxSet=0; }
+      else { ctxSet=2; }
+
+      if (c1==0) { ctxSet++; }
+      c1=1;
+
+
+      // --- encode greater-1 flags ---
+
+      int newLastGreater1ScanPos=-1;
+
+      int lastGreater1Coefficient = libde265_min(8,nCoefficients);
+      for (int c=0;c<lastGreater1Coefficient;c++) {
+        int greater1_flag = (coeff_value[c]>1);
+
+        encode_coeff_abs_level_greater1(ectx, cIdx,i,
+                                        c==0,
+                                        firstSubblock,
+                                        lastSubblock_greater1Ctx,
+                                        &lastInvocation_greater1Ctx,
+                                        &lastInvocation_coeff_abs_level_greater1_flag,
+                                        &lastInvocation_ctxSet, ctxSet,
+                                        greater1_flag);
+
+        if (greater1_flag) {
+          coeff_baseLevel[c]++;
+
+          c1=0;
+
+          if (newLastGreater1ScanPos == -1) {
+            newLastGreater1ScanPos=c;
+          }
+        }
+        else {
+          coeff_has_max_base_level[c] = 0;
+
+          if (c1<3 && c1>0) {
+            c1++;
+          }
+        }
+      }
+
+      firstSubblock = false;
+      lastSubblock_greater1Ctx = lastInvocation_greater1Ctx;
+
+
+      // --- decode greater-2 flag ---
+
+      if (newLastGreater1ScanPos != -1) {
+        int greater2_flag = (coeff_value[newLastGreater1ScanPos]>2);
+        encode_coeff_abs_level_greater2(ectx,cIdx, lastInvocation_ctxSet, greater2_flag);
+        coeff_baseLevel[newLastGreater1ScanPos] += greater2_flag;
+        coeff_has_max_base_level[newLastGreater1ScanPos] = greater2_flag;
+      }
+
+
+      // --- decode coefficient signs ---
+
+      int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
+                        !cb->cu_transquant_bypass_flag);
+
+      for (int n=0;n<nCoefficients-1;n++) {
+        ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[n]);
+        logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign[n]);
+      }
+
+      // n==nCoefficients-1
+      if (!pps.sign_data_hiding_flag || !signHidden) {
+        ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[nCoefficients-1]);
+        logtrace(LogSlice,"sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
+      }
+      else {
+        assert(coeff_sign[nCoefficients-1] == 0);
+      }
+
+      // --- decode coefficient value ---
+
+      int sumAbsLevel=0;
+      int uiGoRiceParam=0;
+
+      for (int n=0;n<nCoefficients;n++) {
+        int baseLevel = coeff_baseLevel[n];
+
+        int coeff_abs_level_remaining;
+
+        if (coeff_has_max_base_level[n]) {
+          coeff_abs_level_remaining = coeff_value[n] - coeff_baseLevel[n];
+
+          encode_coeff_abs_level_remaining(ectx, uiGoRiceParam,
+                                           coeff_abs_level_remaining);
+
+          // (9-462)
+          if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
+            uiGoRiceParam++;
+            if (uiGoRiceParam>4) uiGoRiceParam=4;
+          }
+        }
+        else {
+          coeff_abs_level_remaining = 0;
+        }
+
+
+        // --- DEBUG: check coefficient ---
+
+        int16_t currCoeff = baseLevel + coeff_abs_level_remaining;
+        if (coeff_sign[n]) {
+          currCoeff = -currCoeff;
+        }
+
+        if (pps.sign_data_hiding_flag && signHidden) {
+          sumAbsLevel += baseLevel + coeff_abs_level_remaining;
+
+          if (n==nCoefficients-1 && (sumAbsLevel & 1)) {
+            currCoeff = -currCoeff;
+          }
+        }
+
+        assert(currCoeff == coeff_value[n]);
+      }  // iterate through coefficients in sub-block
+    }  // if nonZero
+
   }
 }
 
