@@ -242,7 +242,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
 int  decode_CABAC_term_bit(CABAC_decoder* decoder)
 {
-  printf("CABAC term: range=%x\n", decoder->range);
+  logtrace(LogCABAC,"CABAC term: range=%x\n", decoder->range);
 
   decoder->range -= 2;
   uint32_t scaledRange = decoder->range << 7;
