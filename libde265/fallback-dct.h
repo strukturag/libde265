@@ -39,9 +39,9 @@ void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t str
 
 // --- encoding ---
 
-void fdct_4x4_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
-void fdct_8x8_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
-void fdct_16x16_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
-void fdct_32x32_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
+void fdct_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void fdct_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void fdct_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
 
 #endif

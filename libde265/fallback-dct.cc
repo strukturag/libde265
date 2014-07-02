@@ -177,6 +177,22 @@ static int8_t mat_dct[32][32] = {
 static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
                                  int nT, int16_t *coeffs)
 {
+  /*
+    The effective shift is
+    7 bits right for bit-depth 8,
+    6 bits right for bit-depth 9,
+    5 bits right for bit-depth 10.
+
+    Computation is independent of the block size.
+    Each multiplication with the table includes a left shift of 6 bits.
+    Hence, we have 2* 6 bits = 12 bits left shift.
+    V-pass has fixed 7 bit right shift.
+    H-pass has 20-BitDepth bit right shift;
+
+    Effective shift 's' means: residual value 1 gives DC-coeff (1<<s).
+   */
+
+
   int postShift = 20-8; // 8 bit
   int rnd1 = 1<<(7-1);
   int rnd2 = 1<<(postShift-1);
@@ -200,12 +216,13 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
   printf("\n");
   */
 
+  /*
   printf("--- input\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
       printf("%3d ",coeffs[c+r*nT]);
     }
-
+  */
 
   for (int c=0;c<nT;c++) {
 
@@ -226,6 +243,7 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
     for (int i=0;i<nT;i++) {
       int sum=0;
 
+      /*
       printf("input: ");
       for (int j=0;j<nT;j++) {
         printf("%3d ",coeffs[c+j*nT]);
@@ -237,7 +255,8 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
         printf("%3d ",mat_dct[fact*j][i]);
       }
       printf("\n");
-      
+      */
+
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
       }
@@ -249,11 +268,13 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
     logtrace(LogTransform,"*\n");
   }
 
+  /*
   printf("--- temp\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
       printf("%3d ",g[c+r*nT]);
     }
+  */
 
   for (int y=0;y<nT;y++) {
 
@@ -318,15 +339,31 @@ void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t str
 
 
 static void transform_fdct_8(int16_t* coeffs, int nT,
-                             const uint8_t *input, ptrdiff_t stride)
+                             const int16_t *input, ptrdiff_t stride)
 {
-  int shift2 = 8+6;
-  int rnd1 = 1<<(7-1);
+  /*
+    Each sum over a basis vector sums nT elements, which is compensated by
+    shifting right by Log2(nT). Do this in each of the H/V passes.
+
+    Each multiplication with the table includes a left shift of 6 bits.
+    Hence, we have 2* 6 bits = 12 bits left shift. Additionally,
+    V-pass has BitDepth-9 bit right shift,
+    H-pass has fixed 6 bit right shift.
+
+    For bit-depth 8, the effective shift is 7 bits left.
+    For bit-depth 9, the effective shift is 6 bits left.
+    For bit-depth 10, the effective shift is 5 bits left.
+
+    Effective shift 's' means: DC-coeff (1<<s) gives residual value 1.
+   */
+
+  int BD = 8;
+  int shift1 = Log2(nT) + BD -9;  // 12-9=3
+  int shift2 = Log2(nT) + 6;      // 10
+
+  int rnd1 = 1<<(shift1-1);
   int rnd2 = 1<<(shift2-1);
   int fact = (1<<(5-Log2(nT)));
-
-  // int shift1 = lg_bs + bd - 9, shift2 = lg_bs + 6;    \
-  //                8 + 8 - 9 = 7            8 + 6 = 14
 
   int16_t g[32*32];  // actually, only [nT*nT] used
 
@@ -339,7 +376,7 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
         sum += mat_dct[fact*i][j] * input[c+j*stride];
       }
       
-      g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
+      g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
 
       logtrace(LogTransform,"*%d ",g[c+i*nT]);
     }
@@ -374,22 +411,22 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
 }
 
 
-void fdct_4x4_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+void fdct_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 4, input,stride);
 }
 
-void fdct_8x8_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+void fdct_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 8, input,stride);
 }
 
-void fdct_16x16_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+void fdct_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 16, input,stride);
 }
 
-void fdct_32x32_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 32, input,stride);
 }

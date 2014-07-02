@@ -312,6 +312,7 @@ void scale_coefficients(thread_context* tctx,
 
     logtrace(LogTransform,"dequant %d;%d cIdx=%d qp=%d\n",xT*(cIdx?2:1),yT*(cIdx?2:1),cIdx,qP);
 
+
     if (sps->scaling_list_enable_flag==0) {
 
       //const int m_x_y = 16;
@@ -325,6 +326,8 @@ void scale_coefficients(thread_context* tctx,
 
         // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
         int32_t currCoeff  = tctx->coeffList[cIdx][i];
+
+        logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],tctx->coeffList[cIdx][i]);
 
         currCoeff = Clip3(-32768,32767,
                           ( (currCoeff * fact + offset ) >> bdShift));
