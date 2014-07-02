@@ -174,8 +174,8 @@ static int8_t mat_dct[32][32] = {
 
 
 
-static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
-                                int nT, int16_t *coeffs)
+static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
+                                 int nT, int16_t *coeffs)
 {
   int postShift = 20-8; // 8 bit
   int rnd1 = 1<<(7-1);
@@ -200,6 +200,13 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
   printf("\n");
   */
 
+  printf("--- input\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%3d ",coeffs[c+r*nT]);
+    }
+
+
   for (int c=0;c<nT;c++) {
 
     logtrace(LogTransform,"DCT-V: ");
@@ -218,6 +225,18 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
+
+      printf("input: ");
+      for (int j=0;j<nT;j++) {
+        printf("%3d ",coeffs[c+j*nT]);
+      }
+      printf("\n");
+
+      printf("mat: ");
+      for (int j=0;j<nT;j++) {
+        printf("%3d ",mat_dct[fact*j][i]);
+      }
+      printf("\n");
       
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
@@ -230,6 +249,11 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
     logtrace(LogTransform,"*\n");
   }
 
+  printf("--- temp\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%3d ",g[c+r*nT]);
+    }
 
   for (int y=0;y<nT;y++) {
 
@@ -271,20 +295,101 @@ static void transform_dct_add_8(uint8_t *dst, ptrdiff_t stride,
 
 void transform_4x4_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_dct_add_8(dst,stride,  4, coeffs);
+  transform_idct_add_8(dst,stride,  4, coeffs);
 }
 
 void transform_8x8_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_dct_add_8(dst,stride,  8, coeffs);
+  transform_idct_add_8(dst,stride,  8, coeffs);
 }
 
 void transform_16x16_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_dct_add_8(dst,stride,  16, coeffs);
+  transform_idct_add_8(dst,stride,  16, coeffs);
 }
 
 void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_dct_add_8(dst,stride,  32, coeffs);
+  transform_idct_add_8(dst,stride,  32, coeffs);
+}
+
+
+
+
+
+static void transform_fdct_8(int16_t* coeffs, int nT,
+                             const uint8_t *input, ptrdiff_t stride)
+{
+  int shift2 = 8+6;
+  int rnd1 = 1<<(7-1);
+  int rnd2 = 1<<(shift2-1);
+  int fact = (1<<(5-Log2(nT)));
+
+  // int shift1 = lg_bs + bd - 9, shift2 = lg_bs + 6;    \
+  //                8 + 8 - 9 = 7            8 + 6 = 14
+
+  int16_t g[32*32];  // actually, only [nT*nT] used
+
+  for (int c=0;c<nT;c++) {
+
+    for (int i=0;i<nT;i++) {
+      int sum=0;
+      
+      for (int j=0;j<nT;j++) {
+        sum += mat_dct[fact*i][j] * input[c+j*stride];
+      }
+      
+      g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
+
+      logtrace(LogTransform,"*%d ",g[c+i*nT]);
+    }
+    logtrace(LogTransform,"*\n");
+  }
+
+
+  for (int y=0;y<nT;y++) {
+
+    logtrace(LogTransform,"DCT-H: ");
+    for (int i=0;i<nT;i++) {
+      logtrace(LogTransform,"*%d ",g[i+y*nT]);
+    }
+    logtrace(LogTransform,"* -> ");
+
+
+    for (int i=0;i<nT;i++) {
+      int sum=0;
+      
+      for (int j=0;j<nT;j++) {
+        sum += mat_dct[fact*i][j] * g[y*nT+j];
+      }
+      
+      int out = (sum+rnd2)>>shift2;
+
+      coeffs[y*nT+i] = out;
+
+      logtrace(LogTransform,"*%d ",out);
+    }
+    logtrace(LogTransform,"*\n");
+  }
+}
+
+
+void fdct_4x4_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+{
+  transform_fdct_8(coeffs, 4, input,stride);
+}
+
+void fdct_8x8_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+{
+  transform_fdct_8(coeffs, 8, input,stride);
+}
+
+void fdct_16x16_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+{
+  transform_fdct_8(coeffs, 16, input,stride);
+}
+
+void fdct_32x32_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride)
+{
+  transform_fdct_8(coeffs, 32, input,stride);
 }

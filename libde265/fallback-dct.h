@@ -25,6 +25,8 @@
 #include <stdint.h>
 
 
+// --- decoding ---
+
 void transform_skip_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
 void transform_bypass_8_fallback(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride);
 
@@ -33,5 +35,13 @@ void transform_4x4_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t strid
 void transform_8x8_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
 void transform_16x16_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
 void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
+
+
+// --- encoding ---
+
+void fdct_4x4_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
+void fdct_8x8_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
+void fdct_16x16_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
+void fdct_32x32_8_fallback(int16_t *coeffs, const uint8_t *input, ptrdiff_t stride);
 
 #endif
