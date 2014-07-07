@@ -185,7 +185,7 @@ int find_intra_pred_mode(enum IntraPredMode mode,
 
   int intraMode = mode;
 
-  for (int i=0;i<2;i++) {
+  for (int i=2;i>=0;i--) {
     if (intraMode >= candModeList[i]) { intraMode--; }
   }
 
