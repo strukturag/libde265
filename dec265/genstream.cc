@@ -220,21 +220,46 @@ void printBlk(int16_t* data, int blksize, int stride)
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
                                         uint8_t* ref, int stride)
 {
-  /*
-  return (enum IntraPredMode)(((x0+y0)/16) % 35);
-
-  bool flag = ((x0/16) + (y0/16)) & 1;
-  if (flag) return INTRA_PLANAR; else return INTRA_DC;
-  */
-
   enum IntraPredMode best_mode;
-  int min_sad=0;
+  int min_sad=-1;
 
-  enum IntraPredMode candidates[35];
-  candidates[0] = INTRA_PLANAR;
-  candidates[1] = INTRA_DC;
-  candidates[2] = INTRA_ANGULAR_10;
-  candidates[3] = INTRA_ANGULAR_26;
+  int candidates[3];
+
+  const seq_parameter_set* sps = &img.sps;
+
+
+  fillIntraPredModeCandidates(candidates, x0,y0,
+                              (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs,
+                              x0>0, y0>0, &img);
+
+  // --- test candidates first ---
+
+  for (int idx=0;idx<3;idx++) {
+    enum IntraPredMode mode = (enum IntraPredMode)candidates[idx];
+    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
+
+    // measure SAD
+
+    int sad=0;
+    int imgStride = img.get_image_stride(cIdx);
+    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
+    for (int y=0;y<blkSize;y++)
+      for (int x=0;x<blkSize;x++)
+        {
+          int diff = ref[x + y*stride] - pred[x + y*imgStride];
+          sad += abs_value(diff);
+        }
+
+    sad *= 0.9;
+
+    if (mode==0 || sad<min_sad) {
+      min_sad = sad;
+      best_mode = (enum IntraPredMode)mode;
+    }
+  }
+
+
+  // --- test all modes ---
 
   for (int idx=0;idx<35;idx++) {
     enum IntraPredMode mode = (enum IntraPredMode)idx; //candidates[idx];
@@ -252,7 +277,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
           sad += abs_value(diff);
         }
 
-    if (mode==0 || sad<min_sad) {
+    if (min_sad<0 || sad<min_sad) {
       min_sad = sad;
       best_mode = (enum IntraPredMode)mode;
     }
@@ -634,7 +659,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   pps.write(&errqueue, &writer, &sps);
   writer.flush_VLC();
 
-  int maxPoc = 99100;
+  int maxPoc = 10;//99100;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
