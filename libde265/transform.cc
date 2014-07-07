@@ -233,6 +233,12 @@ void transform_coefficients(decoder_context* ctx,
     else if (nT==16) { ctx->acceleration.transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
     else             { ctx->acceleration.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
   }
+
+        printf("decoded pixels:\n");
+        for (int y=0;y<16;y++,printf("\n"))
+          for (int x=0;x<16;x++) {
+            printf("%02x ",dst[y*dstStride+x]);
+          }
 }
 
 
@@ -496,14 +502,14 @@ void quant_coefficients(//encoder_context* ectx,
       int sign;
       int blockPos = y * nStride + x;
       level  = in_coeff[blockPos];
-      printf("(%d,%d) %d -> ", x,y,level);
+      //logtrace(LogTransform,"(%d,%d) %d -> ", x,y,level);
       sign   = (level < 0 ? -1: 1);
 
       level = (abs_value(level) * uiQ + rnd ) >> qBits;
       uiAcSum += level;
       level *= sign;
       out_coeff[blockPos] = Clip3(-32768, 32767, level);
-      printf("%d\n", out_coeff[blockPos]);
+      //logtrace(LogTransform,"%d\n", out_coeff[blockPos]);
     }
   }
 }

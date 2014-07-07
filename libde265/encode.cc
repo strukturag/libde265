@@ -449,7 +449,7 @@ void findLastSignificantCoeff(const position* sbScan, const position* cScan,
         *lastSb = i;
         *lastPos= c;
 
-        printf("last significant coeff at: %d;%d, Sb:%d Pos:%d\n", x,y,i,c);
+        logtrace(LogSlice,"last significant coeff at: %d;%d, Sb:%d Pos:%d\n", x,y,i,c);
 
         return;
       }
@@ -528,14 +528,14 @@ void encode_last_signficiant_coeff_prefix(encoder_context* ectx, int log2TrafoSi
 
 void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSuffixBits)
 {
-  printf("split position %d : ",pos);
+  logtrace(LogSlice,"split position %d : ",pos);
 
   // most frequent case
 
   if (pos<=3) {
     *prefix=pos;
     *nSuffixBits=0;
-    printf("prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
+    logtrace(LogSlice,"prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
     return;
   }
 
@@ -556,7 +556,7 @@ void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSu
   *suffix = pos;
   *nSuffixBits = nBits;
 
-  printf("prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
+  logtrace(LogSlice,"prefix=%d suffix=%d (%d bits)\n",*prefix,*suffix,*nSuffixBits);
 }
 
 
@@ -666,7 +666,6 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
     int inferSbDcSigCoeffFlag=0;
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
-    printf("coding sub block %d\n",i);
 
 
     // --- check whether this sub-block has to be coded ---
@@ -693,7 +692,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
     }
 
-    printf("subblock is coded: %s\n", sub_block_is_coded ? "yes":"no");
+    logtrace(LogSlice,"subblock is coded: %s\n", sub_block_is_coded ? "yes":"no");
 
 
     // --- write significant coefficient flags ---
@@ -742,9 +741,9 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
         int isSignificant = !!tb->coeff[cIdx][xC + (yC<<log2TrafoSize)];
 
-        printf("coeff %d is significant: %d\n", n, isSignificant);
+        logtrace(LogSlice,"coeff %d is significant: %d\n", n, isSignificant);
 
-        printf("context idx: %d;%d\n",xC,yC);
+        logtrace(LogSlice,"context idx: %d;%d\n",xC,yC);
 
         encode_significant_coeff_flag_lookup(ectx,
                                              ctxIdxMap[xC+(yC<<log2TrafoSize)],
@@ -772,7 +771,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
             // if we cannot infert the DC coefficient, it is coded
             int isSignificant = !!tb->coeff[cIdx][x0 + (y0<<log2TrafoSize)];
 
-            printf("DC coeff is significant: %d\n", isSignificant);
+            logtrace(LogSlice,"DC coeff is significant: %d\n", isSignificant);
 
             encode_significant_coeff_flag_lookup(ectx,
                                                  ctxIdxMap[x0+(y0<<log2TrafoSize)],
@@ -803,10 +802,10 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
       // separate absolute coefficient value and sign
 
-      printf("coefficients to code: ");
+      logtrace(LogSlice,"coefficients to code: ");
 
       for (int l=0;l<nCoefficients;l++) {
-        printf("%d ",coeff_value[l]);
+        logtrace(LogSlice,"%d ",coeff_value[l]);
 
         if (coeff_value[l]<0) {
           coeff_value[l] = -coeff_value[l];
@@ -818,10 +817,10 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
         coeff_baseLevel[l] = 1;
 
-        printf("(%d) ",coeff_value[l]);
+        logtrace(LogSlice,"(%d) ",coeff_value[l]);
       }
 
-      printf("\n");
+      logtrace(LogSlice,"\n");
 
 
       int ctxSet;
@@ -911,7 +910,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
         int coeff_abs_level_remaining;
 
         if (coeff_has_max_base_level[n]) {
-          printf("value[%d]=%d, base level: %d\n",n,coeff_value[n],coeff_baseLevel[n]);
+          logtrace(LogSlice,"value[%d]=%d, base level: %d\n",n,coeff_value[n],coeff_baseLevel[n]);
 
           coeff_abs_level_remaining = coeff_value[n] - coeff_baseLevel[n];
 
@@ -1049,7 +1048,7 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
 void encode_coding_unit(encoder_context* ectx,
                         const enc_cb* cb, int x0,int y0, int log2CbSize)
 {
-  printf("--- encode CU (%d;%d) ---\n",x0,y0);
+  logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
   de265_image* img = ectx->img;
   const slice_segment_header* shdr = ectx->shdr;
@@ -1074,7 +1073,7 @@ void encode_coding_unit(encoder_context* ectx,
     int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
 
     if (PartMode==PART_2Nx2N) {
-      printf("x0,y0: %d,%d\n",x0,y0);
+      logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
       int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
       int candModeList[3];
@@ -1089,9 +1088,9 @@ void encode_coding_unit(encoder_context* ectx,
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
 
-      printf("IntraPredMode: %d (candidates: %d %d %d)\n", mode,
-             candModeList[0], candModeList[1], candModeList[2]);
-      printf("  MPM/REM = %d\n",intraPred);
+      logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
+               candModeList[0], candModeList[1], candModeList[2]);
+      logtrace(LogSlice,"  MPM/REM = %d\n",intraPred);
     }
     else {
       IntraSplitFlag=1;
@@ -1206,7 +1205,7 @@ void encode_quadtree(encoder_context* ectx,
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
 {
-  printf("----- encode CTB (%d;%d) -----\n",ctbX,ctbY);
+  logtrace(LogSlice,"----- encode CTB (%d;%d) -----\n",ctbX,ctbY);
 
   de265_image* img = ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;

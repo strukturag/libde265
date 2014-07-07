@@ -99,8 +99,8 @@ void encode_image_coeffTest_1()
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);
 
-        printf("wrote CTB at %d;%d\n",x*16,y*16);
-        printf("write term bit: %d\n",last);
+        //printf("wrote CTB at %d;%d\n",x*16,y*16);
+        //printf("write term bit: %d\n",last);
         writer.write_CABAC_term_bit(last);
 
 
@@ -184,8 +184,8 @@ void encode_image_FDCT_1()
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);
 
-        printf("wrote CTB at %d;%d\n",x*16,y*16);
-        printf("write term bit: %d\n",last);
+        //printf("wrote CTB at %d;%d\n",x*16,y*16);
+        //printf("write term bit: %d\n",last);
         writer.write_CABAC_term_bit(last);
 
 
@@ -217,18 +217,56 @@ void printBlk(int16_t* data, int blksize, int stride)
 }
 
 
-void encode_image_FDCT_2()
+enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
+                                        uint8_t* ref, int stride)
 {
-  FILE* fh = fopen("paris_cif.yuv","rb");
-  uint8_t* input[3];
-  input[0] = (uint8_t*)malloc(352*288);
-  input[1] = (uint8_t*)malloc(352*288/4);
-  input[2] = (uint8_t*)malloc(352*288/4);
-  fread(input[0],352,288,fh);
-  fread(input[1],352,288/4,fh);
-  fread(input[2],352,288/4,fh);
-  fclose(fh);
-  int stride = 352;
+  /*
+  return (enum IntraPredMode)(((x0+y0)/16) % 35);
+
+  bool flag = ((x0/16) + (y0/16)) & 1;
+  if (flag) return INTRA_PLANAR; else return INTRA_DC;
+  */
+
+  enum IntraPredMode best_mode;
+  int min_sad=0;
+
+  enum IntraPredMode candidates[35];
+  candidates[0] = INTRA_PLANAR;
+  candidates[1] = INTRA_DC;
+  candidates[2] = INTRA_ANGULAR_10;
+  candidates[3] = INTRA_ANGULAR_26;
+
+  for (int idx=0;idx<35;idx++) {
+    enum IntraPredMode mode = (enum IntraPredMode)idx; //candidates[idx];
+    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
+
+    // measure SAD
+
+    int sad=0;
+    int imgStride = img.get_image_stride(cIdx);
+    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
+    for (int y=0;y<blkSize;y++)
+      for (int x=0;x<blkSize;x++)
+        {
+          int diff = ref[x + y*stride] - pred[x + y*imgStride];
+          sad += abs_value(diff);
+        }
+
+    if (mode==0 || sad<min_sad) {
+      min_sad = sad;
+      best_mode = (enum IntraPredMode)mode;
+    }
+  }
+
+  printf("%d;%d -> %d\n",x0,y0,best_mode);
+
+  return best_mode;
+}
+
+
+void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
+{
+  int stride=width;
 
   int w = sps.pic_width_in_luma_samples;
   int h = sps.pic_height_in_luma_samples;
@@ -249,6 +287,8 @@ void encode_image_FDCT_2()
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
 
+        logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
+
         enc_cb* cb = ectx.enc_cb_pool.get_new();
         cb->split_cu_flag = false;
 
@@ -258,8 +298,15 @@ void encode_image_FDCT_2()
 
         enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
         cb->intra_pb[0] = pb;
+
+        enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, 16,0,
+                                                            &input[0][y0*stride+x0], stride);
+
         pb->pred_mode = INTRA_PLANAR;
         pb->pred_mode_chroma = INTRA_PLANAR;
+
+        pb->pred_mode = intraMode;
+        pb->pred_mode_chroma = intraMode;
 
 
         enc_tb* tb = ectx.enc_tb_pool.get_new();
@@ -322,24 +369,29 @@ void encode_image_FDCT_2()
 
         // decode into image
 
-        if (1)
-          {
-            printf("reconstruct %d/%d\n",x0,y0);
+        //printf("reconstruct %d/%d\n",x0,y0);
 
-            dequant_coefficients(coeff_luma, coeff_luma, 4, 27);
-            dequant_coefficients(coeff_cb,   coeff_cb,   3, 27);
-            dequant_coefficients(coeff_cr,   coeff_cr,   3, 27);
+        dequant_coefficients(coeff_luma, coeff_luma, 4, 27);
+        dequant_coefficients(coeff_cb,   coeff_cb,   3, 27);
+        dequant_coefficients(coeff_cr,   coeff_cr,   3, 27);
 
-            transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff_luma, stride);
-            transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],  coeff_cb, stride/2);
-            transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2],  coeff_cr, stride/2);
+        transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff_luma, stride);
+        transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],  coeff_cb, stride/2);
+        transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2],  coeff_cr, stride/2);
 
-            printf("dequant luma:\n");
-            printBlk(coeff_luma, 16,16);
-            printf("dequant cb:\n");
-            printBlk(coeff_cb, 8,8);
-            printf("dequant cr:\n");
-            printBlk(coeff_cr, 8,8);
+        if (0) {
+          printf("dequant luma:\n");
+          printBlk(coeff_luma, 16,16);
+          printf("dequant cb:\n");
+          printBlk(coeff_cb, 8,8);
+          printf("dequant cr:\n");
+          printBlk(coeff_cr, 8,8);
+        }
+
+        printf("decoded pixels:\n");
+        for (int y=0;y<16;y++,printf("\n"))
+          for (int x=0;x<16;x++) {
+            printf("%02x ",luma_plane[(y0+y)*stride+x0+x]);
           }
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
@@ -497,12 +549,126 @@ void write_stream_1()
   writer.flush_VLC();
 
   //encode_image_coeffTest_1();
-  //encode_image_FDCT_1();
-  encode_image_FDCT_2();
+  encode_image_FDCT_1();
+  //encode_image_FDCT_2();
 
   //encode_image(&ectx);
   writer.flush_CABAC();
 }
+
+
+void encode_stream_intra_1(const char* yuv_filename, int width, int height)
+{
+  FILE* fh = fopen(yuv_filename,"rb");
+  uint8_t* input[3];
+  input[0] = (uint8_t*)malloc(width*height);
+  input[1] = (uint8_t*)malloc(width*height/4);
+  input[2] = (uint8_t*)malloc(width*height/4);
+
+
+  nal_header nal;
+
+  // VPS
+
+  vps.set_defaults(Profile_Main, 6,2);
+
+
+  // SPS
+
+  sps.set_defaults();
+  sps.set_CB_log2size_range(4,4);
+  sps.set_TB_log2size_range(4,4);
+  sps.set_resolution(352,288);
+  sps.compute_derived_values();
+
+  // PPS
+
+  pps.set_defaults();
+
+  // turn off deblocking filter
+  pps.deblocking_filter_control_present_flag = true;
+  pps.deblocking_filter_override_enabled_flag = false;
+  pps.pic_disable_deblocking_filter_flag = true;
+  pps.pps_loop_filter_across_slices_enabled_flag = false;
+
+  pps.set_derived_values(&sps);
+
+
+  // slice
+
+  shdr.set_defaults(&pps);
+  shdr.slice_deblocking_filter_disabled_flag = true;
+  shdr.slice_loop_filter_across_slices_enabled_flag = false;
+
+  img.vps  = vps;
+  img.sps  = sps;
+  img.pps  = pps;
+
+  ectx.img = &img;
+  ectx.shdr = &shdr;
+  ectx.cabac_encoder = &writer;
+
+  //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+
+
+
+  // write headers
+
+  writer.write_startcode();
+  nal.set(NAL_UNIT_VPS_NUT);
+  nal.write(&writer);
+  vps.write(&errqueue, &writer);
+  writer.flush_VLC();
+
+  writer.write_startcode();
+  nal.set(NAL_UNIT_SPS_NUT);
+  nal.write(&writer);
+  sps.write(&errqueue, &writer);
+  writer.flush_VLC();
+
+  writer.write_startcode();
+  nal.set(NAL_UNIT_PPS_NUT);
+  nal.write(&writer);
+  pps.write(&errqueue, &writer, &sps);
+  writer.flush_VLC();
+
+  int maxPoc = 1;
+  for (int poc=0; poc<maxPoc ;poc++)
+    {
+      fprintf(stderr,"encoding frame %d\n",poc);
+
+      fread(input[0],1,width*height,fh);
+      fread(input[1],1,width*height/4,fh);
+      fread(input[2],1,width*height/4,fh);
+      
+      if (feof(fh)) { break; }
+
+
+      // write slice header
+
+      //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
+
+      writer.write_startcode();
+      //nal.set(poc==0 ? NAL_UNIT_IDR_W_RADL : NAL_UNIT_TRAIL_N);
+      nal.set(NAL_UNIT_IDR_W_RADL);
+      nal.write(&writer);
+      shdr.write(&errqueue, &writer, &sps, &pps, nal.nal_unit_type);
+      writer.skip_bits(1);
+      writer.flush_VLC();
+
+      //encode_image_coeffTest_1();
+      //encode_image_FDCT_1();
+      writer.init_CABAC();
+      encode_image_FDCT_2(input,width,height);
+
+      //encode_image(&ectx);
+      writer.flush_CABAC();
+    }
+
+  fclose(fh);
+}
+
+
 
 
 
@@ -513,11 +679,10 @@ int main(int argc, char** argv)
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 
-  de265_set_verbosity(3);
+  //DCT_test();
 
-  DCT_test();
+  encode_stream_intra_1("paris_cif.yuv",352,288);
 
-  write_stream_1();
 
   FILE* fh = fopen("out.bin","wb");
   fwrite(writer.data(), 1,writer.size(), fh);

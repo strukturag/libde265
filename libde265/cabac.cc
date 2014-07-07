@@ -444,14 +444,8 @@ CABAC_encoder::CABAC_encoder()
 
   vlc_buffer_len = 0;
 
-  range = 510;
-  low = 0;
-
-  bits_left = 23;
-  buffered_byte = 0xFF;
-  num_buffered_bytes = 0;
+  init_CABAC();
 }
-
 
 CABAC_encoder::~CABAC_encoder()
 {
@@ -580,6 +574,16 @@ void CABAC_encoder::write_startcode()
   data_size+=3;
 }
 
+void CABAC_encoder::init_CABAC()
+{
+  range = 510;
+  low = 0;
+
+  bits_left = 23;
+  buffered_byte = 0xFF;
+  num_buffered_bytes = 0;
+}
+
 void CABAC_encoder::flush_CABAC()
 {
   if (low >> (32 - bits_left))
@@ -626,13 +630,13 @@ void CABAC_encoder::flush_CABAC()
 
 void CABAC_encoder::write_out()
 {
-  printf("low = %08x (bits_left=%d)\n",low,bits_left);
+  logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;
   low &= 0xffffffffu >> bits_left;
 
-  printf("write byte %02x\n",leadByte);
-  printf("-> low = %08x\n",low);
+  logtrace(LogCABAC,"write byte %02x\n",leadByte);
+  logtrace(LogCABAC,"-> low = %08x\n",low);
   
   if (leadByte == 0xff)
     {
@@ -664,7 +668,7 @@ void CABAC_encoder::write_out()
 
 void CABAC_encoder::testAndWriteOut()
 {
-  printf("bits_left = %d\n",bits_left);
+  logtrace(LogCABAC,"bits_left = %d\n",bits_left);
 
   if (bits_left < 12)
     {
@@ -680,7 +684,7 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
 
-  printf("[%d] range=%x low=%x state=%d, bin=%d\n",encBinCnt, range,low, model->state,bin);
+  logtrace(LogCABAC,"[%d] range=%x low=%x state=%d, bin=%d\n",encBinCnt, range,low, model->state,bin);
   encBinCnt++;
 
   uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
@@ -688,7 +692,7 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
   
   if (bin != model->MPSbit)
     {
-      printf("LPS\n");
+      logtrace(LogCABAC,"LPS\n");
 
       int num_bits = renorm_table[ LPS >> 3 ];
       low = (low + range) << num_bits;
@@ -702,7 +706,7 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
     }
   else
     {
-      printf("MPS\n");
+      logtrace(LogCABAC,"MPS\n");
 
       model->state = next_state_MPS[model->state];
 
@@ -721,7 +725,7 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
 
 void CABAC_encoder::write_CABAC_bypass(int bin)
 {
-  printf("[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
+  logtrace(LogCABAC,"[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
   encBinCnt++;
 
   // BinsCoded += m_binCountIncrement;
@@ -757,7 +761,7 @@ void CABAC_encoder::write_CABAC_FL_bypass(int value, int n)
 
 void CABAC_encoder::write_CABAC_term_bit(int bit)
 {
-  printf("CABAC term: range=%x\n", range);
+  logtrace(LogCABAC,"CABAC term: range=%x\n", range);
 
   range -= 2;
 

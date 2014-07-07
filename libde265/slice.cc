@@ -358,7 +358,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         if (nBits>0) short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         short_term_ref_pic_set_idx = 0;
 
-        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
+        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets ||
+            short_term_ref_pic_set_idx >= sps->ref_pic_sets.size()) {
           ctx->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
