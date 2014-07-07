@@ -234,11 +234,13 @@ void transform_coefficients(decoder_context* ctx,
     else             { ctx->acceleration.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
   }
 
+#if 0
         printf("decoded pixels:\n");
         for (int y=0;y<16;y++,printf("\n"))
           for (int x=0;x<16;x++) {
             printf("%02x ",dst[y*dstStride+x]);
           }
+#endif
 }
 
 

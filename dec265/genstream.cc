@@ -258,7 +258,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
     }
   }
 
-  printf("%d;%d -> %d\n",x0,y0,best_mode);
+  // printf("%d;%d -> %d\n",x0,y0,best_mode);
 
   return best_mode;
 }
@@ -388,17 +388,19 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
           printBlk(coeff_cr, 8,8);
         }
 
+#if 0
         printf("decoded pixels:\n");
         for (int y=0;y<16;y++,printf("\n"))
           for (int x=0;x<16;x++) {
             printf("%02x ",luma_plane[(y0+y)*stride+x0+x]);
           }
+#endif
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);
 
-        printf("wrote CTB at %d;%d\n",x*16,y*16);
-        printf("write term bit: %d\n",last);
+        //printf("wrote CTB at %d;%d\n",x*16,y*16);
+        //printf("write term bit: %d\n",last);
         writer.write_CABAC_term_bit(last);
 
 
@@ -632,7 +634,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   pps.write(&errqueue, &writer, &sps);
   writer.flush_VLC();
 
-  int maxPoc = 1;
+  int maxPoc = 99100;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
@@ -674,7 +676,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 
 int main(int argc, char** argv)
 {
-  de265_set_verbosity(3);
+  //de265_set_verbosity(3);
 
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();

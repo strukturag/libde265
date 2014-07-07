@@ -611,10 +611,13 @@ void CABAC_encoder::flush_CABAC()
         }    
     }
 
+  //fprintf(stderr,"low: %08x nbits left:%d\n",low,bits_left);
+
+#if 0
   int n = 24-bits_left;
   int val = (low>>8);
 
-  // make sure, we output full bytes
+  // make sure we output full bytes
 
   while (n%8) {
     val<<=1;
@@ -625,6 +628,24 @@ void CABAC_encoder::flush_CABAC()
     append_byte( (val>>(n-8)) & 0xFF );
     n-=8;
   }
+#endif
+
+#if 1
+  int n = 32-bits_left;
+  int val = (low);
+
+  // make sure we output full bytes
+
+  while (n%8) {
+    val<<=1;
+    n++;
+  }
+
+  while (n>0) {
+    append_byte( (val>>(n-8)) & 0xFF );
+    n-=8;
+  }
+#endif
 }
 
 
