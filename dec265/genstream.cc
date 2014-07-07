@@ -25,6 +25,7 @@
 #include "libde265/slice.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
+#include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
 #include <assert.h>
 
@@ -204,6 +205,18 @@ bool coeffzero(const int16_t* c,int n)
 }
 
 
+void printBlk(int16_t* data, int blksize, int stride)
+{
+  for (int y=0;y<blksize;y++) {
+    logtrace(LogTransform,"  ");
+    for (int x=0;x<blksize;x++) {
+      logtrace(LogTransform,"*%3d ", data[x+y*stride]);
+    }
+    logtrace(LogTransform,"*\n");
+  }
+}
+
+
 void encode_image_FDCT_2()
 {
   FILE* fh = fopen("paris_cif.yuv","rb");
@@ -245,8 +258,8 @@ void encode_image_FDCT_2()
 
         enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
         cb->intra_pb[0] = pb;
-        pb->pred_mode = INTRA_DC;
-        pb->pred_mode_chroma = INTRA_DC;
+        pb->pred_mode = INTRA_PLANAR;
+        pb->pred_mode_chroma = INTRA_PLANAR;
 
 
         enc_tb* tb = ectx.enc_tb_pool.get_new();
@@ -275,8 +288,8 @@ void encode_image_FDCT_2()
         for (int y=0;y<8;y++)
           for (int x=0;x<8;x++)
             {
-              blk[1][y*8+x] = input[1][(y0/2+y)*stride/2 +(x0+x)/2] - cb_plane[(y0/2+y)*stride/2 + (x0/2+x)];
-              blk[2][y*8+x] = input[2][(y0/2+y)*stride/2 +(x0+x)/2] - cr_plane[(y0/2+y)*stride/2 + (x0/2+x)];
+              blk[1][y*8+x] = input[1][(y0/2+y)*stride/2 +(x0)/2+x] - cb_plane[(y0/2+y)*stride/2 + (x0/2+x)];
+              blk[2][y*8+x] = input[2][(y0/2+y)*stride/2 +(x0)/2+x] - cr_plane[(y0/2+y)*stride/2 + (x0/2+x)];
             }
 
 
@@ -290,27 +303,18 @@ void encode_image_FDCT_2()
         fdct_8x8_8_fallback(coeff_cr, blk[2],8);
 
         logtrace(LogTransform,"raw DCT coefficients:\n");
-        for (int y=0;y<16;y++) {
-          logtrace(LogTransform,"  ");
-          for (int x=0;x<16;x++) {
-            logtrace(LogTransform,"*%3d ", coeff_luma[x+y*16]);
-          }
-          logtrace(LogTransform,"*\n");
-        }
+        printBlk(coeff_luma,16,16);
 
+        quant_coefficients(coeff_luma, coeff_luma, 4, 27, true);
+        quant_coefficients(coeff_cb,   coeff_cb,   3, 27, true);
+        quant_coefficients(coeff_cr,   coeff_cr,   3, 27, true);
 
-        for (int i=0;i<16*16;i++) {
-          coeff_luma[i] = coeff_luma[i] *64 /16 * 64/57 ;
-        }
-
-        for (int i=0;i<8*8;i++) {
-          coeff_cb[i] = coeff_cb[i] *32 /16 * 64/57 ;
-          coeff_cr[i] = coeff_cr[i] *32 /16 * 64/57 ;
-        }
+        logtrace(LogTransform,"quantized DCT coefficients:\n");
+        printBlk(coeff_luma,16,16);
 
         tb->cbf_luma = !coeffzero(coeff_luma,16*16);
-        tb->cbf_cb   = false; // !coeffzero(coeff_cb,  8*8);
-        tb->cbf_cr   = false; // !coeffzero(coeff_cr,  8*8);
+        tb->cbf_cb   = !coeffzero(coeff_cb,  8*8);
+        tb->cbf_cr   = !coeffzero(coeff_cr,  8*8);
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
         encode_ctb(&ectx, cb, x,y);
@@ -318,21 +322,25 @@ void encode_image_FDCT_2()
 
         // decode into image
 
-        transform_16x16_add_8_fallback(&luma_plane[(y0+y)*stride + x0+x],  coeff_luma, stride);
+        if (1)
+          {
+            printf("reconstruct %d/%d\n",x0,y0);
 
-        for (int y=0;y<16;y++)
-          for (int x=0;x<16;x++)
-            {
-              luma_plane[(y0+y)*stride + x0+x] = input[0][(y0+y)*stride +x0+x];
-            }
+            dequant_coefficients(coeff_luma, coeff_luma, 4, 27);
+            dequant_coefficients(coeff_cb,   coeff_cb,   3, 27);
+            dequant_coefficients(coeff_cr,   coeff_cr,   3, 27);
 
-        for (int y=0;y<8;y++)
-          for (int x=0;x<8;x++)
-            {
-              cb_plane[(y0/2+y)*stride/2 + x0/2+x] = input[1][(y0/2+y)*stride/2 +x0/2+x];
-              cr_plane[(y0/2+y)*stride/2 + x0/2+x] = input[2][(y0/2+y)*stride/2 +x0/2+x];
-            }
+            transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff_luma, stride);
+            transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],  coeff_cb, stride/2);
+            transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2],  coeff_cr, stride/2);
 
+            printf("dequant luma:\n");
+            printBlk(coeff_luma, 16,16);
+            printf("dequant cb:\n");
+            printBlk(coeff_cb, 8,8);
+            printf("dequant cr:\n");
+            printBlk(coeff_cr, 8,8);
+          }
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);

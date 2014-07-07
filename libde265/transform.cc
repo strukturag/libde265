@@ -332,6 +332,8 @@ void scale_coefficients(thread_context* tctx,
         currCoeff = Clip3(-32768,32767,
                           ( (currCoeff * fact + offset ) >> bdShift));
 
+        logtrace(LogTransform," -> %d\n",currCoeff);
+
         tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
     }
@@ -448,5 +450,92 @@ void scale_coefficients(thread_context* tctx,
 
   for (int i=0;i<tctx->nCoeff[cIdx];i++) {
     tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = 0;
+  }
+}
+
+
+
+//#define QUANT_IQUANT_SHIFT    20 // Q(QP%6) * IQ(QP%6) = 2^20
+#define QUANT_SHIFT           14 // Q(4) = 2^14
+//#define SCALE_BITS            15 // Inherited from TMuC, pressumably for fractional bit estimates in RDOQ
+#define MAX_TR_DYNAMIC_RANGE  15 // Maximum transform dynamic range (excluding sign bit)
+
+
+const static uint16_t g_quantScales[6] = {
+  26214,23302,20560,18396,16384,14564
+};
+
+void quant_coefficients(//encoder_context* ectx,
+                        int16_t* out_coeff,
+                        const int16_t* in_coeff,
+                        int log2TrSize, int qp,
+                        bool intra)
+{
+  const int qpDiv6 = qp / 6;
+  const int qpMod6 = qp % 6;
+
+  //int uiLog2TrSize = xLog2( iWidth - 1);
+
+  int uiQ = g_quantScales[qpMod6];
+  int bitDepth = 8;
+  int transformShift = MAX_TR_DYNAMIC_RANGE - bitDepth - log2TrSize;  // Represents scaling through forward transform
+  int qBits = QUANT_SHIFT + qpDiv6 + transformShift;
+
+  /* TODO: originally, this was checking for intra slices, why not for intra mode ?
+   */
+  int rnd = (intra ? 171 : 85) << (qBits-9);
+
+  int x, y;
+  int uiAcSum = 0;
+
+  int nStride = (1<<log2TrSize);
+
+  for (y=0; y < (1<<log2TrSize) ; y++) {
+    for (x=0; x < (1<<log2TrSize) ; x++) {
+      int level;
+      int sign;
+      int blockPos = y * nStride + x;
+      level  = in_coeff[blockPos];
+      printf("(%d,%d) %d -> ", x,y,level);
+      sign   = (level < 0 ? -1: 1);
+
+      level = (abs_value(level) * uiQ + rnd ) >> qBits;
+      uiAcSum += level;
+      level *= sign;
+      out_coeff[blockPos] = Clip3(-32768, 32767, level);
+      printf("%d\n", out_coeff[blockPos]);
+    }
+  }
+}
+
+
+void dequant_coefficients(int16_t* out_coeff,
+                          const int16_t* in_coeff,
+                          int log2TrSize, int qP)
+{
+  const int m_x_y = 1;
+  int bitDepth = 8;
+  int bdShift = bitDepth + log2TrSize - 5;
+  bdShift -= 4;  // this is equivalent to having a m_x_y of 16 and we can use 32bit integers
+
+  const int offset = (1<<(bdShift-1));
+  const int fact = m_x_y * levelScale[qP%6] << (qP/6);
+
+  int blkSize = (1<<log2TrSize);
+  int nCoeff  = (1<<(log2TrSize<<1));
+
+  for (int i=0;i<nCoeff;i++) {
+
+    // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
+    int32_t currCoeff  = in_coeff[i];
+
+    logtrace(LogTransform,"coefficient[%d] = %d\n",i,currCoeff);
+
+    currCoeff = Clip3(-32768,32767,
+                      ( (currCoeff * fact + offset ) >> bdShift));
+
+    logtrace(LogTransform," -> %d\n",currCoeff);
+
+    out_coeff[i] = currCoeff;
   }
 }

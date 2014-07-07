@@ -44,4 +44,13 @@ void scale_coefficients(thread_context* tctx,
                         int nT, int cIdx,
                         bool transform_skip_flag, bool intra);
 
+void quant_coefficients(int16_t* out_coeff,
+                        const int16_t* in_coeff,
+                        int log2TrSize, int qp,
+                        bool intra);
+
+void dequant_coefficients(int16_t* out_coeff,
+                          const int16_t* in_coeff,
+                          int log2TrSize, int qP);
+
 #endif
