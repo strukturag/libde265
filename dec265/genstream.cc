@@ -27,6 +27,7 @@
 #include "libde265/intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
+#include "libde265/quality.h"
 #include <assert.h>
 
 error_queue errqueue;
@@ -218,7 +219,7 @@ void printBlk(int16_t* data, int blksize, int stride)
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
-                                        uint8_t* ref, int stride)
+                                        const uint8_t* ref, int stride)
 {
   enum IntraPredMode best_mode;
   int min_sad=-1;
@@ -289,7 +290,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
 }
 
 
-void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
+double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, int qp)
 {
   int stride=width;
 
@@ -302,6 +303,10 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
   initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);
 
   int Log2CtbSize = sps.Log2CtbSizeY;
+
+  uint8_t* luma_plane = img.get_image_plane(0);
+  uint8_t* cb_plane = img.get_image_plane(1);
+  uint8_t* cr_plane = img.get_image_plane(2);
 
 
   // encode CTB by CTB
@@ -347,21 +352,18 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
 
         // subtract intra-prediction from input
 
-        uint8_t* luma_plane = img.get_image_plane(0);
-        uint8_t* cb_plane = img.get_image_plane(1);
-        uint8_t* cr_plane = img.get_image_plane(2);
         int16_t blk[3][16*16];
-        for (int y=0;y<16;y++)
-          for (int x=0;x<16;x++)
+        for (int by=0;by<16;by++)
+          for (int bx=0;bx<16;bx++)
             {
-              blk[0][y*16+x] = input[0][(y0+y)*stride +x0+x] - luma_plane[(y0+y)*stride + x0+x];
+              blk[0][by*16+bx] = input[0][(y0+by)*stride +x0+bx] - luma_plane[(y0+by)*stride + x0+bx];
             }
 
-        for (int y=0;y<8;y++)
-          for (int x=0;x<8;x++)
+        for (int by=0;by<8;by++)
+          for (int bx=0;bx<8;bx++)
             {
-              blk[1][y*8+x] = input[1][(y0/2+y)*stride/2 +(x0)/2+x] - cb_plane[(y0/2+y)*stride/2 + (x0/2+x)];
-              blk[2][y*8+x] = input[2][(y0/2+y)*stride/2 +(x0)/2+x] - cr_plane[(y0/2+y)*stride/2 + (x0/2+x)];
+              blk[1][by*8+bx] = input[1][(y0/2+by)*stride/2 +(x0)/2+bx] - cb_plane[(y0/2+by)*stride/2 + (x0/2+bx)];
+              blk[2][by*8+bx] = input[2][(y0/2+by)*stride/2 +(x0)/2+bx] - cr_plane[(y0/2+by)*stride/2 + (x0/2+bx)];
             }
 
 
@@ -377,9 +379,9 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
         logtrace(LogTransform,"raw DCT coefficients:\n");
         printBlk(coeff_luma,16,16);
 
-        quant_coefficients(coeff_luma, coeff_luma, 4, 27, true);
-        quant_coefficients(coeff_cb,   coeff_cb,   3, 27, true);
-        quant_coefficients(coeff_cr,   coeff_cr,   3, 27, true);
+        quant_coefficients(coeff_luma, coeff_luma, 4, qp, true);
+        quant_coefficients(coeff_cb,   coeff_cb,   3, qp, true);
+        quant_coefficients(coeff_cr,   coeff_cr,   3, qp, true);
 
         logtrace(LogTransform,"quantized DCT coefficients:\n");
         printBlk(coeff_luma,16,16);
@@ -396,9 +398,9 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
 
         //printf("reconstruct %d/%d\n",x0,y0);
 
-        dequant_coefficients(coeff_luma, coeff_luma, 4, 27);
-        dequant_coefficients(coeff_cb,   coeff_cb,   3, 27);
-        dequant_coefficients(coeff_cr,   coeff_cr,   3, 27);
+        dequant_coefficients(coeff_luma, coeff_luma, 4, qp);
+        dequant_coefficients(coeff_cb,   coeff_cb,   3, qp);
+        dequant_coefficients(coeff_cr,   coeff_cr,   3, qp);
 
         transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff_luma, stride);
         transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],  coeff_cb, stride/2);
@@ -433,6 +435,12 @@ void encode_image_FDCT_2(uint8_t* input[3],int width,int height)
         ectx.enc_tb_pool.free_all();
         ectx.enc_pb_intra_pool.free_all();
       }
+
+
+  double psnr = PSNR(MSE(input[0], width,
+                         luma_plane, img.get_image_stride(0),
+                         width, height));
+  return psnr;
 }
 
 
@@ -586,6 +594,9 @@ void write_stream_1()
 
 void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 {
+  int qp = 15;
+
+
   FILE* fh = fopen(yuv_filename,"rb");
   uint8_t* input[3];
   input[0] = (uint8_t*)malloc(width*height);
@@ -611,6 +622,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // PPS
 
   pps.set_defaults();
+  pps.pic_init_qp = qp;
 
   // turn off deblocking filter
   pps.deblocking_filter_control_present_flag = true;
@@ -686,10 +698,12 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
       //encode_image_coeffTest_1();
       //encode_image_FDCT_1();
       writer.init_CABAC();
-      encode_image_FDCT_2(input,width,height);
+      double psnr = encode_image_FDCT_2(input,width,height, qp);
 
       //encode_image(&ectx);
       writer.flush_CABAC();
+
+      fprintf(stderr,"  PSNR-Y: %f\n", psnr);
     }
 
   fclose(fh);

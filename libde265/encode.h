@@ -26,6 +26,39 @@
 #include "libde265/image.h"
 #include "libde265/decctx.h"
 
+enum RateControlMethod
+  {
+    RateControlMethod_ConstantQP
+  };
+
+enum IntraPredSearch
+  {
+    IntraPredSearch_Complete
+  };
+
+
+struct encoder_params
+{
+  // input
+
+  int first_frame;
+  int max_number_of_frames;
+
+
+  // intra-prediction
+
+  enum IntraPredSearch intraPredSearch;
+
+
+  // rate-control
+
+  enum RateControlMethod rateControlMethod;
+
+  int constant_QP;
+};
+
+
+
 struct enc_tb
 {
   enc_tb* parent;
@@ -164,14 +197,9 @@ struct encoder_context
 
   CABAC_encoder* cabac_encoder;
 
-  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model_table ctx_model;
 };
 
-
-/* Image contains the input image with all its metadata and will be
-   overwritten by the reconstructed image.
-*/
-void encode_image(encoder_context*);
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
 

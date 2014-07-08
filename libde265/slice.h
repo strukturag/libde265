@@ -153,6 +153,8 @@ enum context_model_indices {
   CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
 };
 
+typedef context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH];
+
 
 typedef struct slice_segment_header {
   slice_segment_header() { }
