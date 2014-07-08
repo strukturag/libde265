@@ -229,7 +229,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
 
 
   fillIntraPredModeCandidates(candidates, x0,y0,
-                              (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs,
+                              sps->getPUIndexRS(x0,y0),
                               x0>0, y0>0, &img);
 
   // --- test candidates first ---
@@ -250,7 +250,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
           sad += abs_value(diff);
         }
 
-    sad *= 0.9;
+    sad *= 0.5;
 
     if (mode==0 || sad<min_sad) {
       min_sad = sad;

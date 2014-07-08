@@ -198,6 +198,11 @@ struct seq_parameter_set {
   int Log2MaxIpcmCbSizeY;
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
+
+
+  int getPUIndexRS(int pixelX,int pixelY) const {
+    return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;
+  }
 };
 
 de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
