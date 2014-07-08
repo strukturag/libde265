@@ -213,6 +213,7 @@ AC_CONFIG_FILES([libde265/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
 AC_CONFIG_FILES([libde265/de265-version.h])
 AC_CONFIG_FILES([dec265/Makefile])
+AC_CONFIG_FILES([enc265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_CONFIG_FILES([libde265.pc])
 AC_OUTPUT

@@ -8,6 +8,8 @@ if ENABLE_DEC265
 SUBDIRS+=dec265
 endif
 
+SUBDIRS+=enc265
+
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
 endif

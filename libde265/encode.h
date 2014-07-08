@@ -195,7 +195,7 @@ struct encoder_context
   alloc_pool<enc_tb> enc_tb_pool;
   alloc_pool<enc_pb_intra> enc_pb_intra_pool;
 
-  CABAC_encoder* cabac_encoder;
+  CABAC_encoder_bitstream* cabac_encoder;
 
   context_model_table ctx_model;
 };

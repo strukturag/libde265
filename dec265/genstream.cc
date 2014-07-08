@@ -37,7 +37,7 @@ seq_parameter_set   sps;
 pic_parameter_set   pps;
 slice_segment_header shdr;
 
-CABAC_encoder writer;
+CABAC_encoder_bitstream writer;
 
 de265_image img;
 encoder_context ectx;
@@ -708,9 +708,6 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 
   fclose(fh);
 }
-
-
-
 
 
 int main(int argc, char** argv)

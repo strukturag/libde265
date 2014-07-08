@@ -29,7 +29,7 @@ video_parameter_set vps;
 seq_parameter_set   sps;
 pic_parameter_set   pps;
 
-CABAC_encoder writer;
+CABAC_encoder_bitstream writer;
 
 
 void process_nal(NAL_unit* nal)

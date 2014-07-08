@@ -171,8 +171,6 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
   logtrace(LogCABAC,"[%3d] sr:%x v:%x\n",logcnt,scaled_range, decoder->value);
 
-  //if (logcnt==319827) { raise(SIGINT); }
-
   if (decoder->value < scaled_range)
     {
       logtrace(LogCABAC,"[%3d] MPS\n",logcnt);
@@ -435,7 +433,7 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 
 // ---------------------------------------------------------------------------
 
-CABAC_encoder::CABAC_encoder()
+CABAC_encoder_bitstream::CABAC_encoder_bitstream()
 {
   data_mem = NULL;
   data_capacity = 0;
@@ -447,13 +445,13 @@ CABAC_encoder::CABAC_encoder()
   init_CABAC();
 }
 
-CABAC_encoder::~CABAC_encoder()
+CABAC_encoder_bitstream::~CABAC_encoder_bitstream()
 {
   delete[] data_mem;
 }
 
 
-void CABAC_encoder::write_bits(uint32_t bits,int n)
+void CABAC_encoder_bitstream::write_bits(uint32_t bits,int n)
 {
   vlc_buffer <<= n;
   vlc_buffer |= bits;
@@ -489,7 +487,7 @@ void CABAC_encoder::write_svlc(int value)
   else               write_uvlc(-2*value);
 }
 
-void CABAC_encoder::flush_VLC()
+void CABAC_encoder_bitstream::flush_VLC()
 {
   while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
@@ -502,7 +500,7 @@ void CABAC_encoder::flush_VLC()
   }
 }
 
-void CABAC_encoder::skip_bits(int nBits)
+void CABAC_encoder_bitstream::skip_bits(int nBits)
 {
   while (nBits>=8) {
     write_bits(0,8);
@@ -515,7 +513,7 @@ void CABAC_encoder::skip_bits(int nBits)
 }
 
 
-void CABAC_encoder::check_size_and_resize(int nBytes)
+void CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
 {
   if (data_size+nBytes > data_capacity) { // 1 extra byte for stuffing
     if (data_capacity==0) {
@@ -529,7 +527,7 @@ void CABAC_encoder::check_size_and_resize(int nBytes)
 }
 
 
-void CABAC_encoder::append_byte(int byte)
+void CABAC_encoder_bitstream::append_byte(int byte)
 {
   check_size_and_resize(2);
 
@@ -564,7 +562,7 @@ void CABAC_encoder::append_byte(int byte)
 }
 
 
-void CABAC_encoder::write_startcode()
+void CABAC_encoder_bitstream::write_startcode()
 {
   check_size_and_resize(3);
 
@@ -574,7 +572,7 @@ void CABAC_encoder::write_startcode()
   data_size+=3;
 }
 
-void CABAC_encoder::init_CABAC()
+void CABAC_encoder_bitstream::init_CABAC()
 {
   range = 510;
   low = 0;
@@ -584,7 +582,7 @@ void CABAC_encoder::init_CABAC()
   num_buffered_bytes = 0;
 }
 
-void CABAC_encoder::flush_CABAC()
+void CABAC_encoder_bitstream::flush_CABAC()
 {
   if (low >> (32 - bits_left))
     {
@@ -613,24 +611,6 @@ void CABAC_encoder::flush_CABAC()
 
   //fprintf(stderr,"low: %08x nbits left:%d\n",low,bits_left);
 
-#if 0
-  int n = 24-bits_left;
-  int val = (low>>8);
-
-  // make sure we output full bytes
-
-  while (n%8) {
-    val<<=1;
-    n++;
-  }
-
-  while (n>0) {
-    append_byte( (val>>(n-8)) & 0xFF );
-    n-=8;
-  }
-#endif
-
-#if 1
   int n = 32-bits_left;
   int val = (low);
 
@@ -645,11 +625,10 @@ void CABAC_encoder::flush_CABAC()
     append_byte( (val>>(n-8)) & 0xFF );
     n-=8;
   }
-#endif
 }
 
 
-void CABAC_encoder::write_out()
+void CABAC_encoder_bitstream::write_out()
 {
   logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
@@ -687,7 +666,7 @@ void CABAC_encoder::write_out()
     }    
 }
 
-void CABAC_encoder::testAndWriteOut()
+void CABAC_encoder_bitstream::testAndWriteOut()
 {
   logtrace(LogCABAC,"bits_left = %d\n",bits_left);
 
@@ -698,15 +677,19 @@ void CABAC_encoder::testAndWriteOut()
 }
 
 
+#ifdef DE265_LOG_TRACE
 static int encBinCnt=1;
+#endif
 
-void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
+void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
 {
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
 
   logtrace(LogCABAC,"[%d] range=%x low=%x state=%d, bin=%d\n",encBinCnt, range,low, model->state,bin);
+#ifdef DE265_LOG_TRACE
   encBinCnt++;
+#endif
 
   uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
   range -= LPS;
@@ -744,10 +727,12 @@ void CABAC_encoder::write_CABAC_bit(context_model* model, int bin)
   testAndWriteOut();
 }
 
-void CABAC_encoder::write_CABAC_bypass(int bin)
+void CABAC_encoder_bitstream::write_CABAC_bypass(int bin)
 {
   logtrace(LogCABAC,"[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
+#ifdef DE265_LOG_TRACE
   encBinCnt++;
+#endif
 
   // BinsCoded += m_binCountIncrement;
   low <<= 1;
@@ -780,7 +765,7 @@ void CABAC_encoder::write_CABAC_FL_bypass(int value, int n)
   }
 }
 
-void CABAC_encoder::write_CABAC_term_bit(int bit)
+void CABAC_encoder_bitstream::write_CABAC_term_bit(int bit)
 {
   logtrace(LogCABAC,"CABAC term: range=%x\n", range);
 
@@ -805,5 +790,84 @@ void CABAC_encoder::write_CABAC_term_bit(int bit)
     }
   
   testAndWriteOut();
+}
+
+
+
+
+static const uint32_t entropy_table[128] = {
+  /* state= 0 */  0x07d13 /* 0.977160 */,  0x08254 /* 1.018216 */,
+  /* state= 1 */  0x07736 /* 0.931361 */,  0x086ef /* 1.054174 */,
+  /* state= 2 */  0x0702b /* 0.876331 */,  0x0935a /* 1.151209 */,
+  /* state= 3 */  0x069e5 /* 0.827318 */,  0x09c7f /* 1.222631 */,
+  /* state= 4 */  0x062e9 /* 0.772748 */,  0x0a2c7 /* 1.271703 */,
+  /* state= 5 */  0x05c16 /* 0.719426 */,  0x0ae26 /* 1.360548 */,
+  /* state= 6 */  0x05633 /* 0.673441 */,  0x0b723 /* 1.430773 */,
+  /* state= 7 */  0x05145 /* 0.634942 */,  0x0c05e /* 1.502881 */,
+  /* state= 8 */  0x04be0 /* 0.592785 */,  0x0ccf3 /* 1.601185 */,
+  /* state= 9 */  0x0478c /* 0.558987 */,  0x0d57b /* 1.667846 */,
+  /* state=10 */  0x042ab /* 0.520853 */,  0x0de7f /* 1.738254 */,
+  /* state=11 */  0x03f4f /* 0.494604 */,  0x0e4b5 /* 1.786779 */,
+  /* state=12 */  0x03a9d /* 0.457936 */,  0x0f472 /* 1.909753 */,
+  /* state=13 */  0x037d9 /* 0.436326 */,  0x0fc56 /* 1.971385 */,
+  /* state=14 */  0x034c0 /* 0.412130 */,  0x10235 /* 2.017265 */,
+  /* state=15 */  0x031a6 /* 0.387879 */,  0x10d5c /* 2.104398 */,
+  /* state=16 */  0x02e63 /* 0.362418 */,  0x11b34 /* 2.212536 */,
+  /* state=17 */  0x02c21 /* 0.344764 */,  0x120b6 /* 2.255556 */,
+  /* state=18 */  0x029ba /* 0.326012 */,  0x1294c /* 2.322657 */,
+  /* state=19 */  0x02792 /* 0.309167 */,  0x135e2 /* 2.420985 */,
+  /* state=20 */  0x02563 /* 0.292097 */,  0x13e3a /* 2.486146 */,
+  /* state=21 */  0x0230a /* 0.273749 */,  0x144fa /* 2.538881 */,
+  /* state=22 */  0x02192 /* 0.262279 */,  0x150ca /* 2.631186 */,
+  /* state=23 */  0x01f5d /* 0.245047 */,  0x15c9f /* 2.723632 */,
+  /* state=24 */  0x01de5 /* 0.233559 */,  0x162fb /* 2.773286 */,
+  /* state=25 */  0x01c2c /* 0.220110 */,  0x16d99 /* 2.856250 */,
+  /* state=26 */  0x01a8d /* 0.207458 */,  0x17a93 /* 2.957619 */,
+  /* state=27 */  0x0195a /* 0.198065 */,  0x18052 /* 3.002508 */,
+  /* state=28 */  0x01807 /* 0.187719 */,  0x18763 /* 3.057729 */,
+  /* state=29 */  0x0164c /* 0.174217 */,  0x19462 /* 3.159266 */,
+  /* state=30 */  0x01538 /* 0.165798 */,  0x19f20 /* 3.243194 */,
+  /* state=31 */  0x01450 /* 0.158718 */,  0x1a466 /* 3.284374 */,
+  /* state=32 */  0x0133a /* 0.150237 */,  0x1b423 /* 3.407334 */,
+  /* state=33 */  0x0120b /* 0.140978 */,  0x1bce4 /* 3.475737 */,
+  /* state=34 */  0x01110 /* 0.133321 */,  0x1c393 /* 3.527933 */,
+  /* state=35 */  0x0104b /* 0.127316 */,  0x1d057 /* 3.627676 */,
+  /* state=36 */  0x00f8d /* 0.121502 */,  0x1d749 /* 3.681944 */,
+  /* state=37 */  0x00ef3 /* 0.116795 */,  0x1dfce /* 3.748483 */,
+  /* state=38 */  0x00e0f /* 0.109853 */,  0x1e6d3 /* 3.803340 */,
+  /* state=39 */  0x00d40 /* 0.103540 */,  0x1f925 /* 3.946453 */,
+  /* state=40 */  0x00cc4 /* 0.099758 */,  0x1fda7 /* 3.981663 */,
+  /* state=41 */  0x00c42 /* 0.095779 */,  0x203f7 /* 4.030997 */,
+  /* state=42 */  0x00b79 /* 0.089639 */,  0x20f7d /* 4.121029 */,
+  /* state=43 */  0x00afc /* 0.085841 */,  0x21dd8 /* 4.233161 */,
+  /* state=44 */  0x00a5d /* 0.080974 */,  0x22417 /* 4.281976 */,
+  /* state=45 */  0x00a1a /* 0.078921 */,  0x22a5b /* 4.330930 */,
+  /* state=46 */  0x00988 /* 0.074490 */,  0x23755 /* 4.432283 */,
+  /* state=47 */  0x0091a /* 0.071133 */,  0x24225 /* 4.516768 */,
+  /* state=48 */  0x008cf /* 0.068839 */,  0x24719 /* 4.555457 */,
+  /* state=49 */  0x0085a /* 0.065247 */,  0x25313 /* 4.649039 */,
+  /* state=50 */  0x00814 /* 0.063139 */,  0x25d66 /* 4.729690 */,
+  /* state=51 */  0x007b6 /* 0.060267 */,  0x2651e /* 4.789990 */,
+  /* state=52 */  0x0076e /* 0.058074 */,  0x2687d /* 4.816323 */,
+  /* state=53 */  0x00708 /* 0.054942 */,  0x27da5 /* 4.981623 */,
+  /* state=54 */  0x006d5 /* 0.053382 */,  0x28172 /* 5.011293 */,
+  /* state=55 */  0x00659 /* 0.049602 */,  0x28947 /* 5.072501 */,
+  /* state=56 */  0x00617 /* 0.047602 */,  0x297c5 /* 5.185716 */,
+  /* state=57 */  0x005dc /* 0.045783 */,  0x2a2db /* 5.272339 */,
+  /* state=58 */  0x005c1 /* 0.044971 */,  0x2a582 /* 5.293050 */,
+  /* state=59 */  0x00574 /* 0.042610 */,  0x2ad5a /* 5.354314 */,
+  /* state=60 */  0x0053b /* 0.040866 */,  0x2bba7 /* 5.466035 */,
+  /* state=61 */  0x0050d /* 0.039476 */,  0x2c599 /* 5.543748 */,
+  /* state=62 */  0x004eb /* 0.038429 */,  0x2cd88 /* 5.605742 */,
+  0x004eb ,  0x2cd88 /* should never be used */
+};
+
+
+void CABAC_encoder_estim::write_CABAC_bit(context_model* model, int bit)
+{
+  int idx = model->state<<1;
+  if (bit!=model->MPSbit) idx++;
+
+  mFracBits += entropy_table[idx];
 }
 

@@ -59,35 +59,61 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 class CABAC_encoder
 {
 public:
-  CABAC_encoder();
-  ~CABAC_encoder();
+  virtual ~CABAC_encoder() { }
 
-  int size() const { return data_size; }
-  uint8_t* data() const { return data_mem; }
+  virtual int size() const = 0;
 
   // --- VLC ---
 
-  void write_bits(uint32_t bits,int n);
-  void write_bit(int bit) { write_bits(bit,1); }
-  void write_uvlc(int value);
-  void write_svlc(int value);
-  void write_startcode();
-  void skip_bits(int nBits);
+  virtual void write_bits(uint32_t bits,int n) = 0;
+  virtual void write_bit(int bit) { write_bits(bit,1); }
+  virtual void write_uvlc(int value);
+  virtual void write_svlc(int value);
+  virtual void write_startcode() = 0;
+  virtual void skip_bits(int nBits) = 0;
 
   // output all remaining bits and fill with zeros to next byte boundary
-  void flush_VLC();
+  virtual void flush_VLC() { }
 
 
   // --- CABAC ---
 
-  void init_CABAC();
-  void write_CABAC_bit(context_model* model, int bit);
-  void write_CABAC_bypass(int bit);
-  void write_CABAC_TU_bypass(int value, int cMax);
-  void write_CABAC_FL_bypass(int value, int nBits);
-  void write_CABAC_term_bit(int bit);
-  void flush_CABAC();
+  virtual void init_CABAC() { }
+  virtual void write_CABAC_bit(context_model* model, int bit) = 0;
+  virtual void write_CABAC_bypass(int bit) = 0;
+  virtual void write_CABAC_TU_bypass(int value, int cMax);
+  virtual void write_CABAC_FL_bypass(int value, int nBits);
+  virtual void write_CABAC_term_bit(int bit) = 0;
+  virtual void flush_CABAC()  { }
+};
 
+
+class CABAC_encoder_bitstream : public CABAC_encoder
+{
+public:
+  CABAC_encoder_bitstream();
+  ~CABAC_encoder_bitstream();
+
+  virtual int size() const { return data_size; }
+  uint8_t* data() const { return data_mem; }
+
+  // --- VLC ---
+
+  virtual void write_bits(uint32_t bits,int n);
+  virtual void write_startcode();
+  virtual void skip_bits(int nBits);
+
+  // output all remaining bits and fill with zeros to next byte boundary
+  virtual void flush_VLC();
+
+
+  // --- CABAC ---
+
+  virtual void init_CABAC();
+  virtual void write_CABAC_bit(context_model* model, int bit);
+  virtual void write_CABAC_bypass(int bit);
+  virtual void write_CABAC_term_bit(int bit);
+  virtual void flush_CABAC();
 
 private:
   // data buffer
@@ -117,5 +143,33 @@ private:
   void write_out();
   void append_byte(int byte);
 };
+
+
+
+class CABAC_encoder_estim : public CABAC_encoder
+{
+public:
+  CABAC_encoder_estim() : mFracBits(0) { }
+
+  virtual int size() const { return mFracBits>>(15+3); }
+
+  // --- VLC ---
+
+  virtual void write_bits(uint32_t bits,int n) { mFracBits += n<<15; }
+  virtual void write_bit(int bit) { mFracBits+=1<<15; }
+  virtual void write_startcode() { mFracBits += (1<<15)*8*3; }
+  virtual void skip_bits(int nBits) { mFracBits += nBits<<15; }
+
+  // --- CABAC ---
+
+  virtual void write_CABAC_bit(context_model* model, int bit);
+  virtual void write_CABAC_bypass(int bit) { mFracBits += 1<<15; }
+  virtual void write_CABAC_FL_bypass(int value, int nBits) { mFracBits += nBits<<15; }
+  virtual void write_CABAC_term_bit(int bit) { /* not implemented (not needed) */ }
+
+private:
+  uint64_t mFracBits;
+};
+
 
 #endif
