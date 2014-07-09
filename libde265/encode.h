@@ -67,6 +67,7 @@ struct enc_tb
   uint8_t cbf_luma : 1;
   uint8_t cbf_cb : 1;
   uint8_t cbf_cr : 1;
+  uint8_t log2TbSize : 3;
 
   union {
     // split
@@ -79,6 +80,9 @@ struct enc_tb
       int16_t* coeff[3];
     };
   };
+
+  void dequant_and_add_transform(de265_image* img, int x0,int y0, int log2BlkSize, int qp) const;
+  void set_cbf_flags_from_coefficients(int log2BlkSize);
 };
 
 
@@ -86,7 +90,7 @@ struct enc_pb_intra
 {
   // context
 
-  uint8_t* border_pixels;
+  //uint8_t* border_pixels;
   //enum IntraPredMode pred_mode_left_cand;
   //enum IntraPredMode pred_mode_top_cand;
   //uint8_t  has_left_cand : 1;
@@ -96,6 +100,9 @@ struct enc_pb_intra
 
   enum IntraPredMode pred_mode;
   enum IntraPredMode pred_mode_chroma;
+
+  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize, int cIdx) const;
+  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
 };
 
 
@@ -108,6 +115,7 @@ struct enc_pb_inter
 struct enc_cb
 {
   uint8_t split_cu_flag;
+  uint8_t log2CbSize;
 
   union {
     // split
@@ -137,7 +145,7 @@ struct enc_cb
 
   double rd_cost;
 
-  void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice);
+  void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice) const;
 };
 
 
@@ -189,20 +197,50 @@ public:
 };
 
 
+struct encoder_output
+{
+  CABAC_encoder* cabac_encoder;
+  context_model_table ctx_model;
+};
+
+
 struct encoder_context
 {
+  encoder_context() {
+    coeff_mem = (int16_t*)malloc(64*64*20); // TODO ...
+  }
+
   de265_image* img;
   slice_segment_header* shdr;
 
   alloc_pool<enc_cb> enc_cb_pool;
   alloc_pool<enc_tb> enc_tb_pool;
   alloc_pool<enc_pb_intra> enc_pb_intra_pool;
+
+  int16_t* get_coeff_mem(int nCoeff) {
+    int16_t* c = coeff;
+    coeff += nCoeff;
+    return c;
+  }
+
+  void reset_coeff_mem() {
+    coeff = coeff_mem;
+  }
+
+  void set_output(encoder_output* o) {
+    cabac_encoder = o->cabac_encoder;
+    ctx_model     = o->ctx_model;
+  }
+
+
+  CABAC_encoder*  cabac_encoder;
+  context_model*  ctx_model;
+
+  struct encoder_output bitstream_output;
+
+private:
   int16_t* coeff_mem;
   int16_t* coeff;
-
-  CABAC_encoder_bitstream* cabac_encoder;
-
-  context_model_table ctx_model;
 };
 
 

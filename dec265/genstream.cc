@@ -359,9 +359,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
         tb->split_transform_flag = false;
 
 
-        decode_intra_prediction(&img, x0,y0, pb->pred_mode, 16, 0);
-        decode_intra_prediction(&img, x0/2,y0/2, pb->pred_mode_chroma, 8, 1);
-        decode_intra_prediction(&img, x0/2,y0/2, pb->pred_mode_chroma, 8, 2);
+        pb->do_intra_prediction(&img,x0,y0, 4 /* log2blksize */);
 
         // subtract intra-prediction from input
 
@@ -395,9 +393,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
         logtrace(LogTransform,"quantized DCT coefficients:\n");
         printBlk(coeff_luma,16,16);
 
-        tb->cbf_luma = !coeffzero(coeff_luma,16*16);
-        tb->cbf_cb   = !coeffzero(coeff_cb,  8*8);
-        tb->cbf_cr   = !coeffzero(coeff_cr,  8*8);
+        tb->set_cbf_flags_from_coefficients(4 /* log2BlkSize */);
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
         encode_ctb(&ectx, cb, x,y);
@@ -407,13 +403,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 
         //printf("reconstruct %d/%d\n",x0,y0);
 
-        dequant_coefficients(coeff_luma, coeff_luma, 4, qp);
-        dequant_coefficients(coeff_cb,   coeff_cb,   3, qp);
-        dequant_coefficients(coeff_cr,   coeff_cr,   3, qp);
-
-        transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff_luma, stride);
-        transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],  coeff_cb, stride/2);
-        transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2],  coeff_cr, stride/2);
+        tb->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
 
         if (0) {
           printf("dequant luma:\n");
@@ -466,6 +456,10 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   cb->split_cu_flag = false;
 
   cb->cu_transquant_bypass_flag = false;
+
+
+  // --- set intra prediction mode ---
+
   cb->PredMode = MODE_INTRA;
   cb->PartMode = PART_2Nx2N;
 
@@ -482,6 +476,8 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   pb->pred_mode_chroma = intraMode;
 
 
+  // --- compute transform coefficients ---
+
   enc_tb* tb = ectx.enc_tb_pool.get_new();
   cb->transform_tree = tb;
 
@@ -489,9 +485,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   tb->split_transform_flag = false;
 
 
-  decode_intra_prediction(&img, x0,y0, pb->pred_mode, 16, 0);
-  decode_intra_prediction(&img, x0/2,y0/2, pb->pred_mode_chroma, 8, 1);
-  decode_intra_prediction(&img, x0/2,y0/2, pb->pred_mode_chroma, 8, 2);
+  cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4 /* log2blksize */);
 
   // subtract intra-prediction from input
 
@@ -506,34 +500,40 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
            &input[2][y0/2*stride/2+x0/2],stride/2,
            &cr_plane[y0/2*stride/2+x0/2],stride/2, 8);
 
-  int16_t *coeff_luma,*coeff_cb,*coeff_cr;
-  coeff_luma = ectx.coeff; ectx.coeff += 16*16;
-  coeff_cb   = ectx.coeff; ectx.coeff += 8*8;
-  coeff_cr   = ectx.coeff; ectx.coeff += 8*8;
-  tb->coeff[0] = coeff_luma;
-  tb->coeff[1] = coeff_cb;
-  tb->coeff[2] = coeff_cr;
+  tb->coeff[0] = ectx.get_coeff_mem(16*16);
+  tb->coeff[1] = ectx.get_coeff_mem(8*8);
+  tb->coeff[2] = ectx.get_coeff_mem(8*8);
 
-  fdct_16x16_8_fallback(coeff_luma, blk[0],16);
-  fdct_8x8_8_fallback(coeff_cb, blk[1],8);
-  fdct_8x8_8_fallback(coeff_cr, blk[2],8);
+  fdct_16x16_8_fallback(tb->coeff[0], blk[0],16);
+  fdct_8x8_8_fallback  (tb->coeff[1], blk[1],8);
+  fdct_8x8_8_fallback  (tb->coeff[2], blk[2],8);
 
-  quant_coefficients(coeff_luma, tb->coeff[0], 4, qp, true);
-  quant_coefficients(coeff_cb,   tb->coeff[1], 3, qp, true);
-  quant_coefficients(coeff_cr,   tb->coeff[2], 3, qp, true);
+  quant_coefficients(tb->coeff[0], tb->coeff[0], 4, qp, true);
+  quant_coefficients(tb->coeff[1], tb->coeff[1], 3, qp, true);
+  quant_coefficients(tb->coeff[2], tb->coeff[2], 3, qp, true);
 
-  tb->cbf_luma = !coeffzero(coeff_luma,16*16);
-  tb->cbf_cb   = !coeffzero(coeff_cb,  8*8);
-  tb->cbf_cr   = !coeffzero(coeff_cr,  8*8);
+  tb->set_cbf_flags_from_coefficients(4 /* log2BlkSize */);
 
-  int16_t coeff[3][32*32];
-  dequant_coefficients(coeff[0], coeff_luma, 4, qp);
-  dequant_coefficients(coeff[1], coeff_cb,   3, qp);
-  dequant_coefficients(coeff[2], coeff_cr,   3, qp);
+  //tb->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
 
-  transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],  coeff[0], stride);
-  transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2],coeff[1], stride/2);
-  transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2],coeff[2], stride/2);
+
+  // estimate bits
+
+#if 0
+  cb->write_to_image(&img, x0,y0, Log2CtbSize, true);
+
+  CABAC_encoder_estim estim;
+  encoder_output out;
+  out = ectx.bitstream_output;
+  out.cabac_encoder = &estim;
+
+  ectx.set_output(&out);
+  encode_ctb(&ectx, cb, x0,y0);
+  ectx.set_output(&ectx.bitstream_output);
+
+  totalSize += estim.size();
+  //printf("bytes: %d\n", estim.size());
+#endif
 
   return cb;
 }
@@ -584,14 +584,12 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
   uint8_t* cr_plane = img.get_image_plane(2);
 
 
-  ectx.coeff_mem = (int16_t*)malloc(64*64*20); // TODO ...
-
   // encode CTB by CTB
 
   for (int y=0;y<sps.PicHeightInCtbsY;y++)
     for (int x=0;x<sps.PicWidthInCtbsY;x++)
       {
-        ectx.coeff = ectx.coeff_mem;
+        ectx.reset_coeff_mem();
 
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
@@ -602,25 +600,44 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
 
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
+
+#if 0
+        CABAC_encoder_estim estim;
+        encoder_output out;
+        out = ectx.bitstream_output;
+        out.cabac_encoder = &estim;
+
+        ectx.set_output(&out);
+        //printf("--- estim ---\n");
         encode_ctb(&ectx, cb, x,y);
 
+        CABAC_encoder_bitstream bs;
+        bs.range = writer.range;
+        bs.low   = writer.low;
+
+        encoder_output outbs;
+        outbs = ectx.bitstream_output;
+        outbs.cabac_encoder = &bs;
+
+        ectx.set_output(&outbs);
+        //printf("--- bitstream ---\n");
+        encode_ctb(&ectx, cb, x,y);
+        bs.flush_CABAC();
+
+        printf("real: %d  estim: %d\n",bs.size(),estim.size());
+
+        ectx.set_output(&ectx.bitstream_output);
+#endif
+
+        //printf("--- real ---\n");
+        encode_ctb(&ectx, cb, x,y);
 
         // decode into image
 
-        //printf("reconstruct %d/%d\n",x0,y0);
+        cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4);
 
-        decode_intra_prediction(&img, x0,y0,     cb->intra_pb[0]->pred_mode, 16, 0);
-        decode_intra_prediction(&img, x0/2,y0/2, cb->intra_pb[0]->pred_mode_chroma, 8, 1);
-        decode_intra_prediction(&img, x0/2,y0/2, cb->intra_pb[0]->pred_mode_chroma, 8, 2);
+        cb->transform_tree->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
 
-        int16_t coeff[3][32*32];
-        dequant_coefficients(coeff[0], cb->transform_tree->coeff[0], 4, qp);
-        dequant_coefficients(coeff[1], cb->transform_tree->coeff[1], 3, qp);
-        dequant_coefficients(coeff[2], cb->transform_tree->coeff[2], 3, qp);
-
-        transform_16x16_add_8_fallback(&luma_plane[(y0)*stride + x0],   coeff[0], stride);
-        transform_8x8_add_8_fallback(&cb_plane[(y0/2)*stride/2 + x0/2], coeff[1], stride/2);
-        transform_8x8_add_8_fallback(&cr_plane[(y0/2)*stride/2 + x0/2], coeff[2], stride/2);
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);
@@ -746,7 +763,8 @@ void write_stream_1()
 
   ectx.img = &img;
   ectx.shdr = &shdr;
-  ectx.cabac_encoder = &writer;
+  ectx.bitstream_output.cabac_encoder = &writer;
+  ectx.set_output(&ectx.bitstream_output);
 
   //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
 
@@ -841,7 +859,8 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 
   ectx.img = &img;
   ectx.shdr = &shdr;
-  ectx.cabac_encoder = &writer;
+  ectx.bitstream_output.cabac_encoder = &writer;
+  ectx.set_output(&ectx.bitstream_output);
 
   //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
 
@@ -867,7 +886,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   pps.write(&errqueue, &writer, &sps);
   writer.flush_VLC();
 
-  int maxPoc = 10;//99100;
+  int maxPoc = 10000;//99100;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
@@ -913,8 +932,6 @@ int main(int argc, char** argv)
 
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
-
-  //DCT_test();
 
   encode_stream_intra_1("paris_cif.yuv",352,288);
 

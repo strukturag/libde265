@@ -22,11 +22,78 @@
 
 #include "encode.h"
 #include "slice.h"
-#include "intrapred.h"
 #include "scan.h"
+#include "intrapred.h"
+#include "libde265/transform.h"
+#include "libde265/fallback-dct.h"
 
 
-void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra)
+
+
+void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize, int cIdx) const
+{
+  if (cIdx==0) {
+    decode_intra_prediction(img, x0,y0, pred_mode, 1<<log2BlkSize, cIdx);
+  }
+  else {
+    decode_intra_prediction(img, x0,y0, pred_mode_chroma, 1<<log2BlkSize, cIdx);
+  }
+}
+
+void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
+{
+  do_intra_prediction(img,x0  ,y0  ,log2BlkSize,   0);
+  do_intra_prediction(img,x0/2,y0/2,log2BlkSize-1, 1);
+  do_intra_prediction(img,x0/2,y0/2,log2BlkSize-1, 2);
+}
+
+
+void enc_tb::dequant_and_add_transform(de265_image* img, int x0,int y0, int log2BlkSize, int qp) const
+{
+  int16_t dequant_coeff[3][32*32];
+
+  if (cbf_luma) dequant_coefficients(dequant_coeff[0], coeff[0], log2BlkSize,   qp);
+  if (cbf_cb)   dequant_coefficients(dequant_coeff[1], coeff[1], log2BlkSize-1, qp);
+  if (cbf_cr)   dequant_coefficients(dequant_coeff[2], coeff[2], log2BlkSize-1, qp);
+
+
+  uint8_t* yp  = img->get_image_plane_at_pos(0, x0,  y0  );
+  uint8_t* cbp = img->get_image_plane_at_pos(1, x0/2,y0/2);
+  uint8_t* crp = img->get_image_plane_at_pos(2, x0/2,y0/2);
+  int luma_stride   = img->get_image_stride(0);
+  int chroma_stride = img->get_image_stride(1);
+
+  switch (log2BlkSize) {
+  case 4:
+    if (cbf_luma) transform_16x16_add_8_fallback(yp,  dequant_coeff[0], luma_stride);
+    if (cbf_cb)   transform_8x8_add_8_fallback  (cbp, dequant_coeff[1], chroma_stride);
+    if (cbf_cr)   transform_8x8_add_8_fallback  (crp, dequant_coeff[2], chroma_stride);
+    break;
+
+  default:
+    assert(0);
+    break;
+  }
+}
+
+
+static bool has_nonzero_value(const int16_t* data, int n)
+{
+  for (int i=0;i<n;i++)
+    if (data[i]) return true;
+
+  return false;
+}
+
+void enc_tb::set_cbf_flags_from_coefficients(int log2BlkSize)
+{
+  cbf_luma = has_nonzero_value(coeff[0], 1<<( log2BlkSize   <<1));
+  cbf_cb   = has_nonzero_value(coeff[1], 1<<((log2BlkSize-1)<<1));
+  cbf_cr   = has_nonzero_value(coeff[2], 1<<((log2BlkSize-1)<<1));
+}
+
+
+void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra) const
 {
   if (!split_cu_flag) {
     if (intra) {
@@ -1203,9 +1270,23 @@ void encode_quadtree(encoder_context* ectx,
 }
 
 
-void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY)
+void encode_ctb(encoder_context* ectx,
+                enc_cb* cb, int ctbX,int ctbY)
 {
   logtrace(LogSlice,"----- encode CTB (%d;%d) -----\n",ctbX,ctbY);
+
+#if 0
+  printf("MODEL:\n");
+  for (int i=0;i<CONTEXT_MODEL_TABLE_LENGTH;i++)
+    {
+      printf("%d;%d ",
+             ectx->ctx_model[i].state,
+             ectx->ctx_model[i].MPSbit);
+
+      if ((i%16)==15) printf("\n");
+    }
+  printf("\n");
+#endif
 
   de265_image* img = ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;
