@@ -134,6 +134,9 @@ struct enc_cb
   };
 
 
+
+  double rd_cost;
+
   void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice);
 };
 
@@ -194,6 +197,8 @@ struct encoder_context
   alloc_pool<enc_cb> enc_cb_pool;
   alloc_pool<enc_tb> enc_tb_pool;
   alloc_pool<enc_pb_intra> enc_pb_intra_pool;
+  int16_t* coeff_mem;
+  int16_t* coeff;
 
   CABAC_encoder_bitstream* cabac_encoder;
 
@@ -202,5 +207,12 @@ struct encoder_context
 
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
+
+
+class de265_encoder
+{
+ public:
+  virtual ~de265_encoder() { }
+};
 
 #endif

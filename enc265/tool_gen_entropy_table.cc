@@ -110,7 +110,7 @@ void generate_entropy_table()
              (int)(bps0*0x8000), bps0);
     }
 
-    printf("                0x00400 ,  0x2d000 /* dummy, should never be used */\n");
+    printf("                0x0010c, 0x3bfbb /* dummy, should never be used */\n");
   }
 }
 
