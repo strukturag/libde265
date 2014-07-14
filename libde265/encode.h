@@ -117,6 +117,7 @@ struct enc_cb
 {
   uint8_t split_cu_flag;
   uint8_t log2CbSize;
+  uint8_t ctDepth;
 
   union {
     // split
@@ -148,9 +149,8 @@ struct enc_cb
 
   void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice) const;
 
-  void dequant_and_add_transform(acceleration_functions* accel,de265_image* img,
-                                 int x0,int y0, int qp) const;
-  void do_intra_prediction(de265_image* img, int x0,int y0) const;
+  void reconstruct(acceleration_functions* accel,de265_image* img,
+                   int x0,int y0, int qp) const;
 };
 
 
@@ -248,6 +248,9 @@ private:
   int16_t* coeff;
 };
 
+
+void encode_quadtree(encoder_context* ectx,
+                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth);
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
 

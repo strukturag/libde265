@@ -235,11 +235,11 @@ void transform_coefficients(acceleration_functions* acceleration,
   }
 
 #if 0
-        printf("decoded pixels:\n");
-        for (int y=0;y<16;y++,printf("\n"))
-          for (int x=0;x<16;x++) {
-            printf("%02x ",dst[y*dstStride+x]);
-          }
+  printf("decoded pixels:\n");
+  for (int y=0;y<nT;y++,printf("\n"))
+    for (int x=0;x<nT;x++) {
+      printf("%02x ",dst[y*dstStride+x]);
+    }
 #endif
 }
 
@@ -256,6 +256,16 @@ void inv_transform(acceleration_functions* acceleration,
   } else {
     acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride);
   }
+
+
+#if 0
+  int nT = 1<<log2TbSize;
+  printf("decoded pixels:\n");
+  for (int y=0;y<nT;y++,printf("\n"))
+    for (int x=0;x<nT;x++) {
+  printf("%02x ",dst[y*dstStride+x]);
+}
+#endif
 }
 
 
@@ -377,6 +387,23 @@ void scale_coefficients(thread_context* tctx,
 
         tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
+
+      //#ifdef DE265_LOG_TRACE
+#if 0
+      int16_t clog[32*32];
+      memset(clog,0,32*32*sizeof(int16_t));
+      for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+  clog[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
+      }
+
+      printf("quantized coefficients:\n");
+      for (int y=0;y<nT;y++) {
+  for (int x=0;x<nT;x++) {
+  printf("%4d ",clog[x+y*nT]);
+}
+  printf("\n");
+ }
+#endif
     }
     else {
       const int offset = (1<<(bdShift-1));

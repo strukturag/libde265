@@ -707,16 +707,14 @@ void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
   }
 
 
-  /*
-  printf("INTRAPRED DC\n");
-  for (int y=0;y<nT;y++) {
-    for (int x=0;x<nT;x++)
-      {
-        printf("%d ",pred[x+y*stride]);
-      }
-    printf("\n");
-  }
-  */
+  logtrace(LogIntraPred,"INTRAPRED DC\n");
+  for (int y=0;y<nT;y++)
+    {
+      for (int x=0;x<nT;x++)
+        logtrace(LogIntraPred,"%02x ", pred[x+y*stride]);
+
+      logtrace(LogIntraPred,"\n");
+    }
 }
 
 

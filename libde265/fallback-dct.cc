@@ -284,11 +284,13 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
 
   for (int c=0;c<nT;c++) {
 
+    /*
     logtrace(LogTransform,"DCT-V: ");
     for (int i=0;i<nT;i++) {
       logtrace(LogTransform,"*%d ",coeffs[c+i*nT]);
     }
     logtrace(LogTransform,"* -> ");
+    */
 
 
     // find last non-zero coefficient to reduce computations carried out in DCT
@@ -335,12 +337,13 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
   */
 
   for (int y=0;y<nT;y++) {
-
+    /*
     logtrace(LogTransform,"DCT-H: ");
     for (int i=0;i<nT;i++) {
       logtrace(LogTransform,"*%d ",g[i+y*nT]);
     }
     logtrace(LogTransform,"* -> ");
+    */
 
 
     // find last non-zero coefficient to reduce computations carried out in DCT
@@ -393,9 +396,6 @@ void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t str
 }
 
 
-
-
-
 static void transform_fdct_8(int16_t* coeffs, int nT,
                              const int16_t *input, ptrdiff_t stride)
 {
@@ -436,20 +436,20 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
       
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
 
-      logtrace(LogTransform,"*%d ",g[c+i*nT]);
+      //logtrace(LogTransform,"*%d ",g[c+i*nT]);
     }
-    logtrace(LogTransform,"*\n");
+    //logtrace(LogTransform,"*\n");
   }
 
 
   for (int y=0;y<nT;y++) {
-
+    /*
     logtrace(LogTransform,"DCT-H: ");
     for (int i=0;i<nT;i++) {
       logtrace(LogTransform,"*%d ",g[i+y*nT]);
     }
     logtrace(LogTransform,"* -> ");
-
+    */
 
     for (int i=0;i<nT;i++) {
       int sum=0;
@@ -463,9 +463,9 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
 
       coeffs[y*nT+i] = out;
 
-      logtrace(LogTransform,"*%d ",out);
+      //logtrace(LogTransform,"*%d ",out);
     }
-    logtrace(LogTransform,"*\n");
+    //logtrace(LogTransform,"*\n");
   }
 }
 

@@ -254,6 +254,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
         }
 
     sad *= 0.5;
+    //sad *= 0.9;
 
     if (mode==0 || sad<min_sad) {
       min_sad = sad;
@@ -385,15 +386,15 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
         fdct_8x8_8_fallback(coeff_cb, blk[1],8);
         fdct_8x8_8_fallback(coeff_cr, blk[2],8);
 
-        logtrace(LogTransform,"raw DCT coefficients:\n");
-        printBlk(coeff_luma,16,16);
+        //logtrace(LogTransform,"raw DCT coefficients:\n");
+        //printBlk(coeff_luma,16,16);
 
         quant_coefficients(coeff_luma, coeff_luma, 4, qp, true);
         quant_coefficients(coeff_cb,   coeff_cb,   3, qp, true);
         quant_coefficients(coeff_cr,   coeff_cr,   3, qp, true);
 
-        logtrace(LogTransform,"quantized DCT coefficients:\n");
-        printBlk(coeff_luma,16,16);
+        //logtrace(LogTransform,"quantized DCT coefficients:\n");
+        //printBlk(coeff_luma,16,16);
 
         tb->set_cbf_flags_from_coefficients(4 /* log2BlkSize */);
 
@@ -445,10 +446,30 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 }
 
 
-enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
-                           int x0,int y0, int log2CbSize, int qp)
+template <class T> void printblk(const T* p,int stride, int x0,int y0, int w)
 {
-  printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+  for (int y=0;y<w;y++) {
+    for (int x=0;x<w;x++) {
+      printf("%02x ",p[x0+x+(y0+y)*stride]);
+    }
+    printf("\n");
+  }
+}
+
+void printcoeff(int16_t* coeff, int w)
+{
+  for (int y=0;y<w;y++) {
+    for (int x=0;x<w;x++) {
+      printf("%4d ",coeff[x+y*w]);
+    }
+    printf("\n");
+  }
+}
+
+enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
+                           int x0,int y0, int log2CbSize, int ctDepth, int qp)
+{
+  //printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
 
   uint8_t* luma_plane = img.get_image_plane(0);
   uint8_t* cb_plane = img.get_image_plane(1);
@@ -461,9 +482,13 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   cb->split_cu_flag = false;
   cb->log2CbSize = log2CbSize;
+  cb->ctDepth = ctDepth;
 
   cb->cu_transquant_bypass_flag = false;
 
+
+  //printf("input\n");
+  //printblk(input[0],stride,x0,y0,cbSize);
 
   // --- set intra prediction mode ---
 
@@ -494,9 +519,12 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, log2CbSize);
 
+  //printf("result of intra prediction\n");
+  //printblk(luma_plane,stride,x0,y0,cbSize);
+
   // subtract intra-prediction from input
 
-  int16_t blk[3][16*16];
+  int16_t blk[3][32*32];
   diff_blk(blk[0],cbSize,
            &input[0][y0*stride+x0],stride,
            &luma_plane[y0*stride+x0],stride, cbSize);
@@ -514,11 +542,14 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   int trType = 0;
   if (log2CbSize==2) trType=1; // TODO: inter mode
 
-  fwd_transform(&accel, tb->coeff[0], cbSize, log2CbSize, 0,  blk[0], cbSize);
+  fwd_transform(&accel, tb->coeff[0], cbSize, log2CbSize, trType,  blk[0], cbSize);
   fwd_transform(&accel, tb->coeff[1], cbSizeChroma,
-                log2CbSize-1, trType,  blk[1], cbSizeChroma);
+                log2CbSize-1, 0,  blk[1], cbSizeChroma);
   fwd_transform(&accel, tb->coeff[2], cbSizeChroma,
-                log2CbSize-1, trType,  blk[2], cbSizeChroma);
+                log2CbSize-1, 0,  blk[2], cbSizeChroma);
+
+  //printf("raw coeffs\n");
+  //printcoeff(tb->coeff[0],cbSize);
 
   quant_coefficients(tb->coeff[0], tb->coeff[0], log2CbSize,   qp, true);
   quant_coefficients(tb->coeff[1], tb->coeff[1], log2CbSize-1, qp, true);
@@ -526,38 +557,46 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   tb->set_cbf_flags_from_coefficients(log2CbSize);
 
-  //tb->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
+  //printf("quantized coeffs\n");
+  //printcoeff(tb->coeff[0],cbSize);
 
 
   // estimate bits
 
-#if 0
   cb->write_to_image(&img, x0,y0, log2CbSize, true);
 
+  cb->reconstruct(&accel, &img, x0,y0, qp);
+
+  //printf("reconstruction: add transform\n");
+  //printblk(luma_plane,stride,x0,y0,cbSize);
+
+
+
+  cb->rd_cost=1;
+
+#if 1
   CABAC_encoder_estim estim;
   encoder_output out;
   out = ectx.bitstream_output;
   out.cabac_encoder = &estim;
 
   ectx.set_output(&out);
-  encode_ctb(&ectx, cb, x0,y0);
+  encode_quadtree(&ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
   ectx.set_output(&ectx.bitstream_output);
 
-  totalSize += estim.size();
+  cb->rd_cost = estim.size();
   //printf("bytes: %d\n", estim.size());
 #endif
-
-  cb->rd_cost=1;
 
   return cb;
 }
 
 
 enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
-                            int x0,int y0, int Log2CtbSize, int qp);
+                            int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
 
 enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
-                        int x0,int y0, int Log2CbSize, int qp)
+                        int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb = ectx.enc_cb_pool.get_new();
 
@@ -565,38 +604,48 @@ enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
 
   cb->cu_transquant_bypass_flag = false;
   cb->log2CbSize = Log2CbSize;
+  cb->ctDepth = ctDepth;
+
+  cb->rd_cost = 0;
 
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
-    cb->children[i] = encode_cb_may_split(input, stride, x0+dx, y0+dy, Log2CbSize-1, qp);
-  }
+    cb->children[i] = encode_cb_may_split(input, stride, x0+dx, y0+dy, Log2CbSize-1, ctDepth+1, qp);
 
-  if (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1)
-    cb->rd_cost=0;
+    cb->rd_cost += cb->children[i]->rd_cost;
+  }
 
   return cb;
 }
 
 
 enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
-                            int x0,int y0, int Log2CtbSize, int qp)
+                            int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
-  enc_cb* cb_no_split = encode_cb_no_split(input,stride,x0,y0, Log2CtbSize, qp);
+  enc_cb* cb_no_split = encode_cb_no_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
   enc_cb* cb_split = NULL;
   enc_cb* cb = cb_no_split;
 
-  if (Log2CtbSize>3) {
-    cb_split = encode_cb_split(input,stride,x0,y0, Log2CtbSize, qp);
+  //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
-    printf("a\n");
+  if (Log2CbSize>3) {
+    cb_split = encode_cb_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
 
-    if (cb_split != NULL && cb_split->rd_cost < cb_no_split->rd_cost) {
+    bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
+    //split=false;
+
+    if (split) {
       cb = cb_split;
-      printf("-> b\n");
     }
   }
+  else {
+    //cb = encode_cb_no_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
+  }
+
+  cb->write_to_image(&img, x0,y0, Log2CbSize, true);
+  cb->reconstruct(&accel, &img, x0,y0, qp);
 
   return cb;
 }
@@ -633,7 +682,7 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
 
         logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
 
-        enc_cb* cb = encode_cb_may_split(input,stride, x0,y0, Log2CtbSize, qp);
+        enc_cb* cb = encode_cb_may_split(input,stride, x0,y0, Log2CtbSize, 0, qp);
 
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
@@ -666,17 +715,29 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
         ectx.set_output(&ectx.bitstream_output);
 #endif
 
+
         //printf("--- real ---\n");
         encode_ctb(&ectx, cb, x,y);
 
         // decode into image
 
+        /* TMP
         cb->do_intra_prediction(&img, x0,y0);
         cb->dequant_and_add_transform(&accel, &img, x0,y0, qp);
+        */
 
-        //cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4);
-        //cb->transform_tree->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
+#if 0
+        for (int dy=0;dy<(1<<Log2CtbSize);dy++, printf("\n"))
+          for (int dx=0;dx<(1<<Log2CtbSize);dx++)
+            {
+              printf("%02x/%02x ",
+                     input[0][x0+dx+(y0+dy)*width],
+                     luma_plane[x0+dx+(y0+dy)*width]);
 
+              if (dx==7) printf(" ");
+              if (dx==15 && dy==7) printf("\n");
+            }
+#endif
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
                     x==sps.PicWidthInCtbsY-1);
@@ -847,7 +908,7 @@ void write_stream_1()
 
 void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 {
-  int qp = 15;
+  int qp = 27;
 
 
   FILE* fh = fopen(yuv_filename,"rb");
@@ -867,8 +928,8 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(3,3);
-  sps.set_TB_log2size_range(3,3);
+  sps.set_CB_log2size_range(3,4);
+  sps.set_TB_log2size_range(3,4);
   sps.set_resolution(352,288);
   sps.compute_derived_values();
 

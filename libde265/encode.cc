@@ -88,9 +88,22 @@ void enc_tb::set_cbf_flags_from_coefficients(int log2BlkSize)
 }
 
 
+inline int childX(int x0, int idx, int log2CbSize)
+{
+  return x0 + ((idx&1) << (log2CbSize-1));
+}
+
+inline int childY(int y0, int idx, int log2CbSize)
+{
+  return y0 + ((idx>>1) << (log2CbSize-1));
+}
+
+
 void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra) const
 {
   if (!split_cu_flag) {
+    img->set_ctDepth(x,y,log2blkSize, ctDepth);
+
     if (intra) {
       //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);
 
@@ -109,46 +122,29 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
       assert(0); // TODO: inter mode
     }
   }
+  else {
+    for (int i=0;i<4;i++) {
+      children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
+                                  log2blkSize-1, intra);
+    }
+  }
 }
 
-inline int childX(int x0, int idx, int log2CbSize)
-{
-  return x0 + ((idx&1) << (log2CbSize-1));
-}
 
-inline int childY(int y0, int idx, int log2CbSize)
-{
-  return y0 + ((idx>>1) << (log2CbSize-1));
-}
-
-void enc_cb::dequant_and_add_transform(acceleration_functions* accel,
-                                       de265_image* img, int x0,int y0, int qp) const
+void enc_cb::reconstruct(acceleration_functions* accel,
+                         de265_image* img, int x0,int y0, int qp) const
 {
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->dequant_and_add_transform(accel, img,
-                                             childX(x0,i,log2CbSize),
-                                             childY(y0,i,log2CbSize),
-                                             qp);
+      children[i]->reconstruct(accel, img,
+                               childX(x0,i,log2CbSize),
+                               childY(y0,i,log2CbSize),
+                               qp);
     }
   }
   else {
-    transform_tree->dequant_and_add_transform(accel, img, x0,y0, log2CbSize, qp);
-  }
-}
-
-void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0) const
-{
-  if (split_cu_flag) {
-    for (int i=0;i<4;i++) {
-      children[i]->do_intra_prediction(img,
-                                       childX(x0,i,log2CbSize),
-                                       childY(y0,i,log2CbSize));
-    }
-  }
-  else {
-    // TODO: NxN intra prediction
     intra_pb[0]->do_intra_prediction(img,x0,y0,log2CbSize);
+    transform_tree->dequant_and_add_transform(accel, img, x0,y0, log2CbSize, qp);
   }
 }
 
@@ -172,7 +168,7 @@ static void encode_split_cu_flag(encoder_context* ectx,
 
   // decode bit
 
-  logtrace(LogSlice,"> split_cu_flag = %d\n",split_flag);
+  logtrace(LogSlice,"> split_cu_flag = %d (context=%d)\n",split_flag,context);
 
   ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context], split_flag);
 }
@@ -679,6 +675,19 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
   if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
   }
+
+
+#if 0
+  printf("write coefficients\n");
+  for (int y=0;y<(1<<log2TrafoSize);y++)
+    {
+      for (int x=0;x<(1<<log2TrafoSize);x++)
+        {
+          printf("%4d ",coeff[x+y*(1<<log2TrafoSize)]);
+        }
+      printf("\n");
+    }
+#endif
 
 
   // --- get scan orders ---
