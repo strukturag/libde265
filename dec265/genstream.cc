@@ -28,9 +28,11 @@
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
 #include "libde265/quality.h"
+#include "libde265/fallback.h"
 #include <assert.h>
 
 error_queue errqueue;
+acceleration_functions accel;
 
 video_parameter_set vps;
 seq_parameter_set   sps;
@@ -403,7 +405,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 
         //printf("reconstruct %d/%d\n",x0,y0);
 
-        tb->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
+        tb->dequant_and_add_transform(&accel, &img, x0,y0, 4 /* blksize */, qp);
 
         if (0) {
           printf("dequant luma:\n");
@@ -444,16 +446,21 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 
 
 enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
-                           int x0,int y0, int Log2CtbSize, int qp)
+                           int x0,int y0, int log2CbSize, int qp)
 {
+  printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+
   uint8_t* luma_plane = img.get_image_plane(0);
   uint8_t* cb_plane = img.get_image_plane(1);
   uint8_t* cr_plane = img.get_image_plane(2);
 
+  int cbSize = 1<<log2CbSize;
+  int cbSizeChroma = cbSize>>1;
 
   enc_cb* cb = ectx.enc_cb_pool.get_new();
 
   cb->split_cu_flag = false;
+  cb->log2CbSize = log2CbSize;
 
   cb->cu_transquant_bypass_flag = false;
 
@@ -466,7 +473,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
   cb->intra_pb[0] = pb;
 
-  enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, 16,0,
+  enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, cbSize,0,
                                                       &input[0][y0*stride+x0], stride);
 
   pb->pred_mode = INTRA_PLANAR;
@@ -485,34 +492,39 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   tb->split_transform_flag = false;
 
 
-  cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4 /* log2blksize */);
+  cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, log2CbSize);
 
   // subtract intra-prediction from input
 
   int16_t blk[3][16*16];
-  diff_blk(blk[0],16,
+  diff_blk(blk[0],cbSize,
            &input[0][y0*stride+x0],stride,
-           &luma_plane[y0*stride+x0],stride, 16);
-  diff_blk(blk[1],8,
+           &luma_plane[y0*stride+x0],stride, cbSize);
+  diff_blk(blk[1],cbSizeChroma,
            &input[1][y0/2*stride/2+x0/2],stride/2,
-           &cb_plane[y0/2*stride/2+x0/2],stride/2, 8);
-  diff_blk(blk[2],8,
+           &cb_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
+  diff_blk(blk[2],cbSizeChroma,
            &input[2][y0/2*stride/2+x0/2],stride/2,
-           &cr_plane[y0/2*stride/2+x0/2],stride/2, 8);
+           &cr_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
 
-  tb->coeff[0] = ectx.get_coeff_mem(16*16);
-  tb->coeff[1] = ectx.get_coeff_mem(8*8);
-  tb->coeff[2] = ectx.get_coeff_mem(8*8);
+  tb->coeff[0] = ectx.get_coeff_mem(cbSize*cbSize);
+  tb->coeff[1] = ectx.get_coeff_mem(cbSizeChroma*cbSizeChroma);
+  tb->coeff[2] = ectx.get_coeff_mem(cbSizeChroma*cbSizeChroma);
 
-  fdct_16x16_8_fallback(tb->coeff[0], blk[0],16);
-  fdct_8x8_8_fallback  (tb->coeff[1], blk[1],8);
-  fdct_8x8_8_fallback  (tb->coeff[2], blk[2],8);
+  int trType = 0;
+  if (log2CbSize==2) trType=1; // TODO: inter mode
 
-  quant_coefficients(tb->coeff[0], tb->coeff[0], 4, qp, true);
-  quant_coefficients(tb->coeff[1], tb->coeff[1], 3, qp, true);
-  quant_coefficients(tb->coeff[2], tb->coeff[2], 3, qp, true);
+  fwd_transform(&accel, tb->coeff[0], cbSize, log2CbSize, 0,  blk[0], cbSize);
+  fwd_transform(&accel, tb->coeff[1], cbSizeChroma,
+                log2CbSize-1, trType,  blk[1], cbSizeChroma);
+  fwd_transform(&accel, tb->coeff[2], cbSizeChroma,
+                log2CbSize-1, trType,  blk[2], cbSizeChroma);
 
-  tb->set_cbf_flags_from_coefficients(4 /* log2BlkSize */);
+  quant_coefficients(tb->coeff[0], tb->coeff[0], log2CbSize,   qp, true);
+  quant_coefficients(tb->coeff[1], tb->coeff[1], log2CbSize-1, qp, true);
+  quant_coefficients(tb->coeff[2], tb->coeff[2], log2CbSize-1, qp, true);
+
+  tb->set_cbf_flags_from_coefficients(log2CbSize);
 
   //tb->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
 
@@ -520,7 +532,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   // estimate bits
 
 #if 0
-  cb->write_to_image(&img, x0,y0, Log2CtbSize, true);
+  cb->write_to_image(&img, x0,y0, log2CbSize, true);
 
   CABAC_encoder_estim estim;
   encoder_output out;
@@ -535,14 +547,36 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   //printf("bytes: %d\n", estim.size());
 #endif
 
+  cb->rd_cost=1;
+
   return cb;
 }
 
 
+enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
+                            int x0,int y0, int Log2CtbSize, int qp);
+
 enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
-                        int x0,int y0, int Log2CtbSize, int qp)
+                        int x0,int y0, int Log2CbSize, int qp)
 {
-  return NULL;
+  enc_cb* cb = ectx.enc_cb_pool.get_new();
+
+  cb->split_cu_flag = true;
+
+  cb->cu_transquant_bypass_flag = false;
+  cb->log2CbSize = Log2CbSize;
+
+  for (int i=0;i<4;i++) {
+    int dx = (i&1)  << (Log2CbSize-1);
+    int dy = (i>>1) << (Log2CbSize-1);
+
+    cb->children[i] = encode_cb_may_split(input, stride, x0+dx, y0+dy, Log2CbSize-1, qp);
+  }
+
+  if (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1)
+    cb->rd_cost=0;
+
+  return cb;
 }
 
 
@@ -556,8 +590,11 @@ enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
   if (Log2CtbSize>3) {
     cb_split = encode_cb_split(input,stride,x0,y0, Log2CtbSize, qp);
 
+    printf("a\n");
+
     if (cb_split != NULL && cb_split->rd_cost < cb_no_split->rd_cost) {
       cb = cb_split;
+      printf("-> b\n");
     }
   }
 
@@ -634,9 +671,11 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
 
         // decode into image
 
-        cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4);
+        cb->do_intra_prediction(&img, x0,y0);
+        cb->dequant_and_add_transform(&accel, &img, x0,y0, qp);
 
-        cb->transform_tree->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
+        //cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, 4);
+        //cb->transform_tree->dequant_and_add_transform(&img, x0,y0, 4 /* blksize */, qp);
 
 
         int last = (y==sps.PicHeightInCtbsY-1 &&
@@ -828,8 +867,8 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(4,4);
-  sps.set_TB_log2size_range(4,4);
+  sps.set_CB_log2size_range(3,3);
+  sps.set_TB_log2size_range(3,3);
   sps.set_resolution(352,288);
   sps.compute_derived_values();
 
@@ -886,7 +925,7 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   pps.write(&errqueue, &writer, &sps);
   writer.flush_VLC();
 
-  int maxPoc = 10000;//99100;
+  int maxPoc = 20;//99100;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
@@ -932,6 +971,7 @@ int main(int argc, char** argv)
 
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+  init_acceleration_functions_fallback(&accel);
 
   encode_stream_intra_1("paris_cif.yuv",352,288);
 

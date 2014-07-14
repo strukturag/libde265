@@ -71,7 +71,7 @@ struct acceleration_functions
 
   void (*fwd_transform_4x4_dst_8)(int16_t *coeffs, const int16_t* src, ptrdiff_t stride); // fDST
 
-  // indexed with (log2TbSize-3)
+  // indexed with (log2TbSize-2)
   void (*fwd_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride); // fDCT
 };
 

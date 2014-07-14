@@ -48,7 +48,8 @@ void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2
 }
 
 
-void enc_tb::dequant_and_add_transform(de265_image* img, int x0,int y0, int log2BlkSize, int qp) const
+void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
+                                       de265_image* img, int x0,int y0, int log2BlkSize, int qp) const
 {
   int16_t dequant_coeff[3][32*32];
 
@@ -63,17 +64,11 @@ void enc_tb::dequant_and_add_transform(de265_image* img, int x0,int y0, int log2
   int luma_stride   = img->get_image_stride(0);
   int chroma_stride = img->get_image_stride(1);
 
-  switch (log2BlkSize) {
-  case 4:
-    if (cbf_luma) transform_16x16_add_8_fallback(yp,  dequant_coeff[0], luma_stride);
-    if (cbf_cb)   transform_8x8_add_8_fallback  (cbp, dequant_coeff[1], chroma_stride);
-    if (cbf_cr)   transform_8x8_add_8_fallback  (crp, dequant_coeff[2], chroma_stride);
-    break;
+  int trType = (log2BlkSize==2); // TODO: inter
 
-  default:
-    assert(0);
-    break;
-  }
+  if (cbf_luma) inv_transform(accel, yp,  luma_stride,   dequant_coeff[0], log2BlkSize,   trType);
+  if (cbf_cb)   inv_transform(accel, cbp, chroma_stride, dequant_coeff[1], log2BlkSize-1, 0);
+  if (cbf_cr)   inv_transform(accel, crp, chroma_stride, dequant_coeff[2], log2BlkSize-1, 0);
 }
 
 
@@ -113,6 +108,47 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
     else {
       assert(0); // TODO: inter mode
     }
+  }
+}
+
+inline int childX(int x0, int idx, int log2CbSize)
+{
+  return x0 + ((idx&1) << (log2CbSize-1));
+}
+
+inline int childY(int y0, int idx, int log2CbSize)
+{
+  return y0 + ((idx>>1) << (log2CbSize-1));
+}
+
+void enc_cb::dequant_and_add_transform(acceleration_functions* accel,
+                                       de265_image* img, int x0,int y0, int qp) const
+{
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->dequant_and_add_transform(accel, img,
+                                             childX(x0,i,log2CbSize),
+                                             childY(y0,i,log2CbSize),
+                                             qp);
+    }
+  }
+  else {
+    transform_tree->dequant_and_add_transform(accel, img, x0,y0, log2CbSize, qp);
+  }
+}
+
+void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0) const
+{
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->do_intra_prediction(img,
+                                       childX(x0,i,log2CbSize),
+                                       childY(y0,i,log2CbSize));
+    }
+  }
+  else {
+    // TODO: NxN intra prediction
+    intra_pb[0]->do_intra_prediction(img,x0,y0,log2CbSize);
   }
 }
 
