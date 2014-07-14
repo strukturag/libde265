@@ -55,9 +55,16 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
 
   accel->transform_skip_8 = transform_skip_8_fallback;
   accel->transform_bypass_8 = transform_bypass_8_fallback;
-  accel->transform_4x4_luma_add_8 = transform_4x4_luma_add_8_fallback;
-  accel->transform_4x4_add_8   = transform_4x4_add_8_fallback;
-  accel->transform_8x8_add_8   = transform_8x8_add_8_fallback;
-  accel->transform_16x16_add_8 = transform_16x16_add_8_fallback;
-  accel->transform_32x32_add_8 = transform_32x32_add_8_fallback;
+  accel->transform_4x4_dst_add_8 = transform_4x4_luma_add_8_fallback;
+  accel->transform_add_8[0] = transform_4x4_add_8_fallback;
+  accel->transform_add_8[1] = transform_8x8_add_8_fallback;
+  accel->transform_add_8[2] = transform_16x16_add_8_fallback;
+  accel->transform_add_8[3] = transform_32x32_add_8_fallback;
+
+
+  accel->fwd_transform_4x4_dst_8 = fdst_4x4_8_fallback;
+  accel->fwd_transform_8[0] = fdct_4x4_8_fallback;
+  accel->fwd_transform_8[1] = fdct_8x8_8_fallback;
+  accel->fwd_transform_8[2] = fdct_16x16_8_fallback;
+  accel->fwd_transform_8[3] = fdct_32x32_8_fallback;
 }

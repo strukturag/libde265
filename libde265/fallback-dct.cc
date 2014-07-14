@@ -430,3 +430,10 @@ void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stri
 {
   transform_fdct_8(coeffs, 32, input,stride);
 }
+
+
+void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  assert(0);
+}
+

@@ -60,14 +60,19 @@ struct acceleration_functions
                                 uint8_t *src, ptrdiff_t srcstride, int width, int height,
                                 int16_t* mcbuffer);
 
+  // --- inverse transforms ---
+
   void (*transform_skip_8)(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _stride); // no transform
   void (*transform_bypass_8)(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride);
-  void (*transform_4x4_luma_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDST
+  void (*transform_4x4_dst_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDST
+  void (*transform_add_8[4])(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
 
-  void (*transform_4x4_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
-  void (*transform_8x8_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
-  void (*transform_16x16_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
-  void (*transform_32x32_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
+  // --- forward transforms ---
+
+  void (*fwd_transform_4x4_dst_8)(int16_t *coeffs, const int16_t* src, ptrdiff_t stride); // fDST
+
+  // indexed with (log2TbSize-3)
+  void (*fwd_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride); // fDCT
 };
 
 #endif

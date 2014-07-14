@@ -223,15 +223,15 @@ void transform_coefficients(acceleration_functions* acceleration,
 
   if (trType==1) {
 
-    acceleration->transform_4x4_luma_add_8(dst, coeff, dstStride);
+    acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
     nDST_4x4++;
 
   } else {
 
-    /**/ if (nT==4)  { acceleration->transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
-    else if (nT==8)  { acceleration->transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
-    else if (nT==16) { acceleration->transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
-    else             { acceleration->transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
+    /**/ if (nT==4)  { acceleration->transform_add_8[0](dst,coeff,dstStride); nDCT_4x4++; }
+    else if (nT==8)  { acceleration->transform_add_8[1](dst,coeff,dstStride); nDCT_8x8++; }
+    else if (nT==16) { acceleration->transform_add_8[2](dst,coeff,dstStride); nDCT_16x16++; }
+    else             { acceleration->transform_add_8[3](dst,coeff,dstStride); nDCT_32x32++; }
   }
 
 #if 0
@@ -241,6 +241,23 @@ void transform_coefficients(acceleration_functions* acceleration,
             printf("%02x ",dst[y*dstStride+x]);
           }
 #endif
+}
+
+
+void fwd_transform_coefficients(acceleration_functions* acceleration,
+                                int16_t* coeff, int coeffStride, int nT, int trType,
+                                int16_t* src, int srcStride)
+{
+  logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
+
+  if (trType==1) {
+    acceleration->fwd_transform_4x4_dst_8(coeff, src, srcStride);
+  } else {
+    /**/ if (nT==4)  { acceleration->fwd_transform_8[0](coeff,src,srcStride); }
+    else if (nT==8)  { acceleration->fwd_transform_8[1](coeff,src,srcStride); }
+    else if (nT==16) { acceleration->fwd_transform_8[2](coeff,src,srcStride); }
+    else             { acceleration->fwd_transform_8[3](coeff,src,srcStride); }
+  }
 }
 
 
