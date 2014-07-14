@@ -135,6 +135,64 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t 
 }
 
 
+void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  int16_t g[4*4];
+
+  int BD = 8;
+  int shift1 = Log2(4) + BD -9;
+  int shift2 = Log2(4) + 6;
+
+  int rnd1 = 1<<(shift1-1);
+  int rnd2 = 1<<(shift2-1);
+
+
+  // --- V ---
+
+  for (int c=0;c<4;c++) {
+
+    logtrace(LogTransform,"DST-V: ");
+    for (int r=0;r<4;r++) {
+      logtrace(LogTransform,"%d ",coeffs[c+r*4]);
+    }
+    logtrace(LogTransform,"* -> ");
+
+
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[i][j] * input[c+j*stride];
+      }
+
+      g[c+4*i] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
+    }
+  }
+
+
+  // --- H ---
+
+  for (int y=0;y<4;y++) {
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[i][j] * g[y*4+j];
+      }
+
+      // TODO: do we need clipping ?
+      int out = (sum+rnd2)>>shift2; // Clip3(-32768,32767, (sum+rndH)>>postShift);
+
+      coeffs[y*4+i] = out;
+
+      logtrace(LogTransform,"*%d ",out);
+    }
+
+    logtrace(LogTransform,"*\n");
+  }
+}
+
+
 
 static int8_t mat_dct[32][32] = {
   { 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,      64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64},
@@ -400,6 +458,7 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
         sum += mat_dct[fact*i][j] * g[y*nT+j];
       }
       
+      // TODO: do we need clipping ?
       int out = (sum+rnd2)>>shift2;
 
       coeffs[y*nT+i] = out;
@@ -429,11 +488,5 @@ void fdct_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stri
 void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 32, input,stride);
-}
-
-
-void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
-{
-  assert(0);
 }
 
