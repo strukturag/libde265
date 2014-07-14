@@ -215,23 +215,23 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
 
 
-void transform_coefficients(decoder_context* ctx,
-                            int16_t* coeff, int coeffStride, int nT, int trType, int postShift,
+void transform_coefficients(acceleration_functions* acceleration,
+                            int16_t* coeff, int coeffStride, int nT, int trType,
                             uint8_t* dst, int dstStride)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
   if (trType==1) {
 
-    ctx->acceleration.transform_4x4_luma_add_8(dst, coeff, dstStride);
+    acceleration->transform_4x4_luma_add_8(dst, coeff, dstStride);
     nDST_4x4++;
 
   } else {
 
-    /**/ if (nT==4)  { ctx->acceleration.transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
-    else if (nT==8)  { ctx->acceleration.transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
-    else if (nT==16) { ctx->acceleration.transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
-    else             { ctx->acceleration.transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
+    /**/ if (nT==4)  { acceleration->transform_4x4_add_8(dst,coeff,dstStride); nDCT_4x4++; }
+    else if (nT==8)  { acceleration->transform_8x8_add_8(dst,coeff,dstStride); nDCT_8x8++; }
+    else if (nT==16) { acceleration->transform_16x16_add_8(dst,coeff,dstStride); nDCT_16x16++; }
+    else             { acceleration->transform_32x32_add_8(dst,coeff,dstStride); nDCT_32x32++; }
   }
 
 #if 0
@@ -412,7 +412,7 @@ void scale_coefficients(thread_context* tctx,
         trType=0;
       }
 
-      transform_coefficients(tctx->decctx, coeff, coeffStride, nT, trType, bdShift2,
+      transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
                              pred, stride);
     }
   }
