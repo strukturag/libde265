@@ -294,7 +294,6 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 #endif
 
-extern int binCnt[65][2];  // tmp: debug
 
 int main(int argc, char** argv)
 {
@@ -539,10 +538,6 @@ int main(int argc, char** argv)
     showMotionProfile();
     showIntraPredictionProfile();
     showTransformProfile();
-  }
-
-  for (int i=0;i<=64;i++) {
-    printf("%5d %5d\n",binCnt[i][0],binCnt[i][1]);
   }
 
   return err==DE265_OK ? 0 : 10;
