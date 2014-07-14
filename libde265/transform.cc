@@ -245,18 +245,19 @@ void transform_coefficients(acceleration_functions* acceleration,
 
 
 void fwd_transform_coefficients(acceleration_functions* acceleration,
-                                int16_t* coeff, int coeffStride, int nT, int trType,
-                                int16_t* src, int srcStride)
+                                int16_t* coeff, int coeffStride, int log2TbSize, int trType,
+                                const int16_t* src, int srcStride)
 {
-  logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
+  logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,1<<log2TbSize);
 
   if (trType==1) {
+    // DST 4x4
+
     acceleration->fwd_transform_4x4_dst_8(coeff, src, srcStride);
   } else {
-    /**/ if (nT==4)  { acceleration->fwd_transform_8[0](coeff,src,srcStride); }
-    else if (nT==8)  { acceleration->fwd_transform_8[1](coeff,src,srcStride); }
-    else if (nT==16) { acceleration->fwd_transform_8[2](coeff,src,srcStride); }
-    else             { acceleration->fwd_transform_8[3](coeff,src,srcStride); }
+    // DCT 4x4, 8x8, 16x16, 32x32
+
+    acceleration->fwd_transform_8[log2TbSize-3](coeff,src,srcStride);
   }
 }
 
