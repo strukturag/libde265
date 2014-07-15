@@ -108,6 +108,9 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
 {
   if (!split_cu_flag) {
     img->set_ctDepth(x,y,log2blkSize, ctDepth);
+    //img->set_pcm_flag(x,y,log2blkSize, 0); // TODO
+    img->set_pred_mode(x,y, log2blkSize, PredMode);
+    img->set_PartMode(x,y, PartMode);  // TODO: probably unnecessary
 
     if (intra) {
       //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);

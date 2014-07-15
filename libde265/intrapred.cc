@@ -149,11 +149,11 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
   }
 
   /*
-  printf("candModeList: %d %d %d\n",
-         candModeList[0],
-         candModeList[1],
-         candModeList[2]
-         );
+    printf("candModeList: %d %d %d\n",
+    candModeList[0],
+    candModeList[1],
+    candModeList[2]
+    );
   */
 }
 
@@ -268,6 +268,8 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   bool availableTopLeft=true;  // if CTB at top-left pixel available?
 
 
+  //printf("xB/yB: %d %d\n",xB,yB);
+
   // are we at left image border
 
   if (xBLuma == 0) {
@@ -304,6 +306,13 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   int toprightCTBSlice = availableTopRight ? img->get_SliceAddrRS(xRightCtb, yTopCtb) : -1;
   int topleftCTBSlice  = availableTopLeft  ? img->get_SliceAddrRS(xLeftCtb, yTopCtb) : -1;
 
+  /*
+  printf("size: %d\n",pps->TileIdRS.size());
+  printf("curr: %d left: %d top: %d\n",
+         xCurrCtb+yCurrCtb*picWidthInCtbs,
+         availableLeft ? xLeftCtb+yCurrCtb*picWidthInCtbs : 9999,
+         availableTop  ? xCurrCtb+yTopCtb*picWidthInCtbs  : 9999);
+  */
   int currCTBTileID = pps->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
   int leftCTBTileID = availableLeft ? pps->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : -1;
   int topCTBTileID  = availableTop ? pps->TileIdRS[xCurrCtb+yTopCtb*picWidthInCtbs] : -1;

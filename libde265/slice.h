@@ -258,7 +258,7 @@ typedef struct slice_segment_header {
 
   // --- data for external modules ---
 
-  int SliceAddrRS;  // start of last independent slice
+  int SliceAddrRS;  // slice_segment_address of last independent slice
 
   int MaxNumMergeCand;
   int CurrRpsIdx;

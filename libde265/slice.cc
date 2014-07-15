@@ -136,6 +136,8 @@ void slice_segment_header::set_defaults(const pic_parameter_set* pps)
 
   slice_segment_header_extension_length = 0;
 
+  SliceAddrRS = slice_segment_address;
+
   compute_derived_values(pps);
 }
 

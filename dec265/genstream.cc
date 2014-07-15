@@ -618,7 +618,7 @@ enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
 
   //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
-  if (0 && Log2CbSize>3) {
+  if (Log2CbSize>3) {
     cb_split = encode_cb_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
 
     bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
@@ -646,6 +646,7 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
 
   img.alloc_image(w,h, de265_chroma_420, &sps, true, NULL /* no decctx */);
   img.alloc_encoder_data(&sps);
+  img.clear_metadata();
 
   initialize_CABAC_models(ectx.ctx_model, shdr.initType, shdr.SliceQPY);
 
@@ -662,6 +663,8 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
     for (int x=0;x<sps.PicWidthInCtbsY;x++)
       {
         ectx.reset_coeff_mem();
+
+        img.set_SliceAddrRS(x, y, shdr.SliceAddrRS);
 
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
@@ -819,8 +822,8 @@ void write_stream_1()
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(4,4);
-  sps.set_TB_log2size_range(4,4);
+  sps.set_CB_log2size_range(3,3);
+  sps.set_TB_log2size_range(3,3);
   sps.set_resolution(352,288);
   sps.compute_derived_values();
 
@@ -914,8 +917,8 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(3,3);
-  sps.set_TB_log2size_range(3,3);
+  sps.set_CB_log2size_range(3,5);
+  sps.set_TB_log2size_range(3,5);
   sps.set_resolution(width,height);
   sps.compute_derived_values();
 
