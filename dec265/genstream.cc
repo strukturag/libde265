@@ -918,8 +918,8 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(3,5);
-  sps.set_TB_log2size_range(3,5);
+  sps.set_CB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
+  sps.set_TB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
   sps.set_resolution(width,height);
   sps.compute_derived_values();
 

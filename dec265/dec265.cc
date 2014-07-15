@@ -42,6 +42,7 @@
 #include "libde265/decctx.h"
 #endif
 #include "libde265/visualize.h"
+#include "libde265/quality.h"
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -82,6 +83,9 @@ const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 bool write_bytestream=false;
 const char *bytestream_filename;
+bool measure_psnr=false;
+const char* reference_filename;
+FILE* reference_file;
 int highestTID = 100;
 int verbosity=0;
 int disable_deblocking=0;
@@ -101,6 +105,7 @@ static struct option long_options[] = {
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
+  {"measure",     required_argument, 0, 'm' },
   {"highest-TID", required_argument, 0, 'T' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
@@ -231,6 +236,39 @@ bool output_image(const de265_image* img)
 }
 
 
+static double mse_y=0.0, mse_cb=0.0, mse_cr=0.0;
+static int    mse_frames=0;
+
+void measure(const de265_image* img)
+{
+  int width  = de265_get_image_width(img,0);
+  int height = de265_get_image_height(img,0);
+
+  uint8_t* p = (uint8_t*)malloc(width*height*3/2);
+
+  fread(p,1,width*height*3/2,reference_file);
+
+  int stride, cstride;
+  const uint8_t* yptr  = de265_get_image_plane(img,0, &stride);
+  const uint8_t* cbptr = de265_get_image_plane(img,1, &cstride);
+  const uint8_t* crptr = de265_get_image_plane(img,2, &cstride);
+
+  double img_mse_y  = MSE( yptr,  stride, p, width,   width, height);
+  double img_mse_cb = MSE(cbptr, cstride, p+width*height,      width/2, width/2,height/2);
+  double img_mse_cr = MSE(crptr, cstride, p+width*height*5/4,  width/2, width/2,height/2);
+
+  mse_frames++;
+
+  mse_y  += img_mse_y;
+  mse_cb += img_mse_cb;
+  mse_cr += img_mse_cr;
+
+  printf("%5d   %6f %6f %6f\n", framecnt, PSNR(img_mse_y), PSNR(img_mse_cb), PSNR(img_mse_cr));
+
+  free(p);
+}
+
+
 #ifdef WIN32
 #include <time.h>
 #define WIN32_LEAN_AND_MEAN
@@ -300,7 +338,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -324,6 +362,7 @@ int main(int argc, char** argv)
     case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
+    case 'm': measure_psnr=true; reference_filename=optarg; break;
     case 'T': highestTID=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
@@ -350,6 +389,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
+    fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");       
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
@@ -396,6 +436,10 @@ int main(int argc, char** argv)
   de265_set_limit_TID(ctx, highestTID);
 
 
+  if (measure_psnr) {
+    reference_file = fopen(reference_filename, "rb");
+  }
+    
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
@@ -497,6 +541,10 @@ int main(int argc, char** argv)
             stop = output_image(img);
             if (stop) more=0;
             else      more=1;
+
+            if (measure_psnr) {
+              measure(img);
+            }
           }
 
           // show warnings
@@ -516,6 +564,15 @@ int main(int argc, char** argv)
 
   if (write_bytestream) {
     fclose(bytestream_fh);
+  }
+
+  if (measure_psnr) {
+    printf("#total  %6f %6f %6f\n",
+           PSNR(mse_y /mse_frames),
+           PSNR(mse_cb/mse_frames),
+           PSNR(mse_cr/mse_frames));
+
+    fclose(reference_file);
   }
 
   de265_free_decoder(ctx);

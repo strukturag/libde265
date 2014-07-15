@@ -251,8 +251,8 @@ void register_encoder_params(config_parameters* config)
   config->register_config_int("max-cb-size",  0 , eoffset(max_cb_size),
                               32,      8,64);
 
-  config->register_config_string("input", 'i' , eoffset(input_yuv), "paris_cif.yuv");
-  config->register_config_int("width", 'w' , eoffset(input_width),
+  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
+  config->register_config_int("width",  'w', eoffset(input_width),
                               352,      1,NO_LIMIT);
   config->register_config_int("height", 'h', eoffset(input_height),
                               288,      1,NO_LIMIT);
