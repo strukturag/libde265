@@ -26,6 +26,31 @@
 #include <stdio.h>
 
 
+void simple_getline(char** lineptr,size_t* linelen,FILE* fh)
+{
+  const int LINESIZE=1000;
+
+  if (*lineptr==NULL) {
+    *linelen = LINESIZE;
+    *lineptr = (char*)malloc(LINESIZE);
+  }
+
+  char* p = *lineptr;
+
+  for (;;) {
+    assert(p - *lineptr < LINESIZE);
+
+    int c = fgetc(fh);
+    if (c == EOF || c == '\n') {
+      *p = 0;
+      break;
+    }
+
+    *p++ = c;
+  }
+}
+
+
 void generate_entropy_table()
 {
   const int nSymbols=1000*1000*10;
@@ -309,7 +334,7 @@ void generate_entropy_table_replay()
     FILE* fh = fopen("streamdump-paris-intra","r");
 
     for (int i=0;i<80000000;i++) {
-      getline(&lineptr,&linelen,fh);
+      simple_getline(&lineptr,&linelen,fh);
       if (feof(fh))
         break;
 
@@ -402,7 +427,7 @@ void test_entropy_table_replay()
   FILE* fh = fopen("streamdump-paris-intra","r");
 
   for (int i=0;i<80000000;i++) {
-    getline(&lineptr,&linelen,fh);
+    simple_getline(&lineptr,&linelen,fh);
     if (feof(fh))
       break;
 
