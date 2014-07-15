@@ -36,15 +36,15 @@ void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2
     decode_intra_prediction(img, x0,y0, pred_mode, 1<<log2BlkSize, cIdx);
   }
   else {
-    decode_intra_prediction(img, x0,y0, pred_mode_chroma, 1<<log2BlkSize, cIdx);
+    decode_intra_prediction(img, x0/2,y0/2, pred_mode_chroma, 1<<(log2BlkSize-1), cIdx);
   }
 }
 
 void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
 {
-  do_intra_prediction(img,x0  ,y0  ,log2BlkSize,   0);
-  do_intra_prediction(img,x0/2,y0/2,log2BlkSize-1, 1);
-  do_intra_prediction(img,x0/2,y0/2,log2BlkSize-1, 2);
+  do_intra_prediction(img,x0,y0,log2BlkSize, 0);
+  do_intra_prediction(img,x0,y0,log2BlkSize, 1);
+  do_intra_prediction(img,x0,y0,log2BlkSize, 2);
 }
 
 
@@ -57,6 +57,11 @@ void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
   if (cbf_cb)   dequant_coefficients(dequant_coeff[1], coeff[1], log2BlkSize-1, qp);
   if (cbf_cr)   dequant_coefficients(dequant_coeff[2], coeff[2], log2BlkSize-1, qp);
 
+  //printf("--- quantized coeffs ---\n");
+  //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
+
+  //printf("--- dequantized coeffs ---\n");
+  //printBlk(dequant_coeff[0],1<<log2BlkSize,1<<log2BlkSize);
 
   uint8_t* yp  = img->get_image_plane_at_pos(0, x0,  y0  );
   uint8_t* cbp = img->get_image_plane_at_pos(1, x0/2,y0/2);
@@ -144,7 +149,14 @@ void enc_cb::reconstruct(acceleration_functions* accel,
   }
   else {
     intra_pb[0]->do_intra_prediction(img,x0,y0,log2CbSize);
+
+    //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
+    //img->printBlk(x0,y0,0,log2CbSize);
+
     transform_tree->dequant_and_add_transform(accel, img, x0,y0, log2CbSize, qp);
+
+    //printf("--- RECO add residual %d %d ---\n",x0,y0);
+    //img->printBlk(x0,y0,0,log2CbSize);
   }
 }
 
@@ -719,8 +731,11 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            &lastSignificantX, &lastSignificantY,
                            &lastSubBlock, &lastScanPos);
 
+  int codedSignificantX = lastSignificantX;
+  int codedSignificantY = lastSignificantY;
+
   if (scanIdx==2) {
-    std::swap(lastSignificantX, lastSignificantY);
+    std::swap(codedSignificantX, codedSignificantY);
   }
 
 
@@ -728,8 +743,8 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
   int prefixX, suffixX, suffixBitsX;
   int prefixY, suffixY, suffixBitsY;
 
-  split_last_significant_position(lastSignificantX, &prefixX,&suffixX,&suffixBitsX);
-  split_last_significant_position(lastSignificantY, &prefixY,&suffixY,&suffixBitsY);
+  split_last_significant_position(codedSignificantX, &prefixX,&suffixX,&suffixBitsX);
+  split_last_significant_position(codedSignificantY, &prefixY,&suffixY,&suffixBitsY);
 
   encode_last_signficiant_coeff_prefix(ectx, log2TrafoSize, cIdx, prefixX,
                                        &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX]);
@@ -738,10 +753,10 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                                        &ectx->ctx_model[CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX]);
 
 
-  if (lastSignificantX > 3) {
+  if (codedSignificantX > 3) {
     ectx->cabac_encoder->write_CABAC_FL_bypass(suffixX, suffixBitsX);
   }
-  if (lastSignificantY > 3) {
+  if (codedSignificantY > 3) {
     ectx->cabac_encoder->write_CABAC_FL_bypass(suffixY, suffixBitsY);
   }
 
@@ -830,8 +845,6 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
       // set the last coded coefficient in the last subblock
 
-      int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
-
       if (i==lastSubBlock) {
         coeff_value[nCoefficients] = coeff[lastSignificantX+(lastSignificantY<<log2TrafoSize)];
         coeff_has_max_base_level[nCoefficients] = 1;  // TODO
@@ -841,6 +854,8 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
 
       // --- encode all coefficients' significant_coeff flags except for the DC coefficient ---
+
+      int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
 
       for (int n= last_coeff ; n>0 ; n--) {
         int subX = ScanOrderPos[n].x;
@@ -929,7 +944,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
         coeff_baseLevel[l] = 1;
 
-        logtrace(LogSlice,"(%d) ",coeff_value[l]);
+        logtrace(LogSlice,"(%d) ",coeff_scan_pos[l]);
       }
 
       logtrace(LogSlice,"\n");
@@ -992,20 +1007,20 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       }
 
 
-      // --- decode coefficient signs ---
+      // --- encode coefficient signs ---
 
       int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
                         !cb->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients-1;n++) {
         ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[n]);
-        logtrace(LogSlice,"sign[%d] = %d\n", n, coeff_sign[n]);
+        logtrace(LogSlice,"a) sign[%d] = %d\n", n, coeff_sign[n]);
       }
 
       // n==nCoefficients-1
       if (!pps.sign_data_hiding_flag || !signHidden) {
         ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[nCoefficients-1]);
-        logtrace(LogSlice,"sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
+        logtrace(LogSlice,"b) sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
       }
       else {
         assert(coeff_sign[nCoefficients-1] == 0);

@@ -140,3 +140,19 @@ void log2fh(FILE* fh, const char* string, ...)
   va_end(va);
   fflush(stdout);
 }
+
+
+
+void printBlk(int16_t* data, int blksize, int stride)
+{
+  for (int y=0;y<blksize;y++) {
+    //logtrace(LogTransform,"  ");
+    printf("  ");
+    for (int x=0;x<blksize;x++) {
+      //logtrace(LogTransform,"*%3d ", data[x+y*stride]);
+      printf("%4d ", data[x+y*stride]);
+    }
+    //logtrace(LogTransform,"*\n");
+    printf("\n");
+  }
+}

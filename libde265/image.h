@@ -745,8 +745,9 @@ public:
 
   void set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
 
-// --- value logging ---
+  // --- value logging ---
 
+  void printBlk(int x0,int y0, int cIdx, int log2BlkSize);
 };
 
 

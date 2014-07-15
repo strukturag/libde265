@@ -671,3 +671,21 @@ bool de265_image::available_pred_blk(int xC,int yC, int nCbS, int xP, int yP,
   return availableN;
 }
 
+
+void de265_image::printBlk(int x0,int y0, int cIdx, int log2BlkSize)
+{
+  const uint8_t* p = get_image_plane_at_pos(cIdx,x0,y0);
+  int stride = get_image_stride(cIdx);
+  int blksize = 1<<log2BlkSize;
+
+  for (int y=0;y<blksize;y++) {
+    //logtrace(LogTransform,"  ");
+    printf("  ");
+    for (int x=0;x<blksize;x++) {
+      //logtrace(LogTransform,"*%3d ", p[x+y*stride]);
+      printf("%02x ", p[x+y*stride]);
+    }
+    //logtrace(LogTransform,"*\n");
+    printf("\n");
+  }
+}

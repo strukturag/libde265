@@ -197,8 +197,19 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   int qPCb = table8_22(qPiCb);
   int qPCr = table8_22(qPiCr);
 
+  //printf("q: %d %d\n",qPiCb, qPCb);
+
   tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
   tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
+
+  /*
+  printf("Q: %d (%d %d %d / %d %d) %d %d %d\n",QPY,
+         sps->QpBdOffset_Y,
+         pps->pic_cb_qp_offset + shdr->slice_cb_qp_offset,
+         pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset,
+         sps->QpBdOffset_C, sps->QpBdOffset_C,
+         tctx->qPYPrime, tctx->qPCbPrime, tctx->qPCrPrime);
+  */
 
   int log2CbSize = tctx->img->get_log2CbSize(xCUBase, yCUBase);
   tctx->img->set_QPY(xCUBase, yCUBase, log2CbSize, QPY);
@@ -390,19 +401,19 @@ void scale_coefficients(thread_context* tctx,
 
       //#ifdef DE265_LOG_TRACE
 #if 0
-      int16_t clog[32*32];
-      memset(clog,0,32*32*sizeof(int16_t));
-      for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-  clog[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
-      }
-
-      printf("quantized coefficients:\n");
-      for (int y=0;y<nT;y++) {
-  for (int x=0;x<nT;x++) {
-  printf("%4d ",clog[x+y*nT]);
-}
-  printf("\n");
- }
+        int16_t clog[32*32];
+        memset(clog,0,32*32*sizeof(int16_t));
+        for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+          clog[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
+        }
+        
+        printf("quantized coefficients:\n");
+        for (int y=0;y<nT;y++) {
+          for (int x=0;x<nT;x++) {
+            printf("%4d ",clog[x+y*nT]);
+          }
+          printf("\n");
+        }
 #endif
     }
     else {

@@ -31,6 +31,9 @@
 #include "libde265/fallback.h"
 #include <assert.h>
 
+
+FILE* reco_fh;
+
 error_queue errqueue;
 acceleration_functions accel;
 
@@ -199,30 +202,12 @@ void encode_image_FDCT_1()
 }
 
 
-bool coeffzero(const int16_t* c,int n)
-{
-  for (int i=0;i<n;i++)
-    if (c[i]) return false;
-
-  return true;
-}
-
-
-void printBlk(int16_t* data, int blksize, int stride)
-{
-  for (int y=0;y<blksize;y++) {
-    logtrace(LogTransform,"  ");
-    for (int x=0;x<blksize;x++) {
-      logtrace(LogTransform,"*%3d ", data[x+y*stride]);
-    }
-    logtrace(LogTransform,"*\n");
-  }
-}
-
-
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
                                         const uint8_t* ref, int stride)
 {
+  //return INTRA_DC;
+  //return INTRA_ANGULAR_14;
+
   enum IntraPredMode best_mode;
   int min_sad=-1;
 
@@ -521,6 +506,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   //printf("result of intra prediction\n");
   //printblk(luma_plane,stride,x0,y0,cbSize);
+  //printblk(cb_plane,stride/2,x0/2,y0/2,cbSize/2);
 
   // subtract intra-prediction from input
 
@@ -550,6 +536,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   //printf("raw coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);
+  //printcoeff(tb->coeff[1],cbSize/2);
 
   quant_coefficients(tb->coeff[0], tb->coeff[0], log2CbSize,   qp, true);
   quant_coefficients(tb->coeff[1], tb->coeff[1], log2CbSize-1, qp, true);
@@ -559,6 +546,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   //printf("quantized coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);
+  //printcoeff(tb->coeff[1],cbSize/2);
 
 
   // estimate bits
@@ -630,7 +618,7 @@ enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
 
   //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
-  if (Log2CbSize>3) {
+  if (0 && Log2CbSize>3) {
     cb_split = encode_cb_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
 
     bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
@@ -639,13 +627,11 @@ enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
     if (split) {
       cb = cb_split;
     }
+    else {
+      cb->write_to_image(&img, x0,y0, Log2CbSize, true);
+      cb->reconstruct(&accel, &img, x0,y0, qp);
+    }
   }
-  else {
-    //cb = encode_cb_no_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
-  }
-
-  cb->write_to_image(&img, x0,y0, Log2CbSize, true);
-  cb->reconstruct(&accel, &img, x0,y0, qp);
 
   return cb;
 }
@@ -908,7 +894,7 @@ void write_stream_1()
 
 void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 {
-  int qp = 27;
+  int qp = 29; // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
 
 
   FILE* fh = fopen(yuv_filename,"rb");
@@ -928,9 +914,9 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   // SPS
 
   sps.set_defaults();
-  sps.set_CB_log2size_range(3,4);
-  sps.set_TB_log2size_range(3,4);
-  sps.set_resolution(352,288);
+  sps.set_CB_log2size_range(3,3);
+  sps.set_TB_log2size_range(3,3);
+  sps.set_resolution(width,height);
   sps.compute_derived_values();
 
   // PPS
@@ -1019,6 +1005,11 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
       //encode_image(&ectx);
       writer.flush_CABAC();
 
+
+      fwrite(img.get_image_plane(0), 1, width*height,   reco_fh);
+      fwrite(img.get_image_plane(1), 1, width*height/4, reco_fh);
+      fwrite(img.get_image_plane(2), 1, width*height/4, reco_fh);
+
       fprintf(stderr,"  PSNR-Y: %f\n", psnr);
     }
 
@@ -1034,7 +1025,12 @@ int main(int argc, char** argv)
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   init_acceleration_functions_fallback(&accel);
 
+  reco_fh = fopen("reco.yuv","wb");
+
   encode_stream_intra_1("paris_cif.yuv",352,288);
+  //encode_stream_intra_1("/home/domain/farindk/h/mother-daughter_cif.yuv",352,288);
+
+  fclose(reco_fh);
 
 
   FILE* fh = fopen("out.bin","wb");
