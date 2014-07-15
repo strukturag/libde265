@@ -616,13 +616,11 @@ enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
   enc_cb* cb_split = NULL;
   enc_cb* cb = cb_no_split;
 
-  //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
-
-  if (Log2CbSize>3) {
+  if (Log2CbSize > sps.Log2MinCbSizeY) {
     cb_split = encode_cb_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
 
     bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
-    //split=false;
+    //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
     if (split) {
       cb = cb_split;
@@ -1032,6 +1030,7 @@ int main(int argc, char** argv)
 
   encode_stream_intra_1("paris_cif.yuv",352,288);
   //encode_stream_intra_1("/home/domain/farindk/h/mother-daughter_cif.yuv",352,288);
+  //encode_stream_intra_1("/storage/users/farindk/yuv/Johnny_1280x720_60.yuv",1280,720);
 
   fclose(reco_fh);
 
