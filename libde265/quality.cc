@@ -51,5 +51,7 @@ double MSE(const uint8_t* img, int imgStride,
 
 double PSNR(double mse)
 {
+  if (mse==0) { return 99.99999; }
+
   return 10*log10(255.0*255.0/mse);
 }
