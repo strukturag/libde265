@@ -29,8 +29,11 @@
 #include "libde265/fallback-dct.h"
 #include "libde265/quality.h"
 #include "libde265/fallback.h"
+#include "libde265/configparam.h"
 #include <assert.h>
 
+
+encoder_params params;
 
 FILE* reco_fh;
 
@@ -895,7 +898,7 @@ void write_stream_1()
 
 void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 {
-  int qp = 29; // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
+  int qp = params.constant_QP; // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
 
 
   FILE* fh = fopen(yuv_filename,"rb");
@@ -973,7 +976,9 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   pps.write(&errqueue, &writer, &sps);
   writer.flush_VLC();
 
-  int maxPoc = 20;//99100;
+  fseek(fh, width*height*3/2 * params.first_frame, SEEK_SET);
+
+  int maxPoc = params.max_number_of_frames;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
@@ -1020,22 +1025,30 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
 
 int main(int argc, char** argv)
 {
+  config_parameters config_param;
+  register_encoder_params(&config_param);
+
+  if (!config_param.parse_command_line_params(&argc,argv, &params)) {
+    return 10;
+  }
+
+
   //de265_set_verbosity(3);
 
   init_scan_orders();
   alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   init_acceleration_functions_fallback(&accel);
 
-  reco_fh = fopen("reco.yuv","wb");
+  reco_fh = fopen(params.reconstruction_yuv,"wb");
 
-  encode_stream_intra_1("paris_cif.yuv",352,288);
+  encode_stream_intra_1(params.input_yuv, params.input_width, params.input_height);
   //encode_stream_intra_1("/home/domain/farindk/h/mother-daughter_cif.yuv",352,288);
   //encode_stream_intra_1("/storage/users/farindk/yuv/Johnny_1280x720_60.yuv",1280,720);
 
   fclose(reco_fh);
 
 
-  FILE* fh = fopen("out.bin","wb");
+  FILE* fh = fopen(params.output_filename,"wb");
   fwrite(writer.data(), 1,writer.size(), fh);
   fclose(fh);
 

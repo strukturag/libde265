@@ -44,6 +44,26 @@ struct encoder_params
   int first_frame;
   int max_number_of_frames;
 
+  const char* input_yuv;
+  int input_width;
+  int input_height;
+
+
+  // output
+
+  const char* output_filename;
+
+
+  // debug
+
+  const char* reconstruction_yuv;
+
+
+  // CB quad-tree
+
+  int min_cb_size;
+  int max_cb_size;
+
 
   // intra-prediction
 
