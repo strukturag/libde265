@@ -23,7 +23,7 @@
 #include <assert.h>
 
 
-enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
+enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride)
 {
   //return INTRA_DC;
@@ -45,19 +45,13 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
 
   for (int idx=0;idx<3;idx++) {
     enum IntraPredMode mode = (enum IntraPredMode)candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
+    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, 1<<log2BlkSize, cIdx);
 
-    // measure SAD
+    uint32_t distortion = SSD(ref,stride,
+      img.get_image_plane_at_pos(cIdx, x0,y0), img.get_image_stride(cIdx),
+      1<<log2BlkSize, 1<<log2BlkSize);
 
-    int sad=0;
-    int imgStride = img.get_image_stride(cIdx);
-    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
-    for (int y=0;y<blkSize;y++)
-      for (int x=0;x<blkSize;x++)
-        {
-          int diff = ref[x + y*stride] - pred[x + y*imgStride];
-          sad += abs_value(diff);
-        }
+    int sad=distortion;
 
     sad *= 0.5;
     //sad *= 0.9;
@@ -73,19 +67,14 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
 
   for (int idx=0;idx<35;idx++) {
     enum IntraPredMode mode = (enum IntraPredMode)idx; //candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
+    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, 1<<log2BlkSize, cIdx);
 
-    // measure SAD
 
-    int sad=0;
-    int imgStride = img.get_image_stride(cIdx);
-    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
-    for (int y=0;y<blkSize;y++)
-      for (int x=0;x<blkSize;x++)
-        {
-          int diff = ref[x + y*stride] - pred[x + y*imgStride];
-          sad += abs_value(diff);
-        }
+    uint32_t distortion = SSD(ref,stride,
+      img.get_image_plane_at_pos(cIdx, x0,y0), img.get_image_stride(cIdx),
+      1<<log2BlkSize, 1<<log2BlkSize);
+
+    int sad=distortion;
 
     if (min_sad<0 || sad<min_sad) {
       min_sad = sad;
@@ -147,7 +136,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   enc_pb_intra* pb = ectx->enc_pb_intra_pool.get_new();
   cb->intra_pb[0] = pb;
 
-  enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, cbSize,0,
+  enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2CbSize,0,
                                                       input->get_image_plane_at_pos(0,x0,y0),
                                                       input->get_image_stride(0));
 
@@ -219,35 +208,24 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->write_to_image(&ectx->img, x0,y0, log2CbSize, true);
 
   cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+  cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
 
   //printf("reconstruction: add transform\n");
   //printblk(luma_plane,stride,x0,y0,cbSize);
 
 
 
-  cb->rd_cost=1;
-
   ectx->switch_to_CABAC_estim();
-#if 0
-  CABAC_encoder_estim estim;
-  encoder_output out;
-  out = ectx->bitstream_output;
-  out.cabac_encoder = &estim;
-
-  ectx->set_output(&out);
-#endif
   encode_quadtree(ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
-  //ectx->set_output(&ectx->bitstream_output);
+  cb->rate = ectx->cabac_estim.size();
   ectx->switch_to_CABAC_stream();
-
-  cb->rd_cost = ectx->cabac_estim.size();
 
   return cb;
 }
 
 
 enc_cb* encode_cb_split(encoder_context* ectx,
-    const de265_image* input,
+                        const de265_image* input,
                         int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb = ectx->enc_cb_pool.get_new();
@@ -258,7 +236,8 @@ enc_cb* encode_cb_split(encoder_context* ectx,
   cb->log2CbSize = Log2CbSize;
   cb->ctDepth = ctDepth;
 
-  cb->rd_cost = 0;
+  cb->distortion = 0;
+  cb->rate       = 0;
 
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
@@ -267,7 +246,8 @@ enc_cb* encode_cb_split(encoder_context* ectx,
     cb->children[i] = encode_cb_may_split(ectx, input, x0+dx, y0+dy,
                                           Log2CbSize-1, ctDepth+1, qp);
 
-    cb->rd_cost += cb->children[i]->rd_cost;
+    cb->distortion += cb->children[i]->distortion;
+    cb->rate       += cb->children[i]->rate;
   }
 
   return cb;
@@ -275,7 +255,7 @@ enc_cb* encode_cb_split(encoder_context* ectx,
 
 
 enc_cb* encode_cb_may_split(encoder_context* ectx,
-    const de265_image* input,
+                            const de265_image* input,
                             int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb_no_split = encode_cb_no_split(ectx, input,x0,y0, Log2CbSize, ctDepth, qp);
@@ -285,7 +265,12 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
   if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
     cb_split = encode_cb_split(ectx, input,x0,y0, Log2CbSize, ctDepth, qp);
 
-    bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
+    float lambda = 250.0;
+
+    float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
+    float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
+
+    bool split =  (rd_cost_split < rd_cost_no_split);
     //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
     if (split) {
@@ -302,7 +287,7 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
 
 
 double encode_image(encoder_context* ectx,
-    const de265_image* input, int qp)
+                    const de265_image* input, int qp)
 {
   int stride=input->get_image_stride(0);
 
@@ -400,16 +385,17 @@ double encode_image(encoder_context* ectx,
       }
 
 
-double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
-                       luma_plane, ectx->img.get_image_stride(0),
-                       input->get_width(), input->get_height()));
+  double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
+                         luma_plane, ectx->img.get_image_stride(0),
+                         input->get_width(), input->get_height()));
   return psnr;
 }
 
 
 void encode_sequence(encoder_context* ectx)
 {
-  int qp = ectx->params.constant_QP; // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
+  // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
+  int qp = ectx->params.constant_QP;
 
 
   nal_header nal;
@@ -489,20 +475,15 @@ void encode_sequence(encoder_context* ectx)
 
       //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
-      //ectx->cabac->write_startcode();
       nal.set(NAL_UNIT_IDR_W_RADL);
       nal.write(ectx->cabac);
       ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
       ectx->cabac->skip_bits(1);
       ectx->cabac->flush_VLC();
 
-      //encode_image_coeffTest_1();
-      //encode_image_FDCT_1();
       ectx->cabac->init_CABAC();
-      //double psnr = encode_image_FDCT_2(input,width,height, qp);
       double psnr = encode_image(ectx,input_image, qp);
-
-      //encode_image(&ectx);
+      fprintf(stderr,"  PSNR-Y: %f\n", psnr);
       ectx->cabac->flush_CABAC();
       ectx->write_packet();
 
@@ -513,7 +494,8 @@ void encode_sequence(encoder_context* ectx)
         ectx->reconstruction_sink->send_image(&ectx->img);
       }
 
-      fprintf(stderr,"  PSNR-Y: %f\n", psnr);
+
+      // --- release input image ---
 
       ectx->img_source->release_next_image();
     }

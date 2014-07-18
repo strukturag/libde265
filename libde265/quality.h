@@ -22,12 +22,21 @@
 #define DE265_QUALITY_H
 
 #include <stdint.h>
+#include <libde265/image.h>
 
+
+uint32_t SSD(const uint8_t* img, int imgStride,
+             const uint8_t* ref, int refStride,
+             int width, int height);
 
 double MSE(const uint8_t* img, int imgStride,
            const uint8_t* ref, int refStride,
            int width, int height);
 
 double PSNR(double mse);
+
+
+uint32_t compute_distortion_ssd(const de265_image* img1, const de265_image* img2,
+                                int x0, int y0, int log2size, int cIdx);
 
 #endif

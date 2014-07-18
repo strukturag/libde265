@@ -30,6 +30,7 @@
 #include "libde265/quality.h"
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
+#include "libde265/analyze.h"
 #include <assert.h>
 
 
@@ -205,96 +206,6 @@ void encode_image_FDCT_1()
 }
 
 
-static enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0,
-                                               int blkSize, int cIdx,
-                                               const uint8_t* ref, int stride)
-{
-  //return INTRA_DC;
-  //return INTRA_ANGULAR_14;
-
-  enum IntraPredMode best_mode;
-  int min_sad=-1;
-
-  int candidates[3];
-
-  const seq_parameter_set* sps = &img.sps;
-
-
-  fillIntraPredModeCandidates(candidates, x0,y0,
-                              sps->getPUIndexRS(x0,y0),
-                              x0>0, y0>0, &img);
-
-  // --- test candidates first ---
-
-  for (int idx=0;idx<3;idx++) {
-    enum IntraPredMode mode = (enum IntraPredMode)candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
-
-    // measure SAD
-
-    int sad=0;
-    int imgStride = img.get_image_stride(cIdx);
-    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
-    for (int y=0;y<blkSize;y++)
-      for (int x=0;x<blkSize;x++)
-        {
-          int diff = ref[x + y*stride] - pred[x + y*imgStride];
-          sad += abs_value(diff);
-        }
-
-    sad *= 0.5;
-    //sad *= 0.9;
-
-    if (mode==0 || sad<min_sad) {
-      min_sad = sad;
-      best_mode = (enum IntraPredMode)mode;
-    }
-  }
-
-
-  // --- test all modes ---
-
-  for (int idx=0;idx<35;idx++) {
-    enum IntraPredMode mode = (enum IntraPredMode)idx; //candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, blkSize, cIdx);
-
-    // measure SAD
-
-    int sad=0;
-    int imgStride = img.get_image_stride(cIdx);
-    uint8_t* pred = img.get_image_plane(cIdx) + x0 + y0*imgStride;
-    for (int y=0;y<blkSize;y++)
-      for (int x=0;x<blkSize;x++)
-        {
-          int diff = ref[x + y*stride] - pred[x + y*imgStride];
-          sad += abs_value(diff);
-        }
-
-    if (min_sad<0 || sad<min_sad) {
-      min_sad = sad;
-      best_mode = (enum IntraPredMode)mode;
-    }
-  }
-
-  // printf("%d;%d -> %d\n",x0,y0,best_mode);
-
-  return best_mode;
-}
-
-
-static void diff_blk(int16_t* out,int out_stride,
-                     const uint8_t* a_ptr, int a_stride,
-                     const uint8_t* b_ptr, int b_stride,
-                     int blkSize)
-{
-  for (int by=0;by<blkSize;by++)
-    for (int bx=0;bx<blkSize;bx++)
-      {
-        out[by*out_stride+bx] = a_ptr[by*a_stride+bx] - b_ptr[by*b_stride+bx];
-      }
-}
-
-
 double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, int qp)
 {
   int stride=width;
@@ -334,7 +245,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
         enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
         cb->intra_pb[0] = pb;
 
-        enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, 16,0,
+        enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, 4,0,
                                                             &input[0][y0*stride+x0], stride);
 
         pb->pred_mode = INTRA_PLANAR;
@@ -487,7 +398,7 @@ static enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   enc_pb_intra* pb = ectx.enc_pb_intra_pool.get_new();
   cb->intra_pb[0] = pb;
 
-  enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, cbSize,0,
+  enum IntraPredMode intraMode = find_best_intra_mode(img,x0,y0, log2CbSize,0,
                                                       &input[0][y0*stride+x0], stride);
 
   pb->pred_mode = INTRA_PLANAR;
@@ -563,14 +474,11 @@ static enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   //printblk(luma_plane,stride,x0,y0,cbSize);
 
 
-
-  cb->rd_cost=1;
-
   ectx.switch_to_CABAC_estim();
   encode_quadtree(&ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
   ectx.switch_to_CABAC_stream();
 
-  cb->rd_cost = ectx.cabac_estim.size();
+  cb->rate = ectx.cabac_estim.size();
   //printf("bytes: %d\n", estim.size());
 
   return cb;
@@ -591,7 +499,7 @@ static enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
   cb->log2CbSize = Log2CbSize;
   cb->ctDepth = ctDepth;
 
-  cb->rd_cost = 0;
+  cb->rate = 0;
 
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
@@ -599,7 +507,7 @@ static enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
 
     cb->children[i] = encode_cb_may_split(input, stride, x0+dx, y0+dy, Log2CbSize-1, ctDepth+1, qp);
 
-    cb->rd_cost += cb->children[i]->rd_cost;
+    cb->rate += cb->children[i]->rate;
   }
 
   return cb;
@@ -616,7 +524,7 @@ static enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
   if (Log2CbSize > sps.Log2MinCbSizeY) {
     cb_split = encode_cb_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
 
-    bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
+    bool split =  (cb_split->rate < cb_no_split->rate);
     //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
     if (split) {

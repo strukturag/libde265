@@ -167,7 +167,8 @@ struct enc_cb
 
 
 
-  double rd_cost;
+  float distortion;
+  float rate;
 
   void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice) const;
 

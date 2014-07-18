@@ -22,6 +22,29 @@
 #include <math.h>
 
 
+uint32_t SSD(const uint8_t* img, int imgStride,
+             const uint8_t* ref, int refStride,
+             int width, int height)
+{
+  uint32_t sum=0;
+
+  const uint8_t* iPtr = img;
+  const uint8_t* rPtr = ref;
+
+  for (int y=0;y<height;y++) {
+    for (int x=0;x<width;x++) {
+      int diff = iPtr[x] - rPtr[x];
+      sum += diff*diff;
+    }
+
+    iPtr += imgStride;
+    rPtr += refStride;
+  }
+
+  return sum;
+}
+
+
 double MSE(const uint8_t* img, int imgStride,
            const uint8_t* ref, int refStride,
            int width, int height)
@@ -55,3 +78,12 @@ double PSNR(double mse)
 
   return 10*log10(255.0*255.0/mse);
 }
+
+uint32_t compute_distortion_ssd(const de265_image* img1, const de265_image* img2,
+                                int x0, int y0, int log2size, int cIdx)
+{
+  return SSD(img1->get_image_plane_at_pos(cIdx,x0,y0), img1->get_image_stride(cIdx),
+             img2->get_image_plane_at_pos(cIdx,x0,y0), img2->get_image_stride(cIdx),
+             1<<log2size, 1<<log2size);
+}
+

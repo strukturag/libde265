@@ -23,7 +23,7 @@ static struct {
 } variables[] = {
   { "$HOME"   , "/home/domain/farindk/prog/h265" },
   //  { "$ENC256" , "./enc256/enc256" },
-  { "$ENC265" , "$HOME/libde265/dec265/genstream" },
+  { "$ENC265" , "$HOME/libde265/enc265/enc265" },
   { "$DEC265" , "$HOME/libde265/dec265/dec265" },
   { "$YUVDIST", "$HOME/libde265/enc265/yuv-distortion" },
   { "$YUV"    , "/storage/users/farindk/yuv" },
@@ -125,7 +125,7 @@ public:
 
   std::string options_de265() const {
     std::stringstream sstr;
-    sstr << mInputFilename << " --width " << width << " --height " << height;
+    sstr << " -i " << mInputFilename << " --width " << width << " --height " << height;
     if (maxFrames) sstr << " --frames " << maxFrames;
 
     return sstr.str();
