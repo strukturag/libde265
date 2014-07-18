@@ -456,23 +456,23 @@ void encode_sequence(encoder_context* ectx)
 
   // write headers
 
-  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_VPS_NUT);
   nal.write(ectx->cabac);
   ectx->vps.write(&ectx->errqueue, ectx->cabac);
   ectx->cabac->flush_VLC();
+  ectx->write_packet();
 
-  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(ectx->cabac);
   ectx->sps.write(&ectx->errqueue, ectx->cabac);
   ectx->cabac->flush_VLC();
+  ectx->write_packet();
 
-  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_PPS_NUT);
   nal.write(ectx->cabac);
   ectx->pps.write(&ectx->errqueue, ectx->cabac, &ectx->sps);
   ectx->cabac->flush_VLC();
+  ectx->write_packet();
 
   ectx->img_source->release_next_image( ectx->params.first_frame );
 
@@ -489,8 +489,7 @@ void encode_sequence(encoder_context* ectx)
 
       //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
-      ectx->cabac->write_startcode();
-      //nal.set(poc==0 ? NAL_UNIT_IDR_W_RADL : NAL_UNIT_TRAIL_N);
+      //ectx->cabac->write_startcode();
       nal.set(NAL_UNIT_IDR_W_RADL);
       nal.write(ectx->cabac);
       ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
@@ -505,12 +504,14 @@ void encode_sequence(encoder_context* ectx)
 
       //encode_image(&ectx);
       ectx->cabac->flush_CABAC();
+      ectx->write_packet();
 
-      /* TODO
-      fwrite(ectx->img.get_image_plane(0), 1, width*height,   reco_fh);
-      fwrite(ectx->img.get_image_plane(1), 1, width*height/4, reco_fh);
-      fwrite(ectx->img.get_image_plane(2), 1, width*height/4, reco_fh);
-      */
+
+      // --- write reconstruction ---
+
+      if (ectx->reconstruction_sink) {
+        ectx->reconstruction_sink->send_image(&ectx->img);
+      }
 
       fprintf(stderr,"  PSNR-Y: %f\n", psnr);
 

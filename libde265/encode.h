@@ -235,6 +235,8 @@ struct encoder_context
 {
   encoder_context() {
     img_source = NULL;
+    reconstruction_sink = NULL;
+    packet_sink = NULL;
 
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
@@ -245,6 +247,8 @@ struct encoder_context
   encoder_params params;
 
   ImageSource*   img_source;
+  ImageSink*     reconstruction_sink;
+  PacketSink*    packet_sink;
 
   error_queue errqueue;
   acceleration_functions accel;
@@ -289,6 +293,7 @@ struct encoder_context
 
 
   void switch_to_CABAC_estim(bool copyCtxModel=true) {
+    cabac_estim.reset();
     cabac      = &cabac_estim;
     ctx_model  = ctx_model_estim;
     if (copyCtxModel) { memcpy(ctx_model_estim,ctx_model_bitstream,sizeof(context_model_table)); }
@@ -297,6 +302,13 @@ struct encoder_context
   void switch_to_CABAC_stream() {
     cabac     = &cabac_bitstream;
     ctx_model = ctx_model_bitstream;
+  }
+
+  void write_packet() {
+    if (packet_sink) {
+      packet_sink->send_packet( cabac_bitstream.data(), cabac_bitstream.size() );
+      cabac->reset();
+    }
   }
 };
 

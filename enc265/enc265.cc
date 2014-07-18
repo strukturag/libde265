@@ -95,7 +95,11 @@ int main(int argc, char** argv)
 
   de265_set_verbosity(verbosity);
 
-  reco_fh = fopen(ectx.params.reconstruction_yuv,"wb");
+  ImageSink_YUV reconstruction_sink;
+  if (strlen(ectx.params.reconstruction_yuv) != 0) {
+    reconstruction_sink.set_filename(ectx.params.reconstruction_yuv);
+    ectx.reconstruction_sink = &reconstruction_sink;
+  }
 
   ImageSource_YUV image_source;
   image_source.set_input_file(ectx.params.input_yuv,
@@ -103,15 +107,14 @@ int main(int argc, char** argv)
                               ectx.params.input_height);
   ectx.img_source = &image_source;
 
+  PacketSink_File packet_sink;
+  packet_sink.set_filename(ectx.params.output_filename);
+  ectx.packet_sink = &packet_sink;
+
+
+  // --- run encoder ---
+
   encode_sequence(&ectx);
-
-  fclose(reco_fh);
-
-
-  FILE* fh = fopen(ectx.params.output_filename,"wb");
-  fwrite(ectx.cabac_bitstream.data(), 1,ectx.cabac_bitstream.size(), fh);
-  fclose(fh);
-
 
   return 0;
 }

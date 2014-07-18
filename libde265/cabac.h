@@ -62,6 +62,7 @@ public:
   virtual ~CABAC_encoder() { }
 
   virtual int size() const = 0;
+  virtual void reset() = 0;
 
   // --- VLC ---
 
@@ -93,6 +94,8 @@ class CABAC_encoder_bitstream : public CABAC_encoder
 public:
   CABAC_encoder_bitstream();
   ~CABAC_encoder_bitstream();
+
+  virtual void reset();
 
   virtual int size() const { return data_size; }
   uint8_t* data() const { return data_mem; }
@@ -153,6 +156,8 @@ class CABAC_encoder_estim : public CABAC_encoder
 {
 public:
   CABAC_encoder_estim() : mFracBits(0) { }
+
+  virtual void reset() { mFracBits=0; }
 
   virtual int size() const { return mFracBits>>(15+3); }
 

@@ -69,4 +69,54 @@ class ImageSource_YUV : public ImageSource
   void preload_next_image();
 };
 
+
+
+
+class ImageSink
+{
+ public:
+  virtual ~ImageSink() { }
+
+  virtual void send_image(const de265_image* img) = 0;
+};
+
+class ImageSink_YUV : public ImageSink
+{
+ public:
+ ImageSink_YUV() : mFH(NULL) { }
+  ~ImageSink_YUV();
+
+  bool set_filename(const char* filename);
+
+  virtual void send_image(const de265_image* img);
+
+ private:
+  FILE* mFH;
+};
+
+
+
+class PacketSink
+{
+ public:
+  virtual ~PacketSink() { }
+
+  virtual void send_packet(uint8_t* data, int n) = 0;
+};
+
+
+class PacketSink_File : public PacketSink
+{
+ public:
+ PacketSink_File() : mFH(NULL) { }
+  virtual ~PacketSink_File();
+
+  void set_filename(const char* filename);
+
+  virtual void send_packet(uint8_t* data, int n);
+
+ private:
+  FILE* mFH;
+};
+
 #endif

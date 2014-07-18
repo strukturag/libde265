@@ -461,6 +461,15 @@ CABAC_encoder_bitstream::~CABAC_encoder_bitstream()
   delete[] data_mem;
 }
 
+void CABAC_encoder_bitstream::reset()
+{
+  data_size = 0;
+  state = 0;
+
+  vlc_buffer_len = 0;
+
+  init_CABAC();
+}
 
 void CABAC_encoder_bitstream::write_bits(uint32_t bits,int n)
 {
