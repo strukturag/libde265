@@ -224,19 +224,20 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   cb->rd_cost=1;
 
-#if 1
+  ectx->switch_to_CABAC_estim();
+#if 0
   CABAC_encoder_estim estim;
   encoder_output out;
   out = ectx->bitstream_output;
   out.cabac_encoder = &estim;
 
   ectx->set_output(&out);
-  encode_quadtree(ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
-  ectx->set_output(&ectx->bitstream_output);
-
-  cb->rd_cost = estim.size();
-  //printf("bytes: %d\n", estim.size());
 #endif
+  encode_quadtree(ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
+  //ectx->set_output(&ectx->bitstream_output);
+  ectx->switch_to_CABAC_stream();
+
+  cb->rd_cost = ectx->cabac_estim.size();
 
   return cb;
 }
@@ -393,7 +394,7 @@ double encode_image(encoder_context* ectx,
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&
                     x==ectx->sps.PicWidthInCtbsY-1);
-        ectx->writer.write_CABAC_term_bit(last);
+        ectx->cabac_bitstream.write_CABAC_term_bit(last);
 
 
         ectx->free_all_pools();
@@ -459,34 +460,27 @@ void encode_sequence(encoder_context* ectx,
   ectx->img.sps  = ectx->sps;
   ectx->img.pps  = ectx->pps;
 
-  //ectx->img = &img;
-  //ectx->shdr = &shdr;
-  ectx->bitstream_output.cabac_encoder = &ectx->writer;
-  ectx->set_output(&ectx->bitstream_output);
-
-  //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
-
 
 
   // write headers
 
-  ectx->writer.write_startcode();
+  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_VPS_NUT);
-  nal.write(&ectx->writer);
-  ectx->vps.write(&ectx->errqueue, &ectx->writer);
-  ectx->writer.flush_VLC();
+  nal.write(ectx->cabac);
+  ectx->vps.write(&ectx->errqueue, ectx->cabac);
+  ectx->cabac->flush_VLC();
 
-  ectx->writer.write_startcode();
+  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_SPS_NUT);
-  nal.write(&ectx->writer);
-  ectx->sps.write(&ectx->errqueue, &ectx->writer);
-  ectx->writer.flush_VLC();
+  nal.write(ectx->cabac);
+  ectx->sps.write(&ectx->errqueue, ectx->cabac);
+  ectx->cabac->flush_VLC();
 
-  ectx->writer.write_startcode();
+  ectx->cabac->write_startcode();
   nal.set(NAL_UNIT_PPS_NUT);
-  nal.write(&ectx->writer);
-  ectx->pps.write(&ectx->errqueue, &ectx->writer, &ectx->sps);
-  ectx->writer.flush_VLC();
+  nal.write(ectx->cabac);
+  ectx->pps.write(&ectx->errqueue, ectx->cabac, &ectx->sps);
+  ectx->cabac->flush_VLC();
 
   fseek(fh, width*height*3/2 * ectx->params.first_frame, SEEK_SET);
 
@@ -506,22 +500,22 @@ void encode_sequence(encoder_context* ectx,
 
       //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
-      ectx->writer.write_startcode();
+      ectx->cabac->write_startcode();
       //nal.set(poc==0 ? NAL_UNIT_IDR_W_RADL : NAL_UNIT_TRAIL_N);
       nal.set(NAL_UNIT_IDR_W_RADL);
-      nal.write(&ectx->writer);
-      ectx->shdr.write(&ectx->errqueue, &ectx->writer, &ectx->sps, &ectx->pps, nal.nal_unit_type);
-      ectx->writer.skip_bits(1);
-      ectx->writer.flush_VLC();
+      nal.write(ectx->cabac);
+      ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
+      ectx->cabac->skip_bits(1);
+      ectx->cabac->flush_VLC();
 
       //encode_image_coeffTest_1();
       //encode_image_FDCT_1();
-      ectx->writer.init_CABAC();
+      ectx->cabac->init_CABAC();
       //double psnr = encode_image_FDCT_2(input,width,height, qp);
       double psnr = encode_image(ectx,input,width,height, qp);
 
       //encode_image(&ectx);
-      ectx->writer.flush_CABAC();
+      ectx->cabac->flush_CABAC();
 
       /* TODO
       fwrite(ectx->img.get_image_plane(0), 1, width*height,   reco_fh);

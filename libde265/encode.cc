@@ -200,7 +200,7 @@ static void encode_split_cu_flag(encoder_context* ectx,
 
   logtrace(LogSlice,"> split_cu_flag = %d (context=%d)\n",split_flag,context);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context], split_flag);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context], split_flag);
 }
 
 
@@ -211,7 +211,7 @@ static void encode_part_mode(encoder_context* ectx,
 
   if (PredMode == MODE_INTRA) {
     int bin = (PartMode==PART_2Nx2N);
-    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PART_MODE], bin);
+    ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PART_MODE], bin);
   }
   else {
     assert(0); // TODO
@@ -225,18 +225,18 @@ static void encode_prev_intra_luma_pred_flag(encoder_context* ectx, int intraPre
 
   logtrace(LogSlice,"> prev_intra_luma_pred_flag = %d\n",bin);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], bin);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], bin);
 }
 
 static void encode_intra_mpm_or_rem(encoder_context* ectx, int intraPred)
 {
   if (intraPred>=0) {
     logtrace(LogSlice,"> mpm_idx = %d\n",intraPred);
-    ectx->cabac_encoder->write_CABAC_TU_bypass(intraPred, 2);
+    ectx->cabac->write_CABAC_TU_bypass(intraPred, 2);
   }
   else {
     logtrace(LogSlice,"> rem_intra_luma_pred_mode = %d\n",-intraPred-1);
-    ectx->cabac_encoder->write_CABAC_FL_bypass(-intraPred-1, 5);
+    ectx->cabac->write_CABAC_FL_bypass(-intraPred-1, 5);
   }
 }
 
@@ -246,13 +246,13 @@ static void encode_intra_chroma_pred_mode(encoder_context* ectx, int mode)
   logtrace(LogSlice,"> intra_chroma_pred_mode = %d\n",mode);
 
   if (mode==4) {
-    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],0);
+    ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],0);
   }
   else {
     assert(mode<4);
 
-    ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],1);
-    ectx->cabac_encoder->write_CABAC_FL_bypass(mode, 2);
+    ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE],1);
+    ectx->cabac->write_CABAC_FL_bypass(mode, 2);
   }
 }
 
@@ -297,7 +297,7 @@ static void encode_split_transform_flag(encoder_context* ectx, int log2TrafoSize
   int context = 5-log2TrafoSize;
   assert(context >= 0 && context <= 2);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context], split_flag);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context], split_flag);
 }
 
 
@@ -307,8 +307,8 @@ static void encode_cbf_luma(encoder_context* ectx, bool zeroTrafoDepth, int cbf_
 
   int context = (zeroTrafoDepth ? 1 : 0);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_LUMA + context],
-                                       cbf_luma);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_LUMA + context],
+                               cbf_luma);
 }
 
 
@@ -319,8 +319,8 @@ static void encode_cbf_chroma(encoder_context* ectx, int trafoDepth, int cbf_chr
   int context = trafoDepth;
   assert(context >= 0 && context <= 3);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + context],
-                                       cbf_chroma);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + context],
+                               cbf_chroma);
 }
 
 static inline void encode_coded_sub_block_flag(encoder_context* ectx,
@@ -339,8 +339,8 @@ static inline void encode_coded_sub_block_flag(encoder_context* ectx,
     ctxIdxInc += 2;
   }
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc],
-                                       flag);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc],
+                               flag);
 }
 
 static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
@@ -350,8 +350,8 @@ static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
   logtrace(LogSlice,"# significant_coeff_flag = significantFlag\n");
   logtrace(LogSlice,"context: %d\n",ctxIdxInc);
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc],
-                                       significantFlag);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc],
+                               significantFlag);
 }
 
 static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
@@ -409,8 +409,8 @@ static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
 
   if (cIdx>0) { ctxIdxInc+=16; }
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + ctxIdxInc],
-                                       value);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + ctxIdxInc],
+                               value);
 
   *lastInvocation_greater1Ctx = greater1Ctx;
   *lastInvocation_coeff_abs_level_greater1_flag = value;
@@ -428,8 +428,8 @@ static void encode_coeff_abs_level_greater2(encoder_context* ectx,
 
   if (cIdx>0) ctxIdxInc+=4;
 
-  ectx->cabac_encoder->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + ctxIdxInc],
-                                       value);
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + ctxIdxInc],
+                               value);
 }
 
 
@@ -519,13 +519,13 @@ static void encode_coeff_abs_level_remaining(encoder_context* ectx,
   // TU part, length 4 (cTRMax>>riceParam)
 
   int nOnes = (prefixPart>>cRiceParam);
-  ectx->cabac_encoder->write_CABAC_TU_bypass(nOnes, 4);
+  ectx->cabac->write_CABAC_TU_bypass(nOnes, 4);
 
   // TR suffix
 
   if (cTRMax > prefixPart) {
     int remain = prefixPart & ((1<<cRiceParam)-1);
-    ectx->cabac_encoder->write_CABAC_FL_bypass(remain, cRiceParam);
+    ectx->cabac->write_CABAC_FL_bypass(remain, cRiceParam);
   }
 
 
@@ -542,15 +542,15 @@ static void encode_coeff_abs_level_remaining(encoder_context* ectx,
     int range=1;
     int nBits=0;
     while (prefix >= base+range) {
-      ectx->cabac_encoder->write_CABAC_bypass(1);
+      ectx->cabac->write_CABAC_bypass(1);
       base+=range;
       range*=2;
       nBits++;
     }
   
-    ectx->cabac_encoder->write_CABAC_bypass(0);
-    ectx->cabac_encoder->write_CABAC_FL_bypass(prefix-base, nBits);
-    ectx->cabac_encoder->write_CABAC_FL_bypass(suffix, ExpGRiceParam);
+    ectx->cabac->write_CABAC_bypass(0);
+    ectx->cabac->write_CABAC_FL_bypass(prefix-base, nBits);
+    ectx->cabac->write_CABAC_FL_bypass(suffix, ExpGRiceParam);
   }
 }
 
@@ -644,13 +644,13 @@ void encode_last_signficiant_coeff_prefix(encoder_context* ectx, int log2TrafoSi
   for (int binIdx=0;binIdx<lastSignificant;binIdx++)
     {
       int ctxIdxInc = (binIdx >> ctxShift);
-      ectx->cabac_encoder->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 1);
+      ectx->cabac->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 1);
     }
 
   if (lastSignificant != cMax) {
     int binIdx = lastSignificant;
     int ctxIdxInc = (binIdx >> ctxShift);
-    ectx->cabac_encoder->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 0);
+    ectx->cabac->write_CABAC_bit(&model[ctxOffset + ctxIdxInc], 0);
   }
 }
 
@@ -772,10 +772,10 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
 
   if (codedSignificantX > 3) {
-    ectx->cabac_encoder->write_CABAC_FL_bypass(suffixX, suffixBitsX);
+    ectx->cabac->write_CABAC_FL_bypass(suffixX, suffixBitsX);
   }
   if (codedSignificantY > 3) {
-    ectx->cabac_encoder->write_CABAC_FL_bypass(suffixY, suffixBitsY);
+    ectx->cabac->write_CABAC_FL_bypass(suffixY, suffixBitsY);
   }
 
 
@@ -1031,13 +1031,13 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                         !cb->cu_transquant_bypass_flag);
 
       for (int n=0;n<nCoefficients-1;n++) {
-        ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[n]);
+        ectx->cabac->write_CABAC_bypass(coeff_sign[n]);
         logtrace(LogSlice,"a) sign[%d] = %d\n", n, coeff_sign[n]);
       }
 
       // n==nCoefficients-1
       if (!pps.sign_data_hiding_flag || !signHidden) {
-        ectx->cabac_encoder->write_CABAC_bypass(coeff_sign[nCoefficients-1]);
+        ectx->cabac->write_CABAC_bypass(coeff_sign[nCoefficients-1]);
         logtrace(LogSlice,"b) sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
       }
       else {

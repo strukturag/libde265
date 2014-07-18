@@ -229,17 +229,12 @@ public:
 };
 
 
-struct encoder_output
-{
-  CABAC_encoder* cabac_encoder;
-  context_model_table ctx_model;
-};
-
-
 struct encoder_context
 {
   encoder_context() {
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
+
+    switch_to_CABAC_stream();
   }
 
   encoder_params params;
@@ -266,18 +261,29 @@ struct encoder_context
     enc_coeff_pool.free_all();
   }
 
-  void set_output(encoder_output* o) {
-    cabac_encoder = o->cabac_encoder;
-    ctx_model     = o->ctx_model;
+
+  CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
+  context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
+
+  // temporary CABAC rate estimator
+  CABAC_encoder_estim     cabac_estim;
+  context_model_table     ctx_model_estim;
+
+  // CABAC bitstream writer
+  CABAC_encoder_bitstream cabac_bitstream;
+  context_model_table     ctx_model_bitstream;
+
+
+  void switch_to_CABAC_estim(bool copyCtxModel=true) {
+    cabac      = &cabac_estim;
+    ctx_model  = ctx_model_estim;
+    if (copyCtxModel) { memcpy(ctx_model_estim,ctx_model_bitstream,sizeof(context_model_table)); }
   }
 
-
-  CABAC_encoder*  cabac_encoder;
-  context_model*  ctx_model;
-
-  struct encoder_output bitstream_output;
-
-  CABAC_encoder_bitstream writer;
+  void switch_to_CABAC_stream() {
+    cabac     = &cabac_bitstream;
+    ctx_model = ctx_model_bitstream;
+  }
 
 private:
   int16_t* coeff_mem;

@@ -566,19 +566,12 @@ static enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   cb->rd_cost=1;
 
-#if 1
-  CABAC_encoder_estim estim;
-  encoder_output out;
-  out = ectx.bitstream_output;
-  out.cabac_encoder = &estim;
-
-  ectx.set_output(&out);
+  ectx.switch_to_CABAC_estim();
   encode_quadtree(&ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
-  ectx.set_output(&ectx.bitstream_output);
+  ectx.switch_to_CABAC_stream();
 
-  cb->rd_cost = estim.size();
+  cb->rd_cost = ectx.cabac_estim.size();
   //printf("bytes: %d\n", estim.size());
-#endif
 
   return cb;
 }
@@ -848,12 +841,6 @@ void write_stream_1()
   img.sps  = sps;
   img.pps  = pps;
 
-  ectx.bitstream_output.cabac_encoder = &writer;
-  ectx.set_output(&ectx.bitstream_output);
-
-  //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
-
-
 
   // write headers
 
@@ -941,11 +928,6 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   img.vps  = vps;
   img.sps  = sps;
   img.pps  = pps;
-
-  ectx.bitstream_output.cabac_encoder = &writer;
-  ectx.set_output(&ectx.bitstream_output);
-
-  //context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
 
 
 
