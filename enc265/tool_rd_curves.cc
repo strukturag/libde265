@@ -83,7 +83,7 @@ Preset preset[] = {
     /* ffmpeg */ "-g 1"
   },
 
-  { 50, "cb-auto16", "",
+  { 50, "cb-auto16", "(development test)",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
@@ -92,7 +92,7 @@ Preset preset[] = {
     /* ffmpeg */ "-g 1"
   },
 
-  { 99, "best", "",
+  { 99, "best", "default (random-access) encoder parameters",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg",
     /* x265   */ "",
@@ -190,29 +190,40 @@ private:
 
 Input input;
 
+struct InputSpec
+{
+  const char* name;
+  const char* filename;
+  int width,height, nFrames;
+  float fps;
+} inputSpec[] = {
+  { "paris",     "$YUV/paris_cif.yuv",352,288,1065, 30.0 },
+  { "paris10",   "$YUV/paris_cif.yuv",352,288,  10, 30.0 },
+  { "paris100",  "$YUV/paris_cif.yuv",352,288, 100, 30.0 },
+  { "johnny",    "$YUV/Johnny_1280x720_60.yuv",1280,720,600,60.0 },
+  { "johnny10",  "$YUV/Johnny_1280x720_60.yuv",1280,720, 10,60.0 },
+  { "johnny100", "$YUV/Johnny_1280x720_60.yuv",1280,720,100,60.0 },
+  { NULL }
+};
+
+
 void setInput(const char* input_preset)
 {
-  if (strcmp(input_preset, "paris10")==0) {
-    input.setInput("$YUV/paris_cif.yuv",352,288,30.0);
-    input.setMaxFrames(10);
+  bool presetFound=false;
+
+  for (int i=0;inputSpec[i].name;i++) {
+    if (strcmp(input_preset, inputSpec[i].name)==0) {
+      input.setInput(inputSpec[i].filename,
+                     inputSpec[i].width,
+                     inputSpec[i].height,
+                     inputSpec[i].fps);
+      input.setMaxFrames(inputSpec[i].nFrames);
+      presetFound=true;
+      break;
+    }
   }
-  else if (strcmp(input_preset, "paris100")==0) {
-    input.setInput("$YUV/paris_cif.yuv",352,288,30.0);
-    input.setMaxFrames(100);
-  }
-  else if (strcmp(input_preset, "paris")==0) {
-    input.setInput("$YUV/paris_cif.yuv",352,288,30.0);
-    input.setMaxFrames(1065);
-  }
-  else if (strcmp(input_preset, "johnny")==0) {
-    input.setInput("$YUV/Johnny_1280x720_60.yuv",1280,720,60.0);
-    input.setMaxFrames(600);
-  }
-  else if (strcmp(input_preset, "johnny100")==0) {
-    input.setInput("$YUV/Johnny_1280x720_60.yuv",1280,720,60.0);
-    input.setMaxFrames(100);
-  }
-  else {
+
+  if (!presetFound) {
     fprintf(stderr,"no input preset '%s'\n",input_preset);
     exit(5);
   }
@@ -676,6 +687,33 @@ static struct option long_options[] = {
 };
 
 
+void show_usage()
+{
+  fprintf(stderr,
+          "usage: rd-curves 'preset_id' 'input_preset' 'encoder'\n"
+          "supported encoders: de265 / hm / x265 / f265 / x264\n");
+  fprintf(stderr,
+          "presets:\n");
+
+  for (int i=0;preset[i].name!=NULL;i++) {
+    fprintf(stderr,
+            " %2d %-20s %s\n",preset[i].ID,preset[i].name,preset[i].descr);
+  }
+
+  fprintf(stderr,
+          "\ninput presets:\n");
+  for (int i=0;inputSpec[i].name;i++) {
+    fprintf(stderr,
+            " %-12s %-30s %4dx%4d, %4d frames, %5.2f fps\n",
+            inputSpec[i].name,
+            inputSpec[i].filename,
+            inputSpec[i].width,
+            inputSpec[i].height,
+            inputSpec[i].nFrames,
+            inputSpec[i].fps);
+  }
+}
+
 int main(int argc, char** argv)
 {
   while (1) {
@@ -693,9 +731,7 @@ int main(int argc, char** argv)
   }
 
   if (optind != argc-3) {
-    fprintf(stderr,
-            "usage: rd-curves 'preset_id' 'input_preset' 'encoder'\n"
-            "supported encoders: de265 / hm / x265 / f265 / x264\n");
+    show_usage();
     exit(5);
   }
 
