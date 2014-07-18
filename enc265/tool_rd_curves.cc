@@ -618,7 +618,7 @@ private:
 Encoder_x264::Encoder_x264()
 {
   mCRFLow =  4;
-  mCRFHigh= 30;
+  mCRFHigh= 36;
   mCRFStep=  2;
 }
 
