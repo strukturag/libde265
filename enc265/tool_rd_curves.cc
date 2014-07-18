@@ -26,7 +26,7 @@ static struct {
   { "$ENC265" , "$HOME/libde265/dec265/genstream" },
   { "$DEC265" , "$HOME/libde265/dec265/dec265" },
   { "$YUVDIST", "$HOME/libde265/enc265/yuv-distortion" },
-  { "$YUV"    , "/home/domain/farindk/h" },
+  { "$YUV"    , "/storage/users/farindk/yuv" },
   { "$HMENC"  , "HM13enc" },
   { "$HM13CFG", "$HOME/HM/HM-13.0-dev/cfg" },
   { "$X265ENC", "$HOME/x265/build/linux/x265" },
@@ -198,6 +198,18 @@ void setInput(const char* input_preset)
   }
   else if (strcmp(input_preset, "paris100")==0) {
     input.setInput("$YUV/paris_cif.yuv",352,288,30.0);
+    input.setMaxFrames(100);
+  }
+  else if (strcmp(input_preset, "paris")==0) {
+    input.setInput("$YUV/paris_cif.yuv",352,288,30.0);
+    input.setMaxFrames(1065);
+  }
+  else if (strcmp(input_preset, "johnny")==0) {
+    input.setInput("$YUV/Johnny_1280x720_60.yuv",1280,720,60.0);
+    input.setMaxFrames(600);
+  }
+  else if (strcmp(input_preset, "johnny100")==0) {
+    input.setInput("$YUV/Johnny_1280x720_60.yuv",1280,720,60.0);
     input.setMaxFrames(100);
   }
   else {
@@ -493,10 +505,13 @@ std::vector<RDPoint> Encoder_x265::encode_curve(const Preset& preset) const
 
 RDPoint Encoder_x265::encode(const Preset& preset,int qp) const
 {
+  std::stringstream streamname;
+  streamname << "x265-" << preset.name << "-" << qp << ".265";
+
   std::stringstream cmd1;
   cmd1 << "$X265ENC " << input.options_x265()
        << " " << preset.options_x265
-       << " --qp " << qp << " str.bin >&2";
+       << " --qp " << qp << " " << streamname.str() << " >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -504,9 +519,9 @@ RDPoint Encoder_x265::encode(const Preset& preset,int qp) const
   int retval = system(cmd2.c_str());
 
   RDPoint rd;
-  rd.compute_from_h265("str.bin");
+  rd.compute_from_h265(streamname.str());
 
-  if (!keepStreams) { unlink("str.bin"); }
+  if (!keepStreams) { unlink(streamname.str().c_str()); }
 
   write_rd_line(rd);
 
