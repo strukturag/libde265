@@ -140,9 +140,6 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
                                                       input->get_image_plane_at_pos(0,x0,y0),
                                                       input->get_image_stride(0));
 
-  pb->pred_mode = INTRA_PLANAR;
-  pb->pred_mode_chroma = INTRA_PLANAR;
-
   pb->pred_mode = intraMode;
   pb->pred_mode_chroma = intraMode;
 
