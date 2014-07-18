@@ -348,7 +348,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 
         tb->parent = NULL;
         tb->split_transform_flag = false;
-
+        tb->log2TbSize = Log2CtbSize;
 
         pb->do_intra_prediction(&img,x0,y0, 4 /* log2blksize */);
 
@@ -384,7 +384,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
         //logtrace(LogTransform,"quantized DCT coefficients:\n");
         //printBlk(coeff_luma,16,16);
 
-        tb->set_cbf_flags_from_coefficients(4 /* log2BlkSize */);
+        tb->set_cbf_flags_from_coefficients();
 
         cb->write_to_image(&img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
         encode_ctb(&ectx, cb, x,y);
@@ -394,7 +394,7 @@ double encode_image_FDCT_2(uint8_t const*const input[3],int width,int height, in
 
         //printf("reconstruct %d/%d\n",x0,y0);
 
-        tb->dequant_and_add_transform(&accel, &img, x0,y0, 4 /* blksize */, qp);
+        tb->dequant_and_add_transform(&accel, &img, x0,y0, qp);
 
         if (0) {
           printf("dequant luma:\n");
@@ -503,7 +503,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 
   tb->parent = NULL;
   tb->split_transform_flag = false;
-
+  tb->log2TbSize = log2CbSize;
 
   cb->intra_pb[0]->do_intra_prediction(&img, x0,y0, log2CbSize);
 
@@ -545,7 +545,7 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
   quant_coefficients(tb->coeff[1], tb->coeff[1], log2CbSize-1, qp, true);
   quant_coefficients(tb->coeff[2], tb->coeff[2], log2CbSize-1, qp, true);
 
-  tb->set_cbf_flags_from_coefficients(log2CbSize);
+  tb->set_cbf_flags_from_coefficients();
 
   //printf("quantized coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);

@@ -49,13 +49,13 @@ void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2
 
 
 void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
-                                       de265_image* img, int x0,int y0, int log2BlkSize, int qp) const
+                                       de265_image* img, int x0,int y0, int qp) const
 {
   int16_t dequant_coeff[3][32*32];
 
-  if (cbf_luma) dequant_coefficients(dequant_coeff[0], coeff[0], log2BlkSize,   qp);
-  if (cbf_cb)   dequant_coefficients(dequant_coeff[1], coeff[1], log2BlkSize-1, qp);
-  if (cbf_cr)   dequant_coefficients(dequant_coeff[2], coeff[2], log2BlkSize-1, qp);
+  if (cbf_luma) dequant_coefficients(dequant_coeff[0], coeff[0], log2TbSize,   qp);
+  if (cbf_cb)   dequant_coefficients(dequant_coeff[1], coeff[1], log2TbSize-1, qp);
+  if (cbf_cr)   dequant_coefficients(dequant_coeff[2], coeff[2], log2TbSize-1, qp);
 
   //printf("--- quantized coeffs ---\n");
   //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
@@ -69,11 +69,11 @@ void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
   int luma_stride   = img->get_image_stride(0);
   int chroma_stride = img->get_image_stride(1);
 
-  int trType = (log2BlkSize==2); // TODO: inter
+  int trType = (log2TbSize==2); // TODO: inter
 
-  if (cbf_luma) inv_transform(accel, yp,  luma_stride,   dequant_coeff[0], log2BlkSize,   trType);
-  if (cbf_cb)   inv_transform(accel, cbp, chroma_stride, dequant_coeff[1], log2BlkSize-1, 0);
-  if (cbf_cr)   inv_transform(accel, crp, chroma_stride, dequant_coeff[2], log2BlkSize-1, 0);
+  if (cbf_luma) inv_transform(accel, yp,  luma_stride,   dequant_coeff[0], log2TbSize,   trType);
+  if (cbf_cb)   inv_transform(accel, cbp, chroma_stride, dequant_coeff[1], log2TbSize-1, 0);
+  if (cbf_cr)   inv_transform(accel, crp, chroma_stride, dequant_coeff[2], log2TbSize-1, 0);
 }
 
 
@@ -85,11 +85,26 @@ static bool has_nonzero_value(const int16_t* data, int n)
   return false;
 }
 
-void enc_tb::set_cbf_flags_from_coefficients(int log2BlkSize)
+void enc_tb::set_cbf_flags_from_coefficients()
 {
-  cbf_luma = has_nonzero_value(coeff[0], 1<<( log2BlkSize   <<1));
-  cbf_cb   = has_nonzero_value(coeff[1], 1<<((log2BlkSize-1)<<1));
-  cbf_cr   = has_nonzero_value(coeff[2], 1<<((log2BlkSize-1)<<1));
+  if (split_transform_flag) {
+    cbf_luma = 0;
+    cbf_cb   = 0;
+    cbf_cr   = 0;
+
+    for (int i=0;i<4;i++) {
+      children[i]->set_cbf_flags_from_coefficients();
+
+      cbf_luma |= children[i]->cbf_luma;
+      cbf_cb   |= children[i]->cbf_cb;
+      cbf_cr   |= children[i]->cbf_cr;
+    }
+  }
+  else {
+    cbf_luma = has_nonzero_value(coeff[0], 1<<( log2TbSize   <<1));
+    cbf_cb   = has_nonzero_value(coeff[1], 1<<((log2TbSize-1)<<1));
+    cbf_cr   = has_nonzero_value(coeff[2], 1<<((log2TbSize-1)<<1));
+  }
 }
 
 
@@ -156,7 +171,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
     //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
     //img->printBlk(x0,y0,0,log2CbSize);
 
-    transform_tree->dequant_and_add_transform(accel, img, x0,y0, log2CbSize, qp);
+    transform_tree->dequant_and_add_transform(accel, img, x0,y0, qp);
 
     //printf("--- RECO add residual %d %d ---\n",x0,y0);
     //img->printBlk(x0,y0,0,log2CbSize);

@@ -102,8 +102,8 @@ struct enc_tb
   };
 
   void dequant_and_add_transform(acceleration_functions* accel,
-                                 de265_image* img, int x0,int y0, int log2BlkSize, int qp) const;
-  void set_cbf_flags_from_coefficients(int log2BlkSize);
+                                 de265_image* img, int x0,int y0, int qp) const;
+  void set_cbf_flags_from_coefficients();
 };
 
 
