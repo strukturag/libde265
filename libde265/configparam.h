@@ -40,8 +40,11 @@ class config_parameters
   void register_config_string(const char* name, char short_option, size_t offset,
                               const char* default_value);
 
+  void show_params() const;
+
   void set_defaults(void* dst);
-  bool parse_command_line_params(int* argc, char** argv,  void* dst);
+  bool parse_command_line_params(int* argc, char** argv,  void* dst,
+                                 bool ignore_unknown_options=false);
 
  private:
   struct config_param

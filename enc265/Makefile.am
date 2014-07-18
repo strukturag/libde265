@@ -1,7 +1,13 @@
 
-bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves
+bin_PROGRAMS = enc265 gen-enc-table yuv-distortion rd-curves
 
 AM_CPPFLAGS = -I../libde265
+
+enc265_DEPENDENCIES = ../libde265/libde265.la
+enc265_CXXFLAGS =
+enc265_LDFLAGS =
+enc265_LDADD = ../libde265/libde265.la -lstdc++
+enc265_SOURCES = enc265.cc
 
 gen_enc_table_DEPENDENCIES = ../libde265/libde265.la
 gen_enc_table_CXXFLAGS =

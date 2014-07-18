@@ -24,6 +24,9 @@
 
 #include "encode.h"
 #include <ctype.h>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
 
 
 void config_parameters::register_config_int(const char* name, char short_option, size_t offset,
@@ -133,7 +136,8 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
 }
 
 
-bool config_parameters::parse_command_line_params(int* argc, char** argv, void* dst)
+bool config_parameters::parse_command_line_params(int* argc, char** argv, void* dst,
+                                                  bool ignore_unknown_options)
 {
   set_defaults(dst);
 
@@ -175,7 +179,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
           }
         }
 
-        if (option_found == false) {
+        if (option_found == false && !ignore_unknown_options) {
           fprintf(stderr,"unknown option %s.\n", argv[i]);
           return false;
         }
@@ -221,6 +225,11 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
             }
           }
 
+          if (!option_found && !ignore_unknown_options) {
+            fprintf(stderr, "unknown option -%c\n",option);
+            return false;
+          }
+
         } // all short options
 
         remove_option(argc,argv,i);
@@ -233,11 +242,76 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
 }
 
 
+void config_parameters::show_params() const
+{
+  for (int i=0;i<params.size();i++) {
+    const config_param& p = params[i];
+
+    std::stringstream sstr;
+    sstr << "  ";
+    if (p.short_option != 0) {
+      sstr << '-' << p.short_option;
+    } else {
+      sstr << "  ";
+    }
+
+    if (p.short_option != 0 && p.name != NULL) {
+      sstr << ", ";
+    } else {
+      sstr << "  ";
+    }
+
+    if (p.name != NULL) {
+      sstr << "--" << std::setw(12) << std::left << p.name;
+    } else {
+      sstr << "              ";
+    }
+
+    sstr << " (";
+    switch (p.type) {
+    case config_param::Config_Int:    sstr << "int"; break;
+    case config_param::Config_Bool:   sstr << "bool"; break;
+    case config_param::Config_String: sstr << "string"; break;
+    }
+    sstr << ")";
+
+    if (p.type==config_param::Config_Int) {
+      if (p.int_low_limit != NO_LIMIT) {
+        sstr << " >=" << p.int_low_limit;
+      }
+      if (p.int_high_limit != NO_LIMIT) {
+        sstr << " <=" << p.int_high_limit;
+      }
+    }
+
+    sstr << " default=";
+    switch (p.type) {
+    case config_param::Config_Int:    sstr << p.int_default; break;
+    case config_param::Config_Bool:   sstr << (p.bool_default ? "on":"off"); break;
+    case config_param::Config_String: sstr << p.string_default; break;
+    }
+
+    sstr << "\n";
+
+    std::cerr << sstr.str();
+  }
+}
+
+
 void register_encoder_params(config_parameters* config)
 {
   const int NO_LIMIT = config_parameters::NO_LIMIT;
 
 #define eoffset(name) offsetof(encoder_params, name)
+
+  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
+  config->register_config_int("width",  'w', eoffset(input_width),
+                              352,      1,NO_LIMIT);
+  config->register_config_int("height", 'h', eoffset(input_height),
+                              288,      1,NO_LIMIT);
+
+  config->register_config_string("output", 'o' , eoffset(output_filename), "out.bin");
+  config->register_config_string("reconstruction", 'O' , eoffset(reconstruction_yuv), "recon.yuv");
 
   config->register_config_int("first-frame",  0 , eoffset(first_frame),
                               0,       0,NO_LIMIT);
@@ -250,14 +324,4 @@ void register_encoder_params(config_parameters* config)
                               8 ,      8,64);
   config->register_config_int("max-cb-size",  0 , eoffset(max_cb_size),
                               32,      8,64);
-
-  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
-  config->register_config_int("width",  'w', eoffset(input_width),
-                              352,      1,NO_LIMIT);
-  config->register_config_int("height", 'h', eoffset(input_height),
-                              288,      1,NO_LIMIT);
-
-
-  config->register_config_string("output", 'o' , eoffset(output_filename), "out.bin");
-  config->register_config_string("reconstruction", 'O' , eoffset(reconstruction_yuv), "recon.yuv");
 }

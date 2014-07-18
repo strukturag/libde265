@@ -205,8 +205,9 @@ void encode_image_FDCT_1()
 }
 
 
-enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkSize, int cIdx,
-                                        const uint8_t* ref, int stride)
+static enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0,
+                                               int blkSize, int cIdx,
+                                               const uint8_t* ref, int stride)
 {
   //return INTRA_DC;
   //return INTRA_ANGULAR_14;
@@ -281,10 +282,10 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int blkS
 }
 
 
-void diff_blk(int16_t* out,int out_stride,
-              const uint8_t* a_ptr, int a_stride,
-              const uint8_t* b_ptr, int b_stride,
-              int blkSize)
+static void diff_blk(int16_t* out,int out_stride,
+                     const uint8_t* a_ptr, int a_stride,
+                     const uint8_t* b_ptr, int b_stride,
+                     int blkSize)
 {
   for (int by=0;by<blkSize;by++)
     for (int bx=0;bx<blkSize;bx++)
@@ -454,8 +455,8 @@ void printcoeff(int16_t* coeff, int w)
   }
 }
 
-enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
-                           int x0,int y0, int log2CbSize, int ctDepth, int qp)
+static enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
+                                  int x0,int y0, int log2CbSize, int ctDepth, int qp)
 {
   //printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
 
@@ -583,11 +584,11 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
 }
 
 
-enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
-                            int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
+static enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
+                                   int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
 
-enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
-                        int x0,int y0, int Log2CbSize, int ctDepth, int qp)
+static enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
+                               int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb = ectx.enc_cb_pool.get_new();
 
@@ -612,8 +613,8 @@ enc_cb* encode_cb_split(uint8_t const*const input[3],int stride,
 }
 
 
-enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
-                            int x0,int y0, int Log2CbSize, int ctDepth, int qp)
+static enc_cb* encode_cb_may_split(uint8_t const*const input[3],int stride,
+                                   int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb_no_split = encode_cb_no_split(input,stride,x0,y0, Log2CbSize, ctDepth, qp);
   enc_cb* cb_split = NULL;
@@ -847,8 +848,6 @@ void write_stream_1()
   img.sps  = sps;
   img.pps  = pps;
 
-  ectx.img = &img;
-  ectx.shdr = &shdr;
   ectx.bitstream_output.cabac_encoder = &writer;
   ectx.set_output(&ectx.bitstream_output);
 
@@ -943,8 +942,6 @@ void encode_stream_intra_1(const char* yuv_filename, int width, int height)
   img.sps  = sps;
   img.pps  = pps;
 
-  ectx.img = &img;
-  ectx.shdr = &shdr;
   ectx.bitstream_output.cabac_encoder = &writer;
   ectx.set_output(&ectx.bitstream_output);
 

@@ -242,8 +242,17 @@ struct encoder_context
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
   }
 
-  de265_image* img;
-  slice_segment_header* shdr;
+  encoder_params params;
+  error_queue errqueue;
+
+  de265_image img;
+
+  video_parameter_set vps;
+  seq_parameter_set   sps;
+  pic_parameter_set   pps;
+  slice_segment_header shdr;
+
+  acceleration_functions accel;
 
   alloc_pool<enc_cb> enc_cb_pool;
   alloc_pool<enc_tb> enc_tb_pool;
@@ -267,6 +276,8 @@ struct encoder_context
   context_model*  ctx_model;
 
   struct encoder_output bitstream_output;
+
+  CABAC_encoder_bitstream writer;
 
 private:
   int16_t* coeff_mem;

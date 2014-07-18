@@ -60,7 +60,8 @@ libde265_la_SOURCES = \
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h \
   fallback-dct.h fallback-dct.cc \
   quality.cc quality.h \
-  configparam.cc configparam.h
+  configparam.cc configparam.h \
+  analyze.cc analyze.h
 
 if ENABLE_SSE_OPT
   SUBDIRS = x86

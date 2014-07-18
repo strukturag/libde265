@@ -387,6 +387,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
+    fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");       
