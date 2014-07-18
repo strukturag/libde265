@@ -524,9 +524,9 @@ enc_cb* encode_cb_no_split(uint8_t const*const input[3],int stride,
            &input[2][y0/2*stride/2+x0/2],stride/2,
            &cr_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
 
-  tb->coeff[0] = ectx.get_coeff_mem(cbSize*cbSize);
-  tb->coeff[1] = ectx.get_coeff_mem(cbSizeChroma*cbSizeChroma);
-  tb->coeff[2] = ectx.get_coeff_mem(cbSizeChroma*cbSizeChroma);
+  tb->coeff[0] = ectx.enc_coeff_pool.get_new(cbSize*cbSize);
+  tb->coeff[1] = ectx.enc_coeff_pool.get_new(cbSizeChroma*cbSizeChroma);
+  tb->coeff[2] = ectx.enc_coeff_pool.get_new(cbSizeChroma*cbSizeChroma);
 
   int trType = 0;
   if (log2CbSize==2) trType=1; // TODO: inter mode
@@ -663,8 +663,6 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
   for (int y=0;y<sps.PicHeightInCtbsY;y++)
     for (int x=0;x<sps.PicWidthInCtbsY;x++)
       {
-        ectx.reset_coeff_mem();
-
         img.set_SliceAddrRS(x, y, shdr.SliceAddrRS);
 
         int x0 = x<<Log2CtbSize;
@@ -734,9 +732,7 @@ double encode_image_FDCT_3(uint8_t const*const input[3],int width,int height, in
         writer.write_CABAC_term_bit(last);
 
 
-        ectx.enc_cb_pool.free_all();
-        ectx.enc_tb_pool.free_all();
-        ectx.enc_pb_intra_pool.free_all();
+        ectx.free_all_pools();
       }
 
 

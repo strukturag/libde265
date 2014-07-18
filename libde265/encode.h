@@ -177,6 +177,10 @@ struct enc_cb
 template <class T> class alloc_pool
 {
 public:
+  alloc_pool() {
+    mBlkSize = BLKSIZE;
+  }
+
   ~alloc_pool() {
     for (int i=0;i<mem.size();i++) {
       delete[] mem[i].data;
@@ -184,33 +188,36 @@ public:
   }
 
 
+  void set_blk_size(int blkSize) { mBlkSize=blkSize; }
+
   void free_all() {
     for (int i=0;i<mem.size();i++) {
       mem[i].nUsed=0;
     }
   }
 
-  T* get_new(int nCBs=1) {
-    if (mem.empty() || mem.back().nUsed + nCBs > mem.back().size) {
+  T* get_new(int n=1) {
+    if (mem.empty() || mem.back().nUsed + n > mem.back().size) {
       range r;
-      r.data = new T[BLKSIZE];
-      r.size = BLKSIZE;
+      r.data = new T[mBlkSize];
+      r.size = mBlkSize;
       r.nUsed= 0;
       mem.push_back(r);
     }
 
     range& r = mem.back();
 
-    assert(r.nUsed + nCBs <= r.size);
+    assert(r.nUsed + n <= r.size);
 
     T* t = r.data + r.nUsed;
-    r.nUsed += nCBs;
+    r.nUsed += n;
 
     return t;
   }
 
  private:
   static const int BLKSIZE = 128;
+  int mBlkSize;
 
   struct range {
     T* data;
@@ -232,7 +239,7 @@ struct encoder_output
 struct encoder_context
 {
   encoder_context() {
-    coeff_mem = (int16_t*)malloc(64*64*20); // TODO ...
+    enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
   }
 
   de265_image* img;
@@ -241,15 +248,13 @@ struct encoder_context
   alloc_pool<enc_cb> enc_cb_pool;
   alloc_pool<enc_tb> enc_tb_pool;
   alloc_pool<enc_pb_intra> enc_pb_intra_pool;
+  alloc_pool<int16_t>  enc_coeff_pool;
 
-  int16_t* get_coeff_mem(int nCoeff) {
-    int16_t* c = coeff;
-    coeff += nCoeff;
-    return c;
-  }
-
-  void reset_coeff_mem() {
-    coeff = coeff_mem;
+  void free_all_pools() {
+    enc_cb_pool.free_all();
+    enc_tb_pool.free_all();
+    enc_pb_intra_pool.free_all();
+    enc_coeff_pool.free_all();
   }
 
   void set_output(encoder_output* o) {
