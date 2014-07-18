@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = dec265 hdrcopy genstream
+bin_PROGRAMS = dec265 hdrcopy
 
 AM_CPPFLAGS = -I../libde265
 
@@ -14,12 +14,6 @@ hdrcopy_CXXFLAGS =
 hdrcopy_LDFLAGS =
 hdrcopy_LDADD = ../libde265/libde265.la -lstdc++
 hdrcopy_SOURCES = hdrcopy.cc
-
-genstream_DEPENDENCIES = ../libde265/libde265.la
-genstream_CXXFLAGS =
-genstream_LDFLAGS =
-genstream_LDADD = ../libde265/libde265.la -lstdc++
-genstream_SOURCES = genstream.cc
 
 if HAVE_VIDEOGFX
   dec265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
