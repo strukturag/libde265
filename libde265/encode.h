@@ -103,6 +103,9 @@ struct enc_tb
     };
   };
 
+  float distortion;
+  float rate;
+
   void dequant_and_add_transform(acceleration_functions* accel,
                                  de265_image* img, int x0,int y0, int qp) const;
   void set_cbf_flags_from_coefficients();
@@ -157,7 +160,11 @@ struct enc_cb
       enum PartMode PartMode;
 
       union {
-        enc_pb_intra* intra_pb[4];
+        struct {
+          enum IntraPredMode       pred_mode[4];
+          enum IntraChromaPredMode chroma_mode;
+        } intra;
+
         enc_pb_inter* inter_pb[4];
       };
 
@@ -174,6 +181,8 @@ struct enc_cb
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0, int qp) const;
+
+  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
 };
 
 

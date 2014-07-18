@@ -34,6 +34,8 @@
 #include <assert.h>
 
 
+#if 0
+
 encoder_params params;
 
 FILE* reco_fh;
@@ -935,5 +937,12 @@ int main(int argc, char** argv)
   fwrite(writer.data(), 1,writer.size(), fh);
   fclose(fh);
 
+  return 0;
+}
+
+#endif
+
+int main()
+{
   return 0;
 }

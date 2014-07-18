@@ -233,6 +233,32 @@ int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMod
 }
 
 
+enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
+                                                  enum IntraChromaPredMode chroma)
+{
+  switch (chroma) {
+  case INTRA_CHROMA_LIKE_LUMA:
+    return luma;
+
+  case INTRA_CHROMA_PLANAR_OR_34:
+    if (luma==INTRA_PLANAR) return INTRA_ANGULAR_34;
+    else                    return INTRA_PLANAR;
+
+  case INTRA_CHROMA_ANGULAR_26_OR_34:
+    if (luma==INTRA_ANGULAR_26) return INTRA_ANGULAR_34;
+    else                        return INTRA_ANGULAR_26;
+
+  case INTRA_CHROMA_ANGULAR_10_OR_34:
+    if (luma==INTRA_ANGULAR_10) return INTRA_ANGULAR_34;
+    else                        return INTRA_ANGULAR_10;
+
+  case INTRA_CHROMA_DC_OR_34:
+    if (luma==INTRA_DC)         return INTRA_ANGULAR_34;
+    else                        return INTRA_DC;
+  }
+}
+
+
 // (8.4.4.2.2)
 void fill_border_samples(de265_image* img, int xB,int yB,
                          int nT, int cIdx,

@@ -119,7 +119,7 @@ inline int childY(int y0, int idx, int log2CbSize)
 }
 
 
-void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool intra) const
+void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool isIntra) const
 {
   if (!split_cu_flag) {
     img->set_ctDepth(x,y,log2blkSize, ctDepth);
@@ -127,18 +127,18 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
     img->set_pred_mode(x,y, log2blkSize, PredMode);
     img->set_PartMode(x,y, PartMode);  // TODO: probably unnecessary
 
-    if (intra) {
+    if (isIntra) {
       //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);
 
       if (PartMode == PART_NxN) {
         int h = 1<<(log2blkSize-1);
-        img->set_IntraPredMode(x  ,y  ,log2blkSize-1, intra_pb[0]->pred_mode);
-        img->set_IntraPredMode(x+h,y  ,log2blkSize-1, intra_pb[1]->pred_mode);
-        img->set_IntraPredMode(x  ,y+h,log2blkSize-1, intra_pb[2]->pred_mode);
-        img->set_IntraPredMode(x+h,y+h,log2blkSize-1, intra_pb[3]->pred_mode);
+        img->set_IntraPredMode(x  ,y  ,log2blkSize-1, intra.pred_mode[0]);
+        img->set_IntraPredMode(x+h,y  ,log2blkSize-1, intra.pred_mode[1]);
+        img->set_IntraPredMode(x  ,y+h,log2blkSize-1, intra.pred_mode[2]);
+        img->set_IntraPredMode(x+h,y+h,log2blkSize-1, intra.pred_mode[3]);
       }
       else {
-        img->set_IntraPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode);
+        img->set_IntraPredMode(x,y,log2blkSize, intra.pred_mode[0]);
       }
     }
     else {
@@ -148,7 +148,7 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
   else {
     for (int i=0;i<4;i++) {
       children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
-                                  log2blkSize-1, intra);
+                                  log2blkSize-1, isIntra);
     }
   }
 }
@@ -166,7 +166,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
     }
   }
   else {
-    intra_pb[0]->do_intra_prediction(img,x0,y0,log2CbSize);
+    do_intra_prediction(img,x0,y0,log2CbSize);
 
     //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
     //img->printBlk(x0,y0,0,log2CbSize);
@@ -176,6 +176,19 @@ void enc_cb::reconstruct(acceleration_functions* accel,
     //printf("--- RECO add residual %d %d ---\n",x0,y0);
     //img->printBlk(x0,y0,0,log2CbSize);
   }
+}
+
+
+// TODO: cannot do this independently from transform-tree, because intra-prediction
+// is carried out for each TB separately.
+void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
+{
+  enum IntraPredMode lumaMode   = intra.pred_mode[0];
+  enum IntraPredMode chromaMode = lumaPredMode_to_chromaPredMode(lumaMode, intra.chroma_mode);
+
+  decode_intra_prediction(img, x0,  y0,   lumaMode,   1<<log2BlkSize,     0);
+  decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 1);
+  decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 2);
 }
 
 
@@ -730,7 +743,9 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
       scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
     }
     else {
-      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, cb->intra_pb[0]->pred_mode_chroma);
+      enum IntraPredMode chromaMode = lumaPredMode_to_chromaPredMode(img->get_IntraPredMode(x0,y0),
+                                                                     cb->intra.chroma_mode);
+      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, chromaMode);
     }
   }
   else {
@@ -1228,7 +1243,7 @@ void encode_coding_unit(encoder_context* ectx,
       for (int i=0;i<3;i++)
         logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
 
-      enum IntraPredMode mode = cb->intra_pb[0]->pred_mode;
+      enum IntraPredMode mode = cb->intra.pred_mode[0];
       int intraPred = find_intra_pred_mode(mode, candModeList);
       encode_prev_intra_luma_pred_flag(ectx, intraPred);
       encode_intra_mpm_or_rem(ectx, intraPred);
@@ -1260,7 +1275,7 @@ void encode_coding_unit(encoder_context* ectx,
             fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                         availableA,availableB, img);
 
-            enum IntraPredMode mode = cb->intra_pb[childIdx]->pred_mode;
+            enum IntraPredMode mode = cb->intra.pred_mode[childIdx];
             intraPred[2*j+i] = find_intra_pred_mode(mode, candModeList);
           }
 
@@ -1271,9 +1286,9 @@ void encode_coding_unit(encoder_context* ectx,
         encode_intra_mpm_or_rem(ectx, intraPred[i]);
     }
     
-    encode_intra_chroma_pred_mode(ectx,
-                                  find_chroma_pred_mode(cb->intra_pb[0]->pred_mode_chroma,
-                                                        cb->intra_pb[0]->pred_mode));
+    encode_intra_chroma_pred_mode(ectx, cb->intra.chroma_mode);
+    //find_chroma_pred_mode(cb->intra_pb[0]->pred_mode_chroma,
+    //cb->intra_pb[0]->pred_mode));
   }
 
 
