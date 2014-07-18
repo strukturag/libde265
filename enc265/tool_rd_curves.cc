@@ -555,7 +555,7 @@ RDPoint Encoder_f265::encode(const Preset& preset,int qp) const
 {
   std::stringstream cmd1;
   cmd1 << "$F265 " << input.options_f265()
-       << " f265.out -v -p\"" << preset.options_f265 << " qp-bounds=" << qp << "," << qp << "\" >&2";
+       << " f265.out -v -p\"" << preset.options_f265 << " qp=" << qp << "\" >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
