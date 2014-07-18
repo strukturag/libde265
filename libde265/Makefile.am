@@ -61,7 +61,8 @@ libde265_la_SOURCES = \
   fallback-dct.h fallback-dct.cc \
   quality.cc quality.h \
   configparam.cc configparam.h \
-  analyze.cc analyze.h
+  analyze.cc analyze.h \
+  image-io.h image-io.cc
 
 if ENABLE_SSE_OPT
   SUBDIRS = x86

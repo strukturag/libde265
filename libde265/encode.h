@@ -25,6 +25,8 @@
 
 #include "libde265/image.h"
 #include "libde265/decctx.h"
+#include "libde265/image-io.h"
+
 
 enum RateControlMethod
   {
@@ -232,22 +234,31 @@ public:
 struct encoder_context
 {
   encoder_context() {
+    img_source = NULL;
+
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
     switch_to_CABAC_stream();
   }
 
+
   encoder_params params;
+
+  ImageSource*   img_source;
+
   error_queue errqueue;
+  acceleration_functions accel;
 
   de265_image img;
 
-  video_parameter_set vps;
-  seq_parameter_set   sps;
-  pic_parameter_set   pps;
+  video_parameter_set  vps;
+  seq_parameter_set    sps;
+  pic_parameter_set    pps;
   slice_segment_header shdr;
 
-  acceleration_functions accel;
+
+
+  // --- poor man's garbage collector for CB/TB/PB/coeff data ---
 
   alloc_pool<enc_cb> enc_cb_pool;
   alloc_pool<enc_tb> enc_tb_pool;
@@ -261,6 +272,9 @@ struct encoder_context
     enc_coeff_pool.free_all();
   }
 
+
+
+  // --- CABAC output and rate estimation ---
 
   CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
   context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
@@ -284,10 +298,6 @@ struct encoder_context
     cabac     = &cabac_bitstream;
     ctx_model = ctx_model_bitstream;
   }
-
-private:
-  int16_t* coeff_mem;
-  int16_t* coeff;
 };
 
 

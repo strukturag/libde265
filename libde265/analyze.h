@@ -42,17 +42,17 @@ void diff_blk(int16_t* out,int out_stride,
               const uint8_t* b_ptr, int b_stride,
               int blkSize);
 
-enc_cb* encode_cb_no_split(encoder_context*, uint8_t const*const input[3],int stride,
+enc_cb* encode_cb_no_split(encoder_context*, const de265_image* input,
                            int x0,int y0, int log2CbSize, int ctDepth, int qp);
 
-enc_cb* encode_cb_split(encoder_context*, uint8_t const*const input[3],int stride,
+enc_cb* encode_cb_split(encoder_context*, const de265_image* input,
                         int x0,int y0, int Log2CbSize, int ctDepth, int qp);
 
-enc_cb* encode_cb_may_split(encoder_context*, uint8_t const*const input[3],int stride,
+enc_cb* encode_cb_may_split(encoder_context*, const de265_image* input,
                             int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
 
-double encode_image(encoder_context*, uint8_t const*const input[3],int width,int height, int qp);
+double encode_image(encoder_context*, const de265_image* input, int qp);
 
-void encode_sequence(encoder_context*, const char* yuv_filename, int width, int height);
+void encode_sequence(encoder_context*);
 
 #endif

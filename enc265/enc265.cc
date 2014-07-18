@@ -97,14 +97,19 @@ int main(int argc, char** argv)
 
   reco_fh = fopen(ectx.params.reconstruction_yuv,"wb");
 
-  encode_sequence(&ectx,
-                  ectx.params.input_yuv, ectx.params.input_width, ectx.params.input_height);
+  ImageSource_YUV image_source;
+  image_source.set_input_file(ectx.params.input_yuv,
+                              ectx.params.input_width,
+                              ectx.params.input_height);
+  ectx.img_source = &image_source;
+
+  encode_sequence(&ectx);
 
   fclose(reco_fh);
 
 
   FILE* fh = fopen(ectx.params.output_filename,"wb");
-  //fwrite(writer.data(), 1,writer.size(), fh); // TODO
+  fwrite(ectx.cabac_bitstream.data(), 1,ectx.cabac_bitstream.size(), fh);
   fclose(fh);
 
 

@@ -113,10 +113,12 @@ void diff_blk(int16_t* out,int out_stride,
 
 
 enc_cb* encode_cb_no_split(encoder_context* ectx,
-                           uint8_t const*const input[3],int stride,
+                           const de265_image* input,
                            int x0,int y0, int log2CbSize, int ctDepth, int qp)
 {
   //printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+
+  int stride = ectx->img.get_image_stride(0);
 
   uint8_t* luma_plane = ectx->img.get_image_plane(0);
   uint8_t* cb_plane = ectx->img.get_image_plane(1);
@@ -146,7 +148,8 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->intra_pb[0] = pb;
 
   enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, cbSize,0,
-                                                      &input[0][y0*stride+x0], stride);
+                                                      input->get_image_plane_at_pos(0,x0,y0),
+                                                      input->get_image_stride(0));
 
   pb->pred_mode = INTRA_PLANAR;
   pb->pred_mode_chroma = INTRA_PLANAR;
@@ -174,13 +177,13 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   int16_t blk[3][32*32];
   diff_blk(blk[0],cbSize,
-           &input[0][y0*stride+x0],stride,
+           input->get_image_plane_at_pos(0,x0,y0), input->get_image_stride(0),
            &luma_plane[y0*stride+x0],stride, cbSize);
   diff_blk(blk[1],cbSizeChroma,
-           &input[1][y0/2*stride/2+x0/2],stride/2,
+           input->get_image_plane_at_pos(1,x0/2,y0/2), input->get_image_stride(1),
            &cb_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
   diff_blk(blk[2],cbSizeChroma,
-           &input[2][y0/2*stride/2+x0/2],stride/2,
+           input->get_image_plane_at_pos(2,x0/2,y0/2), input->get_image_stride(2),
            &cr_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
 
   tb->coeff[0] = ectx->enc_coeff_pool.get_new(cbSize*cbSize);
@@ -243,12 +246,8 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 }
 
 
-enc_cb* encode_cb_may_split(encoder_context* ectx,
-                            uint8_t const*const input[3],int stride,
-                            int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
-
 enc_cb* encode_cb_split(encoder_context* ectx,
-                        uint8_t const*const input[3],int stride,
+    const de265_image* input,
                         int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
   enc_cb* cb = ectx->enc_cb_pool.get_new();
@@ -265,7 +264,7 @@ enc_cb* encode_cb_split(encoder_context* ectx,
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
-    cb->children[i] = encode_cb_may_split(ectx, input, stride, x0+dx, y0+dy,
+    cb->children[i] = encode_cb_may_split(ectx, input, x0+dx, y0+dy,
                                           Log2CbSize-1, ctDepth+1, qp);
 
     cb->rd_cost += cb->children[i]->rd_cost;
@@ -276,15 +275,15 @@ enc_cb* encode_cb_split(encoder_context* ectx,
 
 
 enc_cb* encode_cb_may_split(encoder_context* ectx,
-                            uint8_t const*const input[3],int stride,
+    const de265_image* input,
                             int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
-  enc_cb* cb_no_split = encode_cb_no_split(ectx, input,stride,x0,y0, Log2CbSize, ctDepth, qp);
+  enc_cb* cb_no_split = encode_cb_no_split(ectx, input,x0,y0, Log2CbSize, ctDepth, qp);
   enc_cb* cb_split = NULL;
   enc_cb* cb = cb_no_split;
 
   if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
-    cb_split = encode_cb_split(ectx, input,stride,x0,y0, Log2CbSize, ctDepth, qp);
+    cb_split = encode_cb_split(ectx, input,x0,y0, Log2CbSize, ctDepth, qp);
 
     bool split =  (cb_split->rd_cost < cb_no_split->rd_cost);
     //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
@@ -303,9 +302,9 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
 
 
 double encode_image(encoder_context* ectx,
-                    uint8_t const*const input[3],int width,int height, int qp)
+    const de265_image* input, int qp)
 {
-  int stride=width;
+  int stride=input->get_image_stride(0);
 
   int w = ectx->sps.pic_width_in_luma_samples;
   int h = ectx->sps.pic_height_in_luma_samples;
@@ -319,8 +318,8 @@ double encode_image(encoder_context* ectx,
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;
 
   uint8_t* luma_plane = ectx->img.get_image_plane(0);
-  uint8_t* cb_plane = ectx->img.get_image_plane(1);
-  uint8_t* cr_plane = ectx->img.get_image_plane(2);
+  uint8_t* cb_plane   = ectx->img.get_image_plane(1);
+  uint8_t* cr_plane   = ectx->img.get_image_plane(2);
 
 
   // encode CTB by CTB
@@ -335,7 +334,7 @@ double encode_image(encoder_context* ectx,
 
         logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
 
-        enc_cb* cb = encode_cb_may_split(ectx, input,stride, x0,y0, Log2CtbSize, 0, qp);
+        enc_cb* cb = encode_cb_may_split(ectx, input, x0,y0, Log2CtbSize, 0, qp);
 
 
         cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
@@ -401,24 +400,16 @@ double encode_image(encoder_context* ectx,
       }
 
 
-  double psnr = PSNR(MSE(input[0], width,
-                         luma_plane, ectx->img.get_image_stride(0),
-                         width, height));
+double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
+                       luma_plane, ectx->img.get_image_stride(0),
+                       input->get_width(), input->get_height()));
   return psnr;
 }
 
 
-void encode_sequence(encoder_context* ectx,
-                     const char* yuv_filename, int width, int height)
+void encode_sequence(encoder_context* ectx)
 {
   int qp = ectx->params.constant_QP; // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
-
-
-  FILE* fh = fopen(yuv_filename,"rb");
-  uint8_t* input[3];
-  input[0] = (uint8_t*)malloc(width*height);
-  input[1] = (uint8_t*)malloc(width*height/4);
-  input[2] = (uint8_t*)malloc(width*height/4);
 
 
   nal_header nal;
@@ -433,7 +424,8 @@ void encode_sequence(encoder_context* ectx,
   ectx->sps.set_defaults();
   ectx->sps.set_CB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
   ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
-  ectx->sps.set_resolution(width,height);
+  ectx->sps.set_resolution(ectx->img_source->get_width(),
+                           ectx->img_source->get_height());
   ectx->sps.compute_derived_values();
 
   // PPS
@@ -482,18 +474,15 @@ void encode_sequence(encoder_context* ectx,
   ectx->pps.write(&ectx->errqueue, ectx->cabac, &ectx->sps);
   ectx->cabac->flush_VLC();
 
-  fseek(fh, width*height*3/2 * ectx->params.first_frame, SEEK_SET);
+  ectx->img_source->release_next_image( ectx->params.first_frame );
 
   int maxPoc = ectx->params.max_number_of_frames;
   for (int poc=0; poc<maxPoc ;poc++)
     {
       fprintf(stderr,"encoding frame %d\n",poc);
 
-      fread(input[0],1,width*height,fh);
-      fread(input[1],1,width*height/4,fh);
-      fread(input[2],1,width*height/4,fh);
-      
-      if (feof(fh)) { break; }
+      de265_image* input_image = ectx->img_source->get_image();
+      if (input_image==NULL) { break; } // EOF
 
 
       // write slice header
@@ -512,7 +501,7 @@ void encode_sequence(encoder_context* ectx,
       //encode_image_FDCT_1();
       ectx->cabac->init_CABAC();
       //double psnr = encode_image_FDCT_2(input,width,height, qp);
-      double psnr = encode_image(ectx,input,width,height, qp);
+      double psnr = encode_image(ectx,input_image, qp);
 
       //encode_image(&ectx);
       ectx->cabac->flush_CABAC();
@@ -524,8 +513,8 @@ void encode_sequence(encoder_context* ectx,
       */
 
       fprintf(stderr,"  PSNR-Y: %f\n", psnr);
-    }
 
-  fclose(fh);
+      ectx->img_source->release_next_image();
+    }
 }
 
