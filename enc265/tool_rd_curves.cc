@@ -436,7 +436,7 @@ std::vector<RDPoint> Encoder_de265::encode_curve(const Preset& preset) const
 {
   std::vector<RDPoint> curve;
 
-  for (int qp=mQPLow ; qp<=mQPHigh ; qp+=mQPStep) {
+  for (int qp=mQPHigh ; qp>=mQPLow ; qp-=mQPStep) {
     curve.push_back(encode(preset, qp));
   }
 
@@ -500,7 +500,7 @@ std::vector<RDPoint> Encoder_HM::encode_curve(const Preset& preset) const
 {
   std::vector<RDPoint> curve;
 
-  for (int qp=mQPLow ; qp<=mQPHigh ; qp+=mQPStep) {
+  for (int qp=mQPHigh ; qp>=mQPLow ; qp-=mQPStep) {
     curve.push_back(encode(preset, qp));
   }
 
@@ -569,7 +569,7 @@ std::vector<RDPoint> Encoder_x265::encode_curve(const Preset& preset) const
 {
   std::vector<RDPoint> curve;
 
-  for (int qp=mQPLow ; qp<=mQPHigh ; qp+=mQPStep) {
+  for (int qp=mQPHigh ; qp>=mQPLow ; qp-=mQPStep) {
     curve.push_back(encode(preset, qp));
   }
 
@@ -633,7 +633,7 @@ std::vector<RDPoint> Encoder_f265::encode_curve(const Preset& preset) const
 {
   std::vector<RDPoint> curve;
 
-  for (int qp=mQPLow ; qp<=mQPHigh ; qp+=mQPStep) {
+  for (int qp=mQPHigh ; qp>=mQPLow ; qp-=mQPStep) {
     curve.push_back(encode(preset, qp));
   }
 
