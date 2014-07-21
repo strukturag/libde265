@@ -102,13 +102,22 @@ Preset preset[] = {
     /* ffmpeg */ "-g 1"
   },
 
-  { 99, "best", "default (random-access) encoder parameters",
+  { 98, "best", "default (random-access) encoder parameters",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg",
     /* x265   */ "",
     /* f265   */ "",
     /* x264   */ "",
     /* ffmpeg */ ""
+  },
+
+  { 99, "besteq", "default (random-access) encoder parameters",
+    /* de265  */ "--max-cb-size 16 --min-cb-size 8",
+    /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg -ip 248",
+    /* x265   */ "-I 248", // GOP size: 248
+    /* f265   */ "key-frame-spacing=248",
+    /* x264   */ "",
+    /* ffmpeg */ "-g 248"
   },
 
   { 0, NULL }
