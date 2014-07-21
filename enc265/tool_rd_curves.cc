@@ -1,4 +1,8 @@
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -10,8 +14,10 @@
 #include <getopt.h>
 
 #include <sys/time.h>
-#include <sys/times.h>
 
+#ifndef WIN32
+#include <sys/times.h>
+#endif
 
 #include <string>
 #include <sstream>
@@ -320,14 +326,20 @@ long ticks_per_second;
 
 void init_clock()
 {
+#ifndef WIN32
   ticks_per_second = sysconf(_SC_CLK_TCK);
+#endif
 }
 
 double get_cpu_time()
 {
+#ifndef WIN32
   struct tms t;
   times(&t);
   return double(t.tms_cutime)/ticks_per_second;
+#else
+  return 0; // not supported on windows (TODO)
+#endif
 }
 
 double get_wall_time()
