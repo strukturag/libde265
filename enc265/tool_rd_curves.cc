@@ -414,7 +414,7 @@ private:
 
 Encoder_de265::Encoder_de265()
 {
-  mQPLow = 10;
+  mQPLow = 14;
   mQPHigh= 40;
   mQPStep=  2;
 }
@@ -478,7 +478,7 @@ private:
 
 Encoder_HM::Encoder_HM()
 {
-  mQPLow = 10;
+  mQPLow = 14;
   mQPHigh= 40;
   mQPStep=  2;
 }
@@ -547,7 +547,7 @@ Encoder_x265::Encoder_x265()
   mQPStep=  2;
   */
 
-  mQPLow = 10;
+  mQPLow = 14;
   mQPHigh= 40;
   mQPStep=  2;
 }
@@ -611,7 +611,7 @@ private:
 
 Encoder_f265::Encoder_f265()
 {
-  mQPLow = 10;
+  mQPLow = 14;
   mQPHigh= 40;
   mQPStep=  2;
 }
