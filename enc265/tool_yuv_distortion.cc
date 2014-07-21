@@ -18,6 +18,7 @@ float ssim(const uint8_t* img1,
            const uint8_t* img2,
            int width, int height)
 {
+#if HAVE_VIDEOGFX
   Bitmap<Pixel> ref, coded;
   ref  .Create(width, height); // reference image
   coded.Create(width, height); // coded image
@@ -29,6 +30,9 @@ float ssim(const uint8_t* img1,
 
   SSIM ssimAlgo;
   return ssimAlgo.calcMSSIM(ref,coded);
+#else
+  return 0;
+#endif
 }
 
 
