@@ -9,6 +9,10 @@
 #include <string.h>
 #include <getopt.h>
 
+#include <sys/time.h>
+#include <sys/times.h>
+
+
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -204,6 +208,7 @@ struct InputSpec
   { "johnny10",  "$YUV/Johnny_1280x720_60.yuv",1280,720, 10,60.0 },
   { "johnny100", "$YUV/Johnny_1280x720_60.yuv",1280,720,100,60.0 },
   { "cactus",    "$YUV/Cactus_1920x1080_50.yuv",1920,1080,500,50.0 },
+  { "cactus10",  "$YUV/Cactus_1920x1080_50.yuv",1920,1080, 10,50.0 },
   { NULL }
 };
 
@@ -236,7 +241,8 @@ float bitrate(const char* filename)
   struct stat s;
   stat(filename,&s);
 
-  int size = s.st_size;
+  long size = s.st_size;
+
   int frames = input.getNFrames();
   assert(frames!=0);
 
@@ -310,11 +316,37 @@ Quality_PSNR quality_psnr;
 
 // ---------------------------------------------------------------------------
 
+long ticks_per_second;
+
+void init_clock()
+{
+  ticks_per_second = sysconf(_SC_CLK_TCK);
+}
+
+double get_cpu_time()
+{
+  struct tms t;
+  times(&t);
+  return double(t.tms_cutime)/ticks_per_second;
+}
+
+double get_wall_time()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double t  = tv.tv_sec;
+  double ut = tv.tv_usec/1000000.0f;
+  t += ut;
+  return t;
+}
+
+
 struct RDPoint
 {
   float rate;
   float psnr;
-  float time; // computation time in seconds
+  double cpu_time; // computation time in seconds
+  double wall_time;
 
 
   RDPoint() { }
@@ -328,6 +360,16 @@ struct RDPoint
     rate = bitrate(stream_name.c_str());
     psnr = quality_psnr.measure_yuv(yuv_name.c_str());
   }
+
+  void start_timer() {
+    cpu_time = get_cpu_time();
+    wall_time= get_wall_time();
+  }
+
+  void end_timer() {
+    cpu_time = get_cpu_time() - cpu_time;
+    wall_time= get_wall_time()- wall_time;
+  }
 };
 
 
@@ -335,9 +377,13 @@ FILE* output_fh;
 
 void write_rd_line(RDPoint p)
 {
-  fprintf(output_fh,"%7.2f %6.4f %5.0f\n", p.rate/1024, p.psnr, p.time);
+  fprintf(output_fh,"%7.2f %6.4f %5.2f %5.2f\n",
+          p.rate/1024, p.psnr,
+          p.cpu_time/60, p.wall_time/60);
   fflush(output_fh);
 }
+
+
 
 
 class Encoder
@@ -398,14 +444,12 @@ RDPoint Encoder_de265::encode(const Preset& preset,int qp) const
 
   std::string cmd2 = replace_variables(cmd1.str());
 
-  //std::cout << "CMD: '" << cmd2 << "'\n";
-  clock_t t1 = clock();
-  int retval = system(cmd2.c_str());
-  clock_t t2 = clock();
-
   RDPoint rd;
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
+
   rd.compute_from_h265(streamname.str());
-  rd.time = double(t2-t1)/CLOCKS_PER_SEC;
 
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
@@ -465,9 +509,11 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   std::string cmd2 = replace_variables(cmd1.str());
 
   //std::cout << "CMD: '" << cmd2 << "'\n";
-  int retval = system(cmd2.c_str());
-
   RDPoint rd;
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
+
   rd.compute_from_h265(streamname.str());
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
@@ -532,11 +578,12 @@ RDPoint Encoder_x265::encode(const Preset& preset,int qp) const
   std::string cmd2 = replace_variables(cmd1.str());
 
   //std::cout << "CMD: '" << cmd2 << "'\n";
-  int retval = system(cmd2.c_str());
-
   RDPoint rd;
-  rd.compute_from_h265(streamname.str());
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
 
+  rd.compute_from_h265(streamname.str());
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
   write_rd_line(rd);
@@ -591,11 +638,12 @@ RDPoint Encoder_f265::encode(const Preset& preset,int qp) const
   std::string cmd2 = replace_variables(cmd1.str());
 
   std::cout << "CMD: '" << cmd2 << "'\n";
-  int retval = system(cmd2.c_str());
-
   RDPoint rd;
-  rd.compute_from_h265("f265.out");
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
 
+  rd.compute_from_h265("f265.out");
   if (!keepStreams) { unlink("f265.out"); }
 
   write_rd_line(rd);
@@ -655,34 +703,28 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
   cmd1 << "$FFMPEG " << input.options_ffmpeg()
        << " " << preset.options_x264_ffmpeg
        << " -crf " << qp_crf
+       << " -threads 6"
        << " -f h264 " << streamname.str();
 #endif
 
   std::string cmd2 = replace_variables(cmd1.str());
 
-  std::cerr << "CMD: '" << cmd2 << "'\n";
-  clock_t t1 = clock();
-  int retval = system(cmd2.c_str());
-  if (0) execlp("ffmpeg",
-         "-f","rawvideo","-vcodec","rawvideo","-s","352x288",
-         "-pix_fmt","yuv420p",
-         "-i","/storage/users/farindk/yuv/paris_cif.yuv",
-         "-vframes","100",
-         "-crf","20",
-         "-f","h264",
-         "out.264",
-         NULL);
-  clock_t t2 = clock();
+  std::cerr << "-----------------------------\n";
 
-  std::string cmd3 = "ffmpeg -i " + streamname.str() + " rdout.yuv";
+  std::cerr << "CMD: '" << cmd2 << "'\n";
+
+  RDPoint rd;
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
+
+  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 /tmp/rdout.yuv";
 
   retval = system(cmd3.c_str());
 
-  RDPoint rd;
-  rd.compute_from_yuv(streamname.str(), "rdout.yuv");
-  rd.time = double(t2-t1)/CLOCKS_PER_SEC;
+  rd.compute_from_yuv(streamname.str(), "/tmp/rdout.yuv");
 
-  unlink("rdout.yuv");
+  unlink("/tmp/rdout.yuv");
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
   write_rd_line(rd);
@@ -735,6 +777,8 @@ void show_usage()
 
 int main(int argc, char** argv)
 {
+  init_clock();
+
   while (1) {
     int option_index = 0;
 
