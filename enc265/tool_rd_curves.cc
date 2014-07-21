@@ -657,22 +657,28 @@ class Encoder_x264 : public Encoder
 {
 public:
   Encoder_x264();
-  void setCRFRange(int low,int high,int step) { mCRFLow=low; mCRFHigh=high; mCRFStep=step; }
+  //void setCRFRange(int low,int high,int step) { mCRFLow=low; mCRFHigh=high; mCRFStep=step; }
 
   virtual std::vector<RDPoint> encode_curve(const Preset& preset) const;
 
 private:
   RDPoint encode(const Preset& preset,int crf) const;
 
-  int mCRFLow,mCRFHigh,mCRFStep;
+  int mCRFLow,mCRFMid,mCRFHigh;
+  int mCRFStepHigh, mCRFStepLow;
 };
 
 
 Encoder_x264::Encoder_x264()
 {
-  mCRFLow =  4;
+  // in the upper bit-rate range [mid;high], use larger CRF step-size 'StepHigh'
+  // in the lower bit-rate range [low;mid], use smaller CRF step-size 'StepLow'
+
+  mCRFLow = 10;
+  mCRFMid = 20;
   mCRFHigh= 36;
-  mCRFStep=  2;
+  mCRFStepHigh= 2;
+  mCRFStepLow = 1;
 }
 
 
@@ -680,7 +686,11 @@ std::vector<RDPoint> Encoder_x264::encode_curve(const Preset& preset) const
 {
   std::vector<RDPoint> curve;
 
-  for (int crf=mCRFLow ; crf<=mCRFHigh ; crf+=mCRFStep) {
+  for (int crf=mCRFLow ; crf<mCRFMid ; crf+=mCRFStepHigh) {
+    curve.push_back(encode(preset, crf));
+  }
+
+  for (int crf=mCRFMid ; crf<=mCRFHigh ; crf+=mCRFStepLow) {
     curve.push_back(encode(preset, crf));
   }
 
