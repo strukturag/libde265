@@ -83,7 +83,8 @@ const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
 bool write_bytestream=false;
 const char *bytestream_filename;
-bool measure_psnr=false;
+bool measure_quality=false;
+bool show_ssim_map=false;
 const char* reference_filename;
 FILE* reference_file;
 int highestTID = 100;
@@ -106,6 +107,7 @@ static struct option long_options[] = {
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
   {"measure",     required_argument, 0, 'm' },
+  {"ssim",        no_argument,       0, 's' },
   {"highest-TID", required_argument, 0, 'T' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
@@ -239,8 +241,13 @@ bool output_image(const de265_image* img)
 static double mse_y=0.0, mse_cb=0.0, mse_cr=0.0;
 static int    mse_frames=0;
 
+static double ssim_y=0.0;
+static int    ssim_frames=0;
+
 void measure(const de265_image* img)
 {
+  // --- compute PSNR ---
+
   int width  = de265_get_image_width(img,0);
   int height = de265_get_image_height(img,0);
 
@@ -263,7 +270,71 @@ void measure(const de265_image* img)
   mse_cb += img_mse_cb;
   mse_cr += img_mse_cr;
 
-  printf("%5d   %6f %6f %6f\n", framecnt, PSNR(img_mse_y), PSNR(img_mse_cb), PSNR(img_mse_cr));
+
+
+  // --- compute SSIM ---
+
+  double ssimSum = 0.0;
+
+#if HAVE_VIDEOGFX
+  Bitmap<Pixel> ref, coded;
+  ref  .Create(width, height); // reference image
+  coded.Create(width, height); // coded image
+
+  const uint8_t* data;
+  data = de265_get_image_plane(img,0,&stride);
+
+  for (int y=0;y<height;y++) {
+    memcpy(coded[y], data + y*stride, width);
+    memcpy(ref[y],   p    + y*stride, width);
+  }
+
+  SSIM ssimAlgo;
+  Bitmap<float> ssim = ssimAlgo.calcSSIM(ref,coded);
+
+  Bitmap<Pixel> ssimMap;
+  ssimMap.Create(width,height);
+
+  for (int y=0;y<height;y++)
+    for (int x=0;x<width;x++)
+      {
+        float v = ssim[y][x];
+        ssimSum += v;
+        v = v*v;
+        v = 255*v; //pow(v, 20);
+        
+        //assert(v<=255.0);
+        ssimMap[y][x] = v;
+      }
+
+  ssimSum /= width*height;
+
+
+
+  // display error map
+
+  if (show_ssim_map) {
+    static X11Win win;
+    static bool first=true;
+
+    if (first) {
+      first=false;
+      win.Create(de265_get_image_width(img,0),
+                 de265_get_image_height(img,0),
+                 "ssim output");
+    }
+
+    win.Display(MakeImage(ssimMap));
+  }
+#endif
+
+  ssim_frames++;
+  ssim_y += ssimSum;
+
+  printf("%5d   %6f %6f %6f %6f\n",
+         framecnt,
+         PSNR(img_mse_y), PSNR(img_mse_cb), PSNR(img_mse_cr),
+         ssimSum);
 
   free(p);
 }
@@ -338,7 +409,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:s"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -362,7 +433,8 @@ int main(int argc, char** argv)
     case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
-    case 'm': measure_psnr=true; reference_filename=optarg; break;
+    case 'm': measure_quality=true; reference_filename=optarg; break;
+    case 's': show_ssim_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
@@ -391,6 +463,9 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");       
+#if HAVE_VIDEOGFX
+    fprintf(stderr,"  -s, --ssim        show SSIM-map (only when -m active)\n");
+#endif
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
@@ -437,7 +512,7 @@ int main(int argc, char** argv)
   de265_set_limit_TID(ctx, highestTID);
 
 
-  if (measure_psnr) {
+  if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
   }
     
@@ -543,7 +618,7 @@ int main(int argc, char** argv)
             if (stop) more=0;
             else      more=1;
 
-            if (measure_psnr) {
+            if (measure_quality) {
               measure(img);
             }
           }
@@ -567,11 +642,12 @@ int main(int argc, char** argv)
     fclose(bytestream_fh);
   }
 
-  if (measure_psnr) {
-    printf("#total  %6f %6f %6f\n",
+  if (measure_quality) {
+    printf("#total  %6f %6f %6f %6f\n",
            PSNR(mse_y /mse_frames),
            PSNR(mse_cb/mse_frames),
-           PSNR(mse_cr/mse_frames));
+           PSNR(mse_cr/mse_frames),
+           ssim_y/ssim_frames);
 
     fclose(reference_file);
   }
@@ -600,3 +676,4 @@ int main(int argc, char** argv)
 
   return err==DE265_OK ? 0 : 10;
 }
+

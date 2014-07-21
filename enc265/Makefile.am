@@ -21,6 +21,11 @@ yuv_distortion_LDFLAGS =
 yuv_distortion_LDADD = ../libde265/libde265.la -lstdc++
 yuv_distortion_SOURCES = tool_yuv_distortion.cc
 
+if HAVE_VIDEOGFX
+  yuv_distortion_CXXFLAGS += $(VIDEOGFX_CFLAGS)
+  yuv_distortion_LDFLAGS += $(VIDEOGFX_LIBS)
+endif
+
 rd_curves_DEPENDENCIES = ../libde265/libde265.la
 rd_curves_CXXFLAGS =
 rd_curves_LDFLAGS =

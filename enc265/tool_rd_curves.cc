@@ -326,7 +326,58 @@ float Quality_PSNR::measure_yuv(const char* yuvfilename) const
 }
 
 
+class Quality_SSIM : public Quality
+{
+public:
+  virtual float measure(const char* h265filename) const;
+  virtual float measure_yuv(const char* yuvfilename) const;
+};
+
+
+float Quality_SSIM::measure(const char* h265filename) const
+{
+  std::stringstream sstr;
+  sstr << "$DEC265 " << h265filename << " -q -t6 -m " << input.getFilename() << " | grep total "
+    "| awk '{print $5}' >/tmp/xtmp";
+
+  //std::cout << sstr.str() << "\n";
+  int retval = system(replace_variables(sstr.str()).c_str());
+
+  std::ifstream istr;
+  istr.open("/tmp/xtmp");
+  float quality;
+  istr >> quality;
+
+  unlink("/tmp/xtmp");
+
+  return quality;
+}
+
+
+float Quality_SSIM::measure_yuv(const char* yuvfilename) const
+{
+  std::stringstream sstr;
+
+  sstr << "$YUVDIST " << input.getFilename() << " " << yuvfilename
+       << " " << input.getWidth() << " " << input.getHeight()
+       << "|grep total| awk '{print $3}' >/tmp/xtmp";
+
+  //std::cout << sstr.str() << "\n";
+  int retval = system(replace_variables(sstr.str()).c_str());
+
+  std::ifstream istr;
+  istr.open("/tmp/xtmp");
+  float quality;
+  istr >> quality;
+
+  unlink("/tmp/xtmp");
+
+  return quality;
+}
+
+
 Quality_PSNR quality_psnr;
+Quality_SSIM quality_ssim;
 //Quality* quality = &quality_psnr;
 
 // ---------------------------------------------------------------------------
@@ -366,6 +417,7 @@ struct RDPoint
 {
   float rate;
   float psnr;
+  float ssim;
   double cpu_time; // computation time in seconds
   double wall_time;
 
@@ -375,11 +427,13 @@ struct RDPoint
   void compute_from_h265(std::string stream_name) {
     rate = bitrate(stream_name.c_str());
     psnr = quality_psnr.measure(stream_name.c_str());
+    ssim = quality_ssim.measure(stream_name.c_str());
   }
 
   void compute_from_yuv(std::string stream_name, std::string yuv_name) {
     rate = bitrate(stream_name.c_str());
     psnr = quality_psnr.measure_yuv(yuv_name.c_str());
+    ssim = quality_ssim.measure_yuv(yuv_name.c_str());
   }
 
   void start_timer() {
@@ -398,8 +452,8 @@ FILE* output_fh;
 
 void write_rd_line(RDPoint p)
 {
-  fprintf(output_fh,"%9.2f %6.4f %5.2f %5.2f\n",
-          p.rate/1024, p.psnr,
+  fprintf(output_fh,"%9.2f %6.4f %5.3f %5.2f %5.2f\n",
+          p.rate/1024, p.psnr, p.ssim,
           p.cpu_time/60, p.wall_time/60);
   fflush(output_fh);
 }
