@@ -111,7 +111,7 @@ Preset preset[] = {
     /* ffmpeg */ ""
   },
 
-  { 99, "besteq", "default (random-access) encoder parameters",
+  { 99, "besteq", "default (random-access) encoder parameters, I-frame distance = 248",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg -ip 248",
     /* x265   */ "-I 248", // GOP size: 248
