@@ -314,6 +314,7 @@ struct RDPoint
 {
   float rate;
   float psnr;
+  float time; // computation time in seconds
 
 
   RDPoint() { }
@@ -334,7 +335,7 @@ FILE* output_fh;
 
 void write_rd_line(RDPoint p)
 {
-  fprintf(output_fh,"%7.2f %6.4f\n", p.rate/1024, p.psnr);
+  fprintf(output_fh,"%7.2f %6.4f %5.0f\n", p.rate/1024, p.psnr, p.time);
   fflush(output_fh);
 }
 
@@ -398,10 +399,13 @@ RDPoint Encoder_de265::encode(const Preset& preset,int qp) const
   std::string cmd2 = replace_variables(cmd1.str());
 
   //std::cout << "CMD: '" << cmd2 << "'\n";
+  clock_t t1 = clock();
   int retval = system(cmd2.c_str());
+  clock_t t2 = clock();
 
   RDPoint rd;
   rd.compute_from_h265(streamname.str());
+  rd.time = double(t2-t1)/CLOCKS_PER_SEC;
 
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
@@ -657,13 +661,27 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
   std::string cmd2 = replace_variables(cmd1.str());
 
   std::cerr << "CMD: '" << cmd2 << "'\n";
+  clock_t t1 = clock();
   int retval = system(cmd2.c_str());
+  if (0) execlp("ffmpeg",
+         "-f","rawvideo","-vcodec","rawvideo","-s","352x288",
+         "-pix_fmt","yuv420p",
+         "-i","/storage/users/farindk/yuv/paris_cif.yuv",
+         "-vframes","100",
+         "-crf","20",
+         "-f","h264",
+         "out.264",
+         NULL);
+  clock_t t2 = clock();
 
   std::string cmd3 = "ffmpeg -i " + streamname.str() + " rdout.yuv";
+
   retval = system(cmd3.c_str());
 
   RDPoint rd;
   rd.compute_from_yuv(streamname.str(), "rdout.yuv");
+  rd.time = double(t2-t1)/CLOCKS_PER_SEC;
+
   unlink("rdout.yuv");
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
