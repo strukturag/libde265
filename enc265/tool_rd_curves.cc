@@ -203,6 +203,7 @@ struct InputSpec
   { "johnny",    "$YUV/Johnny_1280x720_60.yuv",1280,720,600,60.0 },
   { "johnny10",  "$YUV/Johnny_1280x720_60.yuv",1280,720, 10,60.0 },
   { "johnny100", "$YUV/Johnny_1280x720_60.yuv",1280,720,100,60.0 },
+  { "cactus",    "$YUV/Cactus_1920x1080_50.yuv",1920,1080,500,50.0 },
   { NULL }
 };
 
