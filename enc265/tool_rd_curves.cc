@@ -273,112 +273,54 @@ class Quality
 public:
   virtual ~Quality() { }
 
-  virtual float measure(const char* h265filename) const = 0;
-};
+  virtual void measure(const char* h265filename);
+  virtual void measure_yuv(const char* yuvfilename);
 
-class Quality_PSNR : public Quality
-{
-public:
-  virtual float measure(const char* h265filename) const;
-  virtual float measure_yuv(const char* yuvfilename) const;
+  float psnr, ssim;
 };
 
 
-float Quality_PSNR::measure(const char* h265filename) const
+void Quality::measure(const char* h265filename)
 {
   std::stringstream sstr;
   sstr << "$DEC265 " << h265filename << " -q -t6 -m " << input.getFilename() << " | grep total "
-    "| awk '{print $2}' >/tmp/xtmp";
+    //"| awk '{print $2}' "
+    ">/tmp/xtmp";
 
   //std::cout << sstr.str() << "\n";
   int retval = system(replace_variables(sstr.str()).c_str());
 
   std::ifstream istr;
   istr.open("/tmp/xtmp");
-  float quality;
-  istr >> quality;
+  std::string dummy;
+  istr >> dummy >> psnr >> dummy >> dummy >> ssim;
 
   unlink("/tmp/xtmp");
-
-  return quality;
 }
 
 
-float Quality_PSNR::measure_yuv(const char* yuvfilename) const
+void Quality::measure_yuv(const char* yuvfilename)
 {
   std::stringstream sstr;
 
   sstr << "$YUVDIST " << input.getFilename() << " " << yuvfilename
        << " " << input.getWidth() << " " << input.getHeight()
-       << "|grep total| awk '{print $2}' >/tmp/xtmp";
+       << "|grep total| "
+    //"awk '{print $2}' "
+    ">/tmp/xtmp";
 
   //std::cout << sstr.str() << "\n";
   int retval = system(replace_variables(sstr.str()).c_str());
 
   std::ifstream istr;
   istr.open("/tmp/xtmp");
-  float quality;
-  istr >> quality;
+  std::string dummy;
+  istr >> dummy >> psnr >> dummy >> dummy >> ssim;
 
   unlink("/tmp/xtmp");
-
-  return quality;
 }
 
-
-class Quality_SSIM : public Quality
-{
-public:
-  virtual float measure(const char* h265filename) const;
-  virtual float measure_yuv(const char* yuvfilename) const;
-};
-
-
-float Quality_SSIM::measure(const char* h265filename) const
-{
-  std::stringstream sstr;
-  sstr << "$DEC265 " << h265filename << " -q -t6 -m " << input.getFilename() << " | grep total "
-    "| awk '{print $5}' >/tmp/xtmp";
-
-  //std::cout << sstr.str() << "\n";
-  int retval = system(replace_variables(sstr.str()).c_str());
-
-  std::ifstream istr;
-  istr.open("/tmp/xtmp");
-  float quality;
-  istr >> quality;
-
-  unlink("/tmp/xtmp");
-
-  return quality;
-}
-
-
-float Quality_SSIM::measure_yuv(const char* yuvfilename) const
-{
-  std::stringstream sstr;
-
-  sstr << "$YUVDIST " << input.getFilename() << " " << yuvfilename
-       << " " << input.getWidth() << " " << input.getHeight()
-       << "|grep total| awk '{print $3}' >/tmp/xtmp";
-
-  //std::cout << sstr.str() << "\n";
-  int retval = system(replace_variables(sstr.str()).c_str());
-
-  std::ifstream istr;
-  istr.open("/tmp/xtmp");
-  float quality;
-  istr >> quality;
-
-  unlink("/tmp/xtmp");
-
-  return quality;
-}
-
-
-Quality_PSNR quality_psnr;
-Quality_SSIM quality_ssim;
-//Quality* quality = &quality_psnr;
+Quality quality;
 
 // ---------------------------------------------------------------------------
 
@@ -426,14 +368,16 @@ struct RDPoint
 
   void compute_from_h265(std::string stream_name) {
     rate = bitrate(stream_name.c_str());
-    psnr = quality_psnr.measure(stream_name.c_str());
-    ssim = quality_ssim.measure(stream_name.c_str());
+    quality.measure(stream_name.c_str());
+    psnr = quality.psnr;
+    ssim = quality.ssim;
   }
 
   void compute_from_yuv(std::string stream_name, std::string yuv_name) {
     rate = bitrate(stream_name.c_str());
-    psnr = quality_psnr.measure_yuv(yuv_name.c_str());
-    ssim = quality_ssim.measure_yuv(yuv_name.c_str());
+    quality.measure_yuv(yuv_name.c_str());
+    psnr = quality.psnr;
+    ssim = quality.ssim;
   }
 
   void start_timer() {
