@@ -81,6 +81,9 @@ struct Preset
   const char* options_f265;
   const char* options_x264;
   const char* options_x264_ffmpeg;
+  const char* options_ffmpeg_mpeg2;
+
+  //int nFrames;
 };
 
 
@@ -91,7 +94,9 @@ Preset preset[] = {
     /* x265   */ "--no-lft -I 1 --no-signhide",
     /* f265   */ "key-frame-spacing=1",
     /* x264   */ "-I 1",
-    /* ffmpeg */ "-g 1"
+    /* ffmpeg */ "-g 1",
+    /* mpeg-2 */ "-g 1"
+    // 0 // all frames
   },
 
   { 50, "cb-auto16", "(development test)",
@@ -100,7 +105,9 @@ Preset preset[] = {
     /* x265   */ "--no-lft -I 1 --no-signhide",
     /* f265   */ "key-frame-spacing=1",
     /* x264   */ "-I 1",
-    /* ffmpeg */ "-g 1"
+    /* ffmpeg */ "-g 1",
+    /* mpeg-2 */ "-g 1"
+    // 0 // all frames
   },
 
   { 98, "best", "default (random-access) encoder parameters",
@@ -109,7 +116,9 @@ Preset preset[] = {
     /* x265   */ "",
     /* f265   */ "",
     /* x264   */ "",
-    /* ffmpeg */ ""
+    /* ffmpeg */ "",
+    /* mpeg-2 */ ""
+    // 0 // all frames
   },
 
   { 99, "besteq", "default (random-access) encoder parameters, I-frame distance = 248",
@@ -118,7 +127,9 @@ Preset preset[] = {
     /* x265   */ "-I 248 --no-wpp", // GOP size: 248
     /* f265   */ "key-frame-spacing=248",
     /* x264   */ "",
-    /* ffmpeg */ "-g 248"
+    /* ffmpeg */ "-g 248",
+    /* mpeg-2 */ "" // GOP size 248 does not make sense here
+    // 0 // all frames
   },
 
   { 0, NULL }
@@ -769,11 +780,83 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
 }
 
 
+class Encoder_mpeg2 : public Encoder
+{
+public:
+  Encoder_mpeg2();
+
+  virtual std::vector<RDPoint> encode_curve(const Preset& preset) const;
+
+private:
+  RDPoint encode(const Preset& preset,int bitrate) const;
+};
+
+
+Encoder_mpeg2::Encoder_mpeg2()
+{
+}
+
+
+std::vector<RDPoint> Encoder_mpeg2::encode_curve(const Preset& preset) const
+{
+  std::vector<RDPoint> curve;
+
+  int bitrates[] = { 250,500,750,1000,1250,1500,1750,2000,2500,3000,3500,4000,4500,5000,
+                     6000,7000,8000,9000,10000,12000,14000,16000,18000,20000,25000,30000,
+                     -1 };
+
+  for (int i=0; bitrates[i]>0; i++) {
+    curve.push_back(encode(preset, bitrates[i]));
+  }
+
+  return curve;
+}
+
+
+RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
+{
+  std::stringstream streamname;
+  streamname << "mpeg2-" << preset.name << "-" << br << ".mp2";
+
+  std::stringstream cmd1;
+  cmd1 << "$FFMPEG " << input.options_ffmpeg()
+       << " " << preset.options_x264_ffmpeg
+       << " -b " << br << "k "
+       << " -threads 6"
+       << " -f mpeg2video " << streamname.str();
+
+  std::string cmd2 = replace_variables(cmd1.str());
+
+  std::cerr << "-----------------------------\n";
+
+  std::cerr << "CMD: '" << cmd2 << "'\n";
+
+  RDPoint rd;
+  rd.start_timer();
+  int retval = system(cmd2.c_str());
+  rd.end_timer();
+
+  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 /tmp/rdout.yuv";
+
+  retval = system(cmd3.c_str());
+
+  rd.compute_from_yuv(streamname.str(), "/tmp/rdout.yuv");
+
+  unlink("/tmp/rdout.yuv");
+  if (!keepStreams) { unlink(streamname.str().c_str()); }
+
+  write_rd_line(rd);
+
+  return rd;
+}
+
+
 Encoder_de265 enc_de265;
 Encoder_HM enc_hm;
 Encoder_x265 enc_x265;
-Encoder_x264 enc_x264;
 Encoder_f265 enc_f265;
+Encoder_x264 enc_x264;
+Encoder_mpeg2 enc_mpeg2;
 
 // ---------------------------------------------------------------------------
 
@@ -788,7 +871,7 @@ void show_usage()
 {
   fprintf(stderr,
           "usage: rd-curves 'preset_id' 'input_preset' 'encoder'\n"
-          "supported encoders: de265 / hm / x265 / f265 / x264\n");
+          "supported encoders: de265 / hm / x265 / f265 / x264 / mpeg2\n");
   fprintf(stderr,
           "presets:\n");
 
@@ -860,6 +943,7 @@ int main(int argc, char** argv)
   else if (strcmp(encoderName,"x265" )==0) { enc = &enc_x265; }
   else if (strcmp(encoderName,"f265" )==0) { enc = &enc_f265; }
   else if (strcmp(encoderName,"x264" )==0) { enc = &enc_x264; }
+  else if (strcmp(encoderName,"mpeg2")==0) { enc = &enc_mpeg2; }
 
   if (enc==NULL) {
     fprintf(stderr, "unknown encoder");
