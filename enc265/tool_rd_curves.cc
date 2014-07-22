@@ -49,6 +49,8 @@ static struct {
 
 
 bool keepStreams = false;
+int  maxFrames = 0;
+
 
 std::string replace_variables(std::string str)
 {
@@ -901,14 +903,14 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "k", // "qB:",
+    int c = getopt_long(argc, argv, "kf:",
                         long_options, &option_index);
     if (c == -1)
       break;
 
     switch (c) {
-      case 'k': keepStreams=true; break;
-      //case 'B': write_bytestream=true; bytestream_filename=optarg; break;
+    case 'k': keepStreams=true; break;
+    case 'f': maxFrames=atoi(optarg); break;
     }
   }
 
@@ -936,6 +938,8 @@ int main(int argc, char** argv)
   }
 
   setInput(inputName);
+  if (maxFrames) input.setMaxFrames(maxFrames);
+
 
   Encoder* enc = NULL;
   /**/ if (strcmp(encoderName,"de265")==0) { enc = &enc_de265; }
