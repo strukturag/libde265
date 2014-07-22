@@ -37,6 +37,7 @@ static struct {
   { "$DEC265" , "$HOME/libde265/dec265/dec265" },
   { "$YUVDIST", "$HOME/libde265/enc265/yuv-distortion" },
   { "$YUV"    , "/storage/users/farindk/yuv" },
+  { "$YUVTEMP", "/mnt/temp/dirk/yuv/ftp.tnt.uni-hannover.de/testsequences" },
   { "$HMENC"  , "HM13enc" },
   { "$HM13CFG", "$HOME/HM/HM-13.0-dev/cfg" },
   { "$X265ENC", "$HOME/x265/build/linux/x265" },
@@ -216,14 +217,20 @@ struct InputSpec
   int width,height, nFrames;
   float fps;
 } inputSpec[] = {
-  { "paris",     "$YUV/paris_cif.yuv",352,288,1065, 30.0 },
-  { "paris10",   "$YUV/paris_cif.yuv",352,288,  10, 30.0 },
-  { "paris100",  "$YUV/paris_cif.yuv",352,288, 100, 30.0 },
-  { "johnny",    "$YUV/Johnny_1280x720_60.yuv",1280,720,600,60.0 },
-  { "johnny10",  "$YUV/Johnny_1280x720_60.yuv",1280,720, 10,60.0 },
-  { "johnny100", "$YUV/Johnny_1280x720_60.yuv",1280,720,100,60.0 },
-  { "cactus",    "$YUV/Cactus_1920x1080_50.yuv",1920,1080,500,50.0 },
-  { "cactus10",  "$YUV/Cactus_1920x1080_50.yuv",1920,1080, 10,50.0 },
+  { "paris",       "$YUV/paris_cif.yuv",352,288,1065, 30.0 },
+  { "paris10",     "$YUV/paris_cif.yuv",352,288,  10, 30.0 },
+  { "paris100",    "$YUV/paris_cif.yuv",352,288, 100, 30.0 },
+  { "johnny",      "$YUV/Johnny_1280x720_60.yuv",1280,720,600,60.0 },
+  { "johnny10",    "$YUV/Johnny_1280x720_60.yuv",1280,720, 10,60.0 },
+  { "johnny100",   "$YUV/Johnny_1280x720_60.yuv",1280,720,100,60.0 },
+  { "cactus",      "$YUV/Cactus_1920x1080_50.yuv",1920,1080,500,50.0 },
+  { "cactus10",    "$YUV/Cactus_1920x1080_50.yuv",1920,1080, 10,50.0 },
+  { "4people",     "$YUVTMP/FourPeople_1280x720_60.yuv",1280,720,600,60.0 },
+  { "4people100",  "$YUVTMP/FourPeople_1280x720_60.yuv",1280,720,100,60.0 },
+  { "slideedit",   "$YUVTMP/SlideEditing_1280x720_30.yuv",1280,720,300,30.0 },
+  { "slideedit100","$YUVTMP/SlideEditing_1280x720_30.yuv",1280,720,100,30.0 },
+  { "slideshow",   "$YUVTMP/SlideShow_1280x720_20.yuv",1280,720,500,20.0 },
+  { "slideshow100","$YUVTMP/SlideShow_1280x720_20.yuv",1280,720,100,20.0 },
   { NULL }
 };
 
