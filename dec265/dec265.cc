@@ -85,6 +85,7 @@ bool write_bytestream=false;
 const char *bytestream_filename;
 bool measure_quality=false;
 bool show_ssim_map=false;
+bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
 int highestTID = 100;
@@ -108,6 +109,7 @@ static struct option long_options[] = {
   {"write-bytestream", required_argument,0, 'B' },
   {"measure",     required_argument, 0, 'm' },
   {"ssim",        no_argument,       0, 's' },
+  {"errmap",      no_argument,       0, 'e' },
   {"highest-TID", required_argument, 0, 'T' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
@@ -310,8 +312,27 @@ void measure(const de265_image* img)
   ssimSum /= width*height;
 
 
+  Bitmap<Pixel> error_map = CalcErrorMap(ref, coded, TransferCurve_Sqrt);
 
-  // display error map
+
+  // display PSNR error map
+
+  if (show_psnr_map) {
+    static X11Win win;
+    static bool first=true;
+
+    if (first) {
+      first=false;
+      win.Create(de265_get_image_width(img,0),
+                 de265_get_image_height(img,0),
+                 "ssim output");
+    }
+
+    win.Display(MakeImage(error_map));
+  }
+
+
+  // display SSIM error map
 
   if (show_ssim_map) {
     static X11Win win;
@@ -409,7 +430,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:s"
+    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:se"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -435,6 +456,7 @@ int main(int argc, char** argv)
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
     case 'm': measure_quality=true; reference_filename=optarg; break;
     case 's': show_ssim_map=true; break;
+    case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
@@ -465,6 +487,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");       
 #if HAVE_VIDEOGFX
     fprintf(stderr,"  -s, --ssim        show SSIM-map (only when -m active)\n");
+    fprintf(stderr,"  -e, --errmap      show error-map (only when -m active)\n");
 #endif
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
