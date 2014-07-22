@@ -64,6 +64,8 @@ int main(int argc, char** argv)
       if (feof(fh_ref)) break;
       if (feof(fh_cmp)) break;
 
+      fprintf(stderr,"yuv-distortion processing frame %d\r",nFrames+1);
+
       fseek(fh_ref,width*height/2,SEEK_CUR);
       fseek(fh_cmp,width*height/2,SEEK_CUR);
 
@@ -79,6 +81,7 @@ int main(int argc, char** argv)
     }
 
   printf("total: %f %f\n",PSNR(mse_y/nFrames),ssim_y/nFrames);
+  fprintf(stderr,"\n");
 
   fclose(fh_ref);
   fclose(fh_cmp);
