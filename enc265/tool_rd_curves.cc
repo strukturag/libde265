@@ -31,19 +31,20 @@ static struct {
   const char* name;
   const char* value;
 } variables[] = {
-  { "$HOME"   , "/home/domain/farindk/prog/h265" },
-  //  { "$ENC256" , "./enc256/enc256" },
-  { "$ENC265" , "$HOME/libde265/enc265/enc265" },
-  { "$DEC265" , "$HOME/libde265/dec265/dec265" },
-  { "$YUVDIST", "$HOME/libde265/enc265/yuv-distortion" },
-  { "$YUV"    , "/storage/users/farindk/yuv" },
-  { "$YUVTEMP", "/mnt/temp/dirk/yuv/ftp.tnt.uni-hannover.de/testsequences" },
-  { "$HMENC"  , "HM13enc" },
-  { "$HM13CFG", "$HOME/HM/HM-13.0-dev/cfg" },
-  { "$X265ENC", "$HOME/x265/build/linux/x265" },
-  { "$X264"   , "x264" },
-  { "$FFMPEG" , "ffmpeg" },
-  { "$F265"   , "$HOME/f265/build/f265cli" },
+  { "$HOME"    , "/home/domain/farindk/prog/h265" },
+  { "$ENC265"  , "$HOME/libde265/enc265/enc265" },
+  { "$DEC265"  , "$HOME/libde265/dec265/dec265" },
+  { "$YUVDIST" , "$HOME/libde265/enc265/yuv-distortion" },
+  { "$YUVTMP"  , "/mnt/temp/dirk/yuv/ftp.tnt.uni-hannover.de/testsequences" },
+  { "$YUV"     , "/storage/users/farindk/yuv" },
+  { "$HMENC"   , "HM13enc" },
+  { "$HM13CFG" , "$HOME/HM/HM-13.0-dev/cfg" },
+  { "$HMSCCENC", "HM-SCC-enc" },
+  { "$HMSCCCFG", "$HOME/HM/HM-SCC-extensions/cfg" },
+  { "$X265ENC" , "$HOME/x265/build/linux/x265" },
+  { "$X264"    , "x264" },
+  { "$FFMPEG"  , "ffmpeg" },
+  { "$F265"    , "$HOME/f265/build/f265cli" },
   { 0,0 }
 };
 
@@ -79,6 +80,7 @@ struct Preset
 
   const char* options_de265;
   const char* options_hm;
+  const char* options_hm_scc;
   const char* options_x265;
   const char* options_f265;
   const char* options_x264;
@@ -93,6 +95,7 @@ Preset preset[] = {
   { 1, "pre01-intra-noLF", "intra, no LF, no SBH, CTB-size 32, min CB=8",
     /* de265  */ "",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
     /* f265   */ "key-frame-spacing=1",
     /* x264   */ "-I 1",
@@ -104,6 +107,7 @@ Preset preset[] = {
   { 50, "cb-auto16", "(development test)",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
     /* f265   */ "key-frame-spacing=1",
     /* x264   */ "-I 1",
@@ -112,9 +116,22 @@ Preset preset[] = {
     // 0 // all frames
   },
 
+  { 80, "lowdelay", "default (low-default) encoder parameters",
+    /* de265  */ "--max-cb-size 16 --min-cb-size 8",
+    /* HM     */ "-c $HM13CFG/encoder_lowdelay_main.cfg -ip 248",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_lowdelay_main_scc.cfg -ip 248",
+    /* x265   */ "-I 248 --no-wpp --bframes 0", // GOP size: 248
+    /* f265   */ 0, //"key-frame-spacing=248",
+    /* x264   */ "",
+    /* ffmpeg */ "-g 248 -bf 0",
+    /* mpeg-2 */ "" // GOP size 248 does not make sense here
+    // 0 // all frames
+  },
+
   { 98, "best", "default (random-access) encoder parameters",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_randomaccess_main_scc.cfg",
     /* x265   */ "",
     /* f265   */ "",
     /* x264   */ "",
@@ -126,6 +143,7 @@ Preset preset[] = {
   { 99, "besteq", "default (random-access) encoder parameters, I-frame distance = 248",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg -ip 248",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_randomaccess_main_scc.cfg -ip 248",
     /* x265   */ "-I 248 --no-wpp", // GOP size: 248
     /* f265   */ "key-frame-spacing=248",
     /* x264   */ "",
@@ -504,6 +522,8 @@ class Encoder_HM : public Encoder
 {
 public:
   Encoder_HM();
+
+  void enableSCC(bool flag=true) { useSCC = flag; }
   void setQPRange(int low,int high,int step) { mQPLow=low; mQPHigh=high; mQPStep=step; }
 
   virtual std::vector<RDPoint> encode_curve(const Preset& preset) const;
@@ -511,6 +531,7 @@ public:
 private:
   RDPoint encode(const Preset& preset,int qp) const;
 
+  bool useSCC;
   int mQPLow,mQPHigh,mQPStep;
 };
 
@@ -520,6 +541,8 @@ Encoder_HM::Encoder_HM()
   mQPLow = 14;
   mQPHigh= 40;
   mQPStep=  2;
+
+  useSCC = false;
 }
 
 
@@ -538,16 +561,17 @@ std::vector<RDPoint> Encoder_HM::encode_curve(const Preset& preset) const
 RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
 {
   std::stringstream streamname;
-  streamname << "hm-" << preset.name << "-" << qp << ".265";
+  streamname << "hmscc-" << preset.name << "-" << qp << ".265";
 
   std::stringstream cmd1;
-  cmd1 << "$HMENC " << input.options_HM()
-       << " " << preset.options_hm
+  cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC ")
+       << input.options_HM()
+       << " " << (useSCC ? preset.options_hm_scc : preset.options_hm)
        << " -q " << qp << " -b " << streamname.str() << " >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
-  //std::cout << "CMD: '" << cmd2 << "'\n";
+  std::cout << "CMD: '" << cmd2 << "'\n";
   RDPoint rd;
   rd.start_timer();
   int retval = system(cmd2.c_str());
@@ -873,7 +897,7 @@ void show_usage()
 {
   fprintf(stderr,
           "usage: rd-curves 'preset_id' 'input_preset' 'encoder'\n"
-          "supported encoders: de265 / hm / x265 / f265 / x264 / mpeg2\n");
+          "supported encoders: de265 / hm / hmscc / x265 / f265 / x264 / mpeg2\n");
   fprintf(stderr,
           "presets:\n");
 
@@ -944,6 +968,7 @@ int main(int argc, char** argv)
   Encoder* enc = NULL;
   /**/ if (strcmp(encoderName,"de265")==0) { enc = &enc_de265; }
   else if (strcmp(encoderName,"hm"   )==0) { enc = &enc_hm;   }
+  else if (strcmp(encoderName,"hmscc")==0) { enc = &enc_hm;   enc_hm.enableSCC(); }
   else if (strcmp(encoderName,"x265" )==0) { enc = &enc_x265; }
   else if (strcmp(encoderName,"f265" )==0) { enc = &enc_f265; }
   else if (strcmp(encoderName,"x264" )==0) { enc = &enc_x264; }
