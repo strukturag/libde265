@@ -305,8 +305,8 @@ void Quality::measure_yuv(const char* yuvfilename)
 
   sstr << "$YUVDIST " << input.getFilename() << " " << yuvfilename
        << " " << input.getWidth() << " " << input.getHeight()
-       << "|grep total| "
-    //"awk '{print $2}' "
+       << "|grep total "
+    //"|awk '{print $2}' "
     ">/tmp/xtmp";
 
   //std::cout << sstr.str() << "\n";
@@ -315,7 +315,7 @@ void Quality::measure_yuv(const char* yuvfilename)
   std::ifstream istr;
   istr.open("/tmp/xtmp");
   std::string dummy;
-  istr >> dummy >> psnr >> dummy >> dummy >> ssim;
+  istr >> dummy >> psnr >> ssim;
 
   unlink("/tmp/xtmp");
 }
