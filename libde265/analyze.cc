@@ -103,7 +103,8 @@ void diff_blk(int16_t* out,int out_stride,
 
 enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                        const de265_image* input,
-                                       int x0,int y0, int log2TbSize,
+                                       int x0,int y0, int xBase,int yBase,
+                                       int log2TbSize,
                                        enc_cb* cb,
                                        int TrafoDepth, int qp)
 {
@@ -195,7 +196,8 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
 enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                         const de265_image* input,
-                                        int x0,int y0, int log2TbSize,
+                                        int x0,int y0, int xBase,int yBase,
+                                        int log2TbSize,
                                         enc_cb* cb,
                                         int TrafoDepth, int qp);
 
@@ -217,7 +219,7 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
 
-    tb->children[i] = encode_transform_tree_may_split(ectx, input, x0+dx, y0+dy,
+    tb->children[i] = encode_transform_tree_may_split(ectx, input, x0+dx, y0+dy, x0,y0,
                                                       log2TbSize-1, cb, TrafoDepth+1, qp);
 
     tb->children[i]->parent = tb;
@@ -234,7 +236,8 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
 
 enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                         const de265_image* input,
-                                        int x0,int y0, int log2TbSize,
+                                        int x0,int y0, int xBase,int yBase,
+                                        int log2TbSize,
                                         enc_cb* cb,
                                         int TrafoDepth, int qp)
 {
@@ -248,14 +251,17 @@ enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   int IntraSplitFlag=0;
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-  if (log2TbSize>3 && TrafoDepth < MaxTrafoDepth) {
+
+  if (log2TbSize > 2 &&
+      TrafoDepth < MaxTrafoDepth &&
+      log2TbSize > ectx->sps.Log2MinTrafoSize) {
     return encode_transform_tree_split(ectx, input,
                                        x0,y0, log2TbSize,
                                        cb, TrafoDepth, qp);
   }
   else {
     return encode_transform_tree_no_split(ectx, input,
-                                          x0,y0, log2TbSize,
+                                          x0,y0, xBase,yBase, log2TbSize,
                                           cb, TrafoDepth, qp);
   }
 }
@@ -265,9 +271,9 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
                            const de265_image* input,
                            int x0,int y0, int log2CbSize, int ctDepth, int qp)
 {
-  /*
-  printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
 
+  printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+  /*
   input->printBlk("input Y" ,x0  ,y0  ,1<<log2CbSize,0);
   input->printBlk("input Cb",x0/2,y0/2,1<<(log2CbSize-1),1);
   input->printBlk("input Cr",x0/2,y0/2,1<<(log2CbSize-1),2);
@@ -304,7 +310,8 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
   cb->write_to_image(&ectx->img, x0,y0,log2CbSize, true);
 
-  cb->transform_tree = encode_transform_tree_may_split(ectx, input, x0,y0, log2CbSize, cb, 0, qp);
+  cb->transform_tree = encode_transform_tree_may_split(ectx, input, x0,y0, x0,y0,
+                                                       log2CbSize, cb, 0, qp);
 
 
   // estimate bits
