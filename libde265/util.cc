@@ -143,14 +143,33 @@ void log2fh(FILE* fh, const char* string, ...)
 
 
 
-void printBlk(int16_t* data, int blksize, int stride)
+void printBlk(const char* title, const int16_t* data, int blksize, int stride)
 {
+  printf("%s:\n",title);
+
   for (int y=0;y<blksize;y++) {
     //logtrace(LogTransform,"  ");
     printf("  ");
     for (int x=0;x<blksize;x++) {
       //logtrace(LogTransform,"*%3d ", data[x+y*stride]);
       printf("%4d ", data[x+y*stride]);
+    }
+    //logtrace(LogTransform,"*\n");
+    printf("\n");
+  }
+}
+
+
+void printBlk(const char* title, const uint8_t* data, int blksize, int stride)
+{
+  printf("%s:\n",title);
+
+  for (int y=0;y<blksize;y++) {
+    //logtrace(LogTransform,"  ");
+    printf("  ");
+    for (int x=0;x<blksize;x++) {
+      //logtrace(LogTransform,"*%3d ", data[x+y*stride]);
+      printf("%02x ", data[x+y*stride]);
     }
     //logtrace(LogTransform,"*\n");
     printf("\n");

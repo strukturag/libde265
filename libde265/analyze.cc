@@ -132,6 +132,11 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   decode_intra_prediction(&ectx->img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 1);
   decode_intra_prediction(&ectx->img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 2);
 
+  /*
+  ectx->img.printBlk("ipred Y" ,x0  ,y0  ,1<< log2TbSize,0);
+  ectx->img.printBlk("ipred Cb",x0/2,y0/2,1<<(log2TbSize-1),1);
+  ectx->img.printBlk("ipred Cr",x0/2,y0/2,1<<(log2TbSize-1),2);
+  */
 
   int tbSize = 1<<log2TbSize;
   int tbSizeChroma = tbSize>>1;
@@ -181,6 +186,9 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   //printcoeff(tb->coeff[1],cbSize/2);
 
 
+  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, cb, qp);
+
+
   return tb;
 }
 
@@ -200,6 +208,7 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
 {
   enc_tb* tb = ectx->enc_tb_pool.get_new();
 
+  tb->parent = NULL;
   tb->split_transform_flag = true;
   tb->log2TbSize = log2TbSize;
 
@@ -229,7 +238,7 @@ enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                         enc_cb* cb,
                                         int TrafoDepth, int qp)
 {
-  if (0 && TrafoDepth==0) {
+  if (TrafoDepth==0) {
     return encode_transform_tree_split(ectx, input,
                                        x0,y0, log2TbSize,
                                        cb, TrafoDepth, qp);
@@ -246,7 +255,13 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
                            const de265_image* input,
                            int x0,int y0, int log2CbSize, int ctDepth, int qp)
 {
-  //printf("encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+  /*
+  printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+
+  input->printBlk("input Y" ,x0  ,y0  ,1<<log2CbSize,0);
+  input->printBlk("input Cb",x0/2,y0/2,1<<(log2CbSize-1),1);
+  input->printBlk("input Cr",x0/2,y0/2,1<<(log2CbSize-1),2);
+  */
 
   int cbSize = 1<<log2CbSize;
 
@@ -286,7 +301,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   cb->write_to_image(&ectx->img, x0,y0, log2CbSize, true);
 
-  cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+  //cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
   cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
 
   //printf("reconstruction: add transform\n");

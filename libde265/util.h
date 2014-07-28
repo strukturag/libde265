@@ -139,6 +139,7 @@ void logtrace(enum LogModule module, const char* string, ...);
 void log2fh(FILE* fh, const char* string, ...);
 
 
-void printBlk(int16_t* data, int blksize, int stride);
+void printBlk(const char* title,const int16_t* data, int blksize, int stride);
+void printBlk(const char* title,const uint8_t* data, int blksize, int stride);
 
 #endif

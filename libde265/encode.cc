@@ -29,25 +29,6 @@
 
 
 
-
-void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize, int cIdx) const
-{
-  if (cIdx==0) {
-    decode_intra_prediction(img, x0,y0, pred_mode, 1<<log2BlkSize, cIdx);
-  }
-  else {
-    decode_intra_prediction(img, x0/2,y0/2, pred_mode_chroma, 1<<(log2BlkSize-1), cIdx);
-  }
-}
-
-void enc_pb_intra::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
-{
-  do_intra_prediction(img,x0,y0,log2BlkSize, 0);
-  do_intra_prediction(img,x0,y0,log2BlkSize, 1);
-  do_intra_prediction(img,x0,y0,log2BlkSize, 2);
-}
-
-
 void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
                                        de265_image* img, int x0,int y0, int qp) const
 {
@@ -76,6 +57,51 @@ void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
   if (cbf_cr)   inv_transform(accel, crp, chroma_stride, dequant_coeff[2], log2TbSize-1, 0);
 }
 
+
+inline int childX(int x0, int idx, int log2CbSize)
+{
+  return x0 + ((idx&1) << (log2CbSize-1));
+}
+
+inline int childY(int y0, int idx, int log2CbSize)
+{
+  return y0 + ((idx>>1) << (log2CbSize-1));
+}
+
+
+void enc_tb::do_intra_prediction(de265_image* img, int x0, int y0, const enc_cb* cb) const
+{
+  enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+  enum IntraPredMode chromaPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
+                                                                     cb->intra.chroma_mode);
+
+  decode_intra_prediction(img, x0,  y0,    intraPredMode, 1<< log2TbSize   , 0);
+  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 1);
+  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 2);
+}
+
+
+void enc_tb::reconstruct(acceleration_functions* accel,
+                         de265_image* img, int x0,int y0, const enc_cb* cb,
+                         int qp) const
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->reconstruct(accel,img, childX(x0,i,log2TbSize), childY(y0,i,log2TbSize), cb, qp);
+    }
+  }
+  else {
+    do_intra_prediction(img,x0,y0,cb);
+  
+    //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
+    //img->printBlk(x0,y0,0,log2CbSize);
+
+    dequant_and_add_transform(accel, img, x0,y0, qp);
+
+    //printf("--- RECO add residual %d %d ---\n",x0,y0);
+    //img->printBlk(x0,y0,0,log2CbSize);
+  }
+}
 
 static bool has_nonzero_value(const int16_t* data, int n)
 {
@@ -107,17 +133,6 @@ void enc_tb::set_cbf_flags_from_coefficients(bool recursive)
     cbf_cb   = has_nonzero_value(coeff[1], 1<<((log2TbSize-1)<<1));
     cbf_cr   = has_nonzero_value(coeff[2], 1<<((log2TbSize-1)<<1));
   }
-}
-
-
-inline int childX(int x0, int idx, int log2CbSize)
-{
-  return x0 + ((idx&1) << (log2CbSize-1));
-}
-
-inline int childY(int y0, int idx, int log2CbSize)
-{
-  return y0 + ((idx>>1) << (log2CbSize-1));
 }
 
 
@@ -168,15 +183,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
     }
   }
   else {
-    do_intra_prediction(img,x0,y0,log2CbSize);
-
-    //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
-    //img->printBlk(x0,y0,0,log2CbSize);
-
-    transform_tree->dequant_and_add_transform(accel, img, x0,y0, qp);
-
-    //printf("--- RECO add residual %d %d ---\n",x0,y0);
-    //img->printBlk(x0,y0,0,log2CbSize);
+    transform_tree->reconstruct(accel,img,x0,y0,this,qp);
   }
 }
 

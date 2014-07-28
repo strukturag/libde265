@@ -273,6 +273,11 @@ struct de265_image {
 
   static de265_image_allocation default_image_allocation;
 
+  void printBlk(const char* title, int x0,int y0,int blkSize,int cIdx) const {
+    ::printBlk(title, get_image_plane_at_pos(cIdx,x0,y0),
+               blkSize, get_image_stride(cIdx));
+  }
+
 private:
   uint32_t ID;
   static uint32_t s_next_image_ID;

@@ -28,6 +28,10 @@
 #include "libde265/image-io.h"
 
 
+struct encoder_context;
+struct enc_cb;
+
+
 enum RateControlMethod
   {
     RateControlMethod_ConstantQP
@@ -106,9 +110,14 @@ struct enc_tb
   float distortion;
   float rate;
 
+  void do_intra_prediction(de265_image* img, int x0, int y0, const enc_cb* cb) const;
+
   void dequant_and_add_transform(acceleration_functions* accel,
                                  de265_image* img, int x0,int y0, int qp) const;
   void set_cbf_flags_from_coefficients(bool recursive = false);
+
+  void reconstruct(acceleration_functions* accel,
+                   de265_image* img, int x0,int y0, const enc_cb* cb, int qp) const;
 };
 
 
@@ -126,9 +135,6 @@ struct enc_pb_intra
 
   enum IntraPredMode pred_mode;
   enum IntraPredMode pred_mode_chroma;
-
-  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize, int cIdx) const;
-  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
 };
 
 
