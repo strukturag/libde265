@@ -193,6 +193,7 @@ typedef struct {
 } PB_ref_info;
 
 
+// NOTE: encoder only
 typedef struct {
   uint8_t cbf_luma; // bit-mask indexed by (1<<log2TbSize)
   uint8_t cbf_cb;   // bit-mask indexed by (1<<log2TbSize)
@@ -591,13 +592,13 @@ public:
 
   /*
   // NOTE: encoder only
-  void set_IntraChromaPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
+  void set_ChromaIntraPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
   {
     SET_CB_BLK (x, y, log2BlkWidth, intra_chroma_pred_mode, mode);
   }
 
   // NOTE: encoder only
-  enum IntraChromaPredMode get_IntraChromaPredMode(int x,int y) const
+  enum IntraChromaPredMode get_ChromaIntraPredMode(int x,int y) const
   {
     return (enum IntraChromaPredMode)(cb_info.get(x,y).intra_chroma_pred_mode);
   }

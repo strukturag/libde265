@@ -101,11 +101,146 @@ void diff_blk(int16_t* out,int out_stride,
 }
 
 
-enc_tb* encode_transform_tree(encoder_context* ectx,
-                              const de265_image* input,
-                              int x0,int y0, int log2TbSize,
-                              enc_cb* cb,
-                              int TrafoDepth, int qp);
+enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
+                                       const de265_image* input,
+                                       int x0,int y0, int log2TbSize,
+                                       enc_cb* cb,
+                                       int TrafoDepth, int qp)
+{
+  de265_image* img = &ectx->img;
+
+  int stride = ectx->img.get_image_stride(0);
+
+  uint8_t* luma_plane = ectx->img.get_image_plane(0);
+  uint8_t* cb_plane = ectx->img.get_image_plane(1);
+  uint8_t* cr_plane = ectx->img.get_image_plane(2);
+
+  // --- compute transform coefficients ---
+
+  enc_tb* tb = ectx->enc_tb_pool.get_new();
+
+  tb->parent = NULL;
+  tb->split_transform_flag = false;
+  tb->log2TbSize = log2TbSize;
+
+
+  enum IntraPredMode intraPredMode  = ectx->img.get_IntraPredMode(x0,y0);
+  enum IntraPredMode chromaPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
+                                                                     cb->intra.chroma_mode);
+
+  decode_intra_prediction(&ectx->img, x0,  y0,   intraPredMode,  1<< log2TbSize   , 0);
+  decode_intra_prediction(&ectx->img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 1);
+  decode_intra_prediction(&ectx->img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 2);
+
+
+  int tbSize = 1<<log2TbSize;
+  int tbSizeChroma = tbSize>>1;
+
+  //printf("result of intra prediction\n");
+  //printblk(luma_plane,stride,x0,y0,cbSize);
+  //printblk(cb_plane,stride/2,x0/2,y0/2,cbSize/2);
+
+  // subtract intra-prediction from input
+
+  int16_t blk[3][32*32];
+  diff_blk(blk[0],tbSize,
+           input->get_image_plane_at_pos(0,x0,y0), input->get_image_stride(0),
+           &luma_plane[y0*stride+x0],stride, tbSize);
+  diff_blk(blk[1],tbSizeChroma,
+           input->get_image_plane_at_pos(1,x0/2,y0/2), input->get_image_stride(1),
+           &cb_plane[y0/2*stride/2+x0/2],stride/2, tbSizeChroma);
+  diff_blk(blk[2],tbSizeChroma,
+           input->get_image_plane_at_pos(2,x0/2,y0/2), input->get_image_stride(2),
+           &cr_plane[y0/2*stride/2+x0/2],stride/2, tbSizeChroma);
+
+  tb->coeff[0] = ectx->enc_coeff_pool.get_new(tbSize      *tbSize);
+  tb->coeff[1] = ectx->enc_coeff_pool.get_new(tbSizeChroma*tbSizeChroma);
+  tb->coeff[2] = ectx->enc_coeff_pool.get_new(tbSizeChroma*tbSizeChroma);
+
+  int trType = 0;
+  if (log2TbSize==2) trType=1; // TODO: inter mode
+
+  fwd_transform(&ectx->accel, tb->coeff[0], tbSize, log2TbSize, trType,  blk[0], tbSize);
+  fwd_transform(&ectx->accel, tb->coeff[1], tbSizeChroma,
+                log2TbSize-1, 0,  blk[1], tbSizeChroma);
+  fwd_transform(&ectx->accel, tb->coeff[2], tbSizeChroma,
+                log2TbSize-1, 0,  blk[2], tbSizeChroma);
+
+  //printf("raw coeffs\n");
+  //printcoeff(tb->coeff[0],cbSize);
+  //printcoeff(tb->coeff[1],cbSize/2);
+
+  quant_coefficients(tb->coeff[0], tb->coeff[0], log2TbSize,   qp, true);
+  quant_coefficients(tb->coeff[1], tb->coeff[1], log2TbSize-1, qp, true);
+  quant_coefficients(tb->coeff[2], tb->coeff[2], log2TbSize-1, qp, true);
+
+  tb->set_cbf_flags_from_coefficients();
+
+  //printf("quantized coeffs\n");
+  //printcoeff(tb->coeff[0],cbSize);
+  //printcoeff(tb->coeff[1],cbSize/2);
+
+
+  return tb;
+}
+
+
+enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
+                                        const de265_image* input,
+                                        int x0,int y0, int log2TbSize,
+                                        enc_cb* cb,
+                                        int TrafoDepth, int qp);
+
+
+enc_tb* encode_transform_tree_split(encoder_context* ectx,
+                                    const de265_image* input,
+                                    int x0,int y0, int log2TbSize,
+                                    enc_cb* cb,
+                                    int TrafoDepth, int qp)
+{
+  enc_tb* tb = ectx->enc_tb_pool.get_new();
+
+  tb->split_transform_flag = true;
+  tb->log2TbSize = log2TbSize;
+
+
+  for (int i=0;i<4;i++) {
+    int dx = (i&1)  << (log2TbSize-1);
+    int dy = (i>>1) << (log2TbSize-1);
+
+    tb->children[i] = encode_transform_tree_may_split(ectx, input, x0+dx, y0+dy,
+                                                      log2TbSize-1, cb, TrafoDepth+1, qp);
+
+    tb->children[i]->parent = tb;
+
+    tb->distortion += tb->children[i]->distortion;
+    tb->rate       += tb->children[i]->rate;
+  }  
+
+  tb->set_cbf_flags_from_coefficients(false);
+
+  return tb;
+}
+
+
+enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
+                                        const de265_image* input,
+                                        int x0,int y0, int log2TbSize,
+                                        enc_cb* cb,
+                                        int TrafoDepth, int qp)
+{
+  if (0 && TrafoDepth==0) {
+    return encode_transform_tree_split(ectx, input,
+                                       x0,y0, log2TbSize,
+                                       cb, TrafoDepth, qp);
+  }
+  else {
+    return encode_transform_tree_no_split(ectx, input,
+                                          x0,y0, log2TbSize,
+                                          cb, TrafoDepth, qp);
+  }
+}
+
 
 enc_cb* encode_cb_no_split(encoder_context* ectx,
                            const de265_image* input,
@@ -144,7 +279,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
   cb->write_to_image(&ectx->img, x0,y0,log2CbSize, true);
 
-  cb->transform_tree = encode_transform_tree(ectx, input, x0,y0, log2CbSize, cb, 0, qp);
+  cb->transform_tree = encode_transform_tree_may_split(ectx, input, x0,y0, log2CbSize, cb, 0, qp);
 
 
   // estimate bits
@@ -165,92 +300,6 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   ectx->switch_to_CABAC_stream();
 
   return cb;
-}
-
-
-enc_tb* encode_transform_tree(encoder_context* ectx,
-                              const de265_image* input,
-                              int x0,int y0, int log2TbSize,
-                              enc_cb* cb,
-                              int TrafoDepth, int qp)
-{
-  de265_image* img = &ectx->img;
-
-  int stride = ectx->img.get_image_stride(0);
-
-  uint8_t* luma_plane = ectx->img.get_image_plane(0);
-  uint8_t* cb_plane = ectx->img.get_image_plane(1);
-  uint8_t* cr_plane = ectx->img.get_image_plane(2);
-
-  // --- compute transform coefficients ---
-
-  enc_tb* tb = ectx->enc_tb_pool.get_new();
-
-  tb->parent = NULL;
-  tb->split_transform_flag = false;
-  tb->log2TbSize = log2TbSize;
-
-  cb->do_intra_prediction(&ectx->img, x0,y0, log2TbSize);
-
-  /*
-  enum IntraPredMode       lumaPredMode   = img->get_IntraPredMode(x0,y0);
-  enum IntraChromaPredMode chromaPredMode = lumaPredMode_to_chromaPredMode(lumaPredMode,
-                                                                           cb->intra.chroma_mode);
-  decode_intra_prediction(img, x0,  y0,   lumaPredMode,   1<<log2BlkSize,     0);
-  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2BlkSize-1), 1);
-  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2BlkSize-1), 2);
-  */
-
-
-  int cbSize = 1<<log2TbSize;
-  int cbSizeChroma = cbSize>>1;
-
-  //printf("result of intra prediction\n");
-  //printblk(luma_plane,stride,x0,y0,cbSize);
-  //printblk(cb_plane,stride/2,x0/2,y0/2,cbSize/2);
-
-  // subtract intra-prediction from input
-
-  int16_t blk[3][32*32];
-  diff_blk(blk[0],cbSize,
-           input->get_image_plane_at_pos(0,x0,y0), input->get_image_stride(0),
-           &luma_plane[y0*stride+x0],stride, cbSize);
-  diff_blk(blk[1],cbSizeChroma,
-           input->get_image_plane_at_pos(1,x0/2,y0/2), input->get_image_stride(1),
-           &cb_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
-  diff_blk(blk[2],cbSizeChroma,
-           input->get_image_plane_at_pos(2,x0/2,y0/2), input->get_image_stride(2),
-           &cr_plane[y0/2*stride/2+x0/2],stride/2, cbSizeChroma);
-
-  tb->coeff[0] = ectx->enc_coeff_pool.get_new(cbSize*cbSize);
-  tb->coeff[1] = ectx->enc_coeff_pool.get_new(cbSizeChroma*cbSizeChroma);
-  tb->coeff[2] = ectx->enc_coeff_pool.get_new(cbSizeChroma*cbSizeChroma);
-
-  int trType = 0;
-  if (log2TbSize==2) trType=1; // TODO: inter mode
-
-  fwd_transform(&ectx->accel, tb->coeff[0], cbSize, log2TbSize, trType,  blk[0], cbSize);
-  fwd_transform(&ectx->accel, tb->coeff[1], cbSizeChroma,
-                log2TbSize-1, 0,  blk[1], cbSizeChroma);
-  fwd_transform(&ectx->accel, tb->coeff[2], cbSizeChroma,
-                log2TbSize-1, 0,  blk[2], cbSizeChroma);
-
-  //printf("raw coeffs\n");
-  //printcoeff(tb->coeff[0],cbSize);
-  //printcoeff(tb->coeff[1],cbSize/2);
-
-  quant_coefficients(tb->coeff[0], tb->coeff[0], log2TbSize,   qp, true);
-  quant_coefficients(tb->coeff[1], tb->coeff[1], log2TbSize-1, qp, true);
-  quant_coefficients(tb->coeff[2], tb->coeff[2], log2TbSize-1, qp, true);
-
-  tb->set_cbf_flags_from_coefficients();
-
-  //printf("quantized coeffs\n");
-  //printcoeff(tb->coeff[0],cbSize);
-  //printcoeff(tb->coeff[1],cbSize/2);
-
-
-  return tb;
 }
 
 
@@ -439,7 +488,8 @@ void encode_sequence(encoder_context* ectx)
 
   ectx->sps.set_defaults();
   ectx->sps.set_CB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
-  ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
+  ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_cb_size)-1, // TODO
+                                   Log2(ectx->params.max_cb_size));
   ectx->sps.set_resolution(ectx->img_source->get_width(),
                            ectx->img_source->get_height());
   ectx->sps.compute_derived_values();

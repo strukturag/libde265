@@ -85,7 +85,7 @@ static bool has_nonzero_value(const int16_t* data, int n)
   return false;
 }
 
-void enc_tb::set_cbf_flags_from_coefficients()
+void enc_tb::set_cbf_flags_from_coefficients(bool recursive)
 {
   if (split_transform_flag) {
     cbf_luma = 0;
@@ -93,7 +93,9 @@ void enc_tb::set_cbf_flags_from_coefficients()
     cbf_cr   = 0;
 
     for (int i=0;i<4;i++) {
-      children[i]->set_cbf_flags_from_coefficients();
+      if (recursive) {
+        children[i]->set_cbf_flags_from_coefficients();
+      }
 
       cbf_luma |= children[i]->cbf_luma;
       cbf_cb   |= children[i]->cbf_cb;
@@ -128,7 +130,7 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
     img->set_PartMode(x,y, PartMode);  // TODO: probably unnecessary
 
     if (isIntra) {
-      //img->set_IntraChromaPredMode(x,y,log2blkSize, intra_pb[0]->pred_mode_chroma);
+      //img->set_ChromaIntraPredMode(x,y,log2blkSize, intra.chroma_mode);
 
       if (PartMode == PART_NxN) {
         int h = 1<<(log2blkSize-1);
@@ -181,6 +183,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
 
 // TODO: cannot do this independently from transform-tree, because intra-prediction
 // is carried out for each TB separately.
+#if 1
 void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
 {
   enum IntraPredMode lumaMode   = intra.pred_mode[0];
@@ -190,6 +193,7 @@ void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSiz
   decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 1);
   decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 2);
 }
+#endif
 
 
 static void encode_split_cu_flag(encoder_context* ectx,
@@ -1189,7 +1193,17 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
   }
 
   if (tb->split_transform_flag) {
-    assert(0); // TODO
+    int x1 = x0 + (1<<(log2TrafoSize-1));
+    int y1 = y0 + (1<<(log2TrafoSize-1));
+
+    encode_transform_tree(ectx, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
+                          trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag);
+    encode_transform_tree(ectx, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
+                          trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag);
+    encode_transform_tree(ectx, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
+                          trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag);
+    encode_transform_tree(ectx, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
+                          trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag);
   }
   else {
     if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
