@@ -22,6 +22,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 
@@ -851,7 +852,8 @@ std::vector<RDPoint> Encoder_mpeg2::encode_curve(const Preset& preset) const
 RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
 {
   std::stringstream streamname;
-  streamname << "mpeg2-" << preset.name << "-" << br << ".mp2";
+  streamname << "mpeg2-" << preset.name << "-"
+             << std::setfill('0') << std::setw(5) << br << ".mp2";
 
   std::stringstream cmd1;
   cmd1 << "$FFMPEG " << input.options_ffmpeg()
