@@ -188,6 +188,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
         // short option
 
         bool is_single_option = (argv[i][1] != 0 && argv[i][2]==0);
+        bool do_remove_option = true;
 
         for (int n=1; argv[i][n]; n++) {
           char option = argv[i][n];
@@ -225,6 +226,10 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
             }
           }
 
+          if (!option_found) {
+            do_remove_option=false;
+          }
+
           if (!option_found && !ignore_unknown_options) {
             fprintf(stderr, "unknown option -%c\n",option);
             return false;
@@ -232,8 +237,10 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
 
         } // all short options
 
-        remove_option(argc,argv,i);
-        i--;
+        if (do_remove_option) {
+          remove_option(argc,argv,i);
+          i--;
+        }
       } // is short option
     } // is option
   } // all command line arguments
