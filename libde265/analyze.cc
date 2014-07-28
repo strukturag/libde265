@@ -503,8 +503,7 @@ void encode_sequence(encoder_context* ectx)
 
   ectx->sps.set_defaults();
   ectx->sps.set_CB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
-  ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_cb_size)-1, // TODO
-                                   Log2(ectx->params.max_cb_size));
+  ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_tb_size), Log2(ectx->params.max_tb_size));
   ectx->sps.set_resolution(ectx->img_source->get_width(),
                            ectx->img_source->get_height());
   ectx->sps.compute_derived_values();

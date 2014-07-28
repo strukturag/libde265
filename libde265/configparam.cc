@@ -331,4 +331,9 @@ void register_encoder_params(config_parameters* config)
                               8 ,      8,64);
   config->register_config_int("max-cb-size",  0 , eoffset(max_cb_size),
                               32,      8,64);
+
+  config->register_config_int("min-tb-size",  0 , eoffset(min_tb_size),
+                              8 ,      8,32);
+  config->register_config_int("max-tb-size",  0 , eoffset(max_tb_size),
+                              32,      8,32);
 }

@@ -70,6 +70,9 @@ struct encoder_params
   int min_cb_size;
   int max_cb_size;
 
+  int min_tb_size;
+  int max_tb_size;
+
 
   // intra-prediction
 
