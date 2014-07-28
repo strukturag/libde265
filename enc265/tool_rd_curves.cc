@@ -561,13 +561,17 @@ std::vector<RDPoint> Encoder_HM::encode_curve(const Preset& preset) const
 RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
 {
   std::stringstream streamname;
-  streamname << "hmscc-" << preset.name << "-" << qp << ".265";
+  streamname << (useSCC ? "hmscc-" : "hm-") << preset.name << "-" << qp << ".265";
+
+  char recoyuv_prefix[] = "/tmp/reco-XXXXXX";
+  mktemp(recoyuv_prefix);
+  std::string recoyuv = std::string(recoyuv_prefix) + ".yuv";
 
   std::stringstream cmd1;
-  cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC ")
+  cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC")
        << input.options_HM()
        << " " << (useSCC ? preset.options_hm_scc : preset.options_hm)
-       << " -q " << qp << " -b " << streamname.str() << " >&2";
+       << " -q " << qp << " -o " << recoyuv << " -b " << streamname.str() << " >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -577,8 +581,9 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   int retval = system(cmd2.c_str());
   rd.end_timer();
 
-  rd.compute_from_h265(streamname.str());
+  rd.compute_from_yuv(streamname.str(), recoyuv);
   if (!keepStreams) { unlink(streamname.str().c_str()); }
+  unlink(recoyuv.c_str());
 
   write_rd_line(rd);
 
@@ -791,13 +796,17 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
   int retval = system(cmd2.c_str());
   rd.end_timer();
 
-  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 /tmp/rdout.yuv";
+  char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
+  mktemp(tmpyuv_prefix);
+  std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
+
+  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;
 
   retval = system(cmd3.c_str());
 
-  rd.compute_from_yuv(streamname.str(), "/tmp/rdout.yuv");
+  rd.compute_from_yuv(streamname.str(), tmpyuv);
 
-  unlink("/tmp/rdout.yuv");
+  unlink(tmpyuv.c_str());
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
   write_rd_line(rd);
@@ -862,13 +871,17 @@ RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
   int retval = system(cmd2.c_str());
   rd.end_timer();
 
-  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 /tmp/rdout.yuv";
+  char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
+  mktemp(tmpyuv_prefix);
+  std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
+
+  std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;
 
   retval = system(cmd3.c_str());
 
-  rd.compute_from_yuv(streamname.str(), "/tmp/rdout.yuv");
+  rd.compute_from_yuv(streamname.str(), tmpyuv);
 
-  unlink("/tmp/rdout.yuv");
+  unlink(tmpyuv.c_str());
   if (!keepStreams) { unlink(streamname.str().c_str()); }
 
   write_rd_line(rd);
