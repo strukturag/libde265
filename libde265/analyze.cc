@@ -238,7 +238,17 @@ enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                         enc_cb* cb,
                                         int TrafoDepth, int qp)
 {
-  if (TrafoDepth==0) {
+  /*
+  int MaxTrafoDepth;
+  if (PredMode == MODE_INTRA)
+    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
+  else 
+    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
+  */
+  int IntraSplitFlag=0;
+  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+
+  if (log2TbSize>3 && TrafoDepth < MaxTrafoDepth) {
     return encode_transform_tree_split(ectx, input,
                                        x0,y0, log2TbSize,
                                        cb, TrafoDepth, qp);
@@ -504,6 +514,8 @@ void encode_sequence(encoder_context* ectx)
   ectx->sps.set_defaults();
   ectx->sps.set_CB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
   ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_tb_size), Log2(ectx->params.max_tb_size));
+  ectx->sps.max_transform_hierarchy_depth_intra = ectx->params.max_transform_hierarchy_depth_intra;
+
   ectx->sps.set_resolution(ectx->img_source->get_width(),
                            ectx->img_source->get_height());
   ectx->sps.compute_derived_values();

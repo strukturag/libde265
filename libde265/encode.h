@@ -73,6 +73,8 @@ struct encoder_params
   int min_tb_size;
   int max_tb_size;
 
+  int max_transform_hierarchy_depth_intra;
+
 
   // intra-prediction
 

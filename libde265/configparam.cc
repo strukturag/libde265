@@ -333,7 +333,11 @@ void register_encoder_params(config_parameters* config)
                               32,      8,64);
 
   config->register_config_int("min-tb-size",  0 , eoffset(min_tb_size),
-                              8 ,      8,32);
+                              8 ,      4,32);
   config->register_config_int("max-tb-size",  0 , eoffset(max_tb_size),
                               32,      8,32);
+
+  config->register_config_int("max-transform-hierarchy-depth-intra",  0 ,
+                              eoffset(max_transform_hierarchy_depth_intra),
+                              1,       0, 4);
 }
