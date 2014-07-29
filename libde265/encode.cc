@@ -28,36 +28,6 @@
 #include "libde265/fallback-dct.h"
 
 
-
-void enc_tb::dequant_and_add_transform(acceleration_functions* accel,
-                                       de265_image* img, int x0,int y0, int qp) const
-{
-  int16_t dequant_coeff[3][32*32];
-
-  if (cbf_luma) dequant_coefficients(dequant_coeff[0], coeff[0], log2TbSize,   qp);
-  if (cbf_cb)   dequant_coefficients(dequant_coeff[1], coeff[1], log2TbSize-1, qp);
-  if (cbf_cr)   dequant_coefficients(dequant_coeff[2], coeff[2], log2TbSize-1, qp);
-
-  //printf("--- quantized coeffs ---\n");
-  //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
-
-  //printf("--- dequantized coeffs ---\n");
-  //printBlk(dequant_coeff[0],1<<log2BlkSize,1<<log2BlkSize);
-
-  uint8_t* yp  = img->get_image_plane_at_pos(0, x0,  y0  );
-  uint8_t* cbp = img->get_image_plane_at_pos(1, x0/2,y0/2);
-  uint8_t* crp = img->get_image_plane_at_pos(2, x0/2,y0/2);
-  int luma_stride   = img->get_image_stride(0);
-  int chroma_stride = img->get_image_stride(1);
-
-  int trType = (log2TbSize==2); // TODO: inter
-
-  if (cbf_luma) inv_transform(accel, yp,  luma_stride,   dequant_coeff[0], log2TbSize,   trType);
-  if (cbf_cb)   inv_transform(accel, cbp, chroma_stride, dequant_coeff[1], log2TbSize-1, 0);
-  if (cbf_cr)   inv_transform(accel, crp, chroma_stride, dequant_coeff[2], log2TbSize-1, 0);
-}
-
-
 inline int childX(int x0, int idx, int log2CbSize)
 {
   return x0 + ((idx&1) << (log2CbSize-1));
@@ -69,37 +39,79 @@ inline int childY(int y0, int idx, int log2CbSize)
 }
 
 
-void enc_tb::do_intra_prediction(de265_image* img, int x0, int y0, const enc_cb* cb) const
+void enc_tb::reconstruct_tb(acceleration_functions* accel,
+                            de265_image* img, int x0,int y0, int log2TbSize,
+                            const enc_cb* cb, int qp, int cIdx) const
 {
-  enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
-  enum IntraPredMode chromaPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
-                                                                     cb->intra.chroma_mode);
+  int xC=x0;
+  int yC=y0;
 
-  decode_intra_prediction(img, x0,  y0,    intraPredMode, 1<< log2TbSize   , 0);
-  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 1);
-  decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, 1<<(log2TbSize-1), 2);
+  enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+
+  if (cIdx>0) {
+    intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
+                                                   cb->intra.chroma_mode);
+    xC>>=1;
+    yC>>=1;
+  }
+
+
+  decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+
+
+
+  int16_t dequant_coeff[32*32];
+
+  if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize,   qp);
+
+  //printf("--- quantized coeffs ---\n");
+  //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
+
+  //printf("--- dequantized coeffs ---\n");
+  //printBlk(dequant_coeff[0],1<<log2BlkSize,1<<log2BlkSize);
+
+  uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+  int stride  = img->get_image_stride(cIdx);
+  
+  int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
+
+  if (cbf[cIdx]) inv_transform(accel, ptr,stride,   dequant_coeff, log2TbSize,   trType);
+
+  
+  //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
+  //img->printBlk(x0,y0,0,log2CbSize);
+
+  //dequant_and_add_transform(accel, img, x0,y0, qp);
+
+  //printf("--- RECO add residual %d %d ---\n",x0,y0);
+  //img->printBlk(x0,y0,0,log2CbSize);
 }
 
 
 void enc_tb::reconstruct(acceleration_functions* accel,
-                         de265_image* img, int x0,int y0, const enc_cb* cb,
-                         int qp) const
+                         de265_image* img,
+                         int x0,int y0, int xBase, int yBase,
+                         const enc_cb* cb,
+                         int qp, int blkIdx) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->reconstruct(accel,img, childX(x0,i,log2TbSize), childY(y0,i,log2TbSize), cb, qp);
+      children[i]->reconstruct(accel,img,
+                               childX(x0,i,log2TbSize), childY(y0,i,log2TbSize), x0,y0,
+                               cb, qp, i);
     }
   }
   else {
-    do_intra_prediction(img,x0,y0,cb);
-  
-    //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
-    //img->printBlk(x0,y0,0,log2CbSize);
+    reconstruct_tb(accel, img, x0,y0, log2TbSize, cb, qp, 0);
 
-    dequant_and_add_transform(accel, img, x0,y0, qp);
-
-    //printf("--- RECO add residual %d %d ---\n",x0,y0);
-    //img->printBlk(x0,y0,0,log2CbSize);
+    if (log2TbSize>2) {
+      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, qp, 1);
+      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, qp, 2);
+    }
+    else if (blkIdx==3) {
+      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, qp, 1);
+      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, qp, 2);
+    }
   }
 }
 
@@ -114,24 +126,24 @@ static bool has_nonzero_value(const int16_t* data, int n)
 void enc_tb::set_cbf_flags_from_coefficients(bool recursive)
 {
   if (split_transform_flag) {
-    cbf_luma = 0;
-    cbf_cb   = 0;
-    cbf_cr   = 0;
+    cbf[0] = 0;
+    cbf[1] = 0;
+    cbf[2] = 0;
 
     for (int i=0;i<4;i++) {
       if (recursive) {
         children[i]->set_cbf_flags_from_coefficients();
       }
 
-      cbf_luma |= children[i]->cbf_luma;
-      cbf_cb   |= children[i]->cbf_cb;
-      cbf_cr   |= children[i]->cbf_cr;
+      cbf[0] |= children[i]->cbf[0];
+      cbf[1] |= children[i]->cbf[1];
+      cbf[2] |= children[i]->cbf[2];
     }
   }
   else {
-    cbf_luma = has_nonzero_value(coeff[0], 1<<( log2TbSize   <<1));
-    cbf_cb   = has_nonzero_value(coeff[1], 1<<((log2TbSize-1)<<1));
-    cbf_cr   = has_nonzero_value(coeff[2], 1<<((log2TbSize-1)<<1));
+    cbf[0] = has_nonzero_value(coeff[0], 1<<( log2TbSize   <<1));
+    cbf[1] = has_nonzero_value(coeff[1], 1<<((log2TbSize-1)<<1));
+    cbf[2] = has_nonzero_value(coeff[2], 1<<((log2TbSize-1)<<1));
   }
 }
 
@@ -183,7 +195,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
     }
   }
   else {
-    transform_tree->reconstruct(accel,img,x0,y0,this,qp);
+    transform_tree->reconstruct(accel,img,x0,y0,x0,y0,this,qp,0);
   }
 }
 
@@ -1128,30 +1140,30 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx)
 {
-  if (tb->cbf_luma || tb->cbf_cb || tb->cbf_cr) {
+  if (tb->cbf[0] || tb->cbf[1] || tb->cbf[2]) {
     if (ectx->img.pps.cu_qp_delta_enabled_flag &&
         1 /*!ectx->IsCuQpDeltaCoded*/) {
       assert(0);
     }
 
-    if (tb->cbf_luma) {
+    if (tb->cbf[0]) {
       encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize,0);
     }
 
     // larger than 4x4
     if (log2TrafoSize>2) {
-      if (tb->cbf_cb) {
+      if (tb->cbf[1]) {
         encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize-1,1);
       }
-      if (tb->cbf_cr) {
+      if (tb->cbf[2]) {
         encode_residual(ectx,tb,cb,x0,y0,log2TrafoSize-1,2);
       }
     }
     else if (blkIdx==3) {
-      if (tb->parent->cbf_cb) {
+      if (tb->parent->cbf[1]) {
         encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,1);
       }
-      if (tb->parent->cbf_cr) {
+      if (tb->parent->cbf[2]) {
         encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,2);
       }
     }
@@ -1191,11 +1203,11 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
   // For 4x4 luma, there is no signaling of chroma CBF, because only the
   // chroma CBF for 8x8 is relevant.
   if (log2TrafoSize>2) {
-    if (trafoDepth==0 || tb->parent->cbf_cb) {
-      encode_cbf_chroma(ectx, trafoDepth, tb->cbf_cb);
+    if (trafoDepth==0 || tb->parent->cbf[1]) {
+      encode_cbf_chroma(ectx, trafoDepth, tb->cbf[1]);
     }
-    if (trafoDepth==0 || tb->parent->cbf_cr) {
-      encode_cbf_chroma(ectx, trafoDepth, tb->cbf_cr);
+    if (trafoDepth==0 || tb->parent->cbf[2]) {
+      encode_cbf_chroma(ectx, trafoDepth, tb->cbf[2]);
     }
   }
 
@@ -1214,11 +1226,11 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
   }
   else {
     if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
-        tb->cbf_cb || tb->cbf_cr) {
-      encode_cbf_luma(ectx, trafoDepth==0, tb->cbf_luma);
+        tb->cbf[1] || tb->cbf[2]) {
+      encode_cbf_luma(ectx, trafoDepth==0, tb->cbf[0]);
     }
     else {
-      assert(tb->cbf_luma==true);
+      assert(tb->cbf[0]==true);
     }
 
     encode_transform_unit(ectx, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);

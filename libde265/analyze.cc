@@ -104,14 +104,19 @@ void diff_blk(int16_t* out,int out_stride,
 void encode_transform_unit(encoder_context* ectx,
                            enc_tb* tb,
                            const de265_image* input,
-                           int x0,int y0, int log2TbSize,
+                           int x0,int y0, // luma position
+                           int log2TbSize, // chroma adapted
                            enc_cb* cb,
                            int qp, int cIdx)
 {
-  enum IntraPredMode intraPredMode  = ectx->img.get_IntraPredMode(x0,y0);
-
   int xC = x0;
   int yC = y0;
+  int tbSize = 1<<log2TbSize;
+
+
+  // --- do intra prediction ---
+
+  enum IntraPredMode intraPredMode  = ectx->img.get_IntraPredMode(x0,y0);
 
   if (cIdx>0) {
     intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
@@ -121,11 +126,11 @@ void encode_transform_unit(encoder_context* ectx,
     yC >>= 1;
   }
   
-  int tbSize = 1<<log2TbSize;
-
   decode_intra_prediction(&ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
 
-  // subtract intra-prediction from input
+
+
+  // --- subtract prediction from input ---
 
   int16_t blk[32*32];
   uint8_t* pred = ectx->img.get_image_plane(cIdx);
@@ -135,16 +140,22 @@ void encode_transform_unit(encoder_context* ectx,
            input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
            &pred[yC*stride+xC],stride, tbSize);
 
+
+  // --- forward transform ---
+
   tb->coeff[cIdx] = ectx->enc_coeff_pool.get_new(tbSize*tbSize);
 
   int trType = 0;
-  if (log2TbSize==2) trType=1; // TODO: inter mode
+  if (cIdx==0 && log2TbSize==2) trType=1; // TODO: inter mode
 
   fwd_transform(&ectx->accel, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
 
   //printf("raw coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);
   //printcoeff(tb->coeff[1],cbSize/2);
+
+
+  // --- quantization ---
 
   quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,   qp, true);
 
@@ -182,7 +193,12 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   int tbSizeChroma = tbSize>>1;
 
 
+  // luma block
+
   encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, qp, 0 /* Y */);
+
+
+  // chroma blocks
 
   if (log2TbSize > 2) {
     encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 1 /* Cb */);
@@ -201,7 +217,7 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   //printcoeff(tb->coeff[0],cbSize);
   //printcoeff(tb->coeff[1],cbSize/2);
 
-  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, cb, qp);
+  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, x0,y0, cb, qp, 0);
 
 
   return tb;

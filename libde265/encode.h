@@ -95,10 +95,12 @@ struct enc_tb
   enc_tb* parent;
 
   uint8_t split_transform_flag : 1;
-  uint8_t cbf_luma : 1;
-  uint8_t cbf_cb : 1;
-  uint8_t cbf_cr : 1;
+  //uint8_t cbf_luma : 1;
+  //uint8_t cbf_cb : 1;
+  //uint8_t cbf_cr : 1;
   uint8_t log2TbSize : 3;
+
+  uint8_t cbf[3];
 
   union {
     // split
@@ -115,14 +117,16 @@ struct enc_tb
   float distortion;
   float rate;
 
-  void do_intra_prediction(de265_image* img, int x0, int y0, const enc_cb* cb) const;
-
-  void dequant_and_add_transform(acceleration_functions* accel,
-                                 de265_image* img, int x0,int y0, int qp) const;
   void set_cbf_flags_from_coefficients(bool recursive = false);
 
   void reconstruct(acceleration_functions* accel,
-                   de265_image* img, int x0,int y0, const enc_cb* cb, int qp) const;
+                   de265_image* img, int x0,int y0, int xBase,int yBase,
+                   const enc_cb* cb, int qp, int blkIdx=0) const;
+
+private:
+  void reconstruct_tb(acceleration_functions* accel,
+                      de265_image* img, int x0,int y0, int log2TbSize,
+                      const enc_cb* cb, int qp, int cIdx) const;
 };
 
 
