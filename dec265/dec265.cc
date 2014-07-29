@@ -325,7 +325,7 @@ void measure(const de265_image* img)
       first=false;
       win.Create(de265_get_image_width(img,0),
                  de265_get_image_height(img,0),
-                 "ssim output");
+                 "psnr output");
     }
 
     win.Display(MakeImage(error_map));
