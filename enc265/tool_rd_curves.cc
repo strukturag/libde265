@@ -569,7 +569,7 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   std::string recoyuv = std::string(recoyuv_prefix) + ".yuv";
 
   std::stringstream cmd1;
-  cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC")
+  cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC ")
        << input.options_HM()
        << " " << (useSCC ? preset.options_hm_scc : preset.options_hm)
        << " -q " << qp << " -o " << recoyuv << " -b " << streamname.str() << " >&2";
