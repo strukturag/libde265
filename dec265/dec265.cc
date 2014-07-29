@@ -637,13 +637,13 @@ int main(int argc, char** argv)
 
           const de265_image* img = de265_get_next_picture(ctx);
           if (img) {
-            stop = output_image(img);
-            if (stop) more=0;
-            else      more=1;
-
             if (measure_quality) {
               measure(img);
             }
+
+            stop = output_image(img);
+            if (stop) more=0;
+            else      more=1;
           }
 
           // show warnings
