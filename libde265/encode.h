@@ -117,7 +117,7 @@ struct enc_tb
   float distortion;
   float rate;
 
-  void set_cbf_flags_from_coefficients(bool recursive = false);
+  void set_cbf_flags_from_children();
 
   void reconstruct(acceleration_functions* accel,
                    de265_image* img, int x0,int y0, int xBase,int yBase,

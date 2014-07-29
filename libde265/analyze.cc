@@ -88,16 +88,25 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
 }
 
 
-void diff_blk(int16_t* out,int out_stride,
-              const uint8_t* a_ptr, int a_stride,
-              const uint8_t* b_ptr, int b_stride,
-              int blkSize)
+static void diff_blk(int16_t* out,int out_stride,
+                     const uint8_t* a_ptr, int a_stride,
+                     const uint8_t* b_ptr, int b_stride,
+                     int blkSize)
 {
   for (int by=0;by<blkSize;by++)
     for (int bx=0;bx<blkSize;bx++)
       {
         out[by*out_stride+bx] = a_ptr[by*a_stride+bx] - b_ptr[by*b_stride+bx];
       }
+}
+
+
+static bool has_nonzero_value(const int16_t* data, int n)
+{
+  for (int i=0;i<n;i++)
+    if (data[i]) return true;
+
+  return false;
 }
 
 
@@ -159,6 +168,8 @@ void encode_transform_unit(encoder_context* ectx,
 
   quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,   qp, true);
 
+  tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
+
 
   //printf("quantized coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);
@@ -205,13 +216,9 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
     encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 2 /* Cr */);
   }
   else if (blkIdx==3) {
-    assert(0); // TODO: CHECK
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 1 /* Cb */);
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 2 /* Cr */);
   }
-
-
-  tb->set_cbf_flags_from_coefficients();
 
   //printf("quantized coeffs\n");
   //printcoeff(tb->coeff[0],cbSize);
@@ -258,7 +265,8 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
     tb->rate       += tb->children[i]->rate;
   }  
 
-  tb->set_cbf_flags_from_coefficients(false);
+  tb->set_cbf_flags_from_children();
+  //tb->set_cbf_flags_from_coefficients(false);
 
   return tb;
 }

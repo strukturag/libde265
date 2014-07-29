@@ -115,35 +115,19 @@ void enc_tb::reconstruct(acceleration_functions* accel,
   }
 }
 
-static bool has_nonzero_value(const int16_t* data, int n)
+
+void enc_tb::set_cbf_flags_from_children()
 {
-  for (int i=0;i<n;i++)
-    if (data[i]) return true;
+  assert(split_transform_flag);
 
-  return false;
-}
+  cbf[0] = 0;
+  cbf[1] = 0;
+  cbf[2] = 0;
 
-void enc_tb::set_cbf_flags_from_coefficients(bool recursive)
-{
-  if (split_transform_flag) {
-    cbf[0] = 0;
-    cbf[1] = 0;
-    cbf[2] = 0;
-
-    for (int i=0;i<4;i++) {
-      if (recursive) {
-        children[i]->set_cbf_flags_from_coefficients();
-      }
-
-      cbf[0] |= children[i]->cbf[0];
-      cbf[1] |= children[i]->cbf[1];
-      cbf[2] |= children[i]->cbf[2];
-    }
-  }
-  else {
-    cbf[0] = has_nonzero_value(coeff[0], 1<<( log2TbSize   <<1));
-    cbf[1] = has_nonzero_value(coeff[1], 1<<((log2TbSize-1)<<1));
-    cbf[2] = has_nonzero_value(coeff[2], 1<<((log2TbSize-1)<<1));
+  for (int i=0;i<4;i++) {
+    cbf[0] |= children[i]->cbf[0];
+    cbf[1] |= children[i]->cbf[1];
+    cbf[2] |= children[i]->cbf[2];
   }
 }
 

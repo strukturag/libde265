@@ -37,11 +37,6 @@
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride);
 
-void diff_blk(int16_t* out,int out_stride,
-              const uint8_t* a_ptr, int a_stride,
-              const uint8_t* b_ptr, int b_stride,
-              int blkSize);
-
 enc_cb* encode_cb_no_split(encoder_context*, const de265_image* input,
                            int x0,int y0, int log2CbSize, int ctDepth, int qp);
 
