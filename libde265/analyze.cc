@@ -199,6 +199,7 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   tb->parent = NULL;
   tb->split_transform_flag = false;
   tb->log2TbSize = log2TbSize;
+  tb->cbf[0] = tb->cbf[1] = tb->cbf[2] = 0;
 
   int tbSize = 1<<log2TbSize;
   int tbSizeChroma = tbSize>>1;
@@ -224,7 +225,7 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   //printcoeff(tb->coeff[0],cbSize);
   //printcoeff(tb->coeff[1],cbSize/2);
 
-  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, x0,y0, cb, qp, 0);
+  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
 
 
   return tb;
