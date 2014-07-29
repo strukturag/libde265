@@ -92,7 +92,7 @@ struct encoder_params
 
 struct enc_tb
 {
-  enc_tb* parent;
+  const enc_tb* parent;
 
   uint8_t split_transform_flag : 1;
   //uint8_t cbf_luma : 1;
@@ -114,8 +114,8 @@ struct enc_tb
     };
   };
 
-  float distortion;
-  float rate;
+  float distortion;  // total distortion for this level of the TB tree (including all children)
+  float rate;        // total rate for coding this TB level and all children
 
   void set_cbf_flags_from_children();
 
@@ -310,18 +310,25 @@ struct encoder_context
 
   // temporary CABAC rate estimator
   CABAC_encoder_estim     cabac_estim;
-  context_model_table     ctx_model_estim;
+  //context_model_table     ctx_model_estim;
 
   // CABAC bitstream writer
   CABAC_encoder_bitstream cabac_bitstream;
   context_model_table     ctx_model_bitstream;
 
-
+  /*
   void switch_to_CABAC_estim(bool copyCtxModel=true) {
     cabac_estim.reset();
     cabac      = &cabac_estim;
     ctx_model  = ctx_model_estim;
-    if (copyCtxModel) { memcpy(ctx_model_estim,ctx_model_bitstream,sizeof(context_model_table)); }
+    if (copyCtxModel) { copy_context_model_table(ctx_model_estim,ctx_model_bitstream); }
+  }
+  */
+
+  void switch_to_CABAC_estim(context_model_table model) {
+    cabac_estim.reset();
+    cabac      = &cabac_estim;
+    ctx_model  = model;
   }
 
   void switch_to_CABAC_stream() {
@@ -337,6 +344,11 @@ struct encoder_context
   }
 };
 
+
+void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
+                           int x0,int y0, int xBase,int yBase,
+                           int log2TrafoSize, int trafoDepth, int blkIdx,
+                           int MaxTrafoDepth, int IntraSplitFlag);
 
 void encode_quadtree(encoder_context* ectx,
                      const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth);

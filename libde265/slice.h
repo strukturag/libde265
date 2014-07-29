@@ -31,6 +31,7 @@
 #include "libde265/threads.h"
 
 #include <vector>
+#include <string.h>
 
 #define MAX_NUM_REF_PICS    16
 
@@ -154,6 +155,11 @@ enum context_model_indices {
 };
 
 typedef context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH];
+
+inline void copy_context_model_table(context_model_table dst, context_model_table src)
+{
+  memcpy(dst,src,sizeof(context_model_table));
+}
 
 
 typedef struct slice_segment_header {
