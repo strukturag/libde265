@@ -162,6 +162,7 @@ public:
   virtual int size() const { return mFracBits>>(15+3); }
 
   uint64_t getFracBits() const { return mFracBits; }
+  float    getRDBits() const { return mFracBits / float(1<<15); }
 
   // --- VLC ---
 

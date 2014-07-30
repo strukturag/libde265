@@ -23,15 +23,15 @@
 #include <assert.h>
 
 
-enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
-                                        const enc_tb* parent,
-                                        const de265_image* input,
-                                        int x0,int y0, int xBase,int yBase,
-                                        int log2TbSize,
-                                        enc_cb* cb,
-                                        int TrafoDepth, int qp, int blkIdx);
-
-
+const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
+                                              context_model_table ctxModel,
+                                              const de265_image* input,
+                                              const enc_tb* parent,
+                                              const enc_cb* cb,
+                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                              int blkIdx,
+                                              int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                              int qp);
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
@@ -126,7 +126,7 @@ void encode_transform_unit(encoder_context* ectx,
                            const de265_image* input,
                            int x0,int y0, // luma position
                            int log2TbSize, // chroma adapted
-                           enc_cb* cb,
+                           const enc_cb* cb,
                            int qp, int cIdx)
 {
   int xC = x0;
@@ -188,14 +188,18 @@ void encode_transform_unit(encoder_context* ectx,
 }
 
 
-enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                       const enc_tb* parent,
-                                       const de265_image* input,
-                                       int x0,int y0, int xBase,int yBase,
-                                       int log2TbSize,
-                                       enc_cb* cb,
-                                       int qp, int blkIdx)
+const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
+                                             context_model_table ctxModel,
+                                             const de265_image* input,
+                                             const enc_tb* parent,
+                                             const enc_cb* cb,
+                                             int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                             int blkIdx,
+                                             int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                             int qp)
 {
+  //printf("--- TT at %d %d, size %d\n",x0,y0,1<<log2TbSize);
+
   de265_image* img = &ectx->img;
 
   int stride = ectx->img.get_image_stride(0);
@@ -236,17 +240,33 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
 
+
+
+  // measure rate
+
+#if 0
+  CABAC_encoder_estim estim;
+  ectx->switch_CABAC(ctxModel, &estim);
+
+  encode_transform_tree(ectx, tb, cb, x0,y0, xBase,yBase,
+                        log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
+
+  tb->rate = estim.getRDBits();
+  ectx->switch_to_CABAC_stream();
+#endif
+
   return tb;
 }
 
 
-enc_tb* encode_transform_tree_split(encoder_context* ectx,
-                                    const enc_tb* parent,
-                                    const de265_image* input,
-                                    int x0,int y0, int log2TbSize,
-                                    enc_cb* cb,
-                                    int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                    int qp)
+const enc_tb* encode_transform_tree_split(encoder_context* ectx,
+                                          context_model_table ctxModel,
+                                          const de265_image* input,
+                                          const enc_tb* parent,
+                                          const enc_cb* cb,
+                                          int x0,int y0, int log2TbSize,
+                                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                          int qp)
 {
   const de265_image* img = &ectx->img;
 
@@ -261,10 +281,11 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
 
-    tb->children[i] = encode_transform_tree_may_split(ectx, tb, input, x0+dx, y0+dy, x0,y0,
-                                                      log2TbSize-1, cb, TrafoDepth+1, qp, i);
-
-    tb->children[i]->parent = tb;
+    tb->children[i] = encode_transform_tree_may_split(ectx, ctxModel, input, tb, cb,
+                                                      x0+dx, y0+dy, x0,y0,
+                                                      log2TbSize-1, i,
+                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
+                                                      qp);
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
@@ -293,13 +314,15 @@ enc_tb* encode_transform_tree_split(encoder_context* ectx,
 }
 
 
-enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
-                                        const enc_tb* parent,
-                                        const de265_image* input,
-                                        int x0,int y0, int xBase,int yBase,
-                                        int log2TbSize,
-                                        enc_cb* cb,
-                                        int TrafoDepth, int qp, int blkIdx)
+const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
+                                              context_model_table ctxModel,
+                                              const de265_image* input,
+                                              const enc_tb* parent,
+                                              const enc_cb* cb,
+                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                              int blkIdx,
+                                              int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                              int qp)
 {
   /*
   int MaxTrafoDepth;
@@ -308,21 +331,26 @@ enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   else 
     { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
   */
-  int IntraSplitFlag=0;
-  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+  //int IntraSplitFlag=0;
+  //int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+
+  context_model_table ctxSplit;
+  if (1) {
+    copy_context_model_table(ctxSplit, ctxModel);
+  }
 
 
   if (log2TbSize > 2 &&
       TrafoDepth < MaxTrafoDepth &&
       log2TbSize > ectx->sps.Log2MinTrafoSize) {
-    return encode_transform_tree_split(ectx, parent, input,
+    return encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                        x0,y0, log2TbSize,
-                                       cb, TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
+                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
   }
   else {
-    return encode_transform_tree_no_split(ectx, parent, input,
-                                          x0,y0, xBase,yBase, log2TbSize,
-                                          cb, qp, blkIdx);
+    return encode_transform_tree_no_split(ectx, ctxModel, input, parent,
+                                          cb, x0,y0, xBase,yBase, log2TbSize,
+                                          blkIdx, 0,MaxTrafoDepth,IntraSplitFlag, qp);
   }
 }
 
@@ -371,8 +399,29 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
   cb->write_to_image(&ectx->img, x0,y0,log2CbSize, true);
 
-  cb->transform_tree = encode_transform_tree_may_split(ectx, NULL, input, x0,y0, x0,y0,
-                                                       log2CbSize, cb, 0, qp, 0);
+
+  // rate for split_cu_flag
+
+  /*
+  CABAC_encoder_estim estim;
+  ectx->switch_CABAC(ctxModel, &estim);
+  encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
+  cb->rate = estim.getRDBits();
+  */
+
+  // encode transform tree
+
+  int IntraSplitFlag=0;
+  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+
+  cb->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb,
+                                                       x0,y0, x0,y0, log2CbSize,
+                                                       0,
+                                                       0, MaxTrafoDepth, IntraSplitFlag,
+                                                       qp);
+
+  cb->distortion  = cb->transform_tree->distortion;
+  cb->rate       += cb->transform_tree->rate;
 
 
   // estimate bits
@@ -386,11 +435,12 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   //printblk(luma_plane,stride,x0,y0,cbSize);
 
 
-
+  /* OLD
   ectx->switch_to_CABAC_estim(ctxModel);
   encode_quadtree(ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
   cb->rate = ectx->cabac_estim.size();
   ectx->switch_to_CABAC_stream();
+  */
 
   return cb;
 }
@@ -409,8 +459,17 @@ enc_cb* encode_cb_split(encoder_context* ectx,
   cb->log2CbSize = Log2CbSize;
   cb->ctDepth = ctDepth;
 
+
+  // rate for split_cu_flag
+
+  /*
+  CABAC_encoder_estim estim;
+  ectx->switch_CABAC(ctxModel, &estim);
+  encode_quadtree(ectx,cb,x0,y0,Log2CbSize,ctDepth, false);
+
   cb->distortion = 0;
-  cb->rate       = 0;
+  cb->rate       = estim.getRDBits();
+  */
 
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
@@ -431,7 +490,9 @@ enc_cb* encode_cb_split(encoder_context* ectx,
 enc_cb* encode_cb_may_split(encoder_context* ectx,
                             context_model_table ctxModel,
                             const de265_image* input,
-                            int x0,int y0, int Log2CbSize, int ctDepth, int qp)
+                            int x0,int y0, int Log2CbSize,
+                            int ctDepth,
+                            int qp)
 {
   context_model_table ctxSplit;
 
@@ -451,13 +512,15 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
     cb_split = encode_cb_split(ectx, ctxSplit,
                                input,x0,y0, Log2CbSize, ctDepth, qp);
 
-    float lambda = 250.0;
+    float lambda = 32.0;
 
     float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
     float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
 
     bool split =  (rd_cost_split < rd_cost_no_split);
     //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
+
+    split=true; // TMP HACK
 
     if (split) {
       cb = cb_split;
@@ -505,7 +568,7 @@ double encode_image(encoder_context* ectx,
 
         logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
 
-        // make a copy of the context model that we can modify
+        // make a copy of the context model that we can modify for testing alternatives
 
         context_model_table ctxModel;
         copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
@@ -546,6 +609,7 @@ double encode_image(encoder_context* ectx,
 
 
         //printf("--- real ---\n");
+        ectx->switch_to_CABAC_stream();
         encode_ctb(ectx, cb, x,y);
 
         // decode into image

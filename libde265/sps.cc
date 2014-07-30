@@ -89,6 +89,7 @@ void seq_parameter_set::set_defaults(enum PresetSet)
 
   seq_parameter_set_id = 0;
   chroma_format_idc = 1;
+  ChromaArrayType = chroma_format_idc;
 
   separate_colour_plane_flag = 0;
   pic_width_in_luma_samples = 0;

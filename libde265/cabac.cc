@@ -458,7 +458,7 @@ CABAC_encoder_bitstream::CABAC_encoder_bitstream()
 
 CABAC_encoder_bitstream::~CABAC_encoder_bitstream()
 {
-  delete[] data_mem;
+  free(data_mem);
 }
 
 void CABAC_encoder_bitstream::reset()

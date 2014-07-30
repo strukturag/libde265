@@ -163,6 +163,10 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 {
   if (allocMetadata) { assert(sps); }
 
+  release(); /* TODO: review code for efficient allocation when arrays are already
+                allocated to the requested size. Without the release, the old image-data
+                will not be freed. */
+
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
@@ -364,20 +368,25 @@ void de265_image::release()
 {
   // free image memory
 
-  if (decctx) {
-    de265_image_allocation* allocfunc = &decctx->param_image_allocation_functions;
-    if (allocfunc->release_buffer &&
-        pixels[0])
-      {
-        allocfunc->release_buffer(decctx, this, decctx->param_image_allocation_userdata);
+  de265_image_allocation* allocfunc = &de265_image::default_image_allocation;
+  void* alloc_userdata = NULL;
 
-        for (int i=0;i<3;i++)
-          {
-            pixels[i] = NULL;
-            pixels_confwin[i] = NULL;
-          }
-      }
+  if (decctx) {
+    allocfunc = &decctx->param_image_allocation_functions;
+    alloc_userdata = decctx->param_image_allocation_userdata;
   }
+
+  if (allocfunc->release_buffer &&
+      pixels[0])
+    {
+      allocfunc->release_buffer(decctx, this, alloc_userdata);
+
+      for (int i=0;i<3;i++)
+        {
+          pixels[i] = NULL;
+          pixels_confwin[i] = NULL;
+        }
+    }
 
   // free slices
 

@@ -1158,7 +1158,7 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb
 void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
-                           int MaxTrafoDepth, int IntraSplitFlag)
+                           int MaxTrafoDepth, int IntraSplitFlag, bool recurse)
 {
   //de265_image* img = ectx->img;
   const seq_parameter_set* sps = &ectx->img.sps;
@@ -1196,17 +1196,19 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
   }
 
   if (tb->split_transform_flag) {
-    int x1 = x0 + (1<<(log2TrafoSize-1));
-    int y1 = y0 + (1<<(log2TrafoSize-1));
+    if (recurse) {
+      int x1 = x0 + (1<<(log2TrafoSize-1));
+      int y1 = y0 + (1<<(log2TrafoSize-1));
 
-    encode_transform_tree(ectx, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
-                          trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag);
-    encode_transform_tree(ectx, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
-                          trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag);
-    encode_transform_tree(ectx, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
-                          trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag);
-    encode_transform_tree(ectx, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
-                          trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag);
+      encode_transform_tree(ectx, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
+                            trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag, true);
+      encode_transform_tree(ectx, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
+                            trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag, true);
+      encode_transform_tree(ectx, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
+                            trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag, true);
+      encode_transform_tree(ectx, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
+                            trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag, true);
+    }
   }
   else {
     if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
@@ -1223,7 +1225,7 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
 
 
 void encode_coding_unit(encoder_context* ectx,
-                        const enc_cb* cb, int x0,int y0, int log2CbSize)
+                        const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse)
 {
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
@@ -1316,13 +1318,16 @@ void encode_coding_unit(encoder_context* ectx,
     { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
 
-  encode_transform_tree(ectx, cb->transform_tree, cb,
-                        x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag);
+  if (recurse) {
+    encode_transform_tree(ectx, cb->transform_tree, cb,
+                          x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
+  }
 }
 
 
 void encode_quadtree(encoder_context* ectx,
-                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth)
+                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
+                     bool recurse)
 {
   //de265_image* img = ectx->img;
   const seq_parameter_set* sps = &ectx->img.sps;
@@ -1330,16 +1335,16 @@ void encode_quadtree(encoder_context* ectx,
   int split_flag;
 
   /*
-     CU split flag:
+    CU split flag:
 
-          | overlaps | minimum ||
-     case | border   | size    ||  split
-     -----+----------+---------++----------
-       A  |    0     |     0   || optional
-       B  |    0     |     1   ||    0
-       C  |    1     |     0   ||    1
-       D  |    1     |     1   ||    0
-   */
+    | overlaps | minimum ||
+    case | border   | size    ||  split
+    -----+----------+---------++----------
+    A  |    0     |     0   || optional
+    B  |    0     |     1   ||    0
+    C  |    1     |     0   ||    1
+    D  |    1     |     1   ||    0
+  */
   if (x0+(1<<log2CbSize) <= sps->pic_width_in_luma_samples &&
       y0+(1<<log2CbSize) <= sps->pic_height_in_luma_samples &&
       log2CbSize > sps->Log2MinCbSizeY) {
@@ -1359,23 +1364,25 @@ void encode_quadtree(encoder_context* ectx,
 
 
   if (split_flag) {
-    int x1 = x0 + (1<<(log2CbSize-1));
-    int y1 = y0 + (1<<(log2CbSize-1));
+    if (recurse) {
+      int x1 = x0 + (1<<(log2CbSize-1));
+      int y1 = y0 + (1<<(log2CbSize-1));
 
-    encode_quadtree(ectx, cb->children[0], x0,y0, log2CbSize-1, ctDepth+1);
+      encode_quadtree(ectx, cb->children[0], x0,y0, log2CbSize-1, ctDepth+1, true);
 
-    if (x1<sps->pic_width_in_luma_samples)
-      encode_quadtree(ectx, cb->children[1], x1,y0, log2CbSize-1, ctDepth+1);
+      if (x1<sps->pic_width_in_luma_samples)
+        encode_quadtree(ectx, cb->children[1], x1,y0, log2CbSize-1, ctDepth+1, true);
 
-    if (y1<sps->pic_height_in_luma_samples)
-      encode_quadtree(ectx, cb->children[2], x0,y1, log2CbSize-1, ctDepth+1);
+      if (y1<sps->pic_height_in_luma_samples)
+        encode_quadtree(ectx, cb->children[2], x0,y1, log2CbSize-1, ctDepth+1, true);
 
-    if (x1<sps->pic_width_in_luma_samples &&
-        y1<sps->pic_height_in_luma_samples)
-      encode_quadtree(ectx, cb->children[3], x1,y1, log2CbSize-1, ctDepth+1);
+      if (x1<sps->pic_width_in_luma_samples &&
+          y1<sps->pic_height_in_luma_samples)
+        encode_quadtree(ectx, cb->children[3], x1,y1, log2CbSize-1, ctDepth+1, true);
+    }
   }
   else {
-    encode_coding_unit(ectx, cb,x0,y0, log2CbSize);
+    encode_coding_unit(ectx, cb,x0,y0, log2CbSize, true);
   }
 }
 
@@ -1401,7 +1408,7 @@ void encode_ctb(encoder_context* ectx,
   de265_image* img = &ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;
 
-  encode_quadtree(ectx, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0);
+  encode_quadtree(ectx, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);
 }
 
 

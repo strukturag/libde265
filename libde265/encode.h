@@ -105,7 +105,7 @@ struct enc_tb
   union {
     // split
     struct {
-      enc_tb* children[4];
+      const enc_tb* children[4];
     };
 
     // non-split
@@ -162,7 +162,7 @@ struct enc_cb
   union {
     // split
     struct {
-      enc_cb* children[4];   // undefined when split_cu_flag==false
+      const enc_cb* children[4];   // undefined when split_cu_flag==false
     };
 
     // non-split
@@ -170,6 +170,7 @@ struct enc_cb
       uint8_t cu_transquant_bypass_flag; // currently unused
       uint8_t pcm_flag;
       //uint8_t root_rqt_cbf;
+      int qp; // TMP
 
       enum PredMode PredMode;
       enum PartMode PartMode;
@@ -183,7 +184,7 @@ struct enc_cb
         enc_pb_inter* inter_pb[4];
       };
 
-      enc_tb* transform_tree;
+      const enc_tb* transform_tree;
     };
   };
 
@@ -309,7 +310,7 @@ struct encoder_context
   context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
 
   // temporary CABAC rate estimator
-  CABAC_encoder_estim     cabac_estim;
+  //CABAC_encoder_estim     cabac_estim;
   //context_model_table     ctx_model_estim;
 
   // CABAC bitstream writer
@@ -317,17 +318,15 @@ struct encoder_context
   context_model_table     ctx_model_bitstream;
 
   /*
-  void switch_to_CABAC_estim(bool copyCtxModel=true) {
-    cabac_estim.reset();
-    cabac      = &cabac_estim;
-    ctx_model  = ctx_model_estim;
-    if (copyCtxModel) { copy_context_model_table(ctx_model_estim,ctx_model_bitstream); }
-  }
-  */
-
   void switch_to_CABAC_estim(context_model_table model) {
     cabac_estim.reset();
     cabac      = &cabac_estim;
+    ctx_model  = model;
+  }
+  */
+
+  void switch_CABAC(context_model_table model, CABAC_encoder* cabac_impl) {
+    cabac      = cabac_impl;
     ctx_model  = model;
   }
 
@@ -348,10 +347,14 @@ struct encoder_context
 void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
-                           int MaxTrafoDepth, int IntraSplitFlag);
+                           int MaxTrafoDepth, int IntraSplitFlag, bool recurse);
+
+void encode_coding_unit(encoder_context* ectx,
+                        const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse);
 
 void encode_quadtree(encoder_context* ectx,
-                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth);
+                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
+                     bool recurse);
 
 void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
 
