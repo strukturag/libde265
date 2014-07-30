@@ -36,10 +36,6 @@
 #ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
-#include "libde265/decctx.h"
-#else
-// VS2008 didn't support C99, compile all everything as C++
-#include "libde265/decctx.h"
 #endif
 
 #if HAVE_VIDEOGFX
@@ -50,10 +46,6 @@ using namespace videogfx;
 #if HAVE_SDL
 #include "sdl.hh"
 #endif
-
-extern "C" {
-#include "libde265/threads.h"
-}
 
 
 #define BUFFER_SIZE 40960
