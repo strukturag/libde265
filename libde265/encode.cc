@@ -132,8 +132,10 @@ void enc_tb::set_cbf_flags_from_children()
 }
 
 
-void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool isIntra) const
+void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
 {
+  int log2blkSize = log2CbSize;
+
   if (!split_cu_flag) {
     img->set_ctDepth(x,y,log2blkSize, ctDepth);
     //img->set_pcm_flag(x,y,log2blkSize, 0); // TODO
@@ -161,7 +163,7 @@ void enc_cb::write_to_image(de265_image* img, int x,int y,int log2blkSize, bool 
   else {
     for (int i=0;i<4;i++) {
       children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
-                                  log2blkSize-1, isIntra);
+                                  isIntra);
     }
   }
 }

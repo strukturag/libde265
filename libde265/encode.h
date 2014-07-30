@@ -193,7 +193,7 @@ struct enc_cb
   float distortion;
   float rate;
 
-  void write_to_image(de265_image*, int x,int y,int log2blkSize, bool intraSlice) const;
+  void write_to_image(de265_image*, int x,int y,bool intraSlice) const;
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0, int qp) const;

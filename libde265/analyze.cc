@@ -31,7 +31,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               context_model_table ctxModel,
                                               const de265_image* input,
                                               const enc_tb* parent,
-                                              const enc_cb* cb,
+                                              enc_cb* cb,
                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
                                               int blkIdx,
                                               int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
@@ -182,7 +182,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                              context_model_table ctxModel,
                                              const de265_image* input,
                                              const enc_tb* parent,
-                                             const enc_cb* cb,
+                                             enc_cb* cb,
                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
                                              int blkIdx,
                                              int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
@@ -254,7 +254,7 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
                                           context_model_table ctxModel,
                                           const de265_image* input,
                                           const enc_tb* parent,
-                                          const enc_cb* cb,
+                                          enc_cb* cb,
                                           int x0,int y0, int log2TbSize,
                                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                           int qp)
@@ -310,12 +310,30 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               context_model_table ctxModel,
                                               const de265_image* input,
                                               const enc_tb* parent,
-                                              const enc_cb* cb,
+                                              enc_cb* cb,
                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
                                               int blkIdx,
                                               int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                               int qp)
 {
+  bool selectIntraPredMode = false;
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
+
+  if (selectIntraPredMode) {
+    enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
+                                                        input->get_image_plane_at_pos(0,x0,y0),
+                                                        input->get_image_stride(0));
+
+    cb->intra.pred_mode[blkIdx] = intraMode;
+    cb->intra.chroma_mode  = INTRA_CHROMA_LIKE_LUMA;
+
+    // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
+    cb->write_to_image(&ectx->img, x0,y0, true);
+  }
+
+
+
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
@@ -383,16 +401,6 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->PredMode = MODE_INTRA;
   cb->PartMode = PART_2Nx2N;
 
-  enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2CbSize,0,
-                                                      input->get_image_plane_at_pos(0,x0,y0),
-                                                      input->get_image_stride(0));
-
-  cb->intra.pred_mode[0] = intraMode;
-  cb->intra.chroma_mode  = INTRA_CHROMA_LIKE_LUMA;
-
-  // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
-  cb->write_to_image(&ectx->img, x0,y0,log2CbSize, true);
-
 
   // rate for split_cu_flag (=false)
 
@@ -419,7 +427,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   // estimate bits
 
-  cb->write_to_image(&ectx->img, x0,y0, log2CbSize, true);
+  cb->write_to_image(&ectx->img, x0,y0, true);
 
   cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
 
@@ -501,7 +509,7 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
       cb = cb_split;
     }
     else {
-      cb->write_to_image(&ectx->img, x0,y0, Log2CbSize, true);
+      cb->write_to_image(&ectx->img, x0,y0, true);
       cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
     }
   }
@@ -551,8 +559,7 @@ double encode_image(encoder_context* ectx,
         enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
                                          input, x0,y0, Log2CtbSize, 0, qp);
 
-
-        cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
+        cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
 
 
         // --- write bitstream ---
