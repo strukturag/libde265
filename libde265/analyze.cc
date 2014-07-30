@@ -25,6 +25,8 @@
 #include <assert.h>
 
 
+float lambda = 50.0;
+
 const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               context_model_table ctxModel,
                                               const de265_image* input,
@@ -368,8 +370,6 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                                          TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
                                                          qp);
 
-    float lambda = 32.0;
-
     float rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
     float rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
 
@@ -543,8 +543,6 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
   if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
     cb_split = encode_cb_split(ectx, ctxSplit,
                                input,x0,y0, Log2CbSize, ctDepth, qp);
-
-    float lambda = 32.0;
 
     float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
     float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
