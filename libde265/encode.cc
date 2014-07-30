@@ -1144,10 +1144,11 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb
       }
     }
     else if (blkIdx==3) {
-      if (tb->parent->cbf[1]) {
+      // cannot check for tb->parent->cbf[], because this may not yet be set
+      if (tb->cbf[1]) {
         encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,1);
       }
-      if (tb->parent->cbf[2]) {
+      if (tb->cbf[2]) {
         encode_residual(ectx,tb,cb,xBase,yBase,log2TrafoSize,2);
       }
     }
