@@ -57,13 +57,6 @@ extern "C" {
 }
 
 
-extern "C" {
-void showMotionProfile();
-void showIntraPredictionProfile();
-void showTransformProfile();
-}
-
-
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
@@ -71,7 +64,6 @@ int nThreads=0;
 bool nal_input=false;
 bool quiet=false;
 bool check_hash=false;
-bool show_profile=false;
 bool show_help=false;
 bool dump_headers=false;
 bool write_yuv=false;
@@ -299,7 +291,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -311,7 +303,6 @@ int main(int argc, char** argv)
     case 'q': quiet=true; break;
     case 't': nThreads=atoi(optarg); break;
     case 'c': check_hash=true; break;
-    case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
     case 'o': write_yuv=true; output_filename=optarg;
       set_output_filename(output_filename);
@@ -339,7 +330,6 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
-    fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
     fprintf(stderr,"  -d, --dump        dump headers\n");
@@ -532,12 +522,6 @@ int main(int argc, char** argv)
   fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
           width,height,framecnt/secs);
 
-
-  if (show_profile) {
-    showMotionProfile();
-    showIntraPredictionProfile();
-    showTransformProfile();
-  }
 
   return err==DE265_OK ? 0 : 10;
 }

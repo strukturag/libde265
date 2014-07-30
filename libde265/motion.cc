@@ -72,45 +72,6 @@ void reset_pred_vector(PredVectorInfo* pvec)
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
-int FracCnt[4][4];
-int SizeCnt[64][64];
-int TotalCnt;
-int InsideCnt,OutsideCnt;
-int FullPelInsideCnt,FullPelOutsideCnt;
-int NullCnt;
-
-int BipredCnt;
-int FullpelBipredCnt;
-int FullpelPredCnt;
-int TotalPredCnt;  // number of prediction blocks
-
-extern "C" {
-LIBDE265_API void showMotionProfile()
-{
-  fprintf(stderr,"fractional pel positions:\n");
-  for (int y=0;y<4;y++)
-    for (int x=0;x<4;x++)
-      fprintf(stderr,"(%d,%d)  %8d  %4.1f%%\n",x,y,FracCnt[x][y],(float)(FracCnt[x][y] * 100) / TotalCnt);
-
-  fprintf(stderr,"block sizes:\n");
-  for (int x=0;x<64;x++)
-    for (int y=0;y<64;y++)
-      if (SizeCnt[x][y]) {
-        char tmp[128];
-        sprintf(tmp, "%dx%d", x+1, y+1);
-        fprintf(stderr,"%2dx%2d  %8d  %4.1f%%\n",x+1, y+1, SizeCnt[x][y],(float)(SizeCnt[x][y] * 100) / TotalCnt);
-      }
-
-
-  fprintf(stderr,"total cnt: %d\n", TotalCnt);
-  fprintf(stderr,"inside: %d,  outside: %d\n", InsideCnt,OutsideCnt);
-  fprintf(stderr,"fullpel-inside: %d,  fullpel-outside: %d\n", FullPelInsideCnt,FullPelOutsideCnt);
-  fprintf(stderr,"null-vectors: %d\n", NullCnt);
-  fprintf(stderr,"bi-pred: %d (%4.1f %%)\n", BipredCnt, BipredCnt*100.0/TotalPredCnt);
-  fprintf(stderr,"full-pel bi-pred: %d (%4.1f %%)\n", FullpelBipredCnt, FullpelBipredCnt*100.0/TotalPredCnt);
-  fprintf(stderr,"full-pel pred: %d (%4.1f %%)\n", FullpelPredCnt, FullpelPredCnt*100.0/TotalPredCnt);
-}
-}
 
 
 void mc_luma(const decoder_context* ctx,
@@ -128,11 +89,6 @@ void mc_luma(const decoder_context* ctx,
   int xIntOffsL = xP + (mv_x>>2);
   int yIntOffsL = yP + (mv_y>>2);
 
-  FracCnt[xFracL][yFracL]++;
-  SizeCnt[nPbW-1][nPbH-1]++;
-  TotalCnt++;
-  if (mv_x==0 && mv_y==0) { NullCnt++; }
-
   // luma sample interpolation process (8.5.3.2.2.1)
 
   //const int shift1 = sps->BitDepth_Y-8;
@@ -147,12 +103,6 @@ void mc_luma(const decoder_context* ctx,
   if (xFracL==0 && yFracL==0) {
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
-      FullPelInsideCnt++;
-      InsideCnt++;
-    }
-    else {
-      FullPelOutsideCnt++;
-      OutsideCnt++;
     }
 
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
@@ -364,8 +314,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const VectorInfo* vi)
 {
-  TotalPredCnt++;
-
   ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
   ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
 
@@ -446,12 +394,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
   if (shdr->slice_type == SLICE_TYPE_P) {
     if (img->pps.weighted_pred_flag==0) {
       if (predFlag[0]==1 && predFlag[1]==0) {
-        if ((vi->lum.mv[0].x & 3) == 0 &&
-            (vi->lum.mv[0].y & 3) == 0)
-          {
-            FullpelPredCnt++;
-          }
-
         ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
                                                 img->get_image_stride(0),
                                                 predSamplesL[0],nCS, nPbW,nPbH);
@@ -513,16 +455,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       if (img->pps.weighted_bipred_flag==0) {
         //const int shift2  = 15-8; // TODO: real bit depth
         //const int offset2 = 1<<(shift2-1);
-
-        BipredCnt++;
-
-        if ((vi->lum.mv[0].x & 3) == 0 &&
-            (vi->lum.mv[0].y & 3) == 0 &&
-            (vi->lum.mv[1].x & 3) == 0 &&
-            (vi->lum.mv[1].y & 3) == 0)
-          {
-            FullpelBipredCnt++;
-          }
 
         int16_t* in0 = predSamplesL[0];
         int16_t* in1 = predSamplesL[1];
@@ -602,13 +534,6 @@ void generate_inter_prediction_samples(decoder_context* ctx,
       int l = predFlag[0] ? 0 : 1;
 
       if (img->pps.weighted_bipred_flag==0) {
-        if ((vi->lum.mv[l].x & 3) == 0 &&
-            (vi->lum.mv[l].y & 3) == 0)
-          {
-            FullpelPredCnt++;
-          }
-
-
         ctx->acceleration.put_unweighted_pred_8(img->get_image_plane_at_pos(0,xP,yP),
                                                 img->get_image_stride(0),
                                                 predSamplesL[l],nCS, nPbW,nPbH);

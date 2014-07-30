@@ -28,30 +28,6 @@
 #include <string.h>
 
 
-int nIntraPredictions;
-int nAvail0;
-int nAvailPart;
-int nAvailAll;
-int nAvailSz[32*2+32*2+1+1];
-
-extern "C" {
-LIBDE265_API void showIntraPredictionProfile()
-{
-  printf("nIntraPredictions: %d\n", nIntraPredictions);
-  printf("  with no available border samples: %d\n", nAvail0);
-  printf("  with partially available samples: %d\n", nAvailPart);
-  printf("  with complete border samples: %d\n", nAvailAll);
-
-  if (0) {
-    printf("  ");
-    for (int i=0;i<32*2+32*2+1+1;i++)
-      printf("%d ",nAvailSz[i]);
-    printf("\n");
-  }
-}
-}
-
-
 #ifdef DE265_LOG_TRACE
 void print_border(uint8_t* data, uint8_t* available, int nT)
 {
@@ -575,8 +551,6 @@ void decode_intra_prediction(de265_image* img,
     printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
     xB0,yB0, intraPredMode, nT,cIdx);
   */
-
-  nIntraPredictions++;
 
   uint8_t  border_pixels_mem[2*64+1];
   uint8_t* border_pixels = &border_pixels_mem[64];
