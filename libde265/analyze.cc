@@ -244,7 +244,6 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // measure rate
 
-#if 0
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
 
@@ -252,8 +251,14 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                         log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
 
   tb->rate = estim.getRDBits();
-  ectx->switch_to_CABAC_stream();
-#endif
+
+
+  // measure distortion
+
+  int tbSize = 1<<log2TbSize;
+  tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                       img  ->get_image_plane_at_pos(0, x0,y0), img  ->get_image_stride(0),
+                       tbSize, tbSize);
 
   return tb;
 }
@@ -277,6 +282,24 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
   tb->log2TbSize = log2TbSize;
 
 
+  // --- estimate rate for this tree level ---
+
+  /* We cannot do this entirely correctly here, because we do not know yet the
+     cbf flags. Hence, we only measure the bits for the split_transform_flag.
+  */
+
+  /* TODO: currently ignore split_transform_flag, too.
+  ectx->switch_to_CABAC_estim();
+  encode_split_transform_flag(ectx, tb, cb, x0,y0, x0,y0, log2TbSize,
+                        TrafoDepth, 0, MaxTrafoDepth, IntraSplitFlag, false);
+  tb->rate = ectx->cabac_estim.size();
+  */
+  tb->rate = 0;
+  tb->distortion = 0;
+
+
+  // --- encode all child nodes ---
+
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
@@ -293,22 +316,6 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
 
   tb->set_cbf_flags_from_children();
   //tb->set_cbf_flags_from_coefficients(false);
-
-
-  // --- compute distortion and bit-rate ---
-
-  int tbSize = 1<<log2TbSize;
-  tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                       img  ->get_image_plane_at_pos(0, x0,y0), img  ->get_image_stride(0),
-                       tbSize, tbSize);
-
-#if 0
-  ectx->switch_to_CABAC_estim();
-  encode_transform_tree(ectx, tb, cb, x0,y0, x0,y0, log2TbSize,
-                        TrafoDepth, 0, MaxTrafoDepth, IntraSplitFlag);
-  tb->rate = ectx->cabac_estim.size();
-  ectx->switch_to_CABAC_stream();
-#endif
 
   return tb;
 }
@@ -334,24 +341,49 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   //int IntraSplitFlag=0;
   //int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
+  bool test_split = (log2TbSize > 2 &&
+                     TrafoDepth < MaxTrafoDepth &&
+                     log2TbSize > ectx->sps.Log2MinTrafoSize);
+
+
   context_model_table ctxSplit;
-  if (1) {
+  if (test_split) {
     copy_context_model_table(ctxSplit, ctxModel);
   }
 
 
-  if (log2TbSize > 2 &&
-      TrafoDepth < MaxTrafoDepth &&
-      log2TbSize > ectx->sps.Log2MinTrafoSize) {
-    return encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
-                                       x0,y0, log2TbSize,
-                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
+  const enc_tb* tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
+                                                             cb, x0,y0, xBase,yBase, log2TbSize,
+                                                             blkIdx,
+                                                             0,MaxTrafoDepth,IntraSplitFlag,
+                                                             qp);
+  const enc_tb* tb = tb_no_split;
+
+  if (test_split) {
+
+    const enc_tb* tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
+                                                         x0,y0, log2TbSize,
+                                                         TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                                         qp);
+
+    float lambda = 32.0;
+
+    float rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
+    float rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
+
+    bool split =  (rd_cost_split < rd_cost_no_split);
+
+    if (split) {
+      tb = tb_split;
+    }
+    else {
+      tb_no_split->reconstruct(&ectx->accel,
+                               &ectx->img, x0,y0, xBase,yBase,
+                               cb, qp, blkIdx);
+    }
   }
-  else {
-    return encode_transform_tree_no_split(ectx, ctxModel, input, parent,
-                                          cb, x0,y0, xBase,yBase, log2TbSize,
-                                          blkIdx, 0,MaxTrafoDepth,IntraSplitFlag, qp);
-  }
+
+  return tb;
 }
 
 
@@ -520,7 +552,7 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
     bool split =  (rd_cost_split < rd_cost_no_split);
     //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
 
-    split=true; // TMP HACK
+    split=false; // TMP HACK
 
     if (split) {
       cb = cb_split;
