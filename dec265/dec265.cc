@@ -41,7 +41,6 @@
 // VS2008 didn't support C99, compile all everything as C++
 #include "libde265/decctx.h"
 #endif
-#include "libde265/visualize.h"
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -106,10 +105,18 @@ static void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
+
   
-  for (int c=0;c<3;c++)
-    for (int y=0;y<de265_get_image_height(img,c);y++)
-      fwrite(img->get_image_plane_at_pos(c, 0,y), de265_get_image_width(img,c), 1, fh);
+
+  for (int c=0;c<3;c++) {
+    int stride;
+    const uint8_t* p = de265_get_image_plane(img, c, &stride);
+    int width = de265_get_image_width(img,c);
+
+    for (int y=0;y<de265_get_image_height(img,c);y++) {
+      fwrite(p + y*stride, width, 1, fh);
+    }
+  }
   
   fflush(fh);
 }
