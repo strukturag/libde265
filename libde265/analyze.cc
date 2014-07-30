@@ -41,9 +41,6 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride)
 {
-  //return INTRA_DC;
-  //return INTRA_ANGULAR_14;
-
   enum IntraPredMode best_mode;
   int min_sad=-1;
 
@@ -96,8 +93,6 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
       best_mode = (enum IntraPredMode)mode;
     }
   }
-
-  // printf("%d;%d -> %d\n",x0,y0,best_mode);
 
   return best_mode;
 }
@@ -174,21 +169,12 @@ void encode_transform_unit(encoder_context* ectx,
 
   fwd_transform(&ectx->accel, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
 
-  //printf("raw coeffs\n");
-  //printcoeff(tb->coeff[0],cbSize);
-  //printcoeff(tb->coeff[1],cbSize/2);
-
 
   // --- quantization ---
 
   quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,   qp, true);
 
   tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
-
-
-  //printf("quantized coeffs\n");
-  //printcoeff(tb->coeff[0],cbSize);
-  //printcoeff(tb->coeff[1],cbSize/2);
 }
 
 
@@ -237,10 +223,6 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 1 /* Cb */);
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 2 /* Cr */);
   }
-
-  //printf("quantized coeffs\n");
-  //printcoeff(tb->coeff[0],cbSize);
-  //printcoeff(tb->coeff[1],cbSize/2);
 
   tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
 
@@ -319,7 +301,6 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
   }  
 
   tb->set_cbf_flags_from_children();
-  //tb->set_cbf_flags_from_coefficients(false);
 
   return tb;
 }
@@ -335,16 +316,6 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                               int qp)
 {
-  /*
-  int MaxTrafoDepth;
-  if (PredMode == MODE_INTRA)
-    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
-  else 
-    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
-  */
-  //int IntraSplitFlag=0;
-  //int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
-
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
@@ -396,12 +367,6 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 {
   //printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
 
-  /*
-  input->printBlk("input Y" ,x0  ,y0  ,1<<log2CbSize,0);
-  input->printBlk("input Cb",x0/2,y0/2,1<<(log2CbSize-1),1);
-  input->printBlk("input Cr",x0/2,y0/2,1<<(log2CbSize-1),2);
-  */
-
   int cbSize = 1<<log2CbSize;
 
   enc_cb* cb = ectx->enc_cb_pool.get_new();
@@ -413,15 +378,10 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->cu_transquant_bypass_flag = false;
 
 
-  //printf("input\n");
-  //printblk(input[0],stride,x0,y0,cbSize);
-
   // --- set intra prediction mode ---
 
   cb->PredMode = MODE_INTRA;
   cb->PartMode = PART_2Nx2N;
-
-  //enc_pb_intra* pb = ectx->enc_pb_intra_pool.get_new();
 
   enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2CbSize,0,
                                                       input->get_image_plane_at_pos(0,x0,y0),
@@ -461,19 +421,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   cb->write_to_image(&ectx->img, x0,y0, log2CbSize, true);
 
-  //cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
   cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
-
-  //printf("reconstruction: add transform\n");
-  //printblk(luma_plane,stride,x0,y0,cbSize);
-
-
-  /* OLD
-  ectx->switch_to_CABAC_estim(ctxModel);
-  encode_quadtree(ectx, cb, x0,y0,log2CbSize,cb->ctDepth);
-  cb->rate = ectx->cabac_estim.size();
-  ectx->switch_to_CABAC_stream();
-  */
 
   return cb;
 }
@@ -606,58 +554,15 @@ double encode_image(encoder_context* ectx,
 
         cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, Log2CtbSize, true);
 
-#if 0
-        CABAC_encoder_estim estim;
-        encoder_output out;
-        out = ectx.bitstream_output;
-        out.cabac_encoder = &estim;
 
-        ectx.set_output(&out);
-        //printf("--- estim ---\n");
-        encode_ctb(&ectx, cb, x,y);
+        // --- write bitstream ---
 
-        CABAC_encoder_bitstream bs;
-        bs.range = writer.range;
-        bs.low   = writer.low;
-
-        encoder_output outbs;
-        outbs = ectx.bitstream_output;
-        outbs.cabac_encoder = &bs;
-
-        ectx.set_output(&outbs);
-        //printf("--- bitstream ---\n");
-        encode_ctb(&ectx, cb, x,y);
-        bs.flush_CABAC();
-
-        printf("real: %d  estim: %d\n",bs.size(),estim.size());
-
-        ectx.set_output(&ectx.bitstream_output);
-#endif
-
-
-        //printf("--- real ---\n");
         ectx->switch_to_CABAC_stream();
+        //int preSize = ectx->cabac->size();
         encode_ctb(ectx, cb, x,y);
+        //int postSize = ectx->cabac->size();
+        //printf("real: %d  estim: %f\n",postSize-preSize, cb->rate/8);
 
-        // decode into image
-
-        /* TMP
-        cb->do_intra_prediction(&img, x0,y0);
-        cb->dequant_and_add_transform(&accel, &img, x0,y0, qp);
-        */
-
-#if 0
-        for (int dy=0;dy<(1<<Log2CtbSize);dy++, printf("\n"))
-          for (int dx=0;dx<(1<<Log2CtbSize);dx++)
-            {
-              printf("%02x/%02x ",
-                     input[0][x0+dx+(y0+dy)*width],
-                     luma_plane[x0+dx+(y0+dy)*width]);
-
-              if (dx==7) printf(" ");
-              if (dx==15 && dy==7) printf("\n");
-            }
-#endif
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&
                     x==ectx->sps.PicWidthInCtbsY-1);
@@ -667,6 +572,8 @@ double encode_image(encoder_context* ectx,
         ectx->free_all_pools();
       }
 
+
+  // frame PSNR
 
   double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
                          luma_plane, ectx->img.get_image_stride(0),
