@@ -142,7 +142,7 @@ Preset preset[] = {
   },
 
   { 99, "besteq", "default (random-access) encoder parameters, I-frame distance = 248",
-    /* de265  */ "--max-cb-size 16 --min-cb-size 8",
+    /* de265  */ "",
     /* HM     */ "-c $HM13CFG/encoder_randomaccess_main.cfg -ip 248",
     /* HM SCC */ "-c $HMSCCCFG/encoder_randomaccess_main_scc.cfg -ip 248",
     /* x265   */ "-I 248 --no-wpp", // GOP size: 248
