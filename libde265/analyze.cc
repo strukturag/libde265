@@ -434,14 +434,13 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->write_to_image(&ectx->img, x0,y0,log2CbSize, true);
 
 
-  // rate for split_cu_flag
+  // rate for split_cu_flag (=false)
 
-  /*
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
   encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
   cb->rate = estim.getRDBits();
-  */
+
 
   // encode transform tree
 
@@ -494,16 +493,15 @@ enc_cb* encode_cb_split(encoder_context* ectx,
   cb->ctDepth = ctDepth;
 
 
-  // rate for split_cu_flag
+  // rate for split_cu_flag (=true)
 
-  /*
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
   encode_quadtree(ectx,cb,x0,y0,Log2CbSize,ctDepth, false);
 
   cb->distortion = 0;
   cb->rate       = estim.getRDBits();
-  */
+
 
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
@@ -552,9 +550,6 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
     float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
 
     bool split =  (rd_cost_split < rd_cost_no_split);
-    //bool split = (Log2CbSize==4 && (((x0>>Log2CbSize) + (y0>>Log2CbSize)) & 1)==1);
-
-    split=false; // TMP HACK
 
     if (split) {
       cb = cb_split;

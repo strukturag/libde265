@@ -339,5 +339,5 @@ void register_encoder_params(config_parameters* config)
 
   config->register_config_int("max-transform-hierarchy-depth-intra",  0 ,
                               eoffset(max_transform_hierarchy_depth_intra),
-                              1,       0, 4);
+                              3,       0, 4);
 }
