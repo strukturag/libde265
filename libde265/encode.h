@@ -2,7 +2,7 @@
  * H.265 video codec.
  * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
- * Authors: struktur AG, Dirk Farin <farin@struktur.de>
+ * Authors: Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
