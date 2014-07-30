@@ -23,6 +23,7 @@
 
 #include "libde265/analyze.h"
 #include <assert.h>
+#include <limits>
 
 
 float lambda = 50.0;
@@ -188,7 +189,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                              int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                              int qp)
 {
-  //printf("--- TT at %d %d, size %d\n",x0,y0,1<<log2TbSize);
+  printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
 
   de265_image* img = &ectx->img;
 
@@ -233,8 +234,10 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
 
+  /* TODO: cannot do this currently, because tb->parent->cbf[1] is not defined at this point
   encode_transform_tree(ectx, tb, cb, x0,y0, xBase,yBase,
                         log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
+  */
 
   tb->rate = estim.getRDBits();
 
@@ -338,6 +341,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
 
+  bool test_no_split = (IntraSplitFlag==0 || TrafoDepth>0);
 
   context_model_table ctxSplit;
   if (test_split) {
@@ -345,36 +349,58 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   }
 
 
-  const enc_tb* tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
-                                                             cb, x0,y0, xBase,yBase, log2TbSize,
-                                                             blkIdx,
-                                                             0,MaxTrafoDepth,IntraSplitFlag,
-                                                             qp);
-  const enc_tb* tb = tb_no_split;
+  printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
+         log2TbSize,
+         TrafoDepth,
+         MaxTrafoDepth,
+         log2TbSize,
+         ectx->sps.Log2MinTrafoSize);
+  printf("  intra split flag: %d\n",IntraSplitFlag);
 
-  if (test_split) {
+  const enc_tb* tb_no_split = NULL;
+  const enc_tb* tb_split    = NULL;
+  float rd_cost_no_split = std::numeric_limits<float>::max();
+  float rd_cost_split    = std::numeric_limits<float>::max();
 
-    const enc_tb* tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
-                                                         x0,y0, log2TbSize,
-                                                         TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                                         qp);
+  if (test_no_split) {
+    printf("test no split\n");
+    tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
+                                                 cb, x0,y0, xBase,yBase, log2TbSize,
+                                                 blkIdx,
+                                                 TrafoDepth,MaxTrafoDepth,IntraSplitFlag,
+                                                 qp);
 
-    float rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
-    float rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
-
-    bool split =  (rd_cost_split < rd_cost_no_split);
-
-    if (split) {
-      tb = tb_split;
-    }
-    else {
-      tb_no_split->reconstruct(&ectx->accel,
-                               &ectx->img, x0,y0, xBase,yBase,
-                               cb, qp, blkIdx);
-    }
+    rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
+    printf("-\n");
   }
 
-  return tb;
+
+  if (test_split) {
+    printf("test split\n");
+    tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
+                                           x0,y0, log2TbSize,
+                                           TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                           qp);
+    
+    rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
+    printf("-\n");
+  }
+
+
+  bool split = (rd_cost_split < rd_cost_no_split);
+
+  if (split) {
+    assert(tb_split);
+    return tb_split;
+  }
+  else {
+    assert(tb_no_split);
+    tb_no_split->reconstruct(&ectx->accel,
+                             &ectx->img, x0,y0, xBase,yBase,
+                             cb, qp, blkIdx);
+
+    return tb_no_split;
+  }
 }
 
 
@@ -401,18 +427,23 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
   cb->PredMode = MODE_INTRA;
   cb->PartMode = PART_2Nx2N;
 
+  if (cb->log2CbSize == ectx->sps.Log2MinCbSizeY) {
+    cb->PartMode = PART_NxN;
+  }
 
   // rate for split_cu_flag (=false)
 
+  /* TODO: TMP DISABLE
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
   encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
   cb->rate = estim.getRDBits();
-
+  */
+  cb->rate = 0;
 
   // encode transform tree
 
-  int IntraSplitFlag=0;
+  int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
   cb->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb,

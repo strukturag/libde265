@@ -1182,6 +1182,12 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
                                    (IntraSplitFlag==1 && trafoDepth==0) ||
                                    interSplitFlag==1) ? 1:0;
 
+      printf("split_transform_flag log2TrafoSize:%d Log2MaxTrafoSize:%d "
+             "IntraSplitFlag:%d trafoDepth:%d -> %d\n",
+             log2TrafoSize,sps->Log2MaxTrafoSize,
+             IntraSplitFlag, trafoDepth,
+             split_transform_flag);
+
       assert(tb->split_transform_flag == split_transform_flag);
     }
 
