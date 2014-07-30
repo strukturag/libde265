@@ -62,28 +62,6 @@ void writeFrame_Y(de265_image* img,const char* filename)
 #endif
 
 
-static const char *output_filename;
-
-extern "C" {
-LIBDE265_API void set_output_filename(const char* filename)
-{
-  output_filename = filename;
-}
-
-LIBDE265_API void write_picture(const de265_image* img)
-{
-  static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
-
-  for (int c=0;c<3;c++)
-    for (int y=0;y<de265_get_image_height(img,c);y++)
-      fwrite(img->get_image_plane_at_pos(c, 0,y), de265_get_image_width(img,c), 1, fh);
-
-  fflush(fh);
-  //fclose(fh);
-}
-}
-
 void write_picture_to_file(const de265_image* img, const char* filename)
 {
   FILE* fh = fopen(filename, "wb");

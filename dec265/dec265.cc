@@ -102,6 +102,20 @@ static struct option long_options[] = {
 
 
 
+static void write_picture(const de265_image* img)
+{
+  static FILE* fh = NULL;
+  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
+  
+  for (int c=0;c<3;c++)
+    for (int y=0;y<de265_get_image_height(img,c);y++)
+      fwrite(img->get_image_plane_at_pos(c, 0,y), de265_get_image_width(img,c), 1, fh);
+  
+  fflush(fh);
+}
+
+
+
 #if HAVE_VIDEOGFX
 void display_image(const struct de265_image* img)
 {
@@ -304,9 +318,7 @@ int main(int argc, char** argv)
     case 't': nThreads=atoi(optarg); break;
     case 'c': check_hash=true; break;
     case 'f': max_frames=atoi(optarg); break;
-    case 'o': write_yuv=true; output_filename=optarg;
-      set_output_filename(output_filename);
-      break;
+    case 'o': write_yuv=true; output_filename=optarg; break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
     case 'n': nal_input=true; break;
