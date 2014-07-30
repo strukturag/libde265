@@ -116,8 +116,11 @@ Libde265 has been integrated into these applications:
 License
 =======
 
-libde265 is distributed under the terms of the GNU Lesser General Public License.
-See COPYRIGHT for more details.
+The library `libde265` is distributed under the terms of the GNU Lesser
+General Public License. The sample applications are distributed under
+the terms of the GNU General Public License.
+
+See `COPYING` for more details.
 
 Copyright (c) 2013-2014 Struktur AG
 Contact: Dirk Farin <farin@struktur.de>
