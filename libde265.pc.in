@@ -9,4 +9,5 @@ URL: https://github.com/strukturag/libde265
 Version: @VERSION@
 Requires: 
 Libs: -lde265 -L@libdir@
+Libs.private: @LIBS@ -lstdc++
 Cflags: -I@includedir@
