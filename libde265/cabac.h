@@ -148,10 +148,6 @@ private:
 };
 
 
-extern int binCnt[65][2];
-extern int encBinCnt;
-#include <stdio.h>
-
 class CABAC_encoder_estim : public CABAC_encoder
 {
 public:
@@ -175,13 +171,10 @@ public:
 
   virtual void write_CABAC_bit(context_model* model, int bit);
   virtual void write_CABAC_bypass(int bit) {
-    //printf("[%d] bypass = %d\n",encBinCnt,bit);
-    //encBinCnt++;
-    mFracBits += 0x8000; binCnt[64][0]++;
-    //printf("-> %08lx\n",mFracBits);
+    mFracBits += 0x8000;
   }
   virtual void write_CABAC_FL_bypass(int value, int nBits) {
-    mFracBits += nBits<<15; binCnt[64][0]+=nBits;
+    mFracBits += nBits<<15;
   }
   virtual void write_CABAC_term_bit(int bit) { /* not implemented (not needed) */ }
 

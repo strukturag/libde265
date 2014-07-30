@@ -28,8 +28,6 @@
 
 #define INITIAL_CABAC_BUFFER_CAPACITY 4096
 
-int binCnt[65][2];  // tmp: debug
-
 
 static const uint8_t LPS_table[64][4] =
   {
@@ -158,9 +156,6 @@ void init_CABAC_decoder_2(CABAC_decoder* decoder)
 }
 
 
-//#include <sys/types.h>
-//#include <signal.h>
-
 int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 {
   logtrace(LogCABAC,"[%3d] decodeBin r:%x v:%x state:%d\n",logcnt,decoder->range, decoder->value, model->state);
@@ -175,9 +170,6 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
   if (decoder->value < scaled_range)
     {
-      binCnt[model->state][1]++;
-      //printf("%d %d\n", model->state, 1);
-
       logtrace(LogCABAC,"[%3d] MPS\n",logcnt);
 
       // MPS path                                                                                    
@@ -203,8 +195,6 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     }
   else
     {
-      binCnt[model->state][0]++;
-
       logtrace(LogCABAC,"[%3d] LPS\n",logcnt);
       //printf("%d %d\n", model->state, 0);
 
@@ -286,8 +276,6 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
 int  decode_CABAC_bypass(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
-  binCnt[64][0]++;
-  //printf("64 %d\n", -1);
 
   decoder->value <<= 1;
   decoder->bits_needed++;
@@ -725,8 +713,6 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
   
   if (bin != model->MPSbit)
     {
-      binCnt[model->state][0]++;
-
       logtrace(LogCABAC,"LPS\n");
 
       int num_bits = renorm_table[ LPS >> 3 ];
@@ -741,8 +727,6 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
     }
   else
     {
-      binCnt[model->state][1]++;
-
       logtrace(LogCABAC,"MPS\n");
 
       model->state = next_state_MPS[model->state];
