@@ -7,7 +7,8 @@ libde265_ladir = \
 
 libde265_la_CPPFLAGS =
 
-libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(LIBDE265_AGE)
+libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(LIBDE265_AGE) \
+	-export-symbols-regex ^de265_
 libde265_la_LIBADD = -lstdc++
 
 libde265_la_SOURCES = \
