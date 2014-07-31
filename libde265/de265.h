@@ -42,6 +42,12 @@ extern "C" {
   #else
   #define LIBDE265_API __declspec(dllimport)
   #endif
+#elif HAVE_VISIBILITY
+  #ifdef LIBDE265_EXPORTS
+  #define LIBDE265_API __attribute__((__visibility__("default")))
+  #else
+  #define LIBDE265_API
+  #endif
 #else
   #define LIBDE265_API
 #endif
