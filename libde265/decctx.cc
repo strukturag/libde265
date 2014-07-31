@@ -705,7 +705,8 @@ de265_error decoder_context::decode_some()
 
   if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
        ( image_units.size()>=1 && image_units[0]->slice_units.empty() &&
-         nal_parser.number_of_NAL_units_pending()==0 && nal_parser.is_end_of_stream() )) {
+         nal_parser.number_of_NAL_units_pending()==0 &&
+         (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
 
     image_unit* imgunit = image_units[0];
 
@@ -1107,6 +1108,7 @@ de265_error decoder_context::decode(int* more)
   // -> input stalled
 
   if (ctx->nal_parser.is_end_of_stream() == false &&
+      ctx->nal_parser.is_end_of_frame() == false &&
       ctx->nal_parser.get_NAL_queue_length() == 0) {
     if (more) { *more=1; }
 
@@ -1132,6 +1134,12 @@ de265_error decoder_context::decode(int* more)
     assert(nal);
     err = ctx->decode_NAL(nal);
     // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
+  }
+  else if (ctx->nal_parser.is_end_of_frame() == true &&
+      ctx->image_units.empty()) {
+    if (more) { *more=1; }
+
+    return DE265_ERROR_WAITING_FOR_INPUT_DATA;
   }
   else {
     err = decode_some();

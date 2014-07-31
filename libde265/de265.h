@@ -213,6 +213,12 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* dat
 */
 LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context*);
 
+/* Indicate that de265_push_data has just received data until the end of a frame.
+   All data pending at the decoder input will be pushed into the decoder and
+   the decoded picture is pushed to the output queue.
+*/
+LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context*);
+
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
    This function only pushes data into the decoder, nothing will be decoded.
