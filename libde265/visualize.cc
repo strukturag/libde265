@@ -39,7 +39,7 @@ void writeFrame_Y(de265_image* img,const char* filename)
         int x0 = ctbX*ctb_size;
         int y0 = ctbY*ctb_size;
 
-        
+
         uint8_t *src = ctx->img->get_image_plane_at_pos(0,x0,y0);
 
         printf("%s %d %d\n",filename,x0,y0);
@@ -91,7 +91,7 @@ void draw_block_boundary(const de265_image* srcimg,
   for (int i=0;i<vBlkSize;i++)
     {
       int yi = y + i;
-      
+
       if (yi < srcimg->sps.pic_height_in_luma_samples) {
         set_pixel(img,x,yi,stride,color,pixelSize);
       }
@@ -100,7 +100,7 @@ void draw_block_boundary(const de265_image* srcimg,
   for (int i=0;i<hBlkSize;i++)
     {
       int xi = x + i;
-      
+
       if (xi < srcimg->sps.pic_width_in_luma_samples) {
         set_pixel(img,xi,y,stride,color,pixelSize);
       }
@@ -419,42 +419,42 @@ void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
 }
 
 
-void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
+LIBDE265_API void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
   draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_CB);
 }
 
-void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
+LIBDE265_API void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
   draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_TB);
 }
 
-void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
+LIBDE265_API void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
   draw_tree_grid(img,dst,stride,color,pixelSize, Partitioning_PB);
 }
 
-void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
+LIBDE265_API void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t color,int pixelSize)
 {
   draw_tree_grid(img,dst,stride,color,pixelSize, IntraPredMode);
 }
 
-void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+LIBDE265_API void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   draw_tree_grid(img,dst,stride,0,pixelSize, PBPredMode);
 }
 
-void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+LIBDE265_API void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   draw_tree_grid(img,dst,stride,0,pixelSize, QuantP_Y);
 }
 
-void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+LIBDE265_API void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   draw_tree_grid(img,dst,stride,0,pixelSize, PBMotionVectors);
 }
 
-void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   // --- mark first CTB in slice (red - independent / green - dependent) ---
 
@@ -534,7 +534,7 @@ void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize
 
 }
 
-void draw_Tiles(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
+LIBDE265_API void draw_Tiles(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
   const uint32_t color = 0xffff00;
 

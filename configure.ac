@@ -46,6 +46,8 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
+gl_VISIBILITY
+AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h])
