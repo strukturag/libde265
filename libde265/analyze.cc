@@ -42,6 +42,8 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride)
 {
+  //return INTRA_ANGULAR_20;
+
   enum IntraPredMode best_mode;
   int min_sad=-1;
 
@@ -139,8 +141,8 @@ void encode_transform_unit(encoder_context* ectx,
   enum IntraPredMode intraPredMode  = ectx->img.get_IntraPredMode(x0,y0);
 
   if (cIdx>0) {
-    intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode,
-                                                   cb->intra.chroma_mode);
+    intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
+    //cb->intra.chroma_mode);
 
     xC >>= 1;
     yC >>= 1;
@@ -189,7 +191,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                              int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                              int qp)
 {
-  printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
+  //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
 
   de265_image* img = &ectx->img;
 
@@ -319,6 +321,8 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                               int qp)
 {
+  //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
+
   bool selectIntraPredMode = false;
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
@@ -329,10 +333,12 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                                         input->get_image_stride(0));
 
     cb->intra.pred_mode[blkIdx] = intraMode;
-    cb->intra.chroma_mode  = INTRA_CHROMA_LIKE_LUMA;
+    if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
 
     // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
-    cb->write_to_image(&ectx->img, x0,y0, true);
+    //cb->write_to_image(&ectx->img, xBase,yBase, true);
+
+    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
   }
 
 
@@ -349,6 +355,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   }
 
 
+  /*
   printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
          log2TbSize,
          TrafoDepth,
@@ -356,14 +363,14 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
          log2TbSize,
          ectx->sps.Log2MinTrafoSize);
   printf("  intra split flag: %d\n",IntraSplitFlag);
-
+  */
   const enc_tb* tb_no_split = NULL;
   const enc_tb* tb_split    = NULL;
   float rd_cost_no_split = std::numeric_limits<float>::max();
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
-    printf("test no split\n");
+    //printf("test no split\n");
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
@@ -371,19 +378,19 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                                  qp);
 
     rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
-    printf("-\n");
+    //printf("-\n");
   }
 
 
   if (test_split) {
-    printf("test split\n");
+    //printf("test split\n");
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
                                            qp);
     
     rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
-    printf("-\n");
+    //printf("-\n");
   }
 
 
@@ -431,15 +438,15 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
     cb->PartMode = PART_NxN;
   }
 
+  ectx->img.set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
+  ectx->img.set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
+
   // rate for split_cu_flag (=false)
 
-  /* TODO: TMP DISABLE
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
-  encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
+  //encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false); CANNOT do this here, because intra pred mode are still unset
   cb->rate = estim.getRDBits();
-  */
-  cb->rate = 0;
 
   // encode transform tree
 

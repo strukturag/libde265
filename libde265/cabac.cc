@@ -638,13 +638,13 @@ void CABAC_encoder_bitstream::flush_CABAC()
 
 void CABAC_encoder_bitstream::write_out()
 {
-  logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
+  //logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;
   low &= 0xffffffffu >> bits_left;
 
-  logtrace(LogCABAC,"write byte %02x\n",leadByte);
-  logtrace(LogCABAC,"-> low = %08x\n",low);
+  //logtrace(LogCABAC,"write byte %02x\n",leadByte);
+  //logtrace(LogCABAC,"-> low = %08x\n",low);
   
   if (leadByte == 0xff)
     {
@@ -676,7 +676,7 @@ void CABAC_encoder_bitstream::write_out()
 
 void CABAC_encoder_bitstream::testAndWriteOut()
 {
-  logtrace(LogCABAC,"bits_left = %d\n",bits_left);
+  // logtrace(LogCABAC,"bits_left = %d\n",bits_left);
 
   if (bits_left < 12)
     {
@@ -713,7 +713,7 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
   
   if (bin != model->MPSbit)
     {
-      logtrace(LogCABAC,"LPS\n");
+      //logtrace(LogCABAC,"LPS\n");
 
       int num_bits = renorm_table[ LPS >> 3 ];
       low = (low + range) << num_bits;
@@ -727,7 +727,7 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
     }
   else
     {
-      logtrace(LogCABAC,"MPS\n");
+      //logtrace(LogCABAC,"MPS\n");
 
       model->state = next_state_MPS[model->state];
 

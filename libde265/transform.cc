@@ -389,12 +389,12 @@ void scale_coefficients(thread_context* tctx,
         // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
         int32_t currCoeff  = tctx->coeffList[cIdx][i];
 
-        logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],tctx->coeffList[cIdx][i]);
+        //logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],tctx->coeffList[cIdx][i]);
 
         currCoeff = Clip3(-32768,32767,
                           ( (currCoeff * fact + offset ) >> bdShift));
 
-        logtrace(LogTransform," -> %d\n",currCoeff);
+        //logtrace(LogTransform," -> %d\n",currCoeff);
 
         tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
@@ -608,12 +608,12 @@ void dequant_coefficients(int16_t* out_coeff,
     // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
     int32_t currCoeff  = in_coeff[i];
 
-    logtrace(LogTransform,"coefficient[%d] = %d\n",i,currCoeff);
+    //logtrace(LogTransform,"coefficient[%d] = %d\n",i,currCoeff);
 
     currCoeff = Clip3(-32768,32767,
                       ( (currCoeff * fact + offset ) >> bdShift));
 
-    logtrace(LogTransform," -> %d\n",currCoeff);
+    //logtrace(LogTransform," -> %d\n",currCoeff);
 
     out_coeff[i] = currCoeff;
   }

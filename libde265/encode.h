@@ -177,8 +177,8 @@ struct enc_cb
 
       union {
         struct {
-          enum IntraPredMode       pred_mode[4];
-          enum IntraChromaPredMode chroma_mode;
+          enum IntraPredMode pred_mode[4];
+          enum IntraPredMode chroma_mode;
         } intra;
 
         enc_pb_inter* inter_pb[4];

@@ -585,14 +585,20 @@ public:
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
   }
 
-  void set_IntraPredMode(int x,int y,int log2blkSize, enum IntraPredMode mode)
+  void set_IntraPredMode(int x0,int y0,int log2blkSize, enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
-    int PUidx  = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+    int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 
     for (int y=0;y<pbSize;y++)
-      for (int x=0;x<pbSize;x++)
-        intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
+      for (int x=0;x<pbSize;x++) {
+        assert(x<sps.PicWidthInMinPUs);
+        assert(y<sps.PicHeightInMinPUs);
+
+        int idx = PUidx + x + y*intraPredMode.width_in_units;
+        assert(idx<intraPredMode.data_size);
+        intraPredMode[idx] = mode;
+      }
   }
 
   /*
