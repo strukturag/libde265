@@ -130,23 +130,6 @@ private:
 };
 
 
-struct enc_pb_intra
-{
-  // context
-
-  //uint8_t* border_pixels;
-  //enum IntraPredMode pred_mode_left_cand;
-  //enum IntraPredMode pred_mode_top_cand;
-  //uint8_t  has_left_cand : 1;
-  //uint8_t  has_top_cand  : 1;
-
-  // coding mode
-
-  enum IntraPredMode pred_mode;
-  enum IntraPredMode pred_mode_chroma;
-};
-
-
 struct enc_pb_inter
 {
   enum PredMode PredMode;
@@ -290,15 +273,13 @@ struct encoder_context
 
   // --- poor man's garbage collector for CB/TB/PB/coeff data ---
 
-  alloc_pool<enc_cb> enc_cb_pool;
-  alloc_pool<enc_tb> enc_tb_pool;
-  alloc_pool<enc_pb_intra> enc_pb_intra_pool;
-  alloc_pool<int16_t>  enc_coeff_pool;
+  alloc_pool<enc_cb>  enc_cb_pool;
+  alloc_pool<enc_tb>  enc_tb_pool;
+  alloc_pool<int16_t> enc_coeff_pool;
 
   void free_all_pools() {
     enc_cb_pool.free_all();
     enc_tb_pool.free_all();
-    enc_pb_intra_pool.free_all();
     enc_coeff_pool.free_all();
   }
 
