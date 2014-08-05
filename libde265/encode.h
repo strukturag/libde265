@@ -290,21 +290,10 @@ struct encoder_context
   CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
   context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
 
-  // temporary CABAC rate estimator
-  //CABAC_encoder_estim     cabac_estim;
-  //context_model_table     ctx_model_estim;
-
   // CABAC bitstream writer
   CABAC_encoder_bitstream cabac_bitstream;
   context_model_table     ctx_model_bitstream;
 
-  /*
-  void switch_to_CABAC_estim(context_model_table model) {
-    cabac_estim.reset();
-    cabac      = &cabac_estim;
-    ctx_model  = model;
-  }
-  */
 
   void switch_CABAC(context_model_table model, CABAC_encoder* cabac_impl) {
     cabac      = cabac_impl;
