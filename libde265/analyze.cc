@@ -236,10 +236,9 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
 
-  /* TODO: cannot do this currently, because tb->parent->cbf[1] is not defined at this point
   encode_transform_tree(ectx, tb, cb, x0,y0, xBase,yBase,
                         log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
-  */
+
 
   tb->rate = estim.getRDBits();
 
@@ -272,19 +271,6 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
   tb->split_transform_flag = true;
   tb->log2TbSize = log2TbSize;
 
-
-  // --- estimate rate for this tree level ---
-
-  /* We cannot do this entirely correctly here, because we do not know yet the
-     cbf flags. Hence, we only measure the bits for the split_transform_flag.
-  */
-
-  /* TODO: currently ignore split_transform_flag, too.
-  ectx->switch_to_CABAC_estim();
-  encode_split_transform_flag(ectx, tb, cb, x0,y0, x0,y0, log2TbSize,
-                        TrafoDepth, 0, MaxTrafoDepth, IntraSplitFlag, false);
-  tb->rate = ectx->cabac_estim.size();
-  */
   tb->rate = 0;
   tb->distortion = 0;
 
@@ -306,6 +292,19 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
   }  
 
   tb->set_cbf_flags_from_children();
+
+
+  // --- add rate for this TB level ---
+
+  CABAC_encoder_estim estim;
+  ectx->switch_CABAC(ctxModel, &estim);
+
+  encode_transform_tree(ectx, tb, cb,
+                        x0,y0, x0,y0,
+                        log2TbSize, TrafoDepth, 0 /* blkIdx */,
+                        MaxTrafoDepth, IntraSplitFlag, false);
+
+  tb->rate += estim.getRDBits();
 
   return tb;
 }
