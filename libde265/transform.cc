@@ -27,45 +27,6 @@
 const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
 
 
-static int nDCT_4x4, nDCT_8x8, nDCT_16x16, nDCT_32x32, nDST_4x4;
-static int nSkip_4x4;
-static int nCoeff4x4[16+1], nCoeff8x8[64+1], nCoeff16x16[16*16+1], nCoeff32x32[32*32+1];
-
-extern "C" {
-LIBDE265_API void showTransformProfile()
-{
-  const int nDCT_sum = nDST_4x4 + nDCT_4x4 + nDCT_8x8 + nDCT_16x16 + nDCT_32x32 + nSkip_4x4;
-  fprintf(stderr,"transform usage:\n");
-  fprintf(stderr,"  IDST   4x4:  %8d  %4.1f%%\n",nDST_4x4,(float)(nDST_4x4 * 100) / nDCT_sum);
-  fprintf(stderr,"  IDCT   4x4:  %8d  %4.1f%%\n",nDCT_4x4,(float)(nDCT_4x4 * 100) / nDCT_sum);
-  fprintf(stderr,"  IDCT   8x8:  %8d  %4.1f%%\n",nDCT_8x8,(float)(nDCT_8x8 * 100) / nDCT_sum);
-  fprintf(stderr,"  IDCT 16x16:  %8d  %4.1f%%\n",nDCT_16x16,(float)(nDCT_16x16 * 100) / nDCT_sum);
-  fprintf(stderr,"  IDCT 32x32:  %8d  %4.1f%%\n",nDCT_32x32,(float)(nDCT_32x32 * 100) / nDCT_sum);
-  fprintf(stderr,"  Skip   4x4:  %8d  %4.1f%%\n",nSkip_4x4,(float)(nSkip_4x4 * 100) / nDCT_sum);
-
-  fprintf(stderr,"nCoeff DCT 4x4: ");
-  for (int i=1;i<=16;i++)
-    fprintf(stderr,"%d ",nCoeff4x4[i]);
-  fprintf(stderr,"\n");
-
-  fprintf(stderr,"nCoeff DCT 8x8: ");
-  for (int i=1;i<=8*8;i++)
-    fprintf(stderr,"%d ",nCoeff8x8[i]);
-  fprintf(stderr,"\n");
-
-  fprintf(stderr,"nCoeff DCT 16x16: ");
-  for (int i=1;i<=16*16;i++)
-    fprintf(stderr,"%d ",nCoeff16x16[i]);
-  fprintf(stderr,"\n");
-
-  fprintf(stderr,"nCoeff DCT 32x32: ");
-  for (int i=1;i<=32*32;i++)
-    fprintf(stderr,"%d ",nCoeff32x32[i]);
-  fprintf(stderr,"\n");
-}
-}
-
-
 // (8.6.1)
 void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
                                     int xCUBase, int yCUBase)
@@ -235,14 +196,13 @@ void transform_coefficients(acceleration_functions* acceleration,
   if (trType==1) {
 
     acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
-    nDST_4x4++;
 
   } else {
 
-    /**/ if (nT==4)  { acceleration->transform_add_8[0](dst,coeff,dstStride); nDCT_4x4++; }
-    else if (nT==8)  { acceleration->transform_add_8[1](dst,coeff,dstStride); nDCT_8x8++; }
-    else if (nT==16) { acceleration->transform_add_8[2](dst,coeff,dstStride); nDCT_16x16++; }
-    else             { acceleration->transform_add_8[3](dst,coeff,dstStride); nDCT_32x32++; }
+    /**/ if (nT==4)  { acceleration->transform_add_8[0](dst,coeff,dstStride); }
+    else if (nT==8)  { acceleration->transform_add_8[1](dst,coeff,dstStride); }
+    else if (nT==16) { acceleration->transform_add_8[2](dst,coeff,dstStride); }
+    else             { acceleration->transform_add_8[3](dst,coeff,dstStride); }
   }
 
 #if 0
@@ -470,8 +430,6 @@ void scale_coefficients(thread_context* tctx,
     if (transform_skip_flag) {
 
       tctx->decctx->acceleration.transform_skip_8(pred, coeff, stride);
-
-      nSkip_4x4++;
     }
     else {
       int trType;

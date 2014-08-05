@@ -20,6 +20,7 @@
 
 #include "libde265/encode.h"
 #include "libde265/analyze.h"
+#include "libde265/fallback.h"
 
 #include <getopt.h>
 

@@ -98,7 +98,7 @@ class NAL_Parser
   NAL_unit*   pop_from_NAL_queue();
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true; }
-
+  void        mark_end_of_frame() { end_of_frame=true; }
   void  remove_pending_input_data();
 
   int bytes_in_input_queue() const {
@@ -118,11 +118,13 @@ class NAL_Parser
 
   int get_NAL_queue_length() const { return NAL_queue.size(); }
   bool is_end_of_stream() const { return end_of_stream; }
+  bool is_end_of_frame() const { return end_of_frame; }
 
  private:
   // byte-stream level
 
   bool end_of_stream; // data in pending_input_data is end of stream
+  bool end_of_frame;  // data in pending_input_data is end of frame
   int  input_push_state;
 
   NAL_unit* pending_input_NAL;

@@ -2,15 +2,15 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [0.7], [farin@struktur.de])
+AC_INIT([libde265], [0.8], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x00070000 # Numeric representation of the version
+NUMERIC_VERSION=0x00080000 # Numeric representation of the version
 AC_SUBST(NUMERIC_VERSION)
 
 LIBDE265_CURRENT=0
-LIBDE265_REVISION=6
+LIBDE265_REVISION=7
 LIBDE265_AGE=0
 
 # ---------------------------------------------------------------------------
@@ -46,6 +46,10 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
+dnl gl_VISIBILITY
+dnl : In encoder branch, we still export all library symbols :
+HAVE_VISIBILITY=0
+AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h])

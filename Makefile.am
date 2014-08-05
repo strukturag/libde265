@@ -21,7 +21,8 @@ EXTRA_DIST = .travis.yml \
   build \
   Makefile.vc7 \
   README.md \
-  libde265.png
+  libde265.png \
+  */COPYING
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libde265.pc

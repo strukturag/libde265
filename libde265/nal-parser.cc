@@ -145,6 +145,7 @@ void NAL_unit::remove_stuffing_bytes()
 NAL_Parser::NAL_Parser()
 {
   end_of_stream = false;
+  end_of_frame = false;
   input_push_state = 0;
   pending_input_NAL = NULL;
   nBytes_in_NAL_queue = 0;
@@ -230,6 +231,8 @@ void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
 de265_error NAL_Parser::push_data(const unsigned char* data, int len,
                                   de265_PTS pts, void* user_data)
 {
+  end_of_frame = false;
+
   if (pending_input_NAL == NULL) {
     pending_input_NAL = alloc_NAL_unit(len+3);
     pending_input_NAL->pts = pts;
@@ -344,6 +347,8 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   // Cannot use byte-stream input and NAL input at the same time.
   assert(pending_input_NAL == NULL);
+
+  end_of_frame = false;
 
   NAL_unit* nal = alloc_NAL_unit(len);
   nal->set_data(data, len);

@@ -1,21 +1,21 @@
 /*
- * H.265 video codec.
+ * libde265 example application "dec265".
  * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
- * This file is part of libde265.
+ * This file is part of dec265, an example application using libde265.
  *
- * libde265 is free software: you can redistribute it and/or modify
+ * dec265 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libde265 is distributed in the hope that it will be useful,
+ * dec265 is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
+ * along with dec265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define DO_MEMORY_LOGGING 0
@@ -36,12 +36,8 @@
 #ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
-#include "libde265/decctx.h"
-#else
-// VS2008 didn't support C99, compile all everything as C++
-#include "libde265/decctx.h"
 #endif
-#include "libde265/visualize.h"
+
 #include "libde265/quality.h"
 
 #if HAVE_VIDEOGFX
@@ -53,17 +49,6 @@ using namespace videogfx;
 #include "sdl.hh"
 #endif
 
-extern "C" {
-#include "libde265/threads.h"
-}
-
-
-extern "C" {
-void showMotionProfile();
-void showIntraPredictionProfile();
-void showTransformProfile();
-}
-
 
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
@@ -72,7 +57,6 @@ int nThreads=0;
 bool nal_input=false;
 bool quiet=false;
 bool check_hash=false;
-bool show_profile=false;
 bool show_help=false;
 bool dump_headers=false;
 bool write_yuv=false;
@@ -116,6 +100,28 @@ static struct option long_options[] = {
   {"disable-sao",        no_argument, &disable_sao, 1 },
   {0,         0,                 0,  0 }
 };
+
+
+
+static void write_picture(const de265_image* img)
+{
+  static FILE* fh = NULL;
+  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
+
+  
+
+  for (int c=0;c<3;c++) {
+    int stride;
+    const uint8_t* p = de265_get_image_plane(img, c, &stride);
+    int width = de265_get_image_width(img,c);
+
+    for (int y=0;y<de265_get_image_height(img,c);y++) {
+      fwrite(p + y*stride, width, 1, fh);
+    }
+  }
+  
+  fflush(fh);
+}
 
 
 
@@ -213,7 +219,7 @@ bool output_image(const de265_image* img)
 
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
-    if (output_with_videogfx) { 
+    if (output_with_videogfx) {
       display_image(img);
     } else {
       stop = display_sdl(img);
@@ -430,7 +436,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chpf:o:dLB:n0vT:m:se"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:se"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -442,11 +448,8 @@ int main(int argc, char** argv)
     case 'q': quiet=true; break;
     case 't': nThreads=atoi(optarg); break;
     case 'c': check_hash=true; break;
-    case 'p': show_profile=true; break;
     case 'f': max_frames=atoi(optarg); break;
-    case 'o': write_yuv=true; output_filename=optarg;
-      set_output_filename(output_filename);
-      break;
+    case 'o': write_yuv=true; output_filename=optarg; break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
     case 'n': nal_input=true; break;
@@ -473,7 +476,6 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
-    fprintf(stderr,"  -p, --profile     show coding mode usage profile\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
     fprintf(stderr,"  -d, --dump        dump headers\n");
@@ -690,12 +692,6 @@ int main(int argc, char** argv)
   fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
           width,height,framecnt/secs);
 
-
-  if (show_profile) {
-    showMotionProfile();
-    showIntraPredictionProfile();
-    showTransformProfile();
-  }
 
   return err==DE265_OK ? 0 : 10;
 }

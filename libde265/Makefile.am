@@ -6,6 +6,17 @@ libde265_ladir = \
         $(includedir)/libde265
 
 libde265_la_CPPFLAGS =
+libde265_la_CFLAGS = \
+  $(CFLAG_VISIBILITY) \
+  -DLIBDE265_EXPORTS
+libde265_la_CXXFLAGS = \
+  $(CFLAG_VISIBILITY) \
+  -DLIBDE265_EXPORTS
+
+if HAVE_VISIBILITY
+ libde265_la_CFLAGS += -DHAVE_VISIBILITY
+ libde265_la_CXXFLAGS += -DHAVE_VISIBILITY
+endif
 
 libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(LIBDE265_AGE)
 libde265_la_LIBADD = -lstdc++
