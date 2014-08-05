@@ -420,56 +420,86 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
   int cbSize = 1<<log2CbSize;
 
-  enc_cb* cb = ectx->enc_cb_pool.get_new();
-
-  cb->split_cu_flag = false;
-  cb->log2CbSize = log2CbSize;
-  cb->ctDepth = ctDepth;
-
-  cb->cu_transquant_bypass_flag = false;
+  enc_cb* cb[2] =
+    { NULL, // 2Nx2N  (always checked)
+      NULL  //  NxN   (only checked at MinCbSize)
+    };
 
 
-  // --- set intra prediction mode ---
+  for (int p=0;p<2;p++) {
 
-  cb->PredMode = MODE_INTRA;
-  cb->PartMode = PART_2Nx2N;
+    /* Test NxN intra prediction mode only when at minimum Cb size.
+     */
+    if (p==1 &&
+        log2CbSize != ectx->sps.Log2MinCbSizeY) {
+      continue;
+    }
 
-  if (cb->log2CbSize == ectx->sps.Log2MinCbSizeY) {
-    cb->PartMode = PART_NxN;
+    cb[p] = ectx->enc_cb_pool.get_new();
+    cb[p]->rate = 0;
+
+    cb[p]->split_cu_flag = false;
+    cb[p]->log2CbSize = log2CbSize;
+    cb[p]->ctDepth = ctDepth;
+
+    cb[p]->cu_transquant_bypass_flag = false;
+
+
+    // --- set intra prediction mode ---
+
+    cb[p]->PredMode = MODE_INTRA;
+    cb[p]->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
+
+    ectx->img.set_pred_mode(x0,y0, log2CbSize, cb[p]->PredMode);
+    ectx->img.set_PartMode (x0,y0, cb[p]->PartMode);  // TODO: probably unnecessary
+
+
+    // encode transform tree
+
+    int IntraSplitFlag= (cb[p]->PredMode == MODE_INTRA && cb[p]->PartMode == PART_NxN);
+    int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+
+    cb[p]->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb[p],
+                                                            x0,y0, x0,y0, log2CbSize,
+                                                            0,
+                                                            0, MaxTrafoDepth, IntraSplitFlag,
+                                                            qp);
+
+    cb[p]->distortion  = cb[p]->transform_tree->distortion;
+    cb[p]->rate       += cb[p]->transform_tree->rate;
+
+
+    // rate for cu syntax
+
+    CABAC_encoder_estim estim;
+    ectx->switch_CABAC(ctxModel, &estim);
+    encode_coding_unit(ectx,cb[p],x0,y0,log2CbSize, false);
+    cb[p]->rate += estim.getRDBits();
+
+
+    // estimate distortion
+
+    cb[p]->write_to_image(&ectx->img, x0,y0, true);
+    cb[p]->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
   }
 
-  ectx->img.set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
-  ectx->img.set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
 
-  // rate for split_cu_flag (=false)
+  // select between 2Nx2N and NxN
 
-  CABAC_encoder_estim estim;
-  ectx->switch_CABAC(ctxModel, &estim);
-  //encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false); CANNOT do this here, because intra pred mode are still unset
-  cb->rate = estim.getRDBits();
+  if (cb[0] && cb[1]) {
+    double rd_cost_2Nx2N = cb[0]->distortion + lambda * cb[0]->rate;
+    double rd_cost_NxN   = cb[1]->distortion + lambda * cb[1]->rate;
 
-  // encode transform tree
+    if (rd_cost_2Nx2N < rd_cost_NxN) {
+      cb[0]->write_to_image(&ectx->img, x0,y0, true);
+      cb[0]->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+      return cb[0];
+    } else {
+      return cb[1];
+    }
+  }
 
-  int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
-  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
-
-  cb->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb,
-                                                       x0,y0, x0,y0, log2CbSize,
-                                                       0,
-                                                       0, MaxTrafoDepth, IntraSplitFlag,
-                                                       qp);
-
-  cb->distortion  = cb->transform_tree->distortion;
-  cb->rate       += cb->transform_tree->rate;
-
-
-  // estimate bits
-
-  cb->write_to_image(&ectx->img, x0,y0, true);
-
-  cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
-
-  return cb;
+  return cb[0]; // 2Nx2N
 }
 
 
