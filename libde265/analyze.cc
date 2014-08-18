@@ -338,21 +338,70 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
+    /*
     enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
                                                         input->get_image_plane_at_pos(0,x0,y0),
                                                         input->get_image_stride(0));
+    */
+
+    const enc_tb* tb[35];
+
+    float minCost = std::numeric_limits<float>::max();
+    int   minCostIdx=0;
+
+
+    const de265_image& img = ectx->img;
+    const seq_parameter_set* sps = &img.sps;
+    int candidates[3];
+    fillIntraPredModeCandidates(candidates, x0,y0,
+                                sps->getPUIndexRS(x0,y0),
+                                x0>0, y0>0, &img);
+
+
+    for (int i = 0; i<35; i++) {
+
+      enum IntraPredMode intraMode = (IntraPredMode)i;
+
+      cb->intra.pred_mode[blkIdx] = intraMode;
+      if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+
+      // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
+      //cb->write_to_image(&ectx->img, xBase,yBase, true);
+
+      ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+      tb[intraMode] = encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
+                                                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                                       qp);
+
+
+      float rate = tb[intraMode]->rate;
+
+      /**/ if (candidates[0]==intraMode) { rate += 1; }
+      else if (candidates[1]==intraMode) { rate += 2; }
+      else if (candidates[2]==intraMode) { rate += 3; }
+      else { rate += 5; }
+
+      float cost = tb[intraMode]->distortion + lambda * rate;
+      if (cost<minCost) {
+        minCost=cost;
+        minCostIdx=intraMode;
+      }
+    }
+
+
+    enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-
-    // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
-    //cb->write_to_image(&ectx->img, xBase,yBase, true);
-
     ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    return encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
-                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
+    tb[minCostIdx]->reconstruct(&ectx->accel,
+                                &ectx->img, x0,y0, xBase,yBase,
+                                cb, qp, blkIdx);
+
+    return tb[minCostIdx];
   }
   else {
     return encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
