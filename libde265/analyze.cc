@@ -310,6 +310,17 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
 }
 
 
+const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
+                                               context_model_table ctxModel,
+                                               const de265_image* input,
+                                               const enc_tb* parent,
+                                               enc_cb* cb,
+                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                               int blkIdx,
+                                               int TrafoDepth, int MaxTrafoDepth,
+                                               int IntraSplitFlag,
+                                               int qp);
+
 const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               context_model_table ctxModel,
                                               const de265_image* input,
@@ -338,10 +349,31 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
     //cb->write_to_image(&ectx->img, xBase,yBase, true);
 
     ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+    return encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
+                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
   }
+  else {
+    return encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
+                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
+  }
+}
 
 
 
+const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
+                                               context_model_table ctxModel,
+                                               const de265_image* input,
+                                               const enc_tb* parent,
+                                               enc_cb* cb,
+                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                               int blkIdx,
+                                               int TrafoDepth, int MaxTrafoDepth,
+                                               int IntraSplitFlag,
+                                               int qp)
+{
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
