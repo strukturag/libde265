@@ -26,7 +26,7 @@
 #include "libde265/image.h"
 #include "libde265/decctx.h"
 #include "libde265/image-io.h"
-
+#include "libde265/alloc_pool.h"
 
 struct encoder_context;
 struct enc_cb;
@@ -184,74 +184,6 @@ struct enc_cb
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0, int qp) const;
-};
-
-
-template <class T> class alloc_pool
-{
-public:
-  alloc_pool() {
-    mBlkSize = BLKSIZE;
-  }
-
-  ~alloc_pool() {
-    for (int i=0;i<mem.size();i++) {
-      delete[] mem[i].data;
-    }
-  }
-
-
-  void set_blk_size(int blkSize) { mBlkSize=blkSize; }
-
-  void free_all() {
-    for (int i=0;i<mem.size();i++) {
-      mem[i].nUsed=0;
-    }
-
-    freelist.clear();
-  }
-
-  T* get_new(int n=1) {
-    if (n==1 && !freelist.empty()) {
-      T* t = freelist.back();
-      freelist.pop_back();
-      return t;
-    }
-
-    if (mem.empty() || mem.back().nUsed + n > mem.back().size) {
-      range r;
-      r.data = new T[mBlkSize];
-      r.size = mBlkSize;
-      r.nUsed= 0;
-      mem.push_back(r);
-    }
-
-    range& r = mem.back();
-
-    assert(r.nUsed + n <= r.size);
-
-    T* t = r.data + r.nUsed;
-    r.nUsed += n;
-
-    return t;
-  }
-
-  void free(T* t) {
-    freelist.push_back(t);
-  }
-
- private:
-  static const int BLKSIZE = 128;
-  int mBlkSize;
-
-  struct range {
-    T* data;
-    int size;
-    int nUsed;
-  };
-
-  std::vector<range> mem;
-  std::vector<T*> freelist;
 };
 
 

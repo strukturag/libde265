@@ -73,7 +73,8 @@ libde265_la_SOURCES = \
   quality.cc quality.h \
   configparam.cc configparam.h \
   analyze.cc analyze.h \
-  image-io.h image-io.cc
+  image-io.h image-io.cc \
+  alloc_pool.h
 
 if ENABLE_SSE_OPT
   SUBDIRS = x86
