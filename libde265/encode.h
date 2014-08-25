@@ -34,7 +34,8 @@ struct enc_cb;
 
 enum RateControlMethod
   {
-    RateControlMethod_ConstantQP
+    RateControlMethod_ConstantQP,
+    RateControlMethod_ConstantLambda
   };
 
 enum IntraPredSearch
@@ -45,6 +46,8 @@ enum IntraPredSearch
 
 struct encoder_params
 {
+  encoder_params();
+
   // input
 
   int first_frame;
@@ -86,6 +89,7 @@ struct encoder_params
   enum RateControlMethod rateControlMethod;
 
   int constant_QP;
+  int lambda;
 };
 
 
@@ -181,7 +185,7 @@ struct enc_cb
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0, int qp) const;
 
-  void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
+  //void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
 };
 
 
@@ -205,9 +209,17 @@ public:
     for (int i=0;i<mem.size();i++) {
       mem[i].nUsed=0;
     }
+
+    freelist.clear();
   }
 
   T* get_new(int n=1) {
+    if (n==1 && !freelist.empty()) {
+      T* t = freelist.back();
+      freelist.pop_back();
+      return t;
+    }
+
     if (mem.empty() || mem.back().nUsed + n > mem.back().size) {
       range r;
       r.data = new T[mBlkSize];
@@ -226,6 +238,10 @@ public:
     return t;
   }
 
+  void free(T* t) {
+    freelist.push_back(t);
+  }
+
  private:
   static const int BLKSIZE = 128;
   int mBlkSize;
@@ -237,6 +253,7 @@ public:
   };
 
   std::vector<range> mem;
+  std::vector<T*> freelist;
 };
 
 

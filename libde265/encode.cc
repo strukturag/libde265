@@ -28,6 +28,12 @@
 #include "libde265/fallback-dct.h"
 
 
+encoder_params::encoder_params()
+{
+  rateControlMethod = RateControlMethod_ConstantQP;
+}
+
+
 inline int childX(int x0, int idx, int log2CbSize)
 {
   return x0 + ((idx&1) << (log2CbSize-1));
@@ -191,7 +197,7 @@ void enc_cb::reconstruct(acceleration_functions* accel,
 
 // TODO: cannot do this independently from transform-tree, because intra-prediction
 // is carried out for each TB separately.
-#if 1
+#if 0
 void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
 {
   enum IntraPredMode lumaMode   = intra.pred_mode[0];

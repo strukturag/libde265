@@ -940,6 +940,18 @@ void CABAC_encoder_estim::write_CABAC_bit(context_model* model, int bit)
 }
 
 
+float CABAC_encoder::RDBits_for_CABAC_bin(context_model* model, int bit)
+{
+ int idx = model->state<<1;
+
+  if (bit!=model->MPSbit) {
+    idx++;
+  }
+
+  return entropy_table[idx] / float(1<<15);
+}
+
+
 #if 0
 void printtab(int idx,int s)
 {

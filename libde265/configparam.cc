@@ -340,4 +340,8 @@ void register_encoder_params(config_parameters* config)
   config->register_config_int("max-transform-hierarchy-depth-intra",  0 ,
                               eoffset(max_transform_hierarchy_depth_intra),
                               3,       0, 4);
+
+  config->register_config_int("lambda",  0 ,
+                              eoffset(lambda),
+                              50,      0, 1000);
 }

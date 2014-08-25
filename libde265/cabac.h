@@ -86,6 +86,8 @@ public:
   virtual void write_CABAC_FL_bypass(int value, int nBits);
   virtual void write_CABAC_term_bit(int bit) = 0;
   virtual void flush_CABAC()  { }
+
+  static float RDBits_for_CABAC_bin(context_model* model, int bit);
 };
 
 

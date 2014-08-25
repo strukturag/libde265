@@ -24,6 +24,7 @@
 #include "libde265/analyze.h"
 #include <assert.h>
 #include <limits>
+#include <math.h>
 
 
 float lambda = 50.0;
@@ -339,7 +340,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 
   if (selectIntraPredMode) {
     /*
-    enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
+    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
                                                         input->get_image_plane_at_pos(0,x0,y0),
                                                         input->get_image_stride(0));
     */
@@ -348,7 +349,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 
     float minCost = std::numeric_limits<float>::max();
     int   minCostIdx=0;
-
+    float minCandCost;
 
     const de265_image& img = ectx->img;
     const seq_parameter_set* sps = &img.sps;
@@ -360,6 +361,9 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 
     for (int i = 0; i<35; i++) {
 
+      context_model_table ctxIntra;
+      copy_context_model_table(ctxIntra, ctxModel);
+
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
       cb->intra.pred_mode[blkIdx] = intraMode;
@@ -370,23 +374,30 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 
       ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      tb[intraMode] = encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
+      tb[intraMode] = encode_transform_tree_may_split2(ectx,ctxIntra,input,parent,
                                                        cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                                        TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
                                                        qp);
 
 
       float rate = tb[intraMode]->rate;
+      float c;
 
-      /**/ if (candidates[0]==intraMode) { rate += 1; }
-      else if (candidates[1]==intraMode) { rate += 2; }
-      else if (candidates[2]==intraMode) { rate += 3; }
-      else { rate += 5; }
+      int enc_bin=0;
+
+      /**/ if (candidates[0]==intraMode) { rate += 1; c=1; enc_bin=1; }
+      else if (candidates[1]==intraMode) { rate += 2; c=2; enc_bin=1; }
+      else if (candidates[2]==intraMode) { rate += 2; c=2; enc_bin=1; }
+      else { rate += 5; c=5; }
+
+      rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
+
 
       float cost = tb[intraMode]->distortion + lambda * rate;
       if (cost<minCost) {
         minCost=cost;
         minCostIdx=intraMode;
+        //minCandCost=c;
       }
     }
 
@@ -400,6 +411,9 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
     tb[minCostIdx]->reconstruct(&ectx->accel,
                                 &ectx->img, x0,y0, xBase,yBase,
                                 cb, qp, blkIdx);
+
+
+    //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
 
     return tb[minCostIdx];
   }
@@ -704,8 +718,30 @@ double encode_image(encoder_context* ectx,
         context_model_table ctxModel;
         copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
 
+#if 1
         enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
                                          input, x0,y0, Log2CtbSize, 0, qp);
+#else
+        float minCost = std::numeric_limits<float>::max();
+        int bestQ = 0;
+
+        enc_cb* cb;
+        for (int q=1;q<51;q++) {
+          copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
+
+          enc_cb* cbq = encode_cb_may_split(ectx, ctxModel,
+                                           input, x0,y0, Log2CtbSize, 0, q);
+
+          float cost = cbq->distortion + lambda * cbq->rate;
+          if (cost<minCost) { minCost=cost; bestQ=q; }
+
+          if (q==qp) { cb=cbq; }
+        }
+
+        printf("Q %d\n",bestQ);
+        fflush(stdout);
+#endif
+
 
         cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
 
@@ -741,6 +777,9 @@ void encode_sequence(encoder_context* ectx)
 {
   // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
   int qp = ectx->params.constant_QP;
+
+  //lambda = ectx->params.lambda;
+  lambda = 0.0242 * pow(1.27245, qp);
 
 
   nal_header nal;
