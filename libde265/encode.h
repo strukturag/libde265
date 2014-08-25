@@ -184,8 +184,6 @@ struct enc_cb
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0, int qp) const;
-
-  //void do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const;
 };
 
 

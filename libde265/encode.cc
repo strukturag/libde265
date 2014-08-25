@@ -195,20 +195,6 @@ void enc_cb::reconstruct(acceleration_functions* accel,
 }
 
 
-// TODO: cannot do this independently from transform-tree, because intra-prediction
-// is carried out for each TB separately.
-#if 0
-void enc_cb::do_intra_prediction(de265_image* img, int x0,int y0, int log2BlkSize) const
-{
-  enum IntraPredMode lumaMode   = intra.pred_mode[0];
-  enum IntraPredMode chromaMode = intra.chroma_mode; //lumaPredMode_to_chromaPredMode(lumaMode, intra.chroma_mode);
-
-  decode_intra_prediction(img, x0,  y0,   lumaMode,   1<<log2BlkSize,     0);
-  decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 1);
-  decode_intra_prediction(img, x0/2,y0/2, chromaMode, 1<<(log2BlkSize-1), 2);
-}
-#endif
-
 
 static void encode_split_cu_flag(encoder_context* ectx,
                                  int x0, int y0, int ctDepth, int split_flag)
