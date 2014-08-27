@@ -36,6 +36,44 @@
 #include "libde265/configparam.h"
 
 
+// --- CB intra NxN vs. 2Nx2N decision ---
+
+class Algo_CB_IntraPartMode
+{
+ public:
+  virtual ~Algo_CB_IntraPartMode() { }
+
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CbSize, int ctDepth, int qp) = 0;
+};
+
+class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
+{
+ public:
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CbSize, int ctDepth, int qp);
+};
+
+class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
+{
+  public:
+  virtual enc_cb* analyze(encoder_context* ectx,
+                          context_model_table ctxModel,
+                          const de265_image* input,
+                          int x0,int y0, int log2CbSize, int ctDepth,
+                          int qp);
+
+ private:
+  enum PartMode mPartMode = PART_2Nx2N;
+};
+
+
 // --- CB split decision ---
 
 class Algo_CB_Split
@@ -48,6 +86,13 @@ class Algo_CB_Split
                           const de265_image* input,
                           int ctb_x,int ctb_y,
                           int log2CbSize, int ctDepth, int qp) = 0;
+
+  // TODO: probably, this will later be a intra/inter decision which again
+  // has two child algorithms, depending on the coding mode.
+  void setChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
+
+ protected:
+  Algo_CB_IntraPartMode* mIntraPartModeAlgo;
 };
 
 class Algo_CB_Split_BruteForce : public Algo_CB_Split
@@ -121,6 +166,8 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   virtual void prepare() {
     mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
+    //mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
+    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
   }
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
@@ -128,8 +175,11 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
 
  private:
-  Algo_CTB_QScale_Constant mAlgo_CTB_QScale_Constant;
-  Algo_CB_Split_BruteForce mAlgo_CB_Split_BruteForce;
+  Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
+  Algo_CB_Split_BruteForce         mAlgo_CB_Split_BruteForce;
+
+  Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;
+  Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
 };
 
 

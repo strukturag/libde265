@@ -505,10 +505,11 @@ const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
 }
 
 
-enc_cb* encode_cb_no_split(encoder_context* ectx,
-                           context_model_table ctxModel,
-                           const de265_image* input,
-                           int x0,int y0, int log2CbSize, int ctDepth, int qp)
+enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
+                                                  context_model_table ctxModel,
+                                                  const de265_image* input,
+                                                  int x0,int y0, int log2CbSize, int ctDepth,
+                                                  int qp)
 {
   //printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
 
@@ -597,6 +598,77 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 }
 
 
+enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
+                                             context_model_table ctxModel,
+                                             const de265_image* input,
+                                             int x0,int y0, int log2CbSize, int ctDepth,
+                                             int qp)
+{
+  //printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+
+  int cbSize = 1<<log2CbSize;
+
+  enum PartMode PartMode = PART_2Nx2N;
+
+  if (PartMode==PART_NxN && log2CbSize != ectx->sps.Log2MinCbSizeY) {
+    PartMode = PART_2Nx2N;
+  }
+
+  enc_cb* cb = ectx->enc_cb_pool.get_new();
+  cb->rate = 0;
+
+  cb->split_cu_flag = false;
+  cb->log2CbSize = log2CbSize;
+  cb->ctDepth = ctDepth;
+
+  cb->cu_transquant_bypass_flag = false;
+
+
+  // --- set intra prediction mode ---
+
+  cb->PredMode = MODE_INTRA;
+  cb->PartMode = PartMode;
+
+  ectx->img.set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
+  ectx->img.set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
+
+
+  // encode transform tree
+
+  int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
+  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+
+  cb->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb,
+                                                       x0,y0, x0,y0, log2CbSize,
+                                                       0,
+                                                       0, MaxTrafoDepth, IntraSplitFlag,
+                                                       qp);
+
+  cb->distortion  = cb->transform_tree->distortion;
+  cb->rate       += cb->transform_tree->rate;
+
+
+  // rate for cu syntax
+
+  CABAC_encoder_estim estim;
+  ectx->switch_CABAC(ctxModel, &estim);
+  encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
+  cb->rate += estim.getRDBits();
+
+
+  // estimate distortion
+
+  cb->write_to_image(&ectx->img, x0,y0, true);
+  cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
+
+  return cb;
+}
+
+
+
+
+// Utility function to encode all four children in a splitted CB.
+// Children are coded with the specified algo_cb_split.
 enc_cb* encode_cb_split(encoder_context* ectx,
                         Algo_CB_Split* algo_cb_split,
                         context_model_table ctxModel,
@@ -656,8 +728,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     copy_context_model_table(ctxSplit, ctxModel);
   }
 
-  enc_cb* cb_no_split = encode_cb_no_split(ectx, ctxModel,
-                                           input,x0,y0, Log2CbSize, ctDepth, qp);
+  enc_cb* cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
+                                                    x0,y0, Log2CbSize, ctDepth, qp);
   enc_cb* cb_split = NULL;
   enc_cb* cb = cb_no_split;
 
