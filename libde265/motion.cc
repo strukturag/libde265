@@ -994,8 +994,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 {
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
+  assert(ctx->has_image(colPic));
   const de265_image* colImg = ctx->get_image(colPic);
-  assert(colImg);
   enum PredMode predMode = colImg->get_pred_mode(xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
@@ -1154,6 +1154,16 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     }
 
   //logtrace(LogMotion,"collocated reference POC=%d\n",ctx->dpb[colPic].PicOrderCntVal);
+
+
+  if (!ctx->has_image(colPic)) {
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
+    *out_availableFlagLXCol = 0;
+
+    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    return;
+  }
 
 
   int xColPb,yColPb;

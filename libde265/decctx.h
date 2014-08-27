@@ -283,6 +283,8 @@ class decoder_context : public error_queue {
   /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
 
+  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
+
   de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
   int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
   void         pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
