@@ -715,8 +715,11 @@ de265_error decoder_context::decode_some()
 
     // mark all CTBs as decoded even if they are not, because faulty input
     // streams could miss part of the picture
+    // TODO: this will not work when slice decoding is parallel to post-filtering,
+    // so we will have to replace this with keeping track of which CTB should have
+    // been decoded (but aren't because of the input stream being faulty)
 
-    img->mark_all_CTB_progress(CTB_PROGRESS_PREFILTER);
+    imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_PREFILTER);
 
 
 
