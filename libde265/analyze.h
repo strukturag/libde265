@@ -62,7 +62,9 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
 
 class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 {
-  public:
+ public:
+ Algo_CB_IntraPartMode_Fixed() : mPartMode(PART_2Nx2N) { }
+
   virtual enc_cb* analyze(encoder_context* ectx,
                           context_model_table ctxModel,
                           const de265_image* input,
@@ -70,7 +72,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
                           int qp);
 
  private:
-  enum PartMode mPartMode = PART_2Nx2N;
+  enum PartMode mPartMode;
 };
 
 
