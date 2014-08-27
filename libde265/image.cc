@@ -534,8 +534,10 @@ void de265_image::wait_for_completion()
 {
   de265_mutex_lock(&mutex);
   while (nThreadsFinished!=nThreadsTotal) {
+    printf("%d %d\n",nThreadsFinished,nThreadsTotal);
     de265_cond_wait(&finished_cond, &mutex);
   }
+  printf("%d %d\n",nThreadsFinished,nThreadsTotal);
   de265_mutex_unlock(&mutex);
 }
 

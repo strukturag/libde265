@@ -713,6 +713,12 @@ de265_error decoder_context::decode_some()
     image_unit* imgunit = image_units[0];
 
 
+    // mark all CTBs as decoded even if they are not, because faulty input
+    // streams could miss part of the picture
+
+    img->mark_all_CTB_progress(CTB_PROGRESS_PREFILTER);
+
+
 
     // run post-processing filters (deblocking & SAO)
 
