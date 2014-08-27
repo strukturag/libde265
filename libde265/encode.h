@@ -157,7 +157,7 @@ struct enc_cb
       uint8_t cu_transquant_bypass_flag; // currently unused
       uint8_t pcm_flag;
       //uint8_t root_rqt_cbf;
-      int qp; // TMP
+      //int qp; // TMP
 
       enum PredMode PredMode;
       enum PartMode PartMode;
@@ -196,7 +196,7 @@ struct encoder_context
 
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
-    switch_to_CABAC_stream();
+    switch_CABAC_to_bitstream();
   }
 
 
@@ -247,7 +247,7 @@ struct encoder_context
     ctx_model  = model;
   }
 
-  void switch_to_CABAC_stream() {
+  void switch_CABAC_to_bitstream() {
     cabac     = &cabac_bitstream;
     ctx_model = ctx_model_bitstream;
   }

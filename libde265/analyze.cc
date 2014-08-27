@@ -748,7 +748,7 @@ double encode_image(encoder_context* ectx,
 
         // --- write bitstream ---
 
-        ectx->switch_to_CABAC_stream();
+        ectx->switch_CABAC_to_bitstream();
         //int preSize = ectx->cabac->size();
         encode_ctb(ectx, cb, x,y);
         //int postSize = ectx->cabac->size();
