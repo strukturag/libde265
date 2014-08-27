@@ -36,6 +36,34 @@
 #include "libde265/configparam.h"
 
 
+class Algo_CB_Split
+{
+ public:
+  virtual ~Algo_CB_Split() { }
+};
+
+
+class Algo_CTB_QScale
+{
+ public:
+ Algo_CTB_QScale() : mChildAlgo(NULL) { }
+  virtual ~Algo_CTB_QScale() { }
+
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CtbSize, int ctDepth) = 0;
+
+  void setChildAlgo(Algo_CB_Split* algo) { mChildAlgo = algo; }
+
+ protected:
+  Algo_CB_Split* mChildAlgo;
+};
+
+
+
+
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride);
 
