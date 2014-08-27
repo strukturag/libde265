@@ -36,12 +36,33 @@
 #include "libde265/configparam.h"
 
 
+// --- CB split decision ---
+
 class Algo_CB_Split
 {
  public:
   virtual ~Algo_CB_Split() { }
+
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CbSize, int ctDepth, int qp) = 0;
 };
 
+class Algo_CB_Split_BruteForce : public Algo_CB_Split
+{
+ public:
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CtbSize, int ctDepth, int qp);
+};
+
+
+
+// --- choose a qscale at CTB level ---
 
 class Algo_CTB_QScale
 {
@@ -51,7 +72,7 @@ class Algo_CTB_QScale
 
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          de265_image* input,
+                          const de265_image* input,
                           int ctb_x,int ctb_y,
                           int log2CtbSize, int ctDepth) = 0;
 
@@ -61,6 +82,55 @@ class Algo_CTB_QScale
   Algo_CB_Split* mChildAlgo;
 };
 
+class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
+{
+ public:
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          int ctb_x,int ctb_y,
+                          int log2CtbSize, int ctDepth);
+
+  int getQP() const { return mQP; }
+
+ private:
+  int mQP;
+};
+
+
+
+// --- an encoding algorithm combines a set of algorithm modules ---
+
+class EncodingAlgorithm
+{
+ public:
+  virtual ~EncodingAlgorithm() { }
+
+  virtual void prepare() = 0;
+
+  virtual Algo_CTB_QScale* getAlgoCTBQScale() = 0;
+
+  virtual int getPPS_QP() const = 0;
+  virtual int getSlice_QPDelta() const { return 0; }
+};
+
+
+class EncodingAlgorithm_Custom : public EncodingAlgorithm
+{
+ public:
+
+  virtual void prepare() {
+    mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
+  }
+
+  virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
+
+  virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
+
+ private:
+  Algo_CTB_QScale_Constant mAlgo_CTB_QScale_Constant;
+  Algo_CB_Split_BruteForce mAlgo_CB_Split_BruteForce;
+};
 
 
 

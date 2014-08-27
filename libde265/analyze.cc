@@ -598,6 +598,7 @@ enc_cb* encode_cb_no_split(encoder_context* ectx,
 
 
 enc_cb* encode_cb_split(encoder_context* ectx,
+                        Algo_CB_Split* algo_cb_split,
                         context_model_table ctxModel,
                         const de265_image* input,
                         int x0,int y0, int Log2CbSize, int ctDepth, int qp)
@@ -625,9 +626,9 @@ enc_cb* encode_cb_split(encoder_context* ectx,
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
-    cb->children[i] = encode_cb_may_split(ectx, ctxModel,
-                                          input, x0+dx, y0+dy,
-                                          Log2CbSize-1, ctDepth+1, qp);
+    cb->children[i] = algo_cb_split->analyze(ectx, ctxModel,
+                                             input, x0+dx, y0+dy,
+                                             Log2CbSize-1, ctDepth+1, qp);
 
     cb->distortion += cb->children[i]->distortion;
     cb->rate       += cb->children[i]->rate;
@@ -637,12 +638,14 @@ enc_cb* encode_cb_split(encoder_context* ectx,
 }
 
 
-enc_cb* encode_cb_may_split(encoder_context* ectx,
-                            context_model_table ctxModel,
-                            const de265_image* input,
-                            int x0,int y0, int Log2CbSize,
-                            int ctDepth,
-                            int qp)
+
+
+enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
+                                          context_model_table ctxModel,
+                                          const de265_image* input,
+                                          int x0,int y0, int Log2CbSize,
+                                          int ctDepth,
+                                          int qp)
 {
   context_model_table ctxSplit;
 
@@ -659,7 +662,7 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
   enc_cb* cb = cb_no_split;
 
   if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
-    cb_split = encode_cb_split(ectx, ctxSplit,
+    cb_split = encode_cb_split(ectx, this, ctxSplit,
                                input,x0,y0, Log2CbSize, ctDepth, qp);
 
     float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
@@ -680,8 +683,23 @@ enc_cb* encode_cb_may_split(encoder_context* ectx,
 }
 
 
+
+
+enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
+                                          context_model_table ctxModel,
+                                          const de265_image* input,
+                                          int ctb_x,int ctb_y,
+                                          int log2CtbSize, int ctDepth)
+{
+  mQP = ectx->params.constant_QP;
+
+  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth,mQP);
+}
+
+
 double encode_image(encoder_context* ectx,
-                    const de265_image* input, int qp)
+                    const de265_image* input,
+                    EncodingAlgorithm& algo)
 {
   int stride=input->get_image_stride(0);
 
@@ -719,11 +737,17 @@ double encode_image(encoder_context* ectx,
         copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
 
 #if 1
+        /*
         enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
                                          input, x0,y0, Log2CtbSize, 0, qp);
+        */
+
+        enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel,
+                                                      input, x0,y0, Log2CtbSize,0);
 #else
         float minCost = std::numeric_limits<float>::max();
         int bestQ = 0;
+        int qp = ectx->params.constant_QP;
 
         enc_cb* cb;
         for (int q=1;q<51;q++) {
@@ -848,6 +872,9 @@ void encode_sequence(encoder_context* ectx)
 
   ectx->img_source->release_next_image( ectx->params.first_frame );
 
+  EncodingAlgorithm_Custom algo;
+  algo.prepare();
+
   int maxPoc = ectx->params.max_number_of_frames;
   for (int poc=0; poc<maxPoc ;poc++)
     {
@@ -868,7 +895,7 @@ void encode_sequence(encoder_context* ectx)
       ectx->cabac->flush_VLC();
 
       ectx->cabac->init_CABAC();
-      double psnr = encode_image(ectx,input_image, qp);
+      double psnr = encode_image(ectx,input_image, algo);
       fprintf(stderr,"  PSNR-Y: %f\n", psnr);
       ectx->cabac->flush_CABAC();
       ectx->write_packet();
