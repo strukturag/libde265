@@ -216,6 +216,12 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
+
+      out_set->NumNegativePics = 0;
+      out_set->NumPositivePics = 0;
+      out_set->NumDeltaPocs = 0;
+      out_set->NumPocTotalCurr_shortterm_only = 0;
+
       ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
@@ -224,7 +230,6 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     out_set->NumNegativePics = num_negative_pics;
     out_set->NumPositivePics = num_positive_pics;
     out_set->NumDeltaPocs = num_positive_pics + num_negative_pics;
-
 
     // --- now, read the deltas between the reference frames to fill the lists ---
 
