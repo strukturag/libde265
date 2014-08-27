@@ -592,6 +592,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   de265_error err = shdr->read(&reader,this, &continueDecoding);
   if (!continueDecoding) {
     if (img) { img->integrity = INTEGRITY_NOT_DECODED; }
+    nal_parser.free_NAL_unit(nal);
     delete shdr;
     return err;
   }
@@ -604,6 +605,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       img->integrity = INTEGRITY_NOT_DECODED;
+      nal_parser.free_NAL_unit(nal);
       delete shdr;
       return err;
     }
@@ -1075,6 +1077,10 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
     case NAL_UNIT_EOS_NUT:
       ctx->FirstAfterEndOfSequenceNAL = true;
+      nal_parser.free_NAL_unit(nal);
+      break;
+
+    default:
       nal_parser.free_NAL_unit(nal);
       break;
     }
@@ -1793,7 +1799,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
   calc_tid_and_framerate_ratio();
 
-  
+
   // --- prepare decoding of new picture ---
 
   if (hdr->first_slice_segment_in_pic_flag) {
