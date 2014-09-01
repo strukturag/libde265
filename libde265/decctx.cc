@@ -496,7 +496,7 @@ de265_error decoder_context::read_vps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"---> read VPS\n");
 
-  video_parameter_set vps;
+  video_parameter_set vps = { 0 };
   de265_error err = ::read_vps(this,&reader,&vps);
   if (err != DE265_OK) {
     return err;
