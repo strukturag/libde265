@@ -392,6 +392,7 @@ void register_encoder_params(config_parameters* config)
                               INT_MAX, 1,NO_LIMIT);
 
   config->register_config_choice("TB-IntraPredMode", 0, eoffset(mAlgo_TB_IntraPredMode));
+  config->register_config_choice("TB-IntraPredMode-subset",0, eoffset(mAlgo_TB_IntraPredMode_Subset));
   config->register_config_choice("CB-IntraPartMode", 0, eoffset(mAlgo_CB_IntraPartMode));
   config->register_config_int("constant-qp", 'q', eoffset(CTB_QScale_Constant.mQP),
                               27,      1,51);

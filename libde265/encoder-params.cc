@@ -32,6 +32,11 @@ encoder_params::encoder_params()
   mAlgo_TB_IntraPredMode.addChoice("minSSD"     ,ALGO_TB_IntraPredMode_MinSSD);
   mAlgo_TB_IntraPredMode.addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
 
+  mAlgo_TB_IntraPredMode_Subset.addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
+  mAlgo_TB_IntraPredMode_Subset.addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
+  mAlgo_TB_IntraPredMode_Subset.addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
+  mAlgo_TB_IntraPredMode_Subset.addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
+
   rateControlMethod = RateControlMethod_ConstantQP;
 }
 

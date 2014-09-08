@@ -83,6 +83,13 @@ class Algo_TB_IntraPredMode
 };
 
 
+enum {
+  ALGO_TB_IntraPredMode_Subset_All,
+  ALGO_TB_IntraPredMode_Subset_HVPlus,
+  ALGO_TB_IntraPredMode_Subset_DC,
+  ALGO_TB_IntraPredMode_Subset_Planar
+};
+
 class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 {
  public:

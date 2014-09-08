@@ -78,6 +78,8 @@ struct encoder_params
   // --- Algo_TB_IntraPredMode
 
   choice_option mAlgo_TB_IntraPredMode;
+  choice_option mAlgo_TB_IntraPredMode_Subset;
+
 
   // --- Algo_TB_Split_BruteForce
 

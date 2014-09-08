@@ -1065,4 +1065,35 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
   mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
+
+
+  switch (params.mAlgo_TB_IntraPredMode_Subset.getID())
+    {
+    case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
+      break;
+    case ALGO_TB_IntraPredMode_Subset_DC:
+      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_DC);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_DC);
+      break;
+    case ALGO_TB_IntraPredMode_Subset_Planar:
+      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_PLANAR);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_PLANAR);
+      break;
+    case ALGO_TB_IntraPredMode_Subset_HVPlus:
+      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_DC);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_DC);
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_PLANAR);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_PLANAR);
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_ANGULAR_10);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_ANGULAR_10);
+      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_ANGULAR_26);
+      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_ANGULAR_26);
+      break;
+    }
 }
