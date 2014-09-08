@@ -39,6 +39,8 @@
 
 /*  Encoder search tree, bottom up:
 
+    - Algo_TB_Split - whether TB is split or not
+
     - Algo_CB_IntraPartMode - choose between NxN and 2Nx2N intra parts
 
     - Algo_CB_Split - whether CB is split or not
@@ -47,7 +49,44 @@
  */
 
 
-// --- CB intra NxN vs. 2Nx2N decision ---
+// ========== TB split decision ==========
+
+class Algo_TB_Split
+{
+ public:
+  virtual ~Algo_TB_Split() { }
+  /*
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                          int qp) = 0;
+  */
+};
+
+
+class Algo_TB_Split_BruteForce : public Algo_TB_Split
+{
+ public:
+  /*
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                          int qp);
+  */
+};
+
+
+// ========== CB intra NxN vs. 2Nx2N decision ==========
 
 enum {
   ALGO_CB_IntraPartMode_BruteForce,
@@ -64,6 +103,11 @@ class Algo_CB_IntraPartMode
                           const de265_image* input,
                           int ctb_x,int ctb_y,
                           int log2CbSize, int ctDepth, int qp) = 0;
+
+  void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
+
+ protected:
+  Algo_TB_Split* mTBSplitAlgo;
 };
 
 /* Try both NxN, 2Nx2N and choose better one.
@@ -106,7 +150,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 };
 
 
-// --- CB split decision ---
+// ========== CB split decision ==========
 
 class Algo_CB_Split
 {
@@ -125,6 +169,11 @@ class Algo_CB_Split
 
  protected:
   Algo_CB_IntraPartMode* mIntraPartModeAlgo;
+
+  enc_cb* encode_cb_split(encoder_context* ectx,
+                          context_model_table ctxModel,
+                          const de265_image* input,
+                          int x0,int y0, int Log2CbSize, int ctDepth, int qp);
 };
 
 class Algo_CB_Split_BruteForce : public Algo_CB_Split
@@ -139,7 +188,7 @@ class Algo_CB_Split_BruteForce : public Algo_CB_Split
 
 
 
-// --- choose a qscale at CTB level ---
+// ========== choose a qscale at CTB level ==========
 
 class Algo_CTB_QScale
 {
@@ -186,7 +235,7 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
 
 
 
-// --- an encoding algorithm combines a set of algorithm modules ---
+// ========== an encoding algorithm combines a set of algorithm modules ==========
 
 class EncodingAlgorithm
 {

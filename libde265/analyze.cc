@@ -512,27 +512,23 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
                                                   int x0,int y0, int log2CbSize, int ctDepth,
                                                   int qp)
 {
-  //printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
-
-  int cbSize = 1<<log2CbSize;
-
   enc_cb* cb[2] =
     { NULL, // 2Nx2N  (always checked)
       NULL  //  NxN   (only checked at MinCbSize)
     };
 
 
-  for (int p=0;p<2;p++) {
+  const bool can_use_NxN = (log2CbSize == ectx->sps.Log2MinCbSizeY);
 
-    /* Test NxN intra prediction mode only when at minimum Cb size.
-     */
-    if (p==1 &&
-        log2CbSize != ectx->sps.Log2MinCbSizeY) {
-      continue;
-    }
+  // Test NxN intra prediction mode only when at minimum Cb size.
+  const int lastMode = (can_use_NxN ? 2 : 1);
+
+
+  // test all modes
+
+  for (int p=0;p<lastMode;p++) {
 
     cb[p] = ectx->enc_cb_pool.get_new();
-    cb[p]->rate = 0;
 
     cb[p]->split_cu_flag = false;
     cb[p]->log2CbSize = log2CbSize;
@@ -561,8 +557,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
                                                             0, MaxTrafoDepth, IntraSplitFlag,
                                                             qp);
 
-    cb[p]->distortion  = cb[p]->transform_tree->distortion;
-    cb[p]->rate       += cb[p]->transform_tree->rate;
+    cb[p]->distortion = cb[p]->transform_tree->distortion;
+    cb[p]->rate       = cb[p]->transform_tree->rate;
 
 
     // rate for cu syntax
@@ -580,7 +576,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   }
 
 
-  // select between 2Nx2N and NxN
+  // choose from 2Nx2N and NxN
 
   if (cb[0] && cb[1]) {
     double rd_cost_2Nx2N = cb[0]->distortion + lambda * cb[0]->rate;
@@ -605,18 +601,19 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              int x0,int y0, int log2CbSize, int ctDepth,
                                              int qp)
 {
-  //printf("--- encode at %d %d, size %d\n",x0,y0,1<<log2CbSize);
+  enum PartMode PartMode = mParams.partMode;
 
-  int cbSize = 1<<log2CbSize;
-
-  enum PartMode PartMode = PART_2Nx2N;
+  // NxN can only be applied at minimum CB size.
+  // If we are not at the minimum size, we have to use 2Nx2N.
 
   if (PartMode==PART_NxN && log2CbSize != ectx->sps.Log2MinCbSizeY) {
     PartMode = PART_2Nx2N;
   }
 
+
+  // --- create new CB ---
+
   enc_cb* cb = ectx->enc_cb_pool.get_new();
-  cb->rate = 0;
 
   cb->split_cu_flag = false;
   cb->log2CbSize = log2CbSize;
@@ -645,8 +642,11 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                                        0, MaxTrafoDepth, IntraSplitFlag,
                                                        qp);
 
-  cb->distortion  = cb->transform_tree->distortion;
-  cb->rate       += cb->transform_tree->rate;
+
+  // rate and distortion for this CB
+
+  cb->distortion = cb->transform_tree->distortion;
+  cb->rate       = cb->transform_tree->rate;
 
 
   // rate for cu syntax
@@ -656,12 +656,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
   cb->rate += estim.getRDBits();
 
-
-  // estimate distortion
-
-  cb->write_to_image(&ectx->img, x0,y0, true);
-  cb->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
-
   return cb;
 }
 
@@ -670,12 +664,12 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
 // Utility function to encode all four children in a splitted CB.
 // Children are coded with the specified algo_cb_split.
-enc_cb* encode_cb_split(encoder_context* ectx,
-                        Algo_CB_Split* algo_cb_split,
-                        context_model_table ctxModel,
-                        const de265_image* input,
-                        int x0,int y0, int Log2CbSize, int ctDepth, int qp)
+enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
+                                       context_model_table ctxModel,
+                                       const de265_image* input,
+                                       int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
+  // create a splitted CB node
   enc_cb* cb = ectx->enc_cb_pool.get_new();
 
   cb->split_cu_flag = true;
@@ -695,13 +689,15 @@ enc_cb* encode_cb_split(encoder_context* ectx,
   cb->rate       = estim.getRDBits();
 
 
+  // encode all 4 children and sum their distortions and rates
+
   for (int i=0;i<4;i++) {
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
-    cb->children[i] = algo_cb_split->analyze(ectx, ctxModel,
-                                             input, x0+dx, y0+dy,
-                                             Log2CbSize-1, ctDepth+1, qp);
+    cb->children[i] = analyze(ectx, ctxModel,
+                              input, x0+dx, y0+dy,
+                              Log2CbSize-1, ctDepth+1, qp);
 
     cb->distortion += cb->children[i]->distortion;
     cb->rate       += cb->children[i]->rate;
@@ -725,34 +721,46 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   // if we will try splitting the CB, make a copy of the initial ctxModel
 
-  if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
+  const bool can_split_CB = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
+
+  if (can_split_CB) {
     copy_context_model_table(ctxSplit, ctxModel);
   }
 
+
+  // try encoding without splitting
+
   enc_cb* cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
                                                     x0,y0, Log2CbSize, ctDepth, qp);
-  enc_cb* cb_split = NULL;
-  enc_cb* cb = cb_no_split;
+  enc_cb* cb_best = cb_no_split;
 
-  if (Log2CbSize > ectx->sps.Log2MinCbSizeY) {
-    cb_split = encode_cb_split(ectx, this, ctxSplit,
-                               input,x0,y0, Log2CbSize, ctDepth, qp);
 
-    float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
-    float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
+  // if possible, try to split CB
 
-    bool split =  (rd_cost_split < rd_cost_no_split);
+  if (can_split_CB) {
+    enc_cb* cb_split = encode_cb_split(ectx, ctxSplit,
+                                       input,x0,y0, Log2CbSize, ctDepth, qp);
 
-    if (split) {
-      cb = cb_split;
+
+    // compute RD costs for both variants
+
+    const float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
+    const float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
+
+    const bool split_is_better =  (rd_cost_split < rd_cost_no_split);
+
+    if (split_is_better) {
+      cb_best = cb_split;
     }
     else {
-      cb->write_to_image(&ectx->img, x0,y0, true);
-      cb->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+      // have to reconstruct state of the first option
+
+      cb_best->write_to_image(&ectx->img, x0,y0, true);
+      cb_best->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
     }
   }
 
-  return cb;
+  return cb_best;
 }
 
 
