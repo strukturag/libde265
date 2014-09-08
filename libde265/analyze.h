@@ -41,6 +41,8 @@
 
     - Algo_TB_Split - whether TB is split or not
 
+    - Algo_TB_IntraPredMode - choose the intra prediction mode (or NOP, if at the wrong tree level)
+
     - Algo_CB_IntraPartMode - choose between NxN and 2Nx2N intra parts
 
     - Algo_CB_Split - whether CB is split or not
@@ -49,40 +51,94 @@
  */
 
 
+// ========== TB intra prediction mode ==========
+
+class Algo_TB_Split;
+
+class Algo_TB_IntraPredMode
+{
+ public:
+  Algo_TB_IntraPredMode() : mTBSplitAlgo(NULL) { }
+  virtual ~Algo_TB_IntraPredMode() { }
+
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp) = 0;
+
+  void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
+
+ protected:
+  Algo_TB_Split* mTBSplitAlgo;
+};
+
+
+class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode
+{
+ public:
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp);
+};
+
+
 // ========== TB split decision ==========
 
 class Algo_TB_Split
 {
  public:
+  Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
   virtual ~Algo_TB_Split() { }
-  /*
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          const enc_tb* parent,
-                          enc_cb* cb,
-                          int x0,int y0, int xBase,int yBase, int log2TbSize,
-                          int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                          int qp) = 0;
-  */
+
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp) = 0;
+
+  void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
+
+ protected:
+  const enc_tb* encode_transform_tree_split(encoder_context* ectx,
+                                            context_model_table ctxModel,
+                                            const de265_image* input,
+                                            const enc_tb* parent,
+                                            enc_cb* cb,
+                                            int x0,int y0, int log2TbSize,
+                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                            int qp);
+
+  Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
 };
 
 
 class Algo_TB_Split_BruteForce : public Algo_TB_Split
 {
  public:
-  /*
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          const enc_tb* parent,
-                          enc_cb* cb,
-                          int x0,int y0, int xBase,int yBase, int log2TbSize,
-                          int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                          int qp);
-  */
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp);
 };
 
 
@@ -96,6 +152,7 @@ enum {
 class Algo_CB_IntraPartMode
 {
  public:
+  Algo_CB_IntraPartMode() : mTBIntraPredModeAlgo(NULL) { }
   virtual ~Algo_CB_IntraPartMode() { }
 
   virtual enc_cb* analyze(encoder_context*,
@@ -104,10 +161,10 @@ class Algo_CB_IntraPartMode
                           int ctb_x,int ctb_y,
                           int log2CbSize, int ctDepth, int qp) = 0;
 
-  void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
+  void setChildAlgo(Algo_TB_IntraPredMode* algo) { mTBIntraPredModeAlgo = algo; }
 
  protected:
-  Algo_TB_Split* mTBSplitAlgo;
+  Algo_TB_IntraPredMode* mTBIntraPredModeAlgo;
 };
 
 /* Try both NxN, 2Nx2N and choose better one.
@@ -265,6 +322,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;
   Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
+
+  Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
+  Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
 };
 
 

@@ -30,6 +30,7 @@
 
 float lambda = 50.0;
 
+/*
 const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               context_model_table ctxModel,
                                               const de265_image* input,
@@ -39,6 +40,7 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
                                               int blkIdx,
                                               int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                               int qp);
+*/
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
@@ -256,14 +258,15 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 }
 
 
-const enc_tb* encode_transform_tree_split(encoder_context* ectx,
-                                          context_model_table ctxModel,
-                                          const de265_image* input,
-                                          const enc_tb* parent,
-                                          enc_cb* cb,
-                                          int x0,int y0, int log2TbSize,
-                                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                          int qp)
+const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
+                                                         context_model_table ctxModel,
+                                                         const de265_image* input,
+                                                         const enc_tb* parent,
+                                                         enc_cb* cb,
+                                                         int x0,int y0, int log2TbSize,
+                                                         int TrafoDepth, int MaxTrafoDepth,
+                                                         int IntraSplitFlag,
+                                                         int qp)
 {
   const de265_image* img = &ectx->img;
 
@@ -283,11 +286,11 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
 
-    tb->children[i] = encode_transform_tree_may_split(ectx, ctxModel, input, tb, cb,
-                                                      x0+dx, y0+dy, x0,y0,
-                                                      log2TbSize-1, i,
-                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
-                                                      qp);
+    tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
+                                    x0+dx, y0+dy, x0,y0,
+                                    log2TbSize-1, i,
+                                    TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
+                                    qp);
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
@@ -312,40 +315,30 @@ const enc_tb* encode_transform_tree_split(encoder_context* ectx,
 }
 
 
-const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
-                                               context_model_table ctxModel,
-                                               const de265_image* input,
-                                               const enc_tb* parent,
-                                               enc_cb* cb,
-                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                               int blkIdx,
-                                               int TrafoDepth, int MaxTrafoDepth,
-                                               int IntraSplitFlag,
-                                               int qp);
-
-const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
-                                              context_model_table ctxModel,
-                                              const de265_image* input,
-                                              const enc_tb* parent,
-                                              enc_cb* cb,
-                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                              int blkIdx,
-                                              int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                              int qp)
+const enc_tb*
+Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
+                                          context_model_table ctxModel,
+                                          const de265_image* input,
+                                          const enc_tb* parent,
+                                          enc_cb* cb,
+                                          int x0,int y0, int xBase,int yBase,
+                                          int log2TbSize, int blkIdx,
+                                          int TrafoDepth, int MaxTrafoDepth,
+                                          int IntraSplitFlag, int qp)
 {
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
+
+  /*
+    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
+    input->get_image_plane_at_pos(0,x0,y0),
+    input->get_image_stride(0));
+  */
 
   bool selectIntraPredMode = false;
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    /*
-    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
-                                                        input->get_image_plane_at_pos(0,x0,y0),
-                                                        input->get_image_stride(0));
-    */
-
     const enc_tb* tb[35];
 
     float minCost = std::numeric_limits<float>::max();
@@ -375,10 +368,10 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
 
       ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      tb[intraMode] = encode_transform_tree_may_split2(ectx,ctxIntra,input,parent,
-                                                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                                       qp);
+      tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
+                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                            qp);
 
 
       float rate = tb[intraMode]->rate;
@@ -419,24 +412,26 @@ const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
     return tb[minCostIdx];
   }
   else {
-    return encode_transform_tree_may_split2(ectx,ctxModel,input,parent,
-                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag, qp);
+    return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
+                                 x0,y0,xBase,yBase, log2TbSize,
+                                 blkIdx, TrafoDepth, MaxTrafoDepth,
+                                 IntraSplitFlag, qp);
   }
 }
 
 
 
-const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
-                                               context_model_table ctxModel,
-                                               const de265_image* input,
-                                               const enc_tb* parent,
-                                               enc_cb* cb,
-                                               int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                               int blkIdx,
-                                               int TrafoDepth, int MaxTrafoDepth,
-                                               int IntraSplitFlag,
-                                               int qp)
+const enc_tb*
+Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
+                                  context_model_table ctxModel,
+                                  const de265_image* input,
+                                  const enc_tb* parent,
+                                  enc_cb* cb,
+                                  int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                  int blkIdx,
+                                  int TrafoDepth, int MaxTrafoDepth,
+                                  int IntraSplitFlag,
+                                  int qp)
 {
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
@@ -451,13 +446,13 @@ const enc_tb* encode_transform_tree_may_split2(encoder_context* ectx,
 
 
   /*
-  printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
-         log2TbSize,
-         TrafoDepth,
-         MaxTrafoDepth,
-         log2TbSize,
-         ectx->sps.Log2MinTrafoSize);
-  printf("  intra split flag: %d\n",IntraSplitFlag);
+    printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
+    log2TbSize,
+    TrafoDepth,
+    MaxTrafoDepth,
+    log2TbSize,
+    ectx->sps.Log2MinTrafoSize);
+    printf("  intra split flag: %d\n",IntraSplitFlag);
   */
   const enc_tb* tb_no_split = NULL;
   const enc_tb* tb_split    = NULL;
@@ -551,11 +546,11 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     int IntraSplitFlag= (cb[p]->PredMode == MODE_INTRA && cb[p]->PartMode == PART_NxN);
     int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-    cb[p]->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb[p],
-                                                            x0,y0, x0,y0, log2CbSize,
-                                                            0,
-                                                            0, MaxTrafoDepth, IntraSplitFlag,
-                                                            qp);
+    cb[p]->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb[p],
+                                                          x0,y0, x0,y0, log2CbSize,
+                                                          0,
+                                                          0, MaxTrafoDepth, IntraSplitFlag,
+                                                          qp);
 
     cb[p]->distortion = cb[p]->transform_tree->distortion;
     cb[p]->rate       = cb[p]->transform_tree->rate;
@@ -636,12 +631,12 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-  cb->transform_tree = encode_transform_tree_may_split(ectx, ctxModel, input, NULL, cb,
-                                                       x0,y0, x0,y0, log2CbSize,
-                                                       0,
-                                                       0, MaxTrafoDepth, IntraSplitFlag,
-                                                       qp);
-
+  cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb,
+                                                     x0,y0, x0,y0, log2CbSize,
+                                                     0,
+                                                     0, MaxTrafoDepth, IntraSplitFlag,
+                                                     qp);
+  
 
   // rate and distortion for this CB
 
@@ -1000,16 +995,21 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
 
+  Algo_CB_IntraPartMode* algo_CB_IntraPartMode = NULL;
   switch (params.mAlgo_CB_IntraPartMode.getID()) {
   case ALGO_CB_IntraPartMode_BruteForce:
-    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
+    algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_BruteForce;
     break;
   case ALGO_CB_IntraPartMode_Fixed:
-    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
+    algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_Fixed;
     break;
   }
+  mAlgo_CB_Split_BruteForce.setChildAlgo(algo_CB_IntraPartMode);
 
+  algo_CB_IntraPartMode->setChildAlgo(&mAlgo_TB_IntraPredMode_BruteForce);
 
+  mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(&mAlgo_TB_IntraPredMode_BruteForce);
+  mAlgo_TB_IntraPredMode_BruteForce.setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
   // set algorithm parameters
