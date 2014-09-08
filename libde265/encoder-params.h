@@ -25,8 +25,6 @@
 
 #include "libde265/encode.h"
 #include "libde265/analyze.h"
-#include <string>
-#include <vector>
 
 
 enum RateControlMethod
@@ -40,19 +38,6 @@ enum IntraPredSearch
     IntraPredSearch_Complete
   };
 
-
-class ChoiceOption
-{
- public:
-  void addChoice(const std::string& s) { choices.push_back(s); }
-
-  void setValue(const std::string& val) { value=val; }
-  bool isValidValue() const;
-
- private:
-  std::vector<std::string> choices;
-  std::string value;
-};
 
 
 struct encoder_params
@@ -92,7 +77,7 @@ struct encoder_params
 
   // --- Algo_CB_IntraPartMode
 
-  ChoiceOption mAlgo_CB_IntraPartMode;
+  choice_option mAlgo_CB_IntraPartMode;
 
   Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
   Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;

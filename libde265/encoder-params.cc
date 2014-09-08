@@ -23,26 +23,11 @@
 #include "encoder-params.h"
 
 
-bool ChoiceOption::isValidValue() const
-{
-  for (int i=0;i<choices.size();i++) {
-    if (value == choices[i]) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-
-
-const char* ALGO_CB_IntraPartMode_BruteForce = "brute-force";
-const char* ALGO_CB_IntraPartMode_Fixed = "fixed";
 
 encoder_params::encoder_params()
 {
-  mAlgo_CB_IntraPartMode.addChoice(ALGO_CB_IntraPartMode_Fixed);
-  mAlgo_CB_IntraPartMode.addChoice(ALGO_CB_IntraPartMode_BruteForce);
+  mAlgo_CB_IntraPartMode.addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
+  mAlgo_CB_IntraPartMode.addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
 
   rateControlMethod = RateControlMethod_ConstantQP;
 }

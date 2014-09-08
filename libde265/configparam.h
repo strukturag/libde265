@@ -25,7 +25,34 @@
 
 #include <climits>
 #include <vector>
+#include <string>
 #include <stddef.h>
+
+
+class choice_option
+{
+ public:
+ choice_option() : validValue(false) { }
+
+  void addChoice(const std::string& s, int id, bool default_value=false) {
+    choices.push_back( std::make_pair(s,id) );
+    if (default_value) { setValue(s); }
+  }
+
+  void setValue(const std::string& val);
+  bool isValidValue() const { return validValue; }
+
+  const std::string& getValue() const { return selectedValue; }
+  const int getID() const { return selectedID; }
+  const std::vector< std::pair<std::string,int> >& getChoices() const { return choices; }
+
+ private:
+  std::vector< std::pair<std::string,int> > choices;
+  std::string selectedValue;
+  int selectedID;
+  bool validValue;
+};
+
 
 
 class config_parameters
@@ -39,6 +66,8 @@ class config_parameters
 
   void register_config_string(const char* name, char short_option, size_t offset,
                               const char* default_value);
+
+  void register_config_choice(const char* name, char short_option, size_t offset);
 
   void show_params() const;
 
@@ -58,7 +87,7 @@ class config_parameters
       bool        bool_default;
     };
 
-    enum { Config_Int, Config_Bool, Config_String } type;
+    enum { Config_Int, Config_Bool, Config_String, Config_Choice } type;
 
     int int_low_limit;
     int int_high_limit;

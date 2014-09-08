@@ -49,6 +49,11 @@
 
 // --- CB intra NxN vs. 2Nx2N decision ---
 
+enum {
+  ALGO_CB_IntraPartMode_BruteForce,
+  ALGO_CB_IntraPartMode_Fixed
+};
+
 class Algo_CB_IntraPartMode
 {
  public:
@@ -199,7 +204,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 {
  public:
 
-  void setParams(encoder_context& ectx);
+  void setParams(struct encoder_params& params);
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
 

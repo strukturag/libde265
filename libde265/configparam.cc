@@ -29,6 +29,24 @@
 #include <iostream>
 
 
+void choice_option::setValue(const std::string& val)
+{
+  for (int i=0;i<choices.size();i++) {
+    if (val == choices[i].first) {
+      validValue = true;
+      selectedID = choices[i].second;
+      selectedValue=val;
+      return;
+    }
+  }
+
+  validValue=false;
+  selectedID=-1;
+  selectedValue="";
+}
+
+
+
 void config_parameters::register_config_int(const char* name, char short_option, size_t offset,
                                             int default_value,
                                             int low_limit, int high_limit)
@@ -54,6 +72,18 @@ void config_parameters::register_config_string(const char* name, char short_opti
   param.name = name;
   param.short_option = short_option;
   param.string_default = default_value;
+  param.offset = offset;
+
+  params.push_back(param);
+}
+
+
+void config_parameters::register_config_choice(const char* name, char short_option, size_t offset)
+{
+  struct config_param param;
+  param.type = config_param::Config_Choice;
+  param.name = name;
+  param.short_option = short_option;
   param.offset = offset;
 
   params.push_back(param);
@@ -86,6 +116,9 @@ void config_parameters::set_defaults(void* dst)
 
     case config_param::Config_String:
       *(const char**)((char*)dst+param.offset) = param.string_default;
+      break;
+
+    case config_param::Config_Choice:
       break;
     }
   }
@@ -130,6 +163,12 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
 
   else if (type == config_param::Config_String) {
     *(const char**)((char*)dst+offset) = value;
+  }
+
+  // --- choice ---
+
+  else if (type == config_param::Config_Choice) {
+    ((choice_option*)((char*)dst+offset))->setValue(value);
   }
 
   return true;
@@ -279,6 +318,7 @@ void config_parameters::show_params() const
     case config_param::Config_Int:    sstr << "int"; break;
     case config_param::Config_Bool:   sstr << "bool"; break;
     case config_param::Config_String: sstr << "string"; break;
+    case config_param::Config_Choice: sstr << "choice"; break;
     }
     sstr << ")";
 
@@ -296,6 +336,7 @@ void config_parameters::show_params() const
     case config_param::Config_Int:    sstr << p.int_default; break;
     case config_param::Config_Bool:   sstr << (p.bool_default ? "on":"off"); break;
     case config_param::Config_String: sstr << p.string_default; break;
+    case config_param::Config_Choice: sstr << "(TODO)"; break;
     }
 
     sstr << "\n";
@@ -324,6 +365,8 @@ void register_encoder_params(config_parameters* config)
                               0,       0,NO_LIMIT);
   config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
                               INT_MAX, 1,NO_LIMIT);
+
+  config->register_config_choice("CB-IntraPartMode", 0, eoffset(mAlgo_CB_IntraPartMode));
   config->register_config_int("constant-qp", 'q', eoffset(CTB_QScale_Constant.mQP),
                               27,      1,51);
 

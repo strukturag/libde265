@@ -871,7 +871,7 @@ double encode_image(encoder_context* ectx,
 void encode_sequence(encoder_context* ectx)
 {
   EncodingAlgorithm_Custom algo;
-  algo.setParams(*ectx);
+  algo.setParams(ectx->params);
 
   // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
   int qp = algo.getPPS_QP();
@@ -986,18 +986,27 @@ void encode_sequence(encoder_context* ectx)
 }
 
 
-
-void EncodingAlgorithm_Custom::setParams(encoder_context& ectx)
+#include <iostream>
+void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 {
   // build algorithm tree
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
-  //mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
-  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
+
+  switch (params.mAlgo_CB_IntraPartMode.getID()) {
+  case ALGO_CB_IntraPartMode_BruteForce:
+    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
+    break;
+  case ALGO_CB_IntraPartMode_Fixed:
+    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
+    break;
+  }
+
+
 
 
   // set algorithm parameters
 
-  mAlgo_CB_IntraPartMode_Fixed.setParams(ectx.params.CB_IntraPartMode_Fixed);
-  mAlgo_CTB_QScale_Constant.setParams(ectx.params.CTB_QScale_Constant);
+  mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
+  mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
 }
