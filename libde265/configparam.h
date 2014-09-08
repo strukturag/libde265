@@ -34,12 +34,17 @@ class choice_option
  public:
  choice_option() : validValue(false) { }
 
+  // --- initialization ---
+
   void addChoice(const std::string& s, int id, bool default_value=false) {
     choices.push_back( std::make_pair(s,id) );
     if (default_value) { setValue(s); }
   }
 
-  void setValue(const std::string& val);
+
+  // --- usage ---
+
+  bool setValue(const std::string& val); // returns false if it is not a valid option
   bool isValidValue() const { return validValue; }
 
   const std::string& getValue() const { return selectedValue; }
@@ -69,7 +74,7 @@ class config_parameters
 
   void register_config_choice(const char* name, char short_option, size_t offset);
 
-  void show_params() const;
+  void show_params(void* params) const;
 
   void set_defaults(void* dst);
   bool parse_command_line_params(int* argc, char** argv,  void* dst,

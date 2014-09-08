@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"      --help         show help\n");
     fprintf(stderr,"  -v, --verbose      increase verbosity level (up to 3 times)\n");
 
-    config_param.show_params();
+    config_param.show_params(&ectx.params);
 
     exit(show_help ? 0 : 5);
   }
@@ -95,6 +95,8 @@ int main(int argc, char** argv)
   init_acceleration_functions_fallback(&ectx.accel);
 
   de265_set_verbosity(verbosity);
+
+
 
   ImageSink_YUV reconstruction_sink;
   if (strlen(ectx.params.reconstruction_yuv) != 0) {

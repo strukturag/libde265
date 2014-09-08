@@ -986,7 +986,6 @@ void encode_sequence(encoder_context* ectx)
 }
 
 
-#include <iostream>
 void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 {
   // build algorithm tree

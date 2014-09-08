@@ -29,20 +29,21 @@
 #include <iostream>
 
 
-void choice_option::setValue(const std::string& val)
+bool choice_option::setValue(const std::string& val)
 {
   for (int i=0;i<choices.size();i++) {
     if (val == choices[i].first) {
       validValue = true;
       selectedID = choices[i].second;
       selectedValue=val;
-      return;
+      return true;
     }
   }
 
   validValue=false;
   selectedID=-1;
   selectedValue="";
+  return false;
 }
 
 
@@ -168,7 +169,11 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
   // --- choice ---
 
   else if (type == config_param::Config_Choice) {
-    ((choice_option*)((char*)dst+offset))->setValue(value);
+    bool valid = ((choice_option*)((char*)dst+offset))->setValue(value);
+    if (!valid) {
+      fprintf(stderr,"Parameter value %s for %s is not a valid value.\n", value, name);
+      return false;
+    }
   }
 
   return true;
@@ -288,7 +293,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, void* 
 }
 
 
-void config_parameters::show_params() const
+void config_parameters::show_params(void* paramstruct) const
 {
   for (int i=0;i<params.size();i++) {
     const config_param& p = params[i];
@@ -313,14 +318,24 @@ void config_parameters::show_params() const
       sstr << "              ";
     }
 
-    sstr << " (";
+    sstr << " ";
     switch (p.type) {
-    case config_param::Config_Int:    sstr << "int"; break;
-    case config_param::Config_Bool:   sstr << "bool"; break;
-    case config_param::Config_String: sstr << "string"; break;
-    case config_param::Config_Choice: sstr << "choice"; break;
+    case config_param::Config_Int:    sstr << "(int)"; break;
+    case config_param::Config_Bool:   sstr << "(bool)"; break;
+    case config_param::Config_String: sstr << "(string)"; break;
+    case config_param::Config_Choice: { sstr << "{";
+      const std::vector< std::pair<std::string,int> > choices =
+        ((choice_option*)((char*)paramstruct+p.offset))->getChoices();
+
+      for (int i=0;i<choices.size();i++) {
+        if (i>0) { sstr << ","; }
+        sstr << choices[i].first;
+      }
+
+      sstr << "}";
     }
-    sstr << ")";
+      break;
+    }
 
     if (p.type==config_param::Config_Int) {
       if (p.int_low_limit != NO_LIMIT) {
@@ -336,7 +351,17 @@ void config_parameters::show_params() const
     case config_param::Config_Int:    sstr << p.int_default; break;
     case config_param::Config_Bool:   sstr << (p.bool_default ? "on":"off"); break;
     case config_param::Config_String: sstr << p.string_default; break;
-    case config_param::Config_Choice: sstr << "(TODO)"; break;
+    case config_param::Config_Choice: {
+      choice_option* opt = (choice_option*)((char*)paramstruct+p.offset);
+
+      const std::vector< std::pair<std::string,int> > choices = opt->getChoices();
+
+      for (int i=0;i<choices.size();i++) {
+        if (choices[i].second == opt->getID())
+          { sstr << choices[i].first; break; }
+      }
+    }
+      break;
     }
 
     sstr << "\n";
