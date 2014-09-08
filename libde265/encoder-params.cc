@@ -29,6 +29,9 @@ encoder_params::encoder_params()
   mAlgo_CB_IntraPartMode.addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
   mAlgo_CB_IntraPartMode.addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
 
+  mAlgo_TB_IntraPredMode.addChoice("minSSD"     ,ALGO_TB_IntraPredMode_MinSSD);
+  mAlgo_TB_IntraPredMode.addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
+
   rateControlMethod = RateControlMethod_ConstantQP;
 }
 

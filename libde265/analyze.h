@@ -53,6 +53,11 @@
 
 // ========== TB intra prediction mode ==========
 
+enum {
+  ALGO_TB_IntraPredMode_BruteForce,
+  ALGO_TB_IntraPredMode_MinSSD
+};
+
 class Algo_TB_Split;
 
 class Algo_TB_IntraPredMode
@@ -78,9 +83,50 @@ class Algo_TB_IntraPredMode
 };
 
 
-class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode
+class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 {
  public:
+  Algo_TB_IntraPredMode_ModeSubset() {
+    for (int i=0;i<35;i++) {
+      mPredMode_enabled[i] = true;
+    }
+  }
+
+  void disableAllIntraPredModes() {
+    for (int i=0;i<35;i++) {
+      mPredMode_enabled[i] = false;
+    }
+  }
+
+  void enableIntraPredMode(int mode, bool flag=true) {
+    mPredMode_enabled[mode] = flag;
+  }
+
+ protected:
+  bool mPredMode_enabled[35];
+};
+
+
+class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
+{
+ public:
+
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp);
+};
+
+
+class Algo_TB_IntraPredMode_MinSSD : public Algo_TB_IntraPredMode_ModeSubset
+{
+ public:
+
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
                                 const de265_image* input,
@@ -324,7 +370,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
+
   Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
+  Algo_TB_IntraPredMode_MinSSD      mAlgo_TB_IntraPredMode_MinSSD;
 };
 
 

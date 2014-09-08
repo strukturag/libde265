@@ -30,17 +30,6 @@
 
 float lambda = 50.0;
 
-/*
-const enc_tb* encode_transform_tree_may_split(encoder_context* ectx,
-                                              context_model_table ctxModel,
-                                              const de265_image* input,
-                                              const enc_tb* parent,
-                                              enc_cb* cb,
-                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                              int blkIdx,
-                                              int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                              int qp);
-*/
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
@@ -287,10 +276,10 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dy = (i>>1) << (log2TbSize-1);
 
     tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
-                                    x0+dx, y0+dy, x0,y0,
-                                    log2TbSize-1, i,
-                                    TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
-                                    qp);
+                                                      x0+dx, y0+dy, x0,y0,
+                                                      log2TbSize-1, i,
+                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
+                                                      qp);
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
@@ -354,6 +343,11 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
     for (int i = 0; i<35; i++) {
+      if (!mPredMode_enabled[i]) {
+        tb[i]=NULL;
+        continue;
+      }
+
 
       context_model_table ctxIntra;
       copy_context_model_table(ctxIntra, ctxModel);
@@ -361,10 +355,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
       cb->intra.pred_mode[blkIdx] = intraMode;
-      if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-
-      // TODO: it's probably better to have more fine-grained writing to the image (only pred-mode)
-      //cb->write_to_image(&ectx->img, xBase,yBase, true);
+      if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
       ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
@@ -410,6 +401,53 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
 
     return tb[minCostIdx];
+  }
+  else {
+    return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
+                                 x0,y0,xBase,yBase, log2TbSize,
+                                 blkIdx, TrafoDepth, MaxTrafoDepth,
+                                 IntraSplitFlag, qp);
+  }
+}
+
+
+
+const enc_tb*
+Algo_TB_IntraPredMode_MinSSD::analyze(encoder_context* ectx,
+                                      context_model_table ctxModel,
+                                      const de265_image* input,
+                                      const enc_tb* parent,
+                                      enc_cb* cb,
+                                      int x0,int y0, int xBase,int yBase,
+                                      int log2TbSize, int blkIdx,
+                                      int TrafoDepth, int MaxTrafoDepth,
+                                      int IntraSplitFlag, int qp)
+{
+
+  bool selectIntraPredMode = false;
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
+
+  if (selectIntraPredMode) {
+    enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
+                                                        input->get_image_plane_at_pos(0,x0,y0),
+                                                        input->get_image_stride(0));
+
+    cb->intra.pred_mode[blkIdx] = intraMode;
+    if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+
+    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+    const enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
+                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                             qp);
+
+    tb->reconstruct(&ectx->accel,
+                    &ectx->img, x0,y0, xBase,yBase,
+                    cb, qp, blkIdx);
+
+    return tb;
   }
   else {
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
@@ -1006,10 +1044,21 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   }
   mAlgo_CB_Split_BruteForce.setChildAlgo(algo_CB_IntraPartMode);
 
-  algo_CB_IntraPartMode->setChildAlgo(&mAlgo_TB_IntraPredMode_BruteForce);
 
-  mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(&mAlgo_TB_IntraPredMode_BruteForce);
-  mAlgo_TB_IntraPredMode_BruteForce.setChildAlgo(&mAlgo_TB_Split_BruteForce);
+  Algo_TB_IntraPredMode* algo_TB_IntraPredMode = NULL;
+  switch (params.mAlgo_TB_IntraPredMode.getID()) {
+  case ALGO_TB_IntraPredMode_BruteForce:
+    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_BruteForce;
+    break;
+  case ALGO_TB_IntraPredMode_MinSSD:
+    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinSSD;
+    break;
+  }
+
+  algo_CB_IntraPartMode->setChildAlgo(algo_TB_IntraPredMode);
+
+  mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(algo_TB_IntraPredMode);
+  algo_TB_IntraPredMode->setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
   // set algorithm parameters

@@ -75,6 +75,13 @@ struct encoder_params
   int max_transform_hierarchy_depth_intra;
 
 
+  // --- Algo_TB_IntraPredMode
+
+  choice_option mAlgo_TB_IntraPredMode;
+
+  // --- Algo_TB_Split_BruteForce
+
+
   // --- Algo_CB_IntraPartMode
 
   choice_option mAlgo_CB_IntraPartMode;
