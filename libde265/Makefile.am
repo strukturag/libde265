@@ -50,6 +50,8 @@ libde265_la_SOURCES = \
   deblock.h \
   decctx.h \
   encode.h encode.cc \
+  encoder-params.h encoder-params.cc \
+  encoder-context.h \
   image.h \
   intrapred.h \
   md5.h \

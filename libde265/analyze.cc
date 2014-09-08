@@ -22,6 +22,7 @@
 
 
 #include "libde265/analyze.h"
+#include "libde265/encoder-context.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
@@ -763,9 +764,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           int ctb_x,int ctb_y,
                                           int log2CtbSize, int ctDepth)
 {
-  mQP = ectx->params.constant_QP;
-
-  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth,mQP);
+  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth,mParams.mQP);
 }
 
 
@@ -871,8 +870,11 @@ double encode_image(encoder_context* ectx,
 
 void encode_sequence(encoder_context* ectx)
 {
+  EncodingAlgorithm_Custom algo;
+  algo.setParams(*ectx);
+
   // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
-  int qp = ectx->params.constant_QP;
+  int qp = algo.getPPS_QP();
 
   //lambda = ectx->params.lambda;
   lambda = 0.0242 * pow(1.27245, qp);
@@ -944,9 +946,6 @@ void encode_sequence(encoder_context* ectx)
 
   ectx->img_source->release_next_image( ectx->params.first_frame );
 
-  EncodingAlgorithm_Custom algo;
-  algo.prepare();
-
   int maxPoc = ectx->params.max_number_of_frames;
   for (int poc=0; poc<maxPoc ;poc++)
     {
@@ -986,3 +985,19 @@ void encode_sequence(encoder_context* ectx)
     }
 }
 
+
+
+void EncodingAlgorithm_Custom::setParams(encoder_context& ectx)
+{
+  // build algorithm tree
+
+  mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
+  //mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
+  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
+
+
+  // set algorithm parameters
+
+  mAlgo_CB_IntraPartMode_Fixed.setParams(ectx.params.CB_IntraPartMode_Fixed);
+  mAlgo_CTB_QScale_Constant.setParams(ectx.params.CTB_QScale_Constant);
+}

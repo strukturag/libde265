@@ -34,6 +34,17 @@
 #include "libde265/quality.h"
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
+#include "libde265/encode.h"
+
+
+/*  Encoder search tree, bottom up:
+
+    - Algo_CB_IntraPartMode - choose between NxN and 2Nx2N intra parts
+
+    - Algo_CB_Split - whether CB is split or not
+
+    - Algo_CTB_QScale - select QScale on CTB granularity
+ */
 
 
 // --- CB intra NxN vs. 2Nx2N decision ---
@@ -50,6 +61,8 @@ class Algo_CB_IntraPartMode
                           int log2CbSize, int ctDepth, int qp) = 0;
 };
 
+/* Try both NxN, 2Nx2N and choose better one.
+ */
 class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
 {
  public:
@@ -60,10 +73,22 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
                           int log2CbSize, int ctDepth, int qp);
 };
 
+/* Always use choose selected part mode.
+   If NxN is chosen but cannot be applied (CB tree not at maximum depth), 2Nx2N is used instead.
+ */
 class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 {
  public:
- Algo_CB_IntraPartMode_Fixed() : mPartMode(PART_2Nx2N) { }
+ Algo_CB_IntraPartMode_Fixed() { }
+
+  struct params
+  {
+  params() : partMode(PART_2Nx2N) { }
+
+    enum PartMode partMode;
+  };
+
+  void setParams(const params& p) { mParams=p; }
 
   virtual enc_cb* analyze(encoder_context* ectx,
                           context_model_table ctxModel,
@@ -72,7 +97,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
                           int qp);
 
  private:
-  enum PartMode mPartMode;
+  params mParams;
 };
 
 
@@ -132,16 +157,26 @@ class Algo_CTB_QScale
 class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
 {
  public:
+  struct params
+  {
+  params() : mQP(27) { }
+
+    int mQP;
+  };
+
+  void setParams(const params& p) { mParams=p; }
+
+
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
                           int log2CtbSize, int ctDepth);
 
-  int getQP() const { return mQP; }
+  int getQP() const { return mParams.mQP; }
 
  private:
-  int mQP;
+  params mParams;
 };
 
 
@@ -152,8 +187,6 @@ class EncodingAlgorithm
 {
  public:
   virtual ~EncodingAlgorithm() { }
-
-  virtual void prepare() = 0;
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() = 0;
 
@@ -166,11 +199,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 {
  public:
 
-  virtual void prepare() {
-    mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
-    //mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_BruteForce);
-    mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_IntraPartMode_Fixed);
-  }
+  void setParams(encoder_context& ectx);
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
 

@@ -32,68 +32,6 @@ struct encoder_context;
 struct enc_cb;
 
 
-enum RateControlMethod
-  {
-    RateControlMethod_ConstantQP,
-    RateControlMethod_ConstantLambda
-  };
-
-enum IntraPredSearch
-  {
-    IntraPredSearch_Complete
-  };
-
-
-struct encoder_params
-{
-  encoder_params();
-
-  // input
-
-  int first_frame;
-  int max_number_of_frames;
-
-  const char* input_yuv;
-  int input_width;
-  int input_height;
-
-
-  // output
-
-  const char* output_filename;
-
-
-  // debug
-
-  const char* reconstruction_yuv;
-
-
-  // CB quad-tree
-
-  int min_cb_size;
-  int max_cb_size;
-
-  int min_tb_size;
-  int max_tb_size;
-
-  int max_transform_hierarchy_depth_intra;
-
-
-  // intra-prediction
-
-  enum IntraPredSearch intraPredSearch;
-
-
-  // rate-control
-
-  enum RateControlMethod rateControlMethod;
-
-  int constant_QP;
-  int lambda;
-};
-
-
-
 struct enc_tb
 {
   const enc_tb* parent;
@@ -187,79 +125,9 @@ struct enc_cb
 };
 
 
-struct encoder_context
-{
-  encoder_context() {
-    img_source = NULL;
-    reconstruction_sink = NULL;
-    packet_sink = NULL;
-
-    enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
-
-    switch_CABAC_to_bitstream();
-  }
 
 
-  encoder_params params;
-
-  ImageSource*   img_source;
-  ImageSink*     reconstruction_sink;
-  PacketSink*    packet_sink;
-
-  error_queue errqueue;
-  acceleration_functions accel;
-
-  de265_image img;
-
-  video_parameter_set  vps;
-  seq_parameter_set    sps;
-  pic_parameter_set    pps;
-  slice_segment_header shdr;
-
-
-
-  // --- poor man's garbage collector for CB/TB/PB/coeff data ---
-
-  alloc_pool<enc_cb>  enc_cb_pool;
-  alloc_pool<enc_tb>  enc_tb_pool;
-  alloc_pool<int16_t> enc_coeff_pool;
-
-  void free_all_pools() {
-    enc_cb_pool.free_all();
-    enc_tb_pool.free_all();
-    enc_coeff_pool.free_all();
-  }
-
-
-
-  // --- CABAC output and rate estimation ---
-
-  CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
-  context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
-
-  // CABAC bitstream writer
-  CABAC_encoder_bitstream cabac_bitstream;
-  context_model_table     ctx_model_bitstream;
-
-
-  void switch_CABAC(context_model_table model, CABAC_encoder* cabac_impl) {
-    cabac      = cabac_impl;
-    ctx_model  = model;
-  }
-
-  void switch_CABAC_to_bitstream() {
-    cabac     = &cabac_bitstream;
-    ctx_model = ctx_model_bitstream;
-  }
-
-  void write_packet() {
-    if (packet_sink) {
-      packet_sink->send_packet( cabac_bitstream.data(), cabac_bitstream.size() );
-      cabac->reset();
-    }
-  }
-};
-
+struct encoder_context;
 
 void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,

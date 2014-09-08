@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libde265/encode.h"
+#include "libde265/encoder-context.h"
 #include "libde265/analyze.h"
 #include "libde265/fallback.h"
 

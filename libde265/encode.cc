@@ -21,17 +21,12 @@
  */
 
 #include "encode.h"
+#include "encoder-context.h"
 #include "slice.h"
 #include "scan.h"
 #include "intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
-
-
-encoder_params::encoder_params()
-{
-  rateControlMethod = RateControlMethod_ConstantQP;
-}
 
 
 inline int childX(int x0, int idx, int log2CbSize)

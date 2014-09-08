@@ -22,7 +22,7 @@
 
 #include "configparam.h"
 
-#include "encode.h"
+#include "encoder-params.h"
 #include <ctype.h>
 #include <sstream>
 #include <iomanip>
@@ -324,7 +324,7 @@ void register_encoder_params(config_parameters* config)
                               0,       0,NO_LIMIT);
   config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
                               INT_MAX, 1,NO_LIMIT);
-  config->register_config_int("constant-qp", 'q', eoffset(constant_QP),
+  config->register_config_int("constant-qp", 'q', eoffset(CTB_QScale_Constant.mQP),
                               27,      1,51);
 
   config->register_config_int("min-cb-size",  0 , eoffset(min_cb_size),
