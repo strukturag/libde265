@@ -103,10 +103,11 @@ void ImageSource_YUV::preload_next_image()
     delete img;
     mReachedEndOfFile = true;
   }
+  else {
+    // --- put image into queue ---
 
-  // --- put image into queue ---
-
-  mQueue.push_back(img);
+    mQueue.push_back(img);
+  }
 }
 
 

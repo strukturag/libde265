@@ -636,8 +636,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 {
   enum PartMode PartMode = mParams.partMode;
 
-  printf("partMode: %s ->", (mParams.partMode==PART_NxN) ? "NxN" : "2Nx2N");
-
 
   // NxN can only be applied at minimum CB size.
   // If we are not at the minimum size, we have to use 2Nx2N.
@@ -645,8 +643,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   if (PartMode==PART_NxN && log2CbSize != ectx->sps.Log2MinCbSizeY) {
     PartMode = PART_2Nx2N;
   }
-
-  printf(" %s\n", (PartMode==PART_NxN) ? "NxN" : "2Nx2N");
 
 
   // --- create new CB ---
