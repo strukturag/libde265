@@ -743,14 +743,17 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
-    if (x0+dx>=w || y0+dy>=h) continue;
+    if (x0+dx>=w || y0+dy>=h) {
+      cb->children[i] = NULL;
+    }
+    else {
+      cb->children[i] = analyze(ectx, ctxModel,
+                                input, x0+dx, y0+dy,
+                                Log2CbSize-1, ctDepth+1, qp);
 
-    cb->children[i] = analyze(ectx, ctxModel,
-                              input, x0+dx, y0+dy,
-                              Log2CbSize-1, ctDepth+1, qp);
-
-    cb->distortion += cb->children[i]->distortion;
-    cb->rate       += cb->children[i]->rate;
+      cb->distortion += cb->children[i]->distortion;
+      cb->rate       += cb->children[i]->rate;
+    }
   }
 
   return cb;
@@ -837,6 +840,63 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
 }
 
 
+
+static int IntraPredModeCnt[7][35];
+static int MPM_used[7][35];
+
+static int IntraPredModeCnt_total[35];
+static int MPM_used_total[35];
+
+void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const enc_cb* cb)
+{
+  if (cb->split_cu_flag) {
+    for (int i=0;i<4;i++)
+      if (cb->children[i]) {
+        statistics_IntraPredMode(ectx, childX(x,i,cb->log2CbSize), childY(y,i,cb->log2CbSize), cb->children[i]);
+      }
+  }
+  else {
+    int cnt;
+    int size = cb->log2CbSize;
+
+    if (cb->PartMode == PART_NxN) { cnt=4; size--; } else cnt=1;
+
+    for (int i=0;i<cnt;i++) {
+      IntraPredModeCnt[size][ cb->intra.pred_mode[i] ]++;
+      IntraPredModeCnt_total[ cb->intra.pred_mode[i] ]++;
+
+      int xi = childX(x,i,cb->log2CbSize);
+      int yi = childY(y,i,cb->log2CbSize);
+
+      int candModeList[3];
+      fillIntraPredModeCandidates(candModeList,xi,yi, xi>0, yi>0, &ectx->img);
+
+      int predmode = cb->intra.pred_mode[i];
+      if (candModeList[0]==predmode ||
+          candModeList[1]==predmode ||
+          candModeList[2]==predmode) {
+        MPM_used[size][predmode]++;
+        MPM_used_total[predmode]++;
+      }
+    }
+  }
+}
+
+void statistics_print()
+{
+  for (int i=0;i<35;i++) {
+    printf("%d",i);
+    printf("  %d %d",IntraPredModeCnt_total[i], MPM_used_total[i]);
+
+    for (int k=2;k<=6;k++) {
+      printf("  %d %d",IntraPredModeCnt[k][i], MPM_used[k][i]);
+    }
+
+    printf("\n");
+  }
+}
+
+
 double encode_image(encoder_context* ectx,
                     const de265_image* input,
                     EncodingAlgorithm& algo)
@@ -906,6 +966,8 @@ double encode_image(encoder_context* ectx,
         fflush(stdout);
 #endif
 
+        statistics_IntraPredMode(ectx, x0,y0, cb);
+
 
         cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
 
@@ -926,6 +988,9 @@ double encode_image(encoder_context* ectx,
 
         ectx->free_all_pools();
       }
+
+
+  statistics_print();
 
 
   // frame PSNR
