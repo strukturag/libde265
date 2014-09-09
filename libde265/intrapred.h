@@ -37,6 +37,18 @@ void fillIntraPredModeCandidates(int candModeList[3],
                                  bool availableB, // top
                                  const de265_image* img);
 
+
+inline void fillIntraPredModeCandidates(int candModeList[3], int x,int y,
+                                 bool availableA, // left
+                                 bool availableB, // top
+                                 const de265_image* img)
+{
+  int PUidx = img->sps.getPUIndexRS(x,y);
+  fillIntraPredModeCandidates(candModeList, x,y, PUidx, availableA,availableB, img);
+}
+
+
+
 /* Return value >= 0 -> use mpm_idx(return value)
    else              -> use rem_intra(-return value-1)
 

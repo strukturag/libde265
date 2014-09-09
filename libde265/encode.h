@@ -126,6 +126,17 @@ struct enc_cb
 
 
 
+inline int childX(int x0, int idx, int log2CbSize)
+{
+  return x0 + ((idx&1) << (log2CbSize-1));
+}
+
+inline int childY(int y0, int idx, int log2CbSize)
+{
+  return y0 + ((idx>>1) << (log2CbSize-1));
+}
+
+
 
 struct encoder_context;
 

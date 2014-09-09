@@ -29,17 +29,6 @@
 #include "libde265/fallback-dct.h"
 
 
-inline int childX(int x0, int idx, int log2CbSize)
-{
-  return x0 + ((idx&1) << (log2CbSize-1));
-}
-
-inline int childY(int y0, int idx, int log2CbSize)
-{
-  return y0 + ((idx>>1) << (log2CbSize-1));
-}
-
-
 void enc_tb::reconstruct_tb(acceleration_functions* accel,
                             de265_image* img, int x0,int y0, int log2TbSize,
                             const enc_cb* cb, int qp, int cIdx) const
