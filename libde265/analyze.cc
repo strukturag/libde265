@@ -366,14 +366,12 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
       float rate = tb[intraMode]->rate;
-      float c;
+      int enc_bin;
 
-      int enc_bin=0;
-
-      /**/ if (candidates[0]==intraMode) { rate += 1; c=1; enc_bin=1; }
-      else if (candidates[1]==intraMode) { rate += 2; c=2; enc_bin=1; }
-      else if (candidates[2]==intraMode) { rate += 2; c=2; enc_bin=1; }
-      else { rate += 5; c=5; }
+      /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
+      else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
+      else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
+      else { rate += 5; enc_bin=0; }
 
       rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
 
