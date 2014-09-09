@@ -37,6 +37,9 @@ encoder_params::encoder_params()
   mAlgo_TB_IntraPredMode_Subset.addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
   mAlgo_TB_IntraPredMode_Subset.addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
 
+  CB_IntraPartMode_Fixed_partMode.addChoice("NxN",   PART_NxN);
+  CB_IntraPartMode_Fixed_partMode.addChoice("2Nx2N", PART_2Nx2N);
+
   rateControlMethod = RateControlMethod_ConstantQP;
 }
 

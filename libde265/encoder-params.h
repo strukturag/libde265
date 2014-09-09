@@ -89,12 +89,13 @@ struct encoder_params
   choice_option mAlgo_CB_IntraPartMode;
 
   Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
-  Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
-
+  choice_option CB_IntraPartMode_Fixed_partMode;
 
   // --- Algo_CB_Split
 
   // --- Algo_CTB_QScale
+
+  Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
 
 
   // intra-prediction
