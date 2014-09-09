@@ -166,8 +166,10 @@ void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
   }
   else {
     for (int i=0;i<4;i++) {
-      children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
-                                  isIntra);
+      if (children[i]) {
+        children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
+                                    isIntra);
+      }
     }
   }
 }

@@ -280,6 +280,8 @@ class Algo_CB_Split
  protected:
   Algo_CB_IntraPartMode* mIntraPartModeAlgo;
 
+  bool forcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const;
+
   enc_cb* encode_cb_split(encoder_context* ectx,
                           context_model_table ctxModel,
                           const de265_image* input,

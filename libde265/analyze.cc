@@ -695,6 +695,18 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
 
 
+bool Algo_CB_Split::forcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const
+{
+  int w = input->get_width();
+  int h = input->get_height();
+  int cbSize = (1<<Log2CbSize);
+
+  if (x0+cbSize > w) return true;
+  if (y0+cbSize > h) return true;
+  return false;
+}
+
+
 // Utility function to encode all four children in a splitted CB.
 // Children are coded with the specified algo_cb_split.
 enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
@@ -702,6 +714,10 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
                                        const de265_image* input,
                                        int x0,int y0, int Log2CbSize, int ctDepth, int qp)
 {
+  int w = input->get_width();
+  int h = input->get_height();
+
+
   // create a splitted CB node
   enc_cb* cb = ectx->enc_cb_pool.get_new();
 
@@ -728,6 +744,8 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
     int dx = (i&1)  << (Log2CbSize-1);
     int dy = (i>>1) << (Log2CbSize-1);
 
+    if (x0+dx>=w || y0+dy>=h) continue;
+
     cb->children[i] = analyze(ectx, ctxModel,
                               input, x0+dx, y0+dy,
                               Log2CbSize-1, ctDepth+1, qp);
@@ -749,51 +767,62 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           int ctDepth,
                                           int qp)
 {
-  context_model_table ctxSplit;
+  // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
+  const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
+  const bool can_nosplit_CB = !forcedSplit(input,x0,y0,Log2CbSize);
 
-  // if we will try splitting the CB, make a copy of the initial ctxModel
+  context_model_table ctxCopy;
+  context_model* ctxSplit = ctxModel;
 
-  const bool can_split_CB = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
-
-  if (can_split_CB) {
-    copy_context_model_table(ctxSplit, ctxModel);
+  if (can_split_CB && can_nosplit_CB) {
+    copy_context_model_table(ctxCopy, ctxModel);
+    ctxSplit=ctxCopy;
   }
 
 
   // try encoding without splitting
 
-  enc_cb* cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                                    x0,y0, Log2CbSize, ctDepth, qp);
-  enc_cb* cb_best = cb_no_split;
+  enc_cb* cb_no_split = NULL;
+  enc_cb* cb_split    = NULL;
 
+  if (can_nosplit_CB) {
+    cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
+                                              x0,y0, Log2CbSize, ctDepth, qp);
+  }
 
   // if possible, try to split CB
 
   if (can_split_CB) {
-    enc_cb* cb_split = encode_cb_split(ectx, ctxSplit,
-                                       input,x0,y0, Log2CbSize, ctDepth, qp);
-
-
-    // compute RD costs for both variants
-
-    const float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
-    const float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
-
-    const bool split_is_better =  (rd_cost_split < rd_cost_no_split);
-
-    if (split_is_better) {
-      cb_best = cb_split;
-    }
-    else {
-      // have to reconstruct state of the first option
-
-      cb_best->write_to_image(&ectx->img, x0,y0, true);
-      cb_best->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
-    }
+    cb_split = encode_cb_split(ectx, ctxSplit,
+                               input,x0,y0, Log2CbSize, ctDepth, qp);
   }
 
-  return cb_best;
+
+  // if only one variant has been tested, choose this
+
+  if (!can_nosplit_CB) { return cb_split;    }
+  if (!can_split_CB)   { return cb_no_split; }
+
+
+  // compute RD costs for both variants
+
+  const float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
+  const float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
+
+  const bool split_is_better =  (rd_cost_split < rd_cost_no_split);
+
+  if (split_is_better) {
+    copy_context_model_table(ctxModel, ctxCopy);
+    return cb_split;
+  }
+  else {
+    // have to reconstruct state of the first option
+
+    cb_no_split->write_to_image(&ectx->img, x0,y0, true);
+    cb_no_split->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+    return cb_no_split;
+  }
 }
 
 
