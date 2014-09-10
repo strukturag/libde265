@@ -30,6 +30,10 @@ LIBDE265_API uint32_t SSD(const uint8_t* img, int imgStride,
                           const uint8_t* ref, int refStride,
                           int width, int height);
 
+LIBDE265_API uint32_t SAD(const uint8_t* img, int imgStride,
+                          const uint8_t* ref, int refStride,
+                          int width, int height);
+
 LIBDE265_API double MSE(const uint8_t* img, int imgStride,
                         const uint8_t* ref, int refStride,
                         int width, int height);

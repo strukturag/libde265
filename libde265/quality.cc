@@ -45,6 +45,29 @@ uint32_t SSD(const uint8_t* img, int imgStride,
 }
 
 
+uint32_t SAD(const uint8_t* img, int imgStride,
+             const uint8_t* ref, int refStride,
+             int width, int height)
+{
+  uint32_t sum=0;
+
+  const uint8_t* iPtr = img;
+  const uint8_t* rPtr = ref;
+
+  for (int y=0;y<height;y++) {
+    for (int x=0;x<width;x++) {
+      int diff = iPtr[x] - rPtr[x];
+      sum += abs_value(diff);
+    }
+
+    iPtr += imgStride;
+    rPtr += refStride;
+  }
+
+  return sum;
+}
+
+
 double MSE(const uint8_t* img, int imgStride,
            const uint8_t* ref, int refStride,
            int width, int height)
