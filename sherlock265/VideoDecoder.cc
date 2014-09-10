@@ -47,6 +47,7 @@ VideoDecoder::VideoDecoder()
     mShowPBPredMode(false),
     mShowIntraPredMode(false),
     mShowQuantPY(false),
+    mShowMotionVec(false),
     mShowSlices(false),
     mShowTiles(false),
     mFH(NULL)
