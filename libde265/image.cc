@@ -399,9 +399,6 @@ de265_error de265_image::copy_image(const de265_image* src)
 // end = last line + 1
 void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 {
-  assert(src->stride == stride &&
-         src->chroma_stride == chroma_stride);
-
   if (end > src->height) end=src->height;
 
   assert(first % 2 == 0);
