@@ -152,6 +152,12 @@ de265_image::de265_image()
   PicState = UnusedForReference;
   PicOutputFlag = false;
 
+  nThreadsQueued   = 0;
+  nThreadsRunning  = 0;
+  nThreadsBlocked  = 0;
+  nThreadsFinished = 0;
+  nThreadsTotal    = 0;
+
   de265_mutex_init(&mutex);
   de265_cond_init(&finished_cond);
 }
@@ -167,12 +173,6 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
   decctx = ctx;
-
-  nThreadsQueued   = 0;
-  nThreadsRunning  = 0;
-  nThreadsBlocked  = 0;
-  nThreadsFinished = 0;
-  nThreadsTotal    = 0;
 
   // --- allocate image buffer ---
 

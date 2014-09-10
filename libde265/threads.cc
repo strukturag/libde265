@@ -208,7 +208,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     pool->tasks.pop_front();
 
     pool->num_threads_working++;
-    
+
     //printblks(pool);
 
     de265_mutex_unlock(&pool->mutex);
@@ -242,11 +242,14 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
   }
 
   pool->num_threads = 0; // will be increased below
-  pool->num_threads_working = 0;
-  pool->stopped = false;
 
   de265_mutex_init(&pool->mutex);
   de265_cond_init(&pool->cond_var);
+
+  de265_mutex_lock(&pool->mutex);
+  pool->num_threads_working = 0;
+  pool->stopped = false;
+  de265_mutex_unlock(&pool->mutex);
 
   // start worker threads
 
