@@ -317,6 +317,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
         pending_input_NAL = alloc_NAL_unit(len+3);
         pending_input_NAL->pts = pts;
+        pending_input_NAL->user_data = user_data;
         nal = pending_input_NAL;
         out = nal->data();
 
