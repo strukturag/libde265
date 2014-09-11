@@ -78,11 +78,11 @@ endif(DE265_LOG_TRACE)
 
 include_directories(../ ../libde265)
 
-file(GLOB LIBSRC ../libde265/*.c ../extra/*.c)
+file(GLOB LIBSRC ../libde265/*.cc ../extra/*.c)
 file(GLOB LIBINC ../libde265/*.h ../extra/*.h)
 file(GLOB APPSRC dec265.cc)
-file(GLOB ASMSRC0 ../libde265/x86/sse.c ../libde265/x86/sse-dct.c)
-file(GLOB ASMSRC1 ../libde265/x86/sse-motion.c)
+file(GLOB ASMSRC0 ../libde265/x86/sse.cc ../libde265/x86/sse-dct.cc)
+file(GLOB ASMSRC1 ../libde265/x86/sse-motion.cc)
 file(GLOB ASMINC ../libde265/x86/*.h)
 
 source_group(INC  FILES ${LIBINC})
