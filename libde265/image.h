@@ -186,7 +186,8 @@ struct de265_image {
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
-                          bool allocMetadata, decoder_context* ctx, de265_PTS pts, void* user_data);
+                          bool allocMetadata, decoder_context* ctx, de265_PTS pts, void* user_data,
+                          bool isOutputImage);
 
   bool is_allocated() const { return pixels[0] != NULL; }
 

@@ -165,7 +165,8 @@ de265_image::de265_image()
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps, bool allocMetadata,
-                                     decoder_context* ctx, de265_PTS pts, void* user_data)
+                                     decoder_context* ctx, de265_PTS pts, void* user_data,
+                                     bool isOutputImage)
 {
   if (allocMetadata) { assert(sps); }
 
@@ -245,8 +246,15 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   // allocate memory and set conformance window pointers
 
   void* alloc_userdata = decctx->param_image_allocation_userdata;
-  bool mem_alloc_success = decctx->param_image_allocation_functions.get_buffer(decctx, &spec, this,
-                                                                               alloc_userdata);
+  de265_image_allocation* allocfuncs;
+  if (isOutputImage) {
+    allocfuncs = &decctx->param_image_allocation_functions;
+  }
+  else {
+    allocfuncs = &de265_image::default_image_allocation;
+  }
+  bool mem_alloc_success = allocfuncs->get_buffer(decctx, &spec, this,
+                                                  alloc_userdata);
 
   pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
   pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
@@ -389,7 +397,7 @@ de265_error de265_image::copy_image(const de265_image* src)
   */
 
   de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false,
-                                src->decctx, src->pts, src->user_data);
+                                src->decctx, src->pts, src->user_data, false);
   if (err != DE265_OK) {
     return err;
   }
