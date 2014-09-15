@@ -455,6 +455,7 @@ void de265_image::exchange_pixel_data_with(de265_image& b)
 
   std::swap(stride, b.stride);
   std::swap(chroma_stride, b.chroma_stride);
+  std::swap(image_allocation_functions, b.image_allocation_functions);
 }
 
 
