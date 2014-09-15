@@ -639,6 +639,11 @@ LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
   return img->user_data;
 }
 
+LIBDE265_API void de265_set_image_user_data(struct de265_image* img, void *user_data)
+{
+  img->user_data = user_data;
+}
+
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
                                              int* nal_unit_type,
                                              const char** nal_unit_name,
