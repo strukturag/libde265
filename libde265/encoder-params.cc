@@ -31,6 +31,7 @@ encoder_params::encoder_params()
 
   mAlgo_TB_IntraPredMode.addChoice("minSSD"     ,ALGO_TB_IntraPredMode_MinSSD);
   mAlgo_TB_IntraPredMode.addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
+  mAlgo_TB_IntraPredMode.addChoice("fast-brute" ,ALGO_TB_IntraPredMode_FastBrute);
 
   mAlgo_TB_IntraPredMode_Subset.addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
   mAlgo_TB_IntraPredMode_Subset.addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);

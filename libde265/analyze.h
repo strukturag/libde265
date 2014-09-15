@@ -55,6 +55,7 @@
 
 enum {
   ALGO_TB_IntraPredMode_BruteForce,
+  ALGO_TB_IntraPredMode_FastBrute,
   ALGO_TB_IntraPredMode_MinSSD
 };
 
@@ -115,6 +116,22 @@ class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 
 
 class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
+{
+ public:
+
+  virtual const enc_tb* analyze(encoder_context*,
+                                context_model_table,
+                                const de265_image* input,
+                                const enc_tb* parent,
+                                enc_cb* cb,
+                                int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                int blkIdx,
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
+                                int qp);
+};
+
+
+class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
 
@@ -381,6 +398,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
   Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
+  Algo_TB_IntraPredMode_FastBrute   mAlgo_TB_IntraPredMode_FastBrute;
   Algo_TB_IntraPredMode_MinSSD      mAlgo_TB_IntraPredMode_MinSSD;
 };
 

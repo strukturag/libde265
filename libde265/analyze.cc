@@ -28,7 +28,7 @@
 #include <math.h>
 
 
-float lambda = 50.0;
+#define ENCODER_DEVELOPMENT 1
 
 
 
@@ -144,7 +144,6 @@ void encode_transform_unit(encoder_context* ectx,
   decode_intra_prediction(&ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
 
 
-
   // --- subtract prediction from input ---
 
   int16_t blk[32*32];
@@ -220,6 +219,35 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 2 /* Cr */);
   }
 
+#if 0
+  uint32_t distortion;
+  if (log2TbSize==3) {
+    distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
+                     input->get_image_stride(0),
+                     ectx->img.get_image_plane_at_pos(0, x0,y0),
+                     ectx->img.get_image_stride(0),
+                     1<<log2TbSize, 1<<log2TbSize);
+
+    int16_t coeffs[64];
+    int16_t diff[64];
+
+    diff_blk(diff,8,
+             input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+             ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+             8);
+
+    fdct_8x8_8_fallback(coeffs, diff, &diff[8] - &diff[0]);
+
+    distortion=0;
+    for (int i=0;i<64;i++) {
+      //printf("%d %d\n",i,(int)coeffs[i]);
+      distortion += abs_value((int)coeffs[i]);
+    }
+  }
+#endif
+
+  // reconstruction
+
   tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
 
 
@@ -235,6 +263,11 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   tb->rate = estim.getRDBits();
 
+#if 0
+  if (log2TbSize==3) {
+    printf("RATE %d %f\n",distortion,tb->rate);
+  }
+#endif
 
   // measure distortion
 
@@ -244,6 +277,62 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                        tbSize, tbSize);
 
   return tb;
+}
+
+
+float estim_bitrate(const encoder_context* ectx,
+                    const de265_image* input,
+                    int x0,int y0, int log2BlkSize)
+{
+  int blkSize = 1<<log2BlkSize;
+
+  float distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
+                         input->get_image_stride(0),
+                         ectx->img.get_image_plane_at_pos(0, x0,y0),
+                         ectx->img.get_image_stride(0),
+                         1<<log2BlkSize, 1<<log2BlkSize);
+
+  int16_t coeffs[32*32];
+  int16_t diff[32*32];
+
+#if 1
+  diff_blk(diff,blkSize,
+           input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+           ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+           blkSize);
+
+  switch (blkSize)
+    {
+    case 4:
+      fdst_4x4_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
+      break;
+    case 8:
+      fdct_8x8_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
+      break;
+    case 16:
+      fdct_16x16_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
+      break;
+    case 32:
+      fdct_32x32_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
+      break;
+    }
+
+  /*
+  fdct_4x4_8_fallback(coeffs,    diff, &diff[8] - &diff[0]);
+  fdct_4x4_8_fallback(coeffs+16, diff+16, &diff[8] - &diff[0]);
+  fdct_4x4_8_fallback(coeffs+32, diff+32, &diff[8] - &diff[0]);
+  fdct_4x4_8_fallback(coeffs+48, diff+48, &diff[8] - &diff[0]);
+  */
+
+  distortion=0;
+  for (int i=0;i<blkSize*blkSize;i++) {
+    //printf("%d %d\n",i,(int)coeffs[i]);
+    //distortion += sqrt(abs_value((int)coeffs[i]));
+    distortion += abs_value((int)coeffs[i]);
+  }
+#endif
+
+  return distortion;
 }
 
 
@@ -365,8 +454,19 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                             qp);
 
 
+      float sad;
+      if ((1<<log2TbSize)==8) {
+        decode_intra_prediction(&ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
+        sad = estim_bitrate(ectx,input, x0,y0, log2TbSize);
+      }
+
+
       float rate = tb[intraMode]->rate;
       int enc_bin;
+
+      if (log2TbSize==3) {
+        printf("RATE2 %f %f\n",sad,tb[intraMode]->rate);
+      }
 
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
       else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
@@ -375,8 +475,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
 
-
-      float cost = tb[intraMode]->distortion + lambda * rate;
+      float cost = tb[intraMode]->distortion + ectx->lambda * rate;
       if (cost<minCost) {
         minCost=cost;
         minCostIdx=intraMode;
@@ -427,9 +526,29 @@ Algo_TB_IntraPredMode_MinSSD::analyze(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    enum IntraPredMode intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
-                                                        input->get_image_plane_at_pos(0,x0,y0),
-                                                        input->get_image_stride(0));
+
+    enum IntraPredMode intraMode;
+    float minDistortion;
+
+    for (int idx=0;idx<35;idx++) {
+      enum IntraPredMode mode = (enum IntraPredMode)idx;
+      decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+
+      float distortion;
+      distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                       ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+                       1<<log2TbSize, 1<<log2TbSize);
+
+      //distortion = estim_bitrate(ectx, input, x0,y0, log2TbSize);
+
+      if (idx==0 || distortion<minDistortion) {
+        minDistortion = distortion;
+        intraMode = mode;
+      }
+    }
+
+    //intraMode=(enum IntraPredMode)(rand()%35);
+
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
@@ -446,6 +565,147 @@ Algo_TB_IntraPredMode_MinSSD::analyze(encoder_context* ectx,
                     cb, qp, blkIdx);
 
     return tb;
+  }
+  else {
+    return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
+                                 x0,y0,xBase,yBase, log2TbSize,
+                                 blkIdx, TrafoDepth, MaxTrafoDepth,
+                                 IntraSplitFlag, qp);
+  }
+}
+
+#include <algorithm>
+static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
+                            std::pair<enum IntraPredMode,float> j)
+{
+  return i.second < j.second;
+}
+
+const enc_tb*
+Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
+                                         context_model_table ctxModel,
+                                         const de265_image* input,
+                                         const enc_tb* parent,
+                                         enc_cb* cb,
+                                         int x0,int y0, int xBase,int yBase,
+                                         int log2TbSize, int blkIdx,
+                                         int TrafoDepth, int MaxTrafoDepth,
+                                         int IntraSplitFlag, int qp)
+{
+  //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
+
+  /*
+    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
+    input->get_image_plane_at_pos(0,x0,y0),
+    input->get_image_stride(0));
+  */
+
+  bool selectIntraPredMode = false;
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
+  selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
+
+  if (selectIntraPredMode) {
+    const enc_tb* tb[35];
+
+    float minCost = std::numeric_limits<float>::max();
+    int   minCostIdx=0;
+    float minCandCost;
+
+    const de265_image& img = ectx->img;
+    const seq_parameter_set* sps = &img.sps;
+    int candidates[3];
+    fillIntraPredModeCandidates(candidates, x0,y0,
+                                sps->getPUIndexRS(x0,y0),
+                                x0>0, y0>0, &img);
+
+
+
+    std::vector< std::pair<enum IntraPredMode,float> > distortions;
+
+    for (int idx=0;idx<35;idx++)
+      if (idx!=candidates[0] && idx!=candidates[1] && idx!=candidates[2] && mPredMode_enabled[idx])
+        {
+          enum IntraPredMode mode = (enum IntraPredMode)idx;
+          decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+          
+          float distortion;
+          distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                           ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+                           1<<log2TbSize, 1<<log2TbSize);
+
+          distortion = estim_bitrate(ectx, input, x0,y0, log2TbSize);
+
+          distortions.push_back( std::make_pair((enum IntraPredMode)idx, distortion) );
+        }
+
+    std::sort( distortions.begin(), distortions.end(), sortDistortions );
+
+
+    for (int i=0;i<distortions.size();i++)
+      {
+        //printf("%d -> %f\n",i,distortions[i].second);
+      }
+
+    int keepNBest=5;
+    distortions.resize(keepNBest);
+    distortions.push_back(std::make_pair((enum IntraPredMode)candidates[0],0));
+    distortions.push_back(std::make_pair((enum IntraPredMode)candidates[1],0));
+    distortions.push_back(std::make_pair((enum IntraPredMode)candidates[2],0));
+
+    for (int i=0;i<35;i++) tb[i]=NULL;
+
+
+    for (int i=0;i<distortions.size();i++) {
+
+      context_model_table ctxIntra;
+      copy_context_model_table(ctxIntra, ctxModel);
+
+      enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;
+
+      cb->intra.pred_mode[blkIdx] = intraMode;
+      if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+
+      ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+      tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
+                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
+                                            qp);
+
+
+      float rate = tb[intraMode]->rate;
+      int enc_bin;
+
+      /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
+      else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
+      else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
+      else { rate += 5; enc_bin=0; }
+
+      rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
+
+      float cost = tb[intraMode]->distortion + ectx->lambda * rate;
+      if (cost<minCost) {
+        minCost=cost;
+        minCostIdx=intraMode;
+        //minCandCost=c;
+      }
+    }
+
+
+    enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
+
+    cb->intra.pred_mode[blkIdx] = intraMode;
+    if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+    tb[minCostIdx]->reconstruct(&ectx->accel,
+                                &ectx->img, x0,y0, xBase,yBase,
+                                cb, qp, blkIdx);
+
+
+    //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
+
+    return tb[minCostIdx];
   }
   else {
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
@@ -503,7 +763,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                                  TrafoDepth,MaxTrafoDepth,IntraSplitFlag,
                                                  qp);
 
-    rd_cost_no_split = tb_no_split->distortion + lambda * tb_no_split->rate;
+    rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
     //printf("-\n");
   }
 
@@ -515,7 +775,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
                                            qp);
     
-    rd_cost_split    = tb_split->distortion    + lambda * tb_split->rate;
+    rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
     //printf("-\n");
   }
 
@@ -610,8 +870,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   // choose from 2Nx2N and NxN
 
   if (cb[0] && cb[1]) {
-    double rd_cost_2Nx2N = cb[0]->distortion + lambda * cb[0]->rate;
-    double rd_cost_NxN   = cb[1]->distortion + lambda * cb[1]->rate;
+    double rd_cost_2Nx2N = cb[0]->distortion + ectx->lambda * cb[0]->rate;
+    double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
       cb[0]->write_to_image(&ectx->img, x0,y0, true);
@@ -809,8 +1069,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   // compute RD costs for both variants
 
-  const float rd_cost_split    = cb_split->distortion    + lambda * cb_split->rate;
-  const float rd_cost_no_split = cb_no_split->distortion + lambda * cb_no_split->rate;
+  const float rd_cost_split    = cb_split->distortion    + ectx->lambda * cb_split->rate;
+  const float rd_cost_no_split = cb_no_split->distortion + ectx->lambda * cb_no_split->rate;
 
   const bool split_is_better =  (rd_cost_split < rd_cost_no_split);
 
@@ -956,7 +1216,7 @@ double encode_image(encoder_context* ectx,
           enc_cb* cbq = encode_cb_may_split(ectx, ctxModel,
                                            input, x0,y0, Log2CtbSize, 0, q);
 
-          float cost = cbq->distortion + lambda * cbq->rate;
+          float cost = cbq->distortion + ectx->lambda * cbq->rate;
           if (cost<minCost) { minCost=cost; bestQ=q; }
 
           if (q==qp) { cb=cbq; }
@@ -1011,7 +1271,7 @@ void encode_sequence(encoder_context* ectx)
   int qp = algo.getPPS_QP();
 
   //lambda = ectx->params.lambda;
-  lambda = 0.0242 * pow(1.27245, qp);
+  ectx->lambda = 0.0242 * pow(1.27245, qp);
 
 
   nal_header nal;
@@ -1138,10 +1398,13 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CB_Split_BruteForce.setChildAlgo(algo_CB_IntraPartMode);
 
 
-  Algo_TB_IntraPredMode* algo_TB_IntraPredMode = NULL;
+  Algo_TB_IntraPredMode_ModeSubset* algo_TB_IntraPredMode = NULL;
   switch (params.mAlgo_TB_IntraPredMode.getID()) {
   case ALGO_TB_IntraPredMode_BruteForce:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_BruteForce;
+    break;
+  case ALGO_TB_IntraPredMode_FastBrute:
+    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_FastBrute;
     break;
   case ALGO_TB_IntraPredMode_MinSSD:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinSSD;
@@ -1167,28 +1430,19 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
     case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
       break;
     case ALGO_TB_IntraPredMode_Subset_DC:
-      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_DC);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_DC);
+      algo_TB_IntraPredMode->disableAllIntraPredModes();
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_DC);
       break;
     case ALGO_TB_IntraPredMode_Subset_Planar:
-      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_PLANAR);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_PLANAR);
+      algo_TB_IntraPredMode->disableAllIntraPredModes();
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_PLANAR);
       break;
     case ALGO_TB_IntraPredMode_Subset_HVPlus:
-      mAlgo_TB_IntraPredMode_BruteForce.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_MinSSD.disableAllIntraPredModes();
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_DC);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_DC);
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_PLANAR);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_PLANAR);
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_ANGULAR_10);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_ANGULAR_10);
-      mAlgo_TB_IntraPredMode_BruteForce.enableIntraPredMode(INTRA_ANGULAR_26);
-      mAlgo_TB_IntraPredMode_MinSSD.enableIntraPredMode(INTRA_ANGULAR_26);
+      algo_TB_IntraPredMode->disableAllIntraPredModes();
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_DC);
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_PLANAR);
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_ANGULAR_10);
+      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_ANGULAR_26);
       break;
     }
 }

@@ -75,6 +75,11 @@ struct encoder_context
 
 
 
+  // --- rate-control ---
+
+  float lambda;
+
+
   // --- CABAC output and rate estimation ---
 
   CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)

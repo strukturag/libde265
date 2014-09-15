@@ -105,6 +105,30 @@ Preset preset[] = {
     // 0 // all frames
   },
 
+  { 2, "pre02-fastIntra", "intra, no LF, no SBH, CTB-size 32, min CB=8",
+    /* de265  */ "--TB-IntraPredMode minSSD",
+    /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* x265   */ "--no-lft -I 1 --no-signhide",
+    /* f265   */ "key-frame-spacing=1",
+    /* x264   */ "-I 1",
+    /* ffmpeg */ "-g 1",
+    /* mpeg-2 */ "-g 1"
+    // 0 // all frames
+  },
+
+  { 3, "pre03-fastIntra", "pre02, but fast-brute",
+    /* de265  */ "--TB-IntraPredMode fast-brute",
+    /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
+    /* x265   */ "--no-lft -I 1 --no-signhide",
+    /* f265   */ "key-frame-spacing=1",
+    /* x264   */ "-I 1",
+    /* ffmpeg */ "-g 1",
+    /* mpeg-2 */ "-g 1"
+    // 0 // all frames
+  },
+
   { 50, "cb-auto16", "(development test)",
     /* de265  */ "--max-cb-size 16 --min-cb-size 8",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
