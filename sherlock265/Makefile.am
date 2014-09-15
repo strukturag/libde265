@@ -30,13 +30,13 @@ if HAVE_SWSCALE
 endif
 
 moc_VideoWidget.cpp: VideoWidget.hh
-	/usr/bin/moc-qt4 $(DEFINES) $(INCPATH) VideoWidget.hh -o moc_VideoWidget.cpp
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoWidget.hh -o moc_VideoWidget.cpp
 
 moc_VideoPlayer.cpp: VideoPlayer.hh
-	/usr/bin/moc-qt4 $(DEFINES) $(INCPATH) VideoPlayer.hh -o moc_VideoPlayer.cpp
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoPlayer.hh -o moc_VideoPlayer.cpp
 
 moc_VideoDecoder.cpp: VideoDecoder.hh
-	/usr/bin/moc-qt4 $(DEFINES) $(INCPATH) VideoDecoder.hh -o moc_VideoDecoder.cpp
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoDecoder.hh -o moc_VideoDecoder.cpp
 
 EXTRA_DIST = \
   README
