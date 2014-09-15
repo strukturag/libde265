@@ -45,4 +45,9 @@ void fdct_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride
 void fdct_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
 void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
 
+void hadamard_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void hadamard_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void hadamard_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+void hadamard_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+
 #endif

@@ -286,42 +286,39 @@ float estim_bitrate(const encoder_context* ectx,
 {
   int blkSize = 1<<log2BlkSize;
 
-  float distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
-                         input->get_image_stride(0),
-                         ectx->img.get_image_plane_at_pos(0, x0,y0),
-                         ectx->img.get_image_stride(0),
-                         1<<log2BlkSize, 1<<log2BlkSize);
+  float distortion;
+
+  if (1) {
+    distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
+                     input->get_image_stride(0),
+                     ectx->img.get_image_plane_at_pos(0, x0,y0),
+                     ectx->img.get_image_stride(0),
+                     1<<log2BlkSize, 1<<log2BlkSize);
+  }
 
   int16_t coeffs[32*32];
   int16_t diff[32*32];
 
-#if 1
+#if 0
   diff_blk(diff,blkSize,
            input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
            ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
            blkSize);
 
-  switch (blkSize)
-    {
-    case 4:
-      fdst_4x4_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
-      break;
-    case 8:
-      fdct_8x8_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
-      break;
-    case 16:
-      fdct_16x16_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
-      break;
-    case 32:
-      fdct_32x32_8_fallback(coeffs, diff, &diff[blkSize] - &diff[0]);
-      break;
-    }
+  bool hadamard=true;
+
+  if (hadamard) {
+    ectx->accel.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+  }
+  else {
+    ectx->accel.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+  }
 
   /*
-  fdct_4x4_8_fallback(coeffs,    diff, &diff[8] - &diff[0]);
-  fdct_4x4_8_fallback(coeffs+16, diff+16, &diff[8] - &diff[0]);
-  fdct_4x4_8_fallback(coeffs+32, diff+32, &diff[8] - &diff[0]);
-  fdct_4x4_8_fallback(coeffs+48, diff+48, &diff[8] - &diff[0]);
+    fdct_4x4_8_fallback(coeffs,    diff, &diff[8] - &diff[0]);
+    fdct_4x4_8_fallback(coeffs+16, diff+16, &diff[8] - &diff[0]);
+    fdct_4x4_8_fallback(coeffs+32, diff+32, &diff[8] - &diff[0]);
+    fdct_4x4_8_fallback(coeffs+48, diff+48, &diff[8] - &diff[0]);
   */
 
   distortion=0;
@@ -390,6 +387,78 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   tb->rate += estim.getRDBits();
 
   return tb;
+}
+
+#define MAXBLOCKRATE 350
+std::vector<int> bitestim[MAXBLOCKRATE+1];
+
+#define ESTIMDIV 100
+#define MAXESTIM 80000
+std::vector<float> bitestim2[MAXESTIM/ESTIMDIV];
+
+
+void print_bitestim_results()
+{
+  // --- bitestim ---
+
+  for (int i=0;i<=MAXBLOCKRATE;i++) {
+    if (bitestim[i].size()>0) {
+      double mean = 0;
+      int mini = 999999;
+      int maxi = 0;
+
+      for (int k=0;k<bitestim[i].size();k++)
+        {
+          mean += bitestim[i][k];
+          mini = std::min(mini,bitestim[i][k]);
+          maxi = std::max(maxi,bitestim[i][k]);
+        }
+
+      mean /= bitestim[i].size();
+
+
+      double var = 0;
+      for (int k=0;k<bitestim[i].size();k++)
+        var += (bitestim[i][k]-mean)*(bitestim[i][k]-mean);
+
+      var /= bitestim[i].size();
+      double std = sqrt(var);
+
+      printf("CORR %d  %f %f  %f %f  %d %d\n",i,mean,var,mean-std,mean+std, mini,maxi);
+    }
+  }
+
+
+  // --- bitestim2 ---
+
+  for (int b=ESTIMDIV/2;b<=MAXESTIM;b+=ESTIMDIV) {
+    int i = b/ESTIMDIV;
+    if (bitestim2[i].size()>0) {
+      double mean = 0;
+      float mini = 999999;
+      float maxi = 0;
+
+      for (int k=0;k<bitestim2[i].size();k++)
+        {
+          mean += bitestim2[i][k];
+          mini = std::min(mini,bitestim2[i][k]);
+          maxi = std::max(maxi,bitestim2[i][k]);
+        }
+
+      mean /= bitestim2[i].size();
+
+
+      double var = 0;
+      for (int k=0;k<bitestim2[i].size();k++)
+        var += (bitestim2[i][k]-mean)*(bitestim2[i][k]-mean);
+
+      var /= bitestim2[i].size();
+      double std = sqrt(var);
+
+      printf("ESTIM %d  %f %f  %f %f  %f %f %ld\n",b,mean,var,mean-std,mean+std, mini,maxi,
+             bitestim2[i].size());
+    }
+  }
 }
 
 
@@ -466,6 +535,16 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       if (log2TbSize==3) {
         printf("RATE2 %f %f\n",sad,tb[intraMode]->rate);
+
+        int rate = tb[intraMode]->rate;
+        int estim=sad;
+        if (rate<=MAXBLOCKRATE) {
+          bitestim[rate].push_back(estim);
+        }
+
+        if (rate/ESTIMDIV <= MAXESTIM) {
+          bitestim2[estim/ESTIMDIV].push_back(rate);
+        }
       }
 
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }

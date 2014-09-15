@@ -67,4 +67,9 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->fwd_transform_8[1] = fdct_8x8_8_fallback;
   accel->fwd_transform_8[2] = fdct_16x16_8_fallback;
   accel->fwd_transform_8[3] = fdct_32x32_8_fallback;
+
+  accel->hadamard_transform_8[0] = hadamard_4x4_8_fallback;
+  accel->hadamard_transform_8[1] = hadamard_8x8_8_fallback;
+  accel->hadamard_transform_8[2] = hadamard_16x16_8_fallback;
+  accel->hadamard_transform_8[3] = hadamard_32x32_8_fallback;
 }

@@ -28,6 +28,20 @@
 #endif
 
 #include <assert.h>
+#include <algorithm>
+
+
+static void printMatrix(const char* name, const int16_t* v, int n)
+{
+  printf("--- %s ---\n",name);
+  for (int r=0;r<n;r++) {
+    for (int c=0;c<n;c++) {
+      printf("%4d ",v[c+r*n]);
+    }
+    printf("\n");
+  }
+}
+
 
 
 void transform_skip_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
@@ -488,5 +502,212 @@ void fdct_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stri
 void fdct_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
 {
   transform_fdct_8(coeffs, 32, input,stride);
+}
+
+
+
+
+void hadamard_transform_8(int16_t *coeffs, int n, const int16_t *input, ptrdiff_t stride)
+{
+  int16_t tmp[32*32];
+
+  // row transforms
+
+  //printMatrix("input",input,n);
+
+  int16_t a[32],b[32];
+  for (int row=0;row<n;row++) {
+    int rs = row*stride;
+    for (int i=0;i<(n>>1);i++) {
+      a[       i] = input[i+rs] + input[i+(n>>1)+rs];
+      a[(n>>1)+i] = input[i+rs] - input[i+(n>>1)+rs];
+    }
+
+    int iOuter=(n>>1);
+    int nInner=(n>>2);
+
+    while (nInner>=2) {
+      std::swap(a,b);
+
+      for (int k=0;k<n;k+=iOuter) {
+        for (int i=0;i<nInner;i++) {
+          a[k+i       ] = b[k+i] + b[k+i+nInner];
+          a[k+i+nInner] = b[k+i] - b[k+i+nInner];
+        }
+      }
+
+      iOuter>>=1;
+      nInner>>=1;
+    }
+
+    for (int k=0;k<n;k+=2) {
+      tmp[k  +n*row] = a[k] + a[k+1];
+      tmp[k+1+n*row] = a[k] - a[k+1];
+    }
+  }
+
+  //printMatrix("tmp",tmp,n);
+
+  // column transforms
+
+  for (int col=0;col<n;col++) {
+    for (int i=0;i<(n>>1);i++) {
+      a[       i] = tmp[i*n+col] + tmp[(i+(n>>1))*n+col];
+      a[(n>>1)+i] = tmp[i*n+col] - tmp[(i+(n>>1))*n+col];
+    }
+
+    int iOuter=(n>>1);
+    int nInner=(n>>2);
+
+    while (nInner>=2) {
+      std::swap(a,b);
+
+      for (int k=0;k<n;k+=iOuter) {
+        for (int i=0;i<nInner;i++) {
+          a[k+i       ] = b[k+i] + b[k+i+nInner];
+          a[k+i+nInner] = b[k+i] - b[k+i+nInner];
+        }
+      }
+
+      iOuter>>=1;
+      nInner>>=1;
+    }
+
+    for (int k=0;k<n;k+=2) {
+      coeffs[col+(k  )*n] = a[k] + a[k+1];
+      coeffs[col+(k+1)*n] = a[k] - a[k+1];
+    }
+  }
+
+  //printMatrix("coeffs",coeffs,n);
+}
+
+
+void hadamard_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  int16_t tmp[4*4];
+
+  // row transforms
+
+  //printMatrix("input",input,4);
+
+  int16_t a[4];
+  for (int row=0;row<4;row++) {
+    int rs = row*stride;
+    a[0] = input[0+rs] + input[2+rs];
+    a[1] = input[1+rs] + input[3+rs];
+    a[2] = input[0+rs] - input[2+rs];
+    a[3] = input[1+rs] - input[3+rs];
+
+    tmp[0+4*row] = a[0]+a[1];
+    tmp[1+4*row] = a[0]-a[1];
+    tmp[2+4*row] = a[2]+a[3];
+    tmp[3+4*row] = a[2]-a[3];
+  }
+
+  //printMatrix("tmp",tmp,4);
+
+  // column transforms
+
+  for (int col=0;col<4;col++) {
+    a[0] = tmp[col+0*4] + tmp[col+2*4];
+    a[1] = tmp[col+1*4] + tmp[col+3*4];
+    a[2] = tmp[col+0*4] - tmp[col+2*4];
+    a[3] = tmp[col+1*4] - tmp[col+3*4];
+
+    coeffs[col+0*4] = a[0]+a[1];
+    coeffs[col+1*4] = a[0]-a[1];
+    coeffs[col+2*4] = a[2]+a[3];
+    coeffs[col+3*4] = a[2]-a[3];
+  }
+
+  //printMatrix("coeffs",coeffs,4);
+}
+
+
+void hadamard_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  int16_t tmp[8*8];
+
+  // row transforms
+
+  //printMatrix("input",input,8);
+
+  int16_t a[8],b[8];
+  for (int row=0;row<8;row++) {
+    int rs = row*stride;
+    a[0] = input[0+rs] + input[4+rs];
+    a[1] = input[1+rs] + input[5+rs];
+    a[2] = input[2+rs] + input[6+rs];
+    a[3] = input[3+rs] + input[7+rs];
+    a[4] = input[0+rs] - input[4+rs];
+    a[5] = input[1+rs] - input[5+rs];
+    a[6] = input[2+rs] - input[6+rs];
+    a[7] = input[3+rs] - input[7+rs];
+
+    b[0] = a[0]+a[2];
+    b[1] = a[1]+a[3];
+    b[2] = a[0]-a[2];
+    b[3] = a[1]-a[3];
+    b[4] = a[4]+a[6];
+    b[5] = a[5]+a[7];
+    b[6] = a[4]-a[6];
+    b[7] = a[5]-a[7];
+
+    tmp[0+8*row] = b[0]+b[1];
+    tmp[1+8*row] = b[0]-b[1];
+    tmp[2+8*row] = b[2]+b[3];
+    tmp[3+8*row] = b[2]-b[3];
+    tmp[4+8*row] = b[4]+b[5];
+    tmp[5+8*row] = b[4]-b[5];
+    tmp[6+8*row] = b[6]+b[7];
+    tmp[7+8*row] = b[6]-b[7];
+  }
+
+  //printMatrix("tmp",tmp,8);
+
+  // column transforms
+
+  for (int col=0;col<8;col++) {
+    a[0] = tmp[col+0*8] + tmp[col+4*8];
+    a[1] = tmp[col+1*8] + tmp[col+5*8];
+    a[2] = tmp[col+2*8] + tmp[col+6*8];
+    a[3] = tmp[col+3*8] + tmp[col+7*8];
+    a[4] = tmp[col+0*8] - tmp[col+4*8];
+    a[5] = tmp[col+1*8] - tmp[col+5*8];
+    a[6] = tmp[col+2*8] - tmp[col+6*8];
+    a[7] = tmp[col+3*8] - tmp[col+7*8];
+
+    b[0] = a[0]+a[2];
+    b[1] = a[1]+a[3];
+    b[2] = a[0]-a[2];
+    b[3] = a[1]-a[3];
+    b[4] = a[4]+a[6];
+    b[5] = a[5]+a[7];
+    b[6] = a[4]-a[6];
+    b[7] = a[5]-a[7];
+
+    coeffs[col+0*8] = b[0]+b[1];
+    coeffs[col+1*8] = b[0]-b[1];
+    coeffs[col+2*8] = b[2]+b[3];
+    coeffs[col+3*8] = b[2]-b[3];
+    coeffs[col+4*8] = b[4]+b[5];
+    coeffs[col+5*8] = b[4]-b[5];
+    coeffs[col+6*8] = b[6]+b[7];
+    coeffs[col+7*8] = b[6]-b[7];
+  }
+
+  //printMatrix("coeffs",coeffs,8);
+}
+
+
+void hadamard_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  hadamard_transform_8(coeffs,16, input,stride);
+}
+
+void hadamard_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride)
+{
+  hadamard_transform_8(coeffs,32, input,stride);
 }
 

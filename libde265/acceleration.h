@@ -73,6 +73,11 @@ struct acceleration_functions
 
   // indexed with (log2TbSize-2)
   void (*fwd_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride); // fDCT
+
+
+  // forward Hadamard transform (without scaling factor)
+  // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
+  void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
 };
 
 #endif
