@@ -165,7 +165,7 @@ de265_image::de265_image()
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps, bool allocMetadata,
-                                     decoder_context* ctx)
+                                     decoder_context* ctx, de265_PTS pts, void* user_data)
 {
   if (allocMetadata) { assert(sps); }
 
@@ -182,6 +182,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   height = h;
   chroma_width = w;
   chroma_height= h;
+
+  this->user_data = user_data;
+  this->pts = pts;
 
   de265_image_spec spec;
 
@@ -385,7 +388,8 @@ de265_error de265_image::copy_image(const de265_image* src)
      Another option would be to safe the copied data not in an de265_image at all.
   */
 
-  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false, src->decctx);
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false,
+                                src->decctx, src->pts, src->user_data);
   if (err != DE265_OK) {
     return err;
   }
