@@ -53,11 +53,26 @@
 
 // ========== TB intra prediction mode ==========
 
-enum {
+enum ALGO_TB_IntraPredMode {
   ALGO_TB_IntraPredMode_BruteForce,
   ALGO_TB_IntraPredMode_FastBrute,
-  ALGO_TB_IntraPredMode_MinSSD
+  ALGO_TB_IntraPredMode_MinDistortion
 };
+
+class ALGO_TB_IntraPredMode_option : public choice_option
+{
+ public:
+  ALGO_TB_IntraPredMode_option() {
+    addChoice("minDist"    ,ALGO_TB_IntraPredMode_MinDistortion);
+    addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
+    addChoice("fast-brute" ,ALGO_TB_IntraPredMode_FastBrute);
+
+    setID(ALGO_TB_IntraPredMode_FastBrute);
+  }
+
+  enum ALGO_TB_IntraPredMode operator() () const { return (enum ALGO_TB_IntraPredMode)getID(); }
+};
+
 
 enum TBBitrateEstimMethod {
   //TBBitrateEstim_AccurateBits,
@@ -67,6 +82,20 @@ enum TBBitrateEstimMethod {
   TBBitrateEstim_SATD_Hadamard
 };
 
+class TBBitrateEstimMethod_option : public choice_option
+{
+ public:
+  TBBitrateEstimMethod_option() {
+    addChoice("ssd",TBBitrateEstim_SSD);
+    addChoice("sad",TBBitrateEstim_SAD);
+    addChoice("satd-dct",TBBitrateEstim_SATD_DCT);
+    addChoice("satd",TBBitrateEstim_SATD_Hadamard);
+
+    setID(TBBitrateEstim_SATD_Hadamard);
+  }
+
+  enum TBBitrateEstimMethod operator() () const { return (enum TBBitrateEstimMethod)getID(); }
+};
 
 class Algo_TB_Split;
 
@@ -146,9 +175,9 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 
   struct params
   {
-  params() : bitrate_estim_method(TBBitrateEstim_SATD_Hadamard) { }
+    params() { bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard); }
 
-    enum TBBitrateEstimMethod bitrate_estim_method;
+    TBBitrateEstimMethod_option bitrateEstimMethod;
   };
 
   void setParams(const params& p) { mParams=p; }

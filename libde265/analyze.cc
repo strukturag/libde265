@@ -639,7 +639,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
           decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
           
           float distortion;
-          distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,mParams.bitrate_estim_method);
+          distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
+                                        mParams.bitrateEstimMethod());
 
           distortions.push_back( std::make_pair((enum IntraPredMode)idx, distortion) );
         }
@@ -1406,14 +1407,14 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
 
   Algo_TB_IntraPredMode_ModeSubset* algo_TB_IntraPredMode = NULL;
-  switch (params.mAlgo_TB_IntraPredMode.getID()) {
+  switch (params.mAlgo_TB_IntraPredMode()) {
   case ALGO_TB_IntraPredMode_BruteForce:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_BruteForce;
     break;
   case ALGO_TB_IntraPredMode_FastBrute:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_FastBrute;
     break;
-  case ALGO_TB_IntraPredMode_MinSSD:
+  case ALGO_TB_IntraPredMode_MinDistortion:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinSSD;
     break;
   }
@@ -1430,8 +1431,6 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
 
 
-  params.TB_IntraPredMode_FastBrute.bitrate_estim_method = (enum TBBitrateEstimMethod)
-    params.TB_IntraPredMode_FastBrute_bitrate_estim_method.getID();
   mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
 
 

@@ -60,6 +60,13 @@ class choice_option
 };
 
 
+template <class T> class choice : public choice_option
+{
+ public:
+ private:
+  T selectedID;
+};
+
 
 class config_parameters
 {
