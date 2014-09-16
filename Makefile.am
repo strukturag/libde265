@@ -10,6 +10,8 @@ endif
 
 SUBDIRS+=enc265
 
+SUBDIRS+=tools
+
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
 endif
