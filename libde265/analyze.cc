@@ -1224,7 +1224,7 @@ double encode_image(encoder_context* ectx,
         fflush(stdout);
 #endif
 
-        statistics_IntraPredMode(ectx, x0,y0, cb);
+        //statistics_IntraPredMode(ectx, x0,y0, cb);
 
 
         cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
@@ -1248,7 +1248,7 @@ double encode_image(encoder_context* ectx,
       }
 
 
-  statistics_print();
+  //statistics_print();
 
 
   // frame PSNR

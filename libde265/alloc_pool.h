@@ -27,7 +27,7 @@
 
 template <class T> class alloc_pool
 {
-public:
+ public:
   alloc_pool() {
     mBlkSize = BLKSIZE;
   }
@@ -49,29 +49,35 @@ public:
     freelist.clear();
   }
 
-  T* get_new(int n=1) {
+  T* get_new(int n=1)
+  {
     if (n==1 && !freelist.empty()) {
       T* t = freelist.back();
       freelist.pop_back();
       return t;
     }
 
-    if (mem.empty() || mem.back().nUsed + n > mem.back().size) {
-      range r;
-      r.data = new T[mBlkSize];
-      r.size = mBlkSize;
-      r.nUsed= 0;
-      mem.push_back(r);
+    for (int i=0;i<mem.size();i++) {
+      range& r = mem[i];
+      if (r.nUsed +n <= r.size) {
+
+        T* t = r.data + r.nUsed;
+        r.nUsed += n;
+        return t;
+      }
     }
 
-    range& r = mem.back();
+    // no free range: alloc a new one
 
-    assert(r.nUsed + n <= r.size);
+    int rangeSize = std::max(mBlkSize, n);
 
-    T* t = r.data + r.nUsed;
-    r.nUsed += n;
+    range r;
+    r.data = new T[rangeSize];
+    r.size = rangeSize;
+    r.nUsed = n;
+    mem.push_back(r);
 
-    return t;
+    return r.data;
   }
 
   void free(T* t) {
