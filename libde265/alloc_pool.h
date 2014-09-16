@@ -63,6 +63,12 @@ template <class T> class alloc_pool
 
         T* t = r.data + r.nUsed;
         r.nUsed += n;
+
+        // move memory-range to front of list to find it faster next time
+        if (i>0) {
+          std::swap(mem[i],mem[0]);
+        }
+
         return t;
       }
     }
