@@ -12,12 +12,14 @@ sherlock265_SOURCES = \
   VideoPlayer.cc \
   VideoDecoder.cc \
   VideoWidget.cc \
-  moc_VideoPlayer.cpp \
-  moc_VideoDecoder.cpp \
-  moc_VideoWidget.cpp \
   VideoPlayer.hh \
   VideoDecoder.hh \
   VideoWidget.hh
+
+nodist_sherlock265_SOURCES = \
+  moc_VideoPlayer.cpp \
+  moc_VideoDecoder.cpp \
+  moc_VideoWidget.cpp
 
 if HAVE_VIDEOGFX
   sherlock265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
