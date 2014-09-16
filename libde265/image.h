@@ -186,7 +186,8 @@ struct de265_image {
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
-                          bool allocMetadata, decoder_context* ctx);
+                          bool allocMetadata, decoder_context* ctx, de265_PTS pts, void* user_data,
+                          bool isOutputImage);
 
   bool is_allocated() const { return pixels[0] != NULL; }
 
@@ -305,6 +306,7 @@ public:
   de265_PTS pts;
   void*     user_data;
   void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
+  de265_image_allocation image_allocation_functions; // the functions used for memory allocation
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,

@@ -1269,7 +1269,7 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
 {
   assert(ctx->dpb.has_free_dpb_picture(true));
 
-  int idx = ctx->dpb.new_image(ctx->current_sps, this);
+  int idx = ctx->dpb.new_image(ctx->current_sps, this, 0,0, false);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
@@ -1826,15 +1826,14 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     // --- find and allocate image buffer for decoding ---
 
     int image_buffer_idx;
-    image_buffer_idx = ctx->dpb.new_image(sps, this);
+    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || ctx->param_disable_sao);
+    image_buffer_idx = ctx->dpb.new_image(sps, this, pts, user_data, isOutputImage);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;
     }
 
     de265_image* img = ctx->dpb.get_image(image_buffer_idx);
-    img->pts = pts;
-    img->user_data = user_data;
     img->nal_hdr = *nal_hdr;
     ctx->img = img;
 
