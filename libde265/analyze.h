@@ -265,10 +265,24 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
 
 // ========== CB intra NxN vs. 2Nx2N decision ==========
 
-enum {
+enum ALGO_CB_IntraPartMode {
   ALGO_CB_IntraPartMode_BruteForce,
   ALGO_CB_IntraPartMode_Fixed
 };
+
+class ALGO_CB_IntraPartMode_option : public choice_option
+{
+ public:
+  ALGO_CB_IntraPartMode_option() {
+    addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
+    addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
+
+    setID(ALGO_CB_IntraPartMode_BruteForce);
+  }
+
+  enum ALGO_CB_IntraPartMode operator() () const { return (enum ALGO_CB_IntraPartMode)getID(); }
+};
+
 
 class Algo_CB_IntraPartMode
 {
@@ -300,6 +314,20 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
                           int log2CbSize, int ctDepth, int qp);
 };
 
+
+class option_PartMode : public choice_option
+{
+ public:
+  option_PartMode() {
+    addChoice("NxN",   PART_NxN);
+    addChoice("2Nx2N", PART_2Nx2N);
+
+    setID(PART_2Nx2N);
+  }
+
+  enum PartMode operator() () const { return (enum PartMode)getID(); }
+};
+
 /* Always use choose selected part mode.
    If NxN is chosen but cannot be applied (CB tree not at maximum depth), 2Nx2N is used instead.
  */
@@ -310,9 +338,9 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 
   struct params
   {
-  params() : partMode(PART_2Nx2N) { }
+    params() { }
 
-    enum PartMode partMode;
+    option_PartMode partMode;
   };
 
   void setParams(const params& p) { mParams=p; }

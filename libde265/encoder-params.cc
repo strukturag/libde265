@@ -26,16 +26,10 @@
 
 encoder_params::encoder_params()
 {
-  mAlgo_CB_IntraPartMode.addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
-  mAlgo_CB_IntraPartMode.addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
-
   mAlgo_TB_IntraPredMode_Subset.addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
   mAlgo_TB_IntraPredMode_Subset.addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
   mAlgo_TB_IntraPredMode_Subset.addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
   mAlgo_TB_IntraPredMode_Subset.addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
-
-  CB_IntraPartMode_Fixed_partMode.addChoice("NxN",   PART_NxN);
-  CB_IntraPartMode_Fixed_partMode.addChoice("2Nx2N", PART_2Nx2N);
 
   rateControlMethod = RateControlMethod_ConstantQP;
 }

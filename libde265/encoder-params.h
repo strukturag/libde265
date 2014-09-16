@@ -88,10 +88,9 @@ struct encoder_params
 
   // --- Algo_CB_IntraPartMode
 
-  choice_option mAlgo_CB_IntraPartMode;
+  ALGO_CB_IntraPartMode_option mAlgo_CB_IntraPartMode;
 
   Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
-  choice_option CB_IntraPartMode_Fixed_partMode;
 
   // --- Algo_CB_Split
 

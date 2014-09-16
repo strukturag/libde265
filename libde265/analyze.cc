@@ -899,7 +899,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              int x0,int y0, int log2CbSize, int ctDepth,
                                              int qp)
 {
-  enum PartMode PartMode = mParams.partMode;
+  enum PartMode PartMode = mParams.partMode();
 
 
   // NxN can only be applied at minimum CB size.
@@ -1395,7 +1395,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
 
   Algo_CB_IntraPartMode* algo_CB_IntraPartMode = NULL;
-  switch (params.mAlgo_CB_IntraPartMode.getID()) {
+  switch (params.mAlgo_CB_IntraPartMode()) {
   case ALGO_CB_IntraPartMode_BruteForce:
     algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_BruteForce;
     break;
@@ -1427,7 +1427,6 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
   // ===== set algorithm parameters ======
 
-  params.CB_IntraPartMode_Fixed.partMode = (enum PartMode)params.CB_IntraPartMode_Fixed_partMode.getID();
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
 
 
