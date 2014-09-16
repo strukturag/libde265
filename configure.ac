@@ -197,7 +197,7 @@ if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" &&
 fi
 
 if eval "test $enable_sherlock265 = yes" ; then
-  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui], [found_qt=5], [found_qt=no])
+  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5], [found_qt=no])
   if eval "test $found_qt = no" ; then
     PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
   fi
