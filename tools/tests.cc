@@ -30,6 +30,7 @@ public:
   virtual ~Test() { }
 
   virtual const char* getName() const { return "noname"; }
+  virtual const char* getDescription() const { return "no description"; }
   virtual bool work(bool quiet=false) = 0;
 
   static void runTest(const char* name) {
@@ -71,11 +72,12 @@ class ListTests : public Test
 {
 public:
   const char* getName() const { return "list"; }
+  const char* getDescription() const { return "list all available tests"; }
   bool work(bool quiet) {
     if (!quiet) {
       Test* t = s_firstTest;
       while (t) {
-        printf("- %s\n",t->getName());
+        printf("- %s: %s\n",t->getName(), t->getDescription());
         t=t->next;
       }
     }
