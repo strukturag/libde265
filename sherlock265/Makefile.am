@@ -21,6 +21,11 @@ nodist_sherlock265_SOURCES = \
   moc_VideoDecoder.cpp \
   moc_VideoWidget.cpp
 
+CLEANFILES = \
+  moc_VideoPlayer.cpp \
+  moc_VideoDecoder.cpp \
+  moc_VideoWidget.cpp
+
 if HAVE_VIDEOGFX
   sherlock265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
   sherlock265_LDFLAGS += $(VIDEOGFX_LIBS)
