@@ -347,6 +347,12 @@ public:
 
   de265_progress_lock* ctb_progress; // ctb_info_size
 
+  void mark_all_CTB_progress(int progress) {
+    for (int i=0;i<ctb_info.data_size;i++) {
+      ctb_progress[i].set_progress(progress);
+    }
+  }
+
 
   void thread_start(int nThreads);
   void thread_run();

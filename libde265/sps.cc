@@ -498,7 +498,7 @@ void seq_parameter_set::dump(int fd) const
 #define LOG1(t,d) log2fh(fh, t,d)
 #define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
-  
+
 
   LOG0("----------------- SPS -----------------\n");
   LOG1("video_parameter_set_id  : %d\n", video_parameter_set_id);
@@ -732,7 +732,7 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
   for (int y=0;y<width;y++) {
     for (int x=0;x<width;x++)
       printf("%d,",scalingFactors[x*subWidth + width*subWidth*subWidth*y]);
-    
+
     printf("\n");
   }
 #endif
@@ -822,10 +822,6 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           }
 
           nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
-          if (nextCoef < 0) {
-            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-          }
-
           curr_scaling_list[i] = nextCoef;
           //printf("curr %d = %d\n",i,nextCoef);
         }
