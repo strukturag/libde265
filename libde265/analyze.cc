@@ -1436,7 +1436,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
 
 
-  switch (params.mAlgo_TB_IntraPredMode_Subset.getID())
+  switch (params.mAlgo_TB_IntraPredMode_Subset())
     {
     case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
       break;

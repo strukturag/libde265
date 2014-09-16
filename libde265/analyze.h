@@ -59,10 +59,10 @@ enum ALGO_TB_IntraPredMode {
   ALGO_TB_IntraPredMode_MinDistortion
 };
 
-class ALGO_TB_IntraPredMode_option : public choice_option
+class option_ALGO_TB_IntraPredMode : public choice_option
 {
  public:
-  ALGO_TB_IntraPredMode_option() {
+  option_ALGO_TB_IntraPredMode() {
     addChoice("minDist"    ,ALGO_TB_IntraPredMode_MinDistortion);
     addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
     addChoice("fast-brute" ,ALGO_TB_IntraPredMode_FastBrute);
@@ -82,10 +82,10 @@ enum TBBitrateEstimMethod {
   TBBitrateEstim_SATD_Hadamard
 };
 
-class TBBitrateEstimMethod_option : public choice_option
+class option_TBBitrateEstimMethod : public choice_option
 {
  public:
-  TBBitrateEstimMethod_option() {
+  option_TBBitrateEstimMethod() {
     addChoice("ssd",TBBitrateEstim_SSD);
     addChoice("sad",TBBitrateEstim_SAD);
     addChoice("satd-dct",TBBitrateEstim_SATD_DCT);
@@ -122,12 +122,28 @@ class Algo_TB_IntraPredMode
 };
 
 
-enum {
+enum ALGO_TB_IntraPredMode_Subset {
   ALGO_TB_IntraPredMode_Subset_All,
   ALGO_TB_IntraPredMode_Subset_HVPlus,
   ALGO_TB_IntraPredMode_Subset_DC,
   ALGO_TB_IntraPredMode_Subset_Planar
 };
+
+class option_ALGO_TB_IntraPredMode_Subset : public choice_option
+{
+ public:
+  option_ALGO_TB_IntraPredMode_Subset() {
+    addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
+    addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
+    addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
+    addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
+
+    setID(ALGO_TB_IntraPredMode_Subset_All);
+  }
+
+  enum ALGO_TB_IntraPredMode_Subset operator() () const { return (enum ALGO_TB_IntraPredMode_Subset)getID(); }
+};
+
 
 class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 {
@@ -177,7 +193,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
   {
     params() { bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard); }
 
-    TBBitrateEstimMethod_option bitrateEstimMethod;
+    option_TBBitrateEstimMethod bitrateEstimMethod;
   };
 
   void setParams(const params& p) { mParams=p; }
@@ -270,10 +286,10 @@ enum ALGO_CB_IntraPartMode {
   ALGO_CB_IntraPartMode_Fixed
 };
 
-class ALGO_CB_IntraPartMode_option : public choice_option
+class option_ALGO_CB_IntraPartMode : public choice_option
 {
  public:
-  ALGO_CB_IntraPartMode_option() {
+  option_ALGO_CB_IntraPartMode() {
     addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
     addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
 

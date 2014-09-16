@@ -77,8 +77,8 @@ struct encoder_params
 
   // --- Algo_TB_IntraPredMode
 
-  ALGO_TB_IntraPredMode_option mAlgo_TB_IntraPredMode;
-  choice_option mAlgo_TB_IntraPredMode_Subset;
+  option_ALGO_TB_IntraPredMode        mAlgo_TB_IntraPredMode;
+  option_ALGO_TB_IntraPredMode_Subset mAlgo_TB_IntraPredMode_Subset;
 
   Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
 
@@ -88,7 +88,7 @@ struct encoder_params
 
   // --- Algo_CB_IntraPartMode
 
-  ALGO_CB_IntraPartMode_option mAlgo_CB_IntraPartMode;
+  option_ALGO_CB_IntraPartMode mAlgo_CB_IntraPartMode;
 
   Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
 
