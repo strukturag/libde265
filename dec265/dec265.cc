@@ -193,8 +193,6 @@ bool output_image(const de265_image* img)
   width  = de265_get_image_width(img,0);
   height = de265_get_image_height(img,0);
 
-  printf("user data: %p\n", de265_get_image_user_data(img));
-
   framecnt++;
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
