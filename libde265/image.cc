@@ -379,7 +379,7 @@ void de265_image::release()
   if (pixels[0])
     {
       image_allocation_functions.release_buffer(decctx, this,
-                                                decctx->param_image_allocation_userdata);
+                                                decctx ? decctx->param_image_allocation_userdata : NULL);
       
       for (int i=0;i<3;i++)
         {
