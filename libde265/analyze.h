@@ -191,9 +191,13 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 
   struct params
   {
-    params() { bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard); }
+    params() {
+      bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard);
+      keepNBest = 5;
+    }
 
     option_TBBitrateEstimMethod bitrateEstimMethod;
+    int keepNBest;
   };
 
   void setParams(const params& p) { mParams=p; }
