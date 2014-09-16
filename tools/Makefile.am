@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim
+bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests
 
 AM_CPPFLAGS = -I../libde265
 
@@ -31,4 +31,10 @@ block_rate_estim_CXXFLAGS =
 block_rate_estim_LDFLAGS =
 block_rate_estim_LDADD = ../libde265/libde265.la -lstdc++
 block_rate_estim_SOURCES = block-rate-estim.cc
+
+tests_DEPENDENCIES = ../libde265/libde265.la
+tests_CXXFLAGS =
+tests_LDFLAGS =
+tests_LDADD = ../libde265/libde265.la -lstdc++
+tests_SOURCES = tests.cc
 
