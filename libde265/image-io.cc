@@ -74,7 +74,8 @@ void ImageSource_YUV::preload_next_image()
   if (mReachedEndOfFile) return;
 
   de265_image* img = new de265_image;
-  img->alloc_image(width,height,de265_chroma_420, NULL, false, NULL);
+  img->alloc_image(width,height,de265_chroma_420, NULL, false,
+                   NULL, 0, NULL, false);
   assert(img); // TODO: error handling
 
   // --- load image ---

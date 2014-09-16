@@ -573,7 +573,7 @@ int main(int argc, char** argv)
 
         uint8_t* buf = (uint8_t*)malloc(length);
         n = fread(buf,1,length,fh);
-        err = de265_push_NAL(ctx, buf,n,  pos,NULL);
+        err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
 
         if (write_bytestream) {
           uint8_t sc[3] = { 0,0,1 };
@@ -591,7 +591,7 @@ int main(int argc, char** argv)
 
         // decode input data
         if (n) {
-          err = de265_push_data(ctx, buf, n, pos, NULL);
+          err = de265_push_data(ctx, buf, n, pos, (void*)2);
           if (err != DE265_OK) {
             break;
           }

@@ -165,7 +165,8 @@ de265_image::de265_image()
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      const seq_parameter_set* sps, bool allocMetadata,
-                                     decoder_context* ctx)
+                                     decoder_context* ctx, de265_PTS pts, void* user_data,
+                                     bool isOutputImage)
 {
   if (allocMetadata) { assert(sps); }
 
@@ -186,6 +187,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   height = h;
   chroma_width = w;
   chroma_height= h;
+
+  this->user_data = user_data;
+  this->pts = pts;
 
   de265_image_spec spec;
 
@@ -245,15 +249,19 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  de265_image_allocation* funcs = &de265_image::default_image_allocation;
   void* alloc_userdata = NULL;
+  if (decctx) alloc_userdata = decctx->param_image_allocation_userdata;
 
-  if (decctx) {
-    alloc_userdata = decctx->param_image_allocation_userdata;
-    funcs = &decctx->param_image_allocation_functions;
+  if (isOutputImage) {
+    image_allocation_functions = decctx->param_image_allocation_functions;
+  }
+  else {
+    image_allocation_functions = de265_image::default_image_allocation;
   }
 
-  bool mem_alloc_success = funcs->get_buffer(decctx, &spec, this, alloc_userdata);
+  bool mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, this,
+                                                                 alloc_userdata);
+
 
   pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
   pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
@@ -368,19 +376,11 @@ void de265_image::release()
 {
   // free image memory
 
-  de265_image_allocation* allocfunc = &de265_image::default_image_allocation;
-  void* alloc_userdata = NULL;
-
-  if (decctx) {
-    allocfunc = &decctx->param_image_allocation_functions;
-    alloc_userdata = decctx->param_image_allocation_userdata;
-  }
-
-  if (allocfunc->release_buffer &&
-      pixels[0])
+  if (pixels[0])
     {
-      allocfunc->release_buffer(decctx, this, alloc_userdata);
-
+      image_allocation_functions.release_buffer(decctx, this,
+                                                decctx->param_image_allocation_userdata);
+      
       for (int i=0;i<3;i++)
         {
           pixels[i] = NULL;
@@ -421,7 +421,8 @@ de265_error de265_image::copy_image(const de265_image* src)
      Another option would be to safe the copied data not in an de265_image at all.
   */
 
-  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false, src->decctx);
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false,
+                                src->decctx, src->pts, src->user_data, false);
   if (err != DE265_OK) {
     return err;
   }
@@ -483,6 +484,7 @@ void de265_image::exchange_pixel_data_with(de265_image& b)
 
   std::swap(stride, b.stride);
   std::swap(chroma_stride, b.chroma_stride);
+  std::swap(image_allocation_functions, b.image_allocation_functions);
 }
 
 

@@ -1163,7 +1163,8 @@ double encode_image(encoder_context* ectx,
   int w = ectx->sps.pic_width_in_luma_samples;
   int h = ectx->sps.pic_height_in_luma_samples;
 
-  ectx->img.alloc_image(w,h, de265_chroma_420, &ectx->sps, true, NULL /* no decctx */);
+  ectx->img.alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
+                        NULL /* no decctx */, 0,NULL,false);
   ectx->img.alloc_encoder_data(&ectx->sps);
   ectx->img.clear_metadata();
 
