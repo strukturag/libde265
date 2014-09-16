@@ -201,9 +201,14 @@ if eval "test $enable_sherlock265 = yes" ; then
   if eval "test $found_qt = no" ; then
     PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
   fi
-  AC_PATH_PROGS([QTMOC],[moc-qt$found_qt moc])
-  if eval "test x$QTMOC = x" ; then
-    AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
+  AC_PATH_PROGS([QTCHOOSER],[qtchooser])
+  if eval "test x$QTCHOOSER = x" ; then
+    AC_PATH_PROGS([QTMOC],[moc-qt$found_qt moc])
+    if eval "test x$QTMOC = x" ; then
+      AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
+    fi
+  else
+    QTMOC="$QTCHOOSER -run-tool=moc -qt=$found_qt"
   fi
   AC_MSG_CHECKING([for version of $QTMOC])
   QTMOC_VERSION=`$QTMOC -v 2>&1 | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
