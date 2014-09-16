@@ -80,6 +80,9 @@ struct encoder_params
   choice_option mAlgo_TB_IntraPredMode;
   choice_option mAlgo_TB_IntraPredMode_Subset;
 
+  Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
+  choice_option TB_IntraPredMode_FastBrute_bitrate_estim_method;
+
 
   // --- Algo_TB_Split_BruteForce
 
@@ -90,6 +93,7 @@ struct encoder_params
 
   Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
   choice_option CB_IntraPartMode_Fixed_partMode;
+
 
   // --- Algo_CB_Split
 

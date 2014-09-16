@@ -48,6 +48,7 @@ class choice_option
   bool isValidValue() const { return validValue; }
 
   const std::string& getValue() const { return selectedValue; }
+  void setID(int id) { selectedID=id; validValue=true; }
   const int getID() const { return selectedID; }
   const std::vector< std::pair<std::string,int> >& getChoices() const { return choices; }
 

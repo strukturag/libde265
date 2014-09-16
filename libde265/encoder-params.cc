@@ -33,6 +33,11 @@ encoder_params::encoder_params()
   mAlgo_TB_IntraPredMode.addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
   mAlgo_TB_IntraPredMode.addChoice("fast-brute" ,ALGO_TB_IntraPredMode_FastBrute);
 
+  TB_IntraPredMode_FastBrute_bitrate_estim_method.addChoice("ssd",TBBitrateEstim_SSD);
+  TB_IntraPredMode_FastBrute_bitrate_estim_method.addChoice("sad",TBBitrateEstim_SAD);
+  TB_IntraPredMode_FastBrute_bitrate_estim_method.addChoice("satd-dct",TBBitrateEstim_SATD_DCT);
+  TB_IntraPredMode_FastBrute_bitrate_estim_method.addChoice("satd",TBBitrateEstim_SATD_Hadamard);
+
   mAlgo_TB_IntraPredMode_Subset.addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
   mAlgo_TB_IntraPredMode_Subset.addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
   mAlgo_TB_IntraPredMode_Subset.addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);

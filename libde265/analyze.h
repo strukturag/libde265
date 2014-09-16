@@ -59,6 +59,15 @@ enum {
   ALGO_TB_IntraPredMode_MinSSD
 };
 
+enum TBBitrateEstimMethod {
+  //TBBitrateEstim_AccurateBits,
+  TBBitrateEstim_SSD,
+  TBBitrateEstim_SAD,
+  TBBitrateEstim_SATD_DCT,
+  TBBitrateEstim_SATD_Hadamard
+};
+
+
 class Algo_TB_Split;
 
 class Algo_TB_IntraPredMode
@@ -135,6 +144,16 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
 
+  struct params
+  {
+  params() : bitrate_estim_method(TBBitrateEstim_SATD_Hadamard) { }
+
+    enum TBBitrateEstimMethod bitrate_estim_method;
+  };
+
+  void setParams(const params& p) { mParams=p; }
+
+
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
                                 const de265_image* input,
@@ -144,6 +163,9 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
                                 int blkIdx,
                                 int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                 int qp);
+
+ private:
+  params mParams;
 };
 
 

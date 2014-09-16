@@ -280,56 +280,69 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 }
 
 
-float estim_bitrate(const encoder_context* ectx,
-                    const de265_image* input,
-                    int x0,int y0, int log2BlkSize)
+float estim_TB_bitrate(const encoder_context* ectx,
+                       const de265_image* input,
+                       int x0,int y0, int log2BlkSize,
+                       enum TBBitrateEstimMethod method)
 {
   int blkSize = 1<<log2BlkSize;
 
   float distortion;
 
-  if (0) {
-    distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
-                     input->get_image_stride(0),
-                     ectx->img.get_image_plane_at_pos(0, x0,y0),
-                     ectx->img.get_image_stride(0),
-                     1<<log2BlkSize, 1<<log2BlkSize);
-  }
+  switch (method)
+    {
+    case TBBitrateEstim_SSD:
+      return SSD(input->get_image_plane_at_pos(0, x0,y0),
+                 input->get_image_stride(0),
+                 ectx->img.get_image_plane_at_pos(0, x0,y0),
+                 ectx->img.get_image_stride(0),
+                 1<<log2BlkSize, 1<<log2BlkSize);
+      break;
 
-  int16_t coeffs[32*32];
-  int16_t diff[32*32];
+    case TBBitrateEstim_SAD:
+      return SAD(input->get_image_plane_at_pos(0, x0,y0),
+                 input->get_image_stride(0),
+                 ectx->img.get_image_plane_at_pos(0, x0,y0),
+                 ectx->img.get_image_stride(0),
+                 1<<log2BlkSize, 1<<log2BlkSize);
+      break;
 
-#if 1
-  diff_blk(diff,blkSize,
-           input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-           ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
-           blkSize);
+    case TBBitrateEstim_SATD_DCT:
+    case TBBitrateEstim_SATD_Hadamard:
+      {
+        int16_t coeffs[32*32];
+        int16_t diff[32*32];
 
-  bool hadamard=true;
+        diff_blk(diff,blkSize,
+                 input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                 ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+                 blkSize);
 
-  if (hadamard) {
-    ectx->accel.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
-  }
-  else {
-    ectx->accel.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
-  }
+        if (method == TBBitrateEstim_SATD_Hadamard) {
+          ectx->accel.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+        }
+        else {
+          ectx->accel.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+        }
 
-  /*
-    fdct_4x4_8_fallback(coeffs,    diff, &diff[8] - &diff[0]);
-    fdct_4x4_8_fallback(coeffs+16, diff+16, &diff[8] - &diff[0]);
-    fdct_4x4_8_fallback(coeffs+32, diff+32, &diff[8] - &diff[0]);
-    fdct_4x4_8_fallback(coeffs+48, diff+48, &diff[8] - &diff[0]);
-  */
+        float distortion=0;
+        for (int i=0;i<blkSize*blkSize;i++) {
+          distortion += abs_value((int)coeffs[i]);
+        }
 
-  distortion=0;
-  for (int i=0;i<blkSize*blkSize;i++) {
-    //printf("%d %d\n",i,(int)coeffs[i]);
-    //distortion += sqrt(abs_value((int)coeffs[i]));
-    distortion += abs_value((int)coeffs[i]);
-  }
-#endif
+        return distortion;
+      }
+      break;
 
-  return distortion;
+      /*
+    case TBBitrateEstim_AccurateBits:
+      assert(false);
+      return 0;
+      */
+    }
+
+  assert(false);
+  return 0;
 }
 
 
@@ -454,7 +467,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       float sad;
       if ((1<<log2TbSize)==8) {
         decode_intra_prediction(&ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
-        sad = estim_bitrate(ectx,input, x0,y0, log2TbSize);
+        sad = estim_TB_bitrate(ectx,input, x0,y0, log2TbSize, TBBitrateEstim_SAD);
       }
 
 
@@ -626,11 +639,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
           decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
           
           float distortion;
-          distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                           ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
-                           1<<log2TbSize, 1<<log2TbSize);
-
-          distortion = estim_bitrate(ectx, input, x0,y0, log2TbSize);
+          distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,mParams.bitrate_estim_method);
 
           distortions.push_back( std::make_pair((enum IntraPredMode)idx, distortion) );
         }
@@ -1415,10 +1424,16 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   algo_TB_IntraPredMode->setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
-  // set algorithm parameters
+  // ===== set algorithm parameters ======
 
   params.CB_IntraPartMode_Fixed.partMode = (enum PartMode)params.CB_IntraPartMode_Fixed_partMode.getID();
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
+
+
+  params.TB_IntraPredMode_FastBrute.bitrate_estim_method = (enum TBBitrateEstimMethod)
+    params.TB_IntraPredMode_FastBrute_bitrate_estim_method.getID();
+  mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
+
 
   mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
 
