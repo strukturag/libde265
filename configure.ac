@@ -30,6 +30,7 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PROG_GREP
 
 # Initialize automake stuff
 AM_INIT_AUTOMAKE
@@ -196,7 +197,7 @@ if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" &&
 fi
 
 if eval "test $enable_sherlock265 = yes" ; then
-  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui], [found_qt=5], [found_qt=no])
+  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5], [found_qt=no])
   if eval "test $found_qt = no" ; then
     PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
   fi
@@ -204,6 +205,11 @@ if eval "test $enable_sherlock265 = yes" ; then
   if eval "test x$QTMOC = x" ; then
     AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
   fi
+  AC_MSG_CHECKING([for version of $QTMOC])
+  QTMOC_VERSION=`$QTMOC -v 2>&1 | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
+  AC_MSG_RESULT([$QTMOC_VERSION])
+  AX_COMPARE_VERSION([$QTMOC_VERSION], [lt], [$found_qt],
+      [AC_MSG_ERROR([Please install "moc" for Qt$found_qt (found $QTMOC_VERSION).])])
   AC_SUBST(QTMOC)
 fi
 
