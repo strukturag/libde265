@@ -479,7 +479,7 @@ FILE* output_fh;
 
 void write_rd_line(RDPoint p)
 {
-  fprintf(output_fh,"%9.2f %6.4f %5.3f %5.2f %5.2f\n",
+  fprintf(output_fh,"%9.2f %6.4f %5.3f %5.4f %5.4f\n",
           p.rate/1024, p.psnr, p.ssim,
           p.cpu_time/60, p.wall_time/60);
   fflush(output_fh);
