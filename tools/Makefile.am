@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests
+bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
 
 AM_CPPFLAGS = -I../libde265
 
@@ -37,4 +37,10 @@ tests_CXXFLAGS =
 tests_LDFLAGS =
 tests_LDADD = ../libde265/libde265.la -lstdc++
 tests_SOURCES = tests.cc
+
+bjoentegaard_DEPENDENCIES = ../libde265/libde265.la
+bjoentegaard_CXXFLAGS =
+bjoentegaard_LDFLAGS =
+bjoentegaard_LDADD = ../libde265/libde265.la -lstdc++
+bjoentegaard_SOURCES = bjoentegaard.cc
 
