@@ -520,15 +520,15 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
 const enc_tb*
-Algo_TB_IntraPredMode_MinSSD::analyze(encoder_context* ectx,
-                                      context_model_table ctxModel,
-                                      const de265_image* input,
-                                      const enc_tb* parent,
-                                      enc_cb* cb,
-                                      int x0,int y0, int xBase,int yBase,
-                                      int log2TbSize, int blkIdx,
-                                      int TrafoDepth, int MaxTrafoDepth,
-                                      int IntraSplitFlag, int qp)
+Algo_TB_IntraPredMode_MinDistortion::analyze(encoder_context* ectx,
+                                             context_model_table ctxModel,
+                                             const de265_image* input,
+                                             const enc_tb* parent,
+                                             enc_cb* cb,
+                                             int x0,int y0, int xBase,int yBase,
+                                             int log2TbSize, int blkIdx,
+                                             int TrafoDepth, int MaxTrafoDepth,
+                                             int IntraSplitFlag, int qp)
 {
 
   bool selectIntraPredMode = false;
@@ -545,11 +545,8 @@ Algo_TB_IntraPredMode_MinSSD::analyze(encoder_context* ectx,
       decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
 
       float distortion;
-      distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                       ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
-                       1<<log2TbSize, 1<<log2TbSize);
-
-      //distortion = estim_bitrate(ectx, input, x0,y0, log2TbSize);
+      distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
+                                    mParams.bitrateEstimMethod());
 
       if (idx==0 || distortion<minDistortion) {
         minDistortion = distortion;
@@ -1415,7 +1412,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_FastBrute;
     break;
   case ALGO_TB_IntraPredMode_MinDistortion:
-    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinSSD;
+    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinDistortion;
     break;
   }
 
@@ -1429,8 +1426,8 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
 
-
   mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
+  mAlgo_TB_IntraPredMode_MinDistortion.setParams(params.TB_IntraPredMode_MinDistortion);
 
 
   mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);

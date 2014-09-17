@@ -218,9 +218,21 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 };
 
 
-class Algo_TB_IntraPredMode_MinSSD : public Algo_TB_IntraPredMode_ModeSubset
+class Algo_TB_IntraPredMode_MinDistortion : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
+
+  struct params
+  {
+    params() {
+      bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard);
+    }
+
+    option_TBBitrateEstimMethod bitrateEstimMethod;
+  };
+
+  void setParams(const params& p) { mParams=p; }
+
 
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
@@ -231,6 +243,9 @@ class Algo_TB_IntraPredMode_MinSSD : public Algo_TB_IntraPredMode_ModeSubset
                                 int blkIdx,
                                 int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                 int qp);
+
+ private:
+  params mParams;
 };
 
 
@@ -496,9 +511,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
-  Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
-  Algo_TB_IntraPredMode_FastBrute   mAlgo_TB_IntraPredMode_FastBrute;
-  Algo_TB_IntraPredMode_MinSSD      mAlgo_TB_IntraPredMode_MinSSD;
+  Algo_TB_IntraPredMode_BruteForce    mAlgo_TB_IntraPredMode_BruteForce;
+  Algo_TB_IntraPredMode_FastBrute     mAlgo_TB_IntraPredMode_FastBrute;
+  Algo_TB_IntraPredMode_MinDistortion mAlgo_TB_IntraPredMode_MinDistortion;
 };
 
 
