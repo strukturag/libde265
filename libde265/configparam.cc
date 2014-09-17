@@ -397,7 +397,7 @@ void register_encoder_params(config_parameters* config)
   config->register_config_choice("CB-IntraPartMode-Fixed-partMode", 0, eoffset(CB_IntraPartMode_Fixed.partMode));
   config->register_config_choice("IntraPredMode-FastBrute-estimator", 0, eoffset(TB_IntraPredMode_FastBrute.bitrateEstimMethod));
   config->register_config_int   ("IntraPredMode-FastBrute-keepNBest", 0, eoffset(TB_IntraPredMode_FastBrute.keepNBest), 5, 0,32);
-  config->register_config_choice("IntraPredMode-MinDistortion-estimator", 0, eoffset(TB_IntraPredMode_MinDistortion.bitrateEstimMethod));
+  config->register_config_choice("IntraPredMode-MinResidual-estimator", 0, eoffset(TB_IntraPredMode_MinResidual.bitrateEstimMethod));
 
   config->register_config_int("constant-qp", 'q', eoffset(CTB_QScale_Constant.mQP),
                               27,      1,51);

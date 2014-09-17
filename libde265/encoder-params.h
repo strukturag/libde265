@@ -81,7 +81,7 @@ struct encoder_params
   option_ALGO_TB_IntraPredMode_Subset mAlgo_TB_IntraPredMode_Subset;
 
   Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
-  Algo_TB_IntraPredMode_MinDistortion::params TB_IntraPredMode_MinDistortion;
+  Algo_TB_IntraPredMode_MinResidual::params TB_IntraPredMode_MinResidual;
 
 
   // --- Algo_TB_Split_BruteForce

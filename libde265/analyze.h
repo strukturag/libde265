@@ -56,16 +56,16 @@
 enum ALGO_TB_IntraPredMode {
   ALGO_TB_IntraPredMode_BruteForce,
   ALGO_TB_IntraPredMode_FastBrute,
-  ALGO_TB_IntraPredMode_MinDistortion
+  ALGO_TB_IntraPredMode_MinResidual
 };
 
 class option_ALGO_TB_IntraPredMode : public choice_option
 {
  public:
   option_ALGO_TB_IntraPredMode() {
-    addChoice("minDist"    ,ALGO_TB_IntraPredMode_MinDistortion);
-    addChoice("brute-force",ALGO_TB_IntraPredMode_BruteForce);
-    addChoice("fast-brute" ,ALGO_TB_IntraPredMode_FastBrute);
+    addChoice("min-residual",ALGO_TB_IntraPredMode_MinResidual);
+    addChoice("brute-force" ,ALGO_TB_IntraPredMode_BruteForce);
+    addChoice("fast-brute"  ,ALGO_TB_IntraPredMode_FastBrute);
 
     setID(ALGO_TB_IntraPredMode_FastBrute);
   }
@@ -218,7 +218,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 };
 
 
-class Algo_TB_IntraPredMode_MinDistortion : public Algo_TB_IntraPredMode_ModeSubset
+class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
 
@@ -511,9 +511,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
-  Algo_TB_IntraPredMode_BruteForce    mAlgo_TB_IntraPredMode_BruteForce;
-  Algo_TB_IntraPredMode_FastBrute     mAlgo_TB_IntraPredMode_FastBrute;
-  Algo_TB_IntraPredMode_MinDistortion mAlgo_TB_IntraPredMode_MinDistortion;
+  Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
+  Algo_TB_IntraPredMode_FastBrute   mAlgo_TB_IntraPredMode_FastBrute;
+  Algo_TB_IntraPredMode_MinResidual mAlgo_TB_IntraPredMode_MinResidual;
 };
 
 

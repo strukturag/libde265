@@ -520,15 +520,15 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
 const enc_tb*
-Algo_TB_IntraPredMode_MinDistortion::analyze(encoder_context* ectx,
-                                             context_model_table ctxModel,
-                                             const de265_image* input,
-                                             const enc_tb* parent,
-                                             enc_cb* cb,
-                                             int x0,int y0, int xBase,int yBase,
-                                             int log2TbSize, int blkIdx,
-                                             int TrafoDepth, int MaxTrafoDepth,
-                                             int IntraSplitFlag, int qp)
+Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
+                                           context_model_table ctxModel,
+                                           const de265_image* input,
+                                           const enc_tb* parent,
+                                           enc_cb* cb,
+                                           int x0,int y0, int xBase,int yBase,
+                                           int log2TbSize, int blkIdx,
+                                           int TrafoDepth, int MaxTrafoDepth,
+                                           int IntraSplitFlag, int qp)
 {
 
   bool selectIntraPredMode = false;
@@ -1411,8 +1411,8 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   case ALGO_TB_IntraPredMode_FastBrute:
     algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_FastBrute;
     break;
-  case ALGO_TB_IntraPredMode_MinDistortion:
-    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinDistortion;
+  case ALGO_TB_IntraPredMode_MinResidual:
+    algo_TB_IntraPredMode = &mAlgo_TB_IntraPredMode_MinResidual;
     break;
   }
 
@@ -1427,7 +1427,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
 
   mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
-  mAlgo_TB_IntraPredMode_MinDistortion.setParams(params.TB_IntraPredMode_MinDistortion);
+  mAlgo_TB_IntraPredMode_MinResidual.setParams(params.TB_IntraPredMode_MinResidual);
 
 
   mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
