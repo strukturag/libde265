@@ -71,6 +71,7 @@ static struct {
 
 bool keepStreams = false;
 int  maxFrames = 0;
+std::string encoderParameters;
 
 
 std::string replace_variables(std::string str)
@@ -541,7 +542,8 @@ RDPoint Encoder_de265::encode(const Preset& preset,int qp) const
   std::stringstream cmd1;
   cmd1 << "$ENC265 " << input.options_de265()
        << " " << preset.options_de265
-       << " -q " << qp << " -o " << streamname.str();
+       << " -q " << qp << " -o " << streamname.str()
+       << " " << encoderParameters;
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -615,7 +617,8 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   cmd1 << (useSCC ? "$HMSCCENC " : "$HMENC ")
        << input.options_HM()
        << " " << (useSCC ? preset.options_hm_scc : preset.options_hm)
-       << " -q " << qp << " -o " << recoyuv << " -b " << streamname.str() << " >&2";
+       << " -q " << qp << " -o " << recoyuv << " -b " << streamname.str()
+       << " " << encoderParameters << " >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -685,7 +688,9 @@ RDPoint Encoder_x265::encode(const Preset& preset,int qp) const
   std::stringstream cmd1;
   cmd1 << "$X265ENC " << input.options_x265()
        << " " << preset.options_x265
-       << " --qp " << qp << " " << streamname.str() << " >&2";
+       << " --qp " << qp << " " << streamname.str()
+       << " " << encoderParameters
+       << " >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -745,7 +750,9 @@ RDPoint Encoder_f265::encode(const Preset& preset,int qp) const
 {
   std::stringstream cmd1;
   cmd1 << "$F265 " << input.options_f265()
-       << " f265.out -v -p\"" << preset.options_f265 << " qp=" << qp << "\" >&2";
+       << " f265.out -v -p\"" << preset.options_f265 << " qp=" << qp
+       << " " << encoderParameters
+       << "\" >&2";
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -826,7 +833,8 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
        << " " << preset.options_x264_ffmpeg
        << " -crf " << qp_crf
        << " -threads 6"
-       << " -f h264 " << streamname.str();
+       << " -f h264 " << streamname.str()
+       << " " << encoderParameters;
 #endif
 
   std::string cmd2 = replace_variables(cmd1.str());
@@ -903,7 +911,8 @@ RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
        << " " << preset.options_x264_ffmpeg
        << " -b " << br << "k "
        << " -threads 6"
-       << " -f mpeg2video " << streamname.str();
+       << " -f mpeg2video " << streamname.str()
+       << " " << encoderParameters;
 
   std::string cmd2 = replace_variables(cmd1.str());
 
@@ -985,7 +994,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "kf:",
+    int c = getopt_long(argc, argv, "kf:p:",
                         long_options, &option_index);
     if (c == -1)
       break;
@@ -993,6 +1002,7 @@ int main(int argc, char** argv)
     switch (c) {
     case 'k': keepStreams=true; break;
     case 'f': maxFrames=atoi(optarg); break;
+    case 'p': encoderParameters=optarg; break;
     }
   }
 
@@ -1043,6 +1053,7 @@ int main(int argc, char** argv)
   output_fh = fopen(data_filename.str().c_str(), "wb");
 
   fprintf(output_fh,"# %s\n", preset[presetIdx].descr);
+  fprintf(output_fh,"# 1:rate 2:psnr 3:ssim 4:cputime(min) 5:walltime(min)\n");
 
   std::vector<RDPoint> curve = enc->encode_curve(preset[presetIdx]);
 
