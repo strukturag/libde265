@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include <math.h>
+#include <unistd.h>
 
 
 const bool D = false;
@@ -251,10 +252,14 @@ FP evalIntegralAt(const BjoentegaardParams& p, double x)
 
 
 double calcBjoentegaard(const BjoentegaardParams& paramsA,
-                        const BjoentegaardParams& paramsB)
+                        const BjoentegaardParams& paramsB,
+                        double min_rate, double max_rate)
 {
   double mini = std::max(paramsA.minRate, paramsB.minRate);
   double maxi = std::min(paramsA.maxRate, paramsB.maxRate);
+
+  if (min_rate >= 0) mini = std::max(mini, min_rate);
+  if (max_rate >= 0) maxi = std::min(maxi, max_rate);
 
   if (D) printf("range: %f %f\n",mini,maxi);
 
@@ -267,7 +272,7 @@ double calcBjoentegaard(const BjoentegaardParams& paramsA,
 }
 
 
-std::vector<datapoint> readRDFile(const char* filename)
+std::vector<datapoint> readRDFile(const char* filename, float min_rate, float max_rate)
 {
   std::vector<datapoint> curve;
   std::ifstream istr(filename);
@@ -284,6 +289,10 @@ std::vector<datapoint> readRDFile(const char* filename)
       std::stringstream sstr(line);
       datapoint p;
       sstr >> p.rate >> p.distortion;
+
+      if (min_rate>=0 && p.rate < min_rate) continue;
+      if (max_rate>=0 && p.rate > max_rate) continue;
+
       curve.push_back(p);
     }
 
@@ -293,18 +302,31 @@ std::vector<datapoint> readRDFile(const char* filename)
 
 int main(int argc, char** argv)
 {
-  curveA = readRDFile(argv[1]);
+  float min_rate = -1;
+  float max_rate = -1;
+
+  int c;
+  while ((c=getopt(argc,argv, "l:h:")) != -1) {
+    switch (c) {
+    case 'l': min_rate = atof(optarg); break;
+    case 'h': max_rate = atof(optarg); break;
+    }
+  }
+
+  curveA = readRDFile(argv[optind], min_rate, max_rate);
   paramsA = fitParams(curveA);
 
   printf("params A: %f %f %f %f\n",paramsA.a,paramsA.b,paramsA.c,paramsA.d);
 
-  if (argc>2) {
-    curveB = readRDFile(argv[2]);
+  printf("gnuplot: %f*log(x)**3+%f*log(x)**2+%f*log(x)+%f\n",paramsA.a,paramsA.b,paramsA.c,paramsA.d);
+
+  if (optind+1<argc) {
+    curveB = readRDFile(argv[optind+1], min_rate, max_rate);
     paramsB = fitParams(curveB);
 
     printf("params B: %f %f %f %f\n",paramsB.a,paramsB.b,paramsB.c,paramsB.d);
 
-    double delta = calcBjoentegaard(paramsA,paramsB);
+    double delta = calcBjoentegaard(paramsA,paramsB, min_rate,max_rate);
 
     printf("Bjoentegaard delta: %f dB\n",delta);
   }
