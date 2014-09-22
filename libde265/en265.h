@@ -99,7 +99,7 @@ enum en265_encoder_state
 };
 
 
-LIBDE265_API enum en265_encoder_state en265_get_state(en265_encoder_context*);
+LIBDE265_API enum en265_encoder_state en265_get_encoder_state(en265_encoder_context*);
 
 
 enum en265_packet_content_type {
