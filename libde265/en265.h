@@ -38,11 +38,17 @@ LIBDE265_API de265_error en265_start_worker_threads(en265_encoder_context*, int 
 /* Free encoder context. May only be called once on a context. */
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
+/* The user data pointer will be given to the release_buffer() function
+   in de265_image_allocation. */
+LIBDE265_API void en265_set_image_allocation_functions(en265_encoder_context*,
+                                                       struct de265_image_allocation*,
+                                                       void* alloc_userdata);
+
 
 // ========== encoder parameters ==========
 
-LIBDE265_API void en265_set_parameter_bool(en265_encoder_context*,
-                                           const char* parametername,int value);
+LIBDE265_API de265_error en265_set_parameter_bool(en265_encoder_context*,
+                                                  const char* parametername,int value);
 LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context*,
                                                  const char* parametername,int value);
 LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
@@ -76,15 +82,31 @@ LIBDE265_API int  en265_list_parameter_options(en265_encoder_context*,
 
 // ========== encoding loop ==========
 
-LIBDE265_API void en265_push_image(en265_encoder_context*, struct de265_image*,
-                                   de265_PTS pts, void* user_data); // non-blocking
+LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
+                                                      int width, int height, de265_chroma chroma,
+                                                      de265_PTS pts, void* image_userdata);
 
-LIBDE265_API void en265_push_eof(en265_encoder_context*);
+// Request a specification of the image memory layout for an image of the specified dimensions.
+LIBDE265_API void de265_get_image_spec(en265_encoder_context*,
+                                       int width, int height, de265_chroma chroma,
+                                       struct de265_image_spec* out_spec);
+
+// Image memory layout specification for an image returned by en265_allocate_image().
+LIBDE265_API void de265_get_image_spec_from_image(de265_image* img, struct de265_image_spec* spec);
+
+
+
+LIBDE265_API de265_error en265_push_image(en265_encoder_context*,
+                                          struct de265_image*); // non-blocking
+
+LIBDE265_API de265_error en265_push_eof(en265_encoder_context*);
 
 // block when there are more than max_input_images in the input queue
-LIBDE265_API void en265_block_on_input_queue_length(en265_encoder_context*, int max_pending_images);
+LIBDE265_API de265_error en265_block_on_input_queue_length(en265_encoder_context*,
+                                                           int max_pending_images,
+                                                           int timeout_ms);
 
-LIBDE265_API void en265_trim_input_queue(en265_encoder_context*, int max_pending_images);
+LIBDE265_API de265_error en265_trim_input_queue(en265_encoder_context*, int max_pending_images);
 
 LIBDE265_API int  en265_current_input_queue_length(en265_encoder_context*);
 
