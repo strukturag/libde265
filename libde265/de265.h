@@ -312,11 +312,11 @@ struct de265_image_spec
 
 struct de265_image_allocation
 {
-  int  (*get_buffer)(de265_decoder_context* ctx,
+  int  (*get_buffer)(de265_decoder_context* ctx, // first parameter deprecated
                      struct de265_image_spec* spec,
                      struct de265_image* img,
                      void* userdata);
-  void (*release_buffer)(de265_decoder_context* ctx,
+  void (*release_buffer)(de265_decoder_context* ctx, // first parameter deprecated
                          struct de265_image* img,
                          void* userdata);
 };
