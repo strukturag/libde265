@@ -326,9 +326,18 @@ int main(int argc, char** argv)
 
     printf("params B: %f %f %f %f\n",paramsB.a,paramsB.b,paramsB.c,paramsB.d);
 
+    printf("gnuplot: %f*log(x)**3+%f*log(x)**2+%f*log(x)+%f\n",paramsB.a,paramsB.b,paramsB.c,paramsB.d);
+
     double delta = calcBjoentegaard(paramsA,paramsB, min_rate,max_rate);
 
-    printf("Bjoentegaard delta: %f dB\n",delta);
+    printf("Bjoentegaard delta: %f dB   (A-B -> >0 -> first (A) is better)\n",delta);
+
+    if (delta>=0) {
+      printf("-> first is better by %f dB\n",delta);
+    }
+    else {
+      printf("-> second is better by %f dB\n",-delta);
+    }
   }
 
   return 0;
