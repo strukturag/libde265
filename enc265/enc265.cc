@@ -36,6 +36,9 @@ static struct option long_options[] = {
 
 
 
+extern int skipTBSplit, noskipTBSplit;
+extern int zeroBlockCorrelation[6][2][5];
+
 int main(int argc, char** argv)
 {
   encoder_context ectx;
@@ -118,6 +121,8 @@ int main(int argc, char** argv)
   // --- run encoder ---
 
   encode_sequence(&ectx);
+
+  en265_print_logging(&ectx, "tb-split", NULL);
 
   return 0;
 }

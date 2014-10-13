@@ -411,6 +411,7 @@ void register_encoder_params(config_parameters* config)
                               4 ,      4,32);
   config->register_config_int("max-tb-size",  0 , eoffset(max_tb_size),
                               32,      8,32);
+  config->register_config_choice("TB-Split-BruteForce-ZeroBlockPrune", 0, eoffset(TB_Split_BruteForce));
 
   config->register_config_int("max-transform-hierarchy-depth-intra",  0 ,
                               eoffset(max_transform_hierarchy_depth_intra),

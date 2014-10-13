@@ -65,6 +65,8 @@ struct enc_tb
                    de265_image* img, int x0,int y0, int xBase,int yBase,
                    const enc_cb* cb, int qp, int blkIdx=0) const;
 
+  bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
+
 private:
   void reconstruct_tb(acceleration_functions* accel,
                       de265_image* img, int x0,int y0, int log2TbSize,

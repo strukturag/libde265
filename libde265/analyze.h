@@ -283,9 +283,42 @@ class Algo_TB_Split
 };
 
 
+
+enum ALGO_TB_Split_BruteForce_ZeroBlockPrune {
+  // numeric value specifies the maximum size for log2Tb for which the pruning is applied
+  ALGO_TB_BruteForce_ZeroBlockPrune_off = 0,
+  ALGO_TB_BruteForce_ZeroBlockPrune_8x8 = 3,
+  ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16 = 4,
+  ALGO_TB_BruteForce_ZeroBlockPrune_all = 5
+};
+
+class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune : public choice_option
+{
+ public:
+  option_ALGO_TB_Split_BruteForce_ZeroBlockPrune() {
+    addChoice("off"     ,ALGO_TB_BruteForce_ZeroBlockPrune_off);
+    addChoice("8x8"     ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8);
+    addChoice("8-16"    ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16);
+    addChoice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all);
+
+    setID(ALGO_TB_BruteForce_ZeroBlockPrune_all);
+  }
+
+  enum ALGO_TB_Split_BruteForce_ZeroBlockPrune operator() () const {
+    return (enum ALGO_TB_Split_BruteForce_ZeroBlockPrune)getID(); }
+};
+
 class Algo_TB_Split_BruteForce : public Algo_TB_Split
 {
  public:
+  struct params
+  {
+    option_ALGO_TB_Split_BruteForce_ZeroBlockPrune zeroBlockPrune;
+  };
+
+  void setParams(const params& p) { mParams=p; }
+
+
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
                                 const de265_image* input,
@@ -295,6 +328,9 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
                                 int blkIdx,
                                 int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
                                 int qp);
+
+ private:
+  params mParams;
 };
 
 
@@ -534,5 +570,7 @@ enc_cb* encode_cb_may_split(encoder_context*, context_model_table ctxModel,
 double encode_image(encoder_context*, const de265_image* input, int qp);
 
 void encode_sequence(encoder_context*);
+
+void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename);
 
 #endif

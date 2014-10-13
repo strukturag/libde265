@@ -86,6 +86,8 @@ struct encoder_params
 
   // --- Algo_TB_Split_BruteForce
 
+  Algo_TB_Split_BruteForce::params  TB_Split_BruteForce;
+
 
   // --- Algo_CB_IntraPartMode
 

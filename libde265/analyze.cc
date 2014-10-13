@@ -721,6 +721,79 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
 
 
+class Logging
+{
+public:
+  virtual ~Logging() { }
+
+  static void print_logging(const encoder_context* ectx, const char* id, const char* filename);
+
+  virtual const char* name() const = 0;
+  virtual void print(const encoder_context* ectx, const char* filename) = 0;
+};
+
+
+void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename)
+{
+  Logging::print_logging(ectx,id,filename);
+}
+
+
+struct Logging_TB_Split : public Logging
+{
+  int skipTBSplit, noskipTBSplit;
+  int zeroBlockCorrelation[6][2][5];
+
+  const char* name() const { return "tb-split"; }
+
+  void print(const encoder_context* ectx, const char* filename)
+  {
+    printf("%d %d\n\n",skipTBSplit, noskipTBSplit);
+
+    for (int tb=3;tb<=5;tb++) {
+      for (int z=0;z<=1;z++) {
+        float total = 0;
+
+        for (int c=0;c<5;c++)
+          total += zeroBlockCorrelation[tb][z][c];
+
+        for (int c=0;c<5;c++) {
+          printf("%d %d %d : %d %5.2f\n", tb,z,c,
+                 zeroBlockCorrelation[tb][z][c],
+                 total==0 ? 0 : zeroBlockCorrelation[tb][z][c]/total*100);
+        }
+      }
+    }
+
+
+    for (int z=0;z<2;z++) {
+      printf("\n");
+      for (int tb=3;tb<=5;tb++) {
+        float total = 0;
+
+        for (int c=0;c<5;c++)
+          total += zeroBlockCorrelation[tb][z][c];
+
+        printf("%dx%d ",1<<tb,1<<tb);
+
+        for (int c=0;c<5;c++) {
+          printf("%5.2f ", total==0 ? 0 : zeroBlockCorrelation[tb][z][c]/total*100);
+        }
+        printf("\n");
+      }
+    }
+  }
+} logging_tb_split;
+
+
+void Logging::print_logging(const encoder_context* ectx, const char* id, const char* filename)
+{
+  if (strcmp(id,logging_tb_split.name())==0) {
+    logging_tb_split.print(ectx,filename);
+  }
+}
+
+
 const enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table ctxModel,
@@ -769,6 +842,17 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
     rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
     //printf("-\n");
+
+    if (log2TbSize <= mParams.zeroBlockPrune()) {
+      bool zeroBlock = tb_no_split->isZeroBlock();
+
+      if (zeroBlock) {
+        test_split = false;
+        logging_tb_split.skipTBSplit++;
+      }
+      else
+        logging_tb_split.noskipTBSplit++;
+    }
   }
 
 
@@ -781,6 +865,18 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
     //printf("-\n");
+  }
+
+
+  if (test_split && test_no_split) {
+    bool zero_block = tb_no_split->isZeroBlock();
+
+    int nChildZero = 0;
+    for (int i=0;i<4;i++) {
+      if (tb_split->children[i]->isZeroBlock()) nChildZero++;
+    }
+
+    logging_tb_split.zeroBlockCorrelation[log2TbSize][zero_block ? 0 : 1][nChildZero]++;
   }
 
 
@@ -1419,6 +1515,8 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   algo_CB_IntraPartMode->setChildAlgo(algo_TB_IntraPredMode);
 
   mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(algo_TB_IntraPredMode);
+  mAlgo_TB_Split_BruteForce.setParams(params.TB_Split_BruteForce);
+
   algo_TB_IntraPredMode->setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
