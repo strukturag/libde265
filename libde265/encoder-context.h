@@ -52,7 +52,8 @@ struct encoder_context
   error_queue errqueue;
   acceleration_functions accel;
 
-  de265_image img;
+  de265_image* reconstruction;
+  de265_image  img; // reconstruction
 
   video_parameter_set  vps;
   seq_parameter_set    sps;
