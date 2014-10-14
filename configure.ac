@@ -35,6 +35,7 @@ AC_PROG_LN_S
 AM_INIT_AUTOMAKE
 
 CFLAGS+=" -std=c99"
+CXXFLAGS+=" -std=c++11"
 
 dnl Use -Wall if we have gcc.
 changequote(,)dnl
