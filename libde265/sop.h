@@ -114,7 +114,7 @@ class sop_creator_trivial_low_delay : public sop_creator
     }
 
     assert(mEncPicBuf);
-    mEncPicBuf->insert_next_image_encoding_order(img, mNextFrameNumber);
+    mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
 
     if (mNextFrameNumber==0) {
       mEncPicBuf->set_image_intra();

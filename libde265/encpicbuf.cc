@@ -74,8 +74,8 @@ void encoder_picture_buffer::flush_images()
 }
 
 
-void encoder_picture_buffer::insert_next_image_encoding_order(const de265_image* img,
-                                                              int frame_number)
+void encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_image* img,
+                                                                 int frame_number)
 {
   image_data* data = new image_data();
   data->frame_number = frame_number;

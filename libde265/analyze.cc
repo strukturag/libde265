@@ -1459,7 +1459,7 @@ void encode_sequence(encoder_context* ectx)
 
 
 
-      // encode images while available
+      // encode images while more are available
 
       while (ectx->picbuf.have_more_frames_to_encode())
         {
