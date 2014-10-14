@@ -27,6 +27,7 @@ encoder_picture_buffer::encoder_picture_buffer()
 
 encoder_picture_buffer::~encoder_picture_buffer()
 {
+  flush_images();
 }
 
 
@@ -58,13 +59,18 @@ encoder_picture_buffer::image_data::~image_data()
 
 void encoder_picture_buffer::reset()
 {
+  flush_images();
+
+  mEndOfStream = false;
+}
+
+
+void encoder_picture_buffer::flush_images()
+{
   while (!mImages.empty()) {
     delete mImages.front();
     mImages.pop_front();
   }
-  mImages.clear();
-
-  mEndOfStream = false;
 }
 
 
@@ -74,6 +80,8 @@ void encoder_picture_buffer::insert_next_image_encoding_order(const de265_image*
   image_data* data = new image_data();
   data->frame_number = frame_number;
   data->input = img;
+
+  mImages.push_back(data);
 }
 
 void encoder_picture_buffer::insert_end_of_stream()
@@ -102,6 +110,7 @@ void encoder_picture_buffer::set_image_references(int sps_index, // -1 -> custom
   data->ref0 = l0;
   data->ref1 = l1;
   data->longterm = lt;
+  data->keep = keepMoreReferences;
 }
 
 void encoder_picture_buffer::set_temporal_layer(int temporal_layer)
@@ -149,6 +158,34 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
   image_data* data = get_picture(frame_number);
 
   data->state = image_data::state_keep_for_reference;
+
+
+  // --- delete images that are not required anymore ---
+
+  // first, mark all images unused
+
+  for (auto imgdata : mImages) {
+    imgdata->mark_used = false;
+  }
+
+  // mark all images that will be used later
+
+  for (int f : data->ref0)     { get_picture(f)->mark_used=true; }
+  for (int f : data->ref1)     { get_picture(f)->mark_used=true; }
+  for (int f : data->longterm) { get_picture(f)->mark_used=true; }
+  for (int f : data->keep)     { get_picture(f)->mark_used=true; }
+  data->mark_used=true;
+
+  // copy over all images that we still keep
+
+  std::deque<image_data*> newImageSet;
+  for (auto imgdata : mImages) {
+    if (imgdata->mark_used) {
+      newImageSet.push_back(imgdata);
+    }
+  }
+
+  mImages = newImageSet;
 }
 
 
@@ -188,6 +225,7 @@ encoder_picture_buffer::get_picture(int frame_number) const
       return mImages[i];
   }
 
+  assert(false);
   return NULL;
 }
 
@@ -199,6 +237,7 @@ encoder_picture_buffer::image_data* encoder_picture_buffer::get_picture(int fram
       return mImages[i];
   }
 
+  assert(false);
   return NULL;
 }
 

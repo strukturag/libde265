@@ -1442,41 +1442,61 @@ void encode_sequence(encoder_context* ectx)
   ectx->img_source->skip_frames( ectx->params.first_frame );
 
   int maxPoc = ectx->params.max_number_of_frames;
-  for (int poc=0; poc<maxPoc ;poc++)
+  bool eof = false;
+  for (int poc=0; poc<maxPoc && !eof ;poc++)
     {
-      fprintf(stderr,"encoding frame %d\n",poc);
+      // push one image into the encoder
+
 
       de265_image* input_image = ectx->img_source->get_image();
-      if (input_image==NULL) { break; } // EOF
-
-
-      // write slice header
-
-      //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
-
-      nal.set(NAL_UNIT_IDR_W_RADL);
-      nal.write(ectx->cabac);
-      ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
-      ectx->cabac->skip_bits(1);
-      ectx->cabac->flush_VLC();
-
-      ectx->cabac->init_CABAC();
-      double psnr = encode_image(ectx,input_image, algo);
-      fprintf(stderr,"  PSNR-Y: %f\n", psnr);
-      ectx->cabac->flush_CABAC();
-      ectx->write_packet();
-
-
-      // --- write reconstruction ---
-
-      if (ectx->reconstruction_sink) {
-        ectx->reconstruction_sink->send_image(&ectx->img);
+      if (input_image==NULL) {
+        ectx->sop->insert_end_of_stream();
+        eof=true;
+      }
+      else {
+        ectx->sop->insert_new_input_image(input_image);
       }
 
 
-      // --- release input image ---
 
-      delete input_image;
+      // encode images while available
+
+      while (ectx->picbuf.have_more_frames_to_encode())
+        {
+          const encoder_picture_buffer::image_data* imgdata;
+          imgdata = ectx->picbuf.get_next_picture_to_encode();
+          assert(imgdata);
+          ectx->picbuf.mark_encoding_started(imgdata->frame_number);
+
+          fprintf(stderr,"encoding frame %d\n",imgdata->frame_number);
+
+
+          // write slice header
+
+          //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
+
+          nal.set(NAL_UNIT_IDR_W_RADL);
+          nal.write(ectx->cabac);
+          ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
+          ectx->cabac->skip_bits(1);
+          ectx->cabac->flush_VLC();
+
+          ectx->cabac->init_CABAC();
+          double psnr = encode_image(ectx,imgdata->input, algo);
+          fprintf(stderr,"  PSNR-Y: %f\n", psnr);
+          ectx->cabac->flush_CABAC();
+          ectx->write_packet();
+
+
+          // --- write reconstruction ---
+
+          if (ectx->reconstruction_sink) {
+            ectx->reconstruction_sink->send_image(&ectx->img);
+          }
+
+
+          ectx->picbuf.mark_encoding_finished(imgdata->frame_number);
+        }
     }
 }
 

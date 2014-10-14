@@ -40,7 +40,7 @@ class sop_creator
 {
  public:
   sop_creator() { mEncPicBuf=NULL; }
-  virtual ~sop_create() { }
+  virtual ~sop_creator() { }
 
   void         set_encoder_picture_buffer(encoder_picture_buffer* encbuf) { mEncPicBuf=encbuf; }
 
@@ -109,8 +109,8 @@ class sop_creator_trivial_low_delay : public sop_creator
   virtual void insert_new_input_image(const de265_image* img)
   {
     std::vector<int> l0, l1, empty;
-    if (frame_number>0) {
-      l0.push_back(frame_number-1);
+    if (mNextFrameNumber>0) {
+      l0.push_back(mNextFrameNumber-1);
     }
 
     assert(mEncPicBuf);

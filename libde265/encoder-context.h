@@ -28,6 +28,10 @@
 #include "libde265/image-io.h"
 #include "libde265/alloc_pool.h"
 #include "libde265/encoder-params.h"
+#include "libde265/encpicbuf.h"
+#include "libde265/sop.h"
+
+#include <memory>
 
 
 struct encoder_context
@@ -40,6 +44,10 @@ struct encoder_context
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
     switch_CABAC_to_bitstream();
+
+    //sop = std::make_shared<sop_creator_trivial_low_delay>();
+    sop = std::make_shared<sop_creator_intra_only>();
+    sop->set_encoder_picture_buffer(&picbuf);
   }
 
 
@@ -60,6 +68,8 @@ struct encoder_context
   pic_parameter_set    pps;
   slice_segment_header shdr;
 
+  encoder_picture_buffer picbuf;
+  std::shared_ptr<sop_creator> sop;
 
 
   // --- poor man's garbage collector for CB/TB/PB/coeff data ---

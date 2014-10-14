@@ -50,6 +50,7 @@ class encoder_picture_buffer
     std::vector<int> ref0;
     std::vector<int> ref1;
     std::vector<int> longterm;
+    std::vector<int> keep;
     int sps_index;
     int temporal_layer;
     int skip_priority;
@@ -61,6 +62,8 @@ class encoder_picture_buffer
       state_encoding,
       state_keep_for_reference
     } state;
+
+    bool mark_used;
   };
 
 
@@ -102,6 +105,7 @@ class encoder_picture_buffer
   bool mEndOfStream;
   std::deque<image_data*> mImages;
 
+  void flush_images();
   image_data* get_picture(int frame_number);
 };
 
