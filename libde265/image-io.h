@@ -33,14 +33,14 @@ class ImageSource
   ImageSource() { }
   virtual ~ImageSource() { }
 
-  enum ImageStatus { Available, Waiting, EndOfVideo };
+  //enum ImageStatus { Available, Waiting, EndOfVideo };
 
-  virtual ImageStatus  get_status(int offset=0) = 0;
-  virtual de265_image* get_image(int offset=0, bool block=true) = 0;
-  virtual void release_next_image(int n=1) = 0;
+  //virtual ImageStatus  get_status() = 0;
+  virtual de265_image* get_image(bool block=true) = 0;
+  virtual void skip_frames(int n) = 0;
 
-  int get_width();
-  int get_height();
+  virtual int get_width() const = 0;
+  virtual int get_height() const = 0;
 };
 
 
@@ -53,20 +53,20 @@ class ImageSource_YUV : public ImageSource
 
   bool set_input_file(const char* filename, int w,int h);
 
-  virtual ImageStatus  get_status(int offset=0);
-  virtual de265_image* get_image(int offset=0, bool block=true);
-  virtual void release_next_image(int n=1);
+  //virtual ImageStatus  get_status();
+  virtual de265_image* get_image(bool block=true);
+  virtual void skip_frames(int n);
+
+  virtual int get_width() const { return width; }
+  virtual int get_height() const { return height; }
 
  private:
   FILE* mFH;
-  int width,height;
-
-  std::deque<de265_image*> mQueue;
-
-  //int  mNextFrame;
   bool mReachedEndOfFile;
 
-  void preload_next_image();
+  int width,height;
+
+  de265_image* read_next_image();
 };
 
 

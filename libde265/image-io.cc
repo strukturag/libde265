@@ -24,27 +24,8 @@
 #include <assert.h>
 
 
-int ImageSource::get_width()
-{
-  de265_image* img = get_image();
-  if (img==NULL) return 0;
-  else return img->get_width();
-}
-
-int ImageSource::get_height()
-{
-  de265_image* img = get_image();
-  if (img==NULL) return 0;
-  else return img->get_height();
-}
-
-
 ImageSource_YUV::~ImageSource_YUV()
 {
-  while (!mQueue.empty()) {
-    release_next_image();
-  }
-
   if (mFH) {
     fclose(mFH);
   }
@@ -62,16 +43,15 @@ bool ImageSource_YUV::set_input_file(const char* filename, int w,int h)
 
   width =w;
   height=h;
-  //mNextFrame = 0;
   mReachedEndOfFile = false;
 
   return true;
 }
 
 
-void ImageSource_YUV::preload_next_image()
+de265_image* ImageSource_YUV::read_next_image()
 {
-  if (mReachedEndOfFile) return;
+  if (mReachedEndOfFile) return NULL;
 
   de265_image* img = new de265_image;
   img->alloc_image(width,height,de265_chroma_420, NULL, false,
@@ -101,62 +81,36 @@ void ImageSource_YUV::preload_next_image()
   // --- check for EOF ---
 
   if (feof(mFH)) {
-    delete img;
     mReachedEndOfFile = true;
-  }
-  else {
-    // --- put image into queue ---
-
-    mQueue.push_back(img);
-  }
-}
-
-
-ImageSource::ImageStatus  ImageSource_YUV::get_status(int offset)
-{
-  while (offset >= mQueue.size()) {
-    preload_next_image();
-    if (mReachedEndOfFile) {
-      return EndOfVideo;
-    }
-  }
-
-  return Available;
-}
-
-
-de265_image* ImageSource_YUV::get_image(int offset, bool block)
-{
-  if (get_status(offset)==Available) {
-    return mQueue[offset];
-  }
-  else {
+    delete img;
     return NULL;
   }
+  else {
+    return img;
+  }
 }
 
 
-void ImageSource_YUV::release_next_image(int n)
+/*
+ImageSource::ImageStatus  ImageSource_YUV::get_status()
 {
-  while (n>0) {
-    
-    if (mQueue.empty()) {
-      break;
-    }
-    else {
-      delete mQueue[0];
-      mQueue.pop_front();
-    }
-
-    n--;
-  }
-
-  if (n>0) {
-    if (mReachedEndOfFile) { return; }
-
-    fseek(mFH, width*height*3/2*n, SEEK_CUR);
-  }
+  return Available;
 }
+*/
+
+de265_image* ImageSource_YUV::get_image(bool block)
+{
+  de265_image* img = read_next_image();
+  return img;
+}
+
+
+void ImageSource_YUV::skip_frames(int n)
+{
+  int imageSize = width*height*3/2;
+  fseek(mFH,n * imageSize, SEEK_CUR);
+}
+
 
 
 

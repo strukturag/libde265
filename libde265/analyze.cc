@@ -1439,7 +1439,7 @@ void encode_sequence(encoder_context* ectx)
   ectx->cabac->flush_VLC();
   ectx->write_packet();
 
-  ectx->img_source->release_next_image( ectx->params.first_frame );
+  ectx->img_source->skip_frames( ectx->params.first_frame );
 
   int maxPoc = ectx->params.max_number_of_frames;
   for (int poc=0; poc<maxPoc ;poc++)
@@ -1476,7 +1476,7 @@ void encode_sequence(encoder_context* ectx)
 
       // --- release input image ---
 
-      ectx->img_source->release_next_image();
+      delete input_image;
     }
 }
 
