@@ -47,7 +47,7 @@ m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
     virtual void f() {}
     };
     struct Child : public Base {
-    virtual void f() override {}
+    virtual void f() {} // DiFa: override {}   # override not supported in gcc 4.6
     };
 
     typedef check<check<bool>> right_angle_brackets;
