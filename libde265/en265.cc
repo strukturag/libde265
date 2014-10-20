@@ -169,7 +169,13 @@ LIBDE265_API de265_error en265_encode(en265_encoder_context* e)
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  return ectx->encode_picture_from_input_buffer();
+  while (ectx->picbuf.have_more_frames_to_encode())
+    {
+      de265_error result = ectx->encode_picture_from_input_buffer();
+      if (result != DE265_OK) return result;
+    }
+
+  return DE265_OK;
 }
 
 LIBDE265_API enum en265_encoder_state en265_get_encoder_state(en265_encoder_context* e)
@@ -201,4 +207,5 @@ LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packe
   delete   pck->input_image;
   delete   pck->reconstruction;
   delete[] pck->data;
+  delete   pck;
 }

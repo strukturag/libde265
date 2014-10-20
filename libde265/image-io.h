@@ -101,7 +101,7 @@ class PacketSink
  public:
   virtual ~PacketSink() { }
 
-  virtual void send_packet(uint8_t* data, int n) = 0;
+  virtual void send_packet(const uint8_t* data, int n) = 0;
 };
 
 
@@ -113,7 +113,7 @@ class PacketSink_File : public PacketSink
 
   void set_filename(const char* filename);
 
-  virtual void send_packet(uint8_t* data, int n);
+  virtual void send_packet(const uint8_t* data, int n);
 
  private:
   FILE* mFH;

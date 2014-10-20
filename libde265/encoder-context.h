@@ -38,10 +38,12 @@
 struct encoder_context
 {
   encoder_context() {
-    img_source = NULL;
-    reconstruction_sink = NULL;
-    packet_sink = NULL;
+    //img_source = NULL;
+    //reconstruction_sink = NULL;
+    //packet_sink = NULL;
 
+    image_spec_is_defined = false;
+    parameters_have_been_set = false;
     headers_have_been_sent = false;
 
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
@@ -53,13 +55,17 @@ struct encoder_context
     sop->set_encoder_picture_buffer(&picbuf);
   }
 
+  ~encoder_context();
 
   encoder_params params;
   EncodingAlgorithm_Custom algo;
 
-  ImageSource*   img_source;
-  ImageSink*     reconstruction_sink;
-  PacketSink*    packet_sink;
+  int image_width, image_height;
+  bool image_spec_is_defined;  // whether we know the input image size
+
+  //ImageSource*   img_source;
+  //ImageSink*     reconstruction_sink;
+  //PacketSink*    packet_sink;
 
   error_queue errqueue;
   acceleration_functions accel;
@@ -74,6 +80,7 @@ struct encoder_context
   pic_parameter_set    pps;
   slice_segment_header shdr;
 
+  bool parameters_have_been_set;
   bool headers_have_been_sent;
 
   encoder_picture_buffer picbuf;
@@ -122,12 +129,15 @@ struct encoder_context
   }
 
   void write_packet() {
+    /*
     if (packet_sink) {
       packet_sink->send_packet( cabac_bitstream.data(), cabac_bitstream.size() );
       cabac->reset();
     }
+    */
   }
 
+  en265_packet* create_packet(en265_packet_content_type t);
 
   // --- encoding control ---
 

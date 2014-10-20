@@ -172,7 +172,7 @@ void PacketSink_File::set_filename(const char* filename)
 }
 
 
-void PacketSink_File::send_packet(uint8_t* data, int n)
+void PacketSink_File::send_packet(const uint8_t* data, int n)
 {
   uint8_t startCode[3];
   startCode[0] = 0;

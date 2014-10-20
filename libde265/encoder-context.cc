@@ -23,6 +23,42 @@
 #include "libde265/encoder-context.h"
 #include "libde265/analyze.h"
 
+#include <math.h>
+
+
+encoder_context::~encoder_context()
+{
+  while (!output_packets.empty()) {
+    en265_free_packet(this, output_packets.front());
+    output_packets.pop_front();
+  }
+}
+
+
+en265_packet* encoder_context::create_packet(en265_packet_content_type t)
+{
+  en265_packet* pck = new en265_packet;
+
+  uint8_t* data = new uint8_t[cabac_bitstream.size()];
+  memcpy(data, cabac_bitstream.data(), cabac_bitstream.size());
+
+  pck->data = data;
+  pck->length = cabac_bitstream.size();
+
+  pck->content_type = t;
+  pck->complete_picture = 0;
+  pck->final_slice = 0;
+  pck->dependent_slice = 0;
+  pck->pts = 0;
+  pck->user_data = NULL;
+  pck->input_image = NULL;
+  pck->reconstruction = NULL;
+
+  cabac->reset();
+
+  return pck;
+}
+
 
 de265_error encoder_context::encode_headers()
 {
@@ -40,8 +76,7 @@ de265_error encoder_context::encode_headers()
   sps.set_TB_log2size_range( Log2(params.min_tb_size), Log2(params.max_tb_size));
   sps.max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
 
-  sps.set_resolution(img_source->get_width(),
-                     img_source->get_height());
+  sps.set_resolution(image_width, image_height);
   sps.compute_derived_values();
 
   // PPS
@@ -72,23 +107,32 @@ de265_error encoder_context::encode_headers()
 
   // write headers
 
+  en265_packet* pck;
+
   nal.set(NAL_UNIT_VPS_NUT);
   nal.write(cabac);
   vps.write(&errqueue, cabac);
   cabac->flush_VLC();
-  write_packet();
+  pck = create_packet(EN265_PACKET_VPS);
+  output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(cabac);
   sps.write(&errqueue, cabac);
   cabac->flush_VLC();
-  write_packet();
+  pck = create_packet(EN265_PACKET_SPS);
+  output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_PPS_NUT);
   nal.write(cabac);
   pps.write(&errqueue, cabac, &sps);
   cabac->flush_VLC();
-  write_packet();
+  pck = create_packet(EN265_PACKET_PPS);
+  output_packets.push_back(pck);
+
+
+
+  headers_have_been_sent = true;
 
   return DE265_OK;
 }
@@ -96,6 +140,41 @@ de265_error encoder_context::encode_headers()
 
 de265_error encoder_context::encode_picture_from_input_buffer()
 {
+  if (!picbuf.have_more_frames_to_encode()) {
+    return DE265_OK;
+  }
+
+
+  if (!image_spec_is_defined) {
+    const encoder_picture_buffer::image_data* id = picbuf.peek_next_picture_to_encode();
+    image_width  = id->input->get_width();
+    image_height = id->input->get_height();
+    image_spec_is_defined = true;
+  }
+
+
+  if (!parameters_have_been_set) {
+    algo.setParams(params);
+
+    // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
+    int qp = algo.getPPS_QP();
+    pic_qp = qp;
+
+    //lambda = ectx->params.lambda;
+    lambda = 0.0242 * pow(1.27245, qp);
+
+    parameters_have_been_set = true;
+  }
+
+
+  if (!headers_have_been_sent) {
+    encode_headers();
+  }
+
+
+
+
+
   const encoder_picture_buffer::image_data* imgdata;
   imgdata = picbuf.get_next_picture_to_encode();
   assert(imgdata);
@@ -119,15 +198,18 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   double psnr = encode_image(this,imgdata->input, algo);
   fprintf(stderr,"  PSNR-Y: %f\n", psnr);
   cabac->flush_CABAC();
-  write_packet();
+
+  en265_packet* pck = create_packet(EN265_PACKET_PPS);
+  output_packets.push_back(pck);
 
 
   // --- write reconstruction ---
 
+  /*
   if (reconstruction_sink) {
     reconstruction_sink->send_image(&img);
   }
-
+  */
 
   picbuf.mark_encoding_finished(imgdata->frame_number);
 }

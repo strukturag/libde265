@@ -104,23 +104,64 @@ int main(int argc, char** argv)
   ImageSink_YUV reconstruction_sink;
   if (strlen(ectx.params.reconstruction_yuv) != 0) {
     reconstruction_sink.set_filename(ectx.params.reconstruction_yuv);
-    ectx.reconstruction_sink = &reconstruction_sink;
+    //ectx.reconstruction_sink = &reconstruction_sink;
   }
 
   ImageSource_YUV image_source;
   image_source.set_input_file(ectx.params.input_yuv,
                               ectx.params.input_width,
                               ectx.params.input_height);
-  ectx.img_source = &image_source;
+  //ectx.img_source = &image_source;
 
   PacketSink_File packet_sink;
   packet_sink.set_filename(ectx.params.output_filename);
-  ectx.packet_sink = &packet_sink;
+  //ectx.packet_sink = &packet_sink;
 
 
   // --- run encoder ---
 
-  encode_sequence(&ectx);
+  //encode_sequence(&ectx);
+
+  image_source.skip_frames( ectx.params.first_frame );
+
+  int maxPoc = ectx.params.max_number_of_frames;
+  bool eof = false;
+  for (int poc=0; poc<maxPoc && !eof ;poc++)
+    {
+      // push one image into the encoder
+
+      de265_image* input_image = image_source.get_image();
+      if (input_image==NULL) {
+        en265_push_eof(&ectx);
+        eof=true;
+      }
+      else {
+        en265_push_image(&ectx, input_image);
+      }
+
+
+
+      // encode images while more are available
+
+      en265_encode(&ectx);
+
+
+      // write all pending packets
+
+      for (;;) {
+        en265_packet* pck = en265_get_packet(&ectx,0);
+        if (pck==NULL)
+          break;
+
+        packet_sink.send_packet(pck->data, pck->length);
+
+        en265_free_packet(&ectx,pck);
+      }
+    }
+
+
+
+  // --- print statistics ---
 
   en265_print_logging(&ectx, "tb-split", NULL);
 

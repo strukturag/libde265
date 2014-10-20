@@ -101,6 +101,11 @@ class encoder_picture_buffer
   const image_data* get_next_picture_to_encode(); // or return NULL if no picture is available
   const image_data* get_picture(int frame_number) const;
 
+  const image_data* peek_next_picture_to_encode() const {
+    assert(!mImages.empty());
+    return mImages.front();
+  }
+
  private:
   bool mEndOfStream;
   std::deque<image_data*> mImages;

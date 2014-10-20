@@ -1363,57 +1363,6 @@ double encode_image(encoder_context* ectx,
 }
 
 
-void encode_picture_from_input_buffer(encoder_context* ectx)
-{
-  if (!ectx->headers_have_been_sent) {
-    ectx->encode_headers();
-  }
-}
-
-
-void encode_sequence(encoder_context* ectx)
-{
-  ectx->algo.setParams(ectx->params);
-
-  // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
-  int qp = ectx->algo.getPPS_QP();
-  ectx->pic_qp = qp;
-
-  //lambda = ectx->params.lambda;
-  ectx->lambda = 0.0242 * pow(1.27245, qp);
-
-
-  ectx->encode_headers();
-
-
-  ectx->img_source->skip_frames( ectx->params.first_frame );
-
-  int maxPoc = ectx->params.max_number_of_frames;
-  bool eof = false;
-  for (int poc=0; poc<maxPoc && !eof ;poc++)
-    {
-      // push one image into the encoder
-
-      de265_image* input_image = ectx->img_source->get_image();
-      if (input_image==NULL) {
-        ectx->sop->insert_end_of_stream();
-        eof=true;
-      }
-      else {
-        ectx->sop->insert_new_input_image(input_image);
-      }
-
-
-
-      // encode images while more are available
-
-      while (ectx->picbuf.have_more_frames_to_encode())
-        {
-          ectx->encode_picture_from_input_buffer();
-        }
-    }
-}
-
 
 void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 {
