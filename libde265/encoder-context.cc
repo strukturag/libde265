@@ -50,8 +50,8 @@ encoder_context::encoder_context()
 
   // --- initialize encoder ---
 
-  init_scan_orders();
-  alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+  //init_scan_orders();
+  //alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   init_acceleration_functions_fallback(&accel);
 }
 

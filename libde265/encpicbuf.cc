@@ -183,6 +183,11 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
     if (imgdata->mark_used) {
       newImageSet.push_back(imgdata);
     }
+    else {
+      // image is not needed anymore for reference, remove it from EncPicBuf
+
+      delete imgdata;
+    }
   }
 
   mImages = newImageSet;

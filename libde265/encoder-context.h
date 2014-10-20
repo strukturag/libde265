@@ -108,16 +108,8 @@ struct encoder_context
     ctx_model = ctx_model_bitstream;
   }
 
-  void write_packet() {
-    /*
-    if (packet_sink) {
-      packet_sink->send_packet( cabac_bitstream.data(), cabac_bitstream.size() );
-      cabac->reset();
-    }
-    */
-  }
-
   en265_packet* create_packet(en265_packet_content_type t);
+
 
   // --- encoding control ---
 

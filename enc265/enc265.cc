@@ -85,6 +85,8 @@ extern int zeroBlockCorrelation[6][2][5];
 
 int main(int argc, char** argv)
 {
+  de265_init();
+
   en265_encoder_context* ectx = en265_new_encoder();
 
 
@@ -210,6 +212,8 @@ int main(int argc, char** argv)
 
 
   en265_free_encoder(ectx);
+
+  de265_free();
 
   return 0;
 }
