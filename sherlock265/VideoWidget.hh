@@ -21,7 +21,12 @@
 #ifndef VIDEOWIDGET_HH
 #define VIDEOWIDGET_HH
 
+#include <qglobal.h>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QtWidgets/QtWidgets>
+#else
 #include <QtGui/QWidget>
+#endif
 
 
 class VideoWidget : public QWidget

@@ -2,15 +2,15 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [0.8], [farin@struktur.de])
+AC_INIT([libde265], [0.9], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x00080000 # Numeric representation of the version
+NUMERIC_VERSION=0x00090000 # Numeric representation of the version
 AC_SUBST(NUMERIC_VERSION)
 
 LIBDE265_CURRENT=0
-LIBDE265_REVISION=7
+LIBDE265_REVISION=8
 LIBDE265_AGE=0
 
 # ---------------------------------------------------------------------------
@@ -30,6 +30,7 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PROG_GREP
 
 # Initialize automake stuff
 AM_INIT_AUTOMAKE
@@ -199,14 +200,24 @@ if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" &&
 fi
 
 if eval "test $enable_sherlock265 = yes" ; then
-  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui], [found_qt=5], [found_qt=no])
+  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5], [found_qt=no])
   if eval "test $found_qt = no" ; then
     PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
   fi
-  AC_PATH_PROGS([QTMOC],[moc-qt$found_qt moc])
-  if eval "test x$QTMOC = x" ; then
-    AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
+  AC_PATH_PROGS([QTCHOOSER],[qtchooser])
+  if eval "test x$QTCHOOSER = x" ; then
+    AC_PATH_PROGS([QTMOC],[moc-qt$found_qt moc])
+    if eval "test x$QTMOC = x" ; then
+      AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
+    fi
+  else
+    QTMOC="$QTCHOOSER -run-tool=moc -qt=$found_qt"
   fi
+  AC_MSG_CHECKING([for version of $QTMOC])
+  QTMOC_VERSION=`$QTMOC -v 2>&1 | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
+  AC_MSG_RESULT([$QTMOC_VERSION])
+  AX_COMPARE_VERSION([$QTMOC_VERSION], [lt], [$found_qt],
+      [AC_MSG_ERROR([Please install "moc" for Qt$found_qt (found $QTMOC_VERSION).])])
   AC_SUBST(QTMOC)
 fi
 
