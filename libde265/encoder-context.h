@@ -48,14 +48,9 @@ struct encoder_context
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size
 
-  //ImageSource*   img_source;
-  //ImageSink*     reconstruction_sink;
-  //PacketSink*    packet_sink;
-
   error_queue errqueue;
   acceleration_functions accel;
 
-  de265_image* reconstruction;
   de265_image  img; // reconstruction
 
   int pic_qp; // TODO: this should be removed again, eventually

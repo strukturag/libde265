@@ -158,16 +158,12 @@ int main(int argc, char** argv)
   image_source.set_input_file(inout_params.input_yuv,
                               inout_params.input_width,
                               inout_params.input_height);
-  //ectx.img_source = &image_source;
 
   PacketSink_File packet_sink;
   packet_sink.set_filename(inout_params.output_filename);
-  //ectx.packet_sink = &packet_sink;
 
 
   // --- run encoder ---
-
-  //encode_sequence(&ectx);
 
   image_source.skip_frames( inout_params.first_frame );
 
