@@ -51,7 +51,7 @@ struct encoder_context
   error_queue errqueue;
   acceleration_functions accel;
 
-  de265_image  img; // reconstruction
+  de265_image* img; // reconstruction
 
   int pic_qp; // TODO: this should be removed again, eventually
 

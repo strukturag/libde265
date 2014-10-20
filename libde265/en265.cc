@@ -224,8 +224,10 @@ LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context* e, int
 
 LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packet* pck)
 {
-  delete   pck->input_image;
-  delete   pck->reconstruction;
+  // Do not delete images here. They are owned by the EncPicBuf.
+  //delete   pck->input_image;
+  //delete   pck->reconstruction;
+
   delete[] pck->data;
   delete   pck;
 }

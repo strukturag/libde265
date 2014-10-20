@@ -158,8 +158,8 @@ struct en265_packet
   de265_PTS pts;
   void*     user_data;
 
-  de265_image* input_image;
-  de265_image* reconstruction; // optional
+  const de265_image* input_image;
+  const de265_image* reconstruction;
 };
 
 // timeout_ms - timeout in milliseconds. 0 - no timeout, -1 - block forever

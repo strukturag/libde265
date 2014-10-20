@@ -131,7 +131,7 @@ void encode_transform_unit(encoder_context* ectx,
 
   // --- do intra prediction ---
 
-  enum IntraPredMode intraPredMode  = ectx->img.get_IntraPredMode(x0,y0);
+  enum IntraPredMode intraPredMode  = ectx->img->get_IntraPredMode(x0,y0);
 
   if (cIdx>0) {
     intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
@@ -141,14 +141,14 @@ void encode_transform_unit(encoder_context* ectx,
     yC >>= 1;
   }
   
-  decode_intra_prediction(&ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
+  decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
 
 
   // --- subtract prediction from input ---
 
   int16_t blk[32*32];
-  uint8_t* pred = ectx->img.get_image_plane(cIdx);
-  int stride = ectx->img.get_image_stride(cIdx);
+  uint8_t* pred = ectx->img->get_image_plane(cIdx);
+  int stride = ectx->img->get_image_stride(cIdx);
 
   diff_blk(blk,tbSize,
            input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
@@ -185,13 +185,13 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 {
   //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
 
-  de265_image* img = &ectx->img;
+  de265_image* img = ectx->img;
 
-  int stride = ectx->img.get_image_stride(0);
+  int stride = ectx->img->get_image_stride(0);
 
-  uint8_t* luma_plane = ectx->img.get_image_plane(0);
-  uint8_t* cb_plane = ectx->img.get_image_plane(1);
-  uint8_t* cr_plane = ectx->img.get_image_plane(2);
+  uint8_t* luma_plane = ectx->img->get_image_plane(0);
+  uint8_t* cb_plane = ectx->img->get_image_plane(1);
+  uint8_t* cr_plane = ectx->img->get_image_plane(2);
 
   // --- compute transform coefficients ---
 
@@ -224,8 +224,8 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   if (log2TbSize==3) {
     distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
                      input->get_image_stride(0),
-                     ectx->img.get_image_plane_at_pos(0, x0,y0),
-                     ectx->img.get_image_stride(0),
+                     ectx->img->get_image_plane_at_pos(0, x0,y0),
+                     ectx->img->get_image_stride(0),
                      1<<log2TbSize, 1<<log2TbSize);
 
     int16_t coeffs[64];
@@ -233,7 +233,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
     diff_blk(diff,8,
              input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-             ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+             ectx->img->get_image_plane_at_pos(0, x0,y0), ectx->img->get_image_stride(0),
              8);
 
     fdct_8x8_8_fallback(coeffs, diff, &diff[8] - &diff[0]);
@@ -248,7 +248,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // reconstruction
 
-  tb->reconstruct(&ectx->accel, &ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
+  tb->reconstruct(&ectx->accel, ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
 
 
 
@@ -294,16 +294,16 @@ float estim_TB_bitrate(const encoder_context* ectx,
     case TBBitrateEstim_SSD:
       return SSD(input->get_image_plane_at_pos(0, x0,y0),
                  input->get_image_stride(0),
-                 ectx->img.get_image_plane_at_pos(0, x0,y0),
-                 ectx->img.get_image_stride(0),
+                 ectx->img->get_image_plane_at_pos(0, x0,y0),
+                 ectx->img->get_image_stride(0),
                  1<<log2BlkSize, 1<<log2BlkSize);
       break;
 
     case TBBitrateEstim_SAD:
       return SAD(input->get_image_plane_at_pos(0, x0,y0),
                  input->get_image_stride(0),
-                 ectx->img.get_image_plane_at_pos(0, x0,y0),
-                 ectx->img.get_image_stride(0),
+                 ectx->img->get_image_plane_at_pos(0, x0,y0),
+                 ectx->img->get_image_stride(0),
                  1<<log2BlkSize, 1<<log2BlkSize);
       break;
 
@@ -315,7 +315,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
         diff_blk(diff,blkSize,
                  input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                 ectx->img.get_image_plane_at_pos(0, x0,y0), ectx->img.get_image_stride(0),
+                 ectx->img->get_image_plane_at_pos(0, x0,y0), ectx->img->get_image_stride(0),
                  blkSize);
 
         if (method == TBBitrateEstim_SATD_Hadamard) {
@@ -356,7 +356,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                          int IntraSplitFlag,
                                                          int qp)
 {
-  const de265_image* img = &ectx->img;
+  const de265_image* img = ectx->img;
 
   enc_tb* tb = ectx->enc_tb_pool.get_new();
 
@@ -433,12 +433,12 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     int   minCostIdx=0;
     float minCandCost;
 
-    const de265_image& img = ectx->img;
-    const seq_parameter_set* sps = &img.sps;
+    const de265_image* img = ectx->img;
+    const seq_parameter_set* sps = &img->sps;
     int candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
                                 sps->getPUIndexRS(x0,y0),
-                                x0>0, y0>0, &img);
+                                x0>0, y0>0, img);
 
 
     for (int i = 0; i<35; i++) {
@@ -456,7 +456,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       cb->intra.pred_mode[blkIdx] = intraMode;
       if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
-      ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+      ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
@@ -466,7 +466,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       float sad;
       if ((1<<log2TbSize)==8) {
-        decode_intra_prediction(&ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
+        decode_intra_prediction(ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
         sad = estim_TB_bitrate(ectx,input, x0,y0, log2TbSize, TBBitrateEstim_SAD);
       }
 
@@ -498,10 +498,10 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     tb[minCostIdx]->reconstruct(&ectx->accel,
-                                &ectx->img, x0,y0, xBase,yBase,
+                                ectx->img, x0,y0, xBase,yBase,
                                 cb, qp, blkIdx);
 
 
@@ -542,7 +542,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     for (int idx=0;idx<35;idx++) {
       enum IntraPredMode mode = (enum IntraPredMode)idx;
-      decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+      decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
 
       float distortion;
       distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
@@ -560,7 +560,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
-    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     const enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
                                              cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
@@ -568,7 +568,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                              qp);
 
     tb->reconstruct(&ectx->accel,
-                    &ectx->img, x0,y0, xBase,yBase,
+                    ectx->img, x0,y0, xBase,yBase,
                     cb, qp, blkIdx);
 
     return tb;
@@ -618,12 +618,12 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     int   minCostIdx=0;
     float minCandCost;
 
-    const de265_image& img = ectx->img;
-    const seq_parameter_set* sps = &img.sps;
+    const de265_image* img = ectx->img;
+    const seq_parameter_set* sps = &img->sps;
     int candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
                                 sps->getPUIndexRS(x0,y0),
-                                x0>0, y0>0, &img);
+                                x0>0, y0>0, img);
 
 
 
@@ -633,7 +633,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       if (idx!=candidates[0] && idx!=candidates[1] && idx!=candidates[2] && mPredMode_enabled[idx])
         {
           enum IntraPredMode mode = (enum IntraPredMode)idx;
-          decode_intra_prediction(&ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+          decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
           
           float distortion;
           distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
@@ -669,7 +669,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       cb->intra.pred_mode[blkIdx] = intraMode;
       if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
-      ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+      ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
@@ -700,10 +700,10 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-    ectx->img.set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     tb[minCostIdx]->reconstruct(&ectx->accel,
-                                &ectx->img, x0,y0, xBase,yBase,
+                                ectx->img, x0,y0, xBase,yBase,
                                 cb, qp, blkIdx);
 
 
@@ -889,7 +889,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     assert(tb_no_split);
     tb_no_split->reconstruct(&ectx->accel,
-                             &ectx->img, x0,y0, xBase,yBase,
+                             ectx->img, x0,y0, xBase,yBase,
                              cb, qp, blkIdx);
 
     return tb_no_split;
@@ -933,8 +933,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     cb[p]->PredMode = MODE_INTRA;
     cb[p]->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
 
-    ectx->img.set_pred_mode(x0,y0, log2CbSize, cb[p]->PredMode);
-    ectx->img.set_PartMode (x0,y0, cb[p]->PartMode);  // TODO: probably unnecessary
+    ectx->img->set_pred_mode(x0,y0, log2CbSize, cb[p]->PredMode);
+    ectx->img->set_PartMode (x0,y0, cb[p]->PartMode);  // TODO: probably unnecessary
 
 
     // encode transform tree
@@ -962,8 +962,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     // estimate distortion
 
-    cb[p]->write_to_image(&ectx->img, x0,y0, true);
-    cb[p]->distortion = compute_distortion_ssd(&ectx->img, input, x0,y0, log2CbSize, 0);
+    cb[p]->write_to_image(ectx->img, x0,y0, true);
+    cb[p]->distortion = compute_distortion_ssd(ectx->img, input, x0,y0, log2CbSize, 0);
   }
 
 
@@ -974,8 +974,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
-      cb[0]->write_to_image(&ectx->img, x0,y0, true);
-      cb[0]->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+      cb[0]->write_to_image(ectx->img, x0,y0, true);
+      cb[0]->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
       return cb[0];
     } else {
       return cb[1];
@@ -1019,8 +1019,8 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   cb->PredMode = MODE_INTRA;
   cb->PartMode = PartMode;
 
-  ectx->img.set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
-  ectx->img.set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
+  ectx->img->set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
+  ectx->img->set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
 
 
   // encode transform tree
@@ -1181,8 +1181,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     // have to reconstruct state of the first option
 
-    cb_no_split->write_to_image(&ectx->img, x0,y0, true);
-    cb_no_split->reconstruct(&ectx->accel, &ectx->img, x0,y0, qp);
+    cb_no_split->write_to_image(ectx->img, x0,y0, true);
+    cb_no_split->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
     return cb_no_split;
   }
 }
@@ -1229,7 +1229,7 @@ void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const en
       int yi = childY(y,i,cb->log2CbSize);
 
       int candModeList[3];
-      fillIntraPredModeCandidates(candModeList,xi,yi, xi>0, yi>0, &ectx->img);
+      fillIntraPredModeCandidates(candModeList,xi,yi, xi>0, yi>0, ectx->img);
 
       int predmode = cb->intra.pred_mode[i];
       if (candModeList[0]==predmode ||
@@ -1266,18 +1266,23 @@ double encode_image(encoder_context* ectx,
   int w = ectx->sps.pic_width_in_luma_samples;
   int h = ectx->sps.pic_height_in_luma_samples;
 
-  ectx->img.alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
+  ectx->img = new de265_image;
+  ectx->img->vps  = ectx->vps;
+  ectx->img->sps  = ectx->sps;
+  ectx->img->pps  = ectx->pps;
+
+  ectx->img->alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
                         NULL /* no decctx */, 0,NULL,false);
-  ectx->img.alloc_encoder_data(&ectx->sps);
-  ectx->img.clear_metadata();
+  ectx->img->alloc_encoder_data(&ectx->sps);
+  ectx->img->clear_metadata();
 
   initialize_CABAC_models(ectx->ctx_model, ectx->shdr.initType, ectx->shdr.SliceQPY);
 
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;
 
-  uint8_t* luma_plane = ectx->img.get_image_plane(0);
-  uint8_t* cb_plane   = ectx->img.get_image_plane(1);
-  uint8_t* cr_plane   = ectx->img.get_image_plane(2);
+  uint8_t* luma_plane = ectx->img->get_image_plane(0);
+  uint8_t* cb_plane   = ectx->img->get_image_plane(1);
+  uint8_t* cr_plane   = ectx->img->get_image_plane(2);
 
 
   // encode CTB by CTB
@@ -1285,7 +1290,7 @@ double encode_image(encoder_context* ectx,
   for (int y=0;y<ectx->sps.PicHeightInCtbsY;y++)
     for (int x=0;x<ectx->sps.PicWidthInCtbsY;x++)
       {
-        ectx->img.set_SliceAddrRS(x, y, ectx->shdr.SliceAddrRS);
+        ectx->img->set_SliceAddrRS(x, y, ectx->shdr.SliceAddrRS);
 
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
@@ -1330,7 +1335,7 @@ double encode_image(encoder_context* ectx,
         //statistics_IntraPredMode(ectx, x0,y0, cb);
 
 
-        cb->write_to_image(&ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
+        cb->write_to_image(ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
 
 
         // --- write bitstream ---
@@ -1357,7 +1362,7 @@ double encode_image(encoder_context* ectx,
   // frame PSNR
 
   double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
-                         luma_plane, ectx->img.get_image_stride(0),
+                         luma_plane, ectx->img->get_image_stride(0),
                          input->get_width(), input->get_height()));
   return psnr;
 }

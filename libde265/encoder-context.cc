@@ -129,10 +129,6 @@ de265_error encoder_context::encode_headers()
   shdr.slice_deblocking_filter_disabled_flag = true;
   shdr.slice_loop_filter_across_slices_enabled_flag = false;
 
-  img.vps  = vps;
-  img.sps  = sps;
-  img.pps  = pps;
-
 
 
   // write headers
@@ -224,22 +220,26 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   cabac->skip_bits(1);
   cabac->flush_VLC();
 
+
+  // encode image
+
   cabac->init_CABAC();
   double psnr = encode_image(this,imgdata->input, algo);
   fprintf(stderr,"  PSNR-Y: %f\n", psnr);
   cabac->flush_CABAC();
 
+  // set reconstruction image
+
+  picbuf.set_reconstruction_image(imgdata->frame_number, img);
+  img=NULL;
+
+  // build output packet
+
   en265_packet* pck = create_packet(EN265_PACKET_PPS);
+  pck->input_image    = imgdata->input;
+  pck->reconstruction = imgdata->reconstruction;
   output_packets.push_back(pck);
 
-
-  // --- write reconstruction ---
-
-  /*
-  if (reconstruction_sink) {
-    reconstruction_sink->send_image(&img);
-  }
-  */
 
   picbuf.mark_encoding_finished(imgdata->frame_number);
 }

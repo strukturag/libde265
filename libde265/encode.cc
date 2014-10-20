@@ -187,14 +187,14 @@ static void encode_split_cu_flag(encoder_context* ectx,
 {
   // check if neighbors are available
 
-  int availableL = check_CTB_available(&ectx->img,&ectx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(&ectx->img,&ectx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(ectx->img,&ectx->shdr, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ectx->img,&ectx->shdr, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ectx->img.get_ctDepth(x0-1,y0) > ctDepth) condL=1;
-  if (availableA && ectx->img.get_ctDepth(x0,y0-1) > ctDepth) condA=1;
+  if (availableL && ectx->img->get_ctDepth(x0-1,y0) > ctDepth) condL=1;
+  if (availableA && ectx->img->get_ctDepth(x0,y0-1) > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
@@ -703,7 +703,7 @@ extern uint8_t* ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx *
 void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                      int x0,int y0,int log2TrafoSize,int cIdx)
 {
-  const de265_image* img = &ectx->img;
+  const de265_image* img = ectx->img;
   const seq_parameter_set& sps = img->sps;
   const pic_parameter_set& pps = img->pps;
 
@@ -1114,7 +1114,7 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb
                            int log2TrafoSize, int trafoDepth, int blkIdx)
 {
   if (tb->cbf[0] || tb->cbf[1] || tb->cbf[2]) {
-    if (ectx->img.pps.cu_qp_delta_enabled_flag &&
+    if (ectx->img->pps.cu_qp_delta_enabled_flag &&
         1 /*!ectx->IsCuQpDeltaCoded*/) {
       assert(0);
     }
@@ -1151,7 +1151,7 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
                            int MaxTrafoDepth, int IntraSplitFlag, bool recurse)
 {
   //de265_image* img = ectx->img;
-  const seq_parameter_set* sps = &ectx->img.sps;
+  const seq_parameter_set* sps = &ectx->img->sps;
 
   if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
       log2TrafoSize >  sps->Log2MinTrafoSize &&
@@ -1227,9 +1227,9 @@ void encode_coding_unit(encoder_context* ectx,
 {
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
-  de265_image* img = &ectx->img;
+  de265_image* img = ectx->img;
   const slice_segment_header* shdr = &ectx->shdr;
-  const seq_parameter_set* sps = &ectx->img.sps;
+  const seq_parameter_set* sps = &ectx->img->sps;
 
 
   int nCbS = 1<<log2CbSize;
@@ -1294,7 +1294,7 @@ void encode_coding_unit(encoder_context* ectx,
 
             enum IntraPredMode mode = cb->intra.pred_mode[childIdx];
 
-            assert(ectx->img.get_IntraPredMode(x,y) == mode);
+            assert(ectx->img->get_IntraPredMode(x,y) == mode);
 
             intraPred[childIdx] = find_intra_pred_mode(mode, candModeList);
           }
@@ -1331,7 +1331,7 @@ void encode_quadtree(encoder_context* ectx,
                      bool recurse)
 {
   //de265_image* img = ectx->img;
-  const seq_parameter_set* sps = &ectx->img.sps;
+  const seq_parameter_set* sps = &ectx->img->sps;
 
   int split_flag;
 
@@ -1406,7 +1406,7 @@ void encode_ctb(encoder_context* ectx,
   printf("\n");
 #endif
 
-  de265_image* img = &ectx->img;
+  de265_image* img = ectx->img;
   int log2ctbSize = img->sps.Log2CtbSizeY;
 
   encode_quadtree(ectx, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);

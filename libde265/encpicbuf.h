@@ -42,8 +42,8 @@ class encoder_picture_buffer
 
     int frame_number;
 
-    const de265_image* input;
-    const de265_image* reconstruction;
+    const de265_image* input; // owner
+    const de265_image* reconstruction; // owner
 
     // SOP metadata
 
