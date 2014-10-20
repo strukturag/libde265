@@ -123,6 +123,13 @@ struct encoder_context
 
   de265_error encode_headers();
   de265_error encode_picture_from_input_buffer();
+
+
+  // Input images can be released after encoding and when the output packet is released.
+  // This is important to do as soon as possible, as the image might actually wrap
+  // scarce resources like camera picture buffers.
+  // This function does release (only) the raw input data.
+  void release_input_image(int frame_number) { picbuf.release_input_image(frame_number); }
 };
 
 

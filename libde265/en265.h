@@ -150,6 +150,8 @@ struct en265_packet
   const uint8_t* data;
   int   length;
 
+  int  frame_number;
+
   enum en265_packet_content_type content_type;
   char complete_picture : 1;
   char final_slice      : 1;

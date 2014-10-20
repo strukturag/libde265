@@ -241,3 +241,13 @@ encoder_picture_buffer::image_data* encoder_picture_buffer::get_picture(int fram
   return NULL;
 }
 
+
+void encoder_picture_buffer::release_input_image(int frame_number)
+{
+  image_data* idata = get_picture(frame_number);
+  assert(idata);
+
+  delete idata->input;
+  idata->input = NULL;
+}
+

@@ -106,6 +106,8 @@ class encoder_picture_buffer
     return mImages.front();
   }
 
+  void release_input_image(int frame_number);
+
  private:
   bool mEndOfStream;
   std::deque<image_data*> mImages;

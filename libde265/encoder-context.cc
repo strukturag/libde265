@@ -75,6 +75,7 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->data = data;
   pck->length = cabac_bitstream.size();
 
+  pck->frame_number = -1;
   pck->content_type = t;
   pck->complete_picture = 0;
   pck->final_slice = 0;
@@ -233,14 +234,17 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   picbuf.set_reconstruction_image(imgdata->frame_number, img);
   img=NULL;
 
+
   // build output packet
 
   en265_packet* pck = create_packet(EN265_PACKET_PPS);
   pck->input_image    = imgdata->input;
   pck->reconstruction = imgdata->reconstruction;
+  pck->frame_number   = imgdata->frame_number;
   output_packets.push_back(pck);
 
 
   picbuf.mark_encoding_finished(imgdata->frame_number);
 }
+
 
