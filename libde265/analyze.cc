@@ -1363,81 +1363,28 @@ double encode_image(encoder_context* ectx,
 }
 
 
+void encode_picture_from_input_buffer(encoder_context* ectx)
+{
+  if (!ectx->headers_have_been_sent) {
+    ectx->encode_headers();
+  }
+}
+
+
 void encode_sequence(encoder_context* ectx)
 {
-  EncodingAlgorithm_Custom algo;
-  algo.setParams(ectx->params);
+  ectx->algo.setParams(ectx->params);
 
   // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
-  int qp = algo.getPPS_QP();
+  int qp = ectx->algo.getPPS_QP();
+  ectx->pic_qp = qp;
 
   //lambda = ectx->params.lambda;
   ectx->lambda = 0.0242 * pow(1.27245, qp);
 
 
-  nal_header nal;
+  ectx->encode_headers();
 
-  // VPS
-
-  ectx->vps.set_defaults(Profile_Main, 6,2);
-
-
-  // SPS
-
-  ectx->sps.set_defaults();
-  ectx->sps.set_CB_log2size_range( Log2(ectx->params.min_cb_size), Log2(ectx->params.max_cb_size));
-  ectx->sps.set_TB_log2size_range( Log2(ectx->params.min_tb_size), Log2(ectx->params.max_tb_size));
-  ectx->sps.max_transform_hierarchy_depth_intra = ectx->params.max_transform_hierarchy_depth_intra;
-
-  ectx->sps.set_resolution(ectx->img_source->get_width(),
-                           ectx->img_source->get_height());
-  ectx->sps.compute_derived_values();
-
-  // PPS
-
-  ectx->pps.set_defaults();
-  ectx->pps.pic_init_qp = qp;
-
-  // turn off deblocking filter
-  ectx->pps.deblocking_filter_control_present_flag = true;
-  ectx->pps.deblocking_filter_override_enabled_flag = false;
-  ectx->pps.pic_disable_deblocking_filter_flag = true;
-  ectx->pps.pps_loop_filter_across_slices_enabled_flag = false;
-
-  ectx->pps.set_derived_values(&ectx->sps);
-
-
-  // slice
-
-  ectx->shdr.set_defaults(&ectx->pps);
-  ectx->shdr.slice_deblocking_filter_disabled_flag = true;
-  ectx->shdr.slice_loop_filter_across_slices_enabled_flag = false;
-
-  ectx->img.vps  = ectx->vps;
-  ectx->img.sps  = ectx->sps;
-  ectx->img.pps  = ectx->pps;
-
-
-
-  // write headers
-
-  nal.set(NAL_UNIT_VPS_NUT);
-  nal.write(ectx->cabac);
-  ectx->vps.write(&ectx->errqueue, ectx->cabac);
-  ectx->cabac->flush_VLC();
-  ectx->write_packet();
-
-  nal.set(NAL_UNIT_SPS_NUT);
-  nal.write(ectx->cabac);
-  ectx->sps.write(&ectx->errqueue, ectx->cabac);
-  ectx->cabac->flush_VLC();
-  ectx->write_packet();
-
-  nal.set(NAL_UNIT_PPS_NUT);
-  nal.write(ectx->cabac);
-  ectx->pps.write(&ectx->errqueue, ectx->cabac, &ectx->sps);
-  ectx->cabac->flush_VLC();
-  ectx->write_packet();
 
   ectx->img_source->skip_frames( ectx->params.first_frame );
 
@@ -1446,7 +1393,6 @@ void encode_sequence(encoder_context* ectx)
   for (int poc=0; poc<maxPoc && !eof ;poc++)
     {
       // push one image into the encoder
-
 
       de265_image* input_image = ectx->img_source->get_image();
       if (input_image==NULL) {
@@ -1463,39 +1409,7 @@ void encode_sequence(encoder_context* ectx)
 
       while (ectx->picbuf.have_more_frames_to_encode())
         {
-          const encoder_picture_buffer::image_data* imgdata;
-          imgdata = ectx->picbuf.get_next_picture_to_encode();
-          assert(imgdata);
-          ectx->picbuf.mark_encoding_started(imgdata->frame_number);
-
-          fprintf(stderr,"encoding frame %d\n",imgdata->frame_number);
-
-
-          // write slice header
-
-          //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
-
-          nal.set(NAL_UNIT_IDR_W_RADL);
-          nal.write(ectx->cabac);
-          ectx->shdr.write(&ectx->errqueue, ectx->cabac, &ectx->sps, &ectx->pps, nal.nal_unit_type);
-          ectx->cabac->skip_bits(1);
-          ectx->cabac->flush_VLC();
-
-          ectx->cabac->init_CABAC();
-          double psnr = encode_image(ectx,imgdata->input, algo);
-          fprintf(stderr,"  PSNR-Y: %f\n", psnr);
-          ectx->cabac->flush_CABAC();
-          ectx->write_packet();
-
-
-          // --- write reconstruction ---
-
-          if (ectx->reconstruction_sink) {
-            ectx->reconstruction_sink->send_image(&ectx->img);
-          }
-
-
-          ectx->picbuf.mark_encoding_finished(imgdata->frame_number);
+          ectx->encode_picture_from_input_buffer();
         }
     }
 }

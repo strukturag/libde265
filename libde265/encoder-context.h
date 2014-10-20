@@ -30,6 +30,7 @@
 #include "libde265/encoder-params.h"
 #include "libde265/encpicbuf.h"
 #include "libde265/sop.h"
+#include "libde265/en265.h"
 
 #include <memory>
 
@@ -40,6 +41,8 @@ struct encoder_context
     img_source = NULL;
     reconstruction_sink = NULL;
     packet_sink = NULL;
+
+    headers_have_been_sent = false;
 
     enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
@@ -52,6 +55,7 @@ struct encoder_context
 
 
   encoder_params params;
+  EncodingAlgorithm_Custom algo;
 
   ImageSource*   img_source;
   ImageSink*     reconstruction_sink;
@@ -63,13 +67,19 @@ struct encoder_context
   de265_image* reconstruction;
   de265_image  img; // reconstruction
 
+  int pic_qp; // TODO: this should be removed again, eventually
+
   video_parameter_set  vps;
   seq_parameter_set    sps;
   pic_parameter_set    pps;
   slice_segment_header shdr;
 
+  bool headers_have_been_sent;
+
   encoder_picture_buffer picbuf;
   std::shared_ptr<sop_creator> sop;
+
+  std::deque<en265_packet*> output_packets;
 
 
   // --- poor man's garbage collector for CB/TB/PB/coeff data ---
@@ -117,6 +127,12 @@ struct encoder_context
       cabac->reset();
     }
   }
+
+
+  // --- encoding control ---
+
+  de265_error encode_headers();
+  de265_error encode_picture_from_input_buffer();
 };
 
 

@@ -40,10 +40,12 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
 /* The user data pointer will be given to the release_buffer() function
    in de265_image_allocation. */
+/*
+TODO: not needed? We could simply set the image deallocation function in the de265_image itself.
 LIBDE265_API void en265_set_image_allocation_functions(en265_encoder_context*,
                                                        struct de265_image_allocation*,
                                                        void* alloc_userdata);
-
+*/
 
 // ========== encoder parameters ==========
 
@@ -87,13 +89,14 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
                                                       de265_PTS pts, void* image_userdata);
 
 // Request a specification of the image memory layout for an image of the specified dimensions.
-LIBDE265_API void de265_get_image_spec(en265_encoder_context*,
+LIBDE265_API void en265_get_image_spec(en265_encoder_context*,
                                        int width, int height, de265_chroma chroma,
                                        struct de265_image_spec* out_spec);
 
 // Image memory layout specification for an image returned by en265_allocate_image().
+/* TODO: do we need this?
 LIBDE265_API void de265_get_image_spec_from_image(de265_image* img, struct de265_image_spec* spec);
-
+*/
 
 
 LIBDE265_API de265_error en265_push_image(en265_encoder_context*,
@@ -110,6 +113,8 @@ LIBDE265_API de265_error en265_trim_input_queue(en265_encoder_context*, int max_
 
 LIBDE265_API int  en265_current_input_queue_length(en265_encoder_context*);
 
+// Run encoder in main thread. Only use this when not using background threads.
+LIBDE265_API de265_error en265_encode(en265_encoder_context*);
 
 enum en265_encoder_state
 {
@@ -144,14 +149,15 @@ struct en265_packet
   char final_slice      : 1;
   char dependent_slice  : 1;
 
-  PTS   pts;
-  void* user_data;
+  de265_PTS pts;
+  void*     user_data;
 
   de265_image* input_image;
   de265_image* reconstruction; // optional
 };
 
-LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context*); // blocking
+// timeout_ms - timeout in milliseconds. 0 - no timeout, -1 - block forever
+LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context*, int timeout_ms);
 LIBDE265_API void en265_free_packet(en265_encoder_context*, struct en265_packet*);
 
 #endif

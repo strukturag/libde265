@@ -51,7 +51,7 @@ libde265_la_SOURCES = \
   decctx.h \
   encode.h encode.cc \
   encoder-params.h encoder-params.cc \
-  encoder-context.h \
+  encoder-context.h encoder-context.cc \
   image.h \
   intrapred.h \
   md5.h \
@@ -78,7 +78,8 @@ libde265_la_SOURCES = \
   image-io.h image-io.cc \
   alloc_pool.h \
   encpicbuf.h encpicbuf.cc \
-  sop.h
+  sop.h \
+  en265.h en265.cc
 
 if ENABLE_SSE_OPT
   SUBDIRS = x86

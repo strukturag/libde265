@@ -74,7 +74,7 @@ class sop_creator_intra_only : public sop_creator
   virtual void insert_new_input_image(const de265_image* img)
   {
     assert(mEncPicBuf);
-    mEncPicBuf->insert_next_image_encoding_order(img, mNextFrameNumber);
+    mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
     mEncPicBuf->set_image_intra();
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 

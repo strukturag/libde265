@@ -567,7 +567,7 @@ enc_cb* encode_cb_may_split(encoder_context*, context_model_table ctxModel,
                             const de265_image* input,
                             int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
 
-double encode_image(encoder_context*, const de265_image* input, int qp);
+double encode_image(encoder_context*, const de265_image* input, EncodingAlgorithm&);
 
 void encode_sequence(encoder_context*);
 
