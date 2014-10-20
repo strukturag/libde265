@@ -19,8 +19,6 @@
  */
 
 #include "libde265/encoder-context.h"
-#include "libde265/analyze.h"
-#include "libde265/fallback.h"
 
 #include <getopt.h>
 
@@ -35,6 +33,48 @@ static struct option long_options[] = {
 };
 
 
+struct inout_params
+{
+  // input
+
+  int first_frame;
+  int max_number_of_frames;
+
+  const char* input_yuv;
+  int input_width;
+  int input_height;
+
+  // output
+
+  const char* output_filename;
+
+  // debug
+
+  const char* reconstruction_yuv;
+};
+
+
+void register_params(config_parameters* config)
+{
+  const int NO_LIMIT = config_parameters::NO_LIMIT;
+
+#define eoffset(name) offsetof(inout_params, name)
+
+  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
+  config->register_config_int("width",  'w', eoffset(input_width),
+                              352,      1,NO_LIMIT);
+  config->register_config_int("height", 'h', eoffset(input_height),
+                              288,      1,NO_LIMIT);
+
+  config->register_config_string("output", 'o' , eoffset(output_filename), "out.bin");
+  config->register_config_string("reconstruction", 'O' , eoffset(reconstruction_yuv), "recon.yuv");
+
+  config->register_config_int("first-frame",  0 , eoffset(first_frame),
+                              0,       0,NO_LIMIT);
+  config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
+                              INT_MAX, 1,NO_LIMIT);
+}
+
 
 extern int skipTBSplit, noskipTBSplit;
 extern int zeroBlockCorrelation[6][2][5];
@@ -44,13 +84,23 @@ int main(int argc, char** argv)
   encoder_context ectx;
 
 
+  bool cmdline_errors = false;
+
+  // --- in/out parameters ---
+
+  struct inout_params inout_params;
+  config_parameters inout_param_config;
+  register_params(&inout_param_config);
+
+  if (!inout_param_config.parse_command_line_params(&argc,argv, &inout_params, true)) {
+    cmdline_errors = true;
+  }
+
+
   // --- read encoder parameters ---
 
-  bool cmdline_errors = false;
   config_parameters config_param;
   register_encoder_params(&config_param);
-
-  FILE* reco_fh; // TODO
 
   if (!config_param.parse_command_line_params(&argc,argv, &ectx.params, true)) {
     cmdline_errors = true;
@@ -84,6 +134,8 @@ int main(int argc, char** argv)
     fprintf(stderr,"      --help         show help\n");
     fprintf(stderr,"  -v, --verbose      increase verbosity level (up to 3 times)\n");
 
+    inout_param_config.show_params(&inout_params);
+    fprintf(stderr,"\n");
     config_param.show_params(&ectx.params);
 
     exit(show_help ? 0 : 5);
@@ -102,19 +154,19 @@ int main(int argc, char** argv)
 
 
   ImageSink_YUV reconstruction_sink;
-  if (strlen(ectx.params.reconstruction_yuv) != 0) {
-    reconstruction_sink.set_filename(ectx.params.reconstruction_yuv);
+  if (strlen(inout_params.reconstruction_yuv) != 0) {
+    reconstruction_sink.set_filename(inout_params.reconstruction_yuv);
     //ectx.reconstruction_sink = &reconstruction_sink;
   }
 
   ImageSource_YUV image_source;
-  image_source.set_input_file(ectx.params.input_yuv,
-                              ectx.params.input_width,
-                              ectx.params.input_height);
+  image_source.set_input_file(inout_params.input_yuv,
+                              inout_params.input_width,
+                              inout_params.input_height);
   //ectx.img_source = &image_source;
 
   PacketSink_File packet_sink;
-  packet_sink.set_filename(ectx.params.output_filename);
+  packet_sink.set_filename(inout_params.output_filename);
   //ectx.packet_sink = &packet_sink;
 
 
@@ -122,9 +174,9 @@ int main(int argc, char** argv)
 
   //encode_sequence(&ectx);
 
-  image_source.skip_frames( ectx.params.first_frame );
+  image_source.skip_frames( inout_params.first_frame );
 
-  int maxPoc = ectx.params.max_number_of_frames;
+  int maxPoc = inout_params.max_number_of_frames;
   bool eof = false;
   for (int poc=0; poc<maxPoc && !eof ;poc++)
     {

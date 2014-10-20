@@ -44,6 +44,7 @@ struct encoder_params
 {
   encoder_params();
 
+#if 0
   // input
 
   int first_frame;
@@ -62,6 +63,7 @@ struct encoder_params
   // debug
 
   const char* reconstruction_yuv;
+#endif
 
 
   // CB quad-tree

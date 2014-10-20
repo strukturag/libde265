@@ -377,6 +377,7 @@ void register_encoder_params(config_parameters* config)
 
 #define eoffset(name) offsetof(encoder_params, name)
 
+#if 0
   config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
   config->register_config_int("width",  'w', eoffset(input_width),
                               352,      1,NO_LIMIT);
@@ -390,6 +391,7 @@ void register_encoder_params(config_parameters* config)
                               0,       0,NO_LIMIT);
   config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
                               INT_MAX, 1,NO_LIMIT);
+#endif
 
   config->register_config_choice("TB-IntraPredMode", 0, eoffset(mAlgo_TB_IntraPredMode));
   config->register_config_choice("TB-IntraPredMode-subset",0, eoffset(mAlgo_TB_IntraPredMode_Subset));
