@@ -55,11 +55,31 @@ LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context*,
                                                  const char* parametername,int value);
 LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
                                                     const char* parametername,const char* value);
+*/
 
-LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context*,
-                                                             int* argc, char** argv);
+LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context* e,
+                                                             int* argc, char** argv)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
 
+  if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
+    return DE265_ERROR_PARAMETER_PARSING;
+  }
+  else {
+    return DE265_OK;
+  }
+}
 
+LIBDE265_API void en265_show_params(en265_encoder_context* e)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  ectx->params_config.show_params(&ectx->params);
+}
+
+/*
 LIBDE265_API int  en265_list_parameters(en265_encoder_context*,
                                         const char** parametername, int maxParams);
 

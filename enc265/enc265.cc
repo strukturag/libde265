@@ -18,7 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libde265/encoder-context.h"
+#include "libde265/en265.h" //coder-context.h"
+
+#include "libde265/configparam.h"
+#include "libde265/image-io.h"
+#include "libde265/analyze.h"
 
 #include <getopt.h>
 
@@ -81,7 +85,7 @@ extern int zeroBlockCorrelation[6][2][5];
 
 int main(int argc, char** argv)
 {
-  encoder_context ectx;
+  en265_encoder_context* ectx = en265_new_encoder();
 
 
   bool cmdline_errors = false;
@@ -99,10 +103,7 @@ int main(int argc, char** argv)
 
   // --- read encoder parameters ---
 
-  config_parameters config_param;
-  register_encoder_params(&config_param);
-
-  if (!config_param.parse_command_line_params(&argc,argv, &ectx.params, true)) {
+  if (en265_parse_command_line_parameters(ectx, &argc, argv) != DE265_OK) {
     cmdline_errors = true;
   }
 
@@ -136,18 +137,12 @@ int main(int argc, char** argv)
 
     inout_param_config.show_params(&inout_params);
     fprintf(stderr,"\n");
-    config_param.show_params(&ectx.params);
+    en265_show_params(ectx);
 
     exit(show_help ? 0 : 5);
   }
 
 
-
-  // --- initialize encoder ---
-
-  init_scan_orders();
-  alloc_and_init_significant_coeff_ctxIdx_lookupTable();
-  init_acceleration_functions_fallback(&ectx.accel);
 
   de265_set_verbosity(verbosity);
 
@@ -184,30 +179,30 @@ int main(int argc, char** argv)
 
       de265_image* input_image = image_source.get_image();
       if (input_image==NULL) {
-        en265_push_eof(&ectx);
+        en265_push_eof(ectx);
         eof=true;
       }
       else {
-        en265_push_image(&ectx, input_image);
+        en265_push_image(ectx, input_image);
       }
 
 
 
       // encode images while more are available
 
-      en265_encode(&ectx);
+      en265_encode(ectx);
 
 
       // write all pending packets
 
       for (;;) {
-        en265_packet* pck = en265_get_packet(&ectx,0);
+        en265_packet* pck = en265_get_packet(ectx,0);
         if (pck==NULL)
           break;
 
         packet_sink.send_packet(pck->data, pck->length);
 
-        en265_free_packet(&ectx,pck);
+        en265_free_packet(ectx,pck);
       }
     }
 
@@ -215,7 +210,10 @@ int main(int argc, char** argv)
 
   // --- print statistics ---
 
-  en265_print_logging(&ectx, "tb-split", NULL);
+  en265_print_logging((encoder_context*)ectx, "tb-split", NULL);
+
+
+  en265_free_encoder(ectx);
 
   return 0;
 }

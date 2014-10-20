@@ -56,9 +56,6 @@ LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context*,
 LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
                                                     const char* parametername,const char* value);
 
-LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context*,
-                                                             int* argc, char** argv);
-
 
 LIBDE265_API int  en265_list_parameters(en265_encoder_context*,
                                         const char** parametername, int maxParams);
@@ -80,6 +77,15 @@ LIBDE265_API int  en265_list_parameter_options(en265_encoder_context*,
 #define EN265_PARAM_TB_IntraPredMode "TB-IntraPredMode"
 #define EN265_PARAM_CB_IntraPartMode "CB-IntraPartMode"
 #define EN265_PARAM_IntraPredMode_Fastbrute_estimator "IntraPredMode-FastBrute-estimator"
+
+
+
+// --- convenience functions for command-line parameters ---
+
+LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context*,
+                                                             int* argc, char** argv);
+LIBDE265_API void en265_show_params(en265_encoder_context*);
+
 
 
 // ========== encoding loop ==========

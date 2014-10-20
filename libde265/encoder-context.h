@@ -37,27 +37,12 @@
 
 struct encoder_context
 {
-  encoder_context() {
-    //img_source = NULL;
-    //reconstruction_sink = NULL;
-    //packet_sink = NULL;
-
-    image_spec_is_defined = false;
-    parameters_have_been_set = false;
-    headers_have_been_sent = false;
-
-    enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
-
-    switch_CABAC_to_bitstream();
-
-    //sop = std::make_shared<sop_creator_trivial_low_delay>();
-    sop = std::make_shared<sop_creator_intra_only>();
-    sop->set_encoder_picture_buffer(&picbuf);
-  }
-
+  encoder_context();
   ~encoder_context();
 
   encoder_params params;
+  config_parameters params_config;
+
   EncodingAlgorithm_Custom algo;
 
   int image_width, image_height;

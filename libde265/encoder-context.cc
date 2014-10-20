@@ -26,6 +26,36 @@
 #include <math.h>
 
 
+encoder_context::encoder_context()
+{
+  //img_source = NULL;
+  //reconstruction_sink = NULL;
+  //packet_sink = NULL;
+
+  image_spec_is_defined = false;
+  parameters_have_been_set = false;
+  headers_have_been_sent = false;
+
+  enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
+
+  switch_CABAC_to_bitstream();
+
+  //sop = std::make_shared<sop_creator_trivial_low_delay>();
+  sop = std::make_shared<sop_creator_intra_only>();
+  sop->set_encoder_picture_buffer(&picbuf);
+
+  register_encoder_params(&params_config);
+  params_config.set_defaults(&params);
+
+
+  // --- initialize encoder ---
+
+  init_scan_orders();
+  alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+  init_acceleration_functions_fallback(&accel);
+}
+
+
 encoder_context::~encoder_context()
 {
   while (!output_packets.empty()) {
