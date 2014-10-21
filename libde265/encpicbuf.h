@@ -70,6 +70,9 @@ class encoder_picture_buffer
       state_skipped
     } state;
 
+    bool is_in_output_queue; /* TODO: block image from being removed while output packet is not
+                                processed yet. */
+
     bool mark_used;
   };
 
