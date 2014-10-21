@@ -56,11 +56,18 @@ class encoder_picture_buffer
     int skip_priority;
     bool is_intra;
 
+    /* unprocessed              only input image has been inserted, no metadata
+       sop_metadata_available   sop-creator has filled in references and skipping metadata
+       a) encoding              encoding started for this frame, reconstruction image was created
+       .  keep_for_reference    encoding finished, picture is kept in the buffer for reference
+       b) skipped               image was skipped, no encoding was done, no reconstruction image
+     */
     enum state {
       state_unprocessed,
       state_sop_metadata_available,
       state_encoding,
-      state_keep_for_reference
+      state_keep_for_reference,
+      state_skipped
     } state;
 
     bool mark_used;
