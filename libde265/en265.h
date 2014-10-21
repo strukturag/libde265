@@ -23,7 +23,7 @@
 #ifndef EN265_H
 #define EN265_H
 
-#include "libde265/de265.h"
+#include <libde265/de265.h>
 
 
 // ========== encoder context ==========
@@ -91,12 +91,12 @@ LIBDE265_API void en265_show_params(en265_encoder_context*);
 // ========== encoding loop ==========
 
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
-                                                      int width, int height, de265_chroma chroma,
+                                                      int width, int height, enum de265_chroma chroma,
                                                       de265_PTS pts, void* image_userdata);
 
 // Request a specification of the image memory layout for an image of the specified dimensions.
 LIBDE265_API void en265_get_image_spec(en265_encoder_context*,
-                                       int width, int height, de265_chroma chroma,
+                                       int width, int height, enum de265_chroma chroma,
                                        struct de265_image_spec* out_spec);
 
 // Image memory layout specification for an image returned by en265_allocate_image().
@@ -160,8 +160,8 @@ struct en265_packet
   de265_PTS pts;
   void*     user_data;
 
-  const de265_image* input_image;
-  const de265_image* reconstruction;
+  const struct de265_image* input_image;
+  const struct de265_image* reconstruction;
 };
 
 // timeout_ms - timeout in milliseconds. 0 - no timeout, -1 - block forever
