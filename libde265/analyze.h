@@ -59,18 +59,14 @@ enum ALGO_TB_IntraPredMode {
   ALGO_TB_IntraPredMode_MinResidual
 };
 
-class option_ALGO_TB_IntraPredMode : public choice_option
+class option_ALGO_TB_IntraPredMode : public choice_option<enum ALGO_TB_IntraPredMode>
 {
  public:
   option_ALGO_TB_IntraPredMode() {
     addChoice("min-residual",ALGO_TB_IntraPredMode_MinResidual);
     addChoice("brute-force" ,ALGO_TB_IntraPredMode_BruteForce);
-    addChoice("fast-brute"  ,ALGO_TB_IntraPredMode_FastBrute);
-
-    setID(ALGO_TB_IntraPredMode_FastBrute);
+    addChoice("fast-brute"  ,ALGO_TB_IntraPredMode_FastBrute, true);
   }
-
-  enum ALGO_TB_IntraPredMode operator() () const { return (enum ALGO_TB_IntraPredMode)getID(); }
 };
 
 
@@ -82,19 +78,15 @@ enum TBBitrateEstimMethod {
   TBBitrateEstim_SATD_Hadamard
 };
 
-class option_TBBitrateEstimMethod : public choice_option
+class option_TBBitrateEstimMethod : public choice_option<enum TBBitrateEstimMethod>
 {
  public:
   option_TBBitrateEstimMethod() {
     addChoice("ssd",TBBitrateEstim_SSD);
     addChoice("sad",TBBitrateEstim_SAD);
     addChoice("satd-dct",TBBitrateEstim_SATD_DCT);
-    addChoice("satd",TBBitrateEstim_SATD_Hadamard);
-
-    setID(TBBitrateEstim_SATD_Hadamard);
+    addChoice("satd",TBBitrateEstim_SATD_Hadamard, true);
   }
-
-  enum TBBitrateEstimMethod operator() () const { return (enum TBBitrateEstimMethod)getID(); }
 };
 
 class Algo_TB_Split;
@@ -129,19 +121,15 @@ enum ALGO_TB_IntraPredMode_Subset {
   ALGO_TB_IntraPredMode_Subset_Planar
 };
 
-class option_ALGO_TB_IntraPredMode_Subset : public choice_option
+class option_ALGO_TB_IntraPredMode_Subset : public choice_option<enum ALGO_TB_IntraPredMode_Subset>
 {
  public:
   option_ALGO_TB_IntraPredMode_Subset() {
-    addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All);
+    addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All, true);
     addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
     addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
     addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
-
-    setID(ALGO_TB_IntraPredMode_Subset_All);
   }
-
-  enum ALGO_TB_IntraPredMode_Subset operator() () const { return (enum ALGO_TB_IntraPredMode_Subset)getID(); }
 };
 
 
@@ -292,20 +280,16 @@ enum ALGO_TB_Split_BruteForce_ZeroBlockPrune {
   ALGO_TB_BruteForce_ZeroBlockPrune_all = 5
 };
 
-class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune : public choice_option
+class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune
+: public choice_option<enum ALGO_TB_Split_BruteForce_ZeroBlockPrune>
 {
  public:
   option_ALGO_TB_Split_BruteForce_ZeroBlockPrune() {
     addChoice("off"     ,ALGO_TB_BruteForce_ZeroBlockPrune_off);
     addChoice("8x8"     ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8);
     addChoice("8-16"    ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16);
-    addChoice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all);
-
-    setID(ALGO_TB_BruteForce_ZeroBlockPrune_all);
+    addChoice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all, true);
   }
-
-  enum ALGO_TB_Split_BruteForce_ZeroBlockPrune operator() () const {
-    return (enum ALGO_TB_Split_BruteForce_ZeroBlockPrune)getID(); }
 };
 
 class Algo_TB_Split_BruteForce : public Algo_TB_Split
@@ -341,17 +325,13 @@ enum ALGO_CB_IntraPartMode {
   ALGO_CB_IntraPartMode_Fixed
 };
 
-class option_ALGO_CB_IntraPartMode : public choice_option
+class option_ALGO_CB_IntraPartMode : public choice_option<enum ALGO_CB_IntraPartMode>
 {
  public:
   option_ALGO_CB_IntraPartMode() {
     addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
-    addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce);
-
-    setID(ALGO_CB_IntraPartMode_BruteForce);
+    addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce, true);
   }
-
-  enum ALGO_CB_IntraPartMode operator() () const { return (enum ALGO_CB_IntraPartMode)getID(); }
 };
 
 
@@ -386,18 +366,15 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
 };
 
 
-class option_PartMode : public choice_option
+class option_PartMode : public choice_option<enum PartMode> // choice_option
 {
  public:
   option_PartMode() {
     addChoice("NxN",   PART_NxN);
-    addChoice("2Nx2N", PART_2Nx2N);
-
-    setID(PART_2Nx2N);
+    addChoice("2Nx2N", PART_2Nx2N, true);
   }
-
-  enum PartMode operator() () const { return (enum PartMode)getID(); }
 };
+
 
 /* Always use choose selected part mode.
    If NxN is chosen but cannot be applied (CB tree not at maximum depth), 2Nx2N is used instead.

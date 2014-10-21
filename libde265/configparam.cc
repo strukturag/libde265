@@ -29,24 +29,6 @@
 #include <iostream>
 
 
-bool choice_option::setValue(const std::string& val)
-{
-  for (int i=0;i<choices.size();i++) {
-    if (val == choices[i].first) {
-      validValue = true;
-      selectedID = choices[i].second;
-      selectedValue=val;
-      return true;
-    }
-  }
-
-  validValue=false;
-  selectedID=-1;
-  selectedValue="";
-  return false;
-}
-
-
 
 void config_parameters::register_config_int(const char* name, char short_option, size_t offset,
                                             int default_value,
@@ -169,7 +151,7 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
   // --- choice ---
 
   else if (type == config_param::Config_Choice) {
-    bool valid = ((choice_option*)((char*)dst+offset))->setValue(value);
+    bool valid = ((choice_option_base*)((char*)dst+offset))->setValue(value);
     if (!valid) {
       fprintf(stderr,"Parameter value %s for %s is not a valid value.\n", value, name);
       return false;
@@ -324,12 +306,12 @@ void config_parameters::show_params(void* paramstruct) const
     case config_param::Config_Bool:   sstr << "(bool)"; break;
     case config_param::Config_String: sstr << "(string)"; break;
     case config_param::Config_Choice: { sstr << "{";
-      const std::vector< std::pair<std::string,int> > choices =
-        ((choice_option*)((char*)paramstruct+p.offset))->getChoices();
+      const std::vector<std::string> choices =
+        ((choice_option_base*)((char*)paramstruct+p.offset))->getChoiceNames();
 
       for (int i=0;i<choices.size();i++) {
         if (i>0) { sstr << ","; }
-        sstr << choices[i].first;
+        sstr << choices[i];
       }
 
       sstr << "}";
@@ -352,15 +334,10 @@ void config_parameters::show_params(void* paramstruct) const
     case config_param::Config_Bool:   sstr << (p.bool_default ? "on":"off"); break;
     case config_param::Config_String: sstr << p.string_default; break;
     case config_param::Config_Choice: {
-      choice_option* opt = (choice_option*)((char*)paramstruct+p.offset);
-
-      const std::vector< std::pair<std::string,int> > choices = opt->getChoices();
-
-      for (int i=0;i<choices.size();i++) {
-        if (choices[i].second == opt->getID())
-          { sstr << choices[i].first; break; }
+      choice_option_base* opt = (choice_option_base*)((char*)paramstruct+p.offset);
+      std::string default_choice = opt->getDefaultName();
+      sstr << default_choice;
       }
-    }
       break;
     }
 

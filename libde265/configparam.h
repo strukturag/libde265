@@ -29,14 +29,23 @@
 #include <stddef.h>
 
 
-class choice_option
+class choice_option_base
+{
+ public:
+  virtual bool setValue(const std::string& val) = 0;
+  virtual const std::vector<std::string> getChoiceNames() const = 0;
+  virtual std::string getDefaultName() const = 0;
+};
+
+
+template <class T> class choice_option : public choice_option_base
 {
  public:
  choice_option() : validValue(false) { }
 
   // --- initialization ---
 
-  void addChoice(const std::string& s, int id, bool default_value=false) {
+  void addChoice(const std::string& s, T id, bool default_value=false) {
     choices.push_back( std::make_pair(s,id) );
     if (default_value) { setValue(s); }
   }
@@ -44,28 +53,49 @@ class choice_option
 
   // --- usage ---
 
-  bool setValue(const std::string& val); // returns false if it is not a valid option
+  bool setValue(const std::string& val) // returns false if it is not a valid option
+  {
+    for (int i=0;i<choices.size();i++) {
+      if (val == choices[i].first) {
+        validValue = true;
+        selectedID = choices[i].second;
+        selectedValue=val;
+        return true;
+      }
+    }
+
+    validValue=false;
+    selectedValue="";
+    return false;
+  }
+
   bool isValidValue() const { return validValue; }
 
   const std::string& getValue() const { return selectedValue; }
-  void setID(int id) { selectedID=id; validValue=true; }
-  const int getID() const { return selectedID; }
-  const std::vector< std::pair<std::string,int> >& getChoices() const { return choices; }
+  void setID(T id) { selectedID=id; validValue=true; }
+  const T getID() const { return selectedID; }
+  const std::vector< std::pair<std::string,T> >& getChoices() const { return choices; }
+
+  const std::vector<std::string> getChoiceNames() const
+  {
+    std::vector<std::string> names;
+    for (auto p : choices) {
+      names.push_back(p.first);
+    }
+    return names;
+  }
+
+  std::string getDefaultName() const { return selectedValue; }
+
+  T operator() () const { return (T)getID(); }
 
  private:
-  std::vector< std::pair<std::string,int> > choices;
+  std::vector< std::pair<std::string,T> > choices;
   std::string selectedValue;
-  int selectedID;
+  T selectedID;
   bool validValue;
 };
 
-
-template <class T> class choice : public choice_option
-{
- public:
- private:
-  T selectedID;
-};
 
 
 class config_parameters
