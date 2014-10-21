@@ -237,7 +237,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   // build output packet
 
-  en265_packet* pck = create_packet(EN265_PACKET_PPS);
+  en265_packet* pck = create_packet(EN265_PACKET_SLICE);
   pck->input_image    = imgdata->input;
   pck->reconstruction = imgdata->reconstruction;
   pck->frame_number   = imgdata->frame_number;
