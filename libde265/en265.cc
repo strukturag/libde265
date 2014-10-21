@@ -25,6 +25,11 @@
 
 LIBDE265_API en265_encoder_context* en265_new_encoder(void)
 {
+  de265_error init_err = de265_init();
+  if (init_err != DE265_OK) {
+    return NULL;
+  }
+
   encoder_context* ectx = new encoder_context();
   return (en265_encoder_context*)ectx;
 }
@@ -42,7 +47,7 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
   encoder_context* ectx = (encoder_context*)e;
   delete ectx;
 
-  return DE265_OK;
+  return de265_free();
 }
 
 
