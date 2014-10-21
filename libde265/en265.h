@@ -23,6 +23,10 @@
 #ifndef EN265_H
 #define EN265_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <libde265/de265.h>
 
 
@@ -167,5 +171,10 @@ struct en265_packet
 // timeout_ms - timeout in milliseconds. 0 - no timeout, -1 - block forever
 LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context*, int timeout_ms);
 LIBDE265_API void en265_free_packet(en265_encoder_context*, struct en265_packet*);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
