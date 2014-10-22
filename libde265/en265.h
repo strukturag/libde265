@@ -151,6 +151,8 @@ enum en265_packet_content_type {
 
 struct en265_packet
 {
+  int version; // currently: 1
+
   const uint8_t* data;
   int   length;
 
@@ -161,8 +163,10 @@ struct en265_packet
   char final_slice      : 1;
   char dependent_slice  : 1;
 
-  de265_PTS pts;
-  void*     user_data;
+  //de265_PTS pts;
+  //void*     user_data;
+
+  en265_encoder_context* encoder_context;
 
   const struct de265_image* input_image;
   const struct de265_image* reconstruction;

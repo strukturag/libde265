@@ -72,6 +72,8 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   uint8_t* data = new uint8_t[cabac_bitstream.size()];
   memcpy(data, cabac_bitstream.data(), cabac_bitstream.size());
 
+  pck->version = 1;
+
   pck->data = data;
   pck->length = cabac_bitstream.size();
 
@@ -80,8 +82,8 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->complete_picture = 0;
   pck->final_slice = 0;
   pck->dependent_slice = 0;
-  pck->pts = 0;
-  pck->user_data = NULL;
+  //pck->pts = 0;
+  //pck->user_data = NULL;
   pck->input_image = NULL;
   pck->reconstruction = NULL;
 
