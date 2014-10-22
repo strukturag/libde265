@@ -88,6 +88,9 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->dependent_slice = 0;
   //pck->pts = 0;
   //pck->user_data = NULL;
+
+  pck->encoder_context = this;
+
   pck->input_image = NULL;
   pck->reconstruction = NULL;
 
