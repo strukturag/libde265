@@ -36,7 +36,10 @@
    - if needed, one can still override it at another place
  */
 
+// TODO: set a stack of default prefixes in config_parameters, such that all options added
+// will receive this namespace prefix.
 
+// TODO: add the possibility to remove long options again, i.e., not use the default id name
 class option_base
 {
  public:
