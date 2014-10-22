@@ -39,32 +39,67 @@ static struct option long_options[] = {
 
 struct inout_params
 {
+  inout_params();
+
   // input
 
-  int first_frame;
-  int max_number_of_frames;
+  option_int first_frame;
+  option_int max_number_of_frames;
 
-  const char* input_yuv;
-  int input_width;
-  int input_height;
+  option_string input_yuv;
+  option_int input_width;
+  option_int input_height;
 
   // output
 
-  const char* output_filename;
+  option_string output_filename;
 
   // debug
 
-  const char* reconstruction_yuv;
+  option_string reconstruction_yuv;
+
+
+  void register_params(config_parameters_NEW& config);
 };
 
 
-void register_params(config_parameters* config)
+inout_params::inout_params()
 {
-  const int NO_LIMIT = config_parameters::NO_LIMIT;
+  input_yuv.set_ID("input"); input_yuv.set_short_option('i');
+  input_yuv.set_default("paris_cif.yuv");
 
-#define eoffset(name) offsetof(inout_params, name)
+  output_filename.set_ID("output"); output_filename.set_short_option('o');
+  output_filename.set_default("out.bin");
 
+  reconstruction_yuv.set_ID("input");
+  reconstruction_yuv.set_default("recon.yuv");
+
+  first_frame.set_ID("first-frame");
+  first_frame.set_default(0);
+
+  max_number_of_frames.set_ID("frames");
+  max_number_of_frames.set_short_option('f');
+  max_number_of_frames.set_default(INT_MAX);
+
+  input_width.set_ID("width"); input_width.set_short_option('w');
+  input_width.set_range(1,65000);  input_width.set_default(352);
+
+  input_height.set_ID("height"); input_height.set_short_option('h');
+  input_height.set_range(1,65000); input_height.set_default(288);
+}
+
+
+void inout_params::register_params(config_parameters_NEW& config)
+{
+  config.add_option(&input_yuv);
+  config.add_option(&first_frame);
+  config.add_option(&max_number_of_frames);
+  config.add_option(&input_width);
+  config.add_option(&input_height);
+
+#if 0
   config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
+
   config->register_config_int("width",  'w', eoffset(input_width),
                               352,      1,NO_LIMIT);
   config->register_config_int("height", 'h', eoffset(input_height),
@@ -77,6 +112,7 @@ void register_params(config_parameters* config)
                               0,       0,NO_LIMIT);
   config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
                               INT_MAX, 1,NO_LIMIT);
+#endif
 }
 
 
@@ -95,13 +131,16 @@ int main(int argc, char** argv)
   // --- in/out parameters ---
 
   struct inout_params inout_params;
-  config_parameters inout_param_config;
-  register_params(&inout_param_config);
+  config_parameters_NEW inout_param_config;
+  inout_params.register_params(inout_param_config);
 
-  if (!inout_param_config.parse_command_line_params(&argc,argv, &inout_params, true)) {
+  int first_idx=1;
+  if (!inout_param_config.parse_command_line_params(&argc,argv, &first_idx, true)) {
     cmdline_errors = true;
   }
 
+
+  printf("---\n");
 
   // --- read encoder parameters ---
 
@@ -137,7 +176,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"      --help         show help\n");
     fprintf(stderr,"  -v, --verbose      increase verbosity level (up to 3 times)\n");
 
-    inout_param_config.show_params(&inout_params);
+    inout_param_config.print_params();
     fprintf(stderr,"\n");
     en265_show_params(ectx);
 
@@ -151,24 +190,25 @@ int main(int argc, char** argv)
 
 
   ImageSink_YUV reconstruction_sink;
-  if (strlen(inout_params.reconstruction_yuv) != 0) {
-    reconstruction_sink.set_filename(inout_params.reconstruction_yuv);
+  if (strlen(inout_params.reconstruction_yuv.get().c_str()) != 0) {
+    reconstruction_sink.set_filename(inout_params.reconstruction_yuv.get().c_str());
     //ectx.reconstruction_sink = &reconstruction_sink;
   }
 
   ImageSource_YUV image_source;
-  image_source.set_input_file(inout_params.input_yuv,
+  image_source.set_input_file(inout_params.input_yuv.get().c_str(),
                               inout_params.input_width,
                               inout_params.input_height);
 
   PacketSink_File packet_sink;
-  packet_sink.set_filename(inout_params.output_filename);
+  packet_sink.set_filename(inout_params.output_filename.get().c_str());
 
 
   // --- run encoder ---
 
   image_source.skip_frames( inout_params.first_frame );
 
+  printf("max frames: %d\n", inout_params.max_number_of_frames());
   int maxPoc = inout_params.max_number_of_frames;
   bool eof = false;
   for (int poc=0; poc<maxPoc && !eof ;poc++)

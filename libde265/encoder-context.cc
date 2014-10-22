@@ -44,8 +44,12 @@ encoder_context::encoder_context()
   sop = std::make_shared<sop_creator_intra_only>();
   sop->set_encoder_picture_buffer(&picbuf);
 
-  register_encoder_params(&params_config);
-  params_config.set_defaults(&params);
+  //register_encoder_params(&params_config);
+  //params_config.set_defaults(&params);
+
+
+  params.registerParams(params_config_NEW);
+  algo.registerParams(params_config_NEW);
 
 
   // --- initialize encoder ---

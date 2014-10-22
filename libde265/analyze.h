@@ -63,9 +63,9 @@ class option_ALGO_TB_IntraPredMode : public choice_option<enum ALGO_TB_IntraPred
 {
  public:
   option_ALGO_TB_IntraPredMode() {
-    addChoice("min-residual",ALGO_TB_IntraPredMode_MinResidual);
-    addChoice("brute-force" ,ALGO_TB_IntraPredMode_BruteForce);
-    addChoice("fast-brute"  ,ALGO_TB_IntraPredMode_FastBrute, true);
+    add_choice("min-residual",ALGO_TB_IntraPredMode_MinResidual);
+    add_choice("brute-force" ,ALGO_TB_IntraPredMode_BruteForce);
+    add_choice("fast-brute"  ,ALGO_TB_IntraPredMode_FastBrute, true);
   }
 };
 
@@ -82,10 +82,10 @@ class option_TBBitrateEstimMethod : public choice_option<enum TBBitrateEstimMeth
 {
  public:
   option_TBBitrateEstimMethod() {
-    addChoice("ssd",TBBitrateEstim_SSD);
-    addChoice("sad",TBBitrateEstim_SAD);
-    addChoice("satd-dct",TBBitrateEstim_SATD_DCT);
-    addChoice("satd",TBBitrateEstim_SATD_Hadamard, true);
+    add_choice("ssd",TBBitrateEstim_SSD);
+    add_choice("sad",TBBitrateEstim_SAD);
+    add_choice("satd-dct",TBBitrateEstim_SATD_DCT);
+    add_choice("satd",TBBitrateEstim_SATD_Hadamard, true);
   }
 };
 
@@ -125,10 +125,10 @@ class option_ALGO_TB_IntraPredMode_Subset : public choice_option<enum ALGO_TB_In
 {
  public:
   option_ALGO_TB_IntraPredMode_Subset() {
-    addChoice("all"   ,ALGO_TB_IntraPredMode_Subset_All, true);
-    addChoice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
-    addChoice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
-    addChoice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
+    add_choice("all"   ,ALGO_TB_IntraPredMode_Subset_All, true);
+    add_choice("HV+"   ,ALGO_TB_IntraPredMode_Subset_HVPlus);
+    add_choice("DC"    ,ALGO_TB_IntraPredMode_Subset_DC);
+    add_choice("planar",ALGO_TB_IntraPredMode_Subset_Planar);
   }
 };
 
@@ -285,10 +285,10 @@ class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune
 {
  public:
   option_ALGO_TB_Split_BruteForce_ZeroBlockPrune() {
-    addChoice("off"     ,ALGO_TB_BruteForce_ZeroBlockPrune_off);
-    addChoice("8x8"     ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8);
-    addChoice("8-16"    ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16);
-    addChoice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all, true);
+    add_choice("off"     ,ALGO_TB_BruteForce_ZeroBlockPrune_off);
+    add_choice("8x8"     ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8);
+    add_choice("8-16"    ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16);
+    add_choice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all, true);
   }
 };
 
@@ -329,8 +329,8 @@ class option_ALGO_CB_IntraPartMode : public choice_option<enum ALGO_CB_IntraPart
 {
  public:
   option_ALGO_CB_IntraPartMode() {
-    addChoice("fixed",      ALGO_CB_IntraPartMode_Fixed);
-    addChoice("brute-force",ALGO_CB_IntraPartMode_BruteForce, true);
+    add_choice("fixed",      ALGO_CB_IntraPartMode_Fixed);
+    add_choice("brute-force",ALGO_CB_IntraPartMode_BruteForce, true);
   }
 };
 
@@ -370,8 +370,8 @@ class option_PartMode : public choice_option<enum PartMode> // choice_option
 {
  public:
   option_PartMode() {
-    addChoice("NxN",   PART_NxN);
-    addChoice("2Nx2N", PART_2Nx2N, true);
+    add_choice("NxN",   PART_NxN);
+    add_choice("2Nx2N", PART_2Nx2N, true);
   }
 };
 
@@ -386,10 +386,16 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 
   struct params
   {
-    params() { }
+    params() {
+      partMode.set_ID("CB-IntraPartMode-Fixed-partMode");
+    }
 
     option_PartMode partMode;
   };
+
+  void registerParams(config_parameters_NEW& config) {
+    config.add_option(&mParams.partMode);
+  }
 
   void setParams(const params& p) { mParams=p; }
 
@@ -469,13 +475,21 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
  public:
   struct params
   {
-  params() : mQP(27) { }
+    params() {
+      mQP.set_range(1,51);
+      mQP.set_default(27);
+      mQP.set_ID("qp");
+      mQP.set_short_option('q');
+    }
 
-    int mQP;
+    option_int mQP;
   };
 
   void setParams(const params& p) { mParams=p; }
 
+  void registerParams(config_parameters_NEW& config) {
+    config.add_option(&mParams.mQP);
+  }
 
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
@@ -510,6 +524,11 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
  public:
 
   void setParams(struct encoder_params& params);
+
+  void registerParams(config_parameters_NEW& config) {
+    mAlgo_CTB_QScale_Constant.registerParams(config);
+    mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
+  }
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
 

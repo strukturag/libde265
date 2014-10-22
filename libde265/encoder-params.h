@@ -44,37 +44,18 @@ struct encoder_params
 {
   encoder_params();
 
-#if 0
-  // input
-
-  int first_frame;
-  int max_number_of_frames;
-
-  const char* input_yuv;
-  int input_width;
-  int input_height;
-
-
-  // output
-
-  const char* output_filename;
-
-
-  // debug
-
-  const char* reconstruction_yuv;
-#endif
+  void registerParams(config_parameters_NEW& config);
 
 
   // CB quad-tree
 
-  int min_cb_size;
-  int max_cb_size;
+  option_int min_cb_size;
+  option_int max_cb_size;
 
-  int min_tb_size;
-  int max_tb_size;
+  option_int min_tb_size;
+  option_int max_tb_size;
 
-  int max_transform_hierarchy_depth_intra;
+  option_int max_transform_hierarchy_depth_intra;
 
 
   // --- Algo_TB_IntraPredMode
@@ -113,8 +94,8 @@ struct encoder_params
 
   enum RateControlMethod rateControlMethod;
 
-  int constant_QP;
-  int lambda;
+  //int constant_QP;
+  //int lambda;
 };
 
 

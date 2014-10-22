@@ -29,7 +29,114 @@
 #include <iostream>
 
 
+static void remove_option(int* argc,char** argv,int idx, int n=1)
+{
+  for (int i=idx+n;i<*argc;i++) {
+    argv[i-n] = argv[i];
+  }
 
+  *argc-=n;
+}
+
+
+bool option_string::processCmdLineArguments(char** argv, int* argc, int idx)
+{
+  if (argv==NULL)   { return false; }
+  if (idx >= *argc) { return false; }
+
+  value = argv[idx];
+  value_set = true;
+
+  remove_option(argc,argv,idx,1);
+
+  return true;
+}
+
+
+void option_int::set_range(int mini,int maxi)
+{
+  have_low_limit =true;
+  have_high_limit=true;
+  low_limit =mini;
+  high_limit=maxi;
+}
+
+std::string option_int::getTypeDescr() const
+{
+  std::stringstream sstr;
+  sstr << "(int)";
+
+  if (have_low_limit || have_high_limit) { sstr << " "; }
+  if (have_low_limit) { sstr << low_limit << " <= "; }
+  if (have_low_limit || have_high_limit) { sstr << "x"; }
+  if (have_high_limit) { sstr << " <= " << high_limit; }
+
+  return sstr.str();
+}
+
+bool option_int::processCmdLineArguments(char** argv, int* argc, int idx)
+{
+  if (argv==NULL)   { return false; }
+  if (idx >= *argc) { return false; }
+
+  int v = atoi(argv[idx]);
+  if (have_low_limit  && v<low_limit)  { return false; }
+  if (have_high_limit && v>high_limit) { return false; }
+
+  value = v;
+  value_set = true;
+
+  remove_option(argc,argv,idx,1);
+
+  return true;
+}
+
+std::string option_int::get_default_string() const
+{
+  std::stringstream sstr;
+  sstr << default_value;
+  return sstr.str();
+}
+
+
+std::string choice_option_base::getTypeDescr() const
+{
+  std::vector<std::string> choices = get_choice_names();
+
+  std::stringstream sstr;
+  sstr << "{";
+
+  bool first=true;
+  for (auto c : choices) {
+    if (first) { first=false; }
+    else { sstr << ","; }
+
+    sstr << c;
+  }
+
+  sstr << "}";
+  return sstr.str();
+}
+
+
+bool choice_option_base::processCmdLineArguments(char** argv, int* argc, int idx)
+{
+  if (argv==NULL)   { return false; }
+  if (idx >= *argc) { return false; }
+
+  std::string value = argv[idx];
+
+  std::cout << "set " << value << "\n";
+  bool success = set_value(value);
+  std::cout << "success " << success << "\n";
+
+  remove_option(argc,argv,idx,1);
+
+  return success;
+}
+
+
+#if 0
 void config_parameters::register_config_int(const char* name, char short_option, size_t offset,
                                             int default_value,
                                             int low_limit, int high_limit)
@@ -70,16 +177,6 @@ void config_parameters::register_config_choice(const char* name, char short_opti
   param.offset = offset;
 
   params.push_back(param);
-}
-
-
-static void remove_option(int* argc,char** argv,int idx, int n=1)
-{
-  for (int i=idx+n;i<*argc;i++) {
-    argv[i-n] = argv[i];
-  }
-
-  *argc-=n;
 }
 
 
@@ -150,6 +247,7 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
 
   // --- choice ---
 
+  /*
   else if (type == config_param::Config_Choice) {
     bool valid = ((choice_option_base*)((char*)dst+offset))->setValue(value);
     if (!valid) {
@@ -157,6 +255,7 @@ bool config_parameters::config_param::set_value(const char* value, void* dst, co
       return false;
     }
   }
+  */
 
   return true;
 }
@@ -307,7 +406,7 @@ void config_parameters::show_params(void* paramstruct) const
     case config_param::Config_String: sstr << "(string)"; break;
     case config_param::Config_Choice: { sstr << "{";
       const std::vector<std::string> choices =
-        ((choice_option_base*)((char*)paramstruct+p.offset))->getChoiceNames();
+        ((choice_option_base*)((char*)paramstruct+p.offset))->get_choice_names();
 
       for (int i=0;i<choices.size();i++) {
         if (i>0) { sstr << ","; }
@@ -333,12 +432,14 @@ void config_parameters::show_params(void* paramstruct) const
     case config_param::Config_Int:    sstr << p.int_default; break;
     case config_param::Config_Bool:   sstr << (p.bool_default ? "on":"off"); break;
     case config_param::Config_String: sstr << p.string_default; break;
+      /*
     case config_param::Config_Choice: {
       choice_option_base* opt = (choice_option_base*)((char*)paramstruct+p.offset);
       std::string default_choice = opt->getDefaultName();
       sstr << default_choice;
       }
       break;
+      */
     }
 
     sstr << "\n";
@@ -346,29 +447,162 @@ void config_parameters::show_params(void* paramstruct) const
     std::cerr << sstr.str();
   }
 }
+#endif
 
 
+void print_cmdline(int argc,char** argv)
+{
+  for (int i=0;i<argc;i++)
+    {
+      printf("%d: %s\n",i,argv[i]);
+    }
+}
+
+
+bool config_parameters_NEW::parse_command_line_params(int* argc, char** argv, int* first_idx_ptr,
+                                                      bool ignore_unknown_options)
+{
+  int first_idx=1;
+  if (first_idx_ptr) { first_idx = *first_idx_ptr; }
+
+  for (int i=first_idx;i < *argc;i++) {
+
+    printf("process argument %s\n",argv[i]);
+
+    if (argv[i][0]=='-') {
+      // option
+
+      if (argv[i][1]=='-') {
+        // long option
+
+        bool option_found=false;
+
+        for (int o=0;o<mOptions.size();o++) {
+          if (mOptions[o]->hasLongOption() && strcmp(mOptions[o]->getLongOption().c_str(),
+                                                     argv[i]+2)==0) {
+            option_found=true;
+
+            printf("found long option\n");
+
+            bool success = mOptions[o]->processCmdLineArguments(argv,argc, i+1);
+            if (!success) {
+              if (first_idx_ptr) { *first_idx_ptr = i; }
+              return false;
+            }
+
+            remove_option(argc,argv,i);
+            i--;
+            print_cmdline(*argc,argv);
+
+            break;
+          }
+        }
+
+        if (option_found == false && !ignore_unknown_options) {
+          return false;
+        }
+      }
+      else {
+        // short option
+
+        bool is_single_option = (argv[i][1] != 0 && argv[i][2]==0);
+        bool do_remove_option = true;
+
+        for (int n=1; argv[i][n]; n++) {
+          char option = argv[i][n];
+
+          printf("process short option: %c\n",option);
+
+          bool option_found=false;
+
+          for (int o=0;o<mOptions.size();o++) {
+            if (mOptions[o]->getShortOption() == option) {
+              option_found=true;
+
+              printf("found short option\n");
+
+              bool success;
+              if (is_single_option) {
+                success = mOptions[o]->processCmdLineArguments(argv,argc, i+1);
+              }
+              else {
+                success = mOptions[o]->processCmdLineArguments(NULL,NULL, 0);
+              }
+
+              if (!success) {
+                if (first_idx_ptr) { *first_idx_ptr = i; }
+                return false;
+              }
+
+              break;
+            }
+          }
+
+          if (!option_found && !ignore_unknown_options) {
+            fprintf(stderr, "unknown option -%c\n",option);
+            return false;
+          }
+
+        } // all short options
+
+        if (do_remove_option) {
+          remove_option(argc,argv,i);
+          i--;
+        }
+      } // is short option
+    } // is option
+  } // all command line arguments
+
+  return true;
+}
+
+
+void config_parameters_NEW::print_params() const
+{
+  for (int i=0;i<mOptions.size();i++) {
+    const option_base* o = mOptions[i];
+
+    std::stringstream sstr;
+    sstr << "  ";
+    if (o->hasShortOption()) {
+      sstr << '-' << o->getShortOption();
+    } else {
+      sstr << "  ";
+    }
+
+    if (o->hasShortOption() && o->hasLongOption()) {
+      sstr << ", ";
+    } else {
+      sstr << "  ";
+    }
+
+    if (o->hasLongOption()) {
+      sstr << "--" << std::setw(12) << std::left << o->getLongOption();
+    } else {
+      sstr << "              ";
+    }
+
+    sstr << " ";
+    sstr << o->getTypeDescr();
+
+    sstr << ", default=" << o->get_default_string();
+    sstr << "\n";
+
+    std::cerr << sstr.str();
+  }
+}
+
+void config_parameters_NEW::add_option(option_base* o)
+{
+  mOptions.push_back(o);
+}
+
+#if 0
 void register_encoder_params(config_parameters* config)
 {
   const int NO_LIMIT = config_parameters::NO_LIMIT;
 
 #define eoffset(name) offsetof(encoder_params, name)
-
-#if 0
-  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
-  config->register_config_int("width",  'w', eoffset(input_width),
-                              352,      1,NO_LIMIT);
-  config->register_config_int("height", 'h', eoffset(input_height),
-                              288,      1,NO_LIMIT);
-
-  config->register_config_string("output", 'o' , eoffset(output_filename), "out.bin");
-  config->register_config_string("reconstruction", 'O' , eoffset(reconstruction_yuv), "recon.yuv");
-
-  config->register_config_int("first-frame",  0 , eoffset(first_frame),
-                              0,       0,NO_LIMIT);
-  config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
-                              INT_MAX, 1,NO_LIMIT);
-#endif
 
   config->register_config_choice("TB-IntraPredMode", 0, eoffset(mAlgo_TB_IntraPredMode));
   config->register_config_choice("TB-IntraPredMode-subset",0, eoffset(mAlgo_TB_IntraPredMode_Subset));
@@ -378,9 +612,12 @@ void register_encoder_params(config_parameters* config)
   config->register_config_int   ("IntraPredMode-FastBrute-keepNBest", 0, eoffset(TB_IntraPredMode_FastBrute.keepNBest), 5, 0,32);
   config->register_config_choice("IntraPredMode-MinResidual-estimator", 0, eoffset(TB_IntraPredMode_MinResidual.bitrateEstimMethod));
 
+  /*
   config->register_config_int("constant-qp", 'q', eoffset(CTB_QScale_Constant.mQP),
                               27,      1,51);
+  */
 
+  /*
   config->register_config_int("min-cb-size",  0 , eoffset(min_cb_size),
                               8 ,      8,64);
   config->register_config_int("max-cb-size",  0 , eoffset(max_cb_size),
@@ -390,13 +627,20 @@ void register_encoder_params(config_parameters* config)
                               4 ,      4,32);
   config->register_config_int("max-tb-size",  0 , eoffset(max_tb_size),
                               32,      8,32);
+  */
+
   config->register_config_choice("TB-Split-BruteForce-ZeroBlockPrune", 0, eoffset(TB_Split_BruteForce));
 
+  /*
   config->register_config_int("max-transform-hierarchy-depth-intra",  0 ,
                               eoffset(max_transform_hierarchy_depth_intra),
                               3,       0, 4);
+  */
 
+  /*
   config->register_config_int("lambda",  0 ,
                               eoffset(lambda),
                               50,      0, 1000);
+  */
 }
+#endif

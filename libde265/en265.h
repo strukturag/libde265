@@ -94,6 +94,7 @@ LIBDE265_API void en265_show_params(en265_encoder_context*);
 
 // ========== encoding loop ==========
 
+// TODO: make sure that we can overwrite the plane pointers without leaking the memory allocated here
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
                                                       int width, int height, enum de265_chroma chroma,
                                                       de265_PTS pts, void* image_userdata);

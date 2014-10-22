@@ -68,7 +68,9 @@ LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_conte
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
+  //if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
+  int first_idx=1;
+  if (!ectx->params_config_NEW.parse_command_line_params(argc,argv, &first_idx)) {
     return DE265_ERROR_PARAMETER_PARSING;
   }
   else {
@@ -81,7 +83,9 @@ LIBDE265_API void en265_show_params(en265_encoder_context* e)
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  ectx->params_config.show_params(&ectx->params);
+  //ectx->params_config.show_params(&ectx->params);
+
+  ectx->params_config_NEW.print_params();
 }
 
 /*

@@ -27,5 +27,23 @@
 encoder_params::encoder_params()
 {
   rateControlMethod = RateControlMethod_ConstantQP;
+
+  min_cb_size.set_ID("min-cb-size"); min_cb_size.set_range(8,64); min_cb_size.set_default(8);
+  max_cb_size.set_ID("max-cb-size"); max_cb_size.set_range(8,64); max_cb_size.set_default(32);
+  min_tb_size.set_ID("min-tb-size"); min_tb_size.set_range(4,32); min_tb_size.set_default(4);
+  max_tb_size.set_ID("max-tb-size"); max_tb_size.set_range(8,32); max_tb_size.set_default(32);
+
+  max_transform_hierarchy_depth_intra.set_ID("max-transform-hierarchy-depth-intra");
+  max_transform_hierarchy_depth_intra.set_range(0,4);
+  max_transform_hierarchy_depth_intra.set_default(3);
 }
 
+
+void encoder_params::registerParams(config_parameters_NEW& config)
+{
+  config.add_option(&min_cb_size);
+  config.add_option(&max_cb_size);
+  config.add_option(&min_tb_size);
+  config.add_option(&max_tb_size);
+  config.add_option(&max_transform_hierarchy_depth_intra);
+}
