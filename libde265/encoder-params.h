@@ -44,7 +44,7 @@ struct encoder_params
 {
   encoder_params();
 
-  void registerParams(config_parameters_NEW& config);
+  void registerParams(config_parameters& config);
 
 
   // CB quad-tree
@@ -63,26 +63,26 @@ struct encoder_params
   option_ALGO_TB_IntraPredMode        mAlgo_TB_IntraPredMode;
   option_ALGO_TB_IntraPredMode_Subset mAlgo_TB_IntraPredMode_Subset;
 
-  Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
-  Algo_TB_IntraPredMode_MinResidual::params TB_IntraPredMode_MinResidual;
+  //Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
+  //Algo_TB_IntraPredMode_MinResidual::params TB_IntraPredMode_MinResidual;
 
 
   // --- Algo_TB_Split_BruteForce
 
-  Algo_TB_Split_BruteForce::params  TB_Split_BruteForce;
+  //Algo_TB_Split_BruteForce::params  TB_Split_BruteForce;
 
 
   // --- Algo_CB_IntraPartMode
 
   option_ALGO_CB_IntraPartMode mAlgo_CB_IntraPartMode;
 
-  Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
+  //Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
 
   // --- Algo_CB_Split
 
   // --- Algo_CTB_QScale
 
-  Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
+  //Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
 
 
   // intra-prediction

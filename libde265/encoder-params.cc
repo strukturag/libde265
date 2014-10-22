@@ -26,7 +26,7 @@
 
 encoder_params::encoder_params()
 {
-  rateControlMethod = RateControlMethod_ConstantQP;
+  //rateControlMethod = RateControlMethod_ConstantQP;
 
   min_cb_size.set_ID("min-cb-size"); min_cb_size.set_range(8,64); min_cb_size.set_default(8);
   max_cb_size.set_ID("max-cb-size"); max_cb_size.set_range(8,64); max_cb_size.set_default(32);
@@ -36,14 +36,22 @@ encoder_params::encoder_params()
   max_transform_hierarchy_depth_intra.set_ID("max-transform-hierarchy-depth-intra");
   max_transform_hierarchy_depth_intra.set_range(0,4);
   max_transform_hierarchy_depth_intra.set_default(3);
+
+  mAlgo_TB_IntraPredMode.set_ID("TB-IntraPredMode");
+  mAlgo_TB_IntraPredMode_Subset.set_ID("TB-IntraPredMode-subset");
+  mAlgo_CB_IntraPartMode.set_ID("CB-IntraPartMode");
 }
 
 
-void encoder_params::registerParams(config_parameters_NEW& config)
+void encoder_params::registerParams(config_parameters& config)
 {
   config.add_option(&min_cb_size);
   config.add_option(&max_cb_size);
   config.add_option(&min_tb_size);
   config.add_option(&max_tb_size);
   config.add_option(&max_transform_hierarchy_depth_intra);
+
+  config.add_option(&mAlgo_TB_IntraPredMode);
+  config.add_option(&mAlgo_TB_IntraPredMode_Subset);
+  config.add_option(&mAlgo_CB_IntraPartMode);
 }

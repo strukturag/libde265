@@ -59,7 +59,7 @@ struct inout_params
   option_string reconstruction_yuv;
 
 
-  void register_params(config_parameters_NEW& config);
+  void register_params(config_parameters& config);
 };
 
 
@@ -89,7 +89,7 @@ inout_params::inout_params()
 }
 
 
-void inout_params::register_params(config_parameters_NEW& config)
+void inout_params::register_params(config_parameters& config)
 {
   config.add_option(&input_yuv);
   config.add_option(&first_frame);
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
   // --- in/out parameters ---
 
   struct inout_params inout_params;
-  config_parameters_NEW inout_param_config;
+  config_parameters inout_param_config;
   inout_params.register_params(inout_param_config);
 
   int first_idx=1;

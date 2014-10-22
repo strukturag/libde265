@@ -41,8 +41,7 @@ struct encoder_context
   ~encoder_context();
 
   encoder_params params;
-  //config_parameters params_config;
-  config_parameters_NEW params_config_NEW;
+  config_parameters params_config;
 
   EncodingAlgorithm_Custom algo;
 

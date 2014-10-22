@@ -1403,20 +1403,20 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   algo_CB_IntraPartMode->setChildAlgo(algo_TB_IntraPredMode);
 
   mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(algo_TB_IntraPredMode);
-  mAlgo_TB_Split_BruteForce.setParams(params.TB_Split_BruteForce);
+  //mAlgo_TB_Split_BruteForce.setParams(params.TB_Split_BruteForce);
 
   algo_TB_IntraPredMode->setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
   // ===== set algorithm parameters ======
 
-  mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
+  //mAlgo_CB_IntraPartMode_Fixed.setParams(params.CB_IntraPartMode_Fixed);
 
-  mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
-  mAlgo_TB_IntraPredMode_MinResidual.setParams(params.TB_IntraPredMode_MinResidual);
+  //mAlgo_TB_IntraPredMode_FastBrute.setParams(params.TB_IntraPredMode_FastBrute);
+  //mAlgo_TB_IntraPredMode_MinResidual.setParams(params.TB_IntraPredMode_MinResidual);
 
 
-  mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
+  //mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
 
 
   switch (params.mAlgo_TB_IntraPredMode_Subset())

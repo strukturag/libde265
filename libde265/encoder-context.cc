@@ -44,18 +44,13 @@ encoder_context::encoder_context()
   sop = std::make_shared<sop_creator_intra_only>();
   sop->set_encoder_picture_buffer(&picbuf);
 
-  //register_encoder_params(&params_config);
-  //params_config.set_defaults(&params);
 
-
-  params.registerParams(params_config_NEW);
-  algo.registerParams(params_config_NEW);
+  params.registerParams(params_config);
+  algo.registerParams(params_config);
 
 
   // --- initialize encoder ---
 
-  //init_scan_orders();
-  //alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   init_acceleration_functions_fallback(&accel);
 }
 

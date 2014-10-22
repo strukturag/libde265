@@ -180,13 +180,21 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
   struct params
   {
     params() {
-      bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard);
-      keepNBest = 5;
+      keepNBest.set_ID("IntraPredMode-FastBrute-keepNBest");
+      keepNBest.set_range(0,32);
+      keepNBest.set_default(5);
+
+      bitrateEstimMethod.set_ID("IntraPredMode-FastBrute-estimator");
     }
 
     option_TBBitrateEstimMethod bitrateEstimMethod;
-    int keepNBest;
+    option_int keepNBest;
   };
+
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.keepNBest);
+    config.add_option(&mParams.bitrateEstimMethod);
+  }
 
   void setParams(const params& p) { mParams=p; }
 
@@ -213,7 +221,7 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
   struct params
   {
     params() {
-      bitrateEstimMethod.setID(TBBitrateEstim_SATD_Hadamard);
+      bitrateEstimMethod.set_ID("IntraPredMode-MinResidual-estimator");
     }
 
     option_TBBitrateEstimMethod bitrateEstimMethod;
@@ -221,6 +229,9 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
 
   void setParams(const params& p) { mParams=p; }
 
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.bitrateEstimMethod);
+  }
 
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
@@ -297,11 +308,18 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
  public:
   struct params
   {
+    params() {
+      zeroBlockPrune.set_ID("TB-Split-BruteForce-ZeroBlockPrune");
+    }
+
     option_ALGO_TB_Split_BruteForce_ZeroBlockPrune zeroBlockPrune;
   };
 
   void setParams(const params& p) { mParams=p; }
 
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.zeroBlockPrune);
+  }
 
   virtual const enc_tb* analyze(encoder_context*,
                                 context_model_table,
@@ -393,7 +411,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
     option_PartMode partMode;
   };
 
-  void registerParams(config_parameters_NEW& config) {
+  void registerParams(config_parameters& config) {
     config.add_option(&mParams.partMode);
   }
 
@@ -478,8 +496,8 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
     params() {
       mQP.set_range(1,51);
       mQP.set_default(27);
-      mQP.set_ID("qp");
-      mQP.set_short_option('q');
+      mQP.set_ID("CTB-QScale-Constant");
+      mQP.set_cmd_line_options("qp",'q');
     }
 
     option_int mQP;
@@ -487,7 +505,7 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
 
   void setParams(const params& p) { mParams=p; }
 
-  void registerParams(config_parameters_NEW& config) {
+  void registerParams(config_parameters& config) {
     config.add_option(&mParams.mQP);
   }
 
@@ -525,9 +543,12 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   void setParams(struct encoder_params& params);
 
-  void registerParams(config_parameters_NEW& config) {
+  void registerParams(config_parameters& config) {
     mAlgo_CTB_QScale_Constant.registerParams(config);
     mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
+    mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
+    mAlgo_TB_IntraPredMode_MinResidual.registerParams(config);
+    mAlgo_TB_Split_BruteForce.registerParams(config);
   }
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }

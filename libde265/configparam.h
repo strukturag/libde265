@@ -61,7 +61,7 @@ class option_base
 
   // --- command line options ----
 
-  void setCmdLineOptions(const char* long_option, char short_option = 0)
+  void set_cmd_line_options(const char* long_option, char short_option = 0)
   {
     mShortOption = short_option;
     mLongOption  = long_option;
@@ -263,56 +263,7 @@ template <class T> class choice_option : public choice_option_base
 
 
 
-#if 0
 class config_parameters
-{
- public:
-  static const int NO_LIMIT = INT_MAX;
-
-  void register_config_int(const char* name, char short_option, size_t offset,
-                           int default_value,
-                           int low_limit = NO_LIMIT, int high_limit = NO_LIMIT);
-
-  void register_config_string(const char* name, char short_option, size_t offset,
-                              const char* default_value);
-
-  void register_config_choice(const char* name, char short_option, size_t offset);
-
-  void show_params(void* params) const;
-
-  void set_defaults(void* dst);
-  bool parse_command_line_params(int* argc, char** argv,  void* dst,
-                                 bool ignore_unknown_options=false);
-
- private:
-  struct config_param
-  {
-    const char* name;
-    char  short_option; // 0 if no short option
-
-    union {
-      int         int_default;
-      const char* string_default;
-      bool        bool_default;
-    };
-
-    enum { Config_Int, Config_Bool, Config_String, Config_Choice } type;
-
-    int int_low_limit;
-    int int_high_limit;
-
-    size_t offset;
-
-    bool set_value(const char* value, void* dst, const char* name) const;
-  };
-
-
-  std::vector<config_param> params;
-};
-#endif
-
-
-class config_parameters_NEW
 {
  public:
   void add_option(option_base* o);
@@ -324,7 +275,5 @@ class config_parameters_NEW
  private:
   std::vector<option_base*> mOptions;
 };
-
-//void register_encoder_params(config_parameters* config);
 
 #endif
