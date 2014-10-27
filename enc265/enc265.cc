@@ -116,6 +116,48 @@ void inout_params::register_params(config_parameters& config)
 }
 
 
+void test_parameters_API(en265_encoder_context* ectx)
+{
+  int memsize=5000;
+  char mem[memsize];
+
+  const char** param = en265_list_parameters(ectx, mem, memsize);
+  if (param) {
+    for (int i=0; param[i]; i++) {
+      printf("|%s| ",param[i]);
+
+      enum en265_parameter_type type = en265_get_parameter_type(ectx, param[i]);
+      const char* type_name="unknown";
+      switch (type) {
+      case en265_parameter_int: type_name="int"; break;
+      case en265_parameter_bool: type_name="bool"; break;
+      case en265_parameter_string: type_name="string"; break;
+      case en265_parameter_choice: type_name="choice"; break;
+      }
+
+      printf("(%s)",type_name);
+
+      if (type==en265_parameter_choice) {
+        int choicememsize=500;
+        char choicemem[choicememsize];
+
+        const char** choices = en265_list_parameter_choices(ectx, param[i],
+                                                            choicemem, choicememsize);
+        if (choices) {
+          for (int k=0; choices[k]; k++) {
+            printf(" %s",choices[k]);
+          }
+        }
+      }
+
+      printf("\n");
+    }
+  }
+
+  // en265_set_parameter_int(ectx, "min-tb-size", 8);
+}
+
+
 extern int skipTBSplit, noskipTBSplit;
 extern int zeroBlockCorrelation[6][2][5];
 
@@ -139,8 +181,6 @@ int main(int argc, char** argv)
     cmdline_errors = true;
   }
 
-
-  printf("---\n");
 
   // --- read encoder parameters ---
 
@@ -188,6 +228,8 @@ int main(int argc, char** argv)
   de265_set_verbosity(verbosity);
 
 
+  //test_parameters_API(ectx);
+
 
   ImageSink_YUV reconstruction_sink;
   if (strlen(inout_params.reconstruction_yuv.get().c_str()) != 0) {
@@ -208,7 +250,6 @@ int main(int argc, char** argv)
 
   image_source.skip_frames( inout_params.first_frame );
 
-  printf("max frames: %d\n", inout_params.max_number_of_frames());
   int maxPoc = inout_params.max_number_of_frames;
   bool eof = false;
   for (int poc=0; poc<maxPoc && !eof ;poc++)

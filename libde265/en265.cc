@@ -90,21 +90,17 @@ LIBDE265_API void en265_show_params(en265_encoder_context* e)
 }
 
 
-LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* memory, int memsize)
+static const char** fill_strings_into_memory(const std::vector<std::string>& strings_list,
+                                             void* memory, int memsize)
 {
-  assert(e);
-  encoder_context* ectx = (encoder_context*)e;
-
-  std::vector<std::string> options = ectx->params_config.get_parameter_IDs();
-
   // calculate memory requirement
 
   int totalStringLengths = 0;
-  for (auto opt : options) {
-    totalStringLengths += opt.length() +1; // +1 for null termination
+  for (auto str : strings_list) {
+    totalStringLengths += str.length() +1; // +1 for null termination
   }
 
-  int numStrings = options.size();
+  int numStrings = strings_list.size();
 
   int pointersSize = (numStrings+1) * sizeof(const char*);
 
@@ -116,11 +112,11 @@ LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* 
   char* stringPtr = ((char*)memory) + (numStrings+1) * sizeof(const char*);
   const char** tablePtr = (const char**)memory;
 
-  for (auto opt : options) {
+  for (auto str : strings_list) {
     *tablePtr++ = stringPtr;
 
-    strcpy(stringPtr, opt.c_str());
-    stringPtr += opt.length()+1;
+    strcpy(stringPtr, str.c_str());
+    stringPtr += str.length()+1;
   }
 
   *tablePtr = NULL;
@@ -128,28 +124,78 @@ LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* 
   return (const char**)memory;
 }
 
-/*
-LIBDE265_API int  en265_list_parameters(en265_encoder_context*,
-                                        const char** parametername, int maxParams);
 
-enum en265_parameter_type {
-  en265_parameter_bool,
-  en265_parameter_int,
-  en265_parameter_choice
-};
+LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* memory, int memsize)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
 
-LIBDE265_API enum en265_parameter_type en265_get_parameter_type(en265_encoder_context*,
-                                                                const char* parametername);
+  std::vector<std::string> options = ectx->params_config.get_parameter_IDs();
 
-// returns number of options
-LIBDE265_API int  en265_list_parameter_options(en265_encoder_context*,
-                                               const char* parametername,
-                                               const char** out_options, int maxOptions);
+  return fill_strings_into_memory(options, memory, memsize);
+}
 
-#define EN265_PARAM_TB_IntraPredMode "TB-IntraPredMode"
-#define EN265_PARAM_CB_IntraPartMode "CB-IntraPartMode"
-#define EN265_PARAM_IntraPredMode_Fastbrute_estimator "IntraPredMode-FastBrute-estimator"
-*/
+
+LIBDE265_API enum en265_parameter_type en265_get_parameter_type(en265_encoder_context* e,
+                                                                const char* parametername)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  return ectx->params_config.get_parameter_type(parametername);
+}
+
+
+LIBDE265_API de265_error en265_set_parameter_bool(en265_encoder_context* e,
+                                                  const char* param,int value)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  return ectx->params_config.set_bool(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+}
+
+
+LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context* e,
+                                                 const char* param,int value)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  return ectx->params_config.set_int(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+}
+
+LIBDE265_API de265_error en265_set_parameter_string(en265_encoder_context* e,
+                                                    const char* param,const char* value)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  return ectx->params_config.set_string(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+}
+
+LIBDE265_API de265_error en265_set_parameter_choice(en265_encoder_context* e,
+                                                    const char* param,const char* value)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  return ectx->params_config.set_choice(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+}
+
+
+LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
+                                                       const char* parametername,
+                                                       void* memory, int memsize)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  std::vector<std::string> options = ectx->params_config.get_parameter_choices(parametername);
+
+  return fill_strings_into_memory(options, memory, memsize);
+}
+
 
 
 // ========== encoding loop ==========

@@ -23,6 +23,8 @@
 #ifndef CONFIG_PARAM_H
 #define CONFIG_PARAM_H
 
+#include "en265.h"
+
 #include <climits>
 #include <vector>
 #include <string>
@@ -116,6 +118,8 @@ public:
   virtual std::string getTypeDescr() const { return "boolean"; }
   virtual bool processCmdLineArguments(char** argv, int* argc, int idx) { value=true; return true; }
 
+  bool set(bool v) { value_set=true; value=v; return true; }
+
  private:
   bool value_set;
   bool value;
@@ -138,6 +142,8 @@ public:
 
   virtual std::string getTypeDescr() const { return "(string)"; }
   virtual bool processCmdLineArguments(char** argv, int* argc, int idx);
+
+  bool set(std::string v) { value_set=true; value=v; return true; }
 
  private:
   bool value_set;
@@ -166,6 +172,11 @@ public:
   virtual std::string getTypeDescr() const;
   virtual bool processCmdLineArguments(char** argv, int* argc, int idx);
 
+  bool set(int v) {
+    if (is_valid(v)) { value_set=true; value=v; return true; }
+    else { return false; }
+  }
+
  private:
   bool value_set;
   int value;
@@ -175,6 +186,8 @@ public:
   int  low_limit, high_limit;
 
   std::vector<int> valid_values_set;
+
+  bool is_valid(int v) const;
 };
 
 
@@ -182,6 +195,7 @@ public:
 class choice_option_base : public option_base
 {
 public:
+  bool set(std::string v) { return set_value(v); }
   virtual bool set_value(const std::string& val) = 0;
   virtual std::vector<std::string> get_choice_names() const = 0;
 
@@ -282,9 +296,19 @@ class config_parameters
   // --- connection to C API ---
 
   std::vector<std::string> get_parameter_IDs() const;
+  enum en265_parameter_type get_parameter_type(const char* param) const;
+
+  std::vector<std::string> get_parameter_choices(const char* param) const;
+
+  bool set_bool(const char* param, bool value);
+  bool set_int(const char* param, int value);
+  bool set_string(const char* param, const char* value);
+  bool set_choice(const char* param, const char* value);
 
  private:
   std::vector<option_base*> mOptions;
+
+  option_base* find_option(const char* param) const;
 };
 
 #endif

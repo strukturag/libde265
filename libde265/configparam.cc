@@ -28,6 +28,7 @@
 #include <iomanip>
 #include <iostream>
 #include <algorithm>
+#include <typeinfo>
 
 
 static void remove_option(int* argc,char** argv,int idx, int n=1)
@@ -91,6 +92,18 @@ bool option_int::processCmdLineArguments(char** argv, int* argc, int idx)
   if (idx >= *argc) { return false; }
 
   int v = atoi(argv[idx]);
+  if (!is_valid(v)) { return false; }
+
+  value = v;
+  value_set = true;
+
+  remove_option(argc,argv,idx,1);
+
+  return true;
+}
+
+bool option_int::is_valid(int v) const
+{
   if (have_low_limit  && v<low_limit)  { return false; }
   if (have_high_limit && v>high_limit) { return false; }
 
@@ -98,11 +111,6 @@ bool option_int::processCmdLineArguments(char** argv, int* argc, int idx)
     auto iter = std::find(valid_values_set.begin(), valid_values_set.end(), v);
     if (iter==valid_values_set.end()) { return false; }
   }
-
-  value = v;
-  value_set = true;
-
-  remove_option(argc,argv,idx,1);
 
   return true;
 }
@@ -292,5 +300,87 @@ std::vector<std::string> config_parameters::get_parameter_IDs() const
   }
 
   return ids;
+}
+
+
+enum en265_parameter_type config_parameters::get_parameter_type(const char* param) const
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  if (dynamic_cast<option_int*>   (option)) { return en265_parameter_int; }
+  if (dynamic_cast<option_bool*>  (option)) { return en265_parameter_bool; }
+  if (dynamic_cast<option_string*>(option)) { return en265_parameter_string; }
+  if (dynamic_cast<choice_option_base*>(option)) { return en265_parameter_choice; }
+
+  assert(false);
+  return en265_parameter_bool;
+}
+
+
+std::vector<std::string> config_parameters::get_parameter_choices(const char* param) const
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  choice_option_base* o = dynamic_cast<choice_option_base*>(option);
+  assert(o);
+  
+  return o->get_choice_names();
+}
+
+
+option_base* config_parameters::find_option(const char* param) const
+{
+  for (auto o : mOptions) {
+    if (strcmp(o->get_name().c_str(), param)==0) { return o; }
+  }
+
+  return NULL;
+}
+
+
+bool config_parameters::set_bool(const char* param, bool value)
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  option_bool* o = dynamic_cast<option_bool*>(option);
+  assert(o);
+
+  return o->set(value);
+}
+
+bool config_parameters::set_int(const char* param, int value)
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  option_int* o = dynamic_cast<option_int*>(option);
+  assert(o);
+
+  return o->set(value);
+}
+
+bool config_parameters::set_string(const char* param, const char* value)
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  option_string* o = dynamic_cast<option_string*>(option);
+  assert(o);
+
+  return o->set(value);
+}
+
+bool config_parameters::set_choice(const char* param, const char* value)
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  choice_option_base* o = dynamic_cast<choice_option_base*>(option);
+  assert(o);
+
+  return o->set(value);
 }
 

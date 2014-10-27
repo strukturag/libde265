@@ -57,7 +57,9 @@ LIBDE265_API de265_error en265_set_parameter_bool(en265_encoder_context*,
                                                   const char* parametername,int value);
 LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context*,
                                                  const char* parametername,int value);
-LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
+LIBDE265_API de265_error en265_set_parameter_string(en265_encoder_context*,
+                                                    const char* parametername,const char* value);
+LIBDE265_API de265_error en265_set_parameter_choice(en265_encoder_context*,
                                                     const char* parametername,const char* value);
 
 
@@ -69,21 +71,17 @@ LIBDE265_API const char** en265_list_parameters(en265_encoder_context*, void* me
 enum en265_parameter_type {
   en265_parameter_bool,
   en265_parameter_int,
+  en265_parameter_string,
   en265_parameter_choice
 };
 
 LIBDE265_API enum en265_parameter_type en265_get_parameter_type(en265_encoder_context*,
                                                                 const char* parametername);
 
-// returns number of options
-LIBDE265_API int  en265_list_parameter_options(en265_encoder_context*,
-                                               const char* parametername,
-                                               const char** out_options, int maxOptions);
-
-#define EN265_PARAM_TB_IntraPredMode "TB-IntraPredMode"
-#define EN265_PARAM_CB_IntraPartMode "CB-IntraPartMode"
-#define EN265_PARAM_IntraPredMode_Fastbrute_estimator "IntraPredMode-FastBrute-estimator"
-
+// See en265_list_parameters() for description of return value.
+LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context*,
+                                                       const char* parametername,
+                                                       void* memory, int memsize);
 
 
 // --- convenience functions for command-line parameters ---
