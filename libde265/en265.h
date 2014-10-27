@@ -61,8 +61,10 @@ LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
                                                     const char* parametername,const char* value);
 
 
-LIBDE265_API int  en265_list_parameters(en265_encoder_context*,
-                                        const char** parametername, int maxParams);
+/* Returns a NULL terminated list of parameters.
+   Returns empty list when memory size was insufficient.
+ */
+LIBDE265_API const char** en265_list_parameters(en265_encoder_context*, void* memory, int memsize);
 
 enum en265_parameter_type {
   en265_parameter_bool,

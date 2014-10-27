@@ -89,6 +89,45 @@ LIBDE265_API void en265_show_params(en265_encoder_context* e)
   ectx->params_config.print_params();
 }
 
+
+LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* memory, int memsize)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  std::vector<std::string> options = ectx->params_config.get_parameter_IDs();
+
+  // calculate memory requirement
+
+  int totalStringLengths = 0;
+  for (auto opt : options) {
+    totalStringLengths += opt.length() +1; // +1 for null termination
+  }
+
+  int numStrings = options.size();
+
+  int pointersSize = (numStrings+1) * sizeof(const char*);
+
+  if (pointersSize + totalStringLengths > memsize) { return NULL; }
+
+
+  // copy strings to memory area
+
+  char* stringPtr = ((char*)memory) + (numStrings+1) * sizeof(const char*);
+  const char** tablePtr = (const char**)memory;
+
+  for (auto opt : options) {
+    *tablePtr++ = stringPtr;
+
+    strcpy(stringPtr, opt.c_str());
+    stringPtr += opt.length()+1;
+  }
+
+  *tablePtr = NULL;
+
+  return (const char**)memory;
+}
+
 /*
 LIBDE265_API int  en265_list_parameters(en265_encoder_context*,
                                         const char** parametername, int maxParams);

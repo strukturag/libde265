@@ -281,3 +281,16 @@ void config_parameters::add_option(option_base* o)
 {
   mOptions.push_back(o);
 }
+
+
+std::vector<std::string> config_parameters::get_parameter_IDs() const
+{
+  std::vector<std::string> ids;
+
+  for (auto option : mOptions) {
+    ids.push_back(option->get_name());
+  }
+
+  return ids;
+}
+

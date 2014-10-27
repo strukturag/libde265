@@ -53,7 +53,7 @@ class option_base
   void set_ID(const char* name) { mIDName=name; }
   void add_namespace_prefix(std::string prefix) { mPrefix = prefix + ":" + mPrefix; }
 
-  std::string getName() const { return mPrefix + mIDName; }
+  std::string get_name() const { return mPrefix + mIDName; }
 
 
   // --- description ---
@@ -81,7 +81,7 @@ class option_base
   bool hasShortOption() const { return mShortOption!=0; }
   char getShortOption() const { return mShortOption; }
   bool hasLongOption() const { return true; } //mLongOption!=NULL; }
-  std::string getLongOption() const { return mLongOption ? std::string(mLongOption) : getName(); }
+  std::string getLongOption() const { return mLongOption ? std::string(mLongOption) : get_name(); }
 
   virtual bool processCmdLineArguments(char** argv, int* argc, int idx) { return false; }
 
@@ -277,6 +277,11 @@ class config_parameters
   void print_params() const;
   bool parse_command_line_params(int* argc, char** argv, int* first_idx=NULL,
                                  bool ignore_unknown_options=false);
+
+
+  // --- connection to C API ---
+
+  std::vector<std::string> get_parameter_IDs() const;
 
  private:
   std::vector<option_base*> mOptions;
