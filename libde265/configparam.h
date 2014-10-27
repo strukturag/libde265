@@ -153,6 +153,7 @@ public:
     have_low_limit(false), have_high_limit(false) { }
 
   void set_range(int mini,int maxi);
+  void set_valid_values(const std::vector<int>& v) { valid_values_set = v; }
 
   const option_int& operator=(int v) { value=v; value_set=true; return *this; }
 
@@ -172,6 +173,8 @@ public:
 
   bool have_low_limit, have_high_limit;
   int  low_limit, high_limit;
+
+  std::vector<int> valid_values_set;
 };
 
 

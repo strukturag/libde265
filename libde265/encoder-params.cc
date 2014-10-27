@@ -24,14 +24,22 @@
 
 
 
+static std::vector<int> power2range(int low,int high)
+{
+  std::vector<int> vals;
+  for (int i=low; i<=high; i*=2)
+    vals.push_back(i);
+  return vals;
+}
+
 encoder_params::encoder_params()
 {
   //rateControlMethod = RateControlMethod_ConstantQP;
 
-  min_cb_size.set_ID("min-cb-size"); min_cb_size.set_range(8,64); min_cb_size.set_default(8);
-  max_cb_size.set_ID("max-cb-size"); max_cb_size.set_range(8,64); max_cb_size.set_default(32);
-  min_tb_size.set_ID("min-tb-size"); min_tb_size.set_range(4,32); min_tb_size.set_default(4);
-  max_tb_size.set_ID("max-tb-size"); max_tb_size.set_range(8,32); max_tb_size.set_default(32);
+  min_cb_size.set_ID("min-cb-size"); min_cb_size.set_valid_values(power2range(8,64)); min_cb_size.set_default(8);
+  max_cb_size.set_ID("max-cb-size"); max_cb_size.set_valid_values(power2range(8,64)); max_cb_size.set_default(32);
+  min_tb_size.set_ID("min-tb-size"); min_tb_size.set_valid_values(power2range(4,32)); min_tb_size.set_default(4);
+  max_tb_size.set_ID("max-tb-size"); max_tb_size.set_valid_values(power2range(8,32)); max_tb_size.set_default(32);
 
   max_transform_hierarchy_depth_intra.set_ID("max-transform-hierarchy-depth-intra");
   max_transform_hierarchy_depth_intra.set_range(0,4);

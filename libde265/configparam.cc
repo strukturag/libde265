@@ -71,6 +71,16 @@ std::string option_int::getTypeDescr() const
   if (have_low_limit || have_high_limit) { sstr << "x"; }
   if (have_high_limit) { sstr << " <= " << high_limit; }
 
+  if (!valid_values_set.empty()) {
+    sstr << " {";
+    bool first=true;
+    for (int v : valid_values_set) {
+      if (!first) sstr << ","; else first=false;
+      sstr << v;
+    }
+    sstr << "}";
+  }
+
   return sstr.str();
 }
 
