@@ -27,6 +27,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 
 
 static void remove_option(int* argc,char** argv,int idx, int n=1)
@@ -93,6 +94,11 @@ bool option_int::processCmdLineArguments(char** argv, int* argc, int idx)
   if (have_low_limit  && v<low_limit)  { return false; }
   if (have_high_limit && v>high_limit) { return false; }
 
+  if (!valid_values_set.empty()) {
+    auto iter = std::find(valid_values_set.begin(), valid_values_set.end(), v);
+    if (iter==valid_values_set.end()) { return false; }
+  }
+
   value = v;
   value_set = true;
 
@@ -146,15 +152,6 @@ bool choice_option_base::processCmdLineArguments(char** argv, int* argc, int idx
 }
 
 
-static void print_cmdline(int argc,char** argv)
-{
-  for (int i=0;i<argc;i++)
-    {
-      printf("%d: %s\n",i,argv[i]);
-    }
-}
-
-
 bool config_parameters::parse_command_line_params(int* argc, char** argv, int* first_idx_ptr,
                                                   bool ignore_unknown_options)
 {
@@ -162,8 +159,6 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
   if (first_idx_ptr) { first_idx = *first_idx_ptr; }
 
   for (int i=first_idx;i < *argc;i++) {
-
-    printf("process argument %s\n",argv[i]);
 
     if (argv[i][0]=='-') {
       // option
@@ -178,8 +173,6 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
                                                      argv[i]+2)==0) {
             option_found=true;
 
-            printf("found long option\n");
-
             bool success = mOptions[o]->processCmdLineArguments(argv,argc, i+1);
             if (!success) {
               if (first_idx_ptr) { *first_idx_ptr = i; }
@@ -188,7 +181,6 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
 
             remove_option(argc,argv,i);
             i--;
-            print_cmdline(*argc,argv);
 
             break;
           }
@@ -207,15 +199,11 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
         for (int n=1; argv[i][n]; n++) {
           char option = argv[i][n];
 
-          printf("process short option: %c\n",option);
-
           bool option_found=false;
 
           for (int o=0;o<mOptions.size();o++) {
             if (mOptions[o]->getShortOption() == option) {
               option_found=true;
-
-              printf("found short option\n");
 
               bool success;
               if (is_single_option) {
