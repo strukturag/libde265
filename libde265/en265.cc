@@ -52,16 +52,21 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 }
 
 
-// ========== encoder parameters ==========
+LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
+                                                   void (*release_func)(en265_encoder_context*,
+                                                                        de265_image*,
+                                                                        void* userdata),
+                                                   void* alloc_userdata)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
 
-/*
-LIBDE265_API de265_error en265_set_parameter_bool(en265_encoder_context*,
-                                                  const char* parametername,int value);
-LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context*,
-                                                 const char* parametername,int value);
-LIBDE265_API de265_error en265_set_parameter_option(en265_encoder_context*,
-                                                    const char* parametername,const char* value);
-*/
+  ectx->param_image_allocation_userdata = alloc_userdata;
+  ectx->release_func = release_func;
+}
+
+
+// ========== encoder parameters ==========
 
 LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context* e,
                                                              int* argc, char** argv)
@@ -200,6 +205,8 @@ LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
 
 // ========== encoding loop ==========
 
+
+
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
                                                       int width, int height, de265_chroma chroma,
                                                       de265_PTS pts, void* image_userdata)
@@ -209,7 +216,7 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
 
   de265_image* img = new de265_image;
   img->alloc_image(width,height,de265_chroma_420, NULL, false,
-                   NULL, pts, image_userdata, false);
+                   NULL,ectx, pts, image_userdata, false);
 
   return img;
 }

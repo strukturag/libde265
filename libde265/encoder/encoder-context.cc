@@ -36,6 +36,9 @@ encoder_context::encoder_context()
   parameters_have_been_set = false;
   headers_have_been_sent = false;
 
+  param_image_allocation_userdata = NULL;
+  release_func = NULL;
+
   enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
   switch_CABAC_to_bitstream();

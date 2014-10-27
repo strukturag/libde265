@@ -1274,7 +1274,7 @@ double encode_image(encoder_context* ectx,
   ectx->img->pps  = ectx->pps;
 
   ectx->img->alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
-                        NULL /* no decctx */, 0,NULL,false);
+                         NULL /* no decctx */, ectx, 0,NULL,false);
   ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 

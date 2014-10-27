@@ -44,12 +44,11 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
 /* The user data pointer will be given to the release_buffer() function
    in de265_image_allocation. */
-/*
-TODO: not needed? We could simply set the image deallocation function in the de265_image itself.
-LIBDE265_API void en265_set_image_allocation_functions(en265_encoder_context*,
-                                                       struct de265_image_allocation*,
-                                                       void* alloc_userdata);
-*/
+LIBDE265_API void en265_set_image_release_function(en265_encoder_context*,
+                                                   void (*release_func)(en265_encoder_context*,
+                                                                        de265_image*,
+                                                                        void* userdata),
+                                                   void* alloc_userdata);
 
 // ========== encoder parameters ==========
 
@@ -94,9 +93,10 @@ LIBDE265_API void en265_show_params(en265_encoder_context*);
 
 // ========== encoding loop ==========
 
-// TODO: make sure that we can overwrite the plane pointers without leaking the memory allocated here
+// If we have provided our own memory release function, no image memory will be allocated.
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
-                                                      int width, int height, enum de265_chroma chroma,
+                                                      int width, int height,
+                                                      enum de265_chroma chroma,
                                                       de265_PTS pts, void* image_userdata);
 
 // Request a specification of the image memory layout for an image of the specified dimensions.

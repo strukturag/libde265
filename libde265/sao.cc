@@ -415,7 +415,8 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   de265_error err = imgunit->sao_output.alloc_image(img->get_width(), img->get_height(),
                                                     img->get_chroma_format(), &img->sps, false,
-                                                    img->decctx, img->pts, img->user_data, true);
+                                                    img->decctx, img->encctx,
+                                                    img->pts, img->user_data, true);
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;

@@ -33,13 +33,13 @@
 #include <stdbool.h>
 #endif
 #include "libde265/de265.h"
+#include "libde265/en265.h"
 #include "libde265/sps.h"
 #include "libde265/pps.h"
 #include "libde265/motion.h"
 #include "libde265/threads.h"
 #include "libde265/slice.h"
 #include "libde265/nal.h"
-
 
 enum PictureState {
   UnusedForReference,
@@ -207,7 +207,10 @@ struct de265_image {
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
-                          bool allocMetadata, decoder_context* ctx, de265_PTS pts, void* user_data,
+                          bool allocMetadata,
+                          decoder_context* dctx,
+                          class encoder_context* ectx,
+                          de265_PTS pts, void* user_data,
                           bool isOutputImage);
 
   de265_error alloc_encoder_data(const seq_parameter_set* sps);
@@ -319,6 +322,7 @@ public:
   seq_parameter_set   sps;  // the SPS used for decoding this image
   pic_parameter_set   pps;  // the PPS used for decoding this image
   decoder_context*    decctx;
+  class encoder_context*    encctx;
 
 private:
   MetaDataArray<CTB_info>    ctb_info;
@@ -336,6 +340,9 @@ public:
   void*     user_data;
   void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
   de265_image_allocation image_allocation_functions; // the functions used for memory allocation
+  void (*encoder_image_release_func)(en265_encoder_context*,
+                                     de265_image*,
+                                     void* userdata);
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,
