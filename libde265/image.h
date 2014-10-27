@@ -211,7 +211,7 @@ struct de265_image {
                           decoder_context* dctx,
                           class encoder_context* ectx,
                           de265_PTS pts, void* user_data,
-                          bool isOutputImage);
+                          bool useCustomAllocFunctions);
 
   de265_error alloc_encoder_data(const seq_parameter_set* sps);
 

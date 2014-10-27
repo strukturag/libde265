@@ -172,7 +172,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      decoder_context* dctx,
                                      encoder_context* ectx,
                                      de265_PTS pts, void* user_data,
-                                     bool isOutputImage)
+                                     bool useCustomAllocFunc)
 {
   if (allocMetadata) { assert(sps); }
 
@@ -260,7 +260,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   if (decctx) alloc_userdata = decctx->param_image_allocation_userdata;
   if (encctx) alloc_userdata = encctx->param_image_allocation_userdata; // actually not needed
 
-  if (encctx) {
+  if (encctx && useCustomAllocFunc) {
     encoder_image_release_func = encctx->release_func;
 
     // if we do not provide a release function, use our own
@@ -273,7 +273,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
       image_allocation_functions.release_buffer = NULL;
     }
   }
-  else if (isOutputImage) {
+  else if (decctx && useCustomAllocFunc) {
     image_allocation_functions = decctx->param_image_allocation_functions;
   }
   else {
