@@ -810,7 +810,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
 
-  bool test_no_split = (IntraSplitFlag==0 || TrafoDepth>0);
+  bool test_no_split = true;
+  if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
 
   context_model_table ctxSplit;
   if (test_split) {
@@ -909,7 +910,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     };
 
 
-  const bool can_use_NxN = (log2CbSize == ectx->sps.Log2MinCbSizeY);
+  const bool can_use_NxN = ((log2CbSize == ectx->sps.Log2MinCbSizeY) &&
+                            (log2CbSize >  ectx->sps.Log2MinTrafoSize));
 
   // Test NxN intra prediction mode only when at minimum Cb size.
   const int lastMode = (can_use_NxN ? 2 : 1);
