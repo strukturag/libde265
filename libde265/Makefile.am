@@ -49,9 +49,6 @@ libde265_la_SOURCES = \
   cabac.h \
   deblock.h \
   decctx.h \
-  encode.h encode.cc \
-  encoder-params.h encoder-params.cc \
-  encoder-context.h encoder-context.cc \
   image.h \
   intrapred.h \
   md5.h \
@@ -74,15 +71,15 @@ libde265_la_SOURCES = \
   fallback-dct.h fallback-dct.cc \
   quality.cc quality.h \
   configparam.cc configparam.h \
-  analyze.cc analyze.h \
   image-io.h image-io.cc \
   alloc_pool.h \
-  encpicbuf.h encpicbuf.cc \
-  sop.h \
   en265.h en265.cc
 
+SUBDIRS = encoder
+libde265_la_LIBADD += encoder/libde265_encoder.la
+
 if ENABLE_SSE_OPT
-  SUBDIRS = x86
+  SUBDIRS += x86
   libde265_la_LIBADD += x86/libde265_x86.la
 endif
 

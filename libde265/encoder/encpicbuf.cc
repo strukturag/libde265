@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libde265/encpicbuf.h"
+#include "libde265/encoder/encpicbuf.h"
 
 
 encoder_picture_buffer::encoder_picture_buffer()

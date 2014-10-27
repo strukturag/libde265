@@ -27,9 +27,9 @@
 #include "libde265/decctx.h"
 #include "libde265/image-io.h"
 #include "libde265/alloc_pool.h"
-#include "libde265/encoder-params.h"
-#include "libde265/encpicbuf.h"
-#include "libde265/sop.h"
+#include "libde265/encoder/encoder-params.h"
+#include "libde265/encoder/encpicbuf.h"
+#include "libde265/encoder/sop.h"
 #include "libde265/en265.h"
 
 #include <memory>

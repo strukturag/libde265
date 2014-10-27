@@ -23,7 +23,7 @@
 
 #include "libde265/image.h"
 #include "libde265/sps.h"
-#include "libde265/encpicbuf.h"
+#include "libde265/encoder/encpicbuf.h"
 
 #include <deque>
 #include <vector>

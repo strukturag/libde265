@@ -23,8 +23,8 @@
 #ifndef ENCODER_PARAMS_H
 #define ENCODER_PARAMS_H
 
-#include "libde265/encode.h"
-#include "libde265/analyze.h"
+#include "libde265/encoder/encode.h"
+#include "libde265/encoder/analyze.h"
 
 
 enum RateControlMethod

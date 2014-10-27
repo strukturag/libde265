@@ -25,7 +25,7 @@
 
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
-#include "libde265/encode.h"
+#include "libde265/encoder/encode.h"
 #include "libde265/slice.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
@@ -34,7 +34,6 @@
 #include "libde265/quality.h"
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
-#include "libde265/encode.h"
 
 
 /*  Encoder search tree, bottom up:

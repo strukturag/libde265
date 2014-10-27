@@ -22,7 +22,7 @@
 
 #include "configparam.h"
 
-#include "encoder-params.h"
+#include <string.h>
 #include <ctype.h>
 #include <sstream>
 #include <iomanip>

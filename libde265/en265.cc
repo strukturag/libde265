@@ -21,7 +21,8 @@
  */
 
 #include "libde265/en265.h"
-#include "libde265/encoder-context.h"
+#include "libde265/encoder/encoder-context.h"
+
 
 LIBDE265_API en265_encoder_context* en265_new_encoder(void)
 {

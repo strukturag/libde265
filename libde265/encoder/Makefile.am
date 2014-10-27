@@ -1,0 +1,11 @@
+noinst_LTLIBRARIES = libde265_encoder.la
+
+libde265_encoder_la_CXXFLAGS = -I..
+libde265_encoder_la_SOURCES = \
+  encode.h encode.cc \
+  encoder-params.h encoder-params.cc \
+  encoder-context.h encoder-context.cc \
+  analyze.cc analyze.h \
+  encpicbuf.h encpicbuf.cc \
+  sop.h
+
