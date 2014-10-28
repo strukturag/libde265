@@ -151,6 +151,30 @@ class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
     mPredMode_enabled[mode] = flag;
   }
 
+  void enableIntraPredModeSubset(enum ALGO_TB_IntraPredMode_Subset subset) {
+    switch (subset)
+      {
+      case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
+        for (int i=0;i<35;i++) { enableIntraPredMode(i); }
+        break;
+      case ALGO_TB_IntraPredMode_Subset_DC:
+        disableAllIntraPredModes();
+        enableIntraPredMode(INTRA_DC);
+        break;
+      case ALGO_TB_IntraPredMode_Subset_Planar:
+        disableAllIntraPredModes();
+        enableIntraPredMode(INTRA_PLANAR);
+        break;
+      case ALGO_TB_IntraPredMode_Subset_HVPlus:
+        disableAllIntraPredModes();
+        enableIntraPredMode(INTRA_DC);
+        enableIntraPredMode(INTRA_PLANAR);
+        enableIntraPredMode(INTRA_ANGULAR_10);
+        enableIntraPredMode(INTRA_ANGULAR_26);
+        break;
+      }
+  }
+
  protected:
   bool mPredMode_enabled[35];
 };

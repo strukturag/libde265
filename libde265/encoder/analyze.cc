@@ -249,24 +249,5 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   //mAlgo_CTB_QScale_Constant.setParams(params.CTB_QScale_Constant);
 
 
-  switch (params.mAlgo_TB_IntraPredMode_Subset())
-    {
-    case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
-      break;
-    case ALGO_TB_IntraPredMode_Subset_DC:
-      algo_TB_IntraPredMode->disableAllIntraPredModes();
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_DC);
-      break;
-    case ALGO_TB_IntraPredMode_Subset_Planar:
-      algo_TB_IntraPredMode->disableAllIntraPredModes();
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_PLANAR);
-      break;
-    case ALGO_TB_IntraPredMode_Subset_HVPlus:
-      algo_TB_IntraPredMode->disableAllIntraPredModes();
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_DC);
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_PLANAR);
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_ANGULAR_10);
-      algo_TB_IntraPredMode->enableIntraPredMode(INTRA_ANGULAR_26);
-      break;
-    }
+  algo_TB_IntraPredMode->enableIntraPredModeSubset( params.mAlgo_TB_IntraPredMode_Subset() );
 }
