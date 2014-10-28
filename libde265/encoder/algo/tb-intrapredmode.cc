@@ -23,6 +23,7 @@
 
 #include "libde265/encoder/analyze.h"
 #include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/algo/tb-split.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
@@ -108,7 +109,7 @@ static void diff_blk(int16_t* out,int out_stride,
 
 
 
-
+#if 0
 void encode_transform_unit(encoder_context* ectx,
                            enc_tb* tb,
                            const de265_image* input,

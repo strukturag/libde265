@@ -36,6 +36,7 @@
 #include "libde265/configparam.h"
 
 #include "libde265/encoder/algo/tb-intrapredmode.h"
+#include "libde265/encoder/algo/tb-split.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -50,94 +51,6 @@
 
     - Algo_CTB_QScale - select QScale on CTB granularity
  */
-
-
-// ========== TB split decision ==========
-
-class Algo_TB_Split
-{
- public:
-  Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
-  virtual ~Algo_TB_Split() { }
-
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp) = 0;
-
-  void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
-
- protected:
-  const enc_tb* encode_transform_tree_split(encoder_context* ectx,
-                                            context_model_table ctxModel,
-                                            const de265_image* input,
-                                            const enc_tb* parent,
-                                            enc_cb* cb,
-                                            int x0,int y0, int log2TbSize,
-                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                            int qp);
-
-  Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
-};
-
-
-
-enum ALGO_TB_Split_BruteForce_ZeroBlockPrune {
-  // numeric value specifies the maximum size for log2Tb for which the pruning is applied
-  ALGO_TB_BruteForce_ZeroBlockPrune_off = 0,
-  ALGO_TB_BruteForce_ZeroBlockPrune_8x8 = 3,
-  ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16 = 4,
-  ALGO_TB_BruteForce_ZeroBlockPrune_all = 5
-};
-
-class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune
-: public choice_option<enum ALGO_TB_Split_BruteForce_ZeroBlockPrune>
-{
- public:
-  option_ALGO_TB_Split_BruteForce_ZeroBlockPrune() {
-    add_choice("off"     ,ALGO_TB_BruteForce_ZeroBlockPrune_off);
-    add_choice("8x8"     ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8);
-    add_choice("8-16"    ,ALGO_TB_BruteForce_ZeroBlockPrune_8x8_16x16);
-    add_choice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all, true);
-  }
-};
-
-class Algo_TB_Split_BruteForce : public Algo_TB_Split
-{
- public:
-  struct params
-  {
-    params() {
-      zeroBlockPrune.set_ID("TB-Split-BruteForce-ZeroBlockPrune");
-    }
-
-    option_ALGO_TB_Split_BruteForce_ZeroBlockPrune zeroBlockPrune;
-  };
-
-  void setParams(const params& p) { mParams=p; }
-
-  void registerParams(config_parameters& config) {
-    config.add_option(&mParams.zeroBlockPrune);
-  }
-
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp);
-
- private:
-  params mParams;
-};
 
 
 // ========== CB intra NxN vs. 2Nx2N decision ==========
