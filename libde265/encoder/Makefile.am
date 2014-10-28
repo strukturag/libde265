@@ -9,3 +9,5 @@ libde265_encoder_la_SOURCES = \
   encpicbuf.h encpicbuf.cc \
   sop.h
 
+SUBDIRS=algo
+libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la
