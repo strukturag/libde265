@@ -238,6 +238,9 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   tb->rate = 0;
   tb->distortion = 0;
 
+  tb->cbf[0]=0;
+  tb->cbf[1]=0;
+  tb->cbf[2]=0;
 
   // --- encode all child nodes ---
 
