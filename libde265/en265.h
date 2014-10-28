@@ -93,6 +93,11 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
                                                       enum de265_chroma chroma,
                                                       de265_PTS pts, void* image_userdata);
 
+LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx, void *userdata,
+                                           void* inputdata, int inputstride);
+LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx);
+
+
 // Request a specification of the image memory layout for an image of the specified dimensions.
 LIBDE265_API void en265_get_image_spec(en265_encoder_context*,
                                        int width, int height, enum de265_chroma chroma,

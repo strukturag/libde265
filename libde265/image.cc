@@ -39,6 +39,8 @@
 #define MEMORY_PADDING  0
 #endif
 
+#define STANDARD_ALIGNMENT 16
+
 #ifdef HAVE___MINGW_ALIGNED_MALLOC
 #define ALLOC_ALIGNED(alignment, size)         __mingw_aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                      __mingw_aligned_free((mem))
@@ -62,6 +64,44 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 #define ALLOC_ALIGNED_16(size)              ALLOC_ALIGNED(16, size)
 
 static const int alignment = 16;
+
+
+LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx, void *userdata,
+                                           void* inputdata, int inputstride)
+{
+  int alignment = STANDARD_ALIGNMENT;
+  int stride = (img->get_width(cIdx) + alignment-1) / alignment * alignment;
+  int height = img->get_height(cIdx);
+
+  uint8_t* p = (uint8_t *)ALLOC_ALIGNED_16(stride * height + MEMORY_PADDING);
+
+  if (p==NULL) { return NULL; }
+
+  img->set_image_plane(cIdx, p, stride, userdata);
+
+  // copy input data if provided
+
+  if (inputdata != NULL) {
+    if (inputstride == stride) {
+      memcpy(p, inputdata, stride*height);
+    }
+    else {
+      for (int y=0;y<height;y++) {
+        memcpy(p+y*stride, ((char*)inputdata) + inputstride*y, inputstride);
+      }
+    }
+  }
+
+  return p;
+}
+
+
+LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
+{
+  uint8_t* p = (uint8_t*)img->get_image_plane(cIdx);
+  assert(p);
+  FREE_ALIGNED(p);
+}
 
 
 static int  de265_image_get_buffer(de265_decoder_context* ctx,
@@ -230,7 +270,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   spec.width  = w;
   spec.height = h;
-  spec.alignment = 16;
+  spec.alignment = STANDARD_ALIGNMENT;
 
 
   // conformance window cropping
