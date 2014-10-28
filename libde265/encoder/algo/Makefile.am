@@ -5,5 +5,6 @@ libde265_encoder_algo_la_SOURCES = \
   tb-intrapredmode.h tb-intrapredmode.cc \
   tb-split.h tb-split.cc \
   cb-intrapartmode.h cb-intrapartmode.cc \
-  cb-split.h cb-split.cc
+  cb-split.h cb-split.cc \
+  ctb-qscale.h ctb-qscale.cc
 

@@ -39,6 +39,7 @@
 #include "libde265/encoder/algo/tb-split.h"
 #include "libde265/encoder/algo/cb-intrapartmode.h"
 #include "libde265/encoder/algo/cb-split.h"
+#include "libde265/encoder/algo/ctb-qscale.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -53,61 +54,6 @@
 
     - Algo_CTB_QScale - select QScale on CTB granularity
  */
-
-
-// ========== choose a qscale at CTB level ==========
-
-class Algo_CTB_QScale
-{
- public:
- Algo_CTB_QScale() : mChildAlgo(NULL) { }
-  virtual ~Algo_CTB_QScale() { }
-
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CtbSize, int ctDepth) = 0;
-
-  void setChildAlgo(Algo_CB_Split* algo) { mChildAlgo = algo; }
-
- protected:
-  Algo_CB_Split* mChildAlgo;
-};
-
-class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
-{
- public:
-  struct params
-  {
-    params() {
-      mQP.set_range(1,51);
-      mQP.set_default(27);
-      mQP.set_ID("CTB-QScale-Constant");
-      mQP.set_cmd_line_options("qp",'q');
-    }
-
-    option_int mQP;
-  };
-
-  void setParams(const params& p) { mParams=p; }
-
-  void registerParams(config_parameters& config) {
-    config.add_option(&mParams.mQP);
-  }
-
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CtbSize, int ctDepth);
-
-  int getQP() const { return mParams.mQP; }
-
- private:
-  params mParams;
-};
-
 
 
 // ========== an encoding algorithm combines a set of algorithm modules ==========

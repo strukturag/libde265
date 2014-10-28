@@ -31,17 +31,6 @@
 #define ENCODER_DEVELOPMENT 1
 
 
-enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
-                                          context_model_table ctxModel,
-                                          const de265_image* input,
-                                          int ctb_x,int ctb_y,
-                                          int log2CtbSize, int ctDepth)
-{
-  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth,mParams.mQP);
-}
-
-
-
 static int IntraPredModeCnt[7][35];
 static int MPM_used[7][35];
 
