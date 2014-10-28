@@ -252,6 +252,6 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
   picbuf.mark_encoding_finished(imgdata->frame_number);
+
+  return DE265_OK;
 }
-
-
