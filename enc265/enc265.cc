@@ -98,23 +98,6 @@ void inout_params::register_params(config_parameters& config)
   config.add_option(&max_number_of_frames);
   config.add_option(&input_width);
   config.add_option(&input_height);
-
-#if 0
-  config->register_config_string("input", 'i', eoffset(input_yuv), "paris_cif.yuv");
-
-  config->register_config_int("width",  'w', eoffset(input_width),
-                              352,      1,NO_LIMIT);
-  config->register_config_int("height", 'h', eoffset(input_height),
-                              288,      1,NO_LIMIT);
-
-  config->register_config_string("output", 'o' , eoffset(output_filename), "out.bin");
-  config->register_config_string("reconstruction", 'O' , eoffset(reconstruction_yuv), "recon.yuv");
-
-  config->register_config_int("first-frame",  0 , eoffset(first_frame),
-                              0,       0,NO_LIMIT);
-  config->register_config_int("frames",      'f', eoffset(max_number_of_frames),
-                              INT_MAX, 1,NO_LIMIT);
-#endif
 }
 
 
