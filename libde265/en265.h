@@ -42,8 +42,7 @@ LIBDE265_API de265_error en265_start_worker_threads(en265_encoder_context*, int 
 /* Free encoder context. May only be called once on a context. */
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
-/* The user data pointer will be given to the release_buffer() function
-   in de265_image_allocation. */
+/* The alloc_userdata pointer will be given to the release_func(). */
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context*,
                                                    void (*release_func)(en265_encoder_context*,
                                                                         struct de265_image*,
@@ -82,7 +81,7 @@ LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context*,
 
 LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_context*,
                                                              int* argc, char** argv);
-LIBDE265_API void en265_show_params(en265_encoder_context*);
+LIBDE265_API void en265_show_parameters(en265_encoder_context*);
 
 
 

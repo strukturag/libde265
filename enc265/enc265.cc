@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 
     inout_param_config.print_params();
     fprintf(stderr,"\n");
-    en265_show_params(ectx);
+    en265_show_parameters(ectx);
 
     exit(show_help ? 0 : 5);
   }

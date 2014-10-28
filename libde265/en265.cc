@@ -84,7 +84,7 @@ LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_conte
   }
 }
 
-LIBDE265_API void en265_show_params(en265_encoder_context* e)
+LIBDE265_API void en265_show_parameters(en265_encoder_context* e)
 {
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
