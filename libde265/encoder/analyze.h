@@ -104,19 +104,6 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
 
 
-enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
-                                        const uint8_t* ref, int stride);
-
-enc_cb* encode_cb_no_split(encoder_context*, context_model_table ctxModel, const de265_image* input,
-                           int x0,int y0, int log2CbSize, int ctDepth, int qp);
-
-enc_cb* encode_cb_split(encoder_context*, context_model_table ctxModel, const de265_image* input,
-                        int x0,int y0, int Log2CbSize, int ctDepth, int qp);
-
-enc_cb* encode_cb_may_split(encoder_context*, context_model_table ctxModel,
-                            const de265_image* input,
-                            int x0,int y0, int Log2CtbSize, int ctDepth, int qp);
-
 double encode_image(encoder_context*, const de265_image* input, EncodingAlgorithm&);
 
 void encode_sequence(encoder_context*);
