@@ -38,6 +38,7 @@
 #include "libde265/encoder/algo/tb-intrapredmode.h"
 #include "libde265/encoder/algo/tb-split.h"
 #include "libde265/encoder/algo/cb-intrapartmode.h"
+#include "libde265/encoder/algo/cb-split.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -52,46 +53,6 @@
 
     - Algo_CTB_QScale - select QScale on CTB granularity
  */
-
-
-// ========== CB split decision ==========
-
-class Algo_CB_Split
-{
- public:
-  virtual ~Algo_CB_Split() { }
-
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp) = 0;
-
-  // TODO: probably, this will later be a intra/inter decision which again
-  // has two child algorithms, depending on the coding mode.
-  void setChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
-
- protected:
-  Algo_CB_IntraPartMode* mIntraPartModeAlgo;
-
-  bool forcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const;
-
-  enc_cb* encode_cb_split(encoder_context* ectx,
-                          context_model_table ctxModel,
-                          const de265_image* input,
-                          int x0,int y0, int Log2CbSize, int ctDepth, int qp);
-};
-
-class Algo_CB_Split_BruteForce : public Algo_CB_Split
-{
- public:
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CtbSize, int ctDepth, int qp);
-};
-
 
 
 // ========== choose a qscale at CTB level ==========
