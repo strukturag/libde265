@@ -64,6 +64,14 @@ class option_base
   std::string get_description() const { return mDescription; }
 
 
+  // --- value ---
+
+  virtual bool is_defined() const = 0;
+  bool is_undefined() const { return !is_defined(); }
+
+  virtual bool has_default() const  = 0;
+
+
   // --- command line options ----
 
   void set_cmd_line_options(const char* long_option, char short_option = 0)
@@ -108,11 +116,17 @@ class option_base
 class option_bool : public option_base
 {
 public:
-  option_bool() : value_set(false), default_value(false) { }
+  option_bool() : value_set(false), default_set(false) { }
 
-  operator bool() const { return value_set ? value : default_value; }
+  operator bool() const {
+    assert(value_set || default_set);
+    return value_set ? value : default_value;
+  }
 
-  void set_default(bool v) { default_value=v; }
+  virtual bool is_defined() const { return value_set || default_set; }
+  virtual bool has_default() const { return default_set; }
+
+  void set_default(bool v) { default_value=v; default_set=true; }
   virtual std::string get_default_string() const { return default_value ? "true":"false"; }
 
   virtual std::string getTypeDescr() const { return "boolean"; }
@@ -123,6 +137,8 @@ public:
  private:
   bool value_set;
   bool value;
+
+  bool default_set;
   bool default_value;
 };
 
@@ -130,14 +146,20 @@ public:
 class option_string : public option_base
 {
 public:
-  option_string() : value_set(false), default_value("") { }
+  option_string() : value_set(false), default_set(false) { }
 
   const option_string& operator=(std::string v) { value=v; value_set=true; return *this; }
 
   operator std::string() const { return get(); }
-  std::string get() const { return value_set ? value : default_value; }
+  std::string get() const {
+    assert(value_set || default_set);
+    return value_set ? value : default_value;
+  }
 
-  void set_default(std::string v) { default_value=v; }
+  virtual bool is_defined() const { return value_set || default_set; }
+  virtual bool has_default() const { return default_set; }
+
+  void set_default(std::string v) { default_value=v; default_set=true; }
   virtual std::string get_default_string() const { return default_value; }
 
   virtual std::string getTypeDescr() const { return "(string)"; }
@@ -148,6 +170,8 @@ public:
  private:
   bool value_set;
   std::string value;
+
+  bool default_set;
   std::string default_value;
 };
 
@@ -155,18 +179,26 @@ public:
 class option_int : public option_base
 {
 public:
-  option_int() : value_set(false), default_value(0),
+  option_int() : value_set(false), default_set(false),
     have_low_limit(false), have_high_limit(false) { }
 
+  void set_minimum(int mini) { have_low_limit =true; low_limit =mini; }
+  void set_maximum(int maxi) { have_high_limit=true; high_limit=maxi; }
   void set_range(int mini,int maxi);
   void set_valid_values(const std::vector<int>& v) { valid_values_set = v; }
 
   const option_int& operator=(int v) { value=v; value_set=true; return *this; }
 
-  int operator() () const { return value_set ? value : default_value; }
+  int operator() () const {
+    assert(value_set || default_set);
+    return value_set ? value : default_value;
+  }
   operator int() const { return operator()(); }
 
-  void set_default(int v) { default_value=v; }
+  virtual bool is_defined() const { return value_set || default_set; }
+  virtual bool has_default() const { return default_set; }
+
+  void set_default(int v) { default_value=v; default_set=true; }
   virtual std::string get_default_string() const;
 
   virtual std::string getTypeDescr() const;
@@ -180,6 +212,8 @@ public:
  private:
   bool value_set;
   int value;
+
+  bool default_set;
   int default_value;
 
   bool have_low_limit, have_high_limit;
@@ -207,6 +241,8 @@ public:
 template <class T> class choice_option : public choice_option_base
 {
  public:
+ choice_option() : default_set(false), value_set(false) { }
+
   // --- initialization ---
 
   void add_choice(const std::string& s, T id, bool default_value=false) {
@@ -222,6 +258,7 @@ template <class T> class choice_option : public choice_option_base
       if (c.second == val) {
         defaultID = val;
         defaultValue = c.first;
+        default_set = true;
         return;
       }
 
@@ -250,9 +287,15 @@ template <class T> class choice_option : public choice_option_base
 
   bool isValidValue() const { return validValue; }
 
-  const std::string& getValue() const { return value_set ? selectedValue : defaultValue; }
+  const std::string& getValue() const {
+    assert(value_set || default_set);
+    return value_set ? selectedValue : defaultValue;
+  }
   void setID(T id) { selectedID=id; validValue=true; }
   const T getID() const { return value_set ? selectedID : defaultID; }
+
+  virtual bool is_defined() const { return value_set || default_set; }
+  virtual bool has_default() const { return default_set; }
 
   std::vector<std::string> get_choice_names() const
   {
@@ -270,6 +313,7 @@ template <class T> class choice_option : public choice_option_base
  private:
   std::vector< std::pair<std::string,T> > choices;
 
+  bool default_set;
   std::string defaultValue;
   T defaultID;
 

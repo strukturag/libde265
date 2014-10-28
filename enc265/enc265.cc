@@ -76,16 +76,18 @@ inout_params::inout_params()
 
   first_frame.set_ID("first-frame");
   first_frame.set_default(0);
+  first_frame.set_minimum(0);
 
   max_number_of_frames.set_ID("frames");
   max_number_of_frames.set_short_option('f');
-  max_number_of_frames.set_default(INT_MAX);
+  max_number_of_frames.set_minimum(1);
+  //max_number_of_frames.set_default(INT_MAX);
 
   input_width.set_ID("width"); input_width.set_short_option('w');
-  input_width.set_range(1,65000);  input_width.set_default(352);
+  input_width.set_minimum(1);  input_width.set_default(352);
 
   input_height.set_ID("height"); input_height.set_short_option('h');
-  input_height.set_range(1,65000); input_height.set_default(288);
+  input_height.set_minimum(1); input_height.set_default(288);
 }
 
 
@@ -250,7 +252,11 @@ int main(int argc, char** argv)
 
   image_source.skip_frames( inout_params.first_frame );
 
-  int maxPoc = inout_params.max_number_of_frames;
+  int maxPoc = INT_MAX;
+  if (inout_params.max_number_of_frames.is_defined()) {
+    maxPoc = inout_params.max_number_of_frames;
+  }
+
   bool eof = false;
   for (int poc=0; poc<maxPoc && !eof ;poc++)
     {

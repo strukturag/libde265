@@ -277,7 +277,10 @@ void config_parameters::print_params() const
     sstr << " ";
     sstr << o->getTypeDescr();
 
-    sstr << ", default=" << o->get_default_string();
+    if (o->has_default()) {
+      sstr << ", default=" << o->get_default_string();
+    }
+
     sstr << "\n";
 
     std::cerr << sstr.str();
