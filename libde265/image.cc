@@ -63,8 +63,6 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 
 #define ALLOC_ALIGNED_16(size)              ALLOC_ALIGNED(16, size)
 
-static const int alignment = 16;
-
 
 LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx, void *userdata,
                                            void* inputdata, int inputstride)
