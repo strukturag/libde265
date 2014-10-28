@@ -37,6 +37,7 @@
 
 #include "libde265/encoder/algo/tb-intrapredmode.h"
 #include "libde265/encoder/algo/tb-split.h"
+#include "libde265/encoder/algo/cb-intrapartmode.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -51,98 +52,6 @@
 
     - Algo_CTB_QScale - select QScale on CTB granularity
  */
-
-
-// ========== CB intra NxN vs. 2Nx2N decision ==========
-
-enum ALGO_CB_IntraPartMode {
-  ALGO_CB_IntraPartMode_BruteForce,
-  ALGO_CB_IntraPartMode_Fixed
-};
-
-class option_ALGO_CB_IntraPartMode : public choice_option<enum ALGO_CB_IntraPartMode>
-{
- public:
-  option_ALGO_CB_IntraPartMode() {
-    add_choice("fixed",      ALGO_CB_IntraPartMode_Fixed);
-    add_choice("brute-force",ALGO_CB_IntraPartMode_BruteForce, true);
-  }
-};
-
-
-class Algo_CB_IntraPartMode
-{
- public:
-  Algo_CB_IntraPartMode() : mTBIntraPredModeAlgo(NULL) { }
-  virtual ~Algo_CB_IntraPartMode() { }
-
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp) = 0;
-
-  void setChildAlgo(Algo_TB_IntraPredMode* algo) { mTBIntraPredModeAlgo = algo; }
-
- protected:
-  Algo_TB_IntraPredMode* mTBIntraPredModeAlgo;
-};
-
-/* Try both NxN, 2Nx2N and choose better one.
- */
-class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
-{
- public:
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp);
-};
-
-
-class option_PartMode : public choice_option<enum PartMode> // choice_option
-{
- public:
-  option_PartMode() {
-    add_choice("NxN",   PART_NxN);
-    add_choice("2Nx2N", PART_2Nx2N, true);
-  }
-};
-
-
-/* Always use choose selected part mode.
-   If NxN is chosen but cannot be applied (CB tree not at maximum depth), 2Nx2N is used instead.
- */
-class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
-{
- public:
- Algo_CB_IntraPartMode_Fixed() { }
-
-  struct params
-  {
-    params() {
-      partMode.set_ID("CB-IntraPartMode-Fixed-partMode");
-    }
-
-    option_PartMode partMode;
-  };
-
-  void registerParams(config_parameters& config) {
-    config.add_option(&mParams.partMode);
-  }
-
-  void setParams(const params& p) { mParams=p; }
-
-  virtual enc_cb* analyze(encoder_context* ectx,
-                          context_model_table ctxModel,
-                          const de265_image* input,
-                          int x0,int y0, int log2CbSize, int ctDepth,
-                          int qp);
-
- private:
-  params mParams;
-};
 
 
 // ========== CB split decision ==========
