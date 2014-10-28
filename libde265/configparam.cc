@@ -160,6 +160,51 @@ bool choice_option_base::processCmdLineArguments(char** argv, int* argc, int idx
 }
 
 
+static char* fill_strings_into_memory(const std::vector<std::string>& strings_list)
+{
+  // calculate memory requirement
+
+  int totalStringLengths = 0;
+  for (auto str : strings_list) {
+    totalStringLengths += str.length() +1; // +1 for null termination
+  }
+
+  int numStrings = strings_list.size();
+
+  int pointersSize = (numStrings+1) * sizeof(const char*);
+
+  char* memory = new char[pointersSize + totalStringLengths];
+
+
+  // copy strings to memory area
+
+  char* stringPtr = memory + (numStrings+1) * sizeof(const char*);
+  const char** tablePtr = (const char**)memory;
+
+  for (auto str : strings_list) {
+    *tablePtr++ = stringPtr;
+
+    strcpy(stringPtr, str.c_str());
+    stringPtr += str.length()+1;
+  }
+
+  *tablePtr = NULL;
+
+  return memory;
+}
+
+
+const char** choice_option_base::get_choices_string_table() const
+{
+  if (choice_string_table==NULL) {
+    choice_string_table = fill_strings_into_memory(get_choice_names());
+  }
+
+  return (const char**)choice_string_table;
+}
+
+
+
 bool config_parameters::parse_command_line_params(int* argc, char** argv, int* first_idx_ptr,
                                                   bool ignore_unknown_options)
 {
@@ -291,6 +336,8 @@ void config_parameters::print_params() const
 void config_parameters::add_option(option_base* o)
 {
   mOptions.push_back(o);
+  delete[] param_string_table; // delete old table, since we got a new parameter
+  param_string_table = NULL;
 }
 
 
@@ -387,3 +434,24 @@ bool config_parameters::set_choice(const char* param, const char* value)
   return o->set(value);
 }
 
+
+
+const char** config_parameters::get_parameter_choices_table(const char* param) const
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  choice_option_base* o = dynamic_cast<choice_option_base*>(option);
+  assert(o);
+
+  return o->get_choices_string_table();
+}
+
+const char** config_parameters::get_parameter_string_table() const
+{
+  if (param_string_table==NULL) {
+    param_string_table = fill_strings_into_memory(get_parameter_IDs());
+  }
+
+  return (const char**)param_string_table;
+}

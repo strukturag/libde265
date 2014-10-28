@@ -229,12 +229,26 @@ public:
 class choice_option_base : public option_base
 {
 public:
+  choice_option_base() : choice_string_table(NULL) { }
+  ~choice_option_base() { delete[] choice_string_table; }
+
   bool set(std::string v) { return set_value(v); }
   virtual bool set_value(const std::string& val) = 0;
   virtual std::vector<std::string> get_choice_names() const = 0;
 
   virtual std::string getTypeDescr() const;
   virtual bool processCmdLineArguments(char** argv, int* argc, int idx);
+
+  const char** get_choices_string_table() const;
+
+ protected:
+  void invalidate_choices_string_table() {
+    delete[] choice_string_table;
+    choice_string_table = NULL;
+  }
+
+ private:
+  mutable char* choice_string_table;
 };
 
 
@@ -251,6 +265,8 @@ template <class T> class choice_option : public choice_option_base
       defaultID = id;
       defaultValue = s;
     }
+
+    invalidate_choices_string_table();
   }
 
   void set_default(T val) {
@@ -330,6 +346,9 @@ template <class T> class choice_option : public choice_option_base
 class config_parameters
 {
  public:
+ config_parameters() : param_string_table(NULL) { }
+  ~config_parameters() { delete[] param_string_table; }
+
   void add_option(option_base* o);
 
   void print_params() const;
@@ -349,10 +368,15 @@ class config_parameters
   bool set_string(const char* param, const char* value);
   bool set_choice(const char* param, const char* value);
 
+  const char** get_parameter_string_table() const;
+  const char** get_parameter_choices_table(const char* param) const;
+
  private:
   std::vector<option_base*> mOptions;
 
   option_base* find_option(const char* param) const;
+
+  mutable char* param_string_table;
 };
 
 #endif

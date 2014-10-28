@@ -62,10 +62,7 @@ LIBDE265_API de265_error en265_set_parameter_choice(en265_encoder_context*,
                                                     const char* parametername,const char* value);
 
 
-/* Returns a NULL terminated list of parameters.
-   Returns empty list when memory size was insufficient.
- */
-LIBDE265_API const char** en265_list_parameters(en265_encoder_context*, void* memory, int memsize);
+LIBDE265_API const char** en265_list_parameters(en265_encoder_context*);
 
 enum en265_parameter_type {
   en265_parameter_bool,
@@ -77,10 +74,8 @@ enum en265_parameter_type {
 LIBDE265_API enum en265_parameter_type en265_get_parameter_type(en265_encoder_context*,
                                                                 const char* parametername);
 
-// See en265_list_parameters() for description of return value.
 LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context*,
-                                                       const char* parametername,
-                                                       void* memory, int memsize);
+                                                       const char* parametername);
 
 
 // --- convenience functions for command-line parameters ---

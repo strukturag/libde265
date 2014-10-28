@@ -95,49 +95,12 @@ LIBDE265_API void en265_show_params(en265_encoder_context* e)
 }
 
 
-static const char** fill_strings_into_memory(const std::vector<std::string>& strings_list,
-                                             void* memory, int memsize)
-{
-  // calculate memory requirement
-
-  int totalStringLengths = 0;
-  for (auto str : strings_list) {
-    totalStringLengths += str.length() +1; // +1 for null termination
-  }
-
-  int numStrings = strings_list.size();
-
-  int pointersSize = (numStrings+1) * sizeof(const char*);
-
-  if (pointersSize + totalStringLengths > memsize) { return NULL; }
-
-
-  // copy strings to memory area
-
-  char* stringPtr = ((char*)memory) + (numStrings+1) * sizeof(const char*);
-  const char** tablePtr = (const char**)memory;
-
-  for (auto str : strings_list) {
-    *tablePtr++ = stringPtr;
-
-    strcpy(stringPtr, str.c_str());
-    stringPtr += str.length()+1;
-  }
-
-  *tablePtr = NULL;
-
-  return (const char**)memory;
-}
-
-
-LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e, void* memory, int memsize)
+LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e)
 {
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  std::vector<std::string> options = ectx->params_config.get_parameter_IDs();
-
-  return fill_strings_into_memory(options, memory, memsize);
+  return ectx->params_config.get_parameter_string_table();
 }
 
 
@@ -190,15 +153,12 @@ LIBDE265_API de265_error en265_set_parameter_choice(en265_encoder_context* e,
 
 
 LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
-                                                       const char* parametername,
-                                                       void* memory, int memsize)
+                                                       const char* parametername)
 {
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  std::vector<std::string> options = ectx->params_config.get_parameter_choices(parametername);
-
-  return fill_strings_into_memory(options, memory, memsize);
+  return ectx->params_config.get_parameter_choices_table(parametername);
 }
 
 

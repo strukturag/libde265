@@ -103,10 +103,7 @@ void inout_params::register_params(config_parameters& config)
 
 void test_parameters_API(en265_encoder_context* ectx)
 {
-  int memsize=5000;
-  char mem[memsize];
-
-  const char** param = en265_list_parameters(ectx, mem, memsize);
+  const char** param = en265_list_parameters(ectx);
   if (param) {
     for (int i=0; param[i]; i++) {
       printf("|%s| ",param[i]);
@@ -123,11 +120,7 @@ void test_parameters_API(en265_encoder_context* ectx)
       printf("(%s)",type_name);
 
       if (type==en265_parameter_choice) {
-        int choicememsize=500;
-        char choicemem[choicememsize];
-
-        const char** choices = en265_list_parameter_choices(ectx, param[i],
-                                                            choicemem, choicememsize);
+        const char** choices = en265_list_parameter_choices(ectx, param[i]);
         if (choices) {
           for (int k=0; choices[k]; k++) {
             printf(" %s",choices[k]);
