@@ -116,6 +116,7 @@ class encoder_picture_buffer
     return mImages.front();
   }
 
+  void mark_image_is_outputted(int frame_number);
   void release_input_image(int frame_number);
 
  private:

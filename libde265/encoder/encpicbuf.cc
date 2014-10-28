@@ -46,6 +46,8 @@ encoder_picture_buffer::image_data::image_data()
   is_intra = true;
 
   state = state_unprocessed;
+
+  is_in_output_queue = true;
 }
 
 encoder_picture_buffer::image_data::~image_data()
@@ -180,7 +182,7 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
 
   std::deque<image_data*> newImageSet;
   for (auto imgdata : mImages) {
-    if (imgdata->mark_used) {
+    if (imgdata->mark_used || imgdata->is_in_output_queue) {
       newImageSet.push_back(imgdata);
     }
     else {
@@ -244,6 +246,15 @@ encoder_picture_buffer::image_data* encoder_picture_buffer::get_picture(int fram
 
   assert(false);
   return NULL;
+}
+
+
+void encoder_picture_buffer::mark_image_is_outputted(int frame_number)
+{
+  image_data* idata = get_picture(frame_number);
+  assert(idata);
+
+  idata->is_in_output_queue = false;
 }
 
 

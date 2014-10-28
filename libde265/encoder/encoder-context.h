@@ -127,6 +127,8 @@ struct encoder_context
   // scarce resources like camera picture buffers.
   // This function does release (only) the raw input data.
   void release_input_image(int frame_number) { picbuf.release_input_image(frame_number); }
+
+  void mark_image_is_outputted(int frame_number) { picbuf.mark_image_is_outputted(frame_number); }
 };
 
 

@@ -294,6 +294,8 @@ LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packe
   //delete   pck->reconstruction;
 
   if (pck->frame_number >= 0) {
+    ectx->mark_image_is_outputted(pck->frame_number);
+
     ectx->release_input_image(pck->frame_number);
   }
 
