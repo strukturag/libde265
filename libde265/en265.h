@@ -46,7 +46,7 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
    in de265_image_allocation. */
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context*,
                                                    void (*release_func)(en265_encoder_context*,
-                                                                        de265_image*,
+                                                                        struct de265_image*,
                                                                         void* userdata),
                                                    void* alloc_userdata);
 
