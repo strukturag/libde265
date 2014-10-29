@@ -168,10 +168,10 @@ typedef struct slice_segment_header {
   slice_segment_header() { }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
-  bool write(struct error_queue*, class CABAC_encoder*,
-             const class seq_parameter_set* sps,
-             const class pic_parameter_set* pps,
-             uint8_t nal_unit_type);
+  de265_error write(struct error_queue*, class CABAC_encoder*,
+                    const class seq_parameter_set* sps,
+                    const class pic_parameter_set* pps,
+                    uint8_t nal_unit_type);
 
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 

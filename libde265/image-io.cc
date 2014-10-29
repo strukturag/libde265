@@ -126,6 +126,8 @@ bool ImageSink_YUV::set_filename(const char* filename)
   assert(mFH==NULL);
 
   mFH = fopen(filename,"wb");
+
+  return true;
 }
 
 void ImageSink_YUV::send_image(const de265_image* img)

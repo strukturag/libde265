@@ -148,7 +148,7 @@ void encoder_picture_buffer::mark_encoding_started(int frame_number)
   data->state = image_data::state_encoding;
 }
 
-int  encoder_picture_buffer::set_reconstruction_image(int frame_number, const de265_image* reco)
+void encoder_picture_buffer::set_reconstruction_image(int frame_number, const de265_image* reco)
 {
   image_data* data = get_picture(frame_number);
 

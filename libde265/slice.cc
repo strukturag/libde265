@@ -700,10 +700,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 }
 
 
-bool slice_segment_header::write(struct error_queue* errqueue, class CABAC_encoder* out,
-                                 const seq_parameter_set* sps,
-                                 const pic_parameter_set* pps,
-                                 uint8_t nal_unit_type)
+de265_error slice_segment_header::write(struct error_queue* errqueue, class CABAC_encoder* out,
+                                        const seq_parameter_set* sps,
+                                        const pic_parameter_set* pps,
+                                        uint8_t nal_unit_type)
 {
   out->write_bit(first_slice_segment_in_pic_flag);
 
@@ -1061,6 +1061,8 @@ bool slice_segment_header::write(struct error_queue* errqueue, class CABAC_encod
       out->skip_bits(8);
     }
   }
+
+  return DE265_OK;
 }
 
 void slice_segment_header::compute_derived_values(const pic_parameter_set* pps)

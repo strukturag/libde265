@@ -232,6 +232,10 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
     if (luma==INTRA_DC)         return INTRA_ANGULAR_34;
     else                        return INTRA_DC;
   }
+
+
+  assert(false);
+  return INTRA_DC;
 }
 
 

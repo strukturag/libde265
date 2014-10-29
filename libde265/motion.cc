@@ -1072,6 +1072,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
     const int PicOrderCntVal = img->PicOrderCntVal;
 
+    // all reference POCs later than current POC (list 0)
+
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
       {
         const de265_image* imgA = ctx->get_image(shdr->RefPicList[0][rIdx]);
@@ -1081,6 +1083,8 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
           AllDiffPicOrderCntLEZero = false;
         }
       }
+
+    // all reference POCs later than current POC (list 1)
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
       {
@@ -1469,8 +1473,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
   // the POC we want to reference in this PB
   const int referenced_POC = ctx->get_image(shdr->RefPicList[X][ refIdxLX ])->PicOrderCntVal;
 
-  const int referenced_refIdx = refIdxLX;
-
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 && // no A?-predictor so far
@@ -1485,7 +1487,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       // check whether the predictor X is available and references the same POC
       if (vi->predFlag[X] &&
           ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
-        //vi->refIdx[X] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,X);
 
@@ -1496,7 +1497,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       // check whether the other predictor (Y) is available and references the same POC
       else if (vi->predFlag[Y] &&
                ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
-        //vi->refIdx[Y] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,Y);
 
@@ -1549,8 +1549,8 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
       const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
 
-      int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
-      int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
+      //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
+      //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
 
       int isLongTermA = shdr->LongTermRefPic[refPicList][refIdxA ];
       int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];

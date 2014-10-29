@@ -99,7 +99,7 @@ class encoder_picture_buffer
   // --- infos pushed by encoder ---
 
   void mark_encoding_started(int frame_number);
-  int  set_reconstruction_image(int frame_number, const de265_image*);
+  void set_reconstruction_image(int frame_number, const de265_image*);
   void mark_encoding_finished(int frame_number);
 
 
