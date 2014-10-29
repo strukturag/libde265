@@ -737,9 +737,9 @@ bool de265_image::available_pred_blk(int xC,int yC, int nCbS, int xP, int yP,
     availableN = available_zscan(xP,yP,xN,yN);
   }
   else {
-    availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&
+    availableN = !(nPbW<<1 == nCbS && nPbH<<1 == nCbS &&  // NxN
                    partIdx==1 &&
-                   yN >= yC+nPbH && xN < xC+nPbW);
+                   yN >= yC+nPbH && xN < xC+nPbW);  // xN/yN inside partIdx 2
   }
 
   if (availableN && get_pred_mode(xN,yN) == MODE_INTRA) {

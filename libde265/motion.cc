@@ -683,12 +683,19 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
 // TODO: check: can we fill the candidate list directly in this function and omit to copy later
 /*
   xC/yC:  CB position
-  nCS:    CB size
-  xP/yP:  PB position (absolute)
+  nCS:    CB size                 (probably modified because of singleMCLFlag)
+  xP/yP:  PB position (absolute)  (probably modified because of singleMCLFlag)
   singleMCLFlag
   nPbW/nPbH: PB size
   partIdx
   out_cand: merging candidate vectors
+
+  Add these candidates:
+  - A1
+  - B1  (if != A1)
+  - B0  (if != B1)
+  - A0  (if != A1)
+  - B2  (if != A1 and != B1)
 
   Note 1: For a CB splitted into two PBs, it does not make sense to merge the
   second part to the parameters of the first part, since then, we could use 2Nx2N
@@ -714,13 +721,14 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   bool availableA1;
 
+  // check if candidate is in same motion-estimation region (MER) -> discard
   if ((xP>>log2_parallel_merge_level) == (xA1>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yA1>>log2_parallel_merge_level)) {
     availableA1 = false;
     logtrace(LogMotion,"spatial merging candidate A1: below parallel merge level\n");
   }
-  // (Note 1)
-  else if (!singleMCLFlag &&
+  // redundant candidate? (Note 1) -> discard
+  else if (// !singleMCLFlag &&    automatically true when partIdx==1
            partIdx==1 &&
            (PartMode==PART_Nx2N ||
             PartMode==PART_nLx2N ||
@@ -728,6 +736,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     availableA1 = false;
     logtrace(LogMotion,"spatial merging candidate A1: second part ignore\n");
   }
+  // MV available in A1
   else {
     availableA1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
     if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
@@ -753,13 +762,14 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   bool availableB1;
 
+  // same MER -> discard
   if ((xP>>log2_parallel_merge_level) == (xB1>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yB1>>log2_parallel_merge_level)) {
     availableB1 = false;
     logtrace(LogMotion,"spatial merging candidate B1: below parallel merge level\n");
   }
-  // (Note 1)
-  else if (!singleMCLFlag &&
+  // redundant candidate (Note 1) -> discard
+  else if (// !singleMCLFlag &&    automatically true when partIdx==1
            partIdx==1 &&
            (PartMode==PART_2NxN ||
             PartMode==PART_2NxnU ||
@@ -767,6 +777,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     availableB1 = false;
     logtrace(LogMotion,"spatial merging candidate B1: second part ignore\n");
   }
+  // MV available in B1
   else {
     availableB1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
     if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
@@ -780,6 +791,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     out_cand->available[PRED_B1] = 1;
     out_cand->pred_vector[PRED_B1] = *img->get_mv_info(xB1,yB1);
 
+    // B1 == A1 -> discard B1
     if (availableA1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_A1],
                       &out_cand->pred_vector[PRED_B1])) {
@@ -818,6 +830,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     out_cand->available[PRED_B0] = 1;
     out_cand->pred_vector[PRED_B0] = *img->get_mv_info(xB0,yB0);
 
+    // B0 == B1 -> discard B0
     if (availableB1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_B1],
                       &out_cand->pred_vector[PRED_B0])) {
@@ -856,6 +869,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     out_cand->available[PRED_A0] = 1;
     out_cand->pred_vector[PRED_A0] = *img->get_mv_info(xA0,yA0);
 
+    // A0 == A1 -> discard A0
     if (availableA1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_A1],
                       &out_cand->pred_vector[PRED_A0])) {
@@ -899,12 +913,14 @@ void derive_spatial_merging_candidates(const de265_image* img,
     out_cand->available[PRED_B2] = 1;
     out_cand->pred_vector[PRED_B2] = *img->get_mv_info(xB2,yB2);
 
+    // B2 == B1 -> discard B2
     if (availableB1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_B1],
                       &out_cand->pred_vector[PRED_B2])) {
       out_cand->available[PRED_B2] = 0;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to B1\n");
     }
+    // B2 == A1 -> discard B2
     else if (availableA1 &&
              equal_cand_MV(&out_cand->pred_vector[PRED_A1],
                            &out_cand->pred_vector[PRED_B2])) {
@@ -1297,6 +1313,11 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int singleMCLFlag; // single merge-candidate-list (MCL) flag
 
   /* Use single MCL for CBs of size 8x8, except when parallel-merge-level is at 4x4.
+     Without this flag, PBs smaller than 8x8 would not receive as much merging candidates.
+     Having additional candidtes might have these advantages:
+     - coding MVs for these small PBs is expensive, and
+     - since the PBs are not far away from a proper (neighboring) merging candidate,
+       it quality of the candidate will still be good.
    */
   singleMCLFlag = (tctx->img->pps.log2_parallel_merge_level > 2 && nCS==8);
 

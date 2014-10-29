@@ -45,6 +45,16 @@ typedef struct
 } VectorInfo;
 
 
+
+void derive_spatial_merging_candidates(const de265_image* img,
+                                       int xC, int yC, int nCS, int xP, int yP,
+                                       uint8_t singleMCLFlag,
+                                       int nPbW, int nPbH,
+                                       int partIdx,
+                                       MergingCandidates* out_cand);
+
+
+
 void decode_prediction_unit(struct thread_context* shdr,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
