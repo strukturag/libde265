@@ -38,12 +38,6 @@ typedef struct
 } PredVectorInfo;
 
 
-typedef struct
-{
-  PredVectorInfo lum;
-  MotionVector mvC[2];
-} VectorInfo;
-
 
 typedef struct
 {
