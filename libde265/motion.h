@@ -45,13 +45,30 @@ typedef struct
 } VectorInfo;
 
 
+typedef struct
+{
+  enum {
+    // important! order like shown in 8.5.3.1.1
+    PRED_A1  = 0,
+    PRED_B1  = 1,
+    PRED_B0  = 2,
+    PRED_A0  = 3,
+    PRED_B2  = 4
+  };
 
-void derive_spatial_merging_candidates(const de265_image* img,
+  uint8_t available[5];
+  PredVectorInfo pred_vector[5];
+} SpatialMergingCandidates;
+
+
+
+
+void derive_spatial_merging_candidates(const class de265_image* img,
                                        int xC, int yC, int nCS, int xP, int yP,
                                        uint8_t singleMCLFlag,
                                        int nPbW, int nPbH,
                                        int partIdx,
-                                       MergingCandidates* out_cand);
+                                       SpatialMergingCandidates* out_cand);
 
 
 
