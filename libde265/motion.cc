@@ -1358,6 +1358,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
     mergeCandList[numMergeCand].predFlag[1] = predFlagLCol[1];
     mergeCandList[numMergeCand].refIdx[0] = refIdxCol[0];
     mergeCandList[numMergeCand].refIdx[1] = refIdxCol[1];
+    numMergeCand++;
   }
 
   // 5.
