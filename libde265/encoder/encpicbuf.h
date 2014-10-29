@@ -80,7 +80,7 @@ class encoder_picture_buffer
 
   void reset();
 
-  void insert_next_image_in_encoding_order(const de265_image*, int frame_number); // insert in encoding order
+  void insert_next_image_in_encoding_order(const de265_image*, int frame_number);
   void insert_end_of_stream();
 
 

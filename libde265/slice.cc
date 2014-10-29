@@ -3514,6 +3514,11 @@ void read_prediction_unit_SKIP(thread_context* tctx,
 }
 
 
+/* xC/yC : CB position
+   xB/yB : position offset of the PB
+   nPbW/nPbH : size of PB
+   nCS   : CB size
+ */
 void read_prediction_unit(thread_context* tctx,
                           int xC,int yC, int xB,int yB,
                           int nPbW, int nPbH,

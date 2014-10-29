@@ -668,7 +668,7 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
      |                   |
      |                   |
      |                   |
-     |                   |
+     |        PB         |
      |                   |
      |                   |
   +--+                   |
@@ -681,6 +681,19 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
 
 // 8.5.3.1.2
 // TODO: check: can we fill the candidate list directly in this function and omit to copy later
+/*
+  xC/yC:  CB position
+  nCS:    CB size
+  xP/yP:  PB position (absolute)
+  singleMCLFlag
+  nPbW/nPbH: PB size
+  partIdx
+  out_cand: merging candidate vectors
+
+  Note 1: For a CB splitted into two PBs, it does not make sense to merge the
+  second part to the parameters of the first part, since then, we could use 2Nx2N
+  right away. -> Exclude this candidate.
+*/
 void derive_spatial_merging_candidates(const de265_image* img,
                                        int xC, int yC, int nCS, int xP, int yP,
                                        uint8_t singleMCLFlag,
@@ -689,13 +702,13 @@ void derive_spatial_merging_candidates(const de265_image* img,
                                        MergingCandidates* out_cand)
 {
   const pic_parameter_set* pps = &img->pps;
-  int log2_parallel_merge_level = pps->log2_parallel_merge_level;
+  const int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
   enum PartMode PartMode = img->get_PartMode(xC,yC);
 
   // --- A1 ---
 
-  // a pixel within A1
+  // a pixel within A1 (bottom right of A1)
   int xA1 = xP-1;
   int yA1 = yP+nPbH-1;
 
@@ -706,6 +719,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     availableA1 = false;
     logtrace(LogMotion,"spatial merging candidate A1: below parallel merge level\n");
   }
+  // (Note 1)
   else if (!singleMCLFlag &&
            partIdx==1 &&
            (PartMode==PART_Nx2N ||
@@ -744,6 +758,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     availableB1 = false;
     logtrace(LogMotion,"spatial merging candidate B1: below parallel merge level\n");
   }
+  // (Note 1)
   else if (!singleMCLFlag &&
            partIdx==1 &&
            (PartMode==PART_2NxN ||
@@ -1279,7 +1294,10 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   int nOrigPbW = nPbW;
   int nOrigPbH = nPbH;
 
-  int singleMCLFlag;
+  int singleMCLFlag; // single merge-candidate-list (MCL) flag
+
+  /* Use single MCL for CBs of size 8x8, except when parallel-merge-level is at 4x4.
+   */
   singleMCLFlag = (tctx->img->pps.log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
