@@ -35,10 +35,12 @@
 
 #define MAX_NUM_REF_PICS    16
 
-#define SLICE_TYPE_B 0
-#define SLICE_TYPE_P 1
-#define SLICE_TYPE_I 2
-
+enum SliceType
+  {
+    SLICE_TYPE_B = 0,
+    SLICE_TYPE_P = 1,
+    SLICE_TYPE_I = 2
+  };
 
 /*
         2Nx2N           2NxN             Nx2N            NxN          
@@ -266,7 +268,7 @@ typedef struct slice_segment_header {
 
   int SliceAddrRS;  // slice_segment_address of last independent slice
 
-  int MaxNumMergeCand;
+  int MaxNumMergeCand;  // directly derived from 'five_minus_max_num_merge_cand'
   int CurrRpsIdx;
   ref_pic_set CurrRps;  // the active reference-picture set
   int NumPocTotalCurr;
