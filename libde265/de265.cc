@@ -64,10 +64,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_LIBRARY_INITIALIZATION_FAILED: return "global library initialization failed";
   case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "cannot free library data (not initialized";
 
-  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
-    return "internal error: maximum number of thread contexts exceeded";
-  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
-    return "internal error: maximum number of slices exceeded";
+    //case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
+    //return "internal error: maximum number of thread contexts exceeded";
+    //case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
+    //return "internal error: maximum number of slices exceeded";
     //case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
     //return "scaling list not implemented";
   case DE265_ERROR_WAITING_FOR_INPUT_DATA:

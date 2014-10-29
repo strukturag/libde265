@@ -96,8 +96,8 @@ typedef enum {
 
   // --- errors that should become obsolete in later libde265 versions ---
 
-  DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500,
-  DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501,
+  //DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500, obsolet
+  //DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501, obsolet
   //DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED = 502, obsolet
 
   // --- warnings ---
