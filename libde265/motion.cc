@@ -1017,118 +1017,128 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
   const de265_image* colImg = ctx->get_image(colPic);
   enum PredMode predMode = colImg->get_pred_mode(xColPb,yColPb);
 
+
+  // collocated block is Intra -> no collocated MV
+
   if (predMode == MODE_INTRA) {
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
     return;
   }
+
+
+  logtrace(LogMotion,"colPic:%d (POC=%d) X:%d refIdxLX:%d refpiclist:%d\n",
+           colPic,
+           colImg->PicOrderCntVal,
+           X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
+
+
+  // collocated reference image is unavailable -> no collocated MV
+
+  if (colImg->integrity == INTEGRITY_UNAVAILABLE_REFERENCE) {
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
+    *out_availableFlagLXCol = 0;
+    return;
+  }
+
+
+  // get the collocated MV
+
+  const PredVectorInfo* mvi = colImg->get_mv_info(xColPb,yColPb);
+  int listCol;
+  int refIdxCol;
+  MotionVector mvCol;
+
+  logtrace(LogMotion,"read MVI %d;%d:\n",xColPb,yColPb);
+  logmvcand(*mvi);
+
+
+  // collocated MV uses only L1 -> use L1
+  if (mvi->predFlag[0]==0) {
+    mvCol = mvi->mv[1];
+    refIdxCol = mvi->refIdx[1];
+    listCol = 1;
+  }
+  // collocated MV uses only L0 -> use L0
+  else if (mvi->predFlag[1]==0) {
+    mvCol = mvi->mv[0];
+    refIdxCol = mvi->refIdx[0];
+    listCol = 0;
+  }
   else {
-    logtrace(LogMotion,"colPic:%d (POC=%d) X:%d refIdxLX:%d refpiclist:%d\n",
-             colPic,
-             colImg->PicOrderCntVal,
-             X,refIdxLX,shdr->RefPicList[X][refIdxLX]);
+    bool AllDiffPicOrderCntLEZero = true;
 
-    if (colImg->integrity == INTEGRITY_UNAVAILABLE_REFERENCE) {
-      out_mvLXCol->x = 0;
-      out_mvLXCol->y = 0;
-      *out_availableFlagLXCol = 0;
-      return;
-    }
+    const int PicOrderCntVal = img->PicOrderCntVal;
 
-    const PredVectorInfo* mvi = colImg->get_mv_info(xColPb,yColPb);
-    int listCol;
-    int refIdxCol;
-    MotionVector mvCol;
+    for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
+      {
+        const de265_image* imgA = ctx->get_image(shdr->RefPicList[0][rIdx]);
+        int aPOC = imgA->PicOrderCntVal;
 
-    logtrace(LogMotion,"read MVI %d;%d:\n",xColPb,yColPb);
-    logmvcand(*mvi);
+        if (aPOC > PicOrderCntVal) {
+          AllDiffPicOrderCntLEZero = false;
+        }
+      }
 
-    if (mvi->predFlag[0]==0) {
-      mvCol = mvi->mv[1];
-      refIdxCol = mvi->refIdx[1];
-      listCol = 1;
+    for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
+      {
+        const de265_image* imgA = ctx->get_image(shdr->RefPicList[1][rIdx]);
+        int aPOC = imgA->PicOrderCntVal;
+
+        if (aPOC > PicOrderCntVal) {
+          AllDiffPicOrderCntLEZero = false;
+        }
+      }
+
+    if (AllDiffPicOrderCntLEZero) {
+      mvCol = mvi->mv[X];
+      refIdxCol = mvi->refIdx[X];
+      listCol = X;
     }
     else {
-      if (mvi->predFlag[1]==0) {
-        mvCol = mvi->mv[0];
-        refIdxCol = mvi->refIdx[0];
-        listCol = 0;
-      }
-      else {
-        int AllDiffPicOrderCntLEZero = true;
-
-        const int PicOrderCntVal = img->PicOrderCntVal;
-
-        for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
-          {
-            const de265_image* imgA = ctx->get_image(shdr->RefPicList[0][rIdx]);
-            int aPOC = imgA->PicOrderCntVal;
-
-            if (aPOC > PicOrderCntVal) {
-              AllDiffPicOrderCntLEZero = false;
-            }
-          }
-
-        for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
-          {
-            const de265_image* imgA = ctx->get_image(shdr->RefPicList[1][rIdx]);
-            int aPOC = imgA->PicOrderCntVal;
-
-            if (aPOC > PicOrderCntVal) {
-              AllDiffPicOrderCntLEZero = false;
-            }
-          }
-
-        if (AllDiffPicOrderCntLEZero) {
-          mvCol = mvi->mv[X];
-          refIdxCol = mvi->refIdx[X];
-          listCol = X;
-        }
-        else {
-          int N = shdr->collocated_from_l0_flag;
-          mvCol = mvi->mv[N];
-          refIdxCol = mvi->refIdx[N];
-          listCol = N;
-        }
-      }
+      int N = shdr->collocated_from_l0_flag;
+      mvCol = mvi->mv[N];
+      refIdxCol = mvi->refIdx[N];
+      listCol = N;
     }
+  }
 
 
 
-    const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
+  const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
-    if (shdr->LongTermRefPic[X][refIdxLX] != 
-        colShdr->LongTermRefPic[listCol][refIdxCol]) {
-      *out_availableFlagLXCol = 0;
-      out_mvLXCol->x = 0;
-      out_mvLXCol->y = 0;
+  if (shdr->LongTermRefPic[X][refIdxLX] != 
+      colShdr->LongTermRefPic[listCol][refIdxCol]) {
+    *out_availableFlagLXCol = 0;
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
+  }
+  else {
+    *out_availableFlagLXCol = 1;
+
+    const bool isLongTerm = shdr->LongTermRefPic[X][refIdxLX];
+
+    int colDist  = colImg->PicOrderCntVal - colShdr->RefPicList_POC[listCol][refIdxCol];
+    int currDist = img->PicOrderCntVal - shdr->RefPicList_POC[X][refIdxLX];
+
+    logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
+             colImg->PicOrderCntVal, colShdr->RefPicList_POC[listCol][refIdxCol],
+             img->PicOrderCntVal, shdr->RefPicList_POC[X][refIdxLX]
+             );
+
+    if (isLongTerm || colDist == currDist) {
+      *out_mvLXCol = mvCol;
     }
     else {
-      *out_availableFlagLXCol = 1;
-
-      const bool isLongTerm = shdr->LongTermRefPic[X][refIdxLX];
-
-      int colDist  = colImg->PicOrderCntVal - colShdr->RefPicList_POC[listCol][refIdxCol];
-      int currDist = img->PicOrderCntVal - shdr->RefPicList_POC[X][refIdxLX];
-
-      logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
-               colImg->PicOrderCntVal, colShdr->RefPicList_POC[listCol][refIdxCol],
-               img->PicOrderCntVal, shdr->RefPicList_POC[X][refIdxLX]
-               );
-
-      if (isLongTerm || colDist == currDist) {
-        *out_mvLXCol = mvCol;
+      if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
+        ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+        img->integrity = INTEGRITY_DECODING_ERRORS;
       }
-      else {
-        if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
-          ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-          img->integrity = INTEGRITY_DECODING_ERRORS;
-        }
 
-        logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
-                 mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
-      }
+      logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
+               mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
     }
   }
 }

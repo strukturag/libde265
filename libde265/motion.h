@@ -32,17 +32,18 @@ typedef struct
 
 typedef struct
 {
-   int8_t refIdx[2];
-  uint8_t predFlag[2];
-  MotionVector mv[2];
+  uint8_t predFlag[2];  // which of the two vectors is actually used
+   int8_t   refIdx[2];
+  MotionVector  mv[2];
 } PredVectorInfo;
 
 
 
 typedef struct
 {
+  // array indices
+  // important! order like shown in 8.5.3.1.1
   enum {
-    // important! order like shown in 8.5.3.1.1
     PRED_A1  = 0,
     PRED_B1  = 1,
     PRED_B0  = 2,
@@ -50,7 +51,7 @@ typedef struct
     PRED_B2  = 4
   };
 
-  uint8_t available[5];
+  uint8_t          available[5];
   PredVectorInfo pred_vector[5];
 } SpatialMergingCandidates;
 
