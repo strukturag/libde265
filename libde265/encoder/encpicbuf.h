@@ -28,6 +28,63 @@
 #include <vector>
 
 
+struct image_data
+{
+  image_data();
+  ~image_data();
+  
+  int frame_number;
+  
+  const de265_image* input; // owner
+  const de265_image* reconstruction; // owner
+  
+  // SOP metadata
+  
+  uint8_t nal_type;
+  
+  slice_segment_header shdr;
+  
+  std::vector<int> ref0;
+  std::vector<int> ref1;
+  std::vector<int> longterm;
+  std::vector<int> keep;
+  int sps_index;
+  int temporal_layer;
+  int skip_priority;
+  bool is_intra;  // TODO: remove, use shdr.slice_type instead
+  
+  /* unprocessed              only input image has been inserted, no metadata
+     sop_metadata_available   sop-creator has filled in references and skipping metadata
+     a) encoding              encoding started for this frame, reconstruction image was created
+     .  keep_for_reference    encoding finished, picture is kept in the buffer for reference
+     b) skipped               image was skipped, no encoding was done, no reconstruction image
+  */
+  enum state {
+    state_unprocessed,
+    state_sop_metadata_available,
+    state_encoding,
+    state_keep_for_reference,
+    state_skipped
+  } state;
+  
+  bool is_in_output_queue;
+  
+  bool mark_used;
+  
+  
+  // --- SOP structure ---
+  
+  void set_intra();
+  void set_NAL_type(uint8_t nalType);
+  void set_references(int sps_index, // -1 -> custom
+                      const std::vector<int>& l0, const std::vector<int>& l1,
+                      const std::vector<int>& lt,
+                      const std::vector<int>& keepMoreReferences);
+  void set_temporal_layer(int temporal_layer);
+  void set_skip_priority(int skip_priority);
+};
+
+
 class encoder_picture_buffer
 {
  public:
@@ -35,69 +92,16 @@ class encoder_picture_buffer
   ~encoder_picture_buffer();
 
 
-  struct image_data
-  {
-    image_data();
-    ~image_data();
-
-    int frame_number;
-
-    const de265_image* input; // owner
-    const de265_image* reconstruction; // owner
-
-    // SOP metadata
-
-    uint8_t nal_type;
-
-    slice_segment_header shdr;
-
-    std::vector<int> ref0;
-    std::vector<int> ref1;
-    std::vector<int> longterm;
-    std::vector<int> keep;
-    int sps_index;
-    int temporal_layer;
-    int skip_priority;
-    bool is_intra;
-
-    /* unprocessed              only input image has been inserted, no metadata
-       sop_metadata_available   sop-creator has filled in references and skipping metadata
-       a) encoding              encoding started for this frame, reconstruction image was created
-       .  keep_for_reference    encoding finished, picture is kept in the buffer for reference
-       b) skipped               image was skipped, no encoding was done, no reconstruction image
-     */
-    enum state {
-      state_unprocessed,
-      state_sop_metadata_available,
-      state_encoding,
-      state_keep_for_reference,
-      state_skipped
-    } state;
-
-    bool is_in_output_queue;
-
-    bool mark_used;
-  };
-
-
   // --- input pushed by the input process ---
 
   void reset();
 
-  void insert_next_image_in_encoding_order(const de265_image*, int frame_number);
+  image_data* insert_next_image_in_encoding_order(const de265_image*, int frame_number);
   void insert_end_of_stream();
 
 
   // --- SOP structure ---
 
-  void set_image_intra();
-  void set_image_NAL_type(uint8_t nalType);
-  void set_image_references(int sps_index, // -1 -> custom
-                            const std::vector<int>& l0, const std::vector<int>& l1,
-                            const std::vector<int>& lt,
-                            const std::vector<int>& keepMoreReferences);
-  void set_temporal_layer(int temporal_layer);
-  void set_skip_priority(int skip_priority);
   void sop_metadata_commit(int frame_number); // note: frame_number is only for consistency checking
 
 

@@ -74,9 +74,10 @@ class sop_creator_intra_only : public sop_creator
   virtual void insert_new_input_image(const de265_image* img)
   {
     assert(mEncPicBuf);
-    mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
-    mEncPicBuf->set_image_intra();
-    mEncPicBuf->set_image_NAL_type(NAL_UNIT_IDR_N_LP);
+    image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
+
+    imgdata->set_intra();
+    imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 
     mNextFrameNumber++;
@@ -115,14 +116,14 @@ class sop_creator_trivial_low_delay : public sop_creator
     }
 
     assert(mEncPicBuf);
-    mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
+    image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
 
     if (mNextFrameNumber==0) {
-      mEncPicBuf->set_image_intra();
-      mEncPicBuf->set_image_NAL_type(NAL_UNIT_IDR_N_LP);
+      imgdata->set_intra();
+      imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
     } else {
-      mEncPicBuf->set_image_references(0, l0,l1, empty,empty);
-      mEncPicBuf->set_image_NAL_type(NAL_UNIT_TRAIL_R);
+      imgdata->set_references(0, l0,l1, empty,empty);
+      imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
     }
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 

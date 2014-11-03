@@ -31,7 +31,7 @@ encoder_picture_buffer::~encoder_picture_buffer()
 }
 
 
-encoder_picture_buffer::image_data::image_data()
+image_data::image_data()
 {
   frame_number = 0;
 
@@ -50,7 +50,7 @@ encoder_picture_buffer::image_data::image_data()
   is_in_output_queue = true;
 }
 
-encoder_picture_buffer::image_data::~image_data()
+image_data::~image_data()
 {
   if (input) { delete input; }
   if (reconstruction) { delete reconstruction; }
@@ -76,8 +76,8 @@ void encoder_picture_buffer::flush_images()
 }
 
 
-void encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_image* img,
-                                                                 int frame_number)
+image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_image* img,
+                                                                        int frame_number)
 {
   image_data* data = new image_data();
   data->frame_number = frame_number;
@@ -85,6 +85,8 @@ void encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_ima
   data->shdr.set_defaults();
 
   mImages.push_back(data);
+
+  return data;
 }
 
 void encoder_picture_buffer::insert_end_of_stream()
@@ -95,45 +97,37 @@ void encoder_picture_buffer::insert_end_of_stream()
 
 // --- SOP structure ---
 
-void encoder_picture_buffer::set_image_intra()
+void image_data::set_intra()
 {
-  image_data* data = mImages.back();
-  data->is_intra = true;
+  is_intra = true;
 }
 
-void encoder_picture_buffer::set_image_NAL_type(uint8_t nalType)
+void image_data::set_NAL_type(uint8_t nalType)
 {
-  image_data* data = mImages.back();
-  data->nal_type = nalType;
+  nal_type = nalType;
 }
 
-void encoder_picture_buffer::set_image_references(int sps_index, // -1 -> custom
-                                                  const std::vector<int>& l0,
-                                                  const std::vector<int>& l1,
-                                                  const std::vector<int>& lt,
-                                                  const std::vector<int>& keepMoreReferences)
+void image_data::set_references(int sps_index, // -1 -> custom
+                                const std::vector<int>& l0,
+                                const std::vector<int>& l1,
+                                const std::vector<int>& lt,
+                                const std::vector<int>& keepMoreReferences)
 {
-  image_data* data = mImages.back();
-
-  data->sps_index = sps_index;
-  data->ref0 = l0;
-  data->ref1 = l1;
-  data->longterm = lt;
-  data->keep = keepMoreReferences;
+  this->sps_index = sps_index;
+  ref0 = l0;
+  ref1 = l1;
+  longterm = lt;
+  keep = keepMoreReferences;
 }
 
-void encoder_picture_buffer::set_temporal_layer(int temporal_layer)
+void image_data::set_temporal_layer(int temporal_layer)
 {
-  image_data* data = mImages.back();
-
-  data->temporal_layer = temporal_layer;
+  this->temporal_layer = temporal_layer;
 }
 
-void encoder_picture_buffer::set_skip_priority(int skip_priority)
+void image_data::set_skip_priority(int skip_priority)
 {
-  image_data* data = mImages.back();
-
-  data->skip_priority = skip_priority;
+  this->skip_priority = skip_priority;
 }
 
 void encoder_picture_buffer::sop_metadata_commit(int frame_number)
@@ -218,8 +212,7 @@ bool encoder_picture_buffer::have_more_frames_to_encode() const
 }
 
 
-encoder_picture_buffer::image_data*
-encoder_picture_buffer::get_next_picture_to_encode()
+image_data* encoder_picture_buffer::get_next_picture_to_encode()
 {
   for (int i=0;i<mImages.size();i++) {
     if (mImages[i]->state < image_data::state_encoding) {
@@ -231,8 +224,7 @@ encoder_picture_buffer::get_next_picture_to_encode()
 }
 
 
-const encoder_picture_buffer::image_data*
-encoder_picture_buffer::get_picture(int frame_number) const
+const image_data* encoder_picture_buffer::get_picture(int frame_number) const
 {
   for (int i=0;i<mImages.size();i++) {
     if (mImages[i]->frame_number == frame_number)
@@ -244,7 +236,7 @@ encoder_picture_buffer::get_picture(int frame_number) const
 }
 
 
-encoder_picture_buffer::image_data* encoder_picture_buffer::get_picture(int frame_number)
+image_data* encoder_picture_buffer::get_picture(int frame_number)
 {
   for (int i=0;i<mImages.size();i++) {
     if (mImages[i]->frame_number == frame_number)

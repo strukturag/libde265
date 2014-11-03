@@ -173,7 +173,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
   if (!image_spec_is_defined) {
-    const encoder_picture_buffer::image_data* id = picbuf.peek_next_picture_to_encode();
+    const image_data* id = picbuf.peek_next_picture_to_encode();
     image_width  = id->input->get_width();
     image_height = id->input->get_height();
     image_spec_is_defined = true;
@@ -202,7 +202,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
 
-  encoder_picture_buffer::image_data* imgdata;
+  image_data* imgdata;
   imgdata = picbuf.get_next_picture_to_encode();
   assert(imgdata);
   picbuf.mark_encoding_started(imgdata->frame_number);

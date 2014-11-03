@@ -58,7 +58,7 @@ struct encoder_context
 
   // quick links
   de265_image* img; // reconstruction
-  encoder_picture_buffer::image_data* imgdata;
+  image_data* imgdata;
   slice_segment_header* shdr;
 
 
