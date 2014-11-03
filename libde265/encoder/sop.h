@@ -39,10 +39,11 @@ struct refpic_set
 class sop_creator
 {
  public:
-  sop_creator() { mEncPicBuf=NULL; }
+  sop_creator() { mEncCtx=NULL; mEncPicBuf=NULL; }
   virtual ~sop_creator() { }
 
-  void         set_encoder_picture_buffer(encoder_picture_buffer* encbuf) { mEncPicBuf=encbuf; }
+  void set_encoder_context(encoder_context* encctx) { mEncCtx=encctx; }
+  void set_encoder_picture_buffer(encoder_picture_buffer* encbuf) { mEncPicBuf=encbuf; }
 
   virtual void insert_new_input_image(const de265_image*) = 0;
   virtual void insert_end_of_stream() { mEncPicBuf->insert_end_of_stream(); }
@@ -52,6 +53,7 @@ class sop_creator
   virtual std::vector<refpic_set> get_sps_refpic_sets() const = 0;
 
  protected:
+  encoder_context*        mEncCtx;
   encoder_picture_buffer* mEncPicBuf;
 };
 
@@ -78,6 +80,7 @@ class sop_creator_intra_only : public sop_creator
 
     imgdata->set_intra();
     imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
+    imgdata->shdr.slice_type = SLICE_TYPE_I;
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 
     mNextFrameNumber++;
@@ -121,9 +124,11 @@ class sop_creator_trivial_low_delay : public sop_creator
     if (mNextFrameNumber==0) {
       imgdata->set_intra();
       imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
+      imgdata->shdr.slice_type = SLICE_TYPE_I;
     } else {
       imgdata->set_references(0, l0,l1, empty,empty);
       imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
+      imgdata->shdr.slice_type = SLICE_TYPE_P;
     }
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 

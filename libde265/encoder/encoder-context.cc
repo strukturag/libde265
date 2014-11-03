@@ -45,6 +45,7 @@ encoder_context::encoder_context()
 
   //sop = std::make_shared<sop_creator_trivial_low_delay>();
   sop = std::make_shared<sop_creator_intra_only>();
+  sop->set_encoder_context(this);
   sop->set_encoder_picture_buffer(&picbuf);
 
 
