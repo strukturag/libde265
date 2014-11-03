@@ -224,7 +224,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
   nal_header nal;
-  nal.set(NAL_UNIT_IDR_W_RADL);
+  nal.set(imgdata->nal_type);
   nal.write(cabac);
   imgdata->shdr.write(&errqueue, cabac, &sps, &pps, nal.nal_unit_type);
   cabac->skip_bits(1);

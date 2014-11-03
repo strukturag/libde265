@@ -100,6 +100,12 @@ void encoder_picture_buffer::set_image_intra()
   data->is_intra = true;
 }
 
+void encoder_picture_buffer::set_image_NAL_type(uint8_t nalType)
+{
+  image_data* data = mImages.back();
+  data->nal_type = nalType;
+}
+
 void encoder_picture_buffer::set_image_references(int sps_index, // -1 -> custom
                                                   const std::vector<int>& l0,
                                                   const std::vector<int>& l1,

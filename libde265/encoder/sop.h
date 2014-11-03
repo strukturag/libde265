@@ -76,6 +76,7 @@ class sop_creator_intra_only : public sop_creator
     assert(mEncPicBuf);
     mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
     mEncPicBuf->set_image_intra();
+    mEncPicBuf->set_image_NAL_type(NAL_UNIT_IDR_N_LP);
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 
     mNextFrameNumber++;
@@ -118,8 +119,10 @@ class sop_creator_trivial_low_delay : public sop_creator
 
     if (mNextFrameNumber==0) {
       mEncPicBuf->set_image_intra();
+      mEncPicBuf->set_image_NAL_type(NAL_UNIT_IDR_N_LP);
     } else {
       mEncPicBuf->set_image_references(0, l0,l1, empty,empty);
+      mEncPicBuf->set_image_NAL_type(NAL_UNIT_TRAIL_R);
     }
     mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
 
