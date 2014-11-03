@@ -211,7 +211,7 @@ bool encoder_picture_buffer::have_more_frames_to_encode() const
 }
 
 
-const encoder_picture_buffer::image_data*
+encoder_picture_buffer::image_data*
 encoder_picture_buffer::get_next_picture_to_encode()
 {
   for (int i=0;i<mImages.size();i++) {

@@ -56,14 +56,19 @@ struct encoder_context
   error_queue errqueue;
   acceleration_functions accel;
 
+  // quick links
   de265_image* img; // reconstruction
+  encoder_picture_buffer::image_data* imgdata;
+  slice_segment_header* shdr;
+
+
 
   int pic_qp; // TODO: this should be removed again, eventually
 
   video_parameter_set  vps;
   seq_parameter_set    sps;
   pic_parameter_set    pps;
-  slice_segment_header shdr;
+  //slice_segment_header shdr;
 
   bool parameters_have_been_set;
   bool headers_have_been_sent;

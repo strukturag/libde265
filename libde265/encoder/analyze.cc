@@ -106,7 +106,7 @@ double encode_image(encoder_context* ectx,
   ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
-  initialize_CABAC_models(ectx->ctx_model, ectx->shdr.initType, ectx->shdr.SliceQPY);
+  initialize_CABAC_models(ectx->ctx_model, ectx->shdr->initType, ectx->shdr->SliceQPY);
 
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;
 
@@ -120,7 +120,7 @@ double encode_image(encoder_context* ectx,
   for (int y=0;y<ectx->sps.PicHeightInCtbsY;y++)
     for (int x=0;x<ectx->sps.PicWidthInCtbsY;x++)
       {
-        ectx->img->set_SliceAddrRS(x, y, ectx->shdr.SliceAddrRS);
+        ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
 
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;

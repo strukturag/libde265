@@ -187,8 +187,8 @@ static void encode_split_cu_flag(encoder_context* ectx,
 {
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ectx->img,&ectx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ectx->img,&ectx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(ectx->img,&ectx->imgdata->shdr, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ectx->img,&ectx->imgdata->shdr, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1228,7 +1228,7 @@ void encode_coding_unit(encoder_context* ectx,
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
   de265_image* img = ectx->img;
-  const slice_segment_header* shdr = &ectx->shdr;
+  const slice_segment_header* shdr = &ectx->imgdata->shdr;
   const seq_parameter_set* sps = &ectx->img->sps;
 
 

@@ -131,13 +131,6 @@ de265_error encoder_context::encode_headers()
   pps.set_derived_values(&sps);
 
 
-  // slice
-
-  shdr.set_defaults(&pps);
-  shdr.slice_deblocking_filter_disabled_flag = true;
-  shdr.slice_loop_filter_across_slices_enabled_flag = false;
-
-
 
   // write headers
 
@@ -209,22 +202,31 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
 
-  const encoder_picture_buffer::image_data* imgdata;
+  encoder_picture_buffer::image_data* imgdata;
   imgdata = picbuf.get_next_picture_to_encode();
   assert(imgdata);
   picbuf.mark_encoding_started(imgdata->frame_number);
 
+  this->imgdata = imgdata;
+  this->shdr    = &imgdata->shdr;
   fprintf(stderr,"encoding frame %d\n",imgdata->frame_number);
 
 
   // write slice header
+
+  // slice
+
+  imgdata->shdr.set_defaults(&pps);
+  imgdata->shdr.slice_deblocking_filter_disabled_flag = true;
+  imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
+  imgdata->shdr.compute_derived_values(&pps);
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
   nal_header nal;
   nal.set(NAL_UNIT_IDR_W_RADL);
   nal.write(cabac);
-  shdr.write(&errqueue, cabac, &sps, &pps, nal.nal_unit_type);
+  imgdata->shdr.write(&errqueue, cabac, &sps, &pps, nal.nal_unit_type);
   cabac->skip_bits(1);
   cabac->flush_VLC();
 
@@ -240,7 +242,8 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   picbuf.set_reconstruction_image(imgdata->frame_number, img);
   img=NULL;
-
+  this->imgdata = NULL;
+  this->shdr = NULL;
 
   // build output packet
 

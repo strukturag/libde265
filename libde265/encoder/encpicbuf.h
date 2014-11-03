@@ -47,6 +47,10 @@ class encoder_picture_buffer
 
     // SOP metadata
 
+    uint8_t nal_type;
+
+    slice_segment_header shdr;
+
     std::vector<int> ref0;
     std::vector<int> ref1;
     std::vector<int> longterm;
@@ -87,6 +91,7 @@ class encoder_picture_buffer
   // --- SOP structure ---
 
   void set_image_intra();
+  void set_image_NAL_type(uint8_t nalType);
   void set_image_references(int sps_index, // -1 -> custom
                             const std::vector<int>& l0, const std::vector<int>& l1,
                             const std::vector<int>& lt,
@@ -107,7 +112,7 @@ class encoder_picture_buffer
   // --- data access ---
 
   bool have_more_frames_to_encode() const;
-  const image_data* get_next_picture_to_encode(); // or return NULL if no picture is available
+  image_data* get_next_picture_to_encode(); // or return NULL if no picture is available
   const image_data* get_picture(int frame_number) const;
 
   const image_data* peek_next_picture_to_encode() const {
