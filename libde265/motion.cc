@@ -1321,10 +1321,10 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   /* Use single MCL for CBs of size 8x8, except when parallel-merge-level is at 4x4.
      Without this flag, PBs smaller than 8x8 would not receive as much merging candidates.
-     Having additional candidtes might have these advantages:
+     Having additional candidates might have these advantages:
      - coding MVs for these small PBs is expensive, and
      - since the PBs are not far away from a proper (neighboring) merging candidate,
-       it quality of the candidate will still be good.
+       the quality of the candidates will still be good.
    */
   singleMCLFlag = (tctx->img->pps.log2_parallel_merge_level > 2 && nCS==8);
 
