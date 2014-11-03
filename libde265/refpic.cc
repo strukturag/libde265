@@ -31,17 +31,20 @@
 #endif
 
 
-static void compute_NumPoc(ref_pic_set* rpset)
+void ref_pic_set::compute_derived_values()
 {
-  rpset->NumPocTotalCurr_shortterm_only = 0;
+  NumPocTotalCurr_shortterm_only = 0;
   
-  for (int i=0; i<rpset->NumNegativePics; i++)
-    if (rpset->UsedByCurrPicS0[i])
-      rpset->NumPocTotalCurr_shortterm_only++;
+  for (int i=0; i<NumNegativePics; i++)
+    if (UsedByCurrPicS0[i])
+      NumPocTotalCurr_shortterm_only++;
 
-  for (int i=0; i<rpset->NumPositivePics; i++)
-    if (rpset->UsedByCurrPicS1[i])
-      rpset->NumPocTotalCurr_shortterm_only++;
+  for (int i=0; i<NumPositivePics; i++)
+    if (UsedByCurrPicS1[i])
+      NumPocTotalCurr_shortterm_only++;
+
+  NumDeltaPocs = NumNegativePics + NumPositivePics;
+
 
   /*
     NOTE: this is done when reading the slice header.
@@ -204,8 +207,6 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     out_set->NumPositivePics = i;
 
-    out_set->NumDeltaPocs = out_set->NumNegativePics + out_set->NumPositivePics;
-
   } else {
 
     // --- first, read the number of past and future frames in this set ---
@@ -228,7 +229,6 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     out_set->NumNegativePics = num_negative_pics;
     out_set->NumPositivePics = num_positive_pics;
-    out_set->NumDeltaPocs = num_positive_pics + num_negative_pics;
 
     // --- now, read the deltas between the reference frames to fill the lists ---
 
@@ -258,7 +258,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
   }
 
 
-  compute_NumPoc(out_set);
+  out_set->compute_derived_values();
 
   return true;
 }
@@ -274,6 +274,7 @@ bool write_short_term_ref_pic_set(error_queue* errqueue,
 {
   assert(0); // TODO
 }
+
 
 void dump_short_term_ref_pic_set(const ref_pic_set* set, FILE* fh)
 {

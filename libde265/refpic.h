@@ -27,13 +27,6 @@
 
 
 typedef struct {
-  uint8_t NumNegativePics;  // number of past reference pictures
-  uint8_t NumPositivePics;  // number of future reference pictures
-  uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
-
-  uint8_t NumPocTotalCurr_shortterm_only; /* Total number of reference pictures that may actually
-                                             be used for prediction in the current frame. */
-
   // Lists of pictures that have to be kept in the decoded picture buffer for future
   // reference and that may optionally be used for prediction in the current frame.
   // Lists contain the relative POC positions.
@@ -44,6 +37,17 @@ typedef struct {
   uint8_t UsedByCurrPicS0[MAX_NUM_REF_PICS];
   uint8_t UsedByCurrPicS1[MAX_NUM_REF_PICS];
 
+  uint8_t NumNegativePics;  // number of past reference pictures
+  uint8_t NumPositivePics;  // number of future reference pictures
+
+  // --- derived values ---
+
+  void compute_derived_values();
+
+  uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
+
+  uint8_t NumPocTotalCurr_shortterm_only; /* Total number of reference pictures that may actually
+                                             be used for prediction in the current frame. */
 } ref_pic_set;
 
 
