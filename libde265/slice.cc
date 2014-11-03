@@ -57,7 +57,7 @@ void decode_inter_block(decoder_context* ctx,thread_context* tctx,
                         int xC, int yC, int log2CbSize);
 */
 
-void slice_segment_header::set_defaults(const pic_parameter_set* pps)
+void slice_segment_header::set_defaults()
 {
   slice_index = 0;
 
@@ -137,8 +137,6 @@ void slice_segment_header::set_defaults(const pic_parameter_set* pps)
   slice_segment_header_extension_length = 0;
 
   SliceAddrRS = slice_segment_address;
-
-  compute_derived_values(pps);
 }
 
 

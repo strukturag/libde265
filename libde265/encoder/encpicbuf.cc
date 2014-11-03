@@ -82,6 +82,7 @@ void encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_ima
   image_data* data = new image_data();
   data->frame_number = frame_number;
   data->input = img;
+  data->shdr.set_defaults();
 
   mImages.push_back(data);
 }

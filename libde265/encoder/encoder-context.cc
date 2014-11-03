@@ -216,7 +216,6 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   // slice
 
-  imgdata->shdr.set_defaults(&pps);
   imgdata->shdr.slice_deblocking_filter_disabled_flag = true;
   imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
   imgdata->shdr.compute_derived_values(&pps);

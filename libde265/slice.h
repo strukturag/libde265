@@ -175,7 +175,7 @@ typedef struct slice_segment_header {
 
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
-  void set_defaults(const pic_parameter_set* pps);
+  void set_defaults();
 
 
   int  slice_index; // index through all slices in a picture  (internal only)
