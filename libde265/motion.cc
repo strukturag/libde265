@@ -678,6 +678,8 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
   - A0  (if != A1)
   - B2  (if != A1 and != B1)
 
+  A maximum of 4 candidates are generated.
+
   Note 1: For a CB splitted into two PBs, it does not make sense to merge the
   second part to the parameters of the first part, since then, we could use 2Nx2N
   right away. -> Exclude this candidate.
@@ -878,6 +880,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   bool availableB2;
 
+  // if we already have four candidates, do not consider B2 anymore
   if (out_cand->available[A0] && out_cand->available[A1] &&
       out_cand->available[B0] && out_cand->available[B1]) {
     availableB2 = false;
@@ -951,15 +954,17 @@ void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
 
     PredVectorInfo* newCand = &inout_mergeCandList[*inout_numCurrMergeCand];
 
+    const int refIdx = (zeroIdx < numRefIdx) ? zeroIdx : 0;
+
     if (shdr->slice_type==SLICE_TYPE_P) {
-      newCand->refIdx[0] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
+      newCand->refIdx[0] = refIdx;
       newCand->refIdx[1] = -1;
       newCand->predFlag[0] = 1;
       newCand->predFlag[1] = 0;
     }
     else {
-      newCand->refIdx[0] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
-      newCand->refIdx[1] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
+      newCand->refIdx[0] = refIdx;
+      newCand->refIdx[1] = refIdx;
       newCand->predFlag[0] = 1;
       newCand->predFlag[1] = 1;
     }
@@ -1007,11 +1012,15 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
                                       int xP,int yP,
                                       int colPic,
                                       int xColPb,int yColPb,
-                                      int refIdxLX, int X,
+                                      int refIdxLX,  // (always 0 for merge mode)
+                                      int X,
                                       MotionVector* out_mvLXCol,
                                       uint8_t* out_availableFlagLXCol)
 {
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
+
+
+  // get collocated image and the prediction mode at the collocated position
 
   assert(ctx->has_image(colPic));
   const de265_image* colImg = ctx->get_image(colPic);
@@ -1067,36 +1076,51 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     refIdxCol = mvi->refIdx[0];
     listCol = 0;
   }
+  // collocated MV uses L0 and L1
   else {
-    bool AllDiffPicOrderCntLEZero = true;
+    bool allRefFramesBeforeCurrentFrame = true;
 
-    const int PicOrderCntVal = img->PicOrderCntVal;
+    const int currentPOC = img->PicOrderCntVal;
 
-    // all reference POCs later than current POC (list 0)
+    // all reference POCs earlier than current POC (list 1)
+    // Test L1 first, because there is a higher change to find a future reference frame.
 
-    for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && AllDiffPicOrderCntLEZero; rIdx++)
+    for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* imgA = ctx->get_image(shdr->RefPicList[0][rIdx]);
-        int aPOC = imgA->PicOrderCntVal;
+        const de265_image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]);
+        int refPOC = refimg->PicOrderCntVal;
 
-        if (aPOC > PicOrderCntVal) {
-          AllDiffPicOrderCntLEZero = false;
+        if (refPOC > currentPOC) {
+          allRefFramesBeforeCurrentFrame = false;
         }
       }
 
-    // all reference POCs later than current POC (list 1)
+    // all reference POCs earlier than current POC (list 0)
 
-    for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && AllDiffPicOrderCntLEZero; rIdx++)
+    for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* imgA = ctx->get_image(shdr->RefPicList[1][rIdx]);
-        int aPOC = imgA->PicOrderCntVal;
+        const de265_image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]);
+        int refPOC = refimg->PicOrderCntVal;
 
-        if (aPOC > PicOrderCntVal) {
-          AllDiffPicOrderCntLEZero = false;
+        if (refPOC > currentPOC) {
+          allRefFramesBeforeCurrentFrame = false;
         }
       }
 
-    if (AllDiffPicOrderCntLEZero) {
+
+    /* TODO: What is the rationale behind this ???
+
+       My guess:
+       when there are images before the current frame (most probably in L0) and images after
+       the current frame (most probably in L1), we take the reference in the opposite
+       direction than where the collocated frame is positioned in the hope that the distance
+       to the current frame will be smaller and thus give a better prediction.
+
+       If all references point into the past, we cannot say much about the temporal order or
+       L0,L1 and thus take over both parts.
+     */
+
+    if (allRefFramesBeforeCurrentFrame) {
       mvCol = mvi->mv[X];
       refIdxCol = mvi->refIdx[X];
       listCol = X;
@@ -1154,10 +1178,12 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
                                             const slice_segment_header* shdr,
                                             int xP,int yP,
                                             int nPbW,int nPbH,
-                                            int refIdxL, int X,
+                                            int refIdxL,
+                                            int X, // which MV (L0/L1) to get
                                             MotionVector* out_mvLXCol,
                                             uint8_t*      out_availableFlagLXCol)
 {
+  // --- no temporal MVP -> exit ---
 
   if (shdr->slice_temporal_mvp_enabled_flag == 0) {
     out_mvLXCol->x = 0;
@@ -1165,6 +1191,9 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     *out_availableFlagLXCol = 0;
     return;
   }
+
+
+  // --- find collocated reference image ---
 
   int Log2CtbSizeY = img->sps.Log2CtbSizeY;
 
@@ -1175,19 +1204,17 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
     {
       logtrace(LogMotion,"collocated L1 ref_idx=%d\n",shdr->collocated_ref_idx);
 
-      // TODO: make sure that shdr->collocated_ref_idx is a valid index
       colPic = shdr->RefPicList[1][ shdr->collocated_ref_idx ];
     }
   else
     {
       logtrace(LogMotion,"collocated L0 ref_idx=%d\n",shdr->collocated_ref_idx);
 
-      // TODO: make sure that shdr->collocated_ref_idx is a valid index
       colPic = shdr->RefPicList[0][ shdr->collocated_ref_idx ];
     }
 
-  //logtrace(LogMotion,"collocated reference POC=%d\n",ctx->dpb[colPic].PicOrderCntVal);
 
+  // check whether collocated reference picture exists
 
   if (!ctx->has_image(colPic)) {
     out_mvLXCol->x = 0;
@@ -1199,6 +1226,8 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
   }
 
 
+  // --- get collocated MV either at bottom-right corner or from center of PB ---
+
   int xColPb,yColPb;
   int yColBr = yP + nPbH; // bottom right collocated motion vector position
   int xColBr = xP + nPbW;
@@ -1206,7 +1235,8 @@ void derive_temporal_luma_vector_prediction(decoder_context* ctx,
   /* If neighboring pixel at bottom-right corner is in the same CTB-row and inside the image,
      use this (reduced down to 16 pixels resolution) as collocated MV position.
 
-     TODO: why same CTB row ???
+     Note: see 2014, Sze, Sect. 5.2.1.2 why candidate C0 is excluded when on another CTB-row.
+     This is to reduce the memory bandwidth requirements.
    */
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
       xColBr < img->sps.pic_width_in_luma_samples &&
@@ -1340,21 +1370,22 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   derive_spatial_merging_candidates(tctx->img, xC,yC, nCS, xP,yP, singleMCLFlag,
                                     nPbW,nPbH,partIdx, &mergeCand);
 
-  int refIdxCol[2] = { 0,0 };
+  // In merge mode, we always use refIdx=0 as reference picture
+  const int refIdxCol[2] = { 0,0 };
 
   MotionVector mvCol[2];
   uint8_t predFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr, xP,yP,nPbW,nPbH,
-                                         refIdxCol[0],0, &mvCol[0],
-                                         &predFlagLCol[0]);
+  derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
+                                         xP,yP,nPbW,nPbH, refIdxCol[0],0,
+                                         /* output: */ &mvCol[0], &predFlagLCol[0]);
 
   uint8_t availableFlagCol = predFlagLCol[0];
   predFlagLCol[1] = 0;
 
   if (shdr->slice_type == SLICE_TYPE_B) {
     derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
-                                           xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
-                                           &predFlagLCol[1]);
+                                           xP,yP,nPbW,nPbH, refIdxCol[1],1,
+                                           /* output: */ &mvCol[1], &predFlagLCol[1]);
     availableFlagCol |= predFlagLCol[1];
   }
 
@@ -1734,7 +1765,8 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
     availableFlagLXCol = 0;
   }
   else {
-    derive_temporal_luma_vector_prediction(ctx, tctx->img, shdr, xP,yP, nPbW,nPbH, refIdx,l,
+    derive_temporal_luma_vector_prediction(ctx, tctx->img, shdr,
+                                           xP,yP, nPbW,nPbH, refIdx,l,
                                            &mvLXCol, &availableFlagLXCol);
   }
 
