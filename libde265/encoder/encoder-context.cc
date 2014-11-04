@@ -123,7 +123,7 @@ de265_error encoder_context::encode_headers()
   // PPS
 
   pps.set_defaults();
-  pps.pic_init_qp = pic_qp;
+  pps.pic_init_qp = algo.getPPS_QP();
 
   // turn off deblocking filter
   pps.deblocking_filter_control_present_flag = true;
@@ -186,9 +186,9 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   if (!parameters_have_been_set) {
     algo.setParams(params);
 
+
     // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
     int qp = algo.getPPS_QP();
-    pic_qp = qp;
 
     //lambda = ectx->params.lambda;
     lambda = 0.0242 * pow(1.27245, qp);

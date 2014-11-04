@@ -63,7 +63,7 @@ struct encoder_context
 
 
 
-  int pic_qp; // TODO: this should be removed again, eventually
+  //int pic_qp; // TODO: this should be removed again, eventually
 
   video_parameter_set  vps;
   seq_parameter_set    sps;
