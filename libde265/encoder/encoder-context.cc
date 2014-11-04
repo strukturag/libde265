@@ -116,7 +116,34 @@ de265_error encoder_context::encode_headers()
   sps.max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
 
   sps.set_resolution(image_width, image_height);
+  sop->set_SPS_header_values();
   sps.compute_derived_values();
+
+  /*
+  ref_pic_set rps;
+  rps.DeltaPocS0[0] = -1;
+  rps.UsedByCurrPicS0[0] = true;
+  rps.NumNegativePics = 1;
+  rps.NumPositivePics = 0;
+  rps.compute_derived_values();
+  sps.ref_pic_sets.push_back(rps);
+  sps.num_short_term_ref_pic_sets=1; // TODO: remove variable and derive from vector<>
+
+
+  rps.DeltaPocS0[0] = -1;
+  rps.DeltaPocS0[1] = -2;
+  rps.DeltaPocS0[2] = -4;
+  rps.UsedByCurrPicS0[0] = true;
+  rps.UsedByCurrPicS0[1] = false;
+  rps.UsedByCurrPicS0[2] = true;
+  rps.NumNegativePics = 3;
+  rps.NumPositivePics = 0;
+  rps.compute_derived_values();
+  sps.ref_pic_sets.push_back(rps);
+  sps.num_short_term_ref_pic_sets=2; // TODO: remove variable and derive from vector<>
+
+  sps.sps_max_dec_pic_buffering[0] = 3;
+  */
 
   // PPS
 

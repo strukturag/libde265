@@ -264,6 +264,57 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 }
 
 
+bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
+                                         const seq_parameter_set* sps,
+                                         CABAC_encoder* out,
+                                         const ref_pic_set* in_set, // which set to write
+                                         int idxRps,  // index of the set to be written
+                                         const std::vector<ref_pic_set>& sets, // previously read sets
+                                         bool sliceRefPicSet) // is this in the slice header?
+{
+  if (idxRps != 0) {
+    // inter_ref_pic_set_prediction_flag
+    out->write_bit(0);
+  }
+
+
+  // --- first, write the number of past and future frames in this set ---
+
+  out->write_uvlc(in_set->NumNegativePics);
+  out->write_uvlc(in_set->NumPositivePics);
+
+  // --- now, write the deltas between the reference frames to fill the lists ---
+
+  // past frames
+
+  int lastPocS=0;
+  for (int i=0;i<in_set->NumNegativePics;i++) {
+    int  delta_poc_s0 = lastPocS - in_set->DeltaPocS0[i];
+    char used_by_curr_pic_s0_flag = in_set->UsedByCurrPicS0[i];
+
+    assert(delta_poc_s0 >= 1);
+    out->write_uvlc(delta_poc_s0-1);
+    out->write_bit(used_by_curr_pic_s0_flag);
+    lastPocS = in_set->DeltaPocS0[i];
+  }
+
+  // future frames
+
+  lastPocS=0;
+  for (int i=0;i<in_set->NumPositivePics;i++) {
+    int  delta_poc_s1 = in_set->DeltaPocS1[i] - lastPocS;
+    char used_by_curr_pic_s1_flag = in_set->UsedByCurrPicS1[i];
+
+    assert(delta_poc_s1 >= 1);
+    out->write_uvlc(delta_poc_s1-1);
+    out->write_bit(used_by_curr_pic_s1_flag);
+    lastPocS = in_set->DeltaPocS1[i];
+  }
+
+  return true;
+}
+
+
 bool write_short_term_ref_pic_set(error_queue* errqueue,
                                   const seq_parameter_set* sps,
                                   CABAC_encoder* out,
@@ -272,7 +323,8 @@ bool write_short_term_ref_pic_set(error_queue* errqueue,
                                   const std::vector<ref_pic_set>& sets, // previously read sets
                                   bool sliceRefPicSet) // is this in the slice header?
 {
-  assert(0); // TODO
+  return write_short_term_ref_pic_set_nopred(errqueue, sps, out, in_set, idxRps, sets,
+                                             sliceRefPicSet);
 }
 
 

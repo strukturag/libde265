@@ -28,13 +28,13 @@
 #include <deque>
 #include <vector>
 
-
+/*
 struct refpic_set
 {
   std::vector<int> l0;
   std::vector<int> l1;
 };
-
+*/
 
 class sop_creator
 {
@@ -45,12 +45,22 @@ class sop_creator
   void set_encoder_context(encoder_context* encctx) { mEncCtx=encctx; }
   void set_encoder_picture_buffer(encoder_picture_buffer* encbuf) { mEncPicBuf=encbuf; }
 
+  /* Fills in the following fields:
+     - SPS.ref_pic_sets
+   */
+  virtual void set_SPS_header_values() = 0;
+
+  /* Fills in the following fields:
+     - NAL.nal_type
+     - SHDR.slice_type
+     - IMGDATA.references
+   */
   virtual void insert_new_input_image(const de265_image*) = 0;
   virtual void insert_end_of_stream() { mEncPicBuf->insert_end_of_stream(); }
 
   virtual int  get_number_of_temporal_layers() const { return 1; }
 
-  virtual std::vector<refpic_set> get_sps_refpic_sets() const = 0;
+  //virtual std::vector<refpic_set> get_sps_refpic_sets() const = 0;
 
  protected:
   encoder_context*        mEncCtx;
@@ -62,29 +72,10 @@ class sop_creator
 class sop_creator_intra_only : public sop_creator
 {
  public:
-  sop_creator_intra_only()
-    {
-      mNextFrameNumber = 0;
-    }
+  sop_creator_intra_only();
 
-  virtual std::vector<refpic_set> get_sps_refpic_sets() const
-  {
-    std::vector<refpic_set> refset;
-    return refset;
-  }
-
-  virtual void insert_new_input_image(const de265_image* img)
-  {
-    assert(mEncPicBuf);
-    image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
-
-    imgdata->set_intra();
-    imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
-    imgdata->shdr.slice_type = SLICE_TYPE_I;
-    mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
-
-    mNextFrameNumber++;
-  }
+  virtual void set_SPS_header_values();
+  virtual void insert_new_input_image(const de265_image* img);
 
  private:
   int  mNextFrameNumber;
@@ -95,45 +86,10 @@ class sop_creator_intra_only : public sop_creator
 class sop_creator_trivial_low_delay : public sop_creator
 {
  public:
-  sop_creator_trivial_low_delay()
-    {
-      mNextFrameNumber = 0;
-    }
+  sop_creator_trivial_low_delay();
 
-  virtual std::vector<refpic_set> get_sps_refpic_sets() const
-  {
-    refpic_set s;
-    s.l0.push_back(-1);
-
-    std::vector<refpic_set> refset;
-    refset.push_back(s);
-
-    return refset;
-  }
-
-  virtual void insert_new_input_image(const de265_image* img)
-  {
-    std::vector<int> l0, l1, empty;
-    if (mNextFrameNumber>0) {
-      l0.push_back(mNextFrameNumber-1);
-    }
-
-    assert(mEncPicBuf);
-    image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
-
-    if (mNextFrameNumber==0) {
-      imgdata->set_intra();
-      imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
-      imgdata->shdr.slice_type = SLICE_TYPE_I;
-    } else {
-      imgdata->set_references(0, l0,l1, empty,empty);
-      imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
-      imgdata->shdr.slice_type = SLICE_TYPE_P;
-    }
-    mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
-
-    mNextFrameNumber++;
-  }
+  virtual void set_SPS_header_values();
+  virtual void insert_new_input_image(const de265_image* img);
 
  private:
   int  mNextFrameNumber;

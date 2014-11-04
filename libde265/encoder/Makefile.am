@@ -7,7 +7,7 @@ libde265_encoder_la_SOURCES = \
   encoder-context.h encoder-context.cc \
   analyze.cc analyze.h \
   encpicbuf.h encpicbuf.cc \
-  sop.h
+  sop.h sop.cc
 
 SUBDIRS=algo
 libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la

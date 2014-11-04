@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#define MAX_REF_PIC_SETS 64  // maximum according to standard
+// #define MAX_REF_PIC_SETS 64  // maximum according to standard
 #define MAX_NUM_LT_REF_PICS_SPS 32
 
 
