@@ -65,7 +65,6 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
   rps.NumPositivePics = 0;
   rps.compute_derived_values();
   mEncCtx->sps.ref_pic_sets.push_back(rps);
-  mEncCtx->sps.num_short_term_ref_pic_sets=1; // TODO: remove variable and derive from vector<>
 }
 
 

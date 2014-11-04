@@ -346,19 +346,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       if (!short_term_ref_pic_set_sps_flag) {
         read_short_term_ref_pic_set(ctx, sps,
                                     br, &slice_ref_pic_set,
-                                    sps->num_short_term_ref_pic_sets,
+                                    sps->num_short_term_ref_pic_sets(),
                                     sps->ref_pic_sets,
                                     true);
 
-        CurrRpsIdx = sps->num_short_term_ref_pic_sets;
+        CurrRpsIdx = sps->num_short_term_ref_pic_sets();
         CurrRps    = slice_ref_pic_set;
       }
       else {
-        int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
+        int nBits = ceil_log2(sps->num_short_term_ref_pic_sets());
         if (nBits>0) short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         short_term_ref_pic_set_idx = 0;
 
-        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets ||
+        if (short_term_ref_pic_set_idx > sps->ref_pic_sets.size() ||
             short_term_ref_pic_set_idx >= sps->ref_pic_sets.size()) {
           ctx->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -787,11 +787,11 @@ de265_error slice_segment_header::write(struct error_queue* errqueue, class CABA
         //CurrRps    = slice_ref_pic_set;
       }
       else {
-        int nBits = ceil_log2(sps->num_short_term_ref_pic_sets);
+        int nBits = ceil_log2(sps->num_short_term_ref_pic_sets());
         if (nBits>0) out->write_bits(short_term_ref_pic_set_idx,nBits);
         else         { assert(short_term_ref_pic_set_idx==0); }
 
-        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets) {
+        if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets()) {
           errqueue->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
@@ -1150,10 +1150,10 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets);
+        LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets());
         dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16, fh);
       }
-      else if (sps->num_short_term_ref_pic_sets > 1) {
+      else if (sps->num_short_term_ref_pic_sets() > 1) {
         LOG1("short_term_ref_pic_set_idx           : %d\n", short_term_ref_pic_set_idx);
         dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16, fh);
       }

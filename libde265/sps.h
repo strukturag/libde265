@@ -124,7 +124,7 @@ struct seq_parameter_set {
   int  log2_diff_max_min_pcm_luma_coding_block_size;
   char pcm_loop_filter_disable_flag;
 
-  int num_short_term_ref_pic_sets;
+  int num_short_term_ref_pic_sets() const { return ref_pic_sets.size(); }
   std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
 
   char long_term_ref_pics_present_flag;

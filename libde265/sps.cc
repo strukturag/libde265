@@ -131,8 +131,9 @@ void seq_parameter_set::set_defaults(enum PresetSet)
   // TODO log2_diff_max_min_pcm_luma_coding_block_size;
   pcm_loop_filter_disable_flag = 1;
 
-  num_short_term_ref_pic_sets = 0;
+  // num_short_term_ref_pic_sets = 0;
   // std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
+  ref_pic_sets.clear();
 
   long_term_ref_pics_present_flag = 0;
 
@@ -334,6 +335,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     pcm_loop_filter_disable_flag = 0;
   }
 
+  int num_short_term_ref_pic_sets;
   READ_VLC(num_short_term_ref_pic_sets, uvlc);
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
@@ -575,9 +577,9 @@ void seq_parameter_set::dump(int fd) const
     LOG1("pcm_loop_filter_disable_flag  : %d\n", pcm_loop_filter_disable_flag);
   }
 
-  LOG1("num_short_term_ref_pic_sets : %d\n", num_short_term_ref_pic_sets);
+  LOG1("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
 
-  for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
+  for (int i = 0; i < ref_pic_sets.size(); i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
     dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16, fh);
   }
@@ -1013,6 +1015,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
     out->write_bit(pcm_loop_filter_disable_flag);
   }
 
+  int num_short_term_ref_pic_sets = ref_pic_sets.size();
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
     errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
