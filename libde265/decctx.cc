@@ -1041,12 +1041,12 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
           get_NAL_name(nal_hdr.nal_unit_type),
           nal_hdr.nuh_temporal_id);
 
-
+  /*
     printf("NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
     nal->data()[0], nal->data()[1],
     get_NAL_name(nal_hdr.nal_unit_type),
     nal_hdr.nuh_temporal_id);
-
+  */
 
   // throw away NALs from higher TIDs than currently selected
   // TODO: better online switching of HighestTID
