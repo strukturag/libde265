@@ -24,26 +24,30 @@
 
 sop_creator_intra_only::sop_creator_intra_only()
 {
-  mNextFrameNumber = 0;
 }
 
 
 void sop_creator_intra_only::set_SPS_header_values()
 {
+  mEncCtx->sps.log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 
 void sop_creator_intra_only::insert_new_input_image(const de265_image* img)
 {
+  int poc = get_pic_order_count();
+
   assert(mEncPicBuf);
-  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
+  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, poc);
 
   imgdata->set_intra();
   imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
   imgdata->shdr.slice_type = SLICE_TYPE_I;
-  mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
+  imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
 
-  mNextFrameNumber++;
+  mEncPicBuf->sop_metadata_commit(poc);
+
+  advance_poc();
 }
 
 
@@ -52,7 +56,6 @@ void sop_creator_intra_only::insert_new_input_image(const de265_image* img)
 
 sop_creator_trivial_low_delay::sop_creator_trivial_low_delay()
 {
-  mNextFrameNumber = 0;
 }
 
 
@@ -65,20 +68,23 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
   rps.NumPositivePics = 0;
   rps.compute_derived_values();
   mEncCtx->sps.ref_pic_sets.push_back(rps);
+  mEncCtx->sps.log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 
 void sop_creator_trivial_low_delay::insert_new_input_image(const de265_image* img)
 {
+  int poc = get_pic_order_count();
+
   std::vector<int> l0, l1, empty;
-  if (mNextFrameNumber>0) {
-    l0.push_back(mNextFrameNumber-1);
+  if (poc>0) {
+    l0.push_back(poc-1);
   }
 
   assert(mEncPicBuf);
-  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, mNextFrameNumber);
+  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, poc);
 
-  if (mNextFrameNumber==0) {
+  if (poc==0) {
     imgdata->set_intra();
     imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
     imgdata->shdr.slice_type = SLICE_TYPE_I;
@@ -87,7 +93,8 @@ void sop_creator_trivial_low_delay::insert_new_input_image(const de265_image* im
     imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
     imgdata->shdr.slice_type = SLICE_TYPE_P;
   }
-  mEncPicBuf->sop_metadata_commit(mNextFrameNumber);
+  imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
+  mEncPicBuf->sop_metadata_commit(poc);
 
-  mNextFrameNumber++;
+  advance_poc();
 }

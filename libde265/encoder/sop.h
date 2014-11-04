@@ -36,7 +36,30 @@ struct refpic_set
 };
 */
 
-class sop_creator
+class pic_order_counter
+{
+ public:
+  pic_order_counter() { mPOC=0; mNumLsbBits=6; }
+
+  void reset() { mPOC=0; }
+
+  int get_pic_order_count() const { return mPOC; }
+  int get_pic_order_count_lsb() const {
+    return mPOC & ((1<<mNumLsbBits)-1);
+  }
+
+  void advance_poc(int n=1) { mPOC+=n; }
+
+  void set_num_poc_lsb_bits(int n) { mNumLsbBits=n; }
+  int  get_num_poc_lsb_bits() const { return mNumLsbBits; }
+
+ private:
+  int mPOC;
+  int mNumLsbBits;
+};
+
+
+class sop_creator : public pic_order_counter
 {
  public:
   sop_creator() { mEncCtx=NULL; mEncPicBuf=NULL; }
@@ -47,12 +70,14 @@ class sop_creator
 
   /* Fills in the following fields:
      - SPS.ref_pic_sets
+     - SPS.log2_max_pic_order_cnt_lsb
    */
   virtual void set_SPS_header_values() = 0;
 
   /* Fills in the following fields:
      - NAL.nal_type
      - SHDR.slice_type
+     - SHDR.slice_pic_order_cnt_lsb
      - IMGDATA.references
    */
   virtual void insert_new_input_image(const de265_image*) = 0;
@@ -76,9 +101,6 @@ class sop_creator_intra_only : public sop_creator
 
   virtual void set_SPS_header_values();
   virtual void insert_new_input_image(const de265_image* img);
-
- private:
-  int  mNextFrameNumber;
 };
 
 
@@ -90,9 +112,6 @@ class sop_creator_trivial_low_delay : public sop_creator
 
   virtual void set_SPS_header_values();
   virtual void insert_new_input_image(const de265_image* img);
-
- private:
-  int  mNextFrameNumber;
 };
 
 
