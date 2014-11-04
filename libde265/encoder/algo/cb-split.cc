@@ -65,8 +65,6 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   cb->ctDepth = ctDepth;
   cb->qp = ectx->active_qp;
 
-  printf("active QP: %d\n",ectx->active_qp);
-
   // rate for split_cu_flag (=true)
 
   CABAC_encoder_estim estim;

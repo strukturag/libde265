@@ -104,8 +104,7 @@ void encode_transform_unit(encoder_context* ectx,
 
   // --- quantization ---
 
-  printf("quant: %d\n",cb->qp);
-  quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,  true, cb->qp);
+  quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,  cb->qp, true);
 
   tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
 }

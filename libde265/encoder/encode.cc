@@ -90,7 +90,6 @@ void enc_tb::reconstruct_tb(acceleration_functions* accel,
 
   int16_t dequant_coeff[32*32];
 
-  printf("recon: %d\n",cb->qp);
   if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
   //printf("--- quantized coeffs ---\n");
