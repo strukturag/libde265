@@ -35,6 +35,8 @@ int allocCB = 0;
 #define DEBUG_ALLOCS 0
 
 
+alloc_pool enc_tb::mMemPool(sizeof(enc_tb));
+
 enc_tb::enc_tb()
   : split_transform_flag(false)
 {
@@ -160,6 +162,9 @@ void enc_tb::set_cbf_flags_from_children()
 }
 
 
+
+
+alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
 
 
 enc_cb::enc_cb()

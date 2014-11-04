@@ -73,7 +73,12 @@ class enc_tb
 
   void alloc_coeff_memory(int cIdx, int tbSize);
 
+  static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
+  static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
+
 private:
+  static alloc_pool mMemPool;
+
   void reconstruct_tb(acceleration_functions* accel,
                       de265_image* img, int x0,int y0, int log2TbSize,
                       const enc_cb* cb, int cIdx) const;
@@ -134,6 +139,12 @@ public:
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0) const;
+
+  static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
+  static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
+
+ private:
+  static alloc_pool mMemPool;
 };
 
 

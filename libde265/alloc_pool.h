@@ -23,85 +23,30 @@
 #ifndef ALLOC_POOL_H
 #define ALLOC_POOL_H
 
+#include <vector>
+#include <cstddef>
+#include <cstdint>
 
 
-template <class T> class alloc_pool
+class alloc_pool
 {
  public:
-  alloc_pool() {
-    mBlkSize = BLKSIZE;
-  }
+  alloc_pool(size_t objSize, int poolSize=1000, bool grow=true);
+  ~alloc_pool();
 
-  ~alloc_pool() {
-    for (int i=0;i<mem.size();i++) {
-      delete[] mem[i].data;
-    }
-  }
-
-
-  void set_blk_size(int blkSize) { mBlkSize=blkSize; }
-
-  void free_all() {
-    for (int i=0;i<mem.size();i++) {
-      mem[i].nUsed=0;
-    }
-
-    freelist.clear();
-  }
-
-  T* get_new(int n=1)
-  {
-    if (n==1 && !freelist.empty()) {
-      T* t = freelist.back();
-      freelist.pop_back();
-      return t;
-    }
-
-    for (int i=0;i<mem.size();i++) {
-      range& r = mem[i];
-      if (r.nUsed +n <= r.size) {
-
-        T* t = r.data + r.nUsed;
-        r.nUsed += n;
-
-        // move memory-range to front of list to find it faster next time
-        if (i>0) {
-          std::swap(mem[i],mem[0]);
-        }
-
-        return t;
-      }
-    }
-
-    // no free range: alloc a new one
-
-    int rangeSize = std::max(mBlkSize, n);
-
-    range r;
-    r.data = new T[rangeSize];
-    r.size = rangeSize;
-    r.nUsed = n;
-    mem.push_back(r);
-
-    return r.data;
-  }
-
-  void free(T* t) {
-    freelist.push_back(t);
-  }
+  void* new_obj(const size_t size);
+  void  delete_obj(void*);
+  void  purge();
 
  private:
-  static const int BLKSIZE = 128;
-  int mBlkSize;
+  size_t mObjSize;
+  int    mPoolSize;
+  bool   mGrow;
 
-  struct range {
-    T* data;
-    int size;
-    int nUsed;
-  };
+  std::vector<uint8_t*> m_memBlocks;
+  std::vector<void*>    m_freeList;
 
-  std::vector<range> mem;
-  std::vector<T*> freelist;
+  void add_memory_block();
 };
 
 #endif

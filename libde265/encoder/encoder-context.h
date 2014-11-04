@@ -26,7 +26,6 @@
 #include "libde265/image.h"
 #include "libde265/decctx.h"
 #include "libde265/image-io.h"
-//#include "libde265/alloc_pool.h"
 #include "libde265/encoder/encoder-params.h"
 #include "libde265/encoder/encpicbuf.h"
 #include "libde265/encoder/sop.h"
@@ -79,21 +78,6 @@ struct encoder_context
   std::shared_ptr<sop_creator> sop;
 
   std::deque<en265_packet*> output_packets;
-
-
-  // --- poor man's garbage collector for CB/TB/PB/coeff data ---
-
-  /*
-  alloc_pool<enc_cb>  enc_cb_pool;
-  alloc_pool<enc_tb>  enc_tb_pool;
-  alloc_pool<int16_t> enc_coeff_pool;
-
-  void free_all_pools() {
-    enc_cb_pool.free_all();
-    enc_tb_pool.free_all();
-    enc_coeff_pool.free_all();
-  }
-  */
 
 
   // --- rate-control ---
