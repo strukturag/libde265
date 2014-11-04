@@ -50,6 +50,8 @@
 
     - Algo_CB_IntraPartMode - choose between NxN and 2Nx2N intra parts
 
+    - Algo_CB_PredMode - intra / inter
+
     - Algo_CB_Split - whether CB is split or not
 
     - Algo_CTB_QScale - select QScale on CTB granularity

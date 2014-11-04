@@ -182,7 +182,9 @@ double encode_image(encoder_context* ectx,
         ectx->cabac_bitstream.write_CABAC_term_bit(last);
 
 
-        ectx->free_all_pools();
+        delete cb;
+
+        //ectx->free_all_pools();
       }
 
 

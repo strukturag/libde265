@@ -56,7 +56,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
 
   // create a splitted CB node
-  enc_cb* cb = ectx->enc_cb_pool.get_new();
+  enc_cb* cb = new enc_cb();
 
   cb->split_cu_flag = true;
 
@@ -154,6 +154,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (split_is_better) {
     copy_context_model_table(ctxModel, ctxCopy);
+    delete cb_no_split;
     return cb_split;
   }
   else {
@@ -161,6 +162,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
     cb_no_split->write_to_image(ectx->img, x0,y0, true);
     cb_no_split->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
+    delete cb_split;
     return cb_no_split;
   }
 }

@@ -55,7 +55,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
   for (int p=0;p<lastMode;p++) {
 
-    cb[p] = ectx->enc_cb_pool.get_new();
+    cb[p] = new enc_cb();
 
     cb[p]->split_cu_flag = false;
     cb[p]->log2CbSize = log2CbSize;
@@ -112,8 +112,10 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     if (rd_cost_2Nx2N < rd_cost_NxN) {
       cb[0]->write_to_image(ectx->img, x0,y0, true);
       cb[0]->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
+      delete cb[1];
       return cb[0];
     } else {
+      delete cb[0];
       return cb[1];
     }
   }
@@ -141,7 +143,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
   // --- create new CB ---
 
-  enc_cb* cb = ectx->enc_cb_pool.get_new();
+  enc_cb* cb = new enc_cb();
 
   cb->split_cu_flag = false;
   cb->log2CbSize = log2CbSize;

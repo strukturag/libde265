@@ -32,8 +32,12 @@ struct encoder_context;
 struct enc_cb;
 
 
-struct enc_tb
+class enc_tb
 {
+ public:
+  enc_tb();
+  ~enc_tb();
+
   const enc_tb* parent;
 
   uint8_t split_transform_flag : 1;
@@ -67,6 +71,8 @@ struct enc_tb
 
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
 
+  void alloc_coeff_memory(int cIdx, int tbSize);
+
 private:
   void reconstruct_tb(acceleration_functions* accel,
                       de265_image* img, int x0,int y0, int log2TbSize,
@@ -80,8 +86,12 @@ struct enc_pb_inter
 };
 
 
-struct enc_cb
+class enc_cb
 {
+public:
+  enc_cb();
+  ~enc_cb();
+
   uint8_t split_cu_flag;
   uint8_t log2CbSize;
   uint8_t ctDepth;

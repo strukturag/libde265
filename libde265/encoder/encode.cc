@@ -29,6 +29,44 @@
 #include "libde265/fallback-dct.h"
 
 
+int allocTB = 0;
+int allocCB = 0;
+
+#define DEBUG_ALLOCS 0
+
+
+enc_tb::enc_tb()
+  : split_transform_flag(false)
+{
+  coeff[0]=coeff[1]=coeff[2]=NULL;
+
+  if (DEBUG_ALLOCS) { allocTB++; printf("TB  : %d\n",allocTB); }
+}
+
+
+enc_tb::~enc_tb()
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      delete children[i];
+    }
+  }
+  else {
+    for (int i=0;i<3;i++) {
+      delete[] coeff[i];
+    }
+  }
+
+  if (DEBUG_ALLOCS) { allocTB--; printf("TB ~: %d\n",allocTB); }
+}
+
+
+void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
+{
+  coeff[cIdx] = new int16_t[tbSize*tbSize];
+}
+
+
 void enc_tb::reconstruct_tb(acceleration_functions* accel,
                             de265_image* img, int x0,int y0, int log2TbSize,
                             const enc_cb* cb, int qp, int cIdx) const
@@ -119,6 +157,29 @@ void enc_tb::set_cbf_flags_from_children()
     cbf[1] |= children[i]->cbf[1];
     cbf[2] |= children[i]->cbf[2];
   }
+}
+
+
+
+
+enc_cb::enc_cb()
+  : split_cu_flag(false), transform_tree(NULL)
+{
+  if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
+}
+
+enc_cb::~enc_cb()
+{
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++) {
+      delete children[i];
+    }
+  }
+  else {
+    delete transform_tree;
+  }
+
+  if (DEBUG_ALLOCS) { allocCB--; printf("CB ~: %d\n",allocCB); }
 }
 
 

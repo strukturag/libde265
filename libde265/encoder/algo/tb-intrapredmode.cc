@@ -109,171 +109,6 @@ static void diff_blk(int16_t* out,int out_stride,
 
 
 
-#if 0
-void encode_transform_unit(encoder_context* ectx,
-                           enc_tb* tb,
-                           const de265_image* input,
-                           int x0,int y0, // luma position
-                           int log2TbSize, // chroma adapted
-                           const enc_cb* cb,
-                           int qp, int cIdx)
-{
-  int xC = x0;
-  int yC = y0;
-  int tbSize = 1<<log2TbSize;
-
-
-  // --- do intra prediction ---
-
-  enum IntraPredMode intraPredMode  = ectx->img->get_IntraPredMode(x0,y0);
-
-  if (cIdx>0) {
-    intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
-    //cb->intra.chroma_mode);
-
-    xC >>= 1;
-    yC >>= 1;
-  }
-  
-  decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
-
-
-  // --- subtract prediction from input ---
-
-  int16_t blk[32*32];
-  uint8_t* pred = ectx->img->get_image_plane(cIdx);
-  int stride = ectx->img->get_image_stride(cIdx);
-
-  diff_blk(blk,tbSize,
-           input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
-           &pred[yC*stride+xC],stride, tbSize);
-
-
-  // --- forward transform ---
-
-  tb->coeff[cIdx] = ectx->enc_coeff_pool.get_new(tbSize*tbSize);
-
-  int trType = 0;
-  if (cIdx==0 && log2TbSize==2) trType=1; // TODO: inter mode
-
-  fwd_transform(&ectx->accel, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
-
-
-  // --- quantization ---
-
-  quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,   qp, true);
-
-  tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
-}
-
-
-const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                             context_model_table ctxModel,
-                                             const de265_image* input,
-                                             const enc_tb* parent,
-                                             enc_cb* cb,
-                                             int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                             int blkIdx,
-                                             int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                             int qp)
-{
-  //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
-
-  de265_image* img = ectx->img;
-
-  int stride = ectx->img->get_image_stride(0);
-
-  uint8_t* luma_plane = ectx->img->get_image_plane(0);
-  uint8_t* cb_plane = ectx->img->get_image_plane(1);
-  uint8_t* cr_plane = ectx->img->get_image_plane(2);
-
-  // --- compute transform coefficients ---
-
-  enc_tb* tb = ectx->enc_tb_pool.get_new();
-
-  tb->parent = parent;
-  tb->split_transform_flag = false;
-  tb->log2TbSize = log2TbSize;
-  tb->cbf[0] = tb->cbf[1] = tb->cbf[2] = 0;
-
-
-  // luma block
-
-  encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, qp, 0 /* Y */);
-
-
-  // chroma blocks
-
-  if (log2TbSize > 2) {
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 2 /* Cr */);
-  }
-  else if (blkIdx==3) {
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 2 /* Cr */);
-  }
-
-#if 0
-  uint32_t distortion;
-  if (log2TbSize==3) {
-    distortion = SAD(input->get_image_plane_at_pos(0, x0,y0),
-                     input->get_image_stride(0),
-                     ectx->img->get_image_plane_at_pos(0, x0,y0),
-                     ectx->img->get_image_stride(0),
-                     1<<log2TbSize, 1<<log2TbSize);
-
-    int16_t coeffs[64];
-    int16_t diff[64];
-
-    diff_blk(diff,8,
-             input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-             ectx->img->get_image_plane_at_pos(0, x0,y0), ectx->img->get_image_stride(0),
-             8);
-
-    fdct_8x8_8_fallback(coeffs, diff, &diff[8] - &diff[0]);
-
-    distortion=0;
-    for (int i=0;i<64;i++) {
-      //printf("%d %d\n",i,(int)coeffs[i]);
-      distortion += abs_value((int)coeffs[i]);
-    }
-  }
-#endif
-
-  // reconstruction
-
-  tb->reconstruct(&ectx->accel, ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
-
-
-
-  // measure rate
-
-  CABAC_encoder_estim estim;
-  ectx->switch_CABAC(ctxModel, &estim);
-
-  encode_transform_tree(ectx, tb, cb, x0,y0, xBase,yBase,
-                        log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
-
-
-  tb->rate = estim.getRDBits();
-
-#if 0
-  if (log2TbSize==3) {
-    printf("RATE %d %f\n",distortion,tb->rate);
-  }
-#endif
-
-  // measure distortion
-
-  int tbSize = 1<<log2TbSize;
-  tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                       img  ->get_image_plane_at_pos(0, x0,y0), img  ->get_image_stride(0),
-                       tbSize, tbSize);
-
-  return tb;
-}
-#endif
-
 float estim_TB_bitrate(const encoder_context* ectx,
                        const de265_image* input,
                        int x0,int y0, int log2BlkSize,
@@ -445,6 +280,12 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
 
+    for (int i = 0; i<35; i++) {
+      if (i != minCostIdx) {
+        delete tb[i];
+      }
+    }
+
     return tb[minCostIdx];
   }
   else {
@@ -550,8 +391,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    const enc_tb* tb[35];
-
     float minCost = std::numeric_limits<float>::max();
     int   minCostIdx=0;
     float minCandCost;
@@ -593,6 +432,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[0],0));
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[1],0));
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[2],0));
+
+
+    const enc_tb* tb[35];
 
     for (int i=0;i<35;i++) tb[i]=NULL;
 
@@ -644,6 +486,11 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                 ectx->img, x0,y0, xBase,yBase,
                                 cb, qp, blkIdx);
 
+    for (int i = 0; i<35; i++) {
+      if (i != minCostIdx) {
+        delete tb[i];
+      }
+    }
 
     //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
 

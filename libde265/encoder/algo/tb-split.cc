@@ -94,7 +94,7 @@ void encode_transform_unit(encoder_context* ectx,
 
   // --- forward transform ---
 
-  tb->coeff[cIdx] = ectx->enc_coeff_pool.get_new(tbSize*tbSize);
+  tb->alloc_coeff_memory(cIdx, tbSize);
 
   int trType = 0;
   if (cIdx==0 && log2TbSize==2) trType=1; // TODO: inter mode
@@ -132,7 +132,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // --- compute transform coefficients ---
 
-  enc_tb* tb = ectx->enc_tb_pool.get_new();
+  enc_tb* tb = new enc_tb();
 
   tb->parent = parent;
   tb->split_transform_flag = false;
@@ -229,7 +229,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 {
   const de265_image* img = ectx->img;
 
-  enc_tb* tb = ectx->enc_tb_pool.get_new();
+  enc_tb* tb = new enc_tb();
 
   tb->parent = parent;
   tb->split_transform_flag = true;
@@ -441,10 +441,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   bool split = (rd_cost_split < rd_cost_no_split);
 
   if (split) {
+    delete tb_no_split;
     assert(tb_split);
     return tb_split;
   }
   else {
+    delete tb_split;
     assert(tb_no_split);
     tb_no_split->reconstruct(&ectx->accel,
                              ectx->img, x0,y0, xBase,yBase,
