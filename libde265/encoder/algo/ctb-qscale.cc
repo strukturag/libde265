@@ -37,7 +37,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           int ctb_x,int ctb_y,
                                           int log2CtbSize, int ctDepth)
 {
-  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth,mParams.mQP);
+  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,log2CtbSize,ctDepth);
 }
 
 

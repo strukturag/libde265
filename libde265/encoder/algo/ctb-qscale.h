@@ -35,9 +35,6 @@
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
 
-#include "libde265/encoder/algo/tb-intrapredmode.h"
-#include "libde265/encoder/algo/tb-split.h"
-#include "libde265/encoder/algo/cb-intrapartmode.h"
 #include "libde265/encoder/algo/cb-split.h"
 
 

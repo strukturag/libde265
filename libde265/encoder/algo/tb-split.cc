@@ -59,7 +59,7 @@ void encode_transform_unit(encoder_context* ectx,
                            int x0,int y0, // luma position
                            int log2TbSize, // chroma adapted
                            const enc_cb* cb,
-                           int qp, int cIdx)
+                           int cIdx)
 {
   int xC = x0;
   int yC = y0;
@@ -104,7 +104,8 @@ void encode_transform_unit(encoder_context* ectx,
 
   // --- quantization ---
 
-  quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,   qp, true);
+  printf("quant: %d\n",cb->qp);
+  quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,  true, cb->qp);
 
   tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
 }
@@ -117,8 +118,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                              enc_cb* cb,
                                              int x0,int y0, int xBase,int yBase, int log2TbSize,
                                              int blkIdx,
-                                             int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                             int qp)
+                                             int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
   //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
 
@@ -142,18 +142,18 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // luma block
 
-  encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, qp, 0 /* Y */);
+  encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
 
 
   // chroma blocks
 
   if (log2TbSize > 2) {
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, qp, 2 /* Cr */);
+    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
+    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
   else if (blkIdx==3) {
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, qp, 2 /* Cr */);
+    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
+    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
   }
 
 #if 0
@@ -185,7 +185,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // reconstruction
 
-  tb->reconstruct(&ectx->accel, ectx->img, x0,y0, xBase,yBase, cb, qp, blkIdx);
+  tb->reconstruct(&ectx->accel, ectx->img, x0,y0, xBase,yBase, cb, blkIdx);
 
 
 
@@ -224,8 +224,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                          enc_cb* cb,
                                                          int x0,int y0, int log2TbSize,
                                                          int TrafoDepth, int MaxTrafoDepth,
-                                                         int IntraSplitFlag,
-                                                         int qp)
+                                                         int IntraSplitFlag)
 {
   const de265_image* img = ectx->img;
 
@@ -251,8 +250,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
                                                       x0+dx, y0+dy, x0,y0,
                                                       log2TbSize-1, i,
-                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag,
-                                                      qp);
+                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
@@ -360,8 +358,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   int x0,int y0, int xBase,int yBase, int log2TbSize,
                                   int blkIdx,
                                   int TrafoDepth, int MaxTrafoDepth,
-                                  int IntraSplitFlag,
-                                  int qp)
+                                  int IntraSplitFlag)
 {
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
@@ -395,8 +392,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
-                                                 TrafoDepth,MaxTrafoDepth,IntraSplitFlag,
-                                                 qp);
+                                                 TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
 
     rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
     //printf("-\n");
@@ -418,8 +414,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     //printf("test split\n");
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
-                                           TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                           qp);
+                                           TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
     //printf("-\n");
@@ -450,7 +445,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     assert(tb_no_split);
     tb_no_split->reconstruct(&ectx->accel,
                              ectx->img, x0,y0, xBase,yBase,
-                             cb, qp, blkIdx);
+                             cb, blkIdx);
 
     return tb_no_split;
   }

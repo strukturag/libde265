@@ -67,8 +67,7 @@ class Algo_TB_Split
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp) = 0;
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
 
@@ -79,8 +78,7 @@ class Algo_TB_Split
                                             const enc_tb* parent,
                                             enc_cb* cb,
                                             int x0,int y0, int log2TbSize,
-                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                            int qp);
+                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
 };
@@ -132,8 +130,7 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp);
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;

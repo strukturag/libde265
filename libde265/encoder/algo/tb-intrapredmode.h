@@ -103,8 +103,7 @@ class Algo_TB_IntraPredMode
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp) = 0;
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
 
@@ -191,8 +190,7 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp);
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 };
 
 
@@ -229,8 +227,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp);
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;
@@ -263,8 +260,7 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
                                 enc_cb* cb,
                                 int x0,int y0, int xBase,int yBase, int log2TbSize,
                                 int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag,
-                                int qp);
+                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;

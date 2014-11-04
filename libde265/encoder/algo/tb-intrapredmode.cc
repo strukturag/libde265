@@ -185,7 +185,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                           int x0,int y0, int xBase,int yBase,
                                           int log2TbSize, int blkIdx,
                                           int TrafoDepth, int MaxTrafoDepth,
-                                          int IntraSplitFlag, int qp)
+                                          int IntraSplitFlag)
 {
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
 
@@ -233,8 +233,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                            qp);
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
 
       float sad;
@@ -275,7 +274,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     tb[minCostIdx]->reconstruct(&ectx->accel,
                                 ectx->img, x0,y0, xBase,yBase,
-                                cb, qp, blkIdx);
+                                cb, blkIdx);
 
 
     //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
@@ -292,7 +291,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                  x0,y0,xBase,yBase, log2TbSize,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
-                                 IntraSplitFlag, qp);
+                                 IntraSplitFlag);
   }
 }
 
@@ -307,7 +306,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            int x0,int y0, int xBase,int yBase,
                                            int log2TbSize, int blkIdx,
                                            int TrafoDepth, int MaxTrafoDepth,
-                                           int IntraSplitFlag, int qp)
+                                           int IntraSplitFlag)
 {
 
   bool selectIntraPredMode = false;
@@ -343,12 +342,11 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     const enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
                                              cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                             qp);
+                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
     tb->reconstruct(&ectx->accel,
                     ectx->img, x0,y0, xBase,yBase,
-                    cb, qp, blkIdx);
+                    cb, blkIdx);
 
     return tb;
   }
@@ -356,7 +354,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                  x0,y0,xBase,yBase, log2TbSize,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
-                                 IntraSplitFlag, qp);
+                                 IntraSplitFlag);
   }
 }
 
@@ -376,7 +374,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          int x0,int y0, int xBase,int yBase,
                                          int log2TbSize, int blkIdx,
                                          int TrafoDepth, int MaxTrafoDepth,
-                                         int IntraSplitFlag, int qp)
+                                         int IntraSplitFlag)
 {
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
 
@@ -453,8 +451,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag,
-                                            qp);
+                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
 
       float rate = tb[intraMode]->rate;
@@ -484,7 +481,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     tb[minCostIdx]->reconstruct(&ectx->accel,
                                 ectx->img, x0,y0, xBase,yBase,
-                                cb, qp, blkIdx);
+                                cb, blkIdx);
 
     for (int i = 0; i<35; i++) {
       if (i != minCostIdx) {
@@ -500,7 +497,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                  x0,y0,xBase,yBase, log2TbSize,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
-                                 IntraSplitFlag, qp);
+                                 IntraSplitFlag);
   }
 }
 

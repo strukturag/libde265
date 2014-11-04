@@ -80,7 +80,7 @@ class Algo_CB_IntraPartMode
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp) = 0;
+                          int log2CbSize, int ctDepth) = 0;
 
   void setChildAlgo(Algo_TB_IntraPredMode* algo) { mTBIntraPredModeAlgo = algo; }
 
@@ -97,7 +97,7 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp);
+                          int log2CbSize, int ctDepth);
 };
 
 
@@ -137,8 +137,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
   virtual enc_cb* analyze(encoder_context* ectx,
                           context_model_table ctxModel,
                           const de265_image* input,
-                          int x0,int y0, int log2CbSize, int ctDepth,
-                          int qp);
+                          int x0,int y0, int log2CbSize, int ctDepth);
 
  private:
   params mParams;

@@ -35,8 +35,7 @@
 enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
                                                   context_model_table ctxModel,
                                                   const de265_image* input,
-                                                  int x0,int y0, int log2CbSize, int ctDepth,
-                                                  int qp)
+                                                  int x0,int y0, int log2CbSize, int ctDepth)
 {
   enc_cb* cb[2] =
     { NULL, // 2Nx2N  (always checked)
@@ -60,6 +59,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     cb[p]->split_cu_flag = false;
     cb[p]->log2CbSize = log2CbSize;
     cb[p]->ctDepth = ctDepth;
+    cb[p]->qp = ectx->active_qp;
 
     cb[p]->cu_transquant_bypass_flag = false;
 
@@ -81,8 +81,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     cb[p]->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb[p],
                                                           x0,y0, x0,y0, log2CbSize,
                                                           0,
-                                                          0, MaxTrafoDepth, IntraSplitFlag,
-                                                          qp);
+                                                          0, MaxTrafoDepth, IntraSplitFlag);
 
     cb[p]->distortion = cb[p]->transform_tree->distortion;
     cb[p]->rate       = cb[p]->transform_tree->rate;
@@ -111,7 +110,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
       cb[0]->write_to_image(ectx->img, x0,y0, true);
-      cb[0]->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
+      cb[0]->reconstruct(&ectx->accel, ectx->img, x0,y0);
       delete cb[1];
       return cb[0];
     } else {
@@ -127,8 +126,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
                                              const de265_image* input,
-                                             int x0,int y0, int log2CbSize, int ctDepth,
-                                             int qp)
+                                             int x0,int y0, int log2CbSize, int ctDepth)
 {
   enum PartMode PartMode = mParams.partMode();
 
@@ -148,6 +146,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   cb->split_cu_flag = false;
   cb->log2CbSize = log2CbSize;
   cb->ctDepth = ctDepth;
+  cb->qp = ectx->active_qp;
 
   cb->cu_transquant_bypass_flag = false;
 
@@ -169,8 +168,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb,
                                                      x0,y0, x0,y0, log2CbSize,
                                                      0,
-                                                     0, MaxTrafoDepth, IntraSplitFlag,
-                                                     qp);
+                                                     0, MaxTrafoDepth, IntraSplitFlag);
   
 
   // rate and distortion for this CB

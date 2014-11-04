@@ -49,7 +49,7 @@ bool Algo_CB_Split::forcedSplit(const de265_image* input, int x0,int y0, int Log
 enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
                                        context_model_table ctxModel,
                                        const de265_image* input,
-                                       int x0,int y0, int Log2CbSize, int ctDepth, int qp)
+                                       int x0,int y0, int Log2CbSize, int ctDepth)
 {
   int w = input->get_width();
   int h = input->get_height();
@@ -63,7 +63,9 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   cb->cu_transquant_bypass_flag = false;
   cb->log2CbSize = Log2CbSize;
   cb->ctDepth = ctDepth;
+  cb->qp = ectx->active_qp;
 
+  printf("active QP: %d\n",ectx->active_qp);
 
   // rate for split_cu_flag (=true)
 
@@ -87,7 +89,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
     else {
       cb->children[i] = analyze(ectx, ctxModel,
                                 input, x0+dx, y0+dy,
-                                Log2CbSize-1, ctDepth+1, qp);
+                                Log2CbSize-1, ctDepth+1);
 
       cb->distortion += cb->children[i]->distortion;
       cb->rate       += cb->children[i]->rate;
@@ -104,8 +106,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table ctxModel,
                                           const de265_image* input,
                                           int x0,int y0, int Log2CbSize,
-                                          int ctDepth,
-                                          int qp)
+                                          int ctDepth)
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
@@ -128,14 +129,14 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (can_nosplit_CB) {
     cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                              x0,y0, Log2CbSize, ctDepth, qp);
+                                              x0,y0, Log2CbSize, ctDepth);
   }
 
   // if possible, try to split CB
 
   if (can_split_CB) {
     cb_split = encode_cb_split(ectx, ctxSplit,
-                               input,x0,y0, Log2CbSize, ctDepth, qp);
+                               input,x0,y0, Log2CbSize, ctDepth);
   }
 
 
@@ -161,7 +162,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     // have to reconstruct state of the first option
 
     cb_no_split->write_to_image(ectx->img, x0,y0, true);
-    cb_no_split->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
+    cb_no_split->reconstruct(&ectx->accel, ectx->img, x0,y0);
     delete cb_split;
     return cb_no_split;
   }

@@ -67,7 +67,7 @@ class enc_tb
 
   void reconstruct(acceleration_functions* accel,
                    de265_image* img, int x0,int y0, int xBase,int yBase,
-                   const enc_cb* cb, int qp, int blkIdx=0) const;
+                   const enc_cb* cb, int blkIdx=0) const;
 
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
 
@@ -76,7 +76,7 @@ class enc_tb
 private:
   void reconstruct_tb(acceleration_functions* accel,
                       de265_image* img, int x0,int y0, int log2TbSize,
-                      const enc_cb* cb, int qp, int cIdx) const;
+                      const enc_cb* cb, int cIdx) const;
 };
 
 
@@ -95,6 +95,7 @@ public:
   uint8_t split_cu_flag;
   uint8_t log2CbSize;
   uint8_t ctDepth;
+      uint8_t qp;
 
   union {
     // split
@@ -107,7 +108,6 @@ public:
       uint8_t cu_transquant_bypass_flag; // currently unused
       uint8_t pcm_flag;
       //uint8_t root_rqt_cbf;
-      //int qp; // TMP
 
       enum PredMode PredMode;
       enum PartMode PartMode;
@@ -133,7 +133,7 @@ public:
   void write_to_image(de265_image*, int x,int y,bool intraSlice) const;
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
-                   int x0,int y0, int qp) const;
+                   int x0,int y0) const;
 };
 
 

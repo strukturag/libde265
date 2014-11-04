@@ -65,7 +65,7 @@ class Algo_CB_Split
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth, int qp) = 0;
+                          int log2CbSize, int ctDepth) = 0;
 
   // TODO: probably, this will later be a intra/inter decision which again
   // has two child algorithms, depending on the coding mode.
@@ -79,7 +79,7 @@ class Algo_CB_Split
   enc_cb* encode_cb_split(encoder_context* ectx,
                           context_model_table ctxModel,
                           const de265_image* input,
-                          int x0,int y0, int Log2CbSize, int ctDepth, int qp);
+                          int x0,int y0, int Log2CbSize, int ctDepth);
 };
 
 class Algo_CB_Split_BruteForce : public Algo_CB_Split
@@ -89,7 +89,7 @@ class Algo_CB_Split_BruteForce : public Algo_CB_Split
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CtbSize, int ctDepth, int qp);
+                          int log2CtbSize, int ctDepth);
 };
 
 #endif

@@ -106,6 +106,9 @@ double encode_image(encoder_context* ectx,
   ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
+  ectx->active_qp = ectx->pps.pic_init_qp; // TODO take current qp from slice
+
+
   initialize_CABAC_models(ectx->ctx_model, ectx->shdr->initType, ectx->shdr->SliceQPY);
 
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;

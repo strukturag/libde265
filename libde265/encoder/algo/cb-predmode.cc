@@ -67,7 +67,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
   if (try_intra) {
     cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                           x0,y0, Log2CbSize, ctDepth, qp);
+                                           x0,y0, Log2CbSize, ctDepth);
 
     cb_intra->PredMode = MODE_INTRA;
   }
@@ -93,7 +93,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
     // have to reconstruct state
     cb_inter->write_to_image(ectx->img, x0,y0, true);
-    cb_inter->reconstruct(&ectx->accel, ectx->img, x0,y0, qp);
+    cb_inter->reconstruct(&ectx->accel, ectx->img, x0,y0);
     return cb_inter;
   }
   else {

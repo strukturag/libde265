@@ -63,7 +63,9 @@ struct encoder_context
 
 
 
-  //int pic_qp; // TODO: this should be removed again, eventually
+  int active_qp; // currently active QP
+  /*int target_qp;*/ /* QP we want to code at.
+                     (Not actually the real QP. Check image.get_QPY() for that.) */
 
   video_parameter_set  vps;
   seq_parameter_set    sps;

@@ -69,7 +69,7 @@ void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
 
 void enc_tb::reconstruct_tb(acceleration_functions* accel,
                             de265_image* img, int x0,int y0, int log2TbSize,
-                            const enc_cb* cb, int qp, int cIdx) const
+                            const enc_cb* cb, int cIdx) const
 {
   int xC=x0;
   int yC=y0;
@@ -90,7 +90,8 @@ void enc_tb::reconstruct_tb(acceleration_functions* accel,
 
   int16_t dequant_coeff[32*32];
 
-  if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize,   qp);
+  printf("recon: %d\n",cb->qp);
+  if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
   //printf("--- quantized coeffs ---\n");
   //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
@@ -120,25 +121,25 @@ void enc_tb::reconstruct(acceleration_functions* accel,
                          de265_image* img,
                          int x0,int y0, int xBase, int yBase,
                          const enc_cb* cb,
-                         int qp, int blkIdx) const
+                         int blkIdx) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(accel,img,
                                childX(x0,i,log2TbSize), childY(y0,i,log2TbSize), x0,y0,
-                               cb, qp, i);
+                               cb, i);
     }
   }
   else {
-    reconstruct_tb(accel, img, x0,y0, log2TbSize, cb, qp, 0);
+    reconstruct_tb(accel, img, x0,y0, log2TbSize, cb, 0);
 
     if (log2TbSize>2) {
-      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, qp, 1);
-      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, qp, 2);
+      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, 1);
+      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, 2);
     }
     else if (blkIdx==3) {
-      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, qp, 1);
-      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, qp, 2);
+      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, 1);
+      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, 2);
     }
   }
 }
@@ -226,18 +227,17 @@ void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
 
 
 void enc_cb::reconstruct(acceleration_functions* accel,
-                         de265_image* img, int x0,int y0, int qp) const
+                         de265_image* img, int x0,int y0) const
 {
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(accel, img,
                                childX(x0,i,log2CbSize),
-                               childY(y0,i,log2CbSize),
-                               qp);
+                               childY(y0,i,log2CbSize));
     }
   }
   else {
-    transform_tree->reconstruct(accel,img,x0,y0,x0,y0,this,qp,0);
+    transform_tree->reconstruct(accel,img,x0,y0,x0,y0,this,0);
   }
 }
 
