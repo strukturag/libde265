@@ -95,7 +95,6 @@ public:
   uint8_t split_cu_flag;
   uint8_t log2CbSize;
   uint8_t ctDepth;
-      uint8_t qp;
 
   union {
     // split
@@ -108,6 +107,7 @@ public:
       uint8_t cu_transquant_bypass_flag; // currently unused
       uint8_t pcm_flag;
       //uint8_t root_rqt_cbf;
+      uint8_t qp;
 
       enum PredMode PredMode;
       enum PartMode PartMode;

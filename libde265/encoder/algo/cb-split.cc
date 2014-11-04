@@ -63,7 +63,6 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   cb->cu_transquant_bypass_flag = false;
   cb->log2CbSize = Log2CbSize;
   cb->ctDepth = ctDepth;
-  cb->qp = ectx->active_qp;
 
   // rate for split_cu_flag (=true)
 
