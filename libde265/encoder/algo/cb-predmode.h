@@ -51,7 +51,7 @@ class Algo_CB_PredMode
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CbSize, int ctDepth) = 0;
+                          const enc_cb* parent) = 0;
 
   void setIntraChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
   // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
@@ -67,7 +67,7 @@ class Algo_CB_PredMode_BruteForce : public Algo_CB_PredMode
                           context_model_table,
                           const de265_image* input,
                           int ctb_x,int ctb_y,
-                          int log2CtbSize, int ctDepth);
+                          const enc_cb* parent);
 };
 
 #endif

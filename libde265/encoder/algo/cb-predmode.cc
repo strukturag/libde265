@@ -33,8 +33,8 @@
 enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
                                              const de265_image* input,
-                                             int x0,int y0, int Log2CbSize,
-                                             int ctDepth)
+                                             int x0,int y0,
+                                             const enc_cb* parent_cb)
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
@@ -63,11 +63,15 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     */
   }
 
+
   // try intra
 
   if (try_intra) {
+    int log2CbSize = (parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY);
+    int ctDepth    = (parent_cb ? parent_cb->ctDepth+1    : 0);
+
     cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                           x0,y0, Log2CbSize, ctDepth);
+                                           x0,y0, log2CbSize, ctDepth);
 
     cb_intra->PredMode = MODE_INTRA;
   }
