@@ -141,8 +141,7 @@ double encode_image(encoder_context* ectx,
                                          input, x0,y0, Log2CtbSize, 0, qp);
         */
 
-        enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel,
-                                                      input, x0,y0, Log2CtbSize,0);
+        enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel, x0,y0);
 #else
         float minCost = std::numeric_limits<float>::max();
         int bestQ = 0;

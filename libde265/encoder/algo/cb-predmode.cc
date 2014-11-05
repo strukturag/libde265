@@ -32,9 +32,7 @@
 
 enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
-                                             const de265_image* input,
-                                             int x0,int y0,
-                                             const enc_cb* parent_cb)
+                                             enc_cb* cb)
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
@@ -67,19 +65,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   // try intra
 
   if (try_intra) {
-    int log2CbSize = (parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY);
-    int ctDepth    = (parent_cb ? parent_cb->ctDepth+1    : 0);
-
-    enc_cb* cb = new enc_cb();
-    cb->split_cu_flag = false;
-    cb->log2CbSize = log2CbSize;
-    cb->ctDepth = ctDepth;
-    cb->qp = ectx->active_qp;
-    cb->cu_transquant_bypass_flag = false;
-    cb->x = x0;
-    cb->y = y0;
     cb->PredMode = MODE_INTRA;
-
     cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, cb);
   }
 
@@ -103,8 +89,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     copy_context_model_table(ctxModel, ctxInter);
 
     // have to reconstruct state
-    cb_inter->write_to_image(ectx->img, x0,y0, true);
-    cb_inter->reconstruct(&ectx->accel, ectx->img, x0,y0);
+    cb_inter->write_to_image(ectx->img, cb->x,cb->y, true);
+    cb_inter->reconstruct(&ectx->accel, ectx->img, cb->x,cb->y);
     return cb_inter;
   }
   else {

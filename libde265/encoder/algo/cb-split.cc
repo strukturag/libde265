@@ -48,28 +48,26 @@ bool Algo_CB_Split::forcedSplit(const de265_image* input, int x0,int y0, int Log
 // Children are coded with the specified algo_cb_split.
 enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
                                        context_model_table ctxModel,
-                                       const de265_image* input,
-                                       int x0,int y0,
-                                       const enc_cb* parent_cb)
+                                       enc_cb* cb)
 {
-  int w = input->get_width();
-  int h = input->get_height();
+  int w = ectx->imgdata->input->get_width();
+  int h = ectx->imgdata->input->get_height();
 
 
   // create a splitted CB node
-  enc_cb* cb = new enc_cb();
+  //enc_cb* cb = new enc_cb();
 
   cb->split_cu_flag = true;
 
-  cb->cu_transquant_bypass_flag = false;
-  cb->log2CbSize = (parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY);
-  cb->ctDepth    = (parent_cb ? parent_cb->ctDepth+1    : 0);
+  cb->cu_transquant_bypass_flag = false; // TODO: move to somewhere else
+  //cb->log2CbSize = (parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY);
+  //cb->ctDepth    = (parent_cb ? parent_cb->ctDepth+1    : 0);
 
   // rate for split_cu_flag (=true)
 
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
-  encode_quadtree(ectx,cb,x0,y0,cb->log2CbSize,cb->ctDepth, false);
+  encode_quadtree(ectx,cb,cb->x,cb->y,cb->log2CbSize,cb->ctDepth, false);
 
   cb->distortion = 0;
   cb->rate       = estim.getRDBits();
@@ -81,13 +79,20 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
     int dx = (i&1)  << (cb->log2CbSize-1);
     int dy = (i>>1) << (cb->log2CbSize-1);
 
-    if (x0+dx>=w || y0+dy>=h) {
+    if (cb->x+dx>=w || cb->y+dy>=h) {
       cb->children[i] = NULL;
     }
     else {
-      cb->children[i] = analyze(ectx, ctxModel,
-                                input, x0+dx, y0+dy,
-                                cb);
+      enc_cb* childCB = new enc_cb;
+      childCB->split_cu_flag = false;
+      childCB->log2CbSize = cb->log2CbSize-1;
+      childCB->ctDepth = cb->ctDepth+1;
+      childCB->qp = ectx->active_qp;
+      childCB->cu_transquant_bypass_flag = false;
+      childCB->x = cb->x + dx;
+      childCB->y = cb->y + dy;
+
+      cb->children[i] = analyze(ectx, ctxModel, childCB);
 
       cb->distortion += cb->children[i]->distortion;
       cb->rate       += cb->children[i]->rate;
@@ -102,15 +107,13 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
 enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table ctxModel,
-                                          const de265_image* input,
-                                          int x0,int y0,
-                                          const enc_cb* parent_cb)
+                                          enc_cb* cb)
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
-  const int Log2CbSize = parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY;
+  const int Log2CbSize = cb->log2CbSize;
   const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
-  const bool can_nosplit_CB = !forcedSplit(input,x0,y0,Log2CbSize);
+  const bool can_nosplit_CB = !forcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
 
   context_model_table ctxCopy;
   context_model* ctxSplit = ctxModel;
@@ -127,18 +130,20 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   enc_cb* cb_split    = NULL;
 
   if (can_nosplit_CB) {
-    cb_no_split = mPredModeAlgo->analyze(ectx, ctxModel, input,
-                                         x0,y0,
-                                         parent_cb);
+    cb_no_split = new enc_cb;
+    *cb_no_split = *cb;
+    cb_no_split = mPredModeAlgo->analyze(ectx, ctxModel, cb_no_split);
   }
 
   // if possible, try to split CB
 
   if (can_split_CB) {
-    cb_split = encode_cb_split(ectx, ctxSplit,
-                               input,x0,y0, parent_cb);
+    cb_split = new enc_cb;
+    *cb_split = *cb;
+    cb_split = encode_cb_split(ectx, ctxSplit, cb_split);
   }
 
+  delete cb;
 
   // if only one variant has been tested, choose this
 
@@ -161,8 +166,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     // have to reconstruct state of the first option
 
-    cb_no_split->write_to_image(ectx->img, x0,y0, true);
-    cb_no_split->reconstruct(&ectx->accel, ectx->img, x0,y0);
+    cb_no_split->write_to_image(ectx->img, cb->x,cb->y, true);
+    cb_no_split->reconstruct(&ectx->accel, ectx->img, cb->x,cb->y);
     delete cb_split;
     return cb_no_split;
   }

@@ -45,6 +45,7 @@ class enc_tb
   //uint8_t cbf_cb : 1;
   //uint8_t cbf_cr : 1;
   uint8_t log2TbSize : 3;
+  uint8_t TrafoDepth;
 
   uint8_t cbf[3];
 
@@ -96,6 +97,8 @@ class enc_cb
 public:
   enc_cb();
   ~enc_cb();
+
+  const enc_cb* parent;
 
   uint8_t split_cu_flag;
   uint8_t log2CbSize;

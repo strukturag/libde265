@@ -49,9 +49,7 @@ class Algo_CB_PredMode
 
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          const enc_cb* parent) = 0;
+                          enc_cb* cb) = 0;
 
   void setIntraChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
   // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
@@ -65,9 +63,7 @@ class Algo_CB_PredMode_BruteForce : public Algo_CB_PredMode
  public:
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          const enc_cb* parent);
+                          enc_cb* cb);
 };
 
 #endif

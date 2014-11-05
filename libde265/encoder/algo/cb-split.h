@@ -63,9 +63,7 @@ class Algo_CB_Split
 
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          const enc_cb* parent_cb) = 0;
+                          enc_cb* cb) = 0;
 
   // TODO: probably, this will later be a intra/inter decision which again
   // has two child algorithms, depending on the coding mode.
@@ -78,9 +76,7 @@ class Algo_CB_Split
 
   enc_cb* encode_cb_split(encoder_context* ectx,
                           context_model_table ctxModel,
-                          const de265_image* input,
-                          int x0,int y0,
-                          const enc_cb* parent_cb);
+                          enc_cb* cb);
 };
 
 class Algo_CB_Split_BruteForce : public Algo_CB_Split
@@ -88,9 +84,7 @@ class Algo_CB_Split_BruteForce : public Algo_CB_Split
  public:
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          const de265_image* input,
-                          int ctb_x,int ctb_y,
-                          const enc_cb* parent_cb);
+                          enc_cb* cb);
 };
 
 #endif

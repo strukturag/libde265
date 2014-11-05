@@ -63,7 +63,6 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     // --- set intra prediction mode ---
 
-    cb[p]->PredMode = MODE_INTRA; // TODO: obsolete
     cb[p]->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
 
     ectx->img->set_pred_mode(x,y, log2CbSize, cb[p]->PredMode);
@@ -145,7 +144,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
   // --- set intra prediction mode ---
 
-  cb->PredMode = MODE_INTRA; // TODO: obsolete
   cb->PartMode = PartMode;
 
   ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);

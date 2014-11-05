@@ -33,11 +33,18 @@
 
 enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           context_model_table ctxModel,
-                                          const de265_image* input,
-                                          int ctb_x,int ctb_y,
-                                          int log2CtbSize, int ctDepth)
+                                          int ctb_x,int ctb_y)
 {
-  return mChildAlgo->analyze(ectx,ctxModel,input,ctb_x,ctb_y,NULL);
+  enc_cb* cb = new enc_cb();
+  cb->split_cu_flag = false;
+  cb->log2CbSize = ectx->sps.Log2CtbSizeY;
+  cb->ctDepth = 0;
+  cb->qp = ectx->active_qp;
+  cb->cu_transquant_bypass_flag = false;
+  cb->x = ctb_x;
+  cb->y = ctb_y;
+
+  return mChildAlgo->analyze(ectx,ctxModel,cb);
 }
 
 
