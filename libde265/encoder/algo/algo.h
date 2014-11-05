@@ -20,48 +20,20 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CB_PREDMODE_H
-#define CB_PREDMODE_H
+#ifndef ALGO_H
+#define ALGO_H
 
-#include "libde265/nal-parser.h"
-#include "libde265/decctx.h"
 #include "libde265/encoder/encode.h"
-#include "libde265/slice.h"
-#include "libde265/scan.h"
-#include "libde265/intrapred.h"
-#include "libde265/transform.h"
-#include "libde265/fallback-dct.h"
-#include "libde265/quality.h"
-#include "libde265/fallback.h"
-#include "libde265/configparam.h"
-
-#include "libde265/encoder/algo/algo.h"
-#include "libde265/encoder/algo/tb-intrapredmode.h"
-#include "libde265/encoder/algo/tb-split.h"
-#include "libde265/encoder/algo/cb-intrapartmode.h"
 
 
-// ========== CB Intra/Inter decision ==========
-
-class Algo_CB_PredMode : public Algo_CB
+class Algo_CB
 {
  public:
-  virtual ~Algo_CB_PredMode() { }
+  virtual ~Algo_CB() { }
 
-  void setIntraChildAlgo(Algo_CB* algo) { mIntraAlgo = algo; }
-  void setInterChildAlgo(Algo_CB* algo) { mInterAlgo = algo; }
-
- protected:
-  Algo_CB* mIntraAlgo;
-  Algo_CB* mInterAlgo;
-};
-
-class Algo_CB_PredMode_BruteForce : public Algo_CB_PredMode
-{
- public:
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table,
-                          enc_cb* cb);
+                          enc_cb* cb) = 0;
 };
 
 #endif

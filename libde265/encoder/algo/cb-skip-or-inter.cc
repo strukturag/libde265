@@ -65,7 +65,7 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
 
   if (try_skip) {
     cb->PredMode = MODE_SKIP;
-    // TODO cb_skip = mMergeIndexAlgo->analyze(ectx, ctxModel, cb);
+    cb_skip = mMergeIndexAlgo->analyze(ectx, ctxModel, cb);
   }
 
 

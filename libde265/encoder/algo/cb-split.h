@@ -35,6 +35,7 @@
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
 
+#include "libde265/encoder/algo/algo.h"
 #include "libde265/encoder/algo/tb-intrapredmode.h"
 #include "libde265/encoder/algo/tb-split.h"
 #include "libde265/encoder/algo/cb-predmode.h"
@@ -56,14 +57,10 @@
 
 // ========== CB split decision ==========
 
-class Algo_CB_Split
+class Algo_CB_Split : public Algo_CB
 {
  public:
   virtual ~Algo_CB_Split() { }
-
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          enc_cb* cb) = 0;
 
   // TODO: probably, this will later be a intra/inter decision which again
   // has two child algorithms, depending on the coding mode.

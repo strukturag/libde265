@@ -35,23 +35,19 @@
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
 
-//#include "libde265/encoder/algo/cb-mergeindex.h"
-class Algo_CB_MergeIndex;
+#include "libde265/encoder/algo/algo.h"
+#include "libde265/encoder/algo/cb-mergeindex.h"
 
 
 // ========== CB Skip/Inter decision ==========
 
-class Algo_CB_SkipOrInter
+class Algo_CB_SkipOrInter : public Algo_CB
 {
  public:
   virtual ~Algo_CB_SkipOrInter() { }
 
-  virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
-                          enc_cb* cb) = 0;
-
-  // void setMergeChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
-  // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
+  void setMergeChildAlgo(Algo_CB_MergeIndex* algo) { mMergeIndexAlgo = algo; }
+  // void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
 
  protected:
   Algo_CB_MergeIndex* mMergeIndexAlgo;

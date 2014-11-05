@@ -35,6 +35,7 @@
 #include "libde265/fallback.h"
 #include "libde265/configparam.h"
 
+#include "libde265/encoder/algo/algo.h"
 #include "libde265/encoder/algo/tb-intrapredmode.h"
 #include "libde265/encoder/algo/tb-split.h"
 
@@ -70,7 +71,7 @@ class option_ALGO_CB_IntraPartMode : public choice_option<enum ALGO_CB_IntraPart
 };
 
 
-class Algo_CB_IntraPartMode
+class Algo_CB_IntraPartMode : public Algo_CB
 {
  public:
   Algo_CB_IntraPartMode() : mTBIntraPredModeAlgo(NULL) { }

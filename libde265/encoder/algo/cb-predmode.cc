@@ -66,7 +66,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
   if (try_intra) {
     cb->PredMode = MODE_INTRA;
-    cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, cb);
+    cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb);
   }
 
 

@@ -128,7 +128,11 @@ public:
           enum IntraPredMode chroma_mode;
         } intra;
 
-        enc_pb_inter* inter_pb[4];
+        struct {
+          bool    skip_flag;
+          uint8_t merge_index;
+          enc_pb_inter* inter_pb[4];
+        } inter;
       };
 
       const enc_tb* transform_tree;
