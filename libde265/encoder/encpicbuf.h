@@ -28,6 +28,9 @@
 #include <vector>
 
 
+/* TODO: we need a way to quickly access pictures with a stable ID, like in the DPB.
+ */
+
 struct image_data
 {
   image_data();
