@@ -125,8 +125,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   enc_cb* cb_split    = NULL;
 
   if (can_nosplit_CB) {
-    cb_no_split = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                              x0,y0, Log2CbSize, ctDepth);
+    cb_no_split = mPredModeAlgo->analyze(ectx, ctxModel, input,
+                                         x0,y0, Log2CbSize, ctDepth);
   }
 
   // if possible, try to split CB

@@ -37,7 +37,7 @@
 
 #include "libde265/encoder/algo/tb-intrapredmode.h"
 #include "libde265/encoder/algo/tb-split.h"
-#include "libde265/encoder/algo/cb-intrapartmode.h"
+#include "libde265/encoder/algo/cb-predmode.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -69,10 +69,10 @@ class Algo_CB_Split
 
   // TODO: probably, this will later be a intra/inter decision which again
   // has two child algorithms, depending on the coding mode.
-  void setChildAlgo(Algo_CB_IntraPartMode* algo) { mIntraPartModeAlgo = algo; }
+  void setChildAlgo(Algo_CB_PredMode* algo) { mPredModeAlgo = algo; }
 
  protected:
-  Algo_CB_IntraPartMode* mIntraPartModeAlgo;
+  Algo_CB_PredMode* mPredModeAlgo;
 
   bool forcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const;
 

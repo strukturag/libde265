@@ -34,13 +34,13 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
                                              const de265_image* input,
                                              int x0,int y0, int Log2CbSize,
-                                             int ctDepth,
-                                             int qp)
+                                             int ctDepth)
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
-  const bool try_intra = true;
-  const bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
+  bool try_intra = true;
+ bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
+ // try_inter=false;
 
   context_model_table ctxInter;
 

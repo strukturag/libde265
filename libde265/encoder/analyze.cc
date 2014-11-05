@@ -219,7 +219,8 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
     algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_Fixed;
     break;
   }
-  mAlgo_CB_Split_BruteForce.setChildAlgo(algo_CB_IntraPartMode);
+  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_PredMode_BruteForce);
+  mAlgo_CB_PredMode_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
 
 
   Algo_TB_IntraPredMode_ModeSubset* algo_TB_IntraPredMode = NULL;

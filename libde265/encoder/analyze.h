@@ -93,6 +93,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
  private:
   Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
   Algo_CB_Split_BruteForce         mAlgo_CB_Split_BruteForce;
+  Algo_CB_PredMode_BruteForce      mAlgo_CB_PredMode_BruteForce;
 
   Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;
   Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
