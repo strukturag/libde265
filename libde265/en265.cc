@@ -76,7 +76,7 @@ LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_conte
 
   //if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
   int first_idx=1;
-  if (!ectx->params_config.parse_command_line_params(argc,argv, &first_idx)) {
+  if (!ectx->params_config.parse_command_line_params(argc,argv, &first_idx, true)) {
     return DE265_ERROR_PARAMETER_PARSING;
   }
   else {

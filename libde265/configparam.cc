@@ -275,9 +275,14 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
             }
           }
 
-          if (!option_found && !ignore_unknown_options) {
-            fprintf(stderr, "unknown option -%c\n",option);
-            return false;
+          if (!option_found) {
+            if (!ignore_unknown_options) {
+              fprintf(stderr, "unknown option -%c\n",option);
+              return false;
+            }
+            else {
+              do_remove_option=false;
+            }
           }
 
         } // all short options
