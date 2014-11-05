@@ -20,8 +20,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CB_SKIP_OR_INTER_H
-#define CB_SKIP_OR_INTER_H
+#ifndef CB_MERGEINDEX_H
+#define CB_MERGEINDEX_H
 
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
@@ -36,24 +36,24 @@
 #include "libde265/configparam.h"
 
 #include "libde265/encoder/algo/algo.h"
-#include "libde265/encoder/algo/cb-mergeindex.h"
+#include "libde265/encoder/algo/tb-split.h"
 
 
 // ========== CB Skip/Inter decision ==========
 
-class Algo_CB_SkipOrInter : public Algo_CB
+class Algo_CB_MergeIndex : public Algo_CB
 {
  public:
-  virtual ~Algo_CB_SkipOrInter() { }
+  virtual ~Algo_CB_MergeIndex() { }
 
-  void setSkipAlgo(Algo_CB_MergeIndex* algo) { mSkipAlgo = algo; }
-  // void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
+  void setChildAlgo(Algo_TB_Split* algo) { mTBSplit = algo; }
+  // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
 
  protected:
-  Algo_CB_MergeIndex* mSkipAlgo;
+  Algo_TB_Split* mTBSplit;
 };
 
-class Algo_CB_SkipOrInter_BruteForce : public Algo_CB_SkipOrInter
+class Algo_CB_MergeIndex_Fixed : public Algo_CB_MergeIndex
 {
  public:
   virtual enc_cb* analyze(encoder_context*,

@@ -40,6 +40,8 @@
 #include "libde265/encoder/algo/cb-intrapartmode.h"
 #include "libde265/encoder/algo/cb-split.h"
 #include "libde265/encoder/algo/ctb-qscale.h"
+#include "libde265/encoder/algo/cb-mergeindex.h"
+#include "libde265/encoder/algo/cb-skip-or-inter.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -97,6 +99,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
   Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;
   Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
+
+  Algo_CB_SkipOrInter_BruteForce   mAlgo_CB_SkipOrInter_BruteForce;
+  Algo_CB_MergeIndex_Fixed         mAlgo_CB_MergeIndex_Fixed;
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
