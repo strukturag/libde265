@@ -1335,12 +1335,13 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
 
 // 8.5.3.1.1
 void derive_luma_motion_merge_mode(decoder_context* ctx,
-                                   thread_context* tctx,
+                                   slice_segment_header* shdr,
+                                   de265_image* img,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
+                                   int merge_idx,
                                    PredVectorInfo* out_vi)
 {
-  slice_segment_header* shdr = tctx->shdr;
 
   //int xOrigP = xP;
   //int yOrigP = yP;
@@ -1356,7 +1357,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
      - since the PBs are not far away from a proper (neighboring) merging candidate,
        the quality of the candidates will still be good.
    */
-  singleMCLFlag = (tctx->img->pps.log2_parallel_merge_level > 2 && nCS==8);
+  singleMCLFlag = (img->pps.log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
     xP=xC;
@@ -1367,7 +1368,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   }
 
   SpatialMergingCandidates mergeCand;
-  derive_spatial_merging_candidates(tctx->img, xC,yC, nCS, xP,yP, singleMCLFlag,
+  derive_spatial_merging_candidates(img, xC,yC, nCS, xP,yP, singleMCLFlag,
                                     nPbW,nPbH,partIdx, &mergeCand);
 
   // In merge mode, we always use refIdx=0 as reference picture
@@ -1375,7 +1376,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   MotionVector mvCol[2];
   uint8_t predFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
+  derive_temporal_luma_vector_prediction(ctx,img,shdr,
                                          xP,yP,nPbW,nPbH, refIdxCol[0],0,
                                          /* output: */ &mvCol[0], &predFlagLCol[0]);
 
@@ -1383,7 +1384,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   predFlagLCol[1] = 0;
 
   if (shdr->slice_type == SLICE_TYPE_B) {
-    derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
+    derive_temporal_luma_vector_prediction(ctx,img,shdr,
                                            xP,yP,nPbW,nPbH, refIdxCol[1],1,
                                            /* output: */ &mvCol[1], &predFlagLCol[1]);
     availableFlagCol |= predFlagLCol[1];
@@ -1433,7 +1434,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 8.
 
-  int merge_idx = tctx->motion.merge_idx; // get_merge_idx(ctx,xP,yP);
+  //int merge_idx = tctx->motion.merge_idx;
   *out_vi = mergeCandList[merge_idx];
 
 
@@ -1848,7 +1849,9 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   if (predMode == MODE_SKIP ||
       (predMode == MODE_INTER && tctx->motion.merge_flag))
     {
-      derive_luma_motion_merge_mode(ctx,tctx, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
+      derive_luma_motion_merge_mode(ctx,tctx->shdr,tctx->img,
+                                    xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx,
+                                    tctx->motion.merge_idx, out_vi);
 
       logMV(xP,yP,nPbW,nPbH, "merge_mode", out_vi);
     }
