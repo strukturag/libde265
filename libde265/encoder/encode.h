@@ -104,7 +104,7 @@ public:
   union {
     // split
     struct {
-      const enc_cb* children[4];   // undefined when split_cu_flag==false
+      enc_cb* children[4];   // undefined when split_cu_flag==false
     };
 
     // non-split
@@ -139,12 +139,15 @@ public:
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0) const;
+  void will_overwrite_reconstruction(); // inform the CB that its reconstruction will be overwritten
 
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
 
  private:
   static alloc_pool mMemPool;
+
+  mutable bool reconstructed; // whether the content of this CB is currently reconstructed
 };
 
 

@@ -168,7 +168,9 @@ alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
 
 
 enc_cb::enc_cb()
-  : split_cu_flag(false), transform_tree(NULL)
+  : split_cu_flag(false),
+    transform_tree(NULL),
+    reconstructed(false)
 {
   if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
 }
@@ -230,9 +232,25 @@ void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
 }
 
 
+void enc_cb::will_overwrite_reconstruction()
+{
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->will_overwrite_reconstruction();
+    }
+  }
+  else {
+    reconstructed=false;
+  }
+}
+
 void enc_cb::reconstruct(acceleration_functions* accel,
                          de265_image* img, int x0,int y0) const
 {
+  if (reconstructed) {
+    return;
+  }
+
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(accel, img,
@@ -243,6 +261,8 @@ void enc_cb::reconstruct(acceleration_functions* accel,
   else {
     transform_tree->reconstruct(accel,img,x0,y0,x0,y0,this,0);
   }
+
+  reconstructed=true;
 }
 
 
