@@ -2344,6 +2344,10 @@ static int decode_merge_idx(thread_context* tctx)
 {
   logtrace(LogSlice,"# merge_idx\n");
 
+  if (tctx->shdr->MaxNumMergeCand <= 1) {
+    return 0;
+  }
+
   // TU coding, first bin is CABAC, remaining are bypass.
   // cMax = MaxNumMergeCand-1
 
@@ -3505,15 +3509,7 @@ void read_prediction_unit_SKIP(thread_context* tctx,
                                int x0, int y0,
                                int nPbW, int nPbH)
 {
-  slice_segment_header* shdr = tctx->shdr;
-
-  int merge_idx;
-  if (shdr->MaxNumMergeCand>1) {
-    merge_idx = decode_merge_idx(tctx);
-  }
-  else {
-    merge_idx = 0;
-  }
+  int merge_idx = decode_merge_idx(tctx);
 
   tctx->merge_idx = merge_idx;
   tctx->merge_flag = true;
@@ -3543,14 +3539,7 @@ void read_prediction_unit(thread_context* tctx,
   tctx->merge_flag = merge_flag;
 
   if (merge_flag) {
-    int merge_idx;
-
-    if (shdr->MaxNumMergeCand>1) {
-      merge_idx = decode_merge_idx(tctx);
-    }
-    else {
-      merge_idx = 0;
-    }
+    int merge_idx = decode_merge_idx(tctx);
 
     logtrace(LogSlice,"prediction unit %d,%d, merge mode, index: %d\n",x0,y0,merge_idx);
 
