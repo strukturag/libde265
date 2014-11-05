@@ -37,8 +37,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
   bool try_intra = true;
- bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
-  try_inter=false;
+  bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
+  try_intra = !try_inter;
 
   context_model_table ctxInter;
 
@@ -53,22 +53,27 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   enc_cb* cb_intra = NULL;
 
   if (try_inter) {
-    /* TODO
-    cb_inter = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                           x0,y0, Log2CbSize, ctDepth, qp);
-
+    cb_inter = new enc_cb;
+    *cb_inter = *cb;
     cb_inter->PredMode = MODE_INTER;
-    */
+    cb_inter = mIntraAlgo->analyze(ectx, ctxModel, cb);
   }
 
 
   // try intra
 
   if (try_intra) {
-    cb->PredMode = MODE_INTRA;
+    cb_intra = new enc_cb;
+    *cb_intra = *cb;
+    cb_intra->PredMode = MODE_INTRA;
     cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb);
   }
 
+  int x = cb->x;
+  int y = cb->y;
+
+  delete cb;
+  cb = NULL;
 
   // if only one variant has been tested, choose this
 
@@ -89,8 +94,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     copy_context_model_table(ctxModel, ctxInter);
 
     // have to reconstruct state
-    cb_inter->write_to_image(ectx->img, cb->x,cb->y, true);
-    cb_inter->reconstruct(&ectx->accel, ectx->img, cb->x,cb->y);
+    cb_inter->write_to_image(ectx->img, x,y, true);
+    cb_inter->reconstruct(&ectx->accel, ectx->img, x,y);
     return cb_inter;
   }
   else {
