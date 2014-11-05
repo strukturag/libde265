@@ -1523,8 +1523,8 @@ static int decode_split_cu_flag(thread_context* tctx,
 {
   // check if neighbors are available
 
-  int availableL = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1554,8 +1554,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(tctx->img,tctx->shdr, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -2726,7 +2726,6 @@ LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(const seq_parameter_set* sps, i
 
 
 int check_CTB_available(const de265_image* img,
-                        const slice_segment_header* shdr,
                         int xC,int yC, int xN,int yN)
 {
   // check whether neighbor is outside of frame
@@ -3799,8 +3798,8 @@ void read_coding_unit(thread_context* tctx,
         int mpm_idx[4], rem_intra_luma_pred_mode[4];
         idx=0;
 
-        int availableA0 = check_CTB_available(img, shdr, x0,y0, x0-1,y0);
-        int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
+        int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
+        int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
 
         for (int j=0;j<nCbS;j+=pbOffset)
           for (int i=0;i<nCbS;i+=pbOffset)
