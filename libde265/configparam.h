@@ -264,6 +264,7 @@ template <class T> class choice_option : public choice_option_base
     if (default_value) {
       defaultID = id;
       defaultValue = s;
+      default_set = true;
     }
 
     invalidate_choices_string_table();
