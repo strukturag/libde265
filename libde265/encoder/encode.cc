@@ -1307,6 +1307,40 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
 }
 
 
+static void encode_cu_skip_flag(encoder_context* ectx,
+                                const enc_cb* cb, 
+                                bool skip)
+{
+  const de265_image* img = ectx->imgdata->reconstruction;
+
+  int x0 = cb->x;
+  int y0 = cb->y;
+
+  // check if neighbors are available
+
+  int availableL = check_CTB_available(img,NULL, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(img,NULL, x0,y0, x0,y0-1);
+
+  int condL = 0;
+  int condA = 0;
+
+  if (availableL && img->get_cu_skip_flag(x0-1,y0)) condL=1;
+  if (availableA && img->get_cu_skip_flag(x0,y0-1)) condA=1;
+
+  int contextOffset = condL + condA;
+  int context = contextOffset;
+
+  // decode bit
+
+  int bit = skip;
+
+  logtrace(LogSlice,"> cu_skip_flag ctx=%d, bit=%d\n", context,bit);
+  printf("eee\n");
+
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CU_SKIP_FLAG + context], bit);
+}
+
+
 void encode_coding_unit(encoder_context* ectx,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse)
 {
@@ -1319,94 +1353,105 @@ void encode_coding_unit(encoder_context* ectx,
 
   int nCbS = 1<<log2CbSize;
 
-  enum PredMode PredMode = cb->PredMode;
-  enum PartMode PartMode = PART_2Nx2N;
-  int IntraSplitFlag=0;
 
-  if (PredMode != MODE_INTRA ||
-      log2CbSize == sps->Log2MinCbSizeY) {
-    PartMode = cb->PartMode;
-    encode_part_mode(ectx, PredMode, PartMode);
+  // write skip_flag
+
+  if (shdr->slice_type != SLICE_TYPE_I) {
+    printf("qwe\n");
+    encode_cu_skip_flag(ectx, cb, cb->PredMode==MODE_SKIP);
+
   }
+  else {
 
-  if (PredMode == MODE_INTRA) {
+    enum PredMode PredMode = cb->PredMode;
+    enum PartMode PartMode = PART_2Nx2N;
+    int IntraSplitFlag=0;
 
-    int availableA0 = check_CTB_available(img, shdr, x0,y0, x0-1,y0);
-    int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
-
-    if (PartMode==PART_2Nx2N) {
-      logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
-      int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
-
-      int candModeList[3];
-      fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
-                                  availableA0,availableB0, img);
-
-      for (int i=0;i<3;i++)
-        logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
-
-      enum IntraPredMode mode = cb->intra.pred_mode[0];
-      int intraPred = find_intra_pred_mode(mode, candModeList);
-      encode_prev_intra_luma_pred_flag(ectx, intraPred);
-      encode_intra_mpm_or_rem(ectx, intraPred);
-
-      logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
-               candModeList[0], candModeList[1], candModeList[2]);
-      logtrace(LogSlice,"  MPM/REM = %d\n",intraPred);
+    if (PredMode != MODE_INTRA ||
+        log2CbSize == sps->Log2MinCbSizeY) {
+      PartMode = cb->PartMode;
+      encode_part_mode(ectx, PredMode, PartMode);
     }
-    else {
-      IntraSplitFlag=1;
 
-      int pbOffset = nCbS/2;
-      int PUidx;
+    if (PredMode == MODE_INTRA) {
 
-      int intraPred[4];
-      int childIdx=0;
+      int availableA0 = check_CTB_available(img, shdr, x0,y0, x0-1,y0);
+      int availableB0 = check_CTB_available(img, shdr, x0,y0, x0,y0-1);
 
-      for (int j=0;j<nCbS;j+=pbOffset)
-        for (int i=0;i<nCbS;i+=pbOffset, childIdx++)
-          {
-            int x=x0+i, y=y0+j;
+      if (PartMode==PART_2Nx2N) {
+        logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
+        int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
-            int availableA = availableA0 || (i>0); // left candidate always available for right blk
-            int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
+        int candModeList[3];
+        fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
+                                    availableA0,availableB0, img);
 
-            PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+        for (int i=0;i<3;i++)
+          logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
 
-            int candModeList[3];
-            fillIntraPredModeCandidates(candModeList,x,y,PUidx,
-                                        availableA,availableB, img);
+        enum IntraPredMode mode = cb->intra.pred_mode[0];
+        int intraPred = find_intra_pred_mode(mode, candModeList);
+        encode_prev_intra_luma_pred_flag(ectx, intraPred);
+        encode_intra_mpm_or_rem(ectx, intraPred);
 
-            enum IntraPredMode mode = cb->intra.pred_mode[childIdx];
+        logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
+                 candModeList[0], candModeList[1], candModeList[2]);
+        logtrace(LogSlice,"  MPM/REM = %d\n",intraPred);
+      }
+      else {
+        IntraSplitFlag=1;
 
-            assert(ectx->img->get_IntraPredMode(x,y) == mode);
+        int pbOffset = nCbS/2;
+        int PUidx;
 
-            intraPred[childIdx] = find_intra_pred_mode(mode, candModeList);
-          }
+        int intraPred[4];
+        int childIdx=0;
 
-      for (int i=0;i<4;i++)
-        encode_prev_intra_luma_pred_flag(ectx, intraPred[i]);
+        for (int j=0;j<nCbS;j+=pbOffset)
+          for (int i=0;i<nCbS;i+=pbOffset, childIdx++)
+            {
+              int x=x0+i, y=y0+j;
 
-      for (int i=0;i<4;i++)
-        encode_intra_mpm_or_rem(ectx, intraPred[i]);
-    }
+              int availableA = availableA0 || (i>0); // left candidate always available for right blk
+              int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
+
+              PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+
+              int candModeList[3];
+              fillIntraPredModeCandidates(candModeList,x,y,PUidx,
+                                          availableA,availableB, img);
+
+              enum IntraPredMode mode = cb->intra.pred_mode[childIdx];
+
+              assert(ectx->img->get_IntraPredMode(x,y) == mode);
+
+              intraPred[childIdx] = find_intra_pred_mode(mode, candModeList);
+            }
+
+        for (int i=0;i<4;i++)
+          encode_prev_intra_luma_pred_flag(ectx, intraPred[i]);
+
+        for (int i=0;i<4;i++)
+          encode_intra_mpm_or_rem(ectx, intraPred[i]);
+      }
     
-    IntraChromaPredMode chromaPredMode = find_chroma_pred_mode(cb->intra.chroma_mode,
-                                                               cb->intra.pred_mode[0]);
-    encode_intra_chroma_pred_mode(ectx, chromaPredMode);
-  }
+      IntraChromaPredMode chromaPredMode = find_chroma_pred_mode(cb->intra.chroma_mode,
+                                                                 cb->intra.pred_mode[0]);
+      encode_intra_chroma_pred_mode(ectx, chromaPredMode);
+    }
 
 
-  int MaxTrafoDepth;
-  if (PredMode == MODE_INTRA)
-    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
-  else 
-    { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
+    int MaxTrafoDepth;
+    if (PredMode == MODE_INTRA)
+      { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
+    else 
+      { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
 
-  if (recurse) {
-    encode_transform_tree(ectx, cb->transform_tree, cb,
-                          x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
+    if (recurse) {
+      encode_transform_tree(ectx, cb->transform_tree, cb,
+                            x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
+    }
   }
 }
 
