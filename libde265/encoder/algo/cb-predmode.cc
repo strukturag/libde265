@@ -56,7 +56,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     cb_inter = new enc_cb;
     *cb_inter = *cb;
     cb_inter->PredMode = MODE_INTER;
-    cb_inter = mIntraAlgo->analyze(ectx, ctxModel, cb);
+    cb_inter = mInterAlgo->analyze(ectx, ctxModel, cb_inter);
   }
 
 
@@ -66,7 +66,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     cb_intra = new enc_cb;
     *cb_intra = *cb;
     cb_intra->PredMode = MODE_INTRA;
-    cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb);
+    cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb_intra);
   }
 
   int x = cb->x;
