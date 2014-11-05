@@ -39,6 +39,8 @@ struct encoder_context
   encoder_context();
   ~encoder_context();
 
+  bool encoder_started;
+
   encoder_params params;
   config_parameters params_config;
 
@@ -110,6 +112,7 @@ struct encoder_context
 
   // --- encoding control ---
 
+  void start_encoder();
   de265_error encode_headers();
   de265_error encode_picture_from_input_buffer();
 

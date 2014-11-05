@@ -39,21 +39,24 @@ struct refpic_set
 class pic_order_counter
 {
  public:
-  pic_order_counter() { mPOC=0; mNumLsbBits=6; }
+  pic_order_counter() { mFrameNumber=0; mPOC=0; mNumLsbBits=6; }
 
-  void reset() { mPOC=0; }
+  void reset_poc() { mPOC=0; }
+
+  int get_frame_number() const { return mFrameNumber; }
 
   int get_pic_order_count() const { return mPOC; }
   int get_pic_order_count_lsb() const {
     return mPOC & ((1<<mNumLsbBits)-1);
   }
 
-  void advance_poc(int n=1) { mPOC+=n; }
+  void advance_frame(int n=1) { mFrameNumber+=n; mPOC+=n; }
 
   void set_num_poc_lsb_bits(int n) { mNumLsbBits=n; }
   int  get_num_poc_lsb_bits() const { return mNumLsbBits; }
 
  private:
+  int mFrameNumber;
   int mPOC;
   int mNumLsbBits;
 };

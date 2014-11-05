@@ -28,6 +28,8 @@
 
 encoder_context::encoder_context()
 {
+  encoder_started=false;
+
   //img_source = NULL;
   //reconstruction_sink = NULL;
   //packet_sink = NULL;
@@ -42,11 +44,6 @@ encoder_context::encoder_context()
   //enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
   switch_CABAC_to_bitstream();
-
-  sop = std::make_shared<sop_creator_trivial_low_delay>();
-  //sop = std::make_shared<sop_creator_intra_only>();
-  sop->set_encoder_context(this);
-  sop->set_encoder_picture_buffer(&picbuf);
 
 
   params.registerParams(params_config);
@@ -65,6 +62,28 @@ encoder_context::~encoder_context()
     en265_free_packet(this, output_packets.front());
     output_packets.pop_front();
   }
+}
+
+
+void encoder_context::start_encoder()
+{
+  if (encoder_started) {
+    return;
+  }
+
+
+  if (params.sop_structure() == SOP_Intra) {
+    sop = std::make_shared<sop_creator_intra_only>();
+  }
+  else {
+    sop = std::make_shared<sop_creator_trivial_low_delay>();
+  }
+
+  sop->set_encoder_context(this);
+  sop->set_encoder_picture_buffer(&picbuf);
+
+
+  encoder_started=true;
 }
 
 

@@ -45,6 +45,8 @@ encoder_params::encoder_params()
   max_transform_hierarchy_depth_intra.set_range(0,4);
   max_transform_hierarchy_depth_intra.set_default(3);
 
+  sop_structure.set_ID("sop-structure");
+
   mAlgo_TB_IntraPredMode.set_ID("TB-IntraPredMode");
   mAlgo_TB_IntraPredMode_Subset.set_ID("TB-IntraPredMode-subset");
   mAlgo_CB_IntraPartMode.set_ID("CB-IntraPartMode");
@@ -58,6 +60,8 @@ void encoder_params::registerParams(config_parameters& config)
   config.add_option(&min_tb_size);
   config.add_option(&max_tb_size);
   config.add_option(&max_transform_hierarchy_depth_intra);
+
+  config.add_option(&sop_structure);
 
   config.add_option(&mAlgo_TB_IntraPredMode);
   config.add_option(&mAlgo_TB_IntraPredMode_Subset);

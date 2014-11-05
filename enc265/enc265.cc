@@ -228,6 +228,8 @@ int main(int argc, char** argv)
 
   image_source.skip_frames( inout_params.first_frame );
 
+  en265_start_encoder(ectx, 0);
+
   int maxPoc = INT_MAX;
   if (inout_params.max_number_of_frames.is_defined()) {
     maxPoc = inout_params.max_number_of_frames;

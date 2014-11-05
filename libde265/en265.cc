@@ -36,12 +36,6 @@ LIBDE265_API en265_encoder_context* en265_new_encoder(void)
 }
 
 
-LIBDE265_API de265_error en265_start_worker_threads(en265_encoder_context*, int number_of_threads)
-{
-  return DE265_OK;
-}
-
-
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 {
   assert(e);
@@ -165,6 +159,16 @@ LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
 
 // ========== encoding loop ==========
 
+
+LIBDE265_API de265_error en265_start_encoder(en265_encoder_context* e, int number_of_threads)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  ectx->start_encoder();
+
+  return DE265_OK;
+}
 
 
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,

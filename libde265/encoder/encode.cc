@@ -1311,7 +1311,7 @@ static void encode_cu_skip_flag(encoder_context* ectx,
                                 const enc_cb* cb, 
                                 bool skip)
 {
-  const de265_image* img = ectx->imgdata->reconstruction;
+  const de265_image* img = ectx->img;
 
   int x0 = cb->x;
   int y0 = cb->y;
@@ -1335,9 +1335,39 @@ static void encode_cu_skip_flag(encoder_context* ectx,
   int bit = skip;
 
   logtrace(LogSlice,"> cu_skip_flag ctx=%d, bit=%d\n", context,bit);
-  printf("eee\n");
 
   ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_CU_SKIP_FLAG + context], bit);
+}
+
+
+static void encode_merge_idx(encoder_context* ectx, int mergeIdx)
+{
+  logtrace(LogSlice,"# merge_idx %d\n", mergeIdx);
+
+  if (ectx->shdr->MaxNumMergeCand <= 1) {
+    return; // code nothing, we use only a single merge candidate
+  }
+
+  // TU coding, first bin is CABAC, remaining are bypass.
+  // cMax = MaxNumMergeCand-1
+
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_MERGE_IDX], mergeIdx ? 1 : 0);
+
+  if (mergeIdx>0) {
+    int idx=1;
+
+    while (idx<ectx->shdr->MaxNumMergeCand-1) {
+      int increase = (idx < mergeIdx);
+
+      ectx->cabac->write_CABAC_bypass(increase);
+      if (increase) {
+        idx++;
+      }
+      else {
+        break;
+      }
+    }
+  }
 }
 
 
@@ -1357,9 +1387,8 @@ void encode_coding_unit(encoder_context* ectx,
   // write skip_flag
 
   if (shdr->slice_type != SLICE_TYPE_I) {
-    printf("qwe\n");
     encode_cu_skip_flag(ectx, cb, cb->PredMode==MODE_SKIP);
-
+    encode_merge_idx(ectx, cb->inter.merge_index);
   }
   else {
 

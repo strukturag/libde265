@@ -39,6 +39,21 @@ enum IntraPredSearch
   };
 
 
+enum SOP_Structure
+  {
+    SOP_Intra,
+    SOP_LowDelay
+  };
+
+class option_SOP_Structure : public choice_option<enum SOP_Structure>
+{
+ public:
+  option_SOP_Structure() {
+    add_choice("intra",     SOP_Intra, true);
+    add_choice("low-delay", SOP_LowDelay);
+  }
+};
+
 
 struct encoder_params
 {
@@ -57,6 +72,8 @@ struct encoder_params
 
   option_int max_transform_hierarchy_depth_intra;
 
+
+  option_SOP_Structure sop_structure;
 
   // --- Algo_TB_IntraPredMode
 

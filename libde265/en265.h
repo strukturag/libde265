@@ -37,8 +37,6 @@ typedef void en265_encoder_context; // private structure
 /* Get a new encoder context. Must be freed with en265_free_encoder(). */
 LIBDE265_API en265_encoder_context* en265_new_encoder(void);
 
-LIBDE265_API de265_error en265_start_worker_threads(en265_encoder_context*, int number_of_threads);
-
 /* Free encoder context. May only be called once on a context. */
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
@@ -86,6 +84,8 @@ LIBDE265_API void en265_show_parameters(en265_encoder_context*);
 
 
 // ========== encoding loop ==========
+
+LIBDE265_API de265_error en265_start_encoder(en265_encoder_context*, int number_of_threads);
 
 // If we have provided our own memory release function, no image memory will be allocated.
 LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context*,
