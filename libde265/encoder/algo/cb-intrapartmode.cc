@@ -34,9 +34,12 @@
 
 enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
                                                   context_model_table ctxModel,
-                                                  const de265_image* input,
-                                                  int x0,int y0, int log2CbSize, int ctDepth)
+                                                  enc_cb* cb_in)
 {
+  const int log2CbSize = cb_in->log2CbSize;
+  const int x = cb_in->x;
+  const int y = cb_in->y;
+
   enc_cb* cb[2] =
     { NULL, // 2Nx2N  (always checked)
       NULL  //  NxN   (only checked at MinCbSize)
@@ -55,22 +58,16 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   for (int p=0;p<lastMode;p++) {
 
     cb[p] = new enc_cb();
-
-    cb[p]->split_cu_flag = false;
-    cb[p]->log2CbSize = log2CbSize;
-    cb[p]->ctDepth = ctDepth;
-    cb[p]->qp = ectx->active_qp;
-
-    cb[p]->cu_transquant_bypass_flag = false;
+    *cb[p] = *cb_in;
 
 
     // --- set intra prediction mode ---
 
-    cb[p]->PredMode = MODE_INTRA;
+    cb[p]->PredMode = MODE_INTRA; // TODO: obsolete
     cb[p]->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
 
-    ectx->img->set_pred_mode(x0,y0, log2CbSize, cb[p]->PredMode);
-    ectx->img->set_PartMode (x0,y0, cb[p]->PartMode);  // TODO: probably unnecessary
+    ectx->img->set_pred_mode(x,y, log2CbSize, cb[p]->PredMode);
+    ectx->img->set_PartMode (x,y, cb[p]->PartMode);  // TODO: probably unnecessary
 
 
     // encode transform tree
@@ -78,8 +75,9 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     int IntraSplitFlag= (cb[p]->PredMode == MODE_INTRA && cb[p]->PartMode == PART_NxN);
     int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-    cb[p]->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb[p],
-                                                          x0,y0, x0,y0, log2CbSize,
+    cb[p]->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
+                                                          ectx->imgdata->input, NULL, cb[p],
+                                                          x,y, x,y, log2CbSize,
                                                           0,
                                                           0, MaxTrafoDepth, IntraSplitFlag);
 
@@ -91,15 +89,17 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     CABAC_encoder_estim estim;
     ectx->switch_CABAC(ctxModel, &estim);
-    encode_coding_unit(ectx,cb[p],x0,y0,log2CbSize, false);
+    encode_coding_unit(ectx,cb[p],x,y,log2CbSize, false);
     cb[p]->rate += estim.getRDBits();
 
 
     // estimate distortion
 
-    cb[p]->write_to_image(ectx->img, x0,y0, true);
-    cb[p]->distortion = compute_distortion_ssd(ectx->img, input, x0,y0, log2CbSize, 0);
+    cb[p]->write_to_image(ectx->img, x,y, true);
+    cb[p]->distortion = compute_distortion_ssd(ectx->img, ectx->imgdata->input, x,y, log2CbSize, 0);
   }
+
+  delete cb_in;
 
 
   // choose from 2Nx2N and NxN
@@ -109,8 +109,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
-      cb[0]->write_to_image(ectx->img, x0,y0, true);
-      cb[0]->reconstruct(&ectx->accel, ectx->img, x0,y0);
+      cb[0]->write_to_image(ectx->img, x,y, true);
+      cb[0]->reconstruct(&ectx->accel, ectx->img, x,y);
       delete cb[1];
       return cb[0];
     } else {
@@ -125,10 +125,14 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
 enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
-                                             const de265_image* input,
-                                             int x0,int y0, int log2CbSize, int ctDepth)
+                                             enc_cb* cb)
 {
   enum PartMode PartMode = mParams.partMode();
+
+
+  const int log2CbSize = cb->log2CbSize;
+  const int x = cb->x;
+  const int y = cb->y;
 
 
   // NxN can only be applied at minimum CB size.
@@ -139,25 +143,13 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   }
 
 
-  // --- create new CB ---
-
-  enc_cb* cb = new enc_cb();
-
-  cb->split_cu_flag = false;
-  cb->log2CbSize = log2CbSize;
-  cb->ctDepth = ctDepth;
-  cb->qp = ectx->active_qp;
-
-  cb->cu_transquant_bypass_flag = false;
-
-
   // --- set intra prediction mode ---
 
-  cb->PredMode = MODE_INTRA;
+  cb->PredMode = MODE_INTRA; // TODO: obsolete
   cb->PartMode = PartMode;
 
-  ectx->img->set_pred_mode(x0,y0, log2CbSize, cb->PredMode);
-  ectx->img->set_PartMode (x0,y0, cb->PartMode);  // TODO: probably unnecessary
+  ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);
+  ectx->img->set_PartMode (x,y, cb->PartMode);  // TODO: probably unnecessary
 
 
   // encode transform tree
@@ -165,8 +157,9 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-  cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel, input, NULL, cb,
-                                                     x0,y0, x0,y0, log2CbSize,
+  cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
+                                                     ectx->imgdata->input, NULL, cb,
+                                                     cb->x,cb->y, cb->x,cb->y, log2CbSize,
                                                      0,
                                                      0, MaxTrafoDepth, IntraSplitFlag);
   
@@ -181,7 +174,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
-  encode_coding_unit(ectx,cb,x0,y0,log2CbSize, false);
+  encode_coding_unit(ectx,cb,x,y,log2CbSize, false);
   cb->rate += estim.getRDBits();
 
   return cb;

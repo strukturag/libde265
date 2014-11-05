@@ -70,10 +70,17 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     int log2CbSize = (parent_cb ? parent_cb->log2CbSize-1 : ectx->sps.Log2CtbSizeY);
     int ctDepth    = (parent_cb ? parent_cb->ctDepth+1    : 0);
 
-    cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                           x0,y0, log2CbSize, ctDepth);
+    enc_cb* cb = new enc_cb();
+    cb->split_cu_flag = false;
+    cb->log2CbSize = log2CbSize;
+    cb->ctDepth = ctDepth;
+    cb->qp = ectx->active_qp;
+    cb->cu_transquant_bypass_flag = false;
+    cb->x = x0;
+    cb->y = y0;
+    cb->PredMode = MODE_INTRA;
 
-    cb_intra->PredMode = MODE_INTRA;
+    cb_intra = mIntraPartModeAlgo->analyze(ectx, ctxModel, cb);
   }
 
 

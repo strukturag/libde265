@@ -101,6 +101,8 @@ public:
   uint8_t log2CbSize;
   uint8_t ctDepth;
 
+  uint16_t x,y;
+
   union {
     // split
     struct {
