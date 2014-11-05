@@ -1433,7 +1433,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   // 8.
 
-  int merge_idx = tctx->merge_idx; // get_merge_idx(ctx,xP,yP);
+  int merge_idx = tctx->motion.merge_idx; // get_merge_idx(ctx,xP,yP);
   *out_vi = mergeCandList[merge_idx];
 
 
@@ -1810,7 +1810,7 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
 
   // select predictor according to mvp_lX_flag
 
-  return mvpList[ tctx->mvp_lX_flag[l] ];
+  return mvpList[ tctx->motion.mvp_lX_flag[l] ];
 }
 
 #if DE265_LOG_TRACE
@@ -1846,7 +1846,7 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   enum PredMode predMode = tctx->img->get_pred_mode(xC,yC);
 
   if (predMode == MODE_SKIP ||
-      (predMode == MODE_INTER && tctx->merge_flag))
+      (predMode == MODE_INTER && tctx->motion.merge_flag))
     {
       derive_luma_motion_merge_mode(ctx,tctx, xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx, out_vi);
 
@@ -1859,12 +1859,12 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
     for (int l=0;l<2;l++) {
       // 1.
 
-      enum InterPredIdc inter_pred_idc = (enum InterPredIdc)tctx->inter_pred_idc;
+      enum InterPredIdc inter_pred_idc = (enum InterPredIdc)tctx->motion.inter_pred_idc;
 
       if (inter_pred_idc == PRED_BI ||
           (inter_pred_idc == PRED_L0 && l==0) ||
           (inter_pred_idc == PRED_L1 && l==1)) {
-        out_vi->refIdx[l] = tctx->refIdx[l];
+        out_vi->refIdx[l] = tctx->motion.refIdx[l];
         out_vi->predFlag[l] = 1;
       }
       else {
@@ -1874,8 +1874,8 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
       // 2.
 
-      mvdL[l][0] = tctx->mvd[l][0];
-      mvdL[l][1] = tctx->mvd[l][1];
+      mvdL[l][0] = tctx->motion.mvd[l][0];
+      mvdL[l][1] = tctx->motion.mvd[l][1];
 
 
       if (out_vi->predFlag[l]) {

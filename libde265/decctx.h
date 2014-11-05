@@ -58,12 +58,7 @@ struct thread_context
 
   // motion vectors
 
-  int8_t  refIdx[2];
-  int16_t mvd[2][2]; // only in top left position
-  uint8_t merge_flag;
-  uint8_t merge_idx;
-  uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc; // enum InterPredIdc
+  motion_spec motion;
 
 
   // prediction
