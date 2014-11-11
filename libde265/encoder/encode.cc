@@ -76,18 +76,19 @@ void enc_tb::reconstruct_tb(acceleration_functions* accel,
   int xC=x0;
   int yC=y0;
 
-  enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+  if (cb->PredMode == MODE_INTRA) {
 
-  if (cIdx>0) {
-    intraPredMode = cb->intra.chroma_mode;
-    //intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode, cb->intra.chroma_mode);
-    xC>>=1;
-    yC>>=1;
+    enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+
+    if (cIdx>0) {
+      intraPredMode = cb->intra.chroma_mode;
+      //intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode, cb->intra.chroma_mode);
+      xC>>=1;
+      yC>>=1;
+    }
+
+    decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
   }
-
-
-  decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
-
 
 
   int16_t dequant_coeff[32*32];

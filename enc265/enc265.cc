@@ -23,8 +23,42 @@
 #include "libde265/configparam.h"
 #include "libde265/image-io.h"
 #include "libde265/encoder/analyze.h"
+#include "libde265/util.h"
 
 #include <getopt.h>
+
+
+
+#include <libvideogfx.hh>
+using namespace videogfx;
+
+
+void debug_show_image_libvideogfx(const de265_image* input, int slot)
+{
+    static X11Win debugwin;
+    static bool opened=false;
+    int w = input->get_width();
+    int h = input->get_height();
+    if (!opened) {
+      opened=true;
+      debugwin.Create(w,h, "debug");
+    }
+
+    Image<Pixel> img;
+    img.Create(w,h,Colorspace_YUV, Chroma_420);
+
+    for (int y=0;y<h;y++)
+      memcpy(img.AskFrameY()[y], input->get_image_plane_at_pos(0,0,y), w);
+
+    for (int y=0;y<h/2;y++) {
+      memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos(1,0,y), w/2);
+      memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos(2,0,y), w/2);
+    }
+
+    debugwin.Display(img);
+    //debugwin.WaitForKeypress();
+}
+
 
 
 int show_help=false;
@@ -204,6 +238,7 @@ int main(int argc, char** argv)
 
 
   de265_set_verbosity(verbosity);
+  //debug_set_image_output(debug_show_image_libvideogfx);
 
 
   //test_parameters_API(ectx);

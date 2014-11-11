@@ -561,6 +561,9 @@ void intra_prediction_angular(de265_image* img,
   pred   = img->get_image_plane_at_pos(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
 
+  assert(intraPredMode<35);
+  assert(intraPredMode>=2);
+
   int intraPredAngle = intraPredAngle_table[intraPredMode];
 
   if (intraPredMode >= 18) {

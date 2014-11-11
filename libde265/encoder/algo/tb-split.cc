@@ -53,6 +53,8 @@ static bool has_nonzero_value(const int16_t* data, int n)
 }
 
 
+void show_debug_image(const de265_image* input, int slot);
+
 void encode_transform_unit(encoder_context* ectx,
                            enc_tb* tb,
                            const de265_image* input,
@@ -66,19 +68,28 @@ void encode_transform_unit(encoder_context* ectx,
   int tbSize = 1<<log2TbSize;
 
 
+  enum PredMode predMode = cb->PredMode;
+
   // --- do intra prediction ---
 
-  enum IntraPredMode intraPredMode  = ectx->img->get_IntraPredMode(x0,y0);
+  if (predMode==MODE_INTRA) {
+    enum IntraPredMode intraPredMode  = ectx->img->get_IntraPredMode(x0,y0);
 
-  if (cIdx>0) {
-    intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
-    //cb->intra.chroma_mode);
+    if (cIdx>0) {
+      intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
+      //cb->intra.chroma_mode);
 
-    xC >>= 1;
-    yC >>= 1;
-  }
+      xC >>= 1;
+      yC >>= 1;
+    }
   
-  decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
+    //printf("I %d;%d mode %d tb %d (%d)\n",xC,yC,intraPredMode,tbSize,cIdx);
+
+    decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
+  }
+
+
+  //show_debug_image(ectx->img, 0);
 
 
   // --- subtract prediction from input ---
@@ -147,10 +158,12 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   // chroma blocks
 
   if (log2TbSize > 2) {
+    // if TB is > 4x4, do chroma transform of half size
     encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
     encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
   else if (blkIdx==3) {
+    // if TB size is 4x4, do chroma transform for last sub-block
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
     encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
   }

@@ -340,6 +340,18 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
+#if 0
+    decode_intra_prediction(ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
+    printf("a %d;%d mode %d tb %d\n",x0,y0,intraMode,1<<log2TbSize);
+    if (blkIdx==0) {
+      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
+      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 2);
+      printf("b %d;%d mode %d tb %d\n",x0/2,y0/2,intraMode,(1<<log2TbSize)/2);
+      printf("c %d;%d mode %d tb %d\n",x0/2,y0/2,intraMode,(1<<log2TbSize)/2);
+    }
+
+#endif
+
     const enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
                                              cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                              TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
@@ -347,6 +359,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     tb->reconstruct(&ectx->acceleration,
                     ectx->img, x0,y0, xBase,yBase,
                     cb, blkIdx);
+
+    debug_show_image(ectx->img, 0);
 
     return tb;
   }
