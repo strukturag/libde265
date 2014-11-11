@@ -39,7 +39,9 @@ struct encoder_context : public base_context
   encoder_context();
   ~encoder_context();
 
-  virtual const de265_image* get_image(int frame_id) const { assert(0); return NULL; } // TODO
+  virtual const de265_image* get_image(int frame_id) const {
+    return picbuf.get_picture(frame_id)->reconstruction;
+  }
 
   bool encoder_started;
 

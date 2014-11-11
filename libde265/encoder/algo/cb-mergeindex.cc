@@ -42,7 +42,33 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   // build prediction
 
-  
+  // previous frame (TODO)
+  const de265_image* refimg = ectx->get_image(ectx->imgdata->frame_number -1);
+
+  //printf("prev frame: %p %d\n",refimg,ectx->imgdata->frame_number);
+
+  printf("#l0: %d\n",ectx->imgdata->shdr.num_ref_idx_l0_active);
+  printf("#l1: %d\n",ectx->imgdata->shdr.num_ref_idx_l1_active);
+
+  for (int i=0;i<ectx->imgdata->shdr.num_ref_idx_l0_active;i++)
+    printf("RefPixList[0][%d] = %d\n", i, ectx->imgdata->shdr.RefPicList[0][i]);
+
+
+  // TODO: fake motion data
+  PredVectorInfo vi;
+  vi.predFlag[0]=1;
+  vi.predFlag[1]=0;
+  vi.refIdx[0]=0;
+  vi.mv[0].x=0;
+  vi.mv[0].y=0;
+
+  generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
+                                    cb->x,cb->y, // int xC,int yC,
+                                    0,0,         // int xB,int yB,
+                                    1<<cb->log2CbSize, // int nCS,
+                                    1<<cb->log2CbSize,
+                                    1<<cb->log2CbSize, // int nPbW,int nPbH,
+                                    &vi);
 
 
   // estimate rate for sending merge index

@@ -339,6 +339,8 @@ void generate_inter_prediction_samples(base_context* ctx,
       if (refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+
+        // TODO: fill predSamplesC with black or grey
       }
       else {
         // 8.5.3.2.2

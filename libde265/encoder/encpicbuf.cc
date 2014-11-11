@@ -118,6 +118,24 @@ void image_data::set_references(int sps_index, // -1 -> custom
   ref1 = l1;
   longterm = lt;
   keep = keepMoreReferences;
+
+
+  // TODO: pps.num_ref_idx_l0_default_active
+
+  shdr.num_ref_idx_l0_active = l0.size();
+  //shdr.num_ref_idx_l1_active = l1.size();
+
+  assert(l0.size() < MAX_NUM_REF_PICS);
+  for (int i=0;i<l0.size();i++) {
+    shdr.RefPicList[0][i] = l0[i];
+  }
+
+  /*
+  assert(l1.size() < MAX_NUM_REF_PICS);
+  for (int i=0;i<l1.size();i++) {
+    shdr.RefPicList[1][i] = l1[i];
+  }
+  */
 }
 
 void image_data::set_temporal_layer(int temporal_layer)
@@ -149,7 +167,7 @@ void encoder_picture_buffer::mark_encoding_started(int frame_number)
   data->state = image_data::state_encoding;
 }
 
-void encoder_picture_buffer::set_reconstruction_image(int frame_number, const de265_image* reco)
+void encoder_picture_buffer::set_reconstruction_image(int frame_number, de265_image* reco)
 {
   image_data* data = get_picture(frame_number);
 
@@ -184,6 +202,8 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
   std::deque<image_data*> newImageSet;
   for (auto imgdata : mImages) {
     if (imgdata->mark_used || imgdata->is_in_output_queue) {
+      imgdata->reconstruction->PicState = UsedForShortTermReference; // TODO: this is only a hack
+
       newImageSet.push_back(imgdata);
     }
     else {

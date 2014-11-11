@@ -74,6 +74,15 @@ void derive_spatial_merging_candidates(const class de265_image* img,
                                        int partIdx,
                                        SpatialMergingCandidates* out_cand);
 
+void generate_inter_prediction_samples(class base_context* ctx,
+                                       class de265_image* img,
+                                       class slice_segment_header* shdr,
+                                       int xC,int yC,
+                                       int xB,int yB,
+                                       int nCS, int nPbW,int nPbH,
+                                       const PredVectorInfo* vi);
+
+
 
 
 void decode_prediction_unit(struct thread_context* shdr,

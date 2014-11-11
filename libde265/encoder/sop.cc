@@ -75,17 +75,17 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
 
 void sop_creator_trivial_low_delay::insert_new_input_image(const de265_image* img)
 {
-  int poc = get_pic_order_count();
+  int frame = get_frame_number();
 
   std::vector<int> l0, l1, empty;
-  if (poc>0) {
-    l0.push_back(poc-1);
+  if (frame>0) {
+    l0.push_back(frame-1);
   }
 
   assert(mEncPicBuf);
   image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
-  if (poc==0) {
+  if (frame==0) {
     imgdata->set_intra();
     imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
     imgdata->shdr.slice_type = SLICE_TYPE_I;
