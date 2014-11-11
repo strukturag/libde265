@@ -23,6 +23,20 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
+
+
+void copy_subimage(uint8_t* dst,int dststride,
+                   const uint8_t* src,int srcstride,
+                   int w, int h)
+{
+  for (int y=0;y<h;y++) {
+    memcpy(dst, src, w);
+    dst += dststride;
+    src += srcstride;
+  }
+}
+
 
 
 #ifdef DE265_LOGGING

@@ -65,9 +65,9 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
-                                    1<<cb->log2CbSize, // int nCS,
-                                    1<<cb->log2CbSize,
-                                    1<<cb->log2CbSize, // int nPbW,int nPbH,
+                                    1<<cb->log2Size, // int nCS,
+                                    1<<cb->log2Size,
+                                    1<<cb->log2Size, // int nPbW,int nPbH,
                                     &vi);
 
 
@@ -80,7 +80,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
   cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
-                                         cb->x,cb->y,cb->x,cb->y, cb->log2CbSize,0,
+                                         cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                          0, MaxTrafoDepth, IntraSplitFlag);
 
   return cb;

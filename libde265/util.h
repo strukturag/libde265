@@ -60,6 +60,7 @@ LIBDE265_INLINE static int ceil_div(int num,int denom)
   num += denom-1;
   return num/denom;
 }
+
 LIBDE265_INLINE static int ceil_log2(int val)
 {
   int n=0;
@@ -69,6 +70,7 @@ LIBDE265_INLINE static int ceil_log2(int val)
 
   return n;
 }
+
 LIBDE265_INLINE static int Log2(int v)
 {
   int n=0;
@@ -79,6 +81,15 @@ LIBDE265_INLINE static int Log2(int v)
 
   return n;
 }
+
+LIBDE265_INLINE static int Log2SizeToArea(int v)
+{
+  return (1<<(v<<1));
+}
+
+void copy_subimage(uint8_t* dst,int dststride,
+                   const uint8_t* src,int srcstride,
+                   int w, int h);
 
 
 // === logging ===

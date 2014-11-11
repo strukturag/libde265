@@ -146,7 +146,9 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   tb->parent = parent;
   tb->split_transform_flag = false;
-  tb->log2TbSize = log2TbSize;
+  tb->log2Size = log2TbSize;
+  tb->x = x0;
+  tb->y = y0;
   tb->cbf[0] = tb->cbf[1] = tb->cbf[2] = 0;
 
 
@@ -244,8 +246,9 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
   tb->parent = parent;
   tb->split_transform_flag = true;
-  tb->log2TbSize = log2TbSize;
-
+  tb->log2Size = log2TbSize;
+  tb->x = x0;
+  tb->y = y0;
   tb->rate = 0;
   tb->distortion = 0;
 

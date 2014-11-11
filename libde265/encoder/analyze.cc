@@ -42,12 +42,12 @@ void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const en
   if (cb->split_cu_flag) {
     for (int i=0;i<4;i++)
       if (cb->children[i]) {
-        statistics_IntraPredMode(ectx, childX(x,i,cb->log2CbSize), childY(y,i,cb->log2CbSize), cb->children[i]);
+        statistics_IntraPredMode(ectx, childX(x,i,cb->log2Size), childY(y,i,cb->log2Size), cb->children[i]);
       }
   }
   else {
     int cnt;
-    int size = cb->log2CbSize;
+    int size = cb->log2Size;
 
     if (cb->PartMode == PART_NxN) { cnt=4; size--; } else cnt=1;
 
@@ -55,8 +55,8 @@ void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const en
       IntraPredModeCnt[size][ cb->intra.pred_mode[i] ]++;
       IntraPredModeCnt_total[ cb->intra.pred_mode[i] ]++;
 
-      int xi = childX(x,i,cb->log2CbSize);
-      int yi = childY(y,i,cb->log2CbSize);
+      int xi = childX(x,i,cb->log2Size);
+      int yi = childY(y,i,cb->log2Size);
 
       int candModeList[3];
       fillIntraPredModeCandidates(candModeList,xi,yi, xi>0, yi>0, ectx->img);

@@ -32,7 +32,24 @@ struct encoder_context;
 struct enc_cb;
 
 
-class enc_tb
+class enc_node
+{
+ public:
+  enc_node() { mReconstruction=NULL; }
+  ~enc_node() { delete[] mReconstruction; }
+
+  uint16_t x,y;
+  uint8_t  log2Size;
+
+  void save_reconstruction(const de265_image*);
+  void restore_reconstruction(de265_image*);
+
+ private:
+  uint8_t* mReconstruction;
+};
+
+
+class enc_tb : public enc_node
 {
  public:
   enc_tb();
@@ -44,8 +61,8 @@ class enc_tb
   //uint8_t cbf_luma : 1;
   //uint8_t cbf_cb : 1;
   //uint8_t cbf_cr : 1;
-  uint8_t log2TbSize : 3;
-  uint8_t TrafoDepth;
+  //uint8_t log2TbSize : 3;
+  uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
 
   uint8_t cbf[3];
 
@@ -92,7 +109,7 @@ struct enc_pb_inter
 };
 
 
-class enc_cb
+class enc_cb : public enc_node
 {
 public:
   enc_cb();
@@ -101,10 +118,10 @@ public:
   const enc_cb* parent;
 
   uint8_t split_cu_flag;
-  uint8_t log2CbSize;
+  //uint8_t log2CbSize;
   uint8_t ctDepth;
 
-  uint16_t x,y;
+  //uint16_t x,y;
 
   union {
     // split

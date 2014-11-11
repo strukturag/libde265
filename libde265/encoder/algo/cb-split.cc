@@ -32,7 +32,7 @@
 
 
 
-bool Algo_CB_Split::forcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const
+bool Algo_CB_Split::isForcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const
 {
   int w = input->get_width();
   int h = input->get_height();
@@ -67,7 +67,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
   CABAC_encoder_estim estim;
   ectx->switch_CABAC(ctxModel, &estim);
-  encode_quadtree(ectx,cb,cb->x,cb->y,cb->log2CbSize,cb->ctDepth, false);
+  encode_quadtree(ectx,cb,cb->x,cb->y,cb->log2Size,cb->ctDepth, false);
 
   cb->distortion = 0;
   cb->rate       = estim.getRDBits();
@@ -76,8 +76,8 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   // encode all 4 children and sum their distortions and rates
 
   for (int i=0;i<4;i++) {
-    int dx = (i&1)  << (cb->log2CbSize-1);
-    int dy = (i>>1) << (cb->log2CbSize-1);
+    int dx = (i&1)  << (cb->log2Size-1);
+    int dy = (i>>1) << (cb->log2Size-1);
 
     if (cb->x+dx>=w || cb->y+dy>=h) {
       cb->children[i] = NULL;
@@ -85,7 +85,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
     else {
       enc_cb* childCB = new enc_cb;
       childCB->split_cu_flag = false;
-      childCB->log2CbSize = cb->log2CbSize-1;
+      childCB->log2Size = cb->log2Size-1;
       childCB->ctDepth = cb->ctDepth+1;
       childCB->qp = ectx->active_qp;
       childCB->cu_transquant_bypass_flag = false;
@@ -111,9 +111,9 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 {
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
-  const int Log2CbSize = cb->log2CbSize;
+  const int Log2CbSize = cb->log2Size;
   const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
-  const bool can_nosplit_CB = !forcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
+  const bool can_nosplit_CB = !isForcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
 
   context_model_table ctxCopy;
   context_model* ctxSplit = ctxModel;

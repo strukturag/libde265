@@ -35,6 +35,58 @@ int allocCB = 0;
 #define DEBUG_ALLOCS 0
 
 
+
+void enc_node::save_reconstruction(const de265_image* img)
+{
+  delete[] mReconstruction;
+
+  int blkSize = Log2SizeToArea(log2Size);
+  mReconstruction = new uint8_t[blkSize * 3/2];
+
+  int w = 1<<log2Size;
+
+  copy_subimage(mReconstruction, w,
+                img->get_image_plane_at_pos(0, x,y),
+                img->get_image_stride(0),
+                w,w);
+
+  copy_subimage(mReconstruction + blkSize, w>>1,
+                img->get_image_plane_at_pos(1, x>>1,y>>1),
+                img->get_image_stride(1),
+                w>>1,w>>1);
+
+  copy_subimage(mReconstruction + blkSize*5/4, w>>1,
+                img->get_image_plane_at_pos(2, x>>1,y>>1),
+                img->get_image_stride(2),
+                w>>1,w>>1);
+}
+
+
+void enc_node::restore_reconstruction(de265_image* img)
+{
+  assert(mReconstruction);
+
+  int blkSize = Log2SizeToArea(log2Size);
+  int w = 1<<log2Size;
+
+  copy_subimage(img->get_image_plane_at_pos(0, x,y),
+                img->get_image_stride(0),
+                mReconstruction, w,
+                w,w);
+
+  copy_subimage(img->get_image_plane_at_pos(1, x>>1,y>>1),
+                img->get_image_stride(1),
+                mReconstruction + blkSize, w>>1,
+                w>>1,w>>1);
+
+  copy_subimage(img->get_image_plane_at_pos(2, x>>1,y>>1),
+                img->get_image_stride(2),
+                mReconstruction + blkSize*5/4, w>>1,
+                w>>1,w>>1);
+}
+
+
+
 alloc_pool enc_tb::mMemPool(sizeof(enc_tb));
 
 enc_tb::enc_tb()
@@ -128,20 +180,20 @@ void enc_tb::reconstruct(acceleration_functions* accel,
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(accel,img,
-                               childX(x0,i,log2TbSize), childY(y0,i,log2TbSize), x0,y0,
+                               childX(x0,i,log2Size), childY(y0,i,log2Size), x0,y0,
                                cb, i);
     }
   }
   else {
-    reconstruct_tb(accel, img, x0,y0, log2TbSize, cb, 0);
+    reconstruct_tb(accel, img, x0,y0, log2Size, cb, 0);
 
-    if (log2TbSize>2) {
-      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, 1);
-      reconstruct_tb(accel, img, x0,y0, log2TbSize-1, cb, 2);
+    if (log2Size>2) {
+      reconstruct_tb(accel, img, x0,y0, log2Size-1, cb, 1);
+      reconstruct_tb(accel, img, x0,y0, log2Size-1, cb, 2);
     }
     else if (blkIdx==3) {
-      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, 1);
-      reconstruct_tb(accel, img, xBase,yBase, log2TbSize, cb, 2);
+      reconstruct_tb(accel, img, xBase,yBase, log2Size, cb, 1);
+      reconstruct_tb(accel, img, xBase,yBase, log2Size, cb, 2);
     }
   }
 }
@@ -193,7 +245,7 @@ enc_cb::~enc_cb()
 
 void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
 {
-  int log2blkSize = log2CbSize;
+  int log2blkSize = log2Size;
 
   //printf("write_to_image %d %d size:%d\n",x,y,1<<log2blkSize);
 
@@ -255,8 +307,8 @@ void enc_cb::reconstruct(acceleration_functions* accel,
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(accel, img,
-                               childX(x0,i,log2CbSize),
-                               childY(y0,i,log2CbSize));
+                               childX(x0,i,log2Size),
+                               childY(y0,i,log2Size));
     }
   }
   else {
