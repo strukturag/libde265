@@ -86,7 +86,8 @@ void printm32(const char* prefix, unsigned char* p)
 #define BIT_DEPTH 8
 
 void ff_hevc_put_unweighted_pred_8_sse(uint8_t *_dst, ptrdiff_t dststride,
-        int16_t *src, ptrdiff_t srcstride, int width, int height) {
+                                       const int16_t *src, ptrdiff_t srcstride,
+                                       int width, int height) {
     int x, y;
     uint8_t *dst = (uint8_t*) _dst;
     __m128i r0, r1, f0;
@@ -169,7 +170,8 @@ void ff_hevc_put_unweighted_pred_8_sse(uint8_t *_dst, ptrdiff_t dststride,
 }
 
 void ff_hevc_put_unweighted_pred_sse(uint8_t *_dst, ptrdiff_t _dststride,
-        int16_t *src, ptrdiff_t srcstride, int width, int height) {
+                                     const int16_t *src, ptrdiff_t srcstride,
+                                     int width, int height) {
     int x, y;
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t dststride = _dststride / sizeof(uint8_t);
@@ -203,8 +205,9 @@ void ff_hevc_put_unweighted_pred_sse(uint8_t *_dst, ptrdiff_t _dststride,
 }
 
 void ff_hevc_put_weighted_pred_avg_8_sse(uint8_t *_dst, ptrdiff_t dststride,
-        int16_t *src1, int16_t *src2, ptrdiff_t srcstride, int width,
-        int height) {
+                                         const int16_t *src1, const int16_t *src2,
+                                         ptrdiff_t srcstride, int width,
+                                         int height) {
     int x, y;
     uint8_t *dst = (uint8_t*) _dst;
     __m128i r0, r1, f0, r2, r3;
@@ -307,8 +310,9 @@ void ff_hevc_put_weighted_pred_avg_8_sse(uint8_t *_dst, ptrdiff_t dststride,
 }
 
 void ff_hevc_put_weighted_pred_avg_sse(uint8_t *_dst, ptrdiff_t _dststride,
-        int16_t *src1, int16_t *src2, ptrdiff_t srcstride, int width,
-        int height) {
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride, int width,
+                                       int height) {
     int x, y;
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t dststride = _dststride / sizeof(uint8_t);
@@ -346,8 +350,9 @@ void ff_hevc_put_weighted_pred_avg_sse(uint8_t *_dst, ptrdiff_t _dststride,
 
 #if 0
 void ff_hevc_weighted_pred_8_sse4(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
-        uint8_t *_dst, ptrdiff_t _dststride, int16_t *src, ptrdiff_t srcstride,
-        int width, int height) {
+                                  uint8_t *_dst, ptrdiff_t _dststride,
+                                  const int16_t *src, ptrdiff_t srcstride,
+                                  int width, int height) {
 
     int log2Wd;
     int x, y;
@@ -587,8 +592,9 @@ void ff_hevc_weighted_pred_8_sse4(uint8_t denom, int16_t wlxFlag, int16_t olxFla
 
 #if 0
 void ff_hevc_weighted_pred_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
-        uint8_t *_dst, ptrdiff_t _dststride, int16_t *src, ptrdiff_t srcstride,
-        int width, int height) {
+                               uint8_t *_dst, ptrdiff_t _dststride,
+                               const int16_t *src, ptrdiff_t srcstride,
+                               int width, int height) {
 
     int log2Wd;
     int x, y;
@@ -672,9 +678,10 @@ void ff_hevc_weighted_pred_sse(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
 
 #if HAVE_SSE4_1
 void ff_hevc_weighted_pred_avg_8_sse4(uint8_t denom, int16_t wl0Flag,
-        int16_t wl1Flag, int16_t ol0Flag, int16_t ol1Flag, uint8_t *_dst,
-        ptrdiff_t _dststride, int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
-        int width, int height) {
+                                      int16_t wl1Flag, int16_t ol0Flag, int16_t ol1Flag,
+                                      uint8_t *_dst, ptrdiff_t _dststride,
+                                      const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                      int width, int height) {
     int shift, shift2;
     int log2Wd;
     int o0;
@@ -869,7 +876,7 @@ void ff_hevc_weighted_pred_avg_8_sse4(uint8_t denom, int16_t wl0Flag,
 #if 0
 void ff_hevc_weighted_pred_avg_sse(uint8_t denom, int16_t wl0Flag,
         int16_t wl1Flag, int16_t ol0Flag, int16_t ol1Flag, uint8_t *_dst,
-        ptrdiff_t _dststride, int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                   ptrdiff_t _dststride, const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
         int width, int height) {
     int shift, shift2;
     int log2Wd;
@@ -943,8 +950,9 @@ void ff_hevc_weighted_pred_avg_sse(uint8_t denom, int16_t wl0Flag,
 
 
 void ff_hevc_put_hevc_epel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t srcstride, int width, int height, int mx,
-        int my, int16_t* mcbuffer) {
+                                        const uint8_t *_src, ptrdiff_t srcstride,
+                                        int width, int height, int mx,
+                                        int my, int16_t* mcbuffer) {
     int x, y;
     __m128i x1, x2,x3;
     uint8_t *src = (uint8_t*) _src;
@@ -1020,8 +1028,9 @@ void ff_hevc_put_hevc_epel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
-        int my, int16_t* mcbuffer) {
+                                         const uint8_t *_src, ptrdiff_t _srcstride,
+                                         int width, int height, int mx,
+                                         int my, int16_t* mcbuffer) {
     int x, y;
     __m128i x2;
     uint16_t *src = (uint16_t*) _src;
@@ -1071,10 +1080,11 @@ void ff_hevc_put_hevc_epel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 void ff_hevc_put_hevc_epel_h_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
-        int my, int16_t* mcbuffer) {
+                                   const uint8_t *_src, ptrdiff_t _srcstride,
+                                   int width, int height, int mx,
+                                   int my, int16_t* mcbuffer) {
     int x, y;
-    uint8_t *src = (uint8_t*) _src;
+    const uint8_t *src = (const uint8_t*) _src;
     ptrdiff_t srcstride = _srcstride;
     const int8_t *filter = epel_filters[mx - 1];
     __m128i r0, bshuffle1, bshuffle2, x1, x2, x3;
@@ -1168,8 +1178,9 @@ void ff_hevc_put_hevc_epel_h_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_h_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
-        int my, int16_t* mcbuffer) {
+                                    const uint8_t *_src, ptrdiff_t _srcstride,
+                                    int width, int height, int mx,
+                                    int my, int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*) _src;
     ptrdiff_t srcstride = _srcstride>>1;
@@ -1230,7 +1241,7 @@ void ff_hevc_put_hevc_epel_h_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 
 void ff_hevc_put_hevc_epel_v_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
+                                   const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
         int my, int16_t* mcbuffer) {
     int x, y;
     __m128i x0, x1, x2, x3, t0, t1, t2, t3, r0, f0, f1, f2, f3, r1;
@@ -1369,7 +1380,7 @@ void ff_hevc_put_hevc_epel_v_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_v_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
+                                    const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
         int my, int16_t* mcbuffer) {
     int x, y;
     __m128i x0, x1, x2, x3, t0, t1, t2, t3, r0, f0, f1, f2, f3, r1, r2, r3;
@@ -1536,7 +1547,7 @@ void ff_hevc_put_hevc_epel_v_10_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 void ff_hevc_put_hevc_epel_hv_8_sse(int16_t *dst, ptrdiff_t dststride,
-		uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
+                                    const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
 		int my, int16_t* mcbuffer) {
 	int x, y;
 	uint8_t *src = (uint8_t*) _src;
@@ -1763,7 +1774,7 @@ void ff_hevc_put_hevc_epel_hv_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_hv_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
         int my, int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*) _src;
@@ -1925,7 +1936,7 @@ void ff_hevc_put_hevc_epel_hv_10_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 void ff_hevc_put_hevc_qpel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     __m128i x1, x2, x3, x0;
@@ -1999,7 +2010,7 @@ void ff_hevc_put_hevc_qpel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #ifndef __native_client__
 void ff_hevc_put_hevc_qpel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                         const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     __m128i x1, x2, x4;
@@ -2046,10 +2057,10 @@ void ff_hevc_put_hevc_qpel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 
 void ff_hevc_put_hevc_qpel_h_1_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
-    uint8_t *src = _src;
+    const uint8_t *src = _src;
     ptrdiff_t srcstride = _srcstride / sizeof(uint8_t);
     __m128i x1, r0, x2, x3, x4, x5;
 
@@ -2145,7 +2156,7 @@ void ff_hevc_put_hevc_qpel_h_1_8_sse(int16_t *dst, ptrdiff_t dststride,
  * @TODO : Valgrind to see if it's useful to use SSE or wait for AVX2 implementation
  */
 void ff_hevc_put_hevc_qpel_h_1_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*)_src;
@@ -2179,10 +2190,10 @@ void ff_hevc_put_hevc_qpel_h_1_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 
 void ff_hevc_put_hevc_qpel_h_2_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
-    uint8_t *src = _src;
+    const uint8_t *src = _src;
     ptrdiff_t srcstride = _srcstride / sizeof(uint8_t);
     __m128i x1, r0, x2, x3, x4, x5;
 
@@ -2249,7 +2260,7 @@ void ff_hevc_put_hevc_qpel_h_2_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #if 0
 static void ff_hevc_put_hevc_qpel_h_2_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                          const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = _src;
@@ -2317,7 +2328,7 @@ static void ff_hevc_put_hevc_qpel_h_2_sse(int16_t *dst, ptrdiff_t dststride,
 
 }
 static void ff_hevc_put_hevc_qpel_h_3_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                          const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = _src;
@@ -2384,10 +2395,10 @@ static void ff_hevc_put_hevc_qpel_h_3_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 void ff_hevc_put_hevc_qpel_h_3_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
-    uint8_t *src = _src;
+    const uint8_t *src = _src;
     ptrdiff_t srcstride = _srcstride / sizeof(uint8_t);
     __m128i x1, r0, x2, x3, x4, x5;
 
@@ -2452,7 +2463,7 @@ void ff_hevc_put_hevc_qpel_h_3_8_sse(int16_t *dst, ptrdiff_t dststride,
 
  */
 void ff_hevc_put_hevc_qpel_v_1_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -2611,7 +2622,7 @@ void ff_hevc_put_hevc_qpel_v_1_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #if 0
 void ff_hevc_put_hevc_qpel_v_1_10_sse4(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*) _src;
@@ -2688,7 +2699,7 @@ void ff_hevc_put_hevc_qpel_v_1_10_sse4(int16_t *dst, ptrdiff_t dststride,
 
 
 void ff_hevc_put_hevc_qpel_v_2_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -2863,7 +2874,7 @@ void ff_hevc_put_hevc_qpel_v_2_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #if 0
 void ff_hevc_put_hevc_qpel_v_2_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                      cosnt uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*) _src;
@@ -2954,7 +2965,7 @@ void ff_hevc_put_hevc_qpel_v_2_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 #if 0
 static  void ff_hevc_put_hevc_qpel_v_3_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                           const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -3121,7 +3132,7 @@ static  void ff_hevc_put_hevc_qpel_v_3_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -3276,7 +3287,7 @@ void ff_hevc_put_hevc_qpel_v_3_8_sse(int16_t *dst, ptrdiff_t dststride,
 
 #if 0
 void ff_hevc_put_hevc_qpel_v_3_10_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint16_t *src = (uint16_t*) _src;
@@ -3352,7 +3363,7 @@ void ff_hevc_put_hevc_qpel_v_3_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 
 void ff_hevc_put_hevc_qpel_h_1_v_1_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t* src = (uint8_t*) _src;
@@ -3524,7 +3535,7 @@ void ff_hevc_put_hevc_qpel_h_1_v_1_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_1_v_2_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -3707,7 +3718,7 @@ void ff_hevc_put_hevc_qpel_h_1_v_2_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_1_v_3_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -3884,7 +3895,7 @@ void ff_hevc_put_hevc_qpel_h_1_v_3_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_2_v_1_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -4055,7 +4066,7 @@ void ff_hevc_put_hevc_qpel_h_2_v_1_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_2_v_2_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -4238,7 +4249,7 @@ void ff_hevc_put_hevc_qpel_h_2_v_2_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_2_v_3_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -4416,7 +4427,7 @@ void ff_hevc_put_hevc_qpel_h_2_v_3_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_3_v_1_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -4589,7 +4600,7 @@ void ff_hevc_put_hevc_qpel_h_3_v_1_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_3_v_2_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;
@@ -4775,7 +4786,7 @@ void ff_hevc_put_hevc_qpel_h_3_v_2_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 void ff_hevc_put_hevc_qpel_h_3_v_3_sse(int16_t *dst, ptrdiff_t dststride,
-        uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
+                                       const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
     int x, y;
     uint8_t *src = (uint8_t*) _src;

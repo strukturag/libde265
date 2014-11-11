@@ -55,11 +55,11 @@ static int extra_after [4] = { 0,3,4,4 };
 
 
 
-void mc_luma(const decoder_context* ctx,
+void mc_luma(const base_context* ctx,
              const de265_image* img, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
-             uint8_t* ref, int ref_stride,
+             const uint8_t* ref, int ref_stride,
              int nPbW, int nPbH)
 {
   const seq_parameter_set* sps = &img->sps;
@@ -142,7 +142,7 @@ void mc_luma(const decoder_context* ctx,
 
     uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+7)];
 
-    uint8_t* src_ptr;
+    const uint8_t* src_ptr;
     int src_stride;
 
     if (-extra_left + xIntOffsL >= 0 &&
@@ -184,12 +184,12 @@ void mc_luma(const decoder_context* ctx,
 
 
 
-void mc_chroma(const decoder_context* ctx,
+void mc_chroma(const base_context* ctx,
                const de265_image* img,
                int mv_x, int mv_y,
                int xP,int yP,
                int16_t* out, int out_stride,
-               uint8_t* ref, int ref_stride,
+               const uint8_t* ref, int ref_stride,
                int nPbWC, int nPbHC)
 {
   const seq_parameter_set* sps = &img->sps;
@@ -233,7 +233,7 @@ void mc_chroma(const decoder_context* ctx,
   else {
     uint8_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+3)];
 
-    uint8_t* src_ptr;
+    const uint8_t* src_ptr;
     int src_stride;
 
     int extra_top  = 1;
@@ -287,7 +287,7 @@ void mc_chroma(const decoder_context* ctx,
 
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
-void generate_inter_prediction_samples(decoder_context* ctx,
+void generate_inter_prediction_samples(base_context* ctx,
                                        de265_image* img,
                                        slice_segment_header* shdr,
                                        int xC,int yC,
@@ -332,8 +332,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         return;
       }
 
-      de265_image* refPic;
-      refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 

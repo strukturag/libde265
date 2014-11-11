@@ -27,45 +27,45 @@
 struct acceleration_functions
 {
   void (*put_weighted_pred_avg_8)(uint8_t *_dst, ptrdiff_t dststride,
-                                  int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                  const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                   int width, int height);
 
   void (*put_unweighted_pred_8)(uint8_t *_dst, ptrdiff_t dststride,
-                                int16_t *src, ptrdiff_t srcstride,
+                                const int16_t *src, ptrdiff_t srcstride,
                                 int width, int height);
 
   void (*put_weighted_pred_8)(uint8_t *_dst, ptrdiff_t dststride,
-                              int16_t *src, ptrdiff_t srcstride,
+                              const int16_t *src, ptrdiff_t srcstride,
                               int width, int height,
                               int w,int o,int log2WD);
   void (*put_weighted_bipred_8)(uint8_t *_dst, ptrdiff_t dststride,
-                                int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                 int width, int height,
                                 int w1,int o1, int w2,int o2, int log2WD);
 
   void (*put_hevc_epel_8)(int16_t *dst, ptrdiff_t dststride,
-                          uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                          const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                           int mx, int my, int16_t* mcbuffer);
   void (*put_hevc_epel_h_8)(int16_t *dst, ptrdiff_t dststride,
-                            uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                            const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                             int mx, int my, int16_t* mcbuffer);
   void (*put_hevc_epel_v_8)(int16_t *dst, ptrdiff_t dststride,
-                            uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                            const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                             int mx, int my, int16_t* mcbuffer);
   void (*put_hevc_epel_hv_8)(int16_t *dst, ptrdiff_t dststride,
-                             uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                             const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                              int mx, int my, int16_t* mcbuffer);
 
   void (*put_hevc_qpel_8[4][4])(int16_t *dst, ptrdiff_t dststride,
-                                uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                                const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                                 int16_t* mcbuffer);
 
   // --- inverse transforms ---
 
-  void (*transform_skip_8)(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _stride); // no transform
-  void (*transform_bypass_8)(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride);
-  void (*transform_4x4_dst_add_8)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDST
-  void (*transform_add_8[4])(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_skip_8)(uint8_t *_dst, const int16_t *coeffs, ptrdiff_t _stride); // no transform
+  void (*transform_bypass_8)(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
+  void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
+  void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
 
   // --- forward transforms ---
 

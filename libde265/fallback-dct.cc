@@ -44,7 +44,7 @@ static void printMatrix(const char* name, const int16_t* v, int n)
 
 
 
-void transform_skip_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_skip_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   int nT = 4;
   int bdShift2 = 20-8;
@@ -59,7 +59,7 @@ void transform_skip_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
 }
 
 
-void transform_bypass_8_fallback(uint8_t *dst, int16_t *coeffs, int nT, ptrdiff_t stride)
+void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride)
 {
   int bdShift2 = 20-8;
 
@@ -81,7 +81,7 @@ static int8_t mat_8_357[4][4] = {
 
 
 
-void transform_4x4_luma_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   int16_t g[4][4];
 
@@ -247,7 +247,7 @@ static int8_t mat_dct[32][32] = {
 
 
 static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
-                                 int nT, int16_t *coeffs)
+                                 int nT, const int16_t *coeffs)
 {
   /*
     The effective shift is
@@ -389,22 +389,22 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
 }
 
 
-void transform_4x4_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   transform_idct_add_8(dst,stride,  4, coeffs);
 }
 
-void transform_8x8_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   transform_idct_add_8(dst,stride,  8, coeffs);
 }
 
-void transform_16x16_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   transform_idct_add_8(dst,stride,  16, coeffs);
 }
 
-void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride)
+void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   transform_idct_add_8(dst,stride,  32, coeffs);
 }

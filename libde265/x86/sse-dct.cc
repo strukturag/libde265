@@ -282,7 +282,7 @@ ALIGNED_16(static const int16_t) transform32x32[8][16][8] =
 #define add_1st (1 << (shift_1st - 1))
 
 
-void ff_hevc_transform_skip_8_sse(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _stride)
+void ff_hevc_transform_skip_8_sse(uint8_t *_dst, const int16_t *coeffs, ptrdiff_t _stride)
 {
     uint8_t *dst = (uint8_t*)_dst;
     ptrdiff_t stride = _stride;
@@ -342,7 +342,7 @@ void ff_hevc_transform_skip_8_sse(uint8_t *_dst, int16_t *coeffs, ptrdiff_t _str
 
 
 #if HAVE_SSE4_1
-void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
                                            ptrdiff_t _stride) {
 
     uint8_t shift_2nd = 12; // 20 - Bit depth
@@ -350,7 +350,7 @@ void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t stride = _stride;
-    int16_t *src = coeffs;
+    const int16_t *src = coeffs;
     __m128i m128iAdd, S0, S8, m128iTmp1, m128iTmp2, m128iAC, m128iBD, m128iA,
             m128iD;
     m128iAdd = _mm_set1_epi32(64);
@@ -496,7 +496,7 @@ void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 #endif // SSE4.1
 
 #if 0
-void ff_hevc_transform_4x4_luma_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_4x4_luma_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     int i,j;
     uint8_t shift_2nd = 10; // 20 - Bit depth
@@ -623,14 +623,14 @@ void ff_hevc_transform_4x4_luma_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
 
 
 #if HAVE_SSE4_1
-void ff_hevc_transform_4x4_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_4x4_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t stride = _stride;
-    int16_t *src = coeffs;
+    const int16_t *src = coeffs;
 
     __m128i S0, S8, m128iAdd, m128Tmp, E1, E2, O1, O2, m128iA, m128iD, m128iTmp1,m128iTmp2;
     S0 = _mm_load_si128((__m128i *) (src));
@@ -744,7 +744,7 @@ void ff_hevc_transform_4x4_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 #endif
 
 #if 0
-void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     int i;
     uint8_t shift_2nd = 10; // 20 - Bit depth
@@ -839,14 +839,14 @@ void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
 #endif
 
 #if HAVE_SSE4_1
-void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t stride = _stride / sizeof(uint8_t);
-    int16_t *src = coeffs;
+    const int16_t *src = coeffs;
     __m128i m128iS0, m128iS1, m128iS2, m128iS3, m128iS4, m128iS5, m128iS6,
             m128iS7, m128iAdd, m128Tmp0, m128Tmp1, m128Tmp2, m128Tmp3, E0h, E1h,
             E2h, E3h, E0l, E1l, E2l, E3l, O0h, O1h, O2h, O3h, O0l, O1l, O2l,
@@ -1174,7 +1174,7 @@ void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 #endif
 
 #if 0
-void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     int i;
     uint16_t *dst = (uint16_t*) _dst;
@@ -1489,14 +1489,14 @@ void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
 
 
 #if HAVE_SSE4_1
-void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
     int i;
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t stride = _stride / sizeof(uint8_t);
-    int16_t *src = coeffs;
+    const int16_t *src = coeffs;
     int32_t shift;
     __m128i m128iS0, m128iS1, m128iS2, m128iS3, m128iS4, m128iS5, m128iS6,
             m128iS7, m128iS8, m128iS9, m128iS10, m128iS11, m128iS12, m128iS13,
@@ -2246,7 +2246,7 @@ void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 
 
 #if 0
-void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     int i;
     uint16_t *dst = (uint16_t*) _dst;
@@ -2909,7 +2909,7 @@ void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
 
 
 #if HAVE_SSE4_1
-void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
@@ -2917,7 +2917,7 @@ void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
     uint8_t *dst = (uint8_t*) _dst;
     ptrdiff_t stride = _stride / sizeof(uint8_t);
     int shift;
-    int16_t *src = coeffs;
+    const int16_t *src = coeffs;
 
     __m128i m128iS0, m128iS1, m128iS2, m128iS3, m128iS4, m128iS5, m128iS6,
             m128iS7, m128iS8, m128iS9, m128iS10, m128iS11, m128iS12, m128iS13,
@@ -5201,7 +5201,7 @@ void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, int16_t *coeffs,
 
 
 #if 0
-void ff_hevc_transform_32x32_add_10_sse4(uint8_t *_dst, int16_t *coeffs,
+void ff_hevc_transform_32x32_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     int i, j;
     uint16_t *dst = (uint16_t*) _dst;
