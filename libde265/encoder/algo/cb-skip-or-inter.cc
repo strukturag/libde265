@@ -89,7 +89,7 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
 
     // have to reconstruct state
     cb_inter->write_to_image(ectx->img, cb->x,cb->y, true);
-    cb_inter->reconstruct(&ectx->accel, ectx->img, cb->x,cb->y);
+    cb_inter->reconstruct(&ectx->acceleration, ectx->img, cb->x,cb->y);
     return cb_inter;
   }
   else {

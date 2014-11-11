@@ -190,8 +190,24 @@ struct image_unit
 };
 
 
+class base_context : public error_queue
+{
+ public:
+  base_context();
+  virtual ~base_context() { }
 
-class decoder_context : public error_queue {
+  // --- accelerated DSP functions ---
+
+  void set_acceleration_functions(enum de265_acceleration);
+
+  struct acceleration_functions acceleration; // CPU optimized functions
+
+  //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  virtual const de265_image* get_image(int frame_id) const = 0;
+};
+
+
+class decoder_context : public base_context {
  public:
   decoder_context();
   ~decoder_context();
@@ -258,13 +274,6 @@ class decoder_context : public error_queue {
 
   de265_image_allocation param_image_allocation_functions;
   void*                  param_image_allocation_userdata;
-
-
-  // --- accelerated DSP functions ---
-
-  void set_acceleration_functions(enum de265_acceleration);
-
-  struct acceleration_functions acceleration; // CPU optimized functions
 
 
   // --- input stream data ---

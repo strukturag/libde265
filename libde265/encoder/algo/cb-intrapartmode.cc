@@ -109,7 +109,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
       cb[0]->write_to_image(ectx->img, x,y, true);
-      cb[0]->reconstruct(&ectx->accel, ectx->img, x,y);
+      cb[0]->reconstruct(&ectx->acceleration, ectx->img, x,y);
       delete cb[1];
       return cb[0];
     } else {

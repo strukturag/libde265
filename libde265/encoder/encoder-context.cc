@@ -48,11 +48,6 @@ encoder_context::encoder_context()
 
   params.registerParams(params_config);
   algo.registerParams(params_config);
-
-
-  // --- initialize encoder ---
-
-  init_acceleration_functions_fallback(&accel);
 }
 
 
@@ -160,21 +155,21 @@ de265_error encoder_context::encode_headers()
 
   nal.set(NAL_UNIT_VPS_NUT);
   nal.write(cabac);
-  vps.write(&errqueue, cabac);
+  vps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_VPS);
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(cabac);
-  sps.write(&errqueue, cabac);
+  sps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_SPS);
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_PPS_NUT);
   nal.write(cabac);
-  pps.write(&errqueue, cabac, &sps);
+  pps.write(this, cabac, &sps);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_PPS);
   output_packets.push_back(pck);
@@ -247,7 +242,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   nal_header nal;
   nal.set(imgdata->nal_type);
   nal.write(cabac);
-  imgdata->shdr.write(&errqueue, cabac, &sps, &pps, nal.nal_unit_type);
+  imgdata->shdr.write(this, cabac, &sps, &pps, nal.nal_unit_type);
   cabac->skip_bits(1);
   cabac->flush_VLC();
 

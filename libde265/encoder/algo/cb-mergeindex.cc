@@ -39,6 +39,12 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   cb->inter.merge_index = 0; // TODO
 
+
+  // build prediction
+
+  
+
+
   // estimate rate for sending merge index
 
   //CABAC_encoder_estim cabac;

@@ -99,7 +99,7 @@ void encode_transform_unit(encoder_context* ectx,
   int trType = 0;
   if (cIdx==0 && log2TbSize==2) trType=1; // TODO: inter mode
 
-  fwd_transform(&ectx->accel, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
+  fwd_transform(&ectx->acceleration, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
 
 
   // --- quantization ---
@@ -184,7 +184,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // reconstruction
 
-  tb->reconstruct(&ectx->accel, ectx->img, x0,y0, xBase,yBase, cb, blkIdx);
+  tb->reconstruct(&ectx->acceleration, ectx->img, x0,y0, xBase,yBase, cb, blkIdx);
 
 
 
@@ -442,7 +442,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     delete tb_split;
     assert(tb_no_split);
-    tb_no_split->reconstruct(&ectx->accel,
+    tb_no_split->reconstruct(&ectx->acceleration,
                              ectx->img, x0,y0, xBase,yBase,
                              cb, blkIdx);
 

@@ -177,6 +177,12 @@ image_unit::~image_unit()
 }
 
 
+base_context::base_context()
+{
+  set_acceleration_functions(de265_acceleration_AUTO);
+}
+
+
 decoder_context::decoder_context()
 {
   //memset(ctx, 0, sizeof(decoder_context));
@@ -198,8 +204,6 @@ decoder_context::decoder_context()
   param_vps_headers_fd = -1;
   param_pps_headers_fd = -1;
   param_slice_headers_fd = -1;
-
-  set_acceleration_functions(de265_acceleration_AUTO);
 
   param_image_allocation_functions = de265_image::default_image_allocation;
   param_image_allocation_userdata  = NULL;
@@ -407,7 +411,7 @@ void decoder_context::reset()
   }
 }
 
-void decoder_context::set_acceleration_functions(enum de265_acceleration l)
+void base_context::set_acceleration_functions(enum de265_acceleration l)
 {
   // fill scalar functions first (so that function table is completely filled)
 

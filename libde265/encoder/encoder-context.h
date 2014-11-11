@@ -34,10 +34,12 @@
 #include <memory>
 
 
-struct encoder_context
+struct encoder_context : public base_context
 {
   encoder_context();
   ~encoder_context();
+
+  virtual const de265_image* get_image(int frame_id) const { assert(0); return NULL; } // TODO
 
   bool encoder_started;
 
@@ -54,8 +56,8 @@ struct encoder_context
                        de265_image*,
                        void* userdata);
 
-  error_queue errqueue;
-  acceleration_functions accel;
+  //error_queue errqueue;
+  //acceleration_functions accel;
 
   // quick links
   de265_image* img; // reconstruction

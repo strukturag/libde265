@@ -148,10 +148,10 @@ float estim_TB_bitrate(const encoder_context* ectx,
                  blkSize);
 
         if (method == TBBitrateEstim_SATD_Hadamard) {
-          ectx->accel.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          ectx->acceleration.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
         }
         else {
-          ectx->accel.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          ectx->acceleration.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
         }
 
         float distortion=0;
@@ -272,7 +272,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    tb[minCostIdx]->reconstruct(&ectx->accel,
+    tb[minCostIdx]->reconstruct(&ectx->acceleration,
                                 ectx->img, x0,y0, xBase,yBase,
                                 cb, blkIdx);
 
@@ -344,7 +344,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                              cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                              TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
-    tb->reconstruct(&ectx->accel,
+    tb->reconstruct(&ectx->acceleration,
                     ectx->img, x0,y0, xBase,yBase,
                     cb, blkIdx);
 
@@ -479,7 +479,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    tb[minCostIdx]->reconstruct(&ectx->accel,
+    tb[minCostIdx]->reconstruct(&ectx->acceleration,
                                 ectx->img, x0,y0, xBase,yBase,
                                 cb, blkIdx);
 
