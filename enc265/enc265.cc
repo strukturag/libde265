@@ -29,9 +29,9 @@
 
 
 
+#if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 using namespace videogfx;
-
 
 void debug_show_image_libvideogfx(const de265_image* input, int slot)
 {
@@ -58,6 +58,7 @@ void debug_show_image_libvideogfx(const de265_image* input, int slot)
     debugwin.Display(img);
     //debugwin.WaitForKeypress();
 }
+#endif
 
 
 
@@ -238,8 +239,9 @@ int main(int argc, char** argv)
 
 
   de265_set_verbosity(verbosity);
+#if HAVE_VIDEOGFX
   //debug_set_image_output(debug_show_image_libvideogfx);
-
+#endif
 
   //test_parameters_API(ectx);
 
