@@ -132,6 +132,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   if (can_nosplit_CB) {
     cb_no_split = new enc_cb;
     *cb_no_split = *cb;
+
+    ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
+    ectx->img->set_log2CbSize(cb->x,cb->y,cb->log2Size, true);
+
     cb_no_split = mPredModeAlgo->analyze(ectx, ctxModel, cb_no_split);
 
     if (can_split_CB) {

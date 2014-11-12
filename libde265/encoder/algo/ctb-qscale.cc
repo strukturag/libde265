@@ -44,6 +44,8 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->x = ctb_x;
   cb->y = ctb_y;
 
+  ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, cb->qp);
+
   return mChildAlgo->analyze(ectx,ctxModel,cb);
 }
 

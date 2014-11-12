@@ -167,9 +167,6 @@ double encode_image(encoder_context* ectx,
         //statistics_IntraPredMode(ectx, x0,y0, cb);
 
 
-        cb->write_to_image(ectx->img);
-
-
         // --- write bitstream ---
 
         ectx->switch_CABAC_to_bitstream();
