@@ -52,11 +52,20 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   enc_cb* cb_inter = NULL;
   enc_cb* cb_intra = NULL;
 
+  const int log2CbSize = cb->log2Size;
+  const int x = cb->x;
+  const int y = cb->y;
+
   if (try_inter) {
     cb_inter = new enc_cb;
     *cb_inter = *cb;
     cb_inter->PredMode = MODE_INTER;
+    ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
     cb_inter = mInterAlgo->analyze(ectx, ctxModel, cb_inter);
+
+    if (try_intra) {
+      cb_inter->save(ectx->img);
+    }
   }
 
 
@@ -66,11 +75,9 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     cb_intra = new enc_cb;
     *cb_intra = *cb;
     cb_intra->PredMode = MODE_INTRA;
+    ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTRA);
     cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb_intra);
   }
-
-  int x = cb->x;
-  int y = cb->y;
 
   delete cb;
   cb = NULL;
@@ -94,8 +101,10 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     copy_context_model_table(ctxModel, ctxInter);
 
     // have to reconstruct state
-    cb_inter->write_to_image(ectx->img);
-    cb_inter->reconstruct(ectx, ectx->img);
+    if (try_intra) {
+      cb_inter->restore(ectx->img);
+    }
+
     return cb_inter;
   }
   else {

@@ -50,12 +50,12 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
                             (log2CbSize >  ectx->sps.Log2MinTrafoSize));
 
   // Test NxN intra prediction mode only when at minimum Cb size.
-  const int lastMode = (can_use_NxN ? 2 : 1);
+  const int lastMode = (can_use_NxN ? 1 : 0);
 
 
   // test all modes
 
-  for (int p=0;p<lastMode;p++) {
+  for (int p=0;p<=lastMode;p++) {
 
     cb[p] = new enc_cb();
     *cb[p] = *cb_in;
@@ -94,8 +94,12 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     // estimate distortion
 
-    cb[p]->write_to_image(ectx->img);
     cb[p]->distortion = compute_distortion_ssd(ectx->img, ectx->imgdata->input, x,y, log2CbSize, 0);
+
+
+    if (p==0 && lastMode==1) {
+      cb[0]->save(ectx->img);
+    }
   }
 
   delete cb_in;
@@ -108,8 +112,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
-      cb[0]->write_to_image(ectx->img);
-      cb[0]->reconstruct(ectx, ectx->img);
+      cb[0]->restore(ectx->img);
       delete cb[1];
       return cb[0];
     } else {
@@ -145,9 +148,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   // --- set intra prediction mode ---
 
   cb->PartMode = PartMode;
-
-  ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);
-  ectx->img->set_PartMode (x,y, cb->PartMode);  // TODO: probably unnecessary
+  ectx->img->set_PartMode(x,y, PartMode);
 
 
   // encode transform tree

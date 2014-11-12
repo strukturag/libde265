@@ -169,11 +169,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   }
   else {
     // have to reconstruct state of the first option
-
-    //cb_no_split->write_to_image(ectx->img);
-    //cb_no_split->reconstruct(ectx, ectx->img, cb->x,cb->y);
-
     cb_no_split->restore(ectx->img);
+
     delete cb_split;
     return cb_no_split;
   }
