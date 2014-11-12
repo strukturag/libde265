@@ -199,7 +199,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // reconstruction
 
-  tb->reconstruct(ectx, ectx->img, x0,y0, xBase,yBase, cb, blkIdx);
+  tb->reconstruct(ectx, ectx->img, cb, blkIdx);
 
 
 
@@ -458,7 +458,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     delete tb_split;
     assert(tb_no_split);
-    tb_no_split->reconstruct(ectx, ectx->img, x0,y0, xBase,yBase,
+    tb_no_split->reconstruct(ectx, ectx->img,
                              cb, blkIdx);
 
     return tb_no_split;

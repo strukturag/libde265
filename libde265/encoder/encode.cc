@@ -143,6 +143,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
                             de265_image* img, int x0,int y0, int log2TbSize,
                             const enc_cb* cb, int cIdx) const
 {
+  // chroma adapted position
   int xC=x0;
   int yC=y0;
 
@@ -192,25 +193,26 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
 void enc_tb::reconstruct(encoder_context* ectx,
                          de265_image* img,
-                         int x0,int y0, int xBase, int yBase,
                          const enc_cb* cb,
                          int blkIdx) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(ectx,img,
-                               childX(x0,i,log2Size), childY(y0,i,log2Size), x0,y0,
                                cb, i);
     }
   }
   else {
-    reconstruct_tb(ectx, img, x0,y0, log2Size, cb, 0);
+    reconstruct_tb(ectx, img, x,y, log2Size, cb, 0);
 
     if (log2Size>2) {
-      reconstruct_tb(ectx, img, x0,y0, log2Size-1, cb, 1);
-      reconstruct_tb(ectx, img, x0,y0, log2Size-1, cb, 2);
+      reconstruct_tb(ectx, img, x,y, log2Size-1, cb, 1);
+      reconstruct_tb(ectx, img, x,y, log2Size-1, cb, 2);
     }
     else if (blkIdx==3) {
+      int xBase = x - (1<<log2Size);
+      int yBase = y - (1<<log2Size);
+
       reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 1);
       reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 2);
     }
@@ -350,7 +352,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
   }
   else {
     write_to_image(img);
-    transform_tree->reconstruct(ectx,img,x,y,x,y,this,0);
+    transform_tree->reconstruct(ectx,img,this,0);
   }
 }
 

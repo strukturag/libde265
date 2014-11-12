@@ -272,7 +272,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    tb[minCostIdx]->reconstruct(ectx, ectx->img, x0,y0, xBase,yBase,
+    tb[minCostIdx]->reconstruct(ectx, ectx->img,
                                 cb, blkIdx);
 
 
@@ -480,8 +480,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
 #if 1
-    tb[minCostIdx]->reconstruct(ectx, ectx->img, x0,y0, xBase,yBase,
-                                cb, blkIdx);
+    tb[minCostIdx]->reconstruct(ectx, ectx->img, cb, blkIdx);
 #endif
 
     for (int i = 0; i<35; i++) {
