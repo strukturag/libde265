@@ -162,6 +162,9 @@ typedef struct {
 
 typedef struct {
   uint8_t log2CbSize : 3;   /* [0;6] (1<<log2CbSize) = 64
+                               This is only set in the top-left corner of the CB.
+                               The other values should be zero.
+                               TODO: in the encoder, we have to clear to zero.
                                Used in deblocking and QP-scale decoding */
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
                             // Used for spatial merging candidates in current frame
@@ -408,9 +411,9 @@ public:
     return get_pred_mode(x,y)==MODE_SKIP;
   }
 
-  void set_pcm_flag(int x,int y, int log2BlkWidth)
+  void set_pcm_flag(int x,int y, int log2BlkWidth, uint8_t value=1)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
+    SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, value);
 
     // TODO: in the encoder, we somewhere have to clear this
     ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
@@ -421,9 +424,9 @@ public:
     return cb_info.get(x,y).pcm_flag;
   }
 
-  void set_cu_transquant_bypass(int x,int y, int log2BlkWidth)
+  void set_cu_transquant_bypass(int x,int y, int log2BlkWidth, uint8_t value=1)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
+    SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, value);
 
     // TODO: in the encoder, we somewhere have to clear this
     ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
@@ -434,9 +437,14 @@ public:
     return cb_info.get(x,y).cu_transquant_bypass;
   }
 
-  void set_log2CbSize(int x0, int y0, int log2CbSize)
+  void set_log2CbSize(int x0, int y0, int log2CbSize, bool fill=false)
   {
-    cb_info.get(x0,y0).log2CbSize = log2CbSize;
+    if (fill) {
+      cb_info.get(x0,y0).log2CbSize = log2CbSize;
+    }
+    else {
+      SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, log2CbSize);
+    }
 
     // assume that remaining cb_info blocks are initialized to zero
   }

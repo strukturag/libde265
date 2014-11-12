@@ -243,31 +243,32 @@ enc_cb::~enc_cb()
 }
 
 
-void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
+void enc_cb::write_to_image(de265_image* img) const
 {
-  int log2blkSize = log2Size;
-
-  //printf("write_to_image %d %d size:%d\n",x,y,1<<log2blkSize);
+  //printf("write_to_image %d %d size:%d\n",x,y,1<<log2Size);
 
  
   if (!split_cu_flag) {
-    img->set_ctDepth(x,y,log2blkSize, ctDepth);
-    //img->set_pcm_flag(x,y,log2blkSize, 0); // TODO
-    img->set_pred_mode(x,y, log2blkSize, PredMode);
-    img->set_PartMode(x,y, PartMode);  // TODO: probably unnecessary
+    img->set_log2CbSize(x,y,log2Size);
+    img->set_ctDepth(x,y,log2Size, ctDepth);
+    img->set_pcm_flag(x,y,log2Size, pcm_flag);
+    img->set_cu_transquant_bypass(x,y,log2Size, cu_transquant_bypass_flag);
+    img->set_QPY(x,y,log2Size, qp);
+    img->set_pred_mode(x,y, log2Size, PredMode);
+    img->set_PartMode(x,y, PartMode);
 
-    if (isIntra) {
-      //img->set_ChromaIntraPredMode(x,y,log2blkSize, intra.chroma_mode);
+    if (PredMode == MODE_INTRA) {
+      //img->set_ChromaIntraPredMode(x,y,log2Size, intra.chroma_mode);
 
       if (PartMode == PART_NxN) {
-        int h = 1<<(log2blkSize-1);
-        img->set_IntraPredMode(x  ,y  ,log2blkSize-1, intra.pred_mode[0]);
-        img->set_IntraPredMode(x+h,y  ,log2blkSize-1, intra.pred_mode[1]);
-        img->set_IntraPredMode(x  ,y+h,log2blkSize-1, intra.pred_mode[2]);
-        img->set_IntraPredMode(x+h,y+h,log2blkSize-1, intra.pred_mode[3]);
+        int h = 1<<(log2Size-1);
+        img->set_IntraPredMode(x  ,y  ,log2Size-1, intra.pred_mode[0]);
+        img->set_IntraPredMode(x+h,y  ,log2Size-1, intra.pred_mode[1]);
+        img->set_IntraPredMode(x  ,y+h,log2Size-1, intra.pred_mode[2]);
+        img->set_IntraPredMode(x+h,y+h,log2Size-1, intra.pred_mode[3]);
       }
       else {
-        img->set_IntraPredMode(x,y,log2blkSize, intra.pred_mode[0]);
+        img->set_IntraPredMode(x,y,log2Size, intra.pred_mode[0]);
       }
     }
     else {
@@ -277,8 +278,7 @@ void enc_cb::write_to_image(de265_image* img, int x,int y, bool isIntra) const
   else {
     for (int i=0;i<4;i++) {
       if (children[i]) {
-        children[i]->write_to_image(img, childX(x,i,log2blkSize), childY(y,i,log2blkSize),
-                                    isIntra);
+        children[i]->write_to_image(img);
       }
     }
   }

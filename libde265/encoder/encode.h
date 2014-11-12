@@ -113,7 +113,7 @@ public:
 
   const enc_cb* parent;
 
-  uint8_t split_cu_flag;
+  uint8_t split_cu_flag : 1;
   uint8_t ctDepth : 2;
 
   union {
@@ -153,7 +153,7 @@ public:
   float distortion;
   float rate;
 
-  void write_to_image(de265_image*, int x,int y,bool intraSlice) const;
+  void write_to_image(de265_image*) const;
 
   void reconstruct(acceleration_functions* accel,de265_image* img,
                    int x0,int y0) const;

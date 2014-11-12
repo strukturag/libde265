@@ -94,7 +94,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     copy_context_model_table(ctxModel, ctxInter);
 
     // have to reconstruct state
-    cb_inter->write_to_image(ectx->img, x,y, true);
+    cb_inter->write_to_image(ectx->img);
     cb_inter->reconstruct(&ectx->acceleration, ectx->img, x,y);
     return cb_inter;
   }

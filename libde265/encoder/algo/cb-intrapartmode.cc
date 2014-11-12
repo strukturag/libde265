@@ -94,7 +94,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
     // estimate distortion
 
-    cb[p]->write_to_image(ectx->img, x,y, true);
+    cb[p]->write_to_image(ectx->img);
     cb[p]->distortion = compute_distortion_ssd(ectx->img, ectx->imgdata->input, x,y, log2CbSize, 0);
   }
 
@@ -108,7 +108,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
 
     if (rd_cost_2Nx2N < rd_cost_NxN) {
-      cb[0]->write_to_image(ectx->img, x,y, true);
+      cb[0]->write_to_image(ectx->img);
       cb[0]->reconstruct(&ectx->acceleration, ectx->img, x,y);
       delete cb[1];
       return cb[0];

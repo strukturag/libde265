@@ -167,7 +167,7 @@ double encode_image(encoder_context* ectx,
         //statistics_IntraPredMode(ectx, x0,y0, cb);
 
 
-        cb->write_to_image(ectx->img, x<<Log2CtbSize, y<<Log2CtbSize, true);
+        cb->write_to_image(ectx->img);
 
 
         // --- write bitstream ---
