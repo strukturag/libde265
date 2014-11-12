@@ -161,20 +161,24 @@ typedef struct {
 
 
 typedef struct {
-  uint8_t log2CbSize : 3;   // [0;6] (1<<log2CbSize) = 64
+  uint8_t log2CbSize : 3;   /* [0;6] (1<<log2CbSize) = 64
+                               Used in deblocking and QP-scale decoding */
   uint8_t PartMode : 3;     // (enum PartMode)  [0;7] set only in top-left of CB
-                            // TODO: could be removed if prediction-block-boundaries would be
-                            // set during decoding (but we need this for encoding)
+                            // Used for spatial merging candidates in current frame
+                            // and for deriving interSplitFlag in decoding.
+
   uint8_t ctDepth : 2;      // [0:3]? (for CTB size 64: 0:64, 1:32, 2:16, 3:8)
+                            // Used for decoding/encoding split_cu flag.
 
   // --- byte boundary ---
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
-  uint8_t pcm_flag : 1;     //
-  uint8_t cu_transquant_bypass : 1;
+                            // Used in motion decoding.
+  uint8_t pcm_flag : 1;     // Stored for intra-prediction / SAO
+  uint8_t cu_transquant_bypass : 1; // Stored for SAO
   // note: 4 bits left
 
   // --- byte boundary ---
-  int8_t  QP_Y;
+  int8_t  QP_Y;  // Stored for QP prediction
 
 } CB_ref_info;
 
@@ -183,6 +187,7 @@ typedef struct {
   PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
 } PB_ref_info;
 
+// intraPredMode:   Used for determining scanIdx when decoding/encoding coefficients.
 
 
 struct de265_image {
