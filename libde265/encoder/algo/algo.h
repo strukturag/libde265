@@ -26,6 +26,20 @@
 #include "libde265/encoder/encode.h"
 
 
+/* When entering the next recursion level, it is assumed that
+   a valid CB structure is passed down. If needed, the algorithm
+   will do a copy of this structure and return the chosen variant.
+
+   The context_model_table passed down is at the current state.
+   When the algorithm returns, the state should represent the state
+   after running this algorithm.
+
+   When returning from the algorithm, it is also assumed that the
+   ectx->img content (reconstruction and metadata) represent the
+   current state. When the algorithm tries several variants, it
+   has to restore the state to the selected variant.
+ */
+
 class Algo_CB
 {
  public:
