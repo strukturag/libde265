@@ -440,11 +440,10 @@ public:
   void set_log2CbSize(int x0, int y0, int log2CbSize, bool fill=false)
   {
     if (fill) {
-      cb_info.get(x0,y0).log2CbSize = log2CbSize;
+      SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, 0);
     }
-    else {
-      SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, log2CbSize);
-    }
+
+    cb_info.get(x0,y0).log2CbSize = log2CbSize;
 
     // assume that remaining cb_info blocks are initialized to zero
   }

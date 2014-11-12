@@ -249,7 +249,7 @@ void enc_cb::write_to_image(de265_image* img) const
 
  
   if (!split_cu_flag) {
-    img->set_log2CbSize(x,y,log2Size);
+    img->set_log2CbSize(x,y,log2Size, true);
     img->set_ctDepth(x,y,log2Size, ctDepth);
     img->set_pcm_flag(x,y,log2Size, pcm_flag);
     img->set_cu_transquant_bypass(x,y,log2Size, cu_transquant_bypass_flag);
