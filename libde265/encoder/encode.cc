@@ -36,7 +36,7 @@ int allocCB = 0;
 
 
 
-void enc_node::save_reconstruction(const de265_image* img)
+void enc_node::save(const de265_image* img)
 {
   delete[] mReconstruction;
 
@@ -62,7 +62,7 @@ void enc_node::save_reconstruction(const de265_image* img)
 }
 
 
-void enc_node::restore_reconstruction(de265_image* img)
+void enc_node::restore(de265_image* img)
 {
   assert(mReconstruction);
 
@@ -83,6 +83,24 @@ void enc_node::restore_reconstruction(de265_image* img)
                 img->get_image_stride(2),
                 mReconstruction + blkSize*5/4, w>>1,
                 w>>1,w>>1);
+}
+
+
+void enc_cb::save(const de265_image* img)
+{
+  enc_node::save(img);
+
+  // TODO: save metadata in node buffer memory
+}
+
+
+void enc_cb::restore(de265_image* img)
+{
+  enc_node::restore(img);
+
+  // write back all the metadata
+
+  write_to_image(img);
 }
 
 

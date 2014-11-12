@@ -36,13 +36,13 @@ class enc_node
 {
  public:
   enc_node() { mReconstruction=NULL; }
-  ~enc_node() { delete[] mReconstruction; }
+  virtual ~enc_node() { delete[] mReconstruction; }
 
   uint16_t x,y;
   uint8_t  log2Size : 3;
 
-  void save_reconstruction(const de265_image*);
-  void restore_reconstruction(de265_image*);
+  virtual void save(const de265_image*);
+  virtual void restore(de265_image*);
 
  private:
   uint8_t* mReconstruction;
@@ -103,7 +103,7 @@ struct enc_pb_inter
 {
   uint8_t merge_flag   : 1;
   uint8_t merge_index  : 3;
-  enum PartMode PartMode;
+  enum PartMode PartMode; // : 3
   PredVectorInfo motion;
 };
 
@@ -153,6 +153,9 @@ public:
 
   float distortion;
   float rate;
+
+  virtual void save(const de265_image*);
+  virtual void restore(de265_image*);
 
   void write_to_image(de265_image*) const;
 
