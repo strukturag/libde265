@@ -56,14 +56,12 @@ static int extra_after [4] = { 0,3,4,4 };
 
 
 void mc_luma(const base_context* ctx,
-             const de265_image* img, int mv_x, int mv_y,
+             const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
              const uint8_t* ref, int ref_stride,
              int nPbW, int nPbH)
 {
-  const seq_parameter_set* sps = &img->sps;
-
   int xFracL = mv_x & 3;
   int yFracL = mv_y & 3;
 
@@ -185,15 +183,13 @@ void mc_luma(const base_context* ctx,
 
 
 void mc_chroma(const base_context* ctx,
-               const de265_image* img,
+               const seq_parameter_set* sps,
                int mv_x, int mv_y,
                int xP,int yP,
                int16_t* out, int out_stride,
                const uint8_t* ref, int ref_stride,
                int nPbWC, int nPbHC)
 {
-  const seq_parameter_set* sps = &img->sps;
-
   // chroma sample interpolation process (8.5.3.2.2.2)
 
   //const int shift1 = sps->BitDepth_C-8;
@@ -350,15 +346,15 @@ void generate_inter_prediction_samples(base_context* ctx,
 
 
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
-        mc_luma(ctx, img, vi->mv[l].x, vi->mv[l].y, xP,yP,
+        mc_luma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                 predSamplesL[l],nCS,
                 refPic->get_image_plane(0),refPic->get_luma_stride(), nPbW,nPbH);
 
 
-        mc_chroma(ctx, img, vi->mv[l].x, vi->mv[l].y, xP,yP,
+        mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                   predSamplesC[0][l],nCS, refPic->get_image_plane(1),
                   refPic->get_chroma_stride(), nPbW/2,nPbH/2);
-        mc_chroma(ctx, img, vi->mv[l].x, vi->mv[l].y, xP,yP,
+        mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                   predSamplesC[1][l],nCS, refPic->get_image_plane(2),
                   refPic->get_chroma_stride(), nPbW/2,nPbH/2);
       }
