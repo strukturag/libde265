@@ -101,7 +101,10 @@ private:
 
 struct enc_pb_inter
 {
-  enum PredMode PredMode;
+  uint8_t merge_flag   : 1;
+  uint8_t merge_index  : 3;
+  enum PartMode PartMode;
+  PredVectorInfo motion;
 };
 
 
@@ -124,12 +127,12 @@ public:
 
     // non-split
     struct {
-      uint8_t cu_transquant_bypass_flag; // currently unused
-      uint8_t pcm_flag;
-      uint8_t qp;
+      uint8_t cu_transquant_bypass_flag : 1; // currently unused
+      uint8_t pcm_flag : 1;
+      uint8_t qp : 6;
 
-      enum PredMode PredMode;
-      enum PartMode PartMode;
+      enum PredMode PredMode; // : 6;
+      enum PartMode PartMode; // : 3;
 
       union {
         struct {
@@ -138,9 +141,7 @@ public:
         } intra;
 
         struct {
-          bool    skip_flag;
-          uint8_t merge_index;
-          enc_pb_inter* inter_pb[4];
+          enc_pb_inter pb[4];
         } inter;
       };
 

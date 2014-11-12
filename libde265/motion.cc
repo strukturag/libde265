@@ -1918,6 +1918,6 @@ void decode_prediction_unit(thread_context* tctx,
   generate_inter_prediction_samples(tctx->decctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
-  tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi);
+  tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
 }
 

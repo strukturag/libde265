@@ -705,7 +705,7 @@ public:
     return &pb_info.get(x,y).mvi;
   }
 
-  void set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo* mv);
+  void set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo& mv);
 
   // --- value logging ---
 

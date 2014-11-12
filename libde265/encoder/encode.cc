@@ -272,7 +272,45 @@ void enc_cb::write_to_image(de265_image* img) const
       }
     }
     else {
-      assert(0); // TODO: inter mode
+      int nC = 1<<log2Size;
+      int nC2 = nC>>1;
+      int nC4 = nC>>2;
+      int nC3 = nC-nC4;
+      switch (PartMode) {
+      case PART_2Nx2N:
+        img->set_mv_info(x,y,nC,nC, inter.pb[0].motion);
+        break;
+      case PART_NxN:
+        img->set_mv_info(x    ,y    ,nC2,nC2, inter.pb[0].motion);
+        img->set_mv_info(x+nC2,y    ,nC2,nC2, inter.pb[1].motion);
+        img->set_mv_info(x    ,y+nC2,nC2,nC2, inter.pb[2].motion);
+        img->set_mv_info(x+nC2,y+nC2,nC2,nC2, inter.pb[3].motion);
+        break;
+      case PART_2NxN:
+        img->set_mv_info(x,y    ,nC,nC2, inter.pb[0].motion);
+        img->set_mv_info(x,y+nC2,nC,nC2, inter.pb[1].motion);
+        break;
+      case PART_Nx2N:
+        img->set_mv_info(x    ,y,nC2,nC, inter.pb[0].motion);
+        img->set_mv_info(x+nC2,y,nC2,nC, inter.pb[1].motion);
+        break;
+      case PART_2NxnU:
+        img->set_mv_info(x,y    ,nC,nC4, inter.pb[0].motion);
+        img->set_mv_info(x,y+nC4,nC,nC3, inter.pb[1].motion);
+        break;
+      case PART_2NxnD:
+        img->set_mv_info(x,y    ,nC,nC3, inter.pb[0].motion);
+        img->set_mv_info(x,y+nC3,nC,nC4, inter.pb[1].motion);
+        break;
+      case PART_nLx2N:
+        img->set_mv_info(x    ,y,nC4,nC, inter.pb[0].motion);
+        img->set_mv_info(x+nC4,y,nC3,nC, inter.pb[1].motion);
+        break;
+      case PART_nRx2N:
+        img->set_mv_info(x    ,y,nC3,nC, inter.pb[0].motion);
+        img->set_mv_info(x+nC3,y,nC4,nC, inter.pb[1].motion);
+        break;
+      }
     }
   }
   else {
@@ -1441,7 +1479,7 @@ void encode_coding_unit(encoder_context* ectx,
 
   if (shdr->slice_type != SLICE_TYPE_I) {
     encode_cu_skip_flag(ectx, cb, cb->PredMode==MODE_SKIP);
-    encode_merge_idx(ectx, cb->inter.merge_index);
+    encode_merge_idx(ectx, cb->inter.pb[0].merge_index);
   }
   else {
 

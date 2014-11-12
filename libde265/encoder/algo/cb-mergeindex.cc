@@ -35,9 +35,9 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                           enc_cb* cb)
 {
   assert(cb->split_cu_flag==false);
-  assert(cb->PredMode==MODE_SKIP || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
+  assert(cb->PredMode==MODE_SKIP); // TODO: || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
 
-  cb->inter.merge_index = 0; // TODO
+  cb->inter.pb[0].merge_index = 0;
 
 
   // build prediction
