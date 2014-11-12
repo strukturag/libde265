@@ -257,6 +257,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   // set reconstruction image
 
   picbuf.set_reconstruction_image(imgdata->frame_number, img);
+  picbuf.set_prediction_image(imgdata->frame_number, prediction);
   img=NULL;
   this->imgdata = NULL;
   this->shdr = NULL;
