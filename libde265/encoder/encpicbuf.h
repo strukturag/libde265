@@ -39,6 +39,7 @@ struct image_data
   int frame_number;
   
   const de265_image* input; // owner
+  de265_image* prediction;  // owner
   de265_image* reconstruction; // owner
   
   // SOP metadata
@@ -111,6 +112,7 @@ class encoder_picture_buffer
   // --- infos pushed by encoder ---
 
   void mark_encoding_started(int frame_number);
+  void set_prediction_image(int frame_number, de265_image*); // store it just for debugging fun
   void set_reconstruction_image(int frame_number, de265_image*);
   void mark_encoding_finished(int frame_number);
 

@@ -106,6 +106,12 @@ double encode_image(encoder_context* ectx,
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
+  if (1) {
+    ectx->prediction = new de265_image;
+    ectx->prediction->alloc_image(w,h, de265_chroma_420, &ectx->sps, false /* no metadata */,
+                                  NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
+  }
+
   ectx->active_qp = ectx->pps.pic_init_qp; // TODO take current qp from slice
 
 
@@ -137,8 +143,8 @@ double encode_image(encoder_context* ectx,
 
 #if 1
         /*
-        enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
-                                         input, x0,y0, Log2CtbSize, 0, qp);
+          enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
+          input, x0,y0, Log2CtbSize, 0, qp);
         */
 
         enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel, x0,y0);
@@ -152,7 +158,7 @@ double encode_image(encoder_context* ectx,
           copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
 
           enc_cb* cbq = encode_cb_may_split(ectx, ctxModel,
-                                           input, x0,y0, Log2CtbSize, 0, q);
+                                            input, x0,y0, Log2CtbSize, 0, q);
 
           float cost = cbq->distortion + ectx->lambda * cbq->rate;
           if (cost<minCost) { minCost=cost; bestQ=q; }

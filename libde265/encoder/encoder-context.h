@@ -63,6 +63,7 @@ struct encoder_context : public base_context
 
   // quick links
   de265_image* img; // reconstruction
+  de265_image* prediction;
   image_data* imgdata;
   slice_segment_header* shdr;
 

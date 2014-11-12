@@ -36,6 +36,7 @@ image_data::image_data()
   frame_number = 0;
 
   input = NULL;
+  prediction = NULL;
   reconstruction = NULL;
 
   // SOP metadata
@@ -52,8 +53,9 @@ image_data::image_data()
 
 image_data::~image_data()
 {
-  if (input) { delete input; }
-  if (reconstruction) { delete reconstruction; }
+  delete input;
+  delete reconstruction;
+  delete prediction;
 }
 
 
@@ -165,6 +167,13 @@ void encoder_picture_buffer::mark_encoding_started(int frame_number)
   image_data* data = get_picture(frame_number);
 
   data->state = image_data::state_encoding;
+}
+
+void encoder_picture_buffer::set_prediction_image(int frame_number, de265_image* pred)
+{
+  image_data* data = get_picture(frame_number);
+
+  data->prediction = pred;
 }
 
 void encoder_picture_buffer::set_reconstruction_image(int frame_number, de265_image* reco)
