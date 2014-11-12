@@ -103,7 +103,7 @@ double encode_image(encoder_context* ectx,
 
   ectx->img->alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
                          NULL /* no decctx */, ectx, 0,NULL,false);
-  ectx->img->alloc_encoder_data(&ectx->sps);
+  //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
   ectx->active_qp = ectx->pps.pic_init_qp; // TODO take current qp from slice

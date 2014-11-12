@@ -398,6 +398,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 }
 
 
+#if 0
 de265_error de265_image::alloc_encoder_data(const seq_parameter_set* sps)
 {
   bool mem_alloc_success = true;
@@ -417,6 +418,7 @@ de265_error de265_image::alloc_encoder_data(const seq_parameter_set* sps)
 
   return DE265_OK;
 }
+#endif
 
 
 de265_image::~de265_image()
@@ -660,8 +662,6 @@ void de265_image::clear_metadata()
   tu_info.clear();
   ctb_info.clear();
   deblk_info.clear();
-
-  tb_info.clear(); // note: encoder only
 
 
   // --- reset CTB progresses ---
