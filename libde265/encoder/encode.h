@@ -79,7 +79,7 @@ class enc_tb : public enc_node
 
   void set_cbf_flags_from_children();
 
-  void reconstruct(acceleration_functions* accel,
+  void reconstruct(encoder_context* ectx,
                    de265_image* img, int x0,int y0, int xBase,int yBase,
                    const enc_cb* cb, int blkIdx=0) const;
 
@@ -93,7 +93,7 @@ class enc_tb : public enc_node
 private:
   static alloc_pool mMemPool;
 
-  void reconstruct_tb(acceleration_functions* accel,
+  void reconstruct_tb(encoder_context* ectx,
                       de265_image* img, int x0,int y0, int log2TbSize,
                       const enc_cb* cb, int cIdx) const;
 };
@@ -159,17 +159,14 @@ public:
 
   void write_to_image(de265_image*) const;
 
-  void reconstruct(acceleration_functions* accel,de265_image* img,
+  void reconstruct(encoder_context* ectx,de265_image* img,
                    int x0,int y0) const;
-  void will_overwrite_reconstruction(); // inform the CB that its reconstruction will be overwritten
 
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
 
  private:
   static alloc_pool mMemPool;
-
-  mutable bool reconstructed; // whether the content of this CB is currently reconstructed
 };
 
 

@@ -139,7 +139,7 @@ void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
 }
 
 
-void enc_tb::reconstruct_tb(acceleration_functions* accel,
+void enc_tb::reconstruct_tb(encoder_context* ectx,
                             de265_image* img, int x0,int y0, int log2TbSize,
                             const enc_cb* cb, int cIdx) const
 {
@@ -176,7 +176,8 @@ void enc_tb::reconstruct_tb(acceleration_functions* accel,
   
   int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
 
-  if (cbf[cIdx]) inv_transform(accel, ptr,stride,   dequant_coeff, log2TbSize,   trType);
+  if (cbf[cIdx]) inv_transform(&ectx->acceleration,
+                               ptr,stride,   dequant_coeff, log2TbSize,   trType);
 
   
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
@@ -189,7 +190,7 @@ void enc_tb::reconstruct_tb(acceleration_functions* accel,
 }
 
 
-void enc_tb::reconstruct(acceleration_functions* accel,
+void enc_tb::reconstruct(encoder_context* ectx,
                          de265_image* img,
                          int x0,int y0, int xBase, int yBase,
                          const enc_cb* cb,
@@ -197,21 +198,21 @@ void enc_tb::reconstruct(acceleration_functions* accel,
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->reconstruct(accel,img,
+      children[i]->reconstruct(ectx,img,
                                childX(x0,i,log2Size), childY(y0,i,log2Size), x0,y0,
                                cb, i);
     }
   }
   else {
-    reconstruct_tb(accel, img, x0,y0, log2Size, cb, 0);
+    reconstruct_tb(ectx, img, x0,y0, log2Size, cb, 0);
 
     if (log2Size>2) {
-      reconstruct_tb(accel, img, x0,y0, log2Size-1, cb, 1);
-      reconstruct_tb(accel, img, x0,y0, log2Size-1, cb, 2);
+      reconstruct_tb(ectx, img, x0,y0, log2Size-1, cb, 1);
+      reconstruct_tb(ectx, img, x0,y0, log2Size-1, cb, 2);
     }
     else if (blkIdx==3) {
-      reconstruct_tb(accel, img, xBase,yBase, log2Size, cb, 1);
-      reconstruct_tb(accel, img, xBase,yBase, log2Size, cb, 2);
+      reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 1);
+      reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 2);
     }
   }
 }
@@ -240,8 +241,7 @@ alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
 
 enc_cb::enc_cb()
   : split_cu_flag(false),
-    transform_tree(NULL),
-    reconstructed(false)
+    transform_tree(NULL)
 {
   if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
 }
@@ -341,37 +341,19 @@ void enc_cb::write_to_image(de265_image* img) const
 }
 
 
-void enc_cb::will_overwrite_reconstruction()
-{
-  if (split_cu_flag) {
-    for (int i=0;i<4;i++) {
-      children[i]->will_overwrite_reconstruction();
-    }
-  }
-  else {
-    reconstructed=false;
-  }
-}
-
-void enc_cb::reconstruct(acceleration_functions* accel,
+void enc_cb::reconstruct(encoder_context* ectx,
                          de265_image* img, int x0,int y0) const
 {
-  if (reconstructed) {
-    return;
-  }
-
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->reconstruct(accel, img,
+      children[i]->reconstruct(ectx, img,
                                childX(x0,i,log2Size),
                                childY(y0,i,log2Size));
     }
   }
   else {
-    transform_tree->reconstruct(accel,img,x0,y0,x0,y0,this,0);
+    transform_tree->reconstruct(ectx,img,x0,y0,x0,y0,this,0);
   }
-
-  reconstructed=true;
 }
 
 
