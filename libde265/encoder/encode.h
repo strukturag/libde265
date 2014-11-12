@@ -154,17 +154,26 @@ public:
   float rate;
 
 
+  /* Save CB reconstruction in the node and restore it again to the image.
+     Pixel data and metadata.
+   */
   virtual void save(const de265_image*);
   virtual void restore(de265_image*);
 
-  void write_to_image(de265_image*) const;
 
+  /* Decode this CB: pixel data and write metadata to image.
+   */
   void reconstruct(encoder_context* ectx,de265_image* img) const;
+
+
+  // memory management
 
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
 
  private:
+  void write_to_image(de265_image*) const;
+
   static alloc_pool mMemPool;
 };
 

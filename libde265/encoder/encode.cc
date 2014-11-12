@@ -349,7 +349,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
     }
   }
   else {
-    //write_to_image(img);
+    write_to_image(img);
     transform_tree->reconstruct(ectx,img,x,y,x,y,this,0);
   }
 }
