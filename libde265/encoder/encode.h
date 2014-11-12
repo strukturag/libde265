@@ -150,17 +150,16 @@ public:
   };
 
 
-
   float distortion;
   float rate;
+
 
   virtual void save(const de265_image*);
   virtual void restore(de265_image*);
 
   void write_to_image(de265_image*) const;
 
-  void reconstruct(encoder_context* ectx,de265_image* img,
-                   int x0,int y0) const;
+  void reconstruct(encoder_context* ectx,de265_image* img) const;
 
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }

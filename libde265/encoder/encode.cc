@@ -341,18 +341,15 @@ void enc_cb::write_to_image(de265_image* img) const
 }
 
 
-void enc_cb::reconstruct(encoder_context* ectx,
-                         de265_image* img, int x0,int y0) const
+void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->reconstruct(ectx, img,
-                               childX(x0,i,log2Size),
-                               childY(y0,i,log2Size));
+      children[i]->reconstruct(ectx, img);
     }
   }
   else {
-    transform_tree->reconstruct(ectx,img,x0,y0,x0,y0,this,0);
+    transform_tree->reconstruct(ectx,img,x,y,x,y,this,0);
   }
 }
 

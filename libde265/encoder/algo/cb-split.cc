@@ -133,6 +133,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     cb_no_split = new enc_cb;
     *cb_no_split = *cb;
     cb_no_split = mPredModeAlgo->analyze(ectx, ctxModel, cb_no_split);
+
+    if (can_split_CB) {
+      cb_no_split->save(ectx->img);
+    }
   }
 
   // if possible, try to split CB
@@ -166,8 +170,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     // have to reconstruct state of the first option
 
-    cb_no_split->write_to_image(ectx->img);
-    cb_no_split->reconstruct(ectx, ectx->img, cb->x,cb->y);
+    //cb_no_split->write_to_image(ectx->img);
+    //cb_no_split->reconstruct(ectx, ectx->img, cb->x,cb->y);
+
+    cb_no_split->restore(ectx->img);
     delete cb_split;
     return cb_no_split;
   }
