@@ -153,8 +153,10 @@ typedef struct {
 
   sao_info saoInfo;
   bool     deblock;         // this CTB has to be deblocked
-  bool     has_pcm;         // pcm is used in this CTB
-  bool     has_cu_transquant_bypass; // transquant_bypass is used in this CTB
+
+  // The following flag helps to quickly check whether we have to
+  // check all conditions in the SAO filter or whether we can skip them.
+  bool     has_pcm_or_cu_transquant_bypass; // pcm or transquant_bypass is used in this CTB
 } CTB_info;
 
 
@@ -164,17 +166,16 @@ typedef struct {
                             // TODO: could be removed if prediction-block-boundaries would be
                             // set during decoding (but we need this for encoding)
   uint8_t ctDepth : 2;      // [0:3]? (for CTB size 64: 0:64, 1:32, 2:16, 3:8)
+
   // --- byte boundary ---
   uint8_t PredMode : 2;     // (enum PredMode)  [0;2] must be saved for past images
   uint8_t pcm_flag : 1;     //
   uint8_t cu_transquant_bypass : 1;
-  //uint8_t intra_chroma_pred_mode : 3; // Encoder only: [0:5] (enum IntraChromaPredMode)
-  // note: one bit left
+  // note: 4 bits left
 
   // --- byte boundary ---
   int8_t  QP_Y;
 
-  // uint8_t pcm_flag;  // TODO
 } CB_ref_info;
 
 
@@ -405,7 +406,9 @@ public:
   void set_pcm_flag(int x,int y, int log2BlkWidth)
   {
     SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, 1);
-    ctb_info.get(x,y).has_pcm = true;
+
+    // TODO: in the encoder, we somewhere have to clear this
+    ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
   }
 
   int  get_pcm_flag(int x,int y) const
@@ -416,7 +419,9 @@ public:
   void set_cu_transquant_bypass(int x,int y, int log2BlkWidth)
   {
     SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, 1);
-    ctb_info.get(x,y).has_cu_transquant_bypass = true;
+
+    // TODO: in the encoder, we somewhere have to clear this
+    ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
   }
 
   int  get_cu_transquant_bypass(int x,int y) const
@@ -636,16 +641,10 @@ public:
   }
 
 
-  bool get_CTB_has_pcm(int ctbX,int ctbY) const
+  bool get_CTB_has_pcm_or_cu_transquant_bypass(int ctbX,int ctbY) const
   {
     int idx = ctbX + ctbY*ctb_info.width_in_units;
-    return ctb_info[idx].has_pcm;
-  }
-
-  bool get_CTB_has_cu_transquant_bypass(int ctbX,int ctbY) const
-  {
-    int idx = ctbX + ctbY*ctb_info.width_in_units;
-    return ctb_info[idx].has_cu_transquant_bypass;
+    return ctb_info[idx].has_pcm_or_cu_transquant_bypass;
   }
 
 

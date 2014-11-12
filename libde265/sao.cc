@@ -70,8 +70,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
   const int ctbH = (yC+nS>height) ? height-yC : nS;
 
 
-  const bool extendedTests = (img->get_CTB_has_pcm(xCtb,yCtb) ||
-                              img->get_CTB_has_cu_transquant_bypass(xCtb,yCtb));
+  const bool extendedTests = img->get_CTB_has_pcm_or_cu_transquant_bypass(xCtb,yCtb);
 
   if (SaoTypeIdx==2) {
     int hPos[2], vPos[2];

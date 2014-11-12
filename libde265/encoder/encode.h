@@ -39,7 +39,7 @@ class enc_node
   ~enc_node() { delete[] mReconstruction; }
 
   uint16_t x,y;
-  uint8_t  log2Size;
+  uint8_t  log2Size : 3;
 
   void save_reconstruction(const de265_image*);
   void restore_reconstruction(de265_image*);
@@ -58,10 +58,6 @@ class enc_tb : public enc_node
   const enc_tb* parent;
 
   uint8_t split_transform_flag : 1;
-  //uint8_t cbf_luma : 1;
-  //uint8_t cbf_cb : 1;
-  //uint8_t cbf_cr : 1;
-  //uint8_t log2TbSize : 3;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
 
   uint8_t cbf[3];
@@ -118,10 +114,7 @@ public:
   const enc_cb* parent;
 
   uint8_t split_cu_flag;
-  //uint8_t log2CbSize;
-  uint8_t ctDepth;
-
-  //uint16_t x,y;
+  uint8_t ctDepth : 2;
 
   union {
     // split
@@ -133,7 +126,6 @@ public:
     struct {
       uint8_t cu_transquant_bypass_flag; // currently unused
       uint8_t pcm_flag;
-      //uint8_t root_rqt_cbf;
       uint8_t qp;
 
       enum PredMode PredMode;
