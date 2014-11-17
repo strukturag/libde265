@@ -3332,6 +3332,13 @@ void read_transform_tree(thread_context* tctx,
   // cbf_cr/cbf_cb not present in bitstream -> induce values
 
   if (cbf_cb<0) {
+    assert(!(trafoDepth==0 && log2TrafoSize==2));
+
+    /* The standard specifies to check trafoDepth>0 AND log2TrafoSize==2.
+       However, I think that trafoDepth>0 is redundant as a CB is always
+       at least 8x8 and hence trafoDepth>0.
+     */
+
     if (trafoDepth>0 && log2TrafoSize==2) {
       cbf_cb = parent_cbf_cb;
     } else {
@@ -3363,10 +3370,17 @@ void read_transform_tree(thread_context* tctx,
                         MaxTrafoDepth,IntraSplitFlag, cuPredMode, cbf_cb,cbf_cr);
   }
   else {
-    int cbf_luma=1;
+    int cbf_luma;
 
     if (PredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
       cbf_luma = decode_cbf_luma(tctx,trafoDepth);
+    }
+    else {
+      /* There cannot be INTER blocks with no residual data.
+         That case is already handled with rqt_root_cbf.
+       */
+
+      cbf_luma = 1;
     }
 
     logtrace(LogSlice,"call read_transform_unit %d/%d\n",x0,y0);
@@ -3941,6 +3955,11 @@ void read_coding_unit(thread_context* tctx,
         rqt_root_cbf = !!decode_rqt_root_cbf(tctx);
       }
       else {
+        /* rqt_root_cbf=1 is inferred for Inter blocks with 2Nx2N, merge mode.
+           These must be some residual data, because otherwise, the CB could
+           also be coded in SKIP mode.
+         */
+
         rqt_root_cbf = true;
       }
 
