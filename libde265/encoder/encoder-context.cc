@@ -160,7 +160,7 @@ de265_error encoder_context::encode_headers()
   vps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_VPS);
-  pck->nal_unit_type = NAL_UNIT_VPS_NUT;
+  pck->nal_unit_type = EN265_NUT_VPS;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_SPS_NUT);
@@ -168,7 +168,7 @@ de265_error encoder_context::encode_headers()
   sps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_SPS);
-  pck->nal_unit_type = NAL_UNIT_SPS_NUT;
+  pck->nal_unit_type = EN265_NUT_SPS;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_PPS_NUT);
@@ -176,7 +176,7 @@ de265_error encoder_context::encode_headers()
   pps.write(this, cabac, &sps);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_PPS);
-  pck->nal_unit_type = NAL_UNIT_PPS_NUT;
+  pck->nal_unit_type = EN265_NUT_PPS;
   output_packets.push_back(pck);
 
 
@@ -271,7 +271,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   pck->input_image    = imgdata->input;
   pck->reconstruction = imgdata->reconstruction;
   pck->frame_number   = imgdata->frame_number;
-  pck->nal_unit_type  = imgdata->nal.nal_unit_type;
+  pck->nal_unit_type  = (enum en265_nal_unit_type)imgdata->nal.nal_unit_type;
   pck->nuh_layer_id   = imgdata->nal.nuh_layer_id;
   pck->nuh_temporal_id= imgdata->nal.nuh_temporal_id;
   output_packets.push_back(pck);

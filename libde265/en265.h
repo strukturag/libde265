@@ -149,6 +149,35 @@ enum en265_packet_content_type {
 };
 
 
+enum en265_nal_unit_type {
+  EN265_NUT_TRAIL_N = 0,
+  EN265_NUT_TRAIL_R = 1,
+  EN265_NUT_TSA_N   = 2,
+  EN265_NUT_TSA_R   = 3,
+  EN265_NUT_STSA_N  = 4,
+  EN265_NUT_STSA_R  = 5,
+  EN265_NUT_RADL_N  = 6,
+  EN265_NUT_RADL_R  = 7,
+  EN265_NUT_RASL_N  = 8,
+  EN265_NUT_RASL_R  = 9,
+  EN265_NUT_BLA_W_LP  = 16,
+  EN265_NUT_BLA_W_RADL= 17,
+  EN265_NUT_BLA_N_LP  = 18,
+  EN265_NUT_IDR_W_RADL= 19,
+  EN265_NUT_IDR_N_LP  = 20,
+  EN265_NUT_CRA       = 21,
+  EN265_NUT_VPS   =    32,
+  EN265_NUT_SPS   =    33,
+  EN265_NUT_PPS   =    34,
+  EN265_NUT_AUD   =    35,
+  EN265_NUT_EOS   =    36,
+  EN265_NUT_EOB   =    37,
+  EN265_NUT_FD    =    38,
+  EN265_NUT_PREFIX_SEI = 39,
+  EN265_NUT_SUFFIX_SEI = 40
+};
+
+
 struct en265_packet
 {
   int version; // currently: 1
@@ -163,12 +192,9 @@ struct en265_packet
   char final_slice      : 1;
   char dependent_slice  : 1;
 
-  unsigned char nal_unit_type;
+  enum en265_nal_unit_type nal_unit_type;
   unsigned char nuh_layer_id;
   unsigned char nuh_temporal_id;
-
-  //de265_PTS pts;
-  //void*     user_data;
 
   en265_encoder_context* encoder_context;
 
