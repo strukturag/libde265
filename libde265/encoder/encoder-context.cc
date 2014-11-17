@@ -101,6 +101,8 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->dependent_slice = 0;
   //pck->pts = 0;
   //pck->user_data = NULL;
+  pck->nuh_layer_id = 0;
+  pck->nuh_temporal_id = 0;
 
   pck->encoder_context = this;
 
@@ -158,6 +160,7 @@ de265_error encoder_context::encode_headers()
   vps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_VPS);
+  pck->nal_unit_type = NAL_UNIT_VPS_NUT;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_SPS_NUT);
@@ -165,6 +168,7 @@ de265_error encoder_context::encode_headers()
   sps.write(this, cabac);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_SPS);
+  pck->nal_unit_type = NAL_UNIT_SPS_NUT;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_PPS_NUT);
@@ -172,6 +176,7 @@ de265_error encoder_context::encode_headers()
   pps.write(this, cabac, &sps);
   cabac->flush_VLC();
   pck = create_packet(EN265_PACKET_PPS);
+  pck->nal_unit_type = NAL_UNIT_PPS_NUT;
   output_packets.push_back(pck);
 
 
@@ -239,10 +244,8 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
-  nal_header nal;
-  nal.set(imgdata->nal_type);
-  nal.write(cabac);
-  imgdata->shdr.write(this, cabac, &sps, &pps, nal.nal_unit_type);
+  imgdata->nal.write(cabac);
+  imgdata->shdr.write(this, cabac, &sps, &pps, imgdata->nal.nal_unit_type);
   cabac->skip_bits(1);
   cabac->flush_VLC();
 
@@ -268,6 +271,9 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   pck->input_image    = imgdata->input;
   pck->reconstruction = imgdata->reconstruction;
   pck->frame_number   = imgdata->frame_number;
+  pck->nal_unit_type  = imgdata->nal.nal_unit_type;
+  pck->nuh_layer_id   = imgdata->nal.nuh_layer_id;
+  pck->nuh_temporal_id= imgdata->nal.nuh_temporal_id;
   output_packets.push_back(pck);
 
 

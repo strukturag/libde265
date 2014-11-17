@@ -42,7 +42,6 @@ image_data::image_data()
   // SOP metadata
 
   sps_index = -1;
-  temporal_layer = 0;
   skip_priority = 0;
   is_intra = true;
 
@@ -106,7 +105,7 @@ void image_data::set_intra()
 
 void image_data::set_NAL_type(uint8_t nalType)
 {
-  nal_type = nalType;
+  nal.nal_unit_type = nalType;
 }
 
 void image_data::set_references(int sps_index, // -1 -> custom
@@ -140,9 +139,9 @@ void image_data::set_references(int sps_index, // -1 -> custom
   */
 }
 
-void image_data::set_temporal_layer(int temporal_layer)
+void image_data::set_NAL_temporal_id(int temporal_id)
 {
-  this->temporal_layer = temporal_layer;
+  this->nal.nuh_temporal_id = temporal_id;
 }
 
 void image_data::set_skip_priority(int skip_priority)

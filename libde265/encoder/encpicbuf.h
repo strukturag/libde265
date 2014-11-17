@@ -44,16 +44,15 @@ struct image_data
   
   // SOP metadata
   
-  uint8_t nal_type;
+  nal_header nal; // TODO: image split into several NALs (always same NAL header?)
   
-  slice_segment_header shdr;
+  slice_segment_header shdr; // TODO: multi-slice pictures
   
   std::vector<int> ref0;
   std::vector<int> ref1;
   std::vector<int> longterm;
   std::vector<int> keep;
   int sps_index;
-  int temporal_layer;
   int skip_priority;
   bool is_intra;  // TODO: remove, use shdr.slice_type instead
   
@@ -80,11 +79,11 @@ struct image_data
   
   void set_intra();
   void set_NAL_type(uint8_t nalType);
+  void set_NAL_temporal_id(int temporal_id);
   void set_references(int sps_index, // -1 -> custom
                       const std::vector<int>& l0, const std::vector<int>& l1,
                       const std::vector<int>& lt,
                       const std::vector<int>& keepMoreReferences);
-  void set_temporal_layer(int temporal_layer);
   void set_skip_priority(int skip_priority);
 };
 

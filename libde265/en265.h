@@ -163,6 +163,10 @@ struct en265_packet
   char final_slice      : 1;
   char dependent_slice  : 1;
 
+  unsigned char nal_unit_type;
+  unsigned char nuh_layer_id;
+  unsigned char nuh_temporal_id;
+
   //de265_PTS pts;
   //void*     user_data;
 
