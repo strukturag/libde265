@@ -865,6 +865,8 @@ de265_error write_scaling_list(CABAC_encoder* out, const seq_parameter_set* sps,
 {
   assert(false);
   // TODO
+
+  return DE265_OK;
 }
 
 

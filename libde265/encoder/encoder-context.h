@@ -34,8 +34,9 @@
 #include <memory>
 
 
-struct encoder_context : public base_context
+class encoder_context : public base_context
 {
+ public:
   encoder_context();
   ~encoder_context();
 
