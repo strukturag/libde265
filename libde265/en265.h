@@ -206,6 +206,8 @@ struct en265_packet
 LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context*, int timeout_ms);
 LIBDE265_API void en265_free_packet(en265_encoder_context*, struct en265_packet*);
 
+LIBDE265_API int en265_number_of_queued_packets(en265_encoder_context*);
+
 #ifdef __cplusplus
 }
 #endif
