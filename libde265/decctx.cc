@@ -1148,7 +1148,7 @@ de265_error decoder_context::decode(int* more)
 
   de265_error err = DE265_OK;
 
-  if (ctx->nal_parser.number_of_NAL_units_pending()) {
+  if (ctx->nal_parser.number_of_complete_NAL_units_pending()) {
     NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = ctx->decode_NAL(nal);

@@ -113,6 +113,10 @@ class NAL_Parser
     return size;
   }
 
+  int number_of_complete_NAL_units_pending() const {
+    return NAL_queue.size();
+  }
+
   void free_NAL_unit(NAL_unit*);
 
 
