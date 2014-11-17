@@ -381,6 +381,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   bool test_no_split = true;
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
+  if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
   context_model_table ctxSplit;
   if (test_split) {
