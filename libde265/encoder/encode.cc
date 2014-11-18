@@ -104,6 +104,16 @@ void enc_cb::restore(de265_image* img)
 }
 
 
+void enc_cb::set_rqt_root_bf_from_children_cbf()
+{
+  assert(transform_tree);
+  inter.rqt_root_cbf = (transform_tree->cbf[0] |
+                        transform_tree->cbf[1] |
+                        transform_tree->cbf[2]);
+}
+
+
+
 
 alloc_pool enc_tb::mMemPool(sizeof(enc_tb));
 
@@ -1462,6 +1472,12 @@ static void encode_merge_idx(encoder_context* ectx, int mergeIdx)
 }
 
 
+static inline void encode_rqt_root_cbf(encoder_context* ectx, int rqt_root_cbf)
+{
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_RQT_ROOT_CBF], rqt_root_cbf);
+}
+
+
 void encode_coding_unit(encoder_context* ectx,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse)
 {
@@ -1561,16 +1577,29 @@ void encode_coding_unit(encoder_context* ectx,
     }
 
 
-    int MaxTrafoDepth;
-    if (PredMode == MODE_INTRA)
-      { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
-    else 
-      { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
+    if (true) { // !pcm
+
+      if (cb->PredMode != MODE_INTRA &&
+          !(cb->PartMode == PART_2Nx2N && cb->inter.pb[0].merge_flag)) {
+
+        //printf("%d %d %d\n",cb->PredMode,cb->PartMode,cb->inter.pb[0].merge_flag);
+
+        encode_rqt_root_cbf(ectx, cb->inter.rqt_root_cbf);
+      }
+
+      if (cb->PredMode == MODE_INTRA || cb->inter.rqt_root_cbf) {
+        int MaxTrafoDepth;
+        if (PredMode == MODE_INTRA)
+          { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
+        else 
+          { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
 
-    if (recurse) {
-      encode_transform_tree(ectx, cb->transform_tree, cb,
-                            x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
+        if (recurse) {
+          encode_transform_tree(ectx, cb->transform_tree, cb,
+                                x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
+        }
+      }
     }
   }
 }

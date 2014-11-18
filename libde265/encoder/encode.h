@@ -103,7 +103,7 @@ struct enc_pb_inter
 {
   uint8_t merge_flag   : 1;
   uint8_t merge_index  : 3;
-  enum PartMode PartMode; // : 3
+  //enum PartMode PartMode; // : 3
   PredVectorInfo motion;
 };
 
@@ -127,9 +127,9 @@ public:
 
     // non-split
     struct {
+      uint8_t qp : 6;
       uint8_t cu_transquant_bypass_flag : 1; // currently unused
       uint8_t pcm_flag : 1;
-      uint8_t qp : 6;
 
       enum PredMode PredMode; // : 6;
       enum PartMode PartMode; // : 3;
@@ -142,6 +142,8 @@ public:
 
         struct {
           enc_pb_inter pb[4];
+
+          uint8_t rqt_root_cbf : 1;
         } inter;
       };
 
@@ -153,6 +155,8 @@ public:
   float distortion;
   float rate;
 
+
+  void set_rqt_root_bf_from_children_cbf();
 
   /* Save CB reconstruction in the node and restore it again to the image.
      Pixel data and metadata.

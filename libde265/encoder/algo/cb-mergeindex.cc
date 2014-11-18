@@ -71,10 +71,14 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     &vi);
 
 
+  cb->inter.rqt_root_cbf = false;
+
   // estimate rate for sending merge index
 
   //CABAC_encoder_estim cabac;
   //cabac.write_bits();
+
+  /*
 
   int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
@@ -82,6 +86,8 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                          cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                          0, MaxTrafoDepth, IntraSplitFlag);
+
+  */
 
   return cb;
 }
