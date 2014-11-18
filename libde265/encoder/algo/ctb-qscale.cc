@@ -39,11 +39,16 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->split_cu_flag = false;
   cb->log2Size = ectx->sps.Log2CtbSizeY;
   cb->ctDepth = 0;
-  cb->qp = ectx->active_qp;
-  cb->cu_transquant_bypass_flag = false;
   cb->x = ctb_x;
   cb->y = ctb_y;
 
+  cb->cu_transquant_bypass_flag = false;
+  ectx->img->set_cu_transquant_bypass(ctb_x,ctb_y,cb->log2Size, cb->cu_transquant_bypass_flag);
+
+  cb->pcm_flag = false;
+  ectx->img->set_pcm_flag(ctb_x,ctb_y,cb->log2Size, cb->pcm_flag);
+
+  cb->qp = ectx->active_qp;
   ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, cb->qp);
 
   return mChildAlgo->analyze(ectx,ctxModel,cb);

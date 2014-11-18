@@ -465,6 +465,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
 
       float cost = tb[intraMode]->distortion + ectx->lambda * rate;
+
+      //printf("idx:%d mode:%d cost:%f\n",i,intraMode,cost);
+
       if (cost<minCost) {
         minCost=cost;
         minCostIdx=intraMode;
@@ -489,7 +492,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       }
     }
 
-    //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
+    //printf("INTRA(%d;%d) = %d\n",tb[minCostIdx]->x,tb[minCostIdx]->y, intraMode);
 
     return tb[minCostIdx];
   }

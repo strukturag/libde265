@@ -55,11 +55,14 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
   // test all modes
 
+  assert(cb_in->pcm_flag==0);
+
   for (int p=0;p<=lastMode;p++) {
 
     cb[p] = new enc_cb();
     *cb[p] = *cb_in;
 
+    assert(cb[p]->pcm_flag==0);
 
     // --- set intra prediction mode ---
 

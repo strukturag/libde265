@@ -93,13 +93,13 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrd
   // --- V ---
 
   for (int c=0;c<4;c++) {
-
+    /*
     logtrace(LogTransform,"DST-V: ");
     for (int r=0;r<4;r++) {
       logtrace(LogTransform,"%d ",coeffs[c+r*4]);
     }
     logtrace(LogTransform,"* -> ");
-
+    */
 
     for (int i=0;i<4;i++) {
       int sum=0;
@@ -111,11 +111,12 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrd
       g[i][c] = Clip3(-32768,32767, (sum+rndV)>>7);
     }
 
-
+    /*
     for (int y=0;y<4;y++) {
       logtrace(LogTransform,"*%d ",g[y][c]);
     }
     logtrace(LogTransform,"*\n");
+    */
   }
 
 
@@ -123,12 +124,13 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrd
 
   for (int y=0;y<4;y++) {
 
+    /*
     logtrace(LogTransform,"DST-H: ");
     for (int c=0;c<4;c++) {
       logtrace(LogTransform,"%d ",g[y][c]);
     }
     logtrace(LogTransform,"* -> ");
-
+    */
 
     for (int i=0;i<4;i++) {
       int sum=0;
@@ -165,12 +167,13 @@ void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride
 
   for (int c=0;c<4;c++) {
 
+    /*
     logtrace(LogTransform,"DST-V: ");
     for (int r=0;r<4;r++) {
       logtrace(LogTransform,"%d ",coeffs[c+r*4]);
     }
     logtrace(LogTransform,"* -> ");
-
+    */
 
     for (int i=0;i<4;i++) {
       int sum=0;
