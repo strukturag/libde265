@@ -28,8 +28,8 @@
 #include "libde265/image-io.h"
 #include "libde265/alloc_pool.h"
 
-struct encoder_context;
-struct enc_cb;
+class encoder_context;
+class enc_cb;
 
 
 class enc_node
@@ -190,8 +190,6 @@ inline int childY(int y0, int idx, int log2CbSize)
 }
 
 
-
-struct encoder_context;
 
 void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,

@@ -23,6 +23,10 @@
 
 #include <stdint.h>
 
+class base_context;
+class decoder_context;
+class thread_context;
+class slice_segment_header;
 
 typedef struct
 {
@@ -56,27 +60,26 @@ typedef struct
 } SpatialMergingCandidates;
 
 
-struct motion_spec {
+typedef struct {
   int8_t  refIdx[2];
   int16_t mvd[2][2]; // [L0/L1][x/y]  (only in top left position - ???)
   uint8_t merge_flag;
   uint8_t merge_idx;
   uint8_t mvp_lX_flag[2];
   uint8_t inter_pred_idc; // enum InterPredIdc
-};
+} motion_spec;
 
 
-
-void derive_spatial_merging_candidates(const class de265_image* img,
+void derive_spatial_merging_candidates(const struct de265_image* img,
                                        int xC, int yC, int nCS, int xP, int yP,
                                        uint8_t singleMCLFlag,
                                        int nPbW, int nPbH,
                                        int partIdx,
                                        SpatialMergingCandidates* out_cand);
 
-void generate_inter_prediction_samples(class base_context* ctx,
-                                       class de265_image* img,
-                                       class slice_segment_header* shdr,
+void generate_inter_prediction_samples(base_context* ctx,
+                                       struct de265_image* img,
+                                       slice_segment_header* shdr,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
@@ -85,10 +88,10 @@ void generate_inter_prediction_samples(class base_context* ctx,
 
 
 
-void decode_prediction_unit(struct thread_context* shdr,
+void decode_prediction_unit(thread_context* shdr,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
-void inter_prediction(struct decoder_context* ctx,struct slice_segment_header* shdr,
+void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
                       int xC,int yC, int log2CbSize);
 
 #endif

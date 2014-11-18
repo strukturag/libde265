@@ -42,12 +42,14 @@
 #define MAX_WARNINGS 20
 
 
-struct slice_segment_header;
-struct image_unit;
+class slice_segment_header;
+class image_unit;
+class decoder_context;
 
 
-struct thread_context
+class thread_context
 {
+public:
   thread_context();
 
   int CtbAddrInRS;
@@ -94,12 +96,12 @@ struct thread_context
 
   context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
 
-  struct decoder_context* decctx;
+  decoder_context* decctx;
   struct de265_image *img;
-  struct slice_segment_header* shdr;
+  slice_segment_header* shdr;
 
-  struct image_unit* imgunit;
-  struct thread_task* task; // executing thread_task or NULL if not multi-threaded
+  image_unit* imgunit;
+  thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
   thread_context(const thread_context&); // not allowed
@@ -125,8 +127,9 @@ class error_queue
 
 
 
-struct slice_unit
+class slice_unit
 {
+public:
   slice_unit(decoder_context* decctx);
   ~slice_unit();
 
@@ -134,7 +137,7 @@ struct slice_unit
   slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 
-  struct image_unit* imgunit;
+  image_unit* imgunit;
 
   bool flush_reorder_buffer;
 
@@ -158,8 +161,9 @@ private:
 };
 
 
-struct image_unit
+class image_unit
 {
+public:
   image_unit();
   ~image_unit();
 
@@ -312,7 +316,7 @@ class decoder_context : public base_context {
   pic_parameter_set*   current_pps;
 
  public:
-  struct thread_pool thread_pool;
+  thread_pool thread_pool_;
 
  private:
   int num_worker_threads;
@@ -418,7 +422,7 @@ class decoder_context : public base_context {
   bool flush_reorder_buffer_at_this_frame;
 
  private:
-  void init_thread_context(class thread_context* tctx);
+  void init_thread_context(thread_context* tctx);
   void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream);
   void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
 
@@ -431,7 +435,7 @@ class decoder_context : public base_context {
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(de265_image* img);
+  void run_postprocessing_filters_sequential(struct de265_image* img);
   void run_postprocessing_filters_parallel(image_unit* img);
 };
 

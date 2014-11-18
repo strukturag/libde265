@@ -78,6 +78,8 @@ enum PictureState {
 #define CTB_PROGRESS_DEBLK_H   3
 #define CTB_PROGRESS_SAO       4
 
+class decoder_context;
+
 template <class DataUnit> class MetaDataArray
 {
  public:

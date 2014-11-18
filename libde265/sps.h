@@ -25,8 +25,11 @@
 #include "libde265/bitstream.h"
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
+#include "libde265/cabac.h"
 
 #include <vector>
+
+class error_queue;
 
 // #define MAX_REF_PIC_SETS 64  // maximum according to standard
 #define MAX_NUM_LT_REF_PICS_SPS 32
@@ -55,12 +58,13 @@ enum PresetSet {
   Preset_Default
 };
 
-struct seq_parameter_set {
+class seq_parameter_set {
+public:
   seq_parameter_set();
   ~seq_parameter_set();
 
-  de265_error read(struct error_queue*, bitreader*);
-  de265_error write(struct error_queue*, class CABAC_encoder*);
+  de265_error read(error_queue*, bitreader*);
+  de265_error write(error_queue*, CABAC_encoder*);
 
   void dump(int fd) const;
 
@@ -76,7 +80,7 @@ struct seq_parameter_set {
   char sps_max_sub_layers;            // [1;7]
   char sps_temporal_id_nesting_flag;
 
-  struct profile_tier_level profile_tier_level;
+  profile_tier_level profile_tier_level_;
 
   int seq_parameter_set_id;
   int chroma_format_idc;

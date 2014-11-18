@@ -29,13 +29,15 @@
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
 
+class decoder_context;
 
-struct pic_parameter_set {
+class pic_parameter_set {
+public:
   pic_parameter_set();
   ~pic_parameter_set();
 
-  bool read(bitreader*, struct decoder_context*);
-  bool write(struct error_queue*, class CABAC_encoder*,
+  bool read(bitreader*, decoder_context*);
+  bool write(error_queue*, CABAC_encoder*,
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;

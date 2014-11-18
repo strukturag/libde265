@@ -69,7 +69,7 @@ void video_parameter_set::set_defaults(enum profile_idc profile, int level_major
   vps_max_sub_layers = 1; // temporal sub-layers
   vps_temporal_id_nesting_flag = 1;
 
-  profile_tier_level.general.set_defaults(profile,level_major,level_minor);
+  profile_tier_level_.general.set_defaults(profile,level_major,level_minor);
 
   vps_sub_layer_ordering_info_present_flag = 0;
   layer[0].vps_max_dec_pic_buffering = 1;
@@ -116,7 +116,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
 
-  profile_tier_level.read(reader, vps_max_sub_layers);
+  profile_tier_level_.read(reader, vps_max_sub_layers);
 
   /*
     read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
@@ -214,7 +214,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 }
 
 
-de265_error video_parameter_set::write(struct error_queue* errqueue, struct CABAC_encoder* out) const
+de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder* out) const
 {
   if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   out->write_bits(video_parameter_set_id,4);
@@ -228,7 +228,7 @@ de265_error video_parameter_set::write(struct error_queue* errqueue, struct CABA
   out->write_bit(vps_temporal_id_nesting_flag);
   out->write_bits(0xFFFF, 16);
 
-  profile_tier_level.write(out, vps_max_sub_layers);
+  profile_tier_level_.write(out, vps_max_sub_layers);
 
   /*
   read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
@@ -455,7 +455,7 @@ void video_parameter_set::dump(int fd) const
   LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
   LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
 
-  profile_tier_level.dump(vps_max_sub_layers, fh);
+  profile_tier_level_.dump(vps_max_sub_layers, fh);
   //dump_bit_rate_pic_rate_info(&bit_rate_pic_rate_info, 0, vps_max_sub_layers-1);
 
   LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",

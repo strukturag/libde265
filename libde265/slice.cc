@@ -707,7 +707,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 }
 
 
-de265_error slice_segment_header::write(struct error_queue* errqueue, class CABAC_encoder* out,
+de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder* out,
                                         const seq_parameter_set* sps,
                                         const pic_parameter_set* pps,
                                         uint8_t nal_unit_type)
@@ -4229,7 +4229,7 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
 void thread_task_slice_segment::work()
 {
-  struct thread_task_slice_segment* data = this;
+  thread_task_slice_segment* data = this;
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
@@ -4260,7 +4260,7 @@ void thread_task_slice_segment::work()
 
 void thread_task_ctb_row::work()
 {
-  struct thread_task_ctb_row* data = this;
+  thread_task_ctb_row* data = this;
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
