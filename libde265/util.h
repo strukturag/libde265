@@ -153,7 +153,7 @@ void log2fh(FILE* fh, const char* string, ...);
 void printBlk(const char* title,const int16_t* data, int blksize, int stride);
 void printBlk(const char* title,const uint8_t* data, int blksize, int stride);
 
-void debug_set_image_output(void (*)(const class de265_image*, int slot));
-void debug_show_image(const class de265_image*, int slot);
+void debug_set_image_output(void (*)(const struct de265_image*, int slot));
+void debug_show_image(const struct de265_image*, int slot);
 
 #endif

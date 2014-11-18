@@ -35,6 +35,12 @@
 
 #define MAX_NUM_REF_PICS    16
 
+class decoder_context;
+class thread_context;
+class error_queue;
+class seq_parameter_set;
+class pic_parameter_set;
+
 enum SliceType
   {
     SLICE_TYPE_B = 0,
@@ -164,13 +170,14 @@ inline void copy_context_model_table(context_model_table dst, context_model_tabl
 }
 
 
-typedef struct slice_segment_header {
+class slice_segment_header {
+public:
   slice_segment_header() { }
 
-  de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
-  de265_error write(struct error_queue*, class CABAC_encoder*,
-                    const class seq_parameter_set* sps,
-                    const class pic_parameter_set* pps,
+  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
+  de265_error write(error_queue*, CABAC_encoder*,
+                    const seq_parameter_set* sps,
+                    const pic_parameter_set* pps,
                     uint8_t nal_unit_type);
 
   void dump_slice_segment_header(const decoder_context*, int fd) const;
@@ -261,7 +268,7 @@ typedef struct slice_segment_header {
   int SliceQPY;
   int initType;
 
-  void compute_derived_values(const class pic_parameter_set* pps);
+  void compute_derived_values(const pic_parameter_set* pps);
 
 
   // --- data for external modules ---
@@ -289,7 +296,7 @@ typedef struct slice_segment_header {
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 
-} slice_segment_header;
+};
 
 
 
@@ -306,7 +313,7 @@ typedef struct {
 
 
 
-de265_error read_slice_segment_data(struct thread_context* tctx);
+de265_error read_slice_segment_data(thread_context* tctx);
 
 bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
@@ -316,7 +323,7 @@ class thread_task_ctb_row : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  struct thread_context* tctx;
+  thread_context* tctx;
 
   virtual void work();
 };
@@ -325,7 +332,7 @@ class thread_task_slice_segment : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  struct thread_context* tctx;
+  thread_context* tctx;
 
   virtual void work();
 };

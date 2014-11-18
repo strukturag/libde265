@@ -935,7 +935,7 @@ void add_deblocking_tasks(image_unit* imgunit)
           task->vertical = (pass==0);
 
           imgunit->tasks.push_back(task);
-          add_task(&ctx->thread_pool, task);
+          add_task(&ctx->thread_pool_, task);
           n++;
         }
     }

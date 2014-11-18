@@ -31,8 +31,11 @@
 
 #include "libde265/bitstream.h"
 #include "libde265/de265.h"
+#include "libde265/cabac.h"
 
 #include <vector>
+
+class error_queue;
 
 #define MAX_TEMPORAL_SUBLAYERS 8
 
@@ -45,10 +48,10 @@ enum profile_idc {
 };
 
 
-struct profile_data {
-
+class profile_data {
+public:
   void read(bitreader* reader);
-  void write(class CABAC_encoder* writer) const;
+  void write(CABAC_encoder* writer) const;
   void dump(bool general, FILE* fh) const;
 
   void set_defaults(enum profile_idc, int level_major, int level_minor);
@@ -80,15 +83,15 @@ class profile_tier_level
 {
 public:
   void read(bitreader* reader, int max_sub_layers);
-  void write(class CABAC_encoder* writer, int max_sub_layers) const;
+  void write(CABAC_encoder* writer, int max_sub_layers) const;
   void dump(int max_sub_layers, FILE* fh) const;
 
-  struct profile_data general;
+  profile_data general;
 
   //bool sub_layer_profile_present[MAX_TEMPORAL_SUBLAYERS];
   //bool sub_layer_level_present[MAX_TEMPORAL_SUBLAYERS];
 
-  struct profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
+  profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
 };
 
 
@@ -126,8 +129,8 @@ typedef struct {
 class video_parameter_set
 {
 public:
-  de265_error read(struct error_queue* errqueue, bitreader* reader);
-  de265_error write(struct error_queue* errqueue, struct CABAC_encoder* out) const;
+  de265_error read(error_queue* errqueue, bitreader* reader);
+  de265_error write(error_queue* errqueue, CABAC_encoder* out) const;
   void dump(int fd) const;
 
   void set_defaults(enum profile_idc profile, int level_major, int level_minor);
@@ -136,7 +139,7 @@ public:
   int vps_max_layers;            // [1;?]  currently always 1
   int vps_max_sub_layers;        // [1;7]  number of temporal sub-layers
   int vps_temporal_id_nesting_flag; // indicate temporal up-switching always possible
-  struct profile_tier_level profile_tier_level;
+  profile_tier_level profile_tier_level_;
 
   int vps_sub_layer_ordering_info_present_flag;
   layer_data layer[MAX_TEMPORAL_SUBLAYERS];

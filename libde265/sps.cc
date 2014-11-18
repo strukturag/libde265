@@ -85,7 +85,7 @@ void seq_parameter_set::set_defaults(enum PresetSet)
   sps_max_sub_layers = 1;
   sps_temporal_id_nesting_flag = 0;
 
-  profile_tier_level.general.set_defaults(Profile_Main, 6,2); // TODO
+  profile_tier_level_.general.set_defaults(Profile_Main, 6,2); // TODO
 
   seq_parameter_set_id = 0;
   chroma_format_idc = 1;
@@ -190,7 +190,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   sps_temporal_id_nesting_flag = get_bits(br,1);
 
-  profile_tier_level.read(br, sps_max_sub_layers);
+  profile_tier_level_.read(br, sps_max_sub_layers);
 
   READ_VLC(seq_parameter_set_id, uvlc);
 
@@ -507,7 +507,7 @@ void seq_parameter_set::dump(int fd) const
   LOG1("sps_max_sub_layers      : %d\n", sps_max_sub_layers);
   LOG1("sps_temporal_id_nesting_flag : %d\n", sps_temporal_id_nesting_flag);
 
-  profile_tier_level.dump(sps_max_sub_layers, fh);
+  profile_tier_level_.dump(sps_max_sub_layers, fh);
 
   LOG1("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
   LOG2("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
@@ -916,7 +916,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
 
   out->write_bit(sps_temporal_id_nesting_flag);
 
-  profile_tier_level.write(out, sps_max_sub_layers);
+  profile_tier_level_.write(out, sps_max_sub_layers);
 
   out->write_uvlc(seq_parameter_set_id);
 

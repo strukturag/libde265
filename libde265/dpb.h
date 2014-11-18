@@ -27,9 +27,10 @@
 #include <deque>
 #include <vector>
 
+class decoder_context;
 
-
-struct decoded_picture_buffer {
+class decoded_picture_buffer {
+public:
   decoded_picture_buffer();
   ~decoded_picture_buffer();
 
@@ -52,8 +53,8 @@ struct decoded_picture_buffer {
   int size() const { return dpb.size(); }
 
   /* Raw access to the images. */
-  /* */ de265_image* get_image(int index)       { return dpb[index]; }
-  const de265_image* get_image(int index) const { return dpb[index]; }
+  /* */ struct de265_image* get_image(int index)       { return dpb[index]; }
+  const struct de265_image* get_image(int index) const { return dpb[index]; }
 
   /* Search DPB for the slot index of a specific picture. */
   int DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm=false) const;
@@ -63,7 +64,7 @@ struct decoded_picture_buffer {
 
   // --- reorder buffer ---
 
-  void insert_image_into_reorder_buffer(de265_image* img) {
+  void insert_image_into_reorder_buffer(struct de265_image* img) {
     reorder_output_queue.push_back(img);
   }
 
@@ -81,7 +82,7 @@ struct decoded_picture_buffer {
   int num_pictures_in_output_queue() const { return image_output_queue.size(); }
 
   /* Get the next picture in the output queue, but do not remove it from the queue. */
-  de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
+  struct de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
 
   /* Remove the next picture in the output queue. */
   void pop_next_picture_in_output_queue();
@@ -96,10 +97,10 @@ private:
   int max_images_in_DPB;
   int norm_images_in_DPB;
 
-  std::vector<de265_image*> dpb; // decoded picture buffer
+  std::vector<struct de265_image*> dpb; // decoded picture buffer
 
-  std::vector<de265_image*> reorder_output_queue;
-  std::deque<de265_image*>  image_output_queue;
+  std::vector<struct de265_image*> reorder_output_queue;
+  std::deque<struct de265_image*>  image_output_queue;
 
 private:
   decoded_picture_buffer(const decoded_picture_buffer&); // no copy
