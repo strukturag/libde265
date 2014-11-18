@@ -67,7 +67,7 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
   else if (img->get_pred_mode(x-1,y) != MODE_INTRA ||
            img->get_pcm_flag (x-1,y)) {
     candIntraPredModeA=INTRA_DC;
-  }
+ }
   else {
     candIntraPredModeA = img->get_IntraPredMode_atIndex(PUidx-1);
   }
@@ -91,7 +91,7 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
 
   // build candidate list
 
-  logtrace(LogSlice,"availableA:%d candA:%d & availableB:%d candB:%d\n",
+  logtrace(LogSlice,"%d;%d availableA:%d candA:%d & availableB:%d candB:%d\n", x,y,
            availableA, candIntraPredModeA,
            availableB, candIntraPredModeB);
 

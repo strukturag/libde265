@@ -34,6 +34,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
                                              context_model_table ctxModel,
                                              enc_cb* cb)
 {
+  assert(cb->pcm_flag==0);
+
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
   bool try_intra = true;

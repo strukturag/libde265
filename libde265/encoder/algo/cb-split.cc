@@ -88,9 +88,11 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
       childCB->log2Size = cb->log2Size-1;
       childCB->ctDepth = cb->ctDepth+1;
       childCB->qp = ectx->active_qp;
-      childCB->cu_transquant_bypass_flag = false;
       childCB->x = cb->x + dx;
       childCB->y = cb->y + dy;
+
+      childCB->cu_transquant_bypass_flag = false;
+      childCB->pcm_flag = false;
 
       cb->children[i] = analyze(ectx, ctxModel, childCB);
 
@@ -109,6 +111,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table ctxModel,
                                           enc_cb* cb)
 {
+  assert(cb->pcm_flag==0);
+
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
   const int Log2CbSize = cb->log2Size;

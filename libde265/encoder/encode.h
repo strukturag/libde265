@@ -103,7 +103,6 @@ struct enc_pb_inter
 {
   uint8_t merge_flag   : 1;
   uint8_t merge_index  : 3;
-  enum PartMode PartMode; // : 3
   PredVectorInfo motion;
 };
 
@@ -142,6 +141,8 @@ public:
 
         struct {
           enc_pb_inter pb[4];
+
+          uint8_t rqt_root_cbf : 1;
         } inter;
       };
 
