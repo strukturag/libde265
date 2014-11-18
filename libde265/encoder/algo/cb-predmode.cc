@@ -40,7 +40,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
   bool try_intra = true;
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
-  try_intra = !try_inter;
+  //try_intra = !try_inter;
 
   context_model_table ctxInter;
 
@@ -63,7 +63,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     *cb_inter = *cb;
     cb_inter->PredMode = MODE_INTER;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
-    cb_inter = mInterAlgo->analyze(ectx, ctxModel, cb_inter);
+    cb_inter = mInterAlgo->analyze(ectx, ctxInter, cb_inter);
 
     if (try_intra) {
       cb_inter->save(ectx->img);

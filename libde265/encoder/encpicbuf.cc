@@ -33,6 +33,8 @@ encoder_picture_buffer::~encoder_picture_buffer()
 
 image_data::image_data()
 {
+  //printf("new %p\n",this);
+
   frame_number = 0;
 
   input = NULL;
@@ -52,8 +54,10 @@ image_data::image_data()
 
 image_data::~image_data()
 {
+  //printf("delete %p\n",this);
+
   delete input;
-  delete reconstruction;
+  //delete reconstruction;   TODO -> leak
   delete prediction;
 }
 

@@ -409,6 +409,17 @@ static void encode_part_mode(encoder_context* ectx,
 }
 
 
+static void encode_pred_mode_flag(encoder_context* ectx,
+                                  enum PredMode PredMode)
+{
+  logtrace(LogSlice,"> pred_mode = %d\n",PredMode);
+
+  int flag = (PredMode == MODE_INTRA) ? 1 : 0;
+
+  ectx->cabac->write_CABAC_bit(&ectx->ctx_model[CONTEXT_MODEL_PRED_MODE_FLAG], flag);
+}
+
+
 static void encode_prev_intra_luma_pred_flag(encoder_context* ectx, int intraPred)
 {
   int bin = (intraPred>=0);
@@ -1401,7 +1412,11 @@ void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb
       encode_cbf_luma(ectx, trafoDepth==0, tb->cbf[0]);
     }
     else {
-      assert(tb->cbf[0]==true);
+    /* Note: usually, cbf[0] should be TRUE, but while estimating the bitrate, this
+       function can also be called with all CBFs FALSE. Usually, this is handled by
+       the rqt_root_cbf flag, but during analysis, this is set after the bitrate is estimated.
+     */
+      // assert(tb->cbf[0]==true);
     }
 
     encode_transform_unit(ectx, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
@@ -1496,6 +1511,9 @@ void encode_coding_unit(encoder_context* ectx,
 
   if (shdr->slice_type != SLICE_TYPE_I) {
     encode_cu_skip_flag(ectx, cb, cb->PredMode==MODE_SKIP);
+  }
+
+  if (cb->PredMode==MODE_SKIP) {
     encode_merge_idx(ectx, cb->inter.pb[0].merge_index);
   }
   else {
@@ -1503,6 +1521,10 @@ void encode_coding_unit(encoder_context* ectx,
     enum PredMode PredMode = cb->PredMode;
     enum PartMode PartMode = PART_2Nx2N;
     int IntraSplitFlag=0;
+
+    if (shdr->slice_type != SLICE_TYPE_I) {
+      encode_pred_mode_flag(ectx, PredMode);
+    }
 
     if (PredMode != MODE_INTRA ||
         log2CbSize == sps->Log2MinCbSizeY) {
@@ -1588,6 +1610,8 @@ void encode_coding_unit(encoder_context* ectx,
         encode_rqt_root_cbf(ectx, cb->inter.rqt_root_cbf);
       }
 
+      //printf("%d;%d encode rqt_root_cbf=%d\n",x0,y0,cb->inter.rqt_root_cbf);
+
       if (cb->PredMode == MODE_INTRA || cb->inter.rqt_root_cbf) {
         int MaxTrafoDepth;
         if (PredMode == MODE_INTRA)
@@ -1597,6 +1621,8 @@ void encode_coding_unit(encoder_context* ectx,
 
 
         if (recurse) {
+          //printf("%d;%d store transform tree\n",x0,y0);
+
           encode_transform_tree(ectx, cb->transform_tree, cb,
                                 x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
         }

@@ -47,12 +47,13 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   //printf("prev frame: %p %d\n",refimg,ectx->imgdata->frame_number);
 
+  /*
   printf("#l0: %d\n",ectx->imgdata->shdr.num_ref_idx_l0_active);
   printf("#l1: %d\n",ectx->imgdata->shdr.num_ref_idx_l1_active);
 
   for (int i=0;i<ectx->imgdata->shdr.num_ref_idx_l0_active;i++)
     printf("RefPixList[0][%d] = %d\n", i, ectx->imgdata->shdr.RefPicList[0][i]);
-
+  */
 
   // TODO: fake motion data
   PredVectorInfo vi;
@@ -71,24 +72,41 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     &vi);
 
 
-  cb->inter.rqt_root_cbf = false;
-
   // estimate rate for sending merge index
 
   //CABAC_encoder_estim cabac;
   //cabac.write_bits();
 
-  /*
+  int IntraSplitFlag = 0;
+  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
 
-  int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
-  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
-
+#if 0
   cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                          cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                          0, MaxTrafoDepth, IntraSplitFlag);
 
-  */
+  cb->distortion = cb->transform_tree->distortion;
+  cb->rate       = cb->transform_tree->rate;
+#endif
 
+  const de265_image* input = ectx->imgdata->input;
+  de265_image* img   = ectx->img;
+  int x0 = cb->x;
+  int y0 = cb->y;
+  int tbSize = 1<<cb->log2Size;
+
+  cb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                       img  ->get_image_plane_at_pos(0, x0,y0), img  ->get_image_stride(0),
+                       tbSize, tbSize);
+
+  //cb->distortion *= 5;
+  cb->rate = 5; // fake
+
+  //cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
+  cb->inter.rqt_root_cbf = 0;
+
+  //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);
+    
   return cb;
 }
 

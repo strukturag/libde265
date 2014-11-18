@@ -107,8 +107,9 @@ void encode_transform_unit(encoder_context* ectx,
 
   tb->alloc_coeff_memory(cIdx, tbSize);
 
-  int trType = 0;
-  if (cIdx==0 && log2TbSize==2) trType=1; // TODO: inter mode
+  int trType;
+  if (cIdx==0 && log2TbSize==2 && predMode==MODE_INTRA) trType=1; // TODO: inter mode
+  else trType=0;
 
   fwd_transform(&ectx->acceleration, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
 
