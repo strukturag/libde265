@@ -37,6 +37,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   assert(cb->split_cu_flag==false);
   assert(cb->PredMode==MODE_SKIP); // TODO: || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
 
+  cb->inter.pb[0].merge_flag  = 1;
   cb->inter.pb[0].merge_index = 0;
 
 
@@ -48,10 +49,10 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   //printf("prev frame: %p %d\n",refimg,ectx->imgdata->frame_number);
 
   /*
-  printf("#l0: %d\n",ectx->imgdata->shdr.num_ref_idx_l0_active);
-  printf("#l1: %d\n",ectx->imgdata->shdr.num_ref_idx_l1_active);
+    printf("#l0: %d\n",ectx->imgdata->shdr.num_ref_idx_l0_active);
+    printf("#l1: %d\n",ectx->imgdata->shdr.num_ref_idx_l1_active);
 
-  for (int i=0;i<ectx->imgdata->shdr.num_ref_idx_l0_active;i++)
+    for (int i=0;i<ectx->imgdata->shdr.num_ref_idx_l0_active;i++)
     printf("RefPixList[0][%d] = %d\n", i, ectx->imgdata->shdr.RefPicList[0][i]);
   */
 
@@ -80,30 +81,28 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   int IntraSplitFlag = 0;
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
 
-#if 0
-  cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
-                                         cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
-                                         0, MaxTrafoDepth, IntraSplitFlag);
+  if (mCodeResidual) {
+    cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
+                                           cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
+                                           0, MaxTrafoDepth, IntraSplitFlag);
 
-  cb->distortion = cb->transform_tree->distortion;
-  cb->rate       = cb->transform_tree->rate;
-#endif
+    cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 
-  const de265_image* input = ectx->imgdata->input;
-  de265_image* img   = ectx->img;
-  int x0 = cb->x;
-  int y0 = cb->y;
-  int tbSize = 1<<cb->log2Size;
+    cb->distortion = cb->transform_tree->distortion;
+    cb->rate       = cb->transform_tree->rate;
+  }
+  else {
+    const de265_image* input = ectx->imgdata->input;
+    de265_image* img   = ectx->img;
+    int x0 = cb->x;
+    int y0 = cb->y;
+    int tbSize = 1<<cb->log2Size;
 
-  cb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                       img  ->get_image_plane_at_pos(0, x0,y0), img  ->get_image_stride(0),
-                       tbSize, tbSize);
+    cb->distortion = compute_distortion_ssd(input, img, x0,y0, cb->log2Size, 0);
+    cb->rate = 2; // fake (merge_index)
 
-  //cb->distortion *= 5;
-  cb->rate = 5; // fake
-
-  //cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
-  cb->inter.rqt_root_cbf = 0;
+    cb->inter.rqt_root_cbf = 0;
+  }
 
   //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);
     

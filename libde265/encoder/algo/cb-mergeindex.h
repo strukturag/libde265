@@ -44,13 +44,18 @@
 class Algo_CB_MergeIndex : public Algo_CB
 {
  public:
+  Algo_CB_MergeIndex() : mCodeResidual(false) { }
   virtual ~Algo_CB_MergeIndex() { }
+
+  void set_code_residual(bool flag=true) { mCodeResidual=flag; }
 
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplit = algo; }
   // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
 
  protected:
   Algo_TB_Split* mTBSplit;
+
+  bool mCodeResidual;
 };
 
 class Algo_CB_MergeIndex_Fixed : public Algo_CB_MergeIndex

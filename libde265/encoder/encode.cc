@@ -1514,6 +1514,7 @@ void encode_coding_unit(encoder_context* ectx,
   }
 
   if (cb->PredMode==MODE_SKIP) {
+    assert(cb->inter.pb[0].merge_flag);
     encode_merge_idx(ectx, cb->inter.pb[0].merge_index);
   }
   else {
