@@ -102,6 +102,9 @@ void CodingOptions::compute_rdo_costs()
 
 enc_cb* CodingOptions::return_best_rdo()
 {
+  assert(mOptions.size()>0);
+
+
   float bestRDOCost = 0;
   bool  first=true;
   int   bestRDO=-1;

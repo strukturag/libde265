@@ -42,14 +42,14 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
   //try_intra = !try_inter;
 
-  context_model_table ctxInter;
+  // 0: intra
+  // 1: inter
 
-  if (try_inter) {
-    copy_context_model_table(ctxInter, ctxModel);
-  }
+  CodingOptions options(ectx);
+  options.set_input(cb,ctxModel);
+  options.activate_option(0, try_intra);
+  options.activate_option(1, try_inter);
 
-
-  // try encoding with inter
 
   enc_cb* cb_inter = NULL;
   enc_cb* cb_intra = NULL;
@@ -58,61 +58,37 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   const int x = cb->x;
   const int y = cb->y;
 
+  // try encoding with inter
+
   if (try_inter) {
-    cb_inter = new enc_cb;
-    *cb_inter = *cb;
+    options.begin_reconstruction(1);
+    cb_inter = options.get_cb(1);
+
     cb_inter->PredMode = MODE_INTER;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
-    cb_inter = mInterAlgo->analyze(ectx, ctxInter, cb_inter);
 
-    if (try_intra) {
-      cb_inter->save(ectx->img);
-    }
+    options.set_cb(1, mInterAlgo->analyze(ectx, options.get_context(1), cb_inter));
+
+    options.end_reconstruction(1);
   }
 
 
   // try intra
 
   if (try_intra) {
-    cb_intra = new enc_cb;
-    *cb_intra = *cb;
+    options.begin_reconstruction(0);
+    cb_intra = options.get_cb(0);
+
     cb_intra->PredMode = MODE_INTRA;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTRA);
-    cb_intra = mIntraAlgo->analyze(ectx, ctxModel, cb_intra);
+
+    options.set_cb(0, mIntraAlgo->analyze(ectx, options.get_context(0), cb_intra));
+
+    options.end_reconstruction(0);
   }
 
-  delete cb;
-  cb = NULL;
 
-  // if only one variant has been tested, choose this
-
-  assert(cb_intra || cb_inter);
-
-  if (!try_inter) { return cb_intra; }
-  if (!try_intra) { return cb_inter; }
-
-
-  // compute RD costs for both variants
-
-  const float rd_cost_inter = cb_inter->distortion + ectx->lambda * cb_inter->rate;
-  const float rd_cost_intra = cb_intra->distortion + ectx->lambda * cb_intra->rate;
-
-  const bool inter_is_better =  (rd_cost_inter < rd_cost_intra);
-
-  if (inter_is_better) {
-    copy_context_model_table(ctxModel, ctxInter);
-
-    // have to reconstruct state
-    if (try_intra) {
-      cb_inter->restore(ectx->img);
-    }
-
-    delete cb_intra;
-    return cb_inter;
-  }
-  else {
-    delete cb_inter;
-    return cb_intra;
-  }
+  options.compute_rdo_costs();
+  return options.return_best_rdo();
 }
 

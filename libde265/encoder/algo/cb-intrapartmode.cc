@@ -40,91 +40,62 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   const int x = cb_in->x;
   const int y = cb_in->y;
 
-  enc_cb* cb[2] =
-    { NULL, // 2Nx2N  (always checked)
-      NULL  //  NxN   (only checked at MinCbSize)
-    };
-
-
   const bool can_use_NxN = ((log2CbSize == ectx->sps.Log2MinCbSizeY) &&
                             (log2CbSize >  ectx->sps.Log2MinTrafoSize));
-
-  // Test NxN intra prediction mode only when at minimum Cb size.
-  const int lastMode = (can_use_NxN ? 1 : 0);
 
 
   // test all modes
 
   assert(cb_in->pcm_flag==0);
 
-  for (int p=0;p<=lastMode;p++) {
 
-    cb[p] = new enc_cb();
-    *cb[p] = *cb_in;
+  // 0: 2Nx2N  (always checked)
+  // 1:  NxN   (only checked at MinCbSize)
 
-    assert(cb[p]->pcm_flag==0);
+  CodingOptions options(ectx);
+  options.set_input(cb_in,ctxModel);
+  options.activate_option(0, true);
+  options.activate_option(1, can_use_NxN);
 
-    // --- set intra prediction mode ---
+  for (int p=0;p<2;p++)
+    if (options.is_active(p)) {
+      enc_cb* cb = options.get_cb(p);
+      options.begin_reconstruction(p);
 
-    cb[p]->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
+      // --- set intra prediction mode ---
 
-    ectx->img->set_pred_mode(x,y, log2CbSize, cb[p]->PredMode);
-    ectx->img->set_PartMode (x,y, cb[p]->PartMode);  // TODO: probably unnecessary
+      cb->PartMode = (p==0 ? PART_2Nx2N : PART_NxN);
 
+      ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);  // TODO: probably unnecessary
+      ectx->img->set_PartMode (x,y, cb->PartMode);
 
-    // encode transform tree
+      // encode transform tree
 
-    int IntraSplitFlag= (cb[p]->PredMode == MODE_INTRA && cb[p]->PartMode == PART_NxN);
-    int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
+      int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
+      int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-    cb[p]->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
-                                                          ectx->imgdata->input, NULL, cb[p],
-                                                          x,y, x,y, log2CbSize,
-                                                          0,
-                                                          0, MaxTrafoDepth, IntraSplitFlag);
+      cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
+                                                         ectx->imgdata->input, NULL, cb,
+                                                         x,y, x,y, log2CbSize,
+                                                         0,
+                                                         0, MaxTrafoDepth, IntraSplitFlag);
 
-    cb[p]->distortion = cb[p]->transform_tree->distortion;
-    cb[p]->rate       = cb[p]->transform_tree->rate;
-
-
-    // rate for cu syntax
-
-    CABAC_encoder_estim estim;
-    ectx->switch_CABAC(ctxModel, &estim);
-    encode_coding_unit(ectx,cb[p],x,y,log2CbSize, false);
-    cb[p]->rate += estim.getRDBits();
+      cb->distortion = cb->transform_tree->distortion;
+      cb->rate       = cb->transform_tree->rate;
 
 
-    // estimate distortion
+      // rate for cu syntax
 
-    cb[p]->distortion = compute_distortion_ssd(ectx->img, ectx->imgdata->input, x,y, log2CbSize, 0);
+      CABAC_encoder_estim estim;
+      ectx->switch_CABAC(ctxModel, &estim);
+      encode_coding_unit(ectx,cb,x,y,log2CbSize, false);
+      cb->rate += estim.getRDBits();
 
-
-    if (p==0 && lastMode==1) {
-      cb[0]->save(ectx->img);
+      options.end_reconstruction(p);
     }
-  }
 
-  delete cb_in;
-
-
-  // choose from 2Nx2N and NxN
-
-  if (cb[0] && cb[1]) {
-    double rd_cost_2Nx2N = cb[0]->distortion + ectx->lambda * cb[0]->rate;
-    double rd_cost_NxN   = cb[1]->distortion + ectx->lambda * cb[1]->rate;
-
-    if (rd_cost_2Nx2N < rd_cost_NxN) {
-      cb[0]->restore(ectx->img);
-      delete cb[1];
-      return cb[0];
-    } else {
-      delete cb[0];
-      return cb[1];
-    }
-  }
-
-  return cb[0]; // 2Nx2N
+  options.compute_rdo_costs();
+  return options.return_best_rdo();
 }
 
 

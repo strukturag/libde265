@@ -63,6 +63,11 @@ class CodingOptions
 
   enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
   context_model* get_context(int idx) { return mOptions[idx].context; }
+  bool is_active(int idx) const { return mOptions[idx].optionActive; }
+
+  void set_cb(int idx,enc_cb* cb) { mOptions[idx].cb = cb; }
+  enc_cb*& operator[](int idx) { return mOptions[idx].cb; }
+  enc_cb*const& operator[](int idx) const { return mOptions[idx].cb; }
 
   void begin_reconstruction(int idx);
   void end_reconstruction(int idx);
