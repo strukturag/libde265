@@ -49,8 +49,8 @@ class option_SOP_Structure : public choice_option<enum SOP_Structure>
 {
  public:
   option_SOP_Structure() {
-    add_choice("intra",     SOP_Intra, true);
-    add_choice("low-delay", SOP_LowDelay);
+    add_choice("intra",     SOP_Intra);
+    add_choice("low-delay", SOP_LowDelay, true);
   }
 };
 
