@@ -107,9 +107,11 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
       cb_inter->restore(ectx->img);
     }
 
+    delete cb_intra;
     return cb_inter;
   }
   else {
+    delete cb_inter;
     return cb_intra;
   }
 }
