@@ -34,9 +34,43 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
                                                 context_model_table ctxModel,
                                                 enc_cb* cb)
 {
+#if 0
+  CodingOptions options(ectx);
+  options.set_input(cb,ctxModel);
+  options.activate_option(0, try_skip);
+  options.activate_option(1, try_inter);
+
+  if (try_skip) {
+    enc_cb* cb = options[0];
+    cb->PredMode = MODE_SKIP;
+    ectx->img->set_pred_mode(cb->x,cb->y, cb->log2Size, cb->PredMode);
+
+    options.begin_reconstruction(0);
+    cb_skip = mSkipAlgo->analyze(ectx,
+                                 options.get_context(0),
+                                 options.get_cb(0));
+    options.end_reconstruction();
+  }
+
+  if (try_inter) {
+    enc_cb* cb = options[1];
+
+    options.begin_reconstruction(1);
+    cb_inter = mInterAlgo->analyze(ectx,
+                                   options.get_context(1),
+                                   options.get_cb(1));
+    options.end_reconstruction();
+  }
+
+  return options.return_best_rdo();
+#endif
+
+
+
+
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
-  bool try_skip = true;
+  bool try_skip  = true;
   bool try_inter = false; // TODO
 
   context_model_table ctxInter;
@@ -52,21 +86,26 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
   enc_cb* cb_inter = NULL;
 
   if (try_inter) {
-    /* TODO
-    cb_inter = mIntraPartModeAlgo->analyze(ectx, ctxModel, input,
-                                           x0,y0, Log2CbSize, ctDepth, qp);
+    cb_inter = new enc_cb;
+    *cb_inter = *cb;
 
-    cb_inter->PredMode = MODE_INTER;
-    */
+    cb_inter = mInterAlgo->analyze(ectx, ctxInter, cb_inter);
   }
 
 
   // try skip
 
   if (try_skip) {
-    cb->PredMode = MODE_SKIP;
-    cb_skip = mSkipAlgo->analyze(ectx, ctxModel, cb);
+    cb_skip = new enc_cb;
+    *cb_skip = *cb;
+
+    cb_skip->PredMode = MODE_SKIP;
+    ectx->img->set_pred_mode(cb->x,cb->y, cb->log2Size, cb->PredMode);
+
+    cb_skip = mSkipAlgo->analyze(ectx, ctxModel, cb_skip);
   }
+
+  delete cb;
 
 
   // if only one variant has been tested, choose this

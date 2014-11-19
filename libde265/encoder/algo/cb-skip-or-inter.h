@@ -46,11 +46,16 @@ class Algo_CB_SkipOrInter : public Algo_CB
  public:
   virtual ~Algo_CB_SkipOrInter() { }
 
-  void setSkipAlgo(Algo_CB_MergeIndex* algo) { mSkipAlgo = algo; }
-  // void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
+  void setSkipAlgo(Algo_CB_MergeIndex* algo) {
+    mSkipAlgo = algo;
+    mSkipAlgo->set_code_residual(false);
+  }
+
+  void setInterAlgo(Algo_CB* algo) { mInterAlgo = algo; }
 
  protected:
   Algo_CB_MergeIndex* mSkipAlgo;
+  Algo_CB*            mInterAlgo;
 };
 
 class Algo_CB_SkipOrInter_BruteForce : public Algo_CB_SkipOrInter

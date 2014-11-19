@@ -50,4 +50,49 @@ class Algo_CB
                           enc_cb* cb) = 0;
 };
 
+
+
+class CodingOptions
+{
+ public:
+  CodingOptions(encoder_context*, int nOptions=2);
+  ~CodingOptions();
+
+  void set_input(enc_cb*, context_model_table tab);
+  void activate_option(int idx, bool flag=true);
+
+  enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
+  context_model* get_context(int idx) { return mOptions[idx].context; }
+
+  void begin_reconstruction(int idx);
+  void end_reconstruction(int idx);
+
+  void set_rdo_cost(int idx, float rdo) { mOptions[idx].rdoCost=rdo; }
+  void compute_rdo_costs();
+  enc_cb* return_best_rdo();
+
+ private:
+  struct CodingOption {
+    CodingOption() : optionActive(false) { }
+
+    enc_cb* cb;
+    context_model* context;
+    context_model_table context_table_memory;
+    bool isOriginalCBStruct;
+    bool optionActive;
+    float rdoCost;
+  };
+
+  encoder_context* mECtx;
+
+  enc_cb* mCBInput;
+  context_model* mContextModelInput;
+  bool mOriginalCBStructsAssigned;
+
+  int  mCurrentlyReconstructedOption;
+  int mBestRDO;
+
+  std::vector<CodingOption> mOptions;
+};
+
 #endif
