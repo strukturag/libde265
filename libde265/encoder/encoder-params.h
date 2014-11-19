@@ -25,6 +25,7 @@
 
 #include "libde265/encoder/encode.h"
 #include "libde265/encoder/analyze.h"
+#include "libde265/encoder/sop.h"
 
 
 enum RateControlMethod
@@ -74,6 +75,9 @@ struct encoder_params
 
 
   option_SOP_Structure sop_structure;
+
+  sop_creator_trivial_low_delay::params mSOP_LowDelay;
+
 
   // --- Algo_TB_IntraPredMode
 

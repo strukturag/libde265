@@ -129,6 +129,7 @@ inout_params::inout_params()
 void inout_params::register_params(config_parameters& config)
 {
   config.add_option(&input_yuv);
+  config.add_option(&output_filename);
   config.add_option(&first_frame);
   config.add_option(&max_number_of_frames);
   config.add_option(&input_width);

@@ -78,14 +78,15 @@ void sop_creator_trivial_low_delay::insert_new_input_image(const de265_image* im
   int frame = get_frame_number();
 
   std::vector<int> l0, l1, empty;
-  if (frame>0) {
+  if (!isIntra(frame)) {
     l0.push_back(frame-1);
   }
 
   assert(mEncPicBuf);
   image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
-  if (frame==0) {
+  if (isIntra(frame)) {
+    reset_poc();
     imgdata->set_intra();
     imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
     imgdata->shdr.slice_type = SLICE_TYPE_I;

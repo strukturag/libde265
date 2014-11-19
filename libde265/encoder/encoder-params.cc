@@ -66,4 +66,6 @@ void encoder_params::registerParams(config_parameters& config)
   config.add_option(&mAlgo_TB_IntraPredMode);
   config.add_option(&mAlgo_TB_IntraPredMode_Subset);
   config.add_option(&mAlgo_CB_IntraPartMode);
+
+  mSOP_LowDelay.registerParams(config);
 }

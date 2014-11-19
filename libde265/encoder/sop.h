@@ -24,6 +24,7 @@
 #include "libde265/image.h"
 #include "libde265/sps.h"
 #include "libde265/encoder/encpicbuf.h"
+#include "libde265/configparam.h"
 
 #include <deque>
 #include <vector>
@@ -111,10 +112,31 @@ class sop_creator_intra_only : public sop_creator
 class sop_creator_trivial_low_delay : public sop_creator
 {
  public:
+  struct params {
+    params() {
+      intraPeriod.set_ID("sop-lowDelay-intraPeriod");
+      intraPeriod.set_minimum(1);
+      intraPeriod.set_default(250);
+    }
+
+    void registerParams(config_parameters& config) {
+      config.add_option(&intraPeriod);
+    }
+
+    option_int intraPeriod;
+  };
+
   sop_creator_trivial_low_delay();
+
+  void setParams(const params& p) { mParams=p; }
 
   virtual void set_SPS_header_values();
   virtual void insert_new_input_image(const de265_image* img);
+
+ private:
+  params mParams;
+
+  bool isIntra(int frame) const { return (frame % mParams.intraPeriod)==0; }
 };
 
 

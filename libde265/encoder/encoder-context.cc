@@ -71,7 +71,9 @@ void encoder_context::start_encoder()
     sop = std::make_shared<sop_creator_intra_only>();
   }
   else {
-    sop = std::make_shared<sop_creator_trivial_low_delay>();
+    auto s = std::make_shared<sop_creator_trivial_low_delay>();
+    s->setParams(params.mSOP_LowDelay);
+    sop = s;
   }
 
   sop->set_encoder_context(this);
