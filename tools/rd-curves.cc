@@ -114,7 +114,7 @@ struct Preset
 
 Preset preset[] = {
   { 1, "pre01-intra-noLF", "intra, no LF, no SBH, CTB-size 32, min CB=8",
-    /* de265  */ "",
+    /* de265  */ "--sop-structure intra",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
@@ -126,7 +126,7 @@ Preset preset[] = {
   },
 
   { 2, "pre02-fastIntra", "intra, no LF, no SBH, CTB-size 32, min CB=8",
-    /* de265  */ "--TB-IntraPredMode minSSD",
+    /* de265  */ "--sop-structure intra --TB-IntraPredMode minSSD",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
@@ -138,7 +138,7 @@ Preset preset[] = {
   },
 
   { 3, "pre03-fastIntra", "pre02, but fast-brute",
-    /* de265  */ "--TB-IntraPredMode fast-brute",
+    /* de265  */ "--sop-structure intra --TB-IntraPredMode fast-brute",
     /* HM     */ "-c $HM13CFG/encoder_intra_main.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* HM SCC */ "-c $HMSCCCFG/encoder_intra_main_scc.cfg -SBH 0 --SAO=0 --LoopFilterDisable --DeblockingFilterControlPresent --MaxCUSize=32 --MaxPartitionDepth=2",
     /* x265   */ "--no-lft -I 1 --no-signhide",
@@ -162,7 +162,7 @@ Preset preset[] = {
   },
 
   { 80, "lowdelay", "default (low-default) encoder parameters",
-    /* de265  */ "--max-cb-size 16 --min-cb-size 8",
+    /* de265  */ "--sop-structure low-delay",
     /* HM     */ "-c $HM13CFG/encoder_lowdelay_main.cfg -ip 248",
     /* HM SCC */ "-c $HMSCCCFG/encoder_lowdelay_main_scc.cfg -ip 248",
     /* x265   */ "-I 248 --no-wpp --bframes 0", // GOP size: 248
