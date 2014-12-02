@@ -51,20 +51,21 @@ static struct {
   const char* name;
   const char* value;
 } variables[] = {
-  { "$HOME"    , "/home/domain/farindk/prog/h265" },
-  { "$ENC265"  , "$HOME/libde265/enc265/enc265" },
-  { "$DEC265"  , "$HOME/libde265/dec265/dec265" },
-  { "$YUVDIST" , "$HOME/libde265/tools/yuv-distortion" },
+  { "$HOME"    , "/home/domain/farindk" },
+  { "$ROOT"    , "/home/domain/farindk/prog/h265" },
+  { "$ENC265"  , "$ROOT/libde265/enc265/enc265" },
+  { "$DEC265"  , "$ROOT/libde265/dec265/dec265" },
+  { "$YUVDIST" , "$ROOT/libde265/tools/yuv-distortion" },
   { "$YUVTMP"  , "/mnt/temp/dirk/yuv/ftp.tnt.uni-hannover.de/testsequences" },
   { "$YUV"     , "/storage/users/farindk/yuv" },
   { "$HMENC"   , "HM13enc" },
-  { "$HM13CFG" , "$HOME/HM/HM-13.0-dev/cfg" },
+  { "$HM13CFG" , "$ROOT/HM/HM-13.0-dev/cfg" },
   { "$HMSCCENC", "HM-SCC-enc" },
-  { "$HMSCCCFG", "$HOME/HM/HM-SCC-extensions/cfg" },
-  { "$X265ENC" , "$HOME/x265/build/linux/x265" },
+  { "$HMSCCCFG", "$ROOT/HM/HM-SCC-extensions/cfg" },
+  { "$X265ENC" , "$ROOT/x265/build/linux/x265" },
   { "$X264"    , "x264" },
   { "$FFMPEG"  , "ffmpeg" },
-  { "$F265"    , "$HOME/f265/build/f265cli" },
+  { "$F265"    , "$ROOT/f265/build/f265cli" },
   { 0,0 }
 };
 
@@ -307,6 +308,7 @@ struct InputSpec
   { "slideedit100","$YUVTMP/SlideEditing_1280x720_30.yuv",1280,720,100,30.0 },
   { "slideshow",   "$YUVTMP/SlideShow_1280x720_20.yuv",1280,720,500,20.0 },
   { "slideshow100","$YUVTMP/SlideShow_1280x720_20.yuv",1280,720,100,20.0 },
+  { "screensharing","$HOME/test-screensharing-encoding/Screensharing.yuv",1360,768,4715,60.0 },
   { NULL }
 };
 
@@ -390,17 +392,17 @@ void Quality::measure_yuv(const char* yuvfilename)
        << " " << input.getWidth() << " " << input.getHeight()
        << "|grep total "
     //"|awk '{print $2}' "
-    ">/tmp/xtmp";
+    ">/tmp/ytmp";
 
   //std::cout << sstr.str() << "\n";
   int retval = system(replace_variables(sstr.str()).c_str());
 
   std::ifstream istr;
-  istr.open("/tmp/xtmp");
+  istr.open("/tmp/ytmp");
   std::string dummy;
   istr >> dummy >> psnr >> ssim;
 
-  unlink("/tmp/xtmp");
+  unlink("/tmp/ytmp");
 }
 
 Quality quality;
