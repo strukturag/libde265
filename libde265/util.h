@@ -45,7 +45,14 @@
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
-
+// C++11 specific features
+#ifdef _MSC_VER
+#define FOR_LOOP(type, var, list)   for each (type var in list)
+#undef FOR_LOOP_AUTO_SUPPORT
+#else
+#define FOR_LOOP(type, var, list)   for (type var : list)
+#define FOR_LOOP_AUTO_SUPPORT 1
+#endif
 
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))

@@ -24,6 +24,7 @@
 #define CONFIG_PARAM_H
 
 #include "en265.h"
+#include "util.h"
 
 #include <climits>
 #include <vector>
@@ -292,7 +293,12 @@ template <class T> class choice_option : public choice_option_base
 
     validValue = false;
 
-    for (auto c : choices) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+    FOR_LOOP(auto, c, choices) {
+#else
+    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
+      const std::pair<std::string,T> & c = *it;
+#endif
       if (val == c.first) {
         selectedID = c.second;
         validValue = true;
@@ -317,7 +323,12 @@ template <class T> class choice_option : public choice_option_base
   std::vector<std::string> get_choice_names() const
   {
     std::vector<std::string> names;
-    for (auto p : choices) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+    FOR_LOOP(auto, p, choices) {
+#else
+    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
+      const std::pair<std::string,T> & p = *it;
+#endif
       names.push_back(p.first);
     }
     return names;

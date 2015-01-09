@@ -21,6 +21,7 @@
  */
 
 #include "libde265/alloc_pool.h"
+#include "libde265/util.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -52,7 +53,7 @@ void alloc_pool::add_memory_block()
 
 alloc_pool::~alloc_pool()
 {
-  for (uint8_t* p : m_memBlocks) {
+  FOR_LOOP(uint8_t*, p, m_memBlocks) {
     delete[] p;
   }
 }
@@ -87,7 +88,7 @@ void  alloc_pool::delete_obj(void* obj)
 {
   int memBlockSize = mObjSize * mPoolSize;
 
-  for (uint8_t* memBlk : m_memBlocks) {
+  FOR_LOOP(uint8_t*, memBlk, m_memBlocks) {
     if (memBlk <= obj && obj < memBlk + memBlockSize) {
       m_freeList.push_back(obj);
       return;

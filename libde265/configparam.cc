@@ -76,7 +76,7 @@ std::string option_int::getTypeDescr() const
   if (!valid_values_set.empty()) {
     sstr << " {";
     bool first=true;
-    for (int v : valid_values_set) {
+    FOR_LOOP(int, v, valid_values_set) {
       if (!first) sstr << ","; else first=false;
       sstr << v;
     }
@@ -131,7 +131,11 @@ std::string choice_option_base::getTypeDescr() const
   sstr << "{";
 
   bool first=true;
-  for (auto c : choices) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+  FOR_LOOP(auto, c, choices) {
+#else
+  FOR_LOOP(std::string, c, choices) {
+#endif
     if (first) { first=false; }
     else { sstr << ","; }
 
@@ -165,7 +169,11 @@ static char* fill_strings_into_memory(const std::vector<std::string>& strings_li
   // calculate memory requirement
 
   int totalStringLengths = 0;
-  for (auto str : strings_list) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+  FOR_LOOP(auto, str, strings_list) {
+#else
+  FOR_LOOP(std::string, str, strings_list) {
+#endif
     totalStringLengths += str.length() +1; // +1 for null termination
   }
 
@@ -181,7 +189,11 @@ static char* fill_strings_into_memory(const std::vector<std::string>& strings_li
   char* stringPtr = memory + (numStrings+1) * sizeof(const char*);
   const char** tablePtr = (const char**)memory;
 
-  for (auto str : strings_list) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+  FOR_LOOP(auto, str, strings_list) {
+#else
+  FOR_LOOP(std::string, str, strings_list) {
+#endif
     *tablePtr++ = stringPtr;
 
     strcpy(stringPtr, str.c_str());
@@ -350,7 +362,11 @@ std::vector<std::string> config_parameters::get_parameter_IDs() const
 {
   std::vector<std::string> ids;
 
-  for (auto option : mOptions) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+  FOR_LOOP(auto, option, mOptions) {
+#else
+  FOR_LOOP(option_base*, option, mOptions) {
+#endif
     ids.push_back(option->get_name());
   }
 
@@ -387,7 +403,11 @@ std::vector<std::string> config_parameters::get_parameter_choices(const char* pa
 
 option_base* config_parameters::find_option(const char* param) const
 {
-  for (auto o : mOptions) {
+#ifdef FOR_LOOP_AUTO_SUPPORT
+  FOR_LOOP(auto, o, mOptions) {
+#else
+  FOR_LOOP(option_base*, o, mOptions) {
+#endif
     if (strcmp(o->get_name().c_str(), param)==0) { return o; }
   }
 
