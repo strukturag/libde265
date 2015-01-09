@@ -51,6 +51,8 @@ int win32_cond_destroy(win32_cond_t *cv)
 
 int win32_cond_wait(win32_cond_t *cv, HANDLE *external_mutex)
 {
+  int last_waiter;
+
   // Avoid race conditions.
   EnterCriticalSection (&cv->waiters_count_lock_);
   cv->waiters_count_++;
@@ -68,7 +70,7 @@ int win32_cond_wait(win32_cond_t *cv, HANDLE *external_mutex)
   cv->waiters_count_--;
 
   // Check to see if we're the last waiter after <pthread_cond_broadcast>.
-  int last_waiter = cv->was_broadcast_ && cv->waiters_count_ == 0;
+  last_waiter = cv->was_broadcast_ && cv->waiters_count_ == 0;
 
   LeaveCriticalSection (&cv->waiters_count_lock_);
 
@@ -87,8 +89,10 @@ int win32_cond_wait(win32_cond_t *cv, HANDLE *external_mutex)
 
 int win32_cond_signal(win32_cond_t *cv)
 {
+  int have_waiters;
+
   EnterCriticalSection (&cv->waiters_count_lock_);
-  int have_waiters = cv->waiters_count_ > 0;
+  have_waiters = cv->waiters_count_ > 0;
   LeaveCriticalSection (&cv->waiters_count_lock_);
 
   // If there aren't any waiters, then this is a no-op.  
@@ -99,10 +103,11 @@ int win32_cond_signal(win32_cond_t *cv)
 
 int win32_cond_broadcast(win32_cond_t *cv)
 {
+  int have_waiters = 0;
+
   // This is needed to ensure that <waiters_count_> and <was_broadcast_> are
   // consistent relative to each other.
   EnterCriticalSection (&cv->waiters_count_lock_);
-  int have_waiters = 0;
 
   if (cv->waiters_count_ > 0) {
     // We are broadcasting, even if there is just one waiter...
