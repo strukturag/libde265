@@ -56,9 +56,6 @@
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
 namespace std { using namespace std::tr1; }
-#undef HAVE_MAKE_SHARED
-#else
-#define HAVE_MAKE_SHARED
 #endif
 
 #ifdef _MSC_VER
