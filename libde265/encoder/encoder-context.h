@@ -84,7 +84,7 @@ class encoder_context : public base_context
   bool headers_have_been_sent;
 
   encoder_picture_buffer picbuf;
-  SHARED_PTR_NAMESPACE::shared_ptr<sop_creator> sop;
+  std::shared_ptr<sop_creator> sop;
 
   std::deque<en265_packet*> output_packets;
 

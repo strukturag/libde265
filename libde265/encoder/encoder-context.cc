@@ -78,7 +78,7 @@ void encoder_context::start_encoder()
 #ifdef HAVE_MAKE_SHARED
     auto s = std::make_shared<sop_creator_trivial_low_delay>();
 #else
-    SHARED_PTR_NAMESPACE::shared_ptr<sop_creator_trivial_low_delay> s(new sop_creator_trivial_low_delay());
+    std::shared_ptr<sop_creator_trivial_low_delay> s(new sop_creator_trivial_low_delay());
 #endif
     s->setParams(params.mSOP_LowDelay);
     sop = s;

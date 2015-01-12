@@ -55,10 +55,9 @@
 #endif
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
-#define SHARED_PTR_NAMESPACE	std::tr1
+namespace std { using namespace std::tr1; }
 #undef HAVE_MAKE_SHARED
 #else
-#define SHARED_PTR_NAMESPACE	std
 #define HAVE_MAKE_SHARED
 #endif
 
