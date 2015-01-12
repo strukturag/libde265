@@ -30,6 +30,9 @@
 #include <algorithm>
 #include <typeinfo>
 
+#ifndef RTTI_ENABLED
+#error "Need to compile with RTTI enabled."
+#endif
 
 static void remove_option(int* argc,char** argv,int idx, int n=1)
 {

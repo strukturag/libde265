@@ -54,6 +54,16 @@
 #define FOR_LOOP_AUTO_SUPPORT 1
 #endif
 
+#ifdef _MSC_VER
+  #ifdef _CPPRTTI
+  #define RTTI_ENABLED
+  #endif
+#else
+  #ifdef __GXX_RTTI
+  #define RTTI_ENABLED
+  #endif
+#endif
+
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
