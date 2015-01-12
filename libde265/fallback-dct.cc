@@ -70,7 +70,7 @@ void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, pt
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + c);
     }
 }
-        
+
 
 static int8_t mat_8_357[4][4] = {
   { 29, 55, 74, 84 },
@@ -337,7 +337,7 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
       }
-      
+
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
 
       logtrace(LogTransform,"*%d ",g[c+i*nT]);
@@ -373,11 +373,11 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-      
+
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * g[y*nT+j];
       }
-      
+
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
 
@@ -446,11 +446,11 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-      
+
       for (int j=0;j<nT;j++) {
         sum += mat_dct[fact*i][j] * input[c+j*stride];
       }
-      
+
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
 
       //logtrace(LogTransform,"*%d ",g[c+i*nT]);
@@ -470,11 +470,11 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-      
+
       for (int j=0;j<nT;j++) {
         sum += mat_dct[fact*i][j] * g[y*nT+j];
       }
-      
+
       // TODO: do we need clipping ?
       int out = (sum+rnd2)>>shift2;
 
@@ -518,7 +518,8 @@ void hadamard_transform_8(int16_t *coeffs, int n, const int16_t *input, ptrdiff_
 
   //printMatrix("input",input,n);
 
-  int16_t a[32],b[32];
+  int16_t am[32],bm[32];
+  int16_t *a = am, *b = bm;
   for (int row=0;row<n;row++) {
     int rs = row*stride;
     for (int i=0;i<(n>>1);i++) {
@@ -713,4 +714,3 @@ void hadamard_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t 
 {
   hadamard_transform_8(coeffs,32, input,stride);
 }
-
