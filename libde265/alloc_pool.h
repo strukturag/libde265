@@ -25,7 +25,11 @@
 
 #include <vector>
 #include <cstddef>
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else
 #include <cstdint>
+#endif
 
 
 class alloc_pool

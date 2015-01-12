@@ -68,10 +68,18 @@ void encoder_context::start_encoder()
 
 
   if (params.sop_structure() == SOP_Intra) {
+#ifdef HAVE_MAKE_SHARED
     sop = std::make_shared<sop_creator_intra_only>();
+#else
+    sop.reset(new sop_creator_intra_only());
+#endif
   }
   else {
+#ifdef HAVE_MAKE_SHARED
     auto s = std::make_shared<sop_creator_trivial_low_delay>();
+#else
+    SHARED_PTR_NAMESPACE::shared_ptr<sop_creator_trivial_low_delay> s(new sop_creator_trivial_low_delay());
+#endif
     s->setParams(params.mSOP_LowDelay);
     sop = s;
   }

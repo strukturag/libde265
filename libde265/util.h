@@ -53,6 +53,14 @@
 #define FOR_LOOP(type, var, list)   for (type var : list)
 #define FOR_LOOP_AUTO_SUPPORT 1
 #endif
+#ifdef USE_STD_TR1_NAMESPACE
+#include <tr1/memory>
+#define SHARED_PTR_NAMESPACE	std::tr1
+#undef HAVE_MAKE_SHARED
+#else
+#define SHARED_PTR_NAMESPACE	std
+#define HAVE_MAKE_SHARED
+#endif
 
 #ifdef _MSC_VER
   #ifdef _CPPRTTI

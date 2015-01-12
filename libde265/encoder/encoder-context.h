@@ -30,6 +30,7 @@
 #include "libde265/encoder/encpicbuf.h"
 #include "libde265/encoder/sop.h"
 #include "libde265/en265.h"
+#include "libde265/util.h"
 
 #include <memory>
 
@@ -83,7 +84,7 @@ class encoder_context : public base_context
   bool headers_have_been_sent;
 
   encoder_picture_buffer picbuf;
-  std::shared_ptr<sop_creator> sop;
+  SHARED_PTR_NAMESPACE::shared_ptr<sop_creator> sop;
 
   std::deque<en265_packet*> output_packets;
 
