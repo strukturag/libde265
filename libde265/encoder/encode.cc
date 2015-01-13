@@ -172,7 +172,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   }
 
 
-  int16_t dequant_coeff[32*32];
+  ALIGNED_16(int16_t) dequant_coeff[32*32];
 
   if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
