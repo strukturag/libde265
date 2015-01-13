@@ -58,7 +58,9 @@ image_data::~image_data()
   //printf("delete %p\n",this);
 
   delete input;
-  //delete reconstruction;   TODO -> leak
+  // TODO: this could still be referenced in the packet output queue, so the
+  //       images should really be refcounted. release for now to prevent leaks
+  delete reconstruction;
   delete prediction;
 }
 
