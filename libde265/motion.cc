@@ -58,17 +58,6 @@ typedef struct
 } MergingCandidates;
 
 
-void reset_pred_vector(PredVectorInfo* pvec)
-{
-  for (int X=0;X<2;X++) {
-    pvec->mv[X].x = 0;
-    pvec->mv[X].y = 0;
-    pvec->refIdx[X] = -1;
-    pvec->predFlag[X] = 0;
-  }
-}
-
-
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
@@ -116,10 +105,10 @@ void mc_luma(const decoder_context* ctx,
     else {
       for (int y=0;y<nPbH;y++)
         for (int x=0;x<nPbW;x++) {
-        
+
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
           out[y*out_stride+x] = ref[ xA + yA*ref_stride ] << shift3;
         }
     }
@@ -129,10 +118,10 @@ void mc_luma(const decoder_context* ctx,
 
     for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
-        
+
         int xA = Clip3(0,w-1,x + xIntOffsL);
         int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
         logtrace(LogMotion,"%02x ", ref[ xA + yA*ref_stride ]);
       }
       logtrace(LogMotion,"\n");
@@ -142,7 +131,7 @@ void mc_luma(const decoder_context* ctx,
 
     for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
-        
+
         logtrace(LogMotion,"%02x ",out[y*out_stride+x] >> 6); // 6 will be used when summing predictions
       }
       logtrace(LogMotion,"\n");
@@ -174,10 +163,10 @@ void mc_luma(const decoder_context* ctx,
     else {
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
         for (int x=-extra_left;x<nPbW+extra_right;x++) {
-        
+
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
           padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
@@ -268,10 +257,10 @@ void mc_chroma(const decoder_context* ctx,
     else {
       for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
         for (int x=-extra_left;x<nPbWC+extra_right;x++) {
-        
+
           int xA = Clip3(0,wC-1,x + xIntOffsC);
           int yA = Clip3(0,hC-1,y + yIntOffsC);
-        
+
           padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
@@ -469,7 +458,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in11 = predSamplesC[1][1];
         uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
-      
+
         ctx->acceleration.put_weighted_pred_avg_8(out0, img->get_chroma_stride(),
                                               in00,in01, nCS, nPbW/2, nPbH/2);
         ctx->acceleration.put_weighted_pred_avg_8(out1, img->get_chroma_stride(),
@@ -517,7 +506,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
         int16_t* in11 = predSamplesC[1][1];
         uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
-      
+
         ctx->acceleration.put_weighted_bipred_8(out0, img->get_chroma_stride(),
                                             in00,in01, nCS, nPbW/2, nPbH/2,
                                             chroma0_w0,chroma0_o0,
@@ -594,7 +583,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 
 
   logtrace(LogTransform,"MC pixels (chroma cb), position %d %d:\n", xP/2,yP/2);
@@ -607,7 +596,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 
 
   logtrace(LogTransform,"MC pixels (chroma cr), position %d %d:\n", xP/2,yP/2);
@@ -620,7 +609,7 @@ void generate_inter_prediction_samples(decoder_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 #endif
 }
 
@@ -681,13 +670,15 @@ LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVec
 
 // 8.5.3.1.2
 // TODO: check: can we fill the candidate list directly in this function and omit to copy later
-void derive_spatial_merging_candidates(const de265_image* img,
-                                       int xC, int yC, int nCS, int xP, int yP,
-                                       uint8_t singleMCLFlag,
-                                       int nPbW, int nPbH,
-                                       int partIdx,
-                                       MergingCandidates* out_cand)
+int derive_spatial_merging_candidates(const thread_context* tctx,
+                                      int xC, int yC, int nCS, int xP, int yP,
+                                      uint8_t singleMCLFlag,
+                                      int nPbW, int nPbH,
+                                      int partIdx,
+                                      MergingCandidates* out_cand)
 {
+  const de265_image* img = tctx->img;
+
   const pic_parameter_set* pps = &img->pps;
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
@@ -700,6 +691,9 @@ void derive_spatial_merging_candidates(const de265_image* img,
   int yA1 = yP+nPbH-1;
 
   bool availableA1;
+  int idxA1;
+
+  int computed_candidates = 0;
 
   if ((xP>>log2_parallel_merge_level) == (xA1>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yA1>>log2_parallel_merge_level)) {
@@ -719,12 +713,8 @@ void derive_spatial_merging_candidates(const de265_image* img,
     if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
 
-  if (!availableA1) {
-    out_cand->available[PRED_A1] = 0;
-    reset_pred_vector(&out_cand->pred_vector[PRED_A1]);
-  }
-  else {
-    out_cand->available[PRED_A1] = 1;
+  if (availableA1) {
+    computed_candidates++;
     out_cand->pred_vector[PRED_A1] = *img->get_mv_info(xA1,yA1);
 
     logtrace(LogMotion,"spatial merging candidate A1:\n");
@@ -738,6 +728,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
   int yB1 = yP-1;
 
   bool availableB1;
+  int idxB1;
 
   if ((xP>>log2_parallel_merge_level) == (xB1>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yB1>>log2_parallel_merge_level)) {
@@ -759,7 +750,6 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   if (!availableB1) {
     out_cand->available[PRED_B1] = 0;
-    reset_pred_vector(&out_cand->pred_vector[PRED_B1]);
   }
   else {
     out_cand->available[PRED_B1] = 1;
@@ -768,10 +758,14 @@ void derive_spatial_merging_candidates(const de265_image* img,
     if (availableA1 &&
         equal_cand_MV(&out_cand->pred_vector[PRED_A1],
                       &out_cand->pred_vector[PRED_B1])) {
+      idxB1 = PRED_B1;
       out_cand->available[PRED_B1] = 0;
       logtrace(LogMotion,"spatial merging candidate B1: redundant to A1\n");
     }
     else {
+      computed_candidates++;
+      idxB1 = PRED_B1;
+
       logtrace(LogMotion,"spatial merging candidate B1:\n");
       logmvcand(out_cand->pred_vector[PRED_B1]);
     }
@@ -797,7 +791,6 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   if (!availableB0) {
     out_cand->available[PRED_B0] = 0;
-    reset_pred_vector(&out_cand->pred_vector[PRED_B0]);
   }
   else {
     out_cand->available[PRED_B0] = 1;
@@ -812,6 +805,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     else {
       logtrace(LogMotion,"spatial merging candidate B0:\n");
       logmvcand(out_cand->pred_vector[PRED_B0]);
+      computed_candidates++;
     }
   }
 
@@ -835,7 +829,6 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   if (!availableA0) {
     out_cand->available[PRED_A0] = 0;
-    reset_pred_vector(&out_cand->pred_vector[PRED_A0]);
   }
   else {
     out_cand->available[PRED_A0] = 1;
@@ -850,6 +843,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
     else {
       logtrace(LogMotion,"spatial merging candidate A0:\n");
       logmvcand(out_cand->pred_vector[PRED_A0]);
+      computed_candidates++;
     }
   }
 
@@ -861,8 +855,7 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   bool availableB2;
 
-  if (out_cand->available[PRED_A0] && out_cand->available[PRED_A1] &&
-      out_cand->available[PRED_B0] && out_cand->available[PRED_B1]) {
+  if (computed_candidates==4) {
     availableB2 = false;
     logtrace(LogMotion,"spatial merging candidate B2: ignore\n");
   }
@@ -878,7 +871,6 @@ void derive_spatial_merging_candidates(const de265_image* img,
 
   if (!availableB2) {
     out_cand->available[PRED_B2] = 0;
-    reset_pred_vector(&out_cand->pred_vector[PRED_B2]);
   }
   else {
     out_cand->available[PRED_B2] = 1;
@@ -899,8 +891,17 @@ void derive_spatial_merging_candidates(const de265_image* img,
     else {
       logtrace(LogMotion,"spatial merging candidate B0:\n");
       logmvcand(out_cand->pred_vector[PRED_B0]);
+      computed_candidates++;
     }
   }
+
+  //out_cand->available[PRED_A0] = availableA0;
+  out_cand->available[PRED_A1] = availableA1;
+  //out_cand->available[PRED_B0] = availableB0;
+  //out_cand->available[PRED_B1] = availableB1;
+  //out_cand->available[PRED_B2] = availableB2;
+
+  return computed_candidates;
 }
 
 
@@ -951,7 +952,7 @@ void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
     newCand->mv[1].y = 0;
 
     (*inout_numCurrMergeCand)++;
-      
+
     // 2.
 
     zeroIdx++;
@@ -1079,7 +1080,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
     const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
-    if (shdr->LongTermRefPic[X][refIdxLX] != 
+    if (shdr->LongTermRefPic[X][refIdxLX] !=
         colShdr->LongTermRefPic[listCol][refIdxCol]) {
       *out_availableFlagLXCol = 0;
       out_mvLXCol->x = 0;
@@ -1291,8 +1292,8 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   }
 
   MergingCandidates mergeCand;
-  derive_spatial_merging_candidates(tctx->img, xC,yC, nCS, xP,yP, singleMCLFlag,
-                                    nPbW,nPbH,partIdx, &mergeCand);
+  int nSMC = derive_spatial_merging_candidates(tctx, xC,yC, nCS, xP,yP, singleMCLFlag,
+                                               nPbW,nPbH,partIdx, &mergeCand);
 
   int refIdxCol[2] = { 0,0 };
 
@@ -1323,6 +1324,8 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
       mergeCandList[numMergeCand++] = mergeCand.pred_vector[i];
     }
   }
+
+  assert(nSMC == numMergeCand);
 
   if (availableFlagCol) {
     // TODO: save in mergeCand directly...
@@ -1438,7 +1441,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
@@ -1479,7 +1482,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
@@ -1527,7 +1530,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         {
           int distA = img->PicOrderCntVal - refPicA->PicOrderCntVal;
           int distX = img->PicOrderCntVal - referenced_POC;
-          
+
           if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
             img->decctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             img->integrity = INTEGRITY_DECODING_ERRORS;
@@ -1564,9 +1567,9 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
     availableB[k] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
 
     if (availableB[k] && out_availableFlagLXN[B]==0) {
-      
+
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(*vi);
@@ -1618,7 +1621,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
       if (availableB[k]) {
         int Y=1-X;
-      
+
         const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
 
         if (vi->predFlag[X]==1 &&
@@ -1849,4 +1852,3 @@ void decode_prediction_unit(thread_context* tctx,
 
   tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, &vi.lum);
 }
-
