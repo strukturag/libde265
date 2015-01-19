@@ -39,18 +39,6 @@
 #define MAX_CU_SIZE 64
 
 
-enum {
-  // important! order like shown in 8.5.3.1.1
-  PRED_A1  = 0,
-  PRED_B1  = 1,
-  PRED_B0  = 2,
-  PRED_A0  = 3,
-  PRED_B2  = 4,
-  PRED_COL = 5,
-  PRED_ZERO= 6
-};
-
-
 
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
