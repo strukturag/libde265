@@ -58,8 +58,13 @@ class CodingOptions
   CodingOptions(encoder_context*, int nOptions=2);
   ~CodingOptions();
 
+  // --- init --- call before object use
+
   void set_input(enc_cb*, context_model_table tab);
   void activate_option(int idx, bool flag=true);
+
+
+  // --- processing ---
 
   enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
   context_model* get_context(int idx) { return mOptions[idx].context; }
@@ -69,11 +74,27 @@ class CodingOptions
   enc_cb*& operator[](int idx) { return mOptions[idx].cb; }
   enc_cb*const& operator[](int idx) const { return mOptions[idx].cb; }
 
+  /* When modifying the reconstruction image or metadata, you have to
+     encapsulate the modification between these two functions to ensure
+     that the correct reconstruction will be active after return_best_rdo().
+   */
   void begin_reconstruction(int idx);
   void end_reconstruction(int idx);
 
-  void set_rdo_cost(int idx, float rdo) { mOptions[idx].rdoCost=rdo; }
+  // compute RDO cost (D + lambda*R)
   void compute_rdo_costs();
+
+  // Manually set RDO costs instead of computing them with compute_rdo_costs.
+  // Only required when using custom costs.
+  void set_rdo_cost(int idx, float rdo) { mOptions[idx].rdoCost=rdo; }
+
+
+  // --- end processing --- do not call any function after this one
+
+  /* Return the CB with the lowest RDO cost. All other CBs are destroyed.
+     If the current reconstruction and metadata are not from the returned CB,
+     the data from the returned CB is reconstructed.
+   */
   enc_cb* return_best_rdo();
 
  private:
