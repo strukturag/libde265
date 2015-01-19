@@ -49,7 +49,7 @@ extern bool read_short_term_ref_pic_set(decoder_context* ctx,
 
 void read_coding_tree_unit(thread_context* tctx);
 void read_coding_quadtree(thread_context* tctx,
-                          int xCtb, int yCtb, 
+                          int xCtb, int yCtb,
                           int Log2CtbSizeY,
                           int ctDepth);
 int check_CTB_available(de265_image* img,
@@ -230,7 +230,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   if (!dependent_slice_segment_flag) {
     for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
       //slice_reserved_undetermined_flag[i]
-      skip_bits(br,1); 
+      skip_bits(br,1);
     }
 
     slice_type = get_uvlc(br);
@@ -249,7 +249,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     }
 
     if (sps->separate_colour_plane_flag == 1) {
-      colour_plane_id = get_bits(br,1);
+      colour_plane_id = get_bits(br,2);
     }
 
 
@@ -382,7 +382,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
 
     // --- SAO ---
-      
+
     if (sps->sample_adaptive_offset_enabled_flag) {
       slice_sao_luma_flag   = get_bits(br,1);
       slice_sao_chroma_flag = get_bits(br,1);
@@ -494,7 +494,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
       MaxNumMergeCand = 5-five_minus_max_num_merge_cand;
     }
-    
+
     slice_qp_delta = get_svlc(br);
     if (slice_qp_delta == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
@@ -602,7 +602,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
-    
+
     for (int i=0; i<slice_segment_header_extension_length; i++) {
       //slice_segment_header_extension_data_byte[i]
       get_bits(br,8);
@@ -705,7 +705,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
         LOG1("num_long_term_pics                       : %d\n", num_long_term_pics);
 
-#if 0          
+#if 0
         for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
           LOG2("PocLsbLt[%d]            : %d\n", i, ctx->PocLsbLt[i]);
           LOG2("UsedByCurrPicLt[%d]     : %d\n", i, ctx->UsedByCurrPicLt[i]);
@@ -718,7 +718,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
         LOG1("slice_temporal_mvp_enabled_flag : %d\n", slice_temporal_mvp_enabled_flag);
       }
     }
-      
+
 
     if (sps->sample_adaptive_offset_enabled_flag) {
       LOG1("slice_sao_luma_flag             : %d\n", slice_sao_luma_flag);
@@ -757,7 +757,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
       if (slice_type == SLICE_TYPE_B) {
         LOG1("mvd_l1_zero_flag               : %d\n", mvd_l1_zero_flag);
       }
-      
+
       LOG1("cabac_init_flag                : %d\n", cabac_init_flag);
 
       if (slice_temporal_mvp_enabled_flag) {
@@ -853,7 +853,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
   /*
     if( slice_segment_header_extension_present_flag ) {
     slice_segment_header_extension_length
-    for( i = 0; i < slice_segment_header_extension_length; i++) 
+    for( i = 0; i < slice_segment_header_extension_length; i++)
     slice_segment_header_extension_data_byte[i]
     }
     byte_alignment()
@@ -880,9 +880,9 @@ static void set_initValue(slice_segment_header* shdr,
   int m = slopeIdx*5 - 45;
   int n = (intersecIdx<<3) - 16;
   int preCtxState = Clip3(1,126, ((m*Clip3(0,51, shdr->SliceQPY))>>4)+n);
-  
+
   logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",shdr->SliceQPY,slopeIdx,intersecIdx,m,n);
-  
+
   model->MPSbit=(preCtxState<=63) ? 0 : 1;
   model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
 
@@ -1315,7 +1315,7 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
   }
 }
 
-        
+
 static int decode_last_significant_coeff_prefix(thread_context* tctx,
 						int log2TrafoSize,
 						int cIdx,
@@ -1405,7 +1405,7 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable()
       for (int scanIdx=0;scanIdx<2;scanIdx++) {
         ctxIdxLookup[2][cIdx][scanIdx][prevCsbf] = p;
       }
-      
+
       p += 16*16;
     }
 
@@ -2831,7 +2831,7 @@ void read_transform_tree(thread_context* tctx,
   enum PartMode PartMode = img->get_PartMode(x0,y0);
 
   int split_transform_flag;
-  
+
   int interSplitFlag= (sps->max_transform_hierarchy_depth_inter==0 &&
                        PredMode == MODE_INTER &&
                        PartMode != PART_2Nx2N &&
@@ -3414,7 +3414,7 @@ void read_coding_unit(thread_context* tctx,
                 if (candIntraPredModeA < 2) {
                   candModeList[0] = INTRA_PLANAR;
                   candModeList[1] = INTRA_DC;
-                  candModeList[2] = INTRA_ANGULAR_26; 
+                  candModeList[2] = INTRA_ANGULAR_26;
                 }
                 else {
                   candModeList[0] = candIntraPredModeA;
@@ -3435,7 +3435,7 @@ void read_coding_unit(thread_context* tctx,
                   candModeList[2] = INTRA_DC;
                 }
                 else {
-                  candModeList[2] = INTRA_ANGULAR_26; 
+                  candModeList[2] = INTRA_ANGULAR_26;
                 }
               }
 
@@ -3942,7 +3942,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
     }
 
     substream++;
-        
+
 
     result = decode_substream(tctx, false, first_slice_substream);
 
