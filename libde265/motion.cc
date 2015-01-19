@@ -51,12 +51,6 @@ enum {
 };
 
 
-typedef struct
-{
-  uint8_t available[7];
-  PredVectorInfo pred_vector[7];
-} MergingCandidates;
-
 
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
@@ -675,7 +669,7 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
                                       int partIdx,
-                                      MergingCandidates* out_cand)
+                                      PredVectorInfo* out_cand)
 {
   const de265_image* img = tctx->img;
 
@@ -683,6 +677,9 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
   int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
   enum PartMode PartMode = img->get_PartMode(xC,yC);
+
+  //int maxCandidates = tctx->shdr->MaxNumMergeCand;
+  int maxCandidates = tctx->merge_idx + 1;
 
   // --- A1 ---
 
@@ -714,12 +711,14 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
   }
 
   if (availableA1) {
-    computed_candidates++;
-    out_cand->pred_vector[PRED_A1] = *img->get_mv_info(xA1,yA1);
+    idxA1 = computed_candidates++;
+    out_cand[idxA1] = *img->get_mv_info(xA1,yA1);
 
     logtrace(LogMotion,"spatial merging candidate A1:\n");
-    logmvcand(out_cand->pred_vector[PRED_A1]);
+    logmvcand(out_cand[idxA1]);
   }
+
+  if (computed_candidates>=maxCandidates) return computed_candidates;
 
 
   // --- B1 ---
@@ -748,28 +747,24 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
     if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
   }
 
-  if (!availableB1) {
-    out_cand->available[PRED_B1] = 0;
-  }
-  else {
-    out_cand->available[PRED_B1] = 1;
-    out_cand->pred_vector[PRED_B1] = *img->get_mv_info(xB1,yB1);
+  if (availableB1) {
+    const PredVectorInfo* b1 = img->get_mv_info(xB1,yB1);
 
     if (availableA1 &&
-        equal_cand_MV(&out_cand->pred_vector[PRED_A1],
-                      &out_cand->pred_vector[PRED_B1])) {
-      idxB1 = PRED_B1;
-      out_cand->available[PRED_B1] = 0;
+        equal_cand_MV(&out_cand[idxA1], b1)) {
+      idxB1 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B1: redundant to A1\n");
     }
     else {
-      computed_candidates++;
-      idxB1 = PRED_B1;
+      idxB1 = computed_candidates++;
+      out_cand[idxB1] = *b1;
 
       logtrace(LogMotion,"spatial merging candidate B1:\n");
-      logmvcand(out_cand->pred_vector[PRED_B1]);
+      logmvcand(out_cand[idxB1]);
     }
   }
+
+  if (computed_candidates>=maxCandidates) return computed_candidates;
 
 
   // --- B0 ---
@@ -778,6 +773,7 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
   int yB0 = yP-1;
 
   bool availableB0;
+  int  idxB0;
 
   if ((xP>>log2_parallel_merge_level) == (xB0>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yB0>>log2_parallel_merge_level)) {
@@ -789,25 +785,23 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
     if (!availableB0) logtrace(LogMotion,"spatial merging candidate B0: unavailable\n");
   }
 
-  if (!availableB0) {
-    out_cand->available[PRED_B0] = 0;
-  }
-  else {
-    out_cand->available[PRED_B0] = 1;
-    out_cand->pred_vector[PRED_B0] = *img->get_mv_info(xB0,yB0);
+  if (availableB0) {
+    const PredVectorInfo* b0 = img->get_mv_info(xB0,yB0);
 
     if (availableB1 &&
-        equal_cand_MV(&out_cand->pred_vector[PRED_B1],
-                      &out_cand->pred_vector[PRED_B0])) {
-      out_cand->available[PRED_B0] = 0;
+        equal_cand_MV(&out_cand[idxB1], b0)) {
+      idxB0 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B0: redundant to B1\n");
     }
     else {
+      idxB0 = computed_candidates++;
+      out_cand[idxB0] = *b0;
       logtrace(LogMotion,"spatial merging candidate B0:\n");
-      logmvcand(out_cand->pred_vector[PRED_B0]);
-      computed_candidates++;
+      logmvcand(out_cand[idxB0]);
     }
   }
+
+  if (computed_candidates>=maxCandidates) return computed_candidates;
 
 
   // --- A0 ---
@@ -816,6 +810,7 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
   int yA0 = yP+nPbH;
 
   bool availableA0;
+  int  idxA0;
 
   if ((xP>>log2_parallel_merge_level) == (xA0>>log2_parallel_merge_level) &&
       (yP>>log2_parallel_merge_level) == (yA0>>log2_parallel_merge_level)) {
@@ -827,25 +822,23 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
     if (!availableA0) logtrace(LogMotion,"spatial merging candidate A0: unavailable\n");
   }
 
-  if (!availableA0) {
-    out_cand->available[PRED_A0] = 0;
-  }
-  else {
-    out_cand->available[PRED_A0] = 1;
-    out_cand->pred_vector[PRED_A0] = *img->get_mv_info(xA0,yA0);
+  if (availableA0) {
+    const PredVectorInfo* a0 = img->get_mv_info(xA0,yA0);
 
     if (availableA1 &&
-        equal_cand_MV(&out_cand->pred_vector[PRED_A1],
-                      &out_cand->pred_vector[PRED_A0])) {
-      out_cand->available[PRED_A0] = 0;
+        equal_cand_MV(&out_cand[idxA1], a0)) {
+      idxA0 = idxA1;
       logtrace(LogMotion,"spatial merging candidate A0: redundant to A1\n");
     }
     else {
+      idxA0 = computed_candidates++;
+      out_cand[idxA0] = *a0;
       logtrace(LogMotion,"spatial merging candidate A0:\n");
-      logmvcand(out_cand->pred_vector[PRED_A0]);
-      computed_candidates++;
+      logmvcand(out_cand[idxA0]);
     }
   }
+
+  if (computed_candidates>=maxCandidates) return computed_candidates;
 
 
   // --- B2 ---
@@ -854,6 +847,7 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
   int yB2 = yP-1;
 
   bool availableB2;
+  int  idxB2;
 
   if (computed_candidates==4) {
     availableB2 = false;
@@ -869,37 +863,26 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
     if (!availableB2) logtrace(LogMotion,"spatial merging candidate B2: unavailable\n");
   }
 
-  if (!availableB2) {
-    out_cand->available[PRED_B2] = 0;
-  }
-  else {
-    out_cand->available[PRED_B2] = 1;
-    out_cand->pred_vector[PRED_B2] = *img->get_mv_info(xB2,yB2);
+  if (availableB2) {
+    const PredVectorInfo* b2 = img->get_mv_info(xB2,yB2);
 
     if (availableB1 &&
-        equal_cand_MV(&out_cand->pred_vector[PRED_B1],
-                      &out_cand->pred_vector[PRED_B2])) {
-      out_cand->available[PRED_B2] = 0;
+        equal_cand_MV(&out_cand[idxB1], b2)) {
+      idxB2 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to B1\n");
     }
     else if (availableA1 &&
-             equal_cand_MV(&out_cand->pred_vector[PRED_A1],
-                           &out_cand->pred_vector[PRED_B2])) {
-      out_cand->available[PRED_B2] = 0;
+             equal_cand_MV(&out_cand[idxA1], b2)) {
+      idxB2 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to A1\n");
     }
     else {
-      logtrace(LogMotion,"spatial merging candidate B0:\n");
-      logmvcand(out_cand->pred_vector[PRED_B0]);
-      computed_candidates++;
+      idxB2 = computed_candidates++;
+      out_cand[idxB2] = *b2;
+      logtrace(LogMotion,"spatial merging candidate B2:\n");
+      logmvcand(out_cand[idxB2]);
     }
   }
-
-  //out_cand->available[PRED_A0] = availableA0;
-  out_cand->available[PRED_A1] = availableA1;
-  //out_cand->available[PRED_B0] = availableB0;
-  //out_cand->available[PRED_B1] = availableB1;
-  //out_cand->available[PRED_B2] = availableB2;
 
   return computed_candidates;
 }
@@ -1291,62 +1274,55 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
     partIdx=0;
   }
 
-  MergingCandidates mergeCand;
-  int nSMC = derive_spatial_merging_candidates(tctx, xC,yC, nCS, xP,yP, singleMCLFlag,
-                                               nPbW,nPbH,partIdx, &mergeCand);
+  //int maxCandidates = tctx->shdr->MaxNumMergeCand;
+  int maxCandidates = tctx->merge_idx + 1;
 
-  int refIdxCol[2] = { 0,0 };
-
-  MotionVector mvCol[2];
-  uint8_t predFlagLCol[2];
-  derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr, xP,yP,nPbW,nPbH,
-                                         refIdxCol[0],0, &mvCol[0],
-                                         &predFlagLCol[0]);
-
-  uint8_t availableFlagCol = predFlagLCol[0];
-  predFlagLCol[1] = 0;
-
-  if (shdr->slice_type == SLICE_TYPE_B) {
-    derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
-                                           xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
-                                           &predFlagLCol[1]);
-    availableFlagCol |= predFlagLCol[1];
-  }
-
-
-  // 4.
 
   PredVectorInfo mergeCandList[5];
   int numMergeCand=0;
 
-  for (int i=0;i<5;i++) {
-    if (mergeCand.available[i]) {
-      mergeCandList[numMergeCand++] = mergeCand.pred_vector[i];
+  // --- spatial merge candidates
+
+  numMergeCand = derive_spatial_merging_candidates(tctx, xC,yC, nCS, xP,yP, singleMCLFlag,
+                                                   nPbW,nPbH,partIdx, mergeCandList);
+
+
+  // --- collocated merge candidate
+
+  if (numMergeCand < maxCandidates) {
+    int refIdxCol[2] = { 0,0 };
+
+    MotionVector mvCol[2];
+    uint8_t predFlagLCol[2];
+    derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr, xP,yP,nPbW,nPbH,
+                                           refIdxCol[0],0, &mvCol[0],
+                                           &predFlagLCol[0]);
+
+    uint8_t availableFlagCol = predFlagLCol[0];
+    predFlagLCol[1] = 0;
+
+    if (shdr->slice_type == SLICE_TYPE_B) {
+      derive_temporal_luma_vector_prediction(ctx,tctx->img,shdr,
+                                             xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
+                                             &predFlagLCol[1]);
+      availableFlagCol |= predFlagLCol[1];
+    }
+
+
+    if (availableFlagCol) {
+      PredVectorInfo* colVec = &mergeCandList[numMergeCand++];
+
+      colVec->mv[0] = mvCol[0];
+      colVec->mv[1] = mvCol[1];
+      colVec->predFlag[0] = predFlagLCol[0];
+      colVec->predFlag[1] = predFlagLCol[1];
+      colVec->refIdx[0] = refIdxCol[0];
+      colVec->refIdx[1] = refIdxCol[1];
     }
   }
 
-  assert(nSMC == numMergeCand);
 
-  if (availableFlagCol) {
-    // TODO: save in mergeCand directly...
-    mergeCand.available[PRED_COL] = availableFlagCol;
-    mergeCand.pred_vector[PRED_COL].mv[0] = mvCol[0];
-    mergeCand.pred_vector[PRED_COL].mv[1] = mvCol[1];
-    mergeCand.pred_vector[PRED_COL].predFlag[0] = predFlagLCol[0];
-    mergeCand.pred_vector[PRED_COL].predFlag[1] = predFlagLCol[1];
-    mergeCand.pred_vector[PRED_COL].refIdx[0] = refIdxCol[0];
-    mergeCand.pred_vector[PRED_COL].refIdx[1] = refIdxCol[1];
-
-    mergeCandList[numMergeCand++] = mergeCand.pred_vector[PRED_COL];
-  }
-
-  // 5.
-
-  //int numOrigMergeCand = numMergeCand;
-
-  // 6.
-
-  //int numCombMergeCand = 0;
+  // --- bipredictive merge candidates ---
 
   if (shdr->slice_type == SLICE_TYPE_B) {
     derive_combined_bipredictive_merging_candidates(ctx, shdr,
@@ -1356,7 +1332,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   }
 
 
-  // 7.
+  // --- zero-vector merge candidates ---
 
   derive_zero_motion_vector_candidates(shdr, mergeCandList, &numMergeCand);
 
