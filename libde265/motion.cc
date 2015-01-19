@@ -669,7 +669,8 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
                                       int partIdx,
-                                      PredVectorInfo* out_cand)
+                                      PredVectorInfo* out_cand,
+                                      int maxCandidates)
 {
   const de265_image* img = tctx->img;
 
@@ -678,8 +679,6 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
 
   enum PartMode PartMode = img->get_PartMode(xC,yC);
 
-  //int maxCandidates = tctx->shdr->MaxNumMergeCand;
-  int maxCandidates = tctx->merge_idx + 1;
 
   // --- A1 ---
 
@@ -889,9 +888,13 @@ int derive_spatial_merging_candidates(const thread_context* tctx,
 
 
 // 8.5.3.1.4
+/* Note (TODO): during decoding, we know which of the candidates we will select.
+   Hence, we do not really have to generate the other ones...
+ */
 void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
-                                          PredVectorInfo* inout_mergeCandList,
-                                          int* inout_numCurrMergeCand)
+                                          PredVectorInfo* out_mergeCandList,
+                                          int* inout_numCurrMergeCand,
+                                          int  maxCandidates)
 {
   logtrace(LogMotion,"derive_zero_motion_vector_candidates\n");
 
@@ -909,12 +912,12 @@ void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
   //int numInputMergeCand = *inout_numMergeCand;
   int zeroIdx = 0;
 
-  while (*inout_numCurrMergeCand < shdr->MaxNumMergeCand) {
+  while (*inout_numCurrMergeCand < maxCandidates) {
     // 1.
 
     logtrace(LogMotion,"zeroIdx:%d numRefIdx:%d\n", zeroIdx, numRefIdx);
 
-    PredVectorInfo* newCand = &inout_mergeCandList[*inout_numCurrMergeCand];
+    PredVectorInfo* newCand = &out_mergeCandList[*inout_numCurrMergeCand];
 
     if (shdr->slice_type==SLICE_TYPE_P) {
       newCand->refIdx[0] = (zeroIdx < numRefIdx) ? zeroIdx : 0;
@@ -1192,13 +1195,18 @@ static int table_8_19[2][12] = {
   };
 
 // 8.5.3.1.3
+/* Note (TODO): during decoding, we know which of the candidates we will select.
+   Hence, we do not really have to generate the other ones...
+ */
 void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
                                                      slice_segment_header* shdr,
                                                      PredVectorInfo* inout_mergeCandList,
                                                      int* inout_numMergeCand,
-                                                     int numOrigMergeCand)
+                                                     int maxCandidates)
 {
-  if (*inout_numMergeCand>1 && *inout_numMergeCand < shdr->MaxNumMergeCand) {
+  if (*inout_numMergeCand>1 && *inout_numMergeCand < maxCandidates) {
+    int numOrigMergeCand = *inout_numMergeCand;
+
     int numInputMergeCand = *inout_numMergeCand;
     int combIdx = 0;
     uint8_t combStop = false;
@@ -1241,7 +1249,7 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
 
       combIdx++;
       if (combIdx == numOrigMergeCand*(numOrigMergeCand-1) ||
-          *inout_numMergeCand == shdr->MaxNumMergeCand) {
+          *inout_numMergeCand == maxCandidates) {
         combStop = true;
       }
     }
@@ -1284,7 +1292,7 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
   // --- spatial merge candidates
 
   numMergeCand = derive_spatial_merging_candidates(tctx, xC,yC, nCS, xP,yP, singleMCLFlag,
-                                                   nPbW,nPbH,partIdx, mergeCandList);
+                                                   nPbW,nPbH,partIdx, mergeCandList, maxCandidates);
 
 
   // --- collocated merge candidate
@@ -1326,19 +1334,18 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
   if (shdr->slice_type == SLICE_TYPE_B) {
     derive_combined_bipredictive_merging_candidates(ctx, shdr,
-                                                    mergeCandList, &numMergeCand, numMergeCand);
-
-    //numCombMergeCand = numMergeCand - numOrigMergeCand;
+                                                    mergeCandList, &numMergeCand, maxCandidates);
   }
 
 
   // --- zero-vector merge candidates ---
 
-  derive_zero_motion_vector_candidates(shdr, mergeCandList, &numMergeCand);
+  derive_zero_motion_vector_candidates(shdr, mergeCandList, &numMergeCand, maxCandidates);
+
 
   // 8.
 
-  int merge_idx = tctx->merge_idx; // get_merge_idx(ctx,xP,yP);
+  int merge_idx = tctx->merge_idx;
   out_vi->lum = mergeCandList[merge_idx];
 
 
