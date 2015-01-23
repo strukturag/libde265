@@ -127,7 +127,8 @@ enum LogModule {
   LogSEI,
   LogIntraPred,
   LogPixels,
-  LogCABAC
+  LogCABAC,
+  LogEncoder
 };
 
 
