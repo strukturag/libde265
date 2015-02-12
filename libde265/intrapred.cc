@@ -184,6 +184,9 @@ void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
   case INTRA_ANGULAR_26: chroma_cand[1] = INTRA_ANGULAR_34; break;
   case INTRA_ANGULAR_10: chroma_cand[2] = INTRA_ANGULAR_34; break;
   case INTRA_DC:         chroma_cand[3] = INTRA_ANGULAR_34; break;
+  default:
+    // use defaults from above
+    break;
   }
 }
 
