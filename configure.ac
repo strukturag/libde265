@@ -75,6 +75,18 @@ AC_SEARCH_LIBS([pthread_create], [pthread])
 
 AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
+# Check if "__STRICT_ANSI__" is required.
+AC_MSG_CHECKING([if __STRICT_ANSI__ is required])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <vector>
+],[],[need_strict_ansi=no],[need_strict_ansi=yes]);
+AC_LANG_POP(C++)
+if eval "test x$need_strict_ansi = xyes"; then
+  CFLAGS+=" -D__STRICT_ANSI__"
+  CXXFLAGS+=" -D__STRICT_ANSI__"
+fi
+AC_MSG_RESULT([$need_strict_ansi])
 
 # --- machine dependent optimizations ---
 
