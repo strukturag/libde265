@@ -318,7 +318,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     image_allocation_functions = de265_image::default_image_allocation;
   }
 
-  bool mem_alloc_success;
+  bool mem_alloc_success = true;
 
   if (image_allocation_functions.get_buffer != NULL) {
     mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, this,

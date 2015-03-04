@@ -179,8 +179,11 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
   encoder_context* ectx = (encoder_context*)e;
 
   de265_image* img = new de265_image;
-  img->alloc_image(width,height,de265_chroma_420, NULL, false,
-                   NULL,ectx, pts, image_userdata, true);
+  if (img->alloc_image(width,height,de265_chroma_420, NULL, false,
+                       NULL,ectx, pts, image_userdata, true) != DE265_OK) {
+    delete img;
+    return NULL;
+  }
 
   return img;
 }

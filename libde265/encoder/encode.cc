@@ -485,10 +485,10 @@ enum IntraChromaPredMode find_chroma_pred_mode(enum IntraPredMode chroma_mode,
   case INTRA_ANGULAR_26: return INTRA_CHROMA_ANGULAR_26_OR_34;
   case INTRA_ANGULAR_10: return INTRA_CHROMA_ANGULAR_10_OR_34;
   case INTRA_DC:         return INTRA_CHROMA_DC_OR_34;
+  default:
+    assert(false);
+    return INTRA_CHROMA_DC_OR_34;
   }
-
-  assert(false);
-  return INTRA_CHROMA_DC_OR_34;
 }
 
 
@@ -907,7 +907,7 @@ void encode_residual(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
 
   int16_t* coeff = tb->coeff[cIdx];
 
-  if (pps.transform_skip_enabled_flag && 1 /* TODO */) {
+  if (pps.transform_skip_enabled_flag && true /* TODO */) {
   }
 
 
@@ -1313,7 +1313,7 @@ void encode_transform_unit(encoder_context* ectx, const enc_tb* tb, const enc_cb
 {
   if (tb->cbf[0] || tb->cbf[1] || tb->cbf[2]) {
     if (ectx->img->pps.cu_qp_delta_enabled_flag &&
-        1 /*!ectx->IsCuQpDeltaCoded*/) {
+        true /*!ectx->IsCuQpDeltaCoded*/) {
       assert(0);
     }
 
