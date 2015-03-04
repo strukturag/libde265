@@ -123,6 +123,8 @@ context_model_table2& context_model_table2::operator=(const context_model_table2
 
   model = src.model;
   refcnt= src.refcnt;
+
+  return *this;
 }
 
 void context_model_table2::decouple_or_alloc_with_empty_data()
