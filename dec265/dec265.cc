@@ -108,7 +108,7 @@ static void write_picture(const de265_image* img)
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 
-  
+
 
   for (int c=0;c<3;c++) {
     int stride;
@@ -119,7 +119,7 @@ static void write_picture(const de265_image* img)
       fwrite(p + y*stride, width, 1, fh);
     }
   }
-  
+
   fflush(fh);
 }
 
@@ -310,7 +310,7 @@ void measure(const de265_image* img)
         ssimSum += v;
         v = v*v;
         v = 255*v; //pow(v, 20);
-        
+
         //assert(v<=255.0);
         ssimMap[y][x] = v;
       }
@@ -486,7 +486,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
-    fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");       
+    fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");
 #if HAVE_VIDEOGFX
     fprintf(stderr,"  -s, --ssim        show SSIM-map (only when -m active)\n");
     fprintf(stderr,"  -e, --errmap      show error-map (only when -m active)\n");
@@ -540,7 +540,7 @@ int main(int argc, char** argv)
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
   }
-    
+
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
@@ -695,4 +695,3 @@ int main(int argc, char** argv)
 
   return err==DE265_OK ? 0 : 10;
 }
-

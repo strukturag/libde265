@@ -172,7 +172,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     {
       logtrace(LogCABAC,"[%3d] MPS\n",logcnt);
 
-      // MPS path                                                                                    
+      // MPS path
 
       decoded_bit = model->MPSbit;
       model->state = next_state_MPS[model->state];
@@ -614,7 +614,7 @@ void CABAC_encoder_bitstream::flush_CABAC()
         {
           append_byte(0xff);
           num_buffered_bytes--;
-        }    
+        }
     }
 
   //fprintf(stderr,"low: %08x nbits left:%d\n",low,bits_left);
@@ -645,7 +645,7 @@ void CABAC_encoder_bitstream::write_out()
 
   //logtrace(LogCABAC,"write byte %02x\n",leadByte);
   //logtrace(LogCABAC,"-> low = %08x\n",low);
-  
+
   if (leadByte == 0xff)
     {
       num_buffered_bytes++;
@@ -658,7 +658,7 @@ void CABAC_encoder_bitstream::write_out()
           int byte = buffered_byte + carry;
           buffered_byte = leadByte & 0xff;
           append_byte(byte);
-      
+
           byte = ( 0xff + carry ) & 0xff;
           while ( num_buffered_bytes > 1 )
             {
@@ -670,8 +670,8 @@ void CABAC_encoder_bitstream::write_out()
         {
           num_buffered_bytes = 1;
           buffered_byte = leadByte;
-        }      
-    }    
+        }
+    }
 }
 
 void CABAC_encoder_bitstream::testAndWriteOut()
@@ -710,7 +710,7 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
 
   uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
   range -= LPS;
-  
+
   if (bin != model->MPSbit)
     {
       //logtrace(LogCABAC,"LPS\n");
@@ -722,7 +722,7 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
       if (model->state==0) { model->MPSbit = 1-model->MPSbit; }
 
       model->state = next_state_LPS[model->state];
-  
+
       bits_left -= num_bits;
     }
   else
@@ -740,7 +740,7 @@ void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
       range <<= 1;
       bits_left--;
     }
-  
+
   testAndWriteOut();
 }
 
@@ -764,7 +764,7 @@ void CABAC_encoder_bitstream::write_CABAC_bypass(int bin)
       low += range;
     }
   bits_left--;
-  
+
   testAndWriteOut();
 }
 
@@ -810,7 +810,7 @@ void CABAC_encoder_bitstream::write_CABAC_term_bit(int bit)
       range <<= 1;
       bits_left--;
     }
-  
+
   testAndWriteOut();
 }
 
