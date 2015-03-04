@@ -49,7 +49,7 @@ enum SliceType
   };
 
 /*
-        2Nx2N           2NxN             Nx2N            NxN          
+        2Nx2N           2NxN             Nx2N            NxN
       +-------+       +-------+       +---+---+       +---+---+
       |       |       |       |       |   |   |       |   |   |
       |       |       |_______|       |   |   |       |___|___|
@@ -57,7 +57,7 @@ enum SliceType
       |       |       |       |       |   |   |       |   |   |
       +-------+       +-------+       +---+---+       +---+---+
 
-        2NxnU           2NxnD           nLx2N           nRx2N        
+        2NxnU           2NxnD           nLx2N           nRx2N
       +-------+       +-------+       +-+-----+       +-----+-+
       |_______|       |       |       | |     |       |     | |
       |       |       |       |       | |     |       |     | |
@@ -162,12 +162,36 @@ enum context_model_indices {
   CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
 };
 
+
+class context_model_table2
+{
+ public:
+  context_model_table2();
+  ~context_model_table2();
+
+  void init(int initType, int QPY);
+  void release();
+  void decouple();
+
+  context_model& operator[](int i) { return model[i]; }
+
+  context_model_table2& operator=(const context_model_table2&);
+
+ private:
+  void decouple_or_alloc_with_empty_data();
+
+  context_model* model; //[CONTEXT_MODEL_TABLE_LENGTH];
+  int* refcnt;
+};
+
+
 typedef context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH];
 
 inline void copy_context_model_table(context_model_table dst, context_model_table src)
 {
   memcpy(dst,src,sizeof(context_model_table));
 }
+
 
 
 class slice_segment_header {
@@ -307,7 +331,7 @@ typedef struct {
   unsigned char SaoEoClass; // use with (SaoTypeIdx>>(2*cIdx)) & 0x3
 
   uint8_t sao_band_position[3];
-  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
+  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always
 } sao_info;
 
 
