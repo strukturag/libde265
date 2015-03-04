@@ -791,7 +791,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   if (pps->entropy_coding_sync_enabled_flag &&
       sliceunit->shdr->first_slice_segment_in_pic_flag) {
-    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) * CONTEXT_MODEL_TABLE_LENGTH );
+    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
   if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
@@ -876,7 +876,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   if (shdr->first_slice_segment_in_pic_flag) {
     // reserve space for nRows-1 because we don't need to save the CABAC model in the last CTB row
-    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) * CONTEXT_MODEL_TABLE_LENGTH );
+    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
 

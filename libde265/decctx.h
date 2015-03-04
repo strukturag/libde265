@@ -94,7 +94,7 @@ public:
 
   CABAC_decoder cabac_decoder;
 
-  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model_table2 ctx_model;
 
   decoder_context* decctx;
   struct de265_image *img;
@@ -190,7 +190,7 @@ public:
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
      The array is unused for non-WPP streams. */
-  std::vector<context_model> ctx_models;  // TODO: move this into image ?
+  std::vector<context_model_table2> ctx_models;  // TODO: move this into image ?
 };
 
 

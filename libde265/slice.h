@@ -29,6 +29,7 @@
 #include "libde265/util.h"
 #include "libde265/refpic.h"
 #include "libde265/threads.h"
+#include "contextmodel.h"
 
 #include <vector>
 #include <string.h>
@@ -118,79 +119,6 @@ enum InterPredIdc
     PRED_L1=1,
     PRED_BI=2
   };
-
-enum context_model_indices {
-  // SAO
-  CONTEXT_MODEL_SAO_MERGE_FLAG = 0,
-  CONTEXT_MODEL_SAO_TYPE_IDX   = CONTEXT_MODEL_SAO_MERGE_FLAG +1,
-
-  // CB-tree
-  CONTEXT_MODEL_SPLIT_CU_FLAG  = CONTEXT_MODEL_SAO_TYPE_IDX + 1,
-  CONTEXT_MODEL_CU_SKIP_FLAG   = CONTEXT_MODEL_SPLIT_CU_FLAG + 3,
-
-  // intra-prediction
-  CONTEXT_MODEL_PART_MODE      = CONTEXT_MODEL_CU_SKIP_FLAG + 3,
-  CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG = CONTEXT_MODEL_PART_MODE + 4,
-  CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE    = CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG + 1,
-
-  // transform-tree
-  CONTEXT_MODEL_CBF_LUMA                  = CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE + 1,
-  CONTEXT_MODEL_CBF_CHROMA                = CONTEXT_MODEL_CBF_LUMA + 2,
-  CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG      = CONTEXT_MODEL_CBF_CHROMA + 4,
-
-  // residual
-  CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX = CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + 3,
-  CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX = CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX + 18,
-  CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG          = CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX + 18,
-  CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG        = CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + 4,
-  CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG = CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + 42,
-  CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG = CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + 24,
-
-  CONTEXT_MODEL_CU_QP_DELTA_ABS        = CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + 6,
-  CONTEXT_MODEL_TRANSFORM_SKIP_FLAG    = CONTEXT_MODEL_CU_QP_DELTA_ABS + 2,
-
-  // motion
-  CONTEXT_MODEL_MERGE_FLAG             = CONTEXT_MODEL_TRANSFORM_SKIP_FLAG + 2,
-  CONTEXT_MODEL_MERGE_IDX              = CONTEXT_MODEL_MERGE_FLAG + 1,
-  CONTEXT_MODEL_PRED_MODE_FLAG         = CONTEXT_MODEL_MERGE_IDX + 1,
-  CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG = CONTEXT_MODEL_PRED_MODE_FLAG + 1,
-  CONTEXT_MODEL_MVP_LX_FLAG            = CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 2,
-  CONTEXT_MODEL_RQT_ROOT_CBF           = CONTEXT_MODEL_MVP_LX_FLAG + 1,
-  CONTEXT_MODEL_REF_IDX_LX             = CONTEXT_MODEL_RQT_ROOT_CBF + 1,
-  CONTEXT_MODEL_INTER_PRED_IDC         = CONTEXT_MODEL_REF_IDX_LX + 2,
-  CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG = CONTEXT_MODEL_INTER_PRED_IDC + 5,
-  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
-};
-
-
-class context_model_table2
-{
- public:
-  context_model_table2();
-  ~context_model_table2();
-
-  void init(int initType, int QPY);
-  void release();
-  void decouple();
-
-  context_model& operator[](int i) { return model[i]; }
-
-  context_model_table2& operator=(const context_model_table2&);
-
- private:
-  void decouple_or_alloc_with_empty_data();
-
-  context_model* model; //[CONTEXT_MODEL_TABLE_LENGTH];
-  int* refcnt;
-};
-
-
-typedef context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH];
-
-inline void copy_context_model_table(context_model_table dst, context_model_table src)
-{
-  memcpy(dst,src,sizeof(context_model_table));
-}
 
 
 
@@ -316,7 +244,7 @@ public:
                                                is a long-term picture. */
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
-  context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model_table2 ctx_model_storage;
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 
@@ -361,10 +289,6 @@ public:
   virtual void work();
 };
 
-
-void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
-                             int initType,
-                             int QPY);
 
 int check_CTB_available(const de265_image* img,
                         int xC,int yC, int xN,int yN);

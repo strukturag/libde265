@@ -21,36 +21,61 @@
 #include "slice.h"
 #include <assert.h>
 
+bool D = false;
 
 context_model_table2::context_model_table2()
   : model(NULL), refcnt(NULL)
 {
-  //decouple_or_alloc_with_empty_data();
 }
+
+
+context_model_table2::context_model_table2(const context_model_table2& src)
+{
+  if (D) printf("%p c'tor = %p\n",this,&src);
+
+  if (src.refcnt) {
+    (*(src.refcnt))++;
+  }
+
+  refcnt = src.refcnt;
+  model  = src.model;
+}
+
 
 context_model_table2::~context_model_table2()
 {
+  if (D) printf("%p destructor\n",this);
+
   if (refcnt) {
-    *refcnt--;
+    (*refcnt)--;
     if (*refcnt==0) {
+      if (D) printf("mfree %p\n",model);
       delete[] model;
       delete refcnt;
     }
   }
 }
 
+
 void context_model_table2::init(int initType, int QPY)
 {
+  if (D) printf("%p init\n",this);
+
   decouple_or_alloc_with_empty_data();
 
   initialize_CABAC_models(model, initType, QPY);
 }
 
+
 void context_model_table2::release()
 {
-  assert(refcnt); // not necessarily so, but we never use it on an unitialized object
+  if (D) printf("%p release %p\n",this,refcnt);
 
-  *refcnt--;
+  if (!refcnt) { return; }
+
+  // if (*refcnt == 1) { return; } <- keep memory for later, but does not work when we believe that we freed the memory and nulled all references
+
+  (*refcnt)--;
   if (refcnt==0) {
     delete[] model;
     delete refcnt;
@@ -60,12 +85,15 @@ void context_model_table2::release()
   refcnt= nullptr;
 }
 
+
 void context_model_table2::decouple()
 {
+  if (D) printf("%p decouple (%p)\n",this,refcnt);
+
   assert(refcnt); // not necessarily so, but we never use it on an unitialized object
 
   if (*refcnt > 1) {
-    *refcnt--;
+    (*refcnt)--;
 
     context_model* oldModel = model;
 
@@ -73,13 +101,21 @@ void context_model_table2::decouple()
     refcnt= new int;
     *refcnt=1;
 
-    memcpy(model,oldModel,sizeof(*model));
+    memcpy(model,oldModel,sizeof(context_model)*CONTEXT_MODEL_TABLE_LENGTH);
   }
 }
 
+
 context_model_table2& context_model_table2::operator=(const context_model_table2& src)
 {
-  assert(src.refcnt); // not necessarily so, but we never use it on an unitialized object
+  if (D) printf("%p assign = %p\n",this,&src);
+
+  // assert(src.refcnt); // not necessarily so, but we never use it on an unitialized object
+
+  if (!src.refcnt) {
+    release();
+    return *this;
+  }
 
   (*(src.refcnt))++;
 
@@ -95,10 +131,150 @@ void context_model_table2::decouple_or_alloc_with_empty_data()
 
   if (refcnt) {
     assert(*refcnt>1);
-    *refcnt--;
+    (*refcnt)--;
   }
+
+  if (D) printf("%p (alloc)\n",this);
 
   model = new context_model[CONTEXT_MODEL_TABLE_LENGTH];
   refcnt= new int;
   *refcnt=1;
+}
+
+
+
+
+
+
+static void set_initValue(int SliceQPY,
+                          context_model* model, int initValue)
+{
+  int slopeIdx = initValue >> 4;
+  int intersecIdx = initValue & 0xF;
+  int m = slopeIdx*5 - 45;
+  int n = (intersecIdx<<3) - 16;
+  int preCtxState = Clip3(1,126, ((m*Clip3(0,51, SliceQPY))>>4)+n);
+
+  // logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
+
+  model->MPSbit=(preCtxState<=63) ? 0 : 1;
+  model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
+
+  // model state will always be between [0;62]
+
+  assert(model->state <= 62);
+}
+
+
+static const int initValue_split_cu_flag[3][3] = {
+  { 139,141,157 },
+  { 107,139,126 },
+  { 107,139,126 },
+};
+static const int initValue_cu_skip_flag[2][3] = {
+  { 197,185,201 },
+  { 197,185,201 },
+};
+static const int initValue_part_mode[9] = { 184,154,139, 154,154,154, 139,154,154 };
+static const int initValue_prev_intra_luma_pred_flag[3] = { 184,154,183 };
+static const int initValue_intra_chroma_pred_mode[3] = { 63,152,152 };
+static const int initValue_cbf_luma[4] = { 111,141,153,111 };
+static const int initValue_cbf_chroma[12] = { 94,138,182,154,149,107,167,154,149,92,167,154 };
+static const int initValue_split_transform_flag[9] = { 153,138,138, 124,138,94, 224,167,122 }; // FIX712
+static const int initValue_last_significant_coefficient_prefix[54] = {
+    110,110,124,125,140,153,125,127,140,109,111,143,127,111, 79,108,123, 63,
+    125,110, 94,110, 95, 79,125,111,110, 78,110,111,111, 95, 94,108,123,108,
+    125,110,124,110, 95, 94,125,111,111, 79,125,126,111,111, 79,108,123, 93
+  };
+static const int initValue_coded_sub_block_flag[12] = { 91,171,134,141,121,140,61,154,121,140,61,154 };
+static const int initValue_significant_coeff_flag[3][42] = {
+    {
+      111,  111,  125,  110,  110,   94,  124,  108,  124,  107,  125,  141,  179,  153,  125,  107,
+      125,  141,  179,  153,  125,  107,  125,  141,  179,  153,  125,  140,  139,  182,  182,  152,
+      136,  152,  136,  153,  136,  139,  111,  136,  139,  111
+    },
+    {
+      155,  154,  139,  153,  139,  123,  123,   63,  153,  166,  183,  140,  136,  153,  154,  166,
+      183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  170,  153,  123,  123,  107,
+      121,  107,  121,  167,  151,  183,  140,  151,  183,  140,
+    },
+    {
+      170,  154,  139,  153,  139,  123,  123,   63,  124,  166,  183,  140,  136,  153,  154,  166,
+      183,  140,  136,  153,  154,  166,  183,  140,  136,  153,  154,  170,  153,  138,  138,  122,
+      121,  122,  121,  167,  151,  183,  140,  151,  183,  140
+    },
+  };
+static const int initValue_coeff_abs_level_greater1_flag[72] = {
+    140, 92,137,138,140,152,138,139,153, 74,149, 92,139,107,122,152,
+    140,179,166,182,140,227,122,197,154,196,196,167,154,152,167,182,
+    182,134,149,136,153,121,136,137,169,194,166,167,154,167,137,182,
+    154,196,167,167,154,152,167,182,182,134,149,136,153,121,136,122,
+    169,208,166,167,154,152,167,182
+  };
+static const int initValue_coeff_abs_level_greater2_flag[18] = {
+    138,153,136,167,152,152,107,167, 91,122,107,167,
+    107,167, 91,107,107,167
+  };
+static const int initValue_sao_merge_leftUp_flag[3] = { 153,153,153 };
+static const int initValue_sao_type_idx_lumaChroma_flag[3] = { 200,185,160 };
+static const int initValue_cu_qp_delta_abs[2] = { 154,154 };
+static const int initValue_transform_skip_flag[2] = { 139,139 };
+static const int initValue_merge_flag[2] = { 110,154 };
+static const int initValue_merge_idx[2] = { 122,137 };
+static const int initValue_pred_mode_flag[2] = { 149,134 };
+static const int initValue_abs_mvd_greater01_flag[4] = { 140,198,169,198 };
+static const int initValue_mvp_lx_flag[1] = { 168 };
+static const int initValue_rqt_root_cbf[1] = { 79 };
+static const int initValue_ref_idx_lX[2] = { 153,153 };
+static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
+static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
+
+
+static void init_context(int SliceQPY,
+                         context_model* model,
+                         const int* initValues, int len)
+{
+  for (int i=0;i<len;i++)
+    {
+      set_initValue(SliceQPY, &model[i],
+                    initValues[i]);
+    }
+}
+
+void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
+                      int initType,
+                      int QPY)
+{
+  context_model* cm = context_model_table; // just an abbreviation
+
+  if (initType > 0) {
+    init_context(QPY, cm+CONTEXT_MODEL_CU_SKIP_FLAG,    initValue_cu_skip_flag[initType-1],  3);
+    init_context(QPY, cm+CONTEXT_MODEL_PRED_MODE_FLAG, &initValue_pred_mode_flag[initType-1], 1);
+    init_context(QPY, cm+CONTEXT_MODEL_MERGE_FLAG,             &initValue_merge_flag[initType-1],1);
+    init_context(QPY, cm+CONTEXT_MODEL_MERGE_IDX,              &initValue_merge_idx[initType-1], 1);
+    init_context(QPY, cm+CONTEXT_MODEL_INTER_PRED_IDC,         initValue_inter_pred_idc,         5);
+    init_context(QPY, cm+CONTEXT_MODEL_REF_IDX_LX,             initValue_ref_idx_lX,             2);
+    init_context(QPY, cm+CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
+    init_context(QPY, cm+CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
+    init_context(QPY, cm+CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
+  }
+
+  init_context(QPY, cm+CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
+  init_context(QPY, cm+CONTEXT_MODEL_PART_MODE,     &initValue_part_mode[(initType!=2 ? initType : 5)], 4);
+  init_context(QPY, cm+CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, &initValue_prev_intra_luma_pred_flag[initType], 1);
+  init_context(QPY, cm+CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,    &initValue_intra_chroma_pred_mode[initType],    1);
+  init_context(QPY, cm+CONTEXT_MODEL_CBF_LUMA,                  &initValue_cbf_luma[initType == 0 ? 0 : 2],     2);
+  init_context(QPY, cm+CONTEXT_MODEL_CBF_CHROMA,                &initValue_cbf_chroma[initType * 4],            4);
+  init_context(QPY, cm+CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG,      &initValue_split_transform_flag[initType * 3],  3);
+  init_context(QPY, cm+CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(QPY, cm+CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
+  init_context(QPY, cm+CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
+  init_context(QPY, cm+CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
+  init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
+  init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
+  init_context(QPY, cm+CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
+  init_context(QPY, cm+CONTEXT_MODEL_SAO_TYPE_IDX,                        &initValue_sao_type_idx_lumaChroma_flag[initType], 1);
+  init_context(QPY, cm+CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
+  init_context(QPY, cm+CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
+  init_context(QPY, cm+CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
 }
