@@ -234,7 +234,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   this->imgdata = imgdata;
   this->shdr    = &imgdata->shdr;
-  logtrace(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
+  loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
 
 
   // write slice header
@@ -257,7 +257,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   cabac->init_CABAC();
   double psnr = encode_image(this,imgdata->input, algo);
-  logtrace(LogEncoder,"  PSNR-Y: %f\n", psnr);
+  loginfo(LogEncoder,"  PSNR-Y: %f\n", psnr);
   cabac->flush_CABAC();
 
   // set reconstruction image
