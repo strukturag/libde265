@@ -178,7 +178,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
 const enc_tb*
 Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
-                                          context_model_table2& ctxModel,
+                                          context_model_table& ctxModel,
                                           const de265_image* input,
                                           const enc_tb* parent,
                                           enc_cb* cb,
@@ -221,7 +221,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       }
 
 
-      context_model_table2 ctxIntra = ctxModel.copy();
+      context_model_table ctxIntra = ctxModel.copy();
       //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode = (IntraPredMode)i;
@@ -303,7 +303,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 const enc_tb*
 Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
-                                           context_model_table2& ctxModel,
+                                           context_model_table& ctxModel,
                                            const de265_image* input,
                                            const enc_tb* parent,
                                            enc_cb* cb,
@@ -375,7 +375,7 @@ static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
 
 const enc_tb*
 Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
-                                         context_model_table2& ctxModel,
+                                         context_model_table& ctxModel,
                                          const de265_image* input,
                                          const enc_tb* parent,
                                          enc_cb* cb,
@@ -447,7 +447,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     for (int i=0;i<distortions.size();i++) {
 
-      context_model_table2 ctxIntra = ctxModel.copy();
+      context_model_table ctxIntra = ctxModel.copy();
       //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;

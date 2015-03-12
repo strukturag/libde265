@@ -139,7 +139,7 @@ double encode_image(encoder_context* ectx,
 
         // make a copy of the context model that we can modify for testing alternatives
 
-        context_model_table2 ctxModel;
+        context_model_table ctxModel;
         //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
         ctxModel = ectx->cabac_ctx_models.copy();
 

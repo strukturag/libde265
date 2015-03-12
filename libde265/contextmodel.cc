@@ -23,13 +23,13 @@
 
 bool D = false;
 
-context_model_table2::context_model_table2()
+context_model_table::context_model_table()
   : model(NULL), refcnt(NULL)
 {
 }
 
 
-context_model_table2::context_model_table2(const context_model_table2& src)
+context_model_table::context_model_table(const context_model_table& src)
 {
   if (D) printf("%p c'tor = %p\n",this,&src);
 
@@ -42,7 +42,7 @@ context_model_table2::context_model_table2(const context_model_table2& src)
 }
 
 
-context_model_table2::~context_model_table2()
+context_model_table::~context_model_table()
 {
   if (D) printf("%p destructor\n",this);
 
@@ -57,7 +57,7 @@ context_model_table2::~context_model_table2()
 }
 
 
-void context_model_table2::init(int initType, int QPY)
+void context_model_table::init(int initType, int QPY)
 {
   if (D) printf("%p init\n",this);
 
@@ -67,7 +67,7 @@ void context_model_table2::init(int initType, int QPY)
 }
 
 
-void context_model_table2::release()
+void context_model_table::release()
 {
   if (D) printf("%p release %p\n",this,refcnt);
 
@@ -86,7 +86,7 @@ void context_model_table2::release()
 }
 
 
-void context_model_table2::decouple()
+void context_model_table::decouple()
 {
   if (D) printf("%p decouple (%p)\n",this,refcnt);
 
@@ -106,9 +106,9 @@ void context_model_table2::decouple()
 }
 
 
-context_model_table2 context_model_table2::transfer()
+context_model_table context_model_table::transfer()
 {
-  context_model_table2 newtable;
+  context_model_table newtable;
   newtable.model = model;
   newtable.refcnt= refcnt;
 
@@ -119,7 +119,7 @@ context_model_table2 context_model_table2::transfer()
 }
 
 
-context_model_table2& context_model_table2::operator=(const context_model_table2& src)
+context_model_table& context_model_table::operator=(const context_model_table& src)
 {
   if (D) printf("%p assign = %p\n",this,&src);
 
@@ -141,7 +141,7 @@ context_model_table2& context_model_table2::operator=(const context_model_table2
 }
 
 
-bool context_model_table2::operator==(const context_model_table2& b) const
+bool context_model_table::operator==(const context_model_table& b) const
 {
   if (b.model == model) return true;
   if (b.model == nullptr || model == nullptr) return false;
@@ -154,7 +154,7 @@ bool context_model_table2::operator==(const context_model_table2& b) const
 }
 
 
-void context_model_table2::decouple_or_alloc_with_empty_data()
+void context_model_table::decouple_or_alloc_with_empty_data()
 {
   if (refcnt && *refcnt==1) { return; }
 

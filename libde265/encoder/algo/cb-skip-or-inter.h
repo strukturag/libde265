@@ -62,7 +62,7 @@ class Algo_CB_SkipOrInter_BruteForce : public Algo_CB_SkipOrInter
 {
  public:
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           enc_cb* cb);
 };
 

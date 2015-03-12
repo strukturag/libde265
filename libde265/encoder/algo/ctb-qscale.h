@@ -61,7 +61,7 @@ class Algo_CTB_QScale
   virtual ~Algo_CTB_QScale() { }
 
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           int ctb_x,int ctb_y) = 0;
 
   void setChildAlgo(Algo_CB_Split* algo) { mChildAlgo = algo; }
@@ -94,7 +94,7 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
   }
 
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           int ctb_x,int ctb_y);
 
   int getQP() const { return mParams.mQP; }

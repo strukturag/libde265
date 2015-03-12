@@ -31,7 +31,7 @@
 
 
 enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
-                                                context_model_table2& ctxModel,
+                                                context_model_table& ctxModel,
                                                 enc_cb* cb)
 {
   bool try_skip  = true;

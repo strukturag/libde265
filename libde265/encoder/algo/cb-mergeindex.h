@@ -62,7 +62,7 @@ class Algo_CB_MergeIndex_Fixed : public Algo_CB_MergeIndex
 {
  public:
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           enc_cb* cb);
 };
 

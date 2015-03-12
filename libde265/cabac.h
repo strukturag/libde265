@@ -75,7 +75,7 @@ public:
 
   // --- CABAC ---
 
-  void set_context_models(context_model_table2* models) { mCtxModels=models; }
+  void set_context_models(context_model_table* models) { mCtxModels=models; }
 
   virtual void init_CABAC() { }
   virtual void write_CABAC_bit(int modelIdx, int bit) = 0;
@@ -90,7 +90,7 @@ public:
   float RDBits_for_CABAC_bin(int modelIdx, int bit);
 
  protected:
-  context_model_table2* mCtxModels;
+  context_model_table* mCtxModels;
 };
 
 

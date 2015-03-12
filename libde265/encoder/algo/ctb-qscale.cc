@@ -32,7 +32,7 @@
 
 
 enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
-                                          context_model_table2& ctxModel,
+                                          context_model_table& ctxModel,
                                           int ctb_x,int ctb_y)
 {
   enc_cb* cb = new enc_cb();

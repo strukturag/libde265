@@ -33,7 +33,7 @@
 
 
 enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
-                                                  context_model_table2& ctxModel,
+                                                  context_model_table& ctxModel,
                                                   enc_cb* cb_in)
 {
   const int log2CbSize = cb_in->log2Size;
@@ -106,7 +106,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
 
 enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
-                                             context_model_table2& ctxModel,
+                                             context_model_table& ctxModel,
                                              enc_cb* cb)
 {
   enum PartMode PartMode = mParams.partMode();

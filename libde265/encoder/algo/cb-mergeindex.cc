@@ -31,7 +31,7 @@
 
 
 enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
-                                          context_model_table2& ctxModel,
+                                          context_model_table& ctxModel,
                                           enc_cb* cb)
 {
   assert(cb->split_cu_flag==false);

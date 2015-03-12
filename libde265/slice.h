@@ -244,7 +244,7 @@ public:
                                                is a long-term picture. */
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
-  context_model_table2 ctx_model_storage;
+  context_model_table ctx_model_storage;
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 

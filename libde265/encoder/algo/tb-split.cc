@@ -123,7 +123,7 @@ void encode_transform_unit(encoder_context* ectx,
 
 
 const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                             context_model_table2& ctxModel,
+                                             context_model_table& ctxModel,
                                              const de265_image* input,
                                              const enc_tb* parent,
                                              enc_cb* cb,
@@ -234,7 +234,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
 
 const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
-                                                         context_model_table2& ctxModel,
+                                                         context_model_table& ctxModel,
                                                          const de265_image* input,
                                                          const enc_tb* parent,
                                                          enc_cb* cb,
@@ -344,7 +344,7 @@ struct Logging_TB_Split : public Logging
 
 const enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
-                                  context_model_table2& ctxModel,
+                                  context_model_table& ctxModel,
                                   const de265_image* input,
                                   const enc_tb* parent,
                                   enc_cb* cb,
@@ -361,7 +361,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
-  context_model_table2 ctxSplit;
+  context_model_table ctxSplit;
   if (test_split) {
     ctxSplit = ctxModel.copy();
     //copy_context_model_table(ctxSplit, ctxModel);

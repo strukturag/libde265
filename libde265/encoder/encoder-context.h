@@ -101,7 +101,7 @@ class encoder_context : public base_context
 
   // CABAC bitstream writer
   CABAC_encoder_bitstream cabac_encoder;
-  context_model_table2    cabac_ctx_models;
+  context_model_table     cabac_ctx_models;
 
   //std::shared_ptr<CABAC_encoder> cabac_estim;
 

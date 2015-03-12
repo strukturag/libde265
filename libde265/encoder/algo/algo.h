@@ -52,7 +52,7 @@ class Algo_CB
      it is also allowed to not modify the context_model_table at all.
    */
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           enc_cb* cb) = 0;
 };
 
@@ -69,7 +69,7 @@ class CodingOptions
 
   // --- init --- call before object use
 
-  void set_input(enc_cb*, context_model_table2& tab);
+  void set_input(enc_cb*, context_model_table& tab);
   //void activate_option(int idx, bool flag=true);
 
   CodingOption new_option(bool active=true);
@@ -93,7 +93,7 @@ class CodingOptions
 
 #if 0
   enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
-  context_model_table2& get_context(int idx) {
+  context_model_table& get_context(int idx) {
     mOptions[idx].context_table_memory.decouple();
     return mOptions[idx].context_table_memory;
   }
@@ -112,7 +112,7 @@ class CodingOptions
   struct CodingOptionData
   {
     enc_cb* cb;
-    context_model_table2 context;
+    context_model_table context;
     //bool isOriginalCBStruct;
     bool mOptionActive;
     float rdoCost;
@@ -122,7 +122,7 @@ class CodingOptions
   encoder_context* mECtx;
 
   enc_cb* mCBInput;
-  context_model_table2* mContextModelInput;
+  context_model_table* mContextModelInput;
   //bool mOriginalCBStructsAssigned;
 
   int mCurrentlyReconstructedOption;
@@ -146,7 +146,7 @@ class CodingOption
   enc_cb* get_cb() { return mParent->mOptions[mOptionIdx].cb; }
   void set_cb(enc_cb* cb) { mParent->mOptions[mOptionIdx].cb = cb; }
 
-  context_model_table2& get_context() {
+  context_model_table& get_context() {
     return mParent->mOptions[mOptionIdx].context;
   }
 

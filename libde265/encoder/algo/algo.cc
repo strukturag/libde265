@@ -41,7 +41,7 @@ CodingOptions::~CodingOptions()
 {
 }
 
-void CodingOptions::set_input(enc_cb* cb, context_model_table2& tab)
+void CodingOptions::set_input(enc_cb* cb, context_model_table& tab)
 {
   mCBInput = cb;
   mContextModelInput = &tab;

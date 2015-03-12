@@ -78,7 +78,7 @@ class Algo_CB_IntraPartMode : public Algo_CB
   virtual ~Algo_CB_IntraPartMode() { }
 
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           enc_cb* cb) = 0;
 
   void setChildAlgo(Algo_TB_IntraPredMode* algo) { mTBIntraPredModeAlgo = algo; }
@@ -93,7 +93,7 @@ class Algo_CB_IntraPartMode_BruteForce : public Algo_CB_IntraPartMode
 {
  public:
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table2&,
+                          context_model_table&,
                           enc_cb* cb);
 };
 
@@ -132,7 +132,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
   void setParams(const params& p) { mParams=p; }
 
   virtual enc_cb* analyze(encoder_context* ectx,
-                          context_model_table2& ctxModel,
+                          context_model_table& ctxModel,
                           enc_cb* cb);
 
  private:

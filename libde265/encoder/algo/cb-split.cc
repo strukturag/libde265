@@ -47,7 +47,7 @@ bool Algo_CB_Split::isForcedSplit(const de265_image* input, int x0,int y0, int L
 // Utility function to encode all four children in a splitted CB.
 // Children are coded with the specified algo_cb_split.
 enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
-                                       context_model_table2& ctxModel,
+                                       context_model_table& ctxModel,
                                        enc_cb* cb)
 {
   int w = ectx->imgdata->input->get_width();
@@ -109,7 +109,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
 
 enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
-                                          context_model_table2& ctxModel,
+                                          context_model_table& ctxModel,
                                           enc_cb* cb)
 {
   assert(cb->pcm_flag==0);
