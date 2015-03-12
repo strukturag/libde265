@@ -24,7 +24,7 @@
 bool D = false;
 
 context_model_table2::context_model_table2()
-  : model(NULL), refcnt(NULL), mMayBeModified(false)
+  : model(NULL), refcnt(NULL)
 {
 }
 
@@ -39,7 +39,6 @@ context_model_table2::context_model_table2(const context_model_table2& src)
 
   refcnt = src.refcnt;
   model  = src.model;
-  mMayBeModified = src.mMayBeModified;
 }
 
 
@@ -112,7 +111,6 @@ context_model_table2 context_model_table2::transfer()
   context_model_table2 newtable;
   newtable.model = model;
   newtable.refcnt= refcnt;
-  newtable.mMayBeModified = mMayBeModified;
 
   model =nullptr;
   refcnt=nullptr;
@@ -138,10 +136,23 @@ context_model_table2& context_model_table2::operator=(const context_model_table2
 
   model = src.model;
   refcnt= src.refcnt;
-  mMayBeModified= src.mMayBeModified;
 
   return *this;
 }
+
+
+bool context_model_table2::operator==(const context_model_table2& b) const
+{
+  if (b.model == model) return true;
+  if (b.model == nullptr || model == nullptr) return false;
+
+  for (int i=0;i<CONTEXT_MODEL_TABLE_LENGTH;i++) {
+    if (!(b.model[i] == model[i])) return false;
+  }
+
+  return true;
+}
+
 
 void context_model_table2::decouple_or_alloc_with_empty_data()
 {

@@ -30,10 +30,13 @@
 #include <string.h>
 
 
-typedef struct {
+struct context_model {
   uint8_t MPSbit : 1;
   uint8_t state  : 7;
-} context_model;
+
+  bool operator==(context_model b) const { return state==b.state && MPSbit==b.MPSbit; }
+  bool operator!=(context_model b) const { return state!=b.state || MPSbit!=b.MPSbit; }
+};
 
 
 enum context_model_index {
@@ -81,15 +84,6 @@ enum context_model_index {
 
 
 
-typedef context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH];
-
-inline void copy_context_model_table(context_model_table dst, context_model_table src)
-{
-  memcpy(dst,src,sizeof(context_model_table));
-}
-
-
-
 void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
                              int initType,
                              int QPY);
@@ -112,16 +106,13 @@ class context_model_table2
 
   context_model_table2& operator=(const context_model_table2&);
 
-  //void set_may_be_modified(bool flag=true) { mMayBeModified=flag; }
-  //bool may_be_modified() const { return mMayBeModified; }
+  bool operator==(const context_model_table2&) const;
 
  private:
   void decouple_or_alloc_with_empty_data();
 
   context_model* model; // [CONTEXT_MODEL_TABLE_LENGTH]
   int* refcnt;
-
-  bool mMayBeModified;
 };
 
 
