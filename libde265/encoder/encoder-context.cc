@@ -44,7 +44,7 @@ encoder_context::encoder_context()
 
   //enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
-  switch_CABAC_to_bitstream();
+  //switch_CABAC_to_bitstream();
 
 
   params.registerParams(params_config);
@@ -89,13 +89,13 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
 {
   en265_packet* pck = new en265_packet;
 
-  uint8_t* data = new uint8_t[cabac_bitstream.size()];
-  memcpy(data, cabac_bitstream.data(), cabac_bitstream.size());
+  uint8_t* data = new uint8_t[cabac_encoder.size()];
+  memcpy(data, cabac_encoder.data(), cabac_encoder.size());
 
   pck->version = 1;
 
   pck->data = data;
-  pck->length = cabac_bitstream.size();
+  pck->length = cabac_encoder.size();
 
   pck->frame_number = -1;
   pck->content_type = t;
@@ -112,7 +112,7 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->input_image = NULL;
   pck->reconstruction = NULL;
 
-  cabac->reset();
+  cabac_encoder.reset();
 
   return pck;
 }
@@ -159,25 +159,25 @@ de265_error encoder_context::encode_headers()
   en265_packet* pck;
 
   nal.set(NAL_UNIT_VPS_NUT);
-  nal.write(cabac);
-  vps.write(this, cabac);
-  cabac->flush_VLC();
+  nal.write(cabac_encoder);
+  vps.write(this, cabac_encoder);
+  cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_VPS);
   pck->nal_unit_type = EN265_NUT_VPS;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_SPS_NUT);
-  nal.write(cabac);
-  sps.write(this, cabac);
-  cabac->flush_VLC();
+  nal.write(cabac_encoder);
+  sps.write(this, cabac_encoder);
+  cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_SPS);
   pck->nal_unit_type = EN265_NUT_SPS;
   output_packets.push_back(pck);
 
   nal.set(NAL_UNIT_PPS_NUT);
-  nal.write(cabac);
-  pps.write(this, cabac, &sps);
-  cabac->flush_VLC();
+  nal.write(cabac_encoder);
+  pps.write(this, cabac_encoder, &sps);
+  cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_PPS);
   pck->nal_unit_type = EN265_NUT_PPS;
   output_packets.push_back(pck);
@@ -247,18 +247,18 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
-  imgdata->nal.write(cabac);
-  imgdata->shdr.write(this, cabac, &sps, &pps, imgdata->nal.nal_unit_type);
-  cabac->skip_bits(1);
-  cabac->flush_VLC();
+  imgdata->nal.write(cabac_encoder);
+  imgdata->shdr.write(this, cabac_encoder, &sps, &pps, imgdata->nal.nal_unit_type);
+  cabac_encoder.skip_bits(1);
+  cabac_encoder.flush_VLC();
 
 
   // encode image
 
-  cabac->init_CABAC();
+  cabac_encoder.init_CABAC();
   double psnr = encode_image(this,imgdata->input, algo);
   loginfo(LogEncoder,"  PSNR-Y: %f\n", psnr);
-  cabac->flush_CABAC();
+  cabac_encoder.flush_CABAC();
 
   // set reconstruction image
 

@@ -45,11 +45,20 @@ class Algo_CB
  public:
   virtual ~Algo_CB() { }
 
+  /* The context_model_table that is provided can be modified and
+     even released in the function. On exit, it should be filled with
+     a (optionally new) context_model_table that represents the state
+     after encoding the syntax element. However, to speed up computation,
+     it is also allowed to not modify the context_model_table at all.
+   */
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
+                          context_model_table2&,
                           enc_cb* cb) = 0;
 };
 
+
+
+class CodingOption;
 
 
 class CodingOptions
@@ -60,33 +69,18 @@ class CodingOptions
 
   // --- init --- call before object use
 
-  void set_input(enc_cb*, context_model_table tab);
-  void activate_option(int idx, bool flag=true);
+  void set_input(enc_cb*, context_model_table2& tab);
+  //void activate_option(int idx, bool flag=true);
+
+  CodingOption new_option(bool active=true);
+
+  void start(bool will_modify_context_model);
 
 
   // --- processing ---
 
-  enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
-  context_model* get_context(int idx) { return mOptions[idx].context; }
-  bool is_active(int idx) const { return mOptions[idx].optionActive; }
-
-  void set_cb(int idx,enc_cb* cb) { mOptions[idx].cb = cb; }
-  enc_cb*& operator[](int idx) { return mOptions[idx].cb; }
-  enc_cb*const& operator[](int idx) const { return mOptions[idx].cb; }
-
-  /* When modifying the reconstruction image or metadata, you have to
-     encapsulate the modification between these two functions to ensure
-     that the correct reconstruction will be active after return_best_rdo().
-   */
-  void begin_reconstruction(int idx);
-  void end_reconstruction(int idx);
-
   // compute RDO cost (D + lambda*R)
   void compute_rdo_costs();
-
-  // Manually set RDO costs instead of computing them with compute_rdo_costs.
-  // Only required when using custom costs.
-  void set_rdo_cost(int idx, float rdo) { mOptions[idx].rdoCost=rdo; }
 
 
   // --- end processing --- do not call any function after this one
@@ -97,28 +91,84 @@ class CodingOptions
    */
   enc_cb* return_best_rdo();
 
- private:
-  struct CodingOption {
-    CodingOption() : optionActive(false) { }
+#if 0
+  enc_cb* get_cb(int idx) { return mOptions[idx].cb; }
+  context_model_table2& get_context(int idx) {
+    mOptions[idx].context_table_memory.decouple();
+    return mOptions[idx].context_table_memory;
+  }
+  bool is_active(int idx) const { return mOptions[idx].optionActive; }
 
+  void set_cb(int idx,enc_cb* cb) { mOptions[idx].cb = cb; }
+  enc_cb*& operator[](int idx) { return mOptions[idx].cb; }
+  enc_cb*const& operator[](int idx) const { return mOptions[idx].cb; }
+
+  // Manually set RDO costs instead of computing them with compute_rdo_costs.
+  // Only required when using custom costs.
+  void set_rdo_cost(int idx, float rdo) { mOptions[idx].rdoCost=rdo; }
+#endif
+
+ private:
+  struct CodingOptionData
+  {
     enc_cb* cb;
-    context_model* context;
-    context_model_table context_table_memory;
-    bool isOriginalCBStruct;
-    bool optionActive;
+    context_model_table2 context;
+    //bool isOriginalCBStruct;
+    bool mOptionActive;
     float rdoCost;
   };
+
 
   encoder_context* mECtx;
 
   enc_cb* mCBInput;
-  context_model* mContextModelInput;
-  bool mOriginalCBStructsAssigned;
+  context_model_table2* mContextModelInput;
+  //bool mOriginalCBStructsAssigned;
 
-  int  mCurrentlyReconstructedOption;
+  int mCurrentlyReconstructedOption;
   int mBestRDO;
 
-  std::vector<CodingOption> mOptions;
+  std::vector<CodingOptionData> mOptions;
+
+  friend class CodingOption;
 };
+
+
+class CodingOption
+{
+ public:
+  CodingOption() {
+    mActive = false;
+    mParent = nullptr;
+    mOptionIdx = 0;
+  }
+
+  enc_cb* get_cb() { return mParent->mOptions[mOptionIdx].cb; }
+  void set_cb(enc_cb* cb) { mParent->mOptions[mOptionIdx].cb = cb; }
+
+  context_model_table2& get_context() {
+    return mParent->mOptions[mOptionIdx].context;
+  }
+
+  operator bool() const { return mActive; }
+
+  /* When modifying the reconstruction image or metadata, you have to
+     encapsulate the modification between these two functions to ensure
+     that the correct reconstruction will be active after return_best_rdo().
+   */
+  void begin_reconstruction();
+  void end_reconstruction();
+
+ private:
+ CodingOption(class CodingOptions* parent, int idx)
+   : mParent(parent), mOptionIdx(idx), mActive(true) { }
+
+  class CodingOptions* mParent;
+  int   mOptionIdx;
+  bool  mActive;
+
+  friend class CodingOptions;
+};
+
 
 #endif

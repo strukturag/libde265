@@ -25,13 +25,14 @@
 
 
 CodingOptions::CodingOptions(encoder_context* ectx, int nOptions)
-  : mOptions(nOptions)
 {
   mCBInput = NULL;
   mContextModelInput = NULL;
-  mOriginalCBStructsAssigned=false;
+  //mOriginalCBStructsAssigned=false;
   mCurrentlyReconstructedOption=-1;
   mBestRDO=-1;
+
+  mOptions.reserve(nOptions);
 
   mECtx = ectx;
 }
@@ -40,12 +41,56 @@ CodingOptions::~CodingOptions()
 {
 }
 
-void CodingOptions::set_input(enc_cb* cb, context_model_table tab)
+void CodingOptions::set_input(enc_cb* cb, context_model_table2& tab)
 {
   mCBInput = cb;
-  mContextModelInput = tab;
+  mContextModelInput = &tab;
 }
 
+CodingOption CodingOptions::new_option(bool active)
+{
+  if (!active) {
+    return CodingOption();
+  }
+
+
+  CodingOptionData opt;
+
+  bool firstOption = mOptions.empty();
+  if (firstOption) {
+    opt.cb = mCBInput;
+  }
+  else {
+    opt.cb = new enc_cb(*mCBInput);
+  }
+
+  opt.context = *mContextModelInput;
+
+  CodingOption option(this, mOptions.size());
+
+  mOptions.push_back( std::move(opt) );
+
+  return option;
+}
+
+
+void CodingOptions::start(bool will_modify_context_model)
+{
+  // we don't need the input context model anymore
+  mContextModelInput->release();
+
+  if (will_modify_context_model) {
+    /* If we modify the context models in this algorithm,
+       we need separate models for each option.
+    */
+    for (auto option : mOptions) {
+      option.context.decouple();
+    }
+  }
+}
+
+
+#if 000
 void CodingOptions::activate_option(int idx, bool active)
 {
   if (mOptions.size() < idx+1) {
@@ -60,7 +105,7 @@ void CodingOptions::activate_option(int idx, bool active)
     if (!mOriginalCBStructsAssigned) {
       mOptions[idx].isOriginalCBStruct = true;
       mOptions[idx].cb = mCBInput;
-      mOptions[idx].context = mContextModelInput;
+      //mOptions[idx].context = mContextModelInput;
 
       mOriginalCBStructsAssigned=true;
     }
@@ -69,34 +114,34 @@ void CodingOptions::activate_option(int idx, bool active)
       mOptions[idx].cb = new enc_cb;
       *mOptions[idx].cb = *mCBInput;
 
-      copy_context_model_table(mOptions[idx].context_table_memory, mContextModelInput);
-      mOptions[idx].context = mOptions[idx].context_table_memory;
+      //copy_context_model_table(mOptions[idx].context_table_memory, mContextModelInput);
+      //mOptions[idx].context = mOptions[idx].context_table_memory;
+      mOptions[idx].context = mContextModelInput;
     }
   }
 }
+#endif
 
-
-void CodingOptions::begin_reconstruction(int idx)
+void CodingOption::begin_reconstruction()
 {
-  if (mCurrentlyReconstructedOption >= 0) {
-    mOptions[mCurrentlyReconstructedOption].cb->save(mECtx->img);
+  if (mParent->mCurrentlyReconstructedOption >= 0) {
+    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
   }
 
-  mCurrentlyReconstructedOption = idx;
+  mParent->mCurrentlyReconstructedOption = mOptionIdx;
 }
 
-void CodingOptions::end_reconstruction(int idx)
+void CodingOption::end_reconstruction()
 {
-  assert(mCurrentlyReconstructedOption == idx);
+  assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
 }
 
 
 void CodingOptions::compute_rdo_costs()
 {
-  for (int i=0;i<mOptions.size();i++)
-    if (mOptions[i].optionActive) {
-      mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
-    }
+  for (int i=0;i<mOptions.size();i++) {
+    mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
+  }
 }
 
 
@@ -109,33 +154,35 @@ enc_cb* CodingOptions::return_best_rdo()
   bool  first=true;
   int   bestRDO=-1;
 
-  for (int i=0;i<mOptions.size();i++)
-    if (mOptions[i].optionActive) {
-      float cost = mOptions[i].rdoCost;
-      if (first || cost < bestRDOCost) {
-        bestRDOCost = cost;
-        first = false;
-        bestRDO = i;
-      }
+  for (int i=0;i<mOptions.size();i++) {
+    float cost = mOptions[i].rdoCost;
+    if (first || cost < bestRDOCost) {
+      bestRDOCost = cost;
+      first = false;
+      bestRDO = i;
     }
+  }
 
-  
+
   assert(bestRDO>=0);
 
   if (bestRDO != mCurrentlyReconstructedOption) {
     mOptions[bestRDO].cb->restore(mECtx->img);
   }
 
+  /*
   if ( ! mOptions[bestRDO].isOriginalCBStruct ) {
     copy_context_model_table(mContextModelInput, mOptions[bestRDO].context_table_memory);
   }
+  */
+
+  *mContextModelInput = mOptions[bestRDO].context;
 
 
   // delete all CBs except the best one
 
   for (int i=0;i<mOptions.size();i++) {
-    if (i != bestRDO &&
-        mOptions[i].optionActive)
+    if (i != bestRDO)
       {
         delete mOptions[i].cb;
         mOptions[i].cb = NULL;

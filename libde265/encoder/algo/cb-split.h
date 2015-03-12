@@ -72,15 +72,16 @@ class Algo_CB_Split : public Algo_CB
   bool isForcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const;
 
   enc_cb* encode_cb_split(encoder_context* ectx,
-                          context_model_table ctxModel,
+                          context_model_table2& ctxModel,
                           enc_cb* cb);
 };
+
 
 class Algo_CB_Split_BruteForce : public Algo_CB_Split
 {
  public:
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
+                          context_model_table2&,
                           enc_cb* cb);
 };
 

@@ -53,6 +53,7 @@ void simple_getline(char** lineptr,size_t* linelen,FILE* fh)
 
 void generate_entropy_table()
 {
+#if 000
   const int nSymbols=1000*1000*10;
   const int oversample = 10;
 
@@ -137,6 +138,7 @@ void generate_entropy_table()
 
     printf("                0x0010c, 0x3bfbb /* dummy, should never be used */\n");
   }
+#endif
 }
 
 int probTab[128+2] = {
@@ -210,6 +212,7 @@ int probTab[128+2] = {
 
 void generate_entropy_table_probTableWeighted()
 {
+#if 000
   int64_t probTabSum=0;
   for (int i=0;i<130;i++)
     probTabSum += probTab[i];
@@ -264,7 +267,7 @@ void generate_entropy_table_probTableWeighted()
         model.state  = n;
         if (bypass) cabac_mix0.write_CABAC_bypass(1);
         else        cabac_mix0.write_CABAC_bit(&model, b);
-        
+
         model.MPSbit = 1;
         model.state  = n;
         if (bypass) cabac_mix1.write_CABAC_bypass(1);
@@ -314,11 +317,13 @@ void generate_entropy_table_probTableWeighted()
 
     printf("                0x0010c, 0x3bfbb /* dummy, should never be used */\n");
   }
+#endif
 }
 
 
 void generate_entropy_table_replay()
 {
+#if 000
   const int oversample = 10;
 
   char* lineptr = NULL;
@@ -359,7 +364,7 @@ void generate_entropy_table_replay()
       model.state  = n;
       if (bypass) cabac_mix0.write_CABAC_bypass(1);
       else        cabac_mix0.write_CABAC_bit(&model, b);
-        
+
       model.MPSbit = 1;
       model.state  = n;
       if (bypass) cabac_mix1.write_CABAC_bypass(1);
@@ -408,11 +413,13 @@ void generate_entropy_table_replay()
   }
 
   printf("                0x0010c, 0x3bfbb /* dummy, should never be used */\n");
+#endif
 }
 
 
 void test_entropy_table_replay()
 {
+#if 000
   char* lineptr = NULL;
   size_t linelen = 0;
 
@@ -455,6 +462,7 @@ void test_entropy_table_replay()
   fclose(fh);
 
   printf("bs:%d estim:%d\n",cabac_bs.size(),cabac_estim.size());
+#endif
 }
 
 

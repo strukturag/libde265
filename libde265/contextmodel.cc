@@ -24,7 +24,7 @@
 bool D = false;
 
 context_model_table2::context_model_table2()
-  : model(NULL), refcnt(NULL)
+  : model(NULL), refcnt(NULL), mMayBeModified(false)
 {
 }
 
@@ -39,6 +39,7 @@ context_model_table2::context_model_table2(const context_model_table2& src)
 
   refcnt = src.refcnt;
   model  = src.model;
+  mMayBeModified = src.mMayBeModified;
 }
 
 
@@ -106,6 +107,20 @@ void context_model_table2::decouple()
 }
 
 
+context_model_table2 context_model_table2::transfer()
+{
+  context_model_table2 newtable;
+  newtable.model = model;
+  newtable.refcnt= refcnt;
+  newtable.mMayBeModified = mMayBeModified;
+
+  model =nullptr;
+  refcnt=nullptr;
+
+  return newtable;
+}
+
+
 context_model_table2& context_model_table2::operator=(const context_model_table2& src)
 {
   if (D) printf("%p assign = %p\n",this,&src);
@@ -123,6 +138,7 @@ context_model_table2& context_model_table2::operator=(const context_model_table2
 
   model = src.model;
   refcnt= src.refcnt;
+  mMayBeModified= src.mMayBeModified;
 
   return *this;
 }

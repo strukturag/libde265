@@ -31,43 +31,44 @@
 
 
 enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
-                                                context_model_table ctxModel,
+                                                context_model_table2& ctxModel,
                                                 enc_cb* cb)
 {
-#if 0
+  bool try_skip  = true;
+  bool try_inter = false; // TODO
+
+#if 1
   CodingOptions options(ectx);
   options.set_input(cb,ctxModel);
-  options.activate_option(0, try_skip);
-  options.activate_option(1, try_inter);
+  CodingOption option_skip  = options.new_option(try_skip);
+  CodingOption option_inter = options.new_option(try_inter);
+  options.start(false);
 
-  if (try_skip) {
-    enc_cb* cb = options[0];
+  if (option_skip) {
+    enc_cb* cb = option_skip.get_cb();
     cb->PredMode = MODE_SKIP;
     ectx->img->set_pred_mode(cb->x,cb->y, cb->log2Size, cb->PredMode);
 
-    options.begin_reconstruction(0);
-    cb_skip = mSkipAlgo->analyze(ectx,
-                                 options.get_context(0),
-                                 options.get_cb(0));
-    options.end_reconstruction();
+    option_skip.begin_reconstruction();
+    option_skip.set_cb( mSkipAlgo->analyze(ectx, option_skip.get_context(), cb) );
+    option_skip.end_reconstruction();
   }
 
-  if (try_inter) {
-    enc_cb* cb = options[1];
+  if (option_inter) {
+    enc_cb* cb = option_inter.get_cb();
 
-    options.begin_reconstruction(1);
-    cb_inter = mInterAlgo->analyze(ectx,
-                                   options.get_context(1),
-                                   options.get_cb(1));
-    options.end_reconstruction();
+    option_inter.begin_reconstruction();
+    option_inter.set_cb( mInterAlgo->analyze(ectx, option_inter.get_context(), cb) );
+    option_inter.end_reconstruction();
   }
 
+  options.compute_rdo_costs();
   return options.return_best_rdo();
 #endif
 
 
 
-
+#if 0
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
   bool try_skip  = true;
@@ -134,5 +135,5 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
   else {
     return cb_skip;
   }
+#endif
 }
-

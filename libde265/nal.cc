@@ -32,12 +32,12 @@ void nal_header::read(bitreader* reader)
 }
 
 
-void nal_header::write(CABAC_encoder* out) const
+void nal_header::write(CABAC_encoder& out) const
 {
-  out->skip_bits(1);
-  out->write_bits(nal_unit_type,6);
-  out->write_bits(nuh_layer_id ,6);
-  out->write_bits(nuh_temporal_id+1,3);
+  out.skip_bits(1);
+  out.write_bits(nal_unit_type,6);
+  out.write_bits(nuh_layer_id ,6);
+  out.write_bits(nuh_temporal_id+1,3);
 }
 
 
@@ -147,4 +147,3 @@ const char* get_NAL_name(uint8_t unit_type)
   assert(unit_type <= 47);
   return NAL_unit_name[unit_type];
 }
-

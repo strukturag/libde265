@@ -37,7 +37,7 @@ public:
   ~pic_parameter_set();
 
   bool read(bitreader*, decoder_context*);
-  bool write(error_queue*, CABAC_encoder*,
+  bool write(error_queue*, CABAC_encoder&,
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;

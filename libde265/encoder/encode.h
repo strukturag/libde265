@@ -194,19 +194,25 @@ inline int childY(int y0, int idx, int log2CbSize)
 
 
 
-void encode_transform_tree(encoder_context* ectx, const enc_tb* tb, const enc_cb* cb,
+void encode_transform_tree(encoder_context* ectx,
+                           CABAC_encoder* cabac,
+                           const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
                            int MaxTrafoDepth, int IntraSplitFlag, bool recurse);
 
 void encode_coding_unit(encoder_context* ectx,
+                        CABAC_encoder* cabac,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse);
 
 void encode_quadtree(encoder_context* ectx,
+                     CABAC_encoder* cabac,
                      const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
                      bool recurse);
 
-void encode_ctb(encoder_context* ectx, enc_cb* cb, int ctbX,int ctbY);
+void encode_ctb(encoder_context* ectx,
+                CABAC_encoder* cabac,
+                enc_cb* cb, int ctbX,int ctbY);
 
 
 class de265_encoder

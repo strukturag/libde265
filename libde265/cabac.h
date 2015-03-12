@@ -22,6 +22,7 @@
 #define DE265_CABAC_H
 
 #include <stdint.h>
+#include "contextmodel.h"
 
 
 typedef struct {
@@ -33,12 +34,6 @@ typedef struct {
   uint32_t value;
   int16_t  bits_needed;
 } CABAC_decoder;
-
-
-typedef struct {
-  uint8_t MPSbit : 1;
-  uint8_t state  : 7;
-} context_model;
 
 
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length);
@@ -59,6 +54,7 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 class CABAC_encoder
 {
 public:
+ CABAC_encoder() : mCtxModels(NULL) { }
   virtual ~CABAC_encoder() { }
 
   virtual int size() const = 0;
@@ -79,15 +75,22 @@ public:
 
   // --- CABAC ---
 
+  void set_context_models(context_model_table2* models) { mCtxModels=models; }
+
   virtual void init_CABAC() { }
-  virtual void write_CABAC_bit(context_model* model, int bit) = 0;
+  virtual void write_CABAC_bit(int modelIdx, int bit) = 0;
   virtual void write_CABAC_bypass(int bit) = 0;
   virtual void write_CABAC_TU_bypass(int value, int cMax);
   virtual void write_CABAC_FL_bypass(int value, int nBits);
   virtual void write_CABAC_term_bit(int bit) = 0;
   virtual void flush_CABAC()  { }
 
-  static float RDBits_for_CABAC_bin(context_model* model, int bit);
+  virtual bool modifies_context() const = 0;
+
+  float RDBits_for_CABAC_bin(int modelIdx, int bit);
+
+ protected:
+  context_model_table2* mCtxModels;
 };
 
 
@@ -115,10 +118,12 @@ public:
   // --- CABAC ---
 
   virtual void init_CABAC();
-  virtual void write_CABAC_bit(context_model* model, int bit);
+  virtual void write_CABAC_bit(int modelIdx, int bit);
   virtual void write_CABAC_bypass(int bit);
   virtual void write_CABAC_term_bit(int bit);
   virtual void flush_CABAC();
+
+  virtual bool modifies_context() const { return true; }
 
 private:
   // data buffer
@@ -171,7 +176,7 @@ public:
 
   // --- CABAC ---
 
-  virtual void write_CABAC_bit(context_model* model, int bit);
+  virtual void write_CABAC_bit(int modelIdx, int bit);
   virtual void write_CABAC_bypass(int bit) {
     mFracBits += 0x8000;
   }
@@ -180,9 +185,19 @@ public:
   }
   virtual void write_CABAC_term_bit(int bit) { /* not implemented (not needed) */ }
 
-private:
+  virtual bool modifies_context() const { return true; }
+
+ protected:
   uint64_t mFracBits;
 };
 
+
+class CABAC_encoder_estim_constant : public CABAC_encoder_estim
+{
+ public:
+  void write_CABAC_bit(int modelIdx, int bit);
+
+  virtual bool modifies_context() const { return false; }
+};
 
 #endif

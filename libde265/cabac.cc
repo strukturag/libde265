@@ -689,8 +689,9 @@ void CABAC_encoder_bitstream::testAndWriteOut()
 int encBinCnt=1;
 #endif
 
-void CABAC_encoder_bitstream::write_CABAC_bit(context_model* model, int bin)
+void CABAC_encoder_bitstream::write_CABAC_bit(int modelIdx, int bin)
 {
+  context_model* model = &(*mCtxModels)[modelIdx];
   //m_uiBinsCoded += m_binCountIncrement;
   //rcCtxModel.setBinsCoded( 1 );
 
@@ -919,8 +920,9 @@ const uint32_t entropy_table_theory[128] =
   };
 
 
-void CABAC_encoder_estim::write_CABAC_bit(context_model* model, int bit)
+void CABAC_encoder_estim::write_CABAC_bit(int modelIdx, int bit)
 {
+  context_model* model = &(*mCtxModels)[modelIdx];
   //printf("[%d] state=%d, bin=%d\n", encBinCnt, model->state,bit);
   //encBinCnt++;
 
@@ -940,9 +942,10 @@ void CABAC_encoder_estim::write_CABAC_bit(context_model* model, int bit)
 }
 
 
-float CABAC_encoder::RDBits_for_CABAC_bin(context_model* model, int bit)
+float CABAC_encoder::RDBits_for_CABAC_bin(int modelIdx, int bit)
 {
- int idx = model->state<<1;
+  context_model* model = &(*mCtxModels)[modelIdx];
+  int idx = model->state<<1;
 
   if (bit!=model->MPSbit) {
     idx++;
@@ -950,6 +953,21 @@ float CABAC_encoder::RDBits_for_CABAC_bin(context_model* model, int bit)
 
   return entropy_table[idx] / float(1<<15);
 }
+
+
+
+void CABAC_encoder_estim_constant::write_CABAC_bit(int modelIdx, int bit)
+{
+  context_model* model = &(*mCtxModels)[modelIdx];
+  int idx = model->state<<1;
+
+  if (bit!=model->MPSbit) {
+    idx++;
+  }
+
+  mFracBits += entropy_table[idx];
+}
+
 
 
 #if 0

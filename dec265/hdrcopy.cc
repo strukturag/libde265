@@ -42,7 +42,7 @@ void process_nal(NAL_unit* nal)
   nal_header nal_hdr;
   nal_hdr.read(&reader);
   writer.write_startcode();
-  nal_hdr.write(&writer);
+  nal_hdr.write(writer);
 
   printf("NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
          nal->data()[0], nal->data()[1],
@@ -57,14 +57,14 @@ void process_nal(NAL_unit* nal)
     case NAL_UNIT_VPS_NUT:
       vps.read(&errqueue, &reader);
       vps.dump(1);
-      vps.write(&errqueue, &writer);
+      vps.write(&errqueue, writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
       sps.read(&errqueue, &reader);
       sps.dump(1);
-      sps.write(&errqueue, &writer);
+      sps.write(&errqueue, writer);
       writer.flush_VLC();
       break;
 
@@ -90,10 +90,10 @@ int main(int argc, char** argv)
 
   FILE* fh = fopen(argv[1],"rb");
   unsigned char buf[1024];
-  
+
   writer.write_bits(0,8); // because HM has an extra byte at the beginning
 
-  while(!feof(fh)) 
+  while(!feof(fh))
     {
       int n = fread(buf,1,1024,fh);
       if (n>0) {

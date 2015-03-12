@@ -94,6 +94,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
  private:
   Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
+
   Algo_CB_Split_BruteForce         mAlgo_CB_Split_BruteForce;
   Algo_CB_PredMode_BruteForce      mAlgo_CB_PredMode_BruteForce;
 
@@ -115,6 +116,19 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 double encode_image(encoder_context*, const de265_image* input, EncodingAlgorithm&);
 
 void encode_sequence(encoder_context*);
+
+
+class Logging
+{
+public:
+  virtual ~Logging() { }
+
+  static void print_logging(const encoder_context* ectx, const char* id, const char* filename);
+
+  virtual const char* name() const = 0;
+  virtual void print(const encoder_context* ectx, const char* filename) = 0;
+};
+
 
 void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename);
 

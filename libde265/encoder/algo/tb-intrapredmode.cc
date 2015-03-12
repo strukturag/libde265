@@ -178,7 +178,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
 const enc_tb*
 Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
-                                          context_model_table ctxModel,
+                                          context_model_table2& ctxModel,
                                           const de265_image* input,
                                           const enc_tb* parent,
                                           enc_cb* cb,
@@ -221,8 +221,8 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       }
 
 
-      context_model_table ctxIntra;
-      copy_context_model_table(ctxIntra, ctxModel);
+      context_model_table2 ctxIntra = ctxModel.copy();
+      //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
@@ -255,7 +255,9 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
       else { rate += 5; enc_bin=0; }
 
-      rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
+      CABAC_encoder_estim estim;
+      estim.set_context_models(&ctxIntra);
+      rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
 
       float cost = tb[intraMode]->distortion + ectx->lambda * rate;
       if (cost<minCost) {
@@ -292,13 +294,16 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
                                  IntraSplitFlag);
   }
+
+  assert(false);
+  return nullptr;
 }
 
 
 
 const enc_tb*
 Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
-                                           context_model_table ctxModel,
+                                           context_model_table2& ctxModel,
                                            const de265_image* input,
                                            const enc_tb* parent,
                                            enc_cb* cb,
@@ -356,6 +361,9 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
                                  IntraSplitFlag);
   }
+
+  assert(false);
+  return nullptr;
 }
 
 #include <algorithm>
@@ -367,7 +375,7 @@ static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
 
 const enc_tb*
 Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
-                                         context_model_table ctxModel,
+                                         context_model_table2& ctxModel,
                                          const de265_image* input,
                                          const enc_tb* parent,
                                          enc_cb* cb,
@@ -409,7 +417,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
         {
           enum IntraPredMode mode = (enum IntraPredMode)idx;
           decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
-          
+
           float distortion;
           distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
                                         mParams.bitrateEstimMethod());
@@ -439,8 +447,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     for (int i=0;i<distortions.size();i++) {
 
-      context_model_table ctxIntra;
-      copy_context_model_table(ctxIntra, ctxModel);
+      context_model_table2 ctxIntra = ctxModel.copy();
+      //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;
 
@@ -462,7 +470,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
       else { rate += 5; enc_bin=0; }
 
-      rate += CABAC_encoder::RDBits_for_CABAC_bin(&ctxIntra[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG], enc_bin);
+      CABAC_encoder_estim estim;
+      estim.set_context_models(&ctxIntra);
+      rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
 
       float cost = tb[intraMode]->distortion + ectx->lambda * rate;
 
@@ -502,5 +512,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
                                  IntraSplitFlag);
   }
-}
 
+  assert(false);
+  return nullptr;
+}

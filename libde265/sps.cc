@@ -56,7 +56,7 @@ extern bool read_short_term_ref_pic_set(error_queue* errqueue,
 
 extern bool write_short_term_ref_pic_set(error_queue* errqueue,
                                          const seq_parameter_set* sps,
-                                         CABAC_encoder* out,
+                                         CABAC_encoder& out,
                                          const ref_pic_set* in_set, // which set to write
                                          int idxRps,  // index of the set to be read
                                          const std::vector<ref_pic_set>& sets, // previously read sets
@@ -860,7 +860,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 }
 
 
-de265_error write_scaling_list(CABAC_encoder* out, const seq_parameter_set* sps,
+de265_error write_scaling_list(CABAC_encoder& out, const seq_parameter_set* sps,
                               scaling_list_data* sclist, bool inPPS)
 {
   assert(false);
@@ -906,24 +906,24 @@ void set_default_scaling_lists(scaling_list_data* sclist)
 }
 
 
-de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
+de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 {
-  out->write_bits(video_parameter_set_id, 4);
+  out.write_bits(video_parameter_set_id, 4);
   if (sps_max_sub_layers>7) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
-  out->write_bits(sps_max_sub_layers-1, 3);
+  out.write_bits(sps_max_sub_layers-1, 3);
 
-  out->write_bit(sps_temporal_id_nesting_flag);
+  out.write_bit(sps_temporal_id_nesting_flag);
 
   profile_tier_level_.write(out, sps_max_sub_layers);
 
-  out->write_uvlc(seq_parameter_set_id);
+  out.write_uvlc(seq_parameter_set_id);
 
 
   // --- encode chroma type ---
 
-  out->write_uvlc(chroma_format_idc);
+  out.write_uvlc(chroma_format_idc);
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
@@ -932,34 +932,34 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
   }
 
   if (chroma_format_idc == 3) {
-    out->write_bit(separate_colour_plane_flag);
+    out.write_bit(separate_colour_plane_flag);
   }
 
 
   // --- picture size ---
 
-  out->write_uvlc(pic_width_in_luma_samples);
-  out->write_uvlc(pic_height_in_luma_samples);
+  out.write_uvlc(pic_width_in_luma_samples);
+  out.write_uvlc(pic_height_in_luma_samples);
 
-  out->write_bit(conformance_window_flag);
+  out.write_bit(conformance_window_flag);
 
   if (conformance_window_flag) {
-    out->write_uvlc(conf_win_left_offset);
-    out->write_uvlc(conf_win_right_offset);
-    out->write_uvlc(conf_win_top_offset);
-    out->write_uvlc(conf_win_bottom_offset);
+    out.write_uvlc(conf_win_left_offset);
+    out.write_uvlc(conf_win_right_offset);
+    out.write_uvlc(conf_win_top_offset);
+    out.write_uvlc(conf_win_bottom_offset);
   }
 
 
-  out->write_uvlc(bit_depth_luma-8);
-  out->write_uvlc(bit_depth_chroma-8);
+  out.write_uvlc(bit_depth_luma-8);
+  out.write_uvlc(bit_depth_chroma-8);
 
-  out->write_uvlc(log2_max_pic_order_cnt_lsb-4);
+  out.write_uvlc(log2_max_pic_order_cnt_lsb-4);
 
 
   // --- sub_layer_ordering_info ---
 
-  out->write_bit(sps_sub_layer_ordering_info_present_flag);
+  out.write_bit(sps_sub_layer_ordering_info_present_flag);
 
   int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
                     0 : sps_max_sub_layers-1 );
@@ -973,30 +973,30 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
-    out->write_uvlc(sps_max_dec_pic_buffering[i]-1);
+    out.write_uvlc(sps_max_dec_pic_buffering[i]-1);
 
     // sps_max_num_reorder_pics[i]
 
-    out->write_uvlc(sps_max_num_reorder_pics[i]);
+    out.write_uvlc(sps_max_num_reorder_pics[i]);
 
 
     // sps_max_latency_increase[i]
 
-    out->write_uvlc(sps_max_latency_increase_plus1[i]);
+    out.write_uvlc(sps_max_latency_increase_plus1[i]);
   }
 
 
-  out->write_uvlc(log2_min_luma_coding_block_size-3);
-  out->write_uvlc(log2_diff_max_min_luma_coding_block_size);
-  out->write_uvlc(log2_min_transform_block_size-2);
-  out->write_uvlc(log2_diff_max_min_transform_block_size);
-  out->write_uvlc(max_transform_hierarchy_depth_inter);
-  out->write_uvlc(max_transform_hierarchy_depth_intra);
-  out->write_bit(scaling_list_enable_flag);
+  out.write_uvlc(log2_min_luma_coding_block_size-3);
+  out.write_uvlc(log2_diff_max_min_luma_coding_block_size);
+  out.write_uvlc(log2_min_transform_block_size-2);
+  out.write_uvlc(log2_diff_max_min_transform_block_size);
+  out.write_uvlc(max_transform_hierarchy_depth_inter);
+  out.write_uvlc(max_transform_hierarchy_depth_intra);
+  out.write_bit(scaling_list_enable_flag);
 
   if (scaling_list_enable_flag) {
 
-    out->write_bit(sps_scaling_list_data_present_flag);
+    out.write_bit(sps_scaling_list_data_present_flag);
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
@@ -1006,15 +1006,15 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
     }
   }
 
-  out->write_bit(amp_enabled_flag);
-  out->write_bit(sample_adaptive_offset_enabled_flag);
-  out->write_bit(pcm_enabled_flag);
+  out.write_bit(amp_enabled_flag);
+  out.write_bit(sample_adaptive_offset_enabled_flag);
+  out.write_bit(pcm_enabled_flag);
   if (pcm_enabled_flag) {
-    out->write_bits(pcm_sample_bit_depth_luma  -1,4);
-    out->write_bits(pcm_sample_bit_depth_chroma-1,4);
-    out->write_uvlc(log2_min_pcm_luma_coding_block_size-3);
-    out->write_uvlc(log2_diff_max_min_pcm_luma_coding_block_size);
-    out->write_bit(pcm_loop_filter_disable_flag);
+    out.write_bits(pcm_sample_bit_depth_luma  -1,4);
+    out.write_bits(pcm_sample_bit_depth_chroma-1,4);
+    out.write_uvlc(log2_min_pcm_luma_coding_block_size-3);
+    out.write_uvlc(log2_diff_max_min_pcm_luma_coding_block_size);
+    out.write_bit(pcm_loop_filter_disable_flag);
   }
 
   int num_short_term_ref_pic_sets = ref_pic_sets.size();
@@ -1023,7 +1023,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
     errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
-  out->write_uvlc(num_short_term_ref_pic_sets);
+  out.write_uvlc(num_short_term_ref_pic_sets);
 
   // --- allocate reference pic set ---
 
@@ -1043,24 +1043,24 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
     // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
   }
 
-  out->write_bit(long_term_ref_pics_present_flag);
+  out.write_bit(long_term_ref_pics_present_flag);
 
   if (long_term_ref_pics_present_flag) {
 
     if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
-    out->write_uvlc(num_long_term_ref_pics_sps);
+    out.write_uvlc(num_long_term_ref_pics_sps);
 
     for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
-      out->write_bits(lt_ref_pic_poc_lsb_sps[i], log2_max_pic_order_cnt_lsb);
-      out->write_bit (used_by_curr_pic_lt_sps_flag[i]);
+      out.write_bits(lt_ref_pic_poc_lsb_sps[i], log2_max_pic_order_cnt_lsb);
+      out.write_bit (used_by_curr_pic_lt_sps_flag[i]);
     }
   }
 
-  out->write_bit(sps_temporal_mvp_enabled_flag);
-  out->write_bit(strong_intra_smoothing_enable_flag);
-  out->write_bit(vui_parameters_present_flag);
+  out.write_bit(sps_temporal_mvp_enabled_flag);
+  out.write_bit(strong_intra_smoothing_enable_flag);
+  out.write_bit(vui_parameters_present_flag);
 
 #if 0
   if (vui_parameters_present_flag) {
@@ -1138,4 +1138,3 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder* out)
 
   return DE265_OK;
 }
-

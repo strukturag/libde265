@@ -127,7 +127,7 @@ public:
   slice_segment_header() { }
 
   de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
-  de265_error write(error_queue*, CABAC_encoder*,
+  de265_error write(error_queue*, CABAC_encoder&,
                     const seq_parameter_set* sps,
                     const pic_parameter_set* pps,
                     uint8_t nal_unit_type);

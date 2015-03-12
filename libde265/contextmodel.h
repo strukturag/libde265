@@ -30,7 +30,13 @@
 #include <string.h>
 
 
-enum context_model_indices {
+typedef struct {
+  uint8_t MPSbit : 1;
+  uint8_t state  : 7;
+} context_model;
+
+
+enum context_model_index {
   // SAO
   CONTEXT_MODEL_SAO_MERGE_FLAG = 0,
   CONTEXT_MODEL_SAO_TYPE_IDX   = CONTEXT_MODEL_SAO_MERGE_FLAG +1,
@@ -89,7 +95,6 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
                              int QPY);
 
 
-
 class context_model_table2
 {
  public:
@@ -100,16 +105,23 @@ class context_model_table2
   void init(int initType, int QPY);
   void release();
   void decouple();
+  context_model_table2 transfer();
+  context_model_table2 copy() const { context_model_table2 t=*this; t.decouple(); return t; }
 
   context_model& operator[](int i) { return model[i]; }
 
   context_model_table2& operator=(const context_model_table2&);
+
+  //void set_may_be_modified(bool flag=true) { mMayBeModified=flag; }
+  //bool may_be_modified() const { return mMayBeModified; }
 
  private:
   void decouple_or_alloc_with_empty_data();
 
   context_model* model; // [CONTEXT_MODEL_TABLE_LENGTH]
   int* refcnt;
+
+  bool mMayBeModified;
 };
 
 

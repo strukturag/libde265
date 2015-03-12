@@ -96,23 +96,34 @@ class encoder_context : public base_context
 
   // --- CABAC output and rate estimation ---
 
-  CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
-  context_model*  ctx_model;  // currently active ctx models (estim or bitstream)
+  //CABAC_encoder*  cabac;      // currently active CABAC output (estim or bitstream)
+  //context_model_table2* ctx_model;  // currently active ctx models (estim or bitstream)
 
   // CABAC bitstream writer
-  CABAC_encoder_bitstream cabac_bitstream;
-  context_model_table     ctx_model_bitstream;
+  CABAC_encoder_bitstream cabac_encoder;
+  context_model_table2    cabac_ctx_models;
+
+  //std::shared_ptr<CABAC_encoder> cabac_estim;
 
 
-  void switch_CABAC(context_model_table model, CABAC_encoder* cabac_impl) {
-    cabac      = cabac_impl;
+  /*** TODO: CABAC_encoder direkt an encode-Funktion übergeben, anstatt hier
+       aussenrum zwischenzuspeichern (mit undefinierter Lifetime).
+       Das Context-Model kann dann gleich mit in den Encoder rein cabac_encoder(ctxtable).
+       write_bits() wird dann mit dem context-index aufgerufen, nicht mit dem model direkt.
+  ***/
+
+
+  /*
+  void switch_CABAC(context_model_table2* model) {
+    cabac      = cabac_estim.get();
     ctx_model  = model;
   }
 
   void switch_CABAC_to_bitstream() {
     cabac     = &cabac_bitstream;
-    ctx_model = ctx_model_bitstream;
+    ctx_model = &ctx_model_bitstream;
   }
+  */
 
   en265_packet* create_packet(en265_packet_content_type t);
 

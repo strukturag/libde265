@@ -31,7 +31,7 @@
 
 
 enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
-                                             context_model_table ctxModel,
+                                             context_model_table2& ctxModel,
                                              enc_cb* cb)
 {
   assert(cb->pcm_flag==0);
@@ -40,16 +40,17 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
   bool try_intra = true;
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
-  //try_intra = !try_inter;
 
   // 0: intra
   // 1: inter
 
   CodingOptions options(ectx);
   options.set_input(cb,ctxModel);
-  options.activate_option(0, try_intra);
-  options.activate_option(1, try_inter);
 
+  CodingOption option_intra = options.new_option(try_intra);
+  CodingOption option_inter = options.new_option(try_inter);
+
+  options.start(false);
 
   enc_cb* cb_inter = NULL;
   enc_cb* cb_intra = NULL;
@@ -60,35 +61,34 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
   // try encoding with inter
 
-  if (try_inter) {
-    options.begin_reconstruction(1);
-    cb_inter = options.get_cb(1);
+  if (option_inter) {
+    option_inter.begin_reconstruction();
+    cb_inter = option_inter.get_cb();
 
     cb_inter->PredMode = MODE_INTER;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
 
-    options.set_cb(1, mInterAlgo->analyze(ectx, options.get_context(1), cb_inter));
+    option_inter.set_cb( mInterAlgo->analyze(ectx, option_inter.get_context(), cb_inter));
 
-    options.end_reconstruction(1);
+    option_inter.end_reconstruction();
   }
 
 
   // try intra
 
-  if (try_intra) {
-    options.begin_reconstruction(0);
-    cb_intra = options.get_cb(0);
+  if (option_intra) {
+    option_intra.begin_reconstruction();
+    cb_intra = option_intra.get_cb();
 
     cb_intra->PredMode = MODE_INTRA;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTRA);
 
-    options.set_cb(0, mIntraAlgo->analyze(ectx, options.get_context(0), cb_intra));
+    option_intra.set_cb( mIntraAlgo->analyze(ectx, option_intra.get_context(), cb_intra));
 
-    options.end_reconstruction(0);
+    option_intra.end_reconstruction();
   }
 
 
   options.compute_rdo_costs();
   return options.return_best_rdo();
 }
-

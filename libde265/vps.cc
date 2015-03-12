@@ -199,7 +199,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
       }
     }
   }
-  
+
   vps_extension_flag = get_bits(reader,1);
 
   if (vps_extension_flag) {
@@ -214,19 +214,19 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 }
 
 
-de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder* out) const
+de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out) const
 {
   if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  out->write_bits(video_parameter_set_id,4);
+  out.write_bits(video_parameter_set_id,4);
 
-  out->write_bits(0x3,2);
-  out->write_bits(vps_max_layers-1,6);
+  out.write_bits(0x3,2);
+  out.write_bits(vps_max_layers-1,6);
 
   if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  out->write_bits(vps_max_sub_layers-1,3);
+  out.write_bits(vps_max_sub_layers-1,3);
 
-  out->write_bit(vps_temporal_id_nesting_flag);
-  out->write_bits(0xFFFF, 16);
+  out.write_bit(vps_temporal_id_nesting_flag);
+  out.write_bits(0xFFFF, 16);
 
   profile_tier_level_.write(out, vps_max_sub_layers);
 
@@ -235,15 +235,15 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder* out
                               0, vps_max_sub_layers-1);
   */
 
-  out->write_bit(vps_sub_layer_ordering_info_present_flag);
+  out.write_bit(vps_sub_layer_ordering_info_present_flag);
   //assert(vps_max_sub_layers-1 < MAX_TEMPORAL_SUBLAYERS);
 
   int firstLayerRead = vps_sub_layer_ordering_info_present_flag ? 0 : (vps_max_sub_layers-1);
 
   for (int i=firstLayerRead;i<vps_max_sub_layers;i++) {
-    out->write_uvlc(layer[i].vps_max_dec_pic_buffering);
-    out->write_uvlc(layer[i].vps_max_num_reorder_pics);
-    out->write_uvlc(layer[i].vps_max_latency_increase);
+    out.write_uvlc(layer[i].vps_max_dec_pic_buffering);
+    out.write_uvlc(layer[i].vps_max_num_reorder_pics);
+    out.write_uvlc(layer[i].vps_max_latency_increase);
   }
 
   if (vps_num_layer_sets<0 ||
@@ -252,31 +252,31 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder* out
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  out->write_bits(vps_max_layer_id,6);
-  out->write_uvlc(vps_num_layer_sets-1);
+  out.write_bits(vps_max_layer_id,6);
+  out.write_uvlc(vps_num_layer_sets-1);
 
   for (int i=1; i <= vps_num_layer_sets-1; i++)
     for (int j=0; j <= vps_max_layer_id; j++)
       {
-        out->write_bit(layer_id_included_flag[i][j]);
+        out.write_bit(layer_id_included_flag[i][j]);
       }
 
-  out->write_bit(vps_timing_info_present_flag);
+  out.write_bit(vps_timing_info_present_flag);
 
   if (vps_timing_info_present_flag) {
-    out->write_bits(vps_num_units_in_tick,32);
-    out->write_bits(vps_time_scale       ,32);
-    out->write_bit (vps_poc_proportional_to_timing_flag);
+    out.write_bits(vps_num_units_in_tick,32);
+    out.write_bits(vps_time_scale       ,32);
+    out.write_bit (vps_poc_proportional_to_timing_flag);
 
     if (vps_poc_proportional_to_timing_flag) {
-      out->write_uvlc(vps_num_ticks_poc_diff_one-1);
-      out->write_uvlc(vps_num_hrd_parameters);
+      out.write_uvlc(vps_num_ticks_poc_diff_one-1);
+      out.write_uvlc(vps_num_hrd_parameters);
 
       for (int i=0; i<vps_num_hrd_parameters; i++) {
-        out->write_uvlc(hrd_layer_set_idx[i]);
+        out.write_uvlc(hrd_layer_set_idx[i]);
 
         if (i > 0) {
-          out->write_bit(cprms_present_flag[i]);
+          out.write_bit(cprms_present_flag[i]);
         }
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
@@ -285,8 +285,8 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder* out
       }
     }
   }
-  
-  out->write_bit(vps_extension_flag);
+
+  out.write_bit(vps_extension_flag);
 
   if (vps_extension_flag) {
     /*
@@ -357,33 +357,33 @@ void profile_tier_level::read(bitreader* reader,
 }
 
 
-void profile_data::write(CABAC_encoder* out) const
+void profile_data::write(CABAC_encoder& out) const
 {
   if (profile_present_flag)
     {
-      out->write_bits(profile_space,2);
-      out->write_bit (tier_flag);
-      out->write_bits(profile_idc,5);
+      out.write_bits(profile_space,2);
+      out.write_bit (tier_flag);
+      out.write_bits(profile_idc,5);
 
       for (int j=0; j<32; j++)
         {
-          out->write_bit(profile_compatibility_flag[j]);
+          out.write_bit(profile_compatibility_flag[j]);
         }
 
-      out->write_bit(progressive_source_flag);
-      out->write_bit(interlaced_source_flag);
-      out->write_bit(non_packed_constraint_flag);
-      out->write_bit(frame_only_constraint_flag);
-      out->skip_bits(44);
+      out.write_bit(progressive_source_flag);
+      out.write_bit(interlaced_source_flag);
+      out.write_bit(non_packed_constraint_flag);
+      out.write_bit(frame_only_constraint_flag);
+      out.skip_bits(44);
     }
 
   if (level_present_flag)
     {
-      out->write_bits(level_idc,8);
+      out.write_bits(level_idc,8);
     }
 }
 
-void profile_tier_level::write(CABAC_encoder* out, int max_sub_layers) const
+void profile_tier_level::write(CABAC_encoder& out, int max_sub_layers) const
 {
   assert(general.profile_present_flag==true);
   assert(general.level_present_flag==true);
@@ -392,15 +392,15 @@ void profile_tier_level::write(CABAC_encoder* out, int max_sub_layers) const
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      out->write_bit(sub_layer[i].profile_present_flag);
-      out->write_bit(sub_layer[i].level_present_flag);
+      out.write_bit(sub_layer[i].profile_present_flag);
+      out.write_bit(sub_layer[i].level_present_flag);
     }
 
   if (max_sub_layers > 1)
     {
       for (int i=max_sub_layers-1; i<8; i++)
         {
-          out->skip_bits(2);
+          out.skip_bits(2);
         }
     }
 
@@ -510,7 +510,7 @@ void video_parameter_set::dump(int fd) const
       }
     }
   }
-  
+
   LOG1("vps_extension_flag = %d\n", vps_extension_flag);
 }
 

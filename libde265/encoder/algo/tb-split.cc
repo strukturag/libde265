@@ -82,7 +82,7 @@ void encode_transform_unit(encoder_context* ectx,
       xC >>= 1;
       yC >>= 1;
     }
-  
+
     //printf("I %d;%d mode %d tb %d (%d)\n",xC,yC,intraPredMode,tbSize,cIdx);
 
     decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
@@ -123,7 +123,7 @@ void encode_transform_unit(encoder_context* ectx,
 
 
 const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                             context_model_table ctxModel,
+                                             context_model_table2& ctxModel,
                                              const de265_image* input,
                                              const enc_tb* parent,
                                              enc_cb* cb,
@@ -207,9 +207,10 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   // measure rate
 
   CABAC_encoder_estim estim;
-  ectx->switch_CABAC(ctxModel, &estim);
+  estim.set_context_models(&ctxModel);
+  //ectx->switch_CABAC(&ctxModel, &estim);
 
-  encode_transform_tree(ectx, tb, cb, x0,y0, xBase,yBase,
+  encode_transform_tree(ectx,&estim, tb, cb, x0,y0, xBase,yBase,
                         log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
 
 
@@ -233,7 +234,7 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
 
 const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
-                                                         context_model_table ctxModel,
+                                                         context_model_table2& ctxModel,
                                                          const de265_image* input,
                                                          const enc_tb* parent,
                                                          enc_cb* cb,
@@ -270,7 +271,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
-  }  
+  }
 
   tb->set_cbf_flags_from_children();
 
@@ -278,9 +279,10 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   // --- add rate for this TB level ---
 
   CABAC_encoder_estim estim;
-  ectx->switch_CABAC(ctxModel, &estim);
+  //ectx->switch_CABAC(&ctxModel, &estim);
+  estim.set_context_models(&ctxModel);
 
-  encode_transform_tree(ectx, tb, cb,
+  encode_transform_tree(ectx,&estim, tb, cb,
                         x0,y0, x0,y0,
                         log2TbSize, TrafoDepth, 0 /* blkIdx */,
                         MaxTrafoDepth, IntraSplitFlag, false);
@@ -290,24 +292,6 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   return tb;
 }
 
-
-
-class Logging
-{
-public:
-  virtual ~Logging() { }
-
-  static void print_logging(const encoder_context* ectx, const char* id, const char* filename);
-
-  virtual const char* name() const = 0;
-  virtual void print(const encoder_context* ectx, const char* filename) = 0;
-};
-
-
-void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename)
-{
-  Logging::print_logging(ectx,id,filename);
-}
 
 
 struct Logging_TB_Split : public Logging
@@ -357,17 +341,10 @@ struct Logging_TB_Split : public Logging
 } logging_tb_split;
 
 
-void Logging::print_logging(const encoder_context* ectx, const char* id, const char* filename)
-{
-  if (strcmp(id,logging_tb_split.name())==0) {
-    logging_tb_split.print(ectx,filename);
-  }
-}
-
 
 const enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
-                                  context_model_table ctxModel,
+                                  context_model_table2& ctxModel,
                                   const de265_image* input,
                                   const enc_tb* parent,
                                   enc_cb* cb,
@@ -384,9 +361,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
-  context_model_table ctxSplit;
+  context_model_table2 ctxSplit;
   if (test_split) {
-    copy_context_model_table(ctxSplit, ctxModel);
+    ctxSplit = ctxModel.copy();
+    //copy_context_model_table(ctxSplit, ctxModel);
   }
 
 
@@ -432,7 +410,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
-    
+
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
     //printf("-\n");
   }
@@ -466,5 +444,3 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     return tb_no_split;
   }
 }
-
-

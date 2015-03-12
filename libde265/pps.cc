@@ -526,48 +526,48 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 }
 
 
-bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder* out,
+bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
                               const seq_parameter_set* sps)
 {
   if (pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
     errqueue->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return false;
   }
-  out->write_uvlc(pic_parameter_set_id);
+  out.write_uvlc(pic_parameter_set_id);
 
   if (seq_parameter_set_id >= DE265_MAX_PPS_SETS) {
     errqueue->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
-  out->write_uvlc(seq_parameter_set_id);
+  out.write_uvlc(seq_parameter_set_id);
 
-  out->write_bit(dependent_slice_segments_enabled_flag);
-  out->write_bit(output_flag_present_flag);
-  out->write_bits(num_extra_slice_header_bits,3);
-  out->write_bit(sign_data_hiding_flag);
-  out->write_bit(cabac_init_present_flag);
-  out->write_uvlc(num_ref_idx_l0_default_active-1);
-  out->write_uvlc(num_ref_idx_l1_default_active-1);
+  out.write_bit(dependent_slice_segments_enabled_flag);
+  out.write_bit(output_flag_present_flag);
+  out.write_bits(num_extra_slice_header_bits,3);
+  out.write_bit(sign_data_hiding_flag);
+  out.write_bit(cabac_init_present_flag);
+  out.write_uvlc(num_ref_idx_l0_default_active-1);
+  out.write_uvlc(num_ref_idx_l1_default_active-1);
 
-  out->write_svlc(pic_init_qp-26);
+  out.write_svlc(pic_init_qp-26);
 
-  out->write_bit(constrained_intra_pred_flag);
-  out->write_bit(transform_skip_enabled_flag);
-  out->write_bit(cu_qp_delta_enabled_flag);
+  out.write_bit(constrained_intra_pred_flag);
+  out.write_bit(transform_skip_enabled_flag);
+  out.write_bit(cu_qp_delta_enabled_flag);
 
   if (cu_qp_delta_enabled_flag) {
-    out->write_uvlc(diff_cu_qp_delta_depth);
+    out.write_uvlc(diff_cu_qp_delta_depth);
   }
 
-  out->write_svlc(pic_cb_qp_offset);
-  out->write_svlc(pic_cr_qp_offset);
+  out.write_svlc(pic_cb_qp_offset);
+  out.write_svlc(pic_cr_qp_offset);
 
-  out->write_bit(pps_slice_chroma_qp_offsets_present_flag);
-  out->write_bit(weighted_pred_flag);
-  out->write_bit(weighted_bipred_flag);
-  out->write_bit(transquant_bypass_enable_flag);
-  out->write_bit(tiles_enabled_flag);
-  out->write_bit(entropy_coding_sync_enabled_flag);
+  out.write_bit(pps_slice_chroma_qp_offsets_present_flag);
+  out.write_bit(weighted_pred_flag);
+  out.write_bit(weighted_bipred_flag);
+  out.write_bit(transquant_bypass_enable_flag);
+  out.write_bit(tiles_enabled_flag);
+  out.write_bit(entropy_coding_sync_enabled_flag);
 
 
   // --- tiles ---
@@ -577,49 +577,49 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder* out,
       errqueue->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    out->write_uvlc(num_tile_columns-1);
+    out.write_uvlc(num_tile_columns-1);
 
     if (num_tile_rows > DE265_MAX_TILE_ROWS) {
       errqueue->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    out->write_uvlc(num_tile_rows-1);
+    out.write_uvlc(num_tile_rows-1);
 
-    out->write_bit(uniform_spacing_flag);
+    out.write_bit(uniform_spacing_flag);
 
     if (uniform_spacing_flag==false) {
       for (int i=0; i<num_tile_columns-1; i++)
         {
-          out->write_uvlc(colWidth[i]-1);
+          out.write_uvlc(colWidth[i]-1);
         }
 
       for (int i=0; i<num_tile_rows-1; i++)
         {
-          out->write_uvlc(rowHeight[i]-1);
+          out.write_uvlc(rowHeight[i]-1);
         }
     }
 
-    out->write_bit(loop_filter_across_tiles_enabled_flag);
+    out.write_bit(loop_filter_across_tiles_enabled_flag);
   }
 
 
-  out->write_bit(pps_loop_filter_across_slices_enabled_flag);
-  out->write_bit(deblocking_filter_control_present_flag);
+  out.write_bit(pps_loop_filter_across_slices_enabled_flag);
+  out.write_bit(deblocking_filter_control_present_flag);
 
   if (deblocking_filter_control_present_flag) {
-    out->write_bit(deblocking_filter_override_enabled_flag);
-    out->write_bit(pic_disable_deblocking_filter_flag);
+    out.write_bit(deblocking_filter_override_enabled_flag);
+    out.write_bit(pic_disable_deblocking_filter_flag);
 
     if (!pic_disable_deblocking_filter_flag) {
-      out->write_svlc(beta_offset/2);
-      out->write_svlc(tc_offset  /2);
+      out.write_svlc(beta_offset/2);
+      out.write_svlc(tc_offset  /2);
     }
   }
 
 
   // --- scaling list ---
 
-  out->write_bit(pic_scaling_list_data_present_flag);
+  out.write_bit(pic_scaling_list_data_present_flag);
 
   // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
   // must be FALSE
@@ -639,11 +639,11 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder* out,
 
 
 
-  out->write_bit(lists_modification_present_flag);
-  out->write_uvlc(log2_parallel_merge_level-2);
+  out.write_bit(lists_modification_present_flag);
+  out.write_uvlc(log2_parallel_merge_level-2);
 
-  out->write_bit(slice_segment_header_extension_present_flag);
-  out->write_bit(pps_extension_flag);
+  out.write_bit(slice_segment_header_extension_present_flag);
+  out.write_bit(pps_extension_flag);
 
   if (pps_extension_flag) {
     //assert(false);

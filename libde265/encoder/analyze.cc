@@ -115,7 +115,8 @@ double encode_image(encoder_context* ectx,
   ectx->active_qp = ectx->pps.pic_init_qp; // TODO take current qp from slice
 
 
-  initialize_CABAC_models(ectx->ctx_model, ectx->shdr->initType, ectx->shdr->SliceQPY);
+  ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
+  ectx->cabac_encoder.set_context_models(&ectx->cabac_ctx_models);
 
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;
 
@@ -138,8 +139,9 @@ double encode_image(encoder_context* ectx,
 
         // make a copy of the context model that we can modify for testing alternatives
 
-        context_model_table ctxModel;
-        copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
+        context_model_table2 ctxModel;
+        //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
+        ctxModel = ectx->cabac_ctx_models.copy();
 
 #if 1
         /*
@@ -175,16 +177,16 @@ double encode_image(encoder_context* ectx,
 
         // --- write bitstream ---
 
-        ectx->switch_CABAC_to_bitstream();
+        //ectx->switch_CABAC_to_bitstream();
         //int preSize = ectx->cabac->size();
-        encode_ctb(ectx, cb, x,y);
+        encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
         //int postSize = ectx->cabac->size();
         //printf("real: %d  estim: %f\n",postSize-preSize, cb->rate/8);
 
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&
                     x==ectx->sps.PicWidthInCtbsY-1);
-        ectx->cabac_bitstream.write_CABAC_term_bit(last);
+        ectx->cabac_encoder.write_CABAC_term_bit(last);
 
 
         delete cb;
@@ -261,4 +263,20 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
 
 
   algo_TB_IntraPredMode->enableIntraPredModeSubset( params.mAlgo_TB_IntraPredMode_Subset() );
+}
+
+
+void Logging::print_logging(const encoder_context* ectx, const char* id, const char* filename)
+{
+#if 000
+  if (strcmp(id,logging_tb_split.name())==0) {
+    logging_tb_split.print(ectx,filename);
+  }
+#endif
+}
+
+
+void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename)
+{
+  Logging::print_logging(ectx,id,filename);
 }

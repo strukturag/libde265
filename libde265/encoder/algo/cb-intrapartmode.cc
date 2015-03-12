@@ -33,7 +33,7 @@
 
 
 enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
-                                                  context_model_table ctxModel,
+                                                  context_model_table2& ctxModel,
                                                   enc_cb* cb_in)
 {
   const int log2CbSize = cb_in->log2Size;
@@ -54,13 +54,18 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
   CodingOptions options(ectx);
   options.set_input(cb_in,ctxModel);
-  options.activate_option(0, true);
-  options.activate_option(1, can_use_NxN);
+  CodingOption option[2];
+  option[0] = options.new_option(true);
+  option[1] = options.new_option(can_use_NxN);
+
+  CABAC_encoder_estim estim;
+  options.start(estim.modifies_context());
 
   for (int p=0;p<2;p++)
-    if (options.is_active(p)) {
-      enc_cb* cb = options.get_cb(p);
-      options.begin_reconstruction(p);
+    if (option[p]) {
+      option[p].begin_reconstruction();
+
+      enc_cb* cb = option[p].get_cb();
 
       // --- set intra prediction mode ---
 
@@ -74,7 +79,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
       int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
-      cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
+      cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, option[p].get_context(),
                                                          ectx->imgdata->input, NULL, cb,
                                                          x,y, x,y, log2CbSize,
                                                          0,
@@ -86,12 +91,13 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
       // rate for cu syntax
 
-      CABAC_encoder_estim estim;
-      ectx->switch_CABAC(ctxModel, &estim);
-      encode_coding_unit(ectx,cb,x,y,log2CbSize, false);
+      estim.reset();
+      estim.set_context_models( &option[p].get_context() );
+      //ectx->switch_CABAC(ctxModel, &estim);
+      encode_coding_unit(ectx,&estim, cb,x,y,log2CbSize, false);
       cb->rate += estim.getRDBits();
 
-      options.end_reconstruction(p);
+      option[p].end_reconstruction();
     }
 
   options.compute_rdo_costs();
@@ -100,7 +106,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
 
 enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
-                                             context_model_table ctxModel,
+                                             context_model_table2& ctxModel,
                                              enc_cb* cb)
 {
   enum PartMode PartMode = mParams.partMode();
@@ -135,7 +141,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                                      cb->x,cb->y, cb->x,cb->y, log2CbSize,
                                                      0,
                                                      0, MaxTrafoDepth, IntraSplitFlag);
-  
+
 
   // rate and distortion for this CB
 
@@ -146,11 +152,8 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   // rate for cu syntax
 
   CABAC_encoder_estim estim;
-  ectx->switch_CABAC(ctxModel, &estim);
-  encode_coding_unit(ectx,cb,x,y,log2CbSize, false);
+  encode_coding_unit(ectx,&estim,cb,x,y,log2CbSize, false);
   cb->rate += estim.getRDBits();
 
   return cb;
 }
-
-

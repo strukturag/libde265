@@ -60,7 +60,7 @@ class Algo_CB_PredMode_BruteForce : public Algo_CB_PredMode
 {
  public:
   virtual enc_cb* analyze(encoder_context*,
-                          context_model_table,
+                          context_model_table2&,
                           enc_cb* cb);
 };
 

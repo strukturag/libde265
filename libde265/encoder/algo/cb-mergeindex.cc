@@ -31,7 +31,7 @@
 
 
 enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
-                                          context_model_table ctxModel,
+                                          context_model_table2& ctxModel,
                                           enc_cb* cb)
 {
   assert(cb->split_cu_flag==false);
@@ -105,7 +105,6 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   }
 
   //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);
-    
+
   return cb;
 }
-

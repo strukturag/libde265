@@ -34,7 +34,7 @@
 void ref_pic_set::compute_derived_values()
 {
   NumPocTotalCurr_shortterm_only = 0;
-  
+
   for (int i=0; i<NumNegativePics; i++)
     if (UsedByCurrPicS0[i])
       NumPocTotalCurr_shortterm_only++;
@@ -266,7 +266,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
 bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
                                          const seq_parameter_set* sps,
-                                         CABAC_encoder* out,
+                                         CABAC_encoder& out,
                                          const ref_pic_set* in_set, // which set to write
                                          int idxRps,  // index of the set to be written
                                          const std::vector<ref_pic_set>& sets, // previously read sets
@@ -274,14 +274,14 @@ bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
 {
   if (idxRps != 0) {
     // inter_ref_pic_set_prediction_flag
-    out->write_bit(0);
+    out.write_bit(0);
   }
 
 
   // --- first, write the number of past and future frames in this set ---
 
-  out->write_uvlc(in_set->NumNegativePics);
-  out->write_uvlc(in_set->NumPositivePics);
+  out.write_uvlc(in_set->NumNegativePics);
+  out.write_uvlc(in_set->NumPositivePics);
 
   // --- now, write the deltas between the reference frames to fill the lists ---
 
@@ -293,8 +293,8 @@ bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
     char used_by_curr_pic_s0_flag = in_set->UsedByCurrPicS0[i];
 
     assert(delta_poc_s0 >= 1);
-    out->write_uvlc(delta_poc_s0-1);
-    out->write_bit(used_by_curr_pic_s0_flag);
+    out.write_uvlc(delta_poc_s0-1);
+    out.write_bit(used_by_curr_pic_s0_flag);
     lastPocS = in_set->DeltaPocS0[i];
   }
 
@@ -306,8 +306,8 @@ bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
     char used_by_curr_pic_s1_flag = in_set->UsedByCurrPicS1[i];
 
     assert(delta_poc_s1 >= 1);
-    out->write_uvlc(delta_poc_s1-1);
-    out->write_bit(used_by_curr_pic_s1_flag);
+    out.write_uvlc(delta_poc_s1-1);
+    out.write_bit(used_by_curr_pic_s1_flag);
     lastPocS = in_set->DeltaPocS1[i];
   }
 
@@ -317,7 +317,7 @@ bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
 
 bool write_short_term_ref_pic_set(error_queue* errqueue,
                                   const seq_parameter_set* sps,
-                                  CABAC_encoder* out,
+                                  CABAC_encoder& out,
                                   const ref_pic_set* in_set, // which set to write
                                   int idxRps,  // index of the set to be read
                                   const std::vector<ref_pic_set>& sets, // previously read sets

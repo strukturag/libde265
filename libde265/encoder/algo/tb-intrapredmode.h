@@ -97,7 +97,7 @@ class Algo_TB_IntraPredMode
   virtual ~Algo_TB_IntraPredMode() { }
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,
@@ -184,7 +184,7 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
  public:
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,
@@ -221,7 +221,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,
@@ -254,7 +254,7 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
   }
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,

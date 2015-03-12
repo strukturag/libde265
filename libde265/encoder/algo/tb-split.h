@@ -61,7 +61,7 @@ class Algo_TB_Split
   virtual ~Algo_TB_Split() { }
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,
@@ -73,7 +73,7 @@ class Algo_TB_Split
 
  protected:
   const enc_tb* encode_transform_tree_split(encoder_context* ectx,
-                                            context_model_table ctxModel,
+                                            context_model_table2& ctxModel,
                                             const de265_image* input,
                                             const enc_tb* parent,
                                             enc_cb* cb,
@@ -124,7 +124,7 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
   }
 
   virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table,
+                                context_model_table2&,
                                 const de265_image* input,
                                 const enc_tb* parent,
                                 enc_cb* cb,

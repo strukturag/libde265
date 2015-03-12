@@ -32,7 +32,7 @@
 
 
 enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
-                                          context_model_table ctxModel,
+                                          context_model_table2& ctxModel,
                                           int ctb_x,int ctb_y)
 {
   enc_cb* cb = new enc_cb();
@@ -51,8 +51,6 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->qp = ectx->active_qp;
   ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, cb->qp);
 
+  assert(mChildAlgo);
   return mChildAlgo->analyze(ectx,ctxModel,cb);
 }
-
-
-
