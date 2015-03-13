@@ -24,26 +24,19 @@
 #include "libde265/encoder/encoder-context.h"
 
 
-CodingOptions::CodingOptions(encoder_context* ectx, int nOptions)
+CodingOptions::CodingOptions(encoder_context* ectx, enc_cb* cb, context_model_table& tab)
 {
-  mCBInput = NULL;
-  mContextModelInput = NULL;
+  mCBInput = cb;
+  mContextModelInput = &tab;
+
   mCurrentlyReconstructedOption=-1;
   mBestRDO=-1;
-
-  mOptions.reserve(nOptions);
 
   mECtx = ectx;
 }
 
 CodingOptions::~CodingOptions()
 {
-}
-
-void CodingOptions::set_input(enc_cb* cb, context_model_table& tab)
-{
-  mCBInput = cb;
-  mContextModelInput = &tab;
 }
 
 CodingOption CodingOptions::new_option(bool active)
@@ -73,26 +66,47 @@ CodingOption CodingOptions::new_option(bool active)
 }
 
 
-void CodingOptions::start(bool will_modify_context_model)
+void CodingOptions::start(enum RateEstimationMethod rateMethod)
 {
   /* We don't need the input context model anymore.
      Releasing it now may save a copy during a later decouple().
   */
   mContextModelInput->release();
 
-  if (will_modify_context_model) {
+  bool adaptiveContext;
+  switch (rateMethod) {
+  case Rate_Default:
+    adaptiveContext = mECtx->use_adaptive_context;
+    break;
+  case Rate_FixedContext:
+    adaptiveContext = false;
+    break;
+  case Rate_AdaptiveContext:
+    adaptiveContext = true;
+    break;
+  }
+
+  if (adaptiveContext) {
     /* If we modify the context models in this algorithm,
        we need separate models for each option.
     */
     for (auto option : mOptions) {
       option.context.decouple();
     }
+
+    cabac = &cabac_adaptive;
+  }
+  else {
+    cabac = &cabac_constant;
   }
 }
 
 
-void CodingOption::begin_reconstruction()
+void CodingOption::begin()
 {
+  mParent->cabac->reset();
+  mParent->cabac->set_context_models( &get_context() );
+
   if (mParent->mCurrentlyReconstructedOption >= 0) {
     mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
   }
@@ -100,7 +114,7 @@ void CodingOption::begin_reconstruction()
   mParent->mCurrentlyReconstructedOption = mOptionIdx;
 }
 
-void CodingOption::end_reconstruction()
+void CodingOption::end()
 {
   assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
 }

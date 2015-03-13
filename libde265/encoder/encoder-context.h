@@ -105,6 +105,8 @@ class encoder_context : public base_context
 
   //std::shared_ptr<CABAC_encoder> cabac_estim;
 
+  bool use_adaptive_context;
+
 
   /*** TODO: CABAC_encoder direkt an encode-Funktion übergeben, anstatt hier
        aussenrum zwischenzuspeichern (mit undefinierter Lifetime).

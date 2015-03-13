@@ -32,16 +32,21 @@ class CodingOption;
 class CodingOptions
 {
  public:
-  CodingOptions(encoder_context*, int nOptions=2);
+  CodingOptions(encoder_context*, enc_cb*, context_model_table& tab);
   ~CodingOptions();
 
   // --- init --- call before object use
 
-  void set_input(enc_cb*, context_model_table& tab);
-
   CodingOption new_option(bool active=true);
 
-  void start(bool will_modify_context_model);
+  enum RateEstimationMethod
+  {
+    Rate_Default,
+    Rate_AdaptiveContext,
+    Rate_FixedContext
+  };
+
+  void start(enum RateEstimationMethod = Rate_Default);
 
 
   // --- processing ---
@@ -78,6 +83,10 @@ class CodingOptions
 
   std::vector<CodingOptionData> mOptions;
 
+  CABAC_encoder_estim           cabac_adaptive;
+  CABAC_encoder_estim_constant  cabac_constant;
+  CABAC_encoder_estim*          cabac;
+
   friend class CodingOption;
 };
 
@@ -101,12 +110,15 @@ class CodingOption
      encapsulate the modification between these two functions to ensure
      that the correct reconstruction will be active after return_best_rdo().
    */
-  void begin_reconstruction();
-  void end_reconstruction();
+  void begin();
+  void end();
 
   // Manually set RDO costs instead of computing them with compute_rdo_costs.
   // Only required when using custom costs.
   void set_rdo_cost(float rdo) { mParent->mOptions[mOptionIdx].rdoCost=rdo; }
+
+  CABAC_encoder_estim* get_cabac() { return mParent->cabac; }
+  float get_cabac_rate() const { return mParent->cabac->getRDBits(); }
 
 private:
   CodingOption(class CodingOptions* parent, int idx)

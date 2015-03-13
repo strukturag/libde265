@@ -69,8 +69,6 @@ class Algo_CB_Split : public Algo_CB
  protected:
   Algo_CB_PredMode* mPredModeAlgo;
 
-  bool isForcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const;
-
   enc_cb* encode_cb_split(encoder_context* ectx,
                           context_model_table& ctxModel,
                           enc_cb* cb);

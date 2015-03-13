@@ -42,6 +42,8 @@ encoder_context::encoder_context()
   param_image_allocation_userdata = NULL;
   release_func = NULL;
 
+  use_adaptive_context = false;
+
   //enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
   //switch_CABAC_to_bitstream();

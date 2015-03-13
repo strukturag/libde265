@@ -33,16 +33,6 @@
 
 
 
-bool Algo_CB_Split::isForcedSplit(const de265_image* input, int x0,int y0, int Log2CbSize) const
-{
-  int w = input->get_width();
-  int h = input->get_height();
-  int cbSize = (1<<Log2CbSize);
-
-  if (x0+cbSize > w) return true;
-  if (y0+cbSize > h) return true;
-  return false;
-}
 
 
 // Utility function to encode all four children in a splitted CB.
@@ -111,15 +101,15 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
 enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table& ctxModel,
-                                          enc_cb* cb)
+                                          enc_cb* cb_input)
 {
-  assert(cb->pcm_flag==0);
+  assert(cb_input->pcm_flag==0);
 
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
-  const int Log2CbSize = cb->log2Size;
+  const int Log2CbSize = cb_input->log2Size;
 
-  const SplitType split_type = get_split_type(&ectx->sps, cb->x,cb->y,Log2CbSize);
+  const SplitType split_type = get_split_type(&ectx->sps, cb_input->x,cb_input->y, Log2CbSize);
 
   const bool can_split_CB   = (split_type != ForcedNonSplit);
   const bool can_nosplit_CB = (split_type != ForcedSplit);
@@ -127,46 +117,52 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   //const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
   //const bool can_nosplit_CB = !isForcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
 
-  CodingOptions options(ectx, 2);
-  options.set_input(cb, ctxModel);
+  CodingOptions options(ectx, cb_input, ctxModel);
 
   CodingOption option_split    = options.new_option(can_split_CB);
   CodingOption option_no_split = options.new_option(can_nosplit_CB);
 
-  options.start( false );
+  options.start();
 
-  // try encoding without splitting
+  // encode without splitting
 
   if (option_no_split) {
-    option_no_split.begin_reconstruction();
+    CodingOption& opt = option_no_split; // abbrev.
 
+    opt.begin();
+
+    enc_cb* cb = opt.get_cb();
+
+    // set CB size in image data-structure
     ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
     ectx->img->set_log2CbSize(cb->x,cb->y,cb->log2Size, true);
 
+    // analyze subtree
     assert(mPredModeAlgo);
-    enc_cb* cb_no_split = option_no_split.get_cb();
-    cb_no_split = mPredModeAlgo->analyze(ectx, option_no_split.get_context(), cb_no_split);
+    cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
 
-    CABAC_encoder_estim estim;
-    estim.set_context_models(&option_no_split.get_context());
-    encode_split_cu_flag(ectx,&estim, cb->x,cb->y, cb->ctDepth, 0);
+    // add rate for split flag
+    encode_split_cu_flag(ectx,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
+    cb->rate += opt.get_cabac_rate();
 
-    cb_no_split->rate += estim.getRDBits();
-
-    option_no_split.set_cb(cb_no_split);
-    option_no_split.end_reconstruction();
+    opt.set_cb(cb);
+    opt.end();
   }
 
-  // if possible, try to split CB
+  // encode with splitting
 
   if (option_split) {
-    option_split.begin_reconstruction();
+    option_split.begin();
 
-    enc_cb* cb_split = option_split.get_cb();
-    cb_split = encode_cb_split(ectx, option_split.get_context(), cb_split);
+    enc_cb* cb = option_split.get_cb();
+    cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
-    option_split.set_cb(cb_split);
-    option_split.end_reconstruction();
+    // add rate for split flag
+    encode_split_cu_flag(ectx,option_split.get_cabac(), cb->x,cb->y, cb->ctDepth, 1);
+    cb->rate += option_split.get_cabac_rate();
+
+    option_split.set_cb(cb);
+    option_split.end();
   }
 
 

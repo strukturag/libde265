@@ -39,28 +39,27 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
   bool try_inter = false; // TODO
 
 #if 1
-  CodingOptions options(ectx);
-  options.set_input(cb,ctxModel);
+  CodingOptions options(ectx,cb,ctxModel);
   CodingOption option_skip  = options.new_option(try_skip);
   CodingOption option_inter = options.new_option(try_inter);
-  options.start(false);
+  options.start();
 
   if (option_skip) {
     enc_cb* cb = option_skip.get_cb();
     cb->PredMode = MODE_SKIP;
     ectx->img->set_pred_mode(cb->x,cb->y, cb->log2Size, cb->PredMode);
 
-    option_skip.begin_reconstruction();
+    option_skip.begin();
     option_skip.set_cb( mSkipAlgo->analyze(ectx, option_skip.get_context(), cb) );
-    option_skip.end_reconstruction();
+    option_skip.end();
   }
 
   if (option_inter) {
     enc_cb* cb = option_inter.get_cb();
 
-    option_inter.begin_reconstruction();
+    option_inter.begin();
     option_inter.set_cb( mInterAlgo->analyze(ectx, option_inter.get_context(), cb) );
-    option_inter.end_reconstruction();
+    option_inter.end();
   }
 
   options.compute_rdo_costs();

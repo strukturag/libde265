@@ -53,18 +53,16 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   // 0: 2Nx2N  (always checked)
   // 1:  NxN   (only checked at MinCbSize)
 
-  CodingOptions options(ectx);
-  options.set_input(cb_in,ctxModel);
+  CodingOptions options(ectx,cb_in,ctxModel);
   CodingOption option[2];
   option[0] = options.new_option(true);
   option[1] = options.new_option(can_use_NxN);
 
-  CABAC_encoder_estim estim;
-  options.start(estim.modifies_context());
+  options.start();
 
   for (int p=0;p<2;p++)
     if (option[p]) {
-      option[p].begin_reconstruction();
+      option[p].begin();
 
       enc_cb* cb = option[p].get_cb();
 
@@ -92,13 +90,10 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
       // rate for cu syntax
 
-      estim.reset();
-      estim.set_context_models( &option[p].get_context() );
-      //ectx->switch_CABAC(ctxModel, &estim);
-      encode_coding_unit(ectx,&estim, cb,x,y,log2CbSize, false);
-      cb->rate += estim.getRDBits();
+      encode_coding_unit(ectx,option[p].get_cabac(), cb,x,y,log2CbSize, false);
+      cb->rate += option[p].get_cabac()->getRDBits();
 
-      option[p].end_reconstruction();
+      option[p].end();
     }
 
   options.compute_rdo_costs();

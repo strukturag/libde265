@@ -45,13 +45,12 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   // 0: intra
   // 1: inter
 
-  CodingOptions options(ectx);
-  options.set_input(cb,ctxModel);
+  CodingOptions options(ectx,cb,ctxModel);
 
   CodingOption option_intra = options.new_option(try_intra);
   CodingOption option_inter = options.new_option(try_inter);
 
-  options.start(false);
+  options.start();
 
   enc_cb* cb_inter = NULL;
   enc_cb* cb_intra = NULL;
@@ -63,7 +62,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   // try encoding with inter
 
   if (option_inter) {
-    option_inter.begin_reconstruction();
+    option_inter.begin();
     cb_inter = option_inter.get_cb();
 
     cb_inter->PredMode = MODE_INTER;
@@ -71,14 +70,14 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
     option_inter.set_cb( mInterAlgo->analyze(ectx, option_inter.get_context(), cb_inter));
 
-    option_inter.end_reconstruction();
+    option_inter.end();
   }
 
 
   // try intra
 
   if (option_intra) {
-    option_intra.begin_reconstruction();
+    option_intra.begin();
     cb_intra = option_intra.get_cb();
 
     cb_intra->PredMode = MODE_INTRA;
@@ -86,7 +85,7 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 
     option_intra.set_cb( mIntraAlgo->analyze(ectx, option_intra.get_context(), cb_intra));
 
-    option_intra.end_reconstruction();
+    option_intra.end();
   }
 
 
