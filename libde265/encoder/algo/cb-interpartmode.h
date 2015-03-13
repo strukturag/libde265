@@ -48,10 +48,14 @@ class Algo_CB_InterPartMode : public Algo_CB
  public:
   virtual ~Algo_CB_InterPartMode() { }
 
-  void setChildAlgo(Algo_CB* algo) { mChildAlgo = algo; }
+  void setChildAlgo(Algo_PB* algo) { mChildAlgo = algo; }
 
  protected:
-  Algo_CB* mChildAlgo;
+  Algo_PB* mChildAlgo;
+
+  enc_cb* codeAllPBs(encoder_context*,
+                     context_model_table&,
+                     enc_cb* cb);
 };
 
 
@@ -62,9 +66,9 @@ class option_InterPartMode : public choice_option<enum PartMode> // choice_optio
  public:
   option_InterPartMode() {
     add_choice("2Nx2N", PART_2Nx2N, true);
+    add_choice("NxN",   PART_NxN);
     add_choice("Nx2N",  PART_Nx2N);
     add_choice("2NxN",  PART_2NxN);
-    add_choice("NxN",   PART_NxN);
     add_choice("2NxnU", PART_2NxnU);
     add_choice("2NxnD", PART_2NxnD);
     add_choice("nLx2N", PART_nLx2N);

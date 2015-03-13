@@ -30,6 +30,29 @@
 
 
 
+enc_cb* Algo_CB_InterPartMode::codeAllPBs(encoder_context* ectx,
+                                          context_model_table& ctxModel,
+                                          enc_cb* cb)
+{
+  int nPB;
+  switch (cb->PartMode) {
+  case PART_2Nx2N: nPB = 1; break;
+  case PART_NxN:   nPB = 4; break;
+  case PART_2NxN:
+  case PART_Nx2N:
+  case PART_2NxnU:
+  case PART_2NxnD:
+  case PART_nLx2N:
+  case PART_nRx2N: nPB = 2; break;
+  }
+
+  for (int idx=0;idx<nPB;idx++) {
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, idx);
+  }
+
+  return cb;
+}
+
 
 enc_cb* Algo_CB_InterPartMode_Fixed::analyze(encoder_context* ectx,
                                              context_model_table& ctxModel,
@@ -43,9 +66,7 @@ enc_cb* Algo_CB_InterPartMode_Fixed::analyze(encoder_context* ectx,
   cb->PartMode = partMode;
   ectx->img->set_PartMode(x,y, partMode);
 
-  const int log2CbSize = cb->log2Size;
-
-  cb = mChildAlgo->analyze(ectx, ctxModel, cb);
+  cb = codeAllPBs(ectx,ctxModel,cb);
 
   return cb;
 }
