@@ -369,9 +369,9 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 
 
 
-static void encode_split_cu_flag(encoder_context* ectx,
-                                 CABAC_encoder* cabac,
-                                 int x0, int y0, int ctDepth, int split_flag)
+void encode_split_cu_flag(encoder_context* ectx,
+                          CABAC_encoder* cabac,
+                          int x0, int y0, int ctDepth, int split_flag)
 {
   // check if neighbors are available
 
@@ -1661,16 +1661,9 @@ void encode_coding_unit(encoder_context* ectx,
 }
 
 
-void encode_quadtree(encoder_context* ectx,
-                     CABAC_encoder* cabac,
-                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
-                     bool recurse)
+SplitType get_split_type(const seq_parameter_set* sps,
+                         int x0,int y0, int log2CbSize)
 {
-  //de265_image* img = ectx->img;
-  const seq_parameter_set* sps = &ectx->img->sps;
-
-  int split_flag;
-
   /*
     CU split flag:
 
@@ -1688,16 +1681,32 @@ void encode_quadtree(encoder_context* ectx,
 
     // case A
 
-    split_flag = cb->split_cu_flag;
-
-    encode_split_cu_flag(ectx,cabac, x0,y0, ctDepth, split_flag);
+    return OptionalSplit;
   } else {
     // case B/C/D
 
-    if (log2CbSize > sps->Log2MinCbSizeY) { split_flag=1; }
-    else                                  { split_flag=0; }
+    if (log2CbSize > sps->Log2MinCbSizeY) { return ForcedSplit;    }
+    else                                  { return ForcedNonSplit; }
   }
+}
 
+
+void encode_quadtree(encoder_context* ectx,
+                     CABAC_encoder* cabac,
+                     const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
+                     bool recurse)
+{
+  //de265_image* img = ectx->img;
+  const seq_parameter_set* sps = &ectx->img->sps;
+
+  int split_flag = get_split_type(sps,x0,y0,log2CbSize);
+
+  // if it is an optional split, take the decision from the CU flag
+  if (split_flag == OptionalSplit) {
+    split_flag = cb->split_cu_flag;
+
+    encode_split_cu_flag(ectx,cabac, x0,y0, ctDepth, split_flag);
+  }
 
 
   if (split_flag) {

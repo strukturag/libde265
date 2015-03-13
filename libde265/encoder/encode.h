@@ -194,6 +194,10 @@ inline int childY(int y0, int idx, int log2CbSize)
 
 
 
+void encode_split_cu_flag(encoder_context* ectx,
+                          CABAC_encoder* cabac,
+                          int x0, int y0, int ctDepth, int split_flag);
+
 void encode_transform_tree(encoder_context* ectx,
                            CABAC_encoder* cabac,
                            const enc_tb* tb, const enc_cb* cb,
@@ -204,6 +208,20 @@ void encode_transform_tree(encoder_context* ectx,
 void encode_coding_unit(encoder_context* ectx,
                         CABAC_encoder* cabac,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse);
+
+/* returns
+   1  - forced split
+   0  - forced non-split
+   -1 - optional split
+*/
+enum SplitType {
+  ForcedNonSplit = 0,
+  ForcedSplit    = 1,
+  OptionalSplit  = 2
+};
+
+SplitType get_split_type(const seq_parameter_set* sps,
+                         int x0,int y0, int log2CbSize);
 
 void encode_quadtree(encoder_context* ectx,
                      CABAC_encoder* cabac,

@@ -118,8 +118,14 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   // if we try both variants, make a copy of the ctxModel and use the copy for splitting
 
   const int Log2CbSize = cb->log2Size;
-  const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
-  const bool can_nosplit_CB = !isForcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
+
+  const SplitType split_type = get_split_type(&ectx->sps, cb->x,cb->y,Log2CbSize);
+
+  const bool can_split_CB   = (split_type != ForcedNonSplit);
+  const bool can_nosplit_CB = (split_type != ForcedSplit);
+
+  //const bool can_split_CB   = (Log2CbSize > ectx->sps.Log2MinCbSizeY);
+  //const bool can_nosplit_CB = !isForcedSplit(ectx->imgdata->input,cb->x,cb->y,Log2CbSize);
 
   CodingOptions options(ectx, 2);
   options.set_input(cb, ctxModel);
@@ -140,6 +146,12 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     assert(mPredModeAlgo);
     enc_cb* cb_no_split = option_no_split.get_cb();
     cb_no_split = mPredModeAlgo->analyze(ectx, option_no_split.get_context(), cb_no_split);
+
+    CABAC_encoder_estim estim;
+    estim.set_context_models(&option_no_split.get_context());
+    encode_split_cu_flag(ectx,&estim, cb->x,cb->y, cb->ctDepth, 0);
+
+    cb_no_split->rate += estim.getRDBits();
 
     option_no_split.set_cb(cb_no_split);
     option_no_split.end_reconstruction();
