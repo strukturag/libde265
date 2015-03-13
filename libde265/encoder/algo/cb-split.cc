@@ -22,6 +22,7 @@
 
 
 #include "libde265/encoder/algo/cb-split.h"
+#include "libde265/encoder/algo/coding-options.h"
 #include "libde265/encoder/encoder-context.h"
 #include <assert.h>
 #include <limits>
@@ -128,20 +129,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.start( false );
 
-  /*****
-  context_model_table ctxCopy;
-  context_model* ctxSplit = ctxModel;
-
-  if (can_split_CB && can_nosplit_CB) {
-    copy_context_model_table(ctxCopy, ctxModel);
-    ctxSplit=ctxCopy;
-  }
-  *****/
-
   // try encoding without splitting
-
-  /////enc_cb* cb_no_split = NULL;
-  /////enc_cb* cb_split    = NULL;
 
   if (option_no_split) {
     option_no_split.begin_reconstruction();
@@ -172,34 +160,4 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.compute_rdo_costs();
   return options.return_best_rdo();
-
-#if 0
-  delete cb;
-
-  // if only one variant has been tested, choose this
-
-  if (!can_nosplit_CB) { return cb_split;    }
-  if (!can_split_CB)   { return cb_no_split; }
-
-
-  // compute RD costs for both variants
-
-  const float rd_cost_split    = cb_split->distortion    + ectx->lambda * cb_split->rate;
-  const float rd_cost_no_split = cb_no_split->distortion + ectx->lambda * cb_no_split->rate;
-
-  const bool split_is_better =  (rd_cost_split < rd_cost_no_split);
-
-  if (split_is_better) {
-    copy_context_model_table(ctxModel, ctxCopy);
-    delete cb_no_split;
-    return cb_split;
-  }
-  else {
-    // have to reconstruct state of the first option
-    cb_no_split->restore(ectx->img);
-
-    delete cb_split;
-    return cb_no_split;
-  }
-#endif
 }

@@ -1674,13 +1674,13 @@ void encode_quadtree(encoder_context* ectx,
   /*
     CU split flag:
 
-    | overlaps | minimum ||
+         | overlaps | minimum ||
     case | border   | size    ||  split
     -----+----------+---------++----------
-    A  |    0     |     0   || optional
-    B  |    0     |     1   ||    0
-    C  |    1     |     0   ||    1
-    D  |    1     |     1   ||    0
+      A  |    0     |     0   || optional
+      B  |    0     |     1   ||    0
+      C  |    1     |     0   ||    1
+      D  |    1     |     1   ||    0
   */
   if (x0+(1<<log2CbSize) <= sps->pic_width_in_luma_samples &&
       y0+(1<<log2CbSize) <= sps->pic_height_in_luma_samples &&

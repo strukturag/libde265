@@ -22,6 +22,7 @@
 
 
 #include "libde265/encoder/algo/cb-predmode.h"
+#include "libde265/encoder/algo/coding-options.h"
 #include "libde265/encoder/encoder-context.h"
 #include <assert.h>
 #include <limits>
