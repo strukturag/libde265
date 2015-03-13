@@ -29,11 +29,6 @@
 #include <math.h>
 
 
-#define ENCODER_DEVELOPMENT 1
-
-
-
-
 
 // Utility function to encode all four children in a splitted CB.
 // Children are coded with the specified algo_cb_split.
@@ -123,8 +118,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
 
     // add rate for split flag
-    encode_split_cu_flag(ectx,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
-    cb->rate += opt.get_cabac_rate();
+    if (split_type == OptionalSplit) {
+      encode_split_cu_flag(ectx,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
+      cb->rate += opt.get_cabac_rate();
+    }
 
     opt.set_cb(cb);
     opt.end();
@@ -139,8 +136,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
     // add rate for split flag
-    encode_split_cu_flag(ectx,option_split.get_cabac(), cb->x,cb->y, cb->ctDepth, 1);
-    cb->rate += option_split.get_cabac_rate();
+    if (split_type == OptionalSplit) {
+      encode_split_cu_flag(ectx,option_split.get_cabac(), cb->x,cb->y, cb->ctDepth, 1);
+      cb->rate += option_split.get_cabac_rate();
+    }
 
     option_split.set_cb(cb);
     option_split.end();
