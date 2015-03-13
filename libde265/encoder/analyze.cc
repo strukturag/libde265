@@ -227,6 +227,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CB_PredMode_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
   mAlgo_CB_PredMode_BruteForce.setInterChildAlgo(&mAlgo_CB_SkipOrInter_BruteForce);
   mAlgo_CB_SkipOrInter_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);
+  mAlgo_CB_SkipOrInter_BruteForce.setInterAlgo(&mAlgo_CB_InterPartMode_Fixed);
   mAlgo_CB_MergeIndex_Fixed.setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
 
