@@ -36,20 +36,18 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           int ctb_x,int ctb_y)
 {
   enc_cb* cb = new enc_cb();
-  cb->split_cu_flag = false;
+
   cb->log2Size = ectx->sps.Log2CtbSizeY;
   cb->ctDepth = 0;
   cb->x = ctb_x;
   cb->y = ctb_y;
 
-  cb->cu_transquant_bypass_flag = false;
-  ectx->img->set_cu_transquant_bypass(ctb_x,ctb_y,cb->log2Size, cb->cu_transquant_bypass_flag);
-
-  cb->pcm_flag = false;
-  ectx->img->set_pcm_flag(ctb_x,ctb_y,cb->log2Size, cb->pcm_flag);
-
   cb->qp = ectx->active_qp;
   ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, cb->qp);
+
+  // write currently unused coding options to image
+  ectx->img->set_cu_transquant_bypass(ctb_x,ctb_y,cb->log2Size, cb->cu_transquant_bypass_flag);
+  ectx->img->set_pcm_flag(ctb_x,ctb_y,cb->log2Size, cb->pcm_flag);
 
   assert(mChildAlgo);
   return mChildAlgo->analyze(ectx,ctxModel,cb);

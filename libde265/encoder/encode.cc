@@ -253,7 +253,11 @@ alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
 
 enc_cb::enc_cb()
   : split_cu_flag(false),
-    transform_tree(NULL)
+    transform_tree(NULL),
+    distortion(0),
+    rate(0),
+    cu_transquant_bypass_flag(false),
+    pcm_flag(false)
 {
   if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
 }
