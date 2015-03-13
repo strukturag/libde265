@@ -37,8 +37,6 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
 {
   assert(cb->pcm_flag==0);
 
-  // if we try both variants, make a copy of the ctxModel and use the copy for splitting
-
   bool try_intra = true;
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
 
