@@ -42,8 +42,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->x = ctb_x;
   cb->y = ctb_y;
 
-  cb->qp = ectx->active_qp;
-  ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, cb->qp);
+  ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, ectx->active_qp);
 
   // write currently unused coding options to image
   ectx->img->set_cu_transquant_bypass(ctb_x,ctb_y,cb->log2Size, cb->cu_transquant_bypass_flag);

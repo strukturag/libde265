@@ -61,7 +61,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
       enc_cb* childCB = new enc_cb;
       childCB->log2Size = cb->log2Size-1;
       childCB->ctDepth  = cb->ctDepth+1;
-      childCB->qp = cb->qp;
+
       childCB->x = child_x;
       childCB->y = child_y;
 
@@ -114,6 +114,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
     ectx->img->set_log2CbSize(cb->x,cb->y,cb->log2Size, true);
 
+    /* We set QP here, because this is required at in non-split CBs only.
+     */
+    cb->qp = ectx->active_qp;
+
     // analyze subtree
     assert(mPredModeAlgo);
     cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
@@ -141,7 +145,6 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     option_split.set_cb(cb);
     option_split.end();
   }
-
 
   options.compute_rdo_costs();
   return options.return_best_rdo();
