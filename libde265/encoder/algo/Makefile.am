@@ -8,6 +8,7 @@ libde265_encoder_algo_la_SOURCES = \
   cb-split.h cb-split.cc \
   cb-predmode.h cb-predmode.cc \
   cb-intrapartmode.h cb-intrapartmode.cc \
+  cb-interpartmode.h cb-interpartmode.cc \
   cb-skip-or-inter.h cb-skip-or-inter.cc \
   cb-mergeindex.h cb-mergeindex.cc \
   tb-split.h tb-split.cc \
