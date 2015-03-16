@@ -53,21 +53,30 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   case MVTestMode_Zero:
     vec.mv[0].x=0;
     vec.mv[0].y=0;
+
+    pb.mvd[0].x=0;
+    pb.mvd[0].y=0;
     break;
 
   case MVTestMode_Random:
-    vec.mv[0].x=(rand() % (2*value+1)) - value;
-    vec.mv[0].y=(rand() % (2*value+1)) - value;
+    vec.mv[0].x= pb.mvd[0].x = (rand() % (2*value+1)) - value;
+    vec.mv[0].y= pb.mvd[0].y = (rand() % (2*value+1)) - value;
     break;
 
   case MVTestMode_Horizontal:
     vec.mv[0].x=value;
     vec.mv[0].y=0;
+
+    pb.mvd[0].x=value;
+    pb.mvd[0].y=0;
     break;
 
   case MVTestMode_Vertical:
     vec.mv[0].x=0;
     vec.mv[0].y=value;
+
+    pb.mvd[0].x=0;
+    pb.mvd[0].y=value;
     break;
   }
 

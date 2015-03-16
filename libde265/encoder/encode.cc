@@ -1599,6 +1599,14 @@ static inline void encode_rqt_root_cbf(encoder_context* ectx,
 }
 
 
+void encode_prediction_unit(encoder_context* ectx,
+                            CABAC_encoder* cabac,
+                            const enc_cb* cb, int pbIdx,
+                            int x0,int y0, int w, int h)
+{
+}
+
+
 void encode_coding_unit(encoder_context* ectx,
                         CABAC_encoder* cabac,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse)
@@ -1704,6 +1712,21 @@ void encode_coding_unit(encoder_context* ectx,
       IntraChromaPredMode chromaPredMode = find_chroma_pred_mode(cb->intra.chroma_mode,
                                                                  cb->intra.pred_mode[0]);
       encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+    }
+    else {
+      switch (cb->PartMode) {
+      case PART_2Nx2N:
+        encode_prediction_unit(ectx,cabac,cb, 0, cb->x,cb->y,1<<cb->log2Size,1<<cb->log2Size);
+        break;
+      case PART_2NxN:
+      case PART_Nx2N:
+      case PART_NxN:
+      case PART_2NxnU:
+      case PART_2NxnD:
+      case PART_nLx2N:
+      case PART_nRx2N:
+        assert(false); // TODO
+      }
     }
 
 

@@ -104,6 +104,9 @@ struct enc_pb_inter
   uint8_t merge_flag   : 1;
   uint8_t merge_index  : 3;
   PredVectorInfo motion;
+
+  MotionVector mvd[2]; /* differential vector (so that bitstream generation does not have to
+                          recompute it */
 };
 
 
