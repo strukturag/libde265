@@ -63,9 +63,9 @@ class option_MVTestMode : public choice_option<enum MVTestMode>
 {
  public:
   option_MVTestMode() {
-    add_choice("zero",   MVTestMode_Zero, true);
+    add_choice("zero",   MVTestMode_Zero);
     add_choice("random", MVTestMode_Random);
-    add_choice("horiz",  MVTestMode_Horizontal);
+    add_choice("horiz",  MVTestMode_Horizontal, true);
     add_choice("verti",  MVTestMode_Vertical);
   }
 };

@@ -40,6 +40,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   bool try_intra = true;
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
 
+  // try_intra = !try_inter; // TODO HACK: no intra in inter frames
+
   // 0: intra
   // 1: inter
 

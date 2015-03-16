@@ -47,7 +47,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   spec.refIdx[0] = vec.refIdx[0] = 0;
   spec.mvp_l0_flag = 0;
 
-  int value = 8;
+  int value = 1;
 
   switch (testMode) {
   case MVTestMode_Zero:

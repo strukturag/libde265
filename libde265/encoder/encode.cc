@@ -1599,6 +1599,44 @@ static inline void encode_rqt_root_cbf(encoder_context* ectx,
 }
 
 
+void encode_mvd(encoder_context* ectx,
+                CABAC_encoder* cabac,
+                const int16_t mvd[2])
+{
+  int mvd0abs = abs_value(mvd[0]);
+  int mvd1abs = abs_value(mvd[1]);
+
+  int mvd0_greater_0 = !!(mvd0abs);
+  int mvd1_greater_0 = !!(mvd1abs);
+
+  cabac->write_CABAC_bit(CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+0, mvd0_greater_0);
+  cabac->write_CABAC_bit(CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+0, mvd1_greater_0);
+
+  if (mvd0_greater_0) {
+    cabac->write_CABAC_bit(CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+1, mvd0abs>1);
+  }
+  if (mvd1_greater_0) {
+    cabac->write_CABAC_bit(CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+1, mvd1abs>1);
+  }
+
+  if (mvd0abs>1) {
+    assert(0); // TODO
+    cabac->write_CABAC_bypass(mvd[0]<0);
+  }
+  else if (mvd0abs) {
+    cabac->write_CABAC_bypass(mvd[0]<0);
+  }
+
+  if (mvd1abs>1) {
+    assert(0); // TODO
+    cabac->write_CABAC_bypass(mvd[1]<0);
+  }
+  else if (mvd1abs) {
+    cabac->write_CABAC_bypass(mvd[1]<0);
+  }
+}
+
+
 void encode_prediction_unit(encoder_context* ectx,
                             CABAC_encoder* cabac,
                             const enc_cb* cb, int pbIdx,
@@ -1620,6 +1658,13 @@ void encode_prediction_unit(encoder_context* ectx,
         assert(false); // TODO
       }
 
+      encode_mvd(ectx,cabac, pb.spec.mvd[0]);
+
+      cabac->write_CABAC_bit(CONTEXT_MODEL_REF_IDX_LX, pb.spec.mvp_l0_flag);
+    }
+
+    if (pb.spec.inter_pred_idc != PRED_L0) {
+      assert(false); // TODO
     }
 
     /*
