@@ -12,4 +12,5 @@ libde265_encoder_algo_la_SOURCES = \
   cb-skip-or-inter.h cb-skip-or-inter.cc \
   cb-mergeindex.h cb-mergeindex.cc \
   tb-split.h tb-split.cc \
-  tb-intrapredmode.h tb-intrapredmode.cc
+  tb-intrapredmode.h tb-intrapredmode.cc \
+  pb-mv.h pb-mv.cc

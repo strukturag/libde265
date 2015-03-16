@@ -43,6 +43,7 @@
 #include "libde265/encoder/algo/ctb-qscale.h"
 #include "libde265/encoder/algo/cb-mergeindex.h"
 #include "libde265/encoder/algo/cb-skip-or-inter.h"
+#include "libde265/encoder/algo/pb-mv.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -85,6 +86,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
     mAlgo_CTB_QScale_Constant.registerParams(config);
     mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
     mAlgo_CB_InterPartMode_Fixed.registerParams(config);
+    mAlgo_PB_MV_Test.registerParams(config);
     mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
     mAlgo_TB_IntraPredMode_MinResidual.registerParams(config);
     mAlgo_TB_Split_BruteForce.registerParams(config);
@@ -106,6 +108,8 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   Algo_CB_SkipOrInter_BruteForce   mAlgo_CB_SkipOrInter_BruteForce;
   Algo_CB_InterPartMode_Fixed      mAlgo_CB_InterPartMode_Fixed;
   Algo_CB_MergeIndex_Fixed         mAlgo_CB_MergeIndex_Fixed;
+
+  Algo_PB_MV_Test                  mAlgo_PB_MV_Test;
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
