@@ -471,12 +471,17 @@ static void encode_part_mode(encoder_context* ectx,
       else {
         cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
 
-        if (PartMode==PART_Nx2N) {
-          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 1);
+        if (cLog2CbSize==3) {
+          assert(PartMode==PART_Nx2N);
         }
         else {
-          assert(PartMode==PART_NxN);
-          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          if (PartMode==PART_Nx2N) {
+            cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 1);
+          }
+          else {
+            assert(PartMode==PART_NxN);
+            cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          }
         }
       }
     }
