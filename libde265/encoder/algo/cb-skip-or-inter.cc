@@ -35,8 +35,8 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
                                                 context_model_table& ctxModel,
                                                 enc_cb* cb)
 {
-  bool try_skip  = true;
-  bool try_inter = false; // TODO
+  bool try_skip  = false;
+  bool try_inter = true;
 
   CodingOptions options(ectx,cb,ctxModel);
   CodingOption option_skip  = options.new_option(try_skip);

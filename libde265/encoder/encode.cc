@@ -401,16 +401,85 @@ void encode_split_cu_flag(encoder_context* ectx,
 
 static void encode_part_mode(encoder_context* ectx,
                              CABAC_encoder* cabac,
-                             enum PredMode PredMode, enum PartMode PartMode)
+                             enum PredMode PredMode, enum PartMode PartMode, int cLog2CbSize)
 {
   logtrace(LogSlice,"> part_mode = %d\n",PartMode);
 
   if (PredMode == MODE_INTRA) {
     int bin = (PartMode==PART_2Nx2N);
-    cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE, bin);
+    cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, bin);
   }
   else {
-    assert(0); // TODO
+    if (PartMode==PART_2Nx2N) {
+      cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, 1);
+      return;
+    }
+    else {
+      cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, 0);
+    }
+
+    if (cLog2CbSize > ectx->sps.Log2MinCbSizeY) {
+      if (ectx->sps.amp_enabled_flag) {
+        switch (PartMode) {
+        case PART_2NxN:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 1);
+          break;
+        case PART_Nx2N:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 1);
+          break;
+        case PART_2NxnU:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          cabac->write_CABAC_bypass(0);
+          break;
+        case PART_2NxnD:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          cabac->write_CABAC_bypass(1);
+          break;
+        case PART_nLx2N:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          cabac->write_CABAC_bypass(0);
+          break;
+        case PART_nRx2N:
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+          cabac->write_CABAC_bypass(1);
+          break;
+        case PART_NxN:
+          assert(false);
+          break;
+        }
+      }
+      else {
+        if (PartMode==PART_2NxN) {
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
+        }
+        else {
+          assert(PartMode==PART_Nx2N);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
+        }
+      }
+    }
+    else {
+      if (PartMode==PART_2NxN) {
+        cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
+      }
+      else {
+        cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 0);
+
+        if (PartMode==PART_Nx2N) {
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 1);
+        }
+        else {
+          assert(PartMode==PART_NxN);
+          cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+3, 0);
+        }
+      }
+    }
   }
 }
 
@@ -1562,7 +1631,7 @@ void encode_coding_unit(encoder_context* ectx,
     if (PredMode != MODE_INTRA ||
         log2CbSize == sps->Log2MinCbSizeY) {
       PartMode = cb->PartMode;
-      encode_part_mode(ectx,cabac, PredMode, PartMode);
+      encode_part_mode(ectx,cabac, PredMode, PartMode, log2CbSize);
     }
 
     if (PredMode == MODE_INTRA) {
