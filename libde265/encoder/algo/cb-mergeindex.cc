@@ -37,8 +37,12 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   assert(cb->split_cu_flag==false);
   assert(cb->PredMode==MODE_SKIP); // TODO: || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
 
-  cb->inter.pb[0].merge_flag  = 1;
-  cb->inter.pb[0].merge_index = 0;
+  int PBidx = 0;
+  motion_spec&   spec = cb->inter.pb[PBidx].spec;
+  PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
+
+  spec.merge_flag = 1;
+  spec.merge_idx  = 0;
 
 
   // build prediction
@@ -57,12 +61,11 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   */
 
   // TODO: fake motion data
-  PredVectorInfo vi;
-  vi.predFlag[0]=1;
-  vi.predFlag[1]=0;
-  vi.refIdx[0]=0;
-  vi.mv[0].x=0;
-  vi.mv[0].y=0;
+  vec.predFlag[0]=1;
+  vec.predFlag[1]=0;
+  vec.refIdx[0]=0;
+  vec.mv[0].x=0;
+  vec.mv[0].y=0;
 
   generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
                                     cb->x,cb->y, // int xC,int yC,
@@ -70,7 +73,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     1<<cb->log2Size, // int nCS,
                                     1<<cb->log2Size,
                                     1<<cb->log2Size, // int nPbW,int nPbH,
-                                    &vi);
+                                    &vec);
 
 
   // estimate rate for sending merge index

@@ -101,12 +101,28 @@ private:
 
 struct enc_pb_inter
 {
-  uint8_t merge_flag   : 1;
-  uint8_t merge_index  : 3;
+  /* absolute motion information (for MV-prediction candidates)
+   */
   PredVectorInfo motion;
 
-  MotionVector mvd[2]; /* differential vector (so that bitstream generation does not have to
-                          recompute it */
+  /* specification how to code the motion vector in the bitstream
+   */
+  motion_spec    spec;
+
+
+  // NOT TRUE: refIdx in 'spec' is not used. It is taken from 'motion'
+  // Currently, information is duplicated. Same as with inter_pred_idc/predFlag[].
+
+  /* SPEC:
+  int8_t  refIdx[2]; // not used
+  int16_t mvd[2][2];
+
+  uint8_t inter_pred_idc : 2; // enum InterPredIdc
+  uint8_t mvp_l0_flag : 1;
+  uint8_t mvp_l1_flag : 1;
+  uint8_t merge_flag : 1;
+  uint8_t merge_idx  : 3;
+  */
 };
 
 

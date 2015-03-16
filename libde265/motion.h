@@ -63,10 +63,12 @@ typedef struct
 typedef struct {
   int8_t  refIdx[2];
   int16_t mvd[2][2]; // [L0/L1][x/y]  (only in top left position - ???)
-  uint8_t merge_flag;
-  uint8_t merge_idx;
-  uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc; // enum InterPredIdc
+
+  uint8_t inter_pred_idc : 2; // enum InterPredIdc
+  uint8_t mvp_l0_flag : 1;
+  uint8_t mvp_l1_flag : 1;
+  uint8_t merge_flag : 1;
+  uint8_t merge_idx  : 3;
 } motion_spec;
 
 

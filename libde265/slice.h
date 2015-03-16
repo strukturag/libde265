@@ -115,9 +115,10 @@ enum IntraChromaPredMode
 
 enum InterPredIdc
   {
-    PRED_L0=0,
-    PRED_L1=1,
-    PRED_BI=2
+    // note: values have to match the decoding function decode_inter_pred_idc()
+    PRED_L0=1,
+    PRED_L1=2,
+    PRED_BI=3
   };
 
 

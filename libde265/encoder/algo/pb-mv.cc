@@ -37,46 +37,37 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 {
   enum MVTestMode testMode = mParams.testMode();
 
-  enc_pb_inter& pb = cb->inter.pb[PBidx];
+  motion_spec&   spec = cb->inter.pb[PBidx].spec;
+  PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
 
-  pb.merge_flag  = 0;
-  pb.merge_index = 0;
+  spec.merge_flag = 0;
+  spec.merge_idx  = 0;
 
-  PredVectorInfo& vec = pb.motion;
-  vec.predFlag[0]=1;
-  vec.predFlag[1]=0;
-  vec.refIdx[0]=0;
+  spec.inter_pred_idc = PRED_L0;
+  spec.refIdx[0] = vec.refIdx[0] = 0;
+  spec.mvp_l0_flag = 0;
 
   int value = 8;
 
   switch (testMode) {
   case MVTestMode_Zero:
-    vec.mv[0].x=0;
-    vec.mv[0].y=0;
-
-    pb.mvd[0].x=0;
-    pb.mvd[0].y=0;
+    spec.mvd[0][0]=0;
+    spec.mvd[0][1]=0;
     break;
 
   case MVTestMode_Random:
-    vec.mv[0].x= pb.mvd[0].x = (rand() % (2*value+1)) - value;
-    vec.mv[0].y= pb.mvd[0].y = (rand() % (2*value+1)) - value;
+    spec.mvd[0][0] = (rand() % (2*value+1)) - value;
+    spec.mvd[0][1] = (rand() % (2*value+1)) - value;
     break;
 
   case MVTestMode_Horizontal:
-    vec.mv[0].x=value;
-    vec.mv[0].y=0;
-
-    pb.mvd[0].x=value;
-    pb.mvd[0].y=0;
+    spec.mvd[0][0]=value;
+    spec.mvd[0][1]=0;
     break;
 
   case MVTestMode_Vertical:
-    vec.mv[0].x=0;
-    vec.mv[0].y=value;
-
-    pb.mvd[0].x=0;
-    pb.mvd[0].y=value;
+    spec.mvd[0][0]=0;
+    spec.mvd[0][1]=value;
     break;
   }
 

@@ -1604,6 +1604,31 @@ void encode_prediction_unit(encoder_context* ectx,
                             const enc_cb* cb, int pbIdx,
                             int x0,int y0, int w, int h)
 {
+  const enc_pb_inter& pb = cb->inter.pb[pbIdx];
+
+  cabac->write_CABAC_bit(CONTEXT_MODEL_MERGE_FLAG, pb.spec.merge_flag);
+  if (pb.spec.merge_flag) {
+    assert(false); // TODO
+  }
+  else {
+    if (ectx->shdr->slice_type == SLICE_TYPE_B) {
+      assert(false); // TODO
+    }
+
+    if (pb.spec.inter_pred_idc != PRED_L1) {
+      if (ectx->shdr->num_ref_idx_l0_active > 1) {
+        assert(false); // TODO
+      }
+
+    }
+
+    /*
+enum InterPredIdc
+    PRED_L0=0,
+    PRED_L1=1,
+    PRED_BI=2
+    */
+  }
 }
 
 
@@ -1628,8 +1653,8 @@ void encode_coding_unit(encoder_context* ectx,
   }
 
   if (cb->PredMode==MODE_SKIP) {
-    assert(cb->inter.pb[0].merge_flag);
-    encode_merge_idx(ectx,cabac, cb->inter.pb[0].merge_index);
+    assert(cb->inter.pb[0].spec.merge_flag);
+    encode_merge_idx(ectx,cabac, cb->inter.pb[0].spec.merge_idx);
   }
   else {
 
@@ -1733,7 +1758,7 @@ void encode_coding_unit(encoder_context* ectx,
     if (true) { // !pcm
 
       if (cb->PredMode != MODE_INTRA &&
-          !(cb->PartMode == PART_2Nx2N && cb->inter.pb[0].merge_flag)) {
+          !(cb->PartMode == PART_2Nx2N && cb->inter.pb[0].spec.merge_flag)) {
 
         //printf("%d %d %d\n",cb->PredMode,cb->PartMode,cb->inter.pb[0].merge_flag);
 

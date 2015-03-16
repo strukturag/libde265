@@ -95,10 +95,10 @@ void mc_luma(const base_context* ctx,
     else {
       for (int y=0;y<nPbH;y++)
         for (int x=0;x<nPbW;x++) {
-        
+
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
           out[y*out_stride+x] = ref[ xA + yA*ref_stride ] << shift3;
         }
     }
@@ -108,10 +108,10 @@ void mc_luma(const base_context* ctx,
 
     for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
-        
+
         int xA = Clip3(0,w-1,x + xIntOffsL);
         int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
         logtrace(LogMotion,"%02x ", ref[ xA + yA*ref_stride ]);
       }
       logtrace(LogMotion,"\n");
@@ -121,7 +121,7 @@ void mc_luma(const base_context* ctx,
 
     for (int y=0;y<nPbH;y++) {
       for (int x=0;x<nPbW;x++) {
-        
+
         logtrace(LogMotion,"%02x ",out[y*out_stride+x] >> 6); // 6 will be used when summing predictions
       }
       logtrace(LogMotion,"\n");
@@ -153,10 +153,10 @@ void mc_luma(const base_context* ctx,
     else {
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
         for (int x=-extra_left;x<nPbW+extra_right;x++) {
-        
+
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
-        
+
           padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
@@ -245,10 +245,10 @@ void mc_chroma(const base_context* ctx,
     else {
       for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
         for (int x=-extra_left;x<nPbWC+extra_right;x++) {
-        
+
           int xA = Clip3(0,wC-1,x + xIntOffsC);
           int yA = Clip3(0,hC-1,y + yIntOffsC);
-        
+
           padbuf[x+extra_left + (y+extra_top)*(MAX_CU_SIZE+16)] = ref[ xA + yA*ref_stride ];
         }
       }
@@ -447,7 +447,7 @@ void generate_inter_prediction_samples(base_context* ctx,
         int16_t* in11 = predSamplesC[1][1];
         uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
-      
+
         ctx->acceleration.put_weighted_pred_avg_8(out0, img->get_chroma_stride(),
                                               in00,in01, nCS, nPbW/2, nPbH/2);
         ctx->acceleration.put_weighted_pred_avg_8(out1, img->get_chroma_stride(),
@@ -495,7 +495,7 @@ void generate_inter_prediction_samples(base_context* ctx,
         int16_t* in11 = predSamplesC[1][1];
         uint8_t* out0 = img->get_image_plane_at_pos(1,xP/2,yP/2);
         uint8_t* out1 = img->get_image_plane_at_pos(2,xP/2,yP/2);
-      
+
         ctx->acceleration.put_weighted_bipred_8(out0, img->get_chroma_stride(),
                                             in00,in01, nCS, nPbW/2, nPbH/2,
                                             chroma0_w0,chroma0_o0,
@@ -572,7 +572,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 
 
   logtrace(LogTransform,"MC pixels (chroma cb), position %d %d:\n", xP/2,yP/2);
@@ -585,7 +585,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 
 
   logtrace(LogTransform,"MC pixels (chroma cr), position %d %d:\n", xP/2,yP/2);
@@ -598,7 +598,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
+  }
 #endif
 }
 
@@ -972,7 +972,7 @@ void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
     newCand->mv[1].y = 0;
 
     (*inout_numCurrMergeCand)++;
-      
+
     // 2.
 
     zeroIdx++;
@@ -1134,7 +1134,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
   const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
-  if (shdr->LongTermRefPic[X][refIdxLX] != 
+  if (shdr->LongTermRefPic[X][refIdxLX] !=
       colShdr->LongTermRefPic[listCol][refIdxCol]) {
     *out_availableFlagLXCol = 0;
     out_mvLXCol->x = 0;
@@ -1508,7 +1508,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
@@ -1547,7 +1547,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
@@ -1595,7 +1595,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         {
           int distA = img->PicOrderCntVal - refPicA->PicOrderCntVal;
           int distX = img->PicOrderCntVal - referenced_POC;
-          
+
           if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
             img->decctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             img->integrity = INTEGRITY_DECODING_ERRORS;
@@ -1632,9 +1632,9 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
     availableB[k] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
 
     if (availableB[k] && out_availableFlagLXN[B]==0) {
-      
+
       int Y=1-X;
-      
+
       const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(*vi);
@@ -1686,7 +1686,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
       if (availableB[k]) {
         int Y=1-X;
-      
+
         const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
 
         if (vi->predFlag[X]==1 &&
@@ -1808,7 +1808,7 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
 
   // select predictor according to mvp_lX_flag
 
-  return mvpList[ tctx->motion.mvp_lX_flag[l] ];
+  return mvpList[ l ? tctx->motion.mvp_l1_flag : tctx->motion.mvp_l0_flag ];
 }
 
 #if DE265_LOG_TRACE
@@ -1920,4 +1920,3 @@ void decode_prediction_unit(thread_context* tctx,
 
   tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
 }
-

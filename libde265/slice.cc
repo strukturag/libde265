@@ -2386,7 +2386,7 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
   logtrace(LogSlice,"> inter_pred_idc = %d (%s)\n",value,
            value==0 ? "L0" : (value==1 ? "L1" : "BI"));
 
-  return (enum InterPredIdc) value;
+  return (enum InterPredIdc) (value+1);
 }
 
 
@@ -3446,7 +3446,7 @@ void read_prediction_unit(thread_context* tctx,
       read_mvd_coding(tctx,x0,y0, 0);
 
       int mvp_l0_flag = decode_mvp_lx_flag(tctx); // l0
-      tctx->motion.mvp_lX_flag[0] = mvp_l0_flag;
+      tctx->motion.mvp_l0_flag = mvp_l0_flag;
 
       logtrace(LogSlice,"prediction unit %d,%d, L0, refIdx=%d mvp_l0_flag:%d\n",
                x0,y0, tctx->motion.refIdx[0], mvp_l0_flag);
@@ -3468,7 +3468,7 @@ void read_prediction_unit(thread_context* tctx,
       }
 
       int mvp_l1_flag = decode_mvp_lx_flag(tctx); // l1
-      tctx->motion.mvp_lX_flag[1] = mvp_l1_flag;
+      tctx->motion.mvp_l1_flag = mvp_l1_flag;
 
       logtrace(LogSlice,"prediction unit %d,%d, L1, refIdx=%d mvp_l1_flag:%d\n",
                x0,y0, tctx->motion.refIdx[1], mvp_l1_flag);
