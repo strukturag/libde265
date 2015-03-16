@@ -34,20 +34,61 @@ enc_cb* Algo_CB_InterPartMode::codeAllPBs(encoder_context* ectx,
                                           context_model_table& ctxModel,
                                           enc_cb* cb)
 {
+  int x = cb->x;
+  int y = cb->y;
+  int log2Size = cb->log2Size;
+  int w = 1<<log2Size;
+  int s; // splitSize;
+
   int nPB;
   switch (cb->PartMode) {
-  case PART_2Nx2N: nPB = 1; break;
-  case PART_NxN:   nPB = 4; break;
-  case PART_2NxN:
-  case PART_Nx2N:
-  case PART_2NxnU:
-  case PART_2NxnD:
-  case PART_nLx2N:
-  case PART_nRx2N: nPB = 2; break;
-  }
+  case PART_2Nx2N:
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y,1<<log2Size,1<<log2Size);
+    break;
 
-  for (int idx=0;idx<nPB;idx++) {
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, idx);
+  case PART_NxN:
+    s = 1<<(log2Size-1);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y  ,s,s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y  ,s,s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 2, x  ,y+s,s,s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 3, x+s,y+s,s,s);
+    break;
+
+  case PART_2NxN:
+    s = 1<<(log2Size-1);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,s);
+    break;
+
+  case PART_Nx2N:
+    s = 1<<(log2Size-1);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s,w);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,s,w);
+    break;
+
+  case PART_2NxnU:
+    s = 1<<(log2Size-2);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,w-s);
+    break;
+
+  case PART_2NxnD:
+    s = 1<<(log2Size-2);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y    ,w,w-s);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+w-s,w,s);
+    break;
+
+  case PART_nLx2N:
+    s = 1<<(log2Size-2);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s  ,w);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,w-s,w);
+    break;
+
+  case PART_nRx2N:
+    s = 1<<(log2Size-2);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x    ,y,w-s,w);
+    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+w-s,y,s  ,w);
+    break;
   }
 
   return cb;

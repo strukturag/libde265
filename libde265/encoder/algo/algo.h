@@ -67,7 +67,7 @@ class Algo_PB
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table&,
                           enc_cb* cb,
-                          int PBidx) = 0;
+                          int PBidx, int x,int y,int w,int h) = 0;
 };
 
 
