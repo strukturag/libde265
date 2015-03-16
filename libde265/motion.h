@@ -87,7 +87,15 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const PredVectorInfo* vi);
 
-
+/* Fill list (two entries) of motion-vector predictors for MVD coding.
+ */
+void fill_luma_motion_vector_predictors(base_context* ctx,
+                                        const slice_segment_header* shdr,
+                                        de265_image* img,
+                                        int xC,int yC,int nCS,int xP,int yP,
+                                        int nPbW,int nPbH, int l,
+                                        int refIdx, int partIdx,
+                                        MotionVector out_mvpList[2]);
 
 
 void decode_prediction_unit(thread_context* shdr,

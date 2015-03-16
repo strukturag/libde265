@@ -291,6 +291,17 @@ image_data* encoder_picture_buffer::get_picture(int frame_number)
 }
 
 
+bool encoder_picture_buffer::has_picture(int frame_number) const
+{
+  for (int i=0;i<mImages.size();i++) {
+    if (mImages[i]->frame_number == frame_number)
+      return true;
+  }
+
+  return false;
+}
+
+
 void encoder_picture_buffer::mark_image_is_outputted(int frame_number)
 {
   image_data* idata = get_picture(frame_number);
@@ -308,4 +319,3 @@ void encoder_picture_buffer::release_input_image(int frame_number)
   delete idata->input;
   idata->input = NULL;
 }
-

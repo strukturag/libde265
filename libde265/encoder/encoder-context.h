@@ -45,6 +45,10 @@ class encoder_context : public base_context
     return picbuf.get_picture(frame_id)->reconstruction;
   }
 
+  virtual bool has_image(int frame_id) const {
+    return picbuf.has_picture(frame_id);
+  }
+
   bool encoder_started;
 
   encoder_params params;

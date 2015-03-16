@@ -35,19 +35,19 @@ struct image_data
 {
   image_data();
   ~image_data();
-  
+
   int frame_number;
-  
+
   const de265_image* input; // owner
   de265_image* prediction;  // owner
   de265_image* reconstruction; // owner
-  
+
   // SOP metadata
-  
+
   nal_header nal; // TODO: image split into several NALs (always same NAL header?)
-  
+
   slice_segment_header shdr; // TODO: multi-slice pictures
-  
+
   std::vector<int> ref0;
   std::vector<int> ref1;
   std::vector<int> longterm;
@@ -55,7 +55,7 @@ struct image_data
   int sps_index;
   int skip_priority;
   bool is_intra;  // TODO: remove, use shdr.slice_type instead
-  
+
   /* unprocessed              only input image has been inserted, no metadata
      sop_metadata_available   sop-creator has filled in references and skipping metadata
      a) encoding              encoding started for this frame, reconstruction image was created
@@ -69,14 +69,14 @@ struct image_data
     state_keep_for_reference,
     state_skipped
   } state;
-  
+
   bool is_in_output_queue;
-  
+
   bool mark_used;
-  
-  
+
+
   // --- SOP structure ---
-  
+
   void set_intra();
   void set_NAL_type(uint8_t nalType);
   void set_NAL_temporal_id(int temporal_id);
@@ -122,6 +122,7 @@ class encoder_picture_buffer
   bool have_more_frames_to_encode() const;
   image_data* get_next_picture_to_encode(); // or return NULL if no picture is available
   const image_data* get_picture(int frame_number) const;
+  bool has_picture(int frame_number) const;
 
   const image_data* peek_next_picture_to_encode() const {
     assert(!mImages.empty());

@@ -208,6 +208,7 @@ class base_context : public error_queue
 
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   virtual const de265_image* get_image(int frame_id) const = 0;
+  virtual bool has_image(int frame_id) const = 0;
 };
 
 

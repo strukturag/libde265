@@ -1003,7 +1003,7 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 
 // (L1003) 8.5.3.2.8
 
-void derive_collocated_motion_vectors(decoder_context* ctx,
+void derive_collocated_motion_vectors(base_context* ctx,
                                       de265_image* img,
                                       const slice_segment_header* shdr,
                                       int xP,int yP,
@@ -1170,7 +1170,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
 
 // 8.5.3.1.7
-void derive_temporal_luma_vector_prediction(decoder_context* ctx,
+void derive_temporal_luma_vector_prediction(base_context* ctx,
                                             de265_image* img,
                                             const slice_segment_header* shdr,
                                             int xP,int yP,
@@ -1732,22 +1732,23 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
   }
 }
 
+
 // 8.5.3.1.5
-MotionVector luma_motion_vector_prediction(decoder_context* ctx,
-                                           thread_context* tctx,
-                                           int xC,int yC,int nCS,int xP,int yP,
-                                           int nPbW,int nPbH, int l,
-                                           int refIdx, int partIdx)
+void fill_luma_motion_vector_predictors(base_context* ctx,
+                                        const slice_segment_header* shdr,
+                                        de265_image* img,
+                                        int xC,int yC,int nCS,int xP,int yP,
+                                        int nPbW,int nPbH, int l,
+                                        int refIdx, int partIdx,
+                                        MotionVector out_mvpList[2])
 {
-  const slice_segment_header* shdr = tctx->shdr;
-
-
   // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
 
   uint8_t availableFlagLXN[2];
   MotionVector mvLXN[2];
 
-  derive_spatial_luma_vector_prediction(tctx->img, shdr, xC,yC, nCS, xP,yP, nPbW,nPbH, l, refIdx, partIdx,
+  derive_spatial_luma_vector_prediction(img, shdr, xC,yC, nCS, xP,yP,
+                                        nPbW,nPbH, l, refIdx, partIdx,
                                         availableFlagLXN, mvLXN);
 
   // 8.5.3.1.7: if we only have one spatial vector or both spatial vectors are the same,
@@ -1763,7 +1764,7 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
     availableFlagLXCol = 0;
   }
   else {
-    derive_temporal_luma_vector_prediction(ctx, tctx->img, shdr,
+    derive_temporal_luma_vector_prediction(ctx, img, shdr,
                                            xP,yP, nPbW,nPbH, refIdx,l,
                                            &mvLXCol, &availableFlagLXCol);
   }
@@ -1775,10 +1776,9 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
 
   // spatial predictor A
 
-  MotionVector mvpList[3];
   if (availableFlagLXN[0])
     {
-      mvpList[numMVPCandLX++] = mvLXN[0];
+      out_mvpList[numMVPCandLX++] = mvLXN[0];
     }
 
   // spatial predictor B (if not same as A)
@@ -1787,29 +1787,48 @@ MotionVector luma_motion_vector_prediction(decoder_context* ctx,
       (!availableFlagLXN[0] || // in case A in not available, but mvLXA initialized to same as mvLXB
        (mvLXN[0].x != mvLXN[1].x || mvLXN[0].y != mvLXN[1].y)))
     {
-      mvpList[numMVPCandLX++] = mvLXN[1];
+      out_mvpList[numMVPCandLX++] = mvLXN[1];
     }
 
   // temporal predictor
 
   if (availableFlagLXCol)
     {
-      mvpList[numMVPCandLX++] = mvLXCol;
+      out_mvpList[numMVPCandLX++] = mvLXCol;
     }
 
   // fill with zero predictors
 
   while (numMVPCandLX<2) {
-    mvpList[numMVPCandLX].x = 0;
-    mvpList[numMVPCandLX].y = 0;
+    out_mvpList[numMVPCandLX].x = 0;
+    out_mvpList[numMVPCandLX].y = 0;
     numMVPCandLX++;
   }
 
+
+  assert(numMVPCandLX==2);
+}
+
+
+MotionVector luma_motion_vector_prediction(base_context* ctx,
+                                           const slice_segment_header* shdr,
+                                           thread_context* tctx,
+                                           int xC,int yC,int nCS,int xP,int yP,
+                                           int nPbW,int nPbH, int l,
+                                           int refIdx, int partIdx)
+{
+  MotionVector mvpList[2];
+
+  fill_luma_motion_vector_predictors(ctx, shdr, tctx->img,
+                                     xC,yC,nCS,xP,yP,
+                                     nPbW, nPbH, l, refIdx, partIdx,
+                                     mvpList);
 
   // select predictor according to mvp_lX_flag
 
   return mvpList[ l ? tctx->motion.mvp_l1_flag : tctx->motion.mvp_l0_flag ];
 }
+
 
 #if DE265_LOG_TRACE
 void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PredVectorInfo* mv)
@@ -1881,7 +1900,8 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
       if (out_vi->predFlag[l]) {
         // 3.
 
-        mvpL[l] = luma_motion_vector_prediction(ctx,tctx,xC,yC,nCS,xP,yP, nPbW,nPbH, l,
+        mvpL[l] = luma_motion_vector_prediction(ctx,tctx->shdr,tctx,
+                                                xC,yC,nCS,xP,yP, nPbW,nPbH, l,
                                                 out_vi->refIdx[l], partIdx);
 
         // 4.
