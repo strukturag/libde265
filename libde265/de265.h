@@ -384,6 +384,8 @@ enum de265_acceleration {
   de265_acceleration_SSE4 = 40,
   de265_acceleration_AVX  = 50,    // not implemented yet
   de265_acceleration_AVX2 = 60,    // not implemented yet
+  de265_acceleration_ARM  = 70,
+  de265_acceleration_NEON = 80,
   de265_acceleration_AUTO = 10000
 };
 
