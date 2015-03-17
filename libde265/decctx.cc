@@ -40,6 +40,10 @@
 #include "x86/sse.h"
 #endif
 
+#ifdef HAVE_ARM
+#include "arm/arm.h"
+#endif
+
 #define SAVE_INTERMEDIATE_IMAGES 0
 
 #if SAVE_INTERMEDIATE_IMAGES
@@ -423,6 +427,11 @@ void base_context::set_acceleration_functions(enum de265_acceleration l)
 #ifdef HAVE_SSE4_1
   if (l>=de265_acceleration_SSE) {
     init_acceleration_functions_sse(&acceleration);
+  }
+#endif
+#ifdef HAVE_ARM
+  if (l>=de265_acceleration_ARM) {
+    init_acceleration_functions_arm(&acceleration);
   }
 #endif
 }

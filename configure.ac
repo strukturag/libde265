@@ -26,6 +26,7 @@ LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
+AM_PROG_AS
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -55,7 +56,7 @@ HAVE_VISIBILITY=0
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h])
+AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -121,6 +122,38 @@ AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse41_ext" = x"yes"])
 # CFLAGS+=$SIMD_FLAGS
 # CFLAGS+=" -march=x86-64"
 
+case $target_cpu in
+  arm*)
+    AC_ARG_ENABLE(arm,
+                  [AS_HELP_STRING([--disable-arm],
+                                  [disable ARM optimizations (default=no)])],
+      [disable_arm=yes],
+      [disable_arm=no])
+
+    if test x"$disable_arm" != x"yes"; then
+      AC_DEFINE(HAVE_ARM, 1, [Support ARM instructions])
+
+      AX_CHECK_COMPILE_FLAG(-mfpu=neon, [
+          AC_DEFINE(HAVE_NEON, 1, [Support ARM NEON instructions])
+          ax_cv_support_neon_ext=yes], [])
+
+      AC_ARG_ENABLE(thumb,
+                    [AS_HELP_STRING([--enable-thumb],
+                                    [disable ARM THUMB instructions (default=no)])],
+        [enable_thumb=yes],
+        [enable_thumb=no])
+    fi
+    ;;
+
+  *)
+    disable_arm=yes
+    ;;
+
+esac
+
+AM_CONDITIONAL([ENABLE_ARM_OPT], [test x"$disable_arm" != x"yes"])
+AM_CONDITIONAL([ENABLE_NEON_OPT], [test x"$ax_cv_support_neon_ext" = x"yes"])
+AM_CONDITIONAL([ENABLE_ARM_THUMB], [test x"$enable_thumb" != x"no"])
 
 # --- additional logging ---
 
@@ -247,6 +280,7 @@ AC_MSG_NOTICE([---------------------------------------])
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([libde265/Makefile])
+AC_CONFIG_FILES([libde265/arm/Makefile])
 AC_CONFIG_FILES([libde265/x86/Makefile])
 AC_CONFIG_FILES([libde265/encoder/Makefile])
 AC_CONFIG_FILES([libde265/encoder/algo/Makefile])

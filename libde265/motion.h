@@ -42,7 +42,7 @@ typedef struct
 } PredVectorInfo;
 
 
-
+/*
 typedef struct
 {
   // array indices
@@ -58,7 +58,7 @@ typedef struct
   uint8_t          available[5];
   PredVectorInfo pred_vector[5];
 } SpatialMergingCandidates;
-
+*/
 
 typedef struct {
   int8_t  refIdx[2];
@@ -72,12 +72,13 @@ typedef struct {
 } motion_spec;
 
 
-void derive_spatial_merging_candidates(const struct de265_image* img,
-                                       int xC, int yC, int nCS, int xP, int yP,
-                                       uint8_t singleMCLFlag,
-                                       int nPbW, int nPbH,
-                                       int partIdx,
-                                       SpatialMergingCandidates* out_cand);
+int derive_spatial_merging_candidates(const struct de265_image* img,
+                                      int xC, int yC, int nCS, int xP, int yP,
+                                      uint8_t singleMCLFlag,
+                                      int nPbW, int nPbH,
+                                      int partIdx,
+                                      PredVectorInfo* out_cand,
+                                      int maxCandidates);
 
 void generate_inter_prediction_samples(base_context* ctx,
                                        struct de265_image* img,
