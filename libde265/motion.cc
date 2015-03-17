@@ -1452,7 +1452,8 @@ void derive_luma_motion_merge_mode(decoder_context* ctx,
 
 
 // 8.5.3.1.6
-void derive_spatial_luma_vector_prediction(de265_image* img,
+void derive_spatial_luma_vector_prediction(base_context* ctx,
+                                           de265_image* img,
                                            const slice_segment_header* shdr,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int X,
@@ -1460,8 +1461,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
                                            uint8_t out_availableFlagLXN[2],
                                            MotionVector out_mvLXN[2])
 {
-  const decoder_context* ctx = img->decctx;
-
   int isScaledFlagLX = 0;
 
   const int A=0;
@@ -1597,7 +1596,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
           int distX = img->PicOrderCntVal - referenced_POC;
 
           if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
-            img->decctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+            ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             img->integrity = INTEGRITY_DECODING_ERRORS;
           }
         }
@@ -1709,8 +1708,8 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
-        const de265_image* refPicB=img->decctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
-        const de265_image* refPicX=img->decctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+        const de265_image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
+        const de265_image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
 
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
@@ -1723,7 +1722,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
           logtrace(LogMotion,"scale MVP B: B-POC:%d X-POC:%d\n",refPicB->PicOrderCntVal,refPicX->PicOrderCntVal);
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
-            img->decctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+            ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
             img->integrity = INTEGRITY_DECODING_ERRORS;
           }
         }
@@ -1747,7 +1746,7 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
   uint8_t availableFlagLXN[2];
   MotionVector mvLXN[2];
 
-  derive_spatial_luma_vector_prediction(img, shdr, xC,yC, nCS, xP,yP,
+  derive_spatial_luma_vector_prediction(ctx, img, shdr, xC,yC, nCS, xP,yP,
                                         nPbW,nPbH, l, refIdx, partIdx,
                                         availableFlagLXN, mvLXN);
 

@@ -96,10 +96,12 @@ double encode_image(encoder_context* ectx,
   int w = ectx->sps.pic_width_in_luma_samples;
   int h = ectx->sps.pic_height_in_luma_samples;
 
+  // --- create reconstruction image ---
   ectx->img = new de265_image;
   ectx->img->vps  = ectx->vps;
   ectx->img->sps  = ectx->sps;
   ectx->img->pps  = ectx->pps;
+  ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
   ectx->img->alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
                          NULL /* no decctx */, ectx, 0,NULL,false);

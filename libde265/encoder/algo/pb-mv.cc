@@ -37,6 +37,18 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 {
   enum MVTestMode testMode = mParams.testMode();
 
+
+  MotionVector mvp[2];
+
+  fill_luma_motion_vector_predictors(ectx, ectx->shdr, ectx->img,
+                                     cb->x,cb->y,1<<cb->log2Size, x,y,w,h,
+                                     0, // l
+                                     0, 0, // int refIdx, int partIdx,
+                                     mvp);
+
+  //printf("%d/%d: [%d;%d] [%d;%d]\n",cb->x,cb->y, mvp[0].x,mvp[0].y, mvp[1].x,mvp[1].y);
+
+
   motion_spec&   spec = cb->inter.pb[PBidx].spec;
   PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
 
@@ -71,6 +83,20 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
     break;
   }
 
+  spec.mvd[0][0] -= mvp[0].x;
+  spec.mvd[0][1] -= mvp[0].y;
+
+  for (int i=0;i<2;i++) {
+    if (spec.mvd[0][i]> 1) spec.mvd[0][i]=1;
+    if (spec.mvd[0][i]<-1) spec.mvd[0][i]=-1;
+  }
+
+  vec.mv[0].x = mvp[0].x + spec.mvd[0][0];
+  vec.mv[0].y = mvp[0].y + spec.mvd[0][1];
+  vec.predFlag[0] = 1;
+  vec.predFlag[1] = 0;
+
+  ectx->img->set_mv_info(x,y,w,h, vec);
 
   generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
                                     cb->x,cb->y, // int xC,int yC,

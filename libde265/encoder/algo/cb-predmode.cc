@@ -40,7 +40,11 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
   bool try_intra = true;
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
 
-  // try_intra = !try_inter; // TODO HACK: no intra in inter frames
+  try_intra = !try_inter; // TODO HACK: no intra in inter frames
+
+  if (ectx->imgdata->frame_number > 0) {
+    //printf("%d\n",ectx->imgdata->frame_number);
+  }
 
   // 0: intra
   // 1: inter
@@ -68,7 +72,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     cb_inter->PredMode = MODE_INTER;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
 
-    option_inter.set_cb( mInterAlgo->analyze(ectx, option_inter.get_context(), cb_inter));
+    enc_cb* cb_result;
+    option_inter.set_cb( cb_result=mInterAlgo->analyze(ectx, option_inter.get_context(), cb_inter));
 
     option_inter.end();
   }
@@ -83,7 +88,8 @@ enc_cb* Algo_CB_PredMode_BruteForce::analyze(encoder_context* ectx,
     cb_intra->PredMode = MODE_INTRA;
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTRA);
 
-    option_intra.set_cb( mIntraAlgo->analyze(ectx, option_intra.get_context(), cb_intra));
+    enc_cb* cb_result;
+    option_intra.set_cb( cb_result=mIntraAlgo->analyze(ectx, option_intra.get_context(), cb_intra));
 
     option_intra.end();
   }
