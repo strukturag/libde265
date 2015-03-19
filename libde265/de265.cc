@@ -322,6 +322,7 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
   de265_push_end_of_NAL(de265ctx);
 
   decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->nal_parser.flush_data();
   ctx->nal_parser.mark_end_of_frame();
 }
 
