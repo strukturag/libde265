@@ -85,6 +85,8 @@ public:
   virtual void write_CABAC_term_bit(int bit) = 0;
   virtual void flush_CABAC()  { }
 
+  void write_CABAC_EGk(int absolute_symbol, int k); // absolute_symbol >= 0
+
   virtual bool modifies_context() const = 0;
 
   float RDBits_for_CABAC_bin(int modelIdx, int bit);

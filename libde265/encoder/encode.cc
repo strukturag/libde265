@@ -1619,19 +1619,17 @@ void encode_mvd(encoder_context* ectx,
     cabac->write_CABAC_bit(CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG+1, mvd1abs>1);
   }
 
-  if (mvd0abs>1) {
-    assert(0); // TODO
-    cabac->write_CABAC_bypass(mvd[0]<0);
-  }
-  else if (mvd0abs) {
+  if (mvd0abs) {
+    if (mvd0abs>1) {
+      cabac->write_CABAC_EGk(mvd0abs-2,1);
+    }
     cabac->write_CABAC_bypass(mvd[0]<0);
   }
 
-  if (mvd1abs>1) {
-    assert(0); // TODO
-    cabac->write_CABAC_bypass(mvd[1]<0);
-  }
-  else if (mvd1abs) {
+  if (mvd1abs) {
+    if (mvd1abs>1) {
+      cabac->write_CABAC_EGk(mvd1abs-2,1);
+    }
     cabac->write_CABAC_bypass(mvd[1]<0);
   }
 }

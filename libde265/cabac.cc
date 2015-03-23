@@ -955,6 +955,23 @@ float CABAC_encoder::RDBits_for_CABAC_bin(int modelIdx, int bit)
 }
 
 
+void CABAC_encoder::write_CABAC_EGk(int val, int k)
+{
+  while (val  >=  ( 1 << k ) ) {
+    write_CABAC_bypass(1);
+    val = val - ( 1 << k );
+    k++;
+  }
+
+  write_CABAC_bypass(0);
+
+  while (k)  {
+    k--;
+    write_CABAC_bypass((val >> k) & 1);
+  }
+}
+
+
 
 void CABAC_encoder_estim_constant::write_CABAC_bit(int modelIdx, int bit)
 {

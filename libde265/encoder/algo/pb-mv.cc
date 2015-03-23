@@ -59,7 +59,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   spec.refIdx[0] = vec.refIdx[0] = 0;
   spec.mvp_l0_flag = 0;
 
-  int value = 1;
+  int value = mParams.range();
 
   switch (testMode) {
   case MVTestMode_Zero:
@@ -85,11 +85,6 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 
   spec.mvd[0][0] -= mvp[0].x;
   spec.mvd[0][1] -= mvp[0].y;
-
-  for (int i=0;i<2;i++) {
-    if (spec.mvd[0][i]> 1) spec.mvd[0][i]=1;
-    if (spec.mvd[0][i]<-1) spec.mvd[0][i]=-1;
-  }
 
   vec.mv[0].x = mvp[0].x + spec.mvd[0][0];
   vec.mv[0].y = mvp[0].y + spec.mvd[0][1];

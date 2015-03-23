@@ -78,14 +78,18 @@ class Algo_PB_MV_Test : public Algo_PB_MV
   struct params
   {
     params() {
-      testMode.set_ID("PB-MVTestMode");
+      testMode.set_ID("PB-MV-TestMode");
+      range.set_ID   ("PB-MV-Range");
+      range.set_default(4);
     }
 
     option_MVTestMode testMode;
+    option_int        range;
   };
 
   void registerParams(config_parameters& config) {
     config.add_option(&mParams.testMode);
+    config.add_option(&mParams.range);
   }
 
   void setParams(const params& p) { mParams=p; }
