@@ -69,9 +69,6 @@ void mc_luma(const base_context* ctx,
   ALIGNED_16(int16_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
 
   if (xFracL==0 && yFracL==0) {
-    if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
-        nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
-    }
 
     if (xIntOffsL >= 0 && yIntOffsL >= 0 &&
         nPbW+xIntOffsL <= w && nPbH+yIntOffsL <= h) {
