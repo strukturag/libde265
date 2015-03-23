@@ -108,7 +108,7 @@ double encode_image(encoder_context* ectx,
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
-  if (1) {
+  if (0) {
     ectx->prediction = new de265_image;
     ectx->prediction->alloc_image(w,h, de265_chroma_420, &ectx->sps, false /* no metadata */,
                                   NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);

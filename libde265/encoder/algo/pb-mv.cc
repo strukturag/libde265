@@ -234,6 +234,10 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
                                     1<<cb->log2Size, // int nPbW,int nPbH,
                                     &vec);
 
+  // --- create residual ---
+
+
+
   // TODO estimate rate for sending MV
 
   int IntraSplitFlag = 0;

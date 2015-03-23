@@ -31,10 +31,10 @@
 #define ENCODER_DEVELOPMENT 1
 
 
-static void diff_blk(int16_t* out,int out_stride,
-                     const uint8_t* a_ptr, int a_stride,
-                     const uint8_t* b_ptr, int b_stride,
-                     int blkSize)
+void diff_blk(int16_t* out,int out_stride,
+              const uint8_t* a_ptr, int a_stride,
+              const uint8_t* b_ptr, int b_stride,
+              int blkSize)
 {
   for (int by=0;by<blkSize;by++)
     for (int bx=0;bx<blkSize;bx++)

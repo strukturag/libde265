@@ -52,6 +52,18 @@
  */
 
 
+struct ResidualBlock
+{
+  const int16_t* data[4];
+  int            stride[4];
+};
+
+void diff_blk(int16_t* out,int out_stride,
+              const uint8_t* a_ptr, int a_stride,
+              const uint8_t* b_ptr, int b_stride,
+              int blkSize);
+
+
 // ========== TB split decision ==========
 
 class Algo_TB_Split

@@ -27,9 +27,7 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
-
-
-#define ENCODER_DEVELOPMENT 1
+#include <algorithm>
 
 
 
@@ -94,18 +92,6 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
   return best_mode;
 }
 
-
-static void diff_blk(int16_t* out,int out_stride,
-                     const uint8_t* a_ptr, int a_stride,
-                     const uint8_t* b_ptr, int b_stride,
-                     int blkSize)
-{
-  for (int by=0;by<blkSize;by++)
-    for (int bx=0;bx<blkSize;bx++)
-      {
-        out[by*out_stride+bx] = a_ptr[by*a_stride+bx] - b_ptr[by*b_stride+bx];
-      }
-}
 
 
 
@@ -366,7 +352,6 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   return nullptr;
 }
 
-#include <algorithm>
 static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
                             std::pair<enum IntraPredMode,float> j)
 {

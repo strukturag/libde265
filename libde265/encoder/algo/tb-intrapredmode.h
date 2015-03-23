@@ -90,6 +90,10 @@ class option_TBBitrateEstimMethod : public choice_option<enum TBBitrateEstimMeth
 
 class Algo_TB_Split;
 
+
+/** Base class for intra prediction-mode algorithms.
+    Selects one of the 35 prediction modes.
+ */
 class Algo_TB_IntraPredMode
 {
  public:
@@ -131,6 +135,8 @@ class option_ALGO_TB_IntraPredMode_Subset : public choice_option<enum ALGO_TB_In
 };
 
 
+/** Utility class for intra prediction-mode algorithm that uses a subset of modes.
+ */
 class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 {
  public:
@@ -179,6 +185,8 @@ class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 };
 
 
+/** Algorithm that brute-forces through all intra prediction mode.
+ */
 class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
@@ -194,6 +202,8 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
 };
 
 
+/** Algorithm that makes a quick pre-selection of modes and then brute-forces through them.
+ */
 class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
@@ -234,6 +244,8 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 };
 
 
+/** Algorithm that selects the intra prediction mode on minimum residual only.
+ */
 class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
