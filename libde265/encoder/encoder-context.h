@@ -70,7 +70,7 @@ class encoder_context : public base_context
   // quick links
   de265_image* img; // reconstruction
   de265_image* prediction;
-  image_data* imgdata;
+  image_data* imgdata; // input image
   slice_segment_header* shdr;
 
 

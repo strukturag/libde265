@@ -56,6 +56,22 @@ class option_SOP_Structure : public choice_option<enum SOP_Structure>
 };
 
 
+enum MEMode
+  {
+    MEMode_Test,
+    MEMode_Search
+  };
+
+class option_MEMode : public choice_option<enum MEMode>
+{
+ public:
+  option_MEMode() {
+    add_choice("test",   MEMode_Test, true);
+    add_choice("search", MEMode_Search);
+  }
+};
+
+
 struct encoder_params
 {
   encoder_params();
@@ -104,6 +120,8 @@ struct encoder_params
   // --- Algo_CTB_QScale
 
   //Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
+
+  option_MEMode mAlgo_MEMode;
 
 
   // intra-prediction

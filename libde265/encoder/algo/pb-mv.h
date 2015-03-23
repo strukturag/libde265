@@ -70,6 +70,7 @@ class option_MVTestMode : public choice_option<enum MVTestMode>
   }
 };
 
+
 class Algo_PB_MV_Test : public Algo_PB_MV
 {
  public:
@@ -90,6 +91,68 @@ class Algo_PB_MV_Test : public Algo_PB_MV
   void registerParams(config_parameters& config) {
     config.add_option(&mParams.testMode);
     config.add_option(&mParams.range);
+  }
+
+  void setParams(const params& p) { mParams=p; }
+
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table&,
+                          enc_cb* cb,
+                          int PBidx, int x,int y,int w,int h);
+
+ private:
+  params mParams;
+
+  bool mCodeResidual;
+};
+
+
+
+
+enum MVSearchAlgo
+  {
+    MVSearchAlgo_Zero,
+    MVSearchAlgo_Full,
+    MVSearchAlgo_Diamond,
+    MVSearchAlgo_PMVFast
+  };
+
+class option_MVSearchAlgo : public choice_option<enum MVSearchAlgo>
+{
+ public:
+  option_MVSearchAlgo() {
+    add_choice("zero",   MVSearchAlgo_Zero);
+    add_choice("full",   MVSearchAlgo_Full, true);
+    add_choice("diamond",MVSearchAlgo_Diamond);
+    add_choice("pmvfast",MVSearchAlgo_PMVFast);
+  }
+};
+
+
+class Algo_PB_MV_Search : public Algo_PB_MV
+{
+ public:
+ Algo_PB_MV_Search() : mCodeResidual(false) { }
+
+  struct params
+  {
+    params() {
+      mvSearchAlgo.set_ID("PB-MV-Search-Algo");
+      hrange.set_ID      ("PB-MV-Search-HRange");
+      vrange.set_ID      ("PB-MV-Search-VRange");
+      hrange.set_default(8);
+      vrange.set_default(8);
+    }
+
+    option_MVSearchAlgo mvSearchAlgo;
+    option_int        hrange;
+    option_int        vrange;
+  };
+
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.mvSearchAlgo);
+    config.add_option(&mParams.hrange);
+    config.add_option(&mParams.vrange);
   }
 
   void setParams(const params& p) { mParams=p; }

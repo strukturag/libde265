@@ -87,6 +87,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
     mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
     mAlgo_CB_InterPartMode_Fixed.registerParams(config);
     mAlgo_PB_MV_Test.registerParams(config);
+    mAlgo_PB_MV_Search.registerParams(config);
     mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
     mAlgo_TB_IntraPredMode_MinResidual.registerParams(config);
     mAlgo_TB_Split_BruteForce.registerParams(config);
@@ -110,6 +111,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   Algo_CB_MergeIndex_Fixed         mAlgo_CB_MergeIndex_Fixed;
 
   Algo_PB_MV_Test                  mAlgo_PB_MV_Test;
+  Algo_PB_MV_Search                mAlgo_PB_MV_Search;
 
   Algo_TB_Split_BruteForce          mAlgo_TB_Split_BruteForce;
 
