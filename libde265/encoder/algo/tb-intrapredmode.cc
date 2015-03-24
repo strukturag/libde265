@@ -322,13 +322,15 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
       }
     }
 
-    //intraMode=(enum IntraPredMode)(rand()%35);
-
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+
+    decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
+    decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
+    decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 2);
 
     // Note: cannot prepare intra prediction pixels here, because this has to
     // be done at the lowest TB split level.

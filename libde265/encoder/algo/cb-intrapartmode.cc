@@ -148,6 +148,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   // rate for cu syntax
 
   CABAC_encoder_estim estim;
+  estim.set_context_models(&ctxModel);
   encode_coding_unit(ectx,&estim,cb,x,y,log2CbSize, false);
   cb->rate += estim.getRDBits();
 

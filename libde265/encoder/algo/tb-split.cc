@@ -55,9 +55,23 @@ static bool has_nonzero_value(const int16_t* data, int n)
 
 void show_debug_image(const de265_image* input, int slot);
 
+/*
 void encode_transform_unit(encoder_context* ectx,
                            enc_tb* tb,
                            const de265_image* input,
+                           //int16_t* residual, int stride,
+                           int x0,int y0, // luma position
+                           int log2TbSize, // chroma adapted
+                           const enc_cb* cb,
+                           int cIdx)
+{
+}
+*/
+
+void encode_transform_unit(encoder_context* ectx,
+                           enc_tb* tb,
+                           const de265_image* input,
+                           //int16_t* residual, int stride,
                            int x0,int y0, // luma position
                            int log2TbSize, // chroma adapted
                            const enc_cb* cb,
