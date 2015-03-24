@@ -80,21 +80,20 @@ void encode_transform_unit(encoder_context* ectx,
   int xC = x0;
   int yC = y0;
   int tbSize = 1<<log2TbSize;
-
+  if (cIdx>0) { xC>>=1; yC>>=1; }
 
   enum PredMode predMode = cb->PredMode;
 
   // --- do intra prediction ---
 
   if (predMode==MODE_INTRA) {
-    enum IntraPredMode intraPredMode  = ectx->img->get_IntraPredMode(x0,y0);
+    enum IntraPredMode intraPredMode;
 
-    if (cIdx>0) {
-      intraPredMode = cb->intra.chroma_mode; //lumaPredMode_to_chromaPredMode(intraPredMode,
-      //cb->intra.chroma_mode);
-
-      xC >>= 1;
-      yC >>= 1;
+    if (cIdx==0) {
+      intraPredMode = ectx->img->get_IntraPredMode(x0,y0);
+    }
+    else {
+      intraPredMode = cb->intra.chroma_mode;
     }
 
     //printf("I %d;%d mode %d tb %d (%d)\n",xC,yC,intraPredMode,tbSize,cIdx);
