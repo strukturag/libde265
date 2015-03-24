@@ -270,8 +270,8 @@ void mc_chroma(const base_context* ctx,
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(base_context* ctx,
-                                       de265_image* img,
                                        const slice_segment_header* shdr,
+                                       de265_image* img,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
@@ -1924,7 +1924,7 @@ void decode_prediction_unit(base_context* ctx,
 
   // 2.
 
-  generate_inter_prediction_samples(ctx,img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,shdr, img, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
   img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);

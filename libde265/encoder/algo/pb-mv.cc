@@ -93,7 +93,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 
   ectx->img->set_mv_info(x,y,w,h, vec);
 
-  generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
                                     1<<cb->log2Size, // int nCS,
@@ -226,7 +226,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   ectx->img->set_mv_info(x,y,pbW,pbH, vec);
 
-  generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
                                     1<<cb->log2Size, // int nCS,

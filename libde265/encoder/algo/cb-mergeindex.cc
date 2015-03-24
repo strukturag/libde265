@@ -67,7 +67,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   vec.mv[0].x=0;
   vec.mv[0].y=0;
 
-  generate_inter_prediction_samples(ectx, ectx->img, ectx->shdr,
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
                                     1<<cb->log2Size, // int nCS,
