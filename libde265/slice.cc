@@ -3477,7 +3477,8 @@ void read_prediction_unit(thread_context* tctx,
 
 
 
-  decode_prediction_unit(tctx, xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
+  decode_prediction_unit(tctx->decctx, tctx->shdr, tctx->img, tctx->motion,
+                         xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
 }
 
 
@@ -3601,7 +3602,8 @@ void read_coding_unit(thread_context* tctx,
     // DECODE
 
     int nCS_L = 1<<log2CbSize;
-    decode_prediction_unit(tctx,x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
+    decode_prediction_unit(tctx->decctx,tctx->shdr,tctx->img,tctx->motion,
+                           x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
   }
   else /* not skipped */ {
     if (shdr->slice_type != SLICE_TYPE_I) {

@@ -145,6 +145,7 @@ enc_tb::~enc_tb()
 
 void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
 {
+  assert(coeff[cIdx]==NULL);
   coeff[cIdx] = new int16_t[tbSize*tbSize];
 }
 

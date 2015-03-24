@@ -24,8 +24,6 @@
 #include <stdint.h>
 
 class base_context;
-class decoder_context;
-class thread_context;
 class slice_segment_header;
 
 typedef struct
@@ -41,24 +39,6 @@ typedef struct
   MotionVector  mv[2];
 } PredVectorInfo;
 
-
-/*
-typedef struct
-{
-  // array indices
-  // important! order like shown in 8.5.3.1.1
-  enum {
-    PRED_A1  = 0,
-    PRED_B1  = 1,
-    PRED_B0  = 2,
-    PRED_A0  = 3,
-    PRED_B2  = 4
-  };
-
-  uint8_t          available[5];
-  PredVectorInfo pred_vector[5];
-} SpatialMergingCandidates;
-*/
 
 typedef struct {
   int8_t  refIdx[2];
@@ -82,7 +62,7 @@ int derive_spatial_merging_candidates(const struct de265_image* img,
 
 void generate_inter_prediction_samples(base_context* ctx,
                                        struct de265_image* img,
-                                       slice_segment_header* shdr,
+                                       const slice_segment_header* shdr,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
@@ -99,10 +79,8 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
                                         MotionVector out_mvpList[2]);
 
 
-void decode_prediction_unit(thread_context* shdr,
+void decode_prediction_unit(base_context* ctx,const slice_segment_header* shdr,
+                            de265_image* img, const motion_spec& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
-
-void inter_prediction(decoder_context* ctx,slice_segment_header* shdr,
-                      int xC,int yC, int log2CbSize);
 
 #endif

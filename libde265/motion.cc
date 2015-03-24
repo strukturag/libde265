@@ -271,7 +271,7 @@ void mc_chroma(const base_context* ctx,
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(base_context* ctx,
                                        de265_image* img,
-                                       slice_segment_header* shdr,
+                                       const slice_segment_header* shdr,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
@@ -908,7 +908,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
 
 
 // 8.5.3.1.4
-void derive_zero_motion_vector_candidates(slice_segment_header* shdr,
+void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
                                           PredVectorInfo* out_mergeCandList,
                                           int* inout_numCurrMergeCand,
                                           int maxCandidates)
@@ -1261,8 +1261,8 @@ static int table_8_19[2][12] = {
 /* Note (TODO): during decoding, we know which of the candidates we will select.
 +   Hence, we do not really have to generate the other ones...
 + */
-void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
-                                                     slice_segment_header* shdr,
+void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
+                                                     const slice_segment_header* shdr,
                                                      PredVectorInfo* inout_mergeCandList,
                                                      int* inout_numMergeCand,
                                                      int maxCandidates)
@@ -1321,8 +1321,8 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
 
 
 // 8.5.3.1.1
-void derive_luma_motion_merge_mode(decoder_context* ctx,
-                                   slice_segment_header* shdr,
+void derive_luma_motion_merge_mode(base_context* ctx,
+                                   const slice_segment_header* shdr,
                                    de265_image* img,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
@@ -1793,21 +1793,22 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
 
 MotionVector luma_motion_vector_prediction(base_context* ctx,
                                            const slice_segment_header* shdr,
-                                           thread_context* tctx,
+                                           de265_image* img,
+                                           const motion_spec& motion,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int l,
                                            int refIdx, int partIdx)
 {
   MotionVector mvpList[2];
 
-  fill_luma_motion_vector_predictors(ctx, shdr, tctx->img,
+  fill_luma_motion_vector_predictors(ctx, shdr, img,
                                      xC,yC,nCS,xP,yP,
                                      nPbW, nPbH, l, refIdx, partIdx,
                                      mvpList);
 
   // select predictor according to mvp_lX_flag
 
-  return mvpList[ l ? tctx->motion.mvp_l1_flag : tctx->motion.mvp_l0_flag ];
+  return mvpList[ l ? motion.mvp_l1_flag : motion.mvp_l0_flag ];
 }
 
 
@@ -1831,8 +1832,10 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PredVectorInf
 
 
 // 8.5.3.1
-void motion_vectors_and_ref_indices(decoder_context* ctx,
-                                    thread_context* tctx,
+void motion_vectors_and_ref_indices(base_context* ctx,
+                                    const slice_segment_header* shdr,
+                                    de265_image* img,
+                                    const motion_spec& motion,
                                     int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
                                     PredVectorInfo* out_vi)
 {
@@ -1841,14 +1844,14 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
   int xP = xC+xB;
   int yP = yC+yB;
 
-  enum PredMode predMode = tctx->img->get_pred_mode(xC,yC);
+  enum PredMode predMode = img->get_pred_mode(xC,yC);
 
   if (predMode == MODE_SKIP ||
-      (predMode == MODE_INTER && tctx->motion.merge_flag))
+      (predMode == MODE_INTER && motion.merge_flag))
     {
-      derive_luma_motion_merge_mode(ctx,tctx->shdr,tctx->img,
+      derive_luma_motion_merge_mode(ctx,shdr,img,
                                     xC,yC, xP,yP, nCS,nPbW,nPbH, partIdx,
-                                    tctx->motion.merge_idx, out_vi);
+                                    motion.merge_idx, out_vi);
 
       logMV(xP,yP,nPbW,nPbH, "merge_mode", out_vi);
     }
@@ -1859,12 +1862,12 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
     for (int l=0;l<2;l++) {
       // 1.
 
-      enum InterPredIdc inter_pred_idc = (enum InterPredIdc)tctx->motion.inter_pred_idc;
+      enum InterPredIdc inter_pred_idc = (enum InterPredIdc)motion.inter_pred_idc;
 
       if (inter_pred_idc == PRED_BI ||
           (inter_pred_idc == PRED_L0 && l==0) ||
           (inter_pred_idc == PRED_L1 && l==1)) {
-        out_vi->refIdx[l] = tctx->motion.refIdx[l];
+        out_vi->refIdx[l] = motion.refIdx[l];
         out_vi->predFlag[l] = 1;
       }
       else {
@@ -1874,14 +1877,14 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
       // 2.
 
-      mvdL[l][0] = tctx->motion.mvd[l][0];
-      mvdL[l][1] = tctx->motion.mvd[l][1];
+      mvdL[l][0] = motion.mvd[l][0];
+      mvdL[l][1] = motion.mvd[l][1];
 
 
       if (out_vi->predFlag[l]) {
         // 3.
 
-        mvpL[l] = luma_motion_vector_prediction(ctx,tctx->shdr,tctx,
+        mvpL[l] = luma_motion_vector_prediction(ctx,shdr,img,motion,
                                                 xC,yC,nCS,xP,yP, nPbW,nPbH, l,
                                                 out_vi->refIdx[l], partIdx);
 
@@ -1901,23 +1904,27 @@ void motion_vectors_and_ref_indices(decoder_context* ctx,
 
 
 // 8.5.3
-void decode_prediction_unit(thread_context* tctx,
+void decode_prediction_unit(base_context* ctx,
+                            const slice_segment_header* shdr,
+                            de265_image* img,
+                            const motion_spec& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
   logtrace(LogMotion,"decode_prediction_unit POC=%d %d;%d %dx%d\n",
-           tctx->img->PicOrderCntVal, xC+xB,yC+yB, nPbW,nPbH);
+           img->PicOrderCntVal, xC+xB,yC+yB, nPbW,nPbH);
 
-  slice_segment_header* shdr = tctx->shdr;
+  //slice_segment_header* shdr = tctx->shdr;
 
   // 1.
 
   PredVectorInfo vi;
-  motion_vectors_and_ref_indices(tctx->decctx,tctx, xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
+  motion_vectors_and_ref_indices(ctx, shdr, img, motion,
+                                 xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 
   // 2.
 
-  generate_inter_prediction_samples(tctx->decctx,tctx->img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,img, shdr, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
-  tctx->img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
+  img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
 }
