@@ -70,7 +70,7 @@ void encode_transform_unit(encoder_context* ectx,
 
 void encode_transform_unit(encoder_context* ectx,
                            enc_tb* tb,
-                           const de265_image* input,
+                           const de265_image* input,   // TODO: probably pass pixels/stride directly
                            //int16_t* residual, int stride,
                            int x0,int y0, // luma position
                            int log2TbSize, // chroma adapted

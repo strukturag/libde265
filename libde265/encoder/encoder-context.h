@@ -73,6 +73,8 @@ class encoder_context : public base_context
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
+  // temporary memory for motion compensated pixels (when CB-algo passes this down to TB-algo)
+  uint8_t prediction[3][64*64]; // stride: 1<<(cb->log2Size)
 
 
   int active_qp; // currently active QP
