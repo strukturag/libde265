@@ -103,7 +103,7 @@ struct enc_pb_inter
 {
   /* absolute motion information (for MV-prediction candidates)
    */
-  PredVectorInfo motion;
+  MotionVectorSpec motion;
 
   /* specification how to code the motion vector in the bitstream
    */

@@ -452,7 +452,7 @@ void de265_image::release()
                                                   decctx->param_image_allocation_userdata :
                                                   NULL);
       }
-      
+
       for (int i=0;i<3;i++)
         {
           pixels[i] = NULL;
@@ -672,7 +672,7 @@ void de265_image::clear_metadata()
 }
 
 
-void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo& mv)
+void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const MotionVectorSpec& mv)
 {
   int log2PuSize = 2;
 
@@ -686,7 +686,7 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorIn
   for (int pby=0;pby<hPu;pby++)
     for (int pbx=0;pbx<wPu;pbx++)
       {
-        pb_info[ xPu+pbx + (yPu+pby)*stride ].mvi = mv;
+        pb_info[ xPu+pbx + (yPu+pby)*stride ].mv = mv;
       }
 }
 

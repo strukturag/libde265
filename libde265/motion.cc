@@ -275,7 +275,7 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
-                                       const PredVectorInfo* vi)
+                                       const MotionVectorSpec* vi)
 {
   ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
   ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
@@ -590,7 +590,7 @@ void generate_inter_prediction_samples(base_context* ctx,
 
 
 #ifdef DE265_LOG_TRACE
-void logmvcand(PredVectorInfo p)
+void logmvcand(const MotionVectorSpec& p)
 {
   for (int v=0;v<2;v++) {
     if (p.predFlag[v]) {
@@ -606,7 +606,7 @@ void logmvcand(PredVectorInfo p)
 #endif
 
 
-LIBDE265_INLINE static bool equal_cand_MV(const PredVectorInfo* a, const PredVectorInfo* b)
+LIBDE265_INLINE static bool equal_cand_MV(const MotionVectorSpec* a, const MotionVectorSpec* b)
 {
   // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
 
@@ -672,7 +672,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
                                       int partIdx,
-                                      PredVectorInfo* out_cand,
+                                      MotionVectorSpec* out_cand,
                                       int maxCandidates)
 {
   const pic_parameter_set* pps = &img->pps;
@@ -761,7 +761,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB1) {
-    const PredVectorInfo* b1 = img->get_mv_info(xB1,yB1);
+    const MotionVectorSpec* b1 = img->get_mv_info(xB1,yB1);
 
     // B1 == A1 -> discard B1
     if (availableA1 &&
@@ -800,7 +800,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB0) {
-    const PredVectorInfo* b0 = img->get_mv_info(xB0,yB0);
+    const MotionVectorSpec* b0 = img->get_mv_info(xB0,yB0);
 
     // B0 == B1 -> discard B0
     if (availableB1 &&
@@ -838,7 +838,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableA0) {
-    const PredVectorInfo* a0 = img->get_mv_info(xA0,yA0);
+    const MotionVectorSpec* a0 = img->get_mv_info(xA0,yA0);
 
     // A0 == A1 -> discard A0
     if (availableA1 &&
@@ -881,7 +881,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB2) {
-    const PredVectorInfo* b2 = img->get_mv_info(xB2,yB2);
+    const MotionVectorSpec* b2 = img->get_mv_info(xB2,yB2);
 
     // B2 == B1 -> discard B2
     if (availableB1 &&
@@ -909,7 +909,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
 
 // 8.5.3.1.4
 void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
-                                          PredVectorInfo* out_mergeCandList,
+                                          MotionVectorSpec* out_mergeCandList,
                                           int* inout_numCurrMergeCand,
                                           int maxCandidates)
 {
@@ -934,7 +934,7 @@ void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
 
     logtrace(LogMotion,"zeroIdx:%d numRefIdx:%d\n", zeroIdx, numRefIdx);
 
-    PredVectorInfo* newCand = &out_mergeCandList[*inout_numCurrMergeCand];
+    MotionVectorSpec* newCand = &out_mergeCandList[*inout_numCurrMergeCand];
 
     const int refIdx = (zeroIdx < numRefIdx) ? zeroIdx : 0;
 
@@ -1037,7 +1037,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
   // get the collocated MV
 
-  const PredVectorInfo* mvi = colImg->get_mv_info(xColPb,yColPb);
+  const MotionVectorSpec* mvi = colImg->get_mv_info(xColPb,yColPb);
   int listCol;
   int refIdxCol;
   MotionVector mvCol;
@@ -1263,7 +1263,7 @@ static int table_8_19[2][12] = {
 + */
 void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
                                                      const slice_segment_header* shdr,
-                                                     PredVectorInfo* inout_mergeCandList,
+                                                     MotionVectorSpec* inout_mergeCandList,
                                                      int* inout_numMergeCand,
                                                      int maxCandidates)
 {
@@ -1283,8 +1283,8 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
         assert(false); // bitstream error -> TODO: conceal error
       }
 
-      PredVectorInfo* l0Cand = &inout_mergeCandList[l0CandIdx];
-      PredVectorInfo* l1Cand = &inout_mergeCandList[l1CandIdx];
+      MotionVectorSpec* l0Cand = &inout_mergeCandList[l0CandIdx];
+      MotionVectorSpec* l1Cand = &inout_mergeCandList[l1CandIdx];
 
       logtrace(LogMotion,"add bipredictive merging candidate (combIdx:%d)\n",combIdx);
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(*l0Cand);
@@ -1297,7 +1297,7 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
           (img0->PicOrderCntVal != img1->PicOrderCntVal     ||
            l0Cand->mv[0].x != l1Cand->mv[1].x ||
            l0Cand->mv[0].y != l1Cand->mv[1].y)) {
-        PredVectorInfo* p = &inout_mergeCandList[ *inout_numMergeCand ];
+        MotionVectorSpec* p = &inout_mergeCandList[ *inout_numMergeCand ];
         p->refIdx[0] = l0Cand->refIdx[0];
         p->refIdx[1] = l1Cand->refIdx[1];
         p->predFlag[0] = l0Cand->predFlag[0];
@@ -1327,7 +1327,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
                                    int merge_idx,
-                                   PredVectorInfo* out_vi)
+                                   MotionVectorSpec* out_vi)
 {
 
   //int xOrigP = xP;
@@ -1355,7 +1355,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   }
 
   int maxCandidates = merge_idx+1;
-  PredVectorInfo mergeCandList[5];
+  MotionVectorSpec mergeCandList[5];
   int numMergeCand=0;
 
   // --- spatial merge candidates
@@ -1386,7 +1386,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
 
 
     if (availableFlagCol) {
-      PredVectorInfo* colVec = &mergeCandList[numMergeCand++];
+      MotionVectorSpec* colVec = &mergeCandList[numMergeCand++];
 
       colVec->mv[0] = mvCol[0];
       colVec->mv[1] = mvCol[1];
@@ -1490,7 +1490,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       int Y=1-X;
 
-      const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
+      const MotionVectorSpec* vi = img->get_mv_info(xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
 
@@ -1529,7 +1529,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       int Y=1-X;
 
-      const PredVectorInfo* vi = img->get_mv_info(xA[k],yA[k]);
+      const MotionVectorSpec* vi = img->get_mv_info(xA[k],yA[k]);
       if (vi->predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
 
@@ -1616,7 +1616,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       int Y=1-X;
 
-      const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
+      const MotionVectorSpec* vi = img->get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(*vi);
 
@@ -1668,7 +1668,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       if (availableB[k]) {
         int Y=1-X;
 
-        const PredVectorInfo* vi = img->get_mv_info(xB[k],yB[k]);
+        const MotionVectorSpec* vi = img->get_mv_info(xB[k],yB[k]);
 
         if (vi->predFlag[X]==1 &&
             shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi->refIdx[X] ]) {
@@ -1813,7 +1813,7 @@ MotionVector luma_motion_vector_prediction(base_context* ctx,
 
 
 #if DE265_LOG_TRACE
-void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PredVectorInfo* mv)
+void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const MotionVectorSpec* mv)
 {
   int pred0 = mv->predFlag[0];
   int pred1 = mv->predFlag[1];
@@ -1836,8 +1836,9 @@ void motion_vectors_and_ref_indices(base_context* ctx,
                                     const slice_segment_header* shdr,
                                     de265_image* img,
                                     const motion_spec& motion,
-                                    int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx,
-                                    PredVectorInfo* out_vi)
+                                    int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH,
+                                    int partIdx,
+                                    MotionVectorSpec* out_vi)
 {
   //slice_segment_header* shdr = tctx->shdr;
 
@@ -1917,7 +1918,7 @@ void decode_prediction_unit(base_context* ctx,
 
   // 1.
 
-  PredVectorInfo vi;
+  MotionVectorSpec vi;
   motion_vectors_and_ref_indices(ctx, shdr, img, motion,
                                  xC,yC, xB,yB, nCS, nPbW,nPbH, partIdx, &vi);
 

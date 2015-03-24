@@ -49,8 +49,8 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   //printf("%d/%d: [%d;%d] [%d;%d]\n",cb->x,cb->y, mvp[0].x,mvp[0].y, mvp[1].x,mvp[1].y);
 
 
-  motion_spec&   spec = cb->inter.pb[PBidx].spec;
-  PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
+  motion_spec&     spec = cb->inter.pb[PBidx].spec;
+  MotionVectorSpec& vec = cb->inter.pb[PBidx].motion;
 
   spec.merge_flag = 0;
   spec.merge_idx  = 0;
@@ -175,8 +175,8 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
                                      0, 0, // int refIdx, int partIdx,
                                      mvp);
 
-  motion_spec&   spec = cb->inter.pb[PBidx].spec;
-  PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
+  motion_spec&     spec = cb->inter.pb[PBidx].spec;
+  MotionVectorSpec& vec = cb->inter.pb[PBidx].motion;
 
   spec.merge_flag = 0;
   spec.merge_idx  = 0;

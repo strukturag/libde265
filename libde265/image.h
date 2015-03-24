@@ -189,7 +189,7 @@ typedef struct {
 
 
 typedef struct {
-  PredVectorInfo mvi; // TODO: this can be done in 16x16 grid
+  MotionVectorSpec mv; // TODO: this can be done in 16x16 grid
 } PB_ref_info;
 
 // intraPredMode:   Used for determining scanIdx when decoding/encoding coefficients.
@@ -537,7 +537,7 @@ public:
   void set_IntraPredMode(int PUidx,int log2blkSize, enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
-    
+
     for (int y=0;y<pbSize;y++)
       for (int x=0;x<pbSize;x++)
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
@@ -627,16 +627,16 @@ public:
   {
     return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
   }
-  
+
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
   {
     sao_info* sao = &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
-    
+
     memcpy(sao,
            saoinfo,
            sizeof(sao_info));
   }
-  
+
   const sao_info* get_sao_info(int ctbX,int ctbY) const
   {
     return &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
@@ -672,7 +672,7 @@ public:
   {
     const int xd = x0/4;
     const int yd = y0/4;
-    
+
     if (xd<deblk_info.width_in_units &&
         yd<deblk_info.height_in_units) {
       deblk_info[xd + yd*deblk_info.width_in_units] |= flags;
@@ -702,12 +702,12 @@ public:
 
   // --- PB metadata access ---
 
-  const PredVectorInfo* get_mv_info(int x,int y) const
+  const MotionVectorSpec* get_mv_info(int x,int y) const
   {
-    return &pb_info.get(x,y).mvi;
+    return &pb_info.get(x,y).mv;
   }
 
-  void set_mv_info(int x,int y, int nPbW,int nPbH, const PredVectorInfo& mv);
+  void set_mv_info(int x,int y, int nPbW,int nPbH, const MotionVectorSpec& mv);
 
   // --- value logging ---
 

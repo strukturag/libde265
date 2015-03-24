@@ -39,7 +39,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   int PBidx = 0;
   motion_spec&   spec = cb->inter.pb[PBidx].spec;
-  PredVectorInfo& vec = cb->inter.pb[PBidx].motion;
+  MotionVectorSpec& vec = cb->inter.pb[PBidx].motion;
 
   spec.merge_flag = 1;
   spec.merge_idx  = 0;

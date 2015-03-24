@@ -37,7 +37,7 @@ typedef struct
   uint8_t predFlag[2];  // which of the two vectors is actually used
    int8_t   refIdx[2];
   MotionVector  mv[2];
-} PredVectorInfo;
+} MotionVectorSpec;
 
 
 typedef struct {
@@ -57,7 +57,7 @@ int derive_spatial_merging_candidates(const struct de265_image* img,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
                                       int partIdx,
-                                      PredVectorInfo* out_cand,
+                                      MotionVectorSpec* out_cand,
                                       int maxCandidates);
 
 void generate_inter_prediction_samples(base_context* ctx,
@@ -66,7 +66,7 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
-                                       const PredVectorInfo* vi);
+                                       const MotionVectorSpec* vi);
 
 /* Fill list (two entries) of motion-vector predictors for MVD coding.
  */
