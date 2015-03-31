@@ -183,5 +183,5 @@ void PacketSink_File::send_packet(const uint8_t* data, int n)
 
   fwrite(startCode,1,3,mFH);
   fwrite(data,1,n,mFH);
+  fflush(mFH);
 }
-
