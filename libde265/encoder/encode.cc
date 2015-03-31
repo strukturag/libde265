@@ -178,14 +178,16 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   }
   else {
     int size = 1<<log2TbSize;
-    if (cIdx>0) {
-      //size>>=1;
-    }
 
-    // TODO: SLOW
+    uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+    int dst_stride  = img->get_image_stride(cIdx);
+
+    uint8_t* src_ptr  = ectx->prediction->get_image_plane_at_pos(cIdx, xC,  yC  );
+    int src_stride  = ectx->prediction->get_image_stride(cIdx);
+
     for (int y=0;y<size;y++) {
       for (int x=0;x<size;x++) {
-        *img->get_image_plane_at_pos(cIdx,xC+x,yC+y) = *ectx->prediction->get_image_plane_at_pos(cIdx,xC+x,yC+y);
+        dst_ptr[y*dst_stride+x] = src_ptr[y*src_stride+x];
       }
     }
   }
