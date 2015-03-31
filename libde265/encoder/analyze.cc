@@ -108,11 +108,14 @@ double encode_image(encoder_context* ectx,
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
-#if 0
-  if (0) {
+#if 1
+  if (1) {
     ectx->prediction = new de265_image;
     ectx->prediction->alloc_image(w,h, de265_chroma_420, &ectx->sps, false /* no metadata */,
                                   NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
+    ectx->prediction->vps = ectx->vps;
+    ectx->prediction->sps = ectx->sps;
+    ectx->prediction->pps = ectx->pps;
   }
 #endif
 
@@ -202,6 +205,9 @@ double encode_image(encoder_context* ectx,
   //statistics_print();
 
 
+  delete ectx->prediction;
+
+
   // frame PSNR
 
   double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
@@ -234,14 +240,19 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   mAlgo_CB_SkipOrInter_BruteForce.setInterAlgo(&mAlgo_CB_InterPartMode_Fixed);
   mAlgo_CB_MergeIndex_Fixed.setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
+  Algo_PB_MV* pbAlgo = NULL;
   switch (params.mAlgo_MEMode()) {
   case MEMode_Test:
-    mAlgo_CB_InterPartMode_Fixed.setChildAlgo(&mAlgo_PB_MV_Test);
+    pbAlgo = &mAlgo_PB_MV_Test;
     break;
   case MEMode_Search:
-    mAlgo_CB_InterPartMode_Fixed.setChildAlgo(&mAlgo_PB_MV_Search);
+    pbAlgo = &mAlgo_PB_MV_Search;
     break;
   }
+
+  mAlgo_CB_InterPartMode_Fixed.setChildAlgo(pbAlgo);
+  pbAlgo->setChildAlgo(&mAlgo_TB_Split_BruteForce);
+
 
   Algo_TB_IntraPredMode_ModeSubset* algo_TB_IntraPredMode = NULL;
   switch (params.mAlgo_TB_IntraPredMode()) {

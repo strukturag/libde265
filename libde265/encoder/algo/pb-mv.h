@@ -40,12 +40,19 @@
 
 // ========== CB Intra/Inter decision ==========
 
+class Algo_TB_Split;
+
+
 class Algo_PB_MV : public Algo_PB
 {
  public:
+ Algo_PB_MV() : mTBSplitAlgo(NULL) { }
   virtual ~Algo_PB_MV() { }
 
+  void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
+
  protected:
+  Algo_TB_Split* mTBSplitAlgo;
 };
 
 

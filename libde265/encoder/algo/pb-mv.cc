@@ -93,7 +93,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 
   ectx->img->set_mv_info(x,y,w,h, vec);
 
-  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->prediction,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
                                     1<<cb->log2Size, // int nCS,
@@ -106,22 +106,21 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   int IntraSplitFlag = 0;
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
 
+  mCodeResidual=true;
   if (mCodeResidual) {
-    assert(false);
-#if 0
-    cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
-                                           cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
-                                           0, MaxTrafoDepth, IntraSplitFlag);
+    assert(mTBSplitAlgo);
+    cb->transform_tree = mTBSplitAlgo->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
+                                               cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
+                                               0, MaxTrafoDepth, IntraSplitFlag);
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 
     cb->distortion = cb->transform_tree->distortion;
     cb->rate       = cb->transform_tree->rate;
-#endif
   }
   else {
     const de265_image* input = ectx->imgdata->input;
-    de265_image* img   = ectx->img;
+    de265_image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
@@ -226,7 +225,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   ectx->img->set_mv_info(x,y,pbW,pbH, vec);
 
-  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->prediction,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
                                     1<<cb->log2Size, // int nCS,
@@ -243,18 +242,16 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
   int IntraSplitFlag = 0;
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
 
+  mCodeResidual=true;
   if (mCodeResidual) {
-    assert(false);
-#if 0
-    cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
-                                           cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
-                                           0, MaxTrafoDepth, IntraSplitFlag);
+    cb->transform_tree = mTBSplitAlgo->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
+                                               cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
+                                               0, MaxTrafoDepth, IntraSplitFlag);
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 
     cb->distortion = cb->transform_tree->distortion;
     cb->rate       = cb->transform_tree->rate;
-#endif
   }
   else {
     const de265_image* input = ectx->imgdata->input;

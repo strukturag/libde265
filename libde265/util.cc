@@ -204,4 +204,3 @@ void debug_show_image(const struct de265_image* img, int slot)
     debug_image_output_func(img,slot);
   }
 }
-

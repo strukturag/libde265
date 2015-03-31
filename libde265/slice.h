@@ -125,7 +125,9 @@ enum InterPredIdc
 
 class slice_segment_header {
 public:
-  slice_segment_header() { }
+  slice_segment_header() {
+    memset(LongTermRefPic[0],0, 2*MAX_NUM_REF_PICS);
+  }
 
   de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
   de265_error write(error_queue*, CABAC_encoder&,

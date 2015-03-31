@@ -151,12 +151,19 @@ void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
 
 
 void enc_tb::reconstruct_tb(encoder_context* ectx,
-                            de265_image* img, int x0,int y0, int log2TbSize,
+                            de265_image* img,
+                            int x0,int y0,  // luma
+                            int log2TbSize, // chroma adapted
                             const enc_cb* cb, int cIdx) const
 {
   // chroma adapted position
   int xC=x0;
   int yC=y0;
+
+  if (cIdx>0) {
+    xC>>=1;
+    yC>>=1;
+  }
 
   if (cb->PredMode == MODE_INTRA) {
 
@@ -165,13 +172,23 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     if (cIdx>0) {
       intraPredMode = cb->intra.chroma_mode;
       //intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode, cb->intra.chroma_mode);
-      xC>>=1;
-      yC>>=1;
     }
 
     decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
   }
+  else {
+    int size = 1<<log2TbSize;
+    if (cIdx>0) {
+      //size>>=1;
+    }
 
+    // TODO: SLOW
+    for (int y=0;y<size;y++) {
+      for (int x=0;x<size;x++) {
+        *img->get_image_plane_at_pos(cIdx,xC+x,yC+y) = *ectx->prediction->get_image_plane_at_pos(cIdx,xC+x,yC+y);
+      }
+    }
+  }
 
   ALIGNED_16(int16_t) dequant_coeff[32*32];
 
@@ -183,17 +200,22 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   //printf("--- dequantized coeffs ---\n");
   //printBlk(dequant_coeff[0],1<<log2BlkSize,1<<log2BlkSize);
 
+  //printf("--- plane at %d %d / %d ---\n",x0,y0,cIdx);
+
   uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
   int stride  = img->get_image_stride(cIdx);
 
   int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
+
+  //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
+  //printBlk("prediction",ptr,1<<log2TbSize,stride);
 
   if (cbf[cIdx]) inv_transform(&ectx->acceleration,
                                ptr,stride,   dequant_coeff, log2TbSize,   trType);
 
 
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
-  //img->printBlk(x0,y0,0,log2CbSize);
+  //printBlk("prediction",ptr,1<<log2TbSize,stride);
 
   //dequant_and_add_transform(accel, img, x0,y0, qp);
 

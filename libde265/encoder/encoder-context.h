@@ -69,12 +69,13 @@ class encoder_context : public base_context
 
   // quick links
   de265_image* img; // reconstruction
-  //de265_image* prediction;
+  de265_image* prediction;
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
   // temporary memory for motion compensated pixels (when CB-algo passes this down to TB-algo)
-  uint8_t prediction[3][64*64]; // stride: 1<<(cb->log2Size)
+  //uint8_t prediction[3][64*64]; // stride: 1<<(cb->log2Size)
+  //int prediction_x0,prediction_y0;
 
 
   int active_qp; // currently active QP

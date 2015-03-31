@@ -56,16 +56,16 @@ static bool has_nonzero_value(const int16_t* data, int n)
 void show_debug_image(const de265_image* input, int slot);
 
 /*
-void encode_transform_unit(encoder_context* ectx,
-                           enc_tb* tb,
-                           const de265_image* input,
-                           //int16_t* residual, int stride,
-                           int x0,int y0, // luma position
-                           int log2TbSize, // chroma adapted
-                           const enc_cb* cb,
-                           int cIdx)
-{
-}
+  void encode_transform_unit(encoder_context* ectx,
+  enc_tb* tb,
+  const de265_image* input,
+  //int16_t* residual, int stride,
+  int x0,int y0, // luma position
+  int log2TbSize, // chroma adapted
+  const enc_cb* cb,
+  int cIdx)
+  {
+  }
 */
 
 void encode_transform_unit(encoder_context* ectx,
@@ -84,6 +84,8 @@ void encode_transform_unit(encoder_context* ectx,
 
   enum PredMode predMode = cb->PredMode;
 
+  int16_t blk[32*32]; // residual
+
   // --- do intra prediction ---
 
   if (predMode==MODE_INTRA) {
@@ -99,21 +101,37 @@ void encode_transform_unit(encoder_context* ectx,
     //printf("I %d;%d mode %d tb %d (%d)\n",xC,yC,intraPredMode,tbSize,cIdx);
 
     decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
+
+
+    // --- subtract prediction from prediction ---
+
+    uint8_t* pred = ectx->img->get_image_plane(cIdx);
+    int stride = ectx->img->get_image_stride(cIdx);
+
+    diff_blk(blk,tbSize,
+             input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
+             &pred[yC*stride+xC],stride, tbSize);
+  }
+  else {
+    // --- subtract prediction from prediction ---
+
+    uint8_t* pred = ectx->prediction->get_image_plane(cIdx);
+    int stride = ectx->prediction->get_image_stride(cIdx);
+
+    //printBlk("input",input->get_image_plane_at_pos(cIdx,xC,yC), tbSize, input->get_image_stride(cIdx));
+    //printBlk("prediction", pred,tbSize, stride);
+
+    diff_blk(blk,tbSize,
+             input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
+             &pred[yC*stride+xC],stride, tbSize);
+
+    //printBlk("residual", blk,tbSize,tbSize);
   }
 
 
   //show_debug_image(ectx->img, 0);
 
 
-  // --- subtract prediction from input ---
-
-  int16_t blk[32*32];
-  uint8_t* pred = ectx->img->get_image_plane(cIdx);
-  int stride = ectx->img->get_image_stride(cIdx);
-
-  diff_blk(blk,tbSize,
-           input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
-           &pred[yC*stride+xC],stride, tbSize);
 
 
   // --- forward transform ---
@@ -277,10 +295,18 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
 
-    tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
-                                                      x0+dx, y0+dy, x0,y0,
-                                                      log2TbSize-1, i,
-                                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+    if (cb->PredMode == MODE_INTRA) {
+      tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
+                                                        x0+dx, y0+dy, x0,y0,
+                                                        log2TbSize-1, i,
+                                                        TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+    }
+    else {
+      tb->children[i] = this->analyze(ectx, ctxModel, input, tb, cb,
+                                      x0+dx, y0+dy, x0,y0,
+                                      log2TbSize-1, i,
+                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+    }
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
