@@ -150,6 +150,8 @@ double encode_image(encoder_context* ectx,
         //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
         ctxModel = ectx->cabac_ctx_models.copy();
 
+        disable_logging(LogSymbols);
+
 #if 1
         /*
           enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
@@ -186,6 +188,9 @@ double encode_image(encoder_context* ectx,
 
         //ectx->switch_CABAC_to_bitstream();
         //int preSize = ectx->cabac->size();
+
+        enable_logging(LogSymbols);
+
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
         //int postSize = ectx->cabac->size();
         //printf("real: %d  estim: %f\n",postSize-preSize, cb->rate/8);

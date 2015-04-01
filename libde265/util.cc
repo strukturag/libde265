@@ -42,18 +42,20 @@ void copy_subimage(uint8_t* dst,int dststride,
 #ifdef DE265_LOGGING
 static int current_poc=0;
 static int log_poc_start=-9999; // frame-numbers can be negative
-static int enable_log = 1;
+static bool disable_log[NUMBER_OF_LogModules];
 void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
 
-static int disable_logging=0;
+static int disable_logging_OLD=0;
 static int verbosity = 0;
+
 
 LIBDE265_API void de265_disable_logging() // DEPRECATED
 {
-  disable_logging=1;
+  disable_logging_OLD=1;
 }
+
 
 LIBDE265_API void de265_set_verbosity(int level)
 {
@@ -61,15 +63,23 @@ LIBDE265_API void de265_set_verbosity(int level)
 }
 
 #if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_INFO)
-void enablelog() { enable_log=1; }
+void enable_logging(enum LogModule module)
+{
+  disable_log[module]=false;
+}
+void disable_logging(enum LogModule module)
+{
+  disable_log[module]=true;
+}
 #endif
+
+static long logcnt[10];
 
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...)
 {
-  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
-  if (!enable_log) return;
+  if (disable_log[module]) return;
 
   va_list va;
 
@@ -86,9 +96,8 @@ void logerror(enum LogModule module, const char* string, ...)
 void loginfo (enum LogModule module, const char* string, ...)
 {
   if (verbosity<1) return;
-  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
-  if (!enable_log) return;
+  if (disable_log[module]) return;
 
   va_list va;
 
@@ -105,9 +114,8 @@ void loginfo (enum LogModule module, const char* string, ...)
 void logdebug(enum LogModule module, const char* string, ...)
 {
   if (verbosity<2) return;
-  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
-  if (!enable_log) return;
+  if (disable_log[module]) return;
 
   va_list va;
 
@@ -121,18 +129,26 @@ void logdebug(enum LogModule module, const char* string, ...)
 #endif
 
 #ifdef DE265_LOG_TRACE
-extern int logcnt;
 void logtrace(enum LogModule module, const char* string, ...)
 {
   if (verbosity<3) return;
-  if (disable_logging) return;
   if (current_poc < log_poc_start) { return; }
-  if (!enable_log) return;
+  if (disable_log[module]) return;
+
+  if (module != LogSymbols /*&& module != LogCABAC*/) { return; }
   //if (logcnt<319500) return;
 
   //if (module != LogCABAC) return;
 
   va_list va;
+
+  if (string[0]=='$') {
+    int id = string[1]-'0';
+    logcnt[id]++;
+    fprintf(stdout, "[%d] ",logcnt[id]);
+
+    string += 3;
+  }
 
   int noPrefix = (string[0]=='*');
   if (!noPrefix) { } // fprintf(stdout, "ERR: ");

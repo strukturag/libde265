@@ -163,7 +163,8 @@ Preset preset[] = {
   },
 
   { 80, "lowdelay", "default (low-default) encoder parameters",
-    /* de265  */ "--sop-structure low-delay",
+    "--MEMode search --max-cb-size 32 --min-cb-size 8 --min-tb-size 4 --CB-IntraPartMode-Fixed-partMode 2Nx2N --CB-IntraPartMode fixed --TB-IntraPredMode min-residual --PB-MV-TestMode zero",
+    /* de265  */ //"--sop-structure low-delay --MEMode search --max-cb-size 32 --min-cb-size 8 --min-tb-size 4 --CB-IntraPartMode fixed --TB-IntraPredMode min-residual",
     /* HM     */ "-c $HM13CFG/encoder_lowdelay_main.cfg -ip 248",
     /* HM SCC */ "-c $HMSCCCFG/encoder_lowdelay_main_scc.cfg -ip 248",
     /* x265   */ "-I 248 --no-wpp --bframes 0", // GOP size: 248
@@ -548,6 +549,8 @@ RDPoint Encoder_de265::encode(const Preset& preset,int qp) const
        << " " << encoderParameters;
 
   std::string cmd2 = replace_variables(cmd1.str());
+
+  printf("cmdline: %s\n",cmd2.c_str());
 
   RDPoint rd;
   rd.start_timer();

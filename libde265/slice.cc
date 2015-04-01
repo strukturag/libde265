@@ -1351,6 +1351,9 @@ static int decode_transform_skip_flag(thread_context* tctx, int cIdx)
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_TRANSFORM_SKIP_FLAG+context]);
+
+  logtrace(LogSymbols,"$1 transform_skip_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -1360,6 +1363,9 @@ static int decode_sao_merge_flag(thread_context* tctx)
   logtrace(LogSlice,"# sao_merge_left/up_flag\n");
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_SAO_MERGE_FLAG]);
+
+  logtrace(LogSymbols,"$1 sao_merge_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -1373,14 +1379,17 @@ static int decode_sao_type_idx(thread_context* tctx)
                               &tctx->ctx_model[CONTEXT_MODEL_SAO_TYPE_IDX]);
 
   if (bit0==0) {
+    logtrace(LogSymbols,"$1 sao_type_idx=%d\n",0);
     return 0;
   }
   else {
     int bit1 = decode_CABAC_bypass(&tctx->cabac_decoder);
     if (bit1==0) {
+      logtrace(LogSymbols,"$1 sao_type_idx=%d\n",1);
       return 1;
     }
     else {
+      logtrace(LogSymbols,"$1 sao_type_idx=%d\n",2);
       return 2;
     }
   }
@@ -1393,6 +1402,7 @@ static int decode_sao_offset_abs(thread_context* tctx)
   int bitDepth = 8;
   int cMax = (1<<(libde265_min(bitDepth,10)-5))-1;
   int value = decode_CABAC_TU_bypass(&tctx->cabac_decoder, cMax);
+  logtrace(LogSymbols,"$1 sao_offset_abs=%d\n",value);
   return value;
 }
 
@@ -1401,6 +1411,7 @@ static int decode_sao_class(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_class\n");
   int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 2);
+  logtrace(LogSymbols,"$1 sao_class=%d\n",value);
   return value;
 }
 
@@ -1409,6 +1420,7 @@ static int decode_sao_offset_sign(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_offset_sign\n");
   int value = decode_CABAC_bypass(&tctx->cabac_decoder);
+  logtrace(LogSymbols,"$1 sao_offset_sign=%d\n",value);
   return value;
 }
 
@@ -1417,6 +1429,7 @@ static int decode_sao_band_position(thread_context* tctx)
 {
   logtrace(LogSlice,"# sao_band_position\n");
   int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder,5);
+  logtrace(LogSymbols,"$1 sao_band_position=%d\n",value);
   return value;
 }
 
@@ -1426,6 +1439,7 @@ static int decode_transquant_bypass_flag(thread_context* tctx)
   logtrace(LogSlice,"# cu_transquant_bypass_enable_flag\n");
   int value = decode_CABAC_bit(&tctx->cabac_decoder,
                                &tctx->ctx_model[CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG]);
+  logtrace(LogSymbols,"$1 transquant_bypass_flag=%d\n",value);
   return value;
 }
 
@@ -1458,6 +1472,8 @@ static int decode_split_cu_flag(thread_context* tctx,
 
   logtrace(LogSlice,"> split_cu_flag R=%x, ctx=%d, bit=%d\n", tctx->cabac_decoder.range,context,bit);
 
+  logtrace(LogSymbols,"$1 split_cu_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -1489,6 +1505,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
 
   logtrace(LogSlice,"> cu_skip_flag R=%x, ctx=%d, bit=%d\n", tctx->cabac_decoder.range,context,bit);
 
+  logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -1505,42 +1523,63 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 
     logtrace(LogSlice,"> %s\n",bit ? "2Nx2N" : "NxN");
 
+    logtrace(LogSymbols,"$1 part_mode=%d\n",bit ? PART_2Nx2N : PART_NxN);
+
     return bit ? PART_2Nx2N : PART_NxN;
   }
   else {
     int bit0 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+0]);
-    if (bit0) { return PART_2Nx2N; }
+    if (bit0) { logtrace(LogSymbols,"$1 part_mode=%d\n",PART_2Nx2N); return PART_2Nx2N; }
 
     // CHECK_ME: I optimize code and fix bug here, need more VERIFY!
     int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+1]);
     if (cLog2CbSize > img->sps.Log2MinCbSizeY) {
       if (!img->sps.amp_enabled_flag) {
+        logtrace(LogSymbols,"$1 part_mode=%d\n",bit1 ? PART_2NxN : PART_Nx2N);
         return bit1 ? PART_2NxN : PART_Nx2N;
       }
       else {
         int bit3 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+3]);
         if (bit3) {
+          logtrace(LogSymbols,"$1 part_mode=%d\n",bit1 ? PART_2NxN : PART_Nx2N);
           return bit1 ? PART_2NxN : PART_Nx2N;
         }
 
         int bit4 = decode_CABAC_bypass(&tctx->cabac_decoder);
-        if ( bit1 &&  bit4) return PART_2NxnD;
-        if ( bit1 && !bit4) return PART_2NxnU;
-        if (!bit1 && !bit4) return PART_nLx2N;
-        if (!bit1 &&  bit4) return PART_nRx2N;
+        if ( bit1 &&  bit4) {
+          logtrace(LogSymbols,"$1 part_mode=%d\n",PART_2NxnD);
+          return PART_2NxnD;
+        }
+        if ( bit1 && !bit4) {
+          logtrace(LogSymbols,"$1 part_mode=%d\n",PART_2NxnU);
+          return PART_2NxnU;
+        }
+        if (!bit1 && !bit4) {
+          logtrace(LogSymbols,"$1 part_mode=%d\n",PART_nLx2N);
+          return PART_nLx2N;
+        }
+        if (!bit1 &&  bit4) {
+          logtrace(LogSymbols,"$1 part_mode=%d\n",PART_nRx2N);
+          return PART_nRx2N;
+        }
       }
     }
     else {
       // TODO, we could save one if here when first decoding the next bin and then
       // checkcLog2CbSize==3 when it is '0'
 
-      if (bit1) return PART_2NxN;
+      if (bit1) {
+        logtrace(LogSymbols,"$1 part_mode=%d\n",PART_2NxN);
+        return PART_2NxN;
+      }
 
       if (cLog2CbSize==3) {
+        logtrace(LogSymbols,"$1 part_mode=%d\n",PART_Nx2N);
         return PART_Nx2N;
       }
       else {
         int bit2 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+2]);
+        logtrace(LogSymbols,"$1 part_mode=%d\n",PART_NxN-bit2);
         return (enum PartMode)((int)PART_NxN - bit2)/*bit2 ? PART_Nx2N : PART_NxN*/;
       }
     }
@@ -1555,6 +1594,7 @@ static inline int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 {
   logtrace(LogSlice,"# prev_intra_luma_pred_flag\n");
   int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG]);
+  logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",bit);
   return bit;
 }
 
@@ -1564,6 +1604,7 @@ static inline int decode_mpm_idx(thread_context* tctx)
   logtrace(LogSlice,"# mpm_idx (TU:2)\n");
   int mpm = decode_CABAC_TU_bypass(&tctx->cabac_decoder, 2);
   logtrace(LogSlice,"> mpm_idx = %d\n",mpm);
+  logtrace(LogSymbols,"$1 mpm_idx=%d\n",mpm);
   return mpm;
 }
 
@@ -1571,7 +1612,9 @@ static inline int decode_mpm_idx(thread_context* tctx)
 static inline int decode_rem_intra_luma_pred_mode(thread_context* tctx)
 {
   logtrace(LogSlice,"# rem_intra_luma_pred_mode (5 bits)\n");
-  return decode_CABAC_FL_bypass(&tctx->cabac_decoder, 5);
+  int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 5);
+  logtrace(LogSymbols,"$1 rem_intra_luma_pred_mode=%d\n",value);
+  return value;
 }
 
 
@@ -1590,6 +1633,7 @@ static int decode_intra_chroma_pred_mode(thread_context* tctx)
   }
 
   logtrace(LogSlice,"> intra_chroma_pred_mode = %d\n",mode);
+  logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",mode);
 
   return mode;
 }
@@ -1606,6 +1650,7 @@ static int decode_split_transform_flag(thread_context* tctx,
   logtrace(LogSlice,"# context: %d\n",context);
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context]);
+  logtrace(LogSymbols,"$1 split_transform_flag=%d\n",bit);
   return bit;
 }
 
@@ -1617,6 +1662,7 @@ static int decode_cbf_chroma(thread_context* tctx,
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + trafoDepth]);
 
+  logtrace(LogSymbols,"$1 cbf_chroma=%d\n",bit);
   return bit;
 }
 
@@ -1630,6 +1676,7 @@ static int decode_cbf_luma(thread_context* tctx,
 
   logtrace(LogSlice,"> cbf_luma = %d\n",bit);
 
+  logtrace(LogSymbols,"$1 cbf_luma=%d\n",bit);
   return bit;
 }
 
@@ -1652,6 +1699,7 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc]);
 
+  logtrace(LogSymbols,"$1 coded_sub_block_flag=%d\n",bit);
   return bit;
 }
 
@@ -1663,6 +1711,7 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 0]);
   if (bit==0) {
+    logtrace(LogSymbols,"$1 cu_qp_delta_abs=%d\n",0);
     return 0;
   }
 
@@ -1676,9 +1725,11 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
 
   if (prefix==5) {
     int value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 0);
+    logtrace(LogSymbols,"$1 cu_qp_delta_abs=%d\n",value+5);
     return value + 5;
   }
   else {
+    logtrace(LogSymbols,"$1 cu_qp_delta_abs=%d\n",prefix);
     return prefix;
   }
 }
@@ -2120,6 +2171,9 @@ static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc]);
+
+  logtrace(LogSymbols,"$1 significant_coeff_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -2188,6 +2242,8 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
   *lastInvocation_coeff_abs_level_greater1_flag = bit;
   *lastInvocation_ctxSet = ctxSet;
 
+  logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",bit);
+
   return bit;
 }
 
@@ -2204,6 +2260,8 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + ctxIdxInc]);
+
+  logtrace(LogSymbols,"$1 coeff_abs_level_greater2=%d\n",bit);
 
   return bit;
 }
@@ -2240,6 +2298,8 @@ static int decode_coeff_abs_level_remaining(thread_context* tctx,
     value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
   }
 
+  logtrace(LogSymbols,"$1 coeff_abs_level_remaining=%d\n",value);
+
   return value;
 }
 
@@ -2251,6 +2311,8 @@ static int decode_merge_flag(thread_context* tctx)
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_MERGE_FLAG]);
 
+  logtrace(LogSymbols,"$1 merge_flag=%d\n",bit);
+
   return bit;
 }
 
@@ -2260,6 +2322,7 @@ static int decode_merge_idx(thread_context* tctx)
   logtrace(LogSlice,"# merge_idx\n");
 
   if (tctx->shdr->MaxNumMergeCand <= 1) {
+    logtrace(LogSymbols,"$1 merge_idx=%d\n",0);
     return 0;
   }
 
@@ -2286,6 +2349,7 @@ static int decode_merge_idx(thread_context* tctx)
   }
 
   logtrace(LogSlice,"> merge_idx = %d\n",idx);
+  logtrace(LogSymbols,"$1 merge_idx=%d\n",idx);
 
   return idx;
 }
@@ -2298,6 +2362,7 @@ static int decode_pred_mode_flag(thread_context* tctx)
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_PRED_MODE_FLAG]);
 
+  logtrace(LogSymbols,"$1 pred_mode=%d\n",bit);
   return bit;
 }
 
@@ -2308,6 +2373,7 @@ static int decode_mvp_lx_flag(thread_context* tctx)
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_MVP_LX_FLAG]);
 
+  logtrace(LogSymbols,"$1 mvp_lx_flag=%d\n",bit);
   return bit;
 }
 
@@ -2318,6 +2384,7 @@ static int decode_rqt_root_cbf(thread_context* tctx)
   int bit = decode_CABAC_bit(&tctx->cabac_decoder,
                              &tctx->ctx_model[CONTEXT_MODEL_RQT_ROOT_CBF]);
 
+  logtrace(LogSymbols,"$1 rqt_root_cbf=%d\n",bit);
   return bit;
 }
 
@@ -2352,6 +2419,7 @@ static int decode_ref_idx_lX(thread_context* tctx, int numRefIdxLXActive)
 
   logtrace(LogSlice,"> ref_idx = %d\n",idx);
 
+  logtrace(LogSymbols,"$1 ref_idx_lX=%d\n",idx);
   return idx;
 }
 
@@ -2385,6 +2453,8 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 
   logtrace(LogSlice,"> inter_pred_idc = %d (%s)\n",value,
            value==0 ? "L0" : (value==1 ? "L1" : "BI"));
+
+  logtrace(LogSymbols,"$1 decode_inter_pred_idx=%d\n",value+1);
 
   return (enum InterPredIdc) (value+1);
 }

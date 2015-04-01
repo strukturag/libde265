@@ -127,16 +127,20 @@ enum LogModule {
   LogSEI,
   LogIntraPred,
   LogPixels,
+  LogSymbols,
   LogCABAC,
-  LogEncoder
+  LogEncoder,
+  NUMBER_OF_LogModules
 };
 
 
 #if defined(DE265_LOG_ERROR) || defined(DE265_LOG_INFO) || defined(DE265_LOG_DEBUG) || defined(DE265_LOG_TRACE)
 # define DE265_LOGGING 1
-void enablelog();
+void enable_logging(enum LogModule);
+void disable_logging(enum LogModule);
 #else
-#define enablelog() { }
+#define enable_logging(x) { }
+#define disable_logging(x) { }
 #endif
 
 #ifdef DE265_LOGGING

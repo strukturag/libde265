@@ -402,6 +402,8 @@ void encode_split_cu_flag(encoder_context* ectx,
                           CABAC_encoder* cabac,
                           int x0, int y0, int ctDepth, int split_flag)
 {
+  logtrace(LogSymbols,"$1 split_cu_flag=%d\n",split_flag);
+
   // check if neighbors are available
 
   int availableL = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
@@ -428,6 +430,7 @@ static void encode_part_mode(encoder_context* ectx,
                              CABAC_encoder* cabac,
                              enum PredMode PredMode, enum PartMode PartMode, int cLog2CbSize)
 {
+  logtrace(LogSymbols,"$1 part_mode=%d\n",PartMode);
   logtrace(LogSlice,"> part_mode = %d\n",PartMode);
 
   if (PredMode == MODE_INTRA) {
@@ -522,6 +525,8 @@ static void encode_pred_mode_flag(encoder_context* ectx,
 
   int flag = (PredMode == MODE_INTRA) ? 1 : 0;
 
+  logtrace(LogSymbols,"$1 pred_mode=%d\n",flag);
+
   cabac->write_CABAC_bit(CONTEXT_MODEL_PRED_MODE_FLAG, flag);
 }
 
@@ -530,6 +535,7 @@ static void encode_prev_intra_luma_pred_flag(encoder_context* ectx,
                                              CABAC_encoder* cabac,
                                              int intraPred)
 {
+  logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",intraPred>=0);
   int bin = (intraPred>=0);
 
   logtrace(LogSlice,"> prev_intra_luma_pred_flag = %d\n",bin);
@@ -542,11 +548,13 @@ static void encode_intra_mpm_or_rem(encoder_context* ectx,
                                     int intraPred)
 {
   if (intraPred>=0) {
+    logtrace(LogSymbols,"$1 mpm_idx=%d\n",intraPred);
     logtrace(LogSlice,"> mpm_idx = %d\n",intraPred);
     assert(intraPred<=2);
     cabac->write_CABAC_TU_bypass(intraPred, 2);
   }
   else {
+    logtrace(LogSymbols,"$1 rem_intra_luma_pred_mode=%d\n",-intraPred-1);
     logtrace(LogSlice,"> rem_intra_luma_pred_mode = %d\n",-intraPred-1);
     cabac->write_CABAC_FL_bypass(-intraPred-1, 5);
   }
@@ -557,6 +565,7 @@ static void encode_intra_chroma_pred_mode(encoder_context* ectx,
                                           CABAC_encoder* cabac,
                                           int mode)
 {
+  logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",mode);
   logtrace(LogSlice,"> intra_chroma_pred_mode = %d\n",mode);
 
   if (mode==4) {
@@ -609,6 +618,7 @@ static void encode_split_transform_flag(encoder_context* ectx,
                                         CABAC_encoder* cabac,
                                         int log2TrafoSize, int split_flag)
 {
+  logtrace(LogSymbols,"$1 split_transform_flag=%d\n",split_flag);
   logtrace(LogSlice,"> split_transform_flag = %d\n",split_flag);
 
   int context = 5-log2TrafoSize;
@@ -622,6 +632,7 @@ static void encode_cbf_luma(encoder_context* ectx,
                             CABAC_encoder* cabac,
                             bool zeroTrafoDepth, int cbf_luma)
 {
+  logtrace(LogSymbols,"$1 cbf_luma=%d\n",cbf_luma);
   logtrace(LogSlice,"> cbf_luma = %d\n",cbf_luma);
 
   int context = (zeroTrafoDepth ? 1 : 0);
@@ -634,6 +645,7 @@ static void encode_cbf_chroma(encoder_context* ectx,
                               CABAC_encoder* cabac,
                               int trafoDepth, int cbf_chroma)
 {
+  logtrace(LogSymbols,"$1 cbf_chroma=%d\n",cbf_chroma);
   logtrace(LogSlice,"> cbf_chroma = %d\n",cbf_chroma);
 
   int context = trafoDepth;
@@ -648,6 +660,7 @@ static inline void encode_coded_sub_block_flag(encoder_context* ectx,
                                                uint8_t coded_sub_block_neighbors,
                                                int flag)
 {
+  logtrace(LogSymbols,"$1 coded_sub_block_flag=%d\n",flag);
   logtrace(LogSlice,"# coded_sub_block_flag = %d\n",flag);
 
   // tricky computation of csbfCtx
@@ -667,6 +680,7 @@ static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
                                                         uint8_t ctxIdxInc,
                                                         int significantFlag)
 {
+  logtrace(LogSymbols,"$1 significant_coeff_flag=%d\n",significantFlag);
   logtrace(LogSlice,"# significant_coeff_flag = significantFlag\n");
   logtrace(LogSlice,"context: %d\n",ctxIdxInc);
 
@@ -684,6 +698,7 @@ static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
                                                    int* lastInvocation_ctxSet, int c1,
                                                    int value)
 {
+  logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",value);
   logtrace(LogSlice,"# coeff_abs_level_greater1 = %d\n",value);
 
   logtrace(LogSlice,"  cIdx:%d i:%d firstCoeffInSB:%d firstSB:%d lastSB>1:%d last>1Ctx:%d lastLev>1:%d lastCtxSet:%d\n", cIdx,i,firstCoeffInSubblock,firstSubblock,lastSubblock_greater1Ctx,
@@ -742,6 +757,7 @@ static void encode_coeff_abs_level_greater2(encoder_context* ectx,
                                             int ctxSet,
                                             int value)
 {
+  logtrace(LogSymbols,"$1 coeff_abs_level_greater2=%d\n",value);
   logtrace(LogSlice,"# coeff_abs_level_greater2 = %d\n",value);
 
   int ctxIdxInc = ctxSet;
@@ -829,6 +845,7 @@ static void encode_coeff_abs_level_remaining(encoder_context* ectx,
                                              int cRiceParam,
                                              int level)
 {
+  logtrace(LogSymbols,"$1 coeff_abs_level_remaining=%d\n",level);
   logtrace(LogSlice,"# encode_coeff_abs_level_remaining = %d\n",level);
 
   int cTRMax = 4<<cRiceParam;
@@ -1554,6 +1571,8 @@ static void encode_cu_skip_flag(encoder_context* ectx,
                                 const enc_cb* cb,
                                 bool skip)
 {
+  logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",skip);
+
   const de265_image* img = ectx->img;
 
   int x0 = cb->x;
@@ -1587,6 +1606,7 @@ static void encode_merge_idx(encoder_context* ectx,
                              CABAC_encoder* cabac,
                              int mergeIdx)
 {
+  logtrace(LogSymbols,"$1 merge_idx=%d\n",mergeIdx);
   logtrace(LogSlice,"# merge_idx %d\n", mergeIdx);
 
   if (ectx->shdr->MaxNumMergeCand <= 1) {
@@ -1620,6 +1640,7 @@ static inline void encode_rqt_root_cbf(encoder_context* ectx,
                                        CABAC_encoder* cabac,
                                        int rqt_root_cbf)
 {
+  logtrace(LogSymbols,"$1 rqt_root_cbf=%d\n",rqt_root_cbf);
   cabac->write_CABAC_bit(CONTEXT_MODEL_RQT_ROOT_CBF, rqt_root_cbf);
 }
 
@@ -1667,7 +1688,9 @@ void encode_prediction_unit(encoder_context* ectx,
 {
   const enc_pb_inter& pb = cb->inter.pb[pbIdx];
 
+  logtrace(LogSymbols,"$1 merge_flag=%d\n",pb.spec.merge_flag);
   cabac->write_CABAC_bit(CONTEXT_MODEL_MERGE_FLAG, pb.spec.merge_flag);
+
   if (pb.spec.merge_flag) {
     assert(false); // TODO
   }
@@ -1679,11 +1702,13 @@ void encode_prediction_unit(encoder_context* ectx,
     if (pb.spec.inter_pred_idc != PRED_L1) {
       if (ectx->shdr->num_ref_idx_l0_active > 1) {
         assert(false); // TODO
+      //cabac->write_CABAC_bit(CONTEXT_MODEL_REF_IDX_LX, pb.spec.mvp_l0_flag);
       }
 
       encode_mvd(ectx,cabac, pb.spec.mvd[0]);
 
-      cabac->write_CABAC_bit(CONTEXT_MODEL_REF_IDX_LX, pb.spec.mvp_l0_flag);
+      logtrace(LogSymbols,"$1 mvp_lx_flag=%d\n",pb.spec.mvp_l0_flag);
+      cabac->write_CABAC_bit(CONTEXT_MODEL_MVP_LX_FLAG, pb.spec.mvp_l0_flag);
     }
 
     if (pb.spec.inter_pred_idc != PRED_L0) {

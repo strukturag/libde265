@@ -67,6 +67,16 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   vec.mv[0].x=0;
   vec.mv[0].y=0;
 
+  ectx->img->set_mv_info(cb->x,cb->y, 1<<cb->log2Size,1<<cb->log2Size, vec);
+
+  generate_inter_prediction_samples(ectx, ectx->shdr, ectx->prediction,
+                                    cb->x,cb->y, // int xC,int yC,
+                                    0,0,         // int xB,int yB,
+                                    1<<cb->log2Size, // int nCS,
+                                    1<<cb->log2Size,
+                                    1<<cb->log2Size, // int nPbW,int nPbH,
+                                    &vec);
+
   generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
@@ -85,6 +95,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
 
   if (mCodeResidual) {
+    assert(false);
     cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                            cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                            0, MaxTrafoDepth, IntraSplitFlag);
@@ -96,7 +107,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   }
   else {
     const de265_image* input = ectx->imgdata->input;
-    de265_image* img   = ectx->img;
+    de265_image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
