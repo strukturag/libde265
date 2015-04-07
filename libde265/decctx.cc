@@ -122,7 +122,7 @@ thread_context::thread_context()
   int offset = (uintptr_t)_coeffBuf & 0x0f;
 
   if (offset == 0) {
-    coeffBuf = (int16_t *) &_coeffBuf;  // correctly aligned already
+    coeffBuf = _coeffBuf;  // correctly aligned already
   }
   else {
     coeffBuf = (int16_t *) (((uint8_t *)_coeffBuf) + (16-offset));
