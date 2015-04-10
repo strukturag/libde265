@@ -77,8 +77,8 @@ or
 
 You can disable building of the example programs by running `./configure` with
 <pre>
-  --disable-dec265        Do not dec265 decoder program.
-  --disable-sherlock265   Do not build sherlock265 visual inspection program.
+  --disable-dec265        Do not build the dec265 decoder program.
+  --disable-sherlock265   Do not build the sherlock265 visual inspection program.
 </pre>
 
 Additional logging information can be turned on and off using these `./configure` flags:
