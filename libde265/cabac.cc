@@ -933,12 +933,13 @@ void CABAC_encoder_estim::write_CABAC_bit(int modelIdx, int bit)
   }
   else {
     idx++;
+    if (model->state==0) { model->MPSbit = 1-model->MPSbit; }
     model->state = next_state_LPS[model->state];
   }
 
   mFracBits += entropy_table[idx];
 
-  //printf("-> %08lx\n",mFracBits);
+  // printf("-> %08lx\n",entropy_table[idx]);
 }
 
 
