@@ -1114,7 +1114,7 @@ de265_error decoder_context::decode(int* more)
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
   if (ctx->nal_parser.get_NAL_queue_length() == 0 &&
-      ctx->nal_parser.is_end_of_stream() &&
+      (ctx->nal_parser.is_end_of_stream() || ctx->nal_parser.is_end_of_frame()) &&
       ctx->image_units.empty()) {
 
     // flush all pending pictures into output queue
