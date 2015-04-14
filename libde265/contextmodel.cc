@@ -20,6 +20,8 @@
 
 #include "slice.h"
 #include <assert.h>
+#include <iomanip>
+#include <sstream>
 
 bool D = false;
 
@@ -151,6 +153,19 @@ bool context_model_table::operator==(const context_model_table& b) const
   }
 
   return true;
+}
+
+
+std::string context_model_table::debug_dump() const
+{
+  int hash = 0;
+  for (int i=0;i<CONTEXT_MODEL_TABLE_LENGTH;i++) {
+    hash ^= ((i+7)*model[i].state) & 0xFFFF;
+  }
+
+  std::stringstream sstr;
+  sstr << std::hex << hash;
+  return sstr.str();
 }
 
 

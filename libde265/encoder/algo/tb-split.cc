@@ -535,7 +535,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   bool split = (rd_cost_split < rd_cost_no_split);
 
   if (split) {
-    ctxModel = ctxSplit; //.copy();
+    ctxModel = ctxSplit;
 
     delete tb_no_split;
     assert(tb_split);

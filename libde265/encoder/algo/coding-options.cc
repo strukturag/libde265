@@ -90,7 +90,7 @@ void CodingOptions::start(enum RateEstimationMethod rateMethod)
     /* If we modify the context models in this algorithm,
        we need separate models for each option.
     */
-    for (auto option : mOptions) {
+    for (auto& option : mOptions) {
       option.context.decouple();
     }
 

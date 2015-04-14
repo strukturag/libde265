@@ -28,6 +28,7 @@
 #include "libde265/de265.h"
 
 #include <string.h>
+#include <string>
 
 
 struct context_model {
@@ -107,6 +108,8 @@ class context_model_table
   context_model_table& operator=(const context_model_table&);
 
   bool operator==(const context_model_table&) const;
+
+  std::string debug_dump() const;
 
  private:
   void decouple_or_alloc_with_empty_data();
