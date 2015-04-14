@@ -641,7 +641,7 @@ void encode_cbf_luma(encoder_context* ectx,
 }
 
 
-void encode_cbf_chroma(encoder_context* ectx,
+void encode_cbf_chroma(encoder_context* ectx,  // TODO remove ectx
                        CABAC_encoder* cabac,
                        int trafoDepth, int cbf_chroma)
 {

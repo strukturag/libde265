@@ -76,8 +76,7 @@ class enc_tb : public enc_node
 
   float distortion;  // total distortion for this level of the TB tree (including all children)
   float rate;        // total rate for coding this TB level and all children
-  float rate_cbfChroma1;
-  float rate_cbfChroma2;
+  float rate_withoutCbfChroma;
 
   void set_cbf_flags_from_children();
 
