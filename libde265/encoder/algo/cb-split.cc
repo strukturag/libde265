@@ -92,7 +92,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   bool can_nosplit_CB = (split_type != ForcedSplit);
 
   //if (can_split_CB) { can_nosplit_CB=false; } // TODO TMP
-  if (can_nosplit_CB) { can_split_CB=false; } // TODO TMP
+  //if (can_nosplit_CB) { can_split_CB=false; } // TODO TMP
 
   CodingOptions options(ectx, cb_input, ctxModel);
 

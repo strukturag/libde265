@@ -478,22 +478,9 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   context_model_table ctxSplit;
   if (test_split) {
     ctxSplit = ctxModel.copy();
-    //copy_context_model_table(ctxSplit, ctxModel);
   }
 
 
-  if (test_split) test_no_split=false;
-
-
-  /*
-    printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
-    log2TbSize,
-    TrafoDepth,
-    MaxTrafoDepth,
-    log2TbSize,
-    ectx->sps.Log2MinTrafoSize);
-    printf("  intra split flag: %d\n",IntraSplitFlag);
-  */
   const enc_tb* tb_no_split = NULL;
   const enc_tb* tb_split    = NULL;
   float rd_cost_no_split = std::numeric_limits<float>::max();
