@@ -76,6 +76,8 @@ class enc_tb : public enc_node
 
   float distortion;  // total distortion for this level of the TB tree (including all children)
   float rate;        // total rate for coding this TB level and all children
+  float rate_cbfChroma1;
+  float rate_cbfChroma2;
 
   void set_cbf_flags_from_children();
 
@@ -241,6 +243,26 @@ enum SplitType {
 
 SplitType get_split_type(const seq_parameter_set* sps,
                          int x0,int y0, int log2CbSize);
+
+
+void encode_split_transform_flag(encoder_context* ectx,
+                                 CABAC_encoder* cabac,
+                                 int log2TrafoSize, int split_flag);
+
+void encode_cbf_luma(encoder_context* ectx,
+                     CABAC_encoder* cabac,
+                     bool zeroTrafoDepth, int cbf_luma);
+
+void encode_cbf_chroma(encoder_context* ectx,
+                       CABAC_encoder* cabac,
+                       int trafoDepth, int cbf_chroma);
+
+void encode_transform_unit(encoder_context* ectx,
+                           CABAC_encoder* cabac,
+                           const enc_tb* tb, const enc_cb* cb,
+                           int x0,int y0, int xBase,int yBase,
+                           int log2TrafoSize, int trafoDepth, int blkIdx);
+
 
 void encode_quadtree(encoder_context* ectx,
                      CABAC_encoder* cabac,

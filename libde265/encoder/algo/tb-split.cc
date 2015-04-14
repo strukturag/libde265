@@ -68,14 +68,14 @@ void show_debug_image(const de265_image* input, int slot);
   }
 */
 
-void encode_transform_unit(encoder_context* ectx,
-                           enc_tb* tb,
-                           const de265_image* input,   // TODO: probably pass pixels/stride directly
-                           //int16_t* residual, int stride,
-                           int x0,int y0, // luma position
-                           int log2TbSize, // chroma adapted
-                           const enc_cb* cb,
-                           int cIdx)
+void analyze_transform_unit(encoder_context* ectx,
+                            enc_tb* tb,
+                            const de265_image* input, // TODO: probably pass pixels/stride directly
+                            //int16_t* residual, int stride,
+                            int x0,int y0, // luma position
+                            int log2TbSize, // chroma adapted
+                            const enc_cb* cb,
+                            int cIdx)
 {
   int xC = x0;
   int yC = y0;
@@ -186,20 +186,20 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // luma block
 
-  encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
+  analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
 
 
   // chroma blocks
 
   if (log2TbSize > 2) {
     // if TB is > 4x4, do chroma transform of half size
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
+    analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
+    analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
   else if (blkIdx==3) {
     // if TB size is 4x4, do chroma transform for last sub-block
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
-    encode_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
+    analyze_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
+    analyze_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
   }
 
 #if 0
@@ -241,11 +241,58 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
   estim.set_context_models(&ctxModel);
   //ectx->switch_CABAC(&ctxModel, &estim);
 
+#if 0
   encode_transform_tree(ectx,&estim, tb, cb, x0,y0, xBase,yBase,
                         log2TbSize, trafoDepth, blkIdx, MaxTrafoDepth, IntraSplitFlag, true);
+#endif
 
 
-  tb->rate = estim.getRDBits();
+  tb->rate = 0;
+  tb->rate_cbfChroma1 = 0;
+  tb->rate_cbfChroma2 = 0;
+
+  const seq_parameter_set* sps = &ectx->img->sps;
+
+  if (log2TbSize <= sps->Log2MaxTrafoSize &&
+      log2TbSize >  sps->Log2MinTrafoSize &&
+      trafoDepth < MaxTrafoDepth &&
+      !(IntraSplitFlag && trafoDepth==0))
+    {
+      encode_split_transform_flag(ectx, &estim, log2TbSize, 0);
+      tb->rate += estim.getRDBits();
+      estim.reset();
+    }
+
+  // --- CBF CB/CR ---
+
+  // For 4x4 luma, there is no signaling of chroma CBF, because only the
+  // chroma CBF for 8x8 is relevant.
+  if (log2TbSize>2) {
+    if (trafoDepth==0 || tb->parent->cbf[1]) {
+      encode_cbf_chroma(ectx, &estim, trafoDepth, tb->cbf[1]);
+      tb->rate_cbfChroma1 = estim.getRDBits();
+      estim.reset();
+    }
+    if (trafoDepth==0 || tb->parent->cbf[2]) {
+      encode_cbf_chroma(ectx, &estim, trafoDepth, tb->cbf[2]);
+      tb->rate_cbfChroma2 = estim.getRDBits();
+      estim.reset();
+    }
+  }
+
+
+  if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
+      tb->cbf[1] || tb->cbf[2]) {
+    encode_cbf_luma(ectx, &estim, trafoDepth==0, tb->cbf[0]);
+  }
+
+  encode_transform_unit(ectx,&estim, tb,cb, x0,y0, xBase,yBase, log2TbSize, trafoDepth, blkIdx);
+  tb->rate += estim.getRDBits();
+
+
+  tb->rate += tb->rate_cbfChroma1 + tb->rate_cbfChroma2;
+
+  // tb->rate = estim.getRDBits();
 
 #if 0
   if (log2TbSize==3) {
@@ -285,9 +332,13 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   tb->rate = 0;
   tb->distortion = 0;
 
-  tb->cbf[0]=0;
-  tb->cbf[1]=0;
-  tb->cbf[2]=0;
+
+  // Since we try to code all sub-blocks, we enable all CBF flags.
+  // Should we see later that the child TBs are zero, we clear those flags later.
+
+  tb->cbf[0]=1;
+  tb->cbf[1]=1;
+  tb->cbf[2]=1;
 
   // --- encode all child nodes ---
 
@@ -310,10 +361,32 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
     tb->distortion += tb->children[i]->distortion;
     tb->rate       += tb->children[i]->rate;
+
+    printf("child %d: cbf:%d%d%d  rate:%d\n",i+1,
+           tb->children[i]->cbf[0],
+           tb->children[i]->cbf[1],
+           tb->children[i]->cbf[2],
+           tb->children[i]->rate);
   }
 
   tb->set_cbf_flags_from_children();
 
+
+  // --- If we are switching of chroma CBF at this level, remove the bits that would
+  //     be spent for coding zero chroma CBFs at the child level.
+  //     We don't do this for luma, because luma CBFs are always signaled at the deepest level.
+
+  if (tb->cbf[1]==0) {
+    for (int i=0;i<4;i++) {
+      tb->rate -= tb->children[i]->rate_cbfChroma1;
+    }
+  }
+
+  if (tb->cbf[2]==0) {
+    for (int i=0;i<4;i++) {
+      tb->rate -= tb->children[i]->rate_cbfChroma2;
+    }
+  }
 
   // --- add rate for this TB level ---
 
@@ -321,12 +394,51 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   //ectx->switch_CABAC(&ctxModel, &estim);
   estim.set_context_models(&ctxModel);
 
+  printf("this TB level encoding\n");
+
+#if 0
   encode_transform_tree(ectx,&estim, tb, cb,
                         x0,y0, x0,y0,
                         log2TbSize, TrafoDepth, 0 /* blkIdx */,
                         MaxTrafoDepth, IntraSplitFlag, false);
+#endif
 
-  tb->rate += estim.getRDBits();
+
+
+  const seq_parameter_set* sps = &ectx->img->sps;
+
+  tb->rate_cbfChroma1 = 0;
+  tb->rate_cbfChroma2 = 0;
+
+  if (log2TbSize <= sps->Log2MaxTrafoSize &&
+      log2TbSize >  sps->Log2MinTrafoSize &&
+      TrafoDepth < MaxTrafoDepth &&
+      !(IntraSplitFlag && TrafoDepth==0))
+    {
+      encode_split_transform_flag(ectx, &estim, log2TbSize, 1);
+      tb->rate += estim.getRDBits();
+      estim.reset();
+    }
+
+  // --- CBF CB/CR ---
+
+  // For 4x4 luma, there is no signaling of chroma CBF, because only the
+  // chroma CBF for 8x8 is relevant.
+  if (log2TbSize>2) {
+    if (TrafoDepth==0 || tb->parent->cbf[1]) {
+      encode_cbf_chroma(ectx, &estim, TrafoDepth, tb->cbf[1]);
+      tb->rate_cbfChroma1 = estim.getRDBits();
+      estim.reset();
+    }
+    if (TrafoDepth==0 || tb->parent->cbf[2]) {
+      encode_cbf_chroma(ectx, &estim, TrafoDepth, tb->cbf[2]);
+      tb->rate_cbfChroma2 = estim.getRDBits();
+      estim.reset();
+    }
+  }
+
+
+  tb->rate += tb->rate_cbfChroma1 + tb->rate_cbfChroma2;
 
   return tb;
 }

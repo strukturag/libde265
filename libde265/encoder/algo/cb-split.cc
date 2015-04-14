@@ -46,6 +46,8 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   // encode all 4 children and sum their distortions and rates
 
   for (int i=0;i<4;i++) {
+    printf("-------------------------------------- %d\n",i+1);
+
     int child_x = cb->x + ((i&1)  << (cb->log2Size-1));
     int child_y = cb->y + ((i>>1) << (cb->log2Size-1));
 
@@ -86,8 +88,11 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                               cb_input->log2Size);
 
 
-  const bool can_split_CB   = (split_type != ForcedNonSplit);
-  const bool can_nosplit_CB = (split_type != ForcedSplit);
+  bool can_split_CB   = (split_type != ForcedNonSplit);
+  bool can_nosplit_CB = (split_type != ForcedSplit);
+
+  //if (can_split_CB) { can_nosplit_CB=false; } // TODO TMP
+  if (can_nosplit_CB) { can_split_CB=false; } // TODO TMP
 
   CodingOptions options(ectx, cb_input, ctxModel);
 
@@ -113,6 +118,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
      */
     cb->qp = ectx->active_qp;
 
+    printf("-------------------------------------------------- no split\n");
+
     // analyze subtree
     assert(mPredModeAlgo);
     cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
@@ -132,6 +139,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   if (option_split) {
     option_split.begin();
 
+    printf("-------------------------------------------------- split\n");
+
     enc_cb* cb = option_split.get_cb();
     cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
@@ -146,5 +155,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo();
+  enc_cb* bestCB = options.return_best_rdo();
+  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> split = %d\n",bestCB->split_cu_flag);
+  return bestCB;
 }

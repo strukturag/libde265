@@ -125,6 +125,14 @@ double encode_image(encoder_context* ectx,
   ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
   ectx->cabac_encoder.set_context_models(&ectx->cabac_ctx_models);
 
+
+  context_model_table modelEstim;
+  CABAC_encoder_estim cabacEstim;
+
+  modelEstim.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
+  cabacEstim.set_context_models(&modelEstim);
+
+
   int Log2CtbSize = ectx->sps.Log2CtbSizeY;
 
   uint8_t* luma_plane = ectx->img->get_image_plane(0);
@@ -149,8 +157,12 @@ double encode_image(encoder_context* ectx,
         context_model_table ctxModel;
         //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
         ctxModel = ectx->cabac_ctx_models.copy();
+        ctxModel = modelEstim.copy(); // TODO TMP
 
         disable_logging(LogSymbols);
+        enable_logging(LogSymbols);  // TODO TMP
+
+        printf("================================================== ANALYZE\n");
 
 #if 1
         /*
@@ -187,13 +199,22 @@ double encode_image(encoder_context* ectx,
         // --- write bitstream ---
 
         //ectx->switch_CABAC_to_bitstream();
-        //int preSize = ectx->cabac->size();
+        int preSize = ectx->cabac_encoder.size()*8;
+        float estimPre = cabacEstim.getRDBits();
 
         enable_logging(LogSymbols);
 
-        encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
-        //int postSize = ectx->cabac->size();
-        //printf("real: %d  estim: %f\n",postSize-preSize, cb->rate/8);
+        //encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);  // TODO TMP DISABLE
+
+        printf("================================================== WRITE\n");
+
+        encode_ctb(ectx, &cabacEstim, cb, x,y);
+
+        int postSize = ectx->cabac_encoder.size()*8;
+        float estimPost = cabacEstim.getRDBits();
+
+        printf("real: %d  estim: %f  full-estim: %f\n",postSize-preSize, cb->rate,
+               estimPost-estimPre);
 
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&
@@ -228,6 +249,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   // build algorithm tree
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
+  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_PredMode_BruteForce);
 
   Algo_CB_IntraPartMode* algo_CB_IntraPartMode = NULL;
   switch (params.mAlgo_CB_IntraPartMode()) {
@@ -238,7 +260,7 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
     algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_Fixed;
     break;
   }
-  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_PredMode_BruteForce);
+
   mAlgo_CB_PredMode_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
   mAlgo_CB_PredMode_BruteForce.setInterChildAlgo(&mAlgo_CB_SkipOrInter_BruteForce);
   mAlgo_CB_SkipOrInter_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);

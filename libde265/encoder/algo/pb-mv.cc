@@ -196,6 +196,33 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   int mincost = 0x7fffffff;
 
+  double lambda = 10.0;
+
+  double bits_h[2*hrange+1];
+  double bits_v[2*vrange+1];
+
+  for (int i=-hrange;i<=hrange;i++) {
+    int diff = (i - mvp[0].x);
+    int b;
+
+    if (diff==0) { b=0; }
+    else if (diff==1 || diff==-1) { b=2; }
+    else { b=abs_value(b+2); }
+
+    bits_h[i+hrange]=b;
+  }
+
+  for (int i=-vrange;i<=vrange;i++) {
+    int diff = (i - mvp[0].y);
+    int b;
+
+    if (diff==0) { b=0; }
+    else if (diff==1 || diff==-1) { b=2; }
+    else { b=abs_value(b+2); }
+
+    bits_v[i+vrange]=b;
+  }
+
   for (int my = y-vrange; my<=y+vrange; my++)
     for (int mx = x-hrange; mx<=x+hrange; mx++)
       {
@@ -206,6 +233,12 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
                        inputimg->get_image_plane_at_pos(0,x,y),
                        inputimg->get_image_stride(0),
                        pbW,pbH);
+
+        int bits = bits_h[mx-x+hrange] + bits_v[my-y+vrange];
+
+        cost += lambda * bits;
+
+        //printf("%d %d : %d\n",mx,my,cost);
 
         if (cost<mincost) {
           mincost=cost;

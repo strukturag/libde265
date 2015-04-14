@@ -926,6 +926,13 @@ void CABAC_encoder_estim::write_CABAC_bit(int modelIdx, int bit)
   //printf("[%d] state=%d, bin=%d\n", encBinCnt, model->state,bit);
   //encBinCnt++;
 
+  int logme =  (modelIdx >= CONTEXT_MODEL_CBF_CHROMA &&
+                modelIdx <= CONTEXT_MODEL_CBF_CHROMA+3);
+
+  if (logme) {
+    printf("model before: %d / MPS %d  (%d)\n",model->state,model->MPSbit,bit);
+  }
+
   int idx = model->state<<1;
 
   if (bit==model->MPSbit) {
@@ -939,7 +946,11 @@ void CABAC_encoder_estim::write_CABAC_bit(int modelIdx, int bit)
 
   mFracBits += entropy_table[idx];
 
-  // printf("-> %08lx\n",entropy_table[idx]);
+  if (logme) {
+    printf("model before: %d / MPS %d  (%d)\n",model->state,model->MPSbit,bit);
+  }
+
+  printf("-> %08lx\n",entropy_table[idx]);
 }
 
 

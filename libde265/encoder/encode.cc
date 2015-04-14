@@ -614,9 +614,9 @@ enum IntraChromaPredMode find_chroma_pred_mode(enum IntraPredMode chroma_mode,
 
 
 
-static void encode_split_transform_flag(encoder_context* ectx,
-                                        CABAC_encoder* cabac,
-                                        int log2TrafoSize, int split_flag)
+void encode_split_transform_flag(encoder_context* ectx,
+                                 CABAC_encoder* cabac,
+                                 int log2TrafoSize, int split_flag)
 {
   logtrace(LogSymbols,"$1 split_transform_flag=%d\n",split_flag);
   logtrace(LogSlice,"> split_transform_flag = %d\n",split_flag);
@@ -628,9 +628,9 @@ static void encode_split_transform_flag(encoder_context* ectx,
 }
 
 
-static void encode_cbf_luma(encoder_context* ectx,
-                            CABAC_encoder* cabac,
-                            bool zeroTrafoDepth, int cbf_luma)
+void encode_cbf_luma(encoder_context* ectx,
+                     CABAC_encoder* cabac,
+                     bool zeroTrafoDepth, int cbf_luma)
 {
   logtrace(LogSymbols,"$1 cbf_luma=%d\n",cbf_luma);
   logtrace(LogSlice,"> cbf_luma = %d\n",cbf_luma);
@@ -641,9 +641,9 @@ static void encode_cbf_luma(encoder_context* ectx,
 }
 
 
-static void encode_cbf_chroma(encoder_context* ectx,
-                              CABAC_encoder* cabac,
-                              int trafoDepth, int cbf_chroma)
+void encode_cbf_chroma(encoder_context* ectx,
+                       CABAC_encoder* cabac,
+                       int trafoDepth, int cbf_chroma)
 {
   logtrace(LogSymbols,"$1 cbf_chroma=%d\n",cbf_chroma);
   logtrace(LogSlice,"> cbf_chroma = %d\n",cbf_chroma);
@@ -1490,6 +1490,8 @@ void encode_transform_tree(encoder_context* ectx,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
                            int MaxTrafoDepth, int IntraSplitFlag, bool recurse)
 {
+  printf("encode transform tree\n");
+
   //de265_image* img = ectx->img;
   const seq_parameter_set* sps = &ectx->img->sps;
 
