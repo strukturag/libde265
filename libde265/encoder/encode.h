@@ -248,12 +248,10 @@ void encode_split_transform_flag(encoder_context* ectx,
                                  CABAC_encoder* cabac,
                                  int log2TrafoSize, int split_flag);
 
-void encode_cbf_luma(encoder_context* ectx,
-                     CABAC_encoder* cabac,
+void encode_cbf_luma(CABAC_encoder* cabac,
                      bool zeroTrafoDepth, int cbf_luma);
 
-void encode_cbf_chroma(encoder_context* ectx,
-                       CABAC_encoder* cabac,
+void encode_cbf_chroma(CABAC_encoder* cabac,
                        int trafoDepth, int cbf_chroma);
 
 void encode_transform_unit(encoder_context* ectx,

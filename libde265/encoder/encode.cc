@@ -628,8 +628,7 @@ void encode_split_transform_flag(encoder_context* ectx,
 }
 
 
-void encode_cbf_luma(encoder_context* ectx,
-                     CABAC_encoder* cabac,
+void encode_cbf_luma(CABAC_encoder* cabac,
                      bool zeroTrafoDepth, int cbf_luma)
 {
   logtrace(LogSymbols,"$1 cbf_luma=%d\n",cbf_luma);
@@ -641,8 +640,7 @@ void encode_cbf_luma(encoder_context* ectx,
 }
 
 
-void encode_cbf_chroma(encoder_context* ectx,  // TODO remove ectx
-                       CABAC_encoder* cabac,
+void encode_cbf_chroma(CABAC_encoder* cabac,
                        int trafoDepth, int cbf_chroma)
 {
   logtrace(LogSymbols,"$1 cbf_chroma=%d\n",cbf_chroma);
@@ -1528,10 +1526,10 @@ void encode_transform_tree(encoder_context* ectx,
   // chroma CBF for 8x8 is relevant.
   if (log2TrafoSize>2) {
     if (trafoDepth==0 || tb->parent->cbf[1]) {
-      encode_cbf_chroma(ectx, cabac, trafoDepth, tb->cbf[1]);
+      encode_cbf_chroma(cabac, trafoDepth, tb->cbf[1]);
     }
     if (trafoDepth==0 || tb->parent->cbf[2]) {
-      encode_cbf_chroma(ectx, cabac, trafoDepth, tb->cbf[2]);
+      encode_cbf_chroma(cabac, trafoDepth, tb->cbf[2]);
     }
   }
 
@@ -1553,7 +1551,7 @@ void encode_transform_tree(encoder_context* ectx,
   else {
     if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
         tb->cbf[1] || tb->cbf[2]) {
-      encode_cbf_luma(ectx, cabac, trafoDepth==0, tb->cbf[0]);
+      encode_cbf_luma(cabac, trafoDepth==0, tb->cbf[0]);
     }
     else {
     /* Note: usually, cbf[0] should be TRUE, but while estimating the bitrate, this
