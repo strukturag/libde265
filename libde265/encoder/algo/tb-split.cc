@@ -243,6 +243,9 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   const seq_parameter_set* sps = &ectx->img->sps;
 
+
+  printf("no split / tree level\n");
+
   if (log2TbSize <= sps->Log2MaxTrafoSize &&
       log2TbSize >  sps->Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
@@ -329,12 +332,24 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dy = (i>>1) << (log2TbSize-1);
 
     if (cb->PredMode == MODE_INTRA) {
+      printf("luma before: %d %d\n",
+             ctxModel[CONTEXT_MODEL_CBF_LUMA + 0].state,
+             ctxModel[CONTEXT_MODEL_CBF_LUMA + 1].state);
+
+
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
                                                         x0+dx, y0+dy, x0,y0,
                                                         log2TbSize-1, i,
                                                         TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+
+
+      printf("luma after: %d %d\n",
+             ctxModel[CONTEXT_MODEL_CBF_LUMA + 0].state,
+             ctxModel[CONTEXT_MODEL_CBF_LUMA + 1].state);
     }
     else {
+      printf("analyze child %d\n",i);
+
       tb->children[i] = this->analyze(ectx, ctxModel, input, tb, cb,
                                       x0+dx, y0+dy, x0,y0,
                                       log2TbSize-1, i,
@@ -384,6 +399,7 @@ const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
   }
 
+  printf("re-estimate cbf chroma\n");
   recursive_cbfChroma(&estim,tb, log2TbSize, TrafoDepth);
   tb->rate += estim.getRDBits();
 
@@ -466,6 +482,9 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   }
 
 
+  if (test_split) test_no_split=false;
+
+
   /*
     printf("log2TbSize:%d TrafoDepth:%d MaxTrafoDepth:%d log2TbSize:%d MinTrafoSize:%d\n",
     log2TbSize,
@@ -481,7 +500,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
-    //printf("test no split\n");
+    printf("*** test no split %d\n",1<<log2TbSize);
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
@@ -504,7 +523,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
-    //printf("test split\n");
+    printf("*** test split %d\n",1<<log2TbSize);
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
@@ -529,6 +548,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   bool split = (rd_cost_split < rd_cost_no_split);
 
   if (split) {
+    ctxModel = ctxSplit; //.copy();
+
     delete tb_no_split;
     assert(tb_split);
     return tb_split;
