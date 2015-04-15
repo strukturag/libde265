@@ -464,7 +464,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       std::cout << "TB-rate ohne intra-pred-mode: " << tb[intraMode]->rate << "\n";
 
-      float rate = tb[intraMode]->rate;
+      float rate = tb[intraMode]->rate_withoutCbfChroma;
       int enc_bin;
 
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
@@ -478,11 +478,19 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",enc_bin);
       estim.write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
 
-      logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",0);
-      estim.write_CABAC_bit(CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,0);
+      // TODO: currently we make the chroma-pred-mode decision for each part even
+      // in NxN part mode. Since we always set this to the same value, it does not
+      // matter. However, we should only add the rate for it once (for blkIdx=0).
+
+      if (blkIdx==0) {
+        logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",0);
+        estim.write_CABAC_bit(CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,0);
+      }
       rate += estim.getRDBits();
 
-      tb[intraMode]->rate = rate;
+      float cbfRate = tb[intraMode]->rate - tb[intraMode]->rate_withoutCbfChroma;
+      tb[intraMode]->rate_withoutCbfChroma = rate;
+      tb[intraMode]->rate = tb[intraMode]->rate_withoutCbfChroma + cbfRate;
 
       //printf("QQQ %f %f\n", b, estim.getRDBits());
 
