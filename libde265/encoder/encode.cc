@@ -1539,14 +1539,19 @@ void encode_transform_tree(encoder_context* ectx,
       int x1 = x0 + (1<<(log2TrafoSize-1));
       int y1 = y0 + (1<<(log2TrafoSize-1));
 
+      std::cout << "bits vor child TB-tree 0: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag, true);
+      std::cout << "bits vor child TB-tree 1: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag, true);
+      std::cout << "bits vor child TB-tree 2: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag, true);
+      std::cout << "bits vor child TB-tree 3: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag, true);
+      std::cout << "bits nach child TB-tree 3: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
     }
   }
   else {

@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
+#include <iostream>
 
 
 #define ENCODER_DEVELOPMENT 1
@@ -156,6 +157,8 @@ void analyze_transform_unit(encoder_context* ectx,
 static void recursive_cbfChroma(CABAC_encoder_estim* cabac,
                                 const enc_tb* tb, int log2TrafoSize, int trafoDepth)
 {
+  float bits_pre = cabac->getRDBits();
+
   // --- CBF CB/CR ---
 
   // For 4x4 luma, there is no signaling of chroma CBF, because only the
@@ -174,6 +177,10 @@ static void recursive_cbfChroma(CABAC_encoder_estim* cabac,
       recursive_cbfChroma(cabac, tb->children[i], log2TrafoSize-1, trafoDepth+1);
     }
   }
+
+  float bits_post = cabac->getRDBits();
+
+  tb->rate = tb->rate_withoutCbfChroma + (bits_post - bits_pre);
 }
 
 
@@ -258,12 +265,6 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   // --- CBF CB/CR ---
 
-  recursive_cbfChroma(&estim,tb,log2TbSize,trafoDepth);
-  float rate_cbfChroma = estim.getRDBits();
-
-  estim.reset();
-
-
   if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
       tb->cbf[1] || tb->cbf[2]) {
     encode_cbf_luma(&estim, trafoDepth==0, tb->cbf[0]);
@@ -273,7 +274,12 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   tb->rate_withoutCbfChroma += estim.getRDBits();
 
-  tb->rate = tb->rate_withoutCbfChroma + rate_cbfChroma;
+  estim.reset(); // TODO: not needed ?
+
+  recursive_cbfChroma(&estim,tb,log2TbSize,trafoDepth);
+
+  //float rate_cbfChroma = estim.getRDBits();
+  //tb->rate = tb->rate_withoutCbfChroma + rate_cbfChroma;
 
 
   // measure distortion
@@ -342,7 +348,6 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                         log2TbSize-1, i,
                                                         TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
 
-
       printf("luma after: %d %d\n",
              ctxModel[CONTEXT_MODEL_CBF_LUMA + 0].state,
              ctxModel[CONTEXT_MODEL_CBF_LUMA + 1].state);
@@ -391,17 +396,19 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
       estim.reset();
     }
 
-  tb->rate = tb->rate_withoutCbfChroma;
-
   // restore chroma CBF context models
 
   for (int i=0;i<4;i++) {
     ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
   }
 
-  printf("re-estimate cbf chroma\n");
+  //printf("re-estimate cbf chroma\n");
   recursive_cbfChroma(&estim,tb, log2TbSize, TrafoDepth);
-  tb->rate += estim.getRDBits();
+  //tb->rate = tb->rate_withoutCbfChroma + estim.getRDBits();
+
+  for (int i=0;i<4;i++) {
+    std::cout << "rate child " << i << " : " << tb->children[i]->rate << "\n";
+  }
 
   return tb;
 }
