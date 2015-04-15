@@ -155,7 +155,7 @@ void analyze_transform_unit(encoder_context* ectx,
 
 
 static void recursive_cbfChroma(CABAC_encoder_estim* cabac,
-                                const enc_tb* tb, int log2TrafoSize, int trafoDepth)
+                                enc_tb* tb, int log2TrafoSize, int trafoDepth)
 {
   float bits_pre = cabac->getRDBits();
 

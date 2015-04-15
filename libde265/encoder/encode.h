@@ -65,7 +65,7 @@ class enc_tb : public enc_node
   union {
     // split
     struct {
-      const enc_tb* children[4];
+      enc_tb* children[4];
     };
 
     // non-split
