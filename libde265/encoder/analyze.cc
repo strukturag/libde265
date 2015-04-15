@@ -30,6 +30,7 @@
 
 
 #define ENCODER_DEVELOPMENT 1
+#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
 
 
 static int IntraPredModeCnt[7][35];
@@ -239,7 +240,7 @@ double encode_image(encoder_context* ectx,
         //printf("================================================== WRITE\n");
 
 
-        if (0) {
+        if (COMPARE_ESTIMATED_RATE_TO_REAL_RATE) {
           float estimPre = cabacEstim.getRDBits();
           encode_ctb(ectx, &cabacEstim, cb, x,y);
           float estimPost = cabacEstim.getRDBits();
