@@ -46,8 +46,6 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   // encode all 4 children and sum their distortions and rates
 
   for (int i=0;i<4;i++) {
-    printf("-------------------------------------- %d\n",i+1);
-
     int child_x = cb->x + ((i&1)  << (cb->log2Size-1));
     int child_y = cb->y + ((i>>1) << (cb->log2Size-1));
 
@@ -80,9 +78,6 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
                                           enc_cb* cb_input)
 {
   assert(cb_input->pcm_flag==0);
-
-  std::cout << "CB-Split in size=" << (1<<cb_input->log2Size)
-            << " hash=" << ctxModel.debug_dump() << "\n";
 
   // --- prepare coding options ---
 
@@ -121,12 +116,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
      */
     cb->qp = ectx->active_qp;
 
-    printf("-------------------------------------------------- no split\n");
-
     // analyze subtree
     assert(mPredModeAlgo);
-    std::cout << "CB-Split [no split] size=" << (1<<cb_input->log2Size)
-              << " hash=" << opt.get_context().debug_dump() << "\n";
     cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
 
     // add rate for split flag
@@ -134,9 +125,6 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
       encode_split_cu_flag(ectx,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
       cb->rate += opt.get_cabac_rate();
     }
-
-    std::cout << "CB-Split [no split|END] size=" << (1<<cb_input->log2Size)
-              << " hash=" << opt.get_context().debug_dump() << "\n";
 
     opt.set_cb(cb);
     opt.end();
@@ -147,11 +135,6 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   if (option_split) {
     option_split.begin();
 
-    printf("-------------------------------------------------- split\n");
-
-    std::cout << "CB-Split [split] size=" << (1<<cb_input->log2Size)
-              << " hash=" << option_split.get_context().debug_dump() << "\n";
-
     enc_cb* cb = option_split.get_cb();
     cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
@@ -161,19 +144,12 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
       cb->rate += option_split.get_cabac_rate();
     }
 
-    std::cout << "CB-Split [split|END] size=" << (1<<cb_input->log2Size)
-              << " hash=" << option_split.get_context().debug_dump() << "\n";
-
     option_split.set_cb(cb);
     option_split.end();
   }
 
   options.compute_rdo_costs();
   enc_cb* bestCB = options.return_best_rdo();
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> split = %d\n",bestCB->split_cu_flag);
-
-  std::cout << "CB-Split out size=" << (1<<cb_input->log2Size)
-            << " hash=" << ctxModel.debug_dump() << "\n";
 
   return bestCB;
 }

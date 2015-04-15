@@ -99,8 +99,6 @@ void analyze_transform_unit(encoder_context* ectx,
       intraPredMode = cb->intra.chroma_mode;
     }
 
-    //printf("I %d;%d mode %d tb %d (%d)\n",xC,yC,intraPredMode,tbSize,cIdx);
-
     decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
 
 
@@ -193,8 +191,6 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
                                        int blkIdx,
                                        int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
-  //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
-
   de265_image* img = ectx->img;
 
   int stride = ectx->img->get_image_stride(0);
@@ -250,8 +246,6 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 
   const seq_parameter_set* sps = &ectx->img->sps;
 
-
-  printf("no split / tree level\n");
 
   if (log2TbSize <= sps->Log2MaxTrafoSize &&
       log2TbSize >  sps->Log2MinTrafoSize &&
@@ -338,23 +332,12 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dy = (i>>1) << (log2TbSize-1);
 
     if (cb->PredMode == MODE_INTRA) {
-      printf("luma before: %d %d\n",
-             ctxModel[CONTEXT_MODEL_CBF_LUMA + 0].state,
-             ctxModel[CONTEXT_MODEL_CBF_LUMA + 1].state);
-
-
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
                                                         x0+dx, y0+dy, x0,y0,
                                                         log2TbSize-1, i,
                                                         TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
-
-      printf("luma after: %d %d\n",
-             ctxModel[CONTEXT_MODEL_CBF_LUMA + 0].state,
-             ctxModel[CONTEXT_MODEL_CBF_LUMA + 1].state);
     }
     else {
-      printf("analyze child %d\n",i);
-
       tb->children[i] = this->analyze(ectx, ctxModel, input, tb, cb,
                                       x0+dx, y0+dy, x0,y0,
                                       log2TbSize-1, i,
@@ -363,14 +346,6 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
     tb->distortion            += tb->children[i]->distortion;
     tb->rate_withoutCbfChroma += tb->children[i]->rate_withoutCbfChroma;
-
-    /*
-    printf("child %d: cbf:%d%d%d  rate:%d\n",i+1,
-           tb->children[i]->cbf[0],
-           tb->children[i]->cbf[1],
-           tb->children[i]->cbf[2],
-           tb->children[i]->rate);
-    */
   }
 
   tb->set_cbf_flags_from_children();
@@ -402,13 +377,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
   }
 
-  //printf("re-estimate cbf chroma\n");
   recursive_cbfChroma(&estim,tb, log2TbSize, TrafoDepth);
   //tb->rate = tb->rate_withoutCbfChroma + estim.getRDBits();
-
-  for (int i=0;i<4;i++) {
-    std::cout << "rate child " << i << " : " << tb->children[i]->rate << "\n";
-  }
 
   return tb;
 }
@@ -494,14 +464,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
-    printf("*** test no split %d\n",1<<log2TbSize);
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
                                                  TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
 
     rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
-    //printf("-\n");
 
     if (log2TbSize <= mParams.zeroBlockPrune()) {
       bool zeroBlock = tb_no_split->isZeroBlock();
@@ -517,13 +485,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
-    printf("*** test split %d\n",1<<log2TbSize);
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
-    //printf("-\n");
   }
 
 

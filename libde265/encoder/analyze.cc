@@ -192,7 +192,7 @@ double encode_image(encoder_context* ectx,
         disable_logging(LogSymbols);
         enable_logging(LogSymbols);  // TODO TMP
 
-        printf("================================================== ANALYZE\n");
+        //printf("================================================== ANALYZE\n");
 
 #if 1
         /*
@@ -231,24 +231,24 @@ double encode_image(encoder_context* ectx,
         // --- write bitstream ---
 
         //ectx->switch_CABAC_to_bitstream();
-        int preSize = ectx->cabac_encoder.size()*8;
-        float estimPre = cabacEstim.getRDBits();
 
         enable_logging(LogSymbols);
 
-        //encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);  // TODO TMP DISABLE
+        encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
-        printf("================================================== WRITE\n");
+        //printf("================================================== WRITE\n");
 
-        encode_ctb(ectx, &cabacEstim, cb, x,y);
 
-        int postSize = ectx->cabac_encoder.size()*8;
-        float estimPost = cabacEstim.getRDBits();
+        if (0) {
+          float estimPre = cabacEstim.getRDBits();
+          encode_ctb(ectx, &cabacEstim, cb, x,y);
+          float estimPost = cabacEstim.getRDBits();
 
-        printf("estim: %f  real: %f  diff: %f\n",
-               cb->rate,
-               estimPost-estimPre,
-               cb->rate - (estimPost-estimPre));
+          printf("estim: %f  real: %f  diff: %f\n",
+                 cb->rate,
+                 estimPost-estimPre,
+                 cb->rate - (estimPost-estimPre));
+        }
 
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&

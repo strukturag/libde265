@@ -373,9 +373,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          int TrafoDepth, int MaxTrafoDepth,
                                          int IntraSplitFlag)
 {
-  std::cout << "TB-IntraPredMode-FastBrute in size=" << (1<<cb->log2Size)
-            << " hash=" << ctxModel.debug_dump() << "\n";
-
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
 
   /*
@@ -438,11 +435,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     for (int i=0;i<35;i++) tb[i]=NULL;
 
     for (int i=0;i<distortions.size();i++) {
-      std::cout << "candidate " << i << ": " << distortions[i].first << "\n";
-    }
-
-
-    for (int i=0;i<distortions.size();i++) {
 
       //copy_context_model_table(ctxIntra, ctxModel);
 
@@ -455,14 +447,10 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      std::cout << "IntraMode " << intraMode << " -> analyze\n";
-
       contexts[intraMode] = ctxModel.copy();
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
-
-      std::cout << "TB-rate ohne intra-pred-mode: " << tb[intraMode]->rate << "\n";
 
       float rate = tb[intraMode]->rate_withoutCbfChroma;
       int enc_bin;
@@ -521,17 +509,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       }
     }
 
-    //printf("INTRA(%d;%d) = %d\n",tb[minCostIdx]->x,tb[minCostIdx]->y, intraMode);
-
-    std::cout << "TB-IntraPredMode-FastBrute out[A] size=" << (1<<cb->log2Size)
-              << " hash=" << ctxModel.debug_dump() << "\n";
-
     return tb[minCostIdx];
   }
   else {
-    std::cout << "TB-IntraPredMode-FastBrute out[B] size=" << (1<<cb->log2Size)
-              << " hash=" << ctxModel.debug_dump() << "\n";
-
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                  x0,y0,xBase,yBase, log2TbSize,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,

@@ -1489,8 +1489,6 @@ void encode_transform_tree(encoder_context* ectx,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
                            int MaxTrafoDepth, int IntraSplitFlag, bool recurse)
 {
-  printf("encode transform tree\n");
-
   //de265_image* img = ectx->img;
   const seq_parameter_set* sps = &ectx->img->sps;
 
@@ -1539,19 +1537,14 @@ void encode_transform_tree(encoder_context* ectx,
       int x1 = x0 + (1<<(log2TrafoSize-1));
       int y1 = y0 + (1<<(log2TrafoSize-1));
 
-      std::cout << "bits vor child TB-tree 0: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag, true);
-      std::cout << "bits vor child TB-tree 1: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag, true);
-      std::cout << "bits vor child TB-tree 2: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag, true);
-      std::cout << "bits vor child TB-tree 3: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
       encode_transform_tree(ectx, cabac, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag, true);
-      std::cout << "bits nach child TB-tree 3: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
     }
   }
   else {
@@ -1771,8 +1764,6 @@ void encode_coding_unit(encoder_context* ectx,
       encode_part_mode(ectx,cabac, PredMode, PartMode, log2CbSize);
     }
 
-    std::cout << "bits nach part-mode: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
-
     if (PredMode == MODE_INTRA) {
 
       int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
@@ -1856,8 +1847,6 @@ void encode_coding_unit(encoder_context* ectx,
     }
 
 
-    std::cout << "bits vor TB-tree: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
-
     if (true) { // !pcm
 
       if (cb->PredMode != MODE_INTRA &&
@@ -1887,8 +1876,6 @@ void encode_coding_unit(encoder_context* ectx,
       }
     }
   }
-
-  std::cout << "bits nach TB-tree: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
 }
 
 
