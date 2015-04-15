@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
+#include <iostream>
 
 
 #define ENCODER_DEVELOPMENT 1
@@ -83,6 +84,35 @@ void statistics_print()
     }
 
     printf("\n");
+  }
+}
+
+
+void print_tb_tree_rates(const enc_tb* tb, int level)
+{
+  for (int i=0;i<level;i++)
+    std::cout << "  ";
+
+  std::cout << "TB rate=" << tb->rate << " (" << tb->rate_withoutCbfChroma << ")\n";
+  if (tb->split_transform_flag) {
+    for (int i=0;i<4;i++)
+      print_tb_tree_rates(tb->children[i], level+1);
+  }
+}
+
+
+void print_cb_tree_rates(const enc_cb* cb, int level)
+{
+  for (int i=0;i<level;i++)
+    std::cout << "  ";
+
+  std::cout << "CB rate=" << cb->rate << "\n";
+  if (cb->split_cu_flag) {
+    for (int i=0;i<4;i++)
+      print_cb_tree_rates(cb->children[i], level+1);
+  }
+  else {
+    print_tb_tree_rates(cb->transform_tree, level+1);
   }
 }
 
@@ -192,6 +222,8 @@ double encode_image(encoder_context* ectx,
         printf("Q %d\n",bestQ);
         fflush(stdout);
 #endif
+
+        //print_cb_tree_rates(cb,0);
 
         //statistics_IntraPredMode(ectx, x0,y0, cb);
 
