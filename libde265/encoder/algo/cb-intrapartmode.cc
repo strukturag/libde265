@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
+#include <iostream>
 
 
 #define ENCODER_DEVELOPMENT 1
@@ -105,6 +106,9 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              context_model_table& ctxModel,
                                              enc_cb* cb)
 {
+  std::cout << "CB-IntraPartMode in size=" << (1<<cb->log2Size)
+            << " hash=" << ctxModel.debug_dump() << "\n";
+
   enum PartMode PartMode = mParams.partMode();
 
 
@@ -144,13 +148,28 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   cb->distortion = cb->transform_tree->distortion;
   cb->rate       = cb->transform_tree->rate;
 
+  std::cout << "SUM TB-tree hinter PartMode " << cb->rate << "\n";
+
 
   // rate for cu syntax
 
   CABAC_encoder_estim estim;
   estim.set_context_models(&ctxModel);
-  encode_coding_unit(ectx,&estim,cb,x,y,log2CbSize, false);
+
+  //encode_coding_unit(ectx,&estim,cb,x,y,log2CbSize, false);
+
+  //encode_part_mode(ectx,&estim, MODE_INTRA, PartMode, 0);
+
+  logtrace(LogSymbols,"$1 part_mode=%d\n",PartMode);
+  if (log2CbSize == ectx->sps.Log2MinCbSizeY) {
+    int bin = (PartMode==PART_2Nx2N);
+    estim.write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, bin);
+  }
+
   cb->rate += estim.getRDBits();
+
+  std::cout << "CB-IntraPartMode out size=" << (1<<cb->log2Size)
+            << " hash=" << ctxModel.debug_dump() << "\n";
 
   return cb;
 }

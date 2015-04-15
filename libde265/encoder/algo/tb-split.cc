@@ -177,14 +177,14 @@ static void recursive_cbfChroma(CABAC_encoder_estim* cabac,
 }
 
 
-const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                             context_model_table& ctxModel,
-                                             const de265_image* input,
-                                             const enc_tb* parent,
-                                             enc_cb* cb,
-                                             int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                             int blkIdx,
-                                             int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
+enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
+                                       context_model_table& ctxModel,
+                                       const de265_image* input,
+                                       const enc_tb* parent,
+                                       enc_cb* cb,
+                                       int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                       int blkIdx,
+                                       int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
   //printf("--- TT at %d %d, size %d, trafoDepth %d\n",x0,y0,1<<log2TbSize,trafoDepth);
 
@@ -287,14 +287,14 @@ const enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
 }
 
 
-const enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
-                                                         context_model_table& ctxModel,
-                                                         const de265_image* input,
-                                                         const enc_tb* parent,
-                                                         enc_cb* cb,
-                                                         int x0,int y0, int log2TbSize,
-                                                         int TrafoDepth, int MaxTrafoDepth,
-                                                         int IntraSplitFlag)
+enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
+                                                   context_model_table& ctxModel,
+                                                   const de265_image* input,
+                                                   const enc_tb* parent,
+                                                   enc_cb* cb,
+                                                   int x0,int y0, int log2TbSize,
+                                                   int TrafoDepth, int MaxTrafoDepth,
+                                                   int IntraSplitFlag)
 {
   const de265_image* img = ectx->img;
 
@@ -456,7 +456,7 @@ struct Logging_TB_Split : public Logging
 
 
 
-const enc_tb*
+enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table& ctxModel,
                                   const de265_image* input,
@@ -481,8 +481,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   }
 
 
-  const enc_tb* tb_no_split = NULL;
-  const enc_tb* tb_split    = NULL;
+  enc_tb* tb_no_split = NULL;
+  enc_tb* tb_split    = NULL;
   float rd_cost_no_split = std::numeric_limits<float>::max();
   float rd_cost_split    = std::numeric_limits<float>::max();
 

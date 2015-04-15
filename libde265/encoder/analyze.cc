@@ -213,8 +213,10 @@ double encode_image(encoder_context* ectx,
         int postSize = ectx->cabac_encoder.size()*8;
         float estimPost = cabacEstim.getRDBits();
 
-        printf("real: %d  estim: %f  full-estim: %f\n",postSize-preSize, cb->rate,
-               estimPost-estimPre);
+        printf("estim: %f  real: %f  diff: %f\n",
+               cb->rate,
+               estimPost-estimPre,
+               cb->rate - (estimPost-estimPre));
 
 
         int last = (y==ectx->sps.PicHeightInCtbsY-1 &&

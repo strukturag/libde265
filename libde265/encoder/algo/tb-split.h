@@ -73,25 +73,25 @@ class Algo_TB_Split
   Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
   virtual ~Algo_TB_Split() { }
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
 
  protected:
-  const enc_tb* encode_transform_tree_split(encoder_context* ectx,
-                                            context_model_table& ctxModel,
-                                            const de265_image* input,
-                                            const enc_tb* parent,
-                                            enc_cb* cb,
-                                            int x0,int y0, int log2TbSize,
-                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  enc_tb* encode_transform_tree_split(encoder_context* ectx,
+                                      context_model_table& ctxModel,
+                                      const de265_image* input,
+                                      const enc_tb* parent,
+                                      enc_cb* cb,
+                                      int x0,int y0, int log2TbSize,
+                                      int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
 };
@@ -136,14 +136,14 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
     config.add_option(&mParams.zeroBlockPrune);
   }
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;

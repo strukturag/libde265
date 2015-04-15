@@ -100,14 +100,14 @@ class Algo_TB_IntraPredMode
   Algo_TB_IntraPredMode() : mTBSplitAlgo(NULL) { }
   virtual ~Algo_TB_IntraPredMode() { }
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
 
@@ -191,14 +191,14 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
 {
  public:
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 };
 
 
@@ -230,14 +230,14 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
   void setParams(const params& p) { mParams=p; }
 
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;
@@ -265,14 +265,14 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
     config.add_option(&mParams.bitrateEstimMethod);
   }
 
-  virtual const enc_tb* analyze(encoder_context*,
-                                context_model_table&,
-                                const de265_image* input,
-                                const enc_tb* parent,
-                                enc_cb* cb,
-                                int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                int blkIdx,
-                                int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          const de265_image* input,
+                          const enc_tb* parent,
+                          enc_cb* cb,
+                          int x0,int y0, int xBase,int yBase, int log2TbSize,
+                          int blkIdx,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
  private:
   params mParams;

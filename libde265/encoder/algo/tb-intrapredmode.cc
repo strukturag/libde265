@@ -28,7 +28,7 @@
 #include <limits>
 #include <math.h>
 #include <algorithm>
-
+#include <iostream>
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
@@ -162,7 +162,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
 
 
-const enc_tb*
+enc_tb*
 Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table& ctxModel,
                                           const de265_image* input,
@@ -186,7 +186,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    const enc_tb* tb[35];
+    enc_tb* tb[35];
 
     float minCost = std::numeric_limits<float>::max();
     int   minCostIdx=0;
@@ -287,7 +287,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
 
-const enc_tb*
+enc_tb*
 Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            context_model_table& ctxModel,
                                            const de265_image* input,
@@ -337,9 +337,9 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     // Note: cannot prepare intra prediction pixels here, because this has to
     // be done at the lowest TB split level.
 
-    const enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
-                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+    enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
+                                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
     debug_show_image(ectx->img, 0);
 
@@ -362,7 +362,7 @@ static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
   return i.second < j.second;
 }
 
-const enc_tb*
+enc_tb*
 Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          context_model_table& ctxModel,
                                          const de265_image* input,
@@ -373,6 +373,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          int TrafoDepth, int MaxTrafoDepth,
                                          int IntraSplitFlag)
 {
+  std::cout << "TB-IntraPredMode-FastBrute in size=" << (1<<cb->log2Size)
+            << " hash=" << ctxModel.debug_dump() << "\n";
+
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
 
   /*
@@ -422,34 +425,44 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
         //printf("%d -> %f\n",i,distortions[i].second);
       }
 
-    int keepNBest=mParams.keepNBest;
+    int keepNBest=std::min((int)mParams.keepNBest, (int)distortions.size());
     distortions.resize(keepNBest);
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[0],0));
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[1],0));
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[2],0));
 
 
-    const enc_tb* tb[35];
+    enc_tb* tb[35];
+    context_model_table contexts[35];
 
     for (int i=0;i<35;i++) tb[i]=NULL;
+
+    for (int i=0;i<distortions.size();i++) {
+      std::cout << "candidate " << i << ": " << distortions[i].first << "\n";
+    }
 
 
     for (int i=0;i<distortions.size();i++) {
 
-      context_model_table ctxIntra = ctxModel.copy();
       //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;
+
+      if (!mPredMode_enabled[intraMode]) { continue; }
 
       cb->intra.pred_mode[blkIdx] = intraMode;
       if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
+      std::cout << "IntraMode " << intraMode << " -> analyze\n";
+
+      contexts[intraMode] = ctxModel.copy();
+      tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
 
+      std::cout << "TB-rate ohne intra-pred-mode: " << tb[intraMode]->rate << "\n";
 
       float rate = tb[intraMode]->rate;
       int enc_bin;
@@ -460,8 +473,18 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       else { rate += 5; enc_bin=0; }
 
       CABAC_encoder_estim estim;
-      estim.set_context_models(&ctxIntra);
-      rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
+      estim.set_context_models(&contexts[intraMode]);
+      //rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
+      logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",enc_bin);
+      estim.write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
+
+      logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",0);
+      estim.write_CABAC_bit(CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,0);
+      rate += estim.getRDBits();
+
+      tb[intraMode]->rate = rate;
+
+      //printf("QQQ %f %f\n", b, estim.getRDBits());
 
       float cost = tb[intraMode]->distortion + ectx->lambda * rate;
 
@@ -481,9 +504,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-#if 1
     tb[minCostIdx]->reconstruct(ectx, ectx->img, cb, blkIdx);
-#endif
+    ctxModel = contexts[minCostIdx];
 
     for (int i = 0; i<35; i++) {
       if (i != minCostIdx) {
@@ -493,13 +515,20 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     //printf("INTRA(%d;%d) = %d\n",tb[minCostIdx]->x,tb[minCostIdx]->y, intraMode);
 
+    std::cout << "TB-IntraPredMode-FastBrute out[A] size=" << (1<<cb->log2Size)
+              << " hash=" << ctxModel.debug_dump() << "\n";
+
     return tb[minCostIdx];
   }
   else {
+    std::cout << "TB-IntraPredMode-FastBrute out[B] size=" << (1<<cb->log2Size)
+              << " hash=" << ctxModel.debug_dump() << "\n";
+
     return mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                  x0,y0,xBase,yBase, log2TbSize,
                                  blkIdx, TrafoDepth, MaxTrafoDepth,
                                  IntraSplitFlag);
+
   }
 
   assert(false);

@@ -27,6 +27,7 @@
 #include "intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
+#include <iostream>
 
 
 int allocTB = 0;
@@ -426,9 +427,9 @@ void encode_split_cu_flag(encoder_context* ectx,
 }
 
 
-static void encode_part_mode(encoder_context* ectx,
-                             CABAC_encoder* cabac,
-                             enum PredMode PredMode, enum PartMode PartMode, int cLog2CbSize)
+void encode_part_mode(encoder_context* ectx,
+                      CABAC_encoder* cabac,
+                      enum PredMode PredMode, enum PartMode PartMode, int cLog2CbSize)
 {
   logtrace(LogSymbols,"$1 part_mode=%d\n",PartMode);
   logtrace(LogSlice,"> part_mode = %d\n",PartMode);
@@ -1765,6 +1766,8 @@ void encode_coding_unit(encoder_context* ectx,
       encode_part_mode(ectx,cabac, PredMode, PartMode, log2CbSize);
     }
 
+    std::cout << "bits nach part-mode: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
+
     if (PredMode == MODE_INTRA) {
 
       int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
@@ -1848,6 +1851,8 @@ void encode_coding_unit(encoder_context* ectx,
     }
 
 
+    std::cout << "bits vor TB-tree: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
+
     if (true) { // !pcm
 
       if (cb->PredMode != MODE_INTRA &&
@@ -1877,6 +1882,8 @@ void encode_coding_unit(encoder_context* ectx,
       }
     }
   }
+
+  std::cout << "bits nach TB-tree: " << ((CABAC_encoder_estim*)cabac)->getRDBits() << "\n";
 }
 
 

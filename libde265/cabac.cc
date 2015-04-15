@@ -950,7 +950,7 @@ void CABAC_encoder_estim::write_CABAC_bit(int modelIdx, int bit)
     printf("model before: %d / MPS %d  (%d)\n",model->state,model->MPSbit,bit);
   }
 
-  printf("-> %08lx\n",entropy_table[idx]);
+  printf("-> %08lx %f\n",entropy_table[idx], entropy_table[idx] / float(1<<15));
 }
 
 
