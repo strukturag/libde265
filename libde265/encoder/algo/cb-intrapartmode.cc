@@ -91,8 +91,13 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
       // rate for cu syntax
 
-      encode_coding_unit(ectx,option[p].get_cabac(), cb,x,y,log2CbSize, false);
-      cb->rate += option[p].get_cabac()->getRDBits();
+      logtrace(LogSymbols,"$1 part_mode=%d\n",cb->PartMode);
+      if (log2CbSize == ectx->sps.Log2MinCbSizeY) {
+        int bin = (cb->PartMode==PART_2Nx2N);
+        option[p].get_cabac()->reset();
+        option[p].get_cabac()->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, bin);
+        cb->rate += option[p].get_cabac()->getRDBits();
+      }
 
       option[p].end();
     }
