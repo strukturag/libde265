@@ -68,8 +68,11 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "internal error: maximum number of thread contexts exceeded";
   case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
     return "internal error: maximum number of slices exceeded";
+  case DE265_ERROR_NOT_IMPLEMENTED_YET:
+    return "unimplemented decoder feature";
     //case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
     //return "scaling list not implemented";
+
   case DE265_ERROR_WAITING_FOR_INPUT_DATA:
     return "no more input data, decoder stalled";
   case DE265_ERROR_CANNOT_PROCESS_SEI:
@@ -657,4 +660,3 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
 }
-

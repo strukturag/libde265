@@ -213,7 +213,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     break;
 
   default:
-    assert(false); // TODO: not implemented yet
+    return DE265_ERROR_NOT_IMPLEMENTED_YET;
     break;
   }
 
@@ -351,7 +351,7 @@ void de265_image::release()
     {
       image_allocation_functions.release_buffer(decctx, this,
                                                 decctx ? decctx->param_image_allocation_userdata : NULL);
-      
+
       for (int i=0;i<3;i++)
         {
           pixels[i] = NULL;
@@ -646,4 +646,3 @@ bool de265_image::available_pred_blk(int xC,int yC, int nCbS, int xP, int yP,
 
   return availableN;
 }
-

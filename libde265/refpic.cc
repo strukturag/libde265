@@ -34,7 +34,7 @@
 static void compute_NumPoc(ref_pic_set* rpset)
 {
   rpset->NumPocTotalCurr_shortterm_only = 0;
-  
+
   for (int i=0; i<rpset->NumNegativePics; i++)
     if (rpset->UsedByCurrPicS0[i])
       rpset->NumPocTotalCurr_shortterm_only++;
@@ -226,6 +226,11 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
       return false;
     }
 
+    if (num_negative_pics > MAX_NUM_REF_PICS ||
+        num_positive_pics > MAX_NUM_REF_PICS) {
+      ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      return false;
+    }
 
     out_set->NumNegativePics = num_negative_pics;
     out_set->NumPositivePics = num_positive_pics;
