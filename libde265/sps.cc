@@ -322,13 +322,19 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   BitDepth_C   = bit_depth_chroma;
   QpBdOffset_C = 6*(bit_depth_chroma-8);
 
+  if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||
+      pic_height_in_luma_samples % MinCbSizeY != 0) {
+    // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   Log2MinCbSizeY = log2_min_luma_coding_block_size;
   Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
   MinCbSizeY = 1 << Log2MinCbSizeY;
   CtbSizeY = 1 << Log2CtbSizeY;
-  PicWidthInMinCbsY = pic_width_in_luma_samples / MinCbSizeY;
+  PicWidthInMinCbsY = ceil_div(pic_width_in_luma_samples, MinCbSizeY);
   PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
-  PicHeightInMinCbsY = pic_height_in_luma_samples / MinCbSizeY;
+  PicHeightInMinCbsY = ceil_div(pic_height_in_luma_samples, MinCbSizeY);
   PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
   PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
@@ -777,4 +783,3 @@ void set_default_scaling_lists(scaling_list_data* sclist)
   fill_scaling_factor(&sclist->ScalingFactor_Size3[1][0][0],
                       default_ScalingList_8x8_inter, 3);
 }
-

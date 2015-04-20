@@ -659,9 +659,9 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     image_units.back()->slice_units.push_back(sliceunit);
   }
 
-  decode_some();
+  err = decode_some();
 
-  return DE265_OK;
+  return err;
 }
 
 
@@ -776,6 +776,10 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   */
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
+
+  if (sliceunit->shdr->slice_segment_address >= imgunit->img->pps.CtbAddrRStoTS.size()) {
+    return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+  }
 
 
   struct thread_context tctx;

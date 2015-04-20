@@ -3701,6 +3701,10 @@ enum DecodeResult decode_substream(thread_context* tctx,
     const int ctbx = tctx->CtbX;
     const int ctby = tctx->CtbY;
 
+    if (ctbx+ctby*ctbW >= tctx->img->pps.CtbAddrRStoTS.size()) {
+        return Decode_Error;
+    }
+
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
