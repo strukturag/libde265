@@ -322,16 +322,11 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   BitDepth_C   = bit_depth_chroma;
   QpBdOffset_C = 6*(bit_depth_chroma-8);
 
-  if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||
-      pic_height_in_luma_samples % MinCbSizeY != 0) {
-    // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  }
-
   Log2MinCbSizeY = log2_min_luma_coding_block_size;
   Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
   MinCbSizeY = 1 << Log2MinCbSizeY;
   CtbSizeY = 1 << Log2CtbSizeY;
+
   PicWidthInMinCbsY = ceil_div(pic_width_in_luma_samples, MinCbSizeY);
   PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
   PicHeightInMinCbsY = ceil_div(pic_height_in_luma_samples, MinCbSizeY);
@@ -364,6 +359,20 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
   PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
+
+
+  // --- check SPS sanity ---
+
+  if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||
+      pic_height_in_luma_samples % MinCbSizeY != 0) {
+    // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (Log2MinTrafoSize > Log2MinCbSizeY) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
 
   sps_read = true;
 
