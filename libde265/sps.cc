@@ -373,6 +373,9 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  if (Log2MaxTrafoSize > libde265_min(Log2CtbSizeY,5)) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
   sps_read = true;
 

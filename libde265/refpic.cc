@@ -92,6 +92,11 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       delta_idx = vlc = get_uvlc(br);
+
+      if (delta_idx>=idxRps) {
+        return false;
+      }
+
       delta_idx++;
     } else {
       delta_idx = 1;
