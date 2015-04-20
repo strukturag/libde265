@@ -99,7 +99,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
       vps->vps_num_hrd_parameters     = get_uvlc(reader);
 
       if (vps->vps_num_hrd_parameters >= 1024) {
-        assert(false); // TODO: return bitstream error
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
 
       for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
@@ -115,7 +115,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
       }
     }
   }
-  
+
   vps->vps_extension_flag = get_bits(reader,1);
 
   if (vps->vps_extension_flag) {
@@ -292,7 +292,7 @@ void dump_vps(video_parameter_set* vps, int fd)
       }
     }
   }
-  
+
   LOG1("vps_extension_flag = %d\n", vps->vps_extension_flag);
 }
 
