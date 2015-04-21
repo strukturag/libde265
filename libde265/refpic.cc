@@ -92,6 +92,9 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       delta_idx = vlc = get_uvlc(br);
+      if (delta_idx==UVLC_ERROR) {
+        return false;
+      }
 
       if (delta_idx>=idxRps) {
         return false;
@@ -107,6 +110,7 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     int delta_rps_sign = get_bits(br,1);
     int abs_delta_rps  = vlc = get_uvlc(br);
+    if (vlc==UVLC_ERROR) { return false; }
     abs_delta_rps++;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
 
@@ -255,7 +259,9 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     int lastPocS=0;
     for (int i=0;i<num_negative_pics;i++) {
-      int  delta_poc_s0 = get_uvlc(br)+1;
+      int  delta_poc_s0 = get_uvlc(br);
+      if (delta_poc_s0==UVLC_ERROR) { return false; }
+      delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
       out_set->DeltaPocS0[i]      = lastPocS - delta_poc_s0;
@@ -267,7 +273,9 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     lastPocS=0;
     for (int i=0;i<num_positive_pics;i++) {
-      int  delta_poc_s1 = get_uvlc(br)+1;
+      int  delta_poc_s1 = get_uvlc(br);
+      if (delta_poc_s1==UVLC_ERROR) { return false; }
+      delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
       out_set->DeltaPocS1[i]      = lastPocS + delta_poc_s1;
