@@ -85,6 +85,9 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   read_profile_tier_level(br,&profile_tier_level, sps_max_sub_layers);
 
   READ_VLC(seq_parameter_set_id, uvlc);
+  if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
 
   // --- decode chroma type ---
