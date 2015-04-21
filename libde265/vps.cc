@@ -59,6 +59,12 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
     vps->layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
     vps->layer[i].vps_max_num_reorder_pics  = get_uvlc(reader);
     vps->layer[i].vps_max_latency_increase  = get_uvlc(reader);
+
+    if (vps->layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
+        vps->layer[i].vps_max_num_reorder_pics  == UVLC_ERROR ||
+        vps->layer[i].vps_max_latency_increase  == UVLC_ERROR) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
   }
 
   if (!vps->vps_sub_layer_ordering_info_present_flag) {
@@ -73,7 +79,11 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
 
 
   vps->vps_max_layer_id = get_bits(reader,6);
-  vps->vps_num_layer_sets = get_uvlc(reader)+1;
+  vps->vps_num_layer_sets = get_uvlc(reader);
+  if (vps->vps_num_layer_sets==UVLC_ERROR) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  vps->vps_num_layer_sets++;
 
   if (vps->vps_num_layer_sets<0 ||
       vps->vps_num_layer_sets>=1024) {
@@ -95,15 +105,25 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
     vps->vps_poc_proportional_to_timing_flag = get_bits(reader,1);
 
     if (vps->vps_poc_proportional_to_timing_flag) {
-      vps->vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
-      vps->vps_num_hrd_parameters     = get_uvlc(reader);
+      vps->vps_num_ticks_poc_diff_one = get_uvlc(reader);
+      if (vps->vps_num_ticks_poc_diff_one == UVLC_ERROR) {
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+      vps->vps_num_ticks_poc_diff_one++;
 
+      vps->vps_num_hrd_parameters     = get_uvlc(reader);
+      if (vps->vps_num_hrd_parameters == UVLC_ERROR) {
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
       if (vps->vps_num_hrd_parameters >= 1024) {
         return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
 
       for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
         vps->hrd_layer_set_idx[i] = get_uvlc(reader);
+        if (vps->hrd_layer_set_idx[i] == UVLC_ERROR) {
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
 
         if (i > 0) {
           vps->cprms_present_flag[i] = get_bits(reader,1);

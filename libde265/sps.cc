@@ -667,7 +667,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
-        if (scaling_list_pred_matrix_id_delta < 0 ||
+        if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
             scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
