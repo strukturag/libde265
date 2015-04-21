@@ -293,13 +293,18 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
           num_long_term_sps = get_uvlc(br);
+          if (num_long_term_sps == UVLC_ERROR) {
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
         }
         else {
           num_long_term_sps = 0;
         }
 
         num_long_term_pics= get_uvlc(br);
-
+        if (num_long_term_pics) {
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
 
         // check maximum number of reference frames
 
@@ -348,6 +353,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           delta_poc_msb_present_flag[i] = get_bits(br,1);
           if (delta_poc_msb_present_flag[i]) {
             delta_poc_msb_cycle_lt[i] = get_uvlc(br);
+            if (delta_poc_msb_cycle_lt[i]==UVLC_ERROR) {
+              return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+            }
           }
           else {
             delta_poc_msb_cycle_lt[i] = 0;
