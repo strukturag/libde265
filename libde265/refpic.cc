@@ -147,6 +147,9 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     // positive list
     for (int j=nPositiveRIdx-1;j>=0;j--) {
+      assert(RIdx >= 0 && RIdx < sets.size());
+      assert(j>=0 && j < MAX_NUM_REF_PICS);
+
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
         out_set->DeltaPocS0[i] = dPoc;
@@ -217,6 +220,11 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     int num_negative_pics = get_uvlc(br);
     int num_positive_pics = get_uvlc(br);
+
+    if (num_negative_pics == UVLC_ERROR ||
+        num_positive_pics == UVLC_ERROR) {
+      return false;
+    }
 
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
