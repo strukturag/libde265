@@ -1601,9 +1601,9 @@ void encode_cu_skip_flag(encoder_context* ectx,
 }
 
 
-static void encode_merge_idx(encoder_context* ectx,
-                             CABAC_encoder* cabac,
-                             int mergeIdx)
+void encode_merge_idx(encoder_context* ectx,
+                      CABAC_encoder* cabac,
+                      int mergeIdx)
 {
   logtrace(LogSymbols,"$1 merge_idx=%d\n",mergeIdx);
   logtrace(LogSlice,"# merge_idx %d\n", mergeIdx);

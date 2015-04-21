@@ -248,6 +248,10 @@ void encode_split_transform_flag(encoder_context* ectx,
                                  CABAC_encoder* cabac,
                                  int log2TrafoSize, int split_flag);
 
+void encode_merge_idx(encoder_context* ectx,
+                      CABAC_encoder* cabac,
+                      int mergeIdx);
+
 void encode_cu_skip_flag(encoder_context* ectx,
                          CABAC_encoder* cabac,
                          const enc_cb* cb,

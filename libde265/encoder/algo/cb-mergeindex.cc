@@ -112,8 +112,12 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
 
+    CABAC_encoder_estim cabac;
+    cabac.set_context_models(&ctxModel);
+    encode_merge_idx(ectx, &cabac, spec.merge_idx);
+
     cb->distortion = compute_distortion_ssd(input, img, x0,y0, cb->log2Size, 0);
-    cb->rate = 2; // fake (merge_index)
+    cb->rate = cabac.getRDBits();
 
     cb->inter.rqt_root_cbf = 0;
   }
