@@ -29,8 +29,8 @@
 #include <iostream>
 
 
-#define ENCODER_DEVELOPMENT 1
-#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 1
+#define ENCODER_DEVELOPMENT 0
+#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
 
 
 static int IntraPredModeCnt[7][35];
