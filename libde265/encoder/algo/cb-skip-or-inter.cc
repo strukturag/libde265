@@ -35,8 +35,8 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
                                                 context_model_table& ctxModel,
                                                 enc_cb* cb)
 {
-  bool try_skip  = false;
-  bool try_inter = true;
+  bool try_skip  = true;
+  bool try_inter = false;
 
   CodingOptions options(ectx,cb,ctxModel);
   CodingOption option_skip  = options.new_option(try_skip);
@@ -49,10 +49,26 @@ enc_cb* Algo_CB_SkipOrInter_BruteForce::analyze(encoder_context* ectx,
 
     enc_cb* cb = opt.get_cb();
 
+    // calc rate for skip flag (=true)
+
+    CABAC_encoder_estim* cabac = opt.get_cabac();
+    encode_cu_skip_flag(ectx, cabac, cb, true);
+    float rate_pred_mode = cabac->getRDBits();
+    cabac->reset();
+
+    // set skip flag
+
     cb->PredMode = MODE_SKIP;
     ectx->img->set_pred_mode(cb->x,cb->y, cb->log2Size, cb->PredMode);
 
-    opt.set_cb( mSkipAlgo->analyze(ectx, opt.get_context(), cb) );
+    // encode CB
+
+    cb = mSkipAlgo->analyze(ectx, opt.get_context(), cb);
+
+    // add rate for PredMode
+
+    cb->rate += rate_pred_mode;
+    opt.set_cb(cb);
     opt.end();
   }
 

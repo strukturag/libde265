@@ -1565,10 +1565,10 @@ void encode_transform_tree(encoder_context* ectx,
 }
 
 
-static void encode_cu_skip_flag(encoder_context* ectx,
-                                CABAC_encoder* cabac,
-                                const enc_cb* cb,
-                                bool skip)
+void encode_cu_skip_flag(encoder_context* ectx,
+                         CABAC_encoder* cabac,
+                         const enc_cb* cb,
+                         bool skip)
 {
   logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",skip);
 
