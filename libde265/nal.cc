@@ -134,7 +134,6 @@ static const char* NAL_unit_name[] = {
 
 const char* get_NAL_name(uint8_t unit_type)
 {
-  assert(unit_type <= 47);
+  if (unit_type >= 48) { return "INVALID NAL >= 48"; }
   return NAL_unit_name[unit_type];
 }
-
