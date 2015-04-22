@@ -383,7 +383,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         }
 
         num_long_term_pics= get_uvlc(br);
-        if (num_long_term_pics) {
+        if (num_long_term_pics == UVLC_ERROR) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 
