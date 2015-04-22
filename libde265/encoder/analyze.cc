@@ -284,7 +284,11 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
   // build algorithm tree
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
-  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_PredMode_BruteForce);
+  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_Skip_BruteForce);
+
+  mAlgo_CB_Skip_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);
+  mAlgo_CB_Skip_BruteForce.setNonSkipAlgo(&mAlgo_CB_IntraInter_BruteForce);
+  //&mAlgo_CB_InterPartMode_Fixed);
 
   Algo_CB_IntraPartMode* algo_CB_IntraPartMode = NULL;
   switch (params.mAlgo_CB_IntraPartMode()) {
@@ -296,10 +300,9 @@ void EncodingAlgorithm_Custom::setParams(encoder_params& params)
     break;
   }
 
-  mAlgo_CB_PredMode_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
-  mAlgo_CB_PredMode_BruteForce.setInterChildAlgo(&mAlgo_CB_SkipOrInter_BruteForce);
-  mAlgo_CB_SkipOrInter_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);
-  mAlgo_CB_SkipOrInter_BruteForce.setInterAlgo(&mAlgo_CB_InterPartMode_Fixed);
+  mAlgo_CB_IntraInter_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
+  mAlgo_CB_IntraInter_BruteForce.setInterChildAlgo(&mAlgo_CB_InterPartMode_Fixed);
+
   mAlgo_CB_MergeIndex_Fixed.setChildAlgo(&mAlgo_TB_Split_BruteForce);
 
   Algo_PB_MV* pbAlgo = NULL;

@@ -117,8 +117,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     cb->qp = ectx->active_qp;
 
     // analyze subtree
-    assert(mPredModeAlgo);
-    cb = mPredModeAlgo->analyze(ectx, opt.get_context(), cb);
+    assert(mChildAlgo);
+    cb = mChildAlgo->analyze(ectx, opt.get_context(), cb);
 
     // add rate for split flag
     if (split_type == OptionalSplit) {
