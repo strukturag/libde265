@@ -193,6 +193,9 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   profile_tier_level_.read(br, sps_max_sub_layers);
 
   READ_VLC(seq_parameter_set_id, uvlc);
+  if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
 
   // --- decode chroma type ---
@@ -412,7 +415,8 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 #endif
 
 
-  compute_derived_values();
+  de265_error err = compute_derived_values();
+  if (err != DE265_OK) { return err; }
 
   sps_read = true;
 
@@ -420,7 +424,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 }
 
 
-void seq_parameter_set::compute_derived_values()
+de265_error seq_parameter_set::compute_derived_values()
 {
   // --- compute derived values ---
 
@@ -447,9 +451,10 @@ void seq_parameter_set::compute_derived_values()
   Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
   MinCbSizeY = 1 << Log2MinCbSizeY;
   CtbSizeY = 1 << Log2CtbSizeY;
-  PicWidthInMinCbsY = pic_width_in_luma_samples / MinCbSizeY;
+
+  PicWidthInMinCbsY = ceil_div(pic_width_in_luma_samples, MinCbSizeY);
   PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
-  PicHeightInMinCbsY = pic_height_in_luma_samples / MinCbSizeY;
+  PicHeightInMinCbsY = ceil_div(pic_height_in_luma_samples, MinCbSizeY);
   PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
   PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
@@ -479,6 +484,27 @@ void seq_parameter_set::compute_derived_values()
   PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
   PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
+
+
+  // --- check SPS sanity ---
+
+  if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||
+      pic_height_in_luma_samples % MinCbSizeY != 0) {
+    // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (Log2MinTrafoSize > Log2MinCbSizeY) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (Log2MaxTrafoSize > libde265_min(Log2CtbSizeY,5)) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  sps_read = true;
+
+  return DE265_OK;
 }
 
 
@@ -763,7 +789,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
-        if (scaling_list_pred_matrix_id_delta < 0 ||
+        if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
             scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
@@ -1067,24 +1093,19 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
     assert(false);
     /*
       vui_parameters()
-
         sps_extension_flag
         u(1)
         if( sps_extension_flag )
-
           while( more_rbsp_data() )
-
             sps_extension_data_flag
               u(1)
               rbsp_trailing_bits()
     */
   }
-
   sps_extension_flag = get_bits(br,1);
   if (sps_extension_flag) {
     assert(false);
   }
-
   check_rbsp_trailing_bits(br);
 #endif
 
@@ -1095,7 +1116,6 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   QpBdOffset_Y = 6*(bit_depth_luma-8);
   BitDepth_C   = bit_depth_chroma;
   QpBdOffset_C = 6*(bit_depth_chroma-8);
-
   Log2MinCbSizeY = log2_min_luma_coding_block_size;
   Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
   MinCbSizeY = 1 << Log2MinCbSizeY;
@@ -1107,7 +1127,6 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
   PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
-
   if (chroma_format_idc==0 || separate_colour_plane_flag) {
     CtbWidthC  = 0;
     CtbHeightC = 0;
@@ -1116,23 +1135,18 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
     CtbWidthC  = CtbSizeY / SubWidthC;
     CtbHeightC = CtbSizeY / SubHeightC;
   }
-
   Log2MinTrafoSize = log2_min_transform_block_size;
   Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
-
   Log2MinPUSize = Log2MinCbSizeY-1;
   PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);
   PicHeightInMinPUs = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinPUSize);
-
   Log2MinIpcmCbSizeY = log2_min_pcm_luma_coding_block_size;
   Log2MaxIpcmCbSizeY = (log2_min_pcm_luma_coding_block_size +
                         log2_diff_max_min_pcm_luma_coding_block_size);
-
   // the following are not in the standard
   PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
   PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
-
   sps_read = true;
 #endif
 

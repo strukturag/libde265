@@ -160,7 +160,7 @@ public:
 
   // --- derived values ---
 
-  void compute_derived_values();
+  de265_error compute_derived_values();
 
   int BitDepth_Y;
   int QpBdOffset_Y;

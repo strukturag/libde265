@@ -781,8 +781,13 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
+  if (sliceunit->shdr->slice_segment_address >= imgunit->img->pps.CtbAddrRStoTS.size()) {
+    return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+  }
 
-  thread_context tctx;
+
+  struct thread_context tctx;
+
   tctx.shdr = sliceunit->shdr;
   tctx.img  = imgunit->img;
   tctx.decctx = this;
@@ -1117,7 +1122,7 @@ de265_error decoder_context::decode(int* more)
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
   if (ctx->nal_parser.get_NAL_queue_length() == 0 &&
-      ctx->nal_parser.is_end_of_stream() &&
+      (ctx->nal_parser.is_end_of_stream() || ctx->nal_parser.is_end_of_frame()) &&
       ctx->image_units.empty()) {
 
     // flush all pending pictures into output queue
@@ -1156,7 +1161,7 @@ de265_error decoder_context::decode(int* more)
 
   de265_error err = DE265_OK;
 
-  if (ctx->nal_parser.number_of_complete_NAL_units_pending()) {
+  if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
     NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = ctx->decode_NAL(nal);
@@ -1172,7 +1177,8 @@ de265_error decoder_context::decode(int* more)
     err = decode_some();
   }
 
-  if (more) {
+  if (more && ctx->nal_parser.get_NAL_queue_length() &&
+      ! ctx->nal_parser.is_end_of_stream()) {
     // decoding error is assumed to be unrecoverable
     *more = (err==DE265_OK);
   }

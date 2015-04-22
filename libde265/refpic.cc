@@ -95,6 +95,14 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       delta_idx = vlc = get_uvlc(br);
+      if (delta_idx==UVLC_ERROR) {
+        return false;
+      }
+
+      if (delta_idx>=idxRps) {
+        return false;
+      }
+
       delta_idx++;
     } else {
       delta_idx = 1;
@@ -105,6 +113,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     int delta_rps_sign = get_bits(br,1);
     int abs_delta_rps  = vlc = get_uvlc(br);
+    if (vlc==UVLC_ERROR) { return false; }
     abs_delta_rps++;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
 
@@ -145,8 +154,13 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // positive list
     for (int j=nPositiveRIdx-1;j>=0;j--) {
+      assert(RIdx >= 0 && RIdx < sets.size());
+      assert(j>=0 && j < MAX_NUM_REF_PICS);
+
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
@@ -155,6 +169,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // frame 0
     if (DeltaRPS<0 && use_delta_flag[nDeltaPocsRIdx]) {
+      if (i>= MAX_NUM_REF_PICS) { return false; }
+
       out_set->DeltaPocS0[i] = DeltaRPS;
       out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
@@ -164,6 +180,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=0;j<nNegativeRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc<0 && use_delta_flag[j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[j];
         i++;
@@ -182,6 +200,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=nNegativeRIdx-1;j>=0;j--) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[j];
         i++;
@@ -190,6 +210,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // frame 0
     if (DeltaRPS>0 && use_delta_flag[nDeltaPocsRIdx]) {
+      if (i>= MAX_NUM_REF_PICS) { return false; }
+
       out_set->DeltaPocS1[i] = DeltaRPS;
       out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
@@ -199,6 +221,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=0;j<nPositiveRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[nNegativeRIdx+j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
@@ -217,6 +241,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
+
       out_set->NumNegativePics = 0;
       out_set->NumPositivePics = 0;
       out_set->NumDeltaPocs = 0;
@@ -226,6 +251,11 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       return false;
     }
 
+    if (num_negative_pics > MAX_NUM_REF_PICS ||
+        num_positive_pics > MAX_NUM_REF_PICS) {
+      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      return false;
+    }
 
     out_set->NumNegativePics = num_negative_pics;
     out_set->NumPositivePics = num_positive_pics;
@@ -236,7 +266,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     int lastPocS=0;
     for (int i=0;i<num_negative_pics;i++) {
-      int  delta_poc_s0 = get_uvlc(br)+1;
+      int  delta_poc_s0 = get_uvlc(br);
+      if (delta_poc_s0==UVLC_ERROR) { return false; }
+      delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
       out_set->DeltaPocS0[i]      = lastPocS - delta_poc_s0;
@@ -248,7 +280,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     lastPocS=0;
     for (int i=0;i<num_positive_pics;i++) {
-      int  delta_poc_s1 = get_uvlc(br)+1;
+      int  delta_poc_s1 = get_uvlc(br);
+      if (delta_poc_s1==UVLC_ERROR) { return false; }
+      delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
       out_set->DeltaPocS1[i]      = lastPocS + delta_poc_s1;

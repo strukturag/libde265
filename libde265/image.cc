@@ -63,6 +63,7 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 
 #define ALLOC_ALIGNED_16(size)              ALLOC_ALIGNED(16, size)
 
+static const int alignment = 16;
 
 LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx,
                                            void* inputdata, int inputstride, void *userdata)
@@ -262,7 +263,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     break;
 
   default:
-    assert(false); // TODO: not implemented yet
+    return DE265_ERROR_NOT_IMPLEMENTED_YET;
     break;
   }
 
@@ -396,29 +397,6 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   return DE265_OK;
 }
-
-
-#if 0
-de265_error de265_image::alloc_encoder_data(const seq_parameter_set* sps)
-{
-  bool mem_alloc_success = true;
-
-  int tbWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY - sps->Log2MinTrafoSize);
-  int tbHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY - sps->Log2MinTrafoSize);
-
-  mem_alloc_success &= tb_info.alloc(tbWidth,tbHeight, sps->Log2MinTrafoSize);
-
-
-  // check for memory shortage
-
-  if (!mem_alloc_success)
-    {
-      return DE265_ERROR_OUT_OF_MEMORY;
-    }
-
-  return DE265_OK;
-}
-#endif
 
 
 de265_image::~de265_image()
@@ -663,7 +641,6 @@ void de265_image::clear_metadata()
   ctb_info.clear();
   deblk_info.clear();
 
-
   // --- reset CTB progresses ---
 
   for (int i=0;i<ctb_info.data_size;i++) {
@@ -747,23 +724,4 @@ bool de265_image::available_pred_blk(int xC,int yC, int nCbS, int xP, int yP,
   }
 
   return availableN;
-}
-
-
-void de265_image::printBlk(int x0,int y0, int cIdx, int log2BlkSize)
-{
-  const uint8_t* p = get_image_plane_at_pos(cIdx,x0,y0);
-  int stride = get_image_stride(cIdx);
-  int blksize = 1<<log2BlkSize;
-
-  for (int y=0;y<blksize;y++) {
-    //logtrace(LogTransform,"  ");
-    printf("  ");
-    for (int x=0;x<blksize;x++) {
-      //logtrace(LogTransform,"*%3d ", p[x+y*stride]);
-      printf("%02x ", p[x+y*stride]);
-    }
-    //logtrace(LogTransform,"*\n");
-    printf("\n");
-  }
 }

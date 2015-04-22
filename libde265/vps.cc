@@ -132,6 +132,12 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
     layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
     layer[i].vps_max_num_reorder_pics  = get_uvlc(reader);
     layer[i].vps_max_latency_increase  = get_uvlc(reader);
+
+if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
+    layer[i].vps_max_num_reorder_pics  == UVLC_ERROR ||
+    layer[i].vps_max_latency_increase  == UVLC_ERROR) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
   }
 
   if (!vps_sub_layer_ordering_info_present_flag) {
