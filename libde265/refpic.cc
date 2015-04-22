@@ -156,6 +156,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
@@ -164,6 +166,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     // frame 0
     if (DeltaRPS<0 && use_delta_flag[nDeltaPocsRIdx]) {
+      if (i>= MAX_NUM_REF_PICS) { return false; }
+
       out_set->DeltaPocS0[i] = DeltaRPS;
       out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
@@ -173,6 +177,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     for (int j=0;j<nNegativeRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc<0 && use_delta_flag[j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[j];
         i++;
@@ -191,6 +197,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     for (int j=nNegativeRIdx-1;j>=0;j--) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[j];
         i++;
@@ -199,6 +207,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     // frame 0
     if (DeltaRPS>0 && use_delta_flag[nDeltaPocsRIdx]) {
+      if (i>= MAX_NUM_REF_PICS) { return false; }
+
       out_set->DeltaPocS1[i] = DeltaRPS;
       out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
@@ -208,6 +218,8 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
     for (int j=0;j<nPositiveRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[nNegativeRIdx+j]) {
+        if (i>= MAX_NUM_REF_PICS) { return false; }
+
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
