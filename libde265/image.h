@@ -110,6 +110,9 @@ template <class DataUnit> class MetaDataArray
     int unitX = x>>log2unitSize;
     int unitY = y>>log2unitSize;
 
+    assert(unitX >= 0 && unitX < width_in_units);
+    assert(unitY >= 0 && unitY < height_in_units);
+
     return data[ unitX + unitY*width_in_units ];
   }
 
@@ -117,12 +120,18 @@ template <class DataUnit> class MetaDataArray
     int unitX = x>>log2unitSize;
     int unitY = y>>log2unitSize;
 
+    assert(unitX >= 0 && unitX < width_in_units);
+    assert(unitY >= 0 && unitY < height_in_units);
+
     return data[ unitX + unitY*width_in_units ];
   }
 
   void set(int x,int y, const DataUnit& d) {
     int unitX = x>>log2unitSize;
     int unitY = y>>log2unitSize;
+
+    assert(unitX >= 0 && unitX < width_in_units);
+    assert(unitY >= 0 && unitY < height_in_units);
 
     data[ unitX + unitY*width_in_units ] = d;
   }
