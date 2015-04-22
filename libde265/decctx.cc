@@ -1173,8 +1173,7 @@ de265_error decoder_context::decode(int* more)
     err = decode_some();
   }
 
-  if (more && ctx->nal_parser.get_NAL_queue_length() &&
-      ! ctx->nal_parser.is_end_of_stream()) {
+  if (more) {
     // decoding error is assumed to be unrecoverable
     *more = (err==DE265_OK);
   }
