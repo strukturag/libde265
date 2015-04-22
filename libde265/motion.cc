@@ -1336,13 +1336,13 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 
 
 // 8.5.3.1.1
-void derive_luma_motion_merge_mode(base_context* ctx,
-                                   const slice_segment_header* shdr,
-                                   de265_image* img,
-                                   int xC,int yC, int xP,int yP,
-                                   int nCS, int nPbW,int nPbH, int partIdx,
-                                   int merge_idx,
-                                   MotionVectorSpec* out_vi)
+static void get_merge_candidate_list_without_step_9(base_context* ctx,
+                                                    const slice_segment_header* shdr,
+                                                    de265_image* img,
+                                                    int xC,int yC, int xP,int yP,
+                                                    int nCS, int nPbW,int nPbH, int partIdx,
+                                                    int max_merge_idx,
+                                                    MotionVectorSpec* mergeCandList)
 {
 
   //int xOrigP = xP;
@@ -1369,8 +1369,8 @@ void derive_luma_motion_merge_mode(base_context* ctx,
     partIdx=0;
   }
 
-  int maxCandidates = merge_idx+1;
-  MotionVectorSpec mergeCandList[5];
+  int maxCandidates = max_merge_idx+1;
+  //MotionVectorSpec mergeCandList[5];
   int numMergeCand=0;
 
   // --- spatial merge candidates
@@ -1426,22 +1426,64 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   derive_zero_motion_vector_candidates(shdr, mergeCandList, &numMergeCand, maxCandidates);
 
 
-  // 8.
-
-  //int merge_idx = tctx->merge_idx;
-  *out_vi = mergeCandList[merge_idx];
-
-
   logtrace(LogMotion,"mergeCandList:\n");
   for (int i=0;i<shdr->MaxNumMergeCand;i++)
     {
-      logtrace(LogMotion, " %d:%s\n", i, i==merge_idx ? " SELECTED":"");
+      //logtrace(LogMotion, " %d:%s\n", i, i==merge_idx ? " SELECTED":"");
       logmvcand(mergeCandList[i]);
     }
+}
 
-  // 9.
 
-  if (out_vi->predFlag[0] && out_vi->predFlag[1] && nOrigPbW+nOrigPbH==12) {
+
+void get_merge_candidate_list(base_context* ctx,
+                              const slice_segment_header* shdr,
+                              de265_image* img,
+                              int xC,int yC, int xP,int yP,
+                              int nCS, int nPbW,int nPbH, int partIdx,
+                              MotionVectorSpec* mergeCandList)
+{
+  int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
+
+  get_merge_candidate_list_without_step_9(ctx, shdr, img,
+                                          xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
+                                          max_merge_idx, mergeCandList);
+
+  // 9. for encoder: modify all merge candidates
+
+  for (int i=0;i<=max_merge_idx;i++) {
+    if (mergeCandList[i].predFlag[0] &&
+        mergeCandList[i].predFlag[1] &&
+        nPbW+nPbH==12)
+      {
+        mergeCandList[i].refIdx[1]   = -1;
+        mergeCandList[i].predFlag[1] = 0;
+      }
+  }
+}
+
+
+
+void derive_luma_motion_merge_mode(base_context* ctx,
+                                   const slice_segment_header* shdr,
+                                   de265_image* img,
+                                   int xC,int yC, int xP,int yP,
+                                   int nCS, int nPbW,int nPbH, int partIdx,
+                                   int merge_idx,
+                                   MotionVectorSpec* out_vi)
+{
+  MotionVectorSpec mergeCandList[5];
+
+  get_merge_candidate_list_without_step_9(ctx, shdr, img,
+                                          xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
+                                          merge_idx, mergeCandList);
+
+
+  *out_vi = mergeCandList[merge_idx];
+
+  // 8.5.3.1.1 / 9.
+
+  if (out_vi->predFlag[0] && out_vi->predFlag[1] && nPbW+nPbH==12) {
     out_vi->refIdx[1] = -1;
     out_vi->predFlag[1] = 0;
   }

@@ -37,11 +37,24 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   assert(cb->split_cu_flag==false);
   assert(cb->PredMode==MODE_SKIP); // TODO: || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
 
-  int PBidx = 0;
-  motion_spec&   spec = cb->inter.pb[PBidx].spec;
-  MotionVectorSpec& vec = cb->inter.pb[PBidx].motion;
 
-  spec.merge_flag = 1;
+  MotionVectorSpec mergeCandList[5];
+
+  int partIdx = 0;
+
+  int cbSize = 1 << cb->log2Size;
+
+  get_merge_candidate_list(ectx, ectx->shdr, ectx->img,
+                           cb->x, cb->y, // xC/yC
+                           cb->x, cb->y, // xP/yP
+                           cbSize, // nCS
+                           cbSize,cbSize, // nPbW/nPbH
+                           partIdx, // partIdx
+                           mergeCandList);
+
+  motion_spec&   spec = cb->inter.pb[partIdx].spec;
+
+  spec.merge_flag = 1; // we use merge mode
   spec.merge_idx  = 0;
 
 
@@ -61,11 +74,9 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   */
 
   // TODO: fake motion data
-  vec.predFlag[0]=1;
-  vec.predFlag[1]=0;
-  vec.refIdx[0]=0;
-  vec.mv[0].x=0;
-  vec.mv[0].y=0;
+
+  const MotionVectorSpec& vec = mergeCandList[spec.merge_idx];
+  cb->inter.pb[partIdx].motion = vec;
 
   ectx->img->set_mv_info(cb->x,cb->y, 1<<cb->log2Size,1<<cb->log2Size, vec);
 
@@ -84,7 +95,6 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     1<<cb->log2Size,
                                     1<<cb->log2Size, // int nPbW,int nPbH,
                                     &vec);
-
 
   // estimate rate for sending merge index
 

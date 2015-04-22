@@ -52,6 +52,14 @@ typedef struct {
 } motion_spec;
 
 
+void get_merge_candidate_list(base_context* ctx,
+                              const slice_segment_header* shdr,
+                              class de265_image* img,
+                              int xC,int yC, int xP,int yP,
+                              int nCS, int nPbW,int nPbH, int partIdx,
+                              MotionVectorSpec* mergeCandList);
+
+/*
 int derive_spatial_merging_candidates(const struct de265_image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
@@ -59,6 +67,7 @@ int derive_spatial_merging_candidates(const struct de265_image* img,
                                       int partIdx,
                                       MotionVectorSpec* out_cand,
                                       int maxCandidates);
+*/
 
 void generate_inter_prediction_samples(base_context* ctx,
                                        const slice_segment_header* shdr,
