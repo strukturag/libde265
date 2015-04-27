@@ -986,6 +986,7 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
+    ctx->add_warning(DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA, false);
     return;
   }
   else {
