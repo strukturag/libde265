@@ -1026,6 +1026,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
   if (xColPb >= colImg->get_width() ||
       yColPb >= colImg->get_height()) {
+    ctx->add_warning(DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA, false);
     *out_availableFlagLXCol = 0;
     return;
   }
@@ -1039,7 +1040,6 @@ void derive_collocated_motion_vectors(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    ctx->add_warning(DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA, false);
     return;
   }
 
