@@ -132,6 +132,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "cannot apply SAO because we ran out of memory";
   case DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI:
     return "SPS header missing, cannot decode SEI";
+  case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
+    return "collocated motion-vector is outside image area";
 
   default: return "unknown error";
   }
