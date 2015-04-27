@@ -69,6 +69,9 @@ public:
   virtual void write_startcode() = 0;
   virtual void skip_bits(int nBits) = 0;
 
+  virtual void add_trailing_bits();
+  virtual int  number_free_bits_in_byte() const = 0;
+
   // output all remaining bits and fill with zeros to next byte boundary
   virtual void flush_VLC() { }
 
@@ -112,6 +115,8 @@ public:
   virtual void write_bits(uint32_t bits,int n);
   virtual void write_startcode();
   virtual void skip_bits(int nBits);
+
+  virtual int  number_free_bits_in_byte() const;
 
   // output all remaining bits and fill with zeros to next byte boundary
   virtual void flush_VLC();
@@ -175,6 +180,7 @@ public:
   virtual void write_bit(int bit) { mFracBits+=1<<15; }
   virtual void write_startcode() { mFracBits += (1<<15)*8*3; }
   virtual void skip_bits(int nBits) { mFracBits += nBits<<15; }
+  virtual int  number_free_bits_in_byte() const { return 0; } // TODO, good enough for now
 
   // --- CABAC ---
 

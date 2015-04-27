@@ -432,6 +432,15 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 
 // ---------------------------------------------------------------------------
 
+void CABAC_encoder::add_trailing_bits()
+{
+  write_bit(1);
+  int nZeros = number_free_bits_in_byte();
+  write_bits(0, nZeros);
+}
+
+
+
 CABAC_encoder_bitstream::CABAC_encoder_bitstream()
 {
   data_mem = NULL;
@@ -518,6 +527,13 @@ void CABAC_encoder_bitstream::skip_bits(int nBits)
   if (nBits>0) {
     write_bits(0,nBits);
   }
+}
+
+
+int  CABAC_encoder_bitstream::number_free_bits_in_byte() const
+{
+  if ((vlc_buffer_len % 8)==0) return 0;
+  return 8- (vlc_buffer_len % 8);
 }
 
 

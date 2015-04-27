@@ -163,6 +163,7 @@ de265_error encoder_context::encode_headers()
   nal.set(NAL_UNIT_VPS_NUT);
   nal.write(cabac_encoder);
   vps.write(this, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_VPS);
   pck->nal_unit_type = EN265_NUT_VPS;
@@ -171,6 +172,7 @@ de265_error encoder_context::encode_headers()
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(cabac_encoder);
   sps.write(this, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_SPS);
   pck->nal_unit_type = EN265_NUT_SPS;
@@ -179,6 +181,7 @@ de265_error encoder_context::encode_headers()
   nal.set(NAL_UNIT_PPS_NUT);
   nal.write(cabac_encoder);
   pps.write(this, cabac_encoder, &sps);
+  cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = create_packet(EN265_PACKET_PPS);
   pck->nal_unit_type = EN265_NUT_PPS;
