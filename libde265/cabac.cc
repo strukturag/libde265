@@ -515,6 +515,8 @@ void CABAC_encoder_bitstream::flush_VLC()
     append_byte(vlc_buffer << (8-vlc_buffer_len));
     vlc_buffer_len = 0;
   }
+
+  vlc_buffer = 0;
 }
 
 void CABAC_encoder_bitstream::skip_bits(int nBits)
@@ -633,22 +635,9 @@ void CABAC_encoder_bitstream::flush_CABAC()
         }
     }
 
-  //fprintf(stderr,"low: %08x nbits left:%d\n",low,bits_left);
+  // printf("low: %08x  nbits left:%d  filled:%d\n",low,bits_left,32-bits_left);
 
-  int n = 32-bits_left;
-  int val = (low);
-
-  // make sure we output full bytes
-
-  while (n%8) {
-    val<<=1;
-    n++;
-  }
-
-  while (n>0) {
-    append_byte( (val>>(n-8)) & 0xFF );
-    n-=8;
-  }
+  write_bits(low >> 8, 24-bits_left);
 }
 
 

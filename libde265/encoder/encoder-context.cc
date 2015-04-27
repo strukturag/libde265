@@ -254,7 +254,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   imgdata->nal.write(cabac_encoder);
   imgdata->shdr.write(this, cabac_encoder, &sps, &pps, imgdata->nal.nal_unit_type);
-  cabac_encoder.skip_bits(1);
+  cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
 
 
@@ -264,6 +264,9 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   double psnr = encode_image(this,imgdata->input, algo);
   loginfo(LogEncoder,"  PSNR-Y: %f\n", psnr);
   cabac_encoder.flush_CABAC();
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+
 
   // set reconstruction image
 
