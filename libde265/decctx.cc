@@ -659,7 +659,8 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     image_units.back()->slice_units.push_back(sliceunit);
   }
 
-  err = decode_some();
+  bool did_work;
+  err = decode_some(&did_work);
 
   return err;
 }
@@ -674,15 +675,11 @@ template <class T> void pop_front(std::vector<T>& vec)
 }
 
 
-de265_error decoder_context::decode_some()
+de265_error decoder_context::decode_some(bool* did_work)
 {
   de265_error err = DE265_OK;
 
-  if (0) {
-    static int cnt=0;
-    cnt++;
-    if (cnt<5) return DE265_OK;
-  }
+  *did_work = false;
 
   if (image_units.empty()) { return DE265_OK; }  // nothing to do
 
@@ -699,6 +696,8 @@ de265_error decoder_context::decode_some()
     if (sliceunit->flush_reorder_buffer) {
       dpb.flush_reorder_buffer();
     }
+
+    *did_work = true;
 
     //err = decode_slice_unit_sequential(imgunit, sliceunit);
     err = decode_slice_unit_parallel(imgunit, sliceunit);
@@ -720,6 +719,8 @@ de265_error decoder_context::decode_some()
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
 
     image_unit* imgunit = image_units[0];
+
+    *did_work=true;
 
 
     // mark all CTBs as decoded even if they are not, because faulty input
@@ -1163,12 +1164,14 @@ de265_error decoder_context::decode(int* more)
   // decode one NAL from the queue
 
   de265_error err = DE265_OK;
+  bool did_work = false;
 
   if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
     NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = ctx->decode_NAL(nal);
     // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
+    did_work=true;
   }
   else if (ctx->nal_parser.is_end_of_frame() == true &&
       ctx->image_units.empty()) {
@@ -1177,12 +1180,12 @@ de265_error decoder_context::decode(int* more)
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
   }
   else {
-    err = decode_some();
+    err = decode_some(&did_work);
   }
 
   if (more) {
     // decoding error is assumed to be unrecoverable
-    *more = (err==DE265_OK);
+    *more = (err==DE265_OK && did_work);
   }
 
   return err;
