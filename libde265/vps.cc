@@ -34,7 +34,7 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
 
   skip_bits(reader, 2);
   vps->vps_max_layers = vlc = get_bits(reader,6) +1;
-  if (vlc != 1) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // TODO: out of specification
+  if (vlc > 63) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // vps_max_layers_minus1 (range 0...63)
 
   vps->vps_max_sub_layers = vlc = get_bits(reader,3) +1;
   if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
