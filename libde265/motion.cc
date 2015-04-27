@@ -971,6 +971,15 @@ void derive_collocated_motion_vectors(decoder_context* ctx,
 
   assert(ctx->has_image(colPic));
   const de265_image* colImg = ctx->get_image(colPic);
+
+  // check for access outside image area
+
+  if (xColPb >= colImg->get_width() ||
+      yColPb >= colImg->get_height()) {
+    *out_availableFlagLXCol = 0;
+    return;
+  }
+
   enum PredMode predMode = colImg->get_pred_mode(xColPb,yColPb);
 
   if (predMode == MODE_INTRA) {
