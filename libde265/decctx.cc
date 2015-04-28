@@ -1662,15 +1662,23 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {
-      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+      }
 
-      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
+      }
 
       for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
         isLongTerm[1][rIdx] = true;
+      }
+
+      // This check is to prevent an endless loop when no images are added above.
+      if (rIdx==0) {
+        ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        return false;
       }
     }
 
