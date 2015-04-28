@@ -133,7 +133,10 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
             // slice anyway) reduced computation time only by 1.3%.
             // TODO: however, this may still be a big part of SAO itself.
 
-            int sliceAddrRS = img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->SliceAddrRS;
+            slice_segment_header* sliceHeader = img->get_SliceHeader(xS<<chromashift,yS<<chromashift);
+            if (sliceHeader==NULL) { return; }
+
+            int sliceAddrRS = sliceHeader->SliceAddrRS;
             if (sliceAddrRS <  ctbSliceAddrRS &&
                 img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
               edgeIdx=0;
@@ -147,7 +150,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
             }
 
 
-            if (pps->loop_filter_across_tiles_enabled_flag==0 && 
+            if (pps->loop_filter_across_tiles_enabled_flag==0 &&
                 pps->TileIdRS[(xS>>ctbshift) + (yS>>ctbshift)*picWidthInCtbs] !=
                 pps->TileIdRS[(xC>>ctbshift) + (yC>>ctbshift)*picWidthInCtbs]) {
               edgeIdx=0;
@@ -212,7 +215,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
                      offset,
                      in_img[xC+i+(yC+j)*in_stride],
                      in_img[xC+i+(yC+j)*in_stride]+offset);
-          
+
             out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
                                                     in_img[xC+i+(yC+j)*in_stride] + offset);
           }
@@ -301,6 +304,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
       for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
         {
           const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
+          if (shdr==NULL) { return; }
 
           if (cIdx==0 && shdr->slice_sao_luma_flag) {
             apply_sao(img, xCtb,yCtb, shdr, 0, 1<<img->sps.Log2CtbSizeY,
@@ -354,7 +358,7 @@ void thread_task_sao::work()
   if (ctb_y>0) {
     img->wait_for_progress(this, rightCtb,ctb_y-1, inputProgress);
   }
-  
+
   if (ctb_y+1<img->sps.PicHeightInCtbsY) {
     img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
   }
