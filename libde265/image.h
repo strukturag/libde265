@@ -256,8 +256,6 @@ struct de265_image {
 
 
   void add_slice_segment_header(slice_segment_header* shdr) {
-    printf("push slice header %p\n",shdr);
-
     shdr->slice_index = slices.size();
     slices.push_back(shdr);
   }
