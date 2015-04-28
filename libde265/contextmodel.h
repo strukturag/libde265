@@ -103,6 +103,8 @@ class context_model_table
   context_model_table transfer();
   context_model_table copy() const { context_model_table t=*this; t.decouple(); return t; }
 
+  bool empty() const { return refcnt != NULL; }
+
   context_model& operator[](int i) { return model[i]; }
 
   context_model_table& operator=(const context_model_table&);

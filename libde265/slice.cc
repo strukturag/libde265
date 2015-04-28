@@ -468,7 +468,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         if (nBits>0) short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         short_term_ref_pic_set_idx = 0;
 
-        if (short_term_ref_pic_set_idx >= sps->num_short_term_ref_pic_sets) {
+        if (short_term_ref_pic_set_idx >= sps->num_short_term_ref_pic_sets()) {
           ctx->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
@@ -3770,7 +3770,7 @@ void read_coding_unit(thread_context* tctx,
 
   //QQprintf("- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
-  img->set_log2CbSize(x0,y0, log2CbSize);
+  img->set_log2CbSize(x0,y0, log2CbSize, true);
 
   /* This is only required on corrupted input streams.
      It may happen that there are several slices in the image that overlap.
@@ -4199,6 +4199,10 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
     // read and decode CTB
+
+    if (tctx->ctx_model.empty() == false) {
+      return Decode_Error;
+    }
 
     read_coding_tree_unit(tctx);
 
