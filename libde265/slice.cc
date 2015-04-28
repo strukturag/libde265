@@ -404,6 +404,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       slice_sao_chroma_flag = 0;
     }
 
+    num_ref_idx_l0_active = 0;
+    num_ref_idx_l1_active = 0;
+
     if (slice_type == SLICE_TYPE_P  ||
         slice_type == SLICE_TYPE_B) {
       num_ref_idx_active_override_flag = get_bits(br,1);
