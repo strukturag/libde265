@@ -135,6 +135,8 @@ int logcnt=1;
 
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 {
+  assert(length >= 0);
+
   decoder->bitstream_start = bitstream;
   decoder->bitstream_curr  = bitstream;
   decoder->bitstream_end   = bitstream+length;

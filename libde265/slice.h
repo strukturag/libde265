@@ -126,7 +126,7 @@ enum InterPredIdc
 class slice_segment_header {
 public:
   slice_segment_header() {
-    memset(LongTermRefPic[0],0, 2*MAX_NUM_REF_PICS);
+    reset();
   }
 
   de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
@@ -138,6 +138,7 @@ public:
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
   void set_defaults();
+  void reset();
 
 
   int  slice_index; // index through all slices in a picture  (internal only)

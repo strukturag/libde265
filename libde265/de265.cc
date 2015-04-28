@@ -79,6 +79,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "SEI data cannot be processed";
   case DE265_ERROR_PARAMETER_PARSING:
     return "command-line parameter error";
+  case DE265_ERROR_NO_INITIAL_SLICE_HEADER:
+    return "first slice missing, cannot decode dependent slice";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
@@ -663,4 +665,3 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
 }
-

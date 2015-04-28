@@ -617,7 +617,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
-      img->integrity = INTEGRITY_NOT_DECODED;
+      if (img!=NULL) img->integrity = INTEGRITY_NOT_DECODED;
       nal_parser.free_NAL_unit(nal);
       delete shdr;
       return err;
@@ -1632,11 +1632,14 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     }
   }
 
-  if (hdr->num_ref_idx_l0_active > 15) {
+  /*
+  if (hdr->num_ref_idx_l0_active > 16) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
     return false;
   }
+  */
 
+  assert(hdr->num_ref_idx_l0_active <= 16);
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     int idx = hdr->ref_pic_list_modification_flag_l0 ? hdr->list_entry_l0[rIdx] : rIdx;
 
@@ -1660,19 +1663,32 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {
-      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+      }
 
-      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++)
+      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
+      }
 
       for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
         isLongTerm[1][rIdx] = true;
       }
+
+      // This check is to prevent an endless loop when no images are added above.
+      if (rIdx==0) {
+        ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        return false;
+      }
     }
 
-    assert(hdr->num_ref_idx_l1_active <= 15);
+    if (hdr->num_ref_idx_l0_active > 16) {
+    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    return false;
+  }
+
+    assert(hdr->num_ref_idx_l1_active <= 16);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
 
@@ -1916,6 +1932,13 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     // next image is not the first anymore
 
     first_decoded_picture = false;
+  }
+  else {
+    // claims to be not the first slice, but there is no active image available
+
+    if (ctx->img == NULL) {
+      return false;
+    }
   }
 
   if (hdr->slice_type == SLICE_TYPE_B ||

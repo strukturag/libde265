@@ -160,6 +160,11 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
         int x0ctb = x0 >> ctbshift;
         int y0ctb = y0 >> ctbshift;
 
+        // check for corrupted streams
+        if (img->is_SliceHeader_available(x0,y0)==false) {
+          return false;
+        }
+
         // check whether we should filter this slice
 
         slice_segment_header* shdr = img->get_SliceHeader(x0,y0);
@@ -175,6 +180,7 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
 
         if (x0 && ((x0 & ctb_mask) == 0)) { // left edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
+              img->is_SliceHeader_available(x0-1,y0) && // for corrupted streams
               shdr->SliceAddrRS != img->get_SliceHeader(x0-1,y0)->SliceAddrRS)
             {
               filterLeftCbEdge = 0;
@@ -188,6 +194,7 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
 
         if (y0 && ((y0 & ctb_mask) == 0)) { // top edge at CTB boundary
           if (shdr->slice_loop_filter_across_slices_enabled_flag == 0 &&
+              img->is_SliceHeader_available(x0,y0-1) && // for corrupted streams
               shdr->SliceAddrRS != img->get_SliceHeader(x0,y0-1)->SliceAddrRS)
             {
               filterTopCbEdge = 0;

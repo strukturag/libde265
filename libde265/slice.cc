@@ -233,10 +233,116 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 }
 
 
+void slice_segment_header::reset()
+{
+  slice_index = 0;
+
+  first_slice_segment_in_pic_flag = 0;
+  no_output_of_prior_pics_flag = 0;
+  slice_pic_parameter_set_id = 0;
+  dependent_slice_segment_flag = 0;
+  slice_segment_address = 0;
+
+  slice_type = 0;
+  pic_output_flag = 0;
+  colour_plane_id = 0;
+  slice_pic_order_cnt_lsb = 0;
+  short_term_ref_pic_set_sps_flag = 0;
+  slice_ref_pic_set.reset();
+
+  short_term_ref_pic_set_idx = 0;
+  num_long_term_sps = 0;
+  num_long_term_pics= 0;
+
+  for (int i=0;i<MAX_NUM_REF_PICS;i++) {
+    lt_idx_sps[i] = 0;
+    poc_lsb_lt[i] = 0;
+    used_by_curr_pic_lt_flag[i] = 0;
+    delta_poc_msb_present_flag[i] = 0;
+    delta_poc_msb_cycle_lt[i] = 0;
+  }
+
+  slice_temporal_mvp_enabled_flag = 0;
+  slice_sao_luma_flag = 0;
+  slice_sao_chroma_flag = 0;
+
+  num_ref_idx_active_override_flag = 0;
+  num_ref_idx_l0_active = 0;
+  num_ref_idx_l1_active = 0;
+
+  ref_pic_list_modification_flag_l0 = 0;
+  ref_pic_list_modification_flag_l1 = 0;
+  for (int i=0;i<16;i++) {
+    list_entry_l0[i] = 0;
+    list_entry_l1[i] = 0;
+  }
+
+  mvd_l1_zero_flag = 0;
+  cabac_init_flag  = 0;
+  collocated_from_l0_flag = 0;
+  collocated_ref_idx = 0;
+
+  luma_log2_weight_denom = 0;
+  ChromaLog2WeightDenom  = 0;
+
+  for (int i=0;i<2;i++)
+    for (int j=0;j<16;j++) {
+      luma_weight_flag[i][j] = 0;
+      chroma_weight_flag[i][j] = 0;
+      LumaWeight[i][j] = 0;
+      luma_offset[i][j] = 0;
+      ChromaWeight[i][j][0] = ChromaWeight[i][j][1] = 0;
+      ChromaOffset[i][j][0] = ChromaOffset[i][j][1] = 0;
+    }
+
+  five_minus_max_num_merge_cand = 0;
+  slice_qp_delta = 0;
+
+  slice_cb_qp_offset = 0;
+  slice_cr_qp_offset = 0;
+
+  deblocking_filter_override_flag = 0;
+  slice_deblocking_filter_disabled_flag = 0;
+  slice_beta_offset = 0;
+  slice_tc_offset = 0;
+
+  slice_loop_filter_across_slices_enabled_flag = 0;
+
+  num_entry_point_offsets = 0;
+  offset_len = 0;
+  entry_point_offset.clear();
+
+  slice_segment_header_extension_length = 0;
+
+  SliceAddrRS = 0;
+  SliceQPY = 0;
+
+  initType = 0;
+
+  MaxNumMergeCand = 0;
+  CurrRpsIdx = 0;
+  CurrRps.reset();
+  NumPocTotalCurr = 0;
+
+  for (int i=0;i<2;i++)
+    for (int j=0;j<MAX_NUM_REF_PICS;j++) {
+      RefPicList[i][j] = 0;
+      RefPicList_POC[i][j] = 0;
+      RefPicList_PicState[i][j] = 0;
+      LongTermRefPic[i][j] = 0;
+    }
+
+  //context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
+
+  RemoveReferencesList.clear();
+}
+
+
 de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
                                        bool* continueDecoding)
 {
   *continueDecoding = false;
+  reset();
 
   // set defaults
 
@@ -285,6 +391,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         *continueDecoding = false;
         ctx->add_warning(DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
         return DE265_OK;
+      }
+
+      if (ctx->previous_slice_header == NULL) {
+        return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
       }
 
       *this = *ctx->previous_slice_header;
@@ -358,8 +468,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         if (nBits>0) short_term_ref_pic_set_idx = get_bits(br,nBits);
         else         short_term_ref_pic_set_idx = 0;
 
-        if (short_term_ref_pic_set_idx > sps->ref_pic_sets.size() ||
-            short_term_ref_pic_set_idx >= sps->ref_pic_sets.size()) {
+        if (short_term_ref_pic_set_idx >= sps->num_short_term_ref_pic_sets) {
           ctx->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
@@ -481,6 +590,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       slice_sao_chroma_flag = 0;
     }
 
+    num_ref_idx_l0_active = 0;
+    num_ref_idx_l1_active = 0;
+
     if (slice_type == SLICE_TYPE_P  ||
         slice_type == SLICE_TYPE_B) {
       num_ref_idx_active_override_flag = get_bits(br,1);
@@ -505,6 +617,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
+
+      if (num_ref_idx_l0_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+      if (num_ref_idx_l1_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
 
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
 
@@ -677,6 +792,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
       offset_len++;
+
+      if (offset_len > 32) {
+	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
 
       for (int i=0; i<num_entry_point_offsets; i++) {
         {
@@ -3200,6 +3319,20 @@ int read_transform_unit(thread_context* tctx,
 }
 
 
+static void dump_cbsize(de265_image* img)
+{
+  int w = img->get_width(0);
+  int h = img->get_height(0);
+
+  for (int y=0;y<h;y+=8) {
+    for (int x=0;x<w;x+=8) {
+      printf("%d",img->get_log2CbSize(x,y));
+    }
+    printf("\n");
+  }
+}
+
+
 void read_transform_tree(thread_context* tctx,
                          int x0, int y0,        // position of TU in frame
                          int xBase, int yBase,  // position of parent TU in frame
@@ -3250,12 +3383,10 @@ void read_transform_tree(thread_context* tctx,
                               interSplitFlag==1) ? 1:0;
     }
 
-
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
     img->set_split_transform_flag(x0,y0,trafoDepth);
   }
-
 
   int cbf_cb=-1;
   int cbf_cr=-1;
@@ -3637,7 +3768,15 @@ void read_coding_unit(thread_context* tctx,
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
 
+  //QQprintf("- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
+
   img->set_log2CbSize(x0,y0, log2CbSize);
+
+  /* This is only required on corrupted input streams.
+     It may happen that there are several slices in the image that overlap.
+     In this case, flags would accumulate from both slices.
+  */
+  img->clear_split_transform_flags(x0,y0, log2CbSize);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 
@@ -4070,6 +4209,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
         ctbx == 1 &&
         ctby < sps->PicHeightInCtbsY-1)
       {
+        // no storage for context table has been allocated
+        if (tctx->imgunit->ctx_models.size() <= ctby) {
+          return Decode_Error;
+        }
+
         tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
         tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
       }

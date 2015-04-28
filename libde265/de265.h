@@ -92,7 +92,7 @@ typedef enum {
   DE265_ERROR_WAITING_FOR_INPUT_DATA=13,
   DE265_ERROR_CANNOT_PROCESS_SEI=14,
   DE265_ERROR_PARAMETER_PARSING=15,
-
+  DE265_ERROR_NO_INITIAL_SLICE_HEADER=16,
 
   // --- errors that should become obsolete in later libde265 versions ---
 

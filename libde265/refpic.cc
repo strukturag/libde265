@@ -31,6 +31,23 @@
 #endif
 
 
+void ref_pic_set::reset()
+{
+  NumNegativePics = 0;
+  NumPositivePics = 0;
+  NumDeltaPocs = 0;
+  NumPocTotalCurr_shortterm_only = 0;
+
+  for (int i=0;i<MAX_NUM_REF_PICS;i++) {
+    DeltaPocS0[i] = 0;
+    DeltaPocS1[i] = 0;
+
+    UsedByCurrPicS0[i] = 0;
+    UsedByCurrPicS1[i] = 0;
+  }
+}
+
+
 void ref_pic_set::compute_derived_values()
 {
   NumPocTotalCurr_shortterm_only = 0;

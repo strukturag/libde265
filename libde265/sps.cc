@@ -222,11 +222,20 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  if (chroma_format_idc != 1) {
+    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+  }
+
 
   // --- picture size ---
 
   READ_VLC(pic_width_in_luma_samples,  uvlc);
   READ_VLC(pic_height_in_luma_samples, uvlc);
+
+  if (pic_width_in_luma_samples  == 0 ||
+      pic_height_in_luma_samples == 0) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
 
   conformance_window_flag = get_bits(br,1);
 
@@ -303,6 +312,12 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   READ_VLC(log2_diff_max_min_transform_block_size, uvlc);
   READ_VLC(max_transform_hierarchy_depth_inter, uvlc);
   READ_VLC(max_transform_hierarchy_depth_intra, uvlc);
+
+  if (log2_min_luma_coding_block_size > 6) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+  if (log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size > 6) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+  if (log2_min_transform_block_size > 5) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+  if (log2_min_transform_block_size + log2_diff_max_min_transform_block_size > 5) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+
   scaling_list_enable_flag = get_bits(br,1);
 
   if (scaling_list_enable_flag) {
@@ -471,6 +486,9 @@ de265_error seq_parameter_set::compute_derived_values()
 
   Log2MinTrafoSize = log2_min_transform_block_size;
   Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
+
+  if (max_transform_hierarchy_depth_inter > Log2CtbSizeY - Log2MinTrafoSize) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
+  if (max_transform_hierarchy_depth_intra > Log2CtbSizeY - Log2MinTrafoSize) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
 
   Log2MinPUSize = Log2MinCbSizeY-1;
   PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);

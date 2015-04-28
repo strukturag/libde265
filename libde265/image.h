@@ -157,6 +157,16 @@ template <class DataUnit> class MetaDataArray
         cb_info[ cbx + cby*cb_info.width_in_units ].Field = value;  \
       }
 
+#define CLEAR_TB_BLK(x,y,log2BlkWidth)              \
+  int tuX = x >> tu_info.log2unitSize; \
+  int tuY = y >> tu_info.log2unitSize; \
+  int width = 1 << (log2BlkWidth - tu_info.log2unitSize);           \
+  for (int tuy=tuY;tuy<tuY+width;tuy++)                             \
+    for (int tux=tuX;tux<tuX+width;tux++)                           \
+      {                                                             \
+        tu_info[ tux + tuy*tu_info.width_in_units ] = 0;  \
+      }
+
 
 typedef struct {
   uint16_t SliceAddrRS;
@@ -448,15 +458,16 @@ public:
     return cb_info.get(x,y).cu_transquant_bypass;
   }
 
-  void set_log2CbSize(int x0, int y0, int log2CbSize, bool fill=false)
+  void set_log2CbSize(int x0, int y0, int log2CbSize, bool fill)
   {
+    // In theory, we could assume that remaining cb_info blocks are initialized to zero.
+    // But in corrupted streams, slices may overlap and set contradicting log2CbSizes.
+    // We also need this for encoding.
     if (fill) {
       SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, 0);
     }
 
     cb_info.get(x0,y0).log2CbSize = log2CbSize;
-
-    // assume that remaining cb_info blocks are initialized to zero
   }
 
   int  get_log2CbSize(int x0, int y0) const
@@ -505,6 +516,11 @@ public:
   void set_split_transform_flag(int x0,int y0,int trafoDepth)
   {
     tu_info.get(x0,y0) |= (1<<trafoDepth);
+  }
+
+  void clear_split_transform_flags(int x0,int y0,int log2CbSize)
+  {
+    CLEAR_TB_BLK (x0,y0, log2CbSize);
   }
 
   int  get_split_transform_flag(int x0,int y0,int trafoDepth) const
@@ -620,6 +636,12 @@ public:
   int  get_SliceHeaderIndex_atIndex(int ctb) const
   {
     return ctb_info[ctb].SliceHeaderIndex;
+  }
+
+  bool is_SliceHeader_available(int x,int y) const
+  {
+    int idx = ctb_info.get(x,y).SliceHeaderIndex;
+    return idx >= 0 && idx < slices.size();
   }
 
   slice_segment_header* get_SliceHeader(int x, int y)

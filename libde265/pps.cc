@@ -222,6 +222,10 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
           lastColumnWidth -= colWidth[i];
         }
 
+      if (lastColumnWidth <= 0) {
+        return false;
+      }
+
       colWidth[num_tile_columns-1] = lastColumnWidth;
 
       for (int i=0; i<num_tile_rows-1; i++)
@@ -234,6 +238,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
           rowHeight[i]++;
           lastRowHeight -= rowHeight[i];
         }
+
+      if (lastRowHeight <= 0) {
+        return false;
+      }
+
 
       rowHeight[num_tile_rows-1] = lastRowHeight;
     }
@@ -316,6 +325,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     return false;
   }
   log2_parallel_merge_level += 2;
+
+  if (log2_parallel_merge_level-2 > sps->log2_min_luma_coding_block_size-3 +1 +
+      sps->log2_diff_max_min_luma_coding_block_size) {
+    return false;
+  }
 
   slice_segment_header_extension_present_flag = get_bits(br,1);
   pps_extension_flag = get_bits(br,1);
