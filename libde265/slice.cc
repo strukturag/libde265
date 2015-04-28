@@ -3740,6 +3740,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
         ctbx == 1 &&
         ctby < sps->PicHeightInCtbsY-1)
       {
+        // no storage for context table has been allocated
+        if (tctx->imgunit->ctx_models.size() < (ctby+1) * CONTEXT_MODEL_TABLE_LENGTH) {
+          return Decode_Error;
+        }
+
         context_model* ctx_store = &tctx->imgunit->ctx_models[ctby * CONTEXT_MODEL_TABLE_LENGTH];
 
         memcpy(ctx_store,
