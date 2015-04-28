@@ -127,6 +127,11 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   READ_VLC(pic_width_in_luma_samples,  uvlc);
   READ_VLC(pic_height_in_luma_samples, uvlc);
 
+  if (pic_width_in_luma_samples  == 0 ||
+      pic_height_in_luma_samples == 0) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   conformance_window_flag = get_bits(br,1);
 
   if (conformance_window_flag) {
