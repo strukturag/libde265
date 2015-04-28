@@ -2826,6 +2826,20 @@ int read_transform_unit(thread_context* tctx,
 }
 
 
+static void dump_cbsize(de265_image* img)
+{
+  int w = img->get_width(0);
+  int h = img->get_height(0);
+
+  for (int y=0;y<h;y+=8) {
+    for (int x=0;x<w;x+=8) {
+      printf("%d",img->get_log2CbSize(x,y));
+    }
+    printf("\n");
+  }
+}
+
+
 void read_transform_tree(thread_context* tctx,
                          int x0, int y0,        // position of TU in frame
                          int xBase, int yBase,  // position of parent TU in frame
@@ -2879,13 +2893,6 @@ void read_transform_tree(thread_context* tctx,
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
     img->set_split_transform_flag(x0,y0,trafoDepth);
-  }
-  else {
-    /* This is only required on corrupted input streams.
-       It may happen that there are several slices in the image that overlap.
-       In this case, flags would accumulate from both slices.
-     */
-    img->unset_split_transform_flag(x0,y0,trafoDepth);
   }
 
   int cbf_cb=-1;
@@ -3263,7 +3270,15 @@ void read_coding_unit(thread_context* tctx,
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
 
 
+  //QQprintf("- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
+
   img->set_log2CbSize(x0,y0, log2CbSize);
+
+  /* This is only required on corrupted input streams.
+     It may happen that there are several slices in the image that overlap.
+     In this case, flags would accumulate from both slices.
+  */
+  img->clear_split_transform_flags(x0,y0, log2CbSize);
 
   int nCbS = 1<<log2CbSize; // number of coding block samples
 

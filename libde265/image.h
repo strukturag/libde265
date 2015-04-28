@@ -155,6 +155,16 @@ template <class DataUnit> class MetaDataArray
         cb_info[ cbx + cby*cb_info.width_in_units ].Field = value;  \
       }
 
+#define CLEAR_TB_BLK(x,y,log2BlkWidth)              \
+  int tuX = x >> tu_info.log2unitSize; \
+  int tuY = y >> tu_info.log2unitSize; \
+  int width = 1 << (log2BlkWidth - tu_info.log2unitSize);           \
+  for (int tuy=tuY;tuy<tuY+width;tuy++)                             \
+    for (int tux=tuX;tux<tuX+width;tux++)                           \
+      {                                                             \
+        tu_info[ tux + tuy*tu_info.width_in_units ] = 0;  \
+      }
+
 
 typedef struct {
   uint16_t SliceAddrRS;
@@ -472,9 +482,9 @@ public:
     tu_info.get(x0,y0) |= (1<<trafoDepth);
   }
 
-  void unset_split_transform_flag(int x0,int y0,int trafoDepth)
+  void clear_split_transform_flags(int x0,int y0,int log2CbSize)
   {
-    tu_info.get(x0,y0) &= ~(1<<trafoDepth);
+    CLEAR_TB_BLK (x0,y0, log2CbSize);
   }
 
   int  get_split_transform_flag(int x0,int y0,int trafoDepth) const
