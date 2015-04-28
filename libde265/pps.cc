@@ -162,6 +162,10 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
           lastColumnWidth -= colWidth[i];
         }
 
+      if (lastColumnWidth <= 0) {
+        return false;
+      }
+
       colWidth[num_tile_columns-1] = lastColumnWidth;
 
       for (int i=0; i<num_tile_rows-1; i++)
@@ -174,6 +178,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
           rowHeight[i]++;
           lastRowHeight -= rowHeight[i];
         }
+
+      if (lastRowHeight <= 0) {
+        return false;
+      }
+
 
       rowHeight[num_tile_rows-1] = lastRowHeight;
     }
