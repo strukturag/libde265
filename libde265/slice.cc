@@ -2876,10 +2876,16 @@ void read_transform_tree(thread_context* tctx,
                               interSplitFlag==1) ? 1:0;
     }
 
-
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
     img->set_split_transform_flag(x0,y0,trafoDepth);
+  }
+  else {
+    /* This is only required on corrupted input streams.
+       It may happen that there are several slices in the image that overlap.
+       In this case, flags would accumulate from both slices.
+     */
+    img->unset_split_transform_flag(x0,y0,trafoDepth);
   }
 
 

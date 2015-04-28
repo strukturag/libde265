@@ -769,7 +769,7 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
           //printf("POC=%d\n",ctx->img->PicOrderCntVal);
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
                    2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
-          
+
           int sliceIndexQ00 = img->get_SliceHeaderIndex(2*xDi,2*yDi);
           int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
 

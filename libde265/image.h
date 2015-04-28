@@ -470,6 +470,11 @@ public:
     tu_info.get(x0,y0) |= (1<<trafoDepth);
   }
 
+  void unset_split_transform_flag(int x0,int y0,int trafoDepth)
+  {
+    tu_info.get(x0,y0) &= ~(1<<trafoDepth);
+  }
+
   int  get_split_transform_flag(int x0,int y0,int trafoDepth) const
   {
     return (tu_info.get(x0,y0) & (1<<trafoDepth));
@@ -509,7 +514,7 @@ public:
   void set_IntraPredMode(int PUidx,int log2blkSize, enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
-    
+
     for (int y=0;y<pbSize;y++)
       for (int x=0;x<pbSize;x++)
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
@@ -570,16 +575,16 @@ public:
   {
     return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
   }
-  
+
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
   {
     sao_info* sao = &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
-    
+
     memcpy(sao,
            saoinfo,
            sizeof(sao_info));
   }
-  
+
   const sao_info* get_sao_info(int ctbX,int ctbY) const
   {
     return &ctb_info[ctbX + ctbY*ctb_info.width_in_units].saoInfo;
@@ -621,7 +626,7 @@ public:
   {
     const int xd = x0/4;
     const int yd = y0/4;
-    
+
     if (xd<deblk_info.width_in_units &&
         yd<deblk_info.height_in_units) {
       deblk_info[xd + yd*deblk_info.width_in_units] |= flags;
