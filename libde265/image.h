@@ -256,6 +256,8 @@ struct de265_image {
 
 
   void add_slice_segment_header(slice_segment_header* shdr) {
+    printf("push slice header %p\n",shdr);
+
     shdr->slice_index = slices.size();
     slices.push_back(shdr);
   }
@@ -571,6 +573,12 @@ public:
   int  get_SliceHeaderIndex_atIndex(int ctb) const
   {
     return ctb_info[ctb].SliceHeaderIndex;
+  }
+
+  bool is_SliceHeader_available(int x,int y) const
+  {
+    int idx = ctb_info.get(x,y).SliceHeaderIndex;
+    return idx >= 0 && idx < slices.size();
   }
 
   slice_segment_header* get_SliceHeader(int x, int y)
