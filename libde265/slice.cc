@@ -2888,7 +2888,6 @@ void read_transform_tree(thread_context* tctx,
     img->unset_split_transform_flag(x0,y0,trafoDepth);
   }
 
-
   int cbf_cb=-1;
   int cbf_cr=-1;
 

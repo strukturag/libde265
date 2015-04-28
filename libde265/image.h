@@ -417,9 +417,11 @@ public:
 
   void set_log2CbSize(int x0, int y0, int log2CbSize)
   {
-    cb_info.get(x0,y0).log2CbSize = log2CbSize;
+    // In theory, we could assume that remaining cb_info blocks are initialized to zero.
+    // But in corrupted streams, slices may overlap and set contradicting log2CbSizes.
+    SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, 0);
 
-    // assume that remaining cb_info blocks are initialized to zero
+    cb_info.get(x0,y0).log2CbSize = log2CbSize;
   }
 
   int  get_log2CbSize(int x0, int y0) const
