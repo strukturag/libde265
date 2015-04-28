@@ -613,7 +613,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
-      img->integrity = INTEGRITY_NOT_DECODED;
+      if (img!=NULL) img->integrity = INTEGRITY_NOT_DECODED;
       nal_parser.free_NAL_unit(nal);
       delete shdr;
       return err;
