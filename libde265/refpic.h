@@ -26,7 +26,9 @@
 #define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
 
 
-typedef struct {
+class ref_pic_set
+{
+ public:
   uint8_t NumNegativePics;  // number of past reference pictures
   uint8_t NumPositivePics;  // number of future reference pictures
   uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
@@ -44,7 +46,8 @@ typedef struct {
   uint8_t UsedByCurrPicS0[MAX_NUM_REF_PICS];
   uint8_t UsedByCurrPicS1[MAX_NUM_REF_PICS];
 
-} ref_pic_set;
+  void reset();
+};
 
 
 void dump_short_term_ref_pic_set(const ref_pic_set*, FILE* fh);

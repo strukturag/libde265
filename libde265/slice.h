@@ -40,7 +40,7 @@
 
 
 /*
-        2Nx2N           2NxN             Nx2N            NxN          
+        2Nx2N           2NxN             Nx2N            NxN
       +-------+       +-------+       +---+---+       +---+---+
       |       |       |       |       |   |   |       |   |   |
       |       |       |_______|       |   |   |       |___|___|
@@ -48,7 +48,7 @@
       |       |       |       |       |   |   |       |   |   |
       +-------+       +-------+       +---+---+       +---+---+
 
-        2NxnU           2NxnD           nLx2N           nRx2N        
+        2NxnU           2NxnD           nLx2N           nRx2N
       +-------+       +-------+       +-+-----+       +-----+-+
       |_______|       |       |       | |     |       |     | |
       |       |       |       |       | |     |       |     | |
@@ -133,11 +133,12 @@ enum context_model_indices {
 
 
 typedef struct slice_segment_header {
-  slice_segment_header() { }
+  slice_segment_header() { reset(); }
 
   de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
+  void reset();
 
   int  slice_index; // index through all slices in a picture
 
@@ -255,7 +256,7 @@ typedef struct {
   unsigned char SaoEoClass; // use with (SaoTypeIdx>>(2*cIdx)) & 0x3
 
   uint8_t sao_band_position[3];
-  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
+  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always
 } sao_info;
 
 
