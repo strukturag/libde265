@@ -1916,6 +1916,13 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
     first_decoded_picture = false;
   }
+  else {
+    // claims to be not the first slice, but there is no active image available
+
+    if (ctx->img == NULL) {
+      return false;
+    }
+  }
 
   if (hdr->slice_type == SLICE_TYPE_B ||
       hdr->slice_type == SLICE_TYPE_P)
