@@ -517,6 +517,8 @@ void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int pr
 
 void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 {
+  if (task==NULL) { return; }
+
   de265_progress_lock* progresslock = &ctb_progress[ctbAddrRS];
   if (progresslock->get_progress() < progress) {
     thread_blocks();
