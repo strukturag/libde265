@@ -598,6 +598,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
       offset_len++;
 
+      if (offset_len > 32) {
+	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+
       for (int i=0; i<num_entry_point_offsets; i++) {
         {
           entry_point_offset[i] = get_bits(br,offset_len)+1;

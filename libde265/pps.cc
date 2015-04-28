@@ -443,6 +443,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
   log2_parallel_merge_level += 2;
 
+  if (log2_parallel_merge_level-2 > sps->log2_min_luma_coding_block_size-3 +1 +
+      sps->log2_diff_max_min_luma_coding_block_size) {
+    return false;
+  }
+
   slice_segment_header_extension_present_flag = get_bits(br,1);
   pps_extension_flag = get_bits(br,1);
 

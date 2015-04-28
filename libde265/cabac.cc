@@ -132,6 +132,8 @@ int logcnt=1;
 
 void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length)
 {
+  assert(length >= 0);
+
   decoder->bitstream_start = bitstream;
   decoder->bitstream_curr  = bitstream;
   decoder->bitstream_end   = bitstream+length;
@@ -178,7 +180,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     {
       logtrace(LogCABAC,"[%3d] MPS\n",logcnt);
 
-      // MPS path                                                                                    
+      // MPS path
 
       decoded_bit = model->MPSbit;
       model->state = next_state_MPS[model->state];
@@ -203,7 +205,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
     {
       logtrace(LogCABAC,"[%3d] LPS\n",logcnt);
 
-      // LPS path                                                                                    
+      // LPS path
 
       int num_bits = renorm_table[ LPS >> 3 ];
       decoder->value = (decoder->value - scaled_range);
@@ -436,4 +438,3 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
   int suffix = decode_CABAC_FL_bypass(decoder, n);
   return base + suffix;
 }
-
