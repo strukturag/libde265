@@ -207,6 +207,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
+      if (ctx->previous_slice_header == NULL) {
+        return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
+      }
+
       *this = *ctx->previous_slice_header;
 
       first_slice_segment_in_pic_flag = 0;

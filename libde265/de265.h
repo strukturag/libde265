@@ -91,6 +91,7 @@ typedef enum {
   DE265_ERROR_LIBRARY_NOT_INITIALIZED=12,
   DE265_ERROR_WAITING_FOR_INPUT_DATA=13,
   DE265_ERROR_CANNOT_PROCESS_SEI=14,
+  DE265_ERROR_NO_INITIAL_SLICE_HEADER=15,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
