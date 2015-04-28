@@ -1631,11 +1631,14 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     }
   }
 
-  if (hdr->num_ref_idx_l0_active > 15) {
+  /*
+  if (hdr->num_ref_idx_l0_active > 16) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
     return false;
   }
+  */
 
+  assert(hdr->num_ref_idx_l0_active <= 16);
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     int idx = hdr->ref_pic_list_modification_flag_l0 ? hdr->list_entry_l0[rIdx] : rIdx;
 
@@ -1671,7 +1674,12 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       }
     }
 
-    assert(hdr->num_ref_idx_l1_active <= 15);
+    if (hdr->num_ref_idx_l0_active > 16) {
+    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    return false;
+  }
+
+    assert(hdr->num_ref_idx_l1_active <= 16);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
 
