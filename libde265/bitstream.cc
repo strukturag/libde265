@@ -142,7 +142,9 @@ int  get_uvlc(bitreader* br)
   int offset = 0;
   if (num_zeros != 0) {
     offset = get_bits(br, num_zeros);
-    return offset + (1<<num_zeros)-1;
+    int value = offset + (1<<num_zeros)-1;
+    assert(value>0);
+    return value;
   } else {
     return 0;
   }
