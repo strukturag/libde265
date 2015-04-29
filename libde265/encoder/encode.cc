@@ -479,6 +479,7 @@ void encode_part_mode(encoder_context* ectx,
           cabac->write_CABAC_bypass(1);
           break;
         case PART_NxN:
+        case PART_2Nx2N:
           assert(false);
           break;
         }

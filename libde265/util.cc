@@ -145,7 +145,7 @@ void logtrace(enum LogModule module, const char* string, ...)
   if (string[0]=='$') {
     int id = string[1]-'0';
     logcnt[id]++;
-    fprintf(stdout, "[%d] ",logcnt[id]);
+    fprintf(stdout, "[%ld] ",logcnt[id]);
 
     string += 3;
   }

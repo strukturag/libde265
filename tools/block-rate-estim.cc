@@ -92,7 +92,7 @@ void print_bitestim_results(int log2blksize)
       var /= cnt;
       double stddev = sqrt(var);
 
-      printf("%f  %f %f  %f %f  %f %f %ld\n",
+      printf("%f  %f %f  %f %f  %f %f %d\n",
              (b+0.5)*interval,mean,var,
              mean-stddev,mean+stddev, mini,maxi,
              cnt);
