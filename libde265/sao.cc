@@ -107,9 +107,9 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
         logtrace(LogSAO, "pos %d,%d\n",xC+i,yC+j);
 
-        if (extendedTests &&
-            (sps->pcm_loop_filter_disable_flag &&
-             img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
+        if ((extendedTests &&
+             (sps->pcm_loop_filter_disable_flag &&
+              img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift))) ||
             img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
           continue;
         }

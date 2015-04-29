@@ -120,8 +120,8 @@ de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_se
       }
 
       for (int i=0; i<vps->vps_num_hrd_parameters; i++) {
-        vps->hrd_layer_set_idx[i] = get_uvlc(reader);
-        if (vps->hrd_layer_set_idx[i] == UVLC_ERROR) {
+        vps->hrd_layer_set_idx[i] = vlc = get_uvlc(reader);
+        if (vlc == UVLC_ERROR) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 
