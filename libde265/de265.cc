@@ -53,7 +53,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_OK: return "no error";
   case DE265_ERROR_NO_SUCH_FILE: return "no such file";
     //case DE265_ERROR_NO_STARTCODE: return "no startcode found";
-  case DE265_ERROR_EOF: return "end of file";
+    //case DE265_ERROR_EOF: return "end of file";
   case DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS: return "coefficient out of image bounds";
   case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
   case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
@@ -81,6 +81,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "command-line parameter error";
   case DE265_ERROR_NO_INITIAL_SLICE_HEADER:
     return "first slice missing, cannot decode dependent slice";
+  case DE265_ERROR_PREMATURE_END_OF_SLICE:
+    return "premature end of slice data";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";

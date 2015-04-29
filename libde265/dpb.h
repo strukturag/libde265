@@ -41,7 +41,7 @@ public:
      If there is no space for a new image, return -1. */
   int new_image(const seq_parameter_set* sps, decoder_context* decctx,
                 de265_PTS pts, void* user_data, bool isOutputImage);
-  
+
   /* Check for a free slot in the DPB. There are some slots reserved for
      unavailable reference frames. If high_priority==true, these reserved slots
      are included in the check. */
@@ -53,14 +53,22 @@ public:
   int size() const { return dpb.size(); }
 
   /* Raw access to the images. */
-  /* */ struct de265_image* get_image(int index)       { return dpb[index]; }
-  const struct de265_image* get_image(int index) const { return dpb[index]; }
+
+  /* */ de265_image* get_image(int index)       {
+    if (index>=dpb.size()) return NULL;
+    return dpb[index];
+  }
+
+  const de265_image* get_image(int index) const {
+    if (index>=dpb.size()) return NULL;
+    return dpb[index];
+  }
 
   /* Search DPB for the slot index of a specific picture. */
   int DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_ID (int id) const;
-  
+
 
   // --- reorder buffer ---
 
@@ -72,10 +80,10 @@ public:
 
   // move next picture in reorder buffer to output queue
   void output_next_picture_in_reorder_buffer();
-  
+
   // Move all pictures in reorder buffer to output buffer. Return true if there were any pictures.
   bool flush_reorder_buffer();
-  
+
 
   // --- output buffer ---
 
@@ -92,7 +100,7 @@ public:
 
   void log_dpb_content() const;
   void log_dpb_queues() const;
-  
+
 private:
   int max_images_in_DPB;
   int norm_images_in_DPB;

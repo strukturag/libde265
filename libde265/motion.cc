@@ -1515,6 +1515,10 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   const int A=0;
   const int B=1;
 
+  out_availableFlagLXN[A] = 0;
+  out_availableFlagLXN[B] = 0;
+
+
   // --- A ---
 
   // 1.
@@ -1548,7 +1552,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
-  const int referenced_POC = ctx->get_image(shdr->RefPicList[X][ refIdxLX ])->PicOrderCntVal;
+  const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
+  if (tmpimg==NULL) { return; }
+  const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
