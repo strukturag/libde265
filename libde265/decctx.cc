@@ -933,6 +933,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     if (entryPt==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
     else                  dataEnd = shdr->entry_point_offset[entryPt];
 
+    if (dataEnd-dataStartIndex <= 0) {
+      return DE265_ERROR_PREMATURE_END_OF_SLICE;
+    }
+
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
                        dataEnd-dataStartIndex);
@@ -1019,6 +1023,10 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     int dataEnd;
     if (entryPt==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
     else                   dataEnd = shdr->entry_point_offset[entryPt];
+
+    if (dataEnd-dataStartIndex <= 0) {
+      return DE265_ERROR_PREMATURE_END_OF_SLICE;
+    }
 
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
