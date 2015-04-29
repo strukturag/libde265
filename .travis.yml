@@ -5,6 +5,7 @@ compiler:
   - gcc
 env:
   - HOST= WINE= DECODESTREAMS=
+  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-sao
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles

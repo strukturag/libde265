@@ -26,6 +26,7 @@ except ImportError:
 import os
 import subprocess
 import sys
+import time
 
 CPU_COUNT = multiprocessing is not None and multiprocessing.cpu_count() or 2
 if CPU_COUNT > 2:
@@ -38,22 +39,45 @@ PROCESS_COUNT = min(4, CPU_COUNT)
 DEFAULT_ROOT = '/var/lib/libde265-teststreams'
 
 def decode_file(filename):
-    print filename
     cmd = ['./dec265/dec265', '-q', '-c', '-t', THREAD_COUNT, filename]
-    res = subprocess.call(cmd)
-    assert res == 0, cmd
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        (stdoutdata, stderrdata) = p.communicate()
+    except KeyboardInterrupt:
+        return (True, filename)
+
+    if p.returncode < 0:
+        print '\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata)
+        return (False, filename)
+    elif p.returncode > 0:
+        basename = os.path.basename(filename)
+        if basename[:3] == 'id:':
+            # fuzzing files may be invalid
+            print '\rWARNING: %s failed with returncode %d' % (filename, p.returncode)
+            return (True, filename)
+        else:
+            print '\rERROR: %s failed with returncode %d (%r)' % (filename, p.returncode, stdoutdata)
+            return (False, filename)
+    else:
+        print 'OK: %s' % (filename)
+        return (True, filename)
 
 class BaseProcessor(object):
 
     def __init__(self, filenames):
         self.filenames = filenames
+        self.errors = []
 
     def process(self, filename):
-        decode_file(filename)
+        ok = decode_file(filename)
+        return (ok, filename)
 
     def run(self):
+        self.errors = []
         for filename in sorted(self.filenames):
-            self.process(filename)
+            ok, _ = self.process(filename)
+            if not ok:
+                self.errors.append(filename)
 
     def cancel(self):
         pass
@@ -66,11 +90,13 @@ if multiprocessing is not None:
             super(MultiprocessingProcessor, self).__init__(*args, **kw)
             self.pool = multiprocessing.Pool(PROCESS_COUNT)
             self.pending_jobs = []
+            self.errors = []
 
         def process(self, *args, **kw):
-            job = self.pool.apply_async(decode_file, args, kw)
+            job = self.pool.apply_async(decode_file, args, kw, self._callback)
             self.pending_jobs.append(job)
             self._check_pending_jobs()
+            return (True, None)
 
         def _check_pending_jobs(self):
             try:
@@ -89,7 +115,13 @@ if multiprocessing is not None:
             else:
                 self.pending_jobs.pop(0)
 
+        def _callback(self, result):
+            ok, filename = result
+            if not ok:
+                self.errors.append(filename)
+
         def run(self):
+            self.errors = []
             try:
                 super(MultiprocessingProcessor, self).run()
             except KeyboardInterrupt:
@@ -98,6 +130,7 @@ if multiprocessing is not None:
                 self.pool.close()
                 while self.pending_jobs:
                     self._check_pending_jobs()
+                    time.sleep(0.1)
             self.pool.join()
 
     def cancel(self):
@@ -126,6 +159,12 @@ def main():
         processor.run()
     except KeyboardInterrupt:
         processor.cancel()
+        print 'Cancelled...'
+
+    if processor.errors:
+        print 'Found %d files with errors:' % (len(processor.errors))
+        print '\n'.join(sorted(processor.errors))
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
