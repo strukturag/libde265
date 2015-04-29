@@ -208,6 +208,10 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
           int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
 
+          // Shifts are a strange thing. On x86, >>x actually computes >>(x%64).
+          // So we have to take care of large bandShifts.
+          if (bandShift>=8) { bandIdx=0; }
+
           if (bandIdx>0) {
             int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
 
@@ -229,6 +233,9 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
           for (int i=0;i<ctbW;i++) {
 
             int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+
+            // see above
+            if (bandShift>=8) { bandIdx=0; }
 
             if (bandIdx>0) {
               int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
