@@ -794,6 +794,10 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   init_thread_context(&tctx);
 
+  if (sliceunit->reader.bytes_remaining <= 0) {
+    return DE265_ERROR_PREMATURE_END_OF_SLICE;
+  }
+
   init_CABAC_decoder(&tctx.cabac_decoder,
                      sliceunit->reader.data,
                      sliceunit->reader.bytes_remaining);
