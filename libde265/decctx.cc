@@ -1275,9 +1275,9 @@ void decoder_context::process_picture_order_count(decoder_context* ctx, slice_se
            ctx->img->PicOrderCntVal);
 
   if (ctx->img->nal_hdr.nuh_temporal_id==0 &&
-      (isReferenceNALU(ctx->nal_unit_type) &&
-       (!isRASL(ctx->nal_unit_type) && !isRADL(ctx->nal_unit_type))) &&
-      1 /* sub-layer non-reference picture */) // TODO
+      !isSublayerNonReference(ctx->nal_unit_type) &&
+      !isRASL(ctx->nal_unit_type) &&
+      !isRADL(ctx->nal_unit_type))
     {
       loginfo(LogHeaders,"set prevPicOrderCntLsb/Msb\n");
 
