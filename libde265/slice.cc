@@ -599,6 +599,14 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         else {
           collocated_ref_idx = 0;
         }
+
+        // check whether collocated_ref_idx points to a valid index
+
+        if (( collocated_from_l0_flag && collocated_ref_idx >= num_ref_idx_l0_active) ||
+            (!collocated_from_l0_flag && collocated_ref_idx >= num_ref_idx_l1_active)) {
+          ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
       }
 
       if ((pps->weighted_pred_flag   && slice_type == SLICE_TYPE_P) ||
