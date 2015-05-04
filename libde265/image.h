@@ -582,17 +582,23 @@ public:
 
   slice_segment_header* get_SliceHeader(int x, int y)
   {
-    return slices[ get_SliceHeaderIndex(x,y) ];
+    int idx = get_SliceHeaderIndex(x,y);
+    if (idx >= slices.size()) { return NULL; }
+    return slices[idx];
   }
 
   slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY)
   {
-    return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+    int idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
+    if (idx >= slices.size()) { return NULL; }
+    return slices[idx];
   }
 
   const slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY) const
   {
-    return slices[ get_SliceHeaderIndexCtb(ctbX,ctbY) ];
+    int idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
+    if (idx >= slices.size()) { return NULL; }
+    return slices[idx];
   }
 
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
