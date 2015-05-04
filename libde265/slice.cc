@@ -3859,6 +3859,10 @@ enum DecodeResult decode_substream(thread_context* tctx,
         // we have to wait until the context model data is there
         tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
 
+        if ((tctx->CtbY-1+1) * CONTEXT_MODEL_TABLE_LENGTH > tctx->imgunit->ctx_models.size()) {
+          return Decode_Error;
+        }
+
         // copy CABAC model from previous CTB row
         memcpy(tctx->ctx_model,
                &tctx->imgunit->ctx_models[(tctx->CtbY-1) * CONTEXT_MODEL_TABLE_LENGTH],
