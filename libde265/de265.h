@@ -93,6 +93,7 @@ typedef enum {
   DE265_ERROR_CANNOT_PROCESS_SEI=14,
   DE265_ERROR_NO_INITIAL_SLICE_HEADER=15,
   DE265_ERROR_PREMATURE_END_OF_SLICE=16,
+  DE265_ERROR_UNSPECIFIED_DECODING_ERROR=17,
 
   // --- errors that should become obsolete in later libde265 versions ---
 

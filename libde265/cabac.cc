@@ -196,7 +196,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
           if (decoder->bits_needed == 0)
             {
               decoder->bits_needed = -8;
-              if (decoder->bitstream_curr != decoder->bitstream_end)
+              if (decoder->bitstream_curr < decoder->bitstream_end)
                 { decoder->value |= *decoder->bitstream_curr++; }
             }
         }
@@ -223,7 +223,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
       if (decoder->bits_needed >= 0)
         {
           logtrace(LogCABAC,"bits_needed: %d\n", decoder->bits_needed);
-          if (decoder->bitstream_curr != decoder->bitstream_end)
+          if (decoder->bitstream_curr < decoder->bitstream_end)
             { decoder->value |= (*decoder->bitstream_curr++) << decoder->bits_needed; }
 
           decoder->bits_needed -= 8;
@@ -236,6 +236,7 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 #endif
 
   //assert(decoder->range>=0x100);
+
 
   return decoded_bit;
 }
@@ -263,7 +264,7 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
             {
               decoder->bits_needed = -8;
 
-              if (decoder->bitstream_curr != decoder->bitstream_end) {
+              if (decoder->bitstream_curr < decoder->bitstream_end) {
                 decoder->value += (*decoder->bitstream_curr++);
               }
             }
@@ -288,8 +289,10 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
     {
       //assert(decoder->bits_needed==0);
 
-      decoder->bits_needed = -8;
-      decoder->value |= *decoder->bitstream_curr++;
+      if (decoder->bitstream_end > decoder->bitstream_curr) {
+        decoder->bits_needed = -8;
+        decoder->value |= *decoder->bitstream_curr++;
+      }
     }
 
   int bit;
@@ -349,11 +352,13 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 
   if (decoder->bits_needed >= 0)
     {
-      int input = *decoder->bitstream_curr++;
-      input <<= decoder->bits_needed;
+      if (decoder->bitstream_end > decoder->bitstream_curr) {
+        int input = *decoder->bitstream_curr++;
+        input <<= decoder->bits_needed;
 
-      decoder->bits_needed -= 8;
-      decoder->value |= input;
+        decoder->bits_needed -= 8;
+        decoder->value |= input;
+      }
     }
 
   uint32_t scaled_range = decoder->range << 7;

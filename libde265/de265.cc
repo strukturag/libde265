@@ -81,6 +81,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "first slice missing, cannot decode dependent slice";
   case DE265_ERROR_PREMATURE_END_OF_SLICE:
     return "premature end of slice data";
+  case DE265_ERROR_UNSPECIFIED_DECODING_ERROR:
+    return "unspecified decoding error";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";

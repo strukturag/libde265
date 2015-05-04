@@ -242,6 +242,7 @@ typedef struct slice_segment_header {
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
+  bool ctx_model_storage_defined; // whether there is valid data in ctx_model_storage
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 

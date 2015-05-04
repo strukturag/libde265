@@ -255,6 +255,8 @@ void slice_segment_header::reset()
   //context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
   RemoveReferencesList.clear();
+
+  ctx_model_storage_defined = false;
 }
 
 
@@ -3911,6 +3913,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
         memcpy(tctx->shdr->ctx_model_storage,
                tctx->ctx_model,
                CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
+
+        tctx->shdr->ctx_model_storage_defined = true;
       }
     }
 
@@ -3965,7 +3969,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
 
-void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
+bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 {
   de265_image* img = tctx->img;
   const pic_parameter_set* pps = &img->pps;
@@ -3985,6 +3989,10 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     else {
       tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
 
+      if (!prevCtbHdr->ctx_model_storage_defined) {
+        return false;
+      }
+
       memcpy(tctx->ctx_model,
              prevCtbHdr->ctx_model_storage,
              CONTEXT_MODEL_TABLE_LENGTH * sizeof(context_model));
@@ -3993,6 +4001,8 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
   else {
     initialize_CABAC(tctx);
   }
+
+  return true;
 }
 
 
@@ -4010,7 +4020,10 @@ void thread_task_slice_segment::work()
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
   if (data->firstSliceSubstream) {
-    initialize_CABAC_at_slice_segment_start(tctx);
+    bool success = initialize_CABAC_at_slice_segment_start(tctx);
+    if (!success) {
+      return;
+    }
   }
   else {
     initialize_CABAC(tctx);
@@ -4047,7 +4060,10 @@ void thread_task_ctb_row::work()
   // printf("start decoding at %d/%d\n", ctbx,ctby);
 
   if (data->firstSliceSubstream) {
-    initialize_CABAC_at_slice_segment_start(tctx);
+    bool success = initialize_CABAC_at_slice_segment_start(tctx);
+    if (!success) {
+      return;
+    }
     //initialize_CABAC(tctx);
   }
 
@@ -4086,7 +4102,10 @@ de265_error read_slice_segment_data(thread_context* tctx)
   const seq_parameter_set* sps = &img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
-  initialize_CABAC_at_slice_segment_start(tctx);
+  bool success = initialize_CABAC_at_slice_segment_start(tctx);
+  if (!success) {
+    return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
+  }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
