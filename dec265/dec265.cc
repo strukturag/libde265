@@ -53,7 +53,7 @@ using namespace videogfx;
 
 int nThreads=0;
 bool nal_input=false;
-bool quiet=false;
+int quiet=0;
 bool check_hash=false;
 bool show_help=false;
 bool dump_headers=false;
@@ -98,7 +98,7 @@ static void write_picture(const de265_image* img)
   static FILE* fh = NULL;
   if (fh==NULL) { fh = fopen(output_filename, "wb"); }
 
-  
+
 
   for (int c=0;c<3;c++) {
     int stride;
@@ -109,7 +109,7 @@ static void write_picture(const de265_image* img)
       fwrite(p + y*stride, width, 1, fh);
     }
   }
-  
+
   fflush(fh);
 }
 
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
       break;
 
     switch (c) {
-    case 'q': quiet=true; break;
+    case 'q': quiet++; break;
     case 't': nThreads=atoi(optarg); break;
     case 'c': check_hash=true; break;
     case 'f': max_frames=atoi(optarg); break;
@@ -507,7 +507,7 @@ int main(int argc, char** argv)
               break;
             }
 
-            fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+            if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
           }
         }
     }
@@ -524,14 +524,14 @@ int main(int argc, char** argv)
   gettimeofday(&tv_end, NULL);
 
   if (err != DE265_OK) {
-    fprintf(stderr,"decoding error: %s (code=%d)\n", de265_get_error_text(err), err);
+    if (quiet<=1) fprintf(stderr,"decoding error: %s (code=%d)\n", de265_get_error_text(err), err);
   }
 
   double secs = tv_end.tv_sec-tv_start.tv_sec;
   secs += (tv_end.tv_usec - tv_start.tv_usec)*0.001*0.001;
 
-  fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
-          width,height,framecnt/secs);
+  if (quiet<=1) fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
+                        width,height,framecnt/secs);
 
 
   return err==DE265_OK ? 0 : 10;
