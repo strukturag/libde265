@@ -198,8 +198,8 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   double lambda = 10.0;
 
-  double bits_h[2*hrange+1];
-  double bits_v[2*vrange+1];
+  double *bits_h = new double[2*hrange+1];
+  double *bits_v = new double[2*vrange+1];
 
   for (int i=-hrange;i<=hrange;i++) {
     int diff = (i - mvp[0].x);
@@ -298,6 +298,9 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
     cb->inter.rqt_root_cbf = 0;
   }
+
+  delete[] bits_h;
+  delete[] bits_v;
 
   return cb;
 }
