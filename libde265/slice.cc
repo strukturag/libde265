@@ -704,6 +704,16 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
+    // check num_entry_points for valid range
+
+    int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
+    int lastCTBRow  = firstCTBRow + num_entry_point_offsets;
+    if (lastCTBRow >= sps->PicHeightInCtbsY) {
+      ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+
     entry_point_offset.resize( num_entry_point_offsets );
 
     if (num_entry_point_offsets > 0) {
@@ -4072,6 +4082,8 @@ void thread_task_ctb_row::work()
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
+      state = Finished;
+      img->thread_finishes();
       return;
     }
     //initialize_CABAC(tctx);
@@ -4089,14 +4101,16 @@ void thread_task_ctb_row::work()
 
   // TODO: what about slices that end properly in the middle of a CTB row?
 
-#if 1
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
-      img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+
+      if (x        < img->sps.PicWidthInCtbsY &&
+          myCtbRow < img->sps.PicHeightInCtbsY) {
+        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+      }
     }
   }
-#endif
 
   state = Finished;
   img->thread_finishes();

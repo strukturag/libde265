@@ -150,11 +150,16 @@ struct slice_unit
   } state;
 
   void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) { return &thread_contexts[n]; }
+  thread_context* get_thread_context(int n) {
+    assert(n < nThreadContexts);
+    return &thread_contexts[n];
+  }
+  int num_thread_contexts() const { return nThreadContexts; }
 
 private:
   thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
                                       no copy constructor. */
+  int nThreadContexts;
 
   decoder_context* ctx;
 

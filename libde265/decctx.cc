@@ -141,6 +141,7 @@ slice_unit::slice_unit(decoder_context* decctx)
     imgunit(NULL)
 {
   state = Unprocessed;
+  nThreadContexts = 0;
 }
 
 slice_unit::~slice_unit()
@@ -158,6 +159,7 @@ void slice_unit::allocate_thread_contexts(int n)
   assert(thread_contexts==NULL);
 
   thread_contexts = new thread_context[n];
+  nThreadContexts = n;
 }
 
 

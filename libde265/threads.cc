@@ -35,6 +35,8 @@
 #define THREAD_RESULT       void*
 #define THREAD_PARAM        void*
 
+#include <stdio.h>
+
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
 void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
 void de265_thread_destroy(de265_thread* t) { }
