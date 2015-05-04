@@ -3985,7 +3985,11 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
-    slice_segment_header* prevCtbHdr = img->slices[ img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+    int sliceIdx = img->get_SliceHeaderIndex_atIndex(prevCtb);
+    if (sliceIdx >= img->slices.size()) {
+      return false;
+    }
+    slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ];
 
     if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
                                shdr->slice_segment_address / sps->PicWidthInCtbsY
