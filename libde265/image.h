@@ -91,9 +91,10 @@ template <class DataUnit> class MetaDataArray
       free(data);
       data = (DataUnit*)malloc(size * sizeof(DataUnit));
       data_size = size;
-      width_in_units = w;
-      height_in_units = h;
     }
+
+    width_in_units = w;
+    height_in_units = h;
 
     log2unitSize = _log2unitSize;
 
