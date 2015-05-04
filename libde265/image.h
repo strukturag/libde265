@@ -348,12 +348,13 @@ public:
 
 
   void thread_start(int nThreads);
-  void thread_run();
+  void thread_run(const thread_task*);
   void thread_blocks();
   void thread_unblocks();
-  void thread_finishes(); /* NOTE: you should not access any data in the thread_task after
-                             calling this, as this function may unlock other threads that
-                             will push this image to the output queue and free all decoder data. */
+  /* NOTE: you should not access any data in the thread_task after
+     calling this, as this function may unlock other threads that
+     will push this image to the output queue and free all decoder data. */
+  void thread_finishes(const thread_task*);
 
   void wait_for_progress(thread_task* task, int ctbx,int ctby, int progress);
   void wait_for_progress(thread_task* task, int ctbAddrRS, int progress);

@@ -276,6 +276,7 @@ public:
   struct thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
 
 class thread_task_slice_segment : public thread_task
@@ -285,6 +286,7 @@ public:
   struct thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
 
 #endif

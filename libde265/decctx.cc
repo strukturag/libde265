@@ -884,7 +884,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_start(nRows);
 
   //printf("-------- decode --------\n");
 
@@ -945,6 +944,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     // add task
 
+    img->thread_start(1);
     add_task_decode_CTB_row(tctx, entryPt==0);
   }
 
@@ -985,7 +985,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_start(nTiles);
 
   sliceunit->allocate_thread_contexts(nTiles);
 
@@ -1036,6 +1035,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
+    img->thread_start(1);
     add_task_decode_slice_segment(tctx, entryPt==0);
   }
 

@@ -4030,6 +4030,20 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 }
 
 
+std::string thread_task_ctb_row::name() const {
+  char buf[100];
+  sprintf(buf,"ctb-row-%d",tctx->CtbY);
+  return buf;
+}
+
+
+std::string thread_task_slice_segment::name() const {
+  char buf[100];
+  sprintf(buf,"slice-segment-%d",tctx->CtbY);
+  return buf;
+}
+
+
 void thread_task_slice_segment::work()
 {
   struct thread_task_slice_segment* data = this;
@@ -4037,7 +4051,7 @@ void thread_task_slice_segment::work()
   de265_image* img = tctx->img;
 
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
 
@@ -4046,6 +4060,8 @@ void thread_task_slice_segment::work()
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
+      state = Finished;
+      img->thread_finishes(this);
       return;
     }
   }
@@ -4058,7 +4074,7 @@ void thread_task_slice_segment::work()
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
   state = Finished;
-  img->thread_finishes();
+  img->thread_finishes(this);
 
   return; // DE265_OK;
 }
@@ -4074,7 +4090,7 @@ void thread_task_ctb_row::work()
   int ctbW = sps->PicWidthInCtbsY;
 
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
 
@@ -4087,7 +4103,7 @@ void thread_task_ctb_row::work()
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
       state = Finished;
-      img->thread_finishes();
+      img->thread_finishes(this);
       return;
     }
     //initialize_CABAC(tctx);
@@ -4117,7 +4133,7 @@ void thread_task_ctb_row::work()
   }
 
   state = Finished;
-  img->thread_finishes();
+  img->thread_finishes(this);
 }
 
 

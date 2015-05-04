@@ -32,6 +32,7 @@
 #endif
 
 #include <deque>
+#include <string>
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -123,6 +124,8 @@ public:
   enum { Queued, Running, Blocked, Finished } state;
 
   virtual void work() = 0;
+
+  virtual std::string name() const { return "noname"; }
 };
 
 

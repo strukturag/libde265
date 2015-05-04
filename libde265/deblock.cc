@@ -844,13 +844,18 @@ public:
   bool vertical;
 
   virtual void work();
+  virtual std::string name() const {
+    char buf[100];
+    sprintf(buf,"deblock-%d",ctb_y);
+    return buf;
+  }
 };
 
 
 void thread_task_deblock_CTBRow::work()
 {
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   int xStart=0;
   int xEnd = img->get_deblk_width();
@@ -917,7 +922,7 @@ void thread_task_deblock_CTBRow::work()
   }
 
   state = Finished;
-  img->thread_finishes();
+  img->thread_finishes(this);
 }
 
 
