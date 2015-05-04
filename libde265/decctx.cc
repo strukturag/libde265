@@ -477,11 +477,14 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream)
+void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
+                                              bool firstSliceSubstream,
+                                              int ctbRow)
 {
   thread_task_ctb_row* task = new thread_task_ctb_row;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  task->debug_startCtbRow = ctbRow;
   tctx->task = task;
 
   add_task(&thread_pool, task);
@@ -855,6 +858,8 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
 
   if (use_WPP && use_tiles) {
     // TODO: this is not allowed ... output some warning or error
+
+    return DE265_WARNING_PPS_HEADER_INVALID;
   }
 
 
@@ -944,8 +949,9 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     // add task
 
+    //printf("start task for ctb-row: %d\n",ctbRow);
     img->thread_start(1);
-    add_task_decode_CTB_row(tctx, entryPt==0);
+    add_task_decode_CTB_row(tctx, entryPt==0, ctbRow);
   }
 
 #if 0

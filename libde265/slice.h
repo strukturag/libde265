@@ -273,6 +273,7 @@ class thread_task_ctb_row : public thread_task
 {
 public:
   bool   firstSliceSubstream;
+  int    debug_startCtbRow;
   struct thread_context* tctx;
 
   virtual void work();

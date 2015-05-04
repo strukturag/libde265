@@ -421,7 +421,7 @@ class decoder_context : public error_queue {
 
  private:
   void init_thread_context(class thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream);
+  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
   void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
 
 

@@ -3889,12 +3889,15 @@ enum DecodeResult decode_substream(thread_context* tctx,
     }
 
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
+
+      // if we are in tiles mode and at the right border, do not wait for x+1,y-1
+
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
       tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
-    //printf("%p: decode %d;%d\n", tctx, tctx->CtbY,tctx->CtbX);
+    //printf("%p: decode %d;%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
 
     // read and decode CTB
@@ -3960,6 +3963,17 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
     if (end_of_slice_segment_flag) {
+      /* corrupted inputs may send the end_of_slice_segment_flag even if not all
+         CTBs in a row have been coded. Hence, we mark all of them as finished.
+       */
+
+      /*
+      for (int x = ctbx+1 ; x<sps->PicWidthInCtbsY; x++) {
+        printf("mark skipped %d;%d\n",ctbx,ctby);
+        tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+      }
+      */
+
       return Decode_EndOfSliceSegment;
     }
 
@@ -4032,7 +4046,7 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
 std::string thread_task_ctb_row::name() const {
   char buf[100];
-  sprintf(buf,"ctb-row-%d",tctx->CtbY);
+  sprintf(buf,"ctb-row-%d",debug_startCtbRow);
   return buf;
 }
 
@@ -4097,7 +4111,7 @@ void thread_task_ctb_row::work()
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
 
-  // printf("start decoding at %d/%d\n", ctbx,ctby);
+  //printf("start decoding at row %d\n", ctby);
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
