@@ -1494,6 +1494,11 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
     }
 
     if (out_availableFlagLXN[A]==1) {
+      if (refIdxA<0) {
+        out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
+        return; // error
+      }
+
       assert(refIdxA>=0);
       assert(refPicList>=0);
 
@@ -1628,6 +1633,11 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       }
 
       if (out_availableFlagLXN[B]==1) {
+        if (refIdxB<0) {
+          out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
+          return; // error
+        }
+
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
