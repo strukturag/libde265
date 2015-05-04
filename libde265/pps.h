@@ -34,6 +34,8 @@ struct pic_parameter_set {
   pic_parameter_set();
   ~pic_parameter_set();
 
+  void reset();
+
   bool read(bitreader*, struct decoder_context*);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;
@@ -114,7 +116,6 @@ struct pic_parameter_set {
   char num_extra_slice_header_bits;
   char slice_segment_header_extension_present_flag;
   char pps_extension_flag;
-
 };
 
 #endif

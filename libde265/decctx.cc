@@ -1707,8 +1707,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      hdr->RefPicList_POC[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicOrderCntVal;
-      hdr->RefPicList_PicState[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicState;
+      de265_image* img_1_rIdx = ctx->dpb.get_image(hdr->RefPicList[1][rIdx]);
+      if (img_1_rIdx == NULL) { return false; }
+      hdr->RefPicList_POC[1][rIdx] = img_1_rIdx->PicOrderCntVal;
+      hdr->RefPicList_PicState[1][rIdx] = img_1_rIdx->PicState;
     }
   }
 

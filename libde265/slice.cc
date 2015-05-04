@@ -3861,6 +3861,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
         return Decode_Error;
     }
 
+    if (ctbx >= tctx->img->sps.PicWidthInCtbsY ||
+        ctby >= tctx->img->sps.PicHeightInCtbsY) {
+        return Decode_Error;
+    }
+
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
