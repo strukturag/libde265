@@ -31,6 +31,9 @@
 #define MAX_REF_PIC_SETS 64  // maximum according to standard
 #define MAX_NUM_LT_REF_PICS_SPS 32
 
+// this is just a safety range
+#define MAX_PICTURE_WIDTH  70000
+#define MAX_PICTURE_HEIGHT 70000
 
 enum {
   CHROMA_MONO = 0,
@@ -158,7 +161,7 @@ struct seq_parameter_set {
   int WinUnitX, WinUnitY;
 
   int MaxPicOrderCntLsb;
-  
+
   int Log2MinCbSizeY;
   int Log2CtbSizeY;
   int MinCbSizeY;

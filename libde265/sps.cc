@@ -132,6 +132,11 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
+      pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   conformance_window_flag = get_bits(br,1);
 
   if (conformance_window_flag) {
