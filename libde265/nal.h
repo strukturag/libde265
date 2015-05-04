@@ -113,6 +113,7 @@ bool isRASL(uint8_t unit_type);
 bool isIRAP(uint8_t unit_type);
 bool isRADL(uint8_t unit_type);
 bool isReferenceNALU(uint8_t unit_type);
+bool isSublayerNonReference(uint8_t unit_type);
 
 const char* get_NAL_name(uint8_t unit_type);
 

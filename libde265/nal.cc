@@ -90,6 +90,23 @@ bool isReferenceNALU(uint8_t unit_type)
             (unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23)) );
 }
 
+bool isSublayerNonReference(uint8_t unit_type)
+{
+  switch (unit_type) {
+  case NAL_UNIT_TRAIL_N:
+  case NAL_UNIT_TSA_N:
+  case NAL_UNIT_STSA_N:
+  case NAL_UNIT_RADL_N:
+  case NAL_UNIT_RASL_N:
+  case NAL_UNIT_RESERVED_VCL_N10:
+  case NAL_UNIT_RESERVED_VCL_N12:
+  case NAL_UNIT_RESERVED_VCL_N14:
+    return true;
+
+  default:
+    return false;
+  }
+}
 
 static const char* NAL_unit_name[] = {
   "TRAIL_N", // 0
