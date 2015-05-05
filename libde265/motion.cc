@@ -1228,8 +1228,12 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
       const de265_image* img0 = l0Cand->predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]) : NULL;
       const de265_image* img1 = l1Cand->predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]) : NULL;
 
-      if (img0==NULL || img1==NULL) {
-        return; // ERROR
+      if (l0Cand->predFlag[0] && !img0) {
+        return; // TODO error
+      }
+
+      if (l1Cand->predFlag[1] && !img1) {
+        return; // TODO error
       }
 
       if (l0Cand->predFlag[0] && l1Cand->predFlag[1] &&
@@ -1444,7 +1448,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
 
       // check whether the predictor X is available and references the same POC
       if (vi->predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
-        //vi->refIdx[X] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,X);
 
@@ -1454,7 +1457,6 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       }
       // check whether the other predictor (Y) is available and references the same POC
       else if (vi->predFlag[Y] && imgY && imgY->PicOrderCntVal == referenced_POC) {
-        //vi->refIdx[Y] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,Y);
 
