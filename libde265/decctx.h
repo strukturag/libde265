@@ -211,10 +211,25 @@ struct image_unit
     return NULL;
   }
 
+  slice_unit* get_next_slice_segment(slice_unit* s) const {
+    for (int i=0; i<slice_units.size()-1; i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i+1];
+      }
+    }
+
+    return NULL;
+  }
+
   bool all_slice_segments_processed() const {
     if (slice_units.size()==0) return true;
     if (slice_units.back()->state != slice_unit::Unprocessed) return true;
     return false;
+  }
+
+  bool is_first_slice_segment(const slice_unit* s) const {
+    if (slice_units.size()==0) return false;
+    return (slice_units[0] == s);
   }
 
   enum { Invalid, // headers not read yet
@@ -272,6 +287,7 @@ class decoder_context : public error_queue {
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
+
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
@@ -462,6 +478,9 @@ class decoder_context : public error_queue {
   void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
                                      int ctbX,int ctbY);
 
+  void mark_whole_slice_as_processed(image_unit* imgunit,
+                                     slice_unit* sliceunit,
+                                     int progress);
 
   void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
   int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,

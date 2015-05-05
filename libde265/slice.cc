@@ -3898,7 +3898,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
 
-      // if we are in tiles mode and at the right border, do not wait for x+1,y-1
+      // TODO: if we are in tiles mode and at the right border, do not wait for x+1,y-1
 
       //printf("wait on %d/%d\n",ctbx+1,ctby-1);
 
@@ -4198,7 +4198,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  // printf("-----\n");
+  //printf("-----\n");
 
   bool first_slice_substream = !shdr->dependent_slice_segment_flag;
 
