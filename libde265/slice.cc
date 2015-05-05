@@ -4031,21 +4031,20 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
 
       slice_unit* prevSliceSegment = tctx->imgunit->get_prev_slice_segment(tctx->sliceunit);
-      assert(prevSliceSegment);
+      //assert(prevSliceSegment);
       if (prevSliceSegment==NULL) {
         return false;
       }
-      /*
+
       prevSliceSegment->finished_threads.wait_for_progress(prevSliceSegment->nThreads);
-      */
+
 
       /*
       printf("wait for %d,%d (init)\n",
              prevCtb / sps->PicWidthInCtbsY,
              prevCtb % sps->PicWidthInCtbsY);
-      */
-
       tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
+      */
 
       if (!prevCtbHdr->ctx_model_storage_defined) {
         return false;
