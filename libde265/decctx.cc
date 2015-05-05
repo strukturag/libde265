@@ -829,8 +829,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   sliceunit->nThreads=1;
 
-  if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
-    { return err; }
+  err=read_slice_segment_data(&tctx);
 
   sliceunit->finished_threads.set_progress(1);
 
