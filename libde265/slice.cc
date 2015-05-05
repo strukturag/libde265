@@ -332,11 +332,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (slice_segment_address < 0 ||
-      slice_segment_address > sps->PicSizeInCtbsY) {
+      slice_segment_address >= sps->PicSizeInCtbsY) {
     ctx->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  //printf("SLICE %d (%d)\n",slice_segment_address, sps->PicSizeInCtbsY);
 
 
   if (!dependent_slice_segment_flag) {

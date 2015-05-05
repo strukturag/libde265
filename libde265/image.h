@@ -138,6 +138,8 @@ template <class DataUnit> class MetaDataArray
   DataUnit& operator[](int idx) { return data[idx]; }
   const DataUnit& operator[](int idx) const { return data[idx]; }
 
+  int size() const { return data_size; }
+
   // private:
   DataUnit* data;
   int data_size;
@@ -311,6 +313,8 @@ public:
   seq_parameter_set   sps;  // the SPS used for decoding this image
   pic_parameter_set   pps;  // the PPS used for decoding this image
   decoder_context*    decctx;
+
+  int number_of_ctbs() const { return ctb_info.size(); }
 
 private:
   MetaDataArray<CTB_info>    ctb_info;
