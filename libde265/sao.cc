@@ -386,6 +386,9 @@ void thread_task_sao::work()
   for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
     {
       const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
+      if (shdr==NULL) {
+        break;
+      }
 
       if (shdr->slice_sao_luma_flag) {
         apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize,
