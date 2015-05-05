@@ -704,13 +704,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
-    // check num_entry_points for valid range
+    if (pps->entropy_coding_sync_enabled_flag) {
+      // check num_entry_points for valid range
 
-    int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
-    int lastCTBRow  = firstCTBRow + num_entry_point_offsets;
-    if (lastCTBRow >= sps->PicHeightInCtbsY) {
-      ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
+      int lastCTBRow  = firstCTBRow + num_entry_point_offsets;
+      if (lastCTBRow >= sps->PicHeightInCtbsY) {
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
     }
 
 
