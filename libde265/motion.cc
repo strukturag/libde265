@@ -1228,6 +1228,10 @@ void derive_combined_bipredictive_merging_candidates(const decoder_context* ctx,
       const de265_image* img0 = l0Cand->predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]) : NULL;
       const de265_image* img1 = l1Cand->predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]) : NULL;
 
+      if (img0==NULL || img1==NULL) {
+        return; // ERROR
+      }
+
       if (l0Cand->predFlag[0] && l1Cand->predFlag[1] &&
           (img0->PicOrderCntVal != img1->PicOrderCntVal     ||
            l0Cand->mv[0].x != l1Cand->mv[1].x ||
@@ -1433,9 +1437,13 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(*vi);
 
+      const de265_image* imgX = NULL;
+      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ]);
+      const de265_image* imgY = NULL;
+      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ]);
+
       // check whether the predictor X is available and references the same POC
-      if (vi->predFlag[X] &&
-          ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
+      if (vi->predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         //vi->refIdx[X] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,X);
@@ -1445,8 +1453,7 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         refIdxA = vi->refIdx[X];
       }
       // check whether the other predictor (Y) is available and references the same POC
-      else if (vi->predFlag[Y] &&
-               ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
+      else if (vi->predFlag[Y] && imgY && imgY->PicOrderCntVal == referenced_POC) {
         //vi->refIdx[Y] == referenced_refIdx) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with same POC\n",k,Y);
