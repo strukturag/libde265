@@ -700,26 +700,29 @@ de265_error decoder_context::decode_some(bool* did_work)
 
   // decode something if there is work to do
 
-  if ( ! image_units.empty() && ! image_units[0]->slice_units.empty() ) {
+  if ( ! image_units.empty() ) { // && ! image_units[0]->slice_units.empty() ) {
 
     image_unit* imgunit = image_units[0];
-    slice_unit* sliceunit = imgunit->slice_units[0];
+    slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
-    pop_front(imgunit->slice_units);
+    if (sliceunit != NULL) {
 
-    if (sliceunit->flush_reorder_buffer) {
-      dpb.flush_reorder_buffer();
+      //pop_front(imgunit->slice_units);
+
+      if (sliceunit->flush_reorder_buffer) {
+        dpb.flush_reorder_buffer();
+      }
+
+      *did_work = true;
+
+      //err = decode_slice_unit_sequential(imgunit, sliceunit);
+      err = decode_slice_unit_parallel(imgunit, sliceunit);
+      if (err) {
+        return err;
+      }
+
+      //delete sliceunit;
     }
-
-    *did_work = true;
-
-    //err = decode_slice_unit_sequential(imgunit, sliceunit);
-    err = decode_slice_unit_parallel(imgunit, sliceunit);
-    if (err) {
-      return err;
-    }
-
-    delete sliceunit;
   }
 
 
@@ -727,8 +730,8 @@ de265_error decoder_context::decode_some(bool* did_work)
   // if we decoded all slices of the current image and there will not
   // be added any more slices to the image, output the image
 
-  if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
-       ( image_units.size()>=1 && image_units[0]->slice_units.empty() &&
+  if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
+       ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
          nal_parser.number_of_NAL_units_pending()==0 &&
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
 
@@ -847,6 +850,8 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
 
   de265_image* img = imgunit->img;
   const pic_parameter_set* pps = &img->pps;
+
+  sliceunit->state = slice_unit::InProgress;
 
   bool use_WPP = (img->decctx->num_worker_threads > 0 &&
                   pps->entropy_coding_sync_enabled_flag);

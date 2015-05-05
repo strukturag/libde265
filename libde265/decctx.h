@@ -151,7 +151,7 @@ struct slice_unit
   enum SliceDecodingProgress { Unprocessed,
                                InProgress,
                                Decoded
-  } state; // TODO: use decoding_progress instead
+  } state;
 
   de265_progress_lock finished_threads;
   int nThreads;
@@ -191,6 +191,16 @@ struct image_unit
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
 
+  slice_unit* get_next_unprocessed_slice_segment() const {
+    for (int i=0;i<slice_units.size();i++) {
+      if (slice_units[i]->state == slice_unit::Unprocessed) {
+        return slice_units[i];
+      }
+    }
+
+    return NULL;
+  }
+
   slice_unit* get_prev_slice_segment(slice_unit* s) const {
     for (int i=1; i<slice_units.size(); i++) {
       if (slice_units[i]==s) {
@@ -199,6 +209,12 @@ struct image_unit
     }
 
     return NULL;
+  }
+
+  bool all_slice_segments_processed() const {
+    if (slice_units.size()==0) return true;
+    if (slice_units.back()->state != slice_unit::Unprocessed) return true;
+    return false;
   }
 
   enum { Invalid, // headers not read yet
