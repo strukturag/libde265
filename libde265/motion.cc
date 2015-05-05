@@ -1567,16 +1567,19 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
       logmvcand(*vi);
 
 
-      if (vi->predFlag[X] &&
-          ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ])->PicOrderCntVal == referenced_POC) {
+      const de265_image* imgX = NULL;
+      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ]);
+      const de265_image* imgY = NULL;
+      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ]);
+
+      if (vi->predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
 
         out_availableFlagLXN[B]=1;
         out_mvLXN[B] = vi->mv[X];
         refIdxB = vi->refIdx[X];
       }
-      else if (vi->predFlag[Y] &&
-               ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ])->PicOrderCntVal == referenced_POC) {
+      else if (vi->predFlag[Y] && imgY && imgY->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"b) take B%d/L%d as B candidate with same POC\n",k,Y);
 
         out_availableFlagLXN[B]=1;
@@ -1647,8 +1650,12 @@ void derive_spatial_luma_vector_prediction(de265_image* img,
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
 
-        if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
-            !isLongTermB && !isLongTermX) {
+        if (refPicB==NULL || refPicX==NULL) {
+          img->decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED,false);
+          img->integrity = INTEGRITY_DECODING_ERRORS;
+        }
+        else if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
+                 !isLongTermB && !isLongTermX) {
           int distB = img->PicOrderCntVal - refPicB->PicOrderCntVal;
           int distX = img->PicOrderCntVal - referenced_POC;
 
