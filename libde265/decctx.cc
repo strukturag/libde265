@@ -1025,6 +1025,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     // entry points other than the first start at tile beginnings
     if (entryPt>0) {
       tileID++;
+
+      if (tileID >= pps->num_tile_columns * pps->num_tile_rows) {
+        err = DE265_WARNING_SLICEHEADER_INVALID;
+        break;
+      }
+
       int ctbX = pps->colBd[tileID % pps->num_tile_columns];
       int ctbY = pps->rowBd[tileID / pps->num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
@@ -1078,7 +1084,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     delete imgunit->tasks[i];
   imgunit->tasks.clear();
 
-  return DE265_OK;
+  return err;
 }
 
 

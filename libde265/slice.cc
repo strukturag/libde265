@@ -715,6 +715,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
     }
 
+    if (pps->tiles_enabled_flag) {
+      if (num_entry_point_offsets > pps->num_tile_columns * pps->num_tile_rows) {
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+    }
 
     entry_point_offset.resize( num_entry_point_offsets );
 
