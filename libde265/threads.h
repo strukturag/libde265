@@ -101,6 +101,7 @@ public:
 
   void wait_for_progress(int progress);
   void set_progress(int progress);
+  void increase_progress(int progress);
   int  get_progress() const;
   void reset(int value=0) { mProgress=value; }
 

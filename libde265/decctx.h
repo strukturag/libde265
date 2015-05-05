@@ -105,6 +105,7 @@ struct thread_context
   struct slice_segment_header* shdr;
 
   struct image_unit* imgunit;
+  struct slice_unit* sliceunit;
   struct thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
@@ -144,10 +145,19 @@ struct slice_unit
 
   bool flush_reorder_buffer;
 
-  enum { Unprocessed,
-         Inprogress,
-         Decoded
-  } state;
+
+  // decoding status
+
+  enum SliceDecodingProgress { Unprocessed,
+                               InProgress,
+                               Decoded
+  } state; // TODO: use decoding_progress instead
+
+  de265_progress_lock finished_threads;
+  int nThreads;
+
+  int first_decoded_CTB_RS; // TODO
+  int last_decoded_CTB_RS;  // TODO
 
   void allocate_thread_contexts(int n);
   thread_context* get_thread_context(int n) {
@@ -161,9 +171,10 @@ private:
                                       no copy constructor. */
   int nThreadContexts;
 
+public:
   decoder_context* ctx;
 
-
+private:
   slice_unit(const slice_unit&); // not allowed
   const slice_unit& operator=(const slice_unit&); // not allowed
 };
@@ -179,6 +190,16 @@ struct image_unit
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
+
+  slice_unit* get_prev_slice_segment(slice_unit* s) const {
+    for (int i=1; i<slice_units.size(); i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i-1];
+      }
+    }
+
+    return NULL;
+  }
 
   enum { Invalid, // headers not read yet
          Unknown, // SPS/PPS available
@@ -422,7 +443,8 @@ class decoder_context : public error_queue {
  private:
   void init_thread_context(class thread_context* tctx);
   void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
-  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
+  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
+                                     int ctbX,int ctbY);
 
 
   void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);

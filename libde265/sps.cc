@@ -533,6 +533,8 @@ void seq_parameter_set::dump_sps(int fd) const
   LOG1("MinTBSizeY   : %d\n", 1<<log2_min_transform_block_size);
   LOG1("MaxTBSizeY   : %d\n", 1<<(log2_min_transform_block_size + log2_diff_max_min_transform_block_size));
 
+  LOG1("PicWidthInCtbsY         : %d\n", PicWidthInCtbsY);
+  LOG1("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
   LOG1("SubWidthC               : %d\n", SubWidthC);
   LOG1("SubHeightC              : %d\n", SubHeightC);
 

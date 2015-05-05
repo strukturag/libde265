@@ -284,6 +284,7 @@ class thread_task_slice_segment : public thread_task
 {
 public:
   bool   firstSliceSubstream;
+  int    debug_startCtbX, debug_startCtbY;
   struct thread_context* tctx;
 
   virtual void work();

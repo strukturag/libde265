@@ -808,9 +808,9 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
   LOG1("slice_pic_parameter_set_id             : %d\n", slice_pic_parameter_set_id);
 
   if (!first_slice_segment_in_pic_flag) {
-    if (pps->dependent_slice_segments_enabled_flag) {
+    //if (pps->dependent_slice_segments_enabled_flag) {
       LOG1("dependent_slice_segment_flag         : %d\n", dependent_slice_segment_flag);
-    }
+      //}
     LOG1("slice_segment_address                : %d\n", slice_segment_address);
   }
 
@@ -4025,7 +4025,23 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       initialize_CABAC(tctx);
     }
     else {
+      // wait for previous slice to finish decoding
+
+      //printf("wait for previous slice to finish decoding\n");
+
+      slice_unit* prevSliceSegment = tctx->imgunit->get_prev_slice_segment(tctx->sliceunit);
+      if (prevSliceSegment==NULL) {
+        return false;
+      }
+      prevSliceSegment->finished_threads.wait_for_progress(prevSliceSegment->nThreads);
+
+      /*
+      printf("wait for %d,%d (init)\n",
+             prevCtb / sps->PicWidthInCtbsY,
+             prevCtb % sps->PicWidthInCtbsY);
+
       tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
+      */
 
       if (!prevCtbHdr->ctx_model_storage_defined) {
         return false;
@@ -4053,7 +4069,7 @@ std::string thread_task_ctb_row::name() const {
 
 std::string thread_task_slice_segment::name() const {
   char buf[100];
-  sprintf(buf,"slice-segment-%d",tctx->CtbY);
+  sprintf(buf,"slice-segment-%d;%d",debug_startCtbX,debug_startCtbY);
   return buf;
 }
 
@@ -4076,6 +4092,7 @@ void thread_task_slice_segment::work()
     if (!success) {
       state = Finished;
       img->thread_finishes(this);
+      tctx->sliceunit->finished_threads.increase_progress(1);
       return;
     }
   }
@@ -4089,6 +4106,7 @@ void thread_task_slice_segment::work()
 
   state = Finished;
   img->thread_finishes(this);
+  tctx->sliceunit->finished_threads.increase_progress(1);
 
   return; // DE265_OK;
 }
@@ -4118,6 +4136,7 @@ void thread_task_ctb_row::work()
     if (!success) {
       state = Finished;
       img->thread_finishes(this);
+      tctx->sliceunit->finished_threads.increase_progress(1);
       return;
     }
     //initialize_CABAC(tctx);
@@ -4148,6 +4167,7 @@ void thread_task_ctb_row::work()
 
   state = Finished;
   img->thread_finishes(this);
+  tctx->sliceunit->finished_threads.increase_progress(1);
 }
 
 

@@ -123,6 +123,16 @@ void de265_progress_lock::set_progress(int progress)
   de265_mutex_unlock(&mutex);
 }
 
+void de265_progress_lock::increase_progress(int progress)
+{
+  de265_mutex_lock(&mutex);
+
+  mProgress += progress;
+  de265_cond_broadcast(&cond, &mutex);
+
+  de265_mutex_unlock(&mutex);
+}
+
 int  de265_progress_lock::get_progress() const
 {
   return mProgress;

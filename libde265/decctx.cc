@@ -114,6 +114,9 @@ thread_context::thread_context()
   img = NULL;
   shdr = NULL;
 
+  imgunit = NULL;
+  sliceunit = NULL;
+
 
   //memset(this,0,sizeof(thread_context));
 
@@ -138,7 +141,10 @@ slice_unit::slice_unit(decoder_context* decctx)
     shdr(NULL),
     flush_reorder_buffer(false),
     thread_contexts(NULL),
-    imgunit(NULL)
+    imgunit(NULL),
+    nThreads(0),
+    first_decoded_CTB_RS(-1),
+    last_decoded_CTB_RS(-1)
 {
   state = Unprocessed;
   nThreadContexts = 0;
@@ -493,11 +499,14 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
 }
 
 
-void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream)
+void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
+                                                    int ctbx,int ctby)
 {
   thread_task_slice_segment* task = new thread_task_slice_segment;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  task->debug_startCtbX = ctbx;
+  task->debug_startCtbY = ctby;
   tctx->task = task;
 
   add_task(&thread_pool, task);
@@ -794,6 +803,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.img  = imgunit->img;
   tctx.decctx = this;
   tctx.imgunit = imgunit;
+  tctx.sliceunit= sliceunit;
   tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
   tctx.task = NULL;
 
@@ -814,8 +824,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
     imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) * CONTEXT_MODEL_TABLE_LENGTH );
   }
 
+  sliceunit->nThreads=1;
+
   if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
     { return err; }
+
+  sliceunit->finished_threads.set_progress(1);
 
   return err;
 }
@@ -828,7 +842,8 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-
+  //printf("IMAGE UNIT %p\n",imgunit);
+  //sliceunit->shdr->dump_slice_segment_header(sliceunit->ctx, 1);
 
   de265_image* img = imgunit->img;
   const pic_parameter_set* pps = &img->pps;
@@ -924,6 +939,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->decctx  = img->decctx;
     tctx->img     = img;
     tctx->imgunit = imgunit;
+    tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
@@ -951,6 +967,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     //printf("start task for ctb-row: %d\n",ctbRow);
     img->thread_start(1);
+    sliceunit->nThreads++;
     add_task_decode_CTB_row(tctx, entryPt==0, ctbRow);
   }
 
@@ -1016,6 +1033,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->decctx = img->decctx;
     tctx->img    = img;
     tctx->imgunit = imgunit;
+    tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
@@ -1041,8 +1059,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
+    //printf("add tiles thread\n");
     img->thread_start(1);
-    add_task_decode_slice_segment(tctx, entryPt==0);
+    sliceunit->nThreads++;
+    add_task_decode_slice_segment(tctx, entryPt==0,
+                                  ctbAddrRS % ctbsWidth,
+                                  ctbAddrRS / ctbsWidth);
   }
 
   img->wait_for_completion();
