@@ -1006,6 +1006,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       // If slice segment consists of several WPP rows, each of them
       // has to start at a row.
 
+      //printf("does not start at start\n");
+
       err = DE265_WARNING_SLICEHEADER_INVALID;
       break;
     }

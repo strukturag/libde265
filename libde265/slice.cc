@@ -4145,11 +4145,16 @@ void thread_task_ctb_row::work()
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
 
-  //printf("start decoding at row %d\n", ctby);
+  //printf("start CTB-row decoding at row %d\n", ctby);
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
+      // could not decode this row, mark whole row as finished
+      for (int x=0;x<ctbW;x++) {
+        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+      }
+
       state = Finished;
       img->thread_finishes(this);
       tctx->sliceunit->finished_threads.increase_progress(1);
