@@ -542,14 +542,20 @@ void de265_image::thread_start(int nThreads)
 {
   de265_mutex_lock(&mutex);
 
+  //printf("nThreads before: %d %d\n",nThreadsQueued, nThreadsTotal);
+
   nThreadsQueued += nThreads;
   nThreadsTotal += nThreads;
+
+  //printf("nThreads after: %d %d\n",nThreadsQueued, nThreadsTotal);
 
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_run()
+void de265_image::thread_run(const thread_task* task)
 {
+  //printf("run thread %s\n", task->name().c_str());
+
   de265_mutex_lock(&mutex);
   nThreadsQueued--;
   nThreadsRunning++;
@@ -572,8 +578,10 @@ void de265_image::thread_unblocks()
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_finishes()
+void de265_image::thread_finishes(const thread_task* task)
 {
+  //printf("finish thread %s\n", task->name().c_str());
+
   de265_mutex_lock(&mutex);
 
   nThreadsRunning--;

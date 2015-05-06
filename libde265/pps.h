@@ -36,6 +36,7 @@ public:
   pic_parameter_set();
   ~pic_parameter_set();
 
+  void reset() { set_defaults(); }
   bool read(bitreader*, decoder_context*);
   bool write(error_queue*, CABAC_encoder&,
              const seq_parameter_set* sps);

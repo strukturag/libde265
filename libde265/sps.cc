@@ -237,6 +237,11 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
+      pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   conformance_window_flag = get_bits(br,1);
 
   if (conformance_window_flag) {
@@ -650,6 +655,8 @@ void seq_parameter_set::dump(int fd) const
   LOG1("MinTBSizeY   : %d\n", 1<<log2_min_transform_block_size);
   LOG1("MaxTBSizeY   : %d\n", 1<<(log2_min_transform_block_size + log2_diff_max_min_transform_block_size));
 
+  LOG1("PicWidthInCtbsY         : %d\n", PicWidthInCtbsY);
+  LOG1("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
   LOG1("SubWidthC               : %d\n", SubWidthC);
   LOG1("SubHeightC              : %d\n", SubHeightC);
 

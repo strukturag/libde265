@@ -249,6 +249,7 @@ public:
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model_table ctx_model_storage;
+  bool ctx_model_storage_defined; // whether there is valid data in ctx_model_storage
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 
@@ -279,18 +280,22 @@ class thread_task_ctb_row : public thread_task
 {
 public:
   bool   firstSliceSubstream;
+  int    debug_startCtbRow;
   thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
 
 class thread_task_slice_segment : public thread_task
 {
 public:
   bool   firstSliceSubstream;
+  int    debug_startCtbX, debug_startCtbY;
   thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
 
 

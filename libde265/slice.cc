@@ -335,6 +335,8 @@ void slice_segment_header::reset()
   //context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
 
   RemoveReferencesList.clear();
+
+  ctx_model_storage_defined = false;
 }
 
 
@@ -410,11 +412,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (slice_segment_address < 0 ||
-      slice_segment_address > sps->PicSizeInCtbsY) {
+      slice_segment_address >= sps->PicSizeInCtbsY) {
     ctx->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  //printf("SLICE %d (%d)\n",slice_segment_address, sps->PicSizeInCtbsY);
 
 
   if (!dependent_slice_segment_flag) {
@@ -781,6 +784,24 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     if (num_entry_point_offsets == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    if (pps->entropy_coding_sync_enabled_flag) {
+      // check num_entry_points for valid range
+
+      int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
+      int lastCTBRow  = firstCTBRow + num_entry_point_offsets;
+      if (lastCTBRow >= sps->PicHeightInCtbsY) {
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+    }
+
+    if (pps->tiles_enabled_flag) {
+      if (num_entry_point_offsets > pps->num_tile_columns * pps->num_tile_rows) {
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
     }
 
     entry_point_offset.resize( num_entry_point_offsets );
@@ -1249,9 +1270,9 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
   LOG1("slice_pic_parameter_set_id             : %d\n", slice_pic_parameter_set_id);
 
   if (!first_slice_segment_in_pic_flag) {
-    if (pps->dependent_slice_segments_enabled_flag) {
+    //if (pps->dependent_slice_segments_enabled_flag) {
       LOG1("dependent_slice_segment_flag         : %d\n", dependent_slice_segment_flag);
-    }
+      //}
     LOG1("slice_segment_address                : %d\n", slice_segment_address);
   }
 
@@ -2394,6 +2415,8 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 }
 
 
+#define MAX_PREFIX 64
+
 static int decode_coeff_abs_level_remaining(thread_context* tctx,
                                             int cRiceParam)
 {
@@ -2404,6 +2427,10 @@ static int decode_coeff_abs_level_remaining(thread_context* tctx,
   do {
     prefix++;
     codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
+
+    if (prefix>MAX_PREFIX) {
+      return 0; // TODO: error
+    }
   }
   while (codeword);
 
@@ -3471,9 +3498,20 @@ void read_transform_tree(thread_context* tctx,
       {
         enum IntraPredMode intraPredMode = img->get_IntraPredMode(x0,y0);
 
+        if (intraPredMode<0 || intraPredMode>=35) {
+          // TODO: ERROR
+          intraPredMode = INTRA_DC;
+        }
+
         decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
 
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
+
+        if (chromaPredMode<0 || chromaPredMode>=35) {
+          // TODO: ERROR
+          chromaPredMode = INTRA_DC;
+        }
+
 
         if (nT>=8) {
           decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 1);
@@ -4160,6 +4198,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
   const int startCtbY = tctx->CtbY;
 
+  //printf("start decoding substream at %d;%d\n",tctx->CtbX,tctx->CtbY);
+
   // in WPP mode: initialize CABAC model with stored model from row above
 
   if ((!first_independent_substream || tctx->CtbY != startCtbY) &&
@@ -4167,6 +4207,12 @@ enum DecodeResult decode_substream(thread_context* tctx,
       tctx->CtbY>=1 && tctx->CtbX==0)
     {
       if (sps->PicWidthInCtbsY>1) {
+        if ((tctx->CtbY-1+1) * CONTEXT_MODEL_TABLE_LENGTH > tctx->imgunit->ctx_models.size()) {
+          return Decode_Error;
+        }
+
+        //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
+
         // we have to wait until the context model data is there
         tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
 
@@ -4189,13 +4235,21 @@ enum DecodeResult decode_substream(thread_context* tctx,
         return Decode_Error;
     }
 
+    if (ctbx >= tctx->img->sps.PicWidthInCtbsY ||
+        ctby >= tctx->img->sps.PicHeightInCtbsY) {
+        return Decode_Error;
+    }
+
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
-      //printf("wait on %d/%d\n",ctbx+1,ctby-1);
+
+      // TODO: if we are in tiles mode and at the right border, do not wait for x+1,y-1
+
+      //printf("wait on %d/%d (%d)\n",ctbx+1,ctby-1, ctbx+1+(ctby-1)*sps->PicWidthInCtbsY);
 
       tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
-    //printf("%p: decode %d;%d\n", tctx, tctx->CtbY,tctx->CtbX);
+    //printf("%p: decode %d;%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
 
     // read and decode CTB
@@ -4235,6 +4289,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
       if (pps->dependent_slice_segments_enabled_flag) {
         tctx->shdr->ctx_model_storage = tctx->ctx_model;
         tctx->shdr->ctx_model_storage.decouple(); // store an independent copy
+
+        tctx->shdr->ctx_model_storage_defined = true;
       }
     }
 
@@ -4260,6 +4316,17 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
     if (end_of_slice_segment_flag) {
+      /* corrupted inputs may send the end_of_slice_segment_flag even if not all
+         CTBs in a row have been coded. Hence, we mark all of them as finished.
+       */
+
+      /*
+      for (int x = ctbx+1 ; x<sps->PicWidthInCtbsY; x++) {
+        printf("mark skipped %d;%d\n",ctbx,ctby);
+        tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+      }
+      */
+
       return Decode_EndOfSliceSegment;
     }
 
@@ -4289,7 +4356,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 
 
-void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
+bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 {
   de265_image* img = tctx->img;
   const pic_parameter_set* pps = &img->pps;
@@ -4299,7 +4366,11 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
   if (shdr->dependent_slice_segment_flag) {
     int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
-    slice_segment_header* prevCtbHdr = img->slices[ img->get_SliceHeaderIndex_atIndex(prevCtb) ];
+    int sliceIdx = img->get_SliceHeaderIndex_atIndex(prevCtb);
+    if (sliceIdx >= img->slices.size()) {
+      return false;
+    }
+    slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ];
 
     if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
                                shdr->slice_segment_address / sps->PicWidthInCtbsY
@@ -4307,7 +4378,30 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       initialize_CABAC_models(tctx);
     }
     else {
+      // wait for previous slice to finish decoding
+
+      //printf("wait for previous slice to finish decoding\n");
+
+
+      slice_unit* prevSliceSegment = tctx->imgunit->get_prev_slice_segment(tctx->sliceunit);
+      //assert(prevSliceSegment);
+      if (prevSliceSegment==NULL) {
+        return false;
+      }
+
+      prevSliceSegment->finished_threads.wait_for_progress(prevSliceSegment->nThreads);
+
+
+      /*
+      printf("wait for %d,%d (init)\n",
+             prevCtb / sps->PicWidthInCtbsY,
+             prevCtb % sps->PicWidthInCtbsY);
       tctx->img->wait_for_progress(tctx->task, prevCtb, CTB_PROGRESS_PREFILTER);
+      */
+
+      if (!prevCtbHdr->ctx_model_storage_defined) {
+        return false;
+      }
 
       tctx->ctx_model = prevCtbHdr->ctx_model_storage;
       prevCtbHdr->ctx_model_storage.release();
@@ -4316,6 +4410,22 @@ void initialize_CABAC_at_slice_segment_start(thread_context* tctx)
   else {
     initialize_CABAC_models(tctx);
   }
+
+  return true;
+}
+
+
+std::string thread_task_ctb_row::name() const {
+  char buf[100];
+  sprintf(buf,"ctb-row-%d",debug_startCtbRow);
+  return buf;
+}
+
+
+std::string thread_task_slice_segment::name() const {
+  char buf[100];
+  sprintf(buf,"slice-segment-%d;%d",debug_startCtbX,debug_startCtbY);
+  return buf;
 }
 
 
@@ -4326,14 +4436,20 @@ void thread_task_slice_segment::work()
   de265_image* img = tctx->img;
 
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
   if (data->firstSliceSubstream) {
-    initialize_CABAC_at_slice_segment_start(tctx);
+    bool success = initialize_CABAC_at_slice_segment_start(tctx);
+    if (!success) {
+      state = Finished;
+      tctx->sliceunit->finished_threads.increase_progress(1);
+      img->thread_finishes(this);
+      return;
+    }
   }
   else {
     initialize_CABAC_models(tctx);
@@ -4344,7 +4460,8 @@ void thread_task_slice_segment::work()
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
   state = Finished;
-  img->thread_finishes();
+  tctx->sliceunit->finished_threads.increase_progress(1);
+  img->thread_finishes(this);
 
   return; // DE265_OK;
 }
@@ -4360,17 +4477,28 @@ void thread_task_ctb_row::work()
   int ctbW = sps->PicWidthInCtbsY;
 
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
 
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
 
-  // printf("start decoding at %d/%d\n", ctbx,ctby);
+  //printf("start CTB-row decoding at row %d\n", ctby);
 
   if (data->firstSliceSubstream) {
-    initialize_CABAC_at_slice_segment_start(tctx);
+    bool success = initialize_CABAC_at_slice_segment_start(tctx);
+    if (!success) {
+      // could not decode this row, mark whole row as finished
+      for (int x=0;x<ctbW;x++) {
+        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+      }
+
+      state = Finished;
+      tctx->sliceunit->finished_threads.increase_progress(1);
+      img->thread_finishes(this);
+      return;
+    }
     //initialize_CABAC(tctx);
   }
 
@@ -4386,17 +4514,20 @@ void thread_task_ctb_row::work()
 
   // TODO: what about slices that end properly in the middle of a CTB row?
 
-#if 1
   if (tctx->CtbY == myCtbRow) {
     int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
-      img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+
+      if (x        < img->sps.PicWidthInCtbsY &&
+          myCtbRow < img->sps.PicHeightInCtbsY) {
+        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
+      }
     }
   }
-#endif
 
   state = Finished;
-  img->thread_finishes();
+  tctx->sliceunit->finished_threads.increase_progress(1);
+  img->thread_finishes(this);
 }
 
 
@@ -4409,11 +4540,14 @@ de265_error read_slice_segment_data(thread_context* tctx)
   const seq_parameter_set* sps = &img->sps;
   slice_segment_header* shdr = tctx->shdr;
 
-  initialize_CABAC_at_slice_segment_start(tctx);
+  bool success = initialize_CABAC_at_slice_segment_start(tctx);
+  if (!success) {
+    return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
+  }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
-  // printf("-----\n");
+  //printf("-----\n");
 
   bool first_slice_substream = !shdr->dependent_slice_segment_flag;
 

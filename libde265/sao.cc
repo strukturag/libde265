@@ -345,13 +345,18 @@ public:
   int inputProgress;
 
   virtual void work();
+  virtual std::string name() const {
+    char buf[100];
+    sprintf(buf,"sao-%d",ctb_y);
+    return buf;
+  }
 };
 
 
 void thread_task_sao::work()
 {
   state = Running;
-  img->thread_run();
+  img->thread_run(this);
 
   const int rightCtb = img->sps.PicWidthInCtbsY-1;
   const int ctbSize  = (1<<img->sps.Log2CtbSizeY);
@@ -380,6 +385,9 @@ void thread_task_sao::work()
   for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)
     {
       const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
+      if (shdr==NULL) {
+        break;
+      }
 
       if (shdr->slice_sao_luma_flag) {
         apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize,
@@ -408,7 +416,7 @@ void thread_task_sao::work()
 
 
   state = Finished;
-  img->thread_finishes();
+  img->thread_finishes(this);
 }
 
 
@@ -437,7 +445,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
   int n=0;
   img->thread_start(nRows);
 
-  for (int y=0;y<img->sps.PicHeightInCtbsY;y++)
+  for (int y=0;y<nRows;y++)
     {
       thread_task_sao* task = new thread_task_sao;
 

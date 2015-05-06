@@ -32,6 +32,7 @@
 #endif
 
 #include <deque>
+#include <string>
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -100,6 +101,7 @@ public:
 
   void wait_for_progress(int progress);
   void set_progress(int progress);
+  void increase_progress(int progress);
   int  get_progress() const;
   void reset(int value=0) { mProgress=value; }
 
@@ -123,6 +125,8 @@ public:
   enum { Queued, Running, Blocked, Finished } state;
 
   virtual void work() = 0;
+
+  virtual std::string name() const { return "noname"; }
 };
 
 

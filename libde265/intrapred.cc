@@ -99,7 +99,7 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
     if (candIntraPredModeA < 2) {
       candModeList[0] = INTRA_PLANAR;
       candModeList[1] = INTRA_DC;
-      candModeList[2] = INTRA_ANGULAR_26; 
+      candModeList[2] = INTRA_ANGULAR_26;
     }
     else {
       candModeList[0] = candIntraPredModeA;
@@ -120,7 +120,7 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
       candModeList[2] = INTRA_DC;
     }
     else {
-      candModeList[2] = INTRA_ANGULAR_26; 
+      candModeList[2] = INTRA_ANGULAR_26;
     }
   }
 
@@ -300,7 +300,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   if (xBLuma+nTLuma >= sps->pic_width_in_luma_samples) {
     availableTopRight=false;
   }
- 
+
   // check for tile and slice boundaries
 
   int xCurrCtb = xBLuma >> log2CtbSize;
@@ -360,7 +360,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
         {
           int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
                                              ((yB+y)>>TUShift) * sps->PicWidthInTbsY ];
-        
+
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
@@ -775,5 +775,3 @@ void decode_intra_prediction(de265_image* img,
     break;
   }
 }
-
-

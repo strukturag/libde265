@@ -34,7 +34,7 @@
 
 pic_parameter_set::pic_parameter_set()
 {
-  pps_read = false;
+  reset();
 }
 
 
@@ -71,7 +71,6 @@ void pic_parameter_set::set_defaults(enum PresetSet)
   transquant_bypass_enable_flag = 0;
   entropy_coding_sync_enabled_flag = 0;
 
-
   // --- tiles ---
 
   tiles_enabled_flag = 0;
@@ -84,8 +83,22 @@ void pic_parameter_set::set_defaults(enum PresetSet)
 
   loop_filter_across_tiles_enabled_flag = 1;
   pps_loop_filter_across_slices_enabled_flag = 1;
-  deblocking_filter_control_present_flag = 0;
 
+  for (int i=0;i<DE265_MAX_TILE_COLUMNS;i++) { colWidth[i]=0; }
+  for (int i=0;i<DE265_MAX_TILE_ROWS;i++)    { rowHeight[i]=0; }
+  for (int i=0;i<=DE265_MAX_TILE_COLUMNS;i++) { colBd[i]=0; }
+  for (int i=0;i<=DE265_MAX_TILE_ROWS;i++)    { rowBd[i]=0; }
+
+  CtbAddrRStoTS.clear();
+  CtbAddrTStoRS.clear();
+  TileId.clear();
+  TileIdRS.clear();
+  MinTbAddrZS.clear();
+
+
+  Log2MinCuQpDeltaSize = 0;
+
+  deblocking_filter_control_present_flag = 0;
   deblocking_filter_override_enabled_flag = 0;
   pic_disable_deblocking_filter_flag = 0;
 
@@ -97,6 +110,7 @@ void pic_parameter_set::set_defaults(enum PresetSet)
 
   lists_modification_present_flag = 0;
   log2_parallel_merge_level = 2;
+
   num_extra_slice_header_bits = 0;
   slice_segment_header_extension_present_flag = 0;
   pps_extension_flag = 0;
@@ -105,7 +119,8 @@ void pic_parameter_set::set_defaults(enum PresetSet)
 
 bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 {
-  pps_read = false; // incomplete pps
+  reset();
+
 
   int uvlc;
   pic_parameter_set_id = uvlc = get_uvlc(br);

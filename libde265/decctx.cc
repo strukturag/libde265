@@ -114,6 +114,9 @@ thread_context::thread_context()
   img = NULL;
   shdr = NULL;
 
+  imgunit = NULL;
+  sliceunit = NULL;
+
 
   //memset(this,0,sizeof(thread_context));
 
@@ -138,9 +141,13 @@ slice_unit::slice_unit(decoder_context* decctx)
     shdr(NULL),
     flush_reorder_buffer(false),
     thread_contexts(NULL),
-    imgunit(NULL)
+    imgunit(NULL),
+    nThreads(0),
+    first_decoded_CTB_RS(-1),
+    last_decoded_CTB_RS(-1)
 {
   state = Unprocessed;
+  nThreadContexts = 0;
 }
 
 slice_unit::~slice_unit()
@@ -158,6 +165,7 @@ void slice_unit::allocate_thread_contexts(int n)
   assert(thread_contexts==NULL);
 
   thread_contexts = new thread_context[n];
+  nThreadContexts = n;
 }
 
 
@@ -479,11 +487,14 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream)
+void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
+                                              bool firstSliceSubstream,
+                                              int ctbRow)
 {
   thread_task_ctb_row* task = new thread_task_ctb_row;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  task->debug_startCtbRow = ctbRow;
   tctx->task = task;
 
   add_task(&thread_pool_, task);
@@ -492,11 +503,14 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx, bool firstSl
 }
 
 
-void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream)
+void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
+                                                    int ctbx,int ctby)
 {
   thread_task_slice_segment* task = new thread_task_slice_segment;
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
+  task->debug_startCtbX = ctbx;
+  task->debug_startCtbY = ctby;
   tctx->task = task;
 
   add_task(&thread_pool_, task);
@@ -690,26 +704,29 @@ de265_error decoder_context::decode_some(bool* did_work)
 
   // decode something if there is work to do
 
-  if ( ! image_units.empty() && ! image_units[0]->slice_units.empty() ) {
+  if ( ! image_units.empty() ) { // && ! image_units[0]->slice_units.empty() ) {
 
     image_unit* imgunit = image_units[0];
-    slice_unit* sliceunit = imgunit->slice_units[0];
+    slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
-    pop_front(imgunit->slice_units);
+    if (sliceunit != NULL) {
 
-    if (sliceunit->flush_reorder_buffer) {
-      dpb.flush_reorder_buffer();
+      //pop_front(imgunit->slice_units);
+
+      if (sliceunit->flush_reorder_buffer) {
+        dpb.flush_reorder_buffer();
+      }
+
+      *did_work = true;
+
+      //err = decode_slice_unit_sequential(imgunit, sliceunit);
+      err = decode_slice_unit_parallel(imgunit, sliceunit);
+      if (err) {
+        return err;
+      }
+
+      //delete sliceunit;
     }
-
-    *did_work = true;
-
-    //err = decode_slice_unit_sequential(imgunit, sliceunit);
-    err = decode_slice_unit_parallel(imgunit, sliceunit);
-    if (err) {
-      return err;
-    }
-
-    delete sliceunit;
   }
 
 
@@ -717,8 +734,8 @@ de265_error decoder_context::decode_some(bool* did_work)
   // if we decoded all slices of the current image and there will not
   // be added any more slices to the image, output the image
 
-  if ( ( image_units.size()>=2 && image_units[0]->slice_units.empty() ) ||
-       ( image_units.size()>=1 && image_units[0]->slice_units.empty() &&
+  if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
+       ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
          nal_parser.number_of_NAL_units_pending()==0 &&
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
 
@@ -793,6 +810,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.img  = imgunit->img;
   tctx.decctx = this;
   tctx.imgunit = imgunit;
+  tctx.sliceunit= sliceunit;
   tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
   tctx.task = NULL;
 
@@ -813,10 +831,43 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
     imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
-  if ((err=read_slice_segment_data(&tctx)) != DE265_OK)
-    { return err; }
+  sliceunit->nThreads=1;
+
+  err=read_slice_segment_data(&tctx);
+
+  sliceunit->finished_threads.set_progress(1);
 
   return err;
+}
+
+
+void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
+                                                    slice_unit* sliceunit,
+                                                    int progress)
+{
+  //printf("mark whole slice\n");
+
+
+  // mark all CTBs upto the next slice segment as processed
+
+  slice_unit* nextSegment = imgunit->get_next_slice_segment(sliceunit);
+  if (nextSegment) {
+    /*
+    printf("mark whole slice between %d and %d\n",
+           sliceunit->shdr->slice_segment_address,
+           nextSegment->shdr->slice_segment_address);
+    */
+
+    for (int ctb=sliceunit->shdr->slice_segment_address;
+         ctb < nextSegment->shdr->slice_segment_address;
+         ctb++)
+      {
+        if (ctb >= imgunit->img->number_of_ctbs())
+          break;
+
+        imgunit->img->ctb_progress[ctb].set_progress(progress);
+      }
+  }
 }
 
 
@@ -827,10 +878,17 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-
+  /*
+  printf("-------- decode --------\n");
+  printf("IMAGE UNIT %p\n",imgunit);
+  sliceunit->shdr->dump_slice_segment_header(sliceunit->ctx, 1);
+  imgunit->dump_slices();
+  */
 
   de265_image* img = imgunit->img;
   const pic_parameter_set* pps = &img->pps;
+
+  sliceunit->state = slice_unit::InProgress;
 
   bool use_WPP = (img->decctx->num_worker_threads > 0 &&
                   pps->entropy_coding_sync_enabled_flag);
@@ -848,27 +906,66 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   }
 
 
+  // If this is the first slice segment, mark all CTBs before this as processed
+  // (the real first slice segment could be missing).
+
+  if (imgunit->is_first_slice_segment(sliceunit)) {
+    slice_segment_header* shdr = sliceunit->shdr;
+    int firstCTB = shdr->slice_segment_address;
+
+    for (int ctb=0;ctb<firstCTB;ctb++) {
+      //printf("mark pre progress %d\n",ctb);
+      img->ctb_progress[ctb].set_progress(CTB_PROGRESS_PREFILTER);
+    }
+  }
+
+
+  // if there is a previous slice that has been completely decoded,
+  // mark all CTBs until the start of this slice as completed
+
+  //printf("this slice: %p\n",sliceunit);
+  slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
+  //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
+  if (prevSlice && prevSlice->state == slice_unit::Decoded) {
+    mark_whole_slice_as_processed(imgunit,prevSlice,CTB_PROGRESS_PREFILTER);
+  }
+
+
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
   if (!use_WPP && !use_tiles) {
-    return decode_slice_unit_sequential(imgunit, sliceunit);
+    //printf("SEQ\n");
+    err = decode_slice_unit_sequential(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
+    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    return err;
   }
 
 
   if (use_WPP && use_tiles) {
     // TODO: this is not allowed ... output some warning or error
+
+    return DE265_WARNING_PPS_HEADER_INVALID;
   }
 
 
   if (use_WPP) {
-    return decode_slice_unit_WPP(imgunit, sliceunit);
+    //printf("WPP\n");
+    err = decode_slice_unit_WPP(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
+    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    return err;
   }
   else if (use_tiles) {
-    return decode_slice_unit_tiles(imgunit, sliceunit);
+    //printf("TILE\n");
+    err = decode_slice_unit_tiles(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
+    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    return err;
   }
 
   assert(false);
-  return DE265_OK;
+  return err;
 }
 
 
@@ -886,9 +983,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_start(nRows);
-
-  //printf("-------- decode --------\n");
 
 
   // reserve space to store entropy coding context models for each CTB row
@@ -912,6 +1006,15 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       ctbRow++;
       ctbAddrRS = ctbRow * ctbsWidth;
     }
+    else if (nRows>1 && (ctbAddrRS % ctbsWidth) != 0) {
+      // If slice segment consists of several WPP rows, each of them
+      // has to start at a row.
+
+      //printf("does not start at start\n");
+
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
 
 
     // prepare thread context
@@ -922,6 +1025,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->decctx  = img->decctx;
     tctx->img     = img;
     tctx->imgunit = imgunit;
+    tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
@@ -937,8 +1041,11 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     if (entryPt==nRows-1) dataEnd = sliceunit->reader.bytes_remaining;
     else                  dataEnd = shdr->entry_point_offset[entryPt];
 
-    if (dataEnd-dataStartIndex <= 0) {
-      return DE265_ERROR_PREMATURE_END_OF_SLICE;
+    if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
+        dataEnd <= dataStartIndex) {
+      //printf("WPP premature end\n");
+      err = DE265_ERROR_PREMATURE_END_OF_SLICE;
+      break;
     }
 
     init_CABAC_decoder(&tctx->cabac_decoder,
@@ -947,7 +1054,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     // add task
 
-    add_task_decode_CTB_row(tctx, entryPt==0);
+    //printf("start task for ctb-row: %d\n",ctbRow);
+    img->thread_start(1);
+    sliceunit->nThreads++;
+    add_task_decode_CTB_row(tctx, entryPt==0, ctbRow);
   }
 
 #if 0
@@ -987,7 +1097,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 
   assert(img->num_threads_active() == 0);
-  img->thread_start(nTiles);
 
   sliceunit->allocate_thread_contexts(nTiles);
 
@@ -1000,6 +1109,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     // entry points other than the first start at tile beginnings
     if (entryPt>0) {
       tileID++;
+
+      if (tileID >= pps->num_tile_columns * pps->num_tile_rows) {
+        err = DE265_WARNING_SLICEHEADER_INVALID;
+        break;
+      }
+
       int ctbX = pps->colBd[tileID % pps->num_tile_columns];
       int ctbY = pps->rowBd[tileID / pps->num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
@@ -1013,6 +1128,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->decctx = img->decctx;
     tctx->img    = img;
     tctx->imgunit = imgunit;
+    tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
@@ -1028,8 +1144,10 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     if (entryPt==nTiles-1) dataEnd = sliceunit->reader.bytes_remaining;
     else                   dataEnd = shdr->entry_point_offset[entryPt];
 
-    if (dataEnd-dataStartIndex <= 0) {
-      return DE265_ERROR_PREMATURE_END_OF_SLICE;
+    if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
+        dataEnd <= dataStartIndex) {
+      err = DE265_ERROR_PREMATURE_END_OF_SLICE;
+      break;
     }
 
     init_CABAC_decoder(&tctx->cabac_decoder,
@@ -1038,7 +1156,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
-    add_task_decode_slice_segment(tctx, entryPt==0);
+    //printf("add tiles thread\n");
+    img->thread_start(1);
+    sliceunit->nThreads++;
+    add_task_decode_slice_segment(tctx, entryPt==0,
+                                  ctbAddrRS % ctbsWidth,
+                                  ctbAddrRS / ctbsWidth);
   }
 
   img->wait_for_completion();
@@ -1047,7 +1170,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     delete imgunit->tasks[i];
   imgunit->tasks.clear();
 
-  return DE265_OK;
+  return err;
 }
 
 
@@ -1659,8 +1782,12 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
     // remember POC of referenced image (needed in motion.c, derive_collocated_motion_vector)
-    hdr->RefPicList_POC[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicOrderCntVal;
-    hdr->RefPicList_PicState[0][rIdx] = ctx->dpb.get_image(hdr->RefPicList[0][rIdx])->PicState;
+    de265_image* img_0_rIdx = ctx->dpb.get_image(hdr->RefPicList[0][rIdx]);
+    if (img_0_rIdx==NULL) {
+      return false;
+    }
+    hdr->RefPicList_POC[0][rIdx] = img_0_rIdx->PicOrderCntVal;
+    hdr->RefPicList_PicState[0][rIdx] = img_0_rIdx->PicState;
   }
 
 
@@ -1708,8 +1835,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      hdr->RefPicList_POC[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicOrderCntVal;
-      hdr->RefPicList_PicState[1][rIdx] = ctx->dpb.get_image(hdr->RefPicList[1][rIdx])->PicState;
+      de265_image* img_1_rIdx = ctx->dpb.get_image(hdr->RefPicList[1][rIdx]);
+      if (img_1_rIdx == NULL) { return false; }
+      hdr->RefPicList_POC[1][rIdx] = img_1_rIdx->PicOrderCntVal;
+      hdr->RefPicList_PicState[1][rIdx] = img_1_rIdx->PicState;
     }
   }
 

@@ -44,6 +44,7 @@
 
 class slice_segment_header;
 class image_unit;
+class slice_unit;
 class decoder_context;
 
 
@@ -101,6 +102,7 @@ public:
   slice_segment_header* shdr;
 
   image_unit* imgunit;
+  slice_unit* sliceunit;
   thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
@@ -141,21 +143,36 @@ public:
 
   bool flush_reorder_buffer;
 
-  enum { Unprocessed,
-         Inprogress,
-         Decoded
+
+  // decoding status
+
+  enum SliceDecodingProgress { Unprocessed,
+                               InProgress,
+                               Decoded
   } state;
 
+  de265_progress_lock finished_threads;
+  int nThreads;
+
+  int first_decoded_CTB_RS; // TODO
+  int last_decoded_CTB_RS;  // TODO
+
   void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) { return &thread_contexts[n]; }
+  thread_context* get_thread_context(int n) {
+    assert(n < nThreadContexts);
+    return &thread_contexts[n];
+  }
+  int num_thread_contexts() const { return nThreadContexts; }
 
 private:
   thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
                                       no copy constructor. */
+  int nThreadContexts;
 
+public:
   decoder_context* ctx;
 
-
+private:
   slice_unit(const slice_unit&); // not allowed
   const slice_unit& operator=(const slice_unit&); // not allowed
 };
@@ -172,6 +189,53 @@ public:
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
+
+  slice_unit* get_next_unprocessed_slice_segment() const {
+    for (int i=0;i<slice_units.size();i++) {
+      if (slice_units[i]->state == slice_unit::Unprocessed) {
+        return slice_units[i];
+      }
+    }
+
+    return NULL;
+  }
+
+  slice_unit* get_prev_slice_segment(slice_unit* s) const {
+    for (int i=1; i<slice_units.size(); i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i-1];
+      }
+    }
+
+    return NULL;
+  }
+
+  slice_unit* get_next_slice_segment(slice_unit* s) const {
+    for (int i=0; i<slice_units.size()-1; i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i+1];
+      }
+    }
+
+    return NULL;
+  }
+
+  void dump_slices() const {
+    for (int i=0; i<slice_units.size(); i++) {
+      printf("[%d] = %p\n",i,slice_units[i]);
+    }
+  }
+
+  bool all_slice_segments_processed() const {
+    if (slice_units.size()==0) return true;
+    if (slice_units.back()->state != slice_unit::Unprocessed) return true;
+    return false;
+  }
+
+  bool is_first_slice_segment(const slice_unit* s) const {
+    if (slice_units.size()==0) return false;
+    return (slice_units[0] == s);
+  }
 
   enum { Invalid, // headers not read yet
          Unknown, // SPS/PPS available
@@ -245,6 +309,7 @@ class decoder_context : public base_context {
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
+
 
   void process_nal_hdr(nal_header*);
   void process_vps(video_parameter_set*);
@@ -424,9 +489,13 @@ class decoder_context : public base_context {
 
  private:
   void init_thread_context(thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream);
-  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
+  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
+  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
+                                     int ctbX,int ctbY);
 
+  void mark_whole_slice_as_processed(image_unit* imgunit,
+                                     slice_unit* sliceunit,
+                                     int progress);
 
   void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
   int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
