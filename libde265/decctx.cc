@@ -919,14 +919,12 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   // if there is a previous slice that has been completely decoded,
   // mark all CTBs until the start of this slice as completed
 
-  /*
   //printf("this slice: %p\n",sliceunit);
   slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
   //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
   if (prevSlice && prevSlice->state == slice_unit::Decoded) {
     mark_whole_slice_as_processed(imgunit,prevSlice,CTB_PROGRESS_PREFILTER);
   }
-  */
 
 
   // TODO: even though we cannot split this into several tasks, we should run it
@@ -1004,8 +1002,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       ctbRow++;
       ctbAddrRS = ctbRow * ctbsWidth;
     }
-    else if (ctbAddrRS % ctbsWidth != 0) {
-      //printf("invalid first CTB\n");
+    else if (nRows>1 && (ctbAddrRS % ctbsWidth) != 0) {
+      // If slice segment consists of several WPP rows, each of them
+      // has to start at a row.
+
       err = DE265_WARNING_SLICEHEADER_INVALID;
       break;
     }
