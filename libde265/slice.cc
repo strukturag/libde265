@@ -4207,7 +4207,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       tctx->CtbY>=1 && tctx->CtbX==0)
     {
       if (sps->PicWidthInCtbsY>1) {
-        if ((tctx->CtbY-1+1) * CONTEXT_MODEL_TABLE_LENGTH > tctx->imgunit->ctx_models.size()) {
+        if ((tctx->CtbY-1) >= tctx->imgunit->ctx_models.size()) {
           return Decode_Error;
         }
 
