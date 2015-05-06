@@ -107,7 +107,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   if (xBLuma+nTLuma >= sps->pic_width_in_luma_samples) {
     availableTopRight=false;
   }
- 
+
   // check for tile and slice boundaries
 
   int xCurrCtb = xBLuma >> log2CtbSize;
@@ -160,7 +160,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
         {
           int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
                                              ((yB+y)>>TUShift) * sps->PicWidthInTbsY ];
-        
+
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
@@ -364,6 +364,7 @@ void intra_prediction_angular(de265_image* img,
   pred   = img->get_image_plane_at_pos(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
 
+  assert(intraPredMode>=0 && intraPredMode<35);
   int intraPredAngle = intraPredAngle_table[intraPredMode];
 
   if (intraPredMode >= 18) {
@@ -574,5 +575,3 @@ void decode_intra_prediction(de265_image* img,
     break;
   }
 }
-
-

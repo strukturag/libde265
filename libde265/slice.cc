@@ -3109,6 +3109,12 @@ void read_transform_tree(thread_context* tctx,
       {
         enum IntraPredMode intraPredMode = img->get_IntraPredMode(x0,y0);
 
+        if (intraPredMode<0 || intraPredMode>=35) {
+          // TODO: ERROR
+
+          intraPredMode = INTRA_DC;
+        }
+
         decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
 
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
@@ -4107,8 +4113,8 @@ void thread_task_slice_segment::work()
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
       state = Finished;
-      img->thread_finishes(this);
       tctx->sliceunit->finished_threads.increase_progress(1);
+      img->thread_finishes(this);
       return;
     }
   }
@@ -4121,8 +4127,8 @@ void thread_task_slice_segment::work()
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
   state = Finished;
-  img->thread_finishes(this);
   tctx->sliceunit->finished_threads.increase_progress(1);
+  img->thread_finishes(this);
 
   return; // DE265_OK;
 }
@@ -4156,8 +4162,8 @@ void thread_task_ctb_row::work()
       }
 
       state = Finished;
-      img->thread_finishes(this);
       tctx->sliceunit->finished_threads.increase_progress(1);
+      img->thread_finishes(this);
       return;
     }
     //initialize_CABAC(tctx);
@@ -4187,8 +4193,8 @@ void thread_task_ctb_row::work()
   }
 
   state = Finished;
-  img->thread_finishes(this);
   tctx->sliceunit->finished_threads.increase_progress(1);
+  img->thread_finishes(this);
 }
 
 
