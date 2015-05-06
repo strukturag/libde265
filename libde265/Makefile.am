@@ -85,7 +85,7 @@ if ENABLE_SSE_OPT
 endif
 
 if ENABLE_ARM_OPT
-  SUBDIRS = arm
+  SUBDIRS += arm
   libde265_la_LIBADD += arm/libde265_arm.la
 endif
 
