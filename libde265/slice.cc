@@ -3111,13 +3111,18 @@ void read_transform_tree(thread_context* tctx,
 
         if (intraPredMode<0 || intraPredMode>=35) {
           // TODO: ERROR
-
           intraPredMode = INTRA_DC;
         }
 
         decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
 
         enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
+
+        if (chromaPredMode<0 || chromaPredMode>=35) {
+          // TODO: ERROR
+          chromaPredMode = INTRA_DC;
+        }
+
 
         if (nT>=8) {
           decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 1);
