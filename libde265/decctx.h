@@ -221,6 +221,12 @@ struct image_unit
     return NULL;
   }
 
+  void dump_slices() const {
+    for (int i=0; i<slice_units.size(); i++) {
+      printf("[%d] = %p\n",i,slice_units[i]);
+    }
+  }
+
   bool all_slice_segments_processed() const {
     if (slice_units.size()==0) return true;
     if (slice_units.back()->state != slice_unit::Unprocessed) return true;

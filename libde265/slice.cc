@@ -3858,6 +3858,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
   const int startCtbY = tctx->CtbY;
 
+  //printf("start decoding substream at %d;%d\n",tctx->CtbX,tctx->CtbY);
+
   // in WPP mode: initialize CABAC model with stored model from row above
 
   if ((!first_independent_substream || tctx->CtbY != startCtbY) &&
@@ -3865,12 +3867,14 @@ enum DecodeResult decode_substream(thread_context* tctx,
       tctx->CtbY>=1 && tctx->CtbX==0)
     {
       if (sps->PicWidthInCtbsY>1) {
-        // we have to wait until the context model data is there
-        tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
-
         if ((tctx->CtbY-1+1) * CONTEXT_MODEL_TABLE_LENGTH > tctx->imgunit->ctx_models.size()) {
           return Decode_Error;
         }
+
+        //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
+
+        // we have to wait until the context model data is there
+        tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
 
         // copy CABAC model from previous CTB row
         memcpy(tctx->ctx_model,
@@ -3901,7 +3905,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
       // TODO: if we are in tiles mode and at the right border, do not wait for x+1,y-1
 
-      //printf("wait on %d/%d\n",ctbx+1,ctby-1);
+      //printf("wait on %d/%d (%d)\n",ctbx+1,ctby-1, ctbx+1+(ctby-1)*sps->PicWidthInCtbsY);
 
       tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }

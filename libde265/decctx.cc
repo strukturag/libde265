@@ -841,10 +841,19 @@ void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
                                                     slice_unit* sliceunit,
                                                     int progress)
 {
+  //printf("mark whole slice\n");
+
+
   // mark all CTBs upto the next slice segment as processed
 
   slice_unit* nextSegment = imgunit->get_next_slice_segment(sliceunit);
   if (nextSegment) {
+    /*
+    printf("mark whole slice between %d and %d\n",
+           sliceunit->shdr->slice_segment_address,
+           nextSegment->shdr->slice_segment_address);
+    */
+
     for (int ctb=sliceunit->shdr->slice_segment_address;
          ctb < nextSegment->shdr->slice_segment_address;
          ctb++)
@@ -865,9 +874,12 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-  //printf("-------- decode --------\n");
-  //printf("IMAGE UNIT %p\n",imgunit);
-  //sliceunit->shdr->dump_slice_segment_header(sliceunit->ctx, 1);
+  /*
+  printf("-------- decode --------\n");
+  printf("IMAGE UNIT %p\n",imgunit);
+  sliceunit->shdr->dump_slice_segment_header(sliceunit->ctx, 1);
+  imgunit->dump_slices();
+  */
 
   de265_image* img = imgunit->img;
   const pic_parameter_set* pps = &img->pps;
@@ -904,11 +916,25 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   }
 
 
+  // if there is a previous slice that has been completely decoded,
+  // mark all CTBs until the start of this slice as completed
+
+  /*
+  //printf("this slice: %p\n",sliceunit);
+  slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
+  //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
+  if (prevSlice && prevSlice->state == slice_unit::Decoded) {
+    mark_whole_slice_as_processed(imgunit,prevSlice,CTB_PROGRESS_PREFILTER);
+  }
+  */
+
+
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
   if (!use_WPP && !use_tiles) {
     //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
@@ -924,12 +950,14 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   if (use_WPP) {
     //printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_tiles) {
     //printf("TILE\n");
     err = decode_slice_unit_tiles(imgunit, sliceunit);
+    sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
@@ -976,6 +1004,11 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       ctbRow++;
       ctbAddrRS = ctbRow * ctbsWidth;
     }
+    else if (ctbAddrRS % ctbsWidth != 0) {
+      //printf("invalid first CTB\n");
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
 
 
     // prepare thread context
@@ -1004,6 +1037,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
         dataEnd <= dataStartIndex) {
+      //printf("WPP premature end\n");
       err = DE265_ERROR_PREMATURE_END_OF_SLICE;
       break;
     }
