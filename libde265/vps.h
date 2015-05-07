@@ -136,6 +136,8 @@ public:
   void set_defaults(enum profile_idc profile, int level_major, int level_minor);
 
   int video_parameter_set_id;
+  bool vps_base_layer_internal_flag;
+  bool vps_base_layer_available_flag;
   int vps_max_layers;            // [1;?]  currently always 1
   int vps_max_sub_layers;        // [1;7]  number of temporal sub-layers
   int vps_temporal_id_nesting_flag; // indicate temporal up-switching always possible
@@ -167,6 +169,9 @@ public:
   // --- vps extension ---
 
   char vps_extension_flag;
+
+  /// Variables calculated from the read parameters when parsing the vps
+  int MaxLayersMinus1;
 };
 
 

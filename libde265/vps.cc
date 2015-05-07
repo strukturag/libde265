@@ -106,15 +106,20 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   video_parameter_set_id = vlc = get_bits(reader, 4);
   if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
-  skip_bits(reader, 2);
+  vps_base_layer_internal_flag = get_bits(reader, 1);
+  vps_base_layer_available_flag = get_bits(reader, 1);
+
   vps_max_layers = vlc = get_bits(reader,6) +1;
   if (vlc > 63) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // vps_max_layers_minus1 (range 0...63)
+  MaxLayersMinus1 = libde265_min(62, vps_max_layers-1);
 
   vps_max_sub_layers = vlc = get_bits(reader,3) +1;
   if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
   vps_temporal_id_nesting_flag = get_bits(reader,1);
-  skip_bits(reader, 16);
+  
+  vlc = get_bits(reader,16);  // vps_reserved_0xffff_16bits
+  if (vlc != 0xffff) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
   profile_tier_level_.read(reader, vps_max_sub_layers);
 
