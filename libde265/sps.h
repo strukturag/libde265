@@ -22,6 +22,7 @@
 #define DE265_SPS_H
 
 #include "libde265/vps.h"
+#include "libde265/vui.h"
 #include "libde265/bitstream.h"
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
@@ -46,6 +47,25 @@ enum {
   CHROMA_444_SEPARATE
 };
 
+struct sps_range_extension {
+  de265_error read(bitreader* reader);
+
+	bool transform_skip_rotation_enabled_flag;
+	bool transform_skip_context_enabled_flag;
+	bool implicit_rdpcm_enabled_flag;
+	bool explicit_rdpcm_enabled_flag;
+	bool extended_precision_processing_flag;
+	bool intra_smoothing_disabled_flag;
+	bool high_precision_offsets_enabled_flag;
+	bool persistent_rice_adaptation_enabled_flag;
+	bool cabac_bypass_alignment_enabled_flag;
+};
+
+struct sps_multilayer_extension {
+  de265_error read(bitreader* reader);
+
+  bool inter_view_mv_vert_constraint_flag;
+};
 
 typedef struct scaling_list_data {
   // structure size: approx. 4 kB
@@ -145,21 +165,15 @@ public:
   char strong_intra_smoothing_enable_flag;
   char vui_parameters_present_flag;
 
-  /*
-    if( vui_parameters_present_flag )
-      vui_parameters()
-  */
+  video_usability_information vui;
 
-  char sps_extension_flag;
-
-  /*
-    if( sps_extension_flag )
-    while( more_rbsp_data() )
-    sps_extension_data_flag
-    u(1)
-    rbsp_trailing_bits()
-  */
-
+  bool sps_extension_present_flag;
+  bool sps_range_extension_flag;
+  bool sps_multilayer_extension_flag;
+  int  sps_extension_6bits;
+  
+  sps_range_extension range_extension;
+  sps_multilayer_extension multilayer_extension;
 
   // --- derived values ---
 

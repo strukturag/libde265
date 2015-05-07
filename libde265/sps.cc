@@ -153,7 +153,9 @@ void seq_parameter_set::set_defaults(enum PresetSet)
       vui_parameters()
   */
 
-  sps_extension_flag = 0;
+  sps_range_extension_flag = false;
+  sps_multilayer_extension_flag = false;
+  sps_extension_6bits = 0;
 }
 
 
@@ -408,31 +410,32 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   strong_intra_smoothing_enable_flag = get_bits(br,1);
   vui_parameters_present_flag = get_bits(br,1);
 
-#if 0
-  if (vui_parameters_present_flag) {
-    assert(false);
-    /*
-      vui_parameters()
-
-        sps_extension_flag
-        u(1)
-        if( sps_extension_flag )
-
-          while( more_rbsp_data() )
-
-            sps_extension_data_flag
-              u(1)
-              rbsp_trailing_bits()
-    */
+if (vui_parameters_present_flag) {
+    vui.read(br, sps_max_sub_layers - 1);
   }
 
-  sps_extension_flag = get_bits(br,1);
-  if (sps_extension_flag) {
-    assert(false);
+  sps_extension_present_flag = get_bits(br,1);
+  if (sps_extension_present_flag) {
+    sps_range_extension_flag = get_bits(br,1);
+    sps_multilayer_extension_flag = get_bits(br,1);
+    sps_extension_6bits = get_bits(br,6);
+  }
+  else {
+    sps_range_extension_flag = false;
+    sps_multilayer_extension_flag = false;
+    sps_extension_6bits = 0;
   }
 
-  check_rbsp_trailing_bits(br);
-#endif
+  if (sps_range_extension_flag) {
+    range_extension.read(br);
+  }
+  if (sps_multilayer_extension_flag) {
+    multilayer_extension.read(br);
+  }
+  if (sps_extension_6bits > 0) {
+    // The remaining bits are sps_extension_data_flags
+  }
+  // The remaining bits are rsbp_trailing_bits()
 
 
   de265_error err = compute_derived_values();
@@ -1129,7 +1132,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   }
 #endif
 
-  out.write_bit(sps_extension_flag);
+  out.write_bit(sps_extension_present_flag);
 
 #if 0
   if (sps_extension_flag) {
@@ -1179,5 +1182,26 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   sps_read = true;
 #endif
 
+  return DE265_OK;
+}
+
+de265_error sps_range_extension::read(bitreader* reader)
+{
+  transform_skip_rotation_enabled_flag = get_bits(reader,1);
+  transform_skip_context_enabled_flag = get_bits(reader,1);
+  implicit_rdpcm_enabled_flag = get_bits(reader,1);
+  explicit_rdpcm_enabled_flag = get_bits(reader,1);
+  extended_precision_processing_flag = get_bits(reader,1);
+  intra_smoothing_disabled_flag = get_bits(reader,1);
+  high_precision_offsets_enabled_flag = get_bits(reader,1);
+  persistent_rice_adaptation_enabled_flag = get_bits(reader,1);
+  cabac_bypass_alignment_enabled_flag = get_bits(reader,1);
+
+  return DE265_OK;
+}
+
+de265_error sps_multilayer_extension::read(bitreader* reader)
+{
+  inter_view_mv_vert_constraint_flag = get_bits(reader,1);
   return DE265_OK;
 }
