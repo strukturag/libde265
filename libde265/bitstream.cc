@@ -110,6 +110,11 @@ void skip_bits_fast(bitreader* br, int n)
   br->nextbits_cnt -= n;
 }
 
+int bits_to_byte_boundary(bitreader* br)
+{
+  return (br->nextbits_cnt & 7);
+}
+
 void skip_to_byte_boundary(bitreader* br)
 {
   int nskip = (br->nextbits_cnt & 7);
