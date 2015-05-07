@@ -29,6 +29,90 @@
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
 
+struct pic_parameter_set_range_extension {
+  bool read(bitreader*, bool transform_skip_enabled_flag );
+
+  int    log2_max_transform_skip_block_size_minus2;
+  bool   cross_component_prediction_enabled_flag;
+  bool   chroma_qp_offset_list_enabled_flag;
+  int    diff_cu_chroma_qp_offset_depth;
+  int    chroma_qp_offset_list_len_minus1;
+  int_1d cb_qp_offset_list;
+  int_1d cr_qp_offset_list;
+  int    log2_sao_offset_scale_luma;
+  int    log2_sao_offset_scale_chroma;
+};
+
+struct colour_mapping_octants {
+  bool read(bitreader*, int inpDepth, int idxY, int idxCb, int idxCr, int inpLength, int cm_octant_depth, int PartNumY, int CMResLSBits);
+
+  bool split_octant_flag;
+
+  int _inpDepth;
+  int _idxY;
+  int _idxCb;
+  int _idxCr;
+  int _inpLength;
+
+  bool_1d coded_res_flag;
+  int_2d  res_coeff_q;
+  int_2d  res_coeff_r;
+  int_2d  res_coeff_s;
+
+  std::vector<colour_mapping_octants> sub_octans;
+};
+
+struct colour_mapping_table {
+  bool read(bitreader*);
+  
+  int    num_cm_ref_layers_minus1;
+  int_1d cm_ref_layer_id;
+  int    cm_octant_depth;
+  int    cm_y_part_num_log2;
+  int    luma_bit_depth_cm_input_minus8;
+  int    chroma_bit_depth_cm_input_minus8;
+  int    luma_bit_depth_cm_output_minus8;
+  int    chroma_bit_depth_cm_output_minus8;
+  int    cm_res_quant_bits;
+  int    cm_delta_flc_bits_minus1;
+  int    cm_adapt_threshold_u_delta;
+  int    cm_adapt_threshold_v_delta;
+
+  colour_mapping_octants cm_octans;
+};
+
+struct pps_multilayer_extension {
+  bool read(bitreader*);
+
+  bool poc_reset_info_present_flag;
+  bool pps_infer_scaling_list_flag;
+  int  pps_scaling_list_ref_layer_id;
+  int  num_ref_loc_offsets;
+
+  int_1d ref_loc_offset_layer_id;
+  int_1d scaled_ref_layer_offset_present_flag;
+
+  int_1d scaled_ref_layer_left_offset;
+  int_1d scaled_ref_layer_top_offset;
+  int_1d scaled_ref_layer_right_offset;
+  int_1d scaled_ref_layer_bottom_offset;
+
+  int_1d ref_region_offset_present_flag;
+  int_1d ref_region_left_offset;
+  int_1d ref_region_top_offset;
+  int_1d ref_region_right_offset;
+  int_1d ref_region_bottom_offset;
+
+  int_1d resample_phase_set_present_flag;
+  int_1d phase_hor_luma;
+  int_1d phase_ver_luma;
+  int_1d phase_hor_chroma_plus8;
+  int_1d phase_ver_chroma_plus8;
+
+  bool colour_mapping_enabled_flag;
+  colour_mapping_table cm_table;
+};
+
 class decoder_context;
 
 class pic_parameter_set {
@@ -105,8 +189,14 @@ public:
   int log2_parallel_merge_level; // [2 ; log2(max CB size)]
   char num_extra_slice_header_bits;
   char slice_segment_header_extension_present_flag;
-  char pps_extension_flag;
+  
+  bool pps_extension_present_flag;
+  bool pps_range_extension_flag;
+  bool pps_multilayer_extension_flag;
+  int  pps_extension_6bits;
 
+  pic_parameter_set_range_extension pps_range_ext;
+  pps_multilayer_extension pps_mult_ext;
 
   // --- derived values ---
 

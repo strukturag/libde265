@@ -113,7 +113,10 @@ void pic_parameter_set::set_defaults(enum PresetSet)
 
   num_extra_slice_header_bits = 0;
   slice_segment_header_extension_present_flag = 0;
-  pps_extension_flag = 0;
+  
+  pps_extension_present_flag = false;
+  pps_range_extension_flag = false;
+  pps_multilayer_extension_flag = false;
 }
 
 
@@ -347,21 +350,28 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   slice_segment_header_extension_present_flag = get_bits(br,1);
-  pps_extension_flag = get_bits(br,1);
+  pps_extension_present_flag = get_bits(br,1);
 
-  if (pps_extension_flag) {
-    //assert(false);
-    /*
-      while( more_rbsp_data() )
-
-      pps_extension_data_flag
-      u(1)
-      rbsp_trailing_bits()
-
-      }
-    */
+  if (pps_extension_present_flag) {
+    pps_range_extension_flag = get_bits(br,1);
+    pps_multilayer_extension_flag = get_bits(br,1);
+    pps_extension_6bits = get_bits(br,6);
+  }
+  else {
+    pps_range_extension_flag = false;
+    pps_multilayer_extension_flag = false;
+    pps_extension_6bits = 0;
   }
 
+  if (pps_range_extension_flag) {
+    pps_range_ext.read(br, transform_skip_enabled_flag);
+  }
+  if (pps_multilayer_extension_flag) {
+    pps_mult_ext.read(br);
+  }
+  if (pps_extension_6bits != 0) {
+    // The remaining bits in the PPS are pps_extension_data_flag flags
+  }
 
   set_derived_values(sps);
 
@@ -672,9 +682,9 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   out.write_uvlc(log2_parallel_merge_level-2);
 
   out.write_bit(slice_segment_header_extension_present_flag);
-  out.write_bit(pps_extension_flag);
+  out.write_bit(pps_extension_present_flag);
 
-  if (pps_extension_flag) {
+  if (pps_extension_present_flag) {
     //assert(false);
     /*
       while( more_rbsp_data() )
@@ -785,7 +795,7 @@ void pic_parameter_set::dump(int fd) const
   LOG1("log2_parallel_merge_level      : %d\n", log2_parallel_merge_level);
   LOG1("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
   LOG1("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
-  LOG1("pps_extension_flag : %d\n", pps_extension_flag);
+  LOG1("pps_extension_flag : %d\n", pps_extension_present_flag);
 
   LOG1("Log2MinCuQpDeltaSize : %d\n", Log2MinCuQpDeltaSize);
 
@@ -814,4 +824,136 @@ bool pic_parameter_set::is_tile_start_CTB(int ctbX,int ctbY) const
       }
 
   return false;
+}
+
+bool pic_parameter_set_range_extension::read(bitreader* reader, bool transform_skip_enabled_flag)
+{
+  if (transform_skip_enabled_flag) {
+    log2_max_transform_skip_block_size_minus2 = get_uvlc(reader);
+  }
+  cross_component_prediction_enabled_flag = get_bits(reader,1);
+  chroma_qp_offset_list_enabled_flag = get_bits(reader,1);
+  if( chroma_qp_offset_list_enabled_flag ) {
+    diff_cu_chroma_qp_offset_depth = get_uvlc(reader);
+    chroma_qp_offset_list_len_minus1 = get_uvlc(reader);
+    for( int i = 0; i  <=  chroma_qp_offset_list_len_minus1; i++ ) {
+      cb_qp_offset_list[i] = get_svlc(reader);
+      cr_qp_offset_list[i] = get_svlc(reader);
+    }
+  }
+  log2_sao_offset_scale_luma = get_uvlc(reader);
+  log2_sao_offset_scale_chroma = get_uvlc(reader);
+
+  return true;
+}
+
+bool pps_multilayer_extension::read(bitreader* reader)
+{
+  poc_reset_info_present_flag = get_bits(reader,1);
+  pps_infer_scaling_list_flag = get_bits(reader,1);
+  if (pps_infer_scaling_list_flag) {
+    pps_scaling_list_ref_layer_id = get_bits(reader,6);
+  }
+  num_ref_loc_offsets = get_uvlc(reader);
+  for( int i = 0; i < num_ref_loc_offsets; i++ ) {
+    ref_loc_offset_layer_id[ i ] = get_bits(reader,6);
+    scaled_ref_layer_offset_present_flag[ i ] = get_bits(reader,1);
+    if( scaled_ref_layer_offset_present_flag[ i ] ) {
+      scaled_ref_layer_left_offset[ref_loc_offset_layer_id[ i ]] = get_svlc(reader);
+      scaled_ref_layer_top_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+      scaled_ref_layer_right_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+      scaled_ref_layer_bottom_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+    }
+    ref_region_offset_present_flag[ i ] = get_bits(reader,1);
+    if( ref_region_offset_present_flag[ i ] ) {
+      ref_region_left_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+      ref_region_top_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+      ref_region_right_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+      ref_region_bottom_offset[ ref_loc_offset_layer_id[ i ] ] = get_svlc(reader);
+    }
+    resample_phase_set_present_flag[ i ] = get_bits(reader,1);
+    if( resample_phase_set_present_flag[ i ] ) {
+      phase_hor_luma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
+      phase_ver_luma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
+      phase_hor_chroma_plus8[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
+      phase_ver_chroma_plus8[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
+    }
+  }
+  colour_mapping_enabled_flag = get_bits(reader,1);
+  if (colour_mapping_enabled_flag) {
+    cm_table.read(reader);
+  }
+
+  return true;
+}
+
+bool colour_mapping_table::read(bitreader* reader)
+{
+  num_cm_ref_layers_minus1 = get_uvlc(reader);
+  for (int i = 0; i <= num_cm_ref_layers_minus1; i++) {
+    cm_ref_layer_id[ i ] = get_bits(reader,6);
+  }
+  cm_octant_depth = get_bits(reader,2);
+  cm_y_part_num_log2 = get_bits(reader,2);
+  int PartNumY = 1 << cm_y_part_num_log2;
+  luma_bit_depth_cm_input_minus8 = get_uvlc(reader);
+  chroma_bit_depth_cm_input_minus8 = get_uvlc(reader);
+  luma_bit_depth_cm_output_minus8 = get_uvlc(reader);
+  chroma_bit_depth_cm_output_minus8 = get_uvlc(reader);
+  cm_res_quant_bits = get_bits(reader,2);
+  cm_delta_flc_bits_minus1 = get_bits(reader,2);
+  
+  int BitDepthCmInputY = 8 + luma_bit_depth_cm_input_minus8;
+  int BitDepthCmOutputY = 8 + luma_bit_depth_cm_output_minus8;
+  int CMResLSBits = libde265_max( 0, ( 10 + BitDepthCmInputY - BitDepthCmOutputY - cm_res_quant_bits - ( cm_delta_flc_bits_minus1 + 1 ) ) );
+  
+  if( cm_octant_depth == 1 ) {
+    cm_adapt_threshold_u_delta = get_svlc(reader);
+    cm_adapt_threshold_v_delta = get_svlc(reader);
+  }
+  cm_octans.read(reader, 0, 0, 0, 0, 1 << cm_octant_depth, cm_octant_depth, PartNumY, CMResLSBits );
+
+  return true;
+}
+
+bool colour_mapping_octants::read(bitreader* reader, int inpDepth, int idxY, int idxCb, int idxCr, int inpLength, int cm_octant_depth, int PartNumY, int CMResLSBits)
+{
+  _inpDepth = inpDepth;
+  _idxY = idxY;
+  _idxCb = idxCb;
+  _idxCr = idxCr;
+  _inpLength = inpLength;
+
+  if( inpDepth < cm_octant_depth )
+    split_octant_flag = get_bits(reader,1);
+
+  if (split_octant_flag) {
+    for( int k = 0; k < 2; k++ )
+      for( int m = 0; m < 2; m++ )
+        for (int n = 0; n < 2; n++) {
+          colour_mapping_octants new_oct;
+          new_oct.read(reader, inpDepth+1, idxY + PartNumY * k * inpLength / 2,idxCb + m * inpLength / 2, idxCr + n * inpLength / 2, inpLength / 2, cm_octant_depth, PartNumY, CMResLSBits);
+          sub_octans.push_back( new_oct );
+        }
+  }
+  else {
+    for( int i = 0; i < PartNumY; i++ ) {
+      int idxShiftY = idxY + ( i << ( cm_octant_depth - inpDepth ) );
+      for( int j = 0; j < 4; j++ ) {
+        coded_res_flag[ j ] = get_bits(reader,1);
+        if (coded_res_flag[j]) {
+          for( int c = 0; c < 3; c++ ) {
+            res_coeff_q[ j ][ c ] = get_uvlc(reader);
+            int nr_bits = CMResLSBits;
+            res_coeff_r[ j ][ c ] = get_bits(reader,nr_bits);
+            if (res_coeff_q[j][c] || res_coeff_r[j][c]) {
+              res_coeff_s[ j ][ c ] = get_bits(reader,1);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return true;
 }
