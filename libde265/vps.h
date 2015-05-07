@@ -82,7 +82,7 @@ public:
 class profile_tier_level
 {
 public:
-  void read(bitreader* reader, int max_sub_layers);
+  void read(bitreader* reader, bool profilePresentFlag, int max_sub_layers);
   void write(CABAC_encoder& writer, int max_sub_layers) const;
   void dump(int max_sub_layers, FILE* fh) const;
 

@@ -121,7 +121,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   vlc = get_bits(reader,16);  // vps_reserved_0xffff_16bits
   if (vlc != 0xffff) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
-  profile_tier_level_.read(reader, vps_max_sub_layers);
+  profile_tier_level_.read(reader, true, vps_max_sub_layers);
 
   /*
     read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
@@ -336,11 +336,12 @@ void profile_data::read(bitreader* reader)
 
 
 void profile_tier_level::read(bitreader* reader,
+                              bool profilePresentFlag,
                               int max_sub_layers)
 {
   // --- read the general profile ---
 
-  general.profile_present_flag = true;
+  general.profile_present_flag = profilePresentFlag;
   general.level_present_flag = true;
   general.read(reader);
 
