@@ -26,6 +26,7 @@
 #endif
 
 #include <stdio.h>
+#include <map>
 
 #include "libde265/de265.h"
 
@@ -181,5 +182,14 @@ void printBlk(const char* title,const uint8_t* data, int blksize, int stride);
 
 void debug_set_image_output(void (*)(const struct de265_image*, int slot));
 void debug_show_image(const struct de265_image*, int slot);
+
+typedef std::map<int, bool> bool_1d;
+typedef std::map<int, bool_1d> bool_2d;
+typedef std::map<int, int>    int_1d;
+typedef std::map<int, int_1d> int_2d;
+typedef std::map<int, int_2d> int_3d;
+typedef std::map<int, int_3d> int_4d;
+typedef std::map<int, int_4d> int_5d;
+typedef std::map<int, std::map<int, char>> char_2d;
 
 #endif
