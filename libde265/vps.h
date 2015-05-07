@@ -33,6 +33,7 @@
 #include "libde265/de265.h"
 #include "libde265/cabac.h"
 #include "libde265/util.h"
+#include "libde265/vps-extension.h"
 
 #include <vector>
 #include <map>
@@ -94,47 +95,6 @@ public:
   //bool sub_layer_level_present[MAX_TEMPORAL_SUBLAYERS];
 
   profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
-};
-
-struct hrd_parameters;
-struct sub_layer_hrd_parameters {
-  de265_error read( bitreader* reader, hrd_parameters *hrd, int subLayerId);
-
-  int_1d  bit_rate_value_minus1;
-  int_1d  cpb_size_value_minus1;
-  int_1d  cpb_size_du_value_minus1;
-  int_1d  bit_rate_du_value_minus1;
-  bool_1d cbr_flag;
-};
-
-struct hrd_parameters {
-  de265_error read(bitreader* reader, bool commonInfPresentFlag, int maxNumSubLayersMinus1);
-
-  bool commonInfPresentFlag;
-
-  // Common info
-  bool nal_hrd_parameters_present_flag;
-  bool vcl_hrd_parameters_present_flag;
-  bool sub_pic_hrd_params_present_flag;
-  int  tick_divisor_minus2;
-  int  du_cpb_removal_delay_increment_length_minus1;
-  bool sub_pic_cpb_params_in_pic_timing_sei_flag;
-  int  dpb_output_delay_du_length_minus1;
-  int  bit_rate_scale;
-  int  cpb_size_scale;
-  int  cpb_size_du_scale;
-  int  initial_cpb_removal_delay_length_minus1;
-  int  au_cpb_removal_delay_length_minus1;
-  int  dpb_output_delay_length_minus1;
-  // end common info
-
-  bool_1d  fixed_pic_rate_general_flag;
-  bool_1d  fixed_pic_rate_within_cvs_flag;
-  int_1d   elemental_duration_in_tc_minus1;
-  bool_1d  low_delay_hrd_flag;
-  int_1d   cpb_cnt_minus1;
-
-  std::map<int, sub_layer_hrd_parameters> sub_layer_hrd;
 };
 
 /*
@@ -212,6 +172,9 @@ public:
   // --- vps extension ---
 
   char vps_extension_flag;
+  video_parameter_set_extension vps_extension;
+
+  bool vps_extension2_flag;
 
   /// Variables calculated from the read parameters when parsing the vps
   int MaxLayersMinus1;
