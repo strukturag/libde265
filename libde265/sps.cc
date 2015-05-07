@@ -190,7 +190,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   sps_temporal_id_nesting_flag = get_bits(br,1);
 
-  profile_tier_level_.read(br, sps_max_sub_layers);
+  profile_tier_level_.read(br, true, sps_max_sub_layers);
 
   READ_VLC(seq_parameter_set_id, uvlc);
   if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {

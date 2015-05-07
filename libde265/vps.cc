@@ -204,9 +204,9 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
           cprms_present_flag[i] = get_bits(reader,1);
         }
 
-        //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
+        hrd_params[i].read(reader, cprms_present_flag[i], vps_max_sub_layers-1);
 
-        return DE265_OK; // TODO: decode hrd_parameters()
+        return DE265_OK;
       }
     }
   }
@@ -422,6 +422,74 @@ void profile_tier_level::write(CABAC_encoder& out, int max_sub_layers) const
     }
 }
 
+de265_error hrd_parameters::read( bitreader* reader,
+                                  bool commonInfPresentFlag, 
+                                  int maxNumSubLayersMinus1)
+{
+  if (commonInfPresentFlag) {
+    nal_hrd_parameters_present_flag = get_bits(reader,1);
+    vcl_hrd_parameters_present_flag = get_bits(reader,1);
+    if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
+      sub_pic_hrd_params_present_flag = get_bits(reader,1);
+      if (sub_pic_hrd_params_present_flag) {
+          tick_divisor_minus2 = get_bits(reader,8);
+          du_cpb_removal_delay_increment_length_minus1 = get_bits(reader,5);
+          sub_pic_cpb_params_in_pic_timing_sei_flag = get_bits(reader,1);
+          dpb_output_delay_du_length_minus1 = get_bits(reader,5);
+      }
+      bit_rate_scale = get_bits(reader,4);
+      cpb_size_scale = get_bits(reader,4);
+      if (sub_pic_hrd_params_present_flag) {
+        cpb_size_du_scale = get_bits(reader,4);
+      }
+      initial_cpb_removal_delay_length_minus1 = get_bits(reader,5);
+      au_cpb_removal_delay_length_minus1 = get_bits(reader,5);
+      dpb_output_delay_length_minus1 = get_bits(reader,5);
+    }
+  }
+
+  for( int i = 0; i <= maxNumSubLayersMinus1; i++ ) {
+    fixed_pic_rate_general_flag[ i ] = get_bits(reader,1);
+    if (!fixed_pic_rate_general_flag[i]) {
+      fixed_pic_rate_within_cvs_flag[ i ] = get_bits(reader,1);
+    }
+    if (fixed_pic_rate_within_cvs_flag[i]) {
+      elemental_duration_in_tc_minus1[i] = get_uvlc(reader);
+    }
+    else {
+      low_delay_hrd_flag[ i ] = get_bits(reader,1);
+    }
+    if (!low_delay_hrd_flag[i]) {
+      cpb_cnt_minus1[i] = get_uvlc(reader);
+    }
+    if (nal_hrd_parameters_present_flag) {
+      sub_layer_hrd[i].read(reader, this, i);
+    }
+    if (vcl_hrd_parameters_present_flag) {
+      sub_layer_hrd[i].read(reader, this, i);
+    }
+  }
+
+  return DE265_OK;
+}
+
+de265_error sub_layer_hrd_parameters::read( bitreader* reader,
+                                            hrd_parameters *hrd,
+                                            int subLayerId)
+{
+  int CpbCnt = hrd->cpb_cnt_minus1[subLayerId];
+  for( int i = 0; i <= CpbCnt; i++ ) {
+    bit_rate_value_minus1[ i ] = get_uvlc(reader);
+    cpb_size_value_minus1[ i ] = get_uvlc(reader);
+    if( hrd->sub_pic_hrd_params_present_flag ) {
+      cpb_size_du_value_minus1[ i ] = get_uvlc(reader);
+      bit_rate_du_value_minus1[ i ] = get_uvlc(reader);
+    }
+    cbr_flag[ i ] = get_bits(reader,1);
+  }
+
+  return DE265_OK;
+}
 
 /*
 void read_bit_rate_pic_rate_info(bitreader* reader,
@@ -463,6 +531,8 @@ void video_parameter_set::dump(int fd) const
 
   LOG0("----------------- VPS -----------------\n");
   LOG1("video_parameter_set_id                : %d\n", video_parameter_set_id);
+  LOG1("vps_base_layer_internal_flag          : %d\n", vps_base_layer_internal_flag);
+  LOG1("vps_base_layer_available_flag         : %d\n", vps_base_layer_available_flag);
   LOG1("vps_max_layers                        : %d\n", vps_max_layers);
   LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
   LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
