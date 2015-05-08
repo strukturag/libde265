@@ -287,7 +287,7 @@ class decoder_context : public base_context {
 
   void reset();
 
-      video_parameter_set* get_vps(int id)      { return &vps[id]; }
+      video_parameter_set* get_vps(int id);
   /* */ seq_parameter_set* get_sps(int id)       { return &sps[id]; }
   const seq_parameter_set* get_sps(int id) const { return &sps[id]; }
   /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }

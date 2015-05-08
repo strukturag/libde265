@@ -2282,3 +2282,15 @@ de265_error error_queue::get_warning()
 
   return warn;
 }
+
+video_parameter_set* decoder_context::get_vps(int id)
+{
+  assert( id < DE265_MAX_VPS_SETS );
+  if (layer_ID != 0) {
+    // Multi layer decoding.
+    // The VPS is handeled by the base layer decoder. Get it there.
+    decoder_context_multilayer* ml_dec = get_multi_layer_decoder();
+    return ml_dec->get_layer_dec(0)->get_vps(id);
+  }
+  return &vps[id];
+}
