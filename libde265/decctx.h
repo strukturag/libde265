@@ -329,8 +329,6 @@ class decoder_context : public base_context {
   int  get_layer_id()       { return layer_ID; }
   void set_decoder_ctx_array(decoder_context** dec_array) { dec_ctx_array = dec_array; }
   decoder_context* get_layer_decoder_ctx(int iIdx) { assert(iIdx < MAX_LAYER_ID); return *(dec_ctx_array + iIdx); }
-  void set_multilayer_decode_parameters(multilayer_decoder_parameters* param) { ml_dec_params = param; }
-  multilayer_decoder_parameters* get_multilayer_decoder_parameters() { return ml_dec_params; }
 
   // --- parameters ---
 
@@ -384,7 +382,6 @@ class decoder_context : public base_context {
   // Multi layer extensions
   int layer_ID;
   decoder_context** dec_ctx_array;  // Array with pointers to all layer decoder contexts
-  multilayer_decoder_parameters *ml_dec_params;
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
