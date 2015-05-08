@@ -47,7 +47,7 @@ class slice_segment_header;
 class image_unit;
 class slice_unit;
 class decoder_context;
-
+struct multilayer_decoder_parameters;
 
 class thread_context
 {
