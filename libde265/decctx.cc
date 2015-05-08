@@ -1343,6 +1343,7 @@ void decoder_context::process_nal_hdr(nal_header* nal)
 void decoder_context::process_vps(video_parameter_set* vps)
 {
   this->vps[ vps->video_parameter_set_id ] = *vps;
+  last_vps = &this->vps[ vps->video_parameter_set_id ];
 }
 
 

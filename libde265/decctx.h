@@ -329,6 +329,7 @@ class decoder_context : public base_context {
   int  get_layer_id()       { return layer_ID; }
   void set_decoder_ctx_array(decoder_context** dec_array) { dec_ctx_array = dec_array; }
   decoder_context* get_layer_decoder_ctx(int iIdx) { assert(iIdx < MAX_LAYER_ID); return *(dec_ctx_array + iIdx); }
+  video_parameter_set *get_last_parsed_vps() {return last_vps;}
 
   // --- parameters ---
 
@@ -382,6 +383,7 @@ class decoder_context : public base_context {
   // Multi layer extensions
   int layer_ID;
   decoder_context** dec_ctx_array;  // Array with pointers to all layer decoder contexts
+  video_parameter_set *last_vps;    // A pointer to the most recently parsed VPS
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
   seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
