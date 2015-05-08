@@ -190,6 +190,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   }
   int NumIndependentLayers = k;
 
+  num_add_layer_sets = 0;
   if (NumIndependentLayers > 1) {
     num_add_layer_sets = get_uvlc(reader);
   }
@@ -432,79 +433,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     }
     vui.read_vps_vui(reader, vps);
   }
-
-  // Reading the VPS extension is done.
-  // Check (calculate if not set) the output layer set index
-  //multilayer_decoder_parameters* ml_dec_param = ctx->get_multilayer_decoder_parameters();
-  //if (ml_dec_param) {
-  //  if (!ml_dec_param->values_checked) {
-  //    if (ml_dec_param->TargetOlsIdx == -1) {
-  //      // Target output layer set ID not set yet
-  //      if (ml_dec_param->TargetLayerId > vps->vps_max_layer_id) {
-  //        // Target layer ID too high
-  //        ml_dec_param->TargetLayerId = vps->vps_max_layer_id;
-  //      }
-
-  //      bool layerSetMatchFound = false;
-  //      // Output layer set index not assigned.
-  //      // Based on the value of targetLayerId, check if any of the output layer matches
-  //      // Currently, the target layer ID in the encoder assumes that all the layers are decoded    
-  //      // Check if any of the output layer sets match this description
-  //      for(int i = 0; i < NumOutputLayerSets; i++)
-  //      {
-  //        bool layerSetMatchFlag = false;
-  //        int layerSetIdx = layer_set_idx_for_ols_minus1[i] + 1;
-
-  //        for(int j = 0; j < NumLayersInIdList[layerSetIdx]; j++)
-  //        {
-  //          if( LayerSetLayerIdList[layerSetIdx][j] == ml_dec_param->TargetLayerId )
-  //          {
-  //            layerSetMatchFlag = true;
-  //            break;
-  //          }
-  //        }
-  //    
-  //        if( layerSetMatchFlag ) // Potential output layer set candidate found
-  //        {
-  //          // If target dec layer ID list is also included - check if they match
-  //          if( !ml_dec_param->TargetDecLayerSetIdx.empty() )
-  //          {
-  //            for(int j = 0; j < NumLayersInIdList[layerSetIdx]; j++)
-  //            {
-  //              if (ml_dec_param->TargetDecLayerSetIdx[j] != layer_id_in_nuh[LayerSetLayerIdList[layerSetIdx][j]])
-  //              {
-  //                layerSetMatchFlag = false;
-  //              }
-  //            }
-  //          }
-  //          if( layerSetMatchFlag ) // The target dec layer ID list also matches, if present
-  //          {
-  //            // Match found
-  //            layerSetMatchFound = true;
-  //            ml_dec_param->TargetOlsIdx = i;
-  //            ml_dec_param->values_checked = true;
-  //            break;
-  //          }
-  //        }
-  //      }
-  //      assert( layerSetMatchFound ); // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
-  //
-  //    }
-  //  }
-  //  else {
-  //    assert( ml_dec_param->TargetOlsIdx < NumOutputLayerSets );
-  //    int layerSetIdx = layer_set_idx_for_ols_minus1[ ml_dec_param->TargetOlsIdx ] + 1;  // Index to the layer set
-  //    // Check if the targetdeclayerIdlist matches the output layer set
-  //    if( !ml_dec_param->TargetDecLayerSetIdx.empty() ) {
-  //      for(int i = 0; i < NumLayersInIdList[layerSetIdx]; i++)
-  //      {
-  //        assert( ml_dec_param->TargetDecLayerSetIdx[i] == layer_id_in_nuh[LayerSetLayerIdList[layerSetIdx][i]]);
-  //      }
-  //    }
-  //    ml_dec_param->values_checked = true;
-  //  }
-  //}
-
+  
   return DE265_OK;
 }
 
