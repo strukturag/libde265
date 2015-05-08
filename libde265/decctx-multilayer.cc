@@ -208,12 +208,10 @@ de265_error decoder_context_multilayer::decode(int* more)
         calculate_target_output_layer_set(layerCtx->get_last_parsed_vps());
       }
 
-      printf("MD - more %d - err %d\n", *more, layer_error);
       return layer_error;
     }
   }
 
-  printf("MD - more %d - err 0\n", *more);
   return DE265_OK;
 }
 
