@@ -12,7 +12,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   // Multilayer decoder parameters
   ml_dec_params.highestTID = 6;
   ml_dec_params.TargetOlsIdx = -1;
-  ml_dec_params.TargetLayerId = 0; // Default: Highest layer possible
+  ml_dec_params.TargetLayerId = 1; // Default: Highest layer possible
 
   // Default parameters
   param_sei_check_hash = false;
@@ -28,7 +28,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   num_layer_decoders = 1;
   layer_decoders[0] = new decoder_context;
   layer_decoders[0]->set_layer_id(0);
-  layer_decoders[0]->set_decoder_ctx_array(layer_decoders);
+  layer_decoders[0]->set_multi_layer_decoder(this);
   for (int i=1; i<MAX_LAYER_ID; i++)
     layer_decoders[i] = NULL;
 }
@@ -106,7 +106,7 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
     }
     layer_decoders[layer_id] = new decoder_context;
     layer_decoders[layer_id]->set_layer_id(layer_id);
-    layer_decoders[layer_id]->set_decoder_ctx_array(layer_decoders);
+    layer_decoders[layer_id]->set_multi_layer_decoder(this);
 
     // Only set the following values if they have been changed (set)
     if (num_worker_threads > 0) {

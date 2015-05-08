@@ -180,135 +180,211 @@ void seq_parameter_set::set_resolution(int w,int h)
 }
 
 
-de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
+de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
 {
   int vlc;
+  error_queue* errqueue = ctx;
 
   video_parameter_set_id = get_bits(br,4);
-  sps_max_sub_layers     = get_bits(br,3) +1;
-  if (sps_max_sub_layers>7) {
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  
+  int nuh_layer_id = ctx->get_layer_id();
+  if (nuh_layer_id == 0) {
+    sps_max_sub_layers = get_bits(br,3) + 1;
+    if (sps_max_sub_layers>7) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+  }
+  else {
+    sps_ext_or_max_sub_layers_minus1 = get_bits(br,3);
+    
+    // Standard F.7.4.3.2.1 (JCTVC-R1013_v6)
+    // When not present, the value of sps_max_sub_layers_minus1 is inferred to be equal to ( sps_ext_or_max_sub_layers_minus1  = =  7 ) ? vps_max_sub_layers_minus1 : sps_ext_or_max_sub_layers_minus1.
+    if (sps_ext_or_max_sub_layers_minus1 == 7) {
+      // Get the VPS
+      video_parameter_set* vps = ctx->get_vps(video_parameter_set_id);
+
+      sps_max_sub_layers = vps->vps_max_sub_layers;
+    } 
+    else {
+      sps_max_sub_layers = sps_ext_or_max_sub_layers_minus1 + 1;
+    }
   }
 
-  sps_temporal_id_nesting_flag = get_bits(br,1);
+  // Annex F (multilayer extensions)
+  bool MultiLayerExtSpsFlag = ( nuh_layer_id !=  0 && sps_ext_or_max_sub_layers_minus1 == 7 );
 
-  profile_tier_level_.read(br, true, sps_max_sub_layers);
+  if (!MultiLayerExtSpsFlag) {
+    sps_temporal_id_nesting_flag = get_bits(br,1);
+    ptl.read(br, true, sps_max_sub_layers);
+  }
 
   READ_VLC(seq_parameter_set_id, uvlc);
   if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+  if (MultiLayerExtSpsFlag) {
+    // Infer picture size / color information from the VPS extension
+    video_parameter_set* vps = ctx->get_vps(video_parameter_set_id);
+    video_parameter_set_extension *vps_ext = &vps->vps_extension;
+    int repFormatIdx;
 
-  // --- decode chroma type ---
-
-  READ_VLC(chroma_format_idc, uvlc);
-
-  if (chroma_format_idc == 3) {
-    separate_colour_plane_flag = get_bits(br,1);
+    update_rep_format_flag = get_bits(br,1);
+    if (update_rep_format_flag) {
+      sps_rep_format_idx = get_bits(br,8);
+      repFormatIdx = sps_rep_format_idx;
+    }
+    else {
+      repFormatIdx = vps_ext->vps_rep_format_idx[vps_ext->LayerIdxInVps[ ctx->get_layer_id() ]];
+    }
+    
+    if (repFormatIdx > vps_ext->vps_num_rep_formats_minus1) {
+      // repFormatIdx out of range
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    
+    // Infer values
+    rep_format rep = vps_ext->vps_ext_rep_format[repFormatIdx];
+    chroma_format_idc = rep.chroma_format_vps_idc;
+    separate_colour_plane_flag = rep.separate_colour_plane_vps_flag;
+    pic_width_in_luma_samples = rep.pic_width_vps_in_luma_samples;
+    pic_height_in_luma_samples = rep.pic_height_vps_in_luma_samples;
   }
   else {
-    separate_colour_plane_flag = 0;
+    // --- decode chroma type ---
+
+    READ_VLC(chroma_format_idc, uvlc);
+
+    if (chroma_format_idc == 3) {
+      separate_colour_plane_flag = get_bits(br,1);
+    }
+    else {
+      separate_colour_plane_flag = 0;
+    }
+
+    if (separate_colour_plane_flag) {
+      ChromaArrayType = 0;
+    }
+    else {
+      ChromaArrayType = chroma_format_idc;
+    }
+
+    if (chroma_format_idc<0 ||
+        chroma_format_idc>3) {
+      errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    if (chroma_format_idc != 1) {
+      return DE265_ERROR_NOT_IMPLEMENTED_YET;
+    }
+
+
+    // --- picture size ---
+
+    READ_VLC(pic_width_in_luma_samples,  uvlc);
+    READ_VLC(pic_height_in_luma_samples, uvlc);
+
+    if (pic_width_in_luma_samples  == 0 ||
+        pic_height_in_luma_samples == 0) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
+        pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    conformance_window_flag = get_bits(br,1);
+
+    if (conformance_window_flag) {
+      READ_VLC(conf_win_left_offset,  uvlc);
+      READ_VLC(conf_win_right_offset, uvlc);
+      READ_VLC(conf_win_top_offset,   uvlc);
+      READ_VLC(conf_win_bottom_offset,uvlc);
+    }
+    else {
+      conf_win_left_offset  = 0;
+      conf_win_right_offset = 0;
+      conf_win_top_offset   = 0;
+      conf_win_bottom_offset= 0;
+    }
+
+    READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);
+    READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
   }
-
-  if (separate_colour_plane_flag) {
-    ChromaArrayType = 0;
-  }
-  else {
-    ChromaArrayType = chroma_format_idc;
-  }
-
-  if (chroma_format_idc<0 ||
-      chroma_format_idc>3) {
-    errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  }
-
-  if (chroma_format_idc != 1) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
-  }
-
-
-  // --- picture size ---
-
-  READ_VLC(pic_width_in_luma_samples,  uvlc);
-  READ_VLC(pic_height_in_luma_samples, uvlc);
-
-  if (pic_width_in_luma_samples  == 0 ||
-      pic_height_in_luma_samples == 0) {
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  }
-
-  if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
-      pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-  }
-
-  conformance_window_flag = get_bits(br,1);
-
-  if (conformance_window_flag) {
-    READ_VLC(conf_win_left_offset,  uvlc);
-    READ_VLC(conf_win_right_offset, uvlc);
-    READ_VLC(conf_win_top_offset,   uvlc);
-    READ_VLC(conf_win_bottom_offset,uvlc);
-  }
-  else {
-    conf_win_left_offset  = 0;
-    conf_win_right_offset = 0;
-    conf_win_top_offset   = 0;
-    conf_win_bottom_offset= 0;
-  }
-
-  READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);
-  READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
 
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
   MaxPicOrderCntLsb = 1<<(log2_max_pic_order_cnt_lsb);
 
+  if (!MultiLayerExtSpsFlag) {
+    // --- sub_layer_ordering_info ---
 
-  // --- sub_layer_ordering_info ---
+    sps_sub_layer_ordering_info_present_flag = get_bits(br,1);
 
-  sps_sub_layer_ordering_info_present_flag = get_bits(br,1);
+    int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
+                      0 : sps_max_sub_layers-1 );
 
-  int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
-                    0 : sps_max_sub_layers-1 );
+    for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
 
-  for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
+      // sps_max_dec_pic_buffering[i]
 
-    // sps_max_dec_pic_buffering[i]
+      vlc=get_uvlc(br);
+      if (vlc == UVLC_ERROR ||
+          vlc+1 > MAX_NUM_REF_PICS) {
+        errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
 
-    vlc=get_uvlc(br);
-    if (vlc == UVLC_ERROR ||
-        vlc+1 > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      sps_max_dec_pic_buffering[i] = vlc+1;
+
+      // sps_max_num_reorder_pics[i]
+
+      READ_VLC(sps_max_num_reorder_pics[i], uvlc);
+
+
+      // sps_max_latency_increase[i]
+
+      READ_VLC(sps_max_latency_increase_plus1[i], uvlc);
+
+      SpsMaxLatencyPictures[i] = (sps_max_num_reorder_pics[i] +
+                                  sps_max_latency_increase_plus1[i]-1);
     }
 
-    sps_max_dec_pic_buffering[i] = vlc+1;
+    // copy info to all layers if only specified once
 
-    // sps_max_num_reorder_pics[i]
+    if (sps_sub_layer_ordering_info_present_flag) {
+      int ref = sps_max_sub_layers-1;
+      assert(ref<7);
 
-    READ_VLC(sps_max_num_reorder_pics[i], uvlc);
-
-
-    // sps_max_latency_increase[i]
-
-    READ_VLC(sps_max_latency_increase_plus1[i], uvlc);
-
-    SpsMaxLatencyPictures[i] = (sps_max_num_reorder_pics[i] +
-                                sps_max_latency_increase_plus1[i]-1);
+      for (int i=0 ; i < sps_max_sub_layers-1; i++ ) {
+        sps_max_dec_pic_buffering[i] = sps_max_dec_pic_buffering[ref];
+        sps_max_num_reorder_pics[i]  = sps_max_num_reorder_pics[ref];
+        sps_max_latency_increase_plus1[i]  = sps_max_latency_increase_plus1[ref];
+      }
+    }
   }
+  else {
+    // Standard F.7.4.3.2.1 JCTVC-R1013_v6
+    // 	When sps_max_dec_pic_buffering_minus1[ i ] is not present for i in the range of 0 to sps_max_sub_layers_minus1, inclusive, due to MultiLayerExtSpsFlag being equal to 1, for a layer that refers to the SPS and has nuh_layer_id equal to currLayerId, the value of sps_max_dec_pic_buffering_minus1[ i ] is inferred to be equal to max_vps_dec_pic_buffering_minus1[ TargetOlsIdx ][ layerIdx ][ i ] of the active VPS, where layerIdx is equal to the value such that LayerSetLayerIdList[ TargetDecLayerSetIdx ][ layerIdx ] is equal to currLayerId.
+    video_parameter_set* vps = ctx->get_vps(video_parameter_set_id);
+    video_parameter_set_extension* vps_ext = &vps->vps_extension;
+   
+    int TargetOlsIdx = ctx->get_multi_layer_decoder()->get_target_ols_idx();
+    for (int i=0 ; i <= sps_max_sub_layers-1; i++ ) {
+      int TargetDecLayerSetIdx = vps_ext->OlsIdxToLsIdx[ TargetOlsIdx ];
+      int curLayerID = ctx->get_layer_id();
+      int layerIdx = -1;
+      for (int i = 0; i<vps_ext->NumLayersInIdList[TargetDecLayerSetIdx]; i++) {
+        if (vps_ext->LayerSetLayerIdList[TargetDecLayerSetIdx][i] == curLayerID) {
+          layerIdx = i;
+          break;
+        }
+      }
 
-  // copy info to all layers if only specified once
-
-  if (sps_sub_layer_ordering_info_present_flag) {
-    int ref = sps_max_sub_layers-1;
-    assert(ref<7);
-
-    for (int i=0 ; i < sps_max_sub_layers-1; i++ ) {
-      sps_max_dec_pic_buffering[i] = sps_max_dec_pic_buffering[ref];
-      sps_max_num_reorder_pics[i]  = sps_max_num_reorder_pics[ref];
-      sps_max_latency_increase_plus1[i]  = sps_max_latency_increase_plus1[ref];
+      if (layerIdx != -1) {
+        sps_max_dec_pic_buffering[i] = vps_ext->dpb_size_table.max_vps_dec_pic_buffering_minus1[ TargetOlsIdx ][ layerIdx ][ i ] + 1;
+      }
     }
   }
 

@@ -276,7 +276,7 @@ class base_context : public error_queue
   virtual bool has_image(int frame_id) const = 0;
 };
 
-
+class decoder_context_multilayer;
 class decoder_context : public base_context {
  public:
   decoder_context();
@@ -287,6 +287,7 @@ class decoder_context : public base_context {
 
   void reset();
 
+      video_parameter_set* get_vps(int id)      { return &vps[id]; }
   /* */ seq_parameter_set* get_sps(int id)       { return &sps[id]; }
   const seq_parameter_set* get_sps(int id) const { return &sps[id]; }
   /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }
@@ -327,8 +328,8 @@ class decoder_context : public base_context {
   // Multi layer extension
   void set_layer_id(int id) { layer_ID = id; }
   int  get_layer_id()       { return layer_ID; }
-  void set_decoder_ctx_array(decoder_context** dec_array) { dec_ctx_array = dec_array; }
-  decoder_context* get_layer_decoder_ctx(int iIdx) { assert(iIdx < MAX_LAYER_ID); return *(dec_ctx_array + iIdx); }
+  decoder_context_multilayer* get_multi_layer_decoder() { return ml_decoder; }
+  void set_multi_layer_decoder(decoder_context_multilayer* p) { ml_decoder = p; }
   video_parameter_set *get_last_parsed_vps() {return last_vps;}
 
   // --- parameters ---
@@ -382,7 +383,7 @@ class decoder_context : public base_context {
 
   // Multi layer extensions
   int layer_ID;
-  decoder_context** dec_ctx_array;  // Array with pointers to all layer decoder contexts
+  decoder_context_multilayer *ml_decoder;
   video_parameter_set *last_vps;    // A pointer to the most recently parsed VPS
 
   video_parameter_set  vps[ DE265_MAX_VPS_SETS ];

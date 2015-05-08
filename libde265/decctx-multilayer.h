@@ -94,6 +94,8 @@ public:
 
   // calculate the output layer set if a vps has been parsed
   void calculate_target_output_layer_set(video_parameter_set *vps);
+
+  int get_target_ols_idx() { return ml_dec_params.TargetOlsIdx; }
   
 protected:
   decoder_context* layer_decoders[MAX_LAYER_ID];

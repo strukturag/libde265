@@ -31,6 +31,7 @@
 #include <vector>
 
 class error_queue;
+class decoder_context;
 
 // #define MAX_REF_PIC_SETS 64  // maximum according to standard
 #define MAX_NUM_LT_REF_PICS_SPS 32
@@ -86,7 +87,7 @@ public:
   seq_parameter_set();
   ~seq_parameter_set();
 
-  de265_error read(error_queue*, bitreader*);
+  de265_error read(decoder_context*, bitreader*);
   de265_error write(error_queue*, CABAC_encoder&);
 
   void dump(int fd) const;
@@ -166,6 +167,13 @@ public:
   char vui_parameters_present_flag;
 
   video_usability_information vui;
+
+  // Multilayer extensions
+  int  sps_ext_or_max_sub_layers_minus1; // Annex F (Multilayer extensions)
+  profile_tier_level ptl;
+
+  bool update_rep_format_flag;
+  int  sps_rep_format_idx;
 
   bool sps_extension_present_flag;
   bool sps_range_extension_flag;
