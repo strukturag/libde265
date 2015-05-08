@@ -45,9 +45,29 @@ public:
   decoder_context_multilayer();
   ~decoder_context_multilayer();
 
+  de265_error get_warning();
+  void reset();
+  de265_error decode(int* more);
+
+  // Get the layer decoder context with the given layer_id.
+  // Create it if does not exist yet.
+  decoder_context* get_layer_dec(int layer_id);
+
+  // Get the number of picture in the output queue (sum over all layers)
+  int num_pictures_in_output_queue();
+  // Get next output picture. Lowest layers will be returned first. Return the layer that the image is from.
+  de265_image* get_next_picture_in_output_queue(int* layerID);
+  // Pop next output picture. Lowest layers will be poped first.
+  void pop_next_picture_in_output_queue();
+
+  // Flush data
+  void flush_data();
+
 protected:
   decoder_context* layer_decoders[MAX_LAYER_ID];
   int num_layer_decoders;
+
+  NAL_Parser nal_parser;
 
   multilayer_decoder_parameters ml_dec_params;
 };
