@@ -3,12 +3,32 @@
 
 decoder_context_multilayer::decoder_context_multilayer()
 {
+  num_worker_threads = 0;
+  current_HighestTid = 6;
+  limit_HighestTid = 6;   // decode all temporal layers (up to layer 6)
+  framerate_ratio = 100;  // decode all 100%
+  param_acceleration = de265_acceleration_AUTO;
+
+  // Multilayer decoder parameters
+  ml_dec_params.highestTID = 6;
+  ml_dec_params.TargetOlsIdx = -1;
+  ml_dec_params.TargetLayerId = 0; // Default: Highest layer possible
+
+  // Default parameters
+  param_sei_check_hash = false;
+  param_suppress_faulty_pictures = false;
+  param_disable_deblocking = false;
+  param_disable_sao = false;
+  param_sps_headers_fd = -1;
+  param_vps_headers_fd = -1;
+  param_pps_headers_fd = -1;
+  param_slice_headers_fd = -1;
+
   // Init by creating one decoder context (there has to be at least one layer in the bitstream)
   num_layer_decoders = 1;
   layer_decoders[0] = new decoder_context;
   layer_decoders[0]->set_layer_id(0);
   layer_decoders[0]->set_decoder_ctx_array(layer_decoders);
-  layer_decoders[0]->set_multilayer_decode_parameters( &ml_dec_params );
   for (int i=1; i<MAX_LAYER_ID; i++)
     layer_decoders[i] = NULL;
 }
@@ -49,18 +69,16 @@ int decoder_context_multilayer::num_pictures_in_output_queue()
   return nrPics;
 }
 
-de265_image* decoder_context_multilayer::get_next_picture_in_output_queue(int* layerID)
+de265_image* decoder_context_multilayer::get_next_picture_in_output_queue()
 {
   de265_image* img = NULL;
   for (int i = 0; i < num_layer_decoders; i++)
   {
     img = layer_decoders[i]->get_next_picture_in_output_queue();
     if (img != NULL) {
-      *layerID = i;
       return img;
     }
   }
-  *layerID = -1;
   return NULL;
 }
 
@@ -89,7 +107,30 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
     layer_decoders[layer_id] = new decoder_context;
     layer_decoders[layer_id]->set_layer_id(layer_id);
     layer_decoders[layer_id]->set_decoder_ctx_array(layer_decoders);
-    layer_decoders[layer_id]->set_multilayer_decode_parameters( &ml_dec_params );
+
+    // Only set the following values if they have been changed (set)
+    if (num_worker_threads > 0) {
+      // Start thread pool if it has been started 
+      layer_decoders[layer_id]->start_thread_pool(num_worker_threads);
+    }
+    if (limit_HighestTid != 6) {
+      layer_decoders[layer_id]->set_limit_TID(limit_HighestTid);
+    }
+    if (framerate_ratio != 100) {
+      layer_decoders[layer_id]->set_framerate_ratio(framerate_ratio);
+    }
+
+    // Set parameters
+    layer_decoders[layer_id]->param_sei_check_hash = param_sei_check_hash;
+    layer_decoders[layer_id]->param_suppress_faulty_pictures = param_suppress_faulty_pictures;
+    layer_decoders[layer_id]->param_disable_deblocking = param_disable_deblocking;
+    layer_decoders[layer_id]->param_disable_sao = param_disable_sao;
+    layer_decoders[layer_id]->param_sps_headers_fd = param_sps_headers_fd;
+    layer_decoders[layer_id]->param_vps_headers_fd = param_vps_headers_fd;
+    layer_decoders[layer_id]->param_pps_headers_fd = param_pps_headers_fd;
+    layer_decoders[layer_id]->param_slice_headers_fd = param_slice_headers_fd;
+    layer_decoders[layer_id]->set_acceleration_functions(param_acceleration);
+
     num_layer_decoders++;
   }
   return layer_decoders[layer_id];
@@ -97,7 +138,45 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
 
 de265_error decoder_context_multilayer::decode(int* more)
 {
-  
+  if (nal_parser.is_end_of_frame()) {
+    for (int i = 0; i < num_layer_decoders; i++) {
+      layer_decoders[i]->nal_parser.mark_end_of_frame();
+    }
+  }
+  if (nal_parser.is_end_of_stream()) {
+    for (int i = 0; i < num_layer_decoders; i++) {
+      layer_decoders[i]->nal_parser.mark_end_of_stream();
+    }
+  }
+
+  if (nal_parser.get_NAL_queue_length() == 0 &&
+     (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame())) {
+    // The stream has ended. 
+    // The layer decoders might have pending pictures to flush
+    int more_temp = 0;
+    for (int i = 0; i < num_layer_decoders; i++) {
+      layer_decoders[i]->decode(&more_temp);
+      if (more_temp != 0) {
+        // This has to be called again
+        if (more) { *more = 1; }
+        return DE265_OK;
+      }
+    }
+
+    // All decoders returned that they don't need to be called again.
+    if (more) { *more = 0; }
+    return DE265_OK;
+  }
+
+  if (nal_parser.is_end_of_stream() == false &&
+      nal_parser.is_end_of_frame() == false &&
+      nal_parser.get_NAL_queue_length() == 0) {
+    if (more) { *more=1; }
+
+    // The end of the stream has not been set yet but there is no data in the input nal queue.
+    return DE265_ERROR_WAITING_FOR_INPUT_DATA;
+  }
+
   if (nal_parser.get_NAL_queue_length()) {
     // Get one NAL unit from the buffer and push it to the corresponding decoder
     NAL_unit* nal = nal_parser.pop_from_NAL_queue();
@@ -111,6 +190,7 @@ de265_error decoder_context_multilayer::decode(int* more)
     if (nal_hdr.nuh_layer_id > ml_dec_params.TargetLayerId) {
       // Discard all NAL units with nuh_layer_id > (nrLayersToDecode-1)
       nal_parser.free_NAL_unit(nal);
+      if (more) *more = true;
     }
     else {
       decoder_context* layerCtx = get_layer_dec(nal_hdr.nuh_layer_id);
@@ -119,73 +199,23 @@ de265_error decoder_context_multilayer::decode(int* more)
       layerCtx->nal_parser.push_to_NAL_queue(nal); // The layer Ctx now owns this NAL unit and will take care of deleting it
       
       // Call the decode function for this layer
-      *more = 0;
+      if (more) *more = 0;
       de265_error layer_error;
       layer_error = layerCtx->decode(more);
+
+      if (nal_hdr.nal_unit_type == NAL_UNIT_VPS_NUT) {
+        // This was a VPS NAL unit. Calculate the OLS (if this VPS has an extension)
+        calculate_target_output_layer_set(layerCtx->get_last_parsed_vps());
+      }
+
+      printf("MD - more %d - err %d\n", *more, layer_error);
       return layer_error;
     }
   }
 
+  printf("MD - more %d - err 0\n", *more);
   return DE265_OK;
 }
-
-  //// First push all NAL units that we have in the buffer to the different decoders
-  //if (nal_parser.get_NAL_queue_length()) {
-  //  NAL_unit* nal = nal_parser.pop_from_NAL_queue();
-  //  while (nal) {
-  //    // Parse the header
-  //    bitreader reader;
-  //    bitreader_init(&reader, nal->data(), nal->size());
-  //    nal_header nal_hdr;
-  //    nal_read_header(&reader, &nal_hdr);
-
-  //    if (nal_hdr.nuh_layer_id >= nrLayersToDecode) {
-  //      // Discard all NAL units with nuh_layer_id > (nrLayersToDecode-1)
-  //      nal_parser.free_NAL_unit(nal);
-  //    }
-  //    else {
-  //      decoder_context* layerCtx = layer_decoders[nal_hdr.nuh_layer_id];
-  //      if (layerCtx == NULL) {
-  //        // The decoder for the layer nuh_layer_id does not exits yet.
-  //        // Create it
-  //        if (nal_hdr.nuh_layer_id != num_layer_decoders) {
-  //          // NAL unit layer ids should be continuous in the bitstream.
-  //          return DE265_ERROR_INVALID_LAYER_ID;
-  //        }
-  //        layer_decoders[nal_hdr.nuh_layer_id] = new decoder_context;
-  //        layer_decoders[nal_hdr.nuh_layer_id]->setLayerID(nal_hdr.nuh_layer_id);
-  //        num_layer_decoders++;
-
-  //        // Get the pointer to the new decoder
-  //        layerCtx = layer_decoders[nal_hdr.nuh_layer_id];
-  //      }
-
-  //      // Push the NAL unit to the correct layer decoder
-  //      layerCtx->nal_parser.push_to_NAL_queue(nal); // The layer Ctx now owns this NAL unit and will take care of deleting it
-  //    }
-
-  //    // Process the next NAL unit
-  //    nal = nal_parser.pop_from_NAL_queue();
-  //  }
-  //}
-
-  //// Call the decode function of all layers
-  //*more = 0;
-  //int         layer_more = 1;
-  //de265_error layer_error;
-  //de265_error ret_error = DE265_OK;
-  //for (int i = 0; i < num_layer_decoders; i++) {
-  //  layer_error = layer_decoders[i]->decode(&layer_more);
-
-  //  if (layer_more != 0)
-  //    *more = 1;
-
-  //  if (layer_error != DE265_OK)
-  //    ret_error = layer_error;
-  //}
-
-  //return ret_error;
-//}
 
 void decoder_context_multilayer::flush_data()
 {
@@ -196,5 +226,171 @@ void decoder_context_multilayer::flush_data()
   // Also mark end of stream for all decoders
   for (int i = 0; i < num_layer_decoders; i++) {
     layer_decoders[i]->nal_parser.mark_end_of_frame();
+  }
+}
+
+de265_error decoder_context_multilayer::start_thread_pool(int nThreads)
+{
+  num_worker_threads = nThreads;
+  de265_error ret_err = DE265_OK;
+  de265_error err_tmp = DE265_OK;
+
+  // Start threads for each decoder_context
+  // Return the error if one of the call causes an error
+  for (int i = 0; i < num_layer_decoders; i++) {
+    err_tmp = layer_decoders[i]->start_thread_pool(nThreads);
+    if (err_tmp != DE265_OK) {
+      ret_err = err_tmp;
+    }
+  }
+
+  return ret_err;
+}
+
+void decoder_context_multilayer::stop_thread_pool()
+{
+  if (num_worker_threads > 0) {
+    // Stop all decoder thread pools
+    for (int i = 0; i < num_layer_decoders; i++) {
+      layer_decoders[i]->stop_thread_pool();
+    }
+  }
+}
+
+int decoder_context_multilayer::get_highest_TID() const
+{
+  // Return the highest TID from the base layer
+  return layer_decoders[0]->get_highest_TID();
+}
+
+void decoder_context_multilayer::set_limit_TID(int max_tid)
+{
+  limit_HighestTid = max_tid;
+
+  // Set limit for all decoders
+  for (int i = 0; i < num_layer_decoders; i++) {
+    layer_decoders[i]->set_limit_TID(max_tid);
+  }
+}
+
+int decoder_context_multilayer::change_framerate(int more)
+{
+  int ret_val = 0;
+
+  // Change frame rate for all decoders
+  for (int i = 0; i < num_layer_decoders; i++) {
+    ret_val = layer_decoders[i]->change_framerate(more);
+  }
+
+  return ret_val;
+}
+
+void decoder_context_multilayer::set_framerate_ratio(int percent)
+{
+  framerate_ratio = percent;
+  // Change frame rate for all decoders
+  for (int i = 0; i < num_layer_decoders; i++) {
+    layer_decoders[i]->set_framerate_ratio(percent);
+  }
+}
+
+void decoder_context_multilayer::update_parameters()
+{
+  for (int i = 0; i < num_layer_decoders; i++) {
+    layer_decoders[i]->param_sei_check_hash = param_sei_check_hash;
+    layer_decoders[i]->param_suppress_faulty_pictures = param_suppress_faulty_pictures;
+    layer_decoders[i]->param_disable_deblocking = param_disable_deblocking;
+    layer_decoders[i]->param_disable_sao = param_disable_sao;
+    layer_decoders[i]->param_sps_headers_fd = param_sps_headers_fd;
+    layer_decoders[i]->param_vps_headers_fd = param_vps_headers_fd;
+    layer_decoders[i]->param_pps_headers_fd = param_pps_headers_fd;
+    layer_decoders[i]->param_slice_headers_fd = param_slice_headers_fd;
+  }
+}
+
+void decoder_context_multilayer::set_acceleration_functions(enum de265_acceleration l)
+{
+  param_acceleration = l;
+  // Set acceleration for all decoders
+  for (int i = 0; i < num_layer_decoders; i++) {
+    layer_decoders[i]->set_acceleration_functions(l);
+  }
+}
+
+void decoder_context_multilayer::calculate_target_output_layer_set(video_parameter_set *vps) 
+{
+  if (!vps->vps_extension_flag) {
+    // No VPS extension. No multilayer.
+    return;
+  }
+  video_parameter_set_extension *vps_ext = &vps->vps_extension;
+
+  // Reading the VPS extension is done.
+  // Check (calculate if not set) the output layer set index
+  if (!ml_dec_params.values_checked) {
+    if (ml_dec_params.TargetOlsIdx == -1) {
+      // Target output layer set ID not set yet
+      if (ml_dec_params.TargetLayerId > vps->vps_max_layer_id) {
+        // Target layer ID too high
+        ml_dec_params.TargetLayerId = vps->vps_max_layer_id;
+      }
+
+      bool layerSetMatchFound = false;
+      // Output layer set index not assigned.
+      // Based on the value of targetLayerId, check if any of the output layer matches
+      // Currently, the target layer ID in the encoder assumes that all the layers are decoded    
+      // Check if any of the output layer sets match this description
+      for(int i = 0; i < vps_ext->NumOutputLayerSets; i++)
+      {
+        bool layerSetMatchFlag = false;
+        int layerSetIdx = vps_ext->layer_set_idx_for_ols_minus1[i] + 1;
+
+        for(int j = 0; j < vps_ext->NumLayersInIdList[layerSetIdx]; j++)
+        {
+          if( vps_ext->LayerSetLayerIdList[layerSetIdx][j] == ml_dec_params.TargetLayerId )
+          {
+            layerSetMatchFlag = true;
+            break;
+          }
+        }
+      
+        if( layerSetMatchFlag ) // Potential output layer set candidate found
+        {
+          // If target dec layer ID list is also included - check if they match
+          if( !ml_dec_params.TargetDecLayerSetIdx.empty() )
+          {
+            for(int j = 0; j < vps_ext->NumLayersInIdList[layerSetIdx]; j++)
+            {
+              if (ml_dec_params.TargetDecLayerSetIdx[j] != vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][j]])
+              {
+                layerSetMatchFlag = false;
+              }
+            }
+          }
+          if( layerSetMatchFlag ) // The target dec layer ID list also matches, if present
+          {
+            // Match found
+            layerSetMatchFound = true;
+            ml_dec_params.TargetOlsIdx = i;
+            ml_dec_params.values_checked = true;
+            break;
+          }
+        }
+      }
+      assert( layerSetMatchFound ); // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
+  
+    }
+  }
+  else {
+    assert( ml_dec_params.TargetOlsIdx < vps_ext->NumOutputLayerSets );
+    int layerSetIdx = vps_ext->layer_set_idx_for_ols_minus1[ ml_dec_params.TargetOlsIdx ] + 1;  // Index to the layer set
+    // Check if the targetdeclayerIdlist matches the output layer set
+    if( !ml_dec_params.TargetDecLayerSetIdx.empty() ) {
+      for(int i = 0; i < vps_ext->NumLayersInIdList[layerSetIdx]; i++)
+      {
+        assert( ml_dec_params.TargetDecLayerSetIdx[i] == vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][i]]);
+      }
+    }
+    ml_dec_params.values_checked = true;
   }
 }
