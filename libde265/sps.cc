@@ -317,6 +317,9 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
   MaxPicOrderCntLsb = 1<<(log2_max_pic_order_cnt_lsb);
 
+  sps_max_dec_pic_buffering[0] = 1;
+  sps_max_num_reorder_pics[0]  = 0;
+  sps_max_latency_increase_plus1[0] = 0;
   if (!MultiLayerExtSpsFlag) {
     // --- sub_layer_ordering_info ---
 
