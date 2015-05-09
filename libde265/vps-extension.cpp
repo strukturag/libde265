@@ -23,6 +23,18 @@
 #include "bitstream.h"
 #include <assert.h>
 
+video_parameter_set_extension::video_parameter_set_extension()
+{
+  for (int i = 0; i < 8; i++)
+  {
+    poc_lsb_not_present_flag[i] = false;
+    for (int j = 0; j < 8; j++)
+    {
+      direct_dependency_flag[i][j] = false;
+    }
+  }
+}
+
 de265_error video_parameter_set_extension::read(bitreader* reader, video_parameter_set *vps)
 {
   // Byte alignment (vps_extension_alignment_bit_equal_to_one)

@@ -63,6 +63,7 @@ struct rep_format {
 class profile_tier_level;
 struct video_parameter_set;
 struct video_parameter_set_extension{
+  video_parameter_set_extension();
   de265_error read(bitreader* reader, video_parameter_set *vps);
 
   // Parameters of the vps_extension
