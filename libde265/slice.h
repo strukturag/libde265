@@ -29,6 +29,7 @@
 #include "libde265/util.h"
 #include "libde265/refpic.h"
 #include "libde265/threads.h"
+#include "libde265/nal.h"
 #include "contextmodel.h"
 
 #include <vector>
@@ -129,7 +130,8 @@ public:
     reset();
   }
 
-  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
+  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding,
+                   nal_header nal_hdr);
   de265_error write(error_queue*, CABAC_encoder&,
                     const seq_parameter_set* sps,
                     const pic_parameter_set* pps,
@@ -216,8 +218,18 @@ public:
   int  offset_len;
   std::vector<int> entry_point_offset;
 
-  int  slice_segment_header_extension_length;
-
+  // Multi layer extension
+  bool   cross_layer_bla_flag;
+  bool   inter_layer_pred_enabled_flag;
+  int    num_inter_layer_ref_pics_minus1;
+  int_1d inter_layer_pred_layer_idc;
+  int    slice_segment_header_extension_length;
+  int    poc_reset_idc;
+  int    poc_reset_period_id;
+  bool   full_poc_reset_flag;
+  int    poc_lsb_val;
+  bool   poc_msb_cycle_val_present_flag;
+  int    poc_msb_cycle_val;
 
   // --- derived data ---
 

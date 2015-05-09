@@ -134,6 +134,7 @@ void slice_segment_header::set_defaults()
   //int  offset_len;
   //std::vector<int> entry_point_offset;
 
+  poc_msb_cycle_val_present_flag = 0;
   slice_segment_header_extension_length = 0;
 
   SliceAddrRS = slice_segment_address;
@@ -341,7 +342,7 @@ void slice_segment_header::reset()
 
 
 de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
-                                       bool* continueDecoding)
+                                       bool* continueDecoding, nal_header nal_hdr)
 {
   *continueDecoding = false;
   reset();
@@ -349,7 +350,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   // set defaults
 
   dependent_slice_segment_flag = 0;
-
+  
+  // Get NAL unit type and layer ID
+  int nal_unit_type = nal_hdr.nal_unit_type;
+  int nuh_layer_id =  nal_hdr.nuh_layer_id;
+  int nuh_temporal_id = nal_hdr.nuh_temporal_id;
 
   // read bitstream
 
@@ -366,13 +371,17 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
+  // Get parameter sets
   pic_parameter_set* pps = ctx->get_pps((int)slice_pic_parameter_set_id);
+  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
+  video_parameter_set_extension* vps_ext = &vps->vps_extension;
+
   if (!pps->pps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
@@ -421,14 +430,22 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
 
   if (!dependent_slice_segment_flag) {
-    for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
-      //slice_reserved_undetermined_flag[i]
-      skip_bits(br,1);
+    int i=0;
+    if( pps->num_extra_slice_header_bits > i ) {
+      i++;
+      skip_bits(br,1); // discardable_flag
+    }
+    if( pps->num_extra_slice_header_bits > i ) {
+      i++;
+      cross_layer_bla_flag = get_bits(br,1);
+    }
+
+    for (; i < pps->num_extra_slice_header_bits; i++) {
+      skip_bits(br,1); // slice_reserved_flag[ i ]
     }
 
     slice_type = get_uvlc(br);
-    if (slice_type > 2 ||
-	slice_type == UVLC_ERROR) {
+    if (slice_type > 2 ||	slice_type == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       *continueDecoding = false;
       return DE265_OK;
@@ -451,9 +468,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     int NumLtPics = 0;
 
-    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if( (nuh_layer_id > 0 && !vps_ext->poc_lsb_not_present_flag[vps_ext->LayerIdxInVps[nuh_layer_id]]) ||
+        (nal_unit_type != NAL_UNIT_IDR_W_RADL && nal_unit_type != NAL_UNIT_IDR_N_LP)) {
+
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
+    }
+
+    if( nal_unit_type != NAL_UNIT_IDR_W_RADL && nal_unit_type != NAL_UNIT_IDR_N_LP ) {
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!short_term_ref_pic_set_sps_flag) {
@@ -581,6 +602,53 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       num_long_term_pics= 0;
     }
 
+    // Multilayer extension
+    if( nuh_layer_id > 0 && !vps_ext->default_ref_layers_active_flag &&
+        vps_ext->NumDirectRefLayers[ nuh_layer_id ] > 0 ) {
+      inter_layer_pred_enabled_flag = get_bits(br,1);
+      if( inter_layer_pred_enabled_flag && vps_ext->NumDirectRefLayers[nuh_layer_id] > 1) {
+        if (!vps_ext->max_one_active_ref_layer_flag) {
+          int nr_bits = ceil_log2( vps_ext->NumDirectRefLayers[nuh_layer_id] ) ;
+          num_inter_layer_ref_pics_minus1 = get_bits(br,nr_bits);
+        }
+
+        // The variables numRefLayerPics and refLayerPicIdc[ j ] are derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 51)
+        int_1d refLayerPicIdc;
+        int numRefLayerPics;
+        int i,j;
+        for( i=0, j=0; i < vps_ext->NumDirectRefLayers[ nuh_layer_id ]; i++ ) {
+          int refLayerIdx = vps_ext->LayerIdxInVps[ vps_ext->IdDirectRefLayer[ nuh_layer_id ][ i ] ];
+          if( vps_ext->sub_layers_vps_max_minus1[ refLayerIdx ] >= nuh_temporal_id && ( nuh_temporal_id == 0 ||
+              vps_ext->max_tid_il_ref_pics_plus1[ refLayerIdx ][ vps_ext->LayerIdxInVps[ nuh_layer_id ] ] > nuh_temporal_id ))
+            refLayerPicIdc[ j++ ] = i;
+        }
+        numRefLayerPics = j;
+
+        // The variable NumActiveRefLayerPics is derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 52)
+        int NumActiveRefLayerPics;
+        if( nuh_layer_id == 0 || numRefLayerPics == 0 )
+          NumActiveRefLayerPics = 0;
+        else if( vps_ext->default_ref_layers_active_flag ) {
+          NumActiveRefLayerPics = numRefLayerPics;
+        }
+        else if (!inter_layer_pred_enabled_flag) {
+          NumActiveRefLayerPics = 0;
+        }
+        else if (vps_ext->max_one_active_ref_layer_flag || vps_ext->NumDirectRefLayers[nuh_layer_id] == 1) {
+          NumActiveRefLayerPics = 1;
+        }
+        else {
+          NumActiveRefLayerPics = num_inter_layer_ref_pics_minus1 + 1;
+        }
+
+        if (NumActiveRefLayerPics != vps_ext->NumDirectRefLayers[nuh_layer_id]) {
+          for( i = 0; i < NumActiveRefLayerPics; i++ ) {
+            int nr_bits = ceil_log2(vps_ext->NumDirectRefLayers[nuh_layer_id]) ;
+            inter_layer_pred_layer_idc[ i ] = get_bits(br,nr_bits);
+          }
+        }
+      }
+    }
 
     // --- SAO ---
 
@@ -836,14 +904,57 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   if (pps->slice_segment_header_extension_present_flag) {
     slice_segment_header_extension_length = get_uvlc(br);
     if (slice_segment_header_extension_length == UVLC_ERROR ||
-	slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
+	      slice_segment_header_extension_length > 256) {
+      //The value of slice_segment_header_extension_length shall be in the range of 0 to 256, inclusive. 
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
-    for (int i=0; i<slice_segment_header_extension_length; i++) {
-      //slice_segment_header_extension_data_byte[i]
-      get_bits(br,8);
+    int extension_length_bits = slice_segment_header_extension_length * 8;
+
+    pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
+    if (pps_ext->poc_reset_info_present_flag) {
+      poc_reset_idc = get_bits(br,2);
+      extension_length_bits -= 2;
+    }
+    if( poc_reset_idc  !=  0 ) {
+      poc_reset_period_id = get_bits(br,6);
+      extension_length_bits -= 6;
+    }
+    if( poc_reset_idc == 3 ) {
+      full_poc_reset_flag = get_bits(br,1);
+      extension_length_bits--;
+      int nr_bits = sps->log2_max_pic_order_cnt_lsb;
+      poc_lsb_val = get_bits(br,nr_bits);
+      extension_length_bits -= nr_bits;
+    }
+
+    video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
+    video_parameter_set_extension* vps_ext = &vps->vps_extension;
+
+    bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
+    nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
+    
+    int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
+    ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
+
+    if( !PocMsbValRequiredFlag  &&  vps_ext->vps_poc_lsb_aligned_flag ) {
+      poc_msb_cycle_val_present_flag = get_bits(br,1);
+      extension_length_bits--;
+    }
+    else {
+      poc_msb_cycle_val_present_flag = (PocMsbValRequiredFlag == 1);
+    }
+    if (poc_msb_cycle_val_present_flag) {
+      int nr_bits;
+      poc_msb_cycle_val = get_uvlc(br, &nr_bits);
+      extension_length_bits -= nr_bits;
+    }
+
+    // Read more data until slice_segment_header_extension_length bytes have been read
+    for (; extension_length_bits > 0; extension_length_bits--) {
+      // slice_segment_header_extension_data_bit
+      get_bits(br,1);
     }
   }
 

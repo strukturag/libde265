@@ -616,7 +616,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   slice_segment_header* shdr = new slice_segment_header;
   bool continueDecoding;
-  de265_error err = shdr->read(&reader,this, &continueDecoding);
+  de265_error err = shdr->read(&reader,this, &continueDecoding, nal_hdr);
   if (!continueDecoding) {
     if (img) { img->integrity = INTEGRITY_NOT_DECODED; }
     nal_parser.free_NAL_unit(nal);
