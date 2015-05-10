@@ -324,6 +324,7 @@ void slice_segment_header::reset()
   CurrRpsIdx = 0;
   CurrRps.reset();
   NumPocTotalCurr = 0;
+  NumActiveRefLayerPics = 0;
 
   for (int i=0;i<2;i++)
     for (int j=0;j<MAX_NUM_REF_PICS;j++) {
@@ -614,7 +615,6 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
         // The variables numRefLayerPics and refLayerPicIdc[ j ] are derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 51)
         int_1d refLayerPicIdc;
-        int numRefLayerPics;
         int i,j;
         for( i=0, j=0; i < vps_ext->NumDirectRefLayers[ nuh_layer_id ]; i++ ) {
           int refLayerIdx = vps_ext->LayerIdxInVps[ vps_ext->IdDirectRefLayer[ nuh_layer_id ][ i ] ];
@@ -623,30 +623,6 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
             refLayerPicIdc[ j++ ] = i;
         }
         numRefLayerPics = j;
-
-        // The variable NumActiveRefLayerPics is derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 52)
-        int NumActiveRefLayerPics;
-        if( nuh_layer_id == 0 || numRefLayerPics == 0 )
-          NumActiveRefLayerPics = 0;
-        else if( vps_ext->default_ref_layers_active_flag ) {
-          NumActiveRefLayerPics = numRefLayerPics;
-        }
-        else if (!inter_layer_pred_enabled_flag) {
-          NumActiveRefLayerPics = 0;
-        }
-        else if (vps_ext->max_one_active_ref_layer_flag || vps_ext->NumDirectRefLayers[nuh_layer_id] == 1) {
-          NumActiveRefLayerPics = 1;
-        }
-        else {
-          NumActiveRefLayerPics = num_inter_layer_ref_pics_minus1 + 1;
-        }
-
-        if (NumActiveRefLayerPics != vps_ext->NumDirectRefLayers[nuh_layer_id]) {
-          for( i = 0; i < NumActiveRefLayerPics; i++ ) {
-            int nr_bits = ceil_log2(vps_ext->NumDirectRefLayers[nuh_layer_id]) ;
-            inter_layer_pred_layer_idc[ i ] = get_bits(br,nr_bits);
-          }
-        }
       }
     }
 
@@ -692,7 +668,35 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       if (num_ref_idx_l0_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
       if (num_ref_idx_l1_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
 
+      // In standard: NumPicTotalCurr
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
+
+      // The variable NumActiveRefLayerPics is derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 52)
+      if( nuh_layer_id == 0 || numRefLayerPics == 0 )
+        NumActiveRefLayerPics = 0;
+      else if( vps_ext->default_ref_layers_active_flag ) {
+        NumActiveRefLayerPics = numRefLayerPics;
+      }
+      else if (!inter_layer_pred_enabled_flag) {
+        NumActiveRefLayerPics = 0;
+      }
+      else if (vps_ext->max_one_active_ref_layer_flag || vps_ext->NumDirectRefLayers[nuh_layer_id] == 1) {
+        NumActiveRefLayerPics = 1;
+      }
+      else {
+        NumActiveRefLayerPics = num_inter_layer_ref_pics_minus1 + 1;
+      }
+
+      if (NumActiveRefLayerPics != vps_ext->NumDirectRefLayers[nuh_layer_id]) {
+        for( i = 0; i < NumActiveRefLayerPics; i++ ) {
+          int nr_bits = ceil_log2(vps_ext->NumDirectRefLayers[nuh_layer_id]) ;
+          inter_layer_pred_layer_idc[ i ] = get_bits(br,nr_bits);
+        }
+      }
+      if (nuh_layer_id > 0) {
+        // Multilayer extension (F.7.4.7.2. JCTVC-R1013_v6) (F-52)
+        NumPocTotalCurr += NumActiveRefLayerPics;
+      }
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1) {
 

@@ -231,6 +231,10 @@ public:
   bool   poc_msb_cycle_val_present_flag;
   int    poc_msb_cycle_val;
 
+  // derived Multi layer data
+  int    numRefLayerPics;
+  int    NumActiveRefLayerPics;
+
   // --- derived data ---
 
   int SliceQPY;
