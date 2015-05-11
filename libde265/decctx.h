@@ -483,6 +483,11 @@ class decoder_context : public base_context {
   int RefPicSetLtCurr[MAX_NUM_REF_PICS];
   int RefPicSetLtFoll[MAX_NUM_REF_PICS];
 
+  // Multi layer extension
+  int RefPicSetInterLayer0[MAX_REF_LAYERS];
+  int RefPicSetInterLayer1[MAX_REF_LAYERS];
+  int NumActiveRefLayerPics0;
+  int NumActiveRefLayerPics1;
 
   // --- parameters derived from parameter sets ---
 
@@ -514,6 +519,7 @@ class decoder_context : public base_context {
   int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
                                              int POC, bool longTerm);
   void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
+  void process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
   bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
 
 

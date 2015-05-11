@@ -306,6 +306,10 @@ decoder_context::decoder_context()
   // --- decoded picture buffer ---
 
   current_image_poc_lsb = -1; // any invalid number
+
+  // Multilayer extensions
+  NumActiveRefLayerPics0 = 0;
+  NumActiveRefLayerPics1 = 0;
 }
 
 
@@ -1449,6 +1453,84 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
   return idx;
 }
 
+/* H.8.1.3   invoked once per picture
+
+   This function will mark inter layer pictures in the DPB as 'unused' or 'used for long-term reference'.
+   Outputs of this process are updated lists of inter-layer reference pictures RefPicSetInterLayer0 and RefPicSetInterLayer1 and the variables NumActiveRefLayerPics0 and NumActiveRefLayerPics1.
+ */
+void decoder_context::process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
+{
+  // The variable currLayerId is set equal to nuh_layer_id of the current picture
+  int currLayerId = ctx->img->get_ID();
+  int nuh_layer_id = currLayerId;
+
+  // The variables NumRefLayerPicsProcessing, NumRefLayerPicsSampleProcessing, and NumRefLayerPicsMotionProcessing are set equal to 0.
+  int NumRefLayerPicsProcessing = 0;
+  int NumRefLayerPicsSampleProcessing = 0;
+  int NumRefLayerPicsMotionProcessing = 0;
+
+  // The lists RefPicSetInterLayer0 and RefPicSetInterLayer1 are first emptied, ...
+  for (int i=0; i<MAX_REF_LAYERS; i++) {
+    RefPicSetInterLayer0[i] = 0;
+    RefPicSetInterLayer1[i] = 0;
+  }
+  // ... NumActiveRefLayerPics0 and NumActiveRefLayerPics1 are set equal to 0 ...
+  NumActiveRefLayerPics0 = 0;
+  NumActiveRefLayerPics1 = 0;
+
+  // Get VPS
+  video_parameter_set* vps = ctx->current_vps;
+  video_parameter_set_extension* vps_ext = &vps->vps_extension;
+  int ViewId[8];
+  for (int i=0; i<8; i++) {
+    ViewId[i] = vps_ext->view_id_val[i];
+  }
+
+  // Derive RefPicLayerId (JCTVC-R1013_v6 F.7.4.7.1 F-53)
+  int_1d RefPicLayerId;
+  for( int i=0, j=0; i < hdr->NumActiveRefLayerPics; i++ ) {
+	  RefPicLayerId[i] = vps_ext->IdDirectRefLayer[nuh_layer_id][hdr->inter_layer_pred_layer_idc[i]];
+  }
+
+  // ... and the following applies:
+  for( int i=0; i<hdr->NumActiveRefLayerPics; i++ ) {
+    bool refPicSet0Flag = 
+      ((ViewId[currLayerId] <= ViewId[0] && ViewId[currLayerId] <= ViewId[RefPicLayerId[i]]) ||
+      (ViewId[currLayerId] >= ViewId[0] && ViewId[currLayerId] >= ViewId[RefPicLayerId[i]]));
+
+    // Look for the lower layer reference picture in the lower layer dpb
+    int refLayerID = RefPicLayerId[i];
+    decoder_context *ctx_lower = ctx->get_multi_layer_decoder()->get_layer_dec(refLayerID);
+    
+    // Get current POC and ID (? wat is this ID?)
+    int currentPOC = ctx->img->PicOrderCntVal;
+    const int currentID = ctx->img->get_ID();
+
+    int DPBIndex = ctx_lower->dpb.DPB_index_of_picture_with_POC(currentPOC, currentID);
+    if (DPBIndex != -1) {
+      // an inter-layer reference picture ilRefPic is derived by invoking the process specified in clause H.8.1.4 with picX and RefPicLayerId[ i ] given as inputs
+      int newIdx = 33; // TODO
+      if (refPicSet0Flag) {
+        RefPicSetInterLayer0[ NumActiveRefLayerPics0 ] = newIdx;
+        //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
+        NumActiveRefLayerPics0++;
+      }
+      else {
+        RefPicSetInterLayer1[ NumActiveRefLayerPics1 ] = newIdx;
+        //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
+        NumActiveRefLayerPics1++;
+      }
+    }
+    else {
+      if( refPicSet0Flag ) {
+        RefPicSetInterLayer0[ NumActiveRefLayerPics0++ ] = -1;
+      }
+      else {
+        RefPicSetInterLayer1[ NumActiveRefLayerPics1++ ] = -1;
+      }
+    }
+  }
+}
 
 /* 8.3.2   invoked once per picture
 
@@ -1752,6 +1834,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
       RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrBefore[i];
 
+    // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-64)
+    for( int i=0; i<ctx->NumActiveRefLayerPics0; rIdx++, i++ )
+      RefPicListTemp0[ rIdx ] = ctx->RefPicSetInterLayer0[i];
+
     for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
       RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
 
@@ -1759,6 +1845,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
       isLongTerm[0][rIdx] = true;
     }
+
+    // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-64)
+    for( int i=0; i<ctx->NumActiveRefLayerPics1; rIdx++, i++ )
+      RefPicListTemp0[rIdx] = ctx->RefPicSetInterLayer1[i];
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
@@ -1790,7 +1880,6 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     hdr->RefPicList_PicState[0][rIdx] = img_0_rIdx->PicState;
   }
 
-
   /* --- Fill RefPicListTmp1 with reference pictures in this order:
      1) short term, future POC
      2) short term, past POC
@@ -1806,6 +1895,11 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
       }
 
+      // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-66)
+      for( int i=0;i<ctx->NumActiveRefLayerPics1; rIdx++, i++ ) {
+        RefPicListTemp1[rIdx] = ctx->RefPicSetInterLayer1[ i ];
+      }
+
       for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
       }
@@ -1813,6 +1907,11 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
         isLongTerm[1][rIdx] = true;
+      }
+
+      // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-66)
+      for( int i=0;i<ctx->NumActiveRefLayerPics0; rIdx++, i++ ) {
+        RefPicListTemp1[rIdx]=ctx->RefPicSetInterLayer0[i];
       }
 
       // This check is to prevent an endless loop when no images are added above.
@@ -2059,6 +2158,11 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     process_picture_order_count(ctx,hdr);
 
     if (hdr->first_slice_segment_in_pic_flag) {
+      // Multi layer extension
+      if (layer_ID > 0) {
+        process_inter_layer_reference_picture_set(ctx,hdr);
+      }
+
       // mark picture so that it is not overwritten by unavailable reference frames
       img->PicState = UsedForShortTermReference;
 
