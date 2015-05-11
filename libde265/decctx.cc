@@ -2019,7 +2019,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     ctx->img = img;
 
     img->vps = *ctx->current_vps;
-    img->sps = *ctx->current_sps;
+    //img->sps = *ctx->current_sps;  // already set in new_image()
     img->pps = *ctx->current_pps;
     img->decctx = ctx;
 

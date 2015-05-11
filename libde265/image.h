@@ -222,7 +222,8 @@ struct de265_image {
   ~de265_image();
 
 
-  de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
+  de265_error alloc_image(int w,int h, enum de265_chroma c,
+                          const seq_parameter_set* sps,
                           bool allocMetadata,
                           decoder_context* dctx,
                           class encoder_context* ectx,

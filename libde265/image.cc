@@ -109,6 +109,12 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   int luma_stride   = (spec->width   + spec->alignment-1) / spec->alignment * spec->alignment;
   int chroma_stride = (spec->width/2 + spec->alignment-1) / spec->alignment * spec->alignment;
 
+  assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
+  assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
+
+  luma_stride   *= (img->sps.BitDepth_Y+7)/8;
+  chroma_stride *= (img->sps.BitDepth_C+7)/8;
+
   int luma_height   = spec->height;
   int chroma_height = (spec->height+1)/2;
 
@@ -213,7 +219,10 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      de265_PTS pts, void* user_data,
                                      bool useCustomAllocFunc)
 {
-  if (allocMetadata) { assert(sps); }
+  //if (allocMetadata) { assert(sps); }
+  assert(sps);
+
+  this->sps = *sps;
 
   release(); /* TODO: review code for efficient allocation when arrays are already
                 allocated to the requested size. Without the release, the old image-data
