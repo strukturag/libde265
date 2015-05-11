@@ -23,7 +23,7 @@
 #include "libde265/decctx.h"
 #include <assert.h>
 
-error_queue errqueue;
+decoder_context decctx;
 
 video_parameter_set vps;
 seq_parameter_set   sps;
@@ -55,16 +55,16 @@ void process_nal(NAL_unit* nal)
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
-      vps.read(&errqueue, &reader);
+      vps.read(&decctx, &reader);
       vps.dump(1);
-      vps.write(&errqueue, writer);
+      vps.write(&decctx, writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
-      sps.read(&errqueue, &reader);
+      sps.read(&decctx, &reader);
       sps.dump(1);
-      sps.write(&errqueue, writer);
+      sps.write(&decctx, writer);
       writer.flush_VLC();
       break;
 
