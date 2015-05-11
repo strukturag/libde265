@@ -104,7 +104,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
 
   view_id_len = vlc = get_bits(reader,4);
   if (vlc > 0) {
-    
+
     // Standard F.7.4.3.1.1 (F-2) (JCTVC-R1008_v7)
     // The variable ScalabilityId[ i ][ smIdx ] specifying the identifier of the smIdx-th scalability dimension type of the i-th layer, and the variables ViewOrderIdx[ lId ], DependencyId[ lId ], and AuxId[ lId ] specifying the view order index, the spatial/quality scalability identifier, and the auxiliary identifier, respectively, of the layer with nuh_layer_id equal to lId  are derived as follows:
     int NumViews = 1;
@@ -131,7 +131,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
         NumViews += newViewFlag ;
       }
     }
-    
+
     for (int i = 0; i < NumViews; i++)
     {
       view_id_val[i] = get_bits(reader,vlc);
@@ -298,7 +298,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     OlsIdxToLsIdx[ i ] =  ( i < NumLayerSets ) ? i : ( layer_set_idx_for_ols_minus1[ i ] + 1 );
 
     if (i > vps->vps_num_layer_sets - 1 || defaultOutputLayerIdc == 2) {
-      // i in the range of ( defaultOutputLayerIdc  = =  2 ) ? 0 : ( vps_num_layer_sets_minus1 + 1 ) to NumOutputLayerSets ? 1, inclusive, 
+      // i in the range of ( defaultOutputLayerIdc  = =  2 ) ? 0 : ( vps_num_layer_sets_minus1 + 1 ) to NumOutputLayerSets ? 1, inclusive,
       for (int j = 0; j < NumLayersInIdList[OlsIdxToLsIdx[i]]; j++) {
         output_layer_flag[ i ][ j ] = get_bits(reader,1);
         OutputLayerFlag[i][j] = output_layer_flag[ i ][ j ];
@@ -308,7 +308,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
       for (int j = 0; j < NumLayersInIdList[OlsIdxToLsIdx[i]]; j++) {
         if (defaultOutputLayerIdc == 0 || defaultOutputLayerIdc == 1) {
 
-          // with nuhLayerIdA being the highest value in LayerSetLayerIdList[ OlsIdxToLsIdx[ i ] ], 
+          // with nuhLayerIdA being the highest value in LayerSetLayerIdList[ OlsIdxToLsIdx[ i ] ],
           int nuhLayerIdA = 0;
           for (int l = 0; l < NumLayersInIdList[OlsIdxToLsIdx[i]]; l++) {
             if (LayerSetLayerIdList[OlsIdxToLsIdx[i]][l] > nuhLayerIdA) {
@@ -334,7 +334,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
         OlsHighestOutputLayerId[ i ] = LayerSetLayerIdList[ OlsIdxToLsIdx[ i ] ][ j ];
       }
     }
-    
+
     // Standard F.7.4.3.1.1 (F-12) (JCTVC-R1008_v7)
     // The variables NumNecessaryLayers[ olsIdx ] and NecessaryLayerFlag[ olsIdx ][ lIdx ] are derived as follows:
     for( int olsIdx = 0; olsIdx < NumOutputLayerSets; olsIdx++ ) {
@@ -445,7 +445,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     }
     vui.read_vps_vui(reader, vps);
   }
-  
+
   return DE265_OK;
 }
 
@@ -464,7 +464,7 @@ de265_error decoded_picture_buffer_size_table::read(bitreader* reader,
       sub_layer_dpb_info_present_flag[i][0] = true;
       if( sub_layer_dpb_info_present_flag[ i ][ j ] ) {
         for (int k = 0; k < vps_ext->NumLayersInIdList[currLsIdx]; k++) {
-          if( vps_ext->NecessaryLayerFlag[ i ][ k ]  &&  ( vps->vps_base_layer_internal_flag || 
+          if( vps_ext->NecessaryLayerFlag[ i ][ k ]  &&  ( vps->vps_base_layer_internal_flag ||
             ( vps_ext->LayerSetLayerIdList[ currLsIdx ][ k ] != 0 ) ) ) {
             max_vps_dec_pic_buffering_minus1[i][k][j] = get_uvlc(reader);
           }

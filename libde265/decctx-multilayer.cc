@@ -110,7 +110,7 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
 
     // Only set the following values if they have been changed (set)
     if (num_worker_threads > 0) {
-      // Start thread pool if it has been started 
+      // Start thread pool if it has been started
       layer_decoders[layer_id]->start_thread_pool(num_worker_threads);
     }
     if (limit_HighestTid != 6) {
@@ -151,7 +151,7 @@ de265_error decoder_context_multilayer::decode(int* more)
 
   if (nal_parser.get_NAL_queue_length() == 0 &&
      (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame())) {
-    // The stream has ended. 
+    // The stream has ended.
     // The layer decoders might have pending pictures to flush
     int more_temp = 0;
     for (int i = 0; i < num_layer_decoders; i++) {
@@ -197,7 +197,7 @@ de265_error decoder_context_multilayer::decode(int* more)
 
       // Push the NAL unit to the correct layer decoder
       layerCtx->nal_parser.push_to_NAL_queue(nal); // The layer Ctx now owns this NAL unit and will take care of deleting it
-      
+
       // Call the decode function for this layer
       if (more) *more = 0;
       de265_error layer_error;
@@ -220,7 +220,7 @@ void decoder_context_multilayer::flush_data()
   // Flush data and mark as end of stream
   nal_parser.flush_data();
   nal_parser.mark_end_of_stream();
-  
+
   // Also mark end of stream for all decoders
   for (int i = 0; i < num_layer_decoders; i++) {
     layer_decoders[i]->nal_parser.mark_end_of_frame();
@@ -315,7 +315,7 @@ void decoder_context_multilayer::set_acceleration_functions(enum de265_accelerat
   }
 }
 
-void decoder_context_multilayer::calculate_target_output_layer_set(video_parameter_set *vps) 
+void decoder_context_multilayer::calculate_target_output_layer_set(video_parameter_set *vps)
 {
   if (!vps->vps_extension_flag) {
     // No VPS extension. No multilayer.
@@ -336,7 +336,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
       bool layerSetMatchFound = false;
       // Output layer set index not assigned.
       // Based on the value of targetLayerId, check if any of the output layer matches
-      // Currently, the target layer ID in the encoder assumes that all the layers are decoded    
+      // Currently, the target layer ID in the encoder assumes that all the layers are decoded
       // Check if any of the output layer sets match this description
       for(int i = 0; i < vps_ext->NumOutputLayerSets; i++)
       {
@@ -351,7 +351,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
             break;
           }
         }
-      
+
         if( layerSetMatchFlag ) // Potential output layer set candidate found
         {
           // If target dec layer ID list is also included - check if they match
@@ -376,7 +376,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
         }
       }
       assert( layerSetMatchFound ); // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
-  
+
     }
   }
   else {

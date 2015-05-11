@@ -123,7 +123,7 @@ de265_error vps_vui_bsp_hrd_params::read_vps_vui_bsp_hrd_params(bitreader* reade
       cprms_add_present_flag[ i ] = get_bits(reader,1);
     }
     num_sub_layer_hrd_minus1[i] = get_uvlc(reader);
-        
+
     hrd_params[i].read(reader, cprms_add_present_flag[i], num_sub_layer_hrd_minus1[i]);
   }
 
@@ -159,7 +159,7 @@ de265_error vps_vui_bsp_hrd_params::read_vps_vui_bsp_hrd_params(bitreader* reade
   return DE265_OK;
 }
 
-de265_error vps_vui::read_vps_vui( bitreader* reader, 
+de265_error vps_vui::read_vps_vui( bitreader* reader,
                                    video_parameter_set* vps)
 {
   video_parameter_set_extension * vps_ext = &vps->vps_extension;
@@ -270,7 +270,7 @@ all_layers_idr_aligned_flag = get_bits(reader, 1);
 }
 
 de265_error hrd_parameters::read( bitreader* reader,
-                                  bool commonInfPresentFlag, 
+                                  bool commonInfPresentFlag,
                                   int maxNumSubLayersMinus1)
 {
   if (commonInfPresentFlag) {
