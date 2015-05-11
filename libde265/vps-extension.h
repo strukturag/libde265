@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DE265_VPS_EXTENSION_
+#ifndef DE265_VPS_EXTENSION_H
 #define DE265_VPS_EXTENSION_H
 
 #include "de265.h"
