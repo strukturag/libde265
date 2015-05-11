@@ -27,6 +27,7 @@ libde265_la_SOURCES = \
   de265.cc \
   deblock.cc \
   decctx.cc \
+  decctx-multilayer.cc \
   nal-parser.cc \
   nal-parser.h \
   dpb.cc \
@@ -44,7 +45,8 @@ libde265_la_SOURCES = \
   slice.cc \
   sps.cc \
   util.cc \
-  vps.cc \
+  vps.cc vps.h \
+  vps-extension.cc vps-extension.h \
   bitstream.h \
   cabac.h \
   deblock.h \
@@ -62,7 +64,7 @@ libde265_la_SOURCES = \
   slice.h \
   sps.h \
   util.h \
-  vps.h \
+  vui.cc vui.h \
   motion.cc motion.h \
   threads.cc threads.h \
   visualize.cc visualize.h \

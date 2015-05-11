@@ -87,7 +87,7 @@ struct video_parameter_set_extension{
   bool     default_ref_layers_active_flag;
   int      vps_num_profile_tier_level_minus1;
   bool_1d  vps_profile_present_flag;
-  
+
   int      num_add_olss;
   int      default_output_layer_idc;
   int_1d   layer_set_idx_for_ols_minus1;
@@ -107,7 +107,7 @@ struct video_parameter_set_extension{
   bool   poc_lsb_not_present_flag[8];
 
   decoded_picture_buffer_size_table dpb_size_table;
-  
+
   int   direct_dep_type_len_minus2;
   bool  direct_dependency_all_layers_flag;
   int   direct_dependency_all_layers_type;
