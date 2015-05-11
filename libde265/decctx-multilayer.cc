@@ -321,6 +321,11 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
     // No VPS extension. No multilayer.
     return;
   }
+  if (get_target_Layer_ID() == 0) {
+    // The vps_extension_flag is true but we are only decoding the base layer.
+    // Ignore the existing VPS extension
+    return;
+  }
   video_parameter_set_extension *vps_ext = &vps->vps_extension;
 
   // Reading the VPS extension is done.

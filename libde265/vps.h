@@ -39,6 +39,7 @@
 #include <map>
 
 class error_queue;
+class decoder_context;
 
 #define MAX_TEMPORAL_SUBLAYERS 8
 
@@ -131,7 +132,7 @@ typedef struct {
 class video_parameter_set
 {
 public:
-  de265_error read(error_queue* errqueue, bitreader* reader);
+  de265_error read(decoder_context* ctx, bitreader* reader);
   de265_error write(error_queue* errqueue, CABAC_encoder& out) const;
   void dump(int fd) const;
 

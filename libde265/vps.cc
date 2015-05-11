@@ -99,7 +99,7 @@ void video_parameter_set::set_defaults(enum profile_idc profile, int level_major
 }
 
 
-de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
+de265_error video_parameter_set::read(decoder_context* ctx, bitreader* reader)
 {
   int vlc;
 
@@ -162,7 +162,7 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
   if (vps_num_layer_sets+1<0 ||
       vps_num_layer_sets+1>=1024 ||
       vps_num_layer_sets == UVLC_ERROR) {
-    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
   vps_num_layer_sets += 1;
@@ -214,7 +214,14 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
   vps_extension_flag = get_bits(reader,1);
 
   if (vps_extension_flag) {
-    // Parser the VPS extension
+    // Check if we are an SHVC decoder
+    if (ctx->get_multi_layer_decoder()->get_target_Layer_ID() == 0) {
+      // The target is only to decode the base layer.
+      // All following bits are vps_extension_data_flags which should be ignored.
+      return DE265_OK;
+    }
+    
+      // Parser the VPS extension
     vps_extension.read(reader, this);
 
     vps_extension2_flag = get_bits(reader,1);
