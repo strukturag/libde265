@@ -525,6 +525,16 @@ de265_error seq_parameter_set::compute_derived_values()
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
+
+  if (BitDepth_Y < 8 || BitDepth_Y > 16) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (BitDepth_C < 8 || BitDepth_C > 16) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+
   sps_read = true;
 
   return DE265_OK;
