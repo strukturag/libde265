@@ -32,6 +32,7 @@ video_parameter_set_extension::video_parameter_set_extension()
     {
       direct_dependency_flag[i][j] = false;
     }
+      view_id_val[i] = 0;
   }
 }
 
