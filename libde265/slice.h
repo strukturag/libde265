@@ -36,6 +36,7 @@
 #include <string.h>
 
 #define MAX_NUM_REF_PICS    16
+#define MAX_REF_LAYERS       7
 
 class decoder_context;
 class thread_context;
