@@ -140,6 +140,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "SPS header missing, cannot decode SEI";
   case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
     return "collocated motion-vector is outside image area";
+  case DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER:
+    return "error while processing the multiview extensions data. Switching off decoding of extensions. Fall back to HEVC decoding.";
 
   default: return "unknown error";
   }
