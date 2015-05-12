@@ -34,7 +34,6 @@
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
-#include "libde265/decctx-multilayer.h"
 
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard

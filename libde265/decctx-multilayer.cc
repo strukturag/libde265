@@ -39,6 +39,11 @@ decoder_context_multilayer::~decoder_context_multilayer()
 
 de265_error decoder_context_multilayer::get_warning()
 {
+  // Do we have a warning/error?
+  de265_error err = get_warning();
+  if (err != DE265_OK)
+    return err;
+
   // Loop through all layer decoders and return the first error that is not DE265_OK
   for (int i = 0; i < num_layer_decoders; i++)
   {
@@ -46,6 +51,7 @@ de265_error decoder_context_multilayer::get_warning()
     if (err != DE265_OK)
       return err;
   }
+  
   return DE265_OK;
 }
 
@@ -380,18 +386,33 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
           }
         }
       }
-      assert( layerSetMatchFound ); // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
-
+      if (!layerSetMatchFound) {
+        // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
+        // Error in the extension. Switch extensions off. Only decode the base layer.
+        add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+        ml_dec_params.TargetLayerId = 0;
+        return;
+      }
     }
   }
   else {
-    assert( ml_dec_params.TargetOlsIdx < vps_ext->NumOutputLayerSets );
+    if (ml_dec_params.TargetOlsIdx >= vps_ext->NumOutputLayerSets) {
+      // Error in the extension. Switch extensions off. Only decode the base layer.
+      add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+      ml_dec_params.TargetLayerId = 0;
+      return;
+    }
     int layerSetIdx = vps_ext->layer_set_idx_for_ols_minus1[ ml_dec_params.TargetOlsIdx ] + 1;  // Index to the layer set
     // Check if the targetdeclayerIdlist matches the output layer set
     if( !ml_dec_params.TargetDecLayerSetIdx.empty() ) {
       for(int i = 0; i < vps_ext->NumLayersInIdList[layerSetIdx]; i++)
       {
-        assert( ml_dec_params.TargetDecLayerSetIdx[i] == vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][i]]);
+        if (ml_dec_params.TargetDecLayerSetIdx[i] != vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][i]]) {
+          // Error in the extension. Switch extensions off. Only decode the base layer.
+          add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+          ml_dec_params.TargetLayerId = 0;
+          return;
+        }
       }
     }
     ml_dec_params.values_checked = true;

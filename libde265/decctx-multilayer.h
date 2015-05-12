@@ -41,7 +41,7 @@ struct multilayer_decoder_parameters {
   bool values_checked;
 };
 
-class decoder_context_multilayer {
+class decoder_context_multilayer : public error_queue {
 public:
   decoder_context_multilayer();
   ~decoder_context_multilayer();

@@ -22,6 +22,7 @@
 #include "util.h"
 #include "scan.h"
 #include "decctx.h"
+#include "decctx-multilayer.h"
 
 #include <assert.h>
 #include <stdlib.h>

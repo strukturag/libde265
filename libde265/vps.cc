@@ -21,6 +21,7 @@
 #include "vps.h"
 #include "util.h"
 #include "decctx.h"
+#include "decctx-multilayer.h"
 
 #include <assert.h>
 

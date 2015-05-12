@@ -19,6 +19,7 @@
  */
 
 #include "decctx.h"
+#include "decctx-multilayer.h"
 #include "util.h"
 #include "sao.h"
 #include "sei.h"
