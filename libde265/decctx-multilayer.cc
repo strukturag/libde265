@@ -29,6 +29,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   layer_decoders[0] = new decoder_context;
   layer_decoders[0]->set_layer_id(0);
   layer_decoders[0]->set_multi_layer_decoder(this);
+  layer_decoders[0]->nal_parser = &nal_parser;
   for (int i=1; i<MAX_LAYER_ID; i++)
     layer_decoders[i] = NULL;
 }
@@ -113,6 +114,7 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
     layer_decoders[layer_id] = new decoder_context;
     layer_decoders[layer_id]->set_layer_id(layer_id);
     layer_decoders[layer_id]->set_multi_layer_decoder(this);
+    layer_decoders[layer_id]->nal_parser = &nal_parser;
 
     // Only set the following values if they have been changed (set)
     if (num_worker_threads > 0) {
@@ -144,17 +146,6 @@ decoder_context* decoder_context_multilayer::get_layer_dec(int layer_id)
 
 de265_error decoder_context_multilayer::decode(int* more)
 {
-  if (nal_parser.is_end_of_frame()) {
-    for (int i = 0; i < num_layer_decoders; i++) {
-      layer_decoders[i]->nal_parser.mark_end_of_frame();
-    }
-  }
-  if (nal_parser.is_end_of_stream()) {
-    for (int i = 0; i < num_layer_decoders; i++) {
-      layer_decoders[i]->nal_parser.mark_end_of_stream();
-    }
-  }
-
   if (nal_parser.get_NAL_queue_length() == 0 &&
      (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame())) {
     // The stream has ended.
@@ -184,8 +175,8 @@ de265_error decoder_context_multilayer::decode(int* more)
   }
 
   if (nal_parser.get_NAL_queue_length()) {
-    // Get one NAL unit from the buffer and push it to the corresponding decoder
-    NAL_unit* nal = nal_parser.pop_from_NAL_queue();
+    // Peek the next NAL unit and call the correct decoder function
+    NAL_unit* nal = nal_parser.peek_NAL_queue();
 
     // Parse the header
     bitreader reader;
@@ -195,15 +186,13 @@ de265_error decoder_context_multilayer::decode(int* more)
 
     if (nal_hdr.nuh_layer_id > ml_dec_params.TargetLayerId) {
       // Discard all NAL units with nuh_layer_id > (nrLayersToDecode-1)
+      nal = nal_parser.pop_from_NAL_queue();
       nal_parser.free_NAL_unit(nal);
       if (more) *more = true;
     }
     else {
       decoder_context* layerCtx = get_layer_dec(nal_hdr.nuh_layer_id);
-
-      // Push the NAL unit to the correct layer decoder
-      layerCtx->nal_parser.push_to_NAL_queue(nal); // The layer Ctx now owns this NAL unit and will take care of deleting it
-
+            
       // Call the decode function for this layer
       if (more) *more = 0;
       de265_error layer_error;
@@ -226,11 +215,6 @@ void decoder_context_multilayer::flush_data()
   // Flush data and mark as end of stream
   nal_parser.flush_data();
   nal_parser.mark_end_of_stream();
-
-  // Also mark end of stream for all decoders
-  for (int i = 0; i < num_layer_decoders; i++) {
-    layer_decoders[i]->nal_parser.mark_end_of_frame();
-  }
 }
 
 de265_error decoder_context_multilayer::start_thread_pool(int nThreads)

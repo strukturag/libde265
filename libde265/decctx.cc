@@ -153,7 +153,7 @@ slice_unit::slice_unit(decoder_context* decctx)
 
 slice_unit::~slice_unit()
 {
-  ctx->nal_parser.free_NAL_unit(nal);
+  ctx->nal_parser->free_NAL_unit(nal);
 
   if (thread_contexts) {
     delete[] thread_contexts;
@@ -412,7 +412,7 @@ void decoder_context::reset()
   // The error showed while scrubbing the ToS video in VLC.
   dpb.clear();
 
-  nal_parser.remove_pending_input_data();
+  nal_parser->remove_pending_input_data();
 
 
   while (!image_units.empty()) {
@@ -624,7 +624,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   de265_error err = shdr->read(&reader,this, &continueDecoding, nal_hdr);
   if (!continueDecoding) {
     if (img) { img->integrity = INTEGRITY_NOT_DECODED; }
-    nal_parser.free_NAL_unit(nal);
+    nal_parser->free_NAL_unit(nal);
     delete shdr;
     return err;
   }
@@ -637,7 +637,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (img!=NULL) img->integrity = INTEGRITY_NOT_DECODED;
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       delete shdr;
       return err;
     }
@@ -741,8 +741,8 @@ de265_error decoder_context::decode_some(bool* did_work)
 
   if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
        ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
-         nal_parser.number_of_NAL_units_pending()==0 &&
-         (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
+         nal_parser->number_of_NAL_units_pending()==0 &&
+         (nal_parser->is_end_of_stream() || nal_parser->is_end_of_frame()) )) {
 
     image_unit* imgunit = image_units[0];
 
@@ -1196,7 +1196,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
   if (nal_hdr.nuh_layer_id != layer_ID) {
     // The NAL unit was not meant for this layer decoder
-    nal_parser.free_NAL_unit(nal);
+    nal_parser->free_NAL_unit(nal);
     return DE265_OK;
   }
 
@@ -1218,7 +1218,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   //printf("hTid: %d\n", current_HighestTid);
 
   if (nal_hdr.nuh_temporal_id > current_HighestTid) {
-    nal_parser.free_NAL_unit(nal);
+    nal_parser->free_NAL_unit(nal);
     return DE265_OK;
   }
 
@@ -1229,32 +1229,32 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
       err = read_vps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_SPS_NUT:
       err = read_sps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PPS_NUT:
       err = read_pps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
       err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_EOS_NUT:
       ctx->FirstAfterEndOfSequenceNAL = true;
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
 
     default:
-      nal_parser.free_NAL_unit(nal);
+      nal_parser->free_NAL_unit(nal);
       break;
     }
 
@@ -1268,8 +1268,8 @@ de265_error decoder_context::decode(int* more)
 
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
-  if (ctx->nal_parser.get_NAL_queue_length() == 0 &&
-      (ctx->nal_parser.is_end_of_stream() || ctx->nal_parser.is_end_of_frame()) &&
+  if (ctx->nal_parser->get_NAL_queue_length() == 0 &&
+      (ctx->nal_parser->is_end_of_stream() || ctx->nal_parser->is_end_of_frame()) &&
       ctx->image_units.empty()) {
 
     // flush all pending pictures into output queue
@@ -1286,9 +1286,9 @@ de265_error decoder_context::decode(int* more)
   // if NAL-queue is empty, we need more data
   // -> input stalled
 
-  if (ctx->nal_parser.is_end_of_stream() == false &&
-      ctx->nal_parser.is_end_of_frame() == false &&
-      ctx->nal_parser.get_NAL_queue_length() == 0) {
+  if (ctx->nal_parser->is_end_of_stream() == false &&
+      ctx->nal_parser->is_end_of_frame() == false &&
+      ctx->nal_parser->get_NAL_queue_length() == 0) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
@@ -1309,14 +1309,14 @@ de265_error decoder_context::decode(int* more)
   de265_error err = DE265_OK;
   bool did_work = false;
 
-  if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
-    NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
+  if (ctx->nal_parser->get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
+    NAL_unit* nal = ctx->nal_parser->pop_from_NAL_queue();
     assert(nal);
     err = ctx->decode_NAL(nal);
     // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
     did_work=true;
   }
-  else if (ctx->nal_parser.is_end_of_frame() == true &&
+  else if (ctx->nal_parser->is_end_of_frame() == true &&
       ctx->image_units.empty()) {
     if (more) { *more=1; }
 

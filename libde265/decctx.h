@@ -330,6 +330,10 @@ class decoder_context : public base_context {
   decoder_context_multilayer* get_multi_layer_decoder() { return ml_decoder; }
   void set_multi_layer_decoder(decoder_context_multilayer* p) { ml_decoder = p; }
   video_parameter_set *get_last_parsed_vps() {return last_vps;}
+  
+  // The dec context only has a pointer to the multilayer_decoder_context nal parser,
+  // but no nal parser itself.
+  NAL_Parser* nal_parser; 
 
   // --- parameters ---
 
@@ -354,9 +358,6 @@ class decoder_context : public base_context {
 
 
   // --- input stream data ---
-
-  NAL_Parser nal_parser;
-
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
