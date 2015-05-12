@@ -21,7 +21,6 @@
 #include "vps.h"
 #include "vps-extension.h"
 #include "bitstream.h"
-#include <assert.h>
 
 video_parameter_set_extension::video_parameter_set_extension()
 {
