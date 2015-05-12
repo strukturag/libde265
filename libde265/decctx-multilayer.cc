@@ -12,7 +12,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   // Multilayer decoder parameters
   ml_dec_params.highestTID = 6;
   ml_dec_params.TargetOlsIdx = -1;
-  ml_dec_params.TargetLayerId = 0; // Default: Highest layer possible
+  ml_dec_params.TargetLayerId = 1; // Default: Highest layer possible
 
   // Default parameters
   param_sei_check_hash = false;
