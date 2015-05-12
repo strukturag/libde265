@@ -41,7 +41,8 @@ struct multilayer_decoder_parameters {
   bool values_checked;
 };
 
-class decoder_context_multilayer : public error_queue {
+
+class decoder_context_multilayer {
 public:
   decoder_context_multilayer();
   ~decoder_context_multilayer();
@@ -111,6 +112,8 @@ protected:
   enum de265_acceleration param_acceleration;
 
   multilayer_decoder_parameters ml_dec_params;
+
+  error_queue err_queue;
 };
 
 

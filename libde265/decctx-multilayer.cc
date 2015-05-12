@@ -40,7 +40,7 @@ decoder_context_multilayer::~decoder_context_multilayer()
 de265_error decoder_context_multilayer::get_warning()
 {
   // Do we have a warning/error?
-  de265_error err = get_warning();
+  de265_error err = err_queue.get_warning();
   if (err != DE265_OK)
     return err;
 
@@ -389,7 +389,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
       if (!layerSetMatchFound) {
         // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
         // Error in the extension. Switch extensions off. Only decode the base layer.
-        add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+        err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
         ml_dec_params.TargetLayerId = 0;
         return;
       }
@@ -398,7 +398,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
   else {
     if (ml_dec_params.TargetOlsIdx >= vps_ext->NumOutputLayerSets) {
       // Error in the extension. Switch extensions off. Only decode the base layer.
-      add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+      err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
       ml_dec_params.TargetLayerId = 0;
       return;
     }
@@ -409,7 +409,7 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
       {
         if (ml_dec_params.TargetDecLayerSetIdx[i] != vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][i]]) {
           // Error in the extension. Switch extensions off. Only decode the base layer.
-          add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+          err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
           ml_dec_params.TargetLayerId = 0;
           return;
         }
