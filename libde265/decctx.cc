@@ -1510,6 +1510,9 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
     int DPBIndex = ctx_lower->dpb.DPB_index_of_picture_with_POC(currentPOC, currentID);
     if (DPBIndex != -1) {
       // an inter-layer reference picture ilRefPic is derived by invoking the process specified in clause H.8.1.4 with picX and RefPicLayerId[ i ] given as inputs
+      de265_image* rlPic = ctx_lower->dpb.get_image(DPBIndex);
+      derive_inter_layer_reference_picture(ctx, rlPic, refLayerID);
+
       int newIdx = 33; // TODO
       if (refPicSet0Flag) {
         RefPicSetInterLayer0[ NumActiveRefLayerPics0 ] = newIdx;
@@ -1530,6 +1533,106 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
         RefPicSetInterLayer1[ NumActiveRefLayerPics1++ ] = -1;
       }
     }
+  }
+}
+
+/* H.8.1.4 Derivation process for inter-layer reference pictures   
+ */
+void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId)
+{
+  // Get the pps, pps_ext and sps
+  pic_parameter_set* pps = ctx->current_pps;
+  pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
+  seq_parameter_set* sps = ctx->current_sps;
+
+  // ... are set to ... of the current layer
+  int PicWidthInSamplesCurrY  = sps->pic_width_in_luma_samples;
+  int PicHeightInSamplesCurrY = sps->pic_height_in_luma_samples;
+  int BitDepthCurrY           = sps->BitDepth_Y;
+  int BitDepthCurrC           = sps->BitDepth_C;
+  int SubWidthCurrC           = sps->SubWidthC;
+  int SubHeightCurrC          = sps->SubHeightC;
+
+  // ... are set equal to the width and height of the decoded direct reference layer picture rlPic
+  int PicWidthInSamplesRefLayerY  = rlPic->get_width();
+  int PicHeightInSamplesRefLayerY = rlPic->get_height();
+
+  // Get the ref layer SPS and pps_extension
+  decoder_context *ctx_ref = ctx->get_multi_layer_decoder()->get_layer_dec(rLId);
+  seq_parameter_set* sps_ref = ctx_ref->current_sps;
+
+  // ... are set equal to the values of BitDepthY, BitDepthC, SubWidthC and SubHeightC of the direct reference layer picture
+  int BitDepthRefLayerY  = sps_ref->BitDepth_Y;
+  int BitDepthRefLayerC  = sps_ref->BitDepth_C;
+  int SubWidthRefLayerC  = sps_ref->SubWidthC;
+  int SubHeightRefLayerC = sps_ref->SubHeightC;
+
+  int RefLayerRegionLeftOffset    = pps_ext->ref_region_left_offset[rLId]   * SubWidthRefLayerC;
+  int RefLayerRegionTopOffset     = pps_ext->ref_region_top_offset[rLId]    * SubHeightRefLayerC;
+  int RefLayerRegionRightOffset   = pps_ext->ref_region_right_offset[rLId]  * SubWidthRefLayerC;
+  int RefLayerRegionBottomOffset  = pps_ext->ref_region_bottom_offset[rLId] * SubHeightRefLayerC;
+
+  int RefLayerRegionWidthInSamplesY  = PicWidthInSamplesRefLayerY - RefLayerRegionLeftOffset - RefLayerRegionRightOffset;
+  int RefLayerRegionHeightInSamplesY = PicHeightInSamplesRefLayerY - RefLayerRegionTopOffset - RefLayerRegionBottomOffset;
+
+  int PicWidthInSamplesCurrC      = PicWidthInSamplesCurrY      / SubWidthCurrC;
+  int PicHeightInSamplesCurrC     = PicHeightInSamplesCurrY     / SubHeightCurrC;
+  int PicWidthInSamplesRefLayerC  = PicWidthInSamplesRefLayerY  / SubWidthRefLayerC;
+  int PicHeightInSamplesRefLayerC = PicHeightInSamplesRefLayerY / SubHeightRefLayerC;
+
+  int ScaledRefLayerLeftOffset   = pps_ext->scaled_ref_layer_left_offset[rLId]   * SubWidthCurrC;
+  int ScaledRefLayerTopOffset    = pps_ext->scaled_ref_layer_top_offset[rLId]    * SubHeightCurrC;
+  int ScaledRefLayerRightOffset  = pps_ext->scaled_ref_layer_right_offset[rLId]  * SubWidthCurrC;
+  int ScaledRefLayerBottomOffset = pps_ext->scaled_ref_layer_bottom_offset[rLId] * SubHeightCurrC;
+
+  int ScaledRefRegionWidthInSamplesY = PicWidthInSamplesCurrY - ScaledRefLayerLeftOffset - ScaledRefLayerRightOffset;
+  int ScaledRefRegionHeightInSamplesY = PicHeightInSamplesCurrY - ScaledRefLayerTopOffset - ScaledRefLayerBottomOffset;
+
+  int SpatialScaleFactorHorY = ((RefLayerRegionWidthInSamplesY  << 16) + (ScaledRefRegionWidthInSamplesY  >> 1)) / ScaledRefRegionWidthInSamplesY;
+  int SpatialScaleFactorVerY = ((RefLayerRegionHeightInSamplesY << 16) + (ScaledRefRegionHeightInSamplesY >> 1)) / ScaledRefRegionHeightInSamplesY;
+  int SpatialScaleFactorHorC = (((RefLayerRegionWidthInSamplesY  / SubWidthRefLayerC ) << 16) + ((ScaledRefRegionWidthInSamplesY  / SubWidthCurrC ) >> 1)) / (ScaledRefRegionWidthInSamplesY  / SubWidthCurrC );
+  int SpatialScaleFactorVerC = (((RefLayerRegionHeightInSamplesY / SubHeightRefLayerC) << 16) + ((ScaledRefRegionHeightInSamplesY / SubHeightCurrC) >> 1)) / (ScaledRefRegionHeightInSamplesY / SubHeightCurrC);
+  
+  int PhaseHorY = pps_ext->phase_hor_luma[rLId];
+  int PhaseVerY = pps_ext->phase_ver_luma[rLId];
+  int PhaseHorC = pps_ext->phase_hor_chroma_plus8[rLId] - 8;
+  int PhaseVerC = pps_ext->phase_ver_chroma_plus8[rLId] - 8;
+
+  // The following ordered steps are applied to derive the inter-layer reference picture ilRefPic.
+  bool sampleProcessingFlag = false;
+  bool motionProcessingFlag = false;
+
+  bool equalPictureSizeAndOffsetFlag = (
+    (PicWidthInSamplesCurrY == PicWidthInSamplesRefLayerY) &&
+    (PicHeightInSamplesCurrY == PicHeightInSamplesRefLayerY) &&
+    (ScaledRefLayerLeftOffset == RefLayerRegionLeftOffset) &&
+    (ScaledRefLayerTopOffset == RefLayerRegionTopOffset) &&
+    (ScaledRefLayerRightOffset == RefLayerRegionRightOffset) &&
+    (ScaledRefLayerBottomOffset == RefLayerRegionBottomOffset) &&
+    (PhaseHorY == 0 && PhaseVerY == 0 && PhaseHorC == 0 && PhaseVerC == 0) );
+
+  bool currColourMappingEnableFlag = false;
+  if (pps_ext->colour_mapping_enabled_flag) {
+    for (int i = 0; i <= pps_ext->cm_table.num_cm_ref_layers_minus1; i++) {
+      if (pps_ext->cm_table.cm_ref_layer_id[i] == rLId) {
+        currColourMappingEnableFlag == true;
+      }
+    }
+  }
+
+  if (equalPictureSizeAndOffsetFlag &&
+     (BitDepthRefLayerY == BitDepthCurrY) &&
+     (BitDepthRefLayerC == BitDepthCurrC) &&
+     (SubWidthRefLayerC == SubWidthCurrC) &&
+     (SubHeightRefLayerC == SubHeightCurrC) &&
+     !currColourMappingEnableFlag) {
+    // SNR scalability
+    // We do not need to perform any upsampling
+
+  }
+  else {
+    // Spatial scalability. Perform upsampling.
+
   }
 }
 

@@ -519,13 +519,17 @@ class decoder_context : public base_context {
   int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
                                              int POC, bool longTerm);
   void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
-  void process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
   bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
   void run_postprocessing_filters_sequential(struct de265_image* img);
   void run_postprocessing_filters_parallel(image_unit* img);
+
+  // Multilayer extension
+  void process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
+  void derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId);
+  
 };
 
 
