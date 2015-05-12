@@ -222,6 +222,17 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
   }
 }
 
+NAL_unit* NAL_Parser::peek_NAL_queue()
+{
+  if (NAL_queue.empty()) {
+    return NULL;
+  }
+  else {
+    NAL_unit* nal = NAL_queue.front();
+    return nal;
+  }
+}
+
 void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
 {
   NAL_queue.push(nal);

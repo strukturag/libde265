@@ -96,6 +96,7 @@ class NAL_Parser
                        de265_PTS pts, void* user_data = NULL);
 
   NAL_unit*   pop_from_NAL_queue();
+  NAL_unit*   peek_NAL_queue();
   void push_to_NAL_queue(NAL_unit*);
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true; }
