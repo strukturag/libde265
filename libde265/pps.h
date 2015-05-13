@@ -89,25 +89,25 @@ struct pps_multilayer_extension {
   int  pps_scaling_list_ref_layer_id;
   int  num_ref_loc_offsets;
 
-  int_1d ref_loc_offset_layer_id;
-  int_1d scaled_ref_layer_offset_present_flag;
+  int_1d  ref_loc_offset_layer_id;
+  bool_1d scaled_ref_layer_offset_present_flag;
 
   int_1d scaled_ref_layer_left_offset;
   int_1d scaled_ref_layer_top_offset;
   int_1d scaled_ref_layer_right_offset;
   int_1d scaled_ref_layer_bottom_offset;
 
-  int_1d ref_region_offset_present_flag;
-  int_1d ref_region_left_offset;
-  int_1d ref_region_top_offset;
-  int_1d ref_region_right_offset;
-  int_1d ref_region_bottom_offset;
+  bool_1d ref_region_offset_present_flag;
+  int_1d  ref_region_left_offset;
+  int_1d  ref_region_top_offset;
+  int_1d  ref_region_right_offset;
+  int_1d  ref_region_bottom_offset;
 
-  int_1d resample_phase_set_present_flag;
-  int_1d phase_hor_luma;
-  int_1d phase_ver_luma;
-  int_1d phase_hor_chroma_plus8;
-  int_1d phase_ver_chroma_plus8;
+  bool_1d resample_phase_set_present_flag;
+  int_1d  phase_hor_luma;
+  int_1d  phase_ver_luma;
+  int_1d  phase_hor_chroma; // phase_hor_chroma_plus8
+  int_1d  phase_ver_chroma; // phase_ver_chroma_plus8
 
   bool colour_mapping_enabled_flag;
   colour_mapping_table cm_table;

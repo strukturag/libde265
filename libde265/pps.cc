@@ -875,8 +875,8 @@ bool pps_multilayer_extension::read(bitreader* reader)
     if( resample_phase_set_present_flag[ i ] ) {
       phase_hor_luma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
       phase_ver_luma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
-      phase_hor_chroma_plus8[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
-      phase_ver_chroma_plus8[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader);
+      phase_hor_chroma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader) - 8;  // phase_hor_chroma_plus8
+      phase_ver_chroma[ ref_loc_offset_layer_id[ i ] ] = get_uvlc(reader) - 8;  // phase_ver_chroma_plus8
     }
   }
   colour_mapping_enabled_flag = get_bits(reader,1);
