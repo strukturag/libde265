@@ -27,9 +27,9 @@
 #ifdef HAVE_NEON
 
 #define QPEL_FUNC(name) \
-    extern "C" void ff_##name(int16_t *dst, ptrdiff_t dststride, extern uint8_t *src, ptrdiff_t srcstride, \
+    extern "C" void ff_##name(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride, \
                                    int height, int width); \
-    void libde265_##name(int16_t *dst, ptrdiff_t dststride, extern uint8_t *src, ptrdiff_t srcstride, \
+    void libde265_##name(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride, \
                                    int width, int height, int16_t* mcbuffer) { \
       ff_##name(dst, dststride, src, srcstride, height, width); \
     }
