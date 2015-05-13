@@ -119,7 +119,7 @@ struct video_usability_information {
   bool field_seq_flag;
   bool frame_field_info_present_flag;
   bool default_display_window_flag;
-	
+
   int def_disp_win_left_offset;
   int def_disp_win_right_offset;
   int def_disp_win_top_offset;
@@ -151,7 +151,7 @@ struct vps_vui_bsp_hrd_params {
   de265_error read_vps_vui_bsp_hrd_params(bitreader* reader, video_parameter_set* vps);
 
   int  vps_num_add_hrd_params;
-  
+
   bool_1d cprms_add_present_flag;
   int_1d  num_sub_layer_hrd_minus1;
 
