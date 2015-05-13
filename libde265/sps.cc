@@ -248,8 +248,10 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
     rep_format rep = vps_ext->vps_ext_rep_format[repFormatIdx];
     chroma_format_idc = rep.chroma_format_vps_idc;
     separate_colour_plane_flag = rep.separate_colour_plane_vps_flag;
-    pic_width_in_luma_samples = rep.pic_width_vps_in_luma_samples;
+    pic_width_in_luma_samples  = rep.pic_width_vps_in_luma_samples;
     pic_height_in_luma_samples = rep.pic_height_vps_in_luma_samples;
+    bit_depth_luma   = rep.bit_depth_vps_luma_minus8 + 8;
+    bit_depth_chroma = rep.bit_depth_vps_chroma_minus8 + 8;
   }
   else {
     // --- decode chroma type ---
@@ -311,8 +313,8 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
       conf_win_bottom_offset= 0;
     }
 
-    READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);
-    READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
+    READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);  // bit_depth_luma_minus8
+    READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);  // bit_depth_chroma_minus8
   }
 
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
