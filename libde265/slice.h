@@ -264,6 +264,11 @@ public:
   char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
                                                is a long-term picture. */
 
+  bool InterLayerRefPic[2][MAX_NUM_REF_PICS]; /* Multilayer extensions. Flag wheter the picture is a normal ref-pic
+                                                 or an inter layer reference picture. If it is an inter layer referece
+                                                 picture the index in RefPicList points to the array ilRefPic[] intstead 
+                                                 of the DPB. */
+
   // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model_table ctx_model_storage;
   bool ctx_model_storage_defined; // whether there is valid data in ctx_model_storage

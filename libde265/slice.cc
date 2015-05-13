@@ -29,6 +29,7 @@
 #include "transform.h"
 #include "threads.h"
 #include "image.h"
+#include "decctx-multilayer.h"
 
 #include <assert.h>
 #include <string.h>
@@ -332,6 +333,7 @@ void slice_segment_header::reset()
       RefPicList_POC[i][j] = 0;
       RefPicList_PicState[i][j] = 0;
       LongTermRefPic[i][j] = 0;
+      InterLayerRefPic[i][j] = false;
     }
 
   //context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
@@ -916,52 +918,66 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     int extension_length_bits = slice_segment_header_extension_length * 8;
 
-    pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
-    if (pps_ext->poc_reset_info_present_flag) {
-      poc_reset_idc = get_bits(br,2);
-      extension_length_bits -= 2;
-    }
-    if( poc_reset_idc  !=  0 ) {
-      poc_reset_period_id = get_bits(br,6);
-      extension_length_bits -= 6;
-    }
-    if( poc_reset_idc == 3 ) {
-      full_poc_reset_flag = get_bits(br,1);
-      extension_length_bits--;
-      int nr_bits = sps->log2_max_pic_order_cnt_lsb;
-      poc_lsb_val = get_bits(br,nr_bits);
-      extension_length_bits -= nr_bits;
-    }
-
-    video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
-    video_parameter_set_extension* vps_ext = &vps->vps_extension;
-
-    bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
-    nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
-    
-    int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
-    ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
-
-    if( !PocMsbValRequiredFlag  &&  vps_ext->vps_poc_lsb_aligned_flag ) {
-      poc_msb_cycle_val_present_flag = get_bits(br,1);
-      extension_length_bits--;
+    if (ctx->get_multi_layer_decoder()->get_target_Layer_ID() == 0) {
+      // The target is only to decode the base layer.
+      // All following bits are slice_segment_header_extension_data_byte[i]
+      for (int i=0; i<slice_segment_header_extension_length; i++) {
+        get_bits(br,8);
+      }
     }
     else {
-      poc_msb_cycle_val_present_flag = (PocMsbValRequiredFlag == 1);
-    }
-    if (poc_msb_cycle_val_present_flag) {
-      int nr_bits;
-      poc_msb_cycle_val = get_uvlc(br, &nr_bits);
-      extension_length_bits -= nr_bits;
-    }
+      pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
+      if (pps_ext->poc_reset_info_present_flag) {
+        poc_reset_idc = get_bits(br,2);
+        extension_length_bits -= 2;
+      }
+      if( poc_reset_idc  !=  0 ) {
+        poc_reset_period_id = get_bits(br,6);
+        extension_length_bits -= 6;
+      }
+      if( poc_reset_idc == 3 ) {
+        full_poc_reset_flag = get_bits(br,1);
+        extension_length_bits--;
+        int nr_bits = sps->log2_max_pic_order_cnt_lsb;
+        poc_lsb_val = get_bits(br,nr_bits);
+        extension_length_bits -= nr_bits;
+      }
 
-    // Read more data until slice_segment_header_extension_length bytes have been read
-    for (; extension_length_bits > 0; extension_length_bits--) {
-      // slice_segment_header_extension_data_bit
-      get_bits(br,1);
+      video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
+      video_parameter_set_extension* vps_ext = &vps->vps_extension;
+
+      bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
+      nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
+    
+      int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
+      ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
+
+      if( !PocMsbValRequiredFlag  &&  vps_ext->vps_poc_lsb_aligned_flag ) {
+        poc_msb_cycle_val_present_flag = get_bits(br,1);
+        extension_length_bits--;
+      }
+      else {
+        poc_msb_cycle_val_present_flag = (PocMsbValRequiredFlag == 1);
+      }
+      if (poc_msb_cycle_val_present_flag) {
+        int nr_bits;
+        poc_msb_cycle_val = get_uvlc(br, &nr_bits);
+        extension_length_bits -= nr_bits;
+      }
+
+      // Read more data until slice_segment_header_extension_length bytes have been read
+      while (extension_length_bits % 8 != 0) {
+        // Read until we can read whole bytes
+        get_bits(br,1);
+        extension_length_bits--;
+      }
+      int extension_length_bytes = extension_length_bits / 8;
+      for (int i=0; i<extension_length_bytes; i++) {
+        //slice_segment_header_extension_data_byte[i]
+        get_bits(br,8);
+      }
     }
   }
-
 
   compute_derived_values(pps);
 
