@@ -311,6 +311,11 @@ decoder_context::decoder_context()
   // Multilayer extensions
   NumActiveRefLayerPics0 = 0;
   NumActiveRefLayerPics1 = 0;
+
+  for (int i=0; i<MAX_REF_LAYERS; i++) {
+    ilRefPic[i] = NULL;
+  }
+  ilRefPic_upsampled = false;
 }
 
 
@@ -319,6 +324,10 @@ decoder_context::~decoder_context()
   while (!image_units.empty()) {
     delete image_units.back();
     image_units.pop_back();
+  }
+
+  if (ilRefPic_upsampled) {
+    // delete the created images in ilRefPic[]
   }
 }
 
@@ -1511,16 +1520,15 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
     if (DPBIndex != -1) {
       // an inter-layer reference picture ilRefPic is derived by invoking the process specified in clause H.8.1.4 with picX and RefPicLayerId[ i ] given as inputs
       de265_image* rlPic = ctx_lower->dpb.get_image(DPBIndex);
-      derive_inter_layer_reference_picture(ctx, rlPic, refLayerID);
+      derive_inter_layer_reference_picture(ctx, rlPic, refLayerID, i);
 
-      int newIdx = 33; // TODO
       if (refPicSet0Flag) {
-        RefPicSetInterLayer0[ NumActiveRefLayerPics0 ] = newIdx;
+        RefPicSetInterLayer0[ NumActiveRefLayerPics0 ] = i;
         //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
         NumActiveRefLayerPics0++;
       }
       else {
-        RefPicSetInterLayer1[ NumActiveRefLayerPics1 ] = newIdx;
+        RefPicSetInterLayer1[ NumActiveRefLayerPics1 ] = i;
         //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
         NumActiveRefLayerPics1++;
       }
@@ -1536,9 +1544,14 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
   }
 }
 
-/* H.8.1.4 Derivation process for inter-layer reference pictures   
+/* H.8.1.4 Derivation process for inter-layer reference pictures
+   
+   In case of SNR scalalbility: After calling this function ilRefPic[ilRefPicIdx] will contain a pointer to
+   the reference layer image.
+   In case of spatial scalalbility: After calling this function ilRefPic[ilRefPicIdx] will contain a new image
+   containing the upsampeled reference layer image. (Remember to delete these images after decoding)
  */
-void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId)
+void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId, int ilRefPicIdx)
 {
   // Get the pps, pps_ext and sps
   pic_parameter_set* pps = ctx->current_pps;
@@ -1595,8 +1608,8 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
   
   int PhaseHorY = pps_ext->phase_hor_luma[rLId];
   int PhaseVerY = pps_ext->phase_ver_luma[rLId];
-  int PhaseHorC = pps_ext->phase_hor_chroma_plus8[rLId] - 8;
-  int PhaseVerC = pps_ext->phase_ver_chroma_plus8[rLId] - 8;
+  int PhaseHorC = pps_ext->phase_hor_chroma[rLId];
+  int PhaseVerC = pps_ext->phase_ver_chroma[rLId];
 
   // The following ordered steps are applied to derive the inter-layer reference picture ilRefPic.
   bool sampleProcessingFlag = false;
@@ -1628,11 +1641,18 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
      !currColourMappingEnableFlag) {
     // SNR scalability
     // We do not need to perform any upsampling
-
+    ilRefPic[ilRefPicIdx] = rlPic;
   }
   else {
     // Spatial scalability. Perform upsampling.
+    if (ilRefPic[ilRefPicIdx] == NULL) {
+      // Allocate a new buffer for the upsampling process
+    }
 
+    // Perform upsampling ...
+    // ... TODO
+    
+    ilRefPic_upsampled = true;
   }
 }
 

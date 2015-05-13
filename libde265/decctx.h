@@ -447,6 +447,14 @@ class decoder_context : public base_context {
 
   de265_image* img;
 
+  // Multilayer extensions
+
+  // pointers to the (upsampled) reference layer reconstruction images. In case of SNR scalability these
+  // are just pointers to the images from the reference layer dpb. In case of spatial scalability we have
+  // to allocate new images and call the inter layer upsampling process (H.8.1.4.1 and H.8.1.4.2).
+  de265_image* ilRefPic[MAX_REF_LAYERS];
+  bool ilRefPic_upsampled;  // If true, ilRefPic contains new images which have to be deleted after decoding.
+
  public:
   const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
                                                         dependent slice. */
@@ -484,8 +492,8 @@ class decoder_context : public base_context {
   int RefPicSetLtFoll[MAX_NUM_REF_PICS];
 
   // Multi layer extension
-  int RefPicSetInterLayer0[MAX_REF_LAYERS];
-  int RefPicSetInterLayer1[MAX_REF_LAYERS];
+  int RefPicSetInterLayer0[MAX_REF_LAYERS]; // Idx into ilRefPic
+  int RefPicSetInterLayer1[MAX_REF_LAYERS]; // Idx into ilRefPic
   int NumActiveRefLayerPics0;
   int NumActiveRefLayerPics1;
 
@@ -528,7 +536,7 @@ class decoder_context : public base_context {
 
   // Multilayer extension
   void process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
-  void derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId);
+  void derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId, int ilRefPicIdx);
   
 };
 
