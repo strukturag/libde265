@@ -908,74 +908,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (pps->slice_segment_header_extension_present_flag) {
-    slice_segment_header_extension_length = get_uvlc(br);
-    if (slice_segment_header_extension_length == UVLC_ERROR ||
-	      slice_segment_header_extension_length > 256) {
-      //The value of slice_segment_header_extension_length shall be in the range of 0 to 256, inclusive. 
-      ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    de265_error err = read_slice_segment_header_extension(br, ctx, pps, sps, nal_unit_type, nuh_layer_id);
+    if (err == DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER) {
+      // There was an error when parsing the slice segment header extension.
+      // Fall back to HEVC decoding.
+      ctx->get_multi_layer_decoder()->set_extensions_decoding_error();
     }
-
-    int extension_length_bits = slice_segment_header_extension_length * 8;
-
-    if (ctx->get_multi_layer_decoder()->get_target_Layer_ID() == 0) {
-      // The target is only to decode the base layer.
-      // All following bits are slice_segment_header_extension_data_byte[i]
-      for (int i=0; i<slice_segment_header_extension_length; i++) {
-        get_bits(br,8);
-      }
-    }
-    else {
-      pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
-      if (pps_ext->poc_reset_info_present_flag) {
-        poc_reset_idc = get_bits(br,2);
-        extension_length_bits -= 2;
-      }
-      if( poc_reset_idc  !=  0 ) {
-        poc_reset_period_id = get_bits(br,6);
-        extension_length_bits -= 6;
-      }
-      if( poc_reset_idc == 3 ) {
-        full_poc_reset_flag = get_bits(br,1);
-        extension_length_bits--;
-        int nr_bits = sps->log2_max_pic_order_cnt_lsb;
-        poc_lsb_val = get_bits(br,nr_bits);
-        extension_length_bits -= nr_bits;
-      }
-
-      video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
-      video_parameter_set_extension* vps_ext = &vps->vps_extension;
-
-      bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
-      nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
-    
-      int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
-      ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
-
-      if( !PocMsbValRequiredFlag  &&  vps_ext->vps_poc_lsb_aligned_flag ) {
-        poc_msb_cycle_val_present_flag = get_bits(br,1);
-        extension_length_bits--;
-      }
-      else {
-        poc_msb_cycle_val_present_flag = (PocMsbValRequiredFlag == 1);
-      }
-      if (poc_msb_cycle_val_present_flag) {
-        int nr_bits;
-        poc_msb_cycle_val = get_uvlc(br, &nr_bits);
-        extension_length_bits -= nr_bits;
-      }
-
-      // Read more data until slice_segment_header_extension_length bytes have been read
-      while (extension_length_bits % 8 != 0) {
-        // Read until we can read whole bytes
-        get_bits(br,1);
-        extension_length_bits--;
-      }
-      int extension_length_bytes = extension_length_bits / 8;
-      for (int i=0; i<extension_length_bytes; i++) {
-        //slice_segment_header_extension_data_byte[i]
-        get_bits(br,8);
-      }
+    else if (err != DE265_OK) {
+      // Slice header parsing error.
+      return err;
     }
   }
 
@@ -985,6 +926,100 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   return DE265_OK;
 }
 
+de265_error slice_segment_header::read_slice_segment_header_extension(bitreader* br, 
+                                                                      decoder_context *ctx,
+                                                                      pic_parameter_set* pps,
+                                                                      seq_parameter_set* sps,
+                                                                      int nal_unit_type,
+                                                                      int nuh_layer_id)
+{
+  slice_segment_header_extension_length = get_uvlc(br);
+  if (slice_segment_header_extension_length == UVLC_ERROR ||
+	    slice_segment_header_extension_length > 256) {
+    //The value of slice_segment_header_extension_length shall be in the range of 0 to 256, inclusive. 
+    ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  int extension_length_bits = slice_segment_header_extension_length * 8;
+
+  if (ctx->get_multi_layer_decoder()->get_target_Layer_ID() == 0) {
+    // The target is only to decode the base layer. Act like an HEVC decoder.
+    // All following bits are slice_segment_header_extension_data_byte[i]
+    for (int i=0; i<slice_segment_header_extension_length; i++) {
+      get_bits(br,8);
+    }
+  }
+  else {
+    // Before every read operation check if the number of bits that was signaled
+    // has not been exceeded.
+
+    pps_multilayer_extension* pps_ext = &pps->pps_mult_ext;
+    if (pps_ext->poc_reset_info_present_flag) {
+      if (extension_length_bits < 2) {
+        return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+      }
+      poc_reset_idc = get_bits(br,2);
+      extension_length_bits -= 2;
+    }
+    if( poc_reset_idc  !=  0 ) {
+      if (extension_length_bits < 6) {
+        return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+      }
+      poc_reset_period_id = get_bits(br,6);
+      extension_length_bits -= 6;
+    }
+    if( poc_reset_idc == 3 ) {
+      int nr_bits = sps->log2_max_pic_order_cnt_lsb;
+      if (extension_length_bits < nr_bits + 1) {
+        return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+      }
+      full_poc_reset_flag = get_bits(br,1);
+      poc_lsb_val = get_bits(br,nr_bits);
+      extension_length_bits -= nr_bits + 1;
+    }
+
+    video_parameter_set *vps = ctx->get_vps(sps->video_parameter_set_id);
+    video_parameter_set_extension* vps_ext = &vps->vps_extension;
+
+    bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
+    nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
+    
+    int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
+    ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
+
+    if( !PocMsbValRequiredFlag  &&  vps_ext->vps_poc_lsb_aligned_flag ) {
+      if (extension_length_bits < 1) {
+        return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+      }
+      poc_msb_cycle_val_present_flag = get_bits(br,1);
+      extension_length_bits--;
+    }
+    else {
+      poc_msb_cycle_val_present_flag = (PocMsbValRequiredFlag == 1);
+    }
+    if (poc_msb_cycle_val_present_flag) {
+      int nr_bits;
+      poc_msb_cycle_val = get_uvlc(br, &nr_bits);
+      if (extension_length_bits < nr_bits) {
+        return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+      }
+      extension_length_bits -= nr_bits;
+    }
+
+    // Read more data until slice_segment_header_extension_length bytes have been read
+    while (extension_length_bits % 8 != 0) {
+      // Read until we can read whole bytes
+      get_bits(br,1);
+      extension_length_bits--;
+    }
+    int extension_length_bytes = extension_length_bits / 8;
+    for (int i=0; i<extension_length_bytes; i++) {
+      //slice_segment_header_extension_data_byte[i]
+      get_bits(br,8);
+    }
+  }
+}
 
 de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& out,
                                         const seq_parameter_set* sps,

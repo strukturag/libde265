@@ -220,6 +220,13 @@ public:
   std::vector<int> entry_point_offset;
 
   // Multi layer extension
+  de265_error read_slice_segment_header_extension(bitreader* br, 
+                                                  decoder_context *ctx,
+                                                  pic_parameter_set* pps,
+                                                  seq_parameter_set* sps,
+                                                  int nal_unit_type,
+                                                  int nuh_layer_id);
+
   bool   cross_layer_bla_flag;
   bool   inter_layer_pred_enabled_flag;
   int    num_inter_layer_ref_pics_minus1;

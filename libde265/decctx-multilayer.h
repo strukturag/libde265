@@ -98,6 +98,10 @@ public:
 
   int get_target_ols_idx()  { return ml_dec_params.TargetOlsIdx;  }
   int get_target_Layer_ID() { return ml_dec_params.TargetLayerId; }
+
+  // If an error occured during decoding of the extension this function is called
+  // to switch off decoding of the extensions and fall back to HEVC decoding.
+  void set_extensions_decoding_error();
   
 protected:
   decoder_context* layer_decoders[MAX_LAYER_ID];

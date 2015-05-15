@@ -12,7 +12,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   // Multilayer decoder parameters
   ml_dec_params.highestTID = 6;
   ml_dec_params.TargetOlsIdx = -1;
-  ml_dec_params.TargetLayerId = 0; // Default: Highest layer possible
+  ml_dec_params.TargetLayerId = 1; // Default: Highest layer possible
 
   // Default parameters
   param_sei_check_hash = false;
@@ -372,18 +372,14 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
       }
       if (!layerSetMatchFound) {
         // No output layer set matched the value of either targetLayerId or targetdeclayerIdlist
-        // Error in the extension. Switch extensions off. Only decode the base layer.
-        err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
-        ml_dec_params.TargetLayerId = 0;
+        set_extensions_decoding_error();
         return;
       }
     }
   }
   else {
     if (ml_dec_params.TargetOlsIdx >= vps_ext->NumOutputLayerSets) {
-      // Error in the extension. Switch extensions off. Only decode the base layer.
-      err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
-      ml_dec_params.TargetLayerId = 0;
+      set_extensions_decoding_error();
       return;
     }
     int layerSetIdx = vps_ext->layer_set_idx_for_ols_minus1[ ml_dec_params.TargetOlsIdx ] + 1;  // Index to the layer set
@@ -392,13 +388,18 @@ void decoder_context_multilayer::calculate_target_output_layer_set(video_paramet
       for(int i = 0; i < vps_ext->NumLayersInIdList[layerSetIdx]; i++)
       {
         if (ml_dec_params.TargetDecLayerSetIdx[i] != vps_ext->layer_id_in_nuh[vps_ext->LayerSetLayerIdList[layerSetIdx][i]]) {
-          // Error in the extension. Switch extensions off. Only decode the base layer.
-          err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
-          ml_dec_params.TargetLayerId = 0;
+          set_extensions_decoding_error();
           return;
         }
       }
     }
     ml_dec_params.values_checked = true;
   }
+}
+
+void decoder_context_multilayer::set_extensions_decoding_error()
+{
+  // Error in the extension. Switch extensions off. Only decode the base layer.
+  err_queue.add_warning(DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER, false);
+  ml_dec_params.TargetLayerId = 0;
 }
