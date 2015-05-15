@@ -327,8 +327,8 @@ void generate_inter_prediction_samples(base_context* ctx,
     if (predFlag[0] && predFlag[1]) {
       if (vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
-          shdr->RefPicList[0][vi->refIdx[0]] ==
-          shdr->RefPicList[1][vi->refIdx[1]]) {
+          shdr->RefPicList[0][vi->refIdx[0]] == shdr->RefPicList[1][vi->refIdx[1]] &&
+          shdr->InterLayerRefPic[vi->refIdx[0]] == shdr->InterLayerRefPic[vi->refIdx[1]] ) {
         predFlag[1] = 0;
       }
     }
@@ -345,7 +345,15 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      const de265_image* refPic;
+      if (shdr->InterLayerRefPic[l]) {
+        // Get the image from the inter layer picture buffer
+        refPic = ctx->get_il_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      }
+      else {
+        // Get image from the dpb
+        refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      }
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
