@@ -369,6 +369,12 @@ void generate_inter_prediction_samples(base_context* ctx,
         logtrace(LogMotion,"do MC: L%d,MV=%d;%d RefPOC=%d\n",
                  l,vi->mv[l].x,vi->mv[l].y,refPic->PicOrderCntVal);
 
+        if (shdr->InterLayerRefPic[l] && (vi->mv[l].x != 0 || vi->mv[l].y != 0)) {
+          // It is bitstream conformance that inter layer prediction may only be performed
+          // with a zero motion vector. We can still perform this but something might have
+          // gone wrong.
+          ctx->add_warning(DE265_WARNING_MULTILAYER_NON_ZERO_MV_FOR_INTER_LAYER_PREDICTION, false);
+        }
 
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
         mc_luma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
