@@ -2255,8 +2255,8 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
   ctx->current_pps = &ctx->pps[pps_id];
   ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
-  ctx->current_vps = &ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ];
-
+  ctx->current_vps = get_vps((int)ctx->current_sps->video_parameter_set_id);
+  
   calc_tid_and_framerate_ratio();
 
 
