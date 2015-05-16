@@ -346,7 +346,7 @@ void generate_inter_prediction_samples(base_context* ctx,
       }
 
       const de265_image* refPic;
-      if (shdr->InterLayerRefPic[l]) {
+      if (shdr->InterLayerRefPic[l][vi->refIdx[l]]) {
         // Get the image from the inter layer picture buffer
         refPic = ctx->get_il_image(shdr->RefPicList[l][vi->refIdx[l]]);
         logtrace(LogMotion, "refIdx: %d -> ilp[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
