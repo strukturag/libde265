@@ -81,9 +81,11 @@ de265_image* decoder_context_multilayer::get_next_picture_in_output_queue()
   de265_image* img = NULL;
   for (int i = 0; i < num_layer_decoders; i++)
   {
-    img = layer_decoders[i]->get_next_picture_in_output_queue();
-    if (img != NULL) {
-      return img;
+    if (layer_decoders[i]->num_pictures_in_output_queue() > 0) {
+      img = layer_decoders[i]->get_next_picture_in_output_queue();
+      if (img != NULL) {
+        return img;
+      }
     }
   }
   return NULL;
@@ -93,10 +95,12 @@ void decoder_context_multilayer::pop_next_picture_in_output_queue()
 {
   de265_image* img = NULL;
   for (int i = 0; i < num_layer_decoders; i++) {
-    img = layer_decoders[i]->get_next_picture_in_output_queue();
-    if (img != NULL) {
-      layer_decoders[i]->pop_next_picture_in_output_queue();
-      return;
+    if (layer_decoders[i]->num_pictures_in_output_queue() > 0) {
+      img = layer_decoders[i]->get_next_picture_in_output_queue();
+      if (img != NULL) {
+        layer_decoders[i]->pop_next_picture_in_output_queue();
+        return;
+      }
     }
   }
 }
