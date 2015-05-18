@@ -187,6 +187,38 @@ static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* resu
   MD5_Final(result, &md5);
 }
 
+static void compute_MD5_16bit(uint8_t* data,int w,int h,int stride, uint8_t* result)
+{
+  MD5_CTX md5;
+  MD5_Init(&md5);
+
+  uint16_t* data16 = (uint16_t*)data;
+  uint8_t* rowdata = new uint8_t[w*2];
+
+  for (int y=0; y<h; y++) {
+    for (int x=0; x<w; x++) {
+      rowdata[2*x+0] = data16[y*stride+x] & 0xFF;
+      rowdata[2*x+1] = data16[y*stride+x] >> 8;
+    }
+
+    MD5_Update(&md5, rowdata, 2*w);
+  }
+
+  MD5_Final(result, &md5);
+
+  delete[] rowdata;
+}
+
+static void compute_MD5(uint8_t* data,int w,int h,int stride, uint8_t* result, int bit_depth)
+{
+  if (bit_depth>8) {
+    compute_MD5_16bit(data,w,h,stride,result);
+  }
+  else {
+    compute_MD5_8bit(data,w,h,stride,result);
+  }
+}
+
 
 static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de265_image* img)
 {
@@ -217,7 +249,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
     case sei_decoded_picture_hash_type_MD5:
       {
         uint8_t md5[16];
-        compute_MD5_8bit(data,w,h,stride,md5);
+        compute_MD5(data,w,h,stride,md5, img->get_bit_depth(i));
 
 /*
         fprintf(stderr,"computed MD5: ");
@@ -406,4 +438,3 @@ const char* sei_type_name(enum sei_payload_type type)
     return "unknown SEI message";
   }
 }
-
