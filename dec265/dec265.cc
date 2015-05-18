@@ -157,8 +157,19 @@ void display_image(const struct de265_image* img)
     width  = de265_get_image_width(img,ch);
     height = de265_get_image_height(img,ch);
 
-    for (int y=0;y<height;y++) {
-      memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+    int bit_depth = de265_get_bits_per_pixel(img,ch);
+    if (bit_depth==8) {
+      for (int y=0;y<height;y++) {
+        memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+      }
+    }
+    else {
+      const uint16_t* data16 = (const uint16_t*)data;
+      for (int y=0;y<height;y++) {
+        for (int x=0;x<width;x++) {
+          visu.AskFrame((BitmapChannel)ch)[y][x] = *(data16 + y*stride +x) >> (bit_depth-8);
+        }
+      }
     }
   }
 

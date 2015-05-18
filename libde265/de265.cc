@@ -600,6 +600,19 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
   }
 }
 
+LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
+{
+  switch (channel) {
+  case 0:
+    return img->sps.BitDepth_Y;
+  case 1:
+  case 2:
+    return img->sps.BitDepth_C;
+  default:
+    return 0;
+  }
+}
+
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
   return img->get_chroma_format();
