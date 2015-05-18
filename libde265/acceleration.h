@@ -67,6 +67,18 @@ struct acceleration_functions
   void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
   void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
 
+  void (*transform_skip_16)(uint16_t *_dst, const int16_t *coeffs, ptrdiff_t _stride, int bit_depth); // no transform
+  void (*transform_bypass_16)(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
+  void (*transform_4x4_dst_add_16)(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDST
+  void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDCT
+
+
+  template <class pixel_t> void transform_skip(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+  template <class pixel_t> void transform_bypass(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
+  template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+
+
   // --- forward transforms ---
 
   void (*fwd_transform_4x4_dst_8)(int16_t *coeffs, const int16_t* src, ptrdiff_t stride); // fDST
@@ -79,5 +91,18 @@ struct acceleration_functions
   // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
 };
+
+
+template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) { transform_skip_8(dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_skip<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_skip_16(dst,coeffs,stride, bit_depth); }
+
+template <> inline void acceleration_functions::transform_bypass<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) { transform_bypass_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_bypass<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) { transform_bypass_16(dst,coeffs,nT,stride, bit_depth); }
+
+template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) { transform_4x4_dst_add_8(dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }
+
+template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_add_8[sizeIdx](dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth); }
 
 #endif

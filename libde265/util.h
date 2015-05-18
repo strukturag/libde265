@@ -70,6 +70,7 @@ namespace std { using namespace std::tr1; }
 
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
+#define Clip_BitDepth(value, bit_depth) ((value)<0 ? 0 : (value)>((1<<bit_depth)-1) ? ((1<<bit_depth)-1) : (value))
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
 #define Sign(value) (((value)<0) ? -1 : ((value)>0) ? 1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))

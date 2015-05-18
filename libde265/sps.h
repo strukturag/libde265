@@ -210,6 +210,11 @@ public:
   int getPUIndexRS(int pixelX,int pixelY) const {
     return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;
   }
+
+  int get_bit_depth(int cIdx) const {
+    if (cIdx==0) return BitDepth_Y;
+    else         return BitDepth_C;
+  }
 };
 
 de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
