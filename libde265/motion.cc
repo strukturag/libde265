@@ -345,17 +345,12 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const de265_image* refPic;
-      if (shdr->InterLayerRefPic[l][vi->refIdx[l]]) {
-        // Get the image from the inter layer picture buffer
-        refPic = ctx->get_il_image(shdr->RefPicList[l][vi->refIdx[l]]);
-        logtrace(LogMotion, "refIdx: %d -> ilp[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
-      }
-      else {
-        // Get image from the dpb
-        refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
-        logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
-      }
+      // Get the image from DPB or the inter layer picture buffer.
+      int ref_idx = shdr->RefPicList[l][vi->refIdx[l]];
+      bool il_pic = shdr->InterLayerRefPic[l][vi->refIdx[l]];
+      const de265_image* refPic = ctx->get_image(ref_idx, il_pic);
+
+      logtrace(LogMotion, "refIdx: %d -> %s[%d]\n", vi->refIdx[l], il_pic ? "ilp" : "dpb" , shdr->RefPicList[l][vi->refIdx[l]]);
       
       if (refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
@@ -1022,6 +1017,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
                                       const slice_segment_header* shdr,
                                       int xP,int yP,
                                       int colPic,
+                                      bool il_pic,
                                       int xColPb,int yColPb,
                                       int refIdxLX,  // (always 0 for merge mode)
                                       int X,
@@ -1033,8 +1029,8 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
   // get collocated image and the prediction mode at the collocated position
 
-  assert(ctx->has_image(colPic));
-  const de265_image* colImg = ctx->get_image(colPic);
+  assert(ctx->has_image(colPic, il_pic));
+  const de265_image* colImg = ctx->get_image(colPic, il_pic);
 
   // check for access outside image area
 
@@ -1108,7 +1104,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]);
+        const de265_image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx], shdr->InterLayerRefPic[1][rIdx]);
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1120,7 +1116,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]);
+        const de265_image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx], shdr->InterLayerRefPic[0][rIdx]);
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1219,6 +1215,7 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
   int Log2CtbSizeY = img->sps.Log2CtbSizeY;
 
   int colPic; // TODO: this is the same for the whole slice. We can precompute it.
+  bool colPic_il; // Is this an inter layer picture?
 
   if (shdr->slice_type == SLICE_TYPE_B &&
       shdr->collocated_from_l0_flag == 0)
@@ -1226,18 +1223,20 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"collocated L1 ref_idx=%d\n",shdr->collocated_ref_idx);
 
       colPic = shdr->RefPicList[1][ shdr->collocated_ref_idx ];
+      colPic_il = shdr->InterLayerRefPic[1][ shdr->collocated_ref_idx ];
     }
   else
     {
       logtrace(LogMotion,"collocated L0 ref_idx=%d\n",shdr->collocated_ref_idx);
 
       colPic = shdr->RefPicList[0][ shdr->collocated_ref_idx ];
+      colPic_il = shdr->InterLayerRefPic[0][ shdr->collocated_ref_idx ];
     }
 
 
   // check whether collocated reference picture exists
 
-  if (!ctx->has_image(colPic)) {
+  if (!ctx->has_image(colPic, colPic_il)) {
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
@@ -1266,7 +1265,7 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
       xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
 
-      derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+      derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, colPic_il, xColPb,yColPb, refIdxL, X,
                                        out_mvLXCol, out_availableFlagLXCol);
     }
   else
@@ -1285,7 +1284,7 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
     xColPb = xColCtr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
     yColPb = yColCtr & ~0x0F;
 
-    derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+    derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, colPic_il, xColPb,yColPb, refIdxL, X,
                                      out_mvLXCol, out_availableFlagLXCol);
   }
 }
@@ -1329,8 +1328,8 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(*l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(*l1Cand);
 
-      const de265_image* img0 = l0Cand->predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]]) : NULL;
-      const de265_image* img1 = l1Cand->predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]]) : NULL;
+      const de265_image* img0 = l0Cand->predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand->refIdx[0]], shdr->InterLayerRefPic[0][l0Cand->refIdx[0]]) : NULL;
+      const de265_image* img1 = l1Cand->predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand->refIdx[1]], shdr->InterLayerRefPic[1][l1Cand->refIdx[1]]) : NULL;
 
       if (l0Cand->predFlag[0] && !img0) {
         return; // TODO error
@@ -1574,7 +1573,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
-  const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
+  const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][refIdxLX], shdr->InterLayerRefPic[X][refIdxLX]);
   if (tmpimg==NULL) { return; }
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
@@ -1590,9 +1589,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logmvcand(*vi);
 
       const de265_image* imgX = NULL;
-      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ]);
+      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][vi->refIdx[X]], shdr->InterLayerRefPic[X][vi->refIdx[X]]);
       const de265_image* imgY = NULL;
-      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ]);
+      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][vi->refIdx[Y]], shdr->InterLayerRefPic[Y][vi->refIdx[Y]]);
 
       // check whether the predictor X is available and references the same POC
       if (vi->predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
@@ -1659,8 +1658,8 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       assert(refIdxA>=0);
       assert(refPicList>=0);
 
-      const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
-      const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+      const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ], shdr->InterLayerRefPic[refPicList][refIdxA ]);
+      const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX], shdr->InterLayerRefPic[X         ][refIdxLX]);
 
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
@@ -1725,9 +1724,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
 
       const de265_image* imgX = NULL;
-      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi->refIdx[X] ]);
+      if (vi->predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][vi->refIdx[X]], shdr->InterLayerRefPic[X][vi->refIdx[X]]);
       const de265_image* imgY = NULL;
-      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi->refIdx[Y] ]);
+      if (vi->predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][vi->refIdx[Y]], shdr->InterLayerRefPic[Y][vi->refIdx[Y]]);
 
       if (vi->predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
@@ -1801,8 +1800,8 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
-        const de265_image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
-        const de265_image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+        const de265_image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ], shdr->InterLayerRefPic[refPicList][refIdxB ]);
+        const de265_image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX], shdr->InterLayerRefPic[X         ][refIdxLX]);
 
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];

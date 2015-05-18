@@ -271,11 +271,11 @@ class base_context : public error_queue
   struct acceleration_functions acceleration; // CPU optimized functions
 
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const de265_image* get_image(int frame_id) const = 0;
-  virtual bool has_image(int frame_id) const = 0;
-
-  // Multilayer extension
-  virtual const de265_image* get_il_image(int il_buffer_index) const = 0;
+  
+  // Get the image with the given id from the DPB. Multi layer extensions:
+  // If il_picture is true, the picture is fetched from the inter layer references (ilRefPic).
+  virtual const de265_image* get_image(int frame_id, bool il_picture=false) const = 0;
+  virtual bool has_image(int frame_id, bool il_picture=false) const = 0;
 };
 
 class decoder_context_multilayer;
@@ -364,13 +364,11 @@ class decoder_context : public base_context {
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
-  /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+  // Multilayer extension: If il_picture is true, the picture is fetched from the inter layer references (ilRefPic).
+  /* */ de265_image* get_image(int dpb_index, bool il_pic=false)       { return il_pic ? ilRefPic[dpb_index] : dpb.get_image(dpb_index); }
+  const de265_image* get_image(int dpb_index, bool il_pic=false) const { return il_pic ? ilRefPic[dpb_index] : dpb.get_image(dpb_index); }
 
-  // Multilayer extensions: Get image from inter layer reference buffer
-  const de265_image* get_il_image(int il_buffer_index) const { return ilRefPic[il_buffer_index]; }
-
-  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
+  bool has_image(int dpb_index, bool il_pic=false) const { return il_pic ? ilRefPic[dpb_index]!=NULL : dpb_index>=0 && dpb_index<dpb.size(); }
 
   de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
   int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }

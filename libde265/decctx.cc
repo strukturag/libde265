@@ -1446,6 +1446,7 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
+  // TODO: What if this is an inter layer picture?
   de265_image* img = ctx->dpb.get_image(idx);
 
   img->fill_image(1<<(sps->BitDepth_Y-1),
