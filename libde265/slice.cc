@@ -1019,6 +1019,8 @@ de265_error slice_segment_header::read_slice_segment_header_extension(bitreader*
       get_bits(br,8);
     }
   }
+
+  return DE265_OK;
 }
 
 de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& out,
