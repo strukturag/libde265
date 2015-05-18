@@ -290,6 +290,11 @@ struct de265_image {
     else         return sps.BitDepth_C>8;
   }
 
+  int get_bit_depth(int cIdx) const {
+    if (cIdx==0) return sps.BitDepth_Y;
+    else         return sps.BitDepth_C;
+  }
+
   bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
 
 

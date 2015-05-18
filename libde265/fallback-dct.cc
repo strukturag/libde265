@@ -241,7 +241,7 @@ void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, pt
 
       int out = Clip3(-32768,32767, (sum+rndH)>>postShift);
 
-      dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
+      dst[y*stride+i] = Clip_BitDepth(dst[y*stride+i] + out, bit_depth);
 
       logtrace(LogTransform,"*%d ",out);
     }

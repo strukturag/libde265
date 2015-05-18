@@ -29,7 +29,8 @@
 
 
 #ifdef DE265_LOG_TRACE
-void print_border(uint8_t* data, uint8_t* available, int nT)
+template <class pixel_t>
+void print_border(pixel_t* data, uint8_t* available, int nT)
 {
   for (int i=-2*nT ; i<=2*nT ; i++) {
     if (i==0 || i==1 || i==-nT || i==nT+1) {
@@ -554,10 +555,6 @@ static const int invAngle_table[25-10] =
     -315,-390,-482,-630,-910,-1638,-4096 };
 
 
-// TODO: clip to read BitDepthY
-LIBDE265_INLINE static int Clip1Y(int x) { if (x<0) return 0; else if (x>255) return 255; else return x; }
-
-
 // (8.4.4.2.6)
 template <class pixel_t>
 void intra_prediction_angular(de265_image* img,
@@ -573,6 +570,8 @@ void intra_prediction_angular(de265_image* img,
   int      stride;
   pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
+
+  int bit_depth = img->get_bit_depth(cIdx);
 
   assert(intraPredMode<35);
   assert(intraPredMode>=2);
@@ -613,7 +612,7 @@ void intra_prediction_angular(de265_image* img,
 
     if (intraPredMode==26 && cIdx==0 && nT<32) {
       for (int y=0;y<nT;y++) {
-        pred[0+y*stride] = Clip1Y(border[1] + ((border[-1-y] - border[0])>>1));
+        pred[0+y*stride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
       }
     }
   }
@@ -651,7 +650,7 @@ void intra_prediction_angular(de265_image* img,
 
     if (intraPredMode==10 && cIdx==0 && nT<32) {  // DIFF 26->10
       for (int x=0;x<nT;x++) { // DIFF (x<->y)
-        pred[x] = Clip1Y(border[-1] + ((border[1+x] - border[0])>>1)); // DIFF (x<->y && neg)
+        pred[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
       }
     }
   }

@@ -135,7 +135,7 @@ void logtrace(enum LogModule module, const char* string, ...)
   if (current_poc < log_poc_start) { return; }
   if (disable_log[module]) return;
 
-  if (module != LogSymbols /*&& module != LogCABAC*/) { return; }
+  //if (module != LogSymbols /*&& module != LogCABAC*/) { return; }
   //if (logcnt<319500) return;
 
   //if (module != LogCABAC) return;
