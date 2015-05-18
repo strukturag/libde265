@@ -1544,10 +1544,9 @@ static int decode_sao_type_idx(thread_context* tctx)
 }
 
 
-static int decode_sao_offset_abs(thread_context* tctx)
+static int decode_sao_offset_abs(thread_context* tctx, int bitDepth)
 {
   logtrace(LogSlice,"# sao_offset_abs\n");
-  int bitDepth = 8;
   int cMax = (1<<(libde265_min(bitDepth,10)-5))-1;
   int value = decode_CABAC_TU_bypass(&tctx->cabac_decoder, cMax);
   logtrace(LogSymbols,"$1 sao_offset_abs=%d\n",value);
@@ -2719,7 +2718,7 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 
         if (SaoTypeIdx != 0) {
           for (int i=0;i<4;i++) {
-            saoinfo.saoOffsetVal[cIdx][i] = decode_sao_offset_abs(tctx);
+            saoinfo.saoOffsetVal[cIdx][i] = decode_sao_offset_abs(tctx, img->get_bit_depth(cIdx));
             logtrace(LogSlice,"saoOffsetVal[%d][%d] = %d\n",cIdx,i, saoinfo.saoOffsetVal[cIdx][i]);
           }
 
