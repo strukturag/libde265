@@ -142,6 +142,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "collocated motion-vector is outside image area";
   case DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER:
     return "error while processing the multiview extensions data. Switching off decoding of extensions. Fall back to HEVC decoding.";
+  case DE265_WARNING_MULTILAYER_NON_ZERO_MV_FOR_INTER_LAYER_PREDICTION:
+    return "error while performing inter layer prediction. The motion vector is not zero. Not standard compliant.";
 
   default: return "unknown error";
   }

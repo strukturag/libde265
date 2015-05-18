@@ -327,8 +327,8 @@ void generate_inter_prediction_samples(base_context* ctx,
     if (predFlag[0] && predFlag[1]) {
       if (vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
-          shdr->RefPicList[0][vi->refIdx[0]] ==
-          shdr->RefPicList[1][vi->refIdx[1]]) {
+          shdr->RefPicList[0][vi->refIdx[0]] == shdr->RefPicList[1][vi->refIdx[1]] &&
+          shdr->InterLayerRefPic[vi->refIdx[0]] == shdr->InterLayerRefPic[vi->refIdx[1]] ) {
         predFlag[1] = 0;
       }
     }
@@ -345,10 +345,18 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
-
-      logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
-
+      const de265_image* refPic;
+      if (shdr->InterLayerRefPic[l][vi->refIdx[l]]) {
+        // Get the image from the inter layer picture buffer
+        refPic = ctx->get_il_image(shdr->RefPicList[l][vi->refIdx[l]]);
+        logtrace(LogMotion, "refIdx: %d -> ilp[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
+      }
+      else {
+        // Get image from the dpb
+        refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+        logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
+      }
+      
       if (refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
@@ -361,6 +369,12 @@ void generate_inter_prediction_samples(base_context* ctx,
         logtrace(LogMotion,"do MC: L%d,MV=%d;%d RefPOC=%d\n",
                  l,vi->mv[l].x,vi->mv[l].y,refPic->PicOrderCntVal);
 
+        if (shdr->InterLayerRefPic[l][vi->refIdx[l]] && (vi->mv[l].x != 0 || vi->mv[l].y != 0)) {
+          // It is bitstream conformance that inter layer prediction may only be performed
+          // with a zero motion vector. We can still perform this but something might have
+          // gone wrong.
+          ctx->add_warning(DE265_WARNING_MULTILAYER_NON_ZERO_MV_FOR_INTER_LAYER_PREDICTION, false);
+        }
 
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
         mc_luma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,

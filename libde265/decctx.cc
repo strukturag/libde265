@@ -1933,6 +1933,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
    - the RefPicList[2][], containing indices into the DPB, and
    - the RefPicList_POC[2][], containing POCs.
    - LongTermRefPic[2][] is also set to true if it is a long-term reference
+   - InterLayerRefPic[2][] is set to true if it is an inter layer reference picture
  */
 bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
 {
@@ -1944,8 +1945,14 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
   int RefPicListTemp0[3*MAX_NUM_REF_PICS]; // TODO: what would be the correct maximum ?
   int RefPicListTemp1[3*MAX_NUM_REF_PICS]; // TODO: what would be the correct maximum ?
   char isLongTerm[2][3*MAX_NUM_REF_PICS];
+  bool isInterLayer[2][3*MAX_NUM_REF_PICS];
 
   memset(isLongTerm,0,2*3*MAX_NUM_REF_PICS);
+  for (int i = 0; i < 2; i++) {
+    for (int j=0; j<3*MAX_NUM_REF_PICS; j++) {
+      isInterLayer[i][j] = false;
+    }
+  }
 
   /* --- Fill RefPicListTmp0 with reference pictures in this order:
      1) short term, past POC
@@ -1959,8 +1966,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrBefore[i];
 
     // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-64)
-    for( int i=0; i<ctx->NumActiveRefLayerPics0; rIdx++, i++ )
-      RefPicListTemp0[ rIdx ] = ctx->RefPicSetInterLayer0[i];
+    for (int i = 0; i<ctx->NumActiveRefLayerPics0; rIdx++, i++) {
+      RefPicListTemp0[rIdx] = ctx->RefPicSetInterLayer0[i];
+      isInterLayer[0][rIdx] = true;
+    }
 
     for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
       RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
@@ -1971,8 +1980,10 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     }
 
     // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-64)
-    for( int i=0; i<ctx->NumActiveRefLayerPics1; rIdx++, i++ )
+    for( int i=0; i<ctx->NumActiveRefLayerPics1; rIdx++, i++ ) {
       RefPicListTemp0[rIdx] = ctx->RefPicSetInterLayer1[i];
+      isInterLayer[0][rIdx] = true;
+    }
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
@@ -1994,9 +2005,17 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
     hdr->RefPicList[0][rIdx] = RefPicListTemp0[idx];
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
+    hdr->InterLayerRefPic[0][rIdx] = isInterLayer[0][idx];
 
     // remember POC of referenced image (needed in motion.c, derive_collocated_motion_vector)
-    de265_image* img_0_rIdx = ctx->dpb.get_image(hdr->RefPicList[0][rIdx]);
+    de265_image* img_0_rIdx = NULL;
+    if (hdr->InterLayerRefPic[0][rIdx]) {
+      // Get the inter layer reference from ilRefPic
+      img_0_rIdx = ilRefPic[hdr->RefPicList[0][rIdx]];
+    }
+    else {
+      img_0_rIdx = ctx->dpb.get_image(hdr->RefPicList[0][rIdx]);
+    }
     if (img_0_rIdx==NULL) {
       return false;
     }
@@ -2022,6 +2041,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-66)
       for( int i=0;i<ctx->NumActiveRefLayerPics1; rIdx++, i++ ) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetInterLayer1[ i ];
+        isInterLayer[1][rIdx] = true;
       }
 
       for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
@@ -2036,6 +2056,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       // Multi layer extension (JCTVC-R1013_v6 F.8.3.4 F-66)
       for( int i=0;i<ctx->NumActiveRefLayerPics0; rIdx++, i++ ) {
         RefPicListTemp1[rIdx]=ctx->RefPicSetInterLayer0[i];
+        isInterLayer[1][rIdx] = true;
       }
 
       // This check is to prevent an endless loop when no images are added above.
@@ -2056,9 +2077,17 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
       hdr->RefPicList[1][rIdx] = RefPicListTemp1[idx];
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
+      hdr->InterLayerRefPic[1][rIdx] = isInterLayer[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      de265_image* img_1_rIdx = ctx->dpb.get_image(hdr->RefPicList[1][rIdx]);
+      de265_image* img_1_rIdx = NULL;
+      if (hdr->InterLayerRefPic[1][rIdx]) {
+        // Inter layer picture. Get the inter layer reference from ilRefPic.
+        img_1_rIdx = ilRefPic[hdr->RefPicList[1][rIdx]];
+      }
+      else {
+        img_1_rIdx = ctx->dpb.get_image(hdr->RefPicList[1][rIdx]);
+      }
       if (img_1_rIdx == NULL) { return false; }
       hdr->RefPicList_POC[1][rIdx] = img_1_rIdx->PicOrderCntVal;
       hdr->RefPicList_PicState[1][rIdx] = img_1_rIdx->PicState;
@@ -2067,6 +2096,24 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
 
   // show reference picture lists
+
+  if (ctx->get_layer_id() > 0) {
+    int nrRefDirs = (hdr->slice_type == SLICE_TYPE_B) ? 2 : 1;
+    for (int i = 0; i < nrRefDirs; i++) {
+      int numRefIdxActive = (i==0) ? hdr->num_ref_idx_l0_active : hdr->num_ref_idx_l1_active;
+      loginfo(LogHeaders,"RefPicList[%d] =", i);
+      for (rIdx=0; rIdx<numRefIdxActive; rIdx++) {
+      loginfo(LogHeaders,"* [%d]=%d (LT=%d) (IL=%d)",
+              hdr->RefPicList[i][rIdx],
+              hdr->RefPicList_POC[i][rIdx],
+              hdr->LongTermRefPic[i][rIdx],
+              hdr->InterLayerRefPic[i][rIdx]
+              );
+      }
+      loginfo(LogHeaders,"*\n");
+    }
+    return true;
+  }
 
   loginfo(LogHeaders,"RefPicList[0] =");
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
@@ -2208,8 +2255,8 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
   ctx->current_pps = &ctx->pps[pps_id];
   ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
-  ctx->current_vps = &ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ];
-
+  ctx->current_vps = get_vps((int)ctx->current_sps->video_parameter_set_id);
+  
   calc_tid_and_framerate_ratio();
 
 

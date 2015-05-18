@@ -45,6 +45,14 @@ class encoder_context : public base_context
     return picbuf.get_picture(frame_id)->reconstruction;
   }
 
+  // Multilayer extensions
+  virtual const de265_image* get_il_image(int frame_id) const {
+    // If you want to implement a multiview/sclable encoder this function should 
+    // return the inter layer reference picture with the given ID.
+    assert(false);
+    return NULL;
+  }
+
   virtual bool has_image(int frame_id) const {
     return picbuf.has_picture(frame_id);
   }
