@@ -400,8 +400,9 @@ static uint8_t table_8_23_tc[54] = {
 
 
 // 8.7.2.4
-void edge_filtering_luma(de265_image* img, bool vertical,
-                         int yStart,int yEnd, int xStart,int xEnd)
+template <class pixel_t>
+void edge_filtering_luma_internal(de265_image* img, bool vertical,
+                                  int yStart,int yEnd, int xStart,int xEnd)
 {
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
@@ -457,9 +458,9 @@ void edge_filtering_luma(de265_image* img, bool vertical,
 
         // 8.7.2.4.3
 
-        uint8_t* ptr = img->get_image_plane_at_pos(0, xDi,yDi);
+        pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(0, xDi,yDi);
 
-        uint8_t q[4][4], p[4][4];
+        pixel_t q[4][4], p[4][4];
         for (int k=0;k<4;k++)
           for (int i=0;i<4;i++)
             {
@@ -584,21 +585,21 @@ void edge_filtering_luma(de265_image* img, bool vertical,
 
             logtrace(LogDeblock,"line:%d\n",k);
 
-            const uint8_t p0 = p[k][0];
-            const uint8_t p1 = p[k][1];
-            const uint8_t p2 = p[k][2];
-            const uint8_t p3 = p[k][3];
-            const uint8_t q0 = q[k][0];
-            const uint8_t q1 = q[k][1];
-            const uint8_t q2 = q[k][2];
-            const uint8_t q3 = q[k][3];
+            const pixel_t p0 = p[k][0];
+            const pixel_t p1 = p[k][1];
+            const pixel_t p2 = p[k][2];
+            const pixel_t p3 = p[k][3];
+            const pixel_t q0 = q[k][0];
+            const pixel_t q1 = q[k][1];
+            const pixel_t q2 = q[k][2];
+            const pixel_t q3 = q[k][3];
 
             if (dE==2) {
               // strong filtering
 
               //nDp=nDq=3;
 
-              uint8_t pnew[3],qnew[3];
+              pixel_t pnew[3],qnew[3];
               pnew[0] = Clip3(p0-2*tc,p0+2*tc, (p2 + 2*p1 + 2*p0 + 2*q0 + q1 +4)>>3);
               pnew[1] = Clip3(p1-2*tc,p1+2*tc, (p2 + p1 + p0 + q0+2)>>2);
               pnew[2] = Clip3(p2-2*tc,p2+2*tc, (2*p3 + 3*p2 + p1 + p0 + q0 + 4)>>3);
@@ -636,18 +637,18 @@ void edge_filtering_luma(de265_image* img, bool vertical,
                 delta = Clip3(-tc,tc,delta);
                 logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
                          vertical ? xDi-1 : xDi+k,
-                         vertical ? yDi+k : yDi-1, p0,Clip1_8bit(p0+delta),
+                         vertical ? yDi+k : yDi-1, p0,Clip_BitDepth(p0+delta, bitDepth_Y),
                          vertical ? xDi   : xDi+k,
-                         vertical ? yDi+k : yDi, q0,Clip1_8bit(q0-delta),
+                         vertical ? yDi+k : yDi,   q0,Clip_BitDepth(q0-delta, bitDepth_Y),
                          delta);
 
                 if (vertical) {
-                  if (filterP) { ptr[-0-1+k*stride] = Clip1_8bit(p0+delta); }
-                  if (filterQ) { ptr[ 0  +k*stride] = Clip1_8bit(q0-delta); }
+                  if (filterP) { ptr[-0-1+k*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ 0  +k*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
                 }
                 else {
-                  if (filterP) { ptr[ k -1*stride] = Clip1_8bit(p0+delta); }
-                  if (filterQ) { ptr[ k +0*stride] = Clip1_8bit(q0-delta); }
+                  if (filterP) { ptr[ k -1*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ k +0*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
                 }
 
                 //ptr[ 0+k*stride] = 200;
@@ -660,8 +661,8 @@ void edge_filtering_luma(de265_image* img, bool vertical,
                            vertical ? yDi+k : yDi-2,
                            delta_p);
 
-                  if (vertical) { ptr[-1-1+k*stride] = Clip1_8bit(p1+delta_p); }
-                  else          { ptr[ k  -2*stride] = Clip1_8bit(p1+delta_p); }
+                  if (vertical) { ptr[-1-1+k*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
+                  else          { ptr[ k  -2*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
                 }
 
                 if (dEq==1 && filterQ) {
@@ -672,8 +673,8 @@ void edge_filtering_luma(de265_image* img, bool vertical,
                            vertical ? yDi+k : yDi+1,
                            delta_q);
 
-                  if (vertical) { ptr[ 1  +k*stride] = Clip1_8bit(q1+delta_q); }
-                  else          { ptr[ k  +1*stride] = Clip1_8bit(q1+delta_q); }
+                  if (vertical) { ptr[ 1  +k*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
+                  else          { ptr[ k  +1*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
                 }
 
                 //nDp = dEp+1;
@@ -689,6 +690,17 @@ void edge_filtering_luma(de265_image* img, bool vertical,
 }
 
 
+void edge_filtering_luma(de265_image* img, bool vertical,
+                         int yStart,int yEnd, int xStart,int xEnd)
+{
+  if (img->high_bit_depth(0)) {
+    edge_filtering_luma_internal<uint16_t>(img,vertical,yStart,yEnd,xStart,xEnd);
+  }
+  else {
+    edge_filtering_luma_internal<uint8_t>(img,vertical,yStart,yEnd,xStart,xEnd);
+  }
+}
+
 void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->sps.CtbSizeY;
@@ -703,8 +715,9 @@ void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 
 
 // 8.7.2.4
-void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
-                           int xStart,int xEnd)
+template <class pixel_t>
+void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,int yEnd,
+                                    int xStart,int xEnd)
 {
   int xIncr = vertical ? 4 : 2;
   int yIncr = vertical ? 2 : 4;
@@ -713,6 +726,8 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
 
   xEnd = libde265_min(xEnd,img->get_deblk_width());
   yEnd = libde265_min(yEnd,img->get_deblk_height());
+
+  int bitDepth_C = img->sps.BitDepth_C;
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -728,10 +743,10 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
                               img->pps.pic_cb_qp_offset :
                               img->pps.pic_cr_qp_offset);
 
-          uint8_t* ptr = img->get_image_plane_at_pos(cplane+1, xDi,yDi);
+          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
 
-          uint8_t p[2][4];
-          uint8_t q[2][4];
+          pixel_t p[2][4];
+          pixel_t q[2][4];
 
           logtrace(LogDeblock,"-%s- %d %d\n",cplane==0 ? "Cb" : "Cr",xDi,yDi);
 
@@ -800,8 +815,8 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
               logtrace(LogDeblock,"delta=%d\n",delta);
-              if (filterP) { ptr[-1+k*stride] = Clip1_8bit(p[0][k]+delta); }
-              if (filterQ) { ptr[ 0+k*stride] = Clip1_8bit(q[0][k]-delta); }
+              if (filterP) { ptr[-1+k*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
+              if (filterQ) { ptr[ 0+k*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
             }
           }
           else {
@@ -815,14 +830,27 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
 
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
-              if (filterP) { ptr[ k-1*stride] = Clip1_8bit(p[0][k]+delta); }
-              if (filterQ) { ptr[ k+0*stride] = Clip1_8bit(q[0][k]-delta); }
+              if (filterP) { ptr[ k-1*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
+              if (filterQ) { ptr[ k+0*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
             }
           }
         }
       }
     }
 }
+
+
+void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
+                           int xStart,int xEnd)
+{
+  if (img->high_bit_depth(1)) {
+    edge_filtering_chroma_internal<uint16_t>(img,vertical,yStart,yEnd,xStart,xEnd);
+  }
+  else {
+    edge_filtering_chroma_internal<uint8_t>(img,vertical,yStart,yEnd,xStart,xEnd);
+  }
+}
+
 
 void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 {
@@ -912,8 +940,9 @@ void thread_task_deblock_CTBRow::work()
 
   if (deblocking_enabled) {
     derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
-    edge_filtering_luma    (img, vertical, first,last, xStart,xEnd);
-    edge_filtering_chroma  (img, vertical, first,last, xStart,xEnd);
+
+    edge_filtering_luma(img, vertical, first,last, xStart,xEnd);
+    edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
   }
 
   for (int x=0;x<=rightCtb;x++) {
