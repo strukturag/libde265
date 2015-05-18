@@ -243,9 +243,10 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
 
 
 // (8.4.4.2.2)
+template <class pixel_t>
 void fill_border_samples(de265_image* img, int xB,int yB,
                          int nT, int cIdx,
-                         uint8_t* out_border)
+                         pixel_t* out_border)
 {
   const seq_parameter_set* sps = &img->sps;
   const pic_parameter_set* pps = &img->pps;
@@ -253,9 +254,9 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   uint8_t available_data[2*64 + 1];
   uint8_t* available = &available_data[64];
 
-  uint8_t* image;
+  pixel_t* image;
   int stride;
-  image  = img->get_image_plane(cIdx);
+  image  = (pixel_t*)img->get_image_plane(cIdx);
   stride = img->get_image_stride(cIdx);
 
   const int chromaShift = (cIdx==0) ? 0 : 1;
@@ -348,7 +349,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
   int nAvail=0;
 
-  uint8_t firstValue;
+  pixel_t firstValue;
 
   memset(available-2*nT, 0, 4*nT+1);
 
@@ -469,8 +470,9 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
 
 // (8.4.4.2.3)
+template <class pixel_t>
 void intra_prediction_sample_filtering(de265_image* img,
-                                       uint8_t* p,
+                                       pixel_t* p,
                                        int nT,
                                        enum IntraPredMode intraPredMode)
 {
@@ -498,8 +500,8 @@ void intra_prediction_sample_filtering(de265_image* img,
                      abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(img->sps.bit_depth_luma-5)))
       ? 1 : 0;
 
-    uint8_t  pF_mem[2*64+1];
-    uint8_t* pF = &pF_mem[64];
+    pixel_t  pF_mem[2*64+1];
+    pixel_t* pF = &pF_mem[64];
 
     if (biIntFlag) {
       pF[-2*nT] = p[-2*nT];
@@ -523,7 +525,7 @@ void intra_prediction_sample_filtering(de265_image* img,
 
     // copy back to original array
 
-    memcpy(p-2*nT, pF-2*nT, 4*nT+1);
+    memcpy(p-2*nT, pF-2*nT, (4*nT+1) * sizeof(pixel_t));
   }
   else {
     // do nothing ?
@@ -550,18 +552,19 @@ LIBDE265_INLINE static int Clip1Y(int x) { if (x<0) return 0; else if (x>255) re
 
 
 // (8.4.4.2.6)
+template <class pixel_t>
 void intra_prediction_angular(de265_image* img,
                               int xB0,int yB0,
                               enum IntraPredMode intraPredMode,
                               int nT,int cIdx,
-                              uint8_t* border)
+                              pixel_t* border)
 {
-  uint8_t  ref_mem[2*64+1];
-  uint8_t* ref=&ref_mem[64];
+  pixel_t  ref_mem[2*64+1];
+  pixel_t* ref=&ref_mem[64];
 
-  uint8_t* pred;
+  pixel_t* pred;
   int      stride;
-  pred   = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
 
   assert(intraPredMode<35);
@@ -659,12 +662,13 @@ void intra_prediction_angular(de265_image* img,
 }
 
 
+template <class pixel_t>
 void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
-                             uint8_t* border)
+                             pixel_t* border)
 {
-  uint8_t* pred;
+  pixel_t* pred;
   int      stride;
-  pred = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
 
   int Log2_nT = Log2(nT);
@@ -689,12 +693,13 @@ void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
 }
 
 
+template <class pixel_t>
 void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
-                         uint8_t* border)
+                         pixel_t* border)
 {
-  uint8_t* pred;
+  pixel_t* pred;
   int      stride;
-  pred = img->get_image_plane_at_pos(cIdx,xB0,yB0);
+  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
   stride = img->get_image_stride(cIdx);
 
   int Log2_nT = Log2(nT);
@@ -740,21 +745,14 @@ void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
 
 
 
-// (8.4.4.2.1)
-void decode_intra_prediction(de265_image* img,
-                             int xB0,int yB0,
-                             enum IntraPredMode intraPredMode,
-                             int nT, int cIdx)
+template <class pixel_t>
+void decode_intra_prediction_internal(de265_image* img,
+                                      int xB0,int yB0,
+                                      enum IntraPredMode intraPredMode,
+                                      int nT, int cIdx)
 {
-  logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
-           xB0,yB0, intraPredMode, nT,cIdx);
-  /*
-    printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
-    xB0,yB0, intraPredMode, nT,cIdx);
-  */
-
-  uint8_t  border_pixels_mem[2*64+1];
-  uint8_t* border_pixels = &border_pixels_mem[64];
+  pixel_t  border_pixels_mem[2*64+1];
+  pixel_t* border_pixels = &border_pixels_mem[64];
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
@@ -773,5 +771,27 @@ void decode_intra_prediction(de265_image* img,
   default:
     intra_prediction_angular(img,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
     break;
+  }
+}
+
+
+// (8.4.4.2.1)
+void decode_intra_prediction(de265_image* img,
+                             int xB0,int yB0,
+                             enum IntraPredMode intraPredMode,
+                             int nT, int cIdx)
+{
+  logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+           xB0,yB0, intraPredMode, nT,cIdx);
+  /*
+    printf("decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
+    xB0,yB0, intraPredMode, nT,cIdx);
+  */
+
+  if (img->high_bit_depth(cIdx)) {
+    decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,nT,cIdx);
+  }
+  else {
+    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,nT,cIdx);
   }
 }

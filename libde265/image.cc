@@ -112,16 +112,16 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
   assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
 
-  luma_stride   *= (img->sps.BitDepth_Y+7)/8;
-  chroma_stride *= (img->sps.BitDepth_C+7)/8;
+  int luma_bpl   = luma_stride   * (img->sps.BitDepth_Y+7)/8;
+  int chroma_bpl = chroma_stride * (img->sps.BitDepth_C+7)/8;
 
   int luma_height   = spec->height;
   int chroma_height = (spec->height+1)/2;
 
   uint8_t* p[3] = { 0,0,0 };
-  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_stride   * luma_height   + MEMORY_PADDING);
-  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
-  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
+  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_stride   * luma_bpl   + MEMORY_PADDING);
+  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_bpl + MEMORY_PADDING);
+  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_bpl + MEMORY_PADDING);
 
   if (p[0]==NULL || p[1]==NULL || p[2]==NULL) {
     for (int i=0;i<3;i++)

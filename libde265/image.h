@@ -217,6 +217,7 @@ typedef struct {
 // intraPredMode:   Used for determining scanIdx when decoding/encoding coefficients.
 
 
+
 struct de265_image {
   de265_image();
   ~de265_image();
@@ -255,12 +256,21 @@ struct de265_image {
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+  template <class pixel_t>
+  pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
+  {
+    int stride = get_image_stride(cIdx);
+    return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
+  }
+
   const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
   {
     int stride = get_image_stride(cIdx);
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+  /* Number of pixels in one row (not number of bytes).
+   */
   int get_image_stride(int cIdx) const
   {
     if (cIdx==0) return stride;
@@ -275,6 +285,10 @@ struct de265_image {
 
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
+  bool high_bit_depth(int cIdx) const {
+    if (cIdx==0) return sps.BitDepth_Y>8;
+    else         return sps.BitDepth_C>8;
+  }
 
   bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
 
