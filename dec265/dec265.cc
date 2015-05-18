@@ -178,16 +178,34 @@ void display_image(const struct de265_image* img)
 }
 #endif
 
+static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height, int stride, int bit_depth)
+{
+  const uint16_t* data16 = (const uint16_t*)data;
+  uint8_t* out = new uint8_t[stride*height];
+
+  for (int y=0;y<height;y++) {
+    for (int x=0;x<width;x++) {
+      out[y*stride + x] = *(data16 + y*stride +x) >> (bit_depth-8);
+    }
+  }
+
+  return out;
+}
+
+
 #if HAVE_SDL
 SDL_YUV_Display sdlWin;
 bool sdl_active=false;
 
 bool display_sdl(const struct de265_image* img)
 {
-  if (!sdl_active) {
-    int width  = de265_get_image_width(img,0);
-    int height = de265_get_image_height(img,0);
+  int width  = de265_get_image_width(img,0);
+  int height = de265_get_image_height(img,0);
 
+  int chroma_width  = de265_get_image_width(img,1);
+  int chroma_height = de265_get_image_height(img,1);
+
+  if (!sdl_active) {
     sdl_active=true;
     sdlWin.init(width,height);
   }
@@ -197,7 +215,26 @@ bool display_sdl(const struct de265_image* img)
   const uint8_t* cb =de265_get_image_plane(img,1,&chroma_stride);
   const uint8_t* cr =de265_get_image_plane(img,2,NULL);
 
+  uint8_t* y16  = NULL;
+  uint8_t* cb16 = NULL;
+  uint8_t* cr16 = NULL;
+  int bd;
+
+  if ((bd=de265_get_bits_per_pixel(img, 0)) > 8) {
+    y16  = convert_to_8bit(y,  width,height,stride,bd); y=y16;
+  }
+  if ((bd=de265_get_bits_per_pixel(img, 1)) > 8) {
+    cb16 = convert_to_8bit(cb, chroma_width,chroma_height,chroma_stride,bd); cb=cb16;
+  }
+  if ((bd=de265_get_bits_per_pixel(img, 2)) > 8) {
+    cr16 = convert_to_8bit(cr, chroma_width,chroma_height,chroma_stride,bd); cr=cr16;
+  }
+
   sdlWin.display(y,cb,cr, stride, chroma_stride);
+
+  delete[] y16;
+  delete[] cb16;
+  delete[] cr16;
 
   return sdlWin.doQuit();
 }
