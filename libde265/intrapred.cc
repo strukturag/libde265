@@ -444,7 +444,14 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
     if (nAvail!=4*nT+1) {
       if (nAvail==0) {
-        memset(out_border-2*nT, 1<<(sps->bit_depth_luma-1), 4*nT+1);
+        if (sizeof(pixel_t)==1) {
+          memset(out_border-2*nT, 1<<(sps->bit_depth_luma-1), 4*nT+1);
+        }
+        else {
+          for (int i = -2*nT; i <= 2*nT ; i++) {
+            out_border[i] = 1<<(sps->bit_depth_luma-1);
+          }
+        }
       }
       else {
         if (!available[-2*nT]) {
