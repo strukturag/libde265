@@ -273,6 +273,9 @@ class base_context : public error_queue
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   virtual const de265_image* get_image(int frame_id) const = 0;
   virtual bool has_image(int frame_id) const = 0;
+
+  // Multilayer extension
+  virtual const de265_image* get_il_image(int il_buffer_index) const = 0;
 };
 
 class decoder_context_multilayer;
@@ -363,6 +366,9 @@ class decoder_context : public base_context {
 
   /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+
+  // Multilayer extensions: Get image from inter layer reference buffer
+  const de265_image* get_il_image(int il_buffer_index) const { return ilRefPic[il_buffer_index]; }
 
   bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
 

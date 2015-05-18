@@ -220,6 +220,13 @@ public:
   std::vector<int> entry_point_offset;
 
   // Multi layer extension
+  de265_error read_slice_segment_header_extension(bitreader* br, 
+                                                  decoder_context *ctx,
+                                                  pic_parameter_set* pps,
+                                                  seq_parameter_set* sps,
+                                                  int nal_unit_type,
+                                                  int nuh_layer_id);
+
   bool   cross_layer_bla_flag;
   bool   inter_layer_pred_enabled_flag;
   int    num_inter_layer_ref_pics_minus1;
@@ -263,6 +270,11 @@ public:
 
   char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
                                                is a long-term picture. */
+
+  bool InterLayerRefPic[2][MAX_NUM_REF_PICS]; /* Multilayer extensions. Flag wheter the picture is a normal ref-pic
+                                                 or an inter layer reference picture. If it is an inter layer referece
+                                                 picture the index in RefPicList points to the array ilRefPic[] intstead 
+                                                 of the DPB. */
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model_table ctx_model_storage;

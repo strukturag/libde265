@@ -244,7 +244,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
     
-    // Infer values
+    // Infer values from VPS
     rep_format rep = vps_ext->vps_ext_rep_format[repFormatIdx];
     chroma_format_idc = rep.chroma_format_vps_idc;
     separate_colour_plane_flag = rep.separate_colour_plane_vps_flag;
@@ -252,6 +252,13 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
     pic_height_in_luma_samples = rep.pic_height_vps_in_luma_samples;
     bit_depth_luma   = rep.bit_depth_vps_luma_minus8 + 8;
     bit_depth_chroma = rep.bit_depth_vps_chroma_minus8 + 8;
+    
+    // Infer conformance window from VPS
+    conformance_window conf = rep.m_conformanceWindowVps;
+    conf_win_left_offset = conf.conf_win_vps_left_offset;
+    conf_win_right_offset = conf.conf_win_vps_right_offset;
+    conf_win_top_offset = conf.conf_win_vps_top_offset;
+    conf_win_bottom_offset = conf.conf_win_vps_top_offset;
   }
   else {
     // --- decode chroma type ---
