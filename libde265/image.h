@@ -285,14 +285,17 @@ struct de265_image {
 
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
-  bool high_bit_depth(int cIdx) const {
-    if (cIdx==0) return sps.BitDepth_Y>8;
-    else         return sps.BitDepth_C>8;
-  }
-
   int get_bit_depth(int cIdx) const {
     if (cIdx==0) return sps.BitDepth_Y;
     else         return sps.BitDepth_C;
+  }
+
+  int get_bytes_per_pixel(int cIdx) const {
+    return (get_bit_depth(cIdx)+7)/8;
+  }
+
+  bool high_bit_depth(int cIdx) const {
+    return get_bit_depth(cIdx)>8;
   }
 
   bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }

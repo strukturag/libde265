@@ -500,14 +500,19 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
   assert(first % 2 == 0);
   assert(end   % 2 == 0);
 
+  int luma_bpp   = (sps.BitDepth_Y+7)/8;
+  int chroma_bpp = (sps.BitDepth_C+7)/8;
+
   if (src->stride == stride) {
-    memcpy(pixels[0]      + first*stride,
-           src->pixels[0] + first*src->stride,
-           (end-first)*stride);
+    memcpy(pixels[0]      + first*stride * luma_bpp,
+           src->pixels[0] + first*src->stride * luma_bpp,
+           (end-first)*stride * luma_bpp);
   }
   else {
     for (int yp=first;yp<end;yp++) {
-      memcpy(pixels[0]+yp*stride, src->pixels[0]+yp*src->stride, src->width);
+      memcpy(pixels[0]+yp*stride * luma_bpp,
+             src->pixels[0]+yp*src->stride * luma_bpp,
+             src->width * luma_bpp);
     }
   }
 
@@ -516,17 +521,21 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 
   if (src->chroma_format != de265_chroma_mono) {
     if (src->chroma_stride == chroma_stride) {
-      memcpy(pixels[1]      + first_chroma*chroma_stride,
-             src->pixels[1] + first_chroma*chroma_stride,
-             (end_chroma-first_chroma) * chroma_stride);
-      memcpy(pixels[2]      + first_chroma*chroma_stride,
-             src->pixels[2] + first_chroma*chroma_stride,
-             (end_chroma-first_chroma) * chroma_stride);
+      memcpy(pixels[1]      + first_chroma*chroma_stride * chroma_bpp,
+             src->pixels[1] + first_chroma*chroma_stride * chroma_bpp,
+             (end_chroma-first_chroma) * chroma_stride * chroma_bpp);
+      memcpy(pixels[2]      + first_chroma*chroma_stride * chroma_bpp,
+             src->pixels[2] + first_chroma*chroma_stride * chroma_bpp,
+             (end_chroma-first_chroma) * chroma_stride * chroma_bpp);
     }
     else {
       for (int y=first_chroma;y<end_chroma;y++) {
-        memcpy(pixels[1]+y*chroma_stride, src->pixels[1]+y*src->chroma_stride, src->chroma_width);
-        memcpy(pixels[2]+y*chroma_stride, src->pixels[2]+y*src->chroma_stride, src->chroma_width);
+        memcpy(pixels[1]+y*chroma_stride * chroma_bpp,
+               src->pixels[1]+y*src->chroma_stride * chroma_bpp,
+               src->chroma_width * chroma_bpp);
+        memcpy(pixels[2]+y*chroma_stride * chroma_bpp,
+               src->pixels[2]+y*src->chroma_stride * chroma_bpp,
+               src->chroma_width * chroma_bpp);
       }
     }
   }
