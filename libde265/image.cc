@@ -119,9 +119,9 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   int chroma_height = (spec->height+1)/2;
 
   uint8_t* p[3] = { 0,0,0 };
-  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_stride   * luma_bpl   + MEMORY_PADDING);
-  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_bpl + MEMORY_PADDING);
-  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_bpl + MEMORY_PADDING);
+  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_height   * luma_bpl   + MEMORY_PADDING);
+  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
+  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
 
   if (p[0]==NULL || p[1]==NULL || p[2]==NULL) {
     for (int i=0;i<3;i++)
