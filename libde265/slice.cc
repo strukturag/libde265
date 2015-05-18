@@ -353,7 +353,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   // set defaults
 
   dependent_slice_segment_flag = 0;
-  
+
   // Get NAL unit type and layer ID
   int nal_unit_type = nal_hdr.nal_unit_type;
   int nuh_layer_id =  nal_hdr.nuh_layer_id;
@@ -926,7 +926,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   return DE265_OK;
 }
 
-de265_error slice_segment_header::read_slice_segment_header_extension(bitreader* br, 
+de265_error slice_segment_header::read_slice_segment_header_extension(bitreader* br,
                                                                       decoder_context *ctx,
                                                                       pic_parameter_set* pps,
                                                                       seq_parameter_set* sps,
@@ -936,7 +936,7 @@ de265_error slice_segment_header::read_slice_segment_header_extension(bitreader*
   slice_segment_header_extension_length = get_uvlc(br);
   if (slice_segment_header_extension_length == UVLC_ERROR ||
 	    slice_segment_header_extension_length > 256) {
-    //The value of slice_segment_header_extension_length shall be in the range of 0 to 256, inclusive. 
+    //The value of slice_segment_header_extension_length shall be in the range of 0 to 256, inclusive.
     ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
@@ -984,7 +984,7 @@ de265_error slice_segment_header::read_slice_segment_header_extension(bitreader*
 
     bool CraOrBlaPicFlag = ( nal_unit_type == NAL_UNIT_BLA_W_LP || nal_unit_type == NAL_UNIT_BLA_N_LP ||
     nal_unit_type == NAL_UNIT_BLA_W_RADL || nal_unit_type == NAL_UNIT_CRA_NUT );
-    
+
     int PocMsbValRequiredFlag = CraOrBlaPicFlag && ( !vps_ext->vps_poc_lsb_aligned_flag  ||
     ( vps_ext->vps_poc_lsb_aligned_flag  &&  vps_ext->NumDirectRefLayers[ nuh_layer_id ] == 0 ));
 
@@ -1019,6 +1019,8 @@ de265_error slice_segment_header::read_slice_segment_header_extension(bitreader*
       get_bits(br,8);
     }
   }
+
+  return DE265_OK;
 }
 
 de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& out,

@@ -22,6 +22,7 @@
 #include "vps-extension.h"
 #include "bitstream.h"
 
+
 video_parameter_set_extension::video_parameter_set_extension()
 {
   for (int i = 0; i < 8; i++)
@@ -33,7 +34,10 @@ video_parameter_set_extension::video_parameter_set_extension()
     }
       view_id_val[i] = 0;
   }
+
+  NumOutputLayerSets = 0;
 }
+
 
 de265_error video_parameter_set_extension::read(bitreader* reader, video_parameter_set *vps)
 {

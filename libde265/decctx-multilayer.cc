@@ -52,7 +52,7 @@ de265_error decoder_context_multilayer::get_warning()
     if (err != DE265_OK)
       return err;
   }
-  
+
   return DE265_OK;
 }
 
@@ -196,7 +196,7 @@ de265_error decoder_context_multilayer::decode(int* more)
     }
     else {
       decoder_context* layerCtx = get_layer_dec(nal_hdr.nuh_layer_id);
-            
+
       // Call the decode function for this layer
       if (more) *more = 0;
       de265_error layer_error;
@@ -311,7 +311,7 @@ void decoder_context_multilayer::set_acceleration_functions(enum de265_accelerat
 
 void decoder_context_multilayer::calculate_target_output_layer_set(video_parameter_set *vps)
 {
-  if (!vps->vps_extension_flag) {
+  if (vps==NULL || !vps->vps_extension_flag) {
     // No VPS extension. No multilayer.
     return;
   }

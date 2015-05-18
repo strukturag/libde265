@@ -113,7 +113,7 @@ void pic_parameter_set::set_defaults(enum PresetSet)
 
   num_extra_slice_header_bits = 0;
   slice_segment_header_extension_present_flag = 0;
-  
+
   pps_extension_present_flag = false;
   pps_range_extension_flag = false;
   pps_multilayer_extension_flag = false;
@@ -902,11 +902,11 @@ bool colour_mapping_table::read(bitreader* reader)
   chroma_bit_depth_cm_output_minus8 = get_uvlc(reader);
   cm_res_quant_bits = get_bits(reader,2);
   cm_delta_flc_bits_minus1 = get_bits(reader,2);
-  
+
   int BitDepthCmInputY = 8 + luma_bit_depth_cm_input_minus8;
   int BitDepthCmOutputY = 8 + luma_bit_depth_cm_output_minus8;
   int CMResLSBits = libde265_max( 0, ( 10 + BitDepthCmInputY - BitDepthCmOutputY - cm_res_quant_bits - ( cm_delta_flc_bits_minus1 + 1 ) ) );
-  
+
   if( cm_octant_depth == 1 ) {
     cm_adapt_threshold_u_delta = get_svlc(reader);
     cm_adapt_threshold_v_delta = get_svlc(reader);
@@ -926,6 +926,8 @@ bool colour_mapping_octants::read(bitreader* reader, int inpDepth, int idxY, int
 
   if( inpDepth < cm_octant_depth )
     split_octant_flag = get_bits(reader,1);
+  else
+    split_octant_flag = false;
 
   if (split_octant_flag) {
     for( int k = 0; k < 2; k++ )
