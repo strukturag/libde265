@@ -303,19 +303,13 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             // Multilayer extensions: It is not enough to compare the DPB buffe indices of
             // the pictures. You also have to consider if the reference picture is an 
             // inter layer picture.
-            if (img->decctx->get_layer_id() > 0) {
-              bool ilPicP0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviP->refIdx[0] ] : false;
-              bool ilPicP1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviP->refIdx[1] ] : false;
-              bool ilPicQ0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviQ->refIdx[0] ] : false;
-              bool ilPicQ1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviQ->refIdx[1] ] : false;
+            bool ilPicP0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviP->refIdx[0] ] : false;
+            bool ilPicP1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviP->refIdx[1] ] : false;
+            bool ilPicQ0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviQ->refIdx[0] ] : false;
+            bool ilPicQ1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviQ->refIdx[1] ] : false;
 
-              samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1 && ilPicP0==ilPicQ0 && ilPicP1==ilPicQ1) ||
-                          (refPicP0==refPicQ1 && refPicP1==refPicQ0 && ilPicP0==ilPicQ1 && ilPicP1==ilPicQ0));
-            }
-            else {
-              samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
-                               (refPicP0==refPicQ1 && refPicP1==refPicQ0));
-            }
+            samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1 && ilPicP0==ilPicQ0 && ilPicP1==ilPicQ1) ||
+                        (refPicP0==refPicQ1 && refPicP1==refPicQ0 && ilPicP0==ilPicQ1 && ilPicP1==ilPicQ0));
             
             if (!samePics) {
               bS = 1;
@@ -335,9 +329,9 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
               }
 
               // two different reference pictures or only one reference picture
-              if (refPicP0 != refPicP1) {
+              if (refPicP0 != refPicP1 || ilPicP0 != ilPicP1) {
 
-                if (refPicP0 == refPicQ0) {
+                if (refPicP0 == refPicQ0 && ilPicP0 == ilPicQ0) {
                   if (abs_value(mvP0.x-mvQ0.x) >= 4 ||
                       abs_value(mvP0.y-mvQ0.y) >= 4 ||
                       abs_value(mvP1.x-mvQ1.x) >= 4 ||
@@ -355,7 +349,7 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
                 }
               }
               else {
-                assert(refPicQ0==refPicQ1);
+                assert(refPicQ0==refPicQ1 && ilPicQ0==ilPicQ1);
 
                 if ((abs_value(mvP0.x-mvQ0.x) >= 4 ||
                      abs_value(mvP0.y-mvQ0.y) >= 4 ||
