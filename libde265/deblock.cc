@@ -294,14 +294,29 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             slice_segment_header* shdrP = img->get_SliceHeader(xDiOpp,yDiOpp);
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
 
+            bool samePics;
             int refPicP0 = mviP->predFlag[0] ? shdrP->RefPicList[0][ mviP->refIdx[0] ] : -1;
             int refPicP1 = mviP->predFlag[1] ? shdrP->RefPicList[1][ mviP->refIdx[1] ] : -1;
             int refPicQ0 = mviQ->predFlag[0] ? shdrQ->RefPicList[0][ mviQ->refIdx[0] ] : -1;
             int refPicQ1 = mviQ->predFlag[1] ? shdrQ->RefPicList[1][ mviQ->refIdx[1] ] : -1;
+            
+            // Multilayer extensions: It is not enough to compare the DPB buffe indices of
+            // the pictures. You also have to consider if the reference picture is an 
+            // inter layer picture.
+            if (img->decctx->get_layer_id() > 0) {
+              bool ilPicP0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviP->refIdx[0] ] : false;
+              bool ilPicP1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviP->refIdx[1] ] : false;
+              bool ilPicQ0 = mviP->predFlag[0] ? shdrP->InterLayerRefPic[0][ mviQ->refIdx[0] ] : false;
+              bool ilPicQ1 = mviP->predFlag[1] ? shdrP->InterLayerRefPic[1][ mviQ->refIdx[1] ] : false;
 
-            bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
-                             (refPicP0==refPicQ1 && refPicP1==refPicQ0));
-
+              samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1 && ilPicP0==ilPicQ0 && ilPicP1==ilPicQ1) ||
+                          (refPicP0==refPicQ1 && refPicP1==refPicQ0 && ilPicP0==ilPicQ1 && ilPicP1==ilPicQ0));
+            }
+            else {
+              samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
+                               (refPicP0==refPicQ1 && refPicP1==refPicQ0));
+            }
+            
             if (!samePics) {
               bS = 1;
             }
