@@ -482,6 +482,25 @@ de265_error de265_image::copy_image(const de265_image* src)
   return err;
 }
 
+void de265_image::copy_metadata(const de265_image* src)
+{
+  if (width != src->get_width() || height != src->get_height()) {
+    assert( false );
+  }
+  
+  ctb_info.copy(&src->ctb_info);
+  cb_info.copy(&src->cb_info);
+  pb_info.copy(&src->pb_info);
+  intraPredMode.copy(&src->intraPredMode);
+  tu_info.copy(&src->tu_info);
+  deblk_info.copy(&src->deblk_info);
+
+  // Copy the pointers to the slice segment headers.
+  // TODO: Is this a good idea?
+  for (int i = 0; i < src->slices.size(); i++) {
+    slices.push_back(src->slices.at(i));
+  }
+}
 
 // end = last line + 1
 void de265_image::copy_lines_from(const de265_image* src, int first, int end)

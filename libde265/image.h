@@ -107,6 +107,10 @@ template <class DataUnit> class MetaDataArray
     if (data) memset(data, 0, sizeof(DataUnit) * data_size);
   }
 
+  void copy(const MetaDataArray *src) {
+    if (data && src->data_size == data_size) memcpy(data, src->data, data_size * sizeof(DataUnit));
+  }
+
   const DataUnit& get(int x,int y) const {
     int unitX = x>>log2unitSize;
     int unitY = y>>log2unitSize;
@@ -237,6 +241,7 @@ struct de265_image {
 
   void fill_image(int y,int u,int v);
   de265_error copy_image(const de265_image* src);
+  void copy_metadata(const de265_image* src);
   void copy_lines_from(const de265_image* src, int first, int end);
   void exchange_pixel_data_with(de265_image&);
 
