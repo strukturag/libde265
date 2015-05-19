@@ -72,53 +72,25 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dststride,
                             int width, int height,
                             int mx, int my, int16_t* mcbuffer);
 
-void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
+#define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback(int16_t *out, ptrdiff_t out_stride, \
+                           const uint8_t *src, ptrdiff_t srcstride, \
+                           int nPbW, int nPbH, int16_t* mcbuffer)
+QPEL(0,0); QPEL(0,1); QPEL(0,2); QPEL(0,3);
+QPEL(1,0); QPEL(1,1); QPEL(1,2); QPEL(1,3);
+QPEL(2,0); QPEL(2,1); QPEL(2,2); QPEL(2,3);
+QPEL(3,0); QPEL(3,1); QPEL(3,2); QPEL(3,3);
+
+#undef QPEL
+
+
+#define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback_16(int16_t *out, ptrdiff_t out_stride, \
+                           const uint16_t *src, ptrdiff_t srcstride, \
+                           int nPbW, int nPbH, int16_t* mcbuffer, int bit_depth)
+QPEL(0,0); QPEL(0,1); QPEL(0,2); QPEL(0,3);
+QPEL(1,0); QPEL(1,1); QPEL(1,2); QPEL(1,3);
+QPEL(2,0); QPEL(2,1); QPEL(2,2); QPEL(2,3);
+QPEL(3,0); QPEL(3,1); QPEL(3,2); QPEL(3,3);
+
+#undef QPEL
 
 #endif

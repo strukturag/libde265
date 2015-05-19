@@ -35,6 +35,7 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->put_weighted_pred_16 = put_weighted_pred_16_fallback;
   accel->put_weighted_bipred_16 = put_weighted_bipred_16_fallback;
 
+
   accel->put_hevc_epel_8    = put_epel_8_fallback;
   accel->put_hevc_epel_h_8  = put_epel_hv_8_fallback;
   accel->put_hevc_epel_v_8  = put_epel_hv_8_fallback;
@@ -56,6 +57,30 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->put_hevc_qpel_8[3][1] = put_qpel_3_1_fallback;
   accel->put_hevc_qpel_8[3][2] = put_qpel_3_2_fallback;
   accel->put_hevc_qpel_8[3][3] = put_qpel_3_3_fallback;
+
+  //accel->put_hevc_epel_8    = put_epel_8_fallback;
+  //accel->put_hevc_epel_h_8  = put_epel_hv_8_fallback;
+  //accel->put_hevc_epel_v_8  = put_epel_hv_8_fallback;
+  //accel->put_hevc_epel_hv_8 = put_epel_hv_8_fallback;
+
+  accel->put_hevc_qpel_16[0][0] = put_qpel_0_0_fallback_16;
+  accel->put_hevc_qpel_16[0][1] = put_qpel_0_1_fallback_16;
+  accel->put_hevc_qpel_16[0][2] = put_qpel_0_2_fallback_16;
+  accel->put_hevc_qpel_16[0][3] = put_qpel_0_3_fallback_16;
+  accel->put_hevc_qpel_16[1][0] = put_qpel_1_0_fallback_16;
+  accel->put_hevc_qpel_16[1][1] = put_qpel_1_1_fallback_16;
+  accel->put_hevc_qpel_16[1][2] = put_qpel_1_2_fallback_16;
+  accel->put_hevc_qpel_16[1][3] = put_qpel_1_3_fallback_16;
+  accel->put_hevc_qpel_16[2][0] = put_qpel_2_0_fallback_16;
+  accel->put_hevc_qpel_16[2][1] = put_qpel_2_1_fallback_16;
+  accel->put_hevc_qpel_16[2][2] = put_qpel_2_2_fallback_16;
+  accel->put_hevc_qpel_16[2][3] = put_qpel_2_3_fallback_16;
+  accel->put_hevc_qpel_16[3][0] = put_qpel_3_0_fallback_16;
+  accel->put_hevc_qpel_16[3][1] = put_qpel_3_1_fallback_16;
+  accel->put_hevc_qpel_16[3][2] = put_qpel_3_2_fallback_16;
+  accel->put_hevc_qpel_16[3][3] = put_qpel_3_3_fallback_16;
+
+
 
   accel->transform_skip_8 = transform_skip_8_fallback;
   accel->transform_bypass_8 = transform_bypass_8_fallback;

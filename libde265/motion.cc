@@ -76,7 +76,7 @@ void mc_luma(const base_context* ctx,
 
       ctx->acceleration.put_hevc_qpel(out, out_stride,
                                       &ref[yIntOffsL*ref_stride + xIntOffsL],
-                                      ref_stride * sizeof(pixel_t),
+                                      ref_stride /* sizeof(pixel_t)*/,
                                       nPbW,nPbH, mcbuffer, 0,0, bitDepth_L);
     }
     else {
@@ -153,7 +153,7 @@ void mc_luma(const base_context* ctx,
     }
 
     ctx->acceleration.put_hevc_qpel(out, out_stride,
-                                    src_ptr, src_stride * sizeof(pixel_t),
+                                    src_ptr, src_stride /* sizeof(pixel_t) */,
                                     nPbW,nPbH, mcbuffer, xFracL,yFracL, bitDepth_L);
 
 
