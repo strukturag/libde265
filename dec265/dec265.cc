@@ -72,6 +72,7 @@ bool show_ssim_map=false;
 bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
+FILE* fh[63];
 int highestTID = 100;
 int verbosity=0;
 int disable_deblocking=0;
@@ -105,10 +106,22 @@ static struct option long_options[] = {
 
 static void write_picture(const de265_image* img)
 {
-  static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
-
-
+  // Check which layer this image is from
+  int nalunit_type, nuh_layer_id, nuh_temporal_id;
+  de265_get_image_NAL_header(img, &nalunit_type, NULL, &nuh_layer_id, &nuh_temporal_id);
+  
+  if (fh[nuh_layer_id]==NULL) { 
+    // Construct layer file name
+    std::string out_filename = output_filename;
+    int dot_pos = out_filename.find(".");
+    std::string layer_out_filename = out_filename.substr(0, dot_pos);
+    std::string extension = out_filename.substr(dot_pos);
+    layer_out_filename.append("_");
+    layer_out_filename.append(std::to_string(nuh_layer_id));
+    layer_out_filename.append(extension);
+    
+    fh[nuh_layer_id] = fopen(layer_out_filename.c_str(), "wb"); 
+  }
 
   for (int c=0;c<3;c++) {
     int stride;
@@ -116,11 +129,11 @@ static void write_picture(const de265_image* img)
     int width = de265_get_image_width(img,c);
 
     for (int y=0;y<de265_get_image_height(img,c);y++) {
-      fwrite(p + y*stride, width, 1, fh);
+      fwrite(p + y*stride, width, 1, fh[nuh_layer_id]);
     }
   }
 
-  fflush(fh);
+  fflush(fh[nuh_layer_id]);
 }
 
 
@@ -433,6 +446,10 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 
 int main(int argc, char** argv)
 {
+  for (int i = 0; i < 63; i++) {
+    fh[i] = NULL;
+  }
+
   while (1) {
     int option_index = 0;
 
