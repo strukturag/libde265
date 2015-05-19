@@ -263,6 +263,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   const int chromaShift = (cIdx==0) ? 0 : 1;
   const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
 
+  const int bit_depth = img->get_bit_depth(cIdx);
 
   // --- check for CTB boundaries ---
 
@@ -446,11 +447,11 @@ void fill_border_samples(de265_image* img, int xB,int yB,
     if (nAvail!=4*nT+1) {
       if (nAvail==0) {
         if (sizeof(pixel_t)==1) {
-          memset(out_border-2*nT, 1<<(sps->bit_depth_luma-1), 4*nT+1);
+          memset(out_border-2*nT, 1<<(bit_depth-1), 4*nT+1);
         }
         else {
           for (int i = -2*nT; i <= 2*nT ; i++) {
-            out_border[i] = 1<<(sps->bit_depth_luma-1);
+            out_border[i] = 1<<(bit_depth-1);
           }
         }
       }
