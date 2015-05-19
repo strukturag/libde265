@@ -711,7 +711,7 @@ template <class T> void pop_front(std::vector<T>& vec)
 }
 
 
-de265_error decoder_context::decode_some(bool* did_work)
+de265_error decoder_context::decode_some(bool* did_work, bool new_image)
 {
   de265_error err = DE265_OK;
 
@@ -753,6 +753,7 @@ de265_error decoder_context::decode_some(bool* did_work)
   // be added any more slices to the image, output the image
 
   if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
+       ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() && new_image) ||
        ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
          nal_parser->number_of_NAL_units_pending()==0 &&
          (nal_parser->is_end_of_stream() || nal_parser->is_end_of_frame()) )) {

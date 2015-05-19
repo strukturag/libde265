@@ -202,7 +202,7 @@ de265_error decoder_context_multilayer::decode(int* more)
           decoder_context *lower_layer_dec = get_layer_dec(nal_hdr.nuh_layer_id-1);
           bool did_work = true;
           while (did_work) {
-            lower_layer_dec->decode_some(&did_work);
+            lower_layer_dec->decode_some(&did_work, true);
           }
         }
         currrent_layer = nal_hdr.nuh_layer_id;

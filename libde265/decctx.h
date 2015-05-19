@@ -307,7 +307,8 @@ class decoder_context : public base_context {
   de265_error decode_NAL(NAL_unit* nal);
 
   de265_error decode(int* more);
-  de265_error decode_some(bool* did_work);
+  // Set new_image to true if you know that there will not be any more data for the current image.
+  de265_error decode_some(bool* did_work, bool new_image=false);
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
