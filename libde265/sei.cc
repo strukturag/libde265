@@ -96,21 +96,86 @@ static void dump_sei_decoded_picture_hash(const sei_message* sei,
 }
 
 
-static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride)
+class raw_hash_data
+{
+public:
+  raw_hash_data(int w, int stride);
+  ~raw_hash_data();
+
+  struct data_chunk {
+    const uint8_t* data;
+    int            len;
+  };
+
+  data_chunk prepare_8bit(const uint8_t* data,int y);
+  data_chunk prepare_16bit(const uint8_t* data,int y);
+
+private:
+  int mWidth, mStride;
+
+  uint8_t* mMem;
+};
+
+
+raw_hash_data::raw_hash_data(int w, int stride)
+{
+  mWidth=w;
+  mStride=stride;
+  mMem = NULL;
+}
+
+raw_hash_data::~raw_hash_data()
+{
+  delete[] mMem;
+}
+
+raw_hash_data::data_chunk raw_hash_data::prepare_8bit(const uint8_t* data,int y)
+{
+  data_chunk chunk;
+  chunk.data = data+y*mStride;
+  chunk.len  = mWidth;
+  return chunk;
+}
+
+raw_hash_data::data_chunk raw_hash_data::prepare_16bit(const uint8_t* data,int y)
+{
+  if (mMem == NULL) {
+    mMem = new uint8_t[2*mWidth];
+  }
+
+  const uint16_t* data16 = (uint16_t*)data;
+
+  for (int x=0; x<mWidth; x++) {
+    mMem[2*x+0] = data16[y*mStride+x] & 0xFF;
+    mMem[2*x+1] = data16[y*mStride+x] >> 8;
+  }
+
+  data_chunk chunk;
+  chunk.data = mMem;
+  chunk.len  = 2*mWidth;
+  return chunk;
+}
+
+
+static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride, int bit_depth)
 {
   uint32_t sum = 0;
-  for (int y=0; y<h; y++)
-    for(int x=0; x<w; x++) {
-      uint8_t xorMask = ( x & 0xFF ) ^ ( y & 0xFF ) ^ ( x  >>  8 ) ^ ( y  >>  8 );
-      sum += data[y*stride + x] ^ xorMask;
 
-      /*
-      if (compDepth[cIdx] > 8 )
-        sum = ( sum + ( ( component[cIdx][y * compWidth[cIdx] + x]  >>  8 ) ^ xorMask ) ) &
-          0xFFFFFFFF
-          }
-      */
-    }
+  if (bit_depth<=8) {
+    for (int y=0; y<h; y++)
+      for(int x=0; x<w; x++) {
+        uint8_t xorMask = ( x & 0xFF ) ^ ( y & 0xFF ) ^ ( x  >>  8 ) ^ ( y  >>  8 );
+        sum += data[y*stride + x] ^ xorMask;
+      }
+  }
+  else {
+    for (int y=0; y<h; y++)
+      for(int x=0; x<w; x++) {
+        uint8_t xorMask = ( x & 0xFF ) ^ ( y & 0xFF ) ^ ( x  >>  8 ) ^ ( y  >>  8 );
+        sum += (data[y*stride + x] & 0xFF) ^ xorMask;
+        sum += (data[y*stride + x] >> 8)   ^ xorMask;
+      }
+  }
 
   return sum & 0xFFFFFFFF;
 }
@@ -157,66 +222,51 @@ static inline uint16_t crc_process_byte_parallel(uint16_t crc, uint8_t byte)
 	   (t << 12)) & 0xFFFF;
 }
 
-static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,int stride)
+static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,int stride, int bit_depth)
 {
+  raw_hash_data raw_data(w,stride);
+
   uint16_t crc = 0xFFFF;
 
   crc = crc_process_byte_parallel(crc, 0);
   crc = crc_process_byte_parallel(crc, 0);
 
   for (int y=0; y<h; y++) {
-    const uint8_t* d = &data[y*stride];
+    raw_hash_data::data_chunk chunk;
 
-    for(int x=0; x<w; x++) {
-      crc = crc_process_byte_parallel(crc, *d++);
+    if (bit_depth>8)
+      chunk = raw_data.prepare_16bit(data, y);
+    else
+      chunk = raw_data.prepare_8bit(data, y);
+
+    for(int x=0; x<chunk.len; x++) {
+      crc = crc_process_byte_parallel(crc, chunk.data[x]);
     }
   }
 
   return crc;
 }
 
-static void compute_MD5_8bit(uint8_t* data,int w,int h,int stride, uint8_t* result)
-{
-  MD5_CTX md5;
-  MD5_Init(&md5);
-
-  for (int y=0; y<h; y++) {
-    MD5_Update(&md5, &data[y*stride], w);
-  }
-
-  MD5_Final(result, &md5);
-}
-
-static void compute_MD5_16bit(uint8_t* data,int w,int h,int stride, uint8_t* result)
-{
-  MD5_CTX md5;
-  MD5_Init(&md5);
-
-  uint16_t* data16 = (uint16_t*)data;
-  uint8_t* rowdata = new uint8_t[w*2];
-
-  for (int y=0; y<h; y++) {
-    for (int x=0; x<w; x++) {
-      rowdata[2*x+0] = data16[y*stride+x] & 0xFF;
-      rowdata[2*x+1] = data16[y*stride+x] >> 8;
-    }
-
-    MD5_Update(&md5, rowdata, 2*w);
-  }
-
-  MD5_Final(result, &md5);
-
-  delete[] rowdata;
-}
 
 static void compute_MD5(uint8_t* data,int w,int h,int stride, uint8_t* result, int bit_depth)
 {
-  if (bit_depth>8) {
-    compute_MD5_16bit(data,w,h,stride,result);
+  MD5_CTX md5;
+  MD5_Init(&md5);
+
+  raw_hash_data raw_data(w,stride);
+
+  for (int y=0; y<h; y++) {
+    raw_hash_data::data_chunk chunk;
+
+    if (bit_depth>8)
+      chunk = raw_data.prepare_16bit(data, y);
+    else
+      chunk = raw_data.prepare_8bit(data, y);
+
+    MD5_Update(&md5, (void*)chunk.data, chunk.len);
   }
-  else {
-    compute_MD5_8bit(data,w,h,stride,result);
-  }
+
+  MD5_Final(result, &md5);
 }
 
 
@@ -270,7 +320,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 
     case sei_decoded_picture_hash_type_CRC:
       {
-        uint16_t crc = compute_CRC_8bit_fast(data,w,h,stride);
+        uint16_t crc = compute_CRC_8bit_fast(data,w,h,stride, img->get_bit_depth(i));
 
         logtrace(LogSEI,"SEI decoded picture hash: %04x <-[%d]-> decoded picture: %04x\n",
                  seihash->crc[i], i, crc);
@@ -285,7 +335,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 
     case sei_decoded_picture_hash_type_checksum:
       {
-        uint32_t chksum = compute_checksum_8bit(data,w,h,stride);
+        uint32_t chksum = compute_checksum_8bit(data,w,h,stride, img->get_bit_depth(i));
 
         if (chksum != seihash->checksum[i]) {
           fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
