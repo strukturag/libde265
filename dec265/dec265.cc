@@ -115,8 +115,30 @@ static void write_picture(const de265_image* img)
     const uint8_t* p = de265_get_image_plane(img, c, &stride);
     int width = de265_get_image_width(img,c);
 
-    for (int y=0;y<de265_get_image_height(img,c);y++) {
-      fwrite(p + y*stride, width, 1, fh);
+    if (de265_get_bits_per_pixel(img,c)<=8) {
+      // --- save 8 bit YUV ---
+
+      for (int y=0;y<de265_get_image_height(img,c);y++) {
+        fwrite(p + y*stride, width, 1, fh);
+      }
+    }
+    else {
+      // --- save 16 bit YUV ---
+
+      uint8_t* buf = new uint8_t[width*2];
+      uint16_t* p16 = (uint16_t*)p;
+
+      for (int y=0;y<de265_get_image_height(img,c);y++) {
+        for (int x=0;x<width;x++) {
+          uint16_t pixel_value = (p16+y*stride)[x];
+          buf[2*x+0] = pixel_value & 0xFF;
+          buf[2*x+1] = pixel_value >> 8;
+        }
+
+        fwrite(buf, width*2, 1, fh);
+      }
+
+      delete[] buf;
     }
   }
 
@@ -158,6 +180,7 @@ void display_image(const struct de265_image* img)
     height = de265_get_image_height(img,ch);
 
     int bit_depth = de265_get_bits_per_pixel(img,ch);
+
     if (bit_depth==8) {
       for (int y=0;y<height;y++) {
         memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
