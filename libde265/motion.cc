@@ -305,8 +305,8 @@ void generate_inter_prediction_samples(base_context* ctx,
   predFlag[0] = vi->predFlag[0];
   predFlag[1] = vi->predFlag[1];
 
-  const int bit_depth_L = img->get_bit_depth(0);
-  const int bit_depth_C = img->get_bit_depth(1);
+  const int bit_depth_L = img->sps.BitDepth_Y;
+  const int bit_depth_C = img->sps.BitDepth_C;
 
   // Some encoders use bi-prediction with two similar MVs.
   // Identify this case and use only one MV.
@@ -389,8 +389,10 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  //const int shift1 = 6; // TODO
-  //const int offset1= 1<<(shift1-1);
+  const int shift1_L = 14-img->sps.BitDepth_Y;
+  const int offset_shift1_L = img->sps.BitDepth_Y-8;
+  const int shift1_C = 14-img->sps.BitDepth_C;
+  const int offset_shift1_C = img->sps.BitDepth_C-8;
 
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
@@ -416,16 +418,16 @@ void generate_inter_prediction_samples(base_context* ctx,
 
         int refIdx0 = vi->refIdx[0];
 
-        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom  + shift1_C;
 
         int luma_w0 = shdr->LumaWeight[0][refIdx0];
-        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(8-8)); // TODO: bitDepth
+        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(offset_shift1_L));
 
         int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
-        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(offset_shift1_C));
         int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
-        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(offset_shift1_C));
 
         logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
 
@@ -475,31 +477,30 @@ void generate_inter_prediction_samples(base_context* ctx,
         int refIdx0 = vi->refIdx[0];
         int refIdx1 = vi->refIdx[1];
 
-        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom + shift1_C;
 
         int luma_w0 = shdr->LumaWeight[0][refIdx0];
-        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(8-8)); // TODO: bitDepth
+        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(offset_shift1_L));
         int luma_w1 = shdr->LumaWeight[1][refIdx1];
-        int luma_o1 = shdr->luma_offset[1][refIdx1] * (1<<(8-8)); // TODO: bitDepth
+        int luma_o1 = shdr->luma_offset[1][refIdx1] * (1<<(offset_shift1_L));
 
         int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
-        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(offset_shift1_C));
         int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
-        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(offset_shift1_C));
         int chroma0_w1 = shdr->ChromaWeight[1][refIdx1][0];
-        int chroma0_o1 = shdr->ChromaOffset[1][refIdx1][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_o1 = shdr->ChromaOffset[1][refIdx1][0] * (1<<(offset_shift1_C));
         int chroma1_w1 = shdr->ChromaWeight[1][refIdx1][1];
-        int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(offset_shift1_C));
 
         logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
         logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n", refIdx1, luma_log2WD-6,luma_w1,luma_o1,nPbW,nPbH);
 
         int16_t* in0 = predSamplesL[0];
         int16_t* in1 = predSamplesL[1];
-        uint8_t* out = img->get_image_plane_at_pos(0, xP,yP);
 
-        ctx->acceleration.put_weighted_bipred(out, stride[0],
+        ctx->acceleration.put_weighted_bipred(pixels[0], stride[0],
                                               in0,in1, nCS, nPbW, nPbH,
                                               luma_w0,luma_o0,
                                               luma_w1,luma_o1,
@@ -536,16 +537,16 @@ void generate_inter_prediction_samples(base_context* ctx,
       else {
         int refIdx = vi->refIdx[l];
 
-        int luma_log2WD   = shdr->luma_log2_weight_denom + (14-8); // TODO: bitDepth
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom + (14-8); // TODO: bitDepth
+        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
+        int chroma_log2WD = shdr->ChromaLog2WeightDenom  + shift1_C;
 
         int luma_w = shdr->LumaWeight[l][refIdx];
-        int luma_o = shdr->luma_offset[l][refIdx] * (1<<(8-8)); // TODO: bitDepth
+        int luma_o = shdr->luma_offset[l][refIdx] * (1<<(offset_shift1_L));
 
         int chroma0_w = shdr->ChromaWeight[l][refIdx][0];
-        int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(8-8)); // TODO: bitDepth
+        int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(offset_shift1_C));
         int chroma1_w = shdr->ChromaWeight[l][refIdx][1];
-        int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(8-8)); // TODO: bitDepth
+        int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(offset_shift1_C));
 
         logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 

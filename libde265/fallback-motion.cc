@@ -183,6 +183,7 @@ void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
   }
 }
 
+#include <stdlib.h>
 
 void put_weighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
                                    const int16_t *src, ptrdiff_t srcstride,
