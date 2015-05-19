@@ -67,10 +67,18 @@ void put_epel_8_fallback(int16_t *dst, ptrdiff_t dststride,
                          const uint8_t *_src, ptrdiff_t srcstride,
                          int width, int height,
                          int mx, int my, int16_t* mcbuffer);
-void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dststride,
-                            const uint8_t *_src, ptrdiff_t srcstride,
-                            int width, int height,
-                            int mx, int my, int16_t* mcbuffer);
+
+void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
+                          const uint16_t *src, ptrdiff_t src_stride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth);
+
+template <class pixel_t>
+void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dststride,
+                          const pixel_t *_src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth);
+
 
 #define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback(int16_t *out, ptrdiff_t out_stride, \
                            const uint8_t *src, ptrdiff_t srcstride, \

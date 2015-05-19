@@ -87,13 +87,13 @@ struct acceleration_functions
                           int mx, int my, int16_t* mcbuffer);
   void (*put_hevc_epel_h_8)(int16_t *dst, ptrdiff_t dststride,
                             const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                            int mx, int my, int16_t* mcbuffer);
+                            int mx, int my, int16_t* mcbuffer, int bit_depth);
   void (*put_hevc_epel_v_8)(int16_t *dst, ptrdiff_t dststride,
                             const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                            int mx, int my, int16_t* mcbuffer);
+                            int mx, int my, int16_t* mcbuffer, int bit_depth);
   void (*put_hevc_epel_hv_8)(int16_t *dst, ptrdiff_t dststride,
                              const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                             int mx, int my, int16_t* mcbuffer);
+                             int mx, int my, int16_t* mcbuffer, int bit_depth);
 
   void (*put_hevc_qpel_8[4][4])(int16_t *dst, ptrdiff_t dststride,
                                 const uint8_t *src, ptrdiff_t srcstride, int width, int height,
@@ -267,7 +267,7 @@ inline void acceleration_functions::put_hevc_epel(int16_t *dst, ptrdiff_t dststr
   if (bit_depth <= 8)
     put_hevc_epel_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
   else
-    {}//put_hevc_epel_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+    put_hevc_epel_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
 }
 
 inline void acceleration_functions::put_hevc_epel_h(int16_t *dst, ptrdiff_t dststride,
@@ -275,9 +275,9 @@ inline void acceleration_functions::put_hevc_epel_h(int16_t *dst, ptrdiff_t dsts
                                                     int mx, int my, int16_t* mcbuffer, int bit_depth) const
 {
   if (bit_depth <= 8)
-    put_hevc_epel_h_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+    put_hevc_epel_h_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
   else
-    {}//put_hevc_epel_h_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+    put_hevc_epel_h_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
 }
 
 inline void acceleration_functions::put_hevc_epel_v(int16_t *dst, ptrdiff_t dststride,
@@ -285,9 +285,9 @@ inline void acceleration_functions::put_hevc_epel_v(int16_t *dst, ptrdiff_t dsts
                                                     int mx, int my, int16_t* mcbuffer, int bit_depth) const
 {
   if (bit_depth <= 8)
-    put_hevc_epel_v_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+    put_hevc_epel_v_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
   else
-    {} //put_hevc_epel_v_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+    put_hevc_epel_v_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
 }
 
 inline void acceleration_functions::put_hevc_epel_hv(int16_t *dst, ptrdiff_t dststride,
@@ -295,9 +295,9 @@ inline void acceleration_functions::put_hevc_epel_hv(int16_t *dst, ptrdiff_t dst
                                                      int mx, int my, int16_t* mcbuffer, int bit_depth) const
 {
   if (bit_depth <= 8)
-    put_hevc_epel_hv_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+    put_hevc_epel_hv_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
   else
-    {} //put_hevc_epel_hv_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+    put_hevc_epel_hv_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
 }
 
 inline void acceleration_functions::put_hevc_qpel(int16_t *dst, ptrdiff_t dststride,

@@ -273,12 +273,33 @@ void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
 }
 
 
-void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
-                            const uint8_t *src, ptrdiff_t src_stride,
-                            int nPbWC, int nPbHC,
-                            int xFracC, int yFracC, int16_t* mcbuffer)
+void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
+                          const uint16_t *src, ptrdiff_t src_stride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth)
 {
-  const int shift1 = 0;
+  int shift3 = 14 - bit_depth;
+
+  for (int y=0;y<height;y++) {
+    int16_t* o = &out[y*out_stride];
+    const uint16_t* i = &src[y*src_stride];
+
+    for (int x=0;x<width;x++) {
+      *o = *i << shift3;
+      o++;
+      i++;
+    }
+  }
+}
+
+
+template <class pixel_t>
+void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
+                          const pixel_t *src, ptrdiff_t src_stride,
+                          int nPbWC, int nPbHC,
+                          int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth)
+{
+  const int shift1 = bit_depth-8;
   const int shift2 = 6;
   //const int shift3 = 6;
 
@@ -318,7 +339,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
   //printf("---H---(%d)\n",xFracC);
 
   for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
-    const uint8_t* p = &src[y*src_stride - extra_left];
+    const pixel_t* p = &src[y*src_stride - extra_left];
 
     for (int x=0;x<nPbWC;x++) {
       int16_t v;
@@ -384,6 +405,17 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
   */
 }
 
+
+template
+void put_epel_hv_fallback<uint8_t>(int16_t *dst, ptrdiff_t dst_stride,
+                                   const uint8_t *src, ptrdiff_t src_stride,
+                                   int nPbWC, int nPbHC,
+                                   int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
+template
+void put_epel_hv_fallback<uint16_t>(int16_t *dst, ptrdiff_t dst_stride,
+                                    const uint16_t *src, ptrdiff_t src_stride,
+                                    int nPbWC, int nPbHC,
+                                    int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
 
 
 
