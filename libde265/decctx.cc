@@ -1656,6 +1656,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     // Just copy all information from the lower layer reference.
     ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
     ilRefPic[ilRefPicIdx]->copy_metadata(rlPic);                            // Copy metadata
+    ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
   }
   else {
     // Spatial scalability. Perform upsampling.
@@ -1667,6 +1668,8 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     // ... TODO
     
     ilRefPic_upsampled = true;
+
+    assert(false);
   }
 }
 
@@ -1983,6 +1986,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     for (int i = 0; i<ctx->NumActiveRefLayerPics0; rIdx++, i++) {
       RefPicListTemp0[rIdx] = ctx->RefPicSetInterLayer0[i];
       isInterLayer[0][rIdx] = true;
+      isLongTerm[0][rIdx] = true; // IL-pred picture is marked as long term reference
     }
 
     for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
@@ -1997,6 +2001,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     for( int i=0; i<ctx->NumActiveRefLayerPics1; rIdx++, i++ ) {
       RefPicListTemp0[rIdx] = ctx->RefPicSetInterLayer1[i];
       isInterLayer[0][rIdx] = true;
+      isLongTerm[0][rIdx] = true; // IL-pred picture is marked as long term reference
     }
 
     // This check is to prevent an endless loop when no images are added above.
@@ -2056,6 +2061,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       for( int i=0;i<ctx->NumActiveRefLayerPics1; rIdx++, i++ ) {
         RefPicListTemp1[rIdx] = ctx->RefPicSetInterLayer1[ i ];
         isInterLayer[1][rIdx] = true;
+        isLongTerm[1][rIdx] = true; // IL-pred picture is marked as long term reference
       }
 
       for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
@@ -2071,6 +2077,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       for( int i=0;i<ctx->NumActiveRefLayerPics0; rIdx++, i++ ) {
         RefPicListTemp1[rIdx]=ctx->RefPicSetInterLayer0[i];
         isInterLayer[1][rIdx] = true;
+        isLongTerm[1][rIdx] = true; // IL-pred picture is marked as long term reference
       }
 
       // This check is to prevent an endless loop when no images are added above.
