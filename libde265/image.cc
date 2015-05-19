@@ -302,6 +302,11 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   spec.visible_height= height_confwin;
 
 
+  bpp_shift[0] = (sps->BitDepth_Y > 8) ? 1 : 0;
+  bpp_shift[1] = (sps->BitDepth_C > 8) ? 1 : 0;
+  bpp_shift[2] = bpp_shift[1];
+
+
   // allocate memory and set conformance window pointers
 
   void* alloc_userdata = NULL;

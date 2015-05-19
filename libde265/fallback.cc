@@ -27,9 +27,13 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
 {
   accel->put_weighted_pred_avg_8 = put_weighted_pred_avg_8_fallback;
   accel->put_unweighted_pred_8   = put_unweighted_pred_8_fallback;
-
   accel->put_weighted_pred_8 = put_weighted_pred_8_fallback;
   accel->put_weighted_bipred_8 = put_weighted_bipred_8_fallback;
+
+  accel->put_weighted_pred_avg_16 = put_weighted_pred_avg_16_fallback;
+  accel->put_unweighted_pred_16   = put_unweighted_pred_16_fallback;
+  accel->put_weighted_pred_16 = put_weighted_pred_16_fallback;
+  accel->put_weighted_bipred_16 = put_weighted_bipred_16_fallback;
 
   accel->put_hevc_epel_8    = put_epel_8_fallback;
   accel->put_hevc_epel_h_8  = put_epel_hv_8_fallback;

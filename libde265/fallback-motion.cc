@@ -159,6 +159,100 @@ void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 
 
 
+
+
+void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                     const int16_t *src, ptrdiff_t srcstride,
+                                     int width, int height, int bit_depth)
+{
+  int shift1 = 14-bit_depth;
+  int offset1 = 0;
+  if (shift1>0) { offset1 = 1<<(shift1-1); }
+
+  assert((width&1)==0);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in  = &src[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x+=2) {
+      out[0] = Clip_BitDepth((in[0] + offset1)>>shift1, bit_depth);
+      out[1] = Clip_BitDepth((in[1] + offset1)>>shift1, bit_depth);
+      out+=2; in+=2;
+    }
+  }
+}
+
+
+void put_weighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                   const int16_t *src, ptrdiff_t srcstride,
+                                   int width, int height,
+                                   int w,int o,int log2WD, int bit_depth)
+{
+  assert(log2WD>=1); // TODO
+
+  const int rnd = (1<<(log2WD-1));
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in  = &src[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip_BitDepth(((in[0]*w + rnd)>>log2WD) + o, bit_depth);
+      out++; in++;
+    }
+  }
+}
+
+void put_weighted_bipred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                     const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                     int width, int height,
+                                     int w1,int o1, int w2,int o2, int log2WD, int bit_depth)
+{
+  assert(log2WD>=1); // TODO
+
+  const int rnd = ((o1+o2+1) << log2WD);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in1 = &src1[y*srcstride];
+    const int16_t* in2 = &src2[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip_BitDepth((in1[0]*w1 + in2[0]*w2 + rnd)>>(log2WD+1), bit_depth);
+      out++; in1++; in2++;
+    }
+  }
+}
+
+
+void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride, int width,
+                                       int height, int bit_depth)
+{
+  int shift2 = 15-bit_depth;
+  int offset2 = 1<<(shift2-1);
+
+  assert((width&1)==0);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in1 = &src1[y*srcstride];
+    const int16_t* in2 = &src2[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x+=2) {
+      out[0] = Clip_BitDepth((in1[0] + in2[0] + offset2)>>shift2, bit_depth);
+      out[1] = Clip_BitDepth((in1[1] + in2[1] + offset2)>>shift2, bit_depth);
+      out+=2; in1+=2; in2+=2;
+    }
+  }
+}
+
+
+
+
+
 void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
                          const uint8_t *src, ptrdiff_t src_stride,
                          int width, int height,
@@ -241,7 +335,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       }
 
       //printf("%d %d %d %d -> %d\n",p[0],p[1],p[2],p[3],v);
-        
+
       tmp2buf[y+extra_top + x*nPbH_extra] = v;
       p++;
 
@@ -272,7 +366,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       default:
       case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>vshift; break;
       }
-        
+
       dst[x + y*dst_stride] = v;
       p++;
     }
@@ -423,7 +517,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     for (int x=0;x<nPbW;x++) {
       const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = *p;
         o+=out_stride;
@@ -435,7 +529,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     for (int x=0;x<nPbW;x++) {
       const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
         o+=out_stride;
@@ -447,7 +541,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     for (int x=0;x<nPbW;x++) {
       const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
         o+=out_stride;
@@ -459,7 +553,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     for (int x=0;x<nPbW;x++) {
       const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
         o+=out_stride;

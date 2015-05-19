@@ -77,15 +77,6 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const MotionVectorSpec* vi);
 
-void generate_inter_prediction_samples(base_context* ctx,
-                                       const slice_segment_header* shdr,
-                                       de265_image* img,
-                                       uint8_t*  out_pixels[3],
-                                       const int out_stride[3],
-                                       int xC,int yC,
-                                       int xB,int yB,
-                                       int nCS, int nPbW,int nPbH,
-                                       const MotionVectorSpec* vi);
 
 /* Fill list (two entries) of motion-vector predictors for MVD coding.
  */

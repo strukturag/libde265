@@ -43,6 +43,45 @@ struct acceleration_functions
                                 int width, int height,
                                 int w1,int o1, int w2,int o2, int log2WD);
 
+
+  void (*put_weighted_pred_avg_16)(uint16_t *_dst, ptrdiff_t dststride,
+                                  const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                   int width, int height, int bit_depth);
+
+  void (*put_unweighted_pred_16)(uint16_t *_dst, ptrdiff_t dststride,
+                                const int16_t *src, ptrdiff_t srcstride,
+                                int width, int height, int bit_depth);
+
+  void (*put_weighted_pred_16)(uint16_t *_dst, ptrdiff_t dststride,
+                              const int16_t *src, ptrdiff_t srcstride,
+                              int width, int height,
+                              int w,int o,int log2WD, int bit_depth);
+  void (*put_weighted_bipred_16)(uint16_t *_dst, ptrdiff_t dststride,
+                                const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                int width, int height,
+                                int w1,int o1, int w2,int o2, int log2WD, int bit_depth);
+
+
+  void put_weighted_pred_avg(void *_dst, ptrdiff_t dststride,
+                             const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                             int width, int height, int bit_depth) const;
+
+  void put_unweighted_pred(void *_dst, ptrdiff_t dststride,
+                           const int16_t *src, ptrdiff_t srcstride,
+                           int width, int height, int bit_depth) const;
+
+  void put_weighted_pred(void *_dst, ptrdiff_t dststride,
+                         const int16_t *src, ptrdiff_t srcstride,
+                         int width, int height,
+                         int w,int o,int log2WD, int bit_depth) const;
+  void put_weighted_bipred(void *_dst, ptrdiff_t dststride,
+                           const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                           int width, int height,
+                           int w1,int o1, int w2,int o2, int log2WD, int bit_depth) const;
+
+
+
+
   void (*put_hevc_epel_8)(int16_t *dst, ptrdiff_t dststride,
                           const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                           int mx, int my, int16_t* mcbuffer);
@@ -60,12 +99,53 @@ struct acceleration_functions
                                 const uint8_t *src, ptrdiff_t srcstride, int width, int height,
                                 int16_t* mcbuffer);
 
+
+  void (*put_hevc_epel_16)(int16_t *dst, ptrdiff_t dststride,
+                           const uint16_t *src, ptrdiff_t srcstride, int width, int height,
+                           int mx, int my, int16_t* mcbuffer, int bit_depth);
+  void (*put_hevc_epel_h_16)(int16_t *dst, ptrdiff_t dststride,
+                             const uint16_t *src, ptrdiff_t srcstride, int width, int height,
+                            int mx, int my, int16_t* mcbuffer, int bit_depth);
+  void (*put_hevc_epel_v_16)(int16_t *dst, ptrdiff_t dststride,
+                             const uint16_t *src, ptrdiff_t srcstride, int width, int height,
+                             int mx, int my, int16_t* mcbuffer, int bit_depth);
+  void (*put_hevc_epel_hv_16)(int16_t *dst, ptrdiff_t dststride,
+                              const uint16_t *src, ptrdiff_t srcstride, int width, int height,
+                              int mx, int my, int16_t* mcbuffer, int bit_depth);
+
+  void (*put_hevc_qpel_16[4][4])(int16_t *dst, ptrdiff_t dststride,
+                                 const uint16_t *src, ptrdiff_t srcstride, int width, int height,
+                                 int16_t* mcbuffer, int bit_depth);
+
+
+  void put_hevc_epel(int16_t *dst, ptrdiff_t dststride,
+                     const void *src, ptrdiff_t srcstride, int width, int height,
+                     int mx, int my, int16_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_h(int16_t *dst, ptrdiff_t dststride,
+                       const void *src, ptrdiff_t srcstride, int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_v(int16_t *dst, ptrdiff_t dststride,
+                       const void *src, ptrdiff_t srcstride, int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_hv(int16_t *dst, ptrdiff_t dststride,
+                        const void *src, ptrdiff_t srcstride, int width, int height,
+                        int mx, int my, int16_t* mcbuffer, int bit_depth) const;
+
+  void put_hevc_qpel(int16_t *dst, ptrdiff_t dststride,
+                     const void *src, ptrdiff_t srcstride, int width, int height,
+                     int16_t* mcbuffer, int dX,int dY, int bit_depth) const;
+
+
   // --- inverse transforms ---
+
+  // 8 bit
 
   void (*transform_skip_8)(uint8_t *_dst, const int16_t *coeffs, ptrdiff_t _stride); // no transform
   void (*transform_bypass_8)(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
   void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
   void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
+
+  // 9-16 bit
 
   void (*transform_skip_16)(uint16_t *_dst, const int16_t *coeffs, ptrdiff_t _stride, int bit_depth); // no transform
   void (*transform_bypass_16)(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
@@ -73,10 +153,10 @@ struct acceleration_functions
   void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDCT
 
 
-  template <class pixel_t> void transform_skip(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-  template <class pixel_t> void transform_bypass(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
-  template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+  template <class pixel_t> void transform_skip(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_bypass(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
 
 
   // --- forward transforms ---
@@ -93,16 +173,153 @@ struct acceleration_functions
 };
 
 
-template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) { transform_skip_8(dst,coeffs,stride); }
-template <> inline void acceleration_functions::transform_skip<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_skip_16(dst,coeffs,stride, bit_depth); }
+/*
+template <> inline void acceleration_functions::put_weighted_pred_avg<uint8_t>(uint8_t *_dst, ptrdiff_t dststride,
+                                                                               const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                                               int width, int height, int bit_depth) { put_weighted_pred_avg_8(_dst,dststride,src1,src2,srcstride,width,height); }
+template <> inline void acceleration_functions::put_weighted_pred_avg<uint16_t>(uint16_t *_dst, ptrdiff_t dststride,
+                                                                                const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                                                int width, int height, int bit_depth) { put_weighted_pred_avg_16(_dst,dststride,src1,src2,
+                                                                                                                                                 srcstride,width,height,bit_depth); }
 
-template <> inline void acceleration_functions::transform_bypass<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) { transform_bypass_8(dst,coeffs,nT,stride); }
-template <> inline void acceleration_functions::transform_bypass<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) { transform_bypass_16(dst,coeffs,nT,stride, bit_depth); }
+template <> inline void acceleration_functions::put_unweighted_pred<uint8_t>(uint8_t *_dst, ptrdiff_t dststride,
+                                                                             const int16_t *src, ptrdiff_t srcstride,
+                                                                             int width, int height, int bit_depth) { put_unweighted_pred_8(_dst,dststride,src,srcstride,width,height); }
+template <> inline void acceleration_functions::put_unweighted_pred<uint16_t>(uint16_t *_dst, ptrdiff_t dststride,
+                                                                              const int16_t *src, ptrdiff_t srcstride,
+                                                                              int width, int height, int bit_depth) { put_unweighted_pred_16(_dst,dststride,src,srcstride,width,height,bit_depth); }
 
-template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) { transform_4x4_dst_add_8(dst,coeffs,stride); }
-template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }
+template <> inline void acceleration_functions::put_weighted_pred<uint8_t>(uint8_t *_dst, ptrdiff_t dststride,
+                                                                           const int16_t *src, ptrdiff_t srcstride,
+                                                                           int width, int height,
+                                                                           int w,int o,int log2WD, int bit_depth) { put_weighted_pred_8(_dst,dststride,src,srcstride,width,height,w,o,log2WD); }
+template <> inline void acceleration_functions::put_weighted_pred<uint16_t>(uint16_t *_dst, ptrdiff_t dststride,
+                                                                            const int16_t *src, ptrdiff_t srcstride,
+                                                                            int width, int height,
+                                                                            int w,int o,int log2WD, int bit_depth) { put_weighted_pred_16(_dst,dststride,src,srcstride,width,height,w,o,log2WD,bit_depth); }
 
-template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_add_8[sizeIdx](dst,coeffs,stride); }
-template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth); }
+template <> inline void acceleration_functions::put_weighted_bipred<uint8_t>(uint8_t *_dst, ptrdiff_t dststride,
+                                                                             const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                                             int width, int height,
+                                                                             int w1,int o1, int w2,int o2, int log2WD, int bit_depth) { put_weighted_bipred_8(_dst,dststride,src1,src2,srcstride,
+                                                                                                                                                              width,height,
+                                                                                                                                                              w1,o1,w2,o2,log2WD); }
+template <> inline void acceleration_functions::put_weighted_bipred<uint16_t>(uint16_t *_dst, ptrdiff_t dststride,
+                                                                              const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                                              int width, int height,
+                                                                              int w1,int o1, int w2,int o2, int log2WD, int bit_depth) { put_weighted_bipred_16(_dst,dststride,src1,src2,srcstride,
+                                                                                                                                                                width,height,
+                                                                                                                                                                w1,o1,w2,o2,log2WD,bit_depth); }
+*/
+
+
+inline void acceleration_functions::put_weighted_pred_avg(void* _dst, ptrdiff_t dststride,
+                                                          const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                          int width, int height, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_pred_avg_8((uint8_t*)_dst,dststride,src1,src2,srcstride,width,height);
+  else
+    put_weighted_pred_avg_16((uint16_t*)_dst,dststride,src1,src2,srcstride,width,height,bit_depth);
+}
+
+
+inline void acceleration_functions::put_unweighted_pred(void* _dst, ptrdiff_t dststride,
+                                                        const int16_t *src, ptrdiff_t srcstride,
+                                                        int width, int height, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_unweighted_pred_8((uint8_t*)_dst,dststride,src,srcstride,width,height);
+  else
+    put_unweighted_pred_16((uint16_t*)_dst,dststride,src,srcstride,width,height,bit_depth);
+}
+
+
+inline void acceleration_functions::put_weighted_pred(void* _dst, ptrdiff_t dststride,
+                                                      const int16_t *src, ptrdiff_t srcstride,
+                                                      int width, int height,
+                                                      int w,int o,int log2WD, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_pred_8((uint8_t*)_dst,dststride,src,srcstride,width,height,w,o,log2WD);
+  else
+    put_weighted_pred_16((uint16_t*)_dst,dststride,src,srcstride,width,height,w,o,log2WD,bit_depth);
+}
+
+
+inline void acceleration_functions::put_weighted_bipred(void* _dst, ptrdiff_t dststride,
+                                                        const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                                        int width, int height,
+                                                        int w1,int o1, int w2,int o2, int log2WD, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_bipred_8((uint8_t*)_dst,dststride,src1,src2,srcstride, width,height, w1,o1,w2,o2,log2WD);
+  else
+    put_weighted_bipred_16((uint16_t*)_dst,dststride,src1,src2,srcstride, width,height, w1,o1,w2,o2,log2WD,bit_depth);
+}
+
+
+
+inline void acceleration_functions::put_hevc_epel(int16_t *dst, ptrdiff_t dststride,
+                                                  const void *src, ptrdiff_t srcstride, int width, int height,
+                                                  int mx, int my, int16_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_hevc_epel_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+  else
+    {}//put_hevc_epel_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_h(int16_t *dst, ptrdiff_t dststride,
+                                                    const void *src, ptrdiff_t srcstride, int width, int height,
+                                                    int mx, int my, int16_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_hevc_epel_h_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+  else
+    {}//put_hevc_epel_h_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_v(int16_t *dst, ptrdiff_t dststride,
+                                                    const void *src, ptrdiff_t srcstride, int width, int height,
+                                                    int mx, int my, int16_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_hevc_epel_v_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+  else
+    {} //put_hevc_epel_v_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_hv(int16_t *dst, ptrdiff_t dststride,
+                                                     const void *src, ptrdiff_t srcstride, int width, int height,
+                                                     int mx, int my, int16_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_hevc_epel_hv_8(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer);
+  else
+    {} //put_hevc_epel_hv_16(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer, bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_qpel(int16_t *dst, ptrdiff_t dststride,
+                                                  const void *src, ptrdiff_t srcstride, int width, int height,
+                                                  int16_t* mcbuffer, int dX,int dY, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_hevc_qpel_8[dX][dY](dst,dststride,(const uint8_t*)src,srcstride,width,height,mcbuffer);
+  else
+    {} //put_hevc_qpel_16[dX][dY](dst,dststride,(const uint16_t*)src,srcstride,width,height,mcbuffer, bit_depth);
+}
+
+template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) const { transform_skip_8(dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_skip<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_skip_16(dst,coeffs,stride, bit_depth); }
+
+template <> inline void acceleration_functions::transform_bypass<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { transform_bypass_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_bypass<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { transform_bypass_16(dst,coeffs,nT,stride, bit_depth); }
+
+template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_8(dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }
+
+template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_8[sizeIdx](dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth); }
 
 #endif

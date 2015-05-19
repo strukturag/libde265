@@ -43,6 +43,26 @@ void put_weighted_bipred_8_fallback(uint8_t *_dst, ptrdiff_t dststride,
                                     int width, int height,
                                     int w1,int o1, int w2,int o2, int log2WD);
 
+void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride, int width,
+                                       int height, int bit_depth);
+
+void put_unweighted_pred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                     const int16_t *src, ptrdiff_t srcstride,
+                                     int width, int height, int bit_depth);
+
+void put_weighted_pred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                   const int16_t *src, ptrdiff_t srcstride,
+                                   int width, int height,
+                                   int w,int o,int log2WD, int bit_depth);
+void put_weighted_bipred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                     const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                     int width, int height,
+                                     int w1,int o1, int w2,int o2, int log2WD, int bit_depth);
+
+
+
 void put_epel_8_fallback(int16_t *dst, ptrdiff_t dststride,
                          const uint8_t *_src, ptrdiff_t srcstride,
                          int width, int height,
