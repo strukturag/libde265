@@ -307,7 +307,7 @@ inline void acceleration_functions::put_hevc_qpel(int16_t *dst, ptrdiff_t dststr
   if (bit_depth <= 8)
     put_hevc_qpel_8[dX][dY](dst,dststride,(const uint8_t*)src,srcstride,width,height,mcbuffer);
   else
-    {} //put_hevc_qpel_16[dX][dY](dst,dststride,(const uint16_t*)src,srcstride,width,height,mcbuffer, bit_depth);
+    put_hevc_qpel_16[dX][dY](dst,dststride,(const uint16_t*)src,srcstride,width,height,mcbuffer, bit_depth);
 }
 
 template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) const { transform_skip_8(dst,coeffs,stride); }
