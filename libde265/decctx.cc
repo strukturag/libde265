@@ -326,8 +326,12 @@ decoder_context::~decoder_context()
     image_units.pop_back();
   }
 
-  if (ilRefPic_upsampled) {
-    // delete the created images in ilRefPic[]
+  // delete the created images in ilRefPic[]
+  for (int i=0; i<MAX_REF_LAYERS; i++) {
+    if (ilRefPic[i] != NULL) {
+      delete ilRefPic[i];
+      ilRefPic[i] = NULL;
+    }
   }
 }
 
@@ -1525,14 +1529,14 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
 
       if (refPicSet0Flag) {
         RefPicSetInterLayer0[ NumActiveRefLayerPics0 ] = i;
-        //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
         NumActiveRefLayerPics0++;
       }
       else {
         RefPicSetInterLayer1[ NumActiveRefLayerPics1 ] = i;
-        //ctx->dpb.get_image(newIdx)->PicState = UsedForLongTermReference;
         NumActiveRefLayerPics1++;
       }
+      // Mark the inter layer picture as used for long term reference
+      ilRefPic[i]->PicState = UsedForLongTermReference;
     }
     else {
       if( refPicSet0Flag ) {
@@ -1634,15 +1638,24 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     }
   }
 
+  // Create a new inter layer picture buffer
+  if (ilRefPic[ilRefPicIdx] == NULL) {
+    ilRefPic[ilRefPicIdx] = new de265_image();
+    de265_chroma c = rlPic->get_chroma_format();
+    ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, c, sps, true, ctx, NULL, 0, 0, false);
+  }
+
   if (equalPictureSizeAndOffsetFlag &&
      (BitDepthRefLayerY == BitDepthCurrY) &&
      (BitDepthRefLayerC == BitDepthCurrC) &&
      (SubWidthRefLayerC == SubWidthCurrC) &&
      (SubHeightRefLayerC == SubHeightCurrC) &&
      !currColourMappingEnableFlag) {
-    // SNR scalability
-    // We do not need to perform any upsampling
-    ilRefPic[ilRefPicIdx] = rlPic;
+    
+    // SNR scalability. We do not need to perform any upsampling.
+    // Just copy all information from the lower layer reference.
+    ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
+    ilRefPic[ilRefPicIdx]->copy_metadata(rlPic);                            // Copy metadata
   }
   else {
     // Spatial scalability. Perform upsampling.
