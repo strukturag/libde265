@@ -8,6 +8,7 @@ decoder_context_multilayer::decoder_context_multilayer()
   limit_HighestTid = 6;   // decode all temporal layers (up to layer 6)
   framerate_ratio = 100;  // decode all 100%
   param_acceleration = de265_acceleration_AUTO;
+  currrent_layer = 0;
 
   // Multilayer decoder parameters
   ml_dec_params.highestTID = 6;
@@ -195,6 +196,18 @@ de265_error decoder_context_multilayer::decode(int* more)
       if (more) *more = true;
     }
     else {
+      if (nal_hdr.nuh_layer_id != currrent_layer) {
+        // We are now decoding another layer. Finish decoding of lower layer first.
+        if (nal_hdr.nuh_layer_id > 0) {
+          decoder_context *lower_layer_dec = get_layer_dec(nal_hdr.nuh_layer_id-1);
+          bool did_work = true;
+          while (did_work) {
+            lower_layer_dec->decode_some(&did_work);
+          }
+        }
+        currrent_layer = nal_hdr.nuh_layer_id;
+      }
+      
       decoder_context* layerCtx = get_layer_dec(nal_hdr.nuh_layer_id);
 
       // Call the decode function for this layer

@@ -113,6 +113,8 @@ protected:
   int limit_HighestTid;    // never switch to a layer above this one
   int framerate_ratio;
 
+  int currrent_layer;
+
   enum de265_acceleration param_acceleration;
 
   multilayer_decoder_parameters ml_dec_params;
