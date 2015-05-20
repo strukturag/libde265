@@ -497,6 +497,7 @@ void de265_image::copy_metadata(const de265_image* src)
 
   // Copy the pointers to the slice segment headers.
   // TODO: Is this a good idea?
+  slices.clear();
   for (int i = 0; i < src->slices.size(); i++) {
     slices.push_back(src->slices.at(i));
   }
