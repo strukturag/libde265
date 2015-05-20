@@ -197,13 +197,11 @@ de265_error decoder_context_multilayer::decode(int* more)
     }
     else {
       if (nal_hdr.nuh_layer_id != currrent_layer) {
-        // We are now decoding another layer. Finish decoding of lower layer first.
-        if (nal_hdr.nuh_layer_id > 0) {
-          decoder_context *lower_layer_dec = get_layer_dec(nal_hdr.nuh_layer_id-1);
-          bool did_work = true;
-          while (did_work) {
-            lower_layer_dec->decode_some(&did_work, true);
-          }
+        // We are now decoding another layer. Finish decoding of the last layer first.
+        decoder_context *lower_layer_dec = get_layer_dec(currrent_layer);
+        bool did_work = true;
+        while (did_work) {
+          lower_layer_dec->decode_some(&did_work, true);
         }
         currrent_layer = nal_hdr.nuh_layer_id;
       }
