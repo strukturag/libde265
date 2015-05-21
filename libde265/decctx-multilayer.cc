@@ -26,13 +26,11 @@ decoder_context_multilayer::decoder_context_multilayer()
   param_slice_headers_fd = -1;
 
   // Init by creating one decoder context (there has to be at least one layer in the bitstream)
-  num_layer_decoders = 1;
-  layer_decoders[0] = new decoder_context;
-  layer_decoders[0]->set_layer_id(0);
-  layer_decoders[0]->set_multi_layer_decoder(this);
-  layer_decoders[0]->nal_parser = &nal_parser;
-  for (int i=1; i<MAX_LAYER_ID; i++)
+  num_layer_decoders = 0;
+  for (int i = 0; i<MAX_LAYER_ID; i++) {
     layer_decoders[i] = NULL;
+  }
+  get_layer_dec(0);
 }
 
 decoder_context_multilayer::~decoder_context_multilayer()
