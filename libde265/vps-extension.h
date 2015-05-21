@@ -137,7 +137,8 @@ struct video_parameter_set_extension{
   int      NumOutputLayerSets;
   int_1d   NumLayersInIdList;
   int_2d   LayerSetLayerIdList;
-
+  bool     VpsInterLayerSamplePredictionEnabled[8][8];
+  bool     VpsInterLayerMotionPredictionEnabled[8][8];
 };
 
 #endif

@@ -31,6 +31,9 @@ video_parameter_set_extension::video_parameter_set_extension()
     for (int j = 0; j < 8; j++)
     {
       direct_dependency_flag[i][j] = false;
+      direct_dependency_type[i][j] = 0;
+      VpsInterLayerSamplePredictionEnabled[i][j] = false;
+      VpsInterLayerMotionPredictionEnabled[i][j] = false;
     }
       view_id_val[i] = 0;
   }
@@ -422,6 +425,11 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   if (direct_dependency_all_layers_flag) {
     int nr_bits = direct_dep_type_len_minus2 + 2;
     direct_dependency_all_layers_type = get_bits(reader,nr_bits);
+    for (int i = vps->vps_base_layer_internal_flag ? 1 : 2; i <= MaxLayersMinus1; i++) {
+      for( int j = vps->vps_base_layer_internal_flag ? 0 : 1; j < i; j++ ) {
+        direct_dependency_type[i][j] = direct_dependency_all_layers_type;
+      }
+    }
   }
   else {
     for (int i = vps->vps_base_layer_internal_flag ? 1 : 2; i <= MaxLayersMinus1; i++) {
@@ -430,6 +438,20 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
           int nr_bits = direct_dep_type_len_minus2 + 2;
           direct_dependency_type[ i ][ j ] = get_bits(reader,nr_bits);
         }
+      }
+    }
+  }
+
+  // Derive VpsInterLayerSamplePredictionEnabled and VpsInterLayerMotionPredictionEnabled // F.7.4.3.1.1 (F-13)
+  for (int i = vps->vps_base_layer_internal_flag ? 1 : 2; i <= MaxLayersMinus1; i++) {
+    for( int j = vps->vps_base_layer_internal_flag ? 0 : 1; j < i; j++ ) {
+      if( direct_dependency_flag[ i ][ j ] ) {
+        VpsInterLayerSamplePredictionEnabled[i][j] = (direct_dependency_type[i][j] + 1) & 0x1; // F.7.4.3.1.1 (F-13)
+        VpsInterLayerMotionPredictionEnabled[i][j] = (direct_dependency_type[i][j] + 1) & 0x2; 
+      }
+      else {
+        VpsInterLayerSamplePredictionEnabled[i][j] = false; // F.7.4.3.1.1 (F-13)
+        VpsInterLayerMotionPredictionEnabled[i][j] = false;
       }
     }
   }
