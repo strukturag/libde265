@@ -52,6 +52,7 @@ using namespace videogfx;
 
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
+#define MAX_LAYERS 63
 
 int nThreads=0;
 bool nal_input=false;
@@ -72,7 +73,7 @@ bool show_ssim_map=false;
 bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
-FILE* fh[63];
+FILE* fh[MAX_LAYERS];
 int highestTID = 100;
 int verbosity=0;
 int disable_deblocking=0;
@@ -207,7 +208,7 @@ bool display_sdl(const struct de265_image* img)
 
 
 static int width,height;
-static uint32_t framecnt=0;
+static uint32_t framecnt[MAX_LAYERS]={0};
 
 bool output_image(const de265_image* img)
 {
@@ -216,7 +217,11 @@ bool output_image(const de265_image* img)
   width  = de265_get_image_width(img,0);
   height = de265_get_image_height(img,0);
 
-  framecnt++;
+  // Get layer ID
+  int nuh_layer_id;
+  de265_get_image_NAL_header(img, NULL, NULL, &nuh_layer_id, NULL);
+
+  framecnt[nuh_layer_id]++;
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
 
@@ -247,11 +252,11 @@ bool output_image(const de265_image* img)
     write_picture(img);
   }
 
-  if ((framecnt%100)==0) {
-    fprintf(stderr,"frame %d\r",framecnt);
+  if (nuh_layer_id==0 && (framecnt[0]%100)==0) {
+    fprintf(stderr,"frame %d\r",framecnt[0]);
   }
 
-  if (framecnt>=max_frames) {
+  if (framecnt[nuh_layer_id]>=max_frames) {
     stop=true;
   }
 
@@ -446,7 +451,7 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 
 int main(int argc, char** argv)
 {
-  for (int i = 0; i < 63; i++) {
+  for (int i = 0; i < MAX_LAYERS; i++) {
     fh[i] = NULL;
   }
 
@@ -706,8 +711,14 @@ int main(int argc, char** argv)
   double secs = tv_end.tv_sec-tv_start.tv_sec;
   secs += (tv_end.tv_usec - tv_start.tv_usec)*0.001*0.001;
 
-  if (quiet<=1) fprintf(stderr,"nFrames decoded: %d (%dx%d @ %5.2f fps)\n",framecnt,
-                        width,height,framecnt/secs);
+  if (quiet<=1) {
+    for (int i = 0; i<MAX_LAYERS; i++) {
+      if (framecnt[i] > 0) {
+        fprintf(stderr,"Layer %d: nFrames decoded: %d (%dx%d @ %5.2f fps)\n",
+          i, framecnt[i], width,height,framecnt[i]/secs);
+      }
+    }
+  }
 
 
   return err==DE265_OK ? 0 : 10;
