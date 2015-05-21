@@ -1645,6 +1645,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     de265_chroma c = rlPic->get_chroma_format();
     ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, c, sps, true, ctx, NULL, 0, 0, false);
   }
+  ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
 
   if (equalPictureSizeAndOffsetFlag &&
      (BitDepthRefLayerY == BitDepthCurrY) &&
@@ -1657,22 +1658,73 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     // Just copy all information from the lower layer reference.
     ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
     ilRefPic[ilRefPicIdx]->copy_metadata(rlPic);                            // Copy metadata
-    ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
   }
   else {
     // Spatial scalability. Perform upsampling.
-    if (ilRefPic[ilRefPicIdx] == NULL) {
-      // Allocate a new buffer for the upsampling process
+    video_parameter_set_extension *vps_ext = &ctx->current_vps->vps_extension;
+    int currLayerId = ctx->get_layer_id();
+    if (vps_ext->VpsInterLayerSamplePredictionEnabled[vps_ext->LayerIdxInVps[currLayerId]][vps_ext->LayerIdxInVps[rLId]]) {
+      if (currColourMappingEnableFlag) {
+        // The colour mapping process as specified in clause H.8.1.4.3 is invoked
+        // TODO
+        if (equalPictureSizeAndOffsetFlag) {
+          // ... TODO
+        }
+        else {
+          // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked 
+          // TODO
+        }
+        sampleProcessingFlag = true;
+      }
+      else {
+        // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
+        resampling_process_of_luma_sample_values(ctx, rlPic, ilRefPic[ilRefPicIdx]);
+      }
     }
 
-    // Perform upsampling ...
-    // ... TODO
+    if (vps_ext->VpsInterLayerMotionPredictionEnabled[vps_ext->LayerIdxInVps[currLayerId]][vps_ext->LayerIdxInVps[rLId]]) {
+      // TODO ...
+
+      if (equalPictureSizeAndOffsetFlag) {
+        // Copy info
+      }
+      else {
+        // The picture motion and mode parameters resampling process as specified in clause H.8.1.4.2 is invoked
+        // TODO
+
+        motionProcessingFlag  = true;
+      }
+    }
     
     ilRefPic_upsampled = true;
 
     assert(false);
   }
 }
+
+/* H.8.1.4  Resampling process of picture sample values
+
+  */
+void decoder_context::resampling_process_of_picture_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
+{
+  resampling_process_of_luma_sample_values(ctx, imgIN, imgOut);
+
+}
+
+/* H.8.1.4.1  Resampling process of picture luma values
+*/
+void decoder_context::resampling_process_of_luma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
+{
+
+}
+
+/* H.8.1.4.1.2  Resampling process of chroma sample values 
+*/
+void decoder_context::resampling_process_of_chroma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
+{
+
+}
+
 
 /* 8.3.2   invoked once per picture
 
