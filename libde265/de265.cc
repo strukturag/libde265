@@ -491,6 +491,8 @@ LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum
       assert(false);
       break;
     }
+
+  ctx->update_parameters();
 }
 
 
