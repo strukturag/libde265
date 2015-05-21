@@ -229,7 +229,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 
         for (int b=0;b<16;b++) {
           if (md5[b] != seihash->md5[i][b]) {
-            fprintf(stderr,"SEI decoded picture MD5 mismatch (POC=%d)\n", img->PicOrderCntVal);
+            fprintf(stderr,"SEI decoded picture MD5 mismatch (POC=%d LID=%d)\n", img->PicOrderCntVal, img->decctx->get_layer_id());
             return DE265_ERROR_CHECKSUM_MISMATCH;
           }
         }
@@ -244,8 +244,8 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
                  seihash->crc[i], i, crc);
 
         if (crc != seihash->crc[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
-                  seihash->crc[i], crc, img->PicOrderCntVal);
+          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d LID=%d)\n",
+                  seihash->crc[i], crc, img->PicOrderCntVal, img->decctx->get_layer_id());
           return DE265_ERROR_CHECKSUM_MISMATCH;
         }
       }
@@ -256,8 +256,8 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
         uint32_t chksum = compute_checksum_8bit(data,w,h,stride);
 
         if (chksum != seihash->checksum[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
-                  seihash->checksum[i], chksum, img->PicOrderCntVal);
+          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d LID=%d)\n",
+                  seihash->checksum[i], chksum, img->PicOrderCntVal, img->decctx->get_layer_id());
           return DE265_ERROR_CHECKSUM_MISMATCH;
         }
       }
