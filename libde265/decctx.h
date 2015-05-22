@@ -542,10 +542,6 @@ class decoder_context : public base_context {
   // Multilayer extension
   void process_inter_layer_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
   void derive_inter_layer_reference_picture(decoder_context* ctx, de265_image* rlPic, int rLId, int ilRefPicIdx);
-
-  void resampling_process_of_picture_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut);
-  void resampling_process_of_luma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut);
-  void resampling_process_of_chroma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut);
 };
 
 

@@ -78,6 +78,15 @@ struct acceleration_functions
   // forward Hadamard transform (without scaling factor)
   // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
+
+  // Scalablilty extension:
+  // Inter layer upsampling process
+  void(*resampling_process_of_luma_sample_values)  (uint8_t *src, ptrdiff_t srcstride, int src_size[2],
+                                                    uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
+                                                    int position_params[8], int BitDepthRefLayerY, int BitDepthCurrY);
+  void(*resampling_process_of_chroma_sample_values)  (uint8_t *src, ptrdiff_t srcstride, int src_size[2], 
+                                                      uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
+                                                      int position_params[8], int BitDepthRefLayerC, int BitDepthCurrC);
 };
 
 #endif

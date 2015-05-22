@@ -1643,7 +1643,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
   if (ilRefPic[ilRefPicIdx] == NULL) {
     ilRefPic[ilRefPicIdx] = new de265_image();
     de265_chroma c = rlPic->get_chroma_format();
-    ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, c, sps, true, ctx, NULL, 0, 0, false);
+    ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesCurrY, PicHeightInSamplesCurrY, c, sps, true, ctx, NULL, 0, 0, false);
   }
   ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
 
@@ -1664,6 +1664,41 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     video_parameter_set_extension *vps_ext = &ctx->current_vps->vps_extension;
     int currLayerId = ctx->get_layer_id();
     if (vps_ext->VpsInterLayerSamplePredictionEnabled[vps_ext->LayerIdxInVps[currLayerId]][vps_ext->LayerIdxInVps[rLId]]) {
+      
+      // Derive the parameters needed by the reference layer sample location derivation function
+      // as specified in clause H.8.1.4.1.3. These will bee needed when the reference layer sample location derivation
+      // process is invoked.
+      int position_params[2][8];
+      for (int c=0; c<2; c++) {
+        bool chromaFlag = (c != 0);
+    
+        // The variables currOffsetLeft, currOffsetTop, refOffsetLeft and refOffsetTop are derived as follows:
+        int currOffsetLeft = ScaledRefLayerLeftOffset / (chromaFlag ? SubWidthCurrC  : 1);              // (H 53)
+        int currOffsetTop  = ScaledRefLayerTopOffset  / (chromaFlag ? SubHeightCurrC : 1);              // (H 54)
+        int refOffsetLeft  = (RefLayerRegionLeftOffset / (chromaFlag ? SubWidthRefLayerC  : 1)) << 4;   // (H 55)
+        int refOffsetTop   = (RefLayerRegionTopOffset  / (chromaFlag ? SubHeightRefLayerC : 1)) << 4;   // (H 56)
+    
+        // The variables phaseHor, phaseVer, scaleHor and scaleVer are derived as follows:
+        int phaseHor = chromaFlag ? PhaseHorC : PhaseHorY;                              // (H 57)
+        int phaseVer = chromaFlag ? PhaseVerC : PhaseVerY;                              // (H 58)
+        int scaleHor = chromaFlag ? SpatialScaleFactorHorC : SpatialScaleFactorHorY;    // (H 59)
+        int scaleVer = chromaFlag ? SpatialScaleFactorVerC : SpatialScaleFactorVerY;    // (H 60)
+
+        // The variables addHor and addVer are derived as follows:
+        int addHor = -(( scaleHor * phaseHor + 8) >> 4 );   // (H 61)
+        int addVer = -(( scaleVer * phaseVer + 8) >> 4 );   // (H 62)
+
+        // Put parameters into array
+        position_params[c][0] = currOffsetLeft;
+        position_params[c][1] = currOffsetTop;
+        position_params[c][2] = refOffsetLeft;
+        position_params[c][3] = refOffsetTop;
+        position_params[c][4] = scaleHor;
+        position_params[c][5] = scaleVer;
+        position_params[c][6] = addHor;
+        position_params[c][7] = addVer;
+      }
+      
       if (currColourMappingEnableFlag) {
         // The colour mapping process as specified in clause H.8.1.4.3 is invoked
         // TODO
@@ -1678,7 +1713,24 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
       }
       else {
         // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
-        resampling_process_of_luma_sample_values(ctx, rlPic, ilRefPic[ilRefPicIdx]);
+        //resampling_process_of_picture_sample_values(rlPic, ilRefPic[ilRefPicIdx], position_params, BitDepthRefLayer, BitDepthCurr);
+        int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
+        int dst_size[2] = { ilRefPic[ilRefPicIdx]->get_width(), ilRefPic[ilRefPicIdx]->get_height() };
+        ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size, 
+                                                                   position_params[0], BitDepthRefLayerY, BitDepthCurrY );
+
+        // Chroma
+        src_size[0] = rlPic->get_width(1); 
+        src_size[1] = rlPic->get_height(1);
+        dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1); 
+        dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1); 
+        ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                   position_params[1], BitDepthRefLayerC, BitDepthCurrC );
+        ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                   position_params[1], BitDepthRefLayerC, BitDepthCurrC );
       }
     }
 
@@ -1701,30 +1753,6 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     assert(false);
   }
 }
-
-/* H.8.1.4  Resampling process of picture sample values
-
-  */
-void decoder_context::resampling_process_of_picture_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
-{
-  resampling_process_of_luma_sample_values(ctx, imgIN, imgOut);
-
-}
-
-/* H.8.1.4.1  Resampling process of picture luma values
-*/
-void decoder_context::resampling_process_of_luma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
-{
-
-}
-
-/* H.8.1.4.1.2  Resampling process of chroma sample values 
-*/
-void decoder_context::resampling_process_of_chroma_sample_values(decoder_context* ctx, de265_image* imgIN, de265_image* imgOut)
-{
-
-}
-
 
 /* 8.3.2   invoked once per picture
 
