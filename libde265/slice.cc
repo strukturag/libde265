@@ -3417,15 +3417,28 @@ void read_transform_tree(thread_context* tctx,
   int cbf_cb=-1;
   int cbf_cr=-1;
 
-  if (log2TrafoSize>2) {
+  // CBF_CB/CR flags are encoded like this:
+  // 4:2:0 and 4:4:4 modes: binary flag in bit 0
+  // 4:2:2 mode: bit 0: top block, bit 1: bottom block
+
+  if ((log2TrafoSize>2 && sps->ChromaArrayType != CHROMA_MONO) ||
+      sps->ChromaArrayType == CHROMA_444) {
     // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
     if (/*trafoDepth==0 ||*/ parent_cbf_cb) {
       cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
+
+      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+        cbf_cb = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+      }
     }
 
     // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
     if (/*trafoDepth==0 ||*/ parent_cbf_cr) {
       cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
+
+      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+        cbf_cr = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+      }
     }
   }
 
