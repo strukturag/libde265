@@ -3278,12 +3278,20 @@ int read_transform_unit(thread_context* tctx,
   assert(cbf_cr != -1);
   assert(cbf_luma != -1);
 
+  const int ChromaArrayType = tctx->img->sps.ChromaArrayType;
+
+  int log2TrafoSizeC = (ChromaArrayType==CHROMA_444 ? log2TrafoSize : log2TrafoSize-1);
+  log2TrafoSizeC = libde265_max(2, log2TrafoSizeC);
+
+  const int cbfLuma   = cbf_luma;
+  const int cbfChroma = cbf_cb | cbf_cr;
+
   tctx->transform_skip_flag[0]=0;
   tctx->transform_skip_flag[1]=0;
   tctx->transform_skip_flag[2]=0;
 
 
-  if (cbf_luma || cbf_cb || cbf_cr)
+  if (cbfLuma || cbfChroma)
     {
       if (tctx->img->pps.cu_qp_delta_enabled_flag &&
           !tctx->IsCuQpDeltaCoded) {
@@ -3305,11 +3313,8 @@ int read_transform_unit(thread_context* tctx,
 
         decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
       }
-    }
 
 
-  if (cbf_luma || cbf_cb || cbf_cr)
-    {
       // position of TU in local CU
       int xL = x0 - xCUBase;
       int yL = y0 - yCUBase;
@@ -3319,23 +3324,54 @@ int read_transform_unit(thread_context* tctx,
         if ((err=residual_coding(tctx,x0,y0, xL,yL,log2TrafoSize,0)) != DE265_OK) return err;
       }
 
-      if (log2TrafoSize>2) {
-        if (cbf_cb) {
-          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,1)) != DE265_OK) return err;
+      if (log2TrafoSize>2 || ChromaArrayType == CHROMA_444) {
+        // TODO: cross-component prediction
+
+        if (cbf_cb & 1) {
+          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSizeC,1)) != DE265_OK) return err;
+        }
+        // 4:2:2
+        if (cbf_cb & 2) {
+          if ((err=residual_coding(tctx,
+                                   x0,y0+(1<<log2TrafoSizeC),
+                                   xL,yL+(1<<log2TrafoSizeC),
+                                   log2TrafoSizeC,1)) != DE265_OK) return err;
         }
 
-        if (cbf_cr) {
-          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,2)) != DE265_OK) return err;
+
+        if (cbf_cr & 1) {
+          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSizeC,2)) != DE265_OK) return err;
+        }
+        // 4:2:2
+        if (cbf_cb & 2) {
+          if ((err=residual_coding(tctx,
+                                   x0,y0+(1<<log2TrafoSizeC),
+                                   xL,yL+(1<<log2TrafoSizeC),
+                                   log2TrafoSizeC,2)) != DE265_OK) return err;
         }
       }
       else if (blkIdx==3) {
-        if (cbf_cb) {
+        if (cbf_cb & 1) {
           if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
                                    log2TrafoSize,1)) != DE265_OK) return err;
         }
+        // 4:2:2
+        if (cbf_cb & 2) {
+          if ((err=residual_coding(tctx,
+                                   xBase        ,yBase        +(1<<log2TrafoSizeC),
+                                   xBase-xCUBase,yBase-yCUBase+(1<<log2TrafoSizeC),
+                                   log2TrafoSize,1)) != DE265_OK) return err;
+        }
 
-        if (cbf_cr) {
+        if (cbf_cr & 1) {
           if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
+                                   log2TrafoSize,2)) != DE265_OK) return err;
+        }
+        // 4:2:2
+        if (cbf_cr & 2) {
+          if ((err=residual_coding(tctx,
+                                   xBase        ,yBase        +(1<<log2TrafoSizeC),
+                                   xBase-xCUBase,yBase-yCUBase+(1<<log2TrafoSizeC),
                                    log2TrafoSize,2)) != DE265_OK) return err;
         }
       }
