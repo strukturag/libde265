@@ -697,6 +697,22 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const MotionVector
       }
 }
 
+void de265_image::set_pred_mode(int x, int y, int nPbW, int nPbH, enum PredMode mode)
+{
+  int log2PuSize = 2;
+
+  int cbX = x >> cb_info.log2unitSize;
+  int cbY = y >> cb_info.log2unitSize;
+
+  int wPu = nPbW >> cb_info.log2unitSize;
+  int hPu = nPbH >> cb_info.log2unitSize;
+
+  for (int cby=cbY;cby<cbY+wPu;cby++)
+    for (int cbx=cbX;cbx<cbX+hPu;cbx++) {
+      cb_info[ cbx + cby*cb_info.width_in_units ].PredMode = mode;
+    }
+}
+
 
 bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
 {

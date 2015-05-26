@@ -427,6 +427,8 @@ public:
     SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
   }
 
+  void set_pred_mode(int x,int y, int nPbW,int nPbH, enum PredMode mode);
+  
   void fill_pred_mode(enum PredMode mode)
   {
     for (int i=0;i<cb_info.data_size;i++)
