@@ -222,10 +222,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  if (chroma_format_idc != 1) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
-  }
-
 
   // --- picture size ---
 
