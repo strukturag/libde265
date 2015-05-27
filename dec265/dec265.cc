@@ -207,23 +207,21 @@ bool display_sdl(const struct de265_image* img)
 #endif
 
 
-static int width,height;
+static int width[MAX_LAYERS],height[MAX_LAYERS];
 static uint32_t framecnt[MAX_LAYERS]={0};
 
 bool output_image(const de265_image* img)
 {
   bool stop=false;
 
-  width  = de265_get_image_width(img,0);
-  height = de265_get_image_height(img,0);
-
   // Get layer ID
   int nuh_layer_id;
   de265_get_image_NAL_header(img, NULL, NULL, &nuh_layer_id, NULL);
 
   framecnt[nuh_layer_id]++;
+  width[nuh_layer_id]  = de265_get_image_width(img,0);
+  height[nuh_layer_id] = de265_get_image_height(img,0);
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
-
 
   if (0) {
     const char* nal_unit_name;
@@ -715,7 +713,7 @@ int main(int argc, char** argv)
     for (int i = 0; i<MAX_LAYERS; i++) {
       if (framecnt[i] > 0) {
         fprintf(stderr,"Layer %d: nFrames decoded: %d (%dx%d @ %5.2f fps)\n",
-          i, framecnt[i], width,height,framecnt[i]/secs);
+          i, framecnt[i], width[i],height[i],framecnt[i]/secs);
       }
     }
   }
