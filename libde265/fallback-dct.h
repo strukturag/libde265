@@ -37,6 +37,16 @@ void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff
 void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 
 
+void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
+
+void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+
+
 // --- encoding ---
 
 void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);

@@ -109,13 +109,19 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   int luma_stride   = (spec->width   + spec->alignment-1) / spec->alignment * spec->alignment;
   int chroma_stride = (spec->width/2 + spec->alignment-1) / spec->alignment * spec->alignment;
 
+  assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
+  assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
+
+  int luma_bpl   = luma_stride   * (img->sps.BitDepth_Y+7)/8;
+  int chroma_bpl = chroma_stride * (img->sps.BitDepth_C+7)/8;
+
   int luma_height   = spec->height;
   int chroma_height = (spec->height+1)/2;
 
   uint8_t* p[3] = { 0,0,0 };
-  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_stride   * luma_height   + MEMORY_PADDING);
-  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
-  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_stride * chroma_height + MEMORY_PADDING);
+  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_height   * luma_bpl   + MEMORY_PADDING);
+  p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
+  p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
 
   if (p[0]==NULL || p[1]==NULL || p[2]==NULL) {
     for (int i=0;i<3;i++)
@@ -213,7 +219,10 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      de265_PTS pts, void* user_data,
                                      bool useCustomAllocFunc)
 {
-  if (allocMetadata) { assert(sps); }
+  //if (allocMetadata) { assert(sps); }
+  assert(sps);
+
+  this->sps = *sps;
 
   release(); /* TODO: review code for efficient allocation when arrays are already
                 allocated to the requested size. Without the release, the old image-data
@@ -291,6 +300,11 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   spec.visible_width = width_confwin;
   spec.visible_height= height_confwin;
+
+
+  bpp_shift[0] = (sps->BitDepth_Y > 8) ? 1 : 0;
+  bpp_shift[1] = (sps->BitDepth_C > 8) ? 1 : 0;
+  bpp_shift[2] = bpp_shift[1];
 
 
   // allocate memory and set conformance window pointers
@@ -511,14 +525,19 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
   assert(first % 2 == 0);
   assert(end   % 2 == 0);
 
+  int luma_bpp   = (sps.BitDepth_Y+7)/8;
+  int chroma_bpp = (sps.BitDepth_C+7)/8;
+
   if (src->stride == stride) {
-    memcpy(pixels[0]      + first*stride,
-           src->pixels[0] + first*src->stride,
-           (end-first)*stride);
+    memcpy(pixels[0]      + first*stride * luma_bpp,
+           src->pixels[0] + first*src->stride * luma_bpp,
+           (end-first)*stride * luma_bpp);
   }
   else {
     for (int yp=first;yp<end;yp++) {
-      memcpy(pixels[0]+yp*stride, src->pixels[0]+yp*src->stride, src->width);
+      memcpy(pixels[0]+yp*stride * luma_bpp,
+             src->pixels[0]+yp*src->stride * luma_bpp,
+             src->width * luma_bpp);
     }
   }
 
@@ -527,17 +546,21 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 
   if (src->chroma_format != de265_chroma_mono) {
     if (src->chroma_stride == chroma_stride) {
-      memcpy(pixels[1]      + first_chroma*chroma_stride,
-             src->pixels[1] + first_chroma*chroma_stride,
-             (end_chroma-first_chroma) * chroma_stride);
-      memcpy(pixels[2]      + first_chroma*chroma_stride,
-             src->pixels[2] + first_chroma*chroma_stride,
-             (end_chroma-first_chroma) * chroma_stride);
+      memcpy(pixels[1]      + first_chroma*chroma_stride * chroma_bpp,
+             src->pixels[1] + first_chroma*chroma_stride * chroma_bpp,
+             (end_chroma-first_chroma) * chroma_stride * chroma_bpp);
+      memcpy(pixels[2]      + first_chroma*chroma_stride * chroma_bpp,
+             src->pixels[2] + first_chroma*chroma_stride * chroma_bpp,
+             (end_chroma-first_chroma) * chroma_stride * chroma_bpp);
     }
     else {
       for (int y=first_chroma;y<end_chroma;y++) {
-        memcpy(pixels[1]+y*chroma_stride, src->pixels[1]+y*src->chroma_stride, src->chroma_width);
-        memcpy(pixels[2]+y*chroma_stride, src->pixels[2]+y*src->chroma_stride, src->chroma_width);
+        memcpy(pixels[1]+y*chroma_stride * chroma_bpp,
+               src->pixels[1]+y*src->chroma_stride * chroma_bpp,
+               src->chroma_width * chroma_bpp);
+        memcpy(pixels[2]+y*chroma_stride * chroma_bpp,
+               src->pixels[2]+y*src->chroma_stride * chroma_bpp,
+               src->chroma_width * chroma_bpp);
       }
     }
   }

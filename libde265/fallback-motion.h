@@ -43,62 +43,62 @@ void put_weighted_bipred_8_fallback(uint8_t *_dst, ptrdiff_t dststride,
                                     int width, int height,
                                     int w1,int o1, int w2,int o2, int log2WD);
 
+void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride, int width,
+                                       int height, int bit_depth);
+
+void put_unweighted_pred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                     const int16_t *src, ptrdiff_t srcstride,
+                                     int width, int height, int bit_depth);
+
+void put_weighted_pred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                   const int16_t *src, ptrdiff_t srcstride,
+                                   int width, int height,
+                                   int w,int o,int log2WD, int bit_depth);
+void put_weighted_bipred_16_fallback(uint16_t *_dst, ptrdiff_t dststride,
+                                     const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                     int width, int height,
+                                     int w1,int o1, int w2,int o2, int log2WD, int bit_depth);
+
+
+
 void put_epel_8_fallback(int16_t *dst, ptrdiff_t dststride,
                          const uint8_t *_src, ptrdiff_t srcstride,
                          int width, int height,
                          int mx, int my, int16_t* mcbuffer);
-void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dststride,
-                            const uint8_t *_src, ptrdiff_t srcstride,
-                            int width, int height,
-                            int mx, int my, int16_t* mcbuffer);
 
-void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_0_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_1_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_2_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_1_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_2_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
-void put_qpel_3_3_fallback(int16_t *out, ptrdiff_t out_stride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int nPbW, int nPbH, int16_t* mcbuffer);
+void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
+                          const uint16_t *src, ptrdiff_t src_stride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth);
+
+template <class pixel_t>
+void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dststride,
+                          const pixel_t *_src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth);
+
+
+#define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback(int16_t *out, ptrdiff_t out_stride, \
+                           const uint8_t *src, ptrdiff_t srcstride, \
+                           int nPbW, int nPbH, int16_t* mcbuffer)
+QPEL(0,0); QPEL(0,1); QPEL(0,2); QPEL(0,3);
+QPEL(1,0); QPEL(1,1); QPEL(1,2); QPEL(1,3);
+QPEL(2,0); QPEL(2,1); QPEL(2,2); QPEL(2,3);
+QPEL(3,0); QPEL(3,1); QPEL(3,2); QPEL(3,3);
+
+#undef QPEL
+
+
+#define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback_16(int16_t *out, ptrdiff_t out_stride, \
+                           const uint16_t *src, ptrdiff_t srcstride, \
+                           int nPbW, int nPbH, int16_t* mcbuffer, int bit_depth)
+QPEL(0,0); QPEL(0,1); QPEL(0,2); QPEL(0,3);
+QPEL(1,0); QPEL(1,1); QPEL(1,2); QPEL(1,3);
+QPEL(2,0); QPEL(2,1); QPEL(2,2); QPEL(2,3);
+QPEL(3,0); QPEL(3,1); QPEL(3,2); QPEL(3,3);
+
+#undef QPEL
 
 #endif

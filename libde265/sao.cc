@@ -25,10 +25,11 @@
 #include <string.h>
 
 
-void apply_sao(de265_image* img, int xCtb,int yCtb,
-               const slice_segment_header* shdr, int cIdx, int nS,
-               const uint8_t* in_img,  int in_stride,
-               /* */ uint8_t* out_img, int out_stride)
+template <class pixel_t>
+void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
+                        const slice_segment_header* shdr, int cIdx, int nS,
+                        const pixel_t* in_img,  int in_stride,
+                        /* */ pixel_t* out_img, int out_stride)
 {
   const sao_info* saoinfo = img->get_sao_info(xCtb,yCtb);
 
@@ -98,8 +99,8 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 
 
     for (int j=0;j<ctbH;j++) {
-      const uint8_t* in_ptr  = &in_img [xC+(yC+j)*in_stride];
-      /* */ uint8_t* out_ptr = &out_img[xC+(yC+j)*out_stride];
+      const pixel_t* in_ptr  = &in_img [xC+(yC+j)*in_stride];
+      /* */ pixel_t* out_ptr = &out_img[xC+(yC+j)*out_stride];
 
       for (int i=0;i<ctbW;i++) {
         int edgeIdx = -1;
@@ -248,6 +249,25 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 }
 
 
+template <class pixel_t>
+void apply_sao(de265_image* img, int xCtb,int yCtb,
+               const slice_segment_header* shdr, int cIdx, int nS,
+               const pixel_t* in_img,  int in_stride,
+               /* */ pixel_t* out_img, int out_stride)
+{
+  if (img->high_bit_depth(cIdx)) {
+    apply_sao_internal<uint16_t>(img,xCtb,yCtb, shdr,cIdx,nS,
+                                 (uint16_t*)in_img, in_stride,
+                                 (uint16_t*)out_img,out_stride);
+  }
+  else {
+    apply_sao_internal<uint8_t>(img,xCtb,yCtb, shdr,cIdx,nS,
+                                in_img, in_stride,
+                                out_img,out_stride);
+  }
+}
+
+
 void apply_sample_adaptive_offset(de265_image* img)
 {
   if (img->sps.sample_adaptive_offset_enabled_flag==0) {
@@ -292,7 +312,8 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
   }
 
 
-  uint8_t* inputCopy = new uint8_t[ img->get_image_stride(0) * img->get_height(0) ];
+  uint8_t* inputCopy = new uint8_t[ img->get_image_stride(0) * img->get_height(0) *
+                                    img->get_bytes_per_pixel(0) ];
   if (inputCopy == NULL) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return;
@@ -304,7 +325,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
     int stride = img->get_image_stride(cIdx);
     int height = img->get_height(cIdx);
 
-    memcpy(inputCopy, img->get_image_plane(cIdx), stride * height);
+    memcpy(inputCopy, img->get_image_plane(cIdx), stride * height * img->get_bytes_per_pixel(cIdx));
 
     for (int yCtb=0; yCtb<img->sps.PicHeightInCtbsY; yCtb++)
       for (int xCtb=0; xCtb<img->sps.PicWidthInCtbsY; xCtb++)

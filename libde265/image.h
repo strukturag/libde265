@@ -221,12 +221,14 @@ typedef struct {
 // intraPredMode:   Used for determining scanIdx when decoding/encoding coefficients.
 
 
+
 struct de265_image {
   de265_image();
   ~de265_image();
 
 
-  de265_error alloc_image(int w,int h, enum de265_chroma c, const seq_parameter_set* sps,
+  de265_error alloc_image(int w,int h, enum de265_chroma c,
+                          const seq_parameter_set* sps,
                           bool allocMetadata,
                           decoder_context* dctx,
                           class encoder_context* ectx,
@@ -259,12 +261,33 @@ struct de265_image {
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+  template <class pixel_t>
+  pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
+  {
+    int stride = get_image_stride(cIdx);
+    return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
+  }
+
   const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
   {
     int stride = get_image_stride(cIdx);
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+  void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos)
+  {
+    int stride = get_image_stride(cIdx);
+    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
+  }
+
+  const void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos) const
+  {
+    int stride = get_image_stride(cIdx);
+    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
+  }
+
+  /* Number of pixels in one row (not number of bytes).
+   */
   int get_image_stride(int cIdx) const
   {
     if (cIdx==0) return stride;
@@ -279,6 +302,18 @@ struct de265_image {
 
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
+  int get_bit_depth(int cIdx) const {
+    if (cIdx==0) return sps.BitDepth_Y;
+    else         return sps.BitDepth_C;
+  }
+
+  int get_bytes_per_pixel(int cIdx) const {
+    return (get_bit_depth(cIdx)+7)/8;
+  }
+
+  bool high_bit_depth(int cIdx) const {
+    return get_bit_depth(cIdx)>8;
+  }
 
   bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
 
@@ -308,6 +343,7 @@ private:
   static uint32_t s_next_image_ID;
 
   uint8_t* pixels[3];
+  uint8_t  bpp_shift[3];  // 0 for 8 bit, 1 for 16 bit
 
   enum de265_chroma chroma_format;
 

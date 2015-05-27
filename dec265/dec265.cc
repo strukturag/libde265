@@ -110,8 +110,8 @@ static void write_picture(const de265_image* img)
   // Check which layer this image is from
   int nalunit_type, nuh_layer_id, nuh_temporal_id;
   de265_get_image_NAL_header(img, &nalunit_type, NULL, &nuh_layer_id, &nuh_temporal_id);
-  
-  if (fh[nuh_layer_id]==NULL) { 
+
+  if (fh[nuh_layer_id]==NULL) {
     // Construct layer file name
     std::string out_filename = output_filename;
     int dot_pos = out_filename.find(".");
@@ -120,8 +120,8 @@ static void write_picture(const de265_image* img)
     layer_out_filename.append("_");
     layer_out_filename.append(std::to_string(nuh_layer_id));
     layer_out_filename.append(extension);
-    
-    fh[nuh_layer_id] = fopen(layer_out_filename.c_str(), "wb"); 
+
+    fh[nuh_layer_id] = fopen(layer_out_filename.c_str(), "wb");
   }
 
   for (int c=0;c<3;c++) {
@@ -129,8 +129,30 @@ static void write_picture(const de265_image* img)
     const uint8_t* p = de265_get_image_plane(img, c, &stride);
     int width = de265_get_image_width(img,c);
 
-    for (int y=0;y<de265_get_image_height(img,c);y++) {
-      fwrite(p + y*stride, width, 1, fh[nuh_layer_id]);
+    if (de265_get_bits_per_pixel(img,c)<=8) {
+      // --- save 8 bit YUV ---
+
+      for (int y=0;y<de265_get_image_height(img,c);y++) {
+        fwrite(p + y*stride, width, 1, fh[nuh_layer_id]);
+      }
+    }
+    else {
+      // --- save 16 bit YUV ---
+
+      uint8_t* buf = new uint8_t[width*2];
+      uint16_t* p16 = (uint16_t*)p;
+
+      for (int y=0;y<de265_get_image_height(img,c);y++) {
+        for (int x=0;x<width;x++) {
+          uint16_t pixel_value = (p16+y*stride)[x];
+          buf[2*x+0] = pixel_value & 0xFF;
+          buf[2*x+1] = pixel_value >> 8;
+        }
+
+        fwrite(buf, width*2, 1, fh[nuh_layer_id]);
+      }
+
+      delete[] buf;
     }
   }
 
@@ -171,8 +193,20 @@ void display_image(const struct de265_image* img)
     width  = de265_get_image_width(img,ch);
     height = de265_get_image_height(img,ch);
 
-    for (int y=0;y<height;y++) {
-      memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+    int bit_depth = de265_get_bits_per_pixel(img,ch);
+
+    if (bit_depth==8) {
+      for (int y=0;y<height;y++) {
+        memcpy(visu.AskFrame((BitmapChannel)ch)[y], data + y*stride, width);
+      }
+    }
+    else {
+      const uint16_t* data16 = (const uint16_t*)data;
+      for (int y=0;y<height;y++) {
+        for (int x=0;x<width;x++) {
+          visu.AskFrame((BitmapChannel)ch)[y][x] = *(data16 + y*stride +x) >> (bit_depth-8);
+        }
+      }
     }
   }
 
@@ -181,16 +215,34 @@ void display_image(const struct de265_image* img)
 }
 #endif
 
+static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height, int stride, int bit_depth)
+{
+  const uint16_t* data16 = (const uint16_t*)data;
+  uint8_t* out = new uint8_t[stride*height];
+
+  for (int y=0;y<height;y++) {
+    for (int x=0;x<width;x++) {
+      out[y*stride + x] = *(data16 + y*stride +x) >> (bit_depth-8);
+    }
+  }
+
+  return out;
+}
+
+
 #if HAVE_SDL
 SDL_YUV_Display sdlWin;
 bool sdl_active=false;
 
 bool display_sdl(const struct de265_image* img)
 {
-  if (!sdl_active) {
-    int width  = de265_get_image_width(img,0);
-    int height = de265_get_image_height(img,0);
+  int width  = de265_get_image_width(img,0);
+  int height = de265_get_image_height(img,0);
 
+  int chroma_width  = de265_get_image_width(img,1);
+  int chroma_height = de265_get_image_height(img,1);
+
+  if (!sdl_active) {
     sdl_active=true;
     sdlWin.init(width,height);
   }
@@ -200,7 +252,26 @@ bool display_sdl(const struct de265_image* img)
   const uint8_t* cb =de265_get_image_plane(img,1,&chroma_stride);
   const uint8_t* cr =de265_get_image_plane(img,2,NULL);
 
+  uint8_t* y16  = NULL;
+  uint8_t* cb16 = NULL;
+  uint8_t* cr16 = NULL;
+  int bd;
+
+  if ((bd=de265_get_bits_per_pixel(img, 0)) > 8) {
+    y16  = convert_to_8bit(y,  width,height,stride,bd); y=y16;
+  }
+  if ((bd=de265_get_bits_per_pixel(img, 1)) > 8) {
+    cb16 = convert_to_8bit(cb, chroma_width,chroma_height,chroma_stride,bd); cb=cb16;
+  }
+  if ((bd=de265_get_bits_per_pixel(img, 2)) > 8) {
+    cr16 = convert_to_8bit(cr, chroma_width,chroma_height,chroma_stride,bd); cr=cr16;
+  }
+
   sdlWin.display(y,cb,cr, stride, chroma_stride);
+
+  delete[] y16;
+  delete[] cb16;
+  delete[] cr16;
 
   return sdlWin.doQuit();
 }

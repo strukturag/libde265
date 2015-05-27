@@ -68,7 +68,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   int qPY_PRED;
 
   // first QG in CTB row ?
-  
+
   int ctbLSBMask = ((1<<sps->Log2CtbSizeY)-1);
   bool firstInCTBRow = (xQG == 0 && ((yQG & ctbLSBMask)==0));
 
@@ -173,6 +173,12 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   */
 
   int log2CbSize = tctx->img->get_log2CbSize(xCUBase, yCUBase);
+
+  // TODO: On broken input, log2CbSize may be zero (multithreaded only). Not sure yet why.
+  // Maybe another decoding thread is overwriting the value set in slice.cc:read_coding_unit.
+  // id:000163,sig:06,src:002041,op:havoc,rep:16.bin
+  if (log2CbSize<3) { log2CbSize=3; }
+
   tctx->img->set_QPY(xCUBase, yCUBase, log2CbSize, QPY);
   tctx->currentQPY = QPY;
 
@@ -187,22 +193,24 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
 
 
+template <class pixel_t>
 void transform_coefficients(acceleration_functions* acceleration,
                             int16_t* coeff, int coeffStride, int nT, int trType,
-                            uint8_t* dst, int dstStride)
+                            pixel_t* dst, int dstStride, int bit_depth)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
+
   if (trType==1) {
 
-    acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
+    acceleration->transform_4x4_dst_add<pixel_t>(dst, coeff, dstStride, bit_depth);
 
   } else {
 
-    /**/ if (nT==4)  { acceleration->transform_add_8[0](dst,coeff,dstStride); }
-    else if (nT==8)  { acceleration->transform_add_8[1](dst,coeff,dstStride); }
-    else if (nT==16) { acceleration->transform_add_8[2](dst,coeff,dstStride); }
-    else             { acceleration->transform_add_8[3](dst,coeff,dstStride); }
+    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth); }
+    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth); }
+    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth); }
+    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth); }
   }
 
 #if 0
@@ -261,11 +269,12 @@ void fwd_transform(acceleration_functions* acceleration,
 static const int levelScale[] = { 40,45,51,57,64,72 };
 
 // (8.6.2) and (8.6.3)
-void scale_coefficients(thread_context* tctx,
-                        int xT,int yT, // position of TU in frame (chroma adapted)
-                        int x0,int y0, // position of CU in frame (chroma adapted)
-                        int nT, int cIdx,
-                        bool transform_skip_flag, bool intra)
+template <class pixel_t>
+void scale_coefficients_internal(thread_context* tctx,
+                                 int xT,int yT, // position of TU in frame (chroma adapted)
+                                 int x0,int y0, // position of CU in frame (chroma adapted)
+                                 int nT, int cIdx,
+                                 bool transform_skip_flag, bool intra)
 {
   seq_parameter_set* sps = &tctx->img->sps;
   pic_parameter_set* pps = &tctx->img->pps;
@@ -280,8 +289,6 @@ void scale_coefficients(thread_context* tctx,
 
   logtrace(LogTransform,"qP: %d\n",qP);
 
-  //printf("residual %d;%d cIdx=%d qp=%d\n",xT * (cIdx?2:1),yT * (cIdx?2:1),cIdx,qP);
-
 
   int16_t* coeff;
   int      coeffStride;
@@ -293,37 +300,23 @@ void scale_coefficients(thread_context* tctx,
 
 
 
-  uint8_t* pred;
+  pixel_t* pred;
   int      stride;
-  pred = tctx->img->get_image_plane_at_pos(cIdx, xT,yT);
+  pred = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx, xT,yT);
   stride = tctx->img->get_image_stride(cIdx);
 
-  //fprintf(stderr,"POC=%d pred: %p (%d;%d stride=%d)\n",ctx->img->PicOrderCntVal,pred,xT,yT,stride);
-
-  /*
-  int x,y;
-  for (y=0;y<nT;y++)
-    {
-      printf("P: ");
-
-      for (x=0;x<nT;x++)
-        {
-          printf("%02x ",pred[x+y*stride]);
-        }
-
-      printf("\n");
-    }
-  */
+  // We explicitly include the case for sizeof(pixel_t)==1 so that the compiler
+  // can optimize away a lot of code for 8-bit pixels.
+  const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps->get_bit_depth(cIdx));
 
   if (tctx->cu_transquant_bypass_flag) {
-    //assert(false); // TODO
 
     for (int i=0;i<tctx->nCoeff[cIdx];i++) {
       int32_t currCoeff  = tctx->coeffList[cIdx][i];
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
 
-    tctx->decctx->acceleration.transform_bypass_8(pred, coeff, nT, stride);
+    tctx->decctx->acceleration.transform_bypass(pred, coeff, nT, stride, bit_depth);
   }
   else {
     // (8.6.3)
@@ -349,7 +342,8 @@ void scale_coefficients(thread_context* tctx,
         // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
         int32_t currCoeff  = tctx->coeffList[cIdx][i];
 
-        //logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],tctx->coeffList[cIdx][i]);
+        //logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],
+        //tctx->coeffList[cIdx][i]);
 
         currCoeff = Clip3(-32768,32767,
                           ( (currCoeff * fact + offset ) >> bdShift));
@@ -358,23 +352,6 @@ void scale_coefficients(thread_context* tctx,
 
         tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
       }
-
-      //#ifdef DE265_LOG_TRACE
-#if 0
-        int16_t clog[32*32];
-        memset(clog,0,32*32*sizeof(int16_t));
-        for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-          clog[ tctx->coeffPos[cIdx][i] ] = tctx->coeffList[cIdx][i];
-        }
-        
-        printf("quantized coefficients:\n");
-        for (int y=0;y<nT;y++) {
-          for (int x=0;x<nT;x++) {
-            printf("%4d ",clog[x+y*nT]);
-          }
-          printf("\n");
-        }
-#endif
     }
     else {
       const int offset = (1<<(bdShift-1));
@@ -429,7 +406,7 @@ void scale_coefficients(thread_context* tctx,
 
     if (transform_skip_flag) {
 
-      tctx->decctx->acceleration.transform_skip_8(pred, coeff, stride);
+      tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
     }
     else {
       int trType;
@@ -442,7 +419,7 @@ void scale_coefficients(thread_context* tctx,
       }
 
       transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                             pred, stride);
+                             pred, stride, bit_depth);
     }
   }
 
@@ -457,31 +434,7 @@ void scale_coefficients(thread_context* tctx,
     }
 
     logtrace(LogTransform,"*\n");
-  }  
-
-  /*
-  for (y=0;y<nT;y++)
-    {
-      printf("C: ");
-
-      for (x=0;x<nT;x++)
-        {
-          printf("%4d ",coeff[x+y*nT]);
-        }
-
-      printf("\n");
-    }
-
-  for (y=0;y<nT;y++)
-    {
-      for (x=0;x<nT;x++)
-        {
-          printf("%02x ",pred[x+y*stride]);
-        }
-
-      printf("\n");
-    }
-  */
+  }
 
   // zero out scrap coefficient buffer again
 
@@ -490,6 +443,19 @@ void scale_coefficients(thread_context* tctx,
   }
 }
 
+
+void scale_coefficients(thread_context* tctx,
+                        int xT,int yT, // position of TU in frame (chroma adapted)
+                        int x0,int y0, // position of CU in frame (chroma adapted)
+                        int nT, int cIdx,
+                        bool transform_skip_flag, bool intra)
+{
+  if (tctx->img->high_bit_depth(cIdx)) {
+    scale_coefficients_internal<uint16_t>(tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra);
+  } else {
+    scale_coefficients_internal<uint8_t> (tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra);
+  }
+}
 
 
 //#define QUANT_IQUANT_SHIFT    20 // Q(QP%6) * IQ(QP%6) = 2^20
