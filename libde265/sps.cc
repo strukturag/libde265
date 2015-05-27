@@ -153,7 +153,10 @@ void seq_parameter_set::set_defaults(enum PresetSet)
       vui_parameters()
   */
 
-  sps_extension_flag = 0;
+  sps_extension_present_flag = 0;
+  sps_range_extension_flag = 0;
+  sps_multilayer_extension_flag = 0;
+  sps_extension_6bits = 0;
 }
 
 
@@ -403,6 +406,22 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   sps_temporal_mvp_enabled_flag = get_bits(br,1);
   strong_intra_smoothing_enable_flag = get_bits(br,1);
   vui_parameters_present_flag = get_bits(br,1);
+
+  if (vui_parameters_present_flag) {
+    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+  }
+
+  sps_extension_present_flag = get_bits(br,1);
+  if (sps_extension_present_flag) {
+    sps_range_extension_flag = get_bits(br,1);
+    sps_multilayer_extension_flag = get_bits(br,1);
+    sps_extension_6bits = get_bits(br,6);
+  }
+
+  if (sps_range_extension_flag) {
+    de265_error err = range_extension.read(errqueue, br);
+    if (err != DE265_OK) { return err; }
+  }
 
 #if 0
   if (vui_parameters_present_flag) {
@@ -655,6 +674,11 @@ void seq_parameter_set::dump(int fd) const
   LOG1("strong_intra_smoothing_enable_flag : %d\n", strong_intra_smoothing_enable_flag);
   LOG1("vui_parameters_present_flag        : %d\n", vui_parameters_present_flag);
 
+  LOG1("sps_extension_present_flag    : %d\n", sps_extension_present_flag);
+  LOG1("sps_range_extension_flag      : %d\n", sps_range_extension_flag);
+  LOG1("sps_multilayer_extension_flag : %d\n", sps_multilayer_extension_flag);
+  LOG1("sps_extension_6bits           : %d\n", sps_extension_6bits);
+
   LOG1("CtbSizeY     : %d\n", CtbSizeY);
   LOG1("MinCbSizeY   : %d\n", MinCbSizeY);
   LOG1("MaxCbSizeY   : %d\n", 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size));
@@ -665,6 +689,10 @@ void seq_parameter_set::dump(int fd) const
   LOG1("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
   LOG1("SubWidthC               : %d\n", SubWidthC);
   LOG1("SubHeightC              : %d\n", SubHeightC);
+
+  if (sps_range_extension_flag) {
+    range_extension.dump(fd);
+  }
 
   return;
 
@@ -1135,7 +1163,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   }
 #endif
 
-  out.write_bit(sps_extension_flag);
+  out.write_bit(sps_extension_present_flag);
 
 #if 0
   if (sps_extension_flag) {
@@ -1187,3 +1215,43 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   return DE265_OK;
 }
+
+
+de265_error sps_range_extension::read(error_queue* errqueue, bitreader* br)
+{
+  transform_skip_rotation_enabled_flag    = get_bits(br,1);
+  transform_skip_context_enabled_flag     = get_bits(br,1);
+  implicit_rdpcm_enabled_flag             = get_bits(br,1);
+  explicit_rdpcm_enabled_flag             = get_bits(br,1);
+  extended_precision_processing_flag      = get_bits(br,1);
+  intra_smoothing_disabled_flag           = get_bits(br,1);
+  high_precision_offsets_enabled_flag     = get_bits(br,1);
+  persistent_rice_adaptation_enabled_flag = get_bits(br,1);
+  cabac_bypass_alignment_enabled_flag     = get_bits(br,1);
+
+  return DE265_OK;
+}
+
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+void sps_range_extension::dump(int fd) const
+{
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+  LOG0("----------------- SPS-range-extension -----------------\n");
+  LOG1("transform_skip_rotation_enabled_flag    : %d\n", transform_skip_rotation_enabled_flag);
+  LOG1("transform_skip_context_enabled_flag     : %d\n", transform_skip_context_enabled_flag);
+  LOG1("implicit_rdpcm_enabled_flag             : %d\n", implicit_rdpcm_enabled_flag);
+  LOG1("explicit_rdpcm_enabled_flag             : %d\n", explicit_rdpcm_enabled_flag);
+  LOG1("extended_precision_processing_flag      : %d\n", extended_precision_processing_flag);
+  LOG1("intra_smoothing_disabled_flag           : %d\n", intra_smoothing_disabled_flag);
+  LOG1("high_precision_offsets_enabled_flag     : %d\n", high_precision_offsets_enabled_flag);
+  LOG1("persistent_rice_adaptation_enabled_flag : %d\n", persistent_rice_adaptation_enabled_flag);
+  LOG1("cabac_bypass_alignment_enabled_flag     : %d\n", cabac_bypass_alignment_enabled_flag);
+}
+#undef LOG1
+#undef LOG0

@@ -61,6 +61,25 @@ enum PresetSet {
   Preset_Default
 };
 
+
+class sps_range_extension
+{
+ public:
+  uint8_t transform_skip_rotation_enabled_flag;
+  uint8_t transform_skip_context_enabled_flag;
+  uint8_t implicit_rdpcm_enabled_flag;
+  uint8_t explicit_rdpcm_enabled_flag;
+  uint8_t extended_precision_processing_flag;
+  uint8_t intra_smoothing_disabled_flag;
+  uint8_t high_precision_offsets_enabled_flag;
+  uint8_t persistent_rice_adaptation_enabled_flag;
+  uint8_t cabac_bypass_alignment_enabled_flag;
+
+  de265_error read(error_queue*, bitreader*);
+  void dump(int fd) const;
+};
+
+
 class seq_parameter_set {
 public:
   seq_parameter_set();
@@ -150,7 +169,12 @@ public:
       vui_parameters()
   */
 
-  char sps_extension_flag;
+  char sps_extension_present_flag;
+  char sps_range_extension_flag;
+  char sps_multilayer_extension_flag;
+  char sps_extension_6bits;
+
+  sps_range_extension range_extension;
 
   /*
     if( sps_extension_flag )
