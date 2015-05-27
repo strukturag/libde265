@@ -114,6 +114,10 @@ void pic_parameter_set::set_defaults(enum PresetSet)
   num_extra_slice_header_bits = 0;
   slice_segment_header_extension_present_flag = 0;
   pps_extension_flag = 0;
+
+  pps_range_extension_flag = 0;
+  pps_multilayer_extension_flag = 0;
+  pps_extension_6bits = 0;
 }
 
 
@@ -350,6 +354,10 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   pps_extension_flag = get_bits(br,1);
 
   if (pps_extension_flag) {
+    pps_range_extension_flag = get_bits(br,1);
+    pps_multilayer_extension_flag = get_bits(br,1);
+    pps_extension_6bits = get_bits(br,6);
+
     //assert(false);
     /*
       while( more_rbsp_data() )
@@ -785,7 +793,10 @@ void pic_parameter_set::dump(int fd) const
   LOG1("log2_parallel_merge_level      : %d\n", log2_parallel_merge_level);
   LOG1("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
   LOG1("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
-  LOG1("pps_extension_flag : %d\n", pps_extension_flag);
+  LOG1("pps_extension_flag            : %d\n", pps_extension_flag);
+  LOG1("pps_range_extension_flag      : %d\n", pps_range_extension_flag);
+  LOG1("pps_multilayer_extension_flag : %d\n", pps_multilayer_extension_flag);
+  LOG1("pps_extension_6bits           : %d\n", pps_extension_6bits);
 
   LOG1("Log2MinCuQpDeltaSize : %d\n", Log2MinCuQpDeltaSize);
 

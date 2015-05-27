@@ -106,7 +106,9 @@ public:
   char num_extra_slice_header_bits;
   char slice_segment_header_extension_present_flag;
   char pps_extension_flag;
-
+  char pps_range_extension_flag;
+  char pps_multilayer_extension_flag;
+  char pps_extension_6bits;
 
   // --- derived values ---
 
