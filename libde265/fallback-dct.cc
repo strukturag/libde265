@@ -59,6 +59,22 @@ void transform_skip_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t st
 }
 
 
+void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+{
+  int nT = 4;
+  int bdShift2 = 20-bit_depth;
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT] << 7;
+      c = (c+(1<<(bdShift2-1)))>>bdShift2;
+
+      dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + c, bit_depth);
+    }
+}
+
+
+
 void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride)
 {
   int bdShift2 = 20-8;
@@ -68,6 +84,19 @@ void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, pt
       int32_t c = coeffs[x+y*nT];
 
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + c);
+    }
+}
+
+
+void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth)
+{
+  int bdShift2 = 20-bit_depth;
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + c, bit_depth);
     }
 }
 
@@ -142,6 +171,77 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrd
       int out = Clip3(-32768,32767, (sum+rndH)>>postShift);
 
       dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
+
+      logtrace(LogTransform,"*%d ",out);
+    }
+
+    logtrace(LogTransform,"*\n");
+  }
+}
+
+
+void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                        int bit_depth)
+{
+  int16_t g[4][4];
+
+  int postShift = 20-bit_depth;
+  int rndV = 1<<(7-1);
+  int rndH = 1<<(postShift-1);
+
+
+  // --- V ---
+
+  for (int c=0;c<4;c++) {
+    /*
+    logtrace(LogTransform,"DST-V: ");
+    for (int r=0;r<4;r++) {
+      logtrace(LogTransform,"%d ",coeffs[c+r*4]);
+    }
+    logtrace(LogTransform,"* -> ");
+    */
+
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[j][i] * coeffs[c+j*4];
+      }
+
+      g[i][c] = Clip3(-32768,32767, (sum+rndV)>>7);
+    }
+
+    /*
+    for (int y=0;y<4;y++) {
+      logtrace(LogTransform,"*%d ",g[y][c]);
+    }
+    logtrace(LogTransform,"*\n");
+    */
+  }
+
+
+  // --- H ---
+
+  for (int y=0;y<4;y++) {
+
+    /*
+    logtrace(LogTransform,"DST-H: ");
+    for (int c=0;c<4;c++) {
+      logtrace(LogTransform,"%d ",g[y][c]);
+    }
+    logtrace(LogTransform,"* -> ");
+    */
+
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[j][i] * g[y][j];
+      }
+
+      int out = Clip3(-32768,32767, (sum+rndH)>>postShift);
+
+      dst[y*stride+i] = Clip_BitDepth(dst[y*stride+i] + out, bit_depth);
 
       logtrace(LogTransform,"*%d ",out);
     }
@@ -249,8 +349,9 @@ static int8_t mat_dct[32][32] = {
 
 
 
-static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
-                                 int nT, const int16_t *coeffs)
+template <class pixel_t>
+void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
+                        int nT, const int16_t *coeffs, int bit_depth)
 {
   /*
     The effective shift is
@@ -268,7 +369,7 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
    */
 
 
-  int postShift = 20-8; // 8 bit
+  int postShift = 20-bit_depth;
   int rnd1 = 1<<(7-1);
   int rnd2 = 1<<(postShift-1);
   int fact = (1<<(5-Log2(nT)));
@@ -383,7 +484,7 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
 
       //fprintf(stderr,"%d*%d+%d = %d\n",y,stride,i,y*stride+i);
       //fprintf(stderr,"[%p]=%d\n",&dst[y*stride+i], Clip1_8bit(dst[y*stride+i]));
-      dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
+      dst[y*stride+i] = Clip_BitDepth(dst[y*stride+i] + out, bit_depth);
 
       logtrace(LogTransform,"*%d ",out);
     }
@@ -394,22 +495,43 @@ static void transform_idct_add_8(uint8_t *dst, ptrdiff_t stride,
 
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_idct_add_8(dst,stride,  4, coeffs);
+  transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8);
 }
 
 void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_idct_add_8(dst,stride,  8, coeffs);
+  transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8);
 }
 
 void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_idct_add_8(dst,stride,  16, coeffs);
+  transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8);
 }
 
 void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
-  transform_idct_add_8(dst,stride,  32, coeffs);
+  transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8);
+}
+
+
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+{
+  transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth);
+}
+
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+{
+  transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth);
+}
+
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+{
+  transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth);
+}
+
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+{
+  transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth);
 }
 
 

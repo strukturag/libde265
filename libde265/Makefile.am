@@ -71,6 +71,7 @@ libde265_la_SOURCES = \
   acceleration.h \
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h \
   fallback-dct.h fallback-dct.cc \
+  fallback-upsampling.h fallback-upsampling.cc \
   quality.cc quality.h \
   configparam.cc configparam.h \
   image-io.h image-io.cc \

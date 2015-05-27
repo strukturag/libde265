@@ -1510,14 +1510,14 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
 
   // ... and the following applies:
   for( int i=0; i<hdr->NumActiveRefLayerPics; i++ ) {
-    bool refPicSet0Flag = 
+    bool refPicSet0Flag =
       ((ViewId[currLayerId] <= ViewId[0] && ViewId[currLayerId] <= ViewId[RefPicLayerId[i]]) ||
       (ViewId[currLayerId] >= ViewId[0] && ViewId[currLayerId] >= ViewId[RefPicLayerId[i]]));
 
     // Look for the lower layer reference picture in the lower layer dpb
     int refLayerID = RefPicLayerId[i];
     decoder_context *ctx_lower = ctx->get_multi_layer_decoder()->get_layer_dec(refLayerID);
-    
+
     // Get current POC and ID (? wat is this ID?)
     int currentPOC = ctx->img->PicOrderCntVal;
     const int currentID = ctx->img->get_ID();
@@ -1551,7 +1551,7 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
 }
 
 /* H.8.1.4 Derivation process for inter-layer reference pictures
-   
+
    In case of SNR scalalbility: After calling this function ilRefPic[ilRefPicIdx] will contain a pointer to
    the reference layer image.
    In case of spatial scalalbility: After calling this function ilRefPic[ilRefPicIdx] will contain a new image
@@ -1611,7 +1611,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
   int SpatialScaleFactorVerY = ((RefLayerRegionHeightInSamplesY << 16) + (ScaledRefRegionHeightInSamplesY >> 1)) / ScaledRefRegionHeightInSamplesY;
   int SpatialScaleFactorHorC = (((RefLayerRegionWidthInSamplesY  / SubWidthRefLayerC ) << 16) + ((ScaledRefRegionWidthInSamplesY  / SubWidthCurrC ) >> 1)) / (ScaledRefRegionWidthInSamplesY  / SubWidthCurrC );
   int SpatialScaleFactorVerC = (((RefLayerRegionHeightInSamplesY / SubHeightRefLayerC) << 16) + ((ScaledRefRegionHeightInSamplesY / SubHeightCurrC) >> 1)) / (ScaledRefRegionHeightInSamplesY / SubHeightCurrC);
-  
+
   int PhaseHorY = pps_ext->phase_hor_luma[rLId];
   int PhaseVerY = pps_ext->phase_ver_luma[rLId];
   int PhaseHorC = pps_ext->phase_hor_chroma[rLId];
@@ -1659,7 +1659,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
      (SubWidthRefLayerC == SubWidthCurrC) &&
      (SubHeightRefLayerC == SubHeightCurrC) &&
      !currColourMappingEnableFlag) {
-    
+
     // SNR scalability. We do not need to perform any upsampling.
     // Just copy all information from the lower layer reference.
     ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
@@ -1670,20 +1670,20 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     video_parameter_set_extension *vps_ext = &ctx->current_vps->vps_extension;
     int currLayerId = ctx->get_layer_id();
     if (vps_ext->VpsInterLayerSamplePredictionEnabled[vps_ext->LayerIdxInVps[currLayerId]][vps_ext->LayerIdxInVps[rLId]]) {
-      
+
       // Derive the parameters needed by the reference layer sample location derivation function
       // as specified in clause H.8.1.4.1.3. These will bee needed when the reference layer sample location derivation
       // process is invoked.
       int position_params[2][8];
       for (int c=0; c<2; c++) {
         bool chromaFlag = (c != 0);
-    
+
         // The variables currOffsetLeft, currOffsetTop, refOffsetLeft and refOffsetTop are derived as follows:
         int currOffsetLeft = ScaledRefLayerLeftOffset / (chromaFlag ? SubWidthCurrC  : 1);              // (H 53)
         int currOffsetTop  = ScaledRefLayerTopOffset  / (chromaFlag ? SubHeightCurrC : 1);              // (H 54)
         int refOffsetLeft  = (RefLayerRegionLeftOffset / (chromaFlag ? SubWidthRefLayerC  : 1)) << 4;   // (H 55)
         int refOffsetTop   = (RefLayerRegionTopOffset  / (chromaFlag ? SubHeightRefLayerC : 1)) << 4;   // (H 56)
-    
+
         // The variables phaseHor, phaseVer, scaleHor and scaleVer are derived as follows:
         int phaseHor = chromaFlag ? PhaseHorC : PhaseHorY;                              // (H 57)
         int phaseVer = chromaFlag ? PhaseVerC : PhaseVerY;                              // (H 58)
@@ -1704,7 +1704,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         position_params[c][6] = addHor;
         position_params[c][7] = addVer;
       }
-      
+
       if (currColourMappingEnableFlag) {
         // The colour mapping process as specified in clause H.8.1.4.3 is invoked
         // TODO
@@ -1718,19 +1718,19 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
           int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
           int dst_size[2] = { ilRefPic[ilRefPicIdx]->get_width(), ilRefPic[ilRefPicIdx]->get_height() };
           ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size, 
+                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size,
                                                                      position_params[0], BitDepthRefLayerY, BitDepthCurrY );
 
           // Chroma
-          src_size[0] = rlPic->get_width(1); 
+          src_size[0] = rlPic->get_width(1);
           src_size[1] = rlPic->get_height(1);
-          dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1); 
-          dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1); 
+          dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1);
+          dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1);
           ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
                                                                      position_params[1], BitDepthRefLayerC, BitDepthCurrC );
           ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
                                                                      position_params[1], BitDepthRefLayerC, BitDepthCurrC );
         }
         sampleProcessingFlag = true;
@@ -1741,19 +1741,19 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
         int dst_size[2] = { ilRefPic[ilRefPicIdx]->get_width(), ilRefPic[ilRefPicIdx]->get_height() };
         ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size, 
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size,
                                                                    position_params[0], BitDepthRefLayerY, BitDepthCurrY );
 
         // Chroma
-        src_size[0] = rlPic->get_width(1); 
+        src_size[0] = rlPic->get_width(1);
         src_size[1] = rlPic->get_height(1);
-        dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1); 
-        dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1); 
+        dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1);
+        dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1);
         ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
                                                                    position_params[1], BitDepthRefLayerC, BitDepthCurrC );
         ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
+                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
                                                                    position_params[1], BitDepthRefLayerC, BitDepthCurrC );
 
         //// DEBUG. DUMP TO FILE
@@ -1798,7 +1798,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         motionProcessingFlag  = true;
       }
     }
-    
+
     ilRefPic_upsampled = true;
   }
 }
@@ -1838,7 +1838,7 @@ void decoder_context::resampling_process_of_picture_motion_and_mode_parameters(d
       xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
       yRL = ((yRef + 4) >> 4) << 4;  // (H 70)
 
-      // Calculate the width and height of the block. This is necessary since "set_pred_mode" and 
+      // Calculate the width and height of the block. This is necessary since "set_pred_mode" and
       // "set_mv_info" are not capable of handling blocks that reach outside the picture bundary.
       width = 16;
       height = 16;
@@ -2510,7 +2510,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   ctx->current_pps = &ctx->pps[pps_id];
   ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
   ctx->current_vps = get_vps((int)ctx->current_sps->video_parameter_set_id);
-  
+
   calc_tid_and_framerate_ratio();
 
 
@@ -2543,7 +2543,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
     ctx->img = img;
 
     img->vps = *ctx->current_vps;
-    img->sps = *ctx->current_sps;
+    //img->sps = *ctx->current_sps;  // already set in new_image()
     img->pps = *ctx->current_pps;
     img->decctx = ctx;
 
