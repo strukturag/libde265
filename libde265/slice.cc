@@ -3395,6 +3395,39 @@ static void dump_cbsize(de265_image* img)
 }
 
 
+void decode_TU(thread_context* tctx,
+               int x0,int y0,
+               int xCUBase,int yCUBase,
+               int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
+{
+  de265_image* img = tctx->img;
+
+  if (cuPredMode == MODE_INTRA) // if intra mode
+    {
+      enum IntraPredMode intraPredMode;
+
+      if (cIdx==0) {
+        intraPredMode = img->get_IntraPredMode(x0,y0);
+      }
+      else {
+        intraPredMode = tctx->IntraPredModeC[0]; // TODO
+      }
+
+      if (intraPredMode<0 || intraPredMode>=35) {
+        // TODO: ERROR
+        intraPredMode = INTRA_DC;
+      }
+
+      decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
+    }
+
+  if (cbf) {
+    scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
+                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA);
+  }
+}
+
+
 void read_transform_tree(thread_context* tctx,
                          int x0, int y0,        // position of TU in frame
                          int xBase, int yBase,  // position of parent TU in frame
@@ -3417,6 +3450,7 @@ void read_transform_tree(thread_context* tctx,
   int split_transform_flag;
 
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  assert(PredMode == cuPredMode);
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
@@ -3487,7 +3521,7 @@ void read_transform_tree(thread_context* tctx,
     /* The standard specifies to check trafoDepth>0 AND log2TrafoSize==2.
        However, I think that trafoDepth>0 is redundant as a CB is always
        at least 8x8 and hence trafoDepth>0.
-     */
+    */
 
     if (trafoDepth>0 && log2TrafoSize==2) {
       cbf_cb = parent_cbf_cb;
@@ -3528,7 +3562,7 @@ void read_transform_tree(thread_context* tctx,
     else {
       /* There cannot be INTER blocks with no residual data.
          That case is already handled with rqt_root_cbf.
-       */
+      */
 
       cbf_luma = 1;
     }
@@ -3541,63 +3575,16 @@ void read_transform_tree(thread_context* tctx,
 
     int nT = 1<<log2TrafoSize;
 
-
-    if (cuPredMode == MODE_INTRA) // if intra mode
-      {
-        enum IntraPredMode intraPredMode = img->get_IntraPredMode(x0,y0);
-
-        if (intraPredMode<0 || intraPredMode>=35) {
-          // TODO: ERROR
-          intraPredMode = INTRA_DC;
-        }
-
-        decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
-
-        enum IntraPredMode chromaPredMode = tctx->IntraPredModeC[0]; // TODO
-
-        if (chromaPredMode<0 || chromaPredMode>=35) {
-          // TODO: ERROR
-          chromaPredMode = INTRA_DC;
-        }
+    decode_TU(tctx, x0,y0, xCUBase,yCUBase, nT, 0, cuPredMode, cbf_luma);
 
 
-        if (nT>=8) {
-          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 1);
-          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 2);
-        }
-        else if (blkIdx==3) {
-          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 1);
-          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 2);
-        }
-      }
-
-    // NOTE: disable MC-mode residuals:
-    { //if (cuPredMode == MODE_INTRA) {
-      if (cbf_luma) {
-        scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, 0,
-                           tctx->transform_skip_flag[0], PredMode==MODE_INTRA);
-      }
-
-      if (nT>=8) {
-        if (cbf_cb) {
-          scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
-                             tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
-        }
-        if (cbf_cr) {
-          scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
-                             tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
-        }
-      }
-      else if (blkIdx==3) {
-        if (cbf_cb) {
-          scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
-                             tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
-        }
-        if (cbf_cr) {
-          scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
-                             tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
-        }
-      }
+    if (nT>=8) {
+      decode_TU(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1, cuPredMode, cbf_cb);
+      decode_TU(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2, cuPredMode, cbf_cr);
+    }
+    else if (blkIdx==3) {
+      decode_TU(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1, cuPredMode, cbf_cb);
+      decode_TU(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2, cuPredMode, cbf_cr);
     }
   }
 }
