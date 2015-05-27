@@ -1617,6 +1617,12 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
   int PhaseHorC = pps_ext->phase_hor_chroma[rLId];
   int PhaseVerC = pps_ext->phase_ver_chroma[rLId];
 
+  // This is what the reference software does.
+  // TODO: Double check with the actual standard.
+  if (!pps_ext->resample_phase_set_present_flag[rLId]) {
+    PhaseVerC = (4 * PicHeightInSamplesCurrY + (RefLayerRegionHeightInSamplesY >> 1)) / RefLayerRegionHeightInSamplesY - 4;
+  }
+
   // The following ordered steps are applied to derive the inter-layer reference picture ilRefPic.
   bool sampleProcessingFlag = false;
   bool motionProcessingFlag = false;
@@ -1749,6 +1755,29 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
                                                                    ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size, 
                                                                    position_params[1], BitDepthRefLayerC, BitDepthCurrC );
+
+        //// DEBUG. DUMP TO FILE
+        //FILE *fp = fopen("before_upsampling.txt", "wb");
+        //int nrBytesY = rlPic->get_width() * rlPic->get_height();
+        //int nrBytesUV = nrBytesY / 4;
+        //uint8_t *srcY = rlPic->get_image_plane(0);
+        //uint8_t *srcU = rlPic->get_image_plane(1);
+        //uint8_t *srcV = rlPic->get_image_plane(2);
+        //fwrite(srcY, sizeof(uint8_t), nrBytesY, fp);
+        //fwrite(srcU, sizeof(uint8_t), nrBytesUV, fp);
+        //fwrite(srcV, sizeof(uint8_t), nrBytesUV, fp);
+        //fclose(fp);
+        //// DEBUG. DUMP TO FILE
+        //fp = fopen("after_upsampling.txt", "wb");
+        //nrBytesY = ilRefPic[ilRefPicIdx]->get_width() * ilRefPic[ilRefPicIdx]->get_height();
+        //nrBytesUV = nrBytesY / 4;
+        //uint8_t *dstY = ilRefPic[ilRefPicIdx]->get_image_plane(0);
+        //uint8_t *dstU = ilRefPic[ilRefPicIdx]->get_image_plane(1);
+        //uint8_t *dstV = ilRefPic[ilRefPicIdx]->get_image_plane(2);
+        //fwrite(dstY, sizeof(uint8_t), nrBytesY, fp);
+        //fwrite(dstU, sizeof(uint8_t), nrBytesUV, fp);
+        //fwrite(dstV, sizeof(uint8_t), nrBytesUV, fp);
+        //fclose(fp);
       }
     }
 

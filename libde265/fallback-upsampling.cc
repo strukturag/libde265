@@ -34,7 +34,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
   int tempArray[8];
   uint8_t *rlPicSampleL;
   uint8_t *rsLumaSample;
-
+  
   // Table H.1 – 16-phase luma resampling filter
   int fL[16][8] = { { 0, 0,   0, 64,  0,   0, 0,  0},
                     { 0, 1,  -3, 63,  4,  -2, 1,  0},
@@ -152,7 +152,8 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
 
     // 3. The variables yRef and yPhase are derived as follows:
     yRef   = yRef16 >> 4;  // (H 43)
-    yPhase = yRef16 % 16;  // (H 44)
+    //yPhase = yRef16 % 16;  // (H 44)
+    yPhase = yRef16 & 15;  // This is what the reference software does. TODO: Double check with the latest standard.
     
     for (int xP = 0; xP < dst_size[0]; xP++) {
       // 1.
@@ -171,7 +172,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
 
       // 5. The sample value tempArray[ n ] with n = 0..3, is derived as follows:
       for (int n = 0; n<4; n++) {
-        yPosRL = Clip3( 0, PicHeightInSamplesRefLayerC - 1, yRef + n - 3 );  // (H 48)
+        yPosRL = Clip3( 0, PicHeightInSamplesRefLayerC - 1, yRef + n - 1 );  // (H 48)
         refWC  = PicWidthInSamplesRefLayerC;                                 // (H 49)
 
         rlPicSampleC = src + yPosRL * srcstride;
@@ -183,9 +184,9 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
 
       // 6. The resampled chroma sample value rsChromaSample is derived as follows:
       rsChromaSample[xP] = ( fC[yPhase][0] * tempArray[0] +
-                              fC[yPhase][1] * tempArray[1] +
-                              fC[yPhase][2] * tempArray[2] +
-                              fC[yPhase][3] * tempArray[3] + offset ) >> shift2;  // (H 51)
+                             fC[yPhase][1] * tempArray[1] +
+                             fC[yPhase][2] * tempArray[2] +
+                             fC[yPhase][3] * tempArray[3] + offset ) >> shift2;  // (H 51)
 
       rsChromaSample[xP] = Clip3(0, ( 1 << BitDepthCurrC ) - 1, rsChromaSample[xP]);  // (H 52)
     }
