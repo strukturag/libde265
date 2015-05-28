@@ -29,17 +29,32 @@
 //
 // USE_FASTER_IMPLEMENTATION == 1:
 // Use a buffer of size (SrcPicHeigh * DestPicWidth) to perform the upsampling in hirzontal
-// and vertical direction seperately.
+// and vertical direction seperately. On my mashine this is around 4 times faster than 
+// USE_FASTER_IMPLEMENTATION == 0.
 // 
 // USE_FASTER_IMPLEMENTATION == 2:
 // Split the horizontal/veritcal filtering into intervals (padding on the left / no padding / padding on the right)
+// On my mashine this provided a speedup of aroud x2 compared to USE_FASTER_IMPLEMENTATION == 1.
 #define USE_FASTER_IMPLEMENTATION 2
 
+// Measure the execution time of the upsampling and print it to stdout
+#define MEASURE_EXECUTION_TIME 0
+
+#if MEASURE_EXECUTION_TIME
+#define INTMAX_MAX 9223372036854775807LL
+#include <chrono>
+using namespace std;
+using namespace std::chrono;
+#endif
 
 void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],
                                                         uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
                                                         int position_params[8], int BitDepthRefLayerY, int BitDepthCurrY)
 {
+#if MEASURE_EXECUTION_TIME
+  high_resolution_clock::time_point t1 = high_resolution_clock::now();
+#endif
+
   // Reference layer size
   int PicHeightInSamplesRefLayerY = src_size[1];
   int PicWidthInSamplesRefLayerY = src_size[0];
@@ -210,12 +225,12 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     }
   }
 
-  // DEBUG. DUMP TO FILE
-  FILE *fp = fopen("temp_array.txt", "wb");
-  int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
-  int16_t *srcY = tmp;
-  fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
-  fclose(fp);
+  //// DEBUG. DUMP TO FILE
+  //FILE *fp = fopen("temp_array.txt", "wb");
+  //int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
+  //int16_t *srcY = tmp;
+  //fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
+  //fclose(fp);
 
   // -------- Vertical upsampling ------------
   // Also split the loop over y into the three intervals.
@@ -382,12 +397,12 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     }
   }
 
-  // DEBUG. DUMP TO FILE
-  FILE *fp = fopen("temp_array.txt", "wb");
-  int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
-  int16_t *srcY = tmp;
-  fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
-  fclose(fp);
+  //// DEBUG. DUMP TO FILE
+  //FILE *fp = fopen("temp_array.txt", "wb");
+  //int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
+  //int16_t *srcY = tmp;
+  //fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
+  //fclose(fp);
   
   // Vertical upsampling
   int refY = PicHeightInSamplesRefLayerY;
@@ -475,6 +490,12 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
                             fL[yPhase][7] * tempArray[7] + offset ) >> shift2;  // (H 39)
     }
   }
+#endif
+
+#if MEASURE_EXECUTION_TIME
+  high_resolution_clock::time_point t2 = high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+  printf("Upsampling Y from (%dx%d) to (%dx%d) took %d ms\n", PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, PicWidthInSamplesCurLayerY, PicHeightInSamplesCurLayerY, duration);
 #endif
 }
 void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],
