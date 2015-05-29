@@ -47,6 +47,15 @@ using namespace std;
 using namespace std::chrono;
 #endif
 
+/*
+  //// DEBUG. DUMP THE TEMP BUFFER TO FILE
+  //FILE *fp = fopen("temp_array.txt", "wb");
+  //int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
+  //int16_t *srcY = tmp;
+  //fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
+  //fclose(fp);
+*/
+
 void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],
                                                         uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
                                                         int position_params[8], int BitDepthRefLayerY, int BitDepthCurrY)
@@ -65,7 +74,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;
-  int yPosRL;
   uint8_t *rlPicSampleL;
   uint8_t *rsLumaSample;
 
@@ -107,9 +115,9 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
   // Interval 1: xP from 0 ... xP_left-1. Here padding of the input samples on the left is required.
   // Interval 2: xP from xP_left ... xP_right-1. Here no padding is needed
   // Interval 3: xP from xP_right ... refW-1. Here padding of the input samples on the right is required.
-  int xP_left = (((48 - position_params[2]) << 12 - position_params[6]) / position_params[4]) + position_params[0];
-  int xP_right = ((((PicWidthInSamplesRefLayerY - 4) * 16 - position_params[2]) << 12 - position_params[6]) / position_params[4]) + position_params[0];
-
+  int xP_left = ((((48 - position_params[2]) * 4096 - 2048 ) - position_params[6]) / position_params[4] + 1) + position_params[0]; // Get the x position at which xRef16 is at least 48 (or larger). (Get lowest value in the quanization interval and round up afterwards)
+  int xP_right = (((((PicWidthInSamplesRefLayerY - 4) * 16 - position_params[2]) * 4096 + 2047 ) - position_params[6]) / position_params[4]) + position_params[0]; // Get the x position at which xRef16 is smaller than (PicWidthInSamplesRefLayerC - 4) * 16
+  
   // ---- Interval 1:
   // We need to padd the left samples
   int xP = 0;
@@ -225,17 +233,10 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     }
   }
 
-  //// DEBUG. DUMP TO FILE
-  //FILE *fp = fopen("temp_array.txt", "wb");
-  //int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
-  //int16_t *srcY = tmp;
-  //fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
-  //fclose(fp);
-
   // -------- Vertical upsampling ------------
   // Also split the loop over y into the three intervals.
-  int yP_top = (((48 - position_params[3]) << 12 - position_params[7]) / position_params[5]) + position_params[1];
-  int yP_bottom = ((((PicHeightInSamplesRefLayerY - 4) * 16 - position_params[3]) << 12 - position_params[7]) / position_params[5]) + position_params[1];
+  int yP_top = ((((48 - position_params[3]) * 4096 - 2048 ) - position_params[7]) / position_params[5] + 1) + position_params[1]; // Get the y position at which yRef16 is at least 48 (or larger). (Get lowest value in the quanization interval and round up afterwards)
+  int yP_bottom = (((((PicHeightInSamplesRefLayerY - 4) * 16 - position_params[3]) * 4096 + 2047 ) - position_params[7]) / position_params[5]) + position_params[1]; // Get the y position at which yRef16 is smaller than (PicHeightInSamplesRefLayerC - 4) * 16
 
   // ---- Interval 1:
   // We need to padd the left samples
@@ -254,12 +255,12 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     // Get the pointers to the temp buffer for this yP
     tmp_minus3 = tmp;  // yRef must be smaller than 3
     tmp_minus2 = tmp;  // yRef must be smaller than 3
-    tmp_minus1 = (yRef < 2) ? tmp : tmp + tmpStride;
-    tmp_center = tmp + yRef * tmpStride;
-    tmp_plus1  = tmp_center + tmpStride;
-    tmp_plus2  = tmp_plus1  + tmpStride;
-    tmp_plus3  = tmp_plus2  + tmpStride;
-    tmp_plus4  = tmp_plus3  + tmpStride;
+    tmp_minus1 = (yRef <  2) ? tmp : tmp + tmpStride;
+    tmp_center = (yRef <  1) ? tmp : tmp_minus1 + tmpStride;
+    tmp_plus1  = (yRef <  0) ? tmp : tmp_center + tmpStride;
+    tmp_plus2  = (yRef < -1) ? tmp : tmp_plus1 + tmpStride;
+    tmp_plus3  = (yRef < -2) ? tmp : tmp_plus2 + tmpStride;
+    tmp_plus4  = (yRef < -3) ? tmp : tmp_plus3 + tmpStride;
 
     assert( yRef < 3 );
     
@@ -267,9 +268,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      // Get pointer to temp array y line
-      tmpSample = tmp + x;
-
       rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
                          fL[yPhase][1] * tmp_minus2[ x ] +
                          fL[yPhase][2] * tmp_minus1[ x ] +
@@ -309,9 +307,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      // Get pointer to temp array y line
-      tmpSample = tmp + x;
-
       rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
                          fL[yPhase][1] * tmp_minus2[ x ] +
                          fL[yPhase][2] * tmp_minus1[ x ] +
@@ -336,13 +331,14 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    tmp_minus3 = tmp + (yRef - 3) * tmpStride;
-    tmp_minus2 = tmp_minus3 + tmpStride;
-    tmp_minus1 = tmp_minus2 + tmpStride;
-    tmp_center = tmp_minus1 + tmpStride;
-    tmp_plus1  = (xRef + 1 >= PicWidthInSamplesRefLayerY) ? tmp_center : tmp_center + tmpStride;
-    tmp_plus2  = (xRef + 2 >= PicWidthInSamplesRefLayerY) ? tmp_plus1  : tmp_plus1  + tmpStride;
-    tmp_plus3  = (xRef + 3 >= PicWidthInSamplesRefLayerY) ? tmp_plus2  : tmp_plus2  + tmpStride;
+    int16_t* lastRow = tmp + (PicHeightInSamplesCurLayerY - 1) * tmpStride;
+    tmp_minus3 = (xRef + -3 >= PicWidthInSamplesRefLayerY) ? lastRow : lastRow    + tmpStride;
+    tmp_minus2 = (xRef + -2 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_minus3 + tmpStride;
+    tmp_minus1 = (xRef + -1 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_minus2 + tmpStride;
+    tmp_center = (xRef      >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_minus1 + tmpStride;
+    tmp_plus1  = (xRef +  1 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_center + tmpStride;
+    tmp_plus2  = (xRef +  2 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_plus1  + tmpStride;
+    tmp_plus3  = (xRef +  3 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_plus2  + tmpStride;
     tmp_plus4  = tmp_plus3;
     
     assert( yRef >= PicHeightInSamplesRefLayerY - 4 );
@@ -351,9 +347,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      // Get pointer to temp array y line
-      tmpSample = tmp + x;
-
       rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
                          fL[yPhase][1] * tmp_minus2[ x ] +
                          fL[yPhase][2] * tmp_minus1[ x ] +
@@ -396,13 +389,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
                        fL[xPhase][7] * rlPicSampleL[ Clip3(0, refW - 1, xRef + 4)] ) >> shift1; // (H 38)
     }
   }
-
-  //// DEBUG. DUMP TO FILE
-  //FILE *fp = fopen("temp_array.txt", "wb");
-  //int nrBytesY = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
-  //int16_t *srcY = tmp;
-  //fwrite(srcY, sizeof(int16_t), nrBytesY, fp);
-  //fclose(fp);
   
   // Vertical upsampling
   int refY = PicHeightInSamplesRefLayerY;
@@ -440,7 +426,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 
 #else
   int tempArray[8];
-
+  int yPosRL;
   // H.8.1.4.1.1 Resampling process of luma sample values
   for (int yP = 0; yP < PicHeightInSamplesCurLayerY; yP++) {
     rsLumaSample = dst + yP * dststride;
@@ -510,8 +496,6 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
   
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;
-  int yPosRL;
-  int tempArray[4];
   uint8_t *rlPicSampleC;
   uint8_t *rsChromaSample;
 
@@ -540,7 +524,218 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
                     {-2, 10, 58, -2},
                     { 0,  4, 62, -2} };
 
-#if USE_FASTER_IMPLEMENTATION
+#if USE_FASTER_IMPLEMENTATION == 2
+  // Perform horizontal / vertical upsampling seperately.
+  // Allocate temporaray buffer
+  int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
+  int16_t *tmpSample;
+  int tmpStride = PicWidthInSamplesCurLayerC;
+
+  // -------- Horizontal upsampling ------------
+
+  // We are splitting the loop over x into three intervals.
+  // Interval 1: xP from 0 ... xP_left-1. Here padding of the input samples on the left is required.
+  // Interval 2: xP from xP_left ... xP_right-1. Here no padding is needed
+  // Interval 3: xP from xP_right ... refW-1. Here padding of the input samples on the right is required.
+  int xP_left = ((((16 - position_params[2]) * 4096 - 2048 ) - position_params[6]) / position_params[4] + 1) + position_params[0]; // Get the x position at which xRef16 is at least 16 (or larger). (Get lowest value in the quanization interval and round up afterwards)
+  int xP_right = (((((PicWidthInSamplesRefLayerC - 2) * 16 - position_params[2]) * 4096 + 2047 ) - position_params[6]) / position_params[4]) + position_params[0]; // Get the x position at which xRef16 is smaller than (PicWidthInSamplesRefLayerC - 2) * 16
+  
+  // ---- Interval 1:
+  // We need to padd the left samples
+  int xP = 0;
+  for (; xP < xP_left; xP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    xRef16 = (((xP - position_params[0]) * position_params[4] + position_params[6] + (1 << 11)) >> 12) + position_params[2];  // (H 63)
+        
+    // 2. The variables xRef and xPhase are derived as follows:
+    xRef   = xRef16 >> 4;  // (H 29)
+    xPhase = xRef16 % 16;  // (H 30)
+
+    assert( xRef == 0 );
+    
+    // Get pointers to source and destination
+    rlPicSampleC = src;
+    tmpSample    = tmp;
+
+    for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
+      tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ 0 ] +
+                       fC[xPhase][1] * rlPicSampleC[ 0 ] +
+                       fC[xPhase][2] * rlPicSampleC[ 1 ] +
+                       fC[xPhase][3] * rlPicSampleC[ 2 ] ) >> shift1; // (H 50)
+
+      // Go to the next y line
+      rlPicSampleC += srcstride;
+      tmpSample    += tmpStride;
+    }
+  }
+
+  // ---- Interval 2:
+  // No padding on the left or right is required
+  for (; xP < xP_right; xP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    xRef16 = (((xP - position_params[0]) * position_params[4] + position_params[6] + (1 << 11)) >> 12) + position_params[2];  // (H 63)
+        
+    // 2. The variables xRef and xPhase are derived as follows:
+    xRef   = xRef16 >> 4;  // (H 29)
+    xPhase = xRef16 % 16;  // (H 30)
+        
+    assert( xRef >= 1 && xRef < PicWidthInSamplesRefLayerC - 2 );
+    
+    // Get pointers to source and destination
+    rlPicSampleC = src;
+    tmpSample    = tmp;
+
+    for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
+      tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ xRef - 1 ] +
+                       fC[xPhase][1] * rlPicSampleC[ xRef     ] +
+                       fC[xPhase][2] * rlPicSampleC[ xRef + 1 ] +
+                       fC[xPhase][3] * rlPicSampleC[ xRef + 2 ] ) >> shift1; // (H 50)
+
+      // Go to the next y line
+      rlPicSampleC += srcstride;
+      tmpSample    += tmpStride;
+    }
+  }
+
+  // ---- Interval 3:
+  // Padding on the right side is required
+  for (; xP < PicWidthInSamplesCurLayerC; xP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    xRef16 = (((xP - position_params[0]) * position_params[4] + position_params[6] + (1 << 11)) >> 12) + position_params[2];  // (H 63)
+        
+    // 2. The variables xRef and xPhase are derived as follows:
+    xRef   = xRef16 >> 4;  // (H 29)
+    xPhase = xRef16 % 16;  // (H 30)
+
+    assert( xRef >= PicWidthInSamplesRefLayerC - 2 );
+    
+    // Get pointers to source and destination
+    rlPicSampleC = src;
+    tmpSample    = tmp;
+
+    for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
+      tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ xRef - 1   ] +
+                       fC[xPhase][1] * rlPicSampleC[ xRef       ] +
+                       fC[xPhase][2] * rlPicSampleC[ PicWidthInSamplesRefLayerC - 1 ] +
+                       fC[xPhase][3] * rlPicSampleC[ PicWidthInSamplesRefLayerC - 1 ] ) >> shift1; // (H 50)
+
+      // Go to the next y line
+      rlPicSampleC += srcstride;
+      tmpSample    += tmpStride;
+    }
+  }
+
+  // -------- Vertical upsampling ------------
+  // Also split the loop over y into the three intervals.
+  int yP_top = ((((16 - position_params[3]) * 4096 - 2048 ) - position_params[7]) / position_params[5] + 1) + position_params[1]; // Get the y position at which yRef16 is at least 16 (or larger). (Get lowest value in the quanization interval and round up afterwards)
+  int yP_bottom = (((((PicHeightInSamplesRefLayerC - 2) * 16 - position_params[3]) * 4096 + 2047 ) - position_params[7]) / position_params[5]) + position_params[1]; // Get the y position at which yRef16 is smaller than (PicHeightInSamplesRefLayerC - 2) * 16
+
+  // ---- Interval 1:
+  // We need to padd the top samples
+  int yP = 0;
+  int16_t *tmp_minus1, *tmp_center, *tmp_plus1, *tmp_plus2;
+  for (; yP < yP_top; yP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    yRef16 = (((yP - position_params[1]) * position_params[5] + position_params[7] + (1 << 11)) >> 12) + position_params[3];  // (H 64)
+
+    // 3. The variables yRef and yPhase are derived as follows:
+    //yPhase = yRef16 % 16;  // (H 32)
+    yPhase = yRef16 & 15;  // This is what the reference software does. TODO: Double check with the latest standard.
+    yRef   = yRef16 >> 4;  // (H 31)
+
+    // Get the pointers to the temp buffer for this yP
+    tmp_minus1 = tmp;
+    tmp_center = (yRef <  1) ? tmp : tmp + yRef;
+    tmp_plus1  = (yRef <  0) ? tmp : tmp_center + tmpStride;
+    tmp_plus2  = (yRef < -1) ? tmp : tmp_plus1  + tmpStride;
+
+    assert( yRef < 1 );
+
+    // Get pointers to dest buffer
+    rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
+    
+    for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
+      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
+                            fC[yPhase][1] * tmp_center[ x ] +
+                            fC[yPhase][2] * tmp_plus1 [ x ] +
+                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+    }
+  }
+
+  // ---- Interval 2:
+  // No padding required
+  for (; yP < yP_bottom; yP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    yRef16 = (((yP - position_params[1]) * position_params[5] + position_params[7] + (1 << 11)) >> 12) + position_params[3];  // (H 64)
+
+    // 3. The variables yRef and yPhase are derived as follows:
+    //yPhase = yRef16 % 16;  // (H 32)
+    yPhase = yRef16 & 15;  // This is what the reference software does. TODO: Double check with the latest standard.
+    yRef   = yRef16 >> 4;  // (H 31)
+
+    // Get the pointers to the temp buffer for this yP
+    tmp_minus1 = tmp + (yRef - 1) * tmpStride;
+    tmp_center = tmp_minus1  + tmpStride;
+    tmp_plus1  = tmp_center  + tmpStride;
+    tmp_plus2  = tmp_plus1   + tmpStride;
+
+    assert( yRef >= 1 && yRef < PicHeightInSamplesRefLayerC - 2 );
+
+    // Get pointers to dest buffer
+    rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
+    
+    for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
+      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
+                            fC[yPhase][1] * tmp_center[ x ] +
+                            fC[yPhase][2] * tmp_plus1 [ x ] +
+                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+    }
+  }
+
+  // ---- Interval 3:
+  // padding on the bottom is required
+  for (; yP < PicHeightInSamplesCurLayerC; yP++) {
+    // 1.
+    // H.8.1.4.1.3 Derivation process for reference layer sample location in units of 1/16-th sample
+    // The position_params array contains the precomputed values needed for this.
+    yRef16 = (((yP - position_params[1]) * position_params[5] + position_params[7] + (1 << 11)) >> 12) + position_params[3];  // (H 64)
+
+    // 3. The variables yRef and yPhase are derived as follows:
+    //yPhase = yRef16 % 16;  // (H 32)
+    yPhase = yRef16 & 15;  // This is what the reference software does. TODO: Double check with the latest standard.
+    yRef   = yRef16 >> 4;  // (H 31)
+
+    // Get the pointers to the temp buffer for this yP
+    int16_t *lastRow = tmp + (PicHeightInSamplesCurLayerC-1) * tmpStride;
+    tmp_minus1 = (yRef - 1 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef - 1) * tmpStride;
+    tmp_center = (yRef     > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef    ) * tmpStride;
+    tmp_plus1  = (yRef + 1 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef + 1) * tmpStride;
+    tmp_plus2  = (yRef + 2 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef + 2) * tmpStride;
+    
+    assert( yRef >= PicHeightInSamplesRefLayerC - 2 );
+
+    // Get pointers to dest buffer
+    rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
+
+    for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
+      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
+                            fC[yPhase][1] * tmp_center[ x ] +
+                            fC[yPhase][2] * tmp_plus1 [ x ] +
+                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+    }
+  }
+
+#elif USE_FASTER_IMPLEMENTATION == 1
   // Perform horizontal / vertical upsampling seperately.
   // Allocate temporaray buffer
   int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
@@ -607,6 +802,9 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
   tmp = NULL;
 
 #else
+  int tempArray[4];
+  int yPosRL;
+
   // H.8.1.4.1.2 Resampling process of chroma sample values
   for (int yP = 0; yP < PicHeightInSamplesCurLayerC; yP++) {
     rsChromaSample = dst + yP * dststride;
