@@ -84,6 +84,7 @@ void seq_parameter_set::set_defaults(enum PresetSet)
 {
   video_parameter_set_id = 0;
   sps_max_sub_layers = 1;
+  sps_ext_or_max_sub_layers_minus1 = 0;
   sps_temporal_id_nesting_flag = 1;
 
   profile_tier_level_.general.set_defaults(Profile_Main, 6,2); // TODO

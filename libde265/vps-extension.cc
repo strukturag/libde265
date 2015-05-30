@@ -35,9 +35,21 @@ video_parameter_set_extension::video_parameter_set_extension()
       VpsInterLayerSamplePredictionEnabled[i][j] = false;
       VpsInterLayerMotionPredictionEnabled[i][j] = false;
     }
-      view_id_val[i] = 0;
+    view_id_val[i] = 0;
+
+    for (int j = 0; j<16; j++) {
+      dimension_id[i][j] = 0;
+    }
   }
 
+  for (int i = 0; i < 7; i++) {
+    for (int j = 0; j < 8; j++) {
+      max_tid_il_ref_pics_plus1[i][j] = 7;
+    }
+  }
+
+  num_add_olss = 0;
+  rep_format_idx_present_flag = false;
   NumOutputLayerSets = 0;
 }
 
@@ -56,11 +68,12 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   }
 
   int vlc;
-  splitting_flag = vlc = get_bits(reader,1);
+  splitting_flag = (get_bits(reader,1) != 0);
   int NumScalabilityTypes = 0;
   for (int i = 0; i < 16; i++)
   {
-    scalability_mask_flag[i] = vlc = get_bits(reader,1);
+    vlc = get_bits(reader,1);
+    scalability_mask_flag[i] = (vlc != 0);
     NumScalabilityTypes += vlc;
   }
 
@@ -80,7 +93,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     numBits = 6;
   }
 
-  vps_nuh_layer_id_present_flag = get_bits(reader,1);
+  vps_nuh_layer_id_present_flag = (get_bits(reader,1) != 0);
 
   int MaxLayersMinus1 = libde265_min(62, vps->vps_max_layers-1);
 
@@ -148,7 +161,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   for (int i = 1; i <= MaxLayersMinus1; i++) {
     for (int j = 0; j < i; j++)
     {
-      direct_dependency_flag[i][j] = get_bits(reader,1);
+      direct_dependency_flag[i][j] = (get_bits(reader,1) != 0);
     }
   }
 
@@ -252,15 +265,21 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     NumLayersInIdList[ lsIdx ] = layerNum;
   }
 
-  vps_sub_layers_max_minus1_present_flag = vlc = get_bits(reader,1);
-  if (vlc) {
+  vps_sub_layers_max_minus1_present_flag = (get_bits(reader,1) != 0);
+  if (vps_sub_layers_max_minus1_present_flag) {
     for (int i = 0; i <= MaxLayersMinus1; i++) {
       sub_layers_vps_max_minus1[i] = get_bits(reader,3);
     }
   }
+  else {
+    // When not present, the value of sub_layers_vps_max_minus1[ i ] is inferred to be equal to vps_max_sub_layers_minus1.
+    for (int i = 0; i <= MaxLayersMinus1; i++) {
+      sub_layers_vps_max_minus1[i] = vps->vps_max_sub_layers - 1;
+    }
+  }
 
-  max_tid_ref_present_flag = vlc = get_bits(reader,1);
-  if (vlc) {
+  max_tid_ref_present_flag = (get_bits(reader,1) != 0);
+  if (max_tid_ref_present_flag) {
     for (int i = 0; i <= MaxLayersMinus1; i++) {
       for( int j = i + 1; j <= MaxLayersMinus1; j++ ) {
         if (direct_dependency_flag[j][i])
@@ -269,12 +288,13 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     }
   }
 
-  default_ref_layers_active_flag = get_bits(reader,1);
+  default_ref_layers_active_flag = (get_bits(reader,1) != 0);
   vps_num_profile_tier_level_minus1 = get_uvlc(reader);
   for( int i = vps->vps_base_layer_internal_flag ? 2 : 1;
              i <= vps_num_profile_tier_level_minus1; i++ ) {
-    vps_profile_present_flag[i] = vlc = get_bits(reader,1);
-    vps_ext_PTL[i].read(reader, vlc, vps->vps_max_sub_layers);
+    vlc = get_bits(reader,1);
+    vps_profile_present_flag[i] = (vlc != 0);
+    vps_ext_PTL[i].read(reader, (vlc != 0), vps->vps_max_sub_layers);
   }
 
   // Standard F.7.4.3.1.1 (F-6) (JCTVC-R1008_v7)
@@ -307,7 +327,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     if (i > vps->vps_num_layer_sets - 1 || defaultOutputLayerIdc == 2) {
       // i in the range of ( defaultOutputLayerIdc  = =  2 ) ? 0 : ( vps_num_layer_sets_minus1 + 1 ) to NumOutputLayerSets ? 1, inclusive,
       for (int j = 0; j < NumLayersInIdList[OlsIdxToLsIdx[i]]; j++) {
-        output_layer_flag[ i ][ j ] = get_bits(reader,1);
+        output_layer_flag[i][j] = (get_bits(reader,1) != 0);
         OutputLayerFlag[i][j] = output_layer_flag[ i ][ j ];
       }
     }
@@ -375,7 +395,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
     }
 
     if (NumOutputLayersInOutputLayerSet[i] == 1 && NumDirectRefLayers[OlsHighestOutputLayerId[i]] > 0) {
-      alt_output_layer_flag[ i ] = get_bits(reader,1);
+      alt_output_layer_flag[i] = (get_bits(reader,1) != 0);
     }
   }
 
@@ -388,20 +408,27 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   }
 
   if (vps_num_rep_formats_minus1 > 0) {
-    rep_format_idx_present_flag = get_bits(reader,1);
+    rep_format_idx_present_flag = (get_bits(reader,1) != 0);
   }
-  if (rep_format_idx_present_flag) {
-    for( int i = vps->vps_base_layer_internal_flag ? 1 : 0; i <= MaxLayersMinus1; i++ ) {
+  for (int i = 0; i < 16; i++) {
+    if (rep_format_idx_present_flag && i <= MaxLayersMinus1 && 
+        !(i==0 && vps->vps_base_layer_internal_flag)) {
+      // Read vps_rep_format_idx[i] from file
       int nr_bits = ceil_log2( vps_num_rep_formats_minus1 + 1);
       vps_rep_format_idx[ i ] = get_bits(reader,nr_bits);
     }
+    else {
+      // Infer vps_rep_format_idx[i]
+      vps_rep_format_idx[ i ] = libde265_min( i, vps_num_rep_formats_minus1 );
+    }
   }
-  max_one_active_ref_layer_flag = get_bits(reader,1);
-  vps_poc_lsb_aligned_flag = get_bits(reader,1);
+  
+  max_one_active_ref_layer_flag = (get_bits(reader,1) != 0);
+  vps_poc_lsb_aligned_flag = (get_bits(reader,1) != 0);
 
   for (int i = 1; i <= MaxLayersMinus1; i++) {
     if( NumDirectRefLayers[ layer_id_in_nuh[ i ] ] == 0 ) {
-      poc_lsb_not_present_flag[ i ] = get_bits(reader,1);
+      poc_lsb_not_present_flag[ i ] = (get_bits(reader,1) != 0);
     }
   }
 
@@ -421,7 +448,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   dpb_size_table.read(reader, vps);
 
   direct_dep_type_len_minus2 = get_uvlc(reader);
-  direct_dependency_all_layers_flag = get_bits(reader,1);
+  direct_dependency_all_layers_flag = (get_bits(reader,1) != 0);
   if (direct_dependency_all_layers_flag) {
     int nr_bits = direct_dep_type_len_minus2 + 2;
     direct_dependency_all_layers_type = get_bits(reader,nr_bits);
@@ -446,8 +473,8 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   for (int i = vps->vps_base_layer_internal_flag ? 1 : 2; i <= MaxLayersMinus1; i++) {
     for( int j = vps->vps_base_layer_internal_flag ? 0 : 1; j < i; j++ ) {
       if( direct_dependency_flag[ i ][ j ] ) {
-        VpsInterLayerSamplePredictionEnabled[i][j] = (direct_dependency_type[i][j] + 1) & 0x1; // F.7.4.3.1.1 (F-13)
-        VpsInterLayerMotionPredictionEnabled[i][j] = (direct_dependency_type[i][j] + 1) & 0x2; 
+        VpsInterLayerSamplePredictionEnabled[i][j] = (((direct_dependency_type[i][j] + 1) & 0x1) != 0); // F.7.4.3.1.1 (F-13)
+        VpsInterLayerMotionPredictionEnabled[i][j] = (((direct_dependency_type[i][j] + 1) & 0x2) != 0); 
       }
       else {
         VpsInterLayerSamplePredictionEnabled[i][j] = false; // F.7.4.3.1.1 (F-13)
@@ -460,7 +487,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
   for (int i = 1; i <= vps_non_vui_extension_length; i++) {
     int vps_non_vui_extension_data_byte = get_bits(reader, 8);
   }
-	vps_vui_present_flag = get_bits(reader,1);
+	vps_vui_present_flag = (get_bits(reader,1) != 0);
 
   if (vps_vui_present_flag) {
     // Byte alignment (vps_vui_alignment_bit_equal_to_one)
@@ -482,10 +509,10 @@ de265_error decoded_picture_buffer_size_table::read(bitreader* reader,
 
   for( int i = 1; i < vps_ext->NumOutputLayerSets; i++ ) {
     int currLsIdx = vps_ext->OlsIdxToLsIdx[ i ];
-    sub_layer_flag_info_present_flag[ i ] = get_bits(reader,1);
+    sub_layer_flag_info_present_flag[ i ] = (get_bits(reader,1) != 0);
     for( int j = 0; j <= vps_ext->MaxSubLayersInLayerSetMinus1[ currLsIdx ]; j++ ) {
       if (j > 0 && sub_layer_flag_info_present_flag[i]) {
-        sub_layer_dpb_info_present_flag[ i ][ j ] = get_bits(reader,1);
+        sub_layer_dpb_info_present_flag[ i ][ j ] = (get_bits(reader,1) != 0);
       }
       sub_layer_dpb_info_present_flag[i][0] = true;
       if( sub_layer_dpb_info_present_flag[ i ][ j ] ) {
@@ -508,16 +535,16 @@ de265_error rep_format::read(bitreader* reader)
 {
   pic_width_vps_in_luma_samples = get_bits(reader,16);
   pic_height_vps_in_luma_samples = get_bits(reader,16);
-  chroma_and_bit_depth_vps_present_flag = get_bits(reader,1);
+  chroma_and_bit_depth_vps_present_flag = (get_bits(reader,1) != 0);
   if( chroma_and_bit_depth_vps_present_flag ) {
     chroma_format_vps_idc = (de265_chroma)get_bits(reader,2);
     if (chroma_format_vps_idc == 3) {
-      separate_colour_plane_vps_flag = get_bits(reader,1);
+      separate_colour_plane_vps_flag = (get_bits(reader,1) != 0);
     }
     bit_depth_vps_luma_minus8 = get_bits(reader,4);
     bit_depth_vps_chroma_minus8 = get_bits(reader,4);
   }
-  conformance_window_vps_flag = get_bits(reader,1);
+  conformance_window_vps_flag = (get_bits(reader,1) != 0);
   if( conformance_window_vps_flag ) {
     m_conformanceWindowVps.conf_win_vps_left_offset = get_uvlc(reader);
     m_conformanceWindowVps.conf_win_vps_right_offset = get_uvlc(reader);
