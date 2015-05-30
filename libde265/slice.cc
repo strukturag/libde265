@@ -614,18 +614,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           int nr_bits = ceil_log2( vps_ext->NumDirectRefLayers[nuh_layer_id] ) ;
           num_inter_layer_ref_pics_minus1 = get_bits(br,nr_bits);
         }
-
-        // The variables numRefLayerPics and refLayerPicIdc[ j ] are derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 51)
-        int_1d refLayerPicIdc;
-        int i,j;
-        for( i=0, j=0; i < vps_ext->NumDirectRefLayers[ nuh_layer_id ]; i++ ) {
-          int refLayerIdx = vps_ext->LayerIdxInVps[ vps_ext->IdDirectRefLayer[ nuh_layer_id ][ i ] ];
-          if( vps_ext->sub_layers_vps_max_minus1[ refLayerIdx ] >= nuh_temporal_id && ( nuh_temporal_id == 0 ||
-              vps_ext->max_tid_il_ref_pics_plus1[ refLayerIdx ][ vps_ext->LayerIdxInVps[ nuh_layer_id ] ] > nuh_temporal_id ))
-            refLayerPicIdc[ j++ ] = i;
-        }
-        numRefLayerPics = j;
       }
+    }
+    if (nuh_layer_id > 0) {
+      // The variables numRefLayerPics and refLayerPicIdc[ j ] are derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 51)
+      int_1d refLayerPicIdc;
+      int i,j;
+      for( i=0, j=0; i < vps_ext->NumDirectRefLayers[ nuh_layer_id ]; i++ ) {
+        int refLayerIdx = vps_ext->LayerIdxInVps[ vps_ext->IdDirectRefLayer[ nuh_layer_id ][ i ] ];
+        if( vps_ext->sub_layers_vps_max_minus1[ refLayerIdx ] >= nuh_temporal_id && ( nuh_temporal_id == 0 ||
+            vps_ext->max_tid_il_ref_pics_plus1[ refLayerIdx ][ vps_ext->LayerIdxInVps[ nuh_layer_id ] ] > nuh_temporal_id ))
+          refLayerPicIdc[ j++ ] = i;
+      }
+      numRefLayerPics = j;
     }
 
     // --- SAO ---
@@ -674,8 +675,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
 
       // The variable NumActiveRefLayerPics is derived as follows: (JCTVC R1013_v6 F.7.4.7.2) (F 52)
-      if( nuh_layer_id == 0 || numRefLayerPics == 0 )
+      if( nuh_layer_id == 0 || numRefLayerPics == 0 ) {
         NumActiveRefLayerPics = 0;
+      }
       else if( vps_ext->default_ref_layers_active_flag ) {
         NumActiveRefLayerPics = numRefLayerPics;
       }
