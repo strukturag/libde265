@@ -1675,7 +1675,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
       // Derive the parameters needed by the reference layer sample location derivation function
       // as specified in clause H.8.1.4.1.3. These will bee needed when the reference layer sample location derivation
       // process is invoked.
-      int position_params[2][8];
+      int upsampling_params[2][10];
       for (int c=0; c<2; c++) {
         bool chromaFlag = (c != 0);
 
@@ -1695,15 +1695,21 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         int addHor = -(( scaleHor * phaseHor + 8) >> 4 );   // (H 61)
         int addVer = -(( scaleVer * phaseVer + 8) >> 4 );   // (H 62)
 
+        // Bit depth of reference and current layer
+        int bitDepthRef = chromaFlag ? BitDepthRefLayerC : BitDepthRefLayerY;
+        int bitDepthCur = chromaFlag ? BitDepthCurrC     : BitDepthCurrY;
+
         // Put parameters into array
-        position_params[c][0] = currOffsetLeft;
-        position_params[c][1] = currOffsetTop;
-        position_params[c][2] = refOffsetLeft;
-        position_params[c][3] = refOffsetTop;
-        position_params[c][4] = scaleHor;
-        position_params[c][5] = scaleVer;
-        position_params[c][6] = addHor;
-        position_params[c][7] = addVer;
+        upsampling_params[c][0] = currOffsetLeft;
+        upsampling_params[c][1] = currOffsetTop;
+        upsampling_params[c][2] = refOffsetLeft;
+        upsampling_params[c][3] = refOffsetTop;
+        upsampling_params[c][4] = scaleHor;
+        upsampling_params[c][5] = scaleVer;
+        upsampling_params[c][6] = addHor;
+        upsampling_params[c][7] = addVer;
+        upsampling_params[c][8] = bitDepthRef;
+        upsampling_params[c][9] = bitDepthCur;
       }
 
       if (currColourMappingEnableFlag) {
@@ -1715,47 +1721,13 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
         }
         else {
           // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
-          //resampling_process_of_picture_sample_values(rlPic, ilRefPic[ilRefPicIdx], position_params, BitDepthRefLayer, BitDepthCurr);
-          int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
-          int dst_size[2] = { ilRefPic[ilRefPicIdx]->get_width(), ilRefPic[ilRefPicIdx]->get_height() };
-          ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size,
-                                                                     position_params[0], BitDepthRefLayerY, BitDepthCurrY );
-
-          // Chroma
-          src_size[0] = rlPic->get_width(1);
-          src_size[1] = rlPic->get_height(1);
-          dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1);
-          dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1);
-          ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
-                                                                     position_params[1], BitDepthRefLayerC, BitDepthCurrC );
-          ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
-                                                                     ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
-                                                                     position_params[1], BitDepthRefLayerC, BitDepthCurrC );
+          ilRefPic[ilRefPicIdx]->upsample_image_from(ctx, rlPic, upsampling_params);
         }
         sampleProcessingFlag = true;
       }
       else {
         // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
-        //resampling_process_of_picture_sample_values(rlPic, ilRefPic[ilRefPicIdx], position_params, BitDepthRefLayer, BitDepthCurr);
-        int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
-        int dst_size[2] = { ilRefPic[ilRefPicIdx]->get_width(), ilRefPic[ilRefPicIdx]->get_height() };
-        ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(0), ilRefPic[ilRefPicIdx]->get_luma_stride(), dst_size,
-                                                                   position_params[0], BitDepthRefLayerY, BitDepthCurrY );
-
-        // Chroma
-        src_size[0] = rlPic->get_width(1);
-        src_size[1] = rlPic->get_height(1);
-        dst_size[0] = ilRefPic[ilRefPicIdx]->get_width(1);
-        dst_size[1] = ilRefPic[ilRefPicIdx]->get_height(1);
-        ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(1), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
-                                                                   position_params[1], BitDepthRefLayerC, BitDepthCurrC );
-        ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
-                                                                   ilRefPic[ilRefPicIdx]->get_image_plane(2), ilRefPic[ilRefPicIdx]->get_chroma_stride(), dst_size,
-                                                                   position_params[1], BitDepthRefLayerC, BitDepthCurrC );
+        ilRefPic[ilRefPicIdx]->upsample_image_from(ctx, rlPic, upsampling_params);
 
         //// DEBUG. DUMP TO FILE
         //FILE *fp = fopen("before_upsampling.txt", "wb");

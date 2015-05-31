@@ -58,7 +58,7 @@ using namespace std::chrono;
 
 void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],
                                                         uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
-                                                        int position_params[8], int BitDepthRefLayerY, int BitDepthCurrY)
+                                                        int position_params[10])
 {
 #if MEASURE_EXECUTION_TIME
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -66,11 +66,14 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 
   // Reference layer size
   int PicHeightInSamplesRefLayerY = src_size[1];
-  int PicWidthInSamplesRefLayerY = src_size[0];
+  int PicWidthInSamplesRefLayerY  = src_size[0];
 
   // Current layer size
   int PicHeightInSamplesCurLayerY = dst_size[1];
-  int PicWidthInSamplesCurLayerY = dst_size[0];
+  int PicWidthInSamplesCurLayerY  = dst_size[0];
+
+  int BitDepthRefLayerY = position_params[8];
+  int BitDepthCurrY     = position_params[9];
 
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;
@@ -486,13 +489,16 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 }
 void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],
                                                           uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
-                                                          int position_params[8], int BitDepthRefLayerC, int BitDepthCurrC)
+                                                          int position_params[10])
 {
   int PicHeightInSamplesRefLayerC = src_size[1];
-  int PicWidthInSamplesRefLayerC = src_size[0];
+  int PicWidthInSamplesRefLayerC  = src_size[0];
 
   int PicHeightInSamplesCurLayerC = dst_size[1];
-  int PicWidthInSamplesCurLayerC = dst_size[0];
+  int PicWidthInSamplesCurLayerC  = dst_size[0];
+
+  int BitDepthRefLayerC = position_params[8];
+  int BitDepthCurrC     = position_params[9];
   
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;

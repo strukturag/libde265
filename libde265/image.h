@@ -246,6 +246,7 @@ struct de265_image {
   void copy_metadata(const de265_image* src);
   void upsample_metadata(const de265_image* src, int scaling_parameters[10]);
   void copy_lines_from(const de265_image* src, int first, int end);
+  void upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10]);
   void exchange_pixel_data_with(de265_image&);
 
   uint32_t get_ID() const { return ID; }

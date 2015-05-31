@@ -671,6 +671,26 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
   }
 }
 
+void de265_image::upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10])
+{
+  int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
+  int dst_size[2] = { get_width(), get_height() };
+  ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
+                                                              get_image_plane(0), get_luma_stride(), dst_size,
+                                                              upsampling_params[0] );
+
+  // Chroma
+  src_size[0] = rlPic->get_width(1);
+  src_size[1] = rlPic->get_height(1);
+  dst_size[0] = get_width(1);
+  dst_size[1] = get_height(1);
+  ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(1), rlPic->get_chroma_stride(), src_size,
+                                                              get_image_plane(1), get_chroma_stride(), dst_size,
+                                                              upsampling_params[1] );
+  ctx->acceleration.resampling_process_of_chroma_sample_values(rlPic->get_image_plane(2), rlPic->get_chroma_stride(), src_size,
+                                                              get_image_plane(2), get_chroma_stride(), dst_size,
+                                                              upsampling_params[1] );
+}
 
 void de265_image::exchange_pixel_data_with(de265_image& b)
 {

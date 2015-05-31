@@ -175,10 +175,10 @@ struct acceleration_functions
   // Inter layer upsampling process
   void(*resampling_process_of_luma_sample_values)  (uint8_t *src, ptrdiff_t srcstride, int src_size[2],
                                                     uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
-                                                    int position_params[8], int BitDepthRefLayerY, int BitDepthCurrY);
+                                                    int position_params[10]);
   void(*resampling_process_of_chroma_sample_values)  (uint8_t *src, ptrdiff_t srcstride, int src_size[2], 
                                                       uint8_t *dst, ptrdiff_t dststride, int dst_size[2],
-                                                      int position_params[8], int BitDepthRefLayerC, int BitDepthCurrC);
+                                                      int position_params[10]);
 };
 
 
