@@ -366,6 +366,9 @@ public:
 private:
   bool ilrefPic;
   int  il_scaling_parameters[10];
+  // Pointer to the lower layer reference picture.
+  // This is used by get_SliceHeaderIndex to retrive the header of the lower layer reference.
+  const de265_image* ilRefPic;
 
 public:
   std::vector<slice_segment_header*> slices;

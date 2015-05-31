@@ -501,19 +501,11 @@ void de265_image::copy_metadata(const de265_image* src)
   }
   assert( ilrefPic );
   
-  ctb_info.copy(&src->ctb_info);
   cb_info.copy(&src->cb_info);
   pb_info.copy(&src->pb_info);
-  intraPredMode.copy(&src->intraPredMode);
-  tu_info.copy(&src->tu_info);
-  deblk_info.copy(&src->deblk_info);
 
-  // Copy the pointers to the slice segment headers.
-  // TODO: Is this a good idea?
-  slices.clear();
-  for (int i = 0; i < src->slices.size(); i++) {
-    slices.push_back(src->slices.at(i));
-  }
+  // Save pointer to lower layer reference
+  ilRefPic = src;
 }
 
 void de265_image::set_inter_layer_metadata_scaling_parameters(int scaling_parameters[10])
@@ -629,12 +621,8 @@ void de265_image::upsample_metadata(const de265_image* src)
     }
   }
 
-  // Copy the pointers to the slice segment headers.
-  // TODO: Is this a good idea?
-  slices.clear();
-  for (int i = 0; i < src->slices.size(); i++) {
-    slices.push_back(src->slices.at(i));
-  }
+  // Save pointer to lower layer reference
+  ilRefPic = src;
 }
 
 // end = last line + 1
