@@ -584,7 +584,7 @@ void de265_image::upsample_metadata(const de265_image* src)
 
       // 5. Upsample the motion vectors and prediction flags
       MotionVectorSpec mv_dst;
-      if (rsPredMode == MODE_INTER) {
+      if (rsPredMode != MODE_INTRA) {
         const MotionVectorSpec *mv_src = src->get_mv_info(xRL, yRL);
         // For X being each of 0 and 1...
         for (int l=0; l<2; l++) {
