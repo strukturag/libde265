@@ -1646,11 +1646,11 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     }
   }
 
-  // Create a new inter layer picture buffer
   if (ilRefPic[ilRefPicIdx] == NULL) {
+    // Create a new inter layer picture buffer if not allocated yet.
     ilRefPic[ilRefPicIdx] = new de265_image();
     de265_chroma c = rlPic->get_chroma_format();
-    ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesCurrY, PicHeightInSamplesCurrY, c, sps, true, ctx, NULL, 0, 0, false);
+    ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesCurrY, PicHeightInSamplesCurrY, c, sps, true, ctx, NULL, 0, 0, false, true);
   }
   ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
 
@@ -1766,7 +1766,8 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
                                       RefLayerRegionLeftOffset, RefLayerRegionTopOffset,
                                       ScaledRefRegionWidthInSamplesY, RefLayerRegionWidthInSamplesY,
                                       ScaledRefRegionHeightInSamplesY, RefLayerRegionHeightInSamplesY};
-        ilRefPic[ilRefPicIdx]->upsample_metadata(rlPic, scaling_parameters);
+        ilRefPic[ilRefPicIdx]->set_inter_layer_metadata_scaling_parameters(scaling_parameters);
+        ilRefPic[ilRefPicIdx]->upsample_metadata(rlPic);
         motionProcessingFlag  = true;
       }
     }

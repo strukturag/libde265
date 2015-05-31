@@ -233,24 +233,22 @@ struct de265_image {
                           decoder_context* dctx,
                           class encoder_context* ectx,
                           de265_PTS pts, void* user_data,
-                          bool useCustomAllocFunctions);
+                          bool useCustomAllocFunctions,
+                          bool interLayerReferencePicture=false);
 
   //de265_error alloc_encoder_data(const seq_parameter_set* sps);
 
   bool is_allocated() const { return pixels[0] != NULL; }
-
+  
   void release();
 
   void fill_image(int y,int u,int v);
   de265_error copy_image(const de265_image* src);
-  void copy_metadata(const de265_image* src);
-  void upsample_metadata(const de265_image* src, int scaling_parameters[10]);
   void copy_lines_from(const de265_image* src, int first, int end);
   void upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10]);
   void exchange_pixel_data_with(de265_image&);
 
   uint32_t get_ID() const { return ID; }
-
 
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
@@ -353,6 +351,21 @@ private:
 
   int chroma_width, chroma_height;
   int stride, chroma_stride;
+
+  /// Multilayer extension
+public:
+  bool is_inter_layer_reference_picture() { return ilrefPic; }
+
+  // Copy the metadata from the src image (SNR scalabililty)
+  void copy_metadata(const de265_image* src);
+  // Set the parameters needed for metadata upsampling
+  void set_inter_layer_metadata_scaling_parameters( int scaling_parameters[10] );
+  // Upsample metadata from the source image. Make sure to set_inter_layer_metadata_scaling_parameters first 
+  void upsample_metadata(const de265_image* src);
+
+private:
+  bool ilrefPic;
+  int  il_scaling_parameters[10];
 
 public:
   std::vector<slice_segment_header*> slices;

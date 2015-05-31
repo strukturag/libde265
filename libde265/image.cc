@@ -209,6 +209,11 @@ de265_image::de265_image()
 
   de265_mutex_init(&mutex);
   de265_cond_init(&finished_cond);
+
+  ilrefPic = false;
+  for (int i = 0; i<10; i++) {
+    il_scaling_parameters[10] = -1;
+  }
 }
 
 
@@ -217,7 +222,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      decoder_context* dctx,
                                      encoder_context* ectx,
                                      de265_PTS pts, void* user_data,
-                                     bool useCustomAllocFunc)
+                                     bool useCustomAllocFunc,
+                                     bool interLayerReferencePicture)
 {
   //if (allocMetadata) { assert(sps); }
   assert(sps);
@@ -237,6 +243,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   // --- allocate image buffer ---
 
   chroma_format= c;
+  ilrefPic = interLayerReferencePicture;
 
   width = w;
   height = h;
@@ -358,55 +365,46 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   // --- allocate decoding info arrays ---
 
   if (allocMetadata) {
-    // intra pred mode
+    if (!interLayerReferencePicture) {
+      // For inter layer reference pictures only allocate cb_info and pb_info
+      
+      // intra pred mode
+      mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
+                                               sps->Log2MinPUSize);
 
-    mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
-                                             sps->Log2MinPUSize);
+      // tu info
+      mem_alloc_success &= tu_info.alloc(sps->PicWidthInTbsY, sps->PicHeightInTbsY,
+                                          sps->Log2MinTrafoSize);
 
+      // deblk info
+      int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
+      int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
+      mem_alloc_success &= deblk_info.alloc(deblk_w, deblk_h, 2);
+    }
+    
     // cb info
-
     mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
                                        sps->Log2MinCbSizeY);
 
     // pb info
-
     int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
     int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
-
     mem_alloc_success &= pb_info.alloc(puWidth,puHeight, 2);
 
-
-    // tu info
-
-    mem_alloc_success &= tu_info.alloc(sps->PicWidthInTbsY, sps->PicHeightInTbsY,
-                                       sps->Log2MinTrafoSize);
-
-    // deblk info
-
-    int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
-    int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
-
-    mem_alloc_success &= deblk_info.alloc(deblk_w, deblk_h, 2);
-
     // CTB info
+    if (ctb_info.data_size != sps->PicSizeInCtbsY) {
+      delete[] ctb_progress;
 
-    if (ctb_info.data_size != sps->PicSizeInCtbsY)
-      {
-        delete[] ctb_progress;
+      mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
+                                          sps->Log2CtbSizeY);
 
-        mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
-                                            sps->Log2CtbSizeY);
-
-        ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
-      }
-
+      ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+    }
 
     // check for memory shortage
-
-    if (!mem_alloc_success)
-      {
-        return DE265_ERROR_OUT_OF_MEMORY;
-      }
+    if (!mem_alloc_success) {
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
   }
 
   return DE265_OK;
@@ -501,6 +499,7 @@ void de265_image::copy_metadata(const de265_image* src)
   if (width != src->get_width() || height != src->get_height()) {
     assert( false );
   }
+  assert( ilrefPic );
   
   ctb_info.copy(&src->ctb_info);
   cb_info.copy(&src->cb_info);
@@ -517,21 +516,30 @@ void de265_image::copy_metadata(const de265_image* src)
   }
 }
 
+void de265_image::set_inter_layer_metadata_scaling_parameters(int scaling_parameters[10])
+{
+  for (int i = 0; i < 10; i++) {
+    il_scaling_parameters[i] = scaling_parameters[i];
+  }
+}
+
 /* H.8.1.4.2 Resampling process of picture motion and mode parameters
  *
  * Upsample the metadata from the given picture using the given scaling parameters.
 */
-void de265_image::upsample_metadata(const de265_image* src, int scaling_parameters[10])
+void de265_image::upsample_metadata(const de265_image* src)
 {
+  assert( ilrefPic );
+
   int PicWidthInSamplesCurrY      = get_width();
   int PiPicHeightInSamplesCurrY   = get_height();
   int PicWidthInSamplesRefLayerY  = src->get_width();
   int PicHeightInSamplesRefLayerY = src->get_height();
 
-  int ScaledRefRegionWidthInSamplesY  = scaling_parameters[6];
-  int RefLayerRegionWidthInSamplesY   = scaling_parameters[7];
-  int ScaledRefRegionHeightInSamplesY = scaling_parameters[8];
-  int RefLayerRegionHeightInSamplesY  = scaling_parameters[9];
+  int ScaledRefRegionWidthInSamplesY  = il_scaling_parameters[6];
+  int RefLayerRegionWidthInSamplesY   = il_scaling_parameters[7];
+  int ScaledRefRegionHeightInSamplesY = il_scaling_parameters[8];
+  int RefLayerRegionHeightInSamplesY  = il_scaling_parameters[9];
 
   int xMax = ((PicWidthInSamplesCurrY    + 15) >> 4) - 1;
   int yMax = ((PiPicHeightInSamplesCurrY + 15) >> 4) - 1;
@@ -547,8 +555,8 @@ void de265_image::upsample_metadata(const de265_image* src, int scaling_paramete
       yPCtr = yPb + 8;  // (H 66)
 
       // 2. The variables xRef and yRef are derived as follows:
-      xRef = (((xPCtr - scaling_parameters[0]) * scaling_parameters[2] + (1 << 15)) >> 16 ) + scaling_parameters[4];  // (H 67)
-      yRef = (((yPCtr - scaling_parameters[1]) * scaling_parameters[3] + (1 << 15)) >> 16 ) + scaling_parameters[5];  // (H 68)
+      xRef = (((xPCtr - il_scaling_parameters[0]) * il_scaling_parameters[2] + (1 << 15)) >> 16 ) + il_scaling_parameters[4];  // (H 67)
+      yRef = (((yPCtr - il_scaling_parameters[1]) * il_scaling_parameters[3] + (1 << 15)) >> 16 ) + il_scaling_parameters[5];  // (H 68)
 
       // 3. The rounded reference layer luma sample location ( xRL, yRL ) is derived as follows:
       xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
@@ -620,6 +628,13 @@ void de265_image::upsample_metadata(const de265_image* src, int scaling_paramete
       set_mv_info(xPb, yPb, width, height, mv_dst);
     }
   }
+
+  // Copy the pointers to the slice segment headers.
+  // TODO: Is this a good idea?
+  slices.clear();
+  for (int i = 0; i < src->slices.size(); i++) {
+    slices.push_back(src->slices.at(i));
+  }
 }
 
 // end = last line + 1
@@ -673,6 +688,8 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 
 void de265_image::upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10])
 {
+  assert( ilrefPic );
+
   int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
   int dst_size[2] = { get_width(), get_height() };
   ctx->acceleration.resampling_process_of_luma_sample_values(rlPic->get_image_plane(0), rlPic->get_luma_stride(), src_size,
