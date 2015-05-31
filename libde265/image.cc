@@ -210,7 +210,7 @@ de265_image::de265_image()
   de265_mutex_init(&mutex);
   de265_cond_init(&finished_cond);
 
-  ilrefPic = false;
+  bIlRefPic = false;
   for (int i = 0; i<10; i++) {
     il_scaling_parameters[10] = -1;
   }
@@ -243,7 +243,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   // --- allocate image buffer ---
 
   chroma_format= c;
-  ilrefPic = interLayerReferencePicture;
+  bIlRefPic = interLayerReferencePicture;
 
   width = w;
   height = h;
@@ -499,13 +499,20 @@ void de265_image::copy_metadata(const de265_image* src)
   if (width != src->get_width() || height != src->get_height()) {
     assert( false );
   }
-  assert( ilrefPic );
+  assert( bIlRefPic );
   
   cb_info.copy(&src->cb_info);
   pb_info.copy(&src->pb_info);
 
   // Save pointer to lower layer reference
   ilRefPic = src;
+
+  // Copy the pointers to the slice segment headers.
+  // TODO: Is this a good idea?
+  slices.clear();
+  for (int i = 0; i < src->slices.size(); i++) {
+    slices.push_back(src->slices.at(i));
+  }
 }
 
 void de265_image::set_inter_layer_metadata_scaling_parameters(int scaling_parameters[10])
@@ -521,7 +528,7 @@ void de265_image::set_inter_layer_metadata_scaling_parameters(int scaling_parame
 */
 void de265_image::upsample_metadata(const de265_image* src)
 {
-  assert( ilrefPic );
+  assert( bIlRefPic );
 
   int PicWidthInSamplesCurrY      = get_width();
   int PiPicHeightInSamplesCurrY   = get_height();
@@ -558,9 +565,10 @@ void de265_image::upsample_metadata(const de265_image* src)
       // "set_mv_info" are not capable of handling blocks that reach outside the picture bundary.
       width = 16;
       height = 16;
-      if (xPb+16 > PicWidthInSamplesCurrY || yPb+16 > PiPicHeightInSamplesCurrY) {
-        // The width or height of the block is not 16x16
+      if (xPb+16 > PicWidthInSamplesCurrY) {
         width = (PicWidthInSamplesCurrY - xPb);
+      }
+      if (yPb+16 > PiPicHeightInSamplesCurrY) {
         height = (PiPicHeightInSamplesCurrY - yPb);
       }
 
@@ -623,6 +631,13 @@ void de265_image::upsample_metadata(const de265_image* src)
 
   // Save pointer to lower layer reference
   ilRefPic = src;
+
+  // Copy the pointers to the slice segment headers.
+  // TODO: Is this a good idea?
+  slices.clear();
+  for (int i = 0; i < src->slices.size(); i++) {
+    slices.push_back(src->slices.at(i));
+  }
 }
 
 // end = last line + 1
@@ -676,7 +691,7 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 
 void de265_image::upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10])
 {
-  assert( ilrefPic );
+  assert( bIlRefPic );
 
   int src_size[2] = {rlPic->get_width(), rlPic->get_height()};
   int dst_size[2] = { get_width(), get_height() };

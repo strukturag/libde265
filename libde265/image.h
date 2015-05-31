@@ -354,7 +354,7 @@ private:
 
   /// Multilayer extension
 public:
-  bool is_inter_layer_reference_picture() { return ilrefPic; }
+  bool is_inter_layer_reference_picture() { return bIlRefPic; }
 
   // Copy the metadata from the src image (SNR scalabililty)
   void copy_metadata(const de265_image* src);
@@ -364,7 +364,7 @@ public:
   void upsample_metadata(const de265_image* src);
 
 private:
-  bool ilrefPic;
+  bool bIlRefPic;
   int  il_scaling_parameters[10];
   // Pointer to the lower layer reference picture.
   // This is used by get_SliceHeaderIndex to retrive the header of the lower layer reference.
@@ -692,6 +692,23 @@ public:
 
   int  get_SliceHeaderIndex(int x, int y) const
   {
+    if (bIlRefPic) {
+      // Get the slice header index from the lower layer reference picture
+      
+      // 1. The center location ( xPCtr, yPCtr ) of the luma prediction block is derived as follows:
+      int xPCtr = x + 8;  // (H 65)
+      int yPCtr = y + 8;  // (H 66)
+
+      // 2. The variables xRef and yRef are derived as follows:
+      int xRef = (((xPCtr - il_scaling_parameters[0]) * il_scaling_parameters[2] + (1 << 15)) >> 16 ) + il_scaling_parameters[4];  // (H 67)
+      int yRef = (((yPCtr - il_scaling_parameters[1]) * il_scaling_parameters[3] + (1 << 15)) >> 16 ) + il_scaling_parameters[5];  // (H 68)
+
+      // 3. The rounded reference layer luma sample location ( xRL, yRL ) is derived as follows:
+      int xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
+      int yRL = ((yRef + 4) >> 4) << 4;  // (H 70)
+
+      return ilRefPic->get_SliceHeaderIndex(xRL, yRL);
+    }
     return ctb_info.get(x,y).SliceHeaderIndex;
   }
 
