@@ -875,10 +875,12 @@ void de265_image::set_pred_mode(int x, int y, int nPbW, int nPbH, enum PredMode 
   int wPu = nPbW >> cb_info.log2unitSize;
   int hPu = nPbH >> cb_info.log2unitSize;
 
-  for (int cby=cbY;cby<cbY+wPu;cby++)
-    for (int cbx=cbX;cbx<cbX+hPu;cbx++) {
+  for (int cby = cbY; cby<cbY + hPu; cby++) {
+    for (int cbx=cbX;cbx<cbX+wPu;cbx++) {
+      assert( cbx + cby*cb_info.width_in_units < cb_info.size() );
       cb_info[ cbx + cby*cb_info.width_in_units ].PredMode = mode;
     }
+  }
 }
 
 
