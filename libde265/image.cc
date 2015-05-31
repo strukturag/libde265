@@ -517,6 +517,111 @@ void de265_image::copy_metadata(const de265_image* src)
   }
 }
 
+/* H.8.1.4.2 Resampling process of picture motion and mode parameters
+ *
+ * Upsample the metadata from the given picture using the given scaling parameters.
+*/
+void de265_image::upsample_metadata(const de265_image* src, int scaling_parameters[10])
+{
+  int PicWidthInSamplesCurrY      = get_width();
+  int PiPicHeightInSamplesCurrY   = get_height();
+  int PicWidthInSamplesRefLayerY  = src->get_width();
+  int PicHeightInSamplesRefLayerY = src->get_height();
+
+  int ScaledRefRegionWidthInSamplesY  = scaling_parameters[6];
+  int RefLayerRegionWidthInSamplesY   = scaling_parameters[7];
+  int ScaledRefRegionHeightInSamplesY = scaling_parameters[8];
+  int RefLayerRegionHeightInSamplesY  = scaling_parameters[9];
+
+  int xMax = ((PicWidthInSamplesCurrY    + 15) >> 4) - 1;
+  int yMax = ((PiPicHeightInSamplesCurrY + 15) >> 4) - 1;
+
+  int xPb, yPb, xPCtr, yPCtr, xRef, yRef, xRL, yRL, width, height;
+  for (int xB = 0; xB <= xMax; xB++) {
+    for (int yB = 0; yB <= yMax; yB++) {
+      xPb = xB << 4;
+      yPb = yB << 4;
+
+      // 1. The center location ( xPCtr, yPCtr ) of the luma prediction block is derived as follows:
+      xPCtr = xPb + 8;  // (H 65)
+      yPCtr = yPb + 8;  // (H 66)
+
+      // 2. The variables xRef and yRef are derived as follows:
+      xRef = (((xPCtr - scaling_parameters[0]) * scaling_parameters[2] + (1 << 15)) >> 16 ) + scaling_parameters[4];  // (H 67)
+      yRef = (((yPCtr - scaling_parameters[1]) * scaling_parameters[3] + (1 << 15)) >> 16 ) + scaling_parameters[5];  // (H 68)
+
+      // 3. The rounded reference layer luma sample location ( xRL, yRL ) is derived as follows:
+      xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
+      yRL = ((yRef + 4) >> 4) << 4;  // (H 70)
+
+      // Calculate the width and height of the block. This is necessary since "set_pred_mode" and
+      // "set_mv_info" are not capable of handling blocks that reach outside the picture bundary.
+      width = 16;
+      height = 16;
+      if (xPb+16 > PicWidthInSamplesCurrY || yPb+16 > PiPicHeightInSamplesCurrY) {
+        // The width or height of the block is not 16x16
+        width = (PicWidthInSamplesCurrY - xPb);
+        height = (PiPicHeightInSamplesCurrY - yPb);
+      }
+
+      // 4. Upsample the prediction mode. (H 71)
+      PredMode rsPredMode;
+      if( xRL < 0 || xRL >= PicWidthInSamplesRefLayerY || yRL < 0 || yRL >= PicHeightInSamplesRefLayerY ) {
+        rsPredMode = MODE_INTRA;
+      }
+      else {
+        rsPredMode = src->get_pred_mode(xRL, yRL);
+      }
+      set_pred_mode(xPb, yPb, width, height, rsPredMode);
+
+      // 5. Upsample the motion vectors and prediction flags
+      MotionVectorSpec mv_dst;
+      if (rsPredMode == MODE_INTER) {
+        const MotionVectorSpec *mv_src = src->get_mv_info(xRL, yRL);
+        // For X being each of 0 and 1...
+        for (int l=0; l<2; l++) {
+          // RefIdx, predFlag
+          mv_dst.refIdx[l] = mv_src->refIdx[l];     // (H 72)
+          mv_dst.predFlag[l] = mv_src->predFlag[l]; // (H 73)
+
+          // Motion vector. X-component.
+          if (ScaledRefRegionWidthInSamplesY != RefLayerRegionWidthInSamplesY) {
+            int rlMvLX = mv_src->mv[l].x;
+            int scaleMVX = Clip3( -4096, 4095, ((ScaledRefRegionWidthInSamplesY << 8) + (RefLayerRegionWidthInSamplesY >> 1)) / RefLayerRegionWidthInSamplesY); // (H 74)
+            mv_dst.mv[l].x = Clip3( -32768, 32767, Sign( scaleMVX *	rlMvLX) * ((abs_value(scaleMVX * rlMvLX) + 127) >> 8)); // (H 75)
+          }
+          else {
+            mv_dst.mv[l].x = mv_src->mv[l].x; // (H 76)
+          }
+
+          // Motion vector. Y-component.
+          if (ScaledRefRegionHeightInSamplesY != RefLayerRegionHeightInSamplesY) {
+            int rlMvLX = mv_src->mv[l].y;
+            int scaleMVX = Clip3( -4096, 4095, ((ScaledRefRegionHeightInSamplesY << 8) + (RefLayerRegionHeightInSamplesY >> 1)) / RefLayerRegionHeightInSamplesY); // (H 77)
+            mv_dst.mv[l].y = Clip3( -32768, 32767, Sign( scaleMVX *	rlMvLX) * ((abs_value(scaleMVX * rlMvLX) + 127) >> 8)); // (H 78)
+          }
+          else {
+            mv_dst.mv[l].y = mv_src->mv[l].y;  // (H 79)
+          }
+        }
+      }
+      else {
+        // Otherwise (rsPredMode is equal to MODE_INTRA), the following applies:
+        mv_dst.mv[0].x = 0;
+        mv_dst.mv[0].y = 0;
+        mv_dst.mv[1].x = 0;
+        mv_dst.mv[1].y = 0;
+        mv_dst.refIdx[0] = -1;
+        mv_dst.refIdx[1] = -1;
+        mv_dst.predFlag[0] = 0;
+        mv_dst.predFlag[1] = 0;
+      }
+      // Set the derived motion info in the output picture
+      set_mv_info(xPb, yPb, width, height, mv_dst);
+    }
+  }
+}
+
 // end = last line + 1
 void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 {
