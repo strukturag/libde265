@@ -35,7 +35,7 @@
 // USE_FASTER_IMPLEMENTATION == 2:
 // Split the horizontal/veritcal filtering into intervals (padding on the left / no padding / padding on the right)
 // On my mashine this provided a speedup of aroud x2 compared to USE_FASTER_IMPLEMENTATION == 1.
-#define USE_FASTER_IMPLEMENTATION 1
+#define USE_FASTER_IMPLEMENTATION 2
 
 // Measure the execution time of the upsampling and print it to stdout
 #define MEASURE_EXECUTION_TIME 0
