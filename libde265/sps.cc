@@ -407,10 +407,14 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   strong_intra_smoothing_enable_flag = get_bits(br,1);
   vui_parameters_present_flag = get_bits(br,1);
 
+
+  // HACK: disabled extensions, because we do not have VUI decoding yet
+
   if (vui_parameters_present_flag) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+    //return DE265_ERROR_NOT_IMPLEMENTED_YET;
   }
 
+  /*
   sps_extension_present_flag = get_bits(br,1);
   if (sps_extension_present_flag) {
     sps_range_extension_flag = get_bits(br,1);
@@ -423,31 +427,11 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     if (err != DE265_OK) { return err; }
   }
 
-#if 0
-  if (vui_parameters_present_flag) {
-    assert(false);
-    /*
-      vui_parameters()
-
-        sps_extension_flag
-        u(1)
-        if( sps_extension_flag )
-
-          while( more_rbsp_data() )
-
-            sps_extension_data_flag
-              u(1)
-              rbsp_trailing_bits()
-    */
-  }
-
   sps_extension_flag = get_bits(br,1);
   if (sps_extension_flag) {
     assert(false);
   }
-
-  check_rbsp_trailing_bits(br);
-#endif
+  */
 
 
   de265_error err = compute_derived_values();
