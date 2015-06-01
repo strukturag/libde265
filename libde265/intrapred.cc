@@ -245,7 +245,8 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples(de265_image* img, int xB,int yB,
+void fill_border_samples(de265_image* img,
+                         int xB,int yB,  // in component specific resolution
                          int nT, int cIdx,
                          pixel_t* out_border)
 {
@@ -260,16 +261,17 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   image  = (pixel_t*)img->get_image_plane(cIdx);
   stride = img->get_image_stride(cIdx);
 
-  const int chromaShift = (cIdx==0) ? 0 : 1;
+  const int SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
+  const int SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
+
   const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
 
   const int bit_depth = img->get_bit_depth(cIdx);
 
   // --- check for CTB boundaries ---
 
-  int xBLuma = (cIdx==0) ? xB : 2*xB;
-  int yBLuma = (cIdx==0) ? yB : 2*yB;
-  int nTLuma = (cIdx==0) ? nT : 2*nT;
+  int xBLuma = xB * SubWidth;
+  int yBLuma = yB * SubHeight;
 
   int log2CtbSize = sps->Log2CtbSizeY;
   int picWidthInCtbs = sps->PicWidthInCtbsY;
@@ -300,7 +302,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
     yBLuma = 0; // fake value, available flags are already set to false
   }
 
-  if (xBLuma+nTLuma >= sps->pic_width_in_luma_samples) {
+  if (xBLuma+nT*SubWidth >= sps->pic_width_in_luma_samples) {
     availableTopRight=false;
   }
 
@@ -309,7 +311,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   int xCurrCtb = xBLuma >> log2CtbSize;
   int yCurrCtb = yBLuma >> log2CtbSize;
   int xLeftCtb = (xBLuma-1) >> log2CtbSize;
-  int xRightCtb = (xBLuma+nTLuma) >> log2CtbSize;
+  int xRightCtb = (xBLuma+nT*SubWidth) >> log2CtbSize;
   int yTopCtb   = (yBLuma-1) >> log2CtbSize;
 
   int currCTBSlice = img->get_SliceAddrRS(xCurrCtb,yCurrCtb);
@@ -342,11 +344,12 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
   // number of pixels that are in the valid image area to the right and to the bottom
 
-  int nBottom = sps->pic_height_in_luma_samples - (cIdx==0 ? yB : 2*yB);
-  if (cIdx) nBottom=(nBottom+1)/2;
+  int nBottom = sps->pic_height_in_luma_samples - yB*SubHeight;
+  nBottom=(nBottom+SubHeight-1)/SubHeight;
   if (nBottom>2*nT) nBottom=2*nT;
-  int nRight  = sps->pic_width_in_luma_samples  - (cIdx==0 ? xB : 2*xB);
-  if (cIdx) nRight =(nRight +1)/2;
+
+  int nRight  = sps->pic_width_in_luma_samples  - xB*SubWidth;
+  nRight =(nRight +SubWidth-1)/SubWidth;
   if (nRight >2*nT) nRight=2*nT;
 
   int nAvail=0;
@@ -367,7 +370,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
-            if (img->get_pred_mode((xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+            if (img->get_pred_mode((xB-1)*SubWidth,(yB+y)*SubHeight)!=MODE_INTRA)
               availableN = false;
           }
 
@@ -393,7 +396,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
         bool availableN = NBlockAddr < currBlockAddr;
 
         if (pps->constrained_intra_pred_flag) {
-          if (img->get_pred_mode((xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+          if (img->get_pred_mode((xB-1)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
             availableN = false;
           }
         }
@@ -422,7 +425,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
           bool availableN = NBlockAddr < currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
-            if (img->get_pred_mode((xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+            if (img->get_pred_mode((xB+x)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
               availableN = false;
             }
           }
