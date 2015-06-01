@@ -35,7 +35,7 @@
 // USE_FASTER_IMPLEMENTATION == 2:
 // Split the horizontal/veritcal filtering into intervals (padding on the left / no padding / padding on the right)
 // On my mashine this provided a speedup of aroud x2 compared to USE_FASTER_IMPLEMENTATION == 1.
-#define USE_FASTER_IMPLEMENTATION 2
+#define USE_FASTER_IMPLEMENTATION 1
 
 // Measure the execution time of the upsampling and print it to stdout
 #define MEASURE_EXECUTION_TIME 0
@@ -74,6 +74,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 
   int BitDepthRefLayerY = position_params[8];
   int BitDepthCurrY     = position_params[9];
+  int clipMax           = (1 << BitDepthCurrY) - 1;
 
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;
@@ -271,14 +272,15 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
-                         fL[yPhase][1] * tmp_minus2[ x ] +
-                         fL[yPhase][2] * tmp_minus1[ x ] +
-                         fL[yPhase][3] * tmp_center[ x ] +
-                         fL[yPhase][4] * tmp_plus1 [ x ] +
-                         fL[yPhase][5] * tmp_plus2 [ x ] +
-                         fL[yPhase][6] * tmp_plus3 [ x ] +
-                         fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2;  // (H 39)
+      rsLumaSample[x] = Clip3( 0, clipMax,
+                              (( fL[yPhase][0] * tmp_minus3[ x ] +
+                                 fL[yPhase][1] * tmp_minus2[ x ] +
+                                 fL[yPhase][2] * tmp_minus1[ x ] +
+                                 fL[yPhase][3] * tmp_center[ x ] +
+                                 fL[yPhase][4] * tmp_plus1 [ x ] +
+                                 fL[yPhase][5] * tmp_plus2 [ x ] +
+                                 fL[yPhase][6] * tmp_plus3 [ x ] +
+                                 fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2 ));  // (H 39)
     }
   }
 
@@ -310,14 +312,15 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
-                         fL[yPhase][1] * tmp_minus2[ x ] +
-                         fL[yPhase][2] * tmp_minus1[ x ] +
-                         fL[yPhase][3] * tmp_center[ x ] +
-                         fL[yPhase][4] * tmp_plus1 [ x ] +
-                         fL[yPhase][5] * tmp_plus2 [ x ] +
-                         fL[yPhase][6] * tmp_plus3 [ x ] +
-                         fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2;  // (H 39)
+      rsLumaSample[x] = Clip3( 0, clipMax,
+                              (( fL[yPhase][0] * tmp_minus3[ x ] +
+                                 fL[yPhase][1] * tmp_minus2[ x ] +
+                                 fL[yPhase][2] * tmp_minus1[ x ] +
+                                 fL[yPhase][3] * tmp_center[ x ] +
+                                 fL[yPhase][4] * tmp_plus1 [ x ] +
+                                 fL[yPhase][5] * tmp_plus2 [ x ] +
+                                 fL[yPhase][6] * tmp_plus3 [ x ] +
+                                 fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2 ));  // (H 39)
     }
   }
 
@@ -350,14 +353,15 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     rsLumaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
-      rsLumaSample[x] = (fL[yPhase][0] * tmp_minus3[ x ] +
-                         fL[yPhase][1] * tmp_minus2[ x ] +
-                         fL[yPhase][2] * tmp_minus1[ x ] +
-                         fL[yPhase][3] * tmp_center[ x ] +
-                         fL[yPhase][4] * tmp_plus1 [ x ] +
-                         fL[yPhase][5] * tmp_plus2 [ x ] +
-                         fL[yPhase][6] * tmp_plus3 [ x ] +
-                         fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2;  // (H 39)
+      rsLumaSample[x] = Clip3( 0, clipMax,
+                              (( fL[yPhase][0] * tmp_minus3[ x ] +
+                                 fL[yPhase][1] * tmp_minus2[ x ] +
+                                 fL[yPhase][2] * tmp_minus1[ x ] +
+                                 fL[yPhase][3] * tmp_center[ x ] +
+                                 fL[yPhase][4] * tmp_plus1 [ x ] +
+                                 fL[yPhase][5] * tmp_plus2 [ x ] +
+                                 fL[yPhase][6] * tmp_plus3 [ x ] +
+                                 fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2 ));  // (H 39)
     }
   }
 
@@ -413,14 +417,15 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
       tmpSample = tmp + x;
 
        // 6. The resampled luma sample value rsLumaSample is derived as follows:
-      rsLumaSample[x] = ( fL[yPhase][0] * tmpSample[ Clip3(0, refY - 1, yRef - 3) * tmpStride ] +
+      rsLumaSample[x] = Clip3( 0, clipMax,
+                       (( fL[yPhase][0] * tmpSample[ Clip3(0, refY - 1, yRef - 3) * tmpStride ] +
                           fL[yPhase][1] * tmpSample[ Clip3(0, refY - 1, yRef - 2) * tmpStride ] +
                           fL[yPhase][2] * tmpSample[ Clip3(0, refY - 1, yRef - 1) * tmpStride ] +
                           fL[yPhase][3] * tmpSample[ Clip3(0, refY - 1, yRef    ) * tmpStride ] +
                           fL[yPhase][4] * tmpSample[ Clip3(0, refY - 1, yRef + 1) * tmpStride ] +
                           fL[yPhase][5] * tmpSample[ Clip3(0, refY - 1, yRef + 2) * tmpStride ] +
                           fL[yPhase][6] * tmpSample[ Clip3(0, refY - 1, yRef + 3) * tmpStride ] +
-                          fL[yPhase][7] * tmpSample[ Clip3(0, refY - 1, yRef + 4) * tmpStride ] + offset ) >> shift2;  // (H 39)
+                          fL[yPhase][7] * tmpSample[ Clip3(0, refY - 1, yRef + 4) * tmpStride ] + offset ) >> shift2 ));  // (H 39)
     }
   }
   
@@ -469,14 +474,15 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
       }
 
       // 6. The resampled luma sample value rsLumaSample is derived as follows:
-      rsLumaSample[xP] = ( fL[yPhase][0] * tempArray[0] +
+      rsLumaSample[xP] = Clip3( 0, clipMax,
+                         (( fL[yPhase][0] * tempArray[0] +
                             fL[yPhase][1] * tempArray[1] +
                             fL[yPhase][2] * tempArray[2] +
                             fL[yPhase][3] * tempArray[3] +
                             fL[yPhase][4] * tempArray[4] +
                             fL[yPhase][5] * tempArray[5] +
                             fL[yPhase][6] * tempArray[6] +
-                            fL[yPhase][7] * tempArray[7] + offset ) >> shift2;  // (H 39)
+                            fL[yPhase][7] * tempArray[7] + offset ) >> shift2 ));  // (H 39)
     }
   }
 #endif
@@ -499,6 +505,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
 
   int BitDepthRefLayerC = position_params[8];
   int BitDepthCurrC     = position_params[9];
+  int clipMax           = (1 << BitDepthCurrC) - 1;
   
   int xRef16, yRef16, xRef, xPhase, yRef, yPhase;
   int shift1, shift2, offset;
@@ -669,10 +676,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
     
     for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
-      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
-                            fC[yPhase][1] * tmp_center[ x ] +
-                            fC[yPhase][2] * tmp_plus1 [ x ] +
-                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+      rsChromaSample[x] = Clip3( 0, clipMax,
+                           (( fC[yPhase][0] * tmp_minus1[ x ] +
+                              fC[yPhase][1] * tmp_center[ x ] +
+                              fC[yPhase][2] * tmp_plus1 [ x ] +
+                              fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2 ));  // (H 51)
     }
   }
 
@@ -701,10 +709,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
     
     for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
-      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
+      rsChromaSample[x] = Clip3( 0, clipMax,
+                         (( fC[yPhase][0] * tmp_minus1[ x ] +
                             fC[yPhase][1] * tmp_center[ x ] +
                             fC[yPhase][2] * tmp_plus1 [ x ] +
-                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2 ));  // (H 51)
     }
   }
 
@@ -734,10 +743,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     rsChromaSample = dst + yP * dststride;  // Get pointer to destination y line
 
     for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
-      rsChromaSample[x] = ( fC[yPhase][0] * tmp_minus1[ x ] +
+      rsChromaSample[x] = Clip3( 0, clipMax,
+                         (( fC[yPhase][0] * tmp_minus1[ x ] +
                             fC[yPhase][1] * tmp_center[ x ] +
                             fC[yPhase][2] * tmp_plus1 [ x ] +
-                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2;  // (H 51)
+                            fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2));  // (H 51)
     }
   }
 
@@ -797,10 +807,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
       tmpSample = tmp + x;
 
       // 6. The resampled chroma sample value rsChromaSample is derived as follows:
-      rsChromaSample[x] = ( fC[yPhase][0] * tmpSample[ Clip3(0, refY - 1, yRef - 1) * tmpStride ] +
+      rsChromaSample[x] = Clip3( 0, clipMax,
+                         (( fC[yPhase][0] * tmpSample[ Clip3(0, refY - 1, yRef - 1) * tmpStride ] +
                             fC[yPhase][1] * tmpSample[ Clip3(0, refY - 1, yRef    ) * tmpStride ] +
                             fC[yPhase][2] * tmpSample[ Clip3(0, refY - 1, yRef + 1) * tmpStride ] +
-                            fC[yPhase][3] * tmpSample[ Clip3(0, refY - 1, yRef + 2) * tmpStride ] + offset ) >> shift2;  // (H 51)
+                            fC[yPhase][3] * tmpSample[ Clip3(0, refY - 1, yRef + 2) * tmpStride ] + offset ) >> shift2 ));  // (H 51)
     }
   }
 
@@ -847,10 +858,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
       }
 
       // 6. The resampled chroma sample value rsChromaSample is derived as follows:
-      rsChromaSample[xP] = ( fC[yPhase][0] * tempArray[0] +
+      rsChromaSample[xP] = Clip3( 0, clipMax,
+                          (( fC[yPhase][0] * tempArray[0] +
                              fC[yPhase][1] * tempArray[1] +
                              fC[yPhase][2] * tempArray[2] +
-                             fC[yPhase][3] * tempArray[3] + offset ) >> shift2;  // (H 51)
+                             fC[yPhase][3] * tempArray[3] + offset ) >> shift2 ));  // (H 51)
 
       rsChromaSample[xP] = Clip3(0, ( 1 << BitDepthCurrC ) - 1, rsChromaSample[xP]);  // (H 52)
     }
