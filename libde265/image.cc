@@ -106,8 +106,11 @@ LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
 static int  de265_image_get_buffer(de265_decoder_context* ctx,
                                    de265_image_spec* spec, de265_image* img, void* userdata)
 {
-  int luma_stride   = (spec->width   + spec->alignment-1) / spec->alignment * spec->alignment;
-  int chroma_stride = (spec->width/2 + spec->alignment-1) / spec->alignment * spec->alignment;
+  const int rawChromaWidth  = spec->width  / img->sps.SubWidthC;
+  const int rawChromaHeight = spec->height / img->sps.SubHeightC;
+
+  int luma_stride   = (spec->width     + spec->alignment-1) / spec->alignment * spec->alignment;
+  int chroma_stride = (rawChromaHeight + spec->alignment-1) / spec->alignment * spec->alignment;
 
   assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
   assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
@@ -116,7 +119,7 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   int chroma_bpl = chroma_stride * (img->sps.BitDepth_C+7)/8;
 
   int luma_height   = spec->height;
-  int chroma_height = (spec->height+1)/2;
+  int chroma_height = rawChromaHeight;
 
   uint8_t* p[3] = { 0,0,0 };
   p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_height   * luma_bpl   + MEMORY_PADDING);
