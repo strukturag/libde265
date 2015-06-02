@@ -366,7 +366,7 @@ void fill_border_samples(de265_image* img,
                                              (((yB+y)*SubHeight)>>sps->Log2MinTrafoSize)
                                              * sps->PicWidthInTbsY ];
 
-          bool availableN = NBlockAddr < currBlockAddr;
+          bool availableN = NBlockAddr <= currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
             if (img->get_pred_mode((xB-1)*SubWidth,(yB+y)*SubHeight)!=MODE_INTRA)
@@ -393,7 +393,7 @@ void fill_border_samples(de265_image* img,
                                            (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
                                            * sps->PicWidthInTbsY ];
 
-        bool availableN = NBlockAddr < currBlockAddr;
+        bool availableN = NBlockAddr <= currBlockAddr;
 
         if (pps->constrained_intra_pred_flag) {
           if (img->get_pred_mode((xB-1)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
@@ -423,7 +423,7 @@ void fill_border_samples(de265_image* img,
                                              (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
                                              * sps->PicWidthInTbsY ];
 
-          bool availableN = NBlockAddr < currBlockAddr;
+          bool availableN = NBlockAddr <= currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
             if (img->get_pred_mode((xB+x)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
