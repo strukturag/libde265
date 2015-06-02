@@ -3559,7 +3559,7 @@ void read_transform_tree(thread_context* tctx,
       cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
 
       if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
-        cbf_cb = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+        cbf_cb |= (decode_cbf_chroma(tctx,trafoDepth) << 1);
       }
     }
 
@@ -3568,7 +3568,7 @@ void read_transform_tree(thread_context* tctx,
       cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
 
       if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
-        cbf_cr = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+        cbf_cr |= (decode_cbf_chroma(tctx,trafoDepth) << 1);
       }
     }
   }
