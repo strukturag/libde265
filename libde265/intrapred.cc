@@ -264,8 +264,6 @@ void fill_border_samples(de265_image* img,
   const int SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
   const int SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
 
-  const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
-
   const int bit_depth = img->get_bit_depth(cIdx);
 
   // --- check for CTB boundaries ---
@@ -364,8 +362,9 @@ void fill_border_samples(de265_image* img,
     for (int y=nBottom-1 ; y>=0 ; y-=4)
       if (availableLeft)
         {
-          int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
-                                             ((yB+y)>>TUShift) * sps->PicWidthInTbsY ];
+          int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                             (((yB+y)*SubHeight)>>sps->Log2MinTrafoSize)
+                                             * sps->PicWidthInTbsY ];
 
           bool availableN = NBlockAddr < currBlockAddr;
 
@@ -390,8 +389,9 @@ void fill_border_samples(de265_image* img,
 
     if (availableTopLeft)
       {
-        int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
-                                           ((yB-1)>>TUShift) * sps->PicWidthInTbsY ];
+        int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                           (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                           * sps->PicWidthInTbsY ];
 
         bool availableN = NBlockAddr < currBlockAddr;
 
@@ -419,8 +419,9 @@ void fill_border_samples(de265_image* img,
 
       if (borderAvailable)
         {
-          int NBlockAddr = pps->MinTbAddrZS[ ((xB+x)>>TUShift) +
-                                             ((yB-1)>>TUShift) * sps->PicWidthInTbsY ];
+          int NBlockAddr = pps->MinTbAddrZS[ (((xB+x)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                             (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                             * sps->PicWidthInTbsY ];
 
           bool availableN = NBlockAddr < currBlockAddr;
 
