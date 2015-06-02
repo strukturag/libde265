@@ -6,3 +6,6 @@ Dirk Farin <farin@struktur.de>
 
 Joachim Bauch <bauch@struktur.de>
 - bugfixes, optimizations and support for Windows
+
+Christian Feldmann <christian.feldmann@gmx.de>
+- Multiview/Scalable extensions of HEVC (SHVC)
