@@ -65,6 +65,8 @@ enum PresetSet {
 class sps_range_extension
 {
  public:
+  sps_range_extension();
+
   uint8_t transform_skip_rotation_enabled_flag;
   uint8_t transform_skip_context_enabled_flag;
   uint8_t implicit_rdpcm_enabled_flag;

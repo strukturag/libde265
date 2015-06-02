@@ -767,9 +767,11 @@ void decode_intra_prediction_internal(de265_image* img,
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
-  if (cIdx==0) {
-    intra_prediction_sample_filtering(img, border_pixels, nT, intraPredMode);
-  }
+  if (img->sps.range_extension.intra_smoothing_disabled_flag == 0 &&
+      (cIdx==0 || img->sps.ChromaArrayType==CHROMA_444))
+    {
+      intra_prediction_sample_filtering(img, border_pixels, nT, intraPredMode);
+    }
 
 
   switch (intraPredMode) {

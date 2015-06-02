@@ -275,7 +275,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     break;
 
   default:
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+    spec.format = de265_image_format_YUV422P8;
     break;
   }
 
