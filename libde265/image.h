@@ -245,7 +245,6 @@ struct de265_image {
   void fill_image(int y,int u,int v);
   de265_error copy_image(const de265_image* src);
   void copy_lines_from(const de265_image* src, int first, int end);
-  void upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10]);
   void exchange_pixel_data_with(de265_image&);
 
   uint32_t get_ID() const { return ID; }
@@ -364,6 +363,10 @@ public:
   void upsample_metadata(const de265_image* src);
   // Set if upsampling has to be performed
   void setEqualPictureSizeAndOffsetFlag(bool f) { equalPictureSizeAndOffsetFlag = f; }
+  // Upsample the image from the source using the given upsampling parameters
+  void upsample_image_from(decoder_context* ctx, de265_image* rlPic, int upsampling_params[2][10]);
+  // The colour mapping process as specified in clause H.8.1.4.3 is invoked
+  void colour_mapping(decoder_context* ctx, de265_image* rlPic, colour_mapping_table *map, int colourMappingParams[2]);
 
 private:
   bool bIlRefPic;

@@ -1625,9 +1625,6 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
   }
 
   // The following ordered steps are applied to derive the inter-layer reference picture ilRefPic.
-  bool sampleProcessingFlag = false;
-  bool motionProcessingFlag = false;
-
   bool equalPictureSizeAndOffsetFlag = (
     (PicWidthInSamplesCurrY == PicWidthInSamplesRefLayerY) &&
     (PicHeightInSamplesCurrY == PicHeightInSamplesRefLayerY) &&
@@ -1716,16 +1713,24 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
 
       if (currColourMappingEnableFlag) {
         // The colour mapping process as specified in clause H.8.1.4.3 is invoked
-        // TODO
-        assert(false);
+
+        // Create temporary image
+        de265_image img;
+        de265_image* src = rlPic;
+        img.alloc_image(src->get_width(), src->get_height(), src->get_chroma_format(), &src->sps, false,
+                                src->decctx, src->encctx, src->pts, src->user_data, false);
+
+        // The colour mapping process as specified in clause H.8.1.4.3 is invoked
+        int colourMappingParams[2] = {SubWidthRefLayerC, SubHeightRefLayerC };
+        img.colour_mapping( ctx, rlPic, &pps_ext->cm_table, colourMappingParams );
+
         if (equalPictureSizeAndOffsetFlag) {
-          ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
+          ilRefPic[ilRefPicIdx]->copy_lines_from(&img, 0, rlPic->get_height());  // Copy pixel data
         }
         else {
-          // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
-          ilRefPic[ilRefPicIdx]->upsample_image_from(ctx, rlPic, upsampling_params);
+          // The picture sample resampling process as specified in clause H.8.1.4.1 is invoked
+          ilRefPic[ilRefPicIdx]->upsample_image_from(ctx, &img, upsampling_params);
         }
-        sampleProcessingFlag = true;
       }
       else {
         // the picture sample resampling process as specified in clause H.8.1.4.1 is invoked
@@ -1770,7 +1775,6 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
                                       ScaledRefRegionHeightInSamplesY, RefLayerRegionHeightInSamplesY};
         ilRefPic[ilRefPicIdx]->set_inter_layer_metadata_scaling_parameters(scaling_parameters);
         ilRefPic[ilRefPicIdx]->upsample_metadata(rlPic);
-        motionProcessingFlag  = true;
       }
     }
 

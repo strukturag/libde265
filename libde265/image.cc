@@ -713,6 +713,128 @@ void de265_image::upsample_image_from(decoder_context* ctx, de265_image* rlPic, 
                                                               upsampling_params[1] );
 }
 
+void de265_image::colour_mapping(decoder_context* ctx, de265_image* rlPic, colour_mapping_table *map, int colourMappingParams[2])
+{
+  assert( bIlRefPic );
+
+  int PicWidthInSamplesRefLayerY  = rlPic->get_width();
+  int PicHeightInSamplesRefLayerY = rlPic->get_height();
+  int PicHeightInSamplesRefLayerC = rlPic->get_height(1);
+  int PicWidthInSamplesRefLayerC  = rlPic->get_width(1);
+
+  int SubWidthRefLayerC = colourMappingParams[0];
+  int SubHeightRefLayerC = colourMappingParams[1];
+
+  int maxValOut = (1 << map->BitDepthCmOutputY) - 1;
+
+  uint8_t* src_Y  = rlPic->get_image_plane(0);
+  uint8_t* src_cb = rlPic->get_image_plane(1);
+  uint8_t* src_cr = rlPic->get_image_plane(2);
+  int strideY = rlPic->get_luma_stride();
+  int strideC = rlPic->get_chroma_stride();
+
+  uint8_t* dst_Y  = get_image_plane(0);
+  
+  for (int xP = 0; xP < PicWidthInSamplesRefLayerY - 1; xP++) {
+    for (int yP = 0; yP < PicHeightInSamplesRefLayerY - 1; yP++) {
+      
+      // The chroma sample location ( xPC, yPC ) is set equal to ( xP / SubWidthRefLayerC, yP / SubHeightRefLayerC ).
+      int xPC = xP / SubWidthRefLayerC;
+      int yPC = yP / SubHeightRefLayerC;
+
+      // 1. The value of cmLumaSample is derived by applying the following ordered steps:
+      int yShift2Idx = map->BitDepthCmInputY - map->cm_octant_depth - map->cm_y_part_num_log2;  // (H 80)
+      int cShift2Idx = map->BitDepthCmInputC - map->cm_octant_depth;                            // (H 81)
+
+      // 2. The variables nMappingShift and nMappingOffset are derived as follows:
+      int nMappingShift = 10 + map->BitDepthCmInputY - map->BitDepthCmOutputY;  // (H 82)
+      int nMappingOffset = 1 << ( nMappingShift - 1 );                          // (H 83)
+
+      // 3. The variables tempCb and tempCr are derived as follows:
+      int tempCb, tempCr;
+
+      // Get pointers to y line for yPC
+      uint8_t* rlPicSampleCb_yPC = src_cb + yPC * strideC;
+      uint8_t* rlPicSampleCr_yPC = src_cr + yPC * strideC;
+      
+      if (SubWidthRefLayerC == 2 && SubHeightRefLayerC == 2) {
+        if ((xP % 2) == 0 && (yP % 2) == 0) {
+          int yP2C = libde265_max( 0, yPC - 1 );                                      // (H 84)
+          
+          // Get poitner to y line for yPC2
+          uint8_t* rlPicSampleCb_yP2C = src_cb + yP2C * strideC;
+          uint8_t* rlPicSampleCr_yP2C = src_cr + yP2C * strideC;
+
+          tempCb = (rlPicSampleCb_yPC[xPC] * 3 + rlPicSampleCb_yP2C[xPC] + 2) >> 2;   // (H 85)
+          tempCr = (rlPicSampleCr_yP2C[xPC] * 3 + rlPicSampleCr_yP2C[xPC] + 2) >> 2;  // (H 86)
+        }
+        else if ((xP % 2) == 0 && (yP % 2) == 1) {
+          int yP2C = libde265_min( yPC + 1, PicHeightInSamplesRefLayerC - 1 );        // (H 87)
+
+          // Get poitner to y line for yPC2
+          uint8_t* rlPicSampleCb_yP2C = src_cb + yP2C * strideC;
+          uint8_t* rlPicSampleCr_yP2C = src_cr + yP2C * strideC;
+
+          tempCb = (rlPicSampleCb_yPC[xPC] * 3 + rlPicSampleCb_yP2C[xPC] + 2 ) >> 2;   // (H 88)
+          tempCr = (rlPicSampleCr_yPC[xPC] * 3 + rlPicSampleCr_yP2C[xPC] + 2 ) >> 2;   // (H 89)
+        }
+        else if ((xP % 2) == 1 && (yP % 2) == 0) {
+          int xP2C = libde265_min( xPC + 1, PicWidthInSamplesRefLayerC - 1 );          // (H 90)
+          int yP2C = libde265_max( 0, yPC - 1 );                                       // (H 91)
+
+          // Get poitner to y line for yPC2
+          uint8_t* rlPicSampleCb_yP2C = src_cb + yP2C * strideC;
+          uint8_t* rlPicSampleCr_yP2C = src_cr + yP2C * strideC;
+
+          tempCb = (rlPicSampleCb_yP2C[xPC] + rlPicSampleCb_yP2C[xP2C] + (rlPicSampleCb_yPC[xPC] + rlPicSampleCb_yPC[xP2C]) * 3 + 4) >> 3;  // (H 92)
+          tempCr = (rlPicSampleCr_yP2C[xPC] + rlPicSampleCr_yP2C[xP2C] + (rlPicSampleCr_yPC[yPC] + rlPicSampleCr_yPC[xP2C]) * 3 + 4) >> 3;  // (H 93)
+        }
+        else if ((xP % 2) == 1 && (yP % 2) == 1) {
+          int xP2C = libde265_min( xPC + 1, PicWidthInSamplesRefLayerC - 1 );          // (H 94)
+          int yP2C = libde265_min( yPC + 1, PicHeightInSamplesRefLayerC - 1 );         // (H 95)
+
+          // Get poitner to y line for yPC2
+          uint8_t* rlPicSampleCb_yP2C = src_cb + yP2C * strideC;
+          uint8_t* rlPicSampleCr_yP2C = src_cr + yP2C * strideC;
+
+          tempCb = ((rlPicSampleCb_yPC[xPC] + rlPicSampleCb_yPC[xP2C]) * 3 + rlPicSampleCb_yP2C[xPC] + rlPicSampleCb_yP2C[xP2C] + 4) >> 3;  // (H 96)
+          tempCr = ((rlPicSampleCr_yPC[xPC] + rlPicSampleCr_yPC[xP2C]) * 3 + rlPicSampleCr_yP2C[xPC] + rlPicSampleCr_yP2C[xP2C] + 4) >> 3;  // (H 97)
+        }
+      }
+      else if (SubWidthRefLayerC == 2) {
+        if ((xP % 2) == 1) {
+          int xP2C = libde265_min( xPC + 1, PicWidthInSamplesRefLayerC - 1 );          // (H 98)
+          
+          tempCb = (rlPicSampleCb_yPC[xPC] + rlPicSampleCb_yPC[xP2C] + 1 ) >> 1;       // (H 99)
+          tempCr = (rlPicSampleCr_yPC[xPC] + rlPicSampleCr_yPC[xP2C] + 1 ) >> 1;       // (H 100)
+        }
+        else {
+          tempCb = rlPicSampleCb_yPC[xPC];                                             // (H 101)
+          tempCr = rlPicSampleCr_yPC[xPC];                                             // (H 102)
+        }
+      }
+      else {
+        tempCb = rlPicSampleCb_yPC[xPC];                                               // (H 103)
+        tempCr = rlPicSampleCr_yPC[xPC];                                               // (H 104)
+      }
+
+      // Get pointer to input/output yP line
+      uint8_t* cmLumaSample_yP = dst_Y + yP * stride;
+      uint8_t* rlPicSampleY_yP = src_Y + yP * strideY;
+
+      // 4. The value of cmLumaSample is derived as follows:
+      int idxY = rlPicSampleY_yP[xP] >> yShift2Idx;
+      int idxCb = (map->cm_octant_depth == 1) ? (tempCb >= map->CMThreshU) : (tempCb >> cShift2Idx);
+      int idxCr = (map->cm_octant_depth == 1) ? (tempCr >= map->CMThreshV) : (tempCr >> cShift2Idx);
+
+      cmLumaSample_yP[xP] = Clip3( 0, maxValOut,
+                           ((map->LutY[idxY][idxCb][idxCr][0] * rlPicSampleY_yP[xP] + map->LutY[idxY][idxCb][idxCr][1] * tempCb + 
+                             map->LutY[idxY][idxCb][idxCr][2] * tempCr + nMappingOffset ) >> nMappingShift ) + 
+                             map->LutY[idxY][idxCb][idxCr][3]); // (H 108) (H-109)
+    }
+  }
+}
+
 void de265_image::exchange_pixel_data_with(de265_image& b)
 {
   for (int i=0;i<3;i++) {
