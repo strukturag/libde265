@@ -1653,6 +1653,7 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
     ilRefPic[ilRefPicIdx]->alloc_image(PicWidthInSamplesCurrY, PicHeightInSamplesCurrY, c, sps, true, ctx, NULL, 0, 0, false, true);
   }
   ilRefPic[ilRefPicIdx]->PicOrderCntVal = rlPic->PicOrderCntVal;          // Copy POC
+  ilRefPic[ilRefPicIdx]->setEqualPictureSizeAndOffsetFlag ( equalPictureSizeAndOffsetFlag );
 
   if (equalPictureSizeAndOffsetFlag &&
      (BitDepthRefLayerY == BitDepthCurrY) &&
@@ -1661,13 +1662,14 @@ void decoder_context::derive_inter_layer_reference_picture(decoder_context* ctx,
      (SubHeightRefLayerC == SubHeightCurrC) &&
      !currColourMappingEnableFlag) {
 
+    // Equal picture sizes, equal bit depths, no cropping.
     // SNR scalability. We do not need to perform any upsampling.
     // Just copy all information from the lower layer reference.
     ilRefPic[ilRefPicIdx]->copy_lines_from(rlPic, 0, rlPic->get_height());  // Copy pixel data
     ilRefPic[ilRefPicIdx]->copy_metadata(rlPic);                            // Copy metadata
   }
   else {
-    // Spatial scalability. Perform upsampling.
+    // Something (resolution, bitdepth, aspect ratio) between the layers is different.
     video_parameter_set_extension *vps_ext = &ctx->current_vps->vps_extension;
     int currLayerId = ctx->get_layer_id();
     if (vps_ext->VpsInterLayerSamplePredictionEnabled[vps_ext->LayerIdxInVps[currLayerId]][vps_ext->LayerIdxInVps[rLId]]) {

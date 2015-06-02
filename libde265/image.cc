@@ -211,6 +211,7 @@ de265_image::de265_image()
   de265_cond_init(&finished_cond);
 
   bIlRefPic = false;
+  equalPictureSizeAndOffsetFlag = false;
   for (int i = 0; i<10; i++) {
     il_scaling_parameters[10] = -1;
   }

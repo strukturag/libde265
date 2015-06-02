@@ -362,9 +362,12 @@ public:
   void set_inter_layer_metadata_scaling_parameters( int scaling_parameters[10] );
   // Upsample metadata from the source image. Make sure to set_inter_layer_metadata_scaling_parameters first 
   void upsample_metadata(const de265_image* src);
+  // Set if upsampling has to be performed
+  void setEqualPictureSizeAndOffsetFlag(bool f) { equalPictureSizeAndOffsetFlag = f; }
 
 private:
   bool bIlRefPic;
+  bool equalPictureSizeAndOffsetFlag;  // Is upsampling required? (True for SNR scalability)
   int  il_scaling_parameters[10];
   // Pointer to the lower layer reference picture.
   // This is used by get_SliceHeaderIndex to retrive the header of the lower layer reference.
@@ -694,20 +697,28 @@ public:
   {
     if (bIlRefPic) {
       // Get the slice header index from the lower layer reference picture
+
+      if (equalPictureSizeAndOffsetFlag) {
+        // SNR. No sclaing required.
+        return ilRefPic->get_SliceHeaderIndex(x, y);
+      }
+      else {
+        // Get the corresponding lower layer position.
       
-      // 1. The center location ( xPCtr, yPCtr ) of the luma prediction block is derived as follows:
-      int xPCtr = x + 8;  // (H 65)
-      int yPCtr = y + 8;  // (H 66)
+        // 1. The center location ( xPCtr, yPCtr ) of the luma prediction block is derived as follows:
+        int xPCtr = x + 8;  // (H 65)
+        int yPCtr = y + 8;  // (H 66)
 
-      // 2. The variables xRef and yRef are derived as follows:
-      int xRef = (((xPCtr - il_scaling_parameters[0]) * il_scaling_parameters[2] + (1 << 15)) >> 16 ) + il_scaling_parameters[4];  // (H 67)
-      int yRef = (((yPCtr - il_scaling_parameters[1]) * il_scaling_parameters[3] + (1 << 15)) >> 16 ) + il_scaling_parameters[5];  // (H 68)
+        // 2. The variables xRef and yRef are derived as follows:
+        int xRef = (((xPCtr - il_scaling_parameters[0]) * il_scaling_parameters[2] + (1 << 15)) >> 16 ) + il_scaling_parameters[4];  // (H 67)
+        int yRef = (((yPCtr - il_scaling_parameters[1]) * il_scaling_parameters[3] + (1 << 15)) >> 16 ) + il_scaling_parameters[5];  // (H 68)
 
-      // 3. The rounded reference layer luma sample location ( xRL, yRL ) is derived as follows:
-      int xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
-      int yRL = ((yRef + 4) >> 4) << 4;  // (H 70)
+        // 3. The rounded reference layer luma sample location ( xRL, yRL ) is derived as follows:
+        int xRL = ((xRef + 4) >> 4) << 4;  // (H 69)
+        int yRL = ((yRef + 4) >> 4) << 4;  // (H 70)
 
-      return ilRefPic->get_SliceHeaderIndex(xRL, yRL);
+        return ilRefPic->get_SliceHeaderIndex(xRL, yRL);
+      }
     }
     return ctb_info.get(x,y).SliceHeaderIndex;
   }
