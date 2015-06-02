@@ -903,8 +903,13 @@ bool colour_mapping_table::read(bitreader* reader)
   cm_res_quant_bits = get_bits(reader,2);
   cm_delta_flc_bits_minus1 = get_bits(reader,2);
 
-  int BitDepthCmInputY = 8 + luma_bit_depth_cm_input_minus8;
-  int BitDepthCmOutputY = 8 + luma_bit_depth_cm_output_minus8;
+  BitDepthCmInputY = 8 + luma_bit_depth_cm_input_minus8;
+  BitDepthCmOutputY = 8 + luma_bit_depth_cm_output_minus8;
+  BitDepthCmInputC = 8 + chroma_bit_depth_cm_input_minus8;
+  BitDepthCmOutputC = 8 + chroma_bit_depth_cm_output_minus8;
+  CMThreshU = cm_adapt_threshold_u_delta + (1 << (BitDepthCmInputC - 1)); // (F 48)
+  CMThreshV = cm_adapt_threshold_v_delta + (1 << (BitDepthCmInputC - 1)); // (F 49)
+
   int CMResLSBits = libde265_max( 0, ( 10 + BitDepthCmInputY - BitDepthCmOutputY - cm_res_quant_bits - ( cm_delta_flc_bits_minus1 + 1 ) ) );
 
   if( cm_octant_depth == 1 ) {
@@ -956,6 +961,10 @@ bool colour_mapping_octants::read(bitreader* reader, int inpDepth, int idxY, int
       }
     }
   }
+
+  // TODO: Rewrite.
+  // TODO: Calculate LUT (see F.7.4.3.3.5)
+  // LutY, LutCb, LutCr
 
   return true;
 }

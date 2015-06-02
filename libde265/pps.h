@@ -78,7 +78,19 @@ struct colour_mapping_table {
   int    cm_adapt_threshold_u_delta;
   int    cm_adapt_threshold_v_delta;
 
+  // Calculated values
+  int BitDepthCmInputY;
+  int BitDepthCmOutputY;
+  int BitDepthCmInputC;
+  int BitDepthCmOutputC;
+  int CMThreshU;
+  int CMThreshV;
+
   colour_mapping_octants cm_octans;
+
+  int_4d LutY;
+  int_4d LutCb;
+  int_4d LutCr;
 };
 
 struct pps_multilayer_extension {
