@@ -368,6 +368,9 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     }
   }
 
+  delete[] tmp;
+  tmp = NULL;
+
 #elif USE_FASTER_IMPLEMENTATION == 1
   // Perform horizontal / vertical upsampling seperately.
   // Allocate temporaray buffer
@@ -753,6 +756,9 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
                             fC[yPhase][3] * tmp_plus2 [ x ] + offset ) >> shift2));  // (H 51)
     }
   }
+
+  delete[] tmp;
+  tmp = NULL;
 
 #elif USE_FASTER_IMPLEMENTATION == 1
   // Perform horizontal / vertical upsampling seperately.
