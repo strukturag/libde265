@@ -109,8 +109,8 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   const int rawChromaWidth  = spec->width  / img->sps.SubWidthC;
   const int rawChromaHeight = spec->height / img->sps.SubHeightC;
 
-  int luma_stride   = (spec->width     + spec->alignment-1) / spec->alignment * spec->alignment;
-  int chroma_stride = (rawChromaHeight + spec->alignment-1) / spec->alignment * spec->alignment;
+  int luma_stride   = (spec->width    + spec->alignment-1) / spec->alignment * spec->alignment;
+  int chroma_stride = (rawChromaWidth + spec->alignment-1) / spec->alignment * spec->alignment;
 
   assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
   assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
