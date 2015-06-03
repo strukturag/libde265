@@ -68,7 +68,7 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma ch
   switch (mChroma) {
   case SDL_CHROMA_420: pixelFormat = SDL_YV12_OVERLAY; break;
   case SDL_CHROMA_422: pixelFormat = SDL_YUY2_OVERLAY; break;
-  case SDL_CHROMA_444: assert(0); break; // TODO
+  case SDL_CHROMA_444: pixelFormat = SDL_YUY2_OVERLAY; break;
   }
 
   mYUVOverlay = SDL_CreateYUVOverlay(frame_width, frame_height, pixelFormat, mScreen);
@@ -101,6 +101,9 @@ void SDL_YUV_Display::display(const unsigned char *Y,
   }
   else if (mChroma == SDL_CHROMA_422) {
     display422(Y,U,V,stride,chroma_stride);
+  }
+  else if (mChroma == SDL_CHROMA_444) {
+    display444(Y,U,V,stride,chroma_stride);
   }
 
   SDL_UnlockYUVOverlay(mYUVOverlay);
@@ -157,6 +160,32 @@ void SDL_YUV_Display::display422(const unsigned char *Y,
         *p++ = Up[x/2];
         *p++ = Yp[x+1];
         *p++ = Vp[x/2];
+      }
+    }
+}
+
+
+/* This converts down 4:4:4 input to 4:2:2 for display, as SDL does not support
+   any 4:4:4 pixel format.
+ */
+void SDL_YUV_Display::display444(const unsigned char *Y,
+                                 const unsigned char *U,
+                                 const unsigned char *V,
+                                 int stride, int chroma_stride)
+{
+  for (int y=0;y<rect.h;y++)
+    {
+      unsigned char* p = mYUVOverlay->pixels[0] + y*rect.w *2;
+
+      const unsigned char* Yp = Y + y*stride;
+      const unsigned char* Up = U + y*chroma_stride;
+      const unsigned char* Vp = V + y*chroma_stride;
+
+      for (int x=0;x<rect.w;x+=2) {
+        *p++ = Yp[x];
+        *p++ = Up[x];
+        *p++ = Yp[x+1];
+        *p++ = Vp[x];
       }
     }
 }

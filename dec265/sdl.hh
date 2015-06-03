@@ -56,4 +56,8 @@ private:
                   const unsigned char *U,
                   const unsigned char *V,
                   int stride, int chroma_stride);
+  void display444(const unsigned char *Y,
+                  const unsigned char *U,
+                  const unsigned char *V,
+                  int stride, int chroma_stride);
 };
