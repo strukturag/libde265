@@ -192,6 +192,20 @@ void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
 }
 
 
+int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int cIdx,
+                       const seq_parameter_set* sps)
+{
+  if (log2TrafoSize==2 ||
+      (log2TrafoSize==3 && (cIdx==0 ||
+                            sps->ChromaArrayType==CHROMA_444))) {
+    /**/ if (intraPredMode >=  6 && intraPredMode <= 14) return 2;
+    else if (intraPredMode >= 22 && intraPredMode <= 30) return 1;
+    else return 0;
+  }
+  else { return 0; }
+}
+
+
 int get_intra_scan_idx_luma(int log2TrafoSize, enum IntraPredMode intraPredMode)
 {
   if (log2TrafoSize==2 || log2TrafoSize==3) {
