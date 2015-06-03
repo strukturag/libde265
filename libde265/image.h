@@ -383,6 +383,7 @@ private:
   MetaDataArray<CB_ref_info> cb_info;
   MetaDataArray<PB_ref_info> pb_info;
   MetaDataArray<uint8_t>     intraPredMode;
+  MetaDataArray<uint8_t>     intraPredModeC;
   MetaDataArray<uint8_t>     tu_info;
   MetaDataArray<uint8_t>     deblk_info;
 
@@ -625,6 +626,29 @@ public:
         intraPredMode[idx] = mode;
       }
   }
+
+
+  enum IntraPredMode get_IntraPredModeC(int x,int y) const
+  {
+    return (enum IntraPredMode)intraPredModeC.get(x,y);
+  }
+
+  void set_IntraPredModeC(int x0,int y0,int log2blkSize, enum IntraPredMode mode)
+  {
+    int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
+    int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+
+    for (int y=0;y<pbSize;y++)
+      for (int x=0;x<pbSize;x++) {
+        assert(x<sps.PicWidthInMinPUs);
+        assert(y<sps.PicHeightInMinPUs);
+
+        int idx = PUidx + x + y*intraPredModeC.width_in_units;
+        assert(idx<intraPredModeC.data_size);
+        intraPredModeC[idx] = mode;
+      }
+  }
+
 
   /*
   // NOTE: encoder only

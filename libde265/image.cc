@@ -366,6 +366,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
                                              sps->Log2MinPUSize);
 
+    mem_alloc_success &= intraPredModeC.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
+                                              sps->Log2MinPUSize);
+
     // cb info
 
     mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
