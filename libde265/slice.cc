@@ -3439,7 +3439,7 @@ int read_transform_unit(thread_context* tctx,
 
     decode_TU(tctx,
               xBase/SubWidthC,  yBase/SubHeightC,
-              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb);
+              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 1);
 
     // 4:2:2
     if (cbf_cb & 2) {
@@ -3451,7 +3451,7 @@ int read_transform_unit(thread_context* tctx,
     if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 2);
     }
 
     if (cbf_cr & 1) {
@@ -3461,7 +3461,7 @@ int read_transform_unit(thread_context* tctx,
 
     decode_TU(tctx,
               xBase/SubWidthC,  yBase/SubHeightC,
-              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr);
+              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 1);
 
     // 4:2:2
     if (cbf_cr & 2) {
@@ -3473,7 +3473,7 @@ int read_transform_unit(thread_context* tctx,
     if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 2);
     }
   }
 
