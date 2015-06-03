@@ -68,6 +68,7 @@ seq_parameter_set::seq_parameter_set()
 {
   // TODO: this is dangerous
   //memset(this,0,sizeof(seq_parameter_set));
+  ChromaArrayType = 0;
 
   sps_read = false;
   //ref_pic_sets = NULL;

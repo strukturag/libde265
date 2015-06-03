@@ -67,7 +67,6 @@ video_parameter_set_extension::video_parameter_set_extension()
       VpsInterLayerSamplePredictionEnabled[i][j] = false;
       VpsInterLayerMotionPredictionEnabled[i][j] = false;
     }
-    view_id_val[i] = 0;
   }
 
   for (int i = 0; i < 7; i++) {

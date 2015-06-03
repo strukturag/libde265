@@ -1505,7 +1505,7 @@ void decoder_context::process_inter_layer_reference_picture_set(decoder_context*
 
   // Derive RefPicLayerId (JCTVC-R1013_v6 F.7.4.7.1 F-53)
   int_1d RefPicLayerId;
-  for( int i=0, j=0; i < hdr->NumActiveRefLayerPics; i++ ) {
+  for( int i=0; i < hdr->NumActiveRefLayerPics; i++ ) {
 	  RefPicLayerId[i] = vps_ext->IdDirectRefLayer[nuh_layer_id][hdr->inter_layer_pred_layer_idc[i]];
   }
 
