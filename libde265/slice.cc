@@ -3506,11 +3506,11 @@ void read_transform_tree(thread_context* tctx,
                          int MaxTrafoDepth,
                          int IntraSplitFlag,
                          enum PredMode cuPredMode,
-                         bool parent_cbf_cb,bool parent_cbf_cr)
+                         uint8_t parent_cbf_cb,uint8_t parent_cbf_cr)
 {
   logtrace(LogSlice,"- read_transform_tree (interleaved) x0:%d y0:%d xBase:%d yBase:%d "
-           "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d\n",
-           x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth);
+           "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d parent-cbf-cb:%d parent-cbf-cr:%d\n",
+           x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth,parent_cbf_cb,parent_cbf_cr);
 
   de265_image* img = tctx->img;
   const seq_parameter_set* sps = &img->sps;
@@ -3580,6 +3580,7 @@ void read_transform_tree(thread_context* tctx,
     }
   }
 
+  //printf("CBF: cb:%d cr:%d\n",cbf_cb,cbf_cr);
 
   // cbf_cr/cbf_cb not present in bitstream -> induce values
 
