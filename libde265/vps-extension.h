@@ -37,6 +37,8 @@ struct decoded_picture_buffer_size_table {
 };
 
 struct conformance_window {
+  conformance_window();
+
   int conf_win_vps_left_offset;
   int conf_win_vps_right_offset;
   int conf_win_vps_top_offset;
@@ -44,7 +46,8 @@ struct conformance_window {
 };
 
 struct rep_format {
-  de265_error read(bitreader* reader);
+  rep_format();
+  de265_error read(bitreader* reader, rep_format* prev_rep_format);
 
   int  pic_width_vps_in_luma_samples;
   int  pic_height_vps_in_luma_samples;

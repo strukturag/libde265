@@ -25,8 +25,40 @@
 
 video_parameter_set_extension::video_parameter_set_extension()
 {
+  splitting_flag = false;
+  for (int i = 0; i<16; i++) {
+    scalability_mask_flag[i] = false;
+    dimension_id_len_minus1[i] = -1;
+    vps_rep_format_idx[i] = -1;
+  }
+  vps_nuh_layer_id_present_flag = false;
+  view_id_len = -1;
+  num_add_layer_sets = -1;
+  vps_sub_layers_max_minus1_present_flag = false;
+  max_tid_ref_present_flag = false;
+  default_ref_layers_active_flag = false;
+  vps_num_profile_tier_level_minus1 = -1;
+  num_add_olss = 0;
+  default_output_layer_idc = -1;
+  vps_num_rep_formats_minus1 = -1;
+  rep_format_idx_present_flag = false;
+  max_one_active_ref_layer_flag = false;
+  vps_poc_lsb_aligned_flag = false;
+  direct_dep_type_len_minus2 = -1;
+  direct_dependency_all_layers_flag = false;
+  direct_dependency_all_layers_type = -1;
+  vps_non_vui_extension_length = -1;
+  vps_vui_present_flag = false;
+  
   for (int i = 0; i < 8; i++)
   {
+    layer_id_in_nuh[0] = 0;
+    for (int j = 0; j<16; j++) {
+      dimension_id[i][j] = 0;
+    }
+    view_id_val[i] = -1;
+    sub_layers_vps_max_minus1[i] = -1;
+
     poc_lsb_not_present_flag[i] = false;
     for (int j = 0; j < 8; j++)
     {
@@ -36,10 +68,6 @@ video_parameter_set_extension::video_parameter_set_extension()
       VpsInterLayerMotionPredictionEnabled[i][j] = false;
     }
     view_id_val[i] = 0;
-
-    for (int j = 0; j<16; j++) {
-      dimension_id[i][j] = 0;
-    }
   }
 
   for (int i = 0; i < 7; i++) {
@@ -47,10 +75,9 @@ video_parameter_set_extension::video_parameter_set_extension()
       max_tid_il_ref_pics_plus1[i][j] = 7;
     }
   }
-
-  num_add_olss = 0;
-  rep_format_idx_present_flag = false;
+  
   NumOutputLayerSets = 0;
+  NumLayerSets = -1;
 }
 
 
@@ -401,7 +428,7 @@ de265_error video_parameter_set_extension::read(bitreader* reader, video_paramet
 
   vps_num_rep_formats_minus1 = get_uvlc(reader);
   for (int i = 0; i <= vps_num_rep_formats_minus1; i++) {
-    de265_error err = vps_ext_rep_format[i].read(reader);
+    de265_error err = vps_ext_rep_format[i].read(reader, (i==0) ? NULL : &vps_ext_rep_format[i-1]);
     if ( err != DE265_OK) {
       return err;
     }
@@ -531,7 +558,29 @@ de265_error decoded_picture_buffer_size_table::read(bitreader* reader,
   return DE265_OK;
 }
 
-de265_error rep_format::read(bitreader* reader)
+conformance_window::conformance_window()
+{
+  // When not present infer to 0
+  conf_win_vps_left_offset = 0;
+  conf_win_vps_right_offset = 0;
+  conf_win_vps_top_offset = 0;
+  conf_win_vps_bottom_offset = 0;
+}
+
+rep_format::rep_format()
+{
+  pic_width_vps_in_luma_samples = -1;
+  pic_height_vps_in_luma_samples = -1;
+  chroma_and_bit_depth_vps_present_flag = false;
+  chroma_format_vps_idc = de265_chroma_mono;
+  separate_colour_plane_vps_flag = false;
+
+  bit_depth_vps_luma_minus8 = -1;
+  bit_depth_vps_chroma_minus8 = -1;
+  conformance_window_vps_flag = false;
+}
+
+de265_error rep_format::read(bitreader* reader, rep_format* prev_rep_format)
 {
   pic_width_vps_in_luma_samples = get_bits(reader,16);
   pic_height_vps_in_luma_samples = get_bits(reader,16);
@@ -543,6 +592,20 @@ de265_error rep_format::read(bitreader* reader)
     }
     bit_depth_vps_luma_minus8 = get_bits(reader,4);
     bit_depth_vps_chroma_minus8 = get_bits(reader,4);
+  }
+  else {
+    // Infer values from the previous rep_format
+    if (prev_rep_format != NULL) {
+      chroma_format_vps_idc = prev_rep_format->chroma_format_vps_idc;
+      separate_colour_plane_vps_flag = prev_rep_format->separate_colour_plane_vps_flag;
+      bit_depth_vps_luma_minus8 = prev_rep_format->bit_depth_vps_luma_minus8;
+      bit_depth_vps_chroma_minus8 = prev_rep_format->bit_depth_vps_chroma_minus8;
+    }
+    else {
+      // We are supposed to infer these values from the previous rep_format
+      // but there is none. 
+      return DE265_WARNING_MULTILAYER_ERROR_SWITCH_TO_BASE_LAYER;
+    }
   }
   conformance_window_vps_flag = (get_bits(reader,1) != 0);
   if( conformance_window_vps_flag ) {
