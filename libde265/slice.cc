@@ -3446,7 +3446,9 @@ int read_transform_unit(thread_context* tctx,
       if ((err=residual_coding(tctx,
                                xBase        ,yBase        +(1<<log2TrafoSize),
                                log2TrafoSize,1)) != DE265_OK) return err;
+    }
 
+    if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
                 xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb);
@@ -3466,7 +3468,9 @@ int read_transform_unit(thread_context* tctx,
       if ((err=residual_coding(tctx,
                                xBase        ,yBase        +(1<<log2TrafoSizeC),
                                log2TrafoSize,2)) != DE265_OK) return err;
+    }
 
+    if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
                 xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr);
