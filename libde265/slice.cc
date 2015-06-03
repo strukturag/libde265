@@ -2926,10 +2926,10 @@ int residual_coding(thread_context* tctx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
+      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredMode(x0,y0),  cIdx, sps);
     }
     else {
-      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, tctx->IntraPredModeC[0]); // TODO
+      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredModeC(x0,y0), cIdx, sps);
     }
   }
   else {
@@ -3276,7 +3276,10 @@ static void decode_TU(thread_context* tctx,
         intraPredMode = img->get_IntraPredMode(x0,y0);
       }
       else {
-        intraPredMode = tctx->IntraPredModeC[0]; // TODO
+        const int SubWidthC  = tctx->img->sps.SubWidthC;
+        const int SubHeightC = tctx->img->sps.SubHeightC;
+
+        intraPredMode = img->get_IntraPredModeC(x0*SubWidthC,y0*SubHeightC);
       }
 
       if (intraPredMode<0 || intraPredMode>=35) {
@@ -4121,8 +4124,8 @@ void read_coding_unit(thread_context* tctx,
 
               logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x,y,IntraPredModeC);
 
-              tctx->IntraPredModeC[idx] = (enum IntraPredMode) IntraPredModeC;
-
+              img->set_IntraPredModeC(x,y, log2IntraPredSize,
+                                      (enum IntraPredMode)IntraPredModeC);
               idx++;
             }
         }
@@ -4138,7 +4141,8 @@ void read_coding_unit(thread_context* tctx,
             IntraPredModeC = map_chroma_422[ IntraPredModeC ];
           }
 
-          tctx->IntraPredModeC[0] = (enum IntraPredMode) IntraPredModeC;
+          img->set_IntraPredModeC(x0,y0, log2CbSize,
+                                  (enum IntraPredMode)IntraPredModeC);
         }
       }
     }
