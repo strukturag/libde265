@@ -500,7 +500,7 @@ void fill_border_samples(de265_image* img,
 template <class pixel_t>
 void intra_prediction_sample_filtering(de265_image* img,
                                        pixel_t* p,
-                                       int nT,
+                                       int nT, int cIdx,
                                        enum IntraPredMode intraPredMode)
 {
   int filterFlag;
@@ -522,6 +522,7 @@ void intra_prediction_sample_filtering(de265_image* img,
 
   if (filterFlag) {
     int biIntFlag = (img->sps.strong_intra_smoothing_enable_flag &&
+                     cIdx==0 &&
                      nT==32 &&
                      abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(img->sps.bit_depth_luma-5)) &&
                      abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(img->sps.bit_depth_luma-5)))
@@ -784,7 +785,7 @@ void decode_intra_prediction_internal(de265_image* img,
   if (img->sps.range_extension.intra_smoothing_disabled_flag == 0 &&
       (cIdx==0 || img->sps.ChromaArrayType==CHROMA_444))
     {
-      intra_prediction_sample_filtering(img, border_pixels, nT, intraPredMode);
+      intra_prediction_sample_filtering(img, border_pixels, nT, cIdx, intraPredMode);
     }
 
 
