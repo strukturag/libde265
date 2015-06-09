@@ -2389,7 +2389,7 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
   *lastInvocation_coeff_abs_level_greater1_flag = bit;
   *lastInvocation_ctxSet = ctxSet;
 
-  logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",bit);
+  //logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",bit);
 
   return bit;
 }
@@ -2862,6 +2862,7 @@ int residual_coding(thread_context* tctx,
   const seq_parameter_set* sps = &img->sps;
   const pic_parameter_set* pps = &img->pps;
 
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
 
   if (cIdx==0) {
     img->set_nonzero_coefficient(x0,y0,log2TrafoSize);
@@ -2879,6 +2880,17 @@ int residual_coding(thread_context* tctx,
       tctx->transform_skip_flag[cIdx] = 0;
     }
 
+
+  if (PredMode == MODE_INTER && sps->range_extension.explicit_rdpcm_enabled_flag &&
+      ( tctx->transform_skip_flag[cIdx] || tctx->cu_transquant_bypass_flag))
+    {
+      printf("EXPLICIT RDPCM\n");
+      assert(false); // TODO
+
+      //explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ]
+      //if( explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ] )
+      //explicit_rdpcm_dir_flag[ x0 ][ y0 ][ cIdx ]
+    }
 
   // --- decode position of last coded coefficient ---
 
@@ -2921,7 +2933,6 @@ int residual_coding(thread_context* tctx,
 
   // --- determine scanIdx ---
 
-  enum PredMode PredMode = img->get_pred_mode(x0,y0);
   int scanIdx;
 
   if (PredMode == MODE_INTRA) {
@@ -3181,8 +3192,30 @@ int residual_coding(thread_context* tctx,
 
       // --- decode coefficient signs ---
 
-      int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
-                        !tctx->cu_transquant_bypass_flag);
+      int signHidden;
+
+
+      IntraPredMode predModeIntra;
+      if (cIdx==0) predModeIntra = img->get_IntraPredMode(x0,y0);
+      else         predModeIntra = img->get_IntraPredModeC(x0,y0);
+
+
+      if (tctx->cu_transquant_bypass_flag ||
+          (PredMode == MODE_INTRA &&
+           sps->range_extension.implicit_rdpcm_enabled_flag &&
+           tctx->transform_skip_flag[cIdx] &&
+           ( predModeIntra == 10 || predModeIntra == 26 )) ||
+          0) // explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ] ) // TODO
+        {
+          signHidden = 0;
+
+          printf("----------------------------------------- implicit RDPCM at %d;%d\n",x0,y0);
+        }
+      else
+        {
+          signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3);
+        }
+
 
       for (int n=0;n<nCoefficients-1;n++) {
         coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
@@ -3203,6 +3236,8 @@ int residual_coding(thread_context* tctx,
 
       int sumAbsLevel=0;
       int uiGoRiceParam=0;
+
+      //printf("QCoeff: ");
 
       for (int n=0;n<nCoefficients;n++) {
         int baseLevel = coeff_value[n];
@@ -3253,7 +3288,12 @@ int residual_coding(thread_context* tctx,
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
+
+        //printf("%d ",currCoeff);
       }  // iterate through coefficients in sub-block
+
+      //printf(" (%d;%d)\n",x0,y0);
+
     }  // if nonZero
   }  // next sub-block
 
@@ -3288,6 +3328,9 @@ static void decode_TU(thread_context* tctx,
       }
 
       decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
+
+
+      //int residualDpcm =
     }
 
   if (cbf) {
@@ -4127,7 +4170,8 @@ void read_coding_unit(thread_context* tctx,
 
               int IntraPredModeC = map_chroma_pred_mode(intra_chroma_pred_mode, IntraPredMode);
 
-              logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x,y,IntraPredModeC);
+              logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d (blksize:%d)\n",x,y,IntraPredModeC,
+                       1<<log2IntraPredSize);
 
               img->set_IntraPredModeC(x,y, log2IntraPredSize,
                                       (enum IntraPredMode)IntraPredModeC);
