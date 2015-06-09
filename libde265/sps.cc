@@ -526,6 +526,20 @@ de265_error seq_parameter_set::compute_derived_values()
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
 
 
+  if (range_extension.high_precision_offsets_enabled_flag) {
+    WpOffsetBdShiftY = 0;
+    WpOffsetBdShiftC = 0;
+    WpOffsetHalfRangeY = 1 << (BitDepth_Y - 1);
+    WpOffsetHalfRangeC = 1 << (BitDepth_C - 1);
+  }
+  else {
+    WpOffsetBdShiftY = ( BitDepth_Y - 8 );
+    WpOffsetBdShiftC = ( BitDepth_C - 8 );
+    WpOffsetHalfRangeY = 1 << 7;
+    WpOffsetHalfRangeC = 1 << 7;
+  }
+
+
   // --- check SPS sanity ---
 
   if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||

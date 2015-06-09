@@ -232,6 +232,11 @@ public:
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
 
+  uint8_t WpOffsetBdShiftY;
+  uint8_t WpOffsetBdShiftC;
+  int32_t WpOffsetHalfRangeY;
+  int32_t WpOffsetHalfRangeC;
+
 
   int getPUIndexRS(int pixelX,int pixelY) const {
     return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;

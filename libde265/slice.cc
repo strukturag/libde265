@@ -191,7 +191,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             // luma_offset
 
             vlc = get_svlc(br);
-            if (vlc < -128 || vlc > 127) return false;
+            if (vlc < -sps->WpOffsetHalfRangeY || vlc > sps->WpOffsetHalfRangeY-1) return false;
             shdr->luma_offset[l][i] = vlc;
           }
           else {
@@ -204,17 +204,22 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               // delta_chroma_weight
 
               vlc = get_svlc(br);
-              if (vlc < -128 || vlc > 127) return false;
+              if (vlc < -128 || vlc >  127) return false;
 
               shdr->ChromaWeight[l][i][j] = (1<<shdr->ChromaLog2WeightDenom) + vlc;
 
               // delta_chroma_offset
 
               vlc = get_svlc(br);
-              if (vlc < -512 || vlc > 511) return false;
+              if (vlc < -4*sps->WpOffsetHalfRangeC ||
+                  vlc >  4*sps->WpOffsetHalfRangeC-1) return false;
 
-              vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
-                                          >> shdr->ChromaLog2WeightDenom) + 128));
+              vlc = Clip3(-sps->WpOffsetHalfRangeC,
+                          sps->WpOffsetHalfRangeC-1,
+                          (sps->WpOffsetHalfRangeC
+                           +vlc
+                           -((sps->WpOffsetHalfRangeC*shdr->ChromaWeight[l][i][j])
+                             >> shdr->ChromaLog2WeightDenom)));
 
               shdr->ChromaOffset[l][i][j] = vlc;
             }
