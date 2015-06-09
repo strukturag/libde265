@@ -422,8 +422,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   vui_parameters_present_flag = get_bits(br,1);
 
 
-  // HACK: disabled extensions, because we do not have VUI decoding yet
-
   if (vui_parameters_present_flag) {
     return DE265_ERROR_NOT_IMPLEMENTED_YET;
   }
