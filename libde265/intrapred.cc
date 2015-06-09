@@ -598,6 +598,10 @@ void intra_prediction_angular(de265_image* img,
 
   int intraPredAngle = intraPredAngle_table[intraPredMode];
 
+  bool disableIntraBoundaryFilter =
+    (img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+     img->get_cu_transquant_bypass(xB0,yB0));
+
   if (intraPredMode >= 18) {
 
     for (int x=0;x<=nT;x++)
@@ -630,7 +634,7 @@ void intra_prediction_angular(de265_image* img,
           }
         }
 
-    if (intraPredMode==26 && cIdx==0 && nT<32) {
+    if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
       for (int y=0;y<nT;y++) {
         pred[0+y*stride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
       }
@@ -668,7 +672,7 @@ void intra_prediction_angular(de265_image* img,
           }
         }
 
-    if (intraPredMode==10 && cIdx==0 && nT<32) {  // DIFF 26->10
+    if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
       for (int x=0;x<nT;x++) { // DIFF (x<->y)
         pred[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
       }

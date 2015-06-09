@@ -114,19 +114,35 @@ void transform_skip_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs, int 
   }
 }
 
+
 void transform_bypass_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride)
 {
+  for (int x=0;x<nT;x++) {
+    int32_t sum=0;
+    for (int y=0;y<nT;y++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
 }
+
 
 void transform_bypass_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride)
 {
+  for (int y=0;y<nT;y++) {
+    int32_t sum=0;
+    for (int x=0;x<nT;x++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
 }
 
 
 void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride)
 {
-  int bdShift2 = 20-8;
-
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
       int32_t c = coeffs[x+y*nT];

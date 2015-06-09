@@ -332,13 +332,23 @@ void scale_coefficients_internal(thread_context* tctx,
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
 
-    if (rdpcmMode) {
-      //RDPCM_process(coeff, coeffStride, rdpcmMode==2);
+    if (rotateCoeffs) {
+      tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
     }
 
-    assert(0); // TODO
+    if (rdpcmMode) {
+      if (rdpcmMode==2)
+        tctx->decctx->acceleration.transform_bypass_rdpcm_v(pred, coeff, nT, stride);
+      else
+        tctx->decctx->acceleration.transform_bypass_rdpcm_h(pred, coeff, nT, stride);
+    }
+    else {
+      tctx->decctx->acceleration.transform_bypass(pred, coeff, nT, stride, bit_depth);
+    }
 
-    tctx->decctx->acceleration.transform_bypass(pred, coeff, nT, stride, bit_depth);
+    if (rotateCoeffs) {
+      memset(coeff, 0, nT*nT*sizeof(int16_t)); // delete all, because we moved the coeffs around
+    }
   }
   else {
     // (8.6.3)
