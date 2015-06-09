@@ -272,6 +272,8 @@ static const int initValue_rqt_root_cbf[1] = { 79 };
 static const int initValue_ref_idx_lX[2] = { 153,153 };
 static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
 static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
+static const int initValue_rdpcm_flag[2] = { 139,139 }; // hack, because all are equal
+static const int initValue_rdpcm_dir[2]  = { 139,139 }; // hack, because all are equal
 
 
 static void init_context(int SliceQPY,
@@ -301,6 +303,9 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
     init_context(QPY, cm+CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG, &initValue_abs_mvd_greater01_flag[initType == 1 ? 0 : 2], 2);
     init_context(QPY, cm+CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
     init_context(QPY, cm+CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
+
+    init_context(QPY, cm+CONTEXT_MODEL_RDPCM_FLAG,           initValue_rdpcm_flag,           2); // hack, all init values equal
+    init_context(QPY, cm+CONTEXT_MODEL_RDPCM_DIR,            initValue_rdpcm_dir,            2); // hack, all init values equal
   }
 
   init_context(QPY, cm+CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);

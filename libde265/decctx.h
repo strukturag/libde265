@@ -73,6 +73,8 @@ public:
 
   uint8_t cu_transquant_bypass_flag;
   uint8_t transform_skip_flag[3];
+  uint8_t explicit_rdpcm_flag;
+  uint8_t explicit_rdpcm_dir;
 
   ALIGNED_16(int16_t) _coeffBuf[(32*32)+8]; // alignment required for SSE code !
   int16_t *coeffBuf;

@@ -2613,6 +2613,22 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
 }
 
 
+static int  decode_explicit_rdpcm_flag(thread_context* tctx,int cIdx)
+{
+  context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_FLAG];
+  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  return value;
+}
+
+
+static int  decode_explicit_rdpcm_dir(thread_context* tctx,int cIdx)
+{
+  context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_DIR];
+  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  return value;
+}
+
+
 
 /* Take CtbAddrInTS and compute
    -> CtbAddrInRS, CtbX, CtbY
@@ -2881,15 +2897,17 @@ int residual_coding(thread_context* tctx,
     }
 
 
+  tctx->explicit_rdpcm_flag = false;
+
   if (PredMode == MODE_INTER && sps->range_extension.explicit_rdpcm_enabled_flag &&
       ( tctx->transform_skip_flag[cIdx] || tctx->cu_transquant_bypass_flag))
     {
-      printf("EXPLICIT RDPCM\n");
-      assert(false); // TODO
+      tctx->explicit_rdpcm_flag = decode_explicit_rdpcm_flag(tctx,cIdx);
+      if (tctx->explicit_rdpcm_flag) {
+        tctx->explicit_rdpcm_dir = decode_explicit_rdpcm_dir(tctx,cIdx);
+      }
 
-      //explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ]
-      //if( explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ] )
-      //explicit_rdpcm_dir_flag[ x0 ][ y0 ][ cIdx ]
+      //printf("EXPLICIT RDPCM %d;%d\n",x0,y0);
     }
 
   // --- decode position of last coded coefficient ---
@@ -3205,7 +3223,7 @@ int residual_coding(thread_context* tctx,
            sps->range_extension.implicit_rdpcm_enabled_flag &&
            tctx->transform_skip_flag[cIdx] &&
            ( predModeIntra == 10 || predModeIntra == 26 )) ||
-          0) // explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ] ) // TODO
+          tctx->explicit_rdpcm_flag)
         {
           signHidden = 0;
         }
@@ -3336,6 +3354,12 @@ static void decode_TU(thread_context* tctx,
 
       if (residualDpcm && intraPredMode == 26)
         residualDpcm = 2;
+    }
+  else // INTER
+    {
+      if (tctx->explicit_rdpcm_flag) {
+        residualDpcm = (tctx->explicit_rdpcm_dir ? 2 : 1);
+      }
     }
 
   if (cbf) {

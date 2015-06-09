@@ -274,6 +274,15 @@ void fwd_transform(acceleration_functions* acceleration,
 }
 
 
+template <class pixel_t> void rotate_coefficients(pixel_t* coeff, int nT)
+{
+  for (int y=0;y<nT/2;y++)
+    for (int x=0;x<nT;x++) {
+      std::swap(coeff[y*nT+x], coeff[(nT-1-y)*nT + nT-1-x]);
+    }
+}
+
+
 static const int levelScale[] = { 40,45,51,57,64,72 };
 
 // (8.6.2) and (8.6.3)
@@ -317,10 +326,16 @@ void scale_coefficients_internal(thread_context* tctx,
   // can optimize away a lot of code for 8-bit pixels.
   const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps->get_bit_depth(cIdx));
 
+  bool rotateCoeffs = (sps->range_extension.transform_skip_rotation_enabled_flag &&
+                       nT == 4 &&
+                       intra);
+
+  assert(intra == (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA));
+
   if (tctx->cu_transquant_bypass_flag) {
 
     for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-      int32_t currCoeff  = tctx->coeffList[cIdx][i];
+      int32_t currCoeff = tctx->coeffList[cIdx][i];
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
 
@@ -427,21 +442,27 @@ void scale_coefficients_internal(thread_context* tctx,
       int tsShift = (extended_precision_processing_flag ? libde265_min( 5, bdShift - 2 ) : 5 )
         + Log2nTbS;
 
-      if (rdpcmMode) {
+      if (rotateCoeffs) {
+        rotate_coefficients(coeff, nT);
+      }
 
+      if (rdpcmMode) {
         if (rdpcmMode==2)
-          tctx->decctx->acceleration.transform_skip_rdpcm_v(pred, coeff, Log2(nT), stride, bit_depth);
+          tctx->decctx->acceleration.transform_skip_rdpcm_v(pred,coeff, Log2(nT), stride, bit_depth);
         else
-          tctx->decctx->acceleration.transform_skip_rdpcm_h(pred, coeff, Log2(nT), stride, bit_depth);
+          tctx->decctx->acceleration.transform_skip_rdpcm_h(pred,coeff, Log2(nT), stride, bit_depth);
       }
       else {
         tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
       }
+
+      memset(coeff, 0, nT*nT*sizeof(pixel_t));
     }
     else {
       int trType;
 
-      if (nT==4 && cIdx==0 && tctx->img->get_pred_mode(xT,yT)==MODE_INTRA) {
+      //if (nT==4 && cIdx==0 && tctx->img->get_pred_mode(xT,yT)==MODE_INTRA) {
+      if (nT==4 && cIdx==0 && intra) {
         trType=1;
       }
       else {
