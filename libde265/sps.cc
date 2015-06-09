@@ -435,6 +435,9 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     sps_multilayer_extension_flag = get_bits(br,1);
     sps_extension_6bits = get_bits(br,6);
   }
+  else {
+    sps_range_extension_flag = 0;
+  }
 
   if (sps_range_extension_flag) {
     de265_error err = range_extension.read(errqueue, br);
