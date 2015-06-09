@@ -282,7 +282,7 @@ void scale_coefficients_internal(thread_context* tctx,
                                  int xT,int yT, // position of TU in frame (chroma adapted)
                                  int x0,int y0, // position of CU in frame (chroma adapted)
                                  int nT, int cIdx,
-                                 bool transform_skip_flag, bool intra)
+                                 bool transform_skip_flag, bool intra, int rdpcmMode)
 {
   seq_parameter_set* sps = &tctx->img->sps;
   pic_parameter_set* pps = &tctx->img->pps;
@@ -323,6 +323,12 @@ void scale_coefficients_internal(thread_context* tctx,
       int32_t currCoeff  = tctx->coeffList[cIdx][i];
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
     }
+
+    if (rdpcmMode) {
+      //RDPCM_process(coeff, coeffStride, rdpcmMode==2);
+    }
+
+    assert(0); // TODO
 
     tctx->decctx->acceleration.transform_bypass(pred, coeff, nT, stride, bit_depth);
   }
@@ -414,7 +420,23 @@ void scale_coefficients_internal(thread_context* tctx,
 
     if (transform_skip_flag) {
 
-      tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
+      assert(coeffStride==4);
+
+      int extended_precision_processing_flag = 0;
+      int Log2nTbS = 2;
+      int tsShift = (extended_precision_processing_flag ? libde265_min( 5, bdShift - 2 ) : 5 )
+        + Log2nTbS;
+
+      if (rdpcmMode) {
+
+        if (rdpcmMode==2)
+          tctx->decctx->acceleration.transform_skip_rdpcm_v(pred, coeff, Log2(nT), stride, bit_depth);
+        else
+          tctx->decctx->acceleration.transform_skip_rdpcm_h(pred, coeff, Log2(nT), stride, bit_depth);
+      }
+      else {
+        tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
+      }
     }
     else {
       int trType;
@@ -425,6 +447,8 @@ void scale_coefficients_internal(thread_context* tctx,
       else {
         trType=0;
       }
+
+      assert(rdpcmMode==0);
 
       transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
                              pred, stride, bit_depth);
@@ -456,12 +480,16 @@ void scale_coefficients(thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
-                        bool transform_skip_flag, bool intra)
+                        bool transform_skip_flag, bool intra,
+                        int rdpcmMode // 0 - off, 1 - Horizontal, 2 - Vertical
+                        )
 {
   if (tctx->img->high_bit_depth(cIdx)) {
-    scale_coefficients_internal<uint16_t>(tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra);
+    scale_coefficients_internal<uint16_t>(tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra,
+                                          rdpcmMode);
   } else {
-    scale_coefficients_internal<uint8_t> (tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra);
+    scale_coefficients_internal<uint8_t> (tctx, xT,yT, x0,y0, nT,cIdx, transform_skip_flag, intra,
+                                          rdpcmMode);
   }
 }
 

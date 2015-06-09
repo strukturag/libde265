@@ -3208,8 +3208,6 @@ int residual_coding(thread_context* tctx,
           0) // explicit_rdpcm_flag[ x0 ][ y0 ][ cIdx ] ) // TODO
         {
           signHidden = 0;
-
-          printf("----------------------------------------- implicit RDPCM at %d;%d\n",x0,y0);
         }
       else
         {
@@ -3308,6 +3306,8 @@ static void decode_TU(thread_context* tctx,
 {
   de265_image* img = tctx->img;
 
+  int residualDpcm = 0;
+
   if (cuPredMode == MODE_INTRA) // if intra mode
     {
       enum IntraPredMode intraPredMode;
@@ -3330,12 +3330,17 @@ static void decode_TU(thread_context* tctx,
       decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
 
 
-      //int residualDpcm =
+      residualDpcm = tctx->img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+        (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx]) &&
+        (intraPredMode == 10 || intraPredMode == 26);
+
+      if (residualDpcm && intraPredMode == 26)
+        residualDpcm = 2;
     }
 
   if (cbf) {
     scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
-                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA);
+                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);
   }
 }
 
