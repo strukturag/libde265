@@ -274,14 +274,6 @@ void fwd_transform(acceleration_functions* acceleration,
 }
 
 
-template <class pixel_t> void rotate_coefficients(pixel_t* coeff, int nT)
-{
-  for (int y=0;y<nT/2;y++)
-    for (int x=0;x<nT;x++) {
-      std::swap(coeff[y*nT+x], coeff[(nT-1-y)*nT + nT-1-x]);
-    }
-}
-
 
 static const int levelScale[] = { 40,45,51,57,64,72 };
 
@@ -444,7 +436,7 @@ void scale_coefficients_internal(thread_context* tctx,
         + Log2nTbS;
 
       if (rotateCoeffs) {
-        rotate_coefficients(coeff, nT);
+        tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
       }
 
       if (rdpcmMode) {
@@ -457,7 +449,9 @@ void scale_coefficients_internal(thread_context* tctx,
         tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
       }
 
-      memset(coeff, 0, nT*nT*sizeof(pixel_t));
+      if (rotateCoeffs) {
+        memset(coeff, 0, nT*nT*sizeof(int16_t)); // delete all, because we moved the coeffs around
+      }
     }
     else {
       int trType;

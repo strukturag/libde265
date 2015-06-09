@@ -102,6 +102,8 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->transform_add_16[2] = transform_16x16_add_16_fallback;
   accel->transform_add_16[3] = transform_32x32_add_16_fallback;
 
+  accel->rotate_coefficients = rotate_coefficients_fallback;
+
 
   accel->fwd_transform_4x4_dst_8 = fdst_4x4_8_fallback;
   accel->fwd_transform_8[0] = fdct_4x4_8_fallback;

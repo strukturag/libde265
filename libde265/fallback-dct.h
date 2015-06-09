@@ -51,6 +51,8 @@ void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff
 void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 
+void rotate_coefficients_fallback(int16_t *coeff, int nT);
+
 
 // --- encoding ---
 

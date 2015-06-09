@@ -149,6 +149,16 @@ void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, 
 }
 
 
+void rotate_coefficients_fallback(int16_t *coeff, int nT)
+{
+  for (int y=0;y<nT/2;y++)
+    for (int x=0;x<nT;x++) {
+      std::swap(coeff[y*nT+x], coeff[(nT-1-y)*nT + nT-1-x]);
+    }
+}
+
+
+
 static int8_t mat_8_357[4][4] = {
   { 29, 55, 74, 84 },
   { 74, 74,  0,-74 },
