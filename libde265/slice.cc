@@ -2914,6 +2914,10 @@ int residual_coding(thread_context* tctx,
 
       //printf("EXPLICIT RDPCM %d;%d\n",x0,y0);
     }
+  else
+    {
+      tctx->explicit_rdpcm_flag = false;
+    }
 
   // --- decode position of last coded coefficient ---
 
@@ -3401,6 +3405,8 @@ int read_transform_unit(thread_context* tctx,
   tctx->transform_skip_flag[0]=0;
   tctx->transform_skip_flag[1]=0;
   tctx->transform_skip_flag[2]=0;
+
+  tctx->explicit_rdpcm_flag = false;
 
 
   enum PredMode cuPredMode = tctx->img->get_pred_mode(x0,y0);
