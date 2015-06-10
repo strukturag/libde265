@@ -3103,9 +3103,16 @@ int residual_coding(thread_context* tctx,
 
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-        int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
-                                                                     ctxIdxMap[xC+(yC<<log2TrafoSize)]);
-                                                                     //ctxIdxMap[(i<<4)+n]);
+        int ctxInc;
+        if (sps->range_extension.transform_skip_context_enabled_flag &&
+            (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
+          ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+        }
+        else {
+          ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
+        }
+
+        int significant_coeff = decode_significant_coeff_flag_lookup(tctx, ctxInc);
 
         if (significant_coeff) {
           coeff_value[nCoefficients] = 1;
@@ -3126,9 +3133,17 @@ int residual_coding(thread_context* tctx,
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
-            int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
-                                                                         ctxIdxMap[x0+(y0<<log2TrafoSize)]);
-                                                                         //ctxIdxMap[(i<<4)+0]);
+
+            int ctxInc;
+            if (sps->range_extension.transform_skip_context_enabled_flag &&
+                (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
+              ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+            }
+            else {
+              ctxInc = ctxIdxMap[x0+(y0<<log2TrafoSize)];
+            }
+
+            int significant_coeff = decode_significant_coeff_flag_lookup(tctx, ctxInc);
 
 
             if (significant_coeff) {

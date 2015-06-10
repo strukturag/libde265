@@ -248,6 +248,10 @@ static const int initValue_significant_coeff_flag[3][42] = {
       121,  122,  121,  167,  151,  183,  140,  151,  183,  140
     },
   };
+static const int initValue_significant_coeff_flag_skipmode[3][2] = {
+  { 141,111 }, { 140,140 }, { 140,140 }
+};
+
 static const int initValue_coeff_abs_level_greater1_flag[72] = {
     140, 92,137,138,140,152,138,139,153, 74,149, 92,139,107,122,152,
     140,179,166,182,140,227,122,197,154,196,196,167,154,152,167,182,
@@ -319,6 +323,8 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
   init_context(QPY, cm+CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX, &initValue_last_significant_coefficient_prefix[initType * 18], 18);
   init_context(QPY, cm+CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG,                  &initValue_coded_sub_block_flag[initType * 4],        4);
   init_context(QPY, cm+CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG,              initValue_significant_coeff_flag[initType],    42);
+  init_context(QPY, cm+CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG+42, initValue_significant_coeff_flag_skipmode[initType], 2);
+
   init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG,       &initValue_coeff_abs_level_greater1_flag[initType * 24], 24);
   init_context(QPY, cm+CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG,       &initValue_coeff_abs_level_greater2_flag[initType *  6],  6);
   init_context(QPY, cm+CONTEXT_MODEL_SAO_MERGE_FLAG,                      &initValue_sao_merge_leftUp_flag[initType],    1);
