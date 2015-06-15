@@ -567,6 +567,161 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 }
 
 
+
+void transform_idct(int32_t *dst, int nT, const int16_t *coeffs, int bit_depth, int max_coeff_bits)
+{
+  /*
+    The effective shift is
+    7 bits right for bit-depth 8,
+    6 bits right for bit-depth 9,
+    5 bits right for bit-depth 10.
+
+    One transformation with raw transform filter values increases range be 2048 (=32*64).
+    This equals 11 bits.
+
+    Computation is independent of the block size.
+    Each multiplication with the table includes a left shift of 6 bits.
+    Hence, we have 2* 6 bits = 12 bits left shift.
+    V-pass has fixed 7 bit right shift.
+    H-pass has 20-BitDepth bit right shift;
+
+    Effective shift 's' means: residual value 1 gives DC-coeff (1<<s).
+   */
+
+
+  int rnd1 = 1<<(7-1);
+  int fact = (1<<(5-Log2(nT)));
+
+  int bdShift = 20-bit_depth;
+  int rnd2 = 1<<(bdShift-1);
+
+  int16_t g[32*32];  // actually, only [nT*nT] used
+
+  int CoeffMax = (1<<max_coeff_bits)-1;
+  int CoeffMin = -(1<<max_coeff_bits);
+
+  // TODO: valgrind reports that dst[] contains uninitialized data.
+  // Probably from intra-prediction.
+
+  /*
+  for (int i=0;i<nT*nT;i++) {
+    printf("%d\n",coeffs[i]);
+  }
+
+  for (int y=0;y<nT;y++) {
+    for (int i=0;i<nT;i++) {
+      printf("%d ",dst[y*stride+i]);
+    }
+  }
+  printf("\n");
+  */
+
+  /*
+  printf("--- input\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%3d ",coeffs[c+r*nT]);
+    }
+  */
+
+  for (int c=0;c<nT;c++) {
+
+    /*
+    logtrace(LogTransform,"DCT-V: ");
+    for (int i=0;i<nT;i++) {
+      logtrace(LogTransform,"*%d ",coeffs[c+i*nT]);
+    }
+    logtrace(LogTransform,"* -> ");
+    */
+
+
+    // find last non-zero coefficient to reduce computations carried out in DCT
+
+    int lastCol = nT-1;
+    for (;lastCol>=0;lastCol--) {
+      if (coeffs[c+lastCol*nT]) { break; }
+    }
+
+    for (int i=0;i<nT;i++) {
+      int sum=0;
+
+      /*
+      printf("input: ");
+      for (int j=0;j<nT;j++) {
+        printf("%3d ",coeffs[c+j*nT]);
+      }
+      printf("\n");
+
+      printf("mat: ");
+      for (int j=0;j<nT;j++) {
+        printf("%3d ",mat_dct[fact*j][i]);
+      }
+      printf("\n");
+      */
+
+      for (int j=0;j<=lastCol /*nT*/;j++) {
+        sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
+      }
+
+      g[c+i*nT] = Clip3(CoeffMin,CoeffMax, (sum+rnd1)>>7);
+
+      logtrace(LogTransform,"*%d ",g[c+i*nT]);
+    }
+    logtrace(LogTransform,"*\n");
+  }
+
+  /*
+  printf("--- temp\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%3d ",g[c+r*nT]);
+    }
+  */
+
+  for (int y=0;y<nT;y++) {
+    /*
+    logtrace(LogTransform,"DCT-H: ");
+    for (int i=0;i<nT;i++) {
+      logtrace(LogTransform,"*%d ",g[i+y*nT]);
+    }
+    logtrace(LogTransform,"* -> ");
+    */
+
+
+    // find last non-zero coefficient to reduce computations carried out in DCT
+
+    int lastCol = nT-1;
+    for (;lastCol>=0;lastCol--) {
+      if (g[y*nT+lastCol]) { break; }
+    }
+
+
+    for (int i=0;i<nT;i++) {
+      int sum=0;
+
+      for (int j=0;j<=lastCol /*nT*/;j++) {
+        sum += mat_dct[fact*j][i] * g[y*nT+j];
+      }
+
+      dst[y*nT+i] = (sum + rnd2)>>bdShift;
+
+      logtrace(LogTransform,"*%d ",sum);
+    }
+    logtrace(LogTransform,"*\n");
+  }
+}
+
+
+template <class pixel_t>
+void add_residual(pixel_t *dst, ptrdiff_t stride,
+                  const int32_t* r, int nT, int bit_depth)
+{
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + r[y*nT+x], bit_depth);
+    }
+}
+
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
   transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8);
