@@ -138,6 +138,41 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 }
 
 
+void pps_range_extension::dump(int fd) const
+{
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d,e) log2fh(fh, t,d,e)
+
+  LOG0("---------- PPS range-extension ----------\n");
+  LOG1("log2_max_transform_skip_block_size      : %d\n", log2_max_transform_skip_block_size);
+  LOG1("cross_component_prediction_enabled_flag : %d\n", cross_component_prediction_enabled_flag);
+  LOG1("chroma_qp_offset_list_enabled_flag      : %d\n", chroma_qp_offset_list_enabled_flag);
+  if (chroma_qp_offset_list_enabled_flag) {
+    LOG1("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
+    LOG1("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
+    for (int i=0;i<chroma_qp_offset_list_len;i++) {
+      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list);
+      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list);
+    }
+  }
+
+  LOG1("log2_sao_offset_scale_luma              : %d\n", log2_sao_offset_scale_luma);
+  LOG1("log2_sao_offset_scale_chroma            : %d\n", log2_sao_offset_scale_chroma);
+#undef LOG2
+#undef LOG1
+#undef LOG0
+}
+
+
+
+
+
 pic_parameter_set::pic_parameter_set()
 {
   reset();
@@ -897,7 +932,7 @@ void pic_parameter_set::dump(int fd) const
     LOG1("pic_disable_deblocking_filter_flag: %d\n", pic_disable_deblocking_filter_flag);
 
     LOG1("beta_offset:  %d\n", beta_offset);
-    LOG1("tc_offset:     %d\n", tc_offset);
+    LOG1("tc_offset:    %d\n", tc_offset);
   }
 
   LOG1("pic_scaling_list_data_present_flag: %d\n", pic_scaling_list_data_present_flag);
@@ -914,10 +949,17 @@ void pic_parameter_set::dump(int fd) const
   LOG1("pps_multilayer_extension_flag : %d\n", pps_multilayer_extension_flag);
   LOG1("pps_extension_6bits           : %d\n", pps_extension_6bits);
 
-  LOG1("Log2MinCuQpDeltaSize : %d\n", Log2MinCuQpDeltaSize);
+  LOG1("Log2MinCuQpDeltaSize          : %d\n", Log2MinCuQpDeltaSize);
+  LOG1("Log2MinCuChromaQpOffsetSize (RExt) : %d\n", Log2MinCuChromaQpOffsetSize);
+  LOG1("Log2MaxTransformSkipSize    (RExt) : %d\n", Log2MaxTransformSkipSize);
 
 #undef LOG0
 #undef LOG1
+
+
+  if (pps_range_extension_flag) {
+    range_extension.dump(fd);
+  }
 }
 
 
