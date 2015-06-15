@@ -3390,6 +3390,14 @@ static void decode_TU(thread_context* tctx,
     scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
                        tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);
   }
+  else if (!cbf && cIdx!=0 && tctx->ResScaleVal) {
+    // --- cross-component-prediction when CBF==0 ---
+
+    tctx->nCoeff[cIdx] = 0;
+
+    scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
+                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);
+  }
 }
 
 
@@ -3446,6 +3454,8 @@ static void read_cross_comp_pred(thread_context* tctx, int cIdxMinus1)
   else {
     ResScaleVal = 0;
   }
+
+  tctx->ResScaleVal = ResScaleVal;
 }
 
 
@@ -3540,7 +3550,9 @@ int read_transform_unit(thread_context* tctx,
     if (do_cross_component_prediction) {
       read_cross_comp_pred(tctx, 0);
     }
-
+    else {
+      tctx->ResScaleVal = 0;
+    }
 
     {
       if (cbf_cb & 1) {
@@ -3571,6 +3583,9 @@ int read_transform_unit(thread_context* tctx,
 
     if (do_cross_component_prediction) {
       read_cross_comp_pred(tctx, 1);
+    }
+    else {
+      tctx->ResScaleVal = 0;
     }
 
     {
