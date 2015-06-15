@@ -611,7 +611,8 @@ public:
         intraPredMode[PUidx + x + y*intraPredMode.width_in_units] = mode;
   }
 
-  void set_IntraPredMode(int x0,int y0,int log2blkSize, enum IntraPredMode mode)
+  void set_IntraPredMode(int x0,int y0,int log2blkSize,
+                         enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
     int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
@@ -630,11 +631,21 @@ public:
 
   enum IntraPredMode get_IntraPredModeC(int x,int y) const
   {
-    return (enum IntraPredMode)intraPredModeC.get(x,y);
+    return (enum IntraPredMode)(intraPredModeC.get(x,y) & 0x3f);
   }
 
-  void set_IntraPredModeC(int x0,int y0,int log2blkSize, enum IntraPredMode mode)
+  bool is_IntraPredModeC_Mode4(int x,int y) const
   {
+    return (enum IntraPredMode)intraPredModeC.get(x,y) & 0x80;
+  }
+
+  void set_IntraPredModeC(int x0,int y0,int log2blkSize, enum IntraPredMode mode,
+                          bool is_mode4)
+  {
+    uint8_t combinedValue = mode;
+    if (is_mode4) combinedValue |= 0x80;
+
+
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
     int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 
@@ -645,7 +656,7 @@ public:
 
         int idx = PUidx + x + y*intraPredModeC.width_in_units;
         assert(idx<intraPredModeC.data_size);
-        intraPredModeC[idx] = mode;
+        intraPredModeC[idx] = combinedValue;
       }
   }
 

@@ -4229,7 +4229,8 @@ void read_coding_unit(thread_context* tctx,
                        1<<log2IntraPredSize);
 
               img->set_IntraPredModeC(x,y, log2IntraPredSize,
-                                      (enum IntraPredMode)IntraPredModeC);
+                                      (enum IntraPredMode)IntraPredModeC,
+                                      intra_chroma_pred_mode == 4);
               idx++;
             }
         }
@@ -4246,7 +4247,8 @@ void read_coding_unit(thread_context* tctx,
           }
 
           img->set_IntraPredModeC(x0,y0, log2CbSize,
-                                  (enum IntraPredMode)IntraPredModeC);
+                                  (enum IntraPredMode)IntraPredModeC,
+                                  intra_chroma_pred_mode == 4);
         }
       }
     }
