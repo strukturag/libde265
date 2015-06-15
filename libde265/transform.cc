@@ -231,6 +231,77 @@ void transform_coefficients(acceleration_functions* acceleration,
 }
 
 
+// TODO: make this an accelerated function
+void cross_comp_pred(const thread_context* tctx, int32_t* residual, int nT)
+{
+  const int BitDepthC = tctx->img->sps.BitDepth_C;
+  const int BitDepthY = tctx->img->sps.BitDepth_Y;
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      /* TODO: the most usual case is definitely BitDepthY == BitDepthC, in which case
+         we could just omit two shifts. The second most common case is probably
+         BitDepthY>BitDepthC, for which we could also eliminate one shift. The remaining
+         case is also one shift only.
+      */
+
+      residual[y*nT+x] += (tctx->ResScaleVal *
+                           ((tctx->residual_luma[y*nT+x] << BitDepthC ) >> BitDepthY ) ) >> 3;
+    }
+}
+
+
+template <class pixel_t>
+void transform_coefficients_explicit(thread_context* tctx,
+                                     int16_t* coeff, int coeffStride, int nT, int trType,
+                                     pixel_t* dst, int dstStride, int bit_depth, int cIdx)
+{
+  logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
+
+  const acceleration_functions* acceleration = &tctx->decctx->acceleration;
+
+  int32_t residual_buffer[32*32];
+  int32_t* residual;
+  if (cIdx==0) {
+    residual = tctx->residual_luma;
+  }
+  else {
+    residual = residual_buffer;
+  }
+
+
+  // TODO
+  int bdShift = 20 - bit_depth;
+  int max_coeff_bits = 15;
+
+  if (trType==1) {
+
+    acceleration->transform_idst_4x4(residual, coeff, bdShift, max_coeff_bits);
+
+  } else {
+
+    /**/ if (nT==4)  { acceleration->transform_idct_4x4(residual,coeff,bdShift,max_coeff_bits); }
+    else if (nT==8)  { acceleration->transform_idct_8x8(residual,coeff,bdShift,max_coeff_bits); }
+    else if (nT==16) { acceleration->transform_idct_16x16(residual,coeff,bdShift,max_coeff_bits); }
+    else             { acceleration->transform_idct_32x32(residual,coeff,bdShift,max_coeff_bits); }
+  }
+
+
+  //printBlk("prediction",(uint8_t*)dst,nT,dstStride);
+  //printBlk("residual",residual,nT,nT);
+
+  if (cIdx != 0) {
+    if (tctx->ResScaleVal != 0) {
+      cross_comp_pred(tctx, residual, nT);
+    }
+
+    //printBlk("cross-comp-pred modified residual",residual,nT,nT);
+  }
+
+  acceleration->add_residual(dst,dstStride, residual,nT, bit_depth);
+}
+
+
 void inv_transform(acceleration_functions* acceleration,
                    uint8_t* dst, int dstStride, int16_t* coeff,
                    int log2TbSize, int trType)
@@ -327,6 +398,14 @@ void scale_coefficients_internal(thread_context* tctx,
 
   if (tctx->cu_transquant_bypass_flag) {
 
+    int32_t residual_buffer[32*32];
+
+    int32_t* residual;
+    if (cIdx==0) residual = tctx->residual_luma;
+    else         residual = residual_buffer;
+
+
+    // TODO: we could fold the coefficient rotation into the coefficient expansion here:
     for (int i=0;i<tctx->nCoeff[cIdx];i++) {
       int32_t currCoeff = tctx->coeffList[cIdx][i];
       tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
@@ -338,13 +417,21 @@ void scale_coefficients_internal(thread_context* tctx,
 
     if (rdpcmMode) {
       if (rdpcmMode==2)
-        tctx->decctx->acceleration.transform_bypass_rdpcm_v(pred, coeff, nT, stride);
+        tctx->decctx->acceleration.transform_bypass_rdpcm_v(residual, coeff, nT);
       else
-        tctx->decctx->acceleration.transform_bypass_rdpcm_h(pred, coeff, nT, stride);
+        tctx->decctx->acceleration.transform_bypass_rdpcm_h(residual, coeff, nT);
     }
     else {
-      tctx->decctx->acceleration.transform_bypass(pred, coeff, nT, stride, bit_depth);
+      tctx->decctx->acceleration.transform_bypass(residual, coeff, nT);
     }
+
+    if (cIdx != 0) {
+      if (tctx->ResScaleVal != 0) {
+        cross_comp_pred(tctx, residual, nT);
+      }
+    }
+
+    tctx->decctx->acceleration.add_residual(pred,stride, residual,nT, bit_depth);
 
     if (rotateCoeffs) {
       memset(coeff, 0, nT*nT*sizeof(int16_t)); // delete all, because we moved the coeffs around
@@ -359,6 +446,8 @@ void scale_coefficients_internal(thread_context* tctx,
 
     logtrace(LogTransform,"dequant %d;%d cIdx=%d qp=%d\n",xT*(cIdx?2:1),yT*(cIdx?2:1),cIdx,qP);
 
+
+    // --- inverse quantization ---
 
     if (sps->scaling_list_enable_flag==0) {
 
@@ -420,6 +509,9 @@ void scale_coefficients_internal(thread_context* tctx,
       }
     }
 
+
+    // --- do transform or skip ---
+
     logtrace(LogTransform,"coefficients OUT:\n");
     for (int y=0;y<nT;y++) {
       logtrace(LogTransform,"  ");
@@ -442,6 +534,7 @@ void scale_coefficients_internal(thread_context* tctx,
 
       int extended_precision_processing_flag = 0;
       int Log2nTbS = 2;
+      int bdShift = libde265_max( 20 - bit_depth, extended_precision_processing_flag ? 11 : 0 );
       int tsShift = (extended_precision_processing_flag ? libde265_min( 5, bdShift - 2 ) : 5 )
         + Log2nTbS;
 
@@ -449,15 +542,38 @@ void scale_coefficients_internal(thread_context* tctx,
         tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
       }
 
+      int32_t residual_buffer[32*32];
+
+      int32_t* residual;
+      if (cIdx==0) residual = tctx->residual_luma;
+      else         residual = residual_buffer;
+
       if (rdpcmMode) {
+        /*
         if (rdpcmMode==2)
           tctx->decctx->acceleration.transform_skip_rdpcm_v(pred,coeff, Log2(nT), stride, bit_depth);
         else
           tctx->decctx->acceleration.transform_skip_rdpcm_h(pred,coeff, Log2(nT), stride, bit_depth);
+        */
+
+        if (rdpcmMode==2)
+          tctx->decctx->acceleration.rdpcm_v(residual, coeff,nT, tsShift,bdShift);
+        else
+          tctx->decctx->acceleration.rdpcm_h(residual, coeff,nT, tsShift,bdShift);
       }
       else {
-        tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
+        //tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
+
+        tctx->decctx->acceleration.transform_skip_residual(residual, coeff, nT, tsShift, bdShift);
       }
+
+      if (cIdx != 0) {
+        if (tctx->ResScaleVal != 0) {
+          cross_comp_pred(tctx, residual, nT);
+        }
+      }
+
+      tctx->decctx->acceleration.add_residual(pred,stride, residual,nT, bit_depth);
 
       if (rotateCoeffs) {
         memset(coeff, 0, nT*nT*sizeof(int16_t)); // delete all, because we moved the coeffs around
@@ -477,17 +593,13 @@ void scale_coefficients_internal(thread_context* tctx,
       assert(rdpcmMode==0);
 
 
-      if (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag &&
-          cIdx==0) {
+      if (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag) {
         // cross-component-prediction: transform to residual buffer and add in a separate step
 
-        /*
-        transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                               tctx->residual_luma, nT, bit_depth);
-QQQ
-        */
+        transform_coefficients_explicit(tctx, coeff, coeffStride, nT, trType,
+                                        pred, stride, bit_depth, cIdx);
       }
-      { //else {
+      else {
         transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
                                pred, stride, bit_depth);
       }

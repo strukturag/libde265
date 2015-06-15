@@ -3390,10 +3390,16 @@ static void decode_TU(thread_context* tctx,
     scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
                        tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);
   }
+  /*
+  else if (!cbf && cIdx==0) {
+    memset(tctx->residual_luma,0,32*32*sizeof(int32_t));
+  }
+  */
   else if (!cbf && cIdx!=0 && tctx->ResScaleVal) {
     // --- cross-component-prediction when CBF==0 ---
 
     tctx->nCoeff[cIdx] = 0;
+    residualDpcm=0;
 
     scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
                        tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);

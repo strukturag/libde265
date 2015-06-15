@@ -18,8 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback-motion.h"
-#include "util.h"
+#include "fallback-dct.h"
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
@@ -70,6 +69,19 @@ void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t 
       c = (c+(1<<(bdShift2-1)))>>bdShift2;
 
       dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + c, bit_depth);
+    }
+}
+
+
+void transform_skip_residual_fallback(int32_t *residual, const int16_t *coeffs, int nT,
+                                      int tsShift,int bdShift)
+{
+  const int rnd = 1<<(bdShift-1);
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT] << tsShift;
+      residual[x+y*nT] = (c + rnd) >> bdShift;
     }
 }
 
@@ -138,6 +150,73 @@ void transform_bypass_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs,int
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
     }
   }
+}
+
+
+void transform_bypass_rdpcm_v_fallback(int32_t *dst, const int16_t *coeffs,int nT)
+{
+  for (int x=0;x<nT;x++) {
+    int32_t sum=0;
+    for (int y=0;y<nT;y++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*nT+x] = sum;
+    }
+  }
+}
+
+
+void transform_bypass_rdpcm_h_fallback(int32_t *dst, const int16_t *coeffs,int nT)
+{
+  for (int y=0;y<nT;y++) {
+    int32_t sum=0;
+    for (int x=0;x<nT;x++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*nT+x] = sum;
+    }
+  }
+}
+
+
+void rdpcm_v_fallback(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift)
+{
+  int rnd = (1<<(bdShift-1));
+
+  for (int x=0;x<nT;x++) {
+    int sum=0;
+    for (int y=0;y<nT;y++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+rnd)>>bdShift;
+      residual[y*nT+x] = sum;
+    }
+  }
+}
+
+
+void rdpcm_h_fallback(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift)
+{
+  int rnd = (1<<(bdShift-1));
+
+  for (int y=0;y<nT;y++) {
+    int sum=0;
+    for (int x=0;x<nT;x++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+rnd)>>bdShift;
+      residual[y*nT+x] = sum;
+    }
+  }
+}
+
+
+void transform_bypass_fallback(int32_t *dst, const int16_t *coeffs, int nT)
+{
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT];
+
+      dst[y*nT+x] = c;
+    }
 }
 
 
@@ -384,6 +463,48 @@ void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride
 }
 
 
+void transform_idst_4x4_fallback(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits)
+{
+  int16_t g[4][4];
+
+  int rndV = 1<<(7-1);
+  int rndH = 1<<(bdShift-1);
+
+  int CoeffMax = (1<<max_coeff_bits)-1;
+  int CoeffMin = -(1<<max_coeff_bits);
+
+
+  // --- V ---
+
+  for (int c=0;c<4;c++) {
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[j][i] * coeffs[c+j*4];
+      }
+
+      g[i][c] = Clip3(CoeffMin,CoeffMax, (sum+rndV)>>7);
+    }
+  }
+
+
+  // --- H ---
+
+  for (int y=0;y<4;y++) {
+    for (int i=0;i<4;i++) {
+      int sum=0;
+
+      for (int j=0;j<4;j++) {
+        sum += mat_8_357[j][i] * g[y][j];
+      }
+
+      dst[y*4+i] = (sum + rndH)>>bdShift;
+    }
+  }
+}
+
+
 
 static int8_t mat_dct[32][32] = {
   { 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,      64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64},
@@ -568,7 +689,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
 
 
-void transform_idct(int32_t *dst, int nT, const int16_t *coeffs, int bit_depth, int max_coeff_bits)
+void transform_idct_fallback(int32_t *dst, int nT, const int16_t *coeffs, int bdShift, int max_coeff_bits)
 {
   /*
     The effective shift is
@@ -592,7 +713,7 @@ void transform_idct(int32_t *dst, int nT, const int16_t *coeffs, int bit_depth, 
   int rnd1 = 1<<(7-1);
   int fact = (1<<(5-Log2(nT)));
 
-  int bdShift = 20-bit_depth;
+  //int bdShift = 20-bit_depth;
   int rnd2 = 1<<(bdShift-1);
 
   int16_t g[32*32];  // actually, only [nT*nT] used
@@ -712,15 +833,30 @@ void transform_idct(int32_t *dst, int nT, const int16_t *coeffs, int bit_depth, 
 }
 
 
-template <class pixel_t>
-void add_residual(pixel_t *dst, ptrdiff_t stride,
-                  const int32_t* r, int nT, int bit_depth)
+void transform_idct_4x4_fallback(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits)
 {
-  for (int y=0;y<nT;y++)
-    for (int x=0;x<nT;x++) {
-      dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + r[y*nT+x], bit_depth);
-    }
+  transform_idct_fallback(dst,4,coeffs,bdShift,max_coeff_bits);
 }
+
+void transform_idct_8x8_fallback(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits)
+{
+  transform_idct_fallback(dst,8,coeffs,bdShift,max_coeff_bits);
+}
+
+void transform_idct_16x16_fallback(int32_t *dst, const int16_t *coeffs,
+                                   int bdShift, int max_coeff_bits)
+{
+  transform_idct_fallback(dst,16,coeffs,bdShift,max_coeff_bits);
+}
+
+void transform_idct_32x32_fallback(int32_t *dst, const int16_t *coeffs,
+                                   int bdShift, int max_coeff_bits)
+{
+  transform_idct_fallback(dst,32,coeffs,bdShift,max_coeff_bits);
+}
+
+
+
 
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
 {
