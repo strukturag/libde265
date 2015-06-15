@@ -191,7 +191,7 @@ void context_model_table::decouple_or_alloc_with_empty_data()
 
 
 static void set_initValue(int SliceQPY,
-                          context_model* model, int initValue)
+                          context_model* model, int initValue, int nContexts)
 {
   int slopeIdx = initValue >> 4;
   int intersecIdx = initValue & 0xF;
@@ -201,12 +201,14 @@ static void set_initValue(int SliceQPY,
 
   // logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
 
-  model->MPSbit=(preCtxState<=63) ? 0 : 1;
-  model->state = model->MPSbit ? (preCtxState-64) : (63-preCtxState);
+  for (int i=0;i<nContexts;i++) {
+    model[i].MPSbit=(preCtxState<=63) ? 0 : 1;
+    model[i].state = model[i].MPSbit ? (preCtxState-64) : (63-preCtxState);
 
-  // model state will always be between [0;62]
+    // model state will always be between [0;62]
 
-  assert(model->state <= 62);
+    assert(model[i].state <= 62);
+  }
 }
 
 
@@ -276,8 +278,6 @@ static const int initValue_rqt_root_cbf[1] = { 79 };
 static const int initValue_ref_idx_lX[2] = { 153,153 };
 static const int initValue_inter_pred_idc[5] = { 95,79,63,31,31 };
 static const int initValue_cu_transquant_bypass_flag[3] = { 154,154,154 };
-static const int initValue_rdpcm_flag[2] = { 139,139 }; // hack, because all are equal
-static const int initValue_rdpcm_dir[2]  = { 139,139 }; // hack, because all are equal
 
 
 static void init_context(int SliceQPY,
@@ -286,9 +286,16 @@ static void init_context(int SliceQPY,
 {
   for (int i=0;i<len;i++)
     {
-      set_initValue(SliceQPY, &model[i],
-                    initValues[i]);
+      set_initValue(SliceQPY, &model[i], initValues[i], 1);
     }
+}
+
+
+static void init_context_const(int SliceQPY,
+                               context_model* model,
+                               int initValue, int len)
+{
+  set_initValue(SliceQPY, model, initValue, len);
 }
 
 void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TABLE_LENGTH],
@@ -308,8 +315,8 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
     init_context(QPY, cm+CONTEXT_MODEL_MVP_LX_FLAG,            initValue_mvp_lx_flag,            1);
     init_context(QPY, cm+CONTEXT_MODEL_RQT_ROOT_CBF,           initValue_rqt_root_cbf,           1);
 
-    init_context(QPY, cm+CONTEXT_MODEL_RDPCM_FLAG,           initValue_rdpcm_flag,           2); // hack, all init values equal
-    init_context(QPY, cm+CONTEXT_MODEL_RDPCM_DIR,            initValue_rdpcm_dir,            2); // hack, all init values equal
+    init_context_const(QPY, cm+CONTEXT_MODEL_RDPCM_FLAG, 139, 2);
+    init_context_const(QPY, cm+CONTEXT_MODEL_RDPCM_DIR,  139, 2);
   }
 
   init_context(QPY, cm+CONTEXT_MODEL_SPLIT_CU_FLAG, initValue_split_cu_flag[initType], 3);
@@ -332,4 +339,7 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
   init_context(QPY, cm+CONTEXT_MODEL_CU_QP_DELTA_ABS,        initValue_cu_qp_delta_abs,        2);
   init_context(QPY, cm+CONTEXT_MODEL_TRANSFORM_SKIP_FLAG,    initValue_transform_skip_flag,    2);
   init_context(QPY, cm+CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, &initValue_cu_transquant_bypass_flag[initType], 1);
+
+  init_context_const(QPY, cm+CONTEXT_MODEL_LOG2_RES_SCALE_ABS_PLUS1, 154, 8);
+  init_context_const(QPY, cm+CONTEXT_MODEL_RES_SCALE_SIGN_FLAG,      154, 2);
 }
