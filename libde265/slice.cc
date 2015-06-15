@@ -1266,13 +1266,13 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
 
   LOG0("----------------- SLICE -----------------\n");
-  LOG1("first_slice_segment_in_pic_flag        : %d\n", first_slice_segment_in_pic_flag);
+  LOG1("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
   if (ctx->get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
       ctx->get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
-    LOG1("no_output_of_prior_pics_flag           : %d\n", no_output_of_prior_pics_flag);
+    LOG1("no_output_of_prior_pics_flag         : %d\n", no_output_of_prior_pics_flag);
   }
 
-  LOG1("slice_pic_parameter_set_id             : %d\n", slice_pic_parameter_set_id);
+  LOG1("slice_pic_parameter_set_id           : %d\n", slice_pic_parameter_set_id);
 
   if (!first_slice_segment_in_pic_flag) {
     //if (pps->dependent_slice_segments_enabled_flag) {
@@ -3393,6 +3393,62 @@ static void decode_TU(thread_context* tctx,
 }
 
 
+static int decode_log2_res_scale_abs_plus1(thread_context* tctx, int cIdxMinus1)
+{
+  //const int context = (cIdx==0) ? 0 : 1;
+
+  logtrace(LogSlice,"# log2_res_scale_abs_plus1 (c=%d)\n",cIdxMinus1);
+
+  int value = 0;
+  int cMax  = 4;
+  for (int binIdx=0;binIdx<cMax;binIdx++)
+    {
+      int ctxIdxInc = 4*cIdxMinus1 + binIdx;
+
+      int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+                                 &tctx->ctx_model[CONTEXT_MODEL_LOG2_RES_SCALE_ABS_PLUS1+ctxIdxInc]);
+      if (!bit) break;
+      value++;
+    }
+
+  logtrace(LogSymbols,"$1 log2_res_scale_abs_plus1=%d\n",value);
+
+  return value;
+}
+
+
+static int decode_res_scale_sign_flag(thread_context* tctx, int cIdxMinus1)
+{
+  //const int context = (cIdx==0) ? 0 : 1;
+
+  logtrace(LogSlice,"# res_scale_sign_flag (c=%d)\n",cIdxMinus1);
+
+  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+                             &tctx->ctx_model[CONTEXT_MODEL_RES_SCALE_SIGN_FLAG+cIdxMinus1]);
+
+  logtrace(LogSymbols,"$1 res_scale_sign_flag=%d\n",bit);
+
+  return bit;
+}
+
+
+static void read_cross_comp_pred(thread_context* tctx, int cIdxMinus1)
+{
+  int log2_res_scale_abs_plus1 = decode_log2_res_scale_abs_plus1(tctx,cIdxMinus1);
+  int ResScaleVal;
+
+  if (log2_res_scale_abs_plus1 != 0) {
+    int res_scale_sign_flag = decode_res_scale_sign_flag(tctx,cIdxMinus1);
+
+    ResScaleVal = 1 << (log2_res_scale_abs_plus1 - 1);
+    ResScaleVal *= 1 - 2 * res_scale_sign_flag;
+  }
+  else {
+    ResScaleVal = 0;
+  }
+}
+
+
 int read_transform_unit(thread_context* tctx,
                         int x0, int y0,        // position of TU in frame
                         int xBase, int yBase,  // position of parent TU in frame
@@ -3476,6 +3532,16 @@ int read_transform_unit(thread_context* tctx,
   if (log2TrafoSize>2 || ChromaArrayType == CHROMA_444) {
     // TODO: cross-component prediction
 
+    const bool do_cross_component_prediction =
+      (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag &&
+       cbf_luma &&
+       (cuPredMode == MODE_INTER || tctx->img->is_IntraPredModeC_Mode4(x0,y0)));
+
+    if (do_cross_component_prediction) {
+      read_cross_comp_pred(tctx, 0);
+    }
+
+
     {
       if (cbf_cb & 1) {
         if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) != DE265_OK) return err;
@@ -3500,6 +3566,11 @@ int read_transform_unit(thread_context* tctx,
                 x0/SubWidthC,y0/SubHeightC + yOffset,
                 xCUBase/SubWidthC,yCUBase/SubHeightC +yOffset,
                 nTC, 1, cuPredMode, cbf_cb & 2);
+    }
+
+
+    if (do_cross_component_prediction) {
+      read_cross_comp_pred(tctx, 1);
     }
 
     {
