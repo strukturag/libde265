@@ -476,8 +476,21 @@ void scale_coefficients_internal(thread_context* tctx,
 
       assert(rdpcmMode==0);
 
-      transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                             pred, stride, bit_depth);
+
+      if (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag &&
+          cIdx==0) {
+        // cross-component-prediction: transform to residual buffer and add in a separate step
+
+        /*
+        transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
+                               tctx->residual_luma, nT, bit_depth);
+QQQ
+        */
+      }
+      { //else {
+        transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
+                               pred, stride, bit_depth);
+      }
     }
   }
 
