@@ -30,6 +30,29 @@
 #define DE265_MAX_TILE_ROWS    10
 
 class decoder_context;
+class pic_parameter_set;
+
+
+class pps_range_extension
+{
+ public:
+  pps_range_extension() { reset(); }
+
+  void reset();
+
+  bool read(bitreader*, decoder_context*, const pic_parameter_set*);
+
+  uint8_t log2_max_transform_skip_block_size;
+  bool    cross_component_prediction_enabled_flag;
+  bool    chroma_qp_offset_list_enabled_flag;
+  uint8_t diff_cu_chroma_qp_offset_depth;
+  uint8_t chroma_qp_offset_list_len;
+  int8_t  cb_qp_offset_list[6];
+  int8_t  cr_qp_offset_list[6];
+  uint8_t log2_sao_offset_scale_luma;
+  uint8_t log2_sao_offset_scale_chroma;
+};
+
 
 class pic_parameter_set {
 public:
@@ -110,9 +133,14 @@ public:
   char pps_multilayer_extension_flag;
   char pps_extension_6bits;
 
+  pps_range_extension range_extension;
+
+
   // --- derived values ---
 
   int Log2MinCuQpDeltaSize;
+  int Log2MinCuChromaQpOffsetSize;
+  int Log2MaxTransformSkipSize;
 
   int colWidth [ DE265_MAX_TILE_COLUMNS ];
   int rowHeight[ DE265_MAX_TILE_ROWS ];

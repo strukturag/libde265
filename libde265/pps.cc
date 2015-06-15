@@ -32,6 +32,112 @@
 #endif
 
 
+void pps_range_extension::reset()
+{
+  log2_max_transform_skip_block_size = 2;
+  cross_component_prediction_enabled_flag = false;
+  chroma_qp_offset_list_enabled_flag = false;
+  diff_cu_chroma_qp_offset_depth = 0;
+  chroma_qp_offset_list_len = 0;
+  log2_sao_offset_scale_luma = 0;
+  log2_sao_offset_scale_chroma = 0;
+}
+
+
+bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_parameter_set* pps)
+{
+  const seq_parameter_set* sps = ctx->get_sps(pps->seq_parameter_set_id);
+
+  int uvlc;
+
+  if (pps->transform_skip_enabled_flag) {
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc+2 > sps->Log2MaxTrafoSize) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    log2_max_transform_skip_block_size = uvlc+2;
+  }
+
+  cross_component_prediction_enabled_flag = get_bits(br,1);
+  if (sps->ChromaArrayType != CHROMA_444 &&
+      cross_component_prediction_enabled_flag) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+  }
+
+  chroma_qp_offset_list_enabled_flag = get_bits(br,1);
+  if (sps->ChromaArrayType != CHROMA_MONO &&
+      chroma_qp_offset_list_enabled_flag) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+  }
+
+  if (chroma_qp_offset_list_enabled_flag) {
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    diff_cu_chroma_qp_offset_depth = uvlc;
+
+
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc > 5) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    chroma_qp_offset_list_len = uvlc+1;
+
+    for (int i=0;i<chroma_qp_offset_list_len;i++) {
+      int svlc;
+      svlc = get_svlc(br);
+      if (svlc == UVLC_ERROR ||
+          svlc < -12 || svlc > 12) {
+        ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+        return false;
+      }
+
+      cb_qp_offset_list[i] = svlc;
+
+      svlc = get_svlc(br);
+      if (svlc == UVLC_ERROR ||
+          svlc < -12 || svlc > 12) {
+        ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+        return false;
+      }
+
+      cr_qp_offset_list[i] = svlc;
+    }
+  }
+
+
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR ||
+      uvlc > libde265_max(0, sps->BitDepth_Y-10)) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+
+  log2_sao_offset_scale_luma = uvlc;
+
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR ||
+      uvlc > libde265_max(0, sps->BitDepth_C-10)) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+
+  log2_sao_offset_scale_chroma = uvlc;
+
+  return true;
+}
+
+
 pic_parameter_set::pic_parameter_set()
 {
   reset();
@@ -358,6 +464,13 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     pps_multilayer_extension_flag = get_bits(br,1);
     pps_extension_6bits = get_bits(br,6);
 
+    if (pps_range_extension_flag) {
+      bool success = range_extension.read(br, ctx, this);
+      if (!success) {
+        return false;
+      }
+    }
+
     //assert(false);
     /*
       while( more_rbsp_data() )
@@ -382,6 +495,9 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 {
   Log2MinCuQpDeltaSize = sps->Log2CtbSizeY - diff_cu_qp_delta_depth;
+
+  Log2MinCuChromaQpOffsetSize = sps->Log2CtbSizeY - range_extension.diff_cu_chroma_qp_offset_depth;
+  Log2MaxTransformSkipSize = range_extension.log2_max_transform_skip_block_size;
 
   if (uniform_spacing_flag) {
 
