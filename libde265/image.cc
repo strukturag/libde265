@@ -160,8 +160,9 @@ static void de265_image_release_buffer(de265_decoder_context* ctx,
 {
   for (int i=0;i<3;i++) {
     uint8_t* p = (uint8_t*)img->get_image_plane(i);
-    assert(p);
-    FREE_ALIGNED(p);
+    if (p) {
+      FREE_ALIGNED(p);
+    }
   }
 }
 
