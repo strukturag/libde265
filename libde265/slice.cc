@@ -3533,6 +3533,8 @@ int read_transform_unit(thread_context* tctx,
 
   // --- luma ---
 
+  tctx->ResScaleVal = 0;
+
   int err;
   if (cbf_luma) {
     if ((err=residual_coding(tctx,x0,y0, log2TrafoSize,0)) != DE265_OK) return err;
