@@ -591,7 +591,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     if (sps->sample_adaptive_offset_enabled_flag) {
       slice_sao_luma_flag   = get_bits(br,1);
-      slice_sao_chroma_flag = get_bits(br,1);
+
+      if (sps->ChromaArrayType != CHROMA_MONO) {
+        slice_sao_chroma_flag = get_bits(br,1);
+      }
+      else {
+        slice_sao_chroma_flag = 0;
+      }
     }
     else {
       slice_sao_luma_flag   = 0;
