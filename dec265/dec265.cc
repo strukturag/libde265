@@ -170,17 +170,24 @@ void display_image(const struct de265_image* img)
   de265_chroma chroma = de265_get_chroma_format(img);
 
   ChromaFormat vgfx_chroma;
+  Colorspace   vgfx_cs = Colorspace_YUV;
+
   switch (chroma) {
-  case de265_chroma_420: vgfx_chroma = Chroma_420; break;
-  case de265_chroma_422: vgfx_chroma = Chroma_422; break;
-  case de265_chroma_444: vgfx_chroma = Chroma_444; break;
-  default: assert(false);
+  case de265_chroma_420:  vgfx_chroma = Chroma_420; break;
+  case de265_chroma_422:  vgfx_chroma = Chroma_422; break;
+  case de265_chroma_444:  vgfx_chroma = Chroma_444; break;
+  case de265_chroma_mono: vgfx_cs = Colorspace_Greyscale; break;
   }
 
   Image<Pixel> visu;
-  visu.Create(width, height, Colorspace_YUV, vgfx_chroma);
+  visu.Create(width, height, vgfx_cs, vgfx_chroma);
 
-  for (int ch=0;ch<3;ch++) {
+  int nChannels = 3;
+  if (chroma == de265_chroma_mono) {
+    nChannels = 1;
+  }
+
+  for (int ch=0;ch<nChannels;ch++) {
     const uint8_t* data;
     int stride;
 
