@@ -786,7 +786,13 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,
                       img->get_QPY(2*xDi-1,2*yDi) :
                       img->get_QPY(2*xDi,2*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
-          int QP_C = table8_22(qP_i);
+          int QP_C;
+          if (img->sps.ChromaArrayType == CHROMA_420) {
+            QP_C = table8_22(qP_i);
+          } else {
+            QP_C = libde265_min(qP_i, 51);
+          }
+
 
           //printf("POC=%d\n",ctx->img->PicOrderCntVal);
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
