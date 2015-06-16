@@ -496,7 +496,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 #if MEASURE_EXECUTION_TIME
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-  printf("Upsampling Y from (%dx%d) to (%dx%d) took %d ms\n", PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, PicWidthInSamplesCurLayerY, PicHeightInSamplesCurLayerY, duration);
+  printf("Upsampling Y from (%dx%d) to (%dx%d) took %d us\n", PicWidthInSamplesRefLayerY, PicHeightInSamplesRefLayerY, PicWidthInSamplesCurLayerY, PicHeightInSamplesCurLayerY, duration);
 #endif
 }
 void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_t srcstride, int src_size[2],

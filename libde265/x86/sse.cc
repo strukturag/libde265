@@ -25,6 +25,7 @@
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
 #include "x86/sse-dct.h"
+#include "x86/sse-upsampling.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -98,6 +99,9 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->transform_add_8[1] = ff_hevc_transform_8x8_add_8_sse4;
     accel->transform_add_8[2] = ff_hevc_transform_16x16_add_8_sse4;
     accel->transform_add_8[3] = ff_hevc_transform_32x32_add_8_sse4;
+
+    // Upsampling functions
+    accel->resampling_process_of_luma_sample_values = resampling_process_of_luma_sample_values_sse;
   }
 #endif
 }
