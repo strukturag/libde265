@@ -256,6 +256,8 @@ struct de265_image {
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+
+  /// xpos;ypos in actual plane resolution
   template <class pixel_t>
   pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
   {
