@@ -2713,7 +2713,10 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
   }
 
   if (!sao_merge_up_flag && !sao_merge_left_flag) {
-    for (int cIdx=0; cIdx<3; cIdx++) {
+    int nChroma = 3;
+    if (sps->ChromaArrayType == CHROMA_MONO) nChroma=1;
+
+    for (int cIdx=0; cIdx<nChroma; cIdx++) {
       if ((shdr->slice_sao_luma_flag && cIdx==0) ||
           (shdr->slice_sao_chroma_flag && cIdx>0)) {
 
@@ -3567,9 +3570,11 @@ int read_transform_unit(thread_context* tctx,
         if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) != DE265_OK) return err;
       }
 
-      decode_TU(tctx,
-                x0/SubWidthC,y0/SubHeightC,
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, 1, cuPredMode, cbf_cb & 1);
+      if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+        decode_TU(tctx,
+                  x0/SubWidthC,y0/SubHeightC,
+                  xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, 1, cuPredMode, cbf_cb & 1);
+      }
     }
 
     // 4:2:2
@@ -3601,10 +3606,12 @@ int read_transform_unit(thread_context* tctx,
         if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,2)) != DE265_OK) return err;
       }
 
-      decode_TU(tctx,
-                x0/SubWidthC,y0/SubHeightC,
-                xCUBase/SubWidthC,yCUBase/SubHeightC,
-                nTC, 2, cuPredMode, cbf_cr & 1);
+      if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+        decode_TU(tctx,
+                  x0/SubWidthC,y0/SubHeightC,
+                  xCUBase/SubWidthC,yCUBase/SubHeightC,
+                  nTC, 2, cuPredMode, cbf_cr & 1);
+      }
     }
 
     // 4:2:2
@@ -3629,9 +3636,11 @@ int read_transform_unit(thread_context* tctx,
                                log2TrafoSize,1)) != DE265_OK) return err;
     }
 
-    decode_TU(tctx,
-              xBase/SubWidthC,  yBase/SubHeightC,
-              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 1);
+    if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+      decode_TU(tctx,
+                xBase/SubWidthC,  yBase/SubHeightC,
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 1);
+    }
 
     // 4:2:2
     if (cbf_cb & 2) {
@@ -3651,9 +3660,11 @@ int read_transform_unit(thread_context* tctx,
                                log2TrafoSize,2)) != DE265_OK) return err;
     }
 
-    decode_TU(tctx,
-              xBase/SubWidthC,  yBase/SubHeightC,
-              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 1);
+    if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+      decode_TU(tctx,
+                xBase/SubWidthC,  yBase/SubHeightC,
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 1);
+    }
 
     // 4:2:2
     if (cbf_cr & 2) {
@@ -4054,19 +4065,21 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
         yPtr[y*stride+x] = value << shiftY;
       }
 
-  for (int y=0;y<wC;y++)
-    for (int x=0;x<wC;x++)
-      {
-        int value = get_bits(&br, nBitsC);
-        cbPtr[y*chroma_stride+x] = value << shiftC;
-      }
+  if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+    for (int y=0;y<wC;y++)
+      for (int x=0;x<wC;x++)
+        {
+          int value = get_bits(&br, nBitsC);
+          cbPtr[y*chroma_stride+x] = value << shiftC;
+        }
 
-  for (int y=0;y<wC;y++)
-    for (int x=0;x<wC;x++)
-      {
-        int value = get_bits(&br, nBitsC);
-        crPtr[y*chroma_stride+x] = value << shiftC;
-      }
+    for (int y=0;y<wC;y++)
+      for (int x=0;x<wC;x++)
+        {
+          int value = get_bits(&br, nBitsC);
+          crPtr[y*chroma_stride+x] = value << shiftC;
+        }
+  }
 
   prepare_for_CABAC(&br);
   tctx->cabac_decoder.bitstream_curr = br.data;
@@ -4328,7 +4341,7 @@ void read_coding_unit(thread_context* tctx,
               idx++;
             }
         }
-        else {
+        else if (sps->ChromaArrayType != CHROMA_MONO) {
           // chroma 4:2:0 and 4:2:2
 
           int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
@@ -4423,8 +4436,14 @@ void read_coding_unit(thread_context* tctx,
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
+        uint8_t initial_chroma_cbf = 1;
+        if (sps->ChromaArrayType == CHROMA_MONO) {
+          initial_chroma_cbf = 0;
+        }
+
         read_transform_tree(tctx, x0,y0, x0,y0, x0,y0, log2CbSize, 0,0,
-                            MaxTrafoDepth, IntraSplitFlag, cuPredMode, 1,1);
+                            MaxTrafoDepth, IntraSplitFlag, cuPredMode,
+                            initial_chroma_cbf, initial_chroma_cbf);
       }
     } // !pcm
   }
