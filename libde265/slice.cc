@@ -2892,7 +2892,7 @@ int residual_coding(thread_context* tctx,
 
   if (pps->transform_skip_enabled_flag &&
       !tctx->cu_transquant_bypass_flag &&
-      (log2TrafoSize==2))
+      (log2TrafoSize <= pps->Log2MaxTransformSkipSize))
     {
       tctx->transform_skip_flag[cIdx] = decode_transform_skip_flag(tctx,cIdx);
     }

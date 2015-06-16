@@ -48,6 +48,8 @@ void transform_skip_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t st
   int nT = 4;
   int bdShift2 = 20-8;
 
+  assert(0); // DEPRECATED, should not be used anymore because of fixed 4x4 size
+
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
       int32_t c = coeffs[x+y*nT] << 7;
@@ -62,6 +64,8 @@ void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t 
 {
   int nT = 4;
   int bdShift2 = 20-bit_depth;
+
+  assert(0); // DEPRECATED, should not be used anymore because of fixed 4x4 size
 
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
