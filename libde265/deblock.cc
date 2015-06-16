@@ -942,7 +942,10 @@ void thread_task_deblock_CTBRow::work()
     derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
 
     edge_filtering_luma(img, vertical, first,last, xStart,xEnd);
-    edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+
+    if (img->sps.ChromaArrayType != CHROMA_MONO) {
+      edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+    }
   }
 
   for (int x=0;x<=rightCtb;x++) {
@@ -996,8 +999,10 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
       logtrace(LogDeblock,"VERTICAL\n");
       derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-      edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
+      if (img->sps.ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      }
 #if 0
       char buf[1000];
       sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
@@ -1009,7 +1014,10 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
       logtrace(LogDeblock,"HORIZONTAL\n");
       derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-      edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+
+      if (img->sps.ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      }
 
 #if 0
       sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);
