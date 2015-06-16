@@ -26,9 +26,10 @@ class SDL_YUV_Display
 public:
 
   enum SDL_Chroma {
-    SDL_CHROMA_420=420,
-    SDL_CHROMA_422=422,
-    SDL_CHROMA_444=444
+    SDL_CHROMA_MONO=400,
+    SDL_CHROMA_420 =420,
+    SDL_CHROMA_422 =422,
+    SDL_CHROMA_444 =444
   };
 
   bool init(int frame_width, int frame_height, enum SDL_Chroma chroma = SDL_CHROMA_420);
@@ -48,6 +49,8 @@ private:
 
   SDL_Chroma mChroma;
 
+  void display400(const unsigned char *Y,
+                  int stride);
   void display420(const unsigned char *Y,
                   const unsigned char *U,
                   const unsigned char *V,

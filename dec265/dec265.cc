@@ -244,14 +244,16 @@ bool display_sdl(const struct de265_image* img)
   int chroma_width  = de265_get_image_width(img,1);
   int chroma_height = de265_get_image_height(img,1);
 
+  de265_chroma chroma = de265_get_chroma_format(img);
+
   if (!sdl_active) {
     sdl_active=true;
-    de265_chroma chroma = de265_get_chroma_format(img);
     enum SDL_YUV_Display::SDL_Chroma sdlChroma;
     switch (chroma) {
-    case de265_chroma_420: sdlChroma = SDL_YUV_Display::SDL_CHROMA_420; break;
-    case de265_chroma_422: sdlChroma = SDL_YUV_Display::SDL_CHROMA_422; break;
-    case de265_chroma_444: sdlChroma = SDL_YUV_Display::SDL_CHROMA_444; break;
+    case de265_chroma_420:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_420;  break;
+    case de265_chroma_422:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_422;  break;
+    case de265_chroma_444:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_444;  break;
+    case de265_chroma_mono: sdlChroma = SDL_YUV_Display::SDL_CHROMA_MONO; break;
     }
 
     sdlWin.init(width,height, sdlChroma);
@@ -270,11 +272,14 @@ bool display_sdl(const struct de265_image* img)
   if ((bd=de265_get_bits_per_pixel(img, 0)) > 8) {
     y16  = convert_to_8bit(y,  width,height,stride,bd); y=y16;
   }
-  if ((bd=de265_get_bits_per_pixel(img, 1)) > 8) {
-    cb16 = convert_to_8bit(cb, chroma_width,chroma_height,chroma_stride,bd); cb=cb16;
-  }
-  if ((bd=de265_get_bits_per_pixel(img, 2)) > 8) {
-    cr16 = convert_to_8bit(cr, chroma_width,chroma_height,chroma_stride,bd); cr=cr16;
+
+  if (chroma != de265_chroma_mono) {
+    if ((bd=de265_get_bits_per_pixel(img, 1)) > 8) {
+      cb16 = convert_to_8bit(cb, chroma_width,chroma_height,chroma_stride,bd); cb=cb16;
+    }
+    if ((bd=de265_get_bits_per_pixel(img, 2)) > 8) {
+      cr16 = convert_to_8bit(cr, chroma_width,chroma_height,chroma_stride,bd); cr=cr16;
+    }
   }
 
   sdlWin.display(y,cb,cr, stride, chroma_stride);

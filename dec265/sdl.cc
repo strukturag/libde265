@@ -66,9 +66,10 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma ch
 
   uint32_t pixelFormat;
   switch (mChroma) {
-  case SDL_CHROMA_420: pixelFormat = SDL_YV12_OVERLAY; break;
-  case SDL_CHROMA_422: pixelFormat = SDL_YUY2_OVERLAY; break;
-  case SDL_CHROMA_444: pixelFormat = SDL_YUY2_OVERLAY; break;
+  case SDL_CHROMA_MONO: pixelFormat = SDL_YV12_OVERLAY; break;
+  case SDL_CHROMA_420:  pixelFormat = SDL_YV12_OVERLAY; break;
+  case SDL_CHROMA_422:  pixelFormat = SDL_YUY2_OVERLAY; break;
+  case SDL_CHROMA_444:  pixelFormat = SDL_YUY2_OVERLAY; break;
   }
 
   mYUVOverlay = SDL_CreateYUVOverlay(frame_width, frame_height, pixelFormat, mScreen);
@@ -105,6 +106,9 @@ void SDL_YUV_Display::display(const unsigned char *Y,
   else if (mChroma == SDL_CHROMA_444) {
     display444(Y,U,V,stride,chroma_stride);
   }
+  else if (mChroma == SDL_CHROMA_MONO) {
+    display400(Y,stride);
+  }
 
   SDL_UnlockYUVOverlay(mYUVOverlay);
 
@@ -139,6 +143,30 @@ void SDL_YUV_Display::display420(const unsigned char *Y,
         memcpy(mYUVOverlay->pixels[1]+y*rect.w/2, V+chroma_stride*y, rect.w/2);
       }
   }
+}
+
+
+void SDL_YUV_Display::display400(const unsigned char *Y, int stride)
+{
+  if (stride == rect.w) {
+
+    // fast copy
+
+    memcpy(mYUVOverlay->pixels[0], Y, rect.w * rect.h);
+  }
+  else {
+    // copy line by line, because sizes are different
+
+    for (int y=0;y<rect.h;y++)
+      {
+        memcpy(mYUVOverlay->pixels[0]+y*rect.w, Y+stride*y, rect.w);
+      }
+  }
+
+  // clear chroma planes
+
+  memset(mYUVOverlay->pixels[1], 0x80, rect.w * rect.h / 4);
+  memset(mYUVOverlay->pixels[2], 0x80, rect.w * rect.h / 4);
 }
 
 
