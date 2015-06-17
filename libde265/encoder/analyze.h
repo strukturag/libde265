@@ -141,6 +141,6 @@ public:
 };
 
 
-void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename);
+LIBDE265_API void en265_print_logging(const encoder_context* ectx, const char* id, const char* filename);
 
 #endif

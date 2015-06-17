@@ -20,6 +20,7 @@ if not exist bin_x86\lib (
     mkdir bin_x86\lib
 )
 copy /y dec265\dec265.exe bin_x86\
+copy /y enc265\enc265.exe bin_x86\
 copy /y libde265\libde265.dll bin_x86\
 copy /y libde265\libde265.lib bin_x86\lib\
 copy /y libde265\libde265.exp bin_x86\lib\
@@ -33,6 +34,7 @@ if not exist bin_x64\lib (
     mkdir bin_x64\lib
 )
 copy /y dec265\dec265.exe bin_x64\
+copy /y enc265\enc265.exe bin_x64\
 copy /y libde265\libde265.dll bin_x64\
 copy /y libde265\libde265.lib bin_x64\lib\
 copy /y libde265\libde265.exp bin_x64\lib\
