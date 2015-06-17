@@ -101,6 +101,7 @@ public:
   CABAC_decoder cabac_decoder;
 
   context_model_table ctx_model;
+  uint8_t StatCoeff[4];
 
   decoder_context* decctx;
   struct de265_image *img;

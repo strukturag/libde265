@@ -1498,6 +1498,10 @@ void initialize_CABAC_models(thread_context* tctx)
   assert(initType >= 0 && initType <= 2);
 
   tctx->ctx_model.init(initType, QPY);
+
+  for (int i=0;i<4;i++) {
+    tctx->StatCoeff[i] = 0;
+  }
 }
 
 
@@ -2928,6 +2932,16 @@ int residual_coding(thread_context* tctx,
       tctx->explicit_rdpcm_flag = false;
     }
 
+
+
+  // sbType for persistent_rice_adaptation_enabled_flag
+
+  int sbType = (cIdx==0) ? 2 : 0;
+  if (tctx->transform_skip_flag[cIdx] || tctx->cu_transquant_bypass_flag) {
+    sbType++;
+  }
+
+
   // --- decode position of last coded coefficient ---
 
   int last_significant_coeff_x_prefix =
@@ -3284,23 +3298,36 @@ int residual_coding(thread_context* tctx,
       // --- decode coefficient value ---
 
       int sumAbsLevel=0;
-      int uiGoRiceParam=0;
+      int uiGoRiceParam;
 
-      //printf("QCoeff: ");
+      if (sps->range_extension.persistent_rice_adaptation_enabled_flag==0) {
+        uiGoRiceParam = 0;
+      }
+      else {
+        uiGoRiceParam = tctx->StatCoeff[sbType]/4;
+      }
 
       for (int n=0;n<nCoefficients;n++) {
         int baseLevel = coeff_value[n];
 
         int coeff_abs_level_remaining;
 
+        printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
+
         if (coeff_has_max_base_level[n]) {
           coeff_abs_level_remaining =
             decode_coeff_abs_level_remaining(tctx, uiGoRiceParam);
 
-          // (9-462)
-          if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
-            uiGoRiceParam++;
-            if (uiGoRiceParam>4) uiGoRiceParam=4;
+          if (sps->range_extension.persistent_rice_adaptation_enabled_flag == 0) {
+            // (2014.10 / 9-20)
+            if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
+              uiGoRiceParam++;
+              if (uiGoRiceParam>4) uiGoRiceParam=4;
+            }
+          }
+          else {
+            if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam))
+              uiGoRiceParam++;
           }
         }
         else {
@@ -3337,6 +3364,18 @@ int residual_coding(thread_context* tctx,
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
+
+        // persistent_rice_adaptation_enabled_flag
+        if (sps->range_extension.persistent_rice_adaptation_enabled_flag &&
+            n==0) {
+          if (coeff_abs_level_remaining >= (3 << (tctx->StatCoeff[sbType]/4 ))) {
+            tctx->StatCoeff[sbType]++;
+          }
+          else if (2*coeff_abs_level_remaining < (1 << (tctx->StatCoeff[sbType]/4 )) &&
+                   tctx->StatCoeff[sbType] > 0) {
+            tctx->StatCoeff[sbType]--;
+          }
+        }
 
         //printf("%d ",currCoeff);
       }  // iterate through coefficients in sub-block
