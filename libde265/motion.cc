@@ -395,16 +395,19 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  const int Nshift1_L = libde265_max(2,14-img->sps.BitDepth_Y);
-  const int Noffset_shift1_L = img->sps.WpOffsetBdShiftY;
-  const int Nshift1_C = libde265_max(2,14-img->sps.BitDepth_C);
-  const int Noffset_shift1_C = img->sps.WpOffsetBdShiftC;
+  const int shift1_L = libde265_max(2,14-img->sps.BitDepth_Y);
+  const int offset_shift1_L = img->sps.WpOffsetBdShiftY;
+  const int shift1_C = libde265_max(2,14-img->sps.BitDepth_C);
+  const int offset_shift1_C = img->sps.WpOffsetBdShiftC;
 
+  /*
   const int shift1_L = 14-img->sps.BitDepth_Y;
   const int offset_shift1_L = img->sps.BitDepth_Y-8;
   const int shift1_C = 14-img->sps.BitDepth_C;
   const int offset_shift1_C = img->sps.BitDepth_C-8;
+  */
 
+  /*
   if (0)
   printf("%d/%d %d/%d %d/%d %d/%d\n",
          shift1_L,
@@ -424,6 +427,7 @@ void generate_inter_prediction_samples(base_context* ctx,
          Nshift1_C);
   assert(offset_shift1_C==
          Noffset_shift1_C);
+  */
 
 
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
