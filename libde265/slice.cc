@@ -3312,7 +3312,7 @@ int residual_coding(thread_context* tctx,
 
         int coeff_abs_level_remaining;
 
-        printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
+        //printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
 
         if (coeff_has_max_base_level[n]) {
           coeff_abs_level_remaining =
