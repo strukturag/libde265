@@ -30,22 +30,28 @@ CFLAGS=$(CFLAGS) /wd4800
 CFLAGS=$(CFLAGS) $(DEFINES)
 
 OBJS=\
+	alloc_pool.obj \
 	bitstream.obj \
 	cabac.obj \
+	configparam.obj \
+	contextmodel.obj \
 	de265.obj \
 	deblock.obj \
 	decctx.obj \
 	dpb.obj \
+	en265.obj \
 	fallback-dct.obj \
 	fallback-motion.obj \
 	fallback.obj \
 	image.obj \
+	image-io.obj \
 	intrapred.obj \
 	md5.obj \
 	motion.obj \
 	nal.obj \
 	nal-parser.obj \
 	pps.obj \
+	quality.obj \
 	refpic.obj \
 	sao.obj \
 	scan.obj \
@@ -57,6 +63,24 @@ OBJS=\
 	util.obj \
 	visualize.obj \
 	vps.obj \
+	encoder\analyze.obj \
+	encoder\encode.obj \
+	encoder\encoder-context.obj \
+	encoder\encoder-params.obj \
+	encoder\encpicbuf.obj \
+	encoder\sop.obj \
+	encoder\algo\algo.obj \
+	encoder\algo\cb-interpartmode.obj \
+	encoder\algo\cb-intra-inter.obj \
+	encoder\algo\cb-intrapartmode.obj \
+	encoder\algo\cb-mergeindex.obj \
+	encoder\algo\cb-skip.obj \
+	encoder\algo\cb-split.obj \
+	encoder\algo\coding-options.obj \
+	encoder\algo\ctb-qscale.obj \
+	encoder\algo\pb-mv.obj \
+	encoder\algo\tb-intrapredmode.obj \
+	encoder\algo\tb-split.obj \
 	x86\sse.obj \
 	x86\sse-dct.obj \
 	x86\sse-motion.obj \
