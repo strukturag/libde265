@@ -4029,6 +4029,48 @@ void read_prediction_unit(thread_context* tctx,
 
 
 
+template <class pixel_t>
+void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbSize,
+                               int cIdx, bitreader& br)
+{
+  const seq_parameter_set* sps = &tctx->img->sps;
+
+  int nPcmBits;
+  int bitDepth;
+
+  int w = 1<<log2CbSize;
+  int h = 1<<log2CbSize;
+
+  if (cIdx>0) {
+    w /= tctx->img->sps.SubWidthC;
+    h /= tctx->img->sps.SubHeightC;
+
+    x0 /= tctx->img->sps.SubWidthC;
+    y0 /= tctx->img->sps.SubHeightC;
+
+    nPcmBits = sps->pcm_sample_bit_depth_chroma;
+    bitDepth = sps->BitDepth_C;
+  }
+  else {
+    nPcmBits = sps->pcm_sample_bit_depth_luma;
+    bitDepth = sps->BitDepth_Y;
+  }
+
+  pixel_t* ptr;
+  int stride;
+  ptr    = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,x0,y0);
+  stride = tctx->img->get_image_stride(cIdx);
+
+  int shift = bitDepth - nPcmBits;
+
+  for (int y=0;y<h;y++)
+    for (int x=0;x<w;x++)
+      {
+        int value = get_bits(&br, nPcmBits);
+        ptr[y*stride+x] = value << shift;
+      }
+}
+
 static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSize)
 {
   bitreader br;
@@ -4037,54 +4079,21 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
   br.nextbits = 0;
   br.nextbits_cnt = 0;
 
-  const seq_parameter_set* sps = &tctx->img->sps;
-  //fprintf(stderr,"PCM pos: %d %d (POC=%d)\n",x0,y0,tctx->decctx->img->PicOrderCntVal);
 
-  int nBitsY = sps->pcm_sample_bit_depth_luma;
-  int nBitsC = sps->pcm_sample_bit_depth_chroma;
-
-  int wY = 1<<log2CbSize;
-  int wC = 1<<(log2CbSize-1);
-
-  uint8_t* yPtr;
-  uint8_t* cbPtr;
-  uint8_t* crPtr;
-  int stride;
-  int chroma_stride;
-  yPtr  = tctx->img->get_image_plane(0);
-  cbPtr = tctx->img->get_image_plane(1);
-  crPtr = tctx->img->get_image_plane(2);
-  stride = tctx->img->get_image_stride(0);
-  chroma_stride = tctx->img->get_image_stride(1);
-
-  yPtr  = &yPtr [y0*stride + x0];
-  cbPtr = &cbPtr[y0/2*chroma_stride + x0/2];
-  crPtr = &crPtr[y0/2*chroma_stride + x0/2];
-
-  int shiftY = sps->BitDepth_Y - nBitsY;
-  int shiftC = sps->BitDepth_C - nBitsC;
-
-  for (int y=0;y<wY;y++)
-    for (int x=0;x<wY;x++)
-      {
-        int value = get_bits(&br, nBitsY);
-        yPtr[y*stride+x] = value << shiftY;
-      }
+  if (tctx->img->high_bit_depth(0)) {
+    read_pcm_samples_internal<uint16_t>(tctx,x0,y0,log2CbSize,0,br);
+  } else {
+    read_pcm_samples_internal<uint8_t>(tctx,x0,y0,log2CbSize,0,br);
+  }
 
   if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
-    for (int y=0;y<wC;y++)
-      for (int x=0;x<wC;x++)
-        {
-          int value = get_bits(&br, nBitsC);
-          cbPtr[y*chroma_stride+x] = value << shiftC;
-        }
-
-    for (int y=0;y<wC;y++)
-      for (int x=0;x<wC;x++)
-        {
-          int value = get_bits(&br, nBitsC);
-          crPtr[y*chroma_stride+x] = value << shiftC;
-        }
+    if (tctx->img->high_bit_depth(1)) {
+      read_pcm_samples_internal<uint16_t>(tctx,x0,y0,log2CbSize,1,br);
+      read_pcm_samples_internal<uint16_t>(tctx,x0,y0,log2CbSize,2,br);
+    } else {
+      read_pcm_samples_internal<uint8_t>(tctx,x0,y0,log2CbSize,1,br);
+      read_pcm_samples_internal<uint8_t>(tctx,x0,y0,log2CbSize,2,br);
+    }
   }
 
   prepare_for_CABAC(&br);
