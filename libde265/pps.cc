@@ -157,8 +157,8 @@ void pps_range_extension::dump(int fd) const
     LOG1("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
     LOG1("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
-      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list);
-      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list);
+      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list[i]);
+      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list[i]);
     }
   }
 
