@@ -342,4 +342,6 @@ void initialize_CABAC_models(context_model context_model_table[CONTEXT_MODEL_TAB
 
   init_context_const(QPY, cm+CONTEXT_MODEL_LOG2_RES_SCALE_ABS_PLUS1, 154, 8);
   init_context_const(QPY, cm+CONTEXT_MODEL_RES_SCALE_SIGN_FLAG,      154, 2);
+  init_context_const(QPY, cm+CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_FLAG, 154, 1);
+  init_context_const(QPY, cm+CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_IDX,  154, 1);
 }

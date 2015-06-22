@@ -91,6 +91,8 @@ public:
 
   int IsCuQpDeltaCoded;
   int CuQpDelta;
+  int IsCuChromaQpOffsetCoded;
+  int CuQpOffsetCb, CuQpOffsetCr;
 
   int currentQPY;
   int currentQG_x, currentQG_y;

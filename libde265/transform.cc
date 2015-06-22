@@ -148,8 +148,8 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   tctx->qPYPrime = QPY + sps->QpBdOffset_Y;
 
-  int qPiCb = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cb_qp_offset + shdr->slice_cb_qp_offset);
-  int qPiCr = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset);
+  int qPiCb = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cb_qp_offset + shdr->slice_cb_qp_offset + tctx->CuQpOffsetCb);
+  int qPiCr = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset + tctx->CuQpOffsetCr);
 
   logtrace(LogTransform,"qPiCb:%d (%d %d), qPiCr:%d (%d %d)\n",
            qPiCb, pps->pic_cb_qp_offset, shdr->slice_cb_qp_offset,

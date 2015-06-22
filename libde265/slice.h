@@ -205,6 +205,8 @@ public:
   int  slice_cb_qp_offset;
   int  slice_cr_qp_offset;
 
+  char cu_chroma_qp_offset_enabled_flag;
+
   char deblocking_filter_override_flag;
   char slice_deblocking_filter_disabled_flag;
   int  slice_beta_offset; // = pps->beta_offset if undefined

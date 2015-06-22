@@ -123,6 +123,8 @@ void slice_segment_header::set_defaults()
   slice_cb_qp_offset = 0;
   slice_cr_qp_offset = 0;
 
+  cu_chroma_qp_offset_enabled_flag = 0;
+
   deblocking_filter_override_flag = 0;
   slice_deblocking_filter_disabled_flag = 0;
   slice_beta_offset=0; // = pps->beta_offset if undefined
@@ -305,6 +307,8 @@ void slice_segment_header::reset()
 
   slice_cb_qp_offset = 0;
   slice_cr_qp_offset = 0;
+
+  cu_chroma_qp_offset_enabled_flag = 0;
 
   deblocking_filter_override_flag = 0;
   slice_deblocking_filter_disabled_flag = 0;
@@ -745,6 +749,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     else {
       slice_cb_qp_offset = 0;
       slice_cr_qp_offset = 0;
+    }
+
+    if (pps->range_extension.chroma_qp_offset_list_enabled_flag) {
+      cu_chroma_qp_offset_enabled_flag = get_bits(br,1);
     }
 
     if (pps->deblocking_filter_override_enabled_flag) {
@@ -3573,6 +3581,31 @@ int read_transform_unit(thread_context* tctx,
 
         decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
       }
+
+      if (tctx->shdr->cu_chroma_qp_offset_enabled_flag && cbfChroma &&
+          !tctx->cu_transquant_bypass_flag && !tctx->IsCuChromaQpOffsetCoded ) {
+        int cu_chroma_qp_offset_flag = decode_CABAC_bit(&tctx->cabac_decoder,
+                                                        &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_FLAG]);
+
+
+        const pic_parameter_set* pps = &tctx->img->pps;
+
+        int cu_chroma_qp_offset_idx = 0;
+        if (cu_chroma_qp_offset_flag && pps->range_extension.chroma_qp_offset_list_len > 1) {
+          cu_chroma_qp_offset_idx = decode_CABAC_bit(&tctx->cabac_decoder,
+                                                     &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_IDX]);
+        }
+
+        if (cu_chroma_qp_offset_flag) {
+          tctx->IsCuQpDeltaCoded = 1;
+          tctx->CuQpOffsetCb = pps->range_extension.cb_qp_offset_list[ cu_chroma_qp_offset_idx ];
+          tctx->CuQpOffsetCr = pps->range_extension.cr_qp_offset_list[ cu_chroma_qp_offset_idx ];
+        }
+        else {
+          tctx->CuQpOffsetCb = 0;
+          tctx->CuQpOffsetCr = 0;
+        }
+      }
     }
 
   // position of TU in local CU
@@ -4548,6 +4581,12 @@ void read_coding_quadtree(thread_context* tctx,
     {
       // shdr->CuQpDelta = 0; // TODO check: is this the right place to set to default value ?
     }
+
+
+  if (tctx->shdr->cu_chroma_qp_offset_enabled_flag &&
+      log2CbSize >= img->pps.Log2MinCuChromaQpOffsetSize) {
+    tctx->IsCuChromaQpOffsetCoded = 0;
+  }
 
   if (split_flag) {
     int x1 = x0 + (1<<(log2CbSize-1));
