@@ -319,7 +319,6 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
     return;
   }
 
-
   int lumaImageSize   = img->get_image_stride(0) * img->get_height(0) * img->get_bytes_per_pixel(0);
   int chromaImageSize = img->get_image_stride(1) * img->get_height(1) * img->get_bytes_per_pixel(1);
 
@@ -331,7 +330,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
 
 
   int nChannels = 3;
-  if (img->sps.ChromaArrayType == CHROMA_MONO) { nChannels=0; }
+  if (img->sps.ChromaArrayType == CHROMA_MONO) { nChannels=1; }
 
   for (int cIdx=0;cIdx<nChannels;cIdx++) {
 

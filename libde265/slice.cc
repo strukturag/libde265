@@ -2795,13 +2795,17 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
             logtrace(LogSlice,"SaoEoClass[%d] = %d\n",cIdx,SaoEoClass);
           }
 
-          int bitDepth = (cIdx==0 ?
-                          sps->BitDepth_Y :
-                          sps->BitDepth_C);
-          int shift = bitDepth-libde265_min(bitDepth,10);
+          int log2OffsetScale;
+
+          if (cIdx==0) {
+            log2OffsetScale = pps->range_extension.log2_sao_offset_scale_luma;
+          }
+          else {
+            log2OffsetScale = pps->range_extension.log2_sao_offset_scale_chroma;
+          }
 
           for (int i=0;i<4;i++) {
-            saoinfo.saoOffsetVal[cIdx][i] = sign[i]*(saoinfo.saoOffsetVal[cIdx][i] << shift);
+            saoinfo.saoOffsetVal[cIdx][i] = sign[i]*(saoinfo.saoOffsetVal[cIdx][i] << log2OffsetScale);
           }
         }
       }

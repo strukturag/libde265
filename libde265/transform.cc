@@ -608,10 +608,10 @@ void scale_coefficients_internal(thread_context* tctx,
   logtrace(LogTransform,"pixels (cIdx:%d), position %d %d:\n",cIdx, xT,yT);
 
   for (int y=0;y<nT;y++) {
-    logtrace(LogTransform,"RECO-%d-%d-%d ",xT,yT+y,cIdx);
+    logtrace(LogTransform,"RECO-%3d-%3d-%d ",xT,yT+y,cIdx);
 
     for (int x=0;x<nT;x++) {
-      logtrace(LogTransform,"*%02x ", pred[x+y*stride]);
+      logtrace(LogTransform,"*%03x ", pred[x+y*stride]);
     }
 
     logtrace(LogTransform,"*\n");
