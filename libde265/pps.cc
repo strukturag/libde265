@@ -68,7 +68,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   }
 
   chroma_qp_offset_list_enabled_flag = get_bits(br,1);
-  if (sps->ChromaArrayType != CHROMA_MONO &&
+  if (sps->ChromaArrayType == CHROMA_MONO &&
       chroma_qp_offset_list_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
   }
