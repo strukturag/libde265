@@ -69,7 +69,8 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma ch
   case SDL_CHROMA_MONO: pixelFormat = SDL_YV12_OVERLAY; break;
   case SDL_CHROMA_420:  pixelFormat = SDL_YV12_OVERLAY; break;
   case SDL_CHROMA_422:  pixelFormat = SDL_YUY2_OVERLAY; break;
-  case SDL_CHROMA_444:  pixelFormat = SDL_YUY2_OVERLAY; break;
+    case SDL_CHROMA_444:  pixelFormat = SDL_YV12_OVERLAY; break;
+      //case SDL_CHROMA_444:  pixelFormat = SDL_YUY2_OVERLAY; break;
   }
 
   mYUVOverlay = SDL_CreateYUVOverlay(frame_width, frame_height, pixelFormat, mScreen);
@@ -104,7 +105,8 @@ void SDL_YUV_Display::display(const unsigned char *Y,
     display422(Y,U,V,stride,chroma_stride);
   }
   else if (mChroma == SDL_CHROMA_444) {
-    display444(Y,U,V,stride,chroma_stride);
+    display444as420(Y,U,V,stride,chroma_stride);
+    //display444as422(Y,U,V,stride,chroma_stride);
   }
   else if (mChroma == SDL_CHROMA_MONO) {
     display400(Y,stride);
@@ -196,10 +198,10 @@ void SDL_YUV_Display::display422(const unsigned char *Y,
 /* This converts down 4:4:4 input to 4:2:2 for display, as SDL does not support
    any 4:4:4 pixel format.
  */
-void SDL_YUV_Display::display444(const unsigned char *Y,
-                                 const unsigned char *U,
-                                 const unsigned char *V,
-                                 int stride, int chroma_stride)
+void SDL_YUV_Display::display444as422(const unsigned char *Y,
+                                      const unsigned char *U,
+                                      const unsigned char *V,
+                                      int stride, int chroma_stride)
 {
   for (int y=0;y<rect.h;y++)
     {
@@ -214,6 +216,35 @@ void SDL_YUV_Display::display444(const unsigned char *Y,
         *p++ = Up[x];
         *p++ = Yp[x+1];
         *p++ = Vp[x];
+      }
+    }
+}
+
+
+void SDL_YUV_Display::display444as420(const unsigned char *Y,
+                                      const unsigned char *U,
+                                      const unsigned char *V,
+                                      int stride, int chroma_stride)
+{
+  for (int y=0;y<rect.h;y++)
+    {
+      unsigned char* p = mYUVOverlay->pixels[0] + y*rect.w;
+      memcpy(p, Y+y*stride, rect.w);
+    }
+
+  for (int y=0;y<rect.h;y+=2)
+    {
+      unsigned char* u = mYUVOverlay->pixels[2] + y/2*rect.w/2;
+      unsigned char* v = mYUVOverlay->pixels[1] + y/2*rect.w/2;
+
+      for (int x=0;x<rect.w;x+=2) {
+        u[x/2] = (U[ y   *chroma_stride + x] + U[ y   *chroma_stride + x +1] +
+                  U[(y+1)*chroma_stride + x] + U[(y+1)*chroma_stride + x +1])/4;
+        v[x/2] = (V[ y   *chroma_stride + x] + V[ y   *chroma_stride + x +1] +
+                  V[(y+1)*chroma_stride + x] + V[(y+1)*chroma_stride + x +1])/4;
+
+        //u[x/2] = U[y*chroma_stride + x];
+        //v[x/2] = V[y*chroma_stride + x];
       }
     }
 }
