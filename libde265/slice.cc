@@ -3189,14 +3189,14 @@ int residual_coding(thread_context* tctx,
 
 
     /*
-    logtrace(LogSlice,"significant_coeff_flags:\n");
-    for (int y=0;y<4;y++) {
+      logtrace(LogSlice,"significant_coeff_flags:\n");
+      for (int y=0;y<4;y++) {
       logtrace(LogSlice,"  ");
       for (int x=0;x<4;x++) {
-        logtrace(LogSlice,"*%d ",significant_coeff_flag[y][x]);
+      logtrace(LogSlice,"*%d ",significant_coeff_flag[y][x]);
       }
       logtrace(LogSlice,"*\n");
-    }
+      }
     */
 
 
@@ -3307,12 +3307,15 @@ int residual_coding(thread_context* tctx,
         uiGoRiceParam = tctx->StatCoeff[sbType]/4;
       }
 
+      // printf("initial uiGoRiceParam=%d\n",uiGoRiceParam);
+      bool firstCoeffWithAbsLevelRemaining = true;
+
       for (int n=0;n<nCoefficients;n++) {
         int baseLevel = coeff_value[n];
 
         int coeff_abs_level_remaining;
 
-        //printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
+        // printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
 
         if (coeff_has_max_base_level[n]) {
           coeff_abs_level_remaining =
@@ -3329,6 +3332,20 @@ int residual_coding(thread_context* tctx,
             if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam))
               uiGoRiceParam++;
           }
+
+          // persistent_rice_adaptation_enabled_flag
+          if (sps->range_extension.persistent_rice_adaptation_enabled_flag &&
+              firstCoeffWithAbsLevelRemaining) {
+            if (coeff_abs_level_remaining >= (3 << (tctx->StatCoeff[sbType]/4 ))) {
+              tctx->StatCoeff[sbType]++;
+            }
+            else if (2*coeff_abs_level_remaining < (1 << (tctx->StatCoeff[sbType]/4 )) &&
+                     tctx->StatCoeff[sbType] > 0) {
+              tctx->StatCoeff[sbType]--;
+            }
+          }
+
+          firstCoeffWithAbsLevelRemaining=false;
         }
         else {
           coeff_abs_level_remaining = 0;
@@ -3364,18 +3381,6 @@ int residual_coding(thread_context* tctx,
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
-
-        // persistent_rice_adaptation_enabled_flag
-        if (sps->range_extension.persistent_rice_adaptation_enabled_flag &&
-            n==0) {
-          if (coeff_abs_level_remaining >= (3 << (tctx->StatCoeff[sbType]/4 ))) {
-            tctx->StatCoeff[sbType]++;
-          }
-          else if (2*coeff_abs_level_remaining < (1 << (tctx->StatCoeff[sbType]/4 )) &&
-                   tctx->StatCoeff[sbType] > 0) {
-            tctx->StatCoeff[sbType]--;
-          }
-        }
 
         //printf("%d ",currCoeff);
       }  // iterate through coefficients in sub-block
