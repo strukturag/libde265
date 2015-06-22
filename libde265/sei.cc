@@ -364,7 +364,7 @@ de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq
       if (byte != 0xFF) { break; }
     }
 
-  printf("SEI payload: %d\n",payload_type);
+  //printf("SEI payload: %d\n",payload_type);
 
   int payload_size = 0;
   for (;;)
@@ -420,7 +420,7 @@ de265_error process_sei(const sei_message* sei, de265_image* img)
     if (img->decctx->param_sei_check_hash) {
       err = process_sei_decoded_picture_hash(sei, img);
       if (err==DE265_OK) {
-        printf("SEI check ok\n");
+        //printf("SEI check ok\n");
       }
     }
 
