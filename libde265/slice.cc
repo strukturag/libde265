@@ -3561,6 +3561,8 @@ int read_transform_unit(thread_context* tctx,
 
   if (cbfLuma || cbfChroma)
     {
+      bool doDecodeQuantParameters = false;
+
       if (tctx->img->pps.cu_qp_delta_enabled_flag &&
           !tctx->IsCuQpDeltaCoded) {
 
@@ -3579,11 +3581,14 @@ int read_transform_unit(thread_context* tctx,
         logtrace(LogSlice,"cu_qp_delta_sign = %d\n",cu_qp_delta_sign);
         logtrace(LogSlice,"CuQpDelta = %d\n",tctx->CuQpDelta);
 
-        decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
+        doDecodeQuantParameters = true;
+        //decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
       }
 
       if (tctx->shdr->cu_chroma_qp_offset_enabled_flag && cbfChroma &&
           !tctx->cu_transquant_bypass_flag && !tctx->IsCuChromaQpOffsetCoded ) {
+        logtrace(LogSlice,"# cu_chroma_qp_offset_flag\n");
+
         int cu_chroma_qp_offset_flag = decode_CABAC_bit(&tctx->cabac_decoder,
                                                         &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_FLAG]);
 
@@ -3596,8 +3601,9 @@ int read_transform_unit(thread_context* tctx,
                                                      &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_IDX]);
         }
 
+        tctx->IsCuChromaQpOffsetCoded = 1;
+
         if (cu_chroma_qp_offset_flag) {
-          tctx->IsCuQpDeltaCoded = 1;
           tctx->CuQpOffsetCb = pps->range_extension.cb_qp_offset_list[ cu_chroma_qp_offset_idx ];
           tctx->CuQpOffsetCr = pps->range_extension.cr_qp_offset_list[ cu_chroma_qp_offset_idx ];
         }
@@ -3605,6 +3611,14 @@ int read_transform_unit(thread_context* tctx,
           tctx->CuQpOffsetCb = 0;
           tctx->CuQpOffsetCr = 0;
         }
+
+        doDecodeQuantParameters = true;
+        //decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
+      }
+
+
+      if (doDecodeQuantParameters) {
+        decode_quantization_parameters(tctx, x0,y0, xCUBase, yCUBase);
       }
     }
 
