@@ -547,8 +547,8 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
     }
   }
 
-  int first_chroma = first>>1;
-  int end_chroma   = end>>1;
+  int first_chroma = first / src->sps.SubHeightC;
+  int end_chroma   = end / src->sps.SubHeightC;
 
   if (src->chroma_format != de265_chroma_mono) {
     if (src->chroma_stride == chroma_stride) {
