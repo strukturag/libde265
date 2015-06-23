@@ -108,14 +108,31 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
   shift1 = BitDepthRefLayerY - 8;  // (H 33)
   shift2 = 20 - BitDepthCurrY;     // (H 34)
   offset = 1 << (shift2 - 1);      // (H 35)
-  
-#if USE_FASTER_IMPLEMENTATION == 2
+
+#if USE_FASTER_IMPLEMENTATION == 1 || USE_FASTER_IMPLEMENTATION == 2
   // Perform horizontal / vertical upsampling seperately.
   // Allocate temporaray buffer
-  int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY];
+  static int16_t *s_tmp = NULL;
+  static int s_tmp_size = -1;
+  if (s_tmp == NULL) {
+    // Allocate temporary buffer only once
+    s_tmp = new int16_t[PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY];
+    s_tmp_size = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
+  }
+  else if (s_tmp_size < PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY) {
+    // The allocated buffer is not big enough for this upsampling operation.
+    // Allocate a new one that is big enough.
+    // TODO: Is this the best way to reallocate the memory? Probably not.
+    delete[] s_tmp;
+    s_tmp = new int16_t[PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY];
+    s_tmp_size = PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY;
+  }
+
   int16_t *tmpSample;
   int tmpStride = PicWidthInSamplesCurLayerY;
-
+#endif
+  
+#if USE_FASTER_IMPLEMENTATION == 2
   // -------- Horizontal upsampling ------------
 
   // We are splitting the loop over x into three intervals.
@@ -148,7 +165,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     
     // Get pointers to source and destination
     rlPicSampleL = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerY; y++) {
       tmpSample[xP] = (fL[xPhase][0] * rlPicSampleL[ xRef_minus3 ] +
@@ -182,7 +199,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     
     // Get pointers to source and destination
     rlPicSampleL = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerY; y++) {
       tmpSample[xP] = (fL[xPhase][0] * rlPicSampleL[ xRef - 3 ] +
@@ -222,7 +239,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     
     // Get pointers to source and destination
     rlPicSampleL = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerY; y++) {
       tmpSample[xP] = (fL[xPhase][0] * rlPicSampleL[ xRef - 3 ] +
@@ -260,14 +277,14 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    tmp_minus3 = tmp;  // yRef must be smaller than 3
-    tmp_minus2 = tmp;  // yRef must be smaller than 3
-    tmp_minus1 = (yRef <  2) ? tmp : tmp + tmpStride;
-    tmp_center = (yRef <  1) ? tmp : tmp_minus1 + tmpStride;
-    tmp_plus1  = (yRef <  0) ? tmp : tmp_center + tmpStride;
-    tmp_plus2  = (yRef < -1) ? tmp : tmp_plus1 + tmpStride;
-    tmp_plus3  = (yRef < -2) ? tmp : tmp_plus2 + tmpStride;
-    tmp_plus4  = (yRef < -3) ? tmp : tmp_plus3 + tmpStride;
+    tmp_minus3 = s_tmp;  // yRef must be smaller than 3
+    tmp_minus2 = s_tmp;  // yRef must be smaller than 3
+    tmp_minus1 = (yRef <  2) ? s_tmp : s_tmp + tmpStride;
+    tmp_center = (yRef <  1) ? s_tmp : tmp_minus1 + tmpStride;
+    tmp_plus1  = (yRef <  0) ? s_tmp : tmp_center + tmpStride;
+    tmp_plus2  = (yRef < -1) ? s_tmp : tmp_plus1 + tmpStride;
+    tmp_plus3  = (yRef < -2) ? s_tmp : tmp_plus2 + tmpStride;
+    tmp_plus4  = (yRef < -3) ? s_tmp : tmp_plus3 + tmpStride;
 
     assert( yRef < 3 );
     
@@ -300,7 +317,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    tmp_minus3 = tmp + (yRef - 3) * tmpStride;
+    tmp_minus3 = s_tmp + (yRef - 3) * tmpStride;
     tmp_minus2 = tmp_minus3 + tmpStride;
     tmp_minus1 = tmp_minus2 + tmpStride;
     tmp_center = tmp_minus1 + tmpStride;
@@ -340,7 +357,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    int16_t* lastRow = tmp + (PicHeightInSamplesCurLayerY - 1) * tmpStride;
+    int16_t* lastRow = s_tmp + (PicHeightInSamplesCurLayerY - 1) * tmpStride;
     tmp_minus3 = (xRef + -3 >= PicWidthInSamplesRefLayerY) ? lastRow : lastRow    + tmpStride;
     tmp_minus2 = (xRef + -2 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_minus3 + tmpStride;
     tmp_minus1 = (xRef + -1 >= PicWidthInSamplesRefLayerY) ? lastRow : tmp_minus2 + tmpStride;
@@ -367,20 +384,11 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
                                  fL[yPhase][7] * tmp_plus4 [ x ] + offset ) >> shift2 ));  // (H 39)
     }
   }
-
-  delete[] tmp;
-  tmp = NULL;
-
+  
 #elif USE_FASTER_IMPLEMENTATION == 1
-  // Perform horizontal / vertical upsampling seperately.
-  // Allocate temporaray buffer
-  int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerY * PicWidthInSamplesCurLayerY];
-  int16_t *tmpSample;
-  int tmpStride = PicWidthInSamplesCurLayerY;
-
   for (int y = 0; y < PicHeightInSamplesRefLayerY; y++) {
     rlPicSampleL = src + y * srcstride;   // Get pointer to the source for this y position
-    tmpSample = tmp + y * tmpStride;      // Get pointer to the temp array for this y position
+    tmpSample = s_tmp + y * tmpStride;      // Get pointer to the temp array for this y position
 
     for (int xP = 0; xP < PicWidthInSamplesCurLayerY; xP++) {
       // 1.
@@ -420,7 +428,7 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
 
     for (int x = 0; x < PicWidthInSamplesCurLayerY; x++) {
       // Get pointer to temp array y line
-      tmpSample = tmp + x;
+      tmpSample = s_tmp + x;
 
        // 6. The resampled luma sample value rsLumaSample is derived as follows:
       rsLumaSample[x] = Clip3( 0, clipMax,
@@ -435,9 +443,6 @@ void resampling_process_of_luma_sample_values_fallback( uint8_t *src, ptrdiff_t 
     }
   }
   
-  delete[] tmp;
-  tmp = NULL;
-
 #else
   int tempArray[8];
   int yPosRL;
@@ -543,13 +548,30 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
                     {-2, 10, 58, -2},
                     { 0,  4, 62, -2} };
 
-#if USE_FASTER_IMPLEMENTATION == 2
+#if USE_FASTER_IMPLEMENTATION == 2 || USE_FASTER_IMPLEMENTATION == 1
   // Perform horizontal / vertical upsampling seperately.
   // Allocate temporaray buffer
-  int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
+  static int16_t *s_tmp = NULL;
+  static int s_tmp_size = -1;
+  if (s_tmp == NULL) {
+    // Allocate temporary buffer only once
+    s_tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
+    s_tmp_size = PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC;
+  }
+  else if (s_tmp_size < PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC) {
+    // The allocated buffer is not big enough for this upsampling operation.
+    // Allocate a new one that is big enough.
+    // TODO: Is this the best way to reallocate the memory? Probably not.
+    delete[] s_tmp;
+    s_tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
+    s_tmp_size = PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC;
+  }
+  
   int16_t *tmpSample;
   int tmpStride = PicWidthInSamplesCurLayerC;
+#endif
 
+#if USE_FASTER_IMPLEMENTATION == 2
   // -------- Horizontal upsampling ------------
 
   // We are splitting the loop over x into three intervals.
@@ -576,7 +598,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     
     // Get pointers to source and destination
     rlPicSampleC = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
       tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ 0 ] +
@@ -606,7 +628,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     
     // Get pointers to source and destination
     rlPicSampleC = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
       tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ xRef - 1 ] +
@@ -636,7 +658,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     
     // Get pointers to source and destination
     rlPicSampleC = src;
-    tmpSample    = tmp;
+    tmpSample    = s_tmp;
 
     for (int y = 0; y < PicHeightInSamplesRefLayerC; y++) {
       tmpSample[xP] = (fC[xPhase][0] * rlPicSampleC[ xRef - 1   ] +
@@ -671,10 +693,10 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    tmp_minus1 = tmp;
-    tmp_center = (yRef <  1) ? tmp : tmp + yRef;
-    tmp_plus1  = (yRef <  0) ? tmp : tmp_center + tmpStride;
-    tmp_plus2  = (yRef < -1) ? tmp : tmp_plus1  + tmpStride;
+    tmp_minus1 = s_tmp;
+    tmp_center = (yRef <  1) ? s_tmp : s_tmp + yRef;
+    tmp_plus1  = (yRef <  0) ? s_tmp : tmp_center + tmpStride;
+    tmp_plus2  = (yRef < -1) ? s_tmp : tmp_plus1  + tmpStride;
 
     assert( yRef < 1 );
 
@@ -704,7 +726,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    tmp_minus1 = tmp + (yRef - 1) * tmpStride;
+    tmp_minus1 = s_tmp + (yRef - 1) * tmpStride;
     tmp_center = tmp_minus1  + tmpStride;
     tmp_plus1  = tmp_center  + tmpStride;
     tmp_plus2  = tmp_plus1   + tmpStride;
@@ -737,11 +759,11 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     yRef   = yRef16 >> 4;  // (H 31)
 
     // Get the pointers to the temp buffer for this yP
-    int16_t *lastRow = tmp + (PicHeightInSamplesCurLayerC-1) * tmpStride;
-    tmp_minus1 = (yRef - 1 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef - 1) * tmpStride;
-    tmp_center = (yRef     > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef    ) * tmpStride;
-    tmp_plus1  = (yRef + 1 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef + 1) * tmpStride;
-    tmp_plus2  = (yRef + 2 > PicHeightInSamplesCurLayerC) ? lastRow : tmp + (yRef + 2) * tmpStride;
+    int16_t *lastRow = s_tmp + (PicHeightInSamplesCurLayerC-1) * tmpStride;
+    tmp_minus1 = (yRef - 1 > PicHeightInSamplesCurLayerC) ? lastRow : s_tmp + (yRef - 1) * tmpStride;
+    tmp_center = (yRef     > PicHeightInSamplesCurLayerC) ? lastRow : s_tmp + (yRef    ) * tmpStride;
+    tmp_plus1  = (yRef + 1 > PicHeightInSamplesCurLayerC) ? lastRow : s_tmp + (yRef + 1) * tmpStride;
+    tmp_plus2  = (yRef + 2 > PicHeightInSamplesCurLayerC) ? lastRow : s_tmp + (yRef + 2) * tmpStride;
     
     assert( yRef >= PicHeightInSamplesRefLayerC - 2 );
 
@@ -757,15 +779,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     }
   }
 
-  delete[] tmp;
-  tmp = NULL;
-
 #elif USE_FASTER_IMPLEMENTATION == 1
-  // Perform horizontal / vertical upsampling seperately.
-  // Allocate temporaray buffer
-  int16_t *tmp = new int16_t[PicHeightInSamplesRefLayerC * PicWidthInSamplesCurLayerC];
-  int16_t *tmpSample;
-  int tmpStride = PicWidthInSamplesCurLayerC;
 
   int refW = PicWidthInSamplesRefLayerC;   // (H 37)
 
@@ -775,7 +789,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
     // Get pointer to the source for this y position
     rlPicSampleC = src + y * srcstride;
     // Get pointer to the temp array for this y position
-    tmpSample = tmp + y * tmpStride;
+    tmpSample = s_tmp + y * tmpStride;
 
     for (int xP = 0; xP < PicWidthInSamplesCurLayerC; xP++) {
       // 1.
@@ -813,7 +827,7 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
 
     for (int x = 0; x < PicWidthInSamplesCurLayerC; x++) {
       // Get pointer to temp array y line
-      tmpSample = tmp + x;
+      tmpSample = s_tmp + x;
 
       // 6. The resampled chroma sample value rsChromaSample is derived as follows:
       rsChromaSample[x] = Clip3( 0, clipMax,
@@ -823,9 +837,6 @@ void resampling_process_of_chroma_sample_values_fallback( uint8_t *src, ptrdiff_
                             fC[yPhase][3] * tmpSample[ Clip3(0, refY - 1, yRef + 2) * tmpStride ] + offset ) >> shift2 ));  // (H 51)
     }
   }
-
-  delete[] tmp;
-  tmp = NULL;
 
 #else
   int tempArray[4];
