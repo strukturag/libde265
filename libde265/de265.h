@@ -154,7 +154,7 @@ struct de265_image;
 
 enum de265_chroma {
   de265_chroma_mono=0,
-  de265_chroma_420=1,  // currently the only used format
+  de265_chroma_420=1,
   de265_chroma_422=2,
   de265_chroma_444=3
 };
