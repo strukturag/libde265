@@ -54,7 +54,7 @@ typedef struct {
 
 void get_merge_candidate_list(base_context* ctx,
                               const slice_segment_header* shdr,
-                              class de265_image* img,
+                              struct de265_image* img,
                               int xC,int yC, int xP,int yP,
                               int nCS, int nPbW,int nPbH, int partIdx,
                               MotionVectorSpec* mergeCandList);

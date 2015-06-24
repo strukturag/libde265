@@ -109,12 +109,14 @@ void slice_segment_header::set_defaults()
   ChromaLog2WeightDenom=0;  // [0;7]
 
   // first index is L0/L1
+  /*
   uint8_t luma_weight_flag[2][16];   // bool
   uint8_t chroma_weight_flag[2][16]; // bool
   int16_t LumaWeight[2][16];
   int8_t  luma_offset[2][16];
   int16_t ChromaWeight[2][16][2];
   int8_t  ChromaOffset[2][16][2];
+  */
 
 
   five_minus_max_num_merge_cand = 0;
