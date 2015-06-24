@@ -2,7 +2,7 @@
 # Makefile for Microsoft Visual Studio 2003
 #
 CFLAGS=/I..\extra /I.. /I.
-CC=cl /nologo 
+CC=cl /nologo
 LINK=link /nologo /subsystem:console
 DEFINES=/DWIN32 /D_WIN32_WINNT=0x0400 /DNDEBUG /DLIBDE265_EXPORTS /D_CRT_SECURE_NO_WARNINGS /DHAVE_SSE4_1 /DNOMINMAX
 
@@ -63,6 +63,7 @@ OBJS=\
 	util.obj \
 	visualize.obj \
 	vps.obj \
+        vui.obj \
 	encoder\analyze.obj \
 	encoder\encode.obj \
 	encoder\encoder-context.obj \
