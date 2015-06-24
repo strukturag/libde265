@@ -63,6 +63,7 @@ libde265_la_SOURCES = \
   sps.h \
   util.h \
   vps.h \
+  vui.h vui.cc \
   motion.cc motion.h \
   threads.cc threads.h \
   visualize.cc visualize.h \

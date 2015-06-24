@@ -419,11 +419,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   sps_temporal_mvp_enabled_flag = get_bits(br,1);
   strong_intra_smoothing_enable_flag = get_bits(br,1);
+
   vui_parameters_present_flag = get_bits(br,1);
-
-
   if (vui_parameters_present_flag) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+    vui.read(errqueue, br, this);
   }
 
 

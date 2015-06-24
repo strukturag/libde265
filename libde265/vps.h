@@ -156,7 +156,7 @@ public:
   uint32_t vps_num_units_in_tick;
   uint32_t vps_time_scale;
   char     vps_poc_proportional_to_timing_flag;
-  int        vps_num_ticks_poc_diff_one;
+  uint32_t vps_num_ticks_poc_diff_one;
 
   int vps_num_hrd_parameters;     // currently [0;1]
 

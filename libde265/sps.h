@@ -22,6 +22,7 @@
 #define DE265_SPS_H
 
 #include "libde265/vps.h"
+#include "libde265/vui.h"
 #include "libde265/bitstream.h"
 #include "libde265/refpic.h"
 #include "libde265/de265.h"
@@ -164,12 +165,9 @@ public:
 
   char sps_temporal_mvp_enabled_flag;
   char strong_intra_smoothing_enable_flag;
-  char vui_parameters_present_flag;
 
-  /*
-    if( vui_parameters_present_flag )
-      vui_parameters()
-  */
+  char vui_parameters_present_flag;
+  video_usability_information vui;
 
   char sps_extension_present_flag;
   char sps_range_extension_flag;
