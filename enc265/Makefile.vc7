@@ -2,12 +2,16 @@
 # Makefile for Microsoft Visual Studio 2003
 #
 CFLAGS=/I.. /I..\libde265 /I..\extra
-CC=cl /nologo 
+CC=cl /nologo
 LINK=link /nologo /subsystem:console
 DEFINES=/DWIN32
 
 CFLAGS=$(CFLAGS) /MT /Ob2 /Oi /W4 /EHsc
 CFLAGS=$(CFLAGS) $(DEFINES)
+
+# unreferenced formal parameter
+CFLAGS=$(CFLAGS) /wd4100
+
 
 OBJS=\
 	..\extra\getopt_long.obj \
