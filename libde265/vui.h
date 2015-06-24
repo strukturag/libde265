@@ -39,6 +39,8 @@ enum VideoFormat {
   VideoFormat_Unspecified = 5
 };
 
+const char* get_video_format_name(enum VideoFormat);
+
 
 class video_usability_information
 {

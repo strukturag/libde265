@@ -707,23 +707,8 @@ void seq_parameter_set::dump(int fd) const
     range_extension.dump(fd);
   }
 
-  return;
-
   if (vui_parameters_present_flag) {
-    assert(false);
-    /*
-      vui_parameters()
-
-        sps_extension_flag
-        u(1)
-        if( sps_extension_flag )
-
-          while( more_rbsp_data() )
-
-            sps_extension_data_flag
-              u(1)
-              rbsp_trailing_bits()
-    */
+    vui.dump(fd);
   }
 #undef LOG0
 #undef LOG1

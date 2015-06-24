@@ -60,8 +60,88 @@ static uint16_t sar_presets[NUM_SAR_PRESETS+1][2] = {
 #define EXTENDED_SAR 255
 
 
+const char* get_video_format_name(enum VideoFormat format)
+{
+  switch (format) {
+  case VideoFormat_Component: return "component";
+  case VideoFormat_PAL:       return "PAL";
+  case VideoFormat_NTSC:      return "NTSC";
+  case VideoFormat_SECAM:     return "SECAM";
+  case VideoFormat_MAC:       return "MAC";
+  default:                    return "unspecified";
+  }
+}
+
+
 video_usability_information::video_usability_information()
 {
+  aspect_ratio_info_present_flag = false;
+  sar_width  = 0;
+  sar_height = 0;
+
+
+  // --- overscan ---
+
+  overscan_info_present_flag = false;
+  overscan_appropriate_flag  = false;
+
+
+  // --- video signal type ---
+
+  video_signal_type_present_flag = false;
+  video_format = VideoFormat_Unspecified;
+  video_full_range_flag = false;
+  colour_description_present_flag = false;
+  colour_primaries = 2;
+  transfer_characteristics = 2;
+  matrix_coeffs = 2;
+
+  // --- chroma / interlaced ---
+
+  chroma_loc_info_present_flag = false;
+  chroma_sample_loc_type_top_field    = 0;
+  chroma_sample_loc_type_bottom_field = 0;
+
+  neutral_chroma_indication_flag = false;
+  field_seq_flag = false;
+  frame_field_info_present_flag = false;
+
+  // --- default display window ---
+
+  default_display_window_flag = false;
+  def_disp_win_left_offset   = 0;
+  def_disp_win_right_offset  = 0;
+  def_disp_win_top_offset    = 0;
+  def_disp_win_bottom_offset = 0;
+
+
+  // --- timing ---
+
+  vui_timing_info_present_flag = false;
+  vui_num_units_in_tick = 0;
+  vui_time_scale = 0;
+
+  vui_poc_proportional_to_timing_flag = false;
+  vui_num_ticks_poc_diff_one = 1;
+
+
+  // --- hrd parameters ---
+
+  vui_hrd_parameters_present_flag = false;
+  //hrd_parameters vui_hrd_parameters;
+
+
+  // --- bitstream restriction ---
+
+  bitstream_restriction_flag = false;
+  tiles_fixed_structure_flag = false;
+  motion_vectors_over_pic_boundaries_flag = true;
+  restricted_ref_pic_lists_flag = false;
+  min_spatial_segmentation_idc = 0;
+  max_bytes_per_pic_denom   = 2;
+  max_bits_per_min_cu_denom = 1;
+  log2_max_mv_length_horizontal = 15;
+  log2_max_mv_length_vertical   = 15;
 }
 
 
@@ -277,144 +357,65 @@ void video_usability_information::dump(int fd) const
 #define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
 
-#if 0
-  LOG0("----------------- SPS -----------------\n");
-  LOG1("video_parameter_set_id  : %d\n", video_parameter_set_id);
-  LOG1("sps_max_sub_layers      : %d\n", sps_max_sub_layers);
-  LOG1("sps_temporal_id_nesting_flag : %d\n", sps_temporal_id_nesting_flag);
+  LOG0("----------------- VUI -----------------\n");
+  LOG2("sample aspect ratio        : %d:%d\n", sar_width,sar_height);
+  LOG1("overscan_info_present_flag : %d\n", overscan_info_present_flag);
+  LOG1("overscan_appropriate_flag  : %d\n", overscan_appropriate_flag);
 
-  profile_tier_level_.dump(sps_max_sub_layers, fh);
-
-  LOG1("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
-  LOG2("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
-       chroma_format_idc == 1 ? "4:2:0" :
-       chroma_format_idc == 2 ? "4:2:2" :
-       chroma_format_idc == 3 ? "4:4:4" : "unknown");
-
-  if (chroma_format_idc == 3) {
-    LOG1("separate_colour_plane_flag : %d\n", separate_colour_plane_flag);
+  LOG1("video_signal_type_present_flag: %d\n", video_signal_type_present_flag);
+  if (video_signal_type_present_flag) {
+    LOG1("  video_format                : %s\n", get_video_format_name(video_format));
+    LOG1("  video_full_range_flag       : %d\n", video_full_range_flag);
+    LOG1("  colour_description_present_flag : %d\n", colour_description_present_flag);
+    LOG1("  colour_primaries            : %d\n", colour_primaries);
+    LOG1("  transfer_characteristics    : %d\n", transfer_characteristics);
+    LOG1("  matrix_coeffs               : %d\n", matrix_coeffs);
   }
 
-  LOG1("pic_width_in_luma_samples  : %d\n", pic_width_in_luma_samples);
-  LOG1("pic_height_in_luma_samples : %d\n", pic_height_in_luma_samples);
-  LOG1("conformance_window_flag    : %d\n", conformance_window_flag);
-
-  if (conformance_window_flag) {
-    LOG1("conf_win_left_offset  : %d\n", conf_win_left_offset);
-    LOG1("conf_win_right_offset : %d\n", conf_win_right_offset);
-    LOG1("conf_win_top_offset   : %d\n", conf_win_top_offset);
-    LOG1("conf_win_bottom_offset: %d\n", conf_win_bottom_offset);
+  LOG1("chroma_loc_info_present_flag: %d\n", chroma_loc_info_present_flag);
+  if (chroma_loc_info_present_flag) {
+    LOG1("  chroma_sample_loc_type_top_field   : %d\n", chroma_sample_loc_type_top_field);
+    LOG1("  chroma_sample_loc_type_bottom_field: %d\n", chroma_sample_loc_type_bottom_field);
   }
 
-  LOG1("bit_depth_luma   : %d\n", bit_depth_luma);
-  LOG1("bit_depth_chroma : %d\n", bit_depth_chroma);
+  LOG1("neutral_chroma_indication_flag: %d\n", neutral_chroma_indication_flag);
+  LOG1("field_seq_flag                : %d\n", field_seq_flag);
+  LOG1("frame_field_info_present_flag : %d\n", frame_field_info_present_flag);
 
-  LOG1("log2_max_pic_order_cnt_lsb : %d\n", log2_max_pic_order_cnt_lsb);
-  LOG1("sps_sub_layer_ordering_info_present_flag : %d\n", sps_sub_layer_ordering_info_present_flag);
+  LOG1("default_display_window_flag   : %d\n", default_display_window_flag);
+  LOG1("  def_disp_win_left_offset    : %d\n", def_disp_win_left_offset);
+  LOG1("  def_disp_win_right_offset   : %d\n", def_disp_win_right_offset);
+  LOG1("  def_disp_win_top_offset     : %d\n", def_disp_win_top_offset);
+  LOG1("  def_disp_win_bottom_offset  : %d\n", def_disp_win_bottom_offset);
 
-  int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
-                    0 : sps_max_sub_layers-1 );
-
-  for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
-    LOG1("Layer %d\n",i);
-    LOG1("  sps_max_dec_pic_buffering      : %d\n", sps_max_dec_pic_buffering[i]);
-    LOG1("  sps_max_num_reorder_pics       : %d\n", sps_max_num_reorder_pics[i]);
-    LOG1("  sps_max_latency_increase_plus1 : %d\n", sps_max_latency_increase_plus1[i]);
+  LOG1("vui_timing_info_present_flag  : %d\n", vui_timing_info_present_flag);
+  if (vui_timing_info_present_flag) {
+    LOG1("  vui_num_units_in_tick       : %d\n", vui_num_units_in_tick);
+    LOG1("  vui_time_scale              : %d\n", vui_time_scale);
   }
 
-  LOG1("log2_min_luma_coding_block_size : %d\n", log2_min_luma_coding_block_size);
-  LOG1("log2_diff_max_min_luma_coding_block_size : %d\n",log2_diff_max_min_luma_coding_block_size);
-  LOG1("log2_min_transform_block_size   : %d\n", log2_min_transform_block_size);
-  LOG1("log2_diff_max_min_transform_block_size : %d\n", log2_diff_max_min_transform_block_size);
-  LOG1("max_transform_hierarchy_depth_inter : %d\n", max_transform_hierarchy_depth_inter);
-  LOG1("max_transform_hierarchy_depth_intra : %d\n", max_transform_hierarchy_depth_intra);
-  LOG1("scaling_list_enable_flag : %d\n", scaling_list_enable_flag);
+  LOG1("vui_poc_proportional_to_timing_flag : %d\n", vui_poc_proportional_to_timing_flag);
+  LOG1("vui_num_ticks_poc_diff_one          : %d\n", vui_num_ticks_poc_diff_one);
 
-  if (scaling_list_enable_flag) {
-
-    LOG1("sps_scaling_list_data_present_flag : %d\n", sps_scaling_list_data_present_flag);
-    if (sps_scaling_list_data_present_flag) {
-
-      LOG0("scaling list logging output not implemented");
-      //assert(0);
-      //scaling_list_data()
-    }
+  LOG1("vui_hrd_parameters_present_flag : %d\n", vui_hrd_parameters_present_flag);
+  if (vui_hrd_parameters_present_flag) {
+    //hrd_parameters vui_hrd_parameters;
   }
 
-  LOG1("amp_enabled_flag                    : %d\n", amp_enabled_flag);
-  LOG1("sample_adaptive_offset_enabled_flag : %d\n", sample_adaptive_offset_enabled_flag);
-  LOG1("pcm_enabled_flag                    : %d\n", pcm_enabled_flag);
 
-  if (pcm_enabled_flag) {
-    LOG1("pcm_sample_bit_depth_luma     : %d\n", pcm_sample_bit_depth_luma);
-    LOG1("pcm_sample_bit_depth_chroma   : %d\n", pcm_sample_bit_depth_chroma);
-    LOG1("log2_min_pcm_luma_coding_block_size : %d\n", log2_min_pcm_luma_coding_block_size);
-    LOG1("log2_diff_max_min_pcm_luma_coding_block_size : %d\n", log2_diff_max_min_pcm_luma_coding_block_size);
-    LOG1("pcm_loop_filter_disable_flag  : %d\n", pcm_loop_filter_disable_flag);
+  // --- bitstream restriction ---
+
+  LOG1("bitstream_restriction_flag         : %d\n", bitstream_restriction_flag);
+  if (bitstream_restriction_flag) {
+    LOG1("  tiles_fixed_structure_flag       : %d\n", tiles_fixed_structure_flag);
+    LOG1("  motion_vectors_over_pic_boundaries_flag : %d\n", motion_vectors_over_pic_boundaries_flag);
+    LOG1("  restricted_ref_pic_lists_flag    : %d\n", restricted_ref_pic_lists_flag);
+    LOG1("  min_spatial_segmentation_idc     : %d\n", min_spatial_segmentation_idc);
+    LOG1("  max_bytes_per_pic_denom          : %d\n", max_bytes_per_pic_denom);
+    LOG1("  max_bits_per_min_cu_denom        : %d\n", max_bits_per_min_cu_denom);
+    LOG1("  log2_max_mv_length_horizontal    : %d\n", log2_max_mv_length_horizontal);
+    LOG1("  log2_max_mv_length_vertical      : %d\n", log2_max_mv_length_vertical);
   }
-
-  LOG1("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
-
-  for (int i = 0; i < ref_pic_sets.size(); i++) {
-    LOG1("ref_pic_set[ %2d ]: ",i);
-    dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16, fh);
-  }
-
-  LOG1("long_term_ref_pics_present_flag : %d\n", long_term_ref_pics_present_flag);
-
-  if (long_term_ref_pics_present_flag) {
-
-    LOG1("num_long_term_ref_pics_sps : %d\n", num_long_term_ref_pics_sps);
-
-    for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
-      LOG3("lt_ref_pic_poc_lsb_sps[%d] : %d   (used_by_curr_pic_lt_sps_flag=%d)\n",
-           i, lt_ref_pic_poc_lsb_sps[i], used_by_curr_pic_lt_sps_flag[i]);
-    }
-  }
-
-  LOG1("sps_temporal_mvp_enabled_flag      : %d\n", sps_temporal_mvp_enabled_flag);
-  LOG1("strong_intra_smoothing_enable_flag : %d\n", strong_intra_smoothing_enable_flag);
-  LOG1("vui_parameters_present_flag        : %d\n", vui_parameters_present_flag);
-
-  LOG1("sps_extension_present_flag    : %d\n", sps_extension_present_flag);
-  LOG1("sps_range_extension_flag      : %d\n", sps_range_extension_flag);
-  LOG1("sps_multilayer_extension_flag : %d\n", sps_multilayer_extension_flag);
-  LOG1("sps_extension_6bits           : %d\n", sps_extension_6bits);
-
-  LOG1("CtbSizeY     : %d\n", CtbSizeY);
-  LOG1("MinCbSizeY   : %d\n", MinCbSizeY);
-  LOG1("MaxCbSizeY   : %d\n", 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size));
-  LOG1("MinTBSizeY   : %d\n", 1<<log2_min_transform_block_size);
-  LOG1("MaxTBSizeY   : %d\n", 1<<(log2_min_transform_block_size + log2_diff_max_min_transform_block_size));
-
-  LOG1("PicWidthInCtbsY         : %d\n", PicWidthInCtbsY);
-  LOG1("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
-  LOG1("SubWidthC               : %d\n", SubWidthC);
-  LOG1("SubHeightC              : %d\n", SubHeightC);
-
-  if (sps_range_extension_flag) {
-    range_extension.dump(fd);
-  }
-
-  return;
-
-  if (vui_parameters_present_flag) {
-    assert(false);
-    /*
-      vui_parameters()
-
-        sps_extension_flag
-        u(1)
-        if( sps_extension_flag )
-
-          while( more_rbsp_data() )
-
-            sps_extension_data_flag
-              u(1)
-              rbsp_trailing_bits()
-    */
-  }
-#endif
 
 #undef LOG0
 #undef LOG1
