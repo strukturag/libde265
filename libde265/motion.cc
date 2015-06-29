@@ -404,10 +404,10 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  const int shift1_L = 14-img->sps.BitDepth_Y;
-  const int offset_shift1_L = img->sps.BitDepth_Y-8;
-  const int shift1_C = 14-img->sps.BitDepth_C;
-  const int offset_shift1_C = img->sps.BitDepth_C-8;
+  const int shift1_L = libde265_max(2,14-img->sps.BitDepth_Y);
+  const int offset_shift1_L = img->sps.WpOffsetBdShiftY;
+  const int shift1_C = libde265_max(2,14-img->sps.BitDepth_C);
+  const int offset_shift1_C = img->sps.WpOffsetBdShiftC;
 
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 

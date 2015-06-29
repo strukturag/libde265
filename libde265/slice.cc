@@ -193,7 +193,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             // luma_offset
 
             vlc = get_svlc(br);
-            if (vlc < -128 || vlc > 127) return false;
+            if (vlc < -sps->WpOffsetHalfRangeY || vlc > sps->WpOffsetHalfRangeY-1) return false;
             shdr->luma_offset[l][i] = vlc;
           }
           else {
@@ -206,17 +206,22 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               // delta_chroma_weight
 
               vlc = get_svlc(br);
-              if (vlc < -128 || vlc > 127) return false;
+              if (vlc < -128 || vlc >  127) return false;
 
               shdr->ChromaWeight[l][i][j] = (1<<shdr->ChromaLog2WeightDenom) + vlc;
 
               // delta_chroma_offset
 
               vlc = get_svlc(br);
-              if (vlc < -512 || vlc > 511) return false;
+              if (vlc < -4*sps->WpOffsetHalfRangeC ||
+                  vlc >  4*sps->WpOffsetHalfRangeC-1) return false;
 
-              vlc = Clip3(-128,127, (vlc-((128*shdr->ChromaWeight[l][i][j])
-                                          >> shdr->ChromaLog2WeightDenom) + 128));
+              vlc = Clip3(-sps->WpOffsetHalfRangeC,
+                          sps->WpOffsetHalfRangeC-1,
+                          (sps->WpOffsetHalfRangeC
+                           +vlc
+                           -((sps->WpOffsetHalfRangeC*shdr->ChromaWeight[l][i][j])
+                             >> shdr->ChromaLog2WeightDenom)));
 
               shdr->ChromaOffset[l][i][j] = vlc;
             }
@@ -2559,7 +2564,7 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
   *lastInvocation_coeff_abs_level_greater1_flag = bit;
   *lastInvocation_ctxSet = ctxSet;
 
-  logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",bit);
+  //logtrace(LogSymbols,"$1 coeff_abs_level_greater1=%d\n",bit);
 
   return bit;
 }
@@ -2780,6 +2785,22 @@ static enum InterPredIdc  decode_inter_pred_idc(thread_context* tctx,
   logtrace(LogSymbols,"$1 decode_inter_pred_idx=%d\n",value+1);
 
   return (enum InterPredIdc) (value+1);
+}
+
+
+static int  decode_explicit_rdpcm_flag(thread_context* tctx,int cIdx)
+{
+  context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_FLAG];
+  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  return value;
+}
+
+
+static int  decode_explicit_rdpcm_dir(thread_context* tctx,int cIdx)
+{
+  context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_DIR];
+  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  return value;
 }
 
 
@@ -3032,6 +3053,7 @@ int residual_coding(thread_context* tctx,
   const seq_parameter_set* sps = &img->sps;
   const pic_parameter_set* pps = &img->pps;
 
+  enum PredMode PredMode = img->get_pred_mode(x0,y0);
 
   if (cIdx==0) {
     img->set_nonzero_coefficient(x0,y0,log2TrafoSize);
@@ -3049,6 +3071,23 @@ int residual_coding(thread_context* tctx,
       tctx->transform_skip_flag[cIdx] = 0;
     }
 
+
+  tctx->explicit_rdpcm_flag = false;
+
+  if (PredMode == MODE_INTER && sps->range_extension.explicit_rdpcm_enabled_flag &&
+      ( tctx->transform_skip_flag[cIdx] || tctx->cu_transquant_bypass_flag))
+    {
+      tctx->explicit_rdpcm_flag = decode_explicit_rdpcm_flag(tctx,cIdx);
+      if (tctx->explicit_rdpcm_flag) {
+        tctx->explicit_rdpcm_dir = decode_explicit_rdpcm_dir(tctx,cIdx);
+      }
+
+      //printf("EXPLICIT RDPCM %d;%d\n",x0,y0);
+    }
+  else
+    {
+      tctx->explicit_rdpcm_flag = false;
+    }
 
   // --- decode position of last coded coefficient ---
 
@@ -3091,7 +3130,6 @@ int residual_coding(thread_context* tctx,
 
   // --- determine scanIdx ---
 
-  enum PredMode PredMode = img->get_pred_mode(x0,y0);
   int scanIdx;
 
   if (PredMode == MODE_INTRA) {
@@ -3235,9 +3273,16 @@ int residual_coding(thread_context* tctx,
 
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
-        int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
-                                                                     ctxIdxMap[xC+(yC<<log2TrafoSize)]);
-                                                                     //ctxIdxMap[(i<<4)+n]);
+        int ctxInc;
+        if (sps->range_extension.transform_skip_context_enabled_flag &&
+            (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
+          ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+        }
+        else {
+          ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
+        }
+
+        int significant_coeff = decode_significant_coeff_flag_lookup(tctx, ctxInc);
 
         if (significant_coeff) {
           coeff_value[nCoefficients] = 1;
@@ -3258,9 +3303,17 @@ int residual_coding(thread_context* tctx,
         {
           if (inferSbDcSigCoeffFlag==0) {
             // if we cannot infert the DC coefficient, it is coded
-            int significant_coeff = decode_significant_coeff_flag_lookup(tctx,
-                                                                         ctxIdxMap[x0+(y0<<log2TrafoSize)]);
-                                                                         //ctxIdxMap[(i<<4)+0]);
+
+            int ctxInc;
+            if (sps->range_extension.transform_skip_context_enabled_flag &&
+                (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
+              ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+            }
+            else {
+              ctxInc = ctxIdxMap[x0+(y0<<log2TrafoSize)];
+            }
+
+            int significant_coeff = decode_significant_coeff_flag_lookup(tctx, ctxInc);
 
 
             if (significant_coeff) {
@@ -3351,8 +3404,28 @@ int residual_coding(thread_context* tctx,
 
       // --- decode coefficient signs ---
 
-      int signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3 &&
-                        !tctx->cu_transquant_bypass_flag);
+      int signHidden;
+
+
+      IntraPredMode predModeIntra;
+      if (cIdx==0) predModeIntra = img->get_IntraPredMode(x0,y0);
+      else         predModeIntra = img->get_IntraPredModeC(x0,y0);
+
+
+      if (tctx->cu_transquant_bypass_flag ||
+          (PredMode == MODE_INTRA &&
+           sps->range_extension.implicit_rdpcm_enabled_flag &&
+           tctx->transform_skip_flag[cIdx] &&
+           ( predModeIntra == 10 || predModeIntra == 26 )) ||
+          tctx->explicit_rdpcm_flag)
+        {
+          signHidden = 0;
+        }
+      else
+        {
+          signHidden = (coeff_scan_pos[0]-coeff_scan_pos[nCoefficients-1] > 3);
+        }
+
 
       for (int n=0;n<nCoefficients-1;n++) {
         coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
@@ -3373,6 +3446,8 @@ int residual_coding(thread_context* tctx,
 
       int sumAbsLevel=0;
       int uiGoRiceParam=0;
+
+      //printf("QCoeff: ");
 
       for (int n=0;n<nCoefficients;n++) {
         int baseLevel = coeff_value[n];
@@ -3423,7 +3498,12 @@ int residual_coding(thread_context* tctx,
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
+
+        //printf("%d ",currCoeff);
       }  // iterate through coefficients in sub-block
+
+      //printf(" (%d;%d)\n",x0,y0);
+
     }  // if nonZero
   }  // next sub-block
 
@@ -3437,6 +3517,8 @@ static void decode_TU(thread_context* tctx,
                       int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
 {
   de265_image* img = tctx->img;
+
+  int residualDpcm = 0;
 
   if (cuPredMode == MODE_INTRA) // if intra mode
     {
@@ -3458,11 +3540,25 @@ static void decode_TU(thread_context* tctx,
       }
 
       decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
+
+
+      residualDpcm = tctx->img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+        (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx]) &&
+        (intraPredMode == 10 || intraPredMode == 26);
+
+      if (residualDpcm && intraPredMode == 26)
+        residualDpcm = 2;
+    }
+  else // INTER
+    {
+      if (tctx->explicit_rdpcm_flag) {
+        residualDpcm = (tctx->explicit_rdpcm_dir ? 2 : 1);
+      }
     }
 
   if (cbf) {
     scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
-                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA);
+                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA, residualDpcm);
   }
 }
 
@@ -3494,6 +3590,8 @@ int read_transform_unit(thread_context* tctx,
   tctx->transform_skip_flag[0]=0;
   tctx->transform_skip_flag[1]=0;
   tctx->transform_skip_flag[2]=0;
+
+  tctx->explicit_rdpcm_flag = false;
 
 
   enum PredMode cuPredMode = tctx->img->get_pred_mode(x0,y0);
@@ -4297,10 +4395,12 @@ void read_coding_unit(thread_context* tctx,
 
               int IntraPredModeC = map_chroma_pred_mode(intra_chroma_pred_mode, IntraPredMode);
 
-              logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x,y,IntraPredModeC);
+              logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d (blksize:%d)\n",x,y,IntraPredModeC,
+                       1<<log2IntraPredSize);
 
               img->set_IntraPredModeC(x,y, log2IntraPredSize,
-                                      (enum IntraPredMode)IntraPredModeC);
+                                      (enum IntraPredMode)IntraPredModeC,
+                                      intra_chroma_pred_mode == 4);
               idx++;
             }
         }
@@ -4317,7 +4417,8 @@ void read_coding_unit(thread_context* tctx,
           }
 
           img->set_IntraPredModeC(x0,y0, log2CbSize,
-                                  (enum IntraPredMode)IntraPredModeC);
+                                  (enum IntraPredMode)IntraPredModeC,
+                                  intra_chroma_pred_mode == 4);
         }
       }
     }

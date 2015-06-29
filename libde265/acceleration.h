@@ -23,6 +23,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <assert.h>
+
 
 struct acceleration_functions
 {
@@ -142,6 +144,10 @@ struct acceleration_functions
 
   void (*transform_skip_8)(uint8_t *_dst, const int16_t *coeffs, ptrdiff_t _stride); // no transform
   void (*transform_bypass_8)(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
+  void (*transform_skip_rdpcm_v_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
+  void (*transform_skip_rdpcm_h_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
+  void (*transform_bypass_rdpcm_v_8)(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
+  void (*transform_bypass_rdpcm_h_8)(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
   void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
   void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
 
@@ -153,8 +159,15 @@ struct acceleration_functions
   void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDCT
 
 
+  void (*rotate_coefficients)(int16_t *coeff, int nT);
+
+
   template <class pixel_t> void transform_skip(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_skip_rdpcm_v(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_skip_rdpcm_h(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_bypass(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_bypass_rdpcm_v(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const;
+  template <class pixel_t> void transform_bypass_rdpcm_h(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const;
   template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
 
@@ -322,8 +335,19 @@ inline void acceleration_functions::put_hevc_qpel(int16_t *dst, ptrdiff_t dststr
 template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) const { transform_skip_8(dst,coeffs,stride); }
 template <> inline void acceleration_functions::transform_skip<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_skip_16(dst,coeffs,stride, bit_depth); }
 
+template <> inline void acceleration_functions::transform_skip_rdpcm_v<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { assert(bit_depth==8); transform_skip_rdpcm_v_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_skip_rdpcm_h<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { assert(bit_depth==8); transform_skip_rdpcm_h_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_skip_rdpcm_v<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { assert(false); /*transform_skip_rdpcm_v_8(dst,coeffs,nT,stride);*/ }
+template <> inline void acceleration_functions::transform_skip_rdpcm_h<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { assert(false); /*transform_skip_rdpcm_h_8(dst,coeffs,nT,stride);*/ }
+
 template <> inline void acceleration_functions::transform_bypass<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { transform_bypass_8(dst,coeffs,nT,stride); }
 template <> inline void acceleration_functions::transform_bypass<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { transform_bypass_16(dst,coeffs,nT,stride, bit_depth); }
+
+template <> inline void acceleration_functions::transform_bypass_rdpcm_v<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const { transform_bypass_rdpcm_v_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_bypass_rdpcm_h<uint8_t>(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const { transform_bypass_rdpcm_h_8(dst,coeffs,nT,stride); }
+template <> inline void acceleration_functions::transform_bypass_rdpcm_v<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const { assert(false); /*transform_bypass_rdpcm_v_8(dst,coeffs,nT,stride);*/ }
+template <> inline void acceleration_functions::transform_bypass_rdpcm_h<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride) const { assert(false); /*transform_bypass_rdpcm_h_8(dst,coeffs,nT,stride);*/ }
+
 
 template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_8(dst,coeffs,stride); }
 template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }

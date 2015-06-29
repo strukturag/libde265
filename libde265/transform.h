@@ -42,7 +42,7 @@ void scale_coefficients(thread_context* tctx,
                         int xT,int yT, // position of TU in frame (chroma adapted)
                         int x0,int y0, // position of CU in frame (chroma adapted)
                         int nT, int cIdx,
-                        bool transform_skip_flag, bool intra);
+                        bool transform_skip_flag, bool intra, int rdpcmMode);
 
 
 void inv_transform(acceleration_functions* acceleration,

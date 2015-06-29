@@ -74,11 +74,75 @@ void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t 
 }
 
 
+void transform_skip_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs, int log2nT, ptrdiff_t stride)
+{
+  int bitDepth = 8;
+  int bdShift2 = 20-bitDepth;
+  int offset = (1<<(bdShift2-1));
+  int tsShift = 5 + log2nT; // TODO: extended_precision
+  int nT = 1<<log2nT;
+
+  for (int x=0;x<nT;x++) {
+    int32_t sum = 0;
+
+    for (int y=0;y<nT;y++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+offset)>>bdShift2;
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
+}
+
+void transform_skip_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs, int log2nT, ptrdiff_t stride)
+{
+  int bitDepth = 8;
+  int bdShift2 = 20-bitDepth;
+  int offset = (1<<(bdShift2-1));
+  int tsShift = 5 + log2nT; // TODO: extended_precision
+  int nT = 1<<log2nT;
+
+  for (int y=0;y<nT;y++) {
+    int32_t sum = 0;
+
+    for (int x=0;x<nT;x++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+offset)>>bdShift2;
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
+}
+
+
+void transform_bypass_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride)
+{
+  for (int x=0;x<nT;x++) {
+    int32_t sum=0;
+    for (int y=0;y<nT;y++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
+}
+
+
+void transform_bypass_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride)
+{
+  for (int y=0;y<nT;y++) {
+    int32_t sum=0;
+    for (int x=0;x<nT;x++) {
+      sum += coeffs[x+y*nT];
+
+      dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
+    }
+  }
+}
+
 
 void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride)
 {
-  int bdShift2 = 20-8;
-
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
       int32_t c = coeffs[x+y*nT];
@@ -99,6 +163,16 @@ void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, 
       dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + c, bit_depth);
     }
 }
+
+
+void rotate_coefficients_fallback(int16_t *coeff, int nT)
+{
+  for (int y=0;y<nT/2;y++)
+    for (int x=0;x<nT;x++) {
+      std::swap(coeff[y*nT+x], coeff[(nT-1-y)*nT + nT-1-x]);
+    }
+}
+
 
 
 static int8_t mat_8_357[4][4] = {

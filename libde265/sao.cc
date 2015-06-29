@@ -57,7 +57,8 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
   const int picWidthInCtbs = sps->PicWidthInCtbsY;
   const int ctbshift = sps->Log2CtbSizeY - (cIdx>0 ? 1 : 0);
-  const int chromashift = (cIdx>0 ? 1 : 0);
+  const int chromashiftW = sps->get_chroma_shift_W(cIdx);
+  const int chromashiftH = sps->get_chroma_shift_H(cIdx);
 
 
   for (int i=0;i<5;i++)
@@ -109,8 +110,8 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
         if ((extendedTests &&
              (sps->pcm_loop_filter_disable_flag &&
-              img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift))) ||
-            img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
+              img->get_pcm_flag((xC+i)<<chromashiftW,(yC+j)<<chromashiftH))) ||
+            img->get_cu_transquant_bypass((xC+i)<<chromashiftW,(yC+j)<<chromashiftH)) {
           continue;
         }
 
@@ -133,18 +134,21 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
             // slice anyway) reduced computation time only by 1.3%.
             // TODO: however, this may still be a big part of SAO itself.
 
-            slice_segment_header* sliceHeader = img->get_SliceHeader(xS<<chromashift,yS<<chromashift);
+            slice_segment_header* sliceHeader = img->get_SliceHeader(xS<<chromashiftW,
+                                                                     yS<<chromashiftH);
             if (sliceHeader==NULL) { return; }
 
             int sliceAddrRS = sliceHeader->SliceAddrRS;
             if (sliceAddrRS <  ctbSliceAddrRS &&
-                img->get_SliceHeader((xC+i)<<chromashift,(yC+j)<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+                img->get_SliceHeader((xC+i)<<chromashiftW,
+                                     (yC+j)<<chromashiftH)->slice_loop_filter_across_slices_enabled_flag==0) {
               edgeIdx=0;
               break;
             }
 
             if (sliceAddrRS >  ctbSliceAddrRS &&
-                img->get_SliceHeader(xS<<chromashift,yS<<chromashift)->slice_loop_filter_across_slices_enabled_flag==0) {
+                img->get_SliceHeader(xS<<chromashiftW,
+                                     yS<<chromashiftH)->slice_loop_filter_across_slices_enabled_flag==0) {
               edgeIdx=0;
               break;
             }
@@ -201,8 +205,8 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
         for (int i=0;i<ctbW;i++) {
 
           if ((sps->pcm_loop_filter_disable_flag &&
-               img->get_pcm_flag((xC+i)<<chromashift,(yC+j)<<chromashift)) ||
-              img->get_cu_transquant_bypass((xC+i)<<chromashift,(yC+j)<<chromashift)) {
+               img->get_pcm_flag((xC+i)<<chromashiftW,(yC+j)<<chromashiftH)) ||
+              img->get_cu_transquant_bypass((xC+i)<<chromashiftW,(yC+j)<<chromashiftH)) {
             continue;
           }
 

@@ -30,6 +30,11 @@
 void transform_skip_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
 
+void transform_skip_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
+void transform_skip_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride);
+void transform_bypass_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride);
+void transform_bypass_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs,int nT,ptrdiff_t stride);
+
 void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
@@ -45,6 +50,8 @@ void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff
 void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+
+void rotate_coefficients_fallback(int16_t *coeff, int nT);
 
 
 // --- encoding ---

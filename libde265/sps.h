@@ -236,6 +236,11 @@ public:
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
 
+  uint8_t WpOffsetBdShiftY;
+  uint8_t WpOffsetBdShiftC;
+  int32_t WpOffsetHalfRangeY;
+  int32_t WpOffsetHalfRangeC;
+
 
   int getPUIndexRS(int pixelX,int pixelY) const {
     return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;
@@ -245,6 +250,9 @@ public:
     if (cIdx==0) return BitDepth_Y;
     else         return BitDepth_C;
   }
+
+  int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
+  int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
 };
 
 de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);

@@ -516,6 +516,7 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   strong_intra_smoothing_enable_flag = get_bits(br,1);
   vui_parameters_present_flag = get_bits(br,1);
 
+
   if (vui_parameters_present_flag) {
     vui.read(br, sps_max_sub_layers - 1);
   }
@@ -618,6 +619,20 @@ de265_error seq_parameter_set::compute_derived_values()
   PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
   PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
   PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
+
+
+  if (range_extension.high_precision_offsets_enabled_flag) {
+    WpOffsetBdShiftY = 0;
+    WpOffsetBdShiftC = 0;
+    WpOffsetHalfRangeY = 1 << (BitDepth_Y - 1);
+    WpOffsetHalfRangeC = 1 << (BitDepth_C - 1);
+  }
+  else {
+    WpOffsetBdShiftY = ( BitDepth_Y - 8 );
+    WpOffsetBdShiftC = ( BitDepth_C - 8 );
+    WpOffsetHalfRangeY = 1 << 7;
+    WpOffsetHalfRangeC = 1 << 7;
+  }
 
 
   // --- check SPS sanity ---
