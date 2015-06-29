@@ -48,19 +48,6 @@ enum {
   CHROMA_444_SEPARATE
 };
 
-struct sps_range_extension {
-  de265_error read(bitreader* reader);
-
-	bool transform_skip_rotation_enabled_flag;
-	bool transform_skip_context_enabled_flag;
-	bool implicit_rdpcm_enabled_flag;
-	bool explicit_rdpcm_enabled_flag;
-	bool extended_precision_processing_flag;
-	bool intra_smoothing_disabled_flag;
-	bool high_precision_offsets_enabled_flag;
-	bool persistent_rice_adaptation_enabled_flag;
-	bool cabac_bypass_alignment_enabled_flag;
-};
 
 struct sps_multilayer_extension {
   de265_error read(bitreader* reader);
@@ -198,7 +185,7 @@ public:
   bool sps_range_extension_flag;
   bool sps_multilayer_extension_flag;
   int  sps_extension_6bits;
-  
+
   sps_range_extension range_extension;
   sps_multilayer_extension multilayer_extension;
 

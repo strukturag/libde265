@@ -112,14 +112,21 @@ static void write_picture(const de265_image* img)
   de265_get_image_NAL_header(img, &nalunit_type, NULL, &nuh_layer_id, &nuh_temporal_id);
 
   if (fh[nuh_layer_id]==NULL) {
-    // Construct layer file name
-    std::string out_filename = output_filename;
-    int dot_pos = out_filename.find(".");
-    std::string layer_out_filename = out_filename.substr(0, dot_pos);
-    std::string extension = out_filename.substr(dot_pos);
-    layer_out_filename.append("_");
-    layer_out_filename.append(std::to_string(nuh_layer_id));
-    layer_out_filename.append(extension);
+    std::string layer_out_filename;
+
+    if (nuh_layer_id>0) {
+      // Construct layer file name
+      std::string out_filename = output_filename;
+      int dot_pos = out_filename.find(".");
+      std::string layer_out_filename = out_filename.substr(0, dot_pos);
+      std::string extension = out_filename.substr(dot_pos);
+      layer_out_filename.append("_");
+      layer_out_filename.append(std::to_string(nuh_layer_id));
+      layer_out_filename.append(extension);
+    }
+    else {
+      layer_out_filename = output_filename;
+    }
 
     fh[nuh_layer_id] = fopen(layer_out_filename.c_str(), "wb");
   }
