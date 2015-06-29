@@ -38,6 +38,8 @@
 #include <unistd.h>
 #endif
 
+#include <sstream>
+
 #include "libde265/quality.h"
 
 #if HAVE_VIDEOGFX
@@ -118,11 +120,11 @@ static void write_picture(const de265_image* img)
       // Construct layer file name
       std::string out_filename = output_filename;
       int dot_pos = out_filename.find(".");
-      std::string layer_out_filename = out_filename.substr(0, dot_pos);
       std::string extension = out_filename.substr(dot_pos);
-      layer_out_filename.append("_");
-      layer_out_filename.append(std::to_string(nuh_layer_id));
-      layer_out_filename.append(extension);
+
+      std::stringstream layer_out_filename_ss;
+      layer_out_filename_ss << out_filename.substr(0, dot_pos) << "_" << nuh_layer_id << extension;
+      layer_out_filename = layer_out_filename_ss.str();
     }
     else {
       layer_out_filename = output_filename;
