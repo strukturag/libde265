@@ -66,7 +66,7 @@ public:
 
   // prediction
 
-  enum IntraPredMode IntraPredModeC[4]; // chroma intra-prediction mode for current CB
+  // enum IntraPredMode IntraPredModeC[4]; // chroma intra-prediction mode for current CB
 
 
   // residual data

@@ -192,6 +192,20 @@ void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
 }
 
 
+int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int cIdx,
+                       const seq_parameter_set* sps)
+{
+  if (log2TrafoSize==2 ||
+      (log2TrafoSize==3 && (cIdx==0 ||
+                            sps->ChromaArrayType==CHROMA_444))) {
+    /**/ if (intraPredMode >=  6 && intraPredMode <= 14) return 2;
+    else if (intraPredMode >= 22 && intraPredMode <= 30) return 1;
+    else return 0;
+  }
+  else { return 0; }
+}
+
+
 int get_intra_scan_idx_luma(int log2TrafoSize, enum IntraPredMode intraPredMode)
 {
   if (log2TrafoSize==2 || log2TrafoSize==3) {
@@ -245,7 +259,8 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples(de265_image* img, int xB,int yB,
+void fill_border_samples(de265_image* img,
+                         int xB,int yB,  // in component specific resolution
                          int nT, int cIdx,
                          pixel_t* out_border)
 {
@@ -260,16 +275,15 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   image  = (pixel_t*)img->get_image_plane(cIdx);
   stride = img->get_image_stride(cIdx);
 
-  const int chromaShift = (cIdx==0) ? 0 : 1;
-  const int TUShift = (cIdx==0) ? sps->Log2MinTrafoSize : sps->Log2MinTrafoSize-1;
+  const int SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
+  const int SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
 
   const int bit_depth = img->get_bit_depth(cIdx);
 
   // --- check for CTB boundaries ---
 
-  int xBLuma = (cIdx==0) ? xB : 2*xB;
-  int yBLuma = (cIdx==0) ? yB : 2*yB;
-  int nTLuma = (cIdx==0) ? nT : 2*nT;
+  int xBLuma = xB * SubWidth;
+  int yBLuma = yB * SubHeight;
 
   int log2CtbSize = sps->Log2CtbSizeY;
   int picWidthInCtbs = sps->PicWidthInCtbsY;
@@ -300,7 +314,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
     yBLuma = 0; // fake value, available flags are already set to false
   }
 
-  if (xBLuma+nTLuma >= sps->pic_width_in_luma_samples) {
+  if (xBLuma+nT*SubWidth >= sps->pic_width_in_luma_samples) {
     availableTopRight=false;
   }
 
@@ -309,7 +323,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
   int xCurrCtb = xBLuma >> log2CtbSize;
   int yCurrCtb = yBLuma >> log2CtbSize;
   int xLeftCtb = (xBLuma-1) >> log2CtbSize;
-  int xRightCtb = (xBLuma+nTLuma) >> log2CtbSize;
+  int xRightCtb = (xBLuma+nT*SubWidth) >> log2CtbSize;
   int yTopCtb   = (yBLuma-1) >> log2CtbSize;
 
   int currCTBSlice = img->get_SliceAddrRS(xCurrCtb,yCurrCtb);
@@ -342,11 +356,12 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
   // number of pixels that are in the valid image area to the right and to the bottom
 
-  int nBottom = sps->pic_height_in_luma_samples - (cIdx==0 ? yB : 2*yB);
-  if (cIdx) nBottom=(nBottom+1)/2;
+  int nBottom = sps->pic_height_in_luma_samples - yB*SubHeight;
+  nBottom=(nBottom+SubHeight-1)/SubHeight;
   if (nBottom>2*nT) nBottom=2*nT;
-  int nRight  = sps->pic_width_in_luma_samples  - (cIdx==0 ? xB : 2*xB);
-  if (cIdx) nRight =(nRight +1)/2;
+
+  int nRight  = sps->pic_width_in_luma_samples  - xB*SubWidth;
+  nRight =(nRight +SubWidth-1)/SubWidth;
   if (nRight >2*nT) nRight=2*nT;
 
   int nAvail=0;
@@ -361,13 +376,14 @@ void fill_border_samples(de265_image* img, int xB,int yB,
     for (int y=nBottom-1 ; y>=0 ; y-=4)
       if (availableLeft)
         {
-          int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
-                                             ((yB+y)>>TUShift) * sps->PicWidthInTbsY ];
+          int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                             (((yB+y)*SubHeight)>>sps->Log2MinTrafoSize)
+                                             * sps->PicWidthInTbsY ];
 
-          bool availableN = NBlockAddr < currBlockAddr;
+          bool availableN = NBlockAddr <= currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
-            if (img->get_pred_mode((xB-1)<<chromaShift,(yB+y)<<chromaShift)!=MODE_INTRA)
+            if (img->get_pred_mode((xB-1)*SubWidth,(yB+y)*SubHeight)!=MODE_INTRA)
               availableN = false;
           }
 
@@ -387,13 +403,14 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
     if (availableTopLeft)
       {
-        int NBlockAddr = pps->MinTbAddrZS[ ((xB-1)>>TUShift) +
-                                           ((yB-1)>>TUShift) * sps->PicWidthInTbsY ];
+        int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                           (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                           * sps->PicWidthInTbsY ];
 
-        bool availableN = NBlockAddr < currBlockAddr;
+        bool availableN = NBlockAddr <= currBlockAddr;
 
         if (pps->constrained_intra_pred_flag) {
-          if (img->get_pred_mode((xB-1)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+          if (img->get_pred_mode((xB-1)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
             availableN = false;
           }
         }
@@ -416,13 +433,14 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 
       if (borderAvailable)
         {
-          int NBlockAddr = pps->MinTbAddrZS[ ((xB+x)>>TUShift) +
-                                             ((yB-1)>>TUShift) * sps->PicWidthInTbsY ];
+          int NBlockAddr = pps->MinTbAddrZS[ (((xB+x)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                             (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                             * sps->PicWidthInTbsY ];
 
-          bool availableN = NBlockAddr < currBlockAddr;
+          bool availableN = NBlockAddr <= currBlockAddr;
 
           if (pps->constrained_intra_pred_flag) {
-            if (img->get_pred_mode((xB+x)<<chromaShift,(yB-1)<<chromaShift)!=MODE_INTRA) {
+            if (img->get_pred_mode((xB+x)*SubWidth,(yB-1)*SubHeight)!=MODE_INTRA) {
               availableN = false;
             }
           }
@@ -482,7 +500,7 @@ void fill_border_samples(de265_image* img, int xB,int yB,
 template <class pixel_t>
 void intra_prediction_sample_filtering(de265_image* img,
                                        pixel_t* p,
-                                       int nT,
+                                       int nT, int cIdx,
                                        enum IntraPredMode intraPredMode)
 {
   int filterFlag;
@@ -504,6 +522,7 @@ void intra_prediction_sample_filtering(de265_image* img,
 
   if (filterFlag) {
     int biIntFlag = (img->sps.strong_intra_smoothing_enable_flag &&
+                     cIdx==0 &&
                      nT==32 &&
                      abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(img->sps.bit_depth_luma-5)) &&
                      abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(img->sps.bit_depth_luma-5)))
@@ -763,9 +782,11 @@ void decode_intra_prediction_internal(de265_image* img,
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
-  if (cIdx==0) {
-    intra_prediction_sample_filtering(img, border_pixels, nT, intraPredMode);
-  }
+  if (img->sps.range_extension.intra_smoothing_disabled_flag == 0 &&
+      (cIdx==0 || img->sps.ChromaArrayType==CHROMA_444))
+    {
+      intra_prediction_sample_filtering(img, border_pixels, nT, cIdx, intraPredMode);
+    }
 
 
   switch (intraPredMode) {

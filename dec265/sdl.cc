@@ -19,15 +19,17 @@
  */
 
 #include "sdl.hh"
+#include <assert.h>
 
 
-bool SDL_YUV_Display::init(int frame_width, int frame_height)
+bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma chroma)
 {
   // reduce image size to a multiple of 8 (apparently required by YUV overlay)
 
   frame_width  &= ~7;
   frame_height &= ~7;
 
+  mChroma = chroma;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0 ) {
     printf("SDL_Init() failed: %s\n", SDL_GetError( ) );
@@ -62,7 +64,14 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height)
     return false;
   }
 
-  mYUVOverlay = SDL_CreateYUVOverlay(frame_width, frame_height, SDL_YV12_OVERLAY, mScreen);
+  uint32_t pixelFormat;
+  switch (mChroma) {
+  case SDL_CHROMA_420: pixelFormat = SDL_YV12_OVERLAY; break;
+  case SDL_CHROMA_422: pixelFormat = SDL_YUY2_OVERLAY; break;
+  case SDL_CHROMA_444: pixelFormat = SDL_YUY2_OVERLAY; break;
+  }
+
+  mYUVOverlay = SDL_CreateYUVOverlay(frame_width, frame_height, pixelFormat, mScreen);
   if (mYUVOverlay == NULL ) {
     printf("SDL: Couldn't create SDL YUV overlay: %s",SDL_GetError());
     SDL_Quit();
@@ -87,6 +96,27 @@ void SDL_YUV_Display::display(const unsigned char *Y,
   if (!mWindowOpen) return;
   if (SDL_LockYUVOverlay(mYUVOverlay) < 0) return;
 
+  if (mChroma == SDL_CHROMA_420) {
+    display420(Y,U,V,stride,chroma_stride);
+  }
+  else if (mChroma == SDL_CHROMA_422) {
+    display422(Y,U,V,stride,chroma_stride);
+  }
+  else if (mChroma == SDL_CHROMA_444) {
+    display444(Y,U,V,stride,chroma_stride);
+  }
+
+  SDL_UnlockYUVOverlay(mYUVOverlay);
+
+  SDL_DisplayYUVOverlay(mYUVOverlay, &rect);
+}
+
+
+void SDL_YUV_Display::display420(const unsigned char *Y,
+                                 const unsigned char *U,
+                                 const unsigned char *V,
+                                 int stride, int chroma_stride)
+{
   if (stride == rect.w && chroma_stride == rect.w/2) {
 
     // fast copy
@@ -109,11 +139,57 @@ void SDL_YUV_Display::display(const unsigned char *Y,
         memcpy(mYUVOverlay->pixels[1]+y*rect.w/2, V+chroma_stride*y, rect.w/2);
       }
   }
-
-  SDL_UnlockYUVOverlay(mYUVOverlay);
-
-  SDL_DisplayYUVOverlay(mYUVOverlay, &rect);
 }
+
+
+void SDL_YUV_Display::display422(const unsigned char *Y,
+                                 const unsigned char *U,
+                                 const unsigned char *V,
+                                 int stride, int chroma_stride)
+{
+  for (int y=0;y<rect.h;y++)
+    {
+      unsigned char* p = mYUVOverlay->pixels[0] + y*rect.w *2;
+
+      const unsigned char* Yp = Y + y*stride;
+      const unsigned char* Up = U + y*chroma_stride;
+      const unsigned char* Vp = V + y*chroma_stride;
+
+      for (int x=0;x<rect.w;x+=2) {
+        *p++ = Yp[x];
+        *p++ = Up[x/2];
+        *p++ = Yp[x+1];
+        *p++ = Vp[x/2];
+      }
+    }
+}
+
+
+/* This converts down 4:4:4 input to 4:2:2 for display, as SDL does not support
+   any 4:4:4 pixel format.
+ */
+void SDL_YUV_Display::display444(const unsigned char *Y,
+                                 const unsigned char *U,
+                                 const unsigned char *V,
+                                 int stride, int chroma_stride)
+{
+  for (int y=0;y<rect.h;y++)
+    {
+      unsigned char* p = mYUVOverlay->pixels[0] + y*rect.w *2;
+
+      const unsigned char* Yp = Y + y*stride;
+      const unsigned char* Up = U + y*chroma_stride;
+      const unsigned char* Vp = V + y*chroma_stride;
+
+      for (int x=0;x<rect.w;x+=2) {
+        *p++ = Yp[x];
+        *p++ = Up[x];
+        *p++ = Yp[x+1];
+        *p++ = Vp[x];
+      }
+    }
+}
+
 
 bool SDL_YUV_Display::doQuit() const
 {

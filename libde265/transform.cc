@@ -155,8 +155,16 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
            qPiCb, pps->pic_cb_qp_offset, shdr->slice_cb_qp_offset,
            qPiCr, pps->pic_cr_qp_offset, shdr->slice_cr_qp_offset);
 
-  int qPCb = table8_22(qPiCb);
-  int qPCr = table8_22(qPiCr);
+  int qPCb,qPCr;
+
+  if (sps->ChromaArrayType == CHROMA_420) {
+    qPCb = table8_22(qPiCb);
+    qPCr = table8_22(qPiCr);
+  }
+  else {
+    qPCb = qPiCb;
+    qPCr = qPiCr;
+  }
 
   //printf("q: %d %d\n",qPiCb, qPCb);
 

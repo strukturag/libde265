@@ -60,8 +60,11 @@ int find_intra_pred_mode(enum IntraPredMode mode,
 void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
                                  enum IntraPredMode luma_mode);
 
-int get_intra_scan_idx_luma  (int log2TrafoSize, enum IntraPredMode intraPredMode);
-int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMode);
+int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int cIdx,
+                       const seq_parameter_set* sps);
+
+int get_intra_scan_idx_luma  (int log2TrafoSize, enum IntraPredMode intraPredMode); // DEPRECATED
+int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMode); // DEPRECATED
 
 enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
                                                   enum IntraChromaPredMode chroma);

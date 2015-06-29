@@ -64,6 +64,20 @@ extern bool write_short_term_ref_pic_set(error_queue* errqueue,
                                          bool sliceRefPicSet); // is this in the slice header?
 
 
+sps_range_extension::sps_range_extension()
+{
+  transform_skip_rotation_enabled_flag = 0;
+  transform_skip_context_enabled_flag  = 0;
+  implicit_rdpcm_enabled_flag = 0;
+  explicit_rdpcm_enabled_flag = 0;
+  extended_precision_processing_flag = 0;
+  intra_smoothing_disabled_flag = 0;
+  high_precision_offsets_enabled_flag = 0;
+  persistent_rice_adaptation_enabled_flag = 0;
+  cabac_bypass_alignment_enabled_flag = 0;
+}
+
+
 seq_parameter_set::seq_parameter_set()
 {
   // TODO: this is dangerous
@@ -502,11 +516,10 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   strong_intra_smoothing_enable_flag = get_bits(br,1);
   vui_parameters_present_flag = get_bits(br,1);
 
-
-
   if (vui_parameters_present_flag) {
     vui.read(br, sps_max_sub_layers - 1);
   }
+
 
   sps_extension_present_flag = get_bits(br,1);
   if (sps_extension_present_flag) {
@@ -521,7 +534,8 @@ de265_error seq_parameter_set::read(decoder_context* ctx, bitreader* br)
   }
 
   if (sps_range_extension_flag) {
-    range_extension.read(ctx,br);
+    de265_error err = range_extension.read(errqueue, br);
+    if (err != DE265_OK) { return err; }
   }
   if (sps_multilayer_extension_flag) {
     multilayer_extension.read(br);
