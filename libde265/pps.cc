@@ -32,6 +32,147 @@
 #endif
 
 
+void pps_range_extension::reset()
+{
+  log2_max_transform_skip_block_size = 2;
+  cross_component_prediction_enabled_flag = false;
+  chroma_qp_offset_list_enabled_flag = false;
+  diff_cu_chroma_qp_offset_depth = 0;
+  chroma_qp_offset_list_len = 0;
+  log2_sao_offset_scale_luma = 0;
+  log2_sao_offset_scale_chroma = 0;
+}
+
+
+bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_parameter_set* pps)
+{
+  const seq_parameter_set* sps = ctx->get_sps(pps->seq_parameter_set_id);
+
+  int uvlc;
+
+  if (pps->transform_skip_enabled_flag) {
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc+2 > sps->Log2MaxTrafoSize) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    log2_max_transform_skip_block_size = uvlc+2;
+  }
+
+  cross_component_prediction_enabled_flag = get_bits(br,1);
+  if (sps->ChromaArrayType != CHROMA_444 &&
+      cross_component_prediction_enabled_flag) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+  }
+
+  chroma_qp_offset_list_enabled_flag = get_bits(br,1);
+  if (sps->ChromaArrayType != CHROMA_MONO &&
+      chroma_qp_offset_list_enabled_flag) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+  }
+
+  if (chroma_qp_offset_list_enabled_flag) {
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    diff_cu_chroma_qp_offset_depth = uvlc;
+
+
+    uvlc = get_uvlc(br);
+    if (uvlc == UVLC_ERROR ||
+        uvlc > 5) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+
+    chroma_qp_offset_list_len = uvlc+1;
+
+    for (int i=0;i<chroma_qp_offset_list_len;i++) {
+      int svlc;
+      svlc = get_svlc(br);
+      if (svlc == UVLC_ERROR ||
+          svlc < -12 || svlc > 12) {
+        ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+        return false;
+      }
+
+      cb_qp_offset_list[i] = svlc;
+
+      svlc = get_svlc(br);
+      if (svlc == UVLC_ERROR ||
+          svlc < -12 || svlc > 12) {
+        ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+        return false;
+      }
+
+      cr_qp_offset_list[i] = svlc;
+    }
+  }
+
+
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR ||
+      uvlc > libde265_max(0, sps->BitDepth_Y-10)) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+
+  log2_sao_offset_scale_luma = uvlc;
+
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR ||
+      uvlc > libde265_max(0, sps->BitDepth_C-10)) {
+    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+    return false;
+  }
+
+  log2_sao_offset_scale_chroma = uvlc;
+
+  return true;
+}
+
+
+void pps_range_extension::dump(int fd) const
+{
+  FILE* fh;
+  if (fd==1) fh=stdout;
+  else if (fd==2) fh=stderr;
+  else { return; }
+
+#define LOG0(t) log2fh(fh, t)
+#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG2(t,d,e) log2fh(fh, t,d,e)
+
+  LOG0("---------- PPS range-extension ----------\n");
+  LOG1("log2_max_transform_skip_block_size      : %d\n", log2_max_transform_skip_block_size);
+  LOG1("cross_component_prediction_enabled_flag : %d\n", cross_component_prediction_enabled_flag);
+  LOG1("chroma_qp_offset_list_enabled_flag      : %d\n", chroma_qp_offset_list_enabled_flag);
+  if (chroma_qp_offset_list_enabled_flag) {
+    LOG1("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
+    LOG1("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
+    for (int i=0;i<chroma_qp_offset_list_len;i++) {
+      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list);
+      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list);
+    }
+  }
+
+  LOG1("log2_sao_offset_scale_luma              : %d\n", log2_sao_offset_scale_luma);
+  LOG1("log2_sao_offset_scale_chroma            : %d\n", log2_sao_offset_scale_chroma);
+#undef LOG2
+#undef LOG1
+#undef LOG0
+}
+
+
+
+
+
 pic_parameter_set::pic_parameter_set()
 {
   reset();
@@ -364,9 +505,14 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     pps_extension_6bits = 0;
   }
 
-  if (pps_range_extension_flag) {
-    pps_range_ext.read(br, transform_skip_enabled_flag);
-  }
+    if (pps_range_extension_flag) {
+      bool success = range_extension.read(br, ctx, this);
+      if (!success) {
+        return false;
+      }
+    }
+
+
   if (pps_multilayer_extension_flag) {
     pps_mult_ext.read(br);
   }
@@ -385,6 +531,9 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 {
   Log2MinCuQpDeltaSize = sps->Log2CtbSizeY - diff_cu_qp_delta_depth;
+
+  Log2MinCuChromaQpOffsetSize = sps->Log2CtbSizeY - range_extension.diff_cu_chroma_qp_offset_depth;
+  Log2MaxTransformSkipSize = range_extension.log2_max_transform_skip_block_size;
 
   if (uniform_spacing_flag) {
 
@@ -784,7 +933,7 @@ void pic_parameter_set::dump(int fd) const
     LOG1("pic_disable_deblocking_filter_flag: %d\n", pic_disable_deblocking_filter_flag);
 
     LOG1("beta_offset:  %d\n", beta_offset);
-    LOG1("tc_offset:     %d\n", tc_offset);
+    LOG1("tc_offset:    %d\n", tc_offset);
   }
 
   LOG1("pic_scaling_list_data_present_flag: %d\n", pic_scaling_list_data_present_flag);
@@ -801,10 +950,17 @@ void pic_parameter_set::dump(int fd) const
   LOG1("pps_multilayer_extension_flag : %d\n", pps_multilayer_extension_flag);
   LOG1("pps_extension_6bits           : %d\n", pps_extension_6bits);
 
-  LOG1("Log2MinCuQpDeltaSize : %d\n", Log2MinCuQpDeltaSize);
+  LOG1("Log2MinCuQpDeltaSize          : %d\n", Log2MinCuQpDeltaSize);
+  LOG1("Log2MinCuChromaQpOffsetSize (RExt) : %d\n", Log2MinCuChromaQpOffsetSize);
+  LOG1("Log2MaxTransformSkipSize    (RExt) : %d\n", Log2MaxTransformSkipSize);
 
 #undef LOG0
 #undef LOG1
+
+
+  if (pps_range_extension_flag) {
+    range_extension.dump(fd);
+  }
 }
 
 
@@ -830,26 +986,6 @@ bool pic_parameter_set::is_tile_start_CTB(int ctbX,int ctbY) const
   return false;
 }
 
-bool pic_parameter_set_range_extension::read(bitreader* reader, bool transform_skip_enabled_flag)
-{
-  if (transform_skip_enabled_flag) {
-    log2_max_transform_skip_block_size_minus2 = get_uvlc(reader);
-  }
-  cross_component_prediction_enabled_flag = get_bits(reader,1);
-  chroma_qp_offset_list_enabled_flag = get_bits(reader,1);
-  if( chroma_qp_offset_list_enabled_flag ) {
-    diff_cu_chroma_qp_offset_depth = get_uvlc(reader);
-    chroma_qp_offset_list_len_minus1 = get_uvlc(reader);
-    for( int i = 0; i  <=  chroma_qp_offset_list_len_minus1; i++ ) {
-      cb_qp_offset_list[i] = get_svlc(reader);
-      cr_qp_offset_list[i] = get_svlc(reader);
-    }
-  }
-  log2_sao_offset_scale_luma = get_uvlc(reader);
-  log2_sao_offset_scale_chroma = get_uvlc(reader);
-
-  return true;
-}
 
 bool pps_multilayer_extension::read(bitreader* reader)
 {

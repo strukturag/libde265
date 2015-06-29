@@ -29,19 +29,6 @@
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
 
-struct pic_parameter_set_range_extension {
-  bool read(bitreader*, bool transform_skip_enabled_flag );
-
-  int    log2_max_transform_skip_block_size_minus2;
-  bool   cross_component_prediction_enabled_flag;
-  bool   chroma_qp_offset_list_enabled_flag;
-  int    diff_cu_chroma_qp_offset_depth;
-  int    chroma_qp_offset_list_len_minus1;
-  int_1d cb_qp_offset_list;
-  int_1d cr_qp_offset_list;
-  int    log2_sao_offset_scale_luma;
-  int    log2_sao_offset_scale_chroma;
-};
 
 struct colour_mapping_octants {
   bool read(bitreader*, int inpDepth, int idxY, int idxCb, int idxCr, int inpLength, int cm_octant_depth, int PartNumY, int CMResLSBits);
@@ -64,7 +51,7 @@ struct colour_mapping_octants {
 
 struct colour_mapping_table {
   bool read(bitreader*);
-  
+
   int    num_cm_ref_layers_minus1;
   int_1d cm_ref_layer_id;
   int    cm_octant_depth;
@@ -126,6 +113,30 @@ struct pps_multilayer_extension {
 };
 
 class decoder_context;
+class pic_parameter_set;
+
+
+class pps_range_extension
+{
+ public:
+  pps_range_extension() { reset(); }
+
+  void reset();
+
+  bool read(bitreader*, decoder_context*, const pic_parameter_set*);
+  void dump(int fd) const;
+
+  uint8_t log2_max_transform_skip_block_size;
+  bool    cross_component_prediction_enabled_flag;
+  bool    chroma_qp_offset_list_enabled_flag;
+  uint8_t diff_cu_chroma_qp_offset_depth;
+  uint8_t chroma_qp_offset_list_len;
+  int8_t  cb_qp_offset_list[6];
+  int8_t  cr_qp_offset_list[6];
+  uint8_t log2_sao_offset_scale_luma;
+  uint8_t log2_sao_offset_scale_chroma;
+};
+
 
 class pic_parameter_set {
 public:
@@ -201,18 +212,22 @@ public:
   int log2_parallel_merge_level; // [2 ; log2(max CB size)]
   char num_extra_slice_header_bits;
   char slice_segment_header_extension_present_flag;
-  
+
   bool pps_extension_present_flag;
   bool pps_range_extension_flag;
   bool pps_multilayer_extension_flag;
   int  pps_extension_6bits;
 
-  pic_parameter_set_range_extension pps_range_ext;
+  pps_range_extension range_extension;
   pps_multilayer_extension pps_mult_ext;
+
+
 
   // --- derived values ---
 
   int Log2MinCuQpDeltaSize;
+  int Log2MinCuChromaQpOffsetSize;
+  int Log2MaxTransformSkipSize;
 
   int colWidth [ DE265_MAX_TILE_COLUMNS ];
   int rowHeight[ DE265_MAX_TILE_ROWS ];
