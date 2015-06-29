@@ -350,6 +350,8 @@ private:
   int stride, chroma_stride;
 
 public:
+  uint8_t BitDepth_Y, BitDepth_C;
+  uint8_t SubWidthC, SubHeightC;
   std::vector<slice_segment_header*> slices;
 
 public:

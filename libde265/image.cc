@@ -106,17 +106,17 @@ LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
 static int  de265_image_get_buffer(de265_decoder_context* ctx,
                                    de265_image_spec* spec, de265_image* img, void* userdata)
 {
-  const int rawChromaWidth  = spec->width  / img->sps.SubWidthC;
-  const int rawChromaHeight = spec->height / img->sps.SubHeightC;
+  const int rawChromaWidth  = spec->width  / img->SubWidthC;
+  const int rawChromaHeight = spec->height / img->SubHeightC;
 
   int luma_stride   = (spec->width    + spec->alignment-1) / spec->alignment * spec->alignment;
   int chroma_stride = (rawChromaWidth + spec->alignment-1) / spec->alignment * spec->alignment;
 
-  assert(img->sps.BitDepth_Y >= 8 && img->sps.BitDepth_Y <= 16);
-  assert(img->sps.BitDepth_C >= 8 && img->sps.BitDepth_C <= 16);
+  assert(img->BitDepth_Y >= 8 && img->BitDepth_Y <= 16);
+  assert(img->BitDepth_C >= 8 && img->BitDepth_C <= 16);
 
-  int luma_bpl   = luma_stride   * (img->sps.BitDepth_Y+7)/8;
-  int chroma_bpl = chroma_stride * (img->sps.BitDepth_C+7)/8;
+  int luma_bpl   = luma_stride   * (img->BitDepth_Y+7)/8;
+  int chroma_bpl = chroma_stride * (img->BitDepth_C+7)/8;
 
   int luma_height   = spec->height;
   int chroma_height = rawChromaHeight;
@@ -237,9 +237,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                      bool useCustomAllocFunc)
 {
   //if (allocMetadata) { assert(sps); }
-  assert(sps);
+  if (allocMetadata) { assert(sps); }
 
-  this->sps = *sps;
+  if (sps != NULL) { this->sps = *sps; }
 
   release(); /* TODO: review code for efficient allocation when arrays are already
                 allocated to the requested size. Without the release, the old image-data
@@ -325,8 +325,14 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   spec.visible_height= height_confwin;
 
 
-  bpp_shift[0] = (sps->BitDepth_Y > 8) ? 1 : 0;
-  bpp_shift[1] = (sps->BitDepth_C > 8) ? 1 : 0;
+  BitDepth_Y = (sps==NULL) ? 8 : sps->BitDepth_Y;
+  BitDepth_C = (sps==NULL) ? 8 : sps->BitDepth_C;
+
+  SubWidthC  = (sps==NULL) ? 2 : sps->SubWidthC;
+  SubHeightC = (sps==NULL) ? 2 : sps->SubHeightC;
+
+  bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
+  bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;
   bpp_shift[2] = bpp_shift[1];
 
 
@@ -547,8 +553,8 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
     }
   }
 
-  int first_chroma = first / src->sps.SubHeightC;
-  int end_chroma   = end / src->sps.SubHeightC;
+  int first_chroma = first / src->SubHeightC;
+  int end_chroma   = end   / src->SubHeightC;
 
   if (src->chroma_format != de265_chroma_mono) {
     if (src->chroma_stride == chroma_stride) {
