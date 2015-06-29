@@ -260,6 +260,8 @@ struct de265_image {
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+
+  /// xpos;ypos in actual plane resolution
   template <class pixel_t>
   pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
   {
@@ -667,7 +669,7 @@ public:
 
   bool is_IntraPredModeC_Mode4(int x,int y) const
   {
-    return (enum IntraPredMode)intraPredModeC.get(x,y) & 0x80;
+    return intraPredModeC.get(x,y) & 0x80;
   }
 
   void set_IntraPredModeC(int x0,int y0,int log2blkSize, enum IntraPredMode mode,
@@ -675,7 +677,6 @@ public:
   {
     uint8_t combinedValue = mode;
     if (is_mode4) combinedValue |= 0x80;
-
 
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
     int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;

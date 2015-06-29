@@ -67,6 +67,7 @@ public:
   // prediction
 
   // enum IntraPredMode IntraPredModeC[4]; // chroma intra-prediction mode for current CB
+  int ResScaleVal;
 
 
   // residual data
@@ -83,11 +84,15 @@ public:
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
 
+  int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
+
 
   // quantization
 
   int IsCuQpDeltaCoded;
   int CuQpDelta;
+  int IsCuChromaQpOffsetCoded;
+  int CuQpOffsetCb, CuQpOffsetCr;
 
   int currentQPY;
   int currentQG_x, currentQG_y;
@@ -98,6 +103,7 @@ public:
   CABAC_decoder cabac_decoder;
 
   context_model_table ctx_model;
+  uint8_t StatCoeff[4];
 
   decoder_context* decctx;
   struct de265_image *img;

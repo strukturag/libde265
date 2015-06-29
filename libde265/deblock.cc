@@ -413,6 +413,8 @@ template <class pixel_t>
 void edge_filtering_luma_internal(de265_image* img, bool vertical,
                                   int yStart,int yEnd, int xStart,int xEnd)
 {
+  //printf("luma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
+
   int xIncr = vertical ? 2 : 1;
   int yIncr = vertical ? 1 : 2;
 
@@ -425,9 +427,13 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
-      int xDi = x<<2;
-      int yDi = y<<2;
+      // x;y in deblocking units (4x4 pixels)
+
+      int xDi = x<<2; // *4 -> pixel resolution
+      int yDi = y<<2; // *4 -> pixel resolution
       int bS = img->get_deblk_bS(xDi,yDi);
+
+      //printf("x,y:%d,%d  xDi,yDi:%d,%d\n",x,y,xDi,yDi);
 
       logtrace(LogDeblock,"deblock POC=%d %c --- x:%d y:%d bS:%d---\n",
                img->PicOrderCntVal,vertical ? 'V':'H',xDi,yDi,bS);
@@ -724,12 +730,23 @@ void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 
 
 // 8.7.2.4
+/** ?Start and ?End values in 4-luma pixels resolution.
+ */
 template <class pixel_t>
-void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,int yEnd,
+void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+                                    int yStart,int yEnd,
                                     int xStart,int xEnd)
 {
-  int xIncr = vertical ? 4 : 2;
-  int yIncr = vertical ? 2 : 4;
+  //printf("chroma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
+
+  const int SubWidthC  = img->sps.SubWidthC;
+  const int SubHeightC = img->sps.SubHeightC;
+
+  int xIncr = vertical ? 2 : 1;
+  int yIncr = vertical ? 1 : 2;
+
+  xIncr *= SubWidthC;
+  yIncr *= SubHeightC;
 
   const int stride = img->get_image_stride(1);
 
@@ -740,9 +757,12 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
-      int xDi = x*2;
-      int yDi = y*2;
-      int bS = img->get_deblk_bS(2*xDi,2*yDi);
+      int xDi = x << (3-SubWidthC);
+      int yDi = y << (3-SubHeightC);
+
+      //printf("x,y:%d,%d  xDi,yDi:%d,%d\n",x,y,xDi,yDi);
+
+      int bS = img->get_deblk_bS(xDi*SubWidthC,yDi*SubHeightC);
 
       if (bS>1) {
         // 8.7.2.4.5
@@ -790,18 +810,24 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,
             }
 #endif
 
-          int QP_Q = img->get_QPY(2*xDi,2*yDi);
+          int QP_Q = img->get_QPY(SubWidthC*xDi,SubHeightC*yDi);
           int QP_P = (vertical ?
-                      img->get_QPY(2*xDi-1,2*yDi) :
-                      img->get_QPY(2*xDi,2*yDi-1));
+                      img->get_QPY(SubWidthC*xDi-1,SubHeightC*yDi) :
+                      img->get_QPY(SubWidthC*xDi,SubHeightC*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
-          int QP_C = table8_22(qP_i);
+          int QP_C;
+          if (img->sps.ChromaArrayType == CHROMA_420) {
+            QP_C = table8_22(qP_i);
+          } else {
+            QP_C = libde265_min(qP_i, 51);
+          }
+
 
           //printf("POC=%d\n",ctx->img->PicOrderCntVal);
           logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
-                   2*xDi,2*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
+                   SubWidthC*xDi,SubHeightC*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
 
-          int sliceIndexQ00 = img->get_SliceHeaderIndex(2*xDi,2*yDi);
+          int sliceIndexQ00 = img->get_SliceHeaderIndex(SubWidthC*xDi,SubHeightC*yDi);
           int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
 
           int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);
@@ -813,12 +839,12 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,
 
           if (vertical) {
             bool filterP = true;
-            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi-1,2*yDi)) filterP=false;
-            if (img->get_cu_transquant_bypass(2*xDi-1,2*yDi)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi-1,SubHeightC*yDi)) filterP=false;
+            if (img->get_cu_transquant_bypass(SubWidthC*xDi-1,SubHeightC*yDi)) filterP=false;
 
             bool filterQ = true;
-            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
-            if (img->get_cu_transquant_bypass(2*xDi,2*yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
 
             for (int k=0;k<4;k++) {
@@ -830,12 +856,12 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical, int yStart,
           }
           else {
             bool filterP = true;
-            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi-1)) filterP=false;
-            if (img->get_cu_transquant_bypass(2*xDi,2*yDi-1)) filterP=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi-1)) filterP=false;
+            if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi-1)) filterP=false;
 
             bool filterQ = true;
-            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(2*xDi,2*yDi)) filterQ=false;
-            if (img->get_cu_transquant_bypass(2*xDi,2*yDi)) filterQ=false;
+            if (img->sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
               int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
@@ -951,7 +977,10 @@ void thread_task_deblock_CTBRow::work()
     derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
 
     edge_filtering_luma(img, vertical, first,last, xStart,xEnd);
-    edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+
+    if (img->sps.ChromaArrayType != CHROMA_MONO) {
+      edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+    }
   }
 
   for (int x=0;x<=rightCtb;x++) {
@@ -1005,8 +1034,10 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
       logtrace(LogDeblock,"VERTICAL\n");
       derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
-      edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
+      if (img->sps.ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      }
 #if 0
       char buf[1000];
       sprintf(buf,"lf-after-V-%05d.yuv", ctx->img->PicOrderCntVal);
@@ -1018,7 +1049,10 @@ void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
       logtrace(LogDeblock,"HORIZONTAL\n");
       derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
-      edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+
+      if (img->sps.ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
+      }
 
 #if 0
       sprintf(buf,"lf-after-H-%05d.yuv", ctx->img->PicOrderCntVal);

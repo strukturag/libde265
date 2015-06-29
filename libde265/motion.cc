@@ -409,6 +409,36 @@ void generate_inter_prediction_samples(base_context* ctx,
   const int shift1_C = libde265_max(2,14-img->sps.BitDepth_C);
   const int offset_shift1_C = img->sps.WpOffsetBdShiftC;
 
+  /*
+  const int shift1_L = 14-img->sps.BitDepth_Y;
+  const int offset_shift1_L = img->sps.BitDepth_Y-8;
+  const int shift1_C = 14-img->sps.BitDepth_C;
+  const int offset_shift1_C = img->sps.BitDepth_C-8;
+  */
+
+  /*
+  if (0)
+  printf("%d/%d %d/%d %d/%d %d/%d\n",
+         shift1_L,
+         Nshift1_L,
+         offset_shift1_L,
+         Noffset_shift1_L,
+         shift1_C,
+         Nshift1_C,
+         offset_shift1_C,
+         Noffset_shift1_C);
+
+  assert(shift1_L==
+         Nshift1_L);
+  assert(offset_shift1_L==
+         Noffset_shift1_L);
+  assert(shift1_C==
+         Nshift1_C);
+  assert(offset_shift1_C==
+         Noffset_shift1_C);
+  */
+
+
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {

@@ -93,6 +93,10 @@ thread_context::thread_context()
   IsCuQpDeltaCoded = false;
   CuQpDelta = 0;
 
+  IsCuChromaQpOffsetCoded = false;
+  CuQpOffsetCb = 0;
+  CuQpOffsetCr = 0;
+
   /*
   currentQPY = 0;
   currentQG_x = 0;

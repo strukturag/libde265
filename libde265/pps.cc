@@ -54,8 +54,12 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
         uvlc+2 > sps->Log2MaxTrafoSize) {
-      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-      return false;
+
+      // Note: this is out of spec, but the conformance stream
+      // PERSIST_RPARAM_A_RExt_Sony_2 codes a too large value.
+
+      //ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      //return false;
     }
 
     log2_max_transform_skip_block_size = uvlc+2;
@@ -68,7 +72,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   }
 
   chroma_qp_offset_list_enabled_flag = get_bits(br,1);
-  if (sps->ChromaArrayType != CHROMA_MONO &&
+  if (sps->ChromaArrayType == CHROMA_MONO &&
       chroma_qp_offset_list_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
   }
@@ -157,8 +161,8 @@ void pps_range_extension::dump(int fd) const
     LOG1("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
     LOG1("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
-      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list);
-      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list);
+      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list[i]);
+      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list[i]);
     }
   }
 
