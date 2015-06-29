@@ -181,9 +181,18 @@ void display_image(const struct de265_image* img)
 
   int width  = de265_get_image_width(img,0);
   int height = de265_get_image_height(img,0);
+  de265_chroma chroma = de265_get_chroma_format(img);
+
+  ChromaFormat vgfx_chroma;
+  switch (chroma) {
+  case de265_chroma_420: vgfx_chroma = Chroma_420; break;
+  case de265_chroma_422: vgfx_chroma = Chroma_422; break;
+  case de265_chroma_444: vgfx_chroma = Chroma_444; break;
+  default: assert(false);
+  }
 
   Image<Pixel> visu;
-  visu.Create(width, height, Colorspace_YUV, Chroma_420);
+  visu.Create(width, height, Colorspace_YUV, vgfx_chroma);
 
   for (int ch=0;ch<3;ch++) {
     const uint8_t* data;
@@ -720,6 +729,8 @@ int main(int argc, char** argv)
 
           err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
+            // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
+
             if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
               stop = 1;
             more = 0;

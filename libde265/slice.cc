@@ -3021,7 +3021,6 @@ int check_CTB_available(const de265_image* img,
 
 int residual_coding(thread_context* tctx,
                     int x0, int y0,  // position of TU in frame
-                    int xL, int yL,  // position of TU in local CU
                     int log2TrafoSize,
                     int cIdx)
 {
@@ -3100,7 +3099,7 @@ int residual_coding(thread_context* tctx,
       scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
     }
     else {
-      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, tctx->IntraPredModeC);
+      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, tctx->IntraPredModeC[0]); // TODO
     }
   }
   else {
@@ -3432,6 +3431,39 @@ int residual_coding(thread_context* tctx,
 }
 
 
+static void decode_TU(thread_context* tctx,
+                      int x0,int y0,
+                      int xCUBase,int yCUBase,
+                      int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
+{
+  de265_image* img = tctx->img;
+
+  if (cuPredMode == MODE_INTRA) // if intra mode
+    {
+      enum IntraPredMode intraPredMode;
+
+      if (cIdx==0) {
+        intraPredMode = img->get_IntraPredMode(x0,y0);
+      }
+      else {
+        intraPredMode = tctx->IntraPredModeC[0]; // TODO
+      }
+
+      if (intraPredMode<0 || intraPredMode>=35) {
+        // TODO: ERROR
+        intraPredMode = INTRA_DC;
+      }
+
+      decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
+    }
+
+  if (cbf) {
+    scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, cIdx,
+                       tctx->transform_skip_flag[cIdx], cuPredMode==MODE_INTRA);
+  }
+}
+
+
 int read_transform_unit(thread_context* tctx,
                         int x0, int y0,        // position of TU in frame
                         int xBase, int yBase,  // position of parent TU in frame
@@ -3448,12 +3480,22 @@ int read_transform_unit(thread_context* tctx,
   assert(cbf_cr != -1);
   assert(cbf_luma != -1);
 
+  const int ChromaArrayType = tctx->img->sps.ChromaArrayType;
+
+  int log2TrafoSizeC = (ChromaArrayType==CHROMA_444 ? log2TrafoSize : log2TrafoSize-1);
+  log2TrafoSizeC = libde265_max(2, log2TrafoSizeC);
+
+  const int cbfLuma   = cbf_luma;
+  const int cbfChroma = cbf_cb | cbf_cr;
+
   tctx->transform_skip_flag[0]=0;
   tctx->transform_skip_flag[1]=0;
   tctx->transform_skip_flag[2]=0;
 
 
-  if (cbf_luma || cbf_cb || cbf_cr)
+  enum PredMode cuPredMode = tctx->img->get_pred_mode(x0,y0);
+
+  if (cbfLuma || cbfChroma)
     {
       if (tctx->img->pps.cu_qp_delta_enabled_flag &&
           !tctx->IsCuQpDeltaCoded) {
@@ -3477,39 +3519,127 @@ int read_transform_unit(thread_context* tctx,
       }
     }
 
+  // position of TU in local CU
+  int xL = x0 - xCUBase;
+  int yL = y0 - yCUBase;
+  int nT = 1<<log2TrafoSize;
+  int nTC = 1<<log2TrafoSizeC;
 
-  if (cbf_luma || cbf_cb || cbf_cr)
+  const int SubWidthC  = tctx->img->sps.SubWidthC;
+  const int SubHeightC = tctx->img->sps.SubHeightC;
+
+  // --- luma ---
+
+  int err;
+  if (cbf_luma) {
+    if ((err=residual_coding(tctx,x0,y0, log2TrafoSize,0)) != DE265_OK) return err;
+  }
+
+  decode_TU(tctx, x0,y0, xCUBase,yCUBase, nT, 0, cuPredMode, cbf_luma);
+
+
+  // --- chroma ---
+
+  const int yOffset422 = 1<<log2TrafoSizeC;
+
+  if (log2TrafoSize>2 || ChromaArrayType == CHROMA_444) {
+    // TODO: cross-component prediction
+
     {
-      // position of TU in local CU
-      int xL = x0 - xCUBase;
-      int yL = y0 - yCUBase;
-
-      int err;
-      if (cbf_luma) {
-        if ((err=residual_coding(tctx,x0,y0, xL,yL,log2TrafoSize,0)) != DE265_OK) return err;
+      if (cbf_cb & 1) {
+        if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) != DE265_OK) return err;
       }
 
-      if (log2TrafoSize>2) {
-        if (cbf_cb) {
-          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,1)) != DE265_OK) return err;
-        }
-
-        if (cbf_cr) {
-          if ((err=residual_coding(tctx,x0,y0,xL,yL,log2TrafoSize-1,2)) != DE265_OK) return err;
-        }
-      }
-      else if (blkIdx==3) {
-        if (cbf_cb) {
-          if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
-                                   log2TrafoSize,1)) != DE265_OK) return err;
-        }
-
-        if (cbf_cr) {
-          if ((err=residual_coding(tctx,xBase,yBase,xBase-xCUBase,yBase-yCUBase,
-                                   log2TrafoSize,2)) != DE265_OK) return err;
-        }
-      }
+      decode_TU(tctx,
+                x0/SubWidthC,y0/SubHeightC,
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, 1, cuPredMode, cbf_cb & 1);
     }
+
+    // 4:2:2
+    if (ChromaArrayType == CHROMA_422) {
+      const int yOffset = 1<<log2TrafoSizeC;
+
+      if (cbf_cb & 2) {
+        if ((err=residual_coding(tctx,
+                                 x0,y0+yOffset*SubHeightC,
+                                 log2TrafoSizeC,1)) != DE265_OK) return err;
+      }
+
+      decode_TU(tctx,
+                x0/SubWidthC,y0/SubHeightC + yOffset,
+                xCUBase/SubWidthC,yCUBase/SubHeightC +yOffset,
+                nTC, 1, cuPredMode, cbf_cb & 2);
+    }
+
+    {
+      if (cbf_cr & 1) {
+        if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,2)) != DE265_OK) return err;
+      }
+
+      decode_TU(tctx,
+                x0/SubWidthC,y0/SubHeightC,
+                xCUBase/SubWidthC,yCUBase/SubHeightC,
+                nTC, 2, cuPredMode, cbf_cr & 1);
+    }
+
+    // 4:2:2
+    if (ChromaArrayType == CHROMA_422) {
+      const int yOffset = 1<<log2TrafoSizeC;
+
+      if (cbf_cr & 2) {
+        if ((err=residual_coding(tctx,
+                                 x0,y0+yOffset*SubHeightC,
+                                 log2TrafoSizeC,2)) != DE265_OK) return err;
+      }
+
+      decode_TU(tctx,
+                x0/SubWidthC,y0/SubHeightC+yOffset,
+                xCUBase/SubWidthC,yCUBase/SubHeightC+yOffset,
+                nTC, 2, cuPredMode, cbf_cr & 2);
+    }
+  }
+  else if (blkIdx==3) {
+    if (cbf_cb & 1) {
+      if ((err=residual_coding(tctx,xBase,yBase,
+                               log2TrafoSize,1)) != DE265_OK) return err;
+    }
+
+    decode_TU(tctx,
+              xBase/SubWidthC,  yBase/SubHeightC,
+              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb);
+
+    // 4:2:2
+    if (cbf_cb & 2) {
+      if ((err=residual_coding(tctx,
+                               xBase        ,yBase        +(1<<log2TrafoSize),
+                               log2TrafoSize,1)) != DE265_OK) return err;
+
+      decode_TU(tctx,
+                xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb);
+    }
+
+    if (cbf_cr & 1) {
+      if ((err=residual_coding(tctx,xBase,yBase,
+                               log2TrafoSize,2)) != DE265_OK) return err;
+    }
+
+    decode_TU(tctx,
+              xBase/SubWidthC,  yBase/SubHeightC,
+              xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr);
+
+    // 4:2:2
+    if (cbf_cr & 2) {
+      if ((err=residual_coding(tctx,
+                               xBase        ,yBase        +(1<<log2TrafoSizeC),
+                               log2TrafoSize,2)) != DE265_OK) return err;
+
+      decode_TU(tctx,
+                xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr);
+    }
+  }
+
 
   return DE265_OK;
 }
@@ -3551,6 +3681,7 @@ void read_transform_tree(thread_context* tctx,
   int split_transform_flag;
 
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  assert(PredMode == cuPredMode);
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
@@ -3587,15 +3718,28 @@ void read_transform_tree(thread_context* tctx,
   int cbf_cb=-1;
   int cbf_cr=-1;
 
-  if (log2TrafoSize>2) {
+  // CBF_CB/CR flags are encoded like this:
+  // 4:2:0 and 4:4:4 modes: binary flag in bit 0
+  // 4:2:2 mode: bit 0: top block, bit 1: bottom block
+
+  if ((log2TrafoSize>2 && sps->ChromaArrayType != CHROMA_MONO) ||
+      sps->ChromaArrayType == CHROMA_444) {
     // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
     if (/*trafoDepth==0 ||*/ parent_cbf_cb) {
       cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
+
+      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+        cbf_cb = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+      }
     }
 
     // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
     if (/*trafoDepth==0 ||*/ parent_cbf_cr) {
       cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
+
+      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+        cbf_cr = (decode_cbf_chroma(tctx,trafoDepth) << 1);
+      }
     }
   }
 
@@ -3608,7 +3752,7 @@ void read_transform_tree(thread_context* tctx,
     /* The standard specifies to check trafoDepth>0 AND log2TrafoSize==2.
        However, I think that trafoDepth>0 is redundant as a CB is always
        at least 8x8 and hence trafoDepth>0.
-     */
+    */
 
     if (trafoDepth>0 && log2TrafoSize==2) {
       cbf_cb = parent_cbf_cb;
@@ -3649,7 +3793,7 @@ void read_transform_tree(thread_context* tctx,
     else {
       /* There cannot be INTER blocks with no residual data.
          That case is already handled with rqt_root_cbf.
-       */
+      */
 
       cbf_luma = 1;
     }
@@ -3658,68 +3802,6 @@ void read_transform_tree(thread_context* tctx,
 
     read_transform_unit(tctx, x0,y0,xBase,yBase, xCUBase,yCUBase, log2TrafoSize,trafoDepth, blkIdx,
                         cbf_luma, cbf_cb, cbf_cr);
-
-
-    int nT = 1<<log2TrafoSize;
-
-
-    if (cuPredMode == MODE_INTRA) // if intra mode
-      {
-        enum IntraPredMode intraPredMode = img->get_IntraPredMode(x0,y0);
-
-        if (intraPredMode<0 || intraPredMode>=35) {
-          // TODO: ERROR
-          intraPredMode = INTRA_DC;
-        }
-
-        decode_intra_prediction(img, x0,y0, intraPredMode, nT, 0);
-
-        enum IntraPredMode chromaPredMode = tctx->IntraPredModeC;
-
-        if (chromaPredMode<0 || chromaPredMode>=35) {
-          // TODO: ERROR
-          chromaPredMode = INTRA_DC;
-        }
-
-
-        if (nT>=8) {
-          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 1);
-          decode_intra_prediction(img, x0/2,y0/2, chromaPredMode, nT/2, 2);
-        }
-        else if (blkIdx==3) {
-          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 1);
-          decode_intra_prediction(img, xBase/2,yBase/2, chromaPredMode, nT, 2);
-        }
-      }
-
-    // NOTE: disable MC-mode residuals:
-    { //if (cuPredMode == MODE_INTRA) {
-      if (cbf_luma) {
-        scale_coefficients(tctx, x0,y0, xCUBase,yCUBase, nT, 0,
-                           tctx->transform_skip_flag[0], PredMode==MODE_INTRA);
-      }
-
-      if (nT>=8) {
-        if (cbf_cb) {
-          scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 1,
-                             tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
-        }
-        if (cbf_cr) {
-          scale_coefficients(tctx, x0/2,y0/2, xCUBase/2,yCUBase/2, nT/2, 2,
-                             tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
-        }
-      }
-      else if (blkIdx==3) {
-        if (cbf_cb) {
-          scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 1,
-                             tctx->transform_skip_flag[1], PredMode==MODE_INTRA);
-        }
-        if (cbf_cr) {
-          scale_coefficients(tctx, xBase/2,yBase/2, xCUBase/2,yCUBase/2, nT, 2,
-                             tctx->transform_skip_flag[2], PredMode==MODE_INTRA);
-        }
-      }
-    }
   }
 }
 
@@ -3962,6 +4044,35 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
 }
 
 
+int map_chroma_pred_mode(int intra_chroma_pred_mode, int IntraPredMode)
+{
+  if (intra_chroma_pred_mode==4) {
+    return IntraPredMode;
+  }
+  else {
+    static const enum IntraPredMode IntraPredModeCCand[4] = {
+      INTRA_PLANAR,
+      INTRA_ANGULAR_26, // vertical
+      INTRA_ANGULAR_10, // horizontal
+      INTRA_DC
+    };
+
+    int IntraPredModeC = IntraPredModeCCand[intra_chroma_pred_mode];
+    if (IntraPredModeC == IntraPredMode) {
+      return INTRA_ANGULAR_34;
+    }
+    else {
+      return IntraPredModeC;
+    }
+  }
+}
+
+// h.265-V2 Table 8-3
+static const uint8_t map_chroma_422[35] = {
+  0,1,2, 2, 2, 2, 3, 5, 7, 8,10,12,13,15,17,18,19,20,
+  21,22,23,23,24,24,25,25,26,27,27,28,28,29,29,30,31
+};
+
 void read_coding_unit(thread_context* tctx,
                       int x0, int y0,  // position of coding unit in frame
                       int log2CbSize,
@@ -4164,32 +4275,41 @@ void read_coding_unit(thread_context* tctx,
 
         // set chroma intra prediction mode
 
-        int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
+        if (sps->ChromaArrayType == CHROMA_444) {
+          // chroma 4:4:4
 
-        int IntraPredMode = img->get_IntraPredMode(x0,y0);
-        logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
+          idx = 0;
+          for (int j=0;j<nCbS;j+=pbOffset)
+            for (int i=0;i<nCbS;i+=pbOffset) {
+              int x = x0+i;
+              int y = y0+j;
 
-        int IntraPredModeC;
-        if (intra_chroma_pred_mode==4) {
-          IntraPredModeC = IntraPredMode;
+              int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
+              int IntraPredMode = img->get_IntraPredMode(x,y);
+
+              int IntraPredModeC = map_chroma_pred_mode(intra_chroma_pred_mode, IntraPredMode);
+
+              logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x,y,IntraPredModeC);
+
+              tctx->IntraPredModeC[idx] = (enum IntraPredMode) IntraPredModeC;
+
+              idx++;
+            }
         }
         else {
-          static enum IntraPredMode IntraPredModeCCand[4] = {
-            INTRA_PLANAR,
-            INTRA_ANGULAR_26, // vertical
-            INTRA_ANGULAR_10, // horizontal
-            INTRA_DC
-          };
+          // chroma 4:2:0 and 4:2:2
 
-          IntraPredModeC = IntraPredModeCCand[intra_chroma_pred_mode];
-          if (IntraPredModeC == IntraPredMode) {
-            IntraPredModeC = INTRA_ANGULAR_34;
+          int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
+          int IntraPredMode = img->get_IntraPredMode(x0,y0);
+          logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
+          int IntraPredModeC = map_chroma_pred_mode(intra_chroma_pred_mode, IntraPredMode);
+
+          if (sps->ChromaArrayType == CHROMA_422) {
+            IntraPredModeC = map_chroma_422[ IntraPredModeC ];
           }
+
+          tctx->IntraPredModeC[0] = (enum IntraPredMode) IntraPredModeC;
         }
-
-        logtrace(LogSlice,"IntraPredModeC[%d][%d]: %d\n",x0,y0,IntraPredModeC);
-
-        tctx->IntraPredModeC = (enum IntraPredMode) IntraPredModeC;
       }
     }
     else { // INTER
