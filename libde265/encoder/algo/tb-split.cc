@@ -182,14 +182,16 @@ static void recursive_cbfChroma(CABAC_encoder_estim* cabac,
 }
 
 
-enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
-                                       context_model_table& ctxModel,
-                                       const de265_image* input,
-                                       const enc_tb* parent,
-                                       enc_cb* cb,
-                                       int x0,int y0, int xBase,int yBase, int log2TbSize,
-                                       int blkIdx,
-                                       int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
+enc_tb* Algo_TB_Split::encode_transform_tree_no_split(encoder_context* ectx,
+                                                      context_model_table& ctxModel,
+                                                      const de265_image* input,
+                                                      const enc_tb* parent,
+                                                      enc_cb* cb,
+                                                      int x0,int y0, int xBase,int yBase,
+                                                      int log2TbSize,
+                                                      int blkIdx,
+                                                      int trafoDepth, int MaxTrafoDepth,
+                                                      int IntraSplitFlag)
 {
   de265_image* img = ectx->img;
 
@@ -264,9 +266,11 @@ enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
     encode_cbf_luma(&estim, trafoDepth==0, tb->cbf[0]);
   }
 
-  encode_transform_unit(ectx,&estim, tb,cb, x0,y0, xBase,yBase, log2TbSize, trafoDepth, blkIdx);
+  float bits = mAlgo_TB_RateEstimation->encode_transform_unit(ectx,ctxModel,
+                                                              tb,cb, x0,y0, xBase,yBase,
+                                                              log2TbSize, trafoDepth, blkIdx);
 
-  tb->rate_withoutCbfChroma += estim.getRDBits();
+  tb->rate_withoutCbfChroma += bits; //estim.getRDBits();
 
   estim.reset(); // TODO: not needed ?
 

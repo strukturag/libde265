@@ -120,6 +120,9 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
   Algo_TB_IntraPredMode_BruteForce  mAlgo_TB_IntraPredMode_BruteForce;
   Algo_TB_IntraPredMode_FastBrute   mAlgo_TB_IntraPredMode_FastBrute;
   Algo_TB_IntraPredMode_MinResidual mAlgo_TB_IntraPredMode_MinResidual;
+
+  Algo_TB_RateEstimation_None       mAlgo_TB_RateEstimation_None;
+  Algo_TB_RateEstimation_Exact      mAlgo_TB_RateEstimation_Exact;
 };
 
 

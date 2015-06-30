@@ -37,6 +37,7 @@
 #include "libde265/configparam.h"
 
 #include "libde265/encoder/algo/tb-intrapredmode.h"
+#include "libde265/encoder/algo/tb-rateestim.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -71,7 +72,7 @@ void diff_blk(int16_t* out,int out_stride,
 class Algo_TB_Split : public Algo
 {
  public:
-  Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
+ Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL), mAlgo_TB_RateEstimation(NULL) { }
   virtual ~Algo_TB_Split() { }
 
   virtual enc_tb* analyze(encoder_context*,
@@ -84,6 +85,7 @@ class Algo_TB_Split : public Algo
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
+  void setAlgo_TB_RateEstimation(Algo_TB_RateEstimation* algo) { mAlgo_TB_RateEstimation=algo; }
 
  protected:
   enc_tb* encode_transform_tree_split(encoder_context* ectx,
@@ -94,7 +96,17 @@ class Algo_TB_Split : public Algo
                                       int x0,int y0, int log2TbSize,
                                       int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
+  enc_tb* encode_transform_tree_no_split(encoder_context* ectx,
+                                         context_model_table& ctxModel,
+                                         const de265_image* input,
+                                         const enc_tb* parent,
+                                         enc_cb* cb,
+                                         int x0,int y0, int xBase,int yBase, int log2TbSize,
+                                         int blkIdx,
+                                         int trafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+
   Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
+  Algo_TB_RateEstimation* mAlgo_TB_RateEstimation;
 };
 
 

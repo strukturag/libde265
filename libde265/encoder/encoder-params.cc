@@ -51,6 +51,8 @@ encoder_params::encoder_params()
   mAlgo_TB_IntraPredMode_Subset.set_ID("TB-IntraPredMode-subset");
   mAlgo_CB_IntraPartMode.set_ID("CB-IntraPartMode");
 
+  mAlgo_TB_RateEstimation.set_ID("TB-RateEstimation");
+
   mAlgo_MEMode.set_ID("MEMode");
 }
 
@@ -70,6 +72,7 @@ void encoder_params::registerParams(config_parameters& config)
   config.add_option(&mAlgo_CB_IntraPartMode);
 
   config.add_option(&mAlgo_MEMode);
+  config.add_option(&mAlgo_TB_RateEstimation);
 
   mSOP_LowDelay.registerParams(config);
 }

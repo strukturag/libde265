@@ -41,7 +41,7 @@ class CodingOptions
 
   enum RateEstimationMethod
   {
-    Rate_Default,
+    Rate_Default,  // take default value from encoder_context
     Rate_AdaptiveContext,
     Rate_FixedContext
   };

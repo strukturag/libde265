@@ -132,6 +132,7 @@ struct encoder_params
   // rate-control
 
   enum RateControlMethod rateControlMethod;
+  option_ALGO_TB_RateEstimation mAlgo_TB_RateEstimation;
 
   //int constant_QP;
   //int lambda;
