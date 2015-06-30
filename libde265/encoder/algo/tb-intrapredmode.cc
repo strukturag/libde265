@@ -93,6 +93,41 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
 }
 
 
+float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
+                               enum IntraPredMode intraMode,
+                               enum IntraPredMode intraModeC,
+                               context_model_table& context_models,
+                               bool includeChroma)
+{
+  float rate;
+  int enc_bin;
+
+  /**/ if (candidates[0]==intraMode) { rate = 1; enc_bin=1; }
+  else if (candidates[1]==intraMode) { rate = 2; enc_bin=1; }
+  else if (candidates[2]==intraMode) { rate = 2; enc_bin=1; }
+  else { rate = 5; enc_bin=0; }
+
+  CABAC_encoder_estim estim;
+  estim.set_context_models(&context_models);
+  logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",enc_bin);
+  estim.write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
+
+  // TODO: currently we make the chroma-pred-mode decision for each part even
+  // in NxN part mode. Since we always set this to the same value, it does not
+  // matter. However, we should only add the rate for it once (for blkIdx=0).
+
+  if (includeChroma) {
+    assert(intraMode == intraModeC);
+
+    logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",0);
+    estim.write_CABAC_bit(CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,0);
+  }
+  rate += estim.getRDBits();
+
+  return rate;
+}
+
+
 
 
 float estim_TB_bitrate(const encoder_context* ectx,
@@ -233,10 +268,6 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       float rate = tb[intraMode]->rate;
       int enc_bin;
 
-      if (log2TbSize==3) {
-        // printf("RATE2 %d %f %f\n",log2TbSize,tb[intraMode]->rate,sad);
-      }
-
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
       else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
       else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
@@ -338,6 +369,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
+    enum IntraPredMode intraModeC = intraMode;
+
     /*
       decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
       decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
@@ -354,6 +387,21 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     ascend();
 
     debug_show_image(ectx->img, 0);
+
+
+    enum IntraPredMode candidates[3];
+    fillIntraPredModeCandidates(candidates, x0,y0,
+                                ectx->img->sps.getPUIndexRS(x0,y0),
+                                x0>0, y0>0, ectx->img);
+
+    float intraPredModeBits = get_intra_pred_mode_bits(candidates,
+                                                       intraMode,
+                                                       intraModeC,
+                                                       ctxModel,
+                                                       blkIdx == 0);
+
+    tb->rate_withoutCbfChroma += intraPredModeBits;
+    tb->rate += intraPredModeBits;
 
     return tb;
   }
@@ -454,7 +502,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       //copy_context_model_table(ctxIntra, ctxModel);
 
-      enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;
+      enum IntraPredMode intraMode  = (IntraPredMode)distortions[i].first;
+      enum IntraPredMode intraModeC = intraMode;
 
       if (!isPredModeEnabled(intraMode)) { continue; }
 
@@ -470,31 +519,15 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
       ascend();
 
-      float rate;
-      int enc_bin;
 
-      /**/ if (candidates[0]==intraMode) { rate = 1; enc_bin=1; }
-      else if (candidates[1]==intraMode) { rate = 2; enc_bin=1; }
-      else if (candidates[2]==intraMode) { rate = 2; enc_bin=1; }
-      else { rate = 5; enc_bin=0; }
+      float intraPredModeBits = get_intra_pred_mode_bits(candidates,
+                                                         intraMode,
+                                                         intraModeC,
+                                                         contexts[intraMode],
+                                                         blkIdx == 0);
 
-      CABAC_encoder_estim estim;
-      estim.set_context_models(&contexts[intraMode]);
-      logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",enc_bin);
-      estim.write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
-
-      // TODO: currently we make the chroma-pred-mode decision for each part even
-      // in NxN part mode. Since we always set this to the same value, it does not
-      // matter. However, we should only add the rate for it once (for blkIdx=0).
-
-      if (blkIdx==0) {
-        logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",0);
-        estim.write_CABAC_bit(CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE,0);
-      }
-      rate += estim.getRDBits();
-
-      tb[intraMode]->rate_withoutCbfChroma += rate;
-      tb[intraMode]->rate += rate;
+      tb[intraMode]->rate_withoutCbfChroma += intraPredModeBits;
+      tb[intraMode]->rate += intraPredModeBits;
 
       //printf("QQQ %f %f\n", b, estim.getRDBits());
 
