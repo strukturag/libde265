@@ -60,7 +60,7 @@ void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const en
       int xi = childX(x,i,cb->log2Size);
       int yi = childY(y,i,cb->log2Size);
 
-      int candModeList[3];
+      enum IntraPredMode candModeList[3];
       fillIntraPredModeCandidates(candModeList,xi,yi, xi>0, yi>0, ectx->img);
 
       int predmode = cb->intra.pred_mode[i];

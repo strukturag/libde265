@@ -1776,7 +1776,7 @@ void encode_coding_unit(encoder_context* ectx,
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
         int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
-        int candModeList[3];
+        enum IntraPredMode candModeList[3];
         fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
                                     availableA0,availableB0, img);
 
@@ -1811,7 +1811,7 @@ void encode_coding_unit(encoder_context* ectx,
 
               PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
-              int candModeList[3];
+              enum IntraPredMode candModeList[3];
               fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                           availableA,availableB, img);
 

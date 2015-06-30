@@ -31,14 +31,14 @@ extern const int intraPredAngle_table[1+34];
    block (which is (x>>Log2MinPUSize) + (y>>Log2MinPUSize)*PicWidthInMinPUs).
    availableA/B is the output of check_CTB_available().
  */
-void fillIntraPredModeCandidates(int candModeList[3],
+void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
                                  int x,int y, int PUidx,
                                  bool availableA, // left
                                  bool availableB, // top
                                  const de265_image* img);
 
 
-inline void fillIntraPredModeCandidates(int candModeList[3], int x,int y,
+inline void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y,
                                  bool availableA, // left
                                  bool availableB, // top
                                  const de265_image* img)
@@ -55,7 +55,7 @@ inline void fillIntraPredModeCandidates(int candModeList[3], int x,int y,
    This function may modify the candModeList !
  */
 int find_intra_pred_mode(enum IntraPredMode mode,
-                         int candModeList[3]);
+                         enum IntraPredMode candModeList[3]);
 
 void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
                                  enum IntraPredMode luma_mode);

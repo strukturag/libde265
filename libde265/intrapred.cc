@@ -52,7 +52,7 @@ void print_border(pixel_t* data, uint8_t* available, int nT)
 #endif
 
 
-void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
+void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y, int PUidx,
                                  bool availableA, // left
                                  bool availableB, // top
                                  const de265_image* img)
@@ -104,8 +104,8 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
     }
     else {
       candModeList[0] = candIntraPredModeA;
-      candModeList[1] = 2 + ((candIntraPredModeA-2 -1 +32) % 32);
-      candModeList[2] = 2 + ((candIntraPredModeA-2 +1    ) % 32);
+      candModeList[1] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 -1 +32) % 32));
+      candModeList[2] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 +1    ) % 32));
     }
   }
   else {
@@ -136,7 +136,7 @@ void fillIntraPredModeCandidates(int candModeList[3], int x,int y, int PUidx,
 
 
 int find_intra_pred_mode(enum IntraPredMode mode,
-                         int candModeList[3])
+                         enum IntraPredMode candModeList[3])
 {
   // check whether the mode is in the candidate list
 

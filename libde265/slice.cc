@@ -4387,7 +4387,7 @@ void read_coding_unit(thread_context* tctx,
 
               int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
-              int candModeList[3];
+              enum IntraPredMode candModeList[3];
 
               fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                           availableA, availableB, img);

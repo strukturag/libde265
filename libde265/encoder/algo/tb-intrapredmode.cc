@@ -39,7 +39,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
   enum IntraPredMode best_mode;
   int min_sad=-1;
 
-  int candidates[3];
+  enum IntraPredMode candidates[3];
 
   const seq_parameter_set* sps = &img.sps;
 
@@ -194,7 +194,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
-    int candidates[3];
+    enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
                                 sps->getPUIndexRS(x0,y0),
                                 x0>0, y0>0, img);
@@ -407,7 +407,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
-    int candidates[3];
+    enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
                                 sps->getPUIndexRS(x0,y0),
                                 x0>0, y0>0, img);
@@ -470,13 +470,13 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
       ascend();
 
-      float rate = 0;
+      float rate;
       int enc_bin;
 
-      /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
-      else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
-      else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
-      else { rate += 5; enc_bin=0; }
+      /**/ if (candidates[0]==intraMode) { rate = 1; enc_bin=1; }
+      else if (candidates[1]==intraMode) { rate = 2; enc_bin=1; }
+      else if (candidates[2]==intraMode) { rate = 2; enc_bin=1; }
+      else { rate = 5; enc_bin=0; }
 
       CABAC_encoder_estim estim;
       estim.set_context_models(&contexts[intraMode]);
