@@ -51,11 +51,11 @@ class Algo
 
 #ifdef DE265_LOG_DEBUG
   void descend(enc_node* node,const char* option_description, ...);
-  void ascend();
+  void ascend(const char* fmt=NULL, ...);
   void leaf(enc_node* node,const char* option_description, ...);
 #else
   inline void descend(enc_node*,const char*, ...) { }
-  inline void ascend() { }
+  inline void ascend(const char* fmt=NULL, ...) { }
   inline void leaf(enc_node*,const char*, ...) { }
 #endif
 };

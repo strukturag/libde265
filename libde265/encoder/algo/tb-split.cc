@@ -261,16 +261,18 @@ enc_tb* Algo_TB_Split::encode_transform_tree_no_split(encoder_context* ectx,
 
   // --- CBF CB/CR ---
 
+  float luma_cbf_bits = 0;
   if (cb->PredMode == MODE_INTRA || trafoDepth != 0 ||
       tb->cbf[1] || tb->cbf[2]) {
     encode_cbf_luma(&estim, trafoDepth==0, tb->cbf[0]);
+    luma_cbf_bits = estim.getRDBits();
   }
 
   float bits = mAlgo_TB_RateEstimation->encode_transform_unit(ectx,ctxModel,
                                                               tb,cb, x0,y0, xBase,yBase,
                                                               log2TbSize, trafoDepth, blkIdx);
 
-  tb->rate_withoutCbfChroma += bits; //estim.getRDBits();
+  tb->rate_withoutCbfChroma += bits + luma_cbf_bits;
 
   estim.reset(); // TODO: not needed ?
 
@@ -341,7 +343,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                         x0+dx, y0+dy, x0,y0,
                                                         log2TbSize-1, i,
                                                         TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
-      ascend();
+      ascend("bits:%f",tb->rate);
     }
     else {
       descend(tb,"inter");
@@ -402,8 +404,6 @@ struct Logging_TB_Split : public Logging
 
   void print(const encoder_context* ectx, const char* filename)
   {
-    printf("%d %d\n\n",skipTBSplit, noskipTBSplit);
-
     for (int tb=3;tb<=5;tb++) {
       for (int z=0;z<=1;z++) {
         float total = 0;
@@ -472,11 +472,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
-    leaf(cb,"no split");
+    descend(cb,"no split");
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
                                                  TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+    ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
     rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
 

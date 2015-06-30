@@ -36,6 +36,25 @@ int allocCB = 0;
 #define DEBUG_ALLOCS 0
 
 
+#ifdef DE265_LOG_DEBUG
+#define ESTIM_BITS_BEGIN \
+  float log_bits_pre = 0; \
+  CABAC_encoder_estim* log_estim = dynamic_cast<CABAC_encoder_estim*>(cabac); \
+  if (log_estim) { \
+    log_bits_pre = log_estim->getRDBits(); \
+  } \
+
+#define ESTIM_BITS_END(name) \
+  if (log_estim) { \
+    float bits_post = log_estim->getRDBits(); \
+    printf("%s=%f\n",name,bits_post - log_bits_pre);  \
+  }
+#else
+#define ESTIM_BITS_BEGIN
+#define ESTIM_BITS_END(name)
+#endif
+
+
 
 void enc_node::save(const de265_image* img)
 {
@@ -1453,6 +1472,8 @@ void encode_transform_unit(encoder_context* ectx,
                            int x0,int y0, int xBase,int yBase,
                            int log2TrafoSize, int trafoDepth, int blkIdx)
 {
+  ESTIM_BITS_BEGIN;
+
   if (tb->cbf[0] || tb->cbf[1] || tb->cbf[2]) {
     if (ectx->img->pps.cu_qp_delta_enabled_flag &&
         true /*!ectx->IsCuQpDeltaCoded*/) {
@@ -1482,6 +1503,8 @@ void encode_transform_unit(encoder_context* ectx,
       }
     }
   }
+
+  ESTIM_BITS_END("encode_transform_unit");
 }
 
 
@@ -1492,6 +1515,8 @@ void encode_transform_tree(encoder_context* ectx,
                            int log2TrafoSize, int trafoDepth, int blkIdx,
                            int MaxTrafoDepth, int IntraSplitFlag, bool recurse)
 {
+  ESTIM_BITS_BEGIN;
+
   //de265_image* img = ectx->img;
   const seq_parameter_set* sps = &ectx->img->sps;
 
@@ -1565,6 +1590,8 @@ void encode_transform_tree(encoder_context* ectx,
 
     encode_transform_unit(ectx,cabac, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
   }
+
+  ESTIM_BITS_END("encode_transform_tree");
 }
 
 

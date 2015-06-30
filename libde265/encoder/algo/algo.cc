@@ -45,8 +45,21 @@ void Algo::descend(enc_node* node, const char* option, ...)
   fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
 }
 
-void Algo::ascend()
+void Algo::ascend(const char* fmt, ...)
 {
+  if (fmt != NULL) {
+    printf("%d ",descendLevel);
+    for (int i=0;i<descendLevel;i++) { printf(" "); }
+
+    va_list va;
+    va_start(va, fmt);
+    va_end(va);
+
+    fprintf(stdout, "<%s(", name());
+    vfprintf(stdout, fmt, va);
+    fprintf(stdout, ")\n");
+  }
+
   descendLevel--;
 }
 
