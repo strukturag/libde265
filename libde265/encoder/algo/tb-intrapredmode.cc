@@ -470,7 +470,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
       ascend();
 
-      float rate = tb[intraMode]->rate_withoutCbfChroma;
+      float rate = 0;
       int enc_bin;
 
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
@@ -480,7 +480,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       CABAC_encoder_estim estim;
       estim.set_context_models(&contexts[intraMode]);
-      //rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
       logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",enc_bin);
       estim.write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
 
@@ -494,13 +493,12 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       }
       rate += estim.getRDBits();
 
-      float cbfRate = tb[intraMode]->rate - tb[intraMode]->rate_withoutCbfChroma;
-      tb[intraMode]->rate_withoutCbfChroma = rate;
-      tb[intraMode]->rate = tb[intraMode]->rate_withoutCbfChroma + cbfRate;
+      tb[intraMode]->rate_withoutCbfChroma += rate;
+      tb[intraMode]->rate += rate;
 
       //printf("QQQ %f %f\n", b, estim.getRDBits());
 
-      float cost = tb[intraMode]->distortion + ectx->lambda * rate;
+      float cost = tb[intraMode]->distortion + ectx->lambda * tb[intraMode]->rate;
 
       //printf("idx:%d mode:%d cost:%f\n",i,intraMode,cost);
 
