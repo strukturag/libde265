@@ -29,7 +29,6 @@
 #include <math.h>
 #include <algorithm>
 #include <iostream>
-#include <cfloat>
 
 
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
@@ -202,7 +201,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
 
     for (int i = 0; i<35; i++) {
-      if (!mPredMode_enabled[i]) {
+      if (!isPredModeEnabled((enum IntraPredMode)i)) {
         tb[i]=NULL;
         continue;
       }
@@ -311,26 +310,28 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   if (selectIntraPredMode) {
 
     enum IntraPredMode intraMode;
-    float minDistortion = FLT_MAX;
+    float minDistortion = std::numeric_limits<float>::max();
 
-    for (int idx=0;idx<35;idx++) {
-      if (!mPredMode_enabled[idx]) {
-        continue;
-      }
+    assert(nPredModesEnabled()>=1);
 
-      enum IntraPredMode mode = (enum IntraPredMode)idx;
-      decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+    if (nPredModesEnabled()==1) {
+      intraMode = getPredMode(0);
+    }
+    else {
+      for (int idx=0;idx<nPredModesEnabled();idx++) {
+        enum IntraPredMode mode = getPredMode(idx);
+        decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
 
-      float distortion;
-      distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
-                                    mParams.bitrateEstimMethod());
+        float distortion;
+        distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
+                                      mParams.bitrateEstimMethod());
 
-      if (distortion<minDistortion) {
-        minDistortion = distortion;
-        intraMode = mode;
+        if (distortion<minDistortion) {
+          minDistortion = distortion;
+          intraMode = mode;
+        }
       }
     }
-
 
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
@@ -338,9 +339,9 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     /*
-    decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
-    decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
-    decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 2);
+      decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
+      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
+      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 2);
     */
 
     // Note: cannot prepare intra prediction pixels here, because this has to
@@ -416,7 +417,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     std::vector< std::pair<enum IntraPredMode,float> > distortions;
 
     for (int idx=0;idx<35;idx++)
-      if (idx!=candidates[0] && idx!=candidates[1] && idx!=candidates[2] && mPredMode_enabled[idx])
+      if (idx!=candidates[0] && idx!=candidates[1] && idx!=candidates[2] &&
+          isPredModeEnabled((enum IntraPredMode)idx))
         {
           enum IntraPredMode mode = (enum IntraPredMode)idx;
           decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
@@ -454,7 +456,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       enum IntraPredMode intraMode = (IntraPredMode)distortions[i].first;
 
-      if (!mPredMode_enabled[intraMode]) { continue; }
+      if (!isPredModeEnabled(intraMode)) { continue; }
 
       cb->intra.pred_mode[blkIdx] = intraMode;
       if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }

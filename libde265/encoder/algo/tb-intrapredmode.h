@@ -144,26 +144,41 @@ class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
 {
  public:
   Algo_TB_IntraPredMode_ModeSubset() {
+    enableAllIntraPredModes();
+  }
+
+  void enableAllIntraPredModes() {
     for (int i=0;i<35;i++) {
       mPredMode_enabled[i] = true;
+      mPredMode[i] = (enum IntraPredMode)i;
     }
+
+    mNumPredModesEnabled = 35;
   }
 
   void disableAllIntraPredModes() {
     for (int i=0;i<35;i++) {
       mPredMode_enabled[i] = false;
     }
+
+    mNumPredModesEnabled = 0;
   }
 
-  void enableIntraPredMode(int mode, bool flag=true) {
-    mPredMode_enabled[mode] = flag;
+  void enableIntraPredMode(enum IntraPredMode mode) {
+    if (!mPredMode_enabled[mode]) {
+      mPredMode[mNumPredModesEnabled] = mode;
+      mPredMode_enabled[mode] = true;
+      mNumPredModesEnabled++;
+    }
   }
+
+  // TODO: method to disable modes
 
   void enableIntraPredModeSubset(enum ALGO_TB_IntraPredMode_Subset subset) {
     switch (subset)
       {
       case ALGO_TB_IntraPredMode_Subset_All: // activate all is the default
-        for (int i=0;i<35;i++) { enableIntraPredMode(i); }
+        for (int i=0;i<35;i++) { enableIntraPredMode((enum IntraPredMode)i); }
         break;
       case ALGO_TB_IntraPredMode_Subset_DC:
         disableAllIntraPredModes();
@@ -183,8 +198,24 @@ class Algo_TB_IntraPredMode_ModeSubset : public Algo_TB_IntraPredMode
       }
   }
 
- protected:
+
+  enum IntraPredMode getPredMode(int idx) const {
+    assert(idx<mNumPredModesEnabled);
+    return mPredMode[idx];
+  }
+
+  int nPredModesEnabled() const {
+    return mNumPredModesEnabled;
+  }
+
+  bool isPredModeEnabled(enum IntraPredMode mode) {
+    return mPredMode_enabled[mode];
+  }
+
+ private:
+  IntraPredMode mPredMode[35];
   bool mPredMode_enabled[35];
+  int  mNumPredModesEnabled;
 };
 
 
