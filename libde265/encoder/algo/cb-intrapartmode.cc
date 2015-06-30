@@ -113,9 +113,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
                                              context_model_table& ctxModel,
                                              enc_cb* cb)
 {
-  std::cout << "CB-IntraPartMode in size=" << (1<<cb->log2Size)
-            << " hash=" << ctxModel.debug_dump() << "\n";
-
   enum PartMode PartMode = mParams.partMode();
 
 
@@ -157,8 +154,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   cb->distortion = cb->transform_tree->distortion;
   cb->rate       = cb->transform_tree->rate;
 
-  std::cout << "SUM TB-tree hinter PartMode " << cb->rate << "\n";
-
 
   // rate for cu syntax
 
@@ -176,9 +171,6 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   }
 
   cb->rate += estim.getRDBits();
-
-  std::cout << "CB-IntraPartMode out size=" << (1<<cb->log2Size)
-            << " hash=" << ctxModel.debug_dump() << "\n";
 
   return cb;
 }
