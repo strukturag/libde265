@@ -49,5 +49,8 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   ectx->img->set_pcm_flag(ctb_x,ctb_y,cb->log2Size, cb->pcm_flag);
 
   assert(mChildAlgo);
-  return mChildAlgo->analyze(ectx,ctxModel,cb);
+  descend(cb, "Q=%d",ectx->active_qp);
+  enc_cb* result_cb = mChildAlgo->analyze(ectx,ctxModel,cb);
+  ascend();
+  return result_cb;
 }

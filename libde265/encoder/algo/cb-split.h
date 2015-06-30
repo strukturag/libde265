@@ -65,6 +65,8 @@ class Algo_CB_Split : public Algo_CB
   // has two child algorithms, depending on the coding mode.
   void setChildAlgo(Algo_CB* algo) { mChildAlgo = algo; }
 
+  const char* name() const { return "cb-split"; }
+
  protected:
   Algo_CB* mChildAlgo;
 
@@ -80,6 +82,8 @@ class Algo_CB_Split_BruteForce : public Algo_CB_Split
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table&,
                           enc_cb* cb);
+
+  const char* name() const { return "cb-split-bruteforce"; }
 };
 
 #endif

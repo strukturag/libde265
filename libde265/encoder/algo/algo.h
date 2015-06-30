@@ -42,7 +42,26 @@
    has to restore the state to the selected variant.
  */
 
-class Algo_CB
+class Algo
+{
+ public:
+  virtual ~Algo() { }
+
+  virtual const char* name() const { return "noname"; }
+
+#ifdef DE265_LOG_DEBUG
+  void descend(enc_node* node,const char* option_description, ...);
+  void ascend();
+  void leaf(enc_node* node,const char* option_description, ...);
+#else
+  inline void descend(enc_node*,const char*, ...) { }
+  inline void ascend() { }
+  inline void leaf(enc_node*,const char*, ...) { }
+#endif
+};
+
+
+class Algo_CB : public Algo
 {
  public:
   virtual ~Algo_CB() { }
@@ -59,7 +78,7 @@ class Algo_CB
 };
 
 
-class Algo_PB
+class Algo_PB : public Algo
 {
  public:
   virtual ~Algo_PB() { }

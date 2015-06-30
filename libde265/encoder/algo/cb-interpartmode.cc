@@ -48,46 +48,46 @@ enc_cb* Algo_CB_InterPartMode::codeAllPBs(encoder_context* ectx,
 
   case PART_NxN:
     s = 1<<(log2Size-1);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y  ,s,s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y  ,s,s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 2, x  ,y+s,s,s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 3, x+s,y+s,s,s);
+    descend(cb,"NxN(1/4)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y  ,s,s); ascend();
+    descend(cb,"NxN(2/4)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y  ,s,s); ascend();
+    descend(cb,"NxN(3/4)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 2, x  ,y+s,s,s); ascend();
+    descend(cb,"NxN(4/4)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 3, x+s,y+s,s,s); ascend();
     break;
 
   case PART_2NxN:
     s = 1<<(log2Size-1);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,s);
+    descend(cb,"2NxN(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s); ascend();
+    descend(cb,"2NxN(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,s); ascend();
     break;
 
   case PART_Nx2N:
     s = 1<<(log2Size-1);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s,w);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,s,w);
+    descend(cb,"Nx2N(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s,w); ascend();
+    descend(cb,"Nx2N(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,s,w); ascend();
     break;
 
   case PART_2NxnU:
     s = 1<<(log2Size-2);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,w-s);
+    descend(cb,"2NxnU(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y  ,w,s);   ascend();
+    descend(cb,"2NxnU(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+s,w,w-s); ascend();
     break;
 
   case PART_2NxnD:
     s = 1<<(log2Size-2);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y    ,w,w-s);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+w-s,w,s);
+    descend(cb,"2NxnD(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x,y    ,w,w-s); ascend();
+    descend(cb,"2NxnD(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x,y+w-s,w,s);   ascend();
     break;
 
   case PART_nLx2N:
     s = 1<<(log2Size-2);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s  ,w);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,w-s,w);
+    descend(cb,"nLx2N(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x  ,y,s  ,w); ascend();
+    descend(cb,"nLx2N(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+s,y,w-s,w); ascend();
     break;
 
   case PART_nRx2N:
     s = 1<<(log2Size-2);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x    ,y,w-s,w);
-    cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+w-s,y,s  ,w);
+    descend(cb,"nRx2N(1/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 0, x    ,y,w-s,w); ascend();
+    descend(cb,"nRx2N(2/2)"); cb = mChildAlgo->analyze(ectx, ctxModel, cb, 1, x+w-s,y,s  ,w); ascend();
     break;
   }
 

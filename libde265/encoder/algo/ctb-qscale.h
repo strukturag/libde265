@@ -26,6 +26,7 @@
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include "libde265/encoder/encode.h"
+#include "libde265/encoder/algo/algo.h"
 #include "libde265/slice.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
@@ -54,7 +55,7 @@
 
 // ========== choose a qscale at CTB level ==========
 
-class Algo_CTB_QScale
+class Algo_CTB_QScale : public Algo
 {
  public:
  Algo_CTB_QScale() : mChildAlgo(NULL) { }
@@ -98,6 +99,8 @@ class Algo_CTB_QScale_Constant : public Algo_CTB_QScale
                           int ctb_x,int ctb_y);
 
   int getQP() const { return mParams.mQP; }
+
+  const char* name() const { return "ctb-qscale-constant"; }
 
  private:
   params mParams;

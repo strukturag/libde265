@@ -51,6 +51,8 @@ class Algo_CB_IntraInter : public Algo_CB
   void setIntraChildAlgo(Algo_CB* algo) { mIntraAlgo = algo; }
   void setInterChildAlgo(Algo_CB* algo) { mInterAlgo = algo; }
 
+  virtual const char* name() const { return "cb-intra-inter"; }
+
  protected:
   Algo_CB* mIntraAlgo;
   Algo_CB* mInterAlgo;

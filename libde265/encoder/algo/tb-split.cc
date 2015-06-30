@@ -332,16 +332,20 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dy = (i>>1) << (log2TbSize-1);
 
     if (cb->PredMode == MODE_INTRA) {
+      descend(tb,"intra");
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input, tb, cb,
                                                         x0+dx, y0+dy, x0,y0,
                                                         log2TbSize-1, i,
                                                         TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+      ascend();
     }
     else {
+      descend(tb,"inter");
       tb->children[i] = this->analyze(ectx, ctxModel, input, tb, cb,
                                       x0+dx, y0+dy, x0,y0,
                                       log2TbSize-1, i,
                                       TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+      ascend();
     }
 
     tb->distortion            += tb->children[i]->distortion;
@@ -464,6 +468,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
+    leaf(cb,"no split");
     tb_no_split = encode_transform_tree_no_split(ectx, ctxModel, input, parent,
                                                  cb, x0,y0, xBase,yBase, log2TbSize,
                                                  blkIdx,
@@ -485,9 +490,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
+    descend(cb,"split");
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+    ascend();
 
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
   }

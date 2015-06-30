@@ -52,6 +52,8 @@ class Algo_CB_MergeIndex : public Algo_CB
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplit = algo; }
   // TODO void setInterChildAlgo(Algo_CB_IntraPartMode* algo) { mInterPartModeAlgo = algo; }
 
+  virtual const char* name() const { return "cb-mergeindex"; }
+
  protected:
   Algo_TB_Split* mTBSplit;
 

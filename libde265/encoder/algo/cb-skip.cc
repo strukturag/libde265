@@ -67,7 +67,9 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
 
     // encode CB
 
+    descend(cb,"yes");
     cb = mSkipAlgo->analyze(ectx, opt.get_context(), cb);
+    ascend();
 
     // add rate for PredMode
 
@@ -93,7 +95,10 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
       cabac->reset();
     }
 
+    descend(cb,"no");
     cb = mNonSkipAlgo->analyze(ectx, opt.get_context(), cb);
+    ascend();
+
     // add rate for PredMode
 
     cb->rate += rate_pred_mode;

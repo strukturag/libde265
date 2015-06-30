@@ -22,3 +22,46 @@
 
 #include "libde265/encoder/algo/algo.h"
 #include "libde265/encoder/encoder-context.h"
+
+#include <stdarg.h>
+
+
+
+#ifdef DE265_LOG_DEBUG
+static int descendLevel = 0;
+
+void Algo::descend(enc_node* node, const char* option, ...)
+{
+  descendLevel++;
+  printf("%d ",descendLevel);
+  for (int i=0;i<descendLevel;i++) { printf(" "); }
+
+  va_list va;
+  va_start(va, option);
+  va_end(va);
+
+  fprintf(stdout, "%s(", name());
+  vfprintf(stdout, option, va);
+  fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+}
+
+void Algo::ascend()
+{
+  descendLevel--;
+}
+
+void Algo::leaf(enc_node* node, const char* option, ...)
+{
+  printf("%d ",descendLevel+1);
+  for (int i=0;i<descendLevel+1;i++) { printf(" "); }
+
+  va_list va;
+  va_start(va, option);
+  va_end(va);
+
+  fprintf(stdout, "%s(", name());
+  vfprintf(stdout, option, va);
+  fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+}
+
+#endif

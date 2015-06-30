@@ -60,7 +60,9 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
       childCB->x = child_x;
       childCB->y = child_y;
 
+      descend(cb,"yes %d/4",i+1);
       cb->children[i] = analyze(ectx, ctxModel, childCB);
+      ascend();
 
       cb->distortion += cb->children[i]->distortion;
       cb->rate       += cb->children[i]->rate;
@@ -118,7 +120,10 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
     // analyze subtree
     assert(mChildAlgo);
+
+    descend(cb,"no");
     cb = mChildAlgo->analyze(ectx, opt.get_context(), cb);
+    ascend();
 
     // add rate for split flag
     if (split_type == OptionalSplit) {

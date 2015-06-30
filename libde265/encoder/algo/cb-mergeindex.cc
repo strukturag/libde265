@@ -106,9 +106,11 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   if (mCodeResidual) {
     assert(false);
+    descend(cb,"with residual");
     cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                            cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                            0, MaxTrafoDepth, IntraSplitFlag);
+    ascend();
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 
@@ -126,6 +128,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     cabac.set_context_models(&ctxModel);
     encode_merge_idx(ectx, &cabac, spec.merge_idx);
 
+    leaf(cb,"no residual");
     cb->distortion = compute_distortion_ssd(input, img, x0,y0, cb->log2Size, 0);
     cb->rate = cabac.getRDBits();
 

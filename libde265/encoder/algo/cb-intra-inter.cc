@@ -75,7 +75,9 @@ enc_cb* Algo_CB_IntraInter_BruteForce::analyze(encoder_context* ectx,
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTER);
 
     enc_cb* cb_result;
+    descend(cb,"inter");
     cb_result=mInterAlgo->analyze(ectx, option_inter.get_context(), cb_inter);
+    ascend();
 
     if (cb_result->PredMode != MODE_SKIP) {
       CABAC_encoder_estim* cabac = option_inter.get_cabac();
@@ -104,7 +106,9 @@ enc_cb* Algo_CB_IntraInter_BruteForce::analyze(encoder_context* ectx,
     ectx->img->set_pred_mode(x,y, log2CbSize, MODE_INTRA);
 
     enc_cb* cb_result;
+    descend(cb,"intra");
     cb_result=mIntraAlgo->analyze(ectx, option_intra.get_context(), cb_intra);
+    ascend();
 
     if (ectx->shdr->slice_type != SLICE_TYPE_I) {
       CABAC_encoder_estim* cabac = option_intra.get_cabac();

@@ -1039,6 +1039,8 @@ void encode_residual(encoder_context* ectx,
                      const enc_tb* tb, const enc_cb* cb,
                      int x0,int y0,int log2TrafoSize,int cIdx)
 {
+  printf("encode_residual %s\n",typeid(*cabac).name());
+
   const de265_image* img = ectx->img;
   const seq_parameter_set& sps = img->sps;
   const pic_parameter_set& pps = img->pps;

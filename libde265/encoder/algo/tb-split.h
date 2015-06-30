@@ -26,6 +26,7 @@
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include "libde265/encoder/encode.h"
+#include "libde265/encoder/algo/algo.h"
 #include "libde265/slice.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
@@ -67,7 +68,7 @@ void diff_blk(int16_t* out,int out_stride,
 
 // ========== TB split decision ==========
 
-class Algo_TB_Split
+class Algo_TB_Split : public Algo
 {
  public:
   Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
@@ -144,6 +145,8 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
                           int x0,int y0, int xBase,int yBase, int log2TbSize,
                           int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+
+  const char* name() const { return "tb-split-bruteforce"; }
 
  private:
   params mParams;

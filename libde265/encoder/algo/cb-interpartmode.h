@@ -50,6 +50,8 @@ class Algo_CB_InterPartMode : public Algo_CB
 
   void setChildAlgo(Algo_PB* algo) { mChildAlgo = algo; }
 
+  virtual const char* name() const { return "cb-interpartmode"; }
+
  protected:
   Algo_PB* mChildAlgo;
 
@@ -97,6 +99,8 @@ class Algo_CB_InterPartMode_Fixed : public Algo_CB_InterPartMode
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table&,
                           enc_cb* cb);
+
+  virtual const char* name() const { return "cb-interpartmode-fixed"; }
 
  private:
   params mParams;
