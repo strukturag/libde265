@@ -598,6 +598,7 @@ void seq_parameter_set::dump(int fd) const
 
   LOG1("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
   LOG2("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
+       chroma_format_idc == 0 ? "monochroma" :
        chroma_format_idc == 1 ? "4:2:0" :
        chroma_format_idc == 2 ? "4:2:2" :
        chroma_format_idc == 3 ? "4:4:4" : "unknown");
