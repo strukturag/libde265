@@ -624,7 +624,7 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int ch
 
   uint8_t* data = img->pixels_confwin[channel];
 
-  if (stride) *stride = img->get_image_stride(channel);
+  if (stride) *stride = img->get_image_stride(channel) * ((de265_get_bits_per_pixel(img, channel)+7) / 8);
 
   return data;
 }
