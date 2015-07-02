@@ -58,10 +58,13 @@ void NAL_unit::clear()
   skipped_bytes.clear();
 }
 
-void NAL_unit::resize(int new_size)
+LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
 {
   if (capacity < new_size) {
     unsigned char* newbuffer = (unsigned char*)malloc(new_size);
+    if (newbuffer == NULL) {
+      return false;
+    }
 
     if (nal_data != NULL) {
       memcpy(newbuffer, nal_data, data_size);
@@ -71,20 +74,27 @@ void NAL_unit::resize(int new_size)
     nal_data = newbuffer;
     capacity = new_size;
   }
+  return true;
 }
 
-void NAL_unit::append(const unsigned char* in_data, int n)
+LIBDE265_CHECK_RESULT bool NAL_unit::append(const unsigned char* in_data, int n)
 {
-  resize(data_size + n);
+  if (!resize(data_size + n)) {
+    return false;
+  }
   memcpy(nal_data + data_size, in_data, n);
   data_size += n;
+  return true;
 }
 
-void NAL_unit::set_data(const unsigned char* in_data, int n)
+bool LIBDE265_CHECK_RESULT NAL_unit::set_data(const unsigned char* in_data, int n)
 {
-  resize(n);
+  if (!resize(n)) {
+    return false;
+  }
   memcpy(nal_data, in_data, n);
   data_size = n;
+  return true;
 }
 
 void NAL_unit::insert_skipped_byte(int pos)
@@ -177,7 +187,7 @@ NAL_Parser::~NAL_Parser()
 }
 
 
-NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
+LIBDE265_CHECK_RESULT NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
 {
   NAL_unit* nal;
 
@@ -192,13 +202,20 @@ NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
   }
 
   nal->clear();
-  nal->resize(size);
+  if (!nal->resize(size)) {
+    free_NAL_unit(nal);
+    return NULL;
+  }
 
   return nal;
 }
 
 void NAL_Parser::free_NAL_unit(NAL_unit* nal)
 {
+  if (nal == NULL) {
+    // Allow calling with NULL just like regular "free()"
+    return;
+  }
   if (NAL_free_list.size() < DE265_NAL_FREE_LIST_SIZE) {
     NAL_free_list.push_back(nal);
   }
@@ -235,6 +252,9 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
   if (pending_input_NAL == NULL) {
     pending_input_NAL = alloc_NAL_unit(len+3);
+    if (pending_input_NAL == NULL) {
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
     pending_input_NAL->pts = pts;
     pending_input_NAL->user_data = user_data;
   }
@@ -243,7 +263,9 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
   // Resize output buffer so that complete input would fit.
   // We add 3, because in the worst case 3 extra bytes are created for an input byte.
-  nal->resize(nal->size() + len + 3);
+  if (!nal->resize(nal->size() + len + 3)) {
+    return DE265_ERROR_OUT_OF_MEMORY;
+  }
 
   unsigned char* out = nal->data() + nal->size();
 
@@ -316,6 +338,9 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
         // initialize new, empty NAL unit
 
         pending_input_NAL = alloc_NAL_unit(len+3);
+        if (pending_input_NAL == NULL) {
+          return DE265_ERROR_OUT_OF_MEMORY;
+        }
         pending_input_NAL->pts = pts;
         pending_input_NAL->user_data = user_data;
         nal = pending_input_NAL;
@@ -352,7 +377,10 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
   end_of_frame = false;
 
   NAL_unit* nal = alloc_NAL_unit(len);
-  nal->set_data(data, len);
+  if (nal == NULL || !nal->set_data(data, len)) {
+    free_NAL_unit(nal);
+    return DE265_ERROR_OUT_OF_MEMORY;
+  }
   nal->pts = pts;
   nal->user_data = user_data;
 
@@ -372,8 +400,16 @@ de265_error NAL_Parser::flush_data()
 
     // append bytes that are implied by the push state
 
-    if (input_push_state==6) { nal->append(null,1); }
-    if (input_push_state==7) { nal->append(null,2); }
+    if (input_push_state==6) {
+      if (!nal->append(null,1)) {
+        return DE265_ERROR_OUT_OF_MEMORY;
+      }
+    }
+    if (input_push_state==7) {
+      if (!nal->append(null,2)) {
+        return DE265_ERROR_OUT_OF_MEMORY;
+      }
+    }
 
 
     // only push the NAL if it contains at least the NAL header
