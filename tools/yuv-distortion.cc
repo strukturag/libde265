@@ -77,8 +77,12 @@ int main(int argc, char** argv)
 
   for (;;)
     {
-      fread(yp_ref,1,width*height,fh_ref);
-      fread(yp_cmp,1,width*height,fh_cmp);
+      if (fread(yp_ref,1,width*height,fh_ref) != width*height) {
+        break;
+      }
+      if (fread(yp_cmp,1,width*height,fh_cmp) != width*height) {
+        break;
+      }
 
       if (feof(fh_ref)) break;
       if (feof(fh_cmp)) break;

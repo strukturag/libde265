@@ -65,21 +65,28 @@ de265_image* ImageSource_YUV::read_next_image()
 
   p = img->get_image_plane(0);  stride = img->get_image_stride(0);
   for (int y=0;y<height;y++) {
-    fread(p+y*stride,1,width,mFH);
+    if (fread(p+y*stride,1,width,mFH) != width) {
+      goto check_eof;
+    }
   }
 
   p = img->get_image_plane(1);  stride = img->get_image_stride(1);
   for (int y=0;y<height/2;y++) {
-    fread(p+y*stride,1,width/2,mFH);
+    if (fread(p+y*stride,1,width/2,mFH) != width/2) {
+      goto check_eof;
+    }
   }
 
   p = img->get_image_plane(2);  stride = img->get_image_stride(2);
   for (int y=0;y<height/2;y++) {
-    fread(p+y*stride,1,width/2,mFH);
+    if (fread(p+y*stride,1,width/2,mFH) != width/2) {
+      goto check_eof;
+    }
   }
 
   // --- check for EOF ---
 
+check_eof:
   if (feof(mFH)) {
     mReachedEndOfFile = true;
     delete img;

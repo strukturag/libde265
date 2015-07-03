@@ -615,7 +615,8 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   streamname << (useSCC ? "hmscc-" : "hm-") << preset.name << "-" << qp << ".265";
 
   char recoyuv_prefix[] = "/tmp/reco-XXXXXX";
-  mktemp(recoyuv_prefix);
+  char *tempfile = mktemp(recoyuv_prefix);
+  assert(tempfile != NULL && tempfile[0] != 0);
   std::string recoyuv = std::string(recoyuv_prefix) + ".yuv";
 
   std::stringstream cmd1;
@@ -854,7 +855,8 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
   rd.end_timer();
 
   char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
-  mktemp(tmpyuv_prefix);
+  char *tempfile = mktemp(tmpyuv_prefix);
+  assert(tempfile != NULL && tempfile[0] != 0);
   std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
 
   std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;
@@ -931,7 +933,8 @@ RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
   rd.end_timer();
 
   char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
-  mktemp(tmpyuv_prefix);
+  char *tempfile = mktemp(tmpyuv_prefix);
+  assert(tempfile != NULL && tempfile[0] != 0);
   std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
 
   std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;

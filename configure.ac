@@ -37,7 +37,7 @@ AC_PROG_GREP
 AM_INIT_AUTOMAKE
 
 CFLAGS+=" -std=c99"
-CXXFLAGS+=" -Werror=return-type"
+CXXFLAGS+=" -Werror=return-type -Werror=unused-result"
 AX_CXX_COMPILE_STDCXX_11()
 
 dnl Use -Wall if we have gcc.
