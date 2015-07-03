@@ -89,6 +89,23 @@ Additional logging information can be turned on and off using these `./configure
 </pre>
 
 
+Build using cmake
+=================
+
+cmake scripts to build libde265 and the sample scripts `dec265` and `enc265` are
+included and can be compiled using these commands:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+See the [cmake documentation](http://www.cmake.org) for further information on
+using cmake on other platforms.
+
+
 Prebuilt binaries
 =================
 
