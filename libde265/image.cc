@@ -288,6 +288,10 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     chroma_width = (chroma_width+1)/2;
     break;
 
+  case de265_chroma_444:
+    spec.format = de265_image_format_YUV444P8;
+    break;
+
   case de265_chroma_mono:
     spec.format = de265_image_format_mono8;
     chroma_width = 0;
@@ -295,7 +299,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     break;
 
   default:
-    spec.format = de265_image_format_YUV422P8;
+    assert(false);
     break;
   }
 
