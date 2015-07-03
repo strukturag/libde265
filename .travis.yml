@@ -22,6 +22,7 @@ env:
   - HOST=i686-w64-mingw32 WINE=wine DECODESTREAMS=
   - HOST=x86_64-w64-mingw32 WINE=wine64 DECODESTREAMS=
   - HOST=arm-linux-gnueabihf WINE= DECODESTREAMS=
+  - HOST=cmake WINE= DECODESTREAMS=
 
 matrix:
   include:
@@ -43,10 +44,11 @@ install:
   - git clone https://github.com/strukturag/libde265-data.git
 
 before_script:
-  - ./autogen.sh
-  - if [ ! -z "$HOST" ]; then unset CC; fi
-  - if [ ! -z "$HOST" ]; then unset CXX; fi
-  - ./configure --host=$HOST
+  - if [ "$HOST" != "cmake" ]; then ./autogen.sh; fi
+  - if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then unset CC; fi
+  - if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then unset CXX; fi
+  - if [ "$HOST" != "cmake" ]; then ./configure --host=$HOST; fi
+  - if [ "$HOST" = "cmake" ]; then cmake .; fi
 
 script:
   - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then ./scripts/check_licenses.sh; fi"
