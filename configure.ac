@@ -89,8 +89,8 @@ AC_FUNC_ERROR_AT_LINE
 # Checking for malloc breaks building on ARM for us. A similar issue is described
 # here: http://nerdland.net/unstumping-the-internet/malloc-has-not-been-declared/
 # AC_FUNC_MALLOC
+# AC_FUNC_REALLOC
 AC_FUNC_MKTIME
-AC_FUNC_REALLOC
 
 AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
