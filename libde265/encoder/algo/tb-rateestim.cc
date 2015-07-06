@@ -37,6 +37,8 @@ float Algo_TB_RateEstimation_Exact::encode_transform_unit(encoder_context* ectx,
   CABAC_encoder_estim estim;
   estim.set_context_models(&ctxModel);
 
+  leaf(cb, NULL);
+
   ::encode_transform_unit(ectx, &estim, tb,cb, x0,y0, xBase,yBase,
                           log2TrafoSize, trafoDepth, blkIdx);
 

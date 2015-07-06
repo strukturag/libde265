@@ -30,7 +30,7 @@
 #ifdef DE265_LOG_DEBUG
 static int descendLevel = 0;
 
-void Algo::descend(enc_node* node, const char* option, ...)
+void Algo::descend(const enc_node* node, const char* option, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
     descendLevel++;
@@ -67,7 +67,7 @@ void Algo::ascend(const char* fmt, ...)
   }
 }
 
-void Algo::leaf(enc_node* node, const char* option, ...)
+void Algo::leaf(const enc_node* node, const char* option, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
     printf("%d ",descendLevel+1);

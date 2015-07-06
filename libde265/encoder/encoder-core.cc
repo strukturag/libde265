@@ -336,13 +336,14 @@ void EncoderCore_Custom::setParams(encoder_params& params)
   algo_CB_IntraPartMode->setChildAlgo(algo_TB_IntraPredMode);
 
   mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(algo_TB_IntraPredMode);
+  mAlgo_TB_Split_BruteForce.setAlgo_TB_Residual(&mAlgo_TB_Transform);
 
   Algo_TB_RateEstimation* algo_TB_RateEstimation = NULL;
   switch (params.mAlgo_TB_RateEstimation()) {
   case ALGO_TB_RateEstimation_None:  algo_TB_RateEstimation = &mAlgo_TB_RateEstimation_None;  break;
   case ALGO_TB_RateEstimation_Exact: algo_TB_RateEstimation = &mAlgo_TB_RateEstimation_Exact; break;
   }
-  mAlgo_TB_Split_BruteForce.setAlgo_TB_RateEstimation(algo_TB_RateEstimation);
+  mAlgo_TB_Transform.setAlgo_TB_RateEstimation(algo_TB_RateEstimation);
   //mAlgo_TB_Split_BruteForce.setParams(params.TB_Split_BruteForce);
 
   algo_TB_IntraPredMode->setChildAlgo(&mAlgo_TB_Split_BruteForce);

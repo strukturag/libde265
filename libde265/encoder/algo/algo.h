@@ -50,13 +50,13 @@ class Algo
   virtual const char* name() const { return "noname"; }
 
 #ifdef DE265_LOG_DEBUG
-  void descend(enc_node* node,const char* option_description, ...);
+  void descend(const enc_node* node,const char* option_description, ...);
   void ascend(const char* fmt=NULL, ...);
-  void leaf(enc_node* node,const char* option_description, ...);
+  void leaf(const enc_node* node,const char* option_description, ...);
 #else
-  inline void descend(enc_node*,const char*, ...) { }
+  inline void descend(const enc_node*,const char*, ...) { }
   inline void ascend(const char* fmt=NULL, ...) { }
-  inline void leaf(enc_node*,const char*, ...) { }
+  inline void leaf(const enc_node*,const char*, ...) { }
 #endif
 };
 

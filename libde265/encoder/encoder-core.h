@@ -36,6 +36,7 @@
 #include "libde265/configparam.h"
 
 #include "libde265/encoder/algo/tb-intrapredmode.h"
+#include "libde265/encoder/algo/tb-transform.h"
 #include "libde265/encoder/algo/tb-split.h"
 #include "libde265/encoder/algo/cb-intrapartmode.h"
 #include "libde265/encoder/algo/cb-interpartmode.h"
@@ -121,6 +122,7 @@ class EncoderCore_Custom : public EncoderCore
   Algo_TB_IntraPredMode_FastBrute   mAlgo_TB_IntraPredMode_FastBrute;
   Algo_TB_IntraPredMode_MinResidual mAlgo_TB_IntraPredMode_MinResidual;
 
+  Algo_TB_Transform                 mAlgo_TB_Transform;
   Algo_TB_RateEstimation_None       mAlgo_TB_RateEstimation_None;
   Algo_TB_RateEstimation_Exact      mAlgo_TB_RateEstimation_Exact;
 };

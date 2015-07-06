@@ -76,7 +76,10 @@ class Algo_TB_RateEstimation_None : public Algo_TB_RateEstimation
                                       const enc_tb* tb, const enc_cb* cb,
                                       int x0,int y0, int xBase,int yBase,
                                       int log2TrafoSize, int trafoDepth, int blkIdx)
-  { return 0.0f; }
+  {
+    leaf(cb, NULL);
+    return 0.0f;
+  }
 
   virtual const char* name() const { return "tb-rateestimation-none"; }
 };
