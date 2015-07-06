@@ -54,7 +54,7 @@ class encoder_context : public base_context
   encoder_params params;
   config_parameters params_config;
 
-  EncodingAlgorithm_Custom algo;
+  EncoderCore_Custom algo;
 
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size

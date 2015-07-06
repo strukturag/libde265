@@ -21,7 +21,6 @@
  */
 
 
-#include "libde265/encoder/analyze.h"
 #include "libde265/encoder/encoder-context.h"
 #include "libde265/encoder/algo/tb-split.h"
 #include <assert.h>

@@ -23,7 +23,7 @@
 #ifndef CODING_OPTIONS_H
 #define CODING_OPTIONS_H
 
-#include "libde265/encoder/encode.h"
+#include "libde265/encoder/encoder-types.h"
 
 
 class CodingOption;

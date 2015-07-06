@@ -25,7 +25,7 @@
 
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
-#include "libde265/encoder/encode.h"
+#include "libde265/encoder/encoder-types.h"
 #include "libde265/encoder/algo/algo.h"
 #include "libde265/slice.h"
 #include "libde265/scan.h"

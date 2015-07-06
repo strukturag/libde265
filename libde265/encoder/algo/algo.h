@@ -23,7 +23,7 @@
 #ifndef ALGO_H
 #define ALGO_H
 
-#include "libde265/encoder/encode.h"
+#include "libde265/encoder/encoder-types.h"
 
 
 /* When entering the next recursion level, it is assumed that

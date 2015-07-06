@@ -21,8 +21,9 @@
  */
 
 
-#include "libde265/encoder/analyze.h"
+#include "libde265/encoder/encoder-core.h"
 #include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
@@ -120,7 +121,7 @@ void print_cb_tree_rates(const enc_cb* cb, int level)
 
 double encode_image(encoder_context* ectx,
                     const de265_image* input,
-                    EncodingAlgorithm& algo)
+                    EncoderCore& algo)
 {
   int stride=input->get_image_stride(0);
 
@@ -279,7 +280,7 @@ double encode_image(encoder_context* ectx,
 
 
 
-void EncodingAlgorithm_Custom::setParams(encoder_params& params)
+void EncoderCore_Custom::setParams(encoder_params& params)
 {
   // build algorithm tree
 

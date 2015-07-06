@@ -23,6 +23,7 @@
 
 #include "libde265/encoder/algo/cb-skip.h"
 #include "libde265/encoder/algo/coding-options.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include "libde265/encoder/encoder-context.h"
 #include <assert.h>
 #include <limits>

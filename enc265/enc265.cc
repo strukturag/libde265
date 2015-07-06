@@ -22,7 +22,7 @@
 
 #include "libde265/configparam.h"
 #include "libde265/image-io.h"
-#include "libde265/encoder/analyze.h"
+#include "libde265/encoder/encoder-core.h"
 #include "libde265/util.h"
 
 #include <getopt.h>

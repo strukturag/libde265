@@ -21,8 +21,9 @@
  */
 
 
-#include "libde265/encoder/analyze.h"
+#include "libde265/encoder/encoder-core.h"
 #include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>

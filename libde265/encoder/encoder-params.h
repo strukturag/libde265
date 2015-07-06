@@ -23,8 +23,8 @@
 #ifndef ENCODER_PARAMS_H
 #define ENCODER_PARAMS_H
 
-#include "libde265/encoder/encode.h"
-#include "libde265/encoder/analyze.h"
+#include "libde265/encoder/encoder-types.h"
+#include "libde265/encoder/encoder-core.h"
 #include "libde265/encoder/sop.h"
 
 

@@ -22,6 +22,7 @@
 
 
 #include "libde265/encoder/algo/tb-rateestim.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include <assert.h>
 #include <iostream>
 

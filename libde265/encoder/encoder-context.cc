@@ -21,7 +21,6 @@
  */
 
 #include "encoder/encoder-context.h"
-#include "encoder/analyze.h"
 #include "libde265/util.h"
 
 #include <math.h>

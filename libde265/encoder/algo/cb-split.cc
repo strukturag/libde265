@@ -24,6 +24,7 @@
 #include "libde265/encoder/algo/cb-split.h"
 #include "libde265/encoder/algo/coding-options.h"
 #include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>

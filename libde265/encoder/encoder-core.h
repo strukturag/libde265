@@ -25,7 +25,7 @@
 
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
-#include "libde265/encoder/encode.h"
+#include "libde265/encoder/encoder-types.h"
 #include "libde265/slice.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
@@ -66,10 +66,10 @@
 
 // ========== an encoding algorithm combines a set of algorithm modules ==========
 
-class EncodingAlgorithm
+class EncoderCore
 {
  public:
-  virtual ~EncodingAlgorithm() { }
+  virtual ~EncoderCore() { }
 
   virtual Algo_CTB_QScale* getAlgoCTBQScale() = 0;
 
@@ -78,7 +78,7 @@ class EncodingAlgorithm
 };
 
 
-class EncodingAlgorithm_Custom : public EncodingAlgorithm
+class EncoderCore_Custom : public EncoderCore
 {
  public:
 
@@ -127,7 +127,7 @@ class EncodingAlgorithm_Custom : public EncodingAlgorithm
 
 
 
-double encode_image(encoder_context*, const de265_image* input, EncodingAlgorithm&);
+double encode_image(encoder_context*, const de265_image* input, EncoderCore&);
 
 void encode_sequence(encoder_context*);
 

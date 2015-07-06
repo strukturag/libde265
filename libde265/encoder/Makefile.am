@@ -2,10 +2,11 @@ noinst_LTLIBRARIES = libde265_encoder.la
 
 libde265_encoder_la_CXXFLAGS = -I..
 libde265_encoder_la_SOURCES = \
-  analyze.cc analyze.h \
-  encode.h encode.cc \
+  encoder-core.cc encoder-core.h \
+  encoder-types.h encoder-types.cc \
   encoder-params.h encoder-params.cc \
   encoder-context.h encoder-context.cc \
+  encoder-syntax.h encoder-syntax.cc \
   encpicbuf.h encpicbuf.cc \
   sop.h sop.cc
 
