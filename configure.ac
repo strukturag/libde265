@@ -86,7 +86,9 @@ AC_CHECK_FUNCS([strchr strrchr])
 
 AC_FUNC_ALLOCA
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MALLOC
+# Checking for malloc breaks building on ARM for us. A similar issue is described
+# here: http://nerdland.net/unstumping-the-internet/malloc-has-not-been-declared/
+# AC_FUNC_MALLOC
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 
