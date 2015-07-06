@@ -115,8 +115,8 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   assert(img->BitDepth_Y >= 8 && img->BitDepth_Y <= 16);
   assert(img->BitDepth_C >= 8 && img->BitDepth_C <= 16);
 
-  int luma_bpl   = luma_stride   * ((img->sps.BitDepth_Y+7)/8);
-  int chroma_bpl = chroma_stride * ((img->sps.BitDepth_C+7)/8);
+  int luma_bpl   = luma_stride   * ((img->BitDepth_Y+7)/8);
+  int chroma_bpl = chroma_stride * ((img->BitDepth_C+7)/8);
 
   int luma_height   = spec->height;
   int chroma_height = rawChromaHeight;
