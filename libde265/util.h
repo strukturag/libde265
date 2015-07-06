@@ -43,6 +43,14 @@
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
 
+#if defined(__GNUC__) && (__GNUC__ >= 4)
+#define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
+#elif defined(_MSC_VER) && (_MSC_VER >= 1700)
+#define LIBDE265_CHECK_RESULT _Check_return_
+#else
+#define LIBDE265_CHECK_RESULT
+#endif
+
 #define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
 #define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )

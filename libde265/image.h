@@ -86,12 +86,16 @@ template <class DataUnit> class MetaDataArray
   MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; height_in_units=0; }
   ~MetaDataArray() { free(data); }
 
-  bool alloc(int w,int h, int _log2unitSize) {
+  LIBDE265_CHECK_RESULT bool alloc(int w,int h, int _log2unitSize) {
     int size = w*h;
 
     if (size != data_size) {
       free(data);
       data = (DataUnit*)malloc(size * sizeof(DataUnit));
+      if (data == NULL) {
+        data_size = 0;
+        return false;
+      }
       data_size = size;
     }
 

@@ -47,7 +47,7 @@ class option_base
 {
  public:
  option_base() : mShortOption(0), mLongOption(NULL) { }
- option_base(const char* name) : mShortOption(0), mLongOption(NULL), mIDName(name) { }
+ option_base(const char* name) : mIDName(name), mShortOption(0), mLongOption(NULL) { }
   virtual ~option_base() { }
 
 

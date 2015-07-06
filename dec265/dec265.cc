@@ -360,8 +360,15 @@ void measure(const de265_image* img)
   int height = de265_get_image_height(img,0);
 
   uint8_t* p = (uint8_t*)malloc(width*height*3/2);
+  if (p == NULL) {
+    return;
+  }
 
-  fread(p,1,width*height*3/2,reference_file);
+  size_t toread = width*height*3/2;
+  if (fread(p,1,toread,reference_file) != toread) {
+    free(p);
+    return;
+  }
 
   int stride, cstride;
   const uint8_t* yptr  = de265_get_image_plane(img,0, &stride);
