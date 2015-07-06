@@ -29,8 +29,8 @@
 
 
 alloc_pool::alloc_pool(size_t objSize, int poolSize, bool grow)
-  : mPoolSize(poolSize),
-    mObjSize(objSize),
+  : mObjSize(objSize),
+    mPoolSize(poolSize),
     mGrow(grow)
 {
   m_freeList.reserve(poolSize);
