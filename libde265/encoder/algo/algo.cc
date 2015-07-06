@@ -32,49 +32,55 @@ static int descendLevel = 0;
 
 void Algo::descend(enc_node* node, const char* option, ...)
 {
-  descendLevel++;
-  printf("%d ",descendLevel);
-  for (int i=0;i<descendLevel;i++) { printf(" "); }
-
-  va_list va;
-  va_start(va, option);
-  va_end(va);
-
-  fprintf(stdout, "%s(", name());
-  vfprintf(stdout, option, va);
-  fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
-}
-
-void Algo::ascend(const char* fmt, ...)
-{
-  if (fmt != NULL) {
+  if (logdebug_enabled(LogEncoder)) {
+    descendLevel++;
     printf("%d ",descendLevel);
     for (int i=0;i<descendLevel;i++) { printf(" "); }
 
     va_list va;
-    va_start(va, fmt);
+    va_start(va, option);
     va_end(va);
 
-    fprintf(stdout, "<%s(", name());
-    vfprintf(stdout, fmt, va);
-    fprintf(stdout, ")\n");
+    fprintf(stdout, "%s(", name());
+    vfprintf(stdout, option, va);
+    fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
   }
+}
 
-  descendLevel--;
+void Algo::ascend(const char* fmt, ...)
+{
+  if (logdebug_enabled(LogEncoder)) {
+    if (fmt != NULL) {
+      printf("%d ",descendLevel);
+      for (int i=0;i<descendLevel;i++) { printf(" "); }
+
+      va_list va;
+      va_start(va, fmt);
+      va_end(va);
+
+      fprintf(stdout, "<%s(", name());
+      vfprintf(stdout, fmt, va);
+      fprintf(stdout, ")\n");
+    }
+
+    descendLevel--;
+  }
 }
 
 void Algo::leaf(enc_node* node, const char* option, ...)
 {
-  printf("%d ",descendLevel+1);
-  for (int i=0;i<descendLevel+1;i++) { printf(" "); }
+  if (logdebug_enabled(LogEncoder)) {
+    printf("%d ",descendLevel+1);
+    for (int i=0;i<descendLevel+1;i++) { printf(" "); }
 
-  va_list va;
-  va_start(va, option);
-  va_end(va);
+    va_list va;
+    va_start(va, option);
+    va_end(va);
 
-  fprintf(stdout, "%s(", name());
-  vfprintf(stdout, option, va);
-  fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+    fprintf(stdout, "%s(", name());
+    vfprintf(stdout, option, va);
+    fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+  }
 }
 
 #endif

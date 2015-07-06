@@ -181,8 +181,10 @@ void loginfo (enum LogModule module, const char* string, ...);
 
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...);
+bool logdebug_enabled(enum LogModule module);
 #else
 #define logdebug(a,b, ...) { }
+inline bool logdebug_enabled(enum LogModule module) { return false; }
 #endif
 
 #ifdef DE265_LOG_TRACE

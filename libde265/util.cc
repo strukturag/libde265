@@ -126,6 +126,11 @@ void logdebug(enum LogModule module, const char* string, ...)
   va_end(va);
   fflush(stdout);
 }
+
+bool logdebug_enabled(enum LogModule module)
+{
+  return verbosity>=2;
+}
 #endif
 
 #ifdef DE265_LOG_TRACE
