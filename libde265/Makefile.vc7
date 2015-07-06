@@ -81,6 +81,7 @@ OBJS=\
 	encoder\algo\ctb-qscale.obj \
 	encoder\algo\pb-mv.obj \
 	encoder\algo\tb-intrapredmode.obj \
+	encoder\algo\tb-rateestim.obj \
 	encoder\algo\tb-split.obj \
 	x86\sse.obj \
 	x86\sse-dct.obj \
