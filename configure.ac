@@ -32,6 +32,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_GREP
+AC_PROG_RANLIB
 
 # Initialize automake stuff
 AM_INIT_AUTOMAKE
@@ -56,23 +57,40 @@ HAVE_VISIBILITY=0
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h])
+AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
+AC_TYPE_SIZE_T
+AC_TYPE_INT8_T
 AC_TYPE_INT16_T
 AC_TYPE_INT32_T
-AC_TYPE_INT8_T
+AC_TYPE_INT64_T
+AC_TYPE_UINT8_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
-AC_TYPE_UINT8_T
+AC_CHECK_TYPES([ptrdiff_t])
+AC_C_INLINE
 
 # Checks for library functions.
 AC_CHECK_FUNCS([malloc memmove memset __malloc_hook memalign posix_memalign __mingw_aligned_malloc __mingw_aligned_free])
 
+AC_SEARCH_LIBS([pow], [m])
 AC_SEARCH_LIBS([sqrt], [m])
 AC_SEARCH_LIBS([pthread_create], [pthread])
+
+AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([pow sqrt])
+AC_CHECK_FUNCS([strchr strrchr])
+
+AC_FUNC_ALLOCA
+AC_FUNC_ERROR_AT_LINE
+# Checking for malloc breaks building on ARM for us. A similar issue is described
+# here: http://nerdland.net/unstumping-the-internet/malloc-has-not-been-declared/
+# AC_FUNC_MALLOC
+# AC_FUNC_REALLOC
+AC_FUNC_MKTIME
 
 AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
