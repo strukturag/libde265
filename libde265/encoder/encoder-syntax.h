@@ -57,6 +57,13 @@ SplitType get_split_type(const seq_parameter_set* sps,
                          int x0,int y0, int log2CbSize);
 
 
+/* Compute how much rate is required for sending the chroma CBF flags
+   in the whole TB tree.
+ */
+float recursive_cbfChroma_rate(CABAC_encoder_estim* cabac,
+                               enc_tb* tb, int log2TrafoSize, int trafoDepth);
+
+
 void encode_split_transform_flag(encoder_context* ectx,
                                  CABAC_encoder* cabac,
                                  int log2TrafoSize, int split_flag);

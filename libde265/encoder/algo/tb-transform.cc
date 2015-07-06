@@ -248,7 +248,8 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   estim.reset(); // TODO: not needed ?
 
-  recursively_add_cbfChroma_rate(&estim,tb,log2TbSize,trafoDepth);
+  tb->rate = (tb->rate_withoutCbfChroma +
+              recursive_cbfChroma_rate(&estim,tb,log2TbSize,trafoDepth));
 
   //float rate_cbfChroma = estim.getRDBits();
   //tb->rate = tb->rate_withoutCbfChroma + rate_cbfChroma;

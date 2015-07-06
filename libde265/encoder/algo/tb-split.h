@@ -41,10 +41,6 @@
 #include "libde265/encoder/algo/tb-transform.h"
 
 
-void recursively_add_cbfChroma_rate(CABAC_encoder_estim* cabac,
-                                    enc_tb* tb, int log2TrafoSize, int trafoDepth);
-
-
 // ========== TB split decision ==========
 
 class Algo_TB_Split : public Algo
@@ -99,6 +95,7 @@ class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune
     add_choice("all"     ,ALGO_TB_BruteForce_ZeroBlockPrune_all, true);
   }
 };
+
 
 class Algo_TB_Split_BruteForce : public Algo_TB_Split
 {

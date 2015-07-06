@@ -33,36 +33,6 @@
 #define ENCODER_DEVELOPMENT 1
 
 
-void recursively_add_cbfChroma_rate(CABAC_encoder_estim* cabac,
-                                    enc_tb* tb, int log2TrafoSize, int trafoDepth)
-{
-  float bits_pre = cabac->getRDBits();
-
-  // --- CBF CB/CR ---
-
-  // For 4x4 luma, there is no signaling of chroma CBF, because only the
-  // chroma CBF for 8x8 is relevant.
-  if (log2TrafoSize>2) {
-    if (trafoDepth==0 || tb->parent->cbf[1]) {
-      encode_cbf_chroma(cabac, trafoDepth, tb->cbf[1]);
-    }
-    if (trafoDepth==0 || tb->parent->cbf[2]) {
-      encode_cbf_chroma(cabac, trafoDepth, tb->cbf[2]);
-    }
-  }
-
-  if (tb->split_transform_flag) {
-    for (int i=0;i<4;i++) {
-      recursively_add_cbfChroma_rate(cabac, tb->children[i], log2TrafoSize-1, trafoDepth+1);
-    }
-  }
-
-  float bits_post = cabac->getRDBits();
-
-  tb->rate = tb->rate_withoutCbfChroma + (bits_post - bits_pre);
-}
-
-
 enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                    context_model_table& ctxModel,
                                                    const de265_image* input,
@@ -157,8 +127,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
   }
 
-  recursively_add_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth);
-  //tb->rate = tb->rate_withoutCbfChroma + estim.getRDBits();
+  tb->rate = (tb->rate_withoutCbfChroma +
+              recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
 
   return tb;
 }
