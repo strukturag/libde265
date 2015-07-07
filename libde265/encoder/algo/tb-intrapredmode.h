@@ -239,7 +239,7 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
                           enc_tb* tb,
                           enc_cb* cb,
                           int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); } // TODO
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); return 0; } // TODO
 
 
   const char* name() const { return "tb-intrapredmode_BruteForce"; }
@@ -289,7 +289,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
                           enc_tb* tb,
                           enc_cb* cb,
                           int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); } // TODO
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); return 0; } // TODO
 
 
   const char* name() const { return "tb-intrapredmode_FastBrute"; }
