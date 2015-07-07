@@ -147,10 +147,8 @@ void compute_transform_coeffs(encoder_context* ectx,
 enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    context_model_table& ctxModel,
                                    const de265_image* input,
-                                   const enc_tb* parent,
-                                   enc_cb* cb,
-                                   int x0,int y0, int xBase,int yBase,
-                                   int log2TbSize,
+                                   enc_tb* tb,
+                                   const enc_cb* cb,
                                    int blkIdx,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
@@ -165,15 +163,11 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   // --- compute transform coefficients ---
 
-  enc_tb* tb = new enc_tb();
-
-  tb->parent = parent;
-  tb->split_transform_flag = false;
-  tb->log2Size = log2TbSize;
-  tb->x = x0;
-  tb->y = y0;
-  tb->cbf[0] = tb->cbf[1] = tb->cbf[2] = 0;
-
+  int x0 = tb->x;
+  int y0 = tb->y;
+  int xBase = cb->x;
+  int yBase = cb->y;
+  int log2TbSize = tb->log2Size;
 
   // luma block
 

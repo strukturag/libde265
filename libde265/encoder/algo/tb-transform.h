@@ -56,11 +56,9 @@ public:
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
                           const de265_image* input,
-                          const enc_tb* parent,
-                          enc_cb* cb,
-                          int x0,int y0, int xBase,int yBase, int log2TbSize,
-                          int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
+                          enc_tb* tb,
+                          const enc_cb* cb,
+                          int blkIdx, int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 };
 
 
@@ -72,11 +70,9 @@ public:
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
                           const de265_image* input,
-                          const enc_tb* parent,
-                          enc_cb* cb,
-                          int x0,int y0, int xBase,int yBase, int log2TbSize,
-                          int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+                          enc_tb* parent,
+                          const enc_cb* cb,
+                          int blkIdx, int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   void setAlgo_TB_RateEstimation(Algo_TB_RateEstimation* algo) { mAlgo_TB_RateEstimation=algo; }
 

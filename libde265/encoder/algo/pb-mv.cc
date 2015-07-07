@@ -109,9 +109,12 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   mCodeResidual=true;
   if (mCodeResidual) {
     assert(mTBSplitAlgo);
+    assert(false);
+    /*
     cb->transform_tree = mTBSplitAlgo->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                                cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                                0, MaxTrafoDepth, IntraSplitFlag);
+    */
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 
@@ -277,9 +280,12 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   mCodeResidual=true;
   if (mCodeResidual) {
+    assert(false);
+    /*
     cb->transform_tree = mTBSplitAlgo->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                                cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                                0, MaxTrafoDepth, IntraSplitFlag);
+    */
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();
 

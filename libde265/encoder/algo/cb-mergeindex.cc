@@ -108,9 +108,12 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   if (mCodeResidual) {
     assert(false);
     descend(cb,"with residual");
+    assert(false);
+    /* TODO
     cb->transform_tree = mTBSplit->analyze(ectx,ctxModel, ectx->imgdata->input, NULL, cb,
                                            cb->x,cb->y,cb->x,cb->y, cb->log2Size,0,
                                            0, MaxTrafoDepth, IntraSplitFlag);
+    */
     ascend();
 
     cb->inter.rqt_root_cbf = ! cb->transform_tree->isZeroBlock();

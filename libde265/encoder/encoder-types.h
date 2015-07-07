@@ -36,6 +36,8 @@ class enc_node
 {
  public:
   enc_node() { mReconstruction=NULL; }
+  enc_node(int _x,int _y, int _log2Size)
+    : x(_x), y(_y), log2Size(_log2Size), mReconstruction(NULL) { }
   virtual ~enc_node() { delete[] mReconstruction; }
 
   uint16_t x,y;
@@ -52,7 +54,7 @@ class enc_node
 class enc_tb : public enc_node
 {
  public:
-  enc_tb();
+  enc_tb(int x,int y,int log2TbSize);
   ~enc_tb();
 
   const enc_tb* parent;

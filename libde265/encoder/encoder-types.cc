@@ -118,10 +118,18 @@ void enc_cb::set_rqt_root_bf_from_children_cbf()
 
 alloc_pool enc_tb::mMemPool(sizeof(enc_tb));
 
-enc_tb::enc_tb()
-  : split_transform_flag(false)
+enc_tb::enc_tb(int x,int y,int log2TbSize)
+  : enc_node(x,y,log2TbSize)
 {
+  split_transform_flag = false;
   coeff[0]=coeff[1]=coeff[2]=NULL;
+
+  TrafoDepth = 0;
+  cbf[0] = cbf[1] = cbf[2] = 0;
+
+  distortion = 0;
+  rate = 0;
+  rate_withoutCbfChroma = 0;
 
   if (DEBUG_ALLOCS) { allocTB++; printf("TB  : %d\n",allocTB); }
 }

@@ -33,6 +33,7 @@ class CodingOptions
 {
  public:
   CodingOptions(encoder_context*, enc_cb*, context_model_table& tab);
+  CodingOptions(encoder_context*, enc_tb*, context_model_table& tab);
   ~CodingOptions();
 
   // --- init --- call before object use
@@ -75,7 +76,10 @@ class CodingOptions
 
   encoder_context* mECtx;
 
+  bool mCBMode;
   enc_cb* mCBInput;
+  enc_tb* mTBInput;
+
   context_model_table* mContextModelInput;
 
   int mCurrentlyReconstructedOption;

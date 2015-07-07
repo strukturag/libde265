@@ -80,9 +80,11 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
       descend(cb,p==0 ? "2Nx2N" : "NxN");
+
+      enc_tb* tb = new enc_tb(x,y,log2CbSize);
+
       cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, option[p].get_context(),
-                                                         ectx->imgdata->input, NULL, cb,
-                                                         x,y, x,y, log2CbSize,
+                                                         ectx->imgdata->input, tb, cb,
                                                          0,
                                                          0, MaxTrafoDepth, IntraSplitFlag);
       ascend();
@@ -140,10 +142,11 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
   int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
+  enc_tb* tb = new enc_tb(x,y,log2CbSize);
+
   descend(cb,"fixed:%s", (PartMode==PART_2Nx2N ? "2Nx2N":"NxN"));
   cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
-                                                     ectx->imgdata->input, NULL, cb,
-                                                     cb->x,cb->y, cb->x,cb->y, log2CbSize,
+                                                     ectx->imgdata->input, tb, cb,
                                                      0,
                                                      0, MaxTrafoDepth, IntraSplitFlag);
   ascend();

@@ -26,7 +26,22 @@
 
 CodingOptions::CodingOptions(encoder_context* ectx, enc_cb* cb, context_model_table& tab)
 {
+  mCBMode = true;
   mCBInput = cb;
+  mTBInput = NULL;
+  mContextModelInput = &tab;
+
+  mCurrentlyReconstructedOption=-1;
+  mBestRDO=-1;
+
+  mECtx = ectx;
+}
+
+CodingOptions::CodingOptions(encoder_context* ectx, enc_tb* tb, context_model_table& tab)
+{
+  mCBMode = false;
+  mCBInput = NULL;
+  mTBInput = tb;
   mContextModelInput = &tab;
 
   mCurrentlyReconstructedOption=-1;

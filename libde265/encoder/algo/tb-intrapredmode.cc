@@ -252,9 +252,12 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       descend(cb,"%d",intraMode);
+      assert(false);
+      /*
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+      */
       ascend();
 
       float sad;
@@ -307,10 +310,14 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
   }
   else {
     descend(cb,"NOP");
+    assert(false);
+    enc_tb* tb;
+    /*
     enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                        x0,y0,xBase,yBase, log2TbSize,
                                        blkIdx, TrafoDepth, MaxTrafoDepth,
                                        IntraSplitFlag);
+    */
     ascend();
     return tb;
   }
@@ -325,13 +332,16 @@ enc_tb*
 Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            context_model_table& ctxModel,
                                            const de265_image* input,
-                                           const enc_tb* parent,
+                                           enc_tb* tb,
                                            enc_cb* cb,
-                                           int x0,int y0, int xBase,int yBase,
-                                           int log2TbSize, int blkIdx,
-                                           int TrafoDepth, int MaxTrafoDepth,
-                                           int IntraSplitFlag)
+                                           int blkIdx,
+                                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
+  int x0 = tb->x;
+  int y0 = tb->y;
+  int xBase = cb->x;
+  int yBase = cb->y;
+  int log2TbSize = tb->log2Size;
 
   bool selectIntraPredMode = false;
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
@@ -379,10 +389,10 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     // Note: cannot prepare intra prediction pixels here, because this has to
     // be done at the lowest TB split level.
 
+
     descend(cb,"%d",intraMode);
-    enc_tb* tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,parent,
-                                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+    tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,tb,cb,
+                               blkIdx, TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
 
     debug_show_image(ectx->img, 0);
@@ -406,8 +416,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   }
   else {
     descend(cb,"NOP");
-    enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
-                                       x0,y0,xBase,yBase, log2TbSize,
+    enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb, cb,
                                        blkIdx, TrafoDepth, MaxTrafoDepth,
                                        IntraSplitFlag);
     ascend();
@@ -513,9 +522,11 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       contexts[intraMode] = ctxModel.copy();
       descend(cb,"%d",intraMode);
+      assert(false); /*
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
                                             TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+                     */
       ascend();
 
 
@@ -561,10 +572,14 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
   }
   else {
     descend(cb,"NOP");
+    assert(false);
+    enc_tb* tb;
+    /*
     enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
                                        x0,y0,xBase,yBase, log2TbSize,
                                        blkIdx, TrafoDepth, MaxTrafoDepth,
                                        IntraSplitFlag);
+    */
     ascend();
     return tb;
   }

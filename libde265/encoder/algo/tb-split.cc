@@ -36,16 +36,16 @@
 enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                    context_model_table& ctxModel,
                                                    const de265_image* input,
-                                                   const enc_tb* parent,
-                                                   enc_cb* cb,
-                                                   int x0,int y0, int log2TbSize,
+                                                   enc_tb* tb,
+                                                   const enc_cb* cb,
                                                    int TrafoDepth, int MaxTrafoDepth,
                                                    int IntraSplitFlag)
 {
   const de265_image* img = ectx->img;
 
-  enc_tb* tb = new enc_tb();
+  assert(false);
 
+#if 0
   tb->parent = parent;
   tb->split_transform_flag = true;
   tb->log2Size = log2TbSize;
@@ -129,6 +129,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
   tb->rate = (tb->rate_withoutCbfChroma +
               recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
+#endif
 
   return tb;
 }
@@ -181,17 +182,26 @@ struct Logging_TB_Split : public Logging
 
 
 
+void compute_intra_prediction_pixels(encoder_context* ectx,
+                                     const enc_cb* cb,
+                                     const enc_tb* tb)
+{
+  //enum IntraPredMode mode = getPredMode(idx);
+  //decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+}
+
+
 enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table& ctxModel,
                                   const de265_image* input,
-                                  const enc_tb* parent,
+                                  enc_tb* tb,
                                   enc_cb* cb,
-                                  int x0,int y0, int xBase,int yBase, int log2TbSize,
                                   int blkIdx,
-                                  int TrafoDepth, int MaxTrafoDepth,
-                                  int IntraSplitFlag)
+                                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
+  int log2TbSize = tb->log2Size;
+
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
                      log2TbSize > ectx->sps.Log2MinTrafoSize);
@@ -212,11 +222,15 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
+    /*
+    if (cb->PredMode == MODE_INTRA) {
+      compute_intra_prediction_pixels(ectx, cb, parent);
+    }
+    */
+
     descend(cb,"no split");
-    tb_no_split = mAlgo_TB_Residual->analyze(ectx, ctxModel, input, parent,
-                                             cb, x0,y0, xBase,yBase, log2TbSize,
-                                             blkIdx,
-                                             TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+    tb_no_split = mAlgo_TB_Residual->analyze(ectx, ctxModel, input, tb, cb,
+                                             blkIdx, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
     rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
@@ -236,9 +250,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (test_split) {
     descend(cb,"split");
+    assert(false);
+    /* TODO
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, parent, cb,
                                            x0,y0, log2TbSize,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+    */
     ascend();
 
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
