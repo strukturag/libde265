@@ -43,6 +43,7 @@ class small_image_buffer
   uint8_t*  get_buffer_u8() const { return mBuf; }
   int16_t*  get_buffer_s16() const { return (int16_t*)mBuf; }
   uint16_t* get_buffer_u16() const { return (uint16_t*)mBuf; }
+  template <class pixel_t> pixel_t* get_buffer() const { return (pixel_t*)mBuf; }
 
   int get_stride() const { return mStride; }
 
@@ -87,6 +88,7 @@ class enc_tb : public enc_node
 
   uint8_t cbf[3];
 
+  std::shared_ptr<small_image_buffer> intra_prediction[3];
   std::shared_ptr<small_image_buffer> residual[3];
 
   union {
@@ -98,6 +100,9 @@ class enc_tb : public enc_node
     // non-split
     struct {
       int16_t* coeff[3];
+
+      bool    skip_transform[3][2];
+      uint8_t explicit_rdpcm[3][2];
     };
   };
 

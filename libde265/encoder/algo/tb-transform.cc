@@ -77,29 +77,6 @@ void compute_transform_coeffs(encoder_context* ectx,
 
   if (predMode==MODE_INTRA) {
     residual = tb->residual[cIdx]->get_buffer_s16();
-
-    /*
-    enum IntraPredMode intraPredMode;
-
-    if (cIdx==0) {
-      intraPredMode = ectx->img->get_IntraPredMode(x0,y0);
-    }
-    else {
-      intraPredMode = cb->intra.chroma_mode;
-    }
-
-    decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
-
-
-    // --- subtract prediction from input image ---
-
-    uint8_t* pred = ectx->img->get_image_plane(cIdx);
-    int stride = ectx->img->get_image_stride(cIdx);
-
-    diff_blk(blk,tbSize,
-             input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
-             &pred[yC*stride+xC],stride, tbSize);
-    */
   }
   else {
     // --- subtract prediction from input image ---

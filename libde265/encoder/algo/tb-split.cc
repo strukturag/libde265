@@ -197,14 +197,10 @@ void diff_blk(int16_t* out,int out_stride,
 template <class pixel_t>
 void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input)
 {
-  int nT   = (1<<tb->log2Size);
-  int nPix = (1<<(tb->log2Size<<1));
-  pixel_t pred[nPix];
-
   for (int cIdx=0;cIdx<3;cIdx++) {
     int x = tb->x;
     int y = tb->y;
-    int blkSize = nT;
+    int blkSize  = (1<<tb->log2Size);
     int log2Size = tb->log2Size;
 
     enum IntraPredMode mode;
@@ -222,17 +218,22 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
 
     // decode intra prediction
 
-    decode_intra_prediction(ectx->img, x,y, mode, pred,blkSize, cIdx);
+    tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
+
+    decode_intra_prediction(ectx->img, x,y, mode,
+                            tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
+                            blkSize, cIdx);
 
 
     // create residual buffer and compute differences
 
-    tb->residual[cIdx] = std::make_shared<small_image_buffer>(int(log2Size), sizeof(int16_t));
+    tb->residual[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(int16_t));
 
     diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
                       input->get_image_plane_at_pos(cIdx,x,y),
                       input->get_image_stride(cIdx),
-                      pred, blkSize, blkSize);
+                      tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
+                      blkSize);
   }
 }
 
