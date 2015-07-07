@@ -67,7 +67,11 @@ class CodingOptions
  private:
   struct CodingOptionData
   {
-    enc_cb* cb;
+    union {
+      enc_cb* cb;
+      enc_tb* tb;
+    };
+
     context_model_table context;
     bool  mOptionActive;
     float rdoCost;

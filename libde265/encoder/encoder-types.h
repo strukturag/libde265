@@ -28,8 +28,28 @@
 #include "libde265/image-io.h"
 #include "libde265/alloc_pool.h"
 
+#include <memory>
+
 class encoder_context;
 class enc_cb;
+
+
+class small_image_buffer
+{
+ public:
+  small_image_buffer(int log2Size,int bytes_per_pixel=1);
+  ~small_image_buffer();
+
+  uint8_t*  get_buffer_u8() const { return mBuf; }
+  int16_t*  get_buffer_s16() const { return (int16_t*)mBuf; }
+  uint16_t* get_buffer_u16() const { return (uint16_t*)mBuf; }
+
+  int get_stride() const { return mStride; }
+
+ private:
+  uint8_t* mBuf;
+  int mStride;
+};
 
 
 class enc_node
@@ -62,7 +82,12 @@ class enc_tb : public enc_node
   uint8_t split_transform_flag : 1;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
 
+  enum IntraPredMode intra_mode;
+  enum IntraPredMode intra_mode_chroma;
+
   uint8_t cbf[3];
+
+  std::shared_ptr<small_image_buffer> residual[3];
 
   union {
     // split

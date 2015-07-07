@@ -31,7 +31,7 @@
 #include <iostream>
 
 
-
+// DEPRECATED IN THIS FILE
 void diff_blk(int16_t* out,int out_stride,
               const uint8_t* a_ptr, int a_stride,
               const uint8_t* b_ptr, int b_stride,
@@ -71,10 +71,14 @@ void compute_transform_coeffs(encoder_context* ectx,
   enum PredMode predMode = cb->PredMode;
 
   int16_t blk[32*32]; // residual
+  int16_t* residual;
 
   // --- do intra prediction ---
 
   if (predMode==MODE_INTRA) {
+    residual = tb->residual[cIdx]->get_buffer_s16();
+
+    /*
     enum IntraPredMode intraPredMode;
 
     if (cIdx==0) {
@@ -95,6 +99,7 @@ void compute_transform_coeffs(encoder_context* ectx,
     diff_blk(blk,tbSize,
              input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
              &pred[yC*stride+xC],stride, tbSize);
+    */
   }
   else {
     // --- subtract prediction from input image ---
@@ -108,6 +113,8 @@ void compute_transform_coeffs(encoder_context* ectx,
     diff_blk(blk,tbSize,
              input->get_image_plane_at_pos(cIdx,xC,yC), input->get_image_stride(cIdx),
              &pred[yC*stride+xC],stride, tbSize);
+
+    residual=blk;
 
     //printBlk("residual", blk,tbSize,tbSize);
   }
@@ -130,7 +137,7 @@ void compute_transform_coeffs(encoder_context* ectx,
 
   // do forward transform
 
-  fwd_transform(&ectx->acceleration, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
+  fwd_transform(&ectx->acceleration, tb->coeff[cIdx], tbSize, log2TbSize, trType,  residual, tbSize);
 
 
   // --- quantization ---

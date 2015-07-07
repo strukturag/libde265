@@ -577,7 +577,8 @@ static const int invAngle_table[25-10] =
 
 // (8.4.4.2.6)
 template <class pixel_t>
-void intra_prediction_angular(de265_image* img,
+void intra_prediction_angular(pixel_t* dst, int dstStride,
+                              de265_image* img,
                               int xB0,int yB0,
                               enum IntraPredMode intraPredMode,
                               int nT,int cIdx,
@@ -628,15 +629,15 @@ void intra_prediction_angular(de265_image* img,
           int iFact= ((y+1)*intraPredAngle)&31;
 
           if (iFact != 0) {
-            pred[x+y*stride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
           } else {
-            pred[x+y*stride] = ref[x+iIdx+1];
+            dst[x+y*dstStride] = ref[x+iIdx+1];
           }
         }
 
     if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
       for (int y=0;y<nT;y++) {
-        pred[0+y*stride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
+        dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
       }
     }
   }
@@ -666,15 +667,15 @@ void intra_prediction_angular(de265_image* img,
           int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
 
           if (iFact != 0) {
-            pred[x+y*stride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5; // DIFF (x<->y)
+            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5; // DIFF (x<->y)
           } else {
-            pred[x+y*stride] = ref[y+iIdx+1]; // DIFF (x<->y)
+            dst[x+y*dstStride] = ref[y+iIdx+1]; // DIFF (x<->y)
           }
         }
 
     if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
       for (int x=0;x<nT;x++) { // DIFF (x<->y)
-        pred[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+        dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
       }
     }
   }
@@ -685,7 +686,7 @@ void intra_prediction_angular(de265_image* img,
   for (int y=0;y<nT;y++)
     {
       for (int x=0;x<nT;x++)
-        logtrace(LogIntraPred,"%02x ", pred[x+y*stride]);
+        logtrace(LogIntraPred,"%02x ", dst[x+y*dstStride]);
 
       logtrace(LogIntraPred,"\n");
     }
@@ -693,7 +694,8 @@ void intra_prediction_angular(de265_image* img,
 
 
 template <class pixel_t>
-void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
+void intra_prediction_planar(pixel_t* dst, int dstStride,
+                             de265_image* img,int xB0,int yB0,int nT,int cIdx,
                              pixel_t* border)
 {
   pixel_t* pred;
@@ -706,8 +708,8 @@ void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++)
       {
-        pred[x+y*stride] = ((nT-1-x)*border[-1-y] + (x+1)*border[ 1+nT] +
-                            (nT-1-y)*border[ 1+x] + (y+1)*border[-1-nT] + nT) >> (Log2_nT+1);
+        dst[x+y*dstStride] = ((nT-1-x)*border[-1-y] + (x+1)*border[ 1+nT] +
+                              (nT-1-y)*border[ 1+x] + (y+1)*border[-1-nT] + nT) >> (Log2_nT+1);
       }
 
 
@@ -716,7 +718,7 @@ void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
   for (int y=0;y<nT;y++)
     {
       for (int x=0;x<nT;x++)
-        logtrace(LogIntraPred,"%02x ", pred[x+y*stride]);
+        logtrace(LogIntraPred,"%02x ", dst[x+y*dstStride]);
 
       logtrace(LogIntraPred,"\n");
     }
@@ -724,7 +726,8 @@ void intra_prediction_planar(de265_image* img,int xB0,int yB0,int nT,int cIdx,
 
 
 template <class pixel_t>
-void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
+void intra_prediction_DC(pixel_t* dst, int dstStride,
+                         de265_image* img,int xB0,int yB0,int nT,int cIdx,
                          pixel_t* border)
 {
   pixel_t* pred;
@@ -745,20 +748,20 @@ void intra_prediction_DC(de265_image* img,int xB0,int yB0,int nT,int cIdx,
   dcVal >>= Log2_nT+1;
 
   if (cIdx==0 && nT<32) {
-    pred[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
+    dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
 
-    for (int x=1;x<nT;x++) { pred[x]        = (border[ x+1] + 3*dcVal+2)>>2; }
-    for (int y=1;y<nT;y++) { pred[y*stride] = (border[-y-1] + 3*dcVal+2)>>2; }
+    for (int x=1;x<nT;x++) { dst[x]           = (border[ x+1] + 3*dcVal+2)>>2; }
+    for (int y=1;y<nT;y++) { dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2; }
     for (int y=1;y<nT;y++)
       for (int x=1;x<nT;x++)
         {
-          pred[x+y*stride] = dcVal;
+          dst[x+y*dstStride] = dcVal;
         }
   } else {
     for (int y=0;y<nT;y++)
       for (int x=0;x<nT;x++)
         {
-          pred[x+y*stride] = dcVal;
+          dst[x+y*dstStride] = dcVal;
         }
   }
 
@@ -779,6 +782,7 @@ template <class pixel_t>
 void decode_intra_prediction_internal(de265_image* img,
                                       int xB0,int yB0,
                                       enum IntraPredMode intraPredMode,
+                                      pixel_t* dst, int dstStride,
                                       int nT, int cIdx)
 {
   pixel_t  border_pixels_mem[2*64+1];
@@ -795,13 +799,13 @@ void decode_intra_prediction_internal(de265_image* img,
 
   switch (intraPredMode) {
   case INTRA_PLANAR:
-    intra_prediction_planar(img,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_planar(dst,dstStride, img,xB0,yB0,nT,cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(img,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_DC(dst,dstStride, img,xB0,yB0,nT,cIdx, border_pixels);
     break;
   default:
-    intra_prediction_angular(img,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    intra_prediction_angular(dst,dstStride, img,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
     break;
   }
 }
@@ -821,9 +825,37 @@ void decode_intra_prediction(de265_image* img,
   */
 
   if (img->high_bit_depth(cIdx)) {
-    decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,nT,cIdx);
+    decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
+                                               img->get_image_plane_at_pos_NEW<uint16_t>(cIdx,xB0,yB0),
+                                               img->get_image_stride(cIdx),
+                                               nT,cIdx);
   }
   else {
-    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,nT,cIdx);
+    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
+                                              img->get_image_plane_at_pos_NEW<uint8_t>(cIdx,xB0,yB0),
+                                              img->get_image_stride(cIdx),
+                                              nT,cIdx);
   }
+}
+
+
+template <> void decode_intra_prediction<uint8_t>(de265_image* img,
+                                                  int xB0,int yB0,
+                                                  enum IntraPredMode intraPredMode,
+                                                  uint8_t* dst, int nT, int cIdx)
+{
+    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
+                                              dst,nT,
+                                              nT,cIdx);
+}
+
+
+template <> void decode_intra_prediction<uint16_t>(de265_image* img,
+                                                   int xB0,int yB0,
+                                                   enum IntraPredMode intraPredMode,
+                                                   uint16_t* dst, int nT, int cIdx)
+{
+  decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
+                                             dst,nT,
+                                             nT,cIdx);
 }

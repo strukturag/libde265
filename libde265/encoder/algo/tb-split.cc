@@ -181,13 +181,59 @@ struct Logging_TB_Split : public Logging
 } logging_tb_split;
 
 
-
-void compute_intra_prediction_pixels(encoder_context* ectx,
-                                     const enc_cb* cb,
-                                     const enc_tb* tb)
+template <class pixel_t>
+void diff_blk(int16_t* out,int out_stride,
+              const pixel_t* a_ptr, int a_stride,
+              const pixel_t* b_ptr, int b_stride,
+              int blkSize)
 {
-  //enum IntraPredMode mode = getPredMode(idx);
-  //decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+  for (int by=0;by<blkSize;by++)
+    for (int bx=0;bx<blkSize;bx++)
+      {
+        out[by*out_stride+bx] = a_ptr[by*a_stride+bx] - b_ptr[by*b_stride+bx];
+      }
+}
+
+template <class pixel_t>
+void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input)
+{
+  int nT   = (1<<tb->log2Size);
+  int nPix = (1<<(tb->log2Size<<1));
+  pixel_t pred[nPix];
+
+  for (int cIdx=0;cIdx<3;cIdx++) {
+    int x = tb->x;
+    int y = tb->y;
+    int blkSize = nT;
+    int log2Size = tb->log2Size;
+
+    enum IntraPredMode mode;
+
+    if (cIdx==0) {
+      mode = tb->intra_mode;
+    }
+    else {
+      mode = tb->intra_mode_chroma;
+      x /= input->SubWidthC;
+      y /= input->SubHeightC;
+      blkSize /= input->SubWidthC; // TODO (HACK)
+      log2Size--; // TODO (HACK)
+    }
+
+    // decode intra prediction
+
+    decode_intra_prediction(ectx->img, x,y, mode, pred,blkSize, cIdx);
+
+
+    // create residual buffer and compute differences
+
+    tb->residual[cIdx] = std::make_shared<small_image_buffer>(int(log2Size), sizeof(int16_t));
+
+    diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
+                      input->get_image_plane_at_pos(cIdx,x,y),
+                      input->get_image_stride(cIdx),
+                      pred, blkSize, blkSize);
+  }
 }
 
 
@@ -222,11 +268,9 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   float rd_cost_split    = std::numeric_limits<float>::max();
 
   if (test_no_split) {
-    /*
     if (cb->PredMode == MODE_INTRA) {
-      compute_intra_prediction_pixels(ectx, cb, parent);
+      compute_residual<uint8_t>(ectx, tb, input);
     }
-    */
 
     descend(cb,"no split");
     tb_no_split = mAlgo_TB_Residual->analyze(ectx, ctxModel, input, tb, cb,

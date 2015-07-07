@@ -36,6 +36,19 @@ int allocCB = 0;
 #define DEBUG_ALLOCS 0
 
 
+small_image_buffer::small_image_buffer(int log2Size,int bytes_per_pixel)
+{
+  int bytes = (1<<(log2Size<<1))*bytes_per_pixel;
+  mBuf = new uint8_t[bytes];
+  mStride = 1<<log2Size;
+}
+
+
+small_image_buffer::~small_image_buffer()
+{
+  delete[] mBuf;
+}
+
 
 void enc_node::save(const de265_image* img)
 {
