@@ -31,8 +31,6 @@
 #include <iostream>
 
 
-#define ENCODER_DEVELOPMENT 1
-
 
 void diff_blk(int16_t* out,int out_stride,
               const uint8_t* a_ptr, int a_stride,
@@ -56,29 +54,14 @@ static bool has_nonzero_value(const int16_t* data, int n)
 }
 
 
-void show_debug_image(const de265_image* input, int slot);
-
-/*
-  void encode_transform_unit(encoder_context* ectx,
-  enc_tb* tb,
-  const de265_image* input,
-  //int16_t* residual, int stride,
-  int x0,int y0, // luma position
-  int log2TbSize, // chroma adapted
-  const enc_cb* cb,
-  int cIdx)
-  {
-  }
-*/
-
-void analyze_transform_unit(encoder_context* ectx,
-                            enc_tb* tb,
-                            const de265_image* input, // TODO: probably pass pixels/stride directly
-                            //int16_t* residual, int stride,
-                            int x0,int y0, // luma position
-                            int log2TbSize, // chroma adapted
-                            const enc_cb* cb,
-                            int cIdx)
+void compute_transform_coeffs(encoder_context* ectx,
+                              enc_tb* tb,
+                              const de265_image* input, // TODO: probably pass pixels/stride directly
+                              //int16_t* residual, int stride,
+                              int x0,int y0, // luma position
+                              int log2TbSize, // chroma adapted
+                              const enc_cb* cb,
+                              int cIdx)
 {
   int xC = x0;
   int yC = y0;
@@ -104,7 +87,7 @@ void analyze_transform_unit(encoder_context* ectx,
     decode_intra_prediction(ectx->img, xC,  yC,   intraPredMode,  tbSize  , cIdx);
 
 
-    // --- subtract prediction from prediction ---
+    // --- subtract prediction from input image ---
 
     uint8_t* pred = ectx->img->get_image_plane(cIdx);
     int stride = ectx->img->get_image_stride(cIdx);
@@ -114,7 +97,7 @@ void analyze_transform_unit(encoder_context* ectx,
              &pred[yC*stride+xC],stride, tbSize);
   }
   else {
-    // --- subtract prediction from prediction ---
+    // --- subtract prediction from input image ---
 
     uint8_t* pred = ectx->prediction->get_image_plane(cIdx);
     int stride = ectx->prediction->get_image_stride(cIdx);
@@ -130,8 +113,6 @@ void analyze_transform_unit(encoder_context* ectx,
   }
 
 
-  //show_debug_image(ectx->img, 0);
-
 
 
 
@@ -139,9 +120,15 @@ void analyze_transform_unit(encoder_context* ectx,
 
   tb->alloc_coeff_memory(cIdx, tbSize);
 
+
+  // transformation mode (DST or DCT)
+
   int trType;
   if (cIdx==0 && log2TbSize==2 && predMode==MODE_INTRA) trType=1; // TODO: inter mode
   else trType=0;
+
+
+  // do forward transform
 
   fwd_transform(&ectx->acceleration, tb->coeff[cIdx], tbSize, log2TbSize, trType,  blk, tbSize);
 
@@ -149,6 +136,9 @@ void analyze_transform_unit(encoder_context* ectx,
   // --- quantization ---
 
   quant_coefficients(tb->coeff[cIdx], tb->coeff[cIdx], log2TbSize,  cb->qp, true);
+
+
+  // set CBF to 0 if there are no non-zero coefficients
 
   tb->cbf[cIdx] = has_nonzero_value(tb->coeff[cIdx], 1<<(log2TbSize<<1));
 }
@@ -187,20 +177,20 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   // luma block
 
-  analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
+  compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
 
 
   // chroma blocks
 
   if (log2TbSize > 2) {
     // if TB is > 4x4, do chroma transform of half size
-    analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
-    analyze_transform_unit(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
+    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
+    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
   else if (blkIdx==3) {
     // if TB size is 4x4, do chroma transform for last sub-block
-    analyze_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
-    analyze_transform_unit(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
+    compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
+    compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
   }
 
 
