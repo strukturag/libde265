@@ -72,6 +72,10 @@ extern "C" {
 LIBDE265_API const char *de265_get_version(void);
 LIBDE265_API uint32_t de265_get_version_number(void);
 
+LIBDE265_API int de265_get_version_number_major(void);
+LIBDE265_API int de265_get_version_number_minor(void);
+LIBDE265_API int de265_get_version_number_maintenance(void);
+
 
 /* === error codes === */
 

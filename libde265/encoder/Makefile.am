@@ -12,3 +12,6 @@ libde265_encoder_la_SOURCES = \
 
 SUBDIRS=algo
 libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la
+
+EXTRA_DIST = \
+  CMakeLists.txt
