@@ -91,19 +91,19 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     child_tb->parent = tb;
 
     if (cb->PredMode == MODE_INTRA) {
-      descend(tb,"intra");
+      //descend(tb,"intra");
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
                                                         child_tb, cb, i,
                                                         TrafoDepth+1, MaxTrafoDepth,
                                                         IntraSplitFlag);
-      ascend("bits:%f",tb->rate);
+      //ascend("bits:%f",tb->rate);
     }
     else {
-      descend(tb,"inter");
+      //descend(tb,"inter");
       tb->children[i] = this->analyze(ectx, ctxModel, input,
                                       child_tb, cb, i,
                                       TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
-      ascend();
+      //ascend();
     }
 
     tb->distortion            += tb->children[i]->distortion;

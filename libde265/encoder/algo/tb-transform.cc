@@ -213,9 +213,11 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
     luma_cbf_bits = estim.getRDBits();
   }
 
+  descend(tb,"DCT");
   float bits = mAlgo_TB_RateEstimation->encode_transform_unit(ectx,ctxModel,
                                                               tb,cb, x0,y0, xBase,yBase,
                                                               log2TbSize, trafoDepth, blkIdx);
+  ascend();
 
   tb->rate_withoutCbfChroma += bits + luma_cbf_bits;
 
