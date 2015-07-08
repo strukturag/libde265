@@ -137,7 +137,11 @@ de265_error encoder_context::encode_headers()
 
   sps.set_resolution(image_width, image_height);
   sop->set_SPS_header_values();
-  sps.compute_derived_values();
+  de265_error err = sps.compute_derived_values();
+  if (err != DE265_OK) {
+    fprintf(stderr,"invalid SPS parameters\n");
+    exit(10);
+  }
 
 
   // PPS
