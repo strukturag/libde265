@@ -24,6 +24,7 @@
 #include "libde265/sps.h"
 #include "libde265/pps.h"
 #include "libde265/nal.h"
+#include "libde265/util.h"
 
 #include <vector>
 #include <queue>
@@ -47,9 +48,9 @@ class NAL_unit {
 
   // --- rbsp data ---
 
-  void resize(int new_size);
-  void append(const unsigned char* data, int n);
-  void set_data(const unsigned char* data, int n);
+  LIBDE265_CHECK_RESULT bool resize(int new_size);
+  LIBDE265_CHECK_RESULT bool append(const unsigned char* data, int n);
+  LIBDE265_CHECK_RESULT bool set_data(const unsigned char* data, int n);
 
   int size() const { return data_size; }
   void set_size(int s) { data_size=s; }
@@ -146,7 +147,7 @@ class NAL_Parser
 
   std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
 
-  NAL_unit* alloc_NAL_unit(int size);
+  LIBDE265_CHECK_RESULT NAL_unit* alloc_NAL_unit(int size);
 };
 
 

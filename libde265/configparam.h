@@ -47,7 +47,7 @@ class option_base
 {
  public:
  option_base() : mShortOption(0), mLongOption(NULL) { }
- option_base(const char* name) : mShortOption(0), mLongOption(NULL), mIDName(name) { }
+ option_base(const char* name) : mIDName(name), mShortOption(0), mLongOption(NULL) { }
   virtual ~option_base() { }
 
 
@@ -272,13 +272,19 @@ template <class T> class choice_option : public choice_option_base
   }
 
   void set_default(T val) {
-    for (auto c : choices)
+#ifdef FOR_LOOP_AUTO_SUPPORT
+    FOR_LOOP(auto, c, choices) {
+#else
+    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
+      const std::pair<std::string,T> & c = *it;
+#endif
       if (c.second == val) {
         defaultID = val;
         defaultValue = c.first;
         default_set = true;
         return;
       }
+    }
 
     assert(false); // value does not exist
   }

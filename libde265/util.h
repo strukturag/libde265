@@ -29,6 +29,9 @@
 
 #include "libde265/de265.h"
 
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#endif
 
 #ifdef _MSC_VER
 #define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
@@ -40,22 +43,36 @@
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
 
+#if defined(__GNUC__) && (__GNUC__ >= 4)
+#define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
+#elif defined(_MSC_VER) && (_MSC_VER >= 1700)
+#define LIBDE265_CHECK_RESULT _Check_return_
+#else
+#define LIBDE265_CHECK_RESULT
+#endif
+
 #define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
 #define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
 // C++11 specific features
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || (!__clang__ && __GNUC__ && GCC_VERSION < 40600)
 #define FOR_LOOP(type, var, list)   for each (type var in list)
 #undef FOR_LOOP_AUTO_SUPPORT
 #else
 #define FOR_LOOP(type, var, list)   for (type var : list)
 #define FOR_LOOP_AUTO_SUPPORT 1
 #endif
+
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
 namespace std { using namespace std::tr1; }
+#endif
+
+#if __GNUC__ && GCC_VERSION < 40600
+// nullptr was introduced in gcc 4.6, a simple alias should be fine for our use case
+#define nullptr NULL
 #endif
 
 #ifdef _MSC_VER

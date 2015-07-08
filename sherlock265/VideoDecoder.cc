@@ -33,7 +33,8 @@ using namespace videogfx;
 
 
 VideoDecoder::VideoDecoder()
-  : ctx(NULL),
+  : mFH(NULL),
+    ctx(NULL),
     img(NULL),
     mNextBuffer(0),
     mFrameCount(0),
@@ -41,16 +42,15 @@ VideoDecoder::VideoDecoder()
     mVideoEnded(false),
     mSingleStep(false),
     mShowDecodedImage(true),
+    mShowQuantPY(false),
     mCBShowPartitioning(false),
     mTBShowPartitioning(false),
     mPBShowPartitioning(false),
-    mShowPBPredMode(false),
     mShowIntraPredMode(false),
-    mShowQuantPY(false),
+    mShowPBPredMode(false),
     mShowMotionVec(false),
-    mShowSlices(false),
     mShowTiles(false),
-    mFH(NULL)
+    mShowSlices(false)
 #ifdef HAVE_SWSCALE
     , sws(NULL)
     , width(0)

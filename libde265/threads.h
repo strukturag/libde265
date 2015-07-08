@@ -44,7 +44,16 @@ typedef pthread_cond_t   de265_cond;
 #else // _WIN32
 #include <windows.h>
 #include "../extra/win32cond.h"
+#if _MSC_VER > 1310
 #include <intrin.h>
+#else
+extern "C"
+{
+   LONG  __cdecl _InterlockedExchangeAdd(long volatile *Addend, LONG Value);
+}
+#pragma intrinsic (_InterlockedExchangeAdd)
+#define InterlockedExchangeAdd _InterlockedExchangeAdd
+#endif
 
 typedef HANDLE              de265_thread;
 typedef HANDLE              de265_mutex;
