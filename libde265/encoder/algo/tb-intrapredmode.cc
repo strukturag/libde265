@@ -251,7 +251,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      descend(cb,"%d",intraMode);
+      descend(tb[i],"%d",intraMode);
       assert(false);
       /*
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
@@ -309,7 +309,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     return tb[minCostIdx];
   }
   else {
-    descend(cb,"NOP");
+    descend(parent,"NOP"); // TODO: not parent
     assert(false);
     enc_tb* tb;
     /*
@@ -393,7 +393,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     // be done at the lowest TB split level.
 
 
-    descend(cb,"%d",intraMode);
+    descend(tb,"%d",intraMode);
     tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,tb,cb,
                                blkIdx, TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
@@ -418,7 +418,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     return tb;
   }
   else {
-    descend(cb,"NOP");
+    descend(tb,"NOP");
     enc_tb* nop_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb, cb,
                                            blkIdx, TrafoDepth, MaxTrafoDepth,
                                            IntraSplitFlag);
@@ -524,7 +524,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       contexts[intraMode] = ctxModel.copy();
-      descend(cb,"%d",intraMode);
+      descend(cb,"%d",intraMode); // TODO: not cb
       assert(false); /*
       tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
                                             cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
@@ -574,7 +574,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     return tb[minCostIdx];
   }
   else {
-    descend(cb,"NOP");
+    descend(cb,"NOP"); // TODO: not cb
     assert(false);
     enc_tb* tb;
     /*

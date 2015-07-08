@@ -205,9 +205,70 @@ void diff_blk(int16_t* out,int out_stride,
       }
 }
 
+
 template <class pixel_t>
-void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input)
+void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_image* input,
+                              int cIdx, int x,int y,int log2Size)
 {
+  int blkSize = (1<<log2Size);
+
+  enum IntraPredMode mode;
+
+  if (cIdx==0) {
+    mode = tb->intra_mode;
+  }
+  else {
+    mode = tb->intra_mode_chroma;
+  }
+
+  // decode intra prediction
+
+  tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
+
+  printf("intra prediction %d;%d size:%d cIdx=%d\n",x,y,blkSize,cIdx);
+
+  decode_intra_prediction(ectx->img, x,y, mode,
+                          tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
+                          blkSize, cIdx);
+
+
+  // create residual buffer and compute differences
+
+  tb->residual[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(int16_t));
+
+  diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
+                    input->get_image_plane_at_pos(cIdx,x,y),
+                    input->get_image_stride(cIdx),
+                    tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
+                    blkSize);
+}
+
+
+template <class pixel_t>
+void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input, int blkIdx)
+{
+  int tbSize = 1<<tb->log2Size;
+
+  compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
+
+  if (tb->log2Size > 2) {
+    int x = tb->x / input->SubWidthC;
+    int y = tb->y / input->SubHeightC;
+    int log2BlkSize = tb->log2Size -1;  // TODO chroma 422/444
+
+    compute_residual_channel<pixel_t>(ectx,tb,input, 1,x,y,log2BlkSize);
+    compute_residual_channel<pixel_t>(ectx,tb,input, 2,x,y,log2BlkSize);
+  }
+  else if (blkIdx==3) {
+    int x = tb->parent->x / input->SubWidthC;
+    int y = tb->parent->y / input->SubHeightC;
+    int log2BlkSize = tb->log2Size;
+
+    compute_residual_channel<pixel_t>(ectx,tb,input, 1,x,y,log2BlkSize);
+    compute_residual_channel<pixel_t>(ectx,tb,input, 2,x,y,log2BlkSize);
+  }
+
+#if 0
   for (int cIdx=0;cIdx<3;cIdx++) {
     int x = tb->x;
     int y = tb->y;
@@ -246,6 +307,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
                       tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
                       blkSize);
   }
+#endif
 }
 
 
@@ -283,10 +345,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     tb_no_split = new enc_tb(*tb);
 
     if (cb->PredMode == MODE_INTRA) {
-      compute_residual<uint8_t>(ectx, tb_no_split, input);
+      compute_residual<uint8_t>(ectx, tb_no_split, input, blkIdx);
     }
 
-    descend(cb,"no split");
+    descend(tb,"no split");
     tb_no_split = mAlgo_TB_Residual->analyze(ectx, ctxModel, input, tb_no_split, cb,
                                              blkIdx, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
@@ -309,7 +371,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (test_split) {
     tb_split = new enc_tb(*tb);
 
-    descend(cb,"split");
+    descend(tb,"split");
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, tb_split, cb,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();

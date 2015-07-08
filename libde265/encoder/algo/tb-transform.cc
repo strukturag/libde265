@@ -73,10 +73,15 @@ void compute_transform_coeffs(encoder_context* ectx,
   int16_t blk[32*32]; // residual
   int16_t* residual;
 
+
+  printf("transform-coeffs %d;%d size:%d cIdx:%d\n", tb->x,tb->y,1<<tb->log2Size,cIdx);
+
   // --- do intra prediction ---
 
   if (predMode==MODE_INTRA) {
     residual = tb->residual[cIdx]->get_buffer_s16();
+
+    printf("intra residual: %p stride: %d\n",residual, tb->residual[cIdx]->get_stride());
   }
   else {
     // --- subtract prediction from input image ---
