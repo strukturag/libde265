@@ -14,3 +14,6 @@ libde265_encoder_algo_la_SOURCES = \
   tb-split.h tb-split.cc \
   tb-intrapredmode.h tb-intrapredmode.cc \
   pb-mv.h pb-mv.cc
+
+EXTRA_DIST = \
+  CMakeLists.txt

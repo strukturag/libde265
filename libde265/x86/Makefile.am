@@ -18,3 +18,5 @@ if HAVE_VISIBILITY
  libde265_x86_sse_la_CXXFLAGS += -DHAVE_VISIBILITY
 endif
 
+EXTRA_DIST = \
+  CMakeLists.txt

@@ -13,3 +13,7 @@ if HAVE_VIDEOGFX
   enc265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
   enc265_LDFLAGS += $(VIDEOGFX_LIBS)
 endif
+
+EXTRA_DIST = \
+  CMakeLists.txt \
+  Makefile.vc7

@@ -96,6 +96,7 @@ if MINGW
 endif
 
 EXTRA_DIST = Makefile.vc7 \
+  CMakeLists.txt \
   ../extra/stdbool.h \
   ../extra/stdint.h
 
