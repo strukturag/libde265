@@ -108,5 +108,5 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo();
+  return options.return_best_rdo_cb();
 }

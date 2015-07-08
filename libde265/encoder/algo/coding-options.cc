@@ -65,10 +65,12 @@ CodingOption CodingOptions::new_option(bool active)
 
   bool firstOption = mOptions.empty();
   if (firstOption) {
-    opt.cb = mCBInput;
+    if (mCBMode) { opt.cb = mCBInput; }
+    else         { opt.tb = mTBInput; }
   }
   else {
-    opt.cb = new enc_cb(*mCBInput);
+    if (mCBMode) { opt.cb = new enc_cb(*mCBInput); }
+    else         { opt.tb = new enc_tb(*mTBInput); }
   }
 
   opt.context = *mContextModelInput;
@@ -117,33 +119,20 @@ void CodingOptions::start(enum RateEstimationMethod rateMethod)
 }
 
 
-void CodingOption::begin()
-{
-  mParent->cabac->reset();
-  mParent->cabac->set_context_models( &get_context() );
-
-  if (mParent->mCurrentlyReconstructedOption >= 0) {
-    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
-  }
-
-  mParent->mCurrentlyReconstructedOption = mOptionIdx;
-}
-
-void CodingOption::end()
-{
-  assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
-}
-
-
 void CodingOptions::compute_rdo_costs()
 {
   for (int i=0;i<mOptions.size();i++) {
-    mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
+    if (mCBMode) {
+      mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
+    }
+    else {
+      mOptions[i].rdoCost = mOptions[i].tb->distortion + mECtx->lambda * mOptions[i].tb->rate;
+    }
   }
 }
 
 
-enc_cb* CodingOptions::return_best_rdo()
+int CodingOptions::find_best_rdo_index()
 {
   assert(mOptions.size()>0);
 
@@ -161,7 +150,15 @@ enc_cb* CodingOptions::return_best_rdo()
     }
   }
 
+  return bestRDO;
+}
 
+
+enc_cb* CodingOptions::return_best_rdo_cb()
+{
+  int bestRDO = find_best_rdo_index();
+
+  assert(mCBMode);
   assert(bestRDO>=0);
 
   if (bestRDO != mCurrentlyReconstructedOption) {
@@ -182,4 +179,53 @@ enc_cb* CodingOptions::return_best_rdo()
   }
 
   return mOptions[bestRDO].cb;
+}
+
+
+enc_tb* CodingOptions::return_best_rdo_tb()
+{
+  int bestRDO = find_best_rdo_index();
+
+  assert(!mCBMode);
+  assert(bestRDO>=0);
+
+  if (bestRDO != mCurrentlyReconstructedOption) {
+    mOptions[bestRDO].tb->restore(mECtx->img);
+  }
+
+  *mContextModelInput = mOptions[bestRDO].context;
+
+
+  // delete all CBs except the best one
+
+  for (int i=0;i<mOptions.size();i++) {
+    if (i != bestRDO)
+      {
+        delete mOptions[i].tb;
+        mOptions[i].tb = NULL;
+      }
+  }
+
+  return mOptions[bestRDO].tb;
+}
+
+
+
+void CodingOption::begin()
+{
+  assert(mParent);
+
+  mParent->cabac->reset();
+  mParent->cabac->set_context_models( &get_context() );
+
+  if (mParent->mCurrentlyReconstructedOption >= 0) {
+    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
+  }
+
+  mParent->mCurrentlyReconstructedOption = mOptionIdx;
+}
+
+void CodingOption::end()
+{
+  assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
 }

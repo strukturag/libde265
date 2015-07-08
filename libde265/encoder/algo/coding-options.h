@@ -62,7 +62,8 @@ class CodingOptions
      If the current reconstruction and metadata are not from the returned CB,
      the data from the returned CB is reconstructed.
    */
-  enc_cb* return_best_rdo();
+  enc_cb* return_best_rdo_cb();
+  enc_tb* return_best_rdo_tb();
 
  private:
   struct CodingOptionData
@@ -96,6 +97,8 @@ class CodingOptions
   CABAC_encoder_estim*          cabac;
 
   friend class CodingOption;
+
+  int find_best_rdo_index();
 };
 
 
