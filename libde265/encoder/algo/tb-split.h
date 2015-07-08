@@ -65,7 +65,7 @@ class Algo_TB_Split : public Algo
                                       context_model_table& ctxModel,
                                       const de265_image* input,
                                       enc_tb* tb,
-                                      const enc_cb* cb,
+                                      enc_cb* cb,
                                       int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;

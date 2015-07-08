@@ -419,11 +419,11 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   }
   else {
     descend(cb,"NOP");
-    enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb, cb,
-                                       blkIdx, TrafoDepth, MaxTrafoDepth,
-                                       IntraSplitFlag);
+    enc_tb* nop_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb, cb,
+                                           blkIdx, TrafoDepth, MaxTrafoDepth,
+                                           IntraSplitFlag);
     ascend();
-    return tb;
+    return nop_tb;
   }
 
   assert(false);

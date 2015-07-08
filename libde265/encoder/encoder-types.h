@@ -97,7 +97,7 @@ class enc_tb : public enc_node
       enc_tb* children[4];
     };
 
-    // non-split
+    // leaf node
     struct {
       int16_t* coeff[3];
 
@@ -120,8 +120,10 @@ class enc_tb : public enc_node
 
   void alloc_coeff_memory(int cIdx, int tbSize);
 
+  /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
+  */
 
 private:
   static alloc_pool mMemPool;
