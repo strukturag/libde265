@@ -32,16 +32,21 @@
 
 #ifdef DE265_LOG_DEBUG
 #define ESTIM_BITS_BEGIN \
+  CABAC_encoder_estim* log_estim; \
   float log_bits_pre = 0; \
-  CABAC_encoder_estim* log_estim = dynamic_cast<CABAC_encoder_estim*>(cabac); \
+  if (logdebug_enabled(LogEncoder)) { \
+  log_estim = dynamic_cast<CABAC_encoder_estim*>(cabac); \
   if (log_estim) { \
     log_bits_pre = log_estim->getRDBits(); \
   } \
+  }
 
 #define ESTIM_BITS_END(name) \
+  if (logdebug_enabled(LogEncoder)) { \
   if (log_estim) { \
     float bits_post = log_estim->getRDBits(); \
     printf("%s=%f\n",name,bits_post - log_bits_pre);  \
+  } \
   }
 #else
 #define ESTIM_BITS_BEGIN
@@ -728,7 +733,7 @@ void encode_residual(encoder_context* ectx,
                      const enc_tb* tb, const enc_cb* cb,
                      int x0,int y0,int log2TrafoSize,int cIdx)
 {
-  printf("encode_residual %s\n",typeid(*cabac).name());
+  logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
 
   const de265_image* img = ectx->img;
   const seq_parameter_set& sps = img->sps;
