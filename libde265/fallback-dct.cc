@@ -909,23 +909,40 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
 {
   /*
     Each sum over a basis vector sums nT elements, which is compensated by
-    shifting right by Log2(nT). Do this in each of the H/V passes.
+    shifting right by Log2(nT), effectively dividing by 2^Log2(nT) = nT.
+    Do this in each of the H/V passes.
 
     Each multiplication with the table includes a left shift of 6 bits.
-    Hence, we have 2* 6 bits = 12 bits left shift. Additionally,
-    V-pass has BitDepth-9 bit right shift,
-    H-pass has fixed 6 bit right shift.
+    Hence, we have in total 2* 6 bits = 12 bits left shift because of the
+    multiplications.
 
-    For bit-depth 8, the effective shift is 7 bits left.
-    For bit-depth 9, the effective shift is 6 bits left.
-    For bit-depth 10, the effective shift is 5 bits left.
+    We carry out shifts after each pass:
+    First (V) pass has BitDepth-9 bit right shift,
+    Second (H) pass has fixed 6 bit right shift.
 
-    Effective shift 's' means: DC-coeff (1<<s) gives residual value 1.
-   */
+    For bit-depth 8, the total shift is 7 bits left.
+    For bit-depth 9, the total shift is 6 bits left.
+    For bit-depth 10, the total shift is 5 bits left.
 
-  int BD = 8;
-  int shift1 = Log2(nT) + BD -9;  // 12-9=3
-  int shift2 = Log2(nT) + 6;      // 10
+    I.e.: a constant residual value 1 gives DC-coeff (1<<s).
+
+    For 8-bit images in a 32x32 block, the input are 8 bits + 1 sign bit.
+    After the first pass, we need 9+5+6=20 bits for the intermediate sum
+    (9 bit input, 5 bit because we sum 2^5 elements, 6 bit because of multiplication with 64).
+    The first pass shift is Log2(32) - 1 -> 4 bits and we are down to 16 bits again.
+    After the second pass, we need 16+5+6=27 bits for the intermediate sum
+    (16 bit input, 5 bit because we sum 2^5 elements, 6 bit because of coefficient multiplication).
+    The second pass shift is Log2(32)+6 = 11 and we are down again to 16 bits.
+
+    For larger input bit-depths, the intermediate result after the first pass
+    will be wider accordingly, but the widths after the shifts are the same.
+  */
+
+  int BitDepth = 8;
+
+  //          / compensate everything | / effective word length |
+  int shift1 = Log2(nT) + 6 + BitDepth  - 15;
+  int shift2 = Log2(nT) + 6;
 
   int rnd1 = 1<<(shift1-1);
   int rnd2 = 1<<(shift2-1);
@@ -942,23 +959,14 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
         sum += mat_dct[fact*i][j] * input[c+j*stride];
       }
 
-      g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
-
-      //logtrace(LogTransform,"*%d ",g[c+i*nT]);
+      //assert((sum+rnd1)>>shift1 <=  32767);
+      //assert((sum+rnd1)>>shift1 >= -32768);
+      g[c+i*nT] = (sum+rnd1)>>shift1; // clipping to -32768;32767 unnecessary
     }
-    //logtrace(LogTransform,"*\n");
   }
 
 
   for (int y=0;y<nT;y++) {
-    /*
-    logtrace(LogTransform,"DCT-H: ");
-    for (int i=0;i<nT;i++) {
-      logtrace(LogTransform,"*%d ",g[i+y*nT]);
-    }
-    logtrace(LogTransform,"* -> ");
-    */
-
     for (int i=0;i<nT;i++) {
       int sum=0;
 
@@ -966,14 +974,11 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
         sum += mat_dct[fact*i][j] * g[y*nT+j];
       }
 
-      // TODO: do we need clipping ?
+      // no clipping to -32768;32767 required
       int out = (sum+rnd2)>>shift2;
 
       coeffs[y*nT+i] = out;
-
-      //logtrace(LogTransform,"*%d ",out);
     }
-    //logtrace(LogTransform,"*\n");
   }
 }
 
