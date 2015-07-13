@@ -53,6 +53,7 @@ before_script:
 script:
   - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then ./scripts/check_licenses.sh; fi"
   - make
+  - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then make dist && mkdir dist-test && cd dist-test && tar xzf ../libde265-*.tar.gz && cd libde265-* && ./configure && make; fi"
   - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -c -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
   - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -t 4 -q -c -f 100 ./libde265-data/IDR-only/paris-352x288-intra.bin; fi"
   - sh -c "if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then LD_LIBRARY_PATH=./libde265/.libs/ valgrind --tool=memcheck --quiet --error-exitcode=1 ./dec265/.libs/dec265 -q -c -f 100 ./libde265-data/RandomAccess/paris-ra-wpp.bin; fi"
