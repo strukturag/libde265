@@ -75,7 +75,7 @@ libde265_la_SOURCES = \
   image-io.h image-io.cc \
   alloc_pool.h alloc_pool.cc \
   en265.h en265.cc \
-  contextmodel.cc
+  contextmodel.cc contextmodel.h
 
 SUBDIRS = encoder
 libde265_la_LIBADD += encoder/libde265_encoder.la
