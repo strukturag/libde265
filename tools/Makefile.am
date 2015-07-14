@@ -1,5 +1,6 @@
 
-bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
+bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard \
+  acceleration_speed
 
 AM_CPPFLAGS = -I../libde265
 
@@ -44,3 +45,8 @@ bjoentegaard_LDFLAGS =
 bjoentegaard_LDADD = ../libde265/libde265.la -lstdc++
 bjoentegaard_SOURCES = bjoentegaard.cc
 
+acceleration_speed_DEPENDENCIES = ../libde265/libde265.la
+acceleration_speed_CXXFLAGS =
+acceleration_speed_LDFLAGS =
+acceleration_speed_LDADD = ../libde265/libde265.la -lstdc++
+acceleration_speed_SOURCES = acceleration-speed.cc

@@ -538,8 +538,65 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+#include "fallback-dct.h"
+
+int testdct()
+{
+#define BS 8
+  int16_t input[BS*BS];
+  for (int i=0;i<BS*BS;i++) {
+    input[i]= rand() & 0xff; //(((i%8) + (i/8))&1) ? -255 : 255;
+  }
+
+  int16_t coeffs[BS*BS];
+
+  //fdct_4x4_8_fallback(coeffs, input, BS);
+  fdct_8x8_8_fallback(coeffs, input, BS);
+
+  int32_t out[BS*BS];
+  transform_idct_8x8_fallback(out, coeffs, 20-8, 15);
+
+  if (0) {
+    for (int i=0;i<BS*BS;i++)
+      printf("%x ", coeffs[i]);
+    printf("\n");
+
+    for (int i=0;i<BS*BS;i++)
+      printf("%d ", out[i] - input[i]);
+    printf("\n");
+  }
+
+  int bias = 0;
+  for (int i=0;i<BS*BS;i++)
+    bias += out[i] - input[i];
+
+  return bias;
+}
+
+void testdct2()
+{
+  int bias=0;
+  for (int i=0;i<100*1000;i++)
+    bias += testdct();
+
+  printf("bias=%d\n",bias);
+}
+
+
+void testrnd()
+{
+  for (int i=-200;i<=200;i++) {
+    printf("%d: %d %d\n",i,i>>4, (i+8)>>4);
+  }
+}
+
+
 int main(int argc, char** argv)
 {
+  srand(time(0));
+  testrnd();
+  testdct2(); return 0;
+
   while (1) {
     int option_index = 0;
 

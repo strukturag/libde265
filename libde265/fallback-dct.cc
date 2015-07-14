@@ -942,9 +942,7 @@ static void transform_fdct_8(int16_t* coeffs, int nT,
         sum += mat_dct[fact*i][j] * input[c+j*stride];
       }
 
-      g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>shift1);
-
-      //logtrace(LogTransform,"*%d ",g[c+i*nT]);
+      g[c+i*nT] = (sum+rnd1)>>shift1; // clipping to -32768;32767 unnecessary
     }
     //logtrace(LogTransform,"*\n");
   }
