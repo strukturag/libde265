@@ -29,11 +29,18 @@
 
 #include <string>
 #include <stack>
+#include <memory>
 
 #include "libde265/image.h"
 #include "libde265/fallback-dct.h"
 #include "libde265/x86/sse-dct.h"
 #include "libde265/image-io.h"
+
+
+
+/* TODO: for more realistic input to IDCTs, we could save the real coefficients in
+   a decoder run and use this data as input.
+ */
 
 
 bool show_help=false;
@@ -77,10 +84,10 @@ public:
   virtual void runOnBlock(int x,int y) = 0;
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
-  virtual bool prepareNextImage(const de265_image*) = 0;
+  virtual bool prepareNextImage(std::shared_ptr<const de265_image>) = 0;
 
-  void runOnImage(const de265_image* img);
-  bool compareToReferenceImplementation() { return false; }
+  bool runOnImage(std::shared_ptr<const de265_image> img, bool compareToReference);
+  virtual bool compareToReferenceImplementation() { return false; }
 
   static DSPFunc* first;
   DSPFunc* next;
@@ -90,7 +97,7 @@ public:
 DSPFunc* DSPFunc::first = NULL;
 
 
-void DSPFunc::runOnImage(const de265_image* img)
+bool DSPFunc::runOnImage(std::shared_ptr<const de265_image> img, bool compareToReference)
 {
   int w = img->get_width(0);
   int h = img->get_height(0);
@@ -98,10 +105,19 @@ void DSPFunc::runOnImage(const de265_image* img)
   int blkWidth  = getBlkWidth();
   int blkHeight = getBlkHeight();
 
+  bool success = true;
+
   for (int y=0;y<=h-blkHeight;y+=blkHeight)
     for (int x=0;x<=w-blkWidth;x+=blkWidth) {
       runOnBlock(x,y);
+
+      if (compareToReference) {
+        referenceImplementation()->runOnBlock(x,y);
+        success &= compareToReferenceImplementation();
+      }
     }
+
+  return success;
 }
 
 
@@ -109,7 +125,11 @@ void DSPFunc::runOnImage(const de265_image* img)
 class DSPFunc_FDCT_Base : public DSPFunc
 {
 public:
-  DSPFunc_FDCT_Base(int size) { prev_image=NULL; curr_image=NULL; residuals=NULL; blkSize=size; }
+  DSPFunc_FDCT_Base(int size) {
+    residuals=NULL;
+    blkSize=size;
+    coeffs = new int16_t[size*size];
+  }
 
   virtual const char* name() const { return "FDCT-Base"; }
 
@@ -147,14 +167,24 @@ public:
 
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
-  virtual bool prepareNextImage(const de265_image* img)
+  bool compareToReferenceImplementation()
   {
-    if (curr_image==NULL) {
+    DSPFunc_FDCT_Base* refImpl = dynamic_cast<DSPFunc_FDCT_Base*>(referenceImplementation());
+
+    for (int i=0;i<blkSize*blkSize;i++)
+      if (coeffs[i] != refImpl->coeffs[i])
+        return false;
+
+    return true;
+  }
+
+  virtual bool prepareNextImage(std::shared_ptr<const de265_image> img)
+  {
+    if (!curr_image) {
       curr_image = img;
       return false;
     }
 
-    delete prev_image;
     prev_image = curr_image;
     curr_image = img;
 
@@ -181,15 +211,15 @@ public:
   }
 
 private:
-  const de265_image* prev_image;
-  const de265_image* curr_image;
+  std::shared_ptr<const de265_image> prev_image;
+  std::shared_ptr<const de265_image> curr_image;
 
 protected:
   int blkSize;
 
   int16_t* residuals;
   int      stride;
-  int16_t  coeffs[32*32];
+  int16_t* coeffs;
 };
 
 
@@ -259,6 +289,12 @@ public:
   }
 };
 
+DSPFunc_FDCT_Scalar_4x4   fdct_scalar_4x4;
+DSPFunc_FDCT_Scalar_8x8   fdct_scalar_8x8;
+DSPFunc_FDCT_Scalar_16x16 fdct_scalar_16x16;
+DSPFunc_FDCT_Scalar_32x32 fdct_scalar_32x32;
+
+
 
 
 
@@ -272,7 +308,7 @@ public:
 
   virtual const char* name() const { return "IDCT-Base"; }
 
-  virtual int getBlkWidth() const { return blkSize; }
+  virtual int getBlkWidth()  const { return blkSize; }
   virtual int getBlkHeight() const { return blkSize; }
 
   virtual void runOnBlock(int x,int y) {
@@ -282,17 +318,27 @@ public:
 
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
-  virtual bool prepareNextImage(const de265_image* img)
+  virtual bool compareToReferenceImplementation()
+  {
+    DSPFunc_IDCT_Base* refImpl = dynamic_cast<DSPFunc_IDCT_Base*>(referenceImplementation());
+
+    for (int i=0;i<blkSize*blkSize;i++)
+      if (out[i] != refImpl->out[i])
+        return false;
+
+    return true;
+  }
+
+  virtual bool prepareNextImage(std::shared_ptr<const de265_image> img)
   {
     // --- generate fake coefficients ---
     // difference between two frames
 
-    if (curr_image==NULL) {
+    if (!curr_image) {
       curr_image = img;
       return false;
     }
 
-    delete prev_image;
     prev_image = curr_image;
     curr_image = img;
 
@@ -330,8 +376,8 @@ public:
   }
 
 private:
-  const de265_image* prev_image;
-  const de265_image* curr_image;
+  std::shared_ptr<const de265_image> prev_image;
+  std::shared_ptr<const de265_image> curr_image;
 
 protected:
   int blkSize;
@@ -395,6 +441,13 @@ public:
   }
 };
 
+DSPFunc_IDCT_Scalar_4x4   idct_scalar_4x4;
+DSPFunc_IDCT_Scalar_8x8   idct_scalar_8x8;
+DSPFunc_IDCT_Scalar_16x16 idct_scalar_16x16;
+DSPFunc_IDCT_Scalar_32x32 idct_scalar_32x32;
+
+
+
 
 class DSPFunc_IDCT_SSE_4x4 : public DSPFunc_IDCT_Base
 {
@@ -402,6 +455,8 @@ public:
   DSPFunc_IDCT_SSE_4x4() : DSPFunc_IDCT_Base(4) { }
 
   virtual const char* name() const { return "IDCT-SSE-4x4"; }
+
+  virtual DSPFunc* referenceImplementation() const { return &idct_scalar_4x4; }
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,4*4);
@@ -416,6 +471,8 @@ public:
 
   virtual const char* name() const { return "IDCT-SSE-8x8"; }
 
+  virtual DSPFunc* referenceImplementation() const { return &idct_scalar_8x8; }
+
   virtual void runOnBlock(int x,int y) {
     memset(out,0,8*8);
     ff_hevc_transform_8x8_add_8_sse4(out, xy2coeff(x,y), 8);
@@ -428,6 +485,8 @@ public:
   DSPFunc_IDCT_SSE_16x16() : DSPFunc_IDCT_Base(16) { }
 
   virtual const char* name() const { return "IDCT-SSE-16x16"; }
+
+  virtual DSPFunc* referenceImplementation() const { return &idct_scalar_16x16; }
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,16*16);
@@ -442,22 +501,13 @@ public:
 
   virtual const char* name() const { return "IDCT-SSE-32x32"; }
 
+  virtual DSPFunc* referenceImplementation() const { return &idct_scalar_32x32; }
+
   virtual void runOnBlock(int x,int y) {
     memset(out,0,32*32);
     ff_hevc_transform_32x32_add_8_sse4(out, xy2coeff(x,y), 32);
   }
 };
-
-
-DSPFunc_FDCT_Scalar_4x4   fdct_scalar_4x4;
-DSPFunc_FDCT_Scalar_8x8   fdct_scalar_8x8;
-DSPFunc_FDCT_Scalar_16x16 fdct_scalar_16x16;
-DSPFunc_FDCT_Scalar_32x32 fdct_scalar_32x32;
-
-DSPFunc_IDCT_Scalar_4x4   idct_scalar_4x4;
-DSPFunc_IDCT_Scalar_8x8   idct_scalar_8x8;
-DSPFunc_IDCT_Scalar_16x16 idct_scalar_16x16;
-DSPFunc_IDCT_Scalar_32x32 idct_scalar_32x32;
 
 DSPFunc_IDCT_SSE_4x4   idct_sse_4x4;
 DSPFunc_IDCT_SSE_8x8   idct_sse_8x8;
@@ -493,13 +543,14 @@ int main(int argc, char** argv)
     fprintf(stderr,
             "acceleration-speed  SIMD DSP function testing tool\n"
             "--------------------------------------------------\n"
-            "      --help      show help\n"
-            "  -i, --input     input YUV file\n"
-            "  -w, --width     input width (default: 352)\n"
-            "  -h, --height    input height (default: 288)\n"
-            "  -n, --nframes   number of frames to process (defualt: 1000)\n"
-            "  -f, --function  which function to test (see below)\n"
-            "  -r, --repeat    number of repetitions for each image (default: 10)\n"
+            "      --help           show help\n"
+            "  -i, --input NAME     input YUV file\n"
+            "  -w, --width #        input width (default: 352)\n"
+            "  -h, --height #       input height (default: 288)\n"
+            "  -n, --nframes #      number of frames to process (defualt: 1000)\n"
+            "  -f, --function NAME  which function to test (see below)\n"
+            "  -r, --repeat #       number of repetitions for each image (default: 10)\n"
+            "  -c, --check          compare function result against its reference code\n"
             "\n"
             "these functions are known:\n"
             );
@@ -552,19 +603,27 @@ int main(int argc, char** argv)
   bool eof = false;
   for (int f=0; f<nframes ; f++)
     {
-      de265_image* image = image_source.get_image();
-      if (image==NULL) {
+      std::shared_ptr<de265_image> image(image_source.get_image());
+      if (!image) {
         eof=true;
         break;
       }
 
       img_counter++;
 
+      if (algo->referenceImplementation()) {
+        algo->referenceImplementation()->prepareNextImage(image);
+      }
+
       if (algo->prepareNextImage(image)) {
         printf("run %d times on image %d\n",repeat,img_counter);
+
         for (int r=0;r<repeat;r++) {
-          algo->runOnImage(image);
-          //bool compareToReferenceImplementation(const de265_image*);
+          bool success = algo->runOnImage(image, do_check);
+          if (!success) {
+            fprintf(stderr, "computation mismatch to reference implementation...\n");
+            exit(10);
+          }
         }
       }
     }
