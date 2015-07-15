@@ -306,5 +306,6 @@ AC_CONFIG_FILES([dec265/Makefile])
 AC_CONFIG_FILES([enc265/Makefile])
 AC_CONFIG_FILES([sherlock265/Makefile])
 AC_CONFIG_FILES([tools/Makefile])
+AC_CONFIG_FILES([acceleration-speed/Makefile])
 AC_CONFIG_FILES([libde265.pc])
 AC_OUTPUT
