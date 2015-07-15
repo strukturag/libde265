@@ -26,14 +26,14 @@
 class DSPFunc_FDCT_Scalar_4x4 : public DSPFunc_FDCT_Base
 {
 public:
-  DSPFunc_FDCT_Scalar_4x4() : DSPFunc_FDCT_Base(8) { }
+  DSPFunc_FDCT_Scalar_4x4() : DSPFunc_FDCT_Base(4) { }
 
   virtual const char* name() const { return "FDCT-Scalar-4x4"; }
 
   virtual void runOnBlock(int x,int y) {
     bool D = false;
 
-    fdct_4x4_8_fallback(coeffs, residuals+(x+y*stride)*16, stride);
+    fdct_4x4_8_fallback(coeffs, residuals+x+y*stride, stride);
 
     if (D) { dump(x,y); }
   }
@@ -50,7 +50,7 @@ public:
   virtual void runOnBlock(int x,int y) {
     bool D = false;
 
-    fdct_8x8_8_fallback(coeffs, residuals+(x+y*stride)*16, stride);
+    fdct_8x8_8_fallback(coeffs, residuals+x+y*stride, stride);
 
     if (D) { dump(x,y); }
   }
