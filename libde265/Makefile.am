@@ -22,60 +22,74 @@ libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(L
 libde265_la_LIBADD = -lstdc++
 
 libde265_la_SOURCES = \
+  acceleration.h \
+  alloc_pool.h \
+  alloc_pool.cc \
   bitstream.cc \
+  bitstream.h \
   cabac.cc \
+  cabac.h \
+  configparam.cc \
+  configparam.h \
+  contextmodel.cc \
+  contextmodel.h \
   de265.cc \
   deblock.cc \
+  deblock.h \
   decctx.cc \
-  nal-parser.cc \
-  nal-parser.h \
+  decctx.h \
+  en265.h \
+  en265.cc \
+  fallback.cc \
+  fallback.h \
+  fallback-dct.h \
+  fallback-dct.cc \
+  fallback-motion.cc \
+  fallback-motion.h \
   dpb.cc \
   dpb.h \
   image.cc \
-  intrapred.cc \
-  md5.cc \
-  nal.cc \
-  pps.cc \
-  transform.cc \
-  refpic.cc \
-  sao.cc \
-  scan.cc \
-  sei.cc \
-  slice.cc \
-  sps.cc \
-  util.cc \
-  vps.cc \
-  bitstream.h \
-  cabac.h \
-  deblock.h \
-  decctx.h \
   image.h \
+  image-io.h \
+  image-io.cc \
+  intrapred.cc \
   intrapred.h \
+  md5.cc \
   md5.h \
+  motion.cc \
+  motion.h \
+  nal.cc \
   nal.h \
+  nal-parser.cc \
+  nal-parser.h \
+  pps.cc \
   pps.h \
-  transform.h \
+  quality.cc \
+  quality.h \
+  refpic.cc \
   refpic.h \
+  sao.cc \
   sao.h \
+  scan.cc \
   scan.h \
+  sei.cc \
   sei.h \
+  slice.cc \
   slice.h \
+  sps.cc \
   sps.h \
+  threads.cc \
+  threads.h \
+  transform.cc \
+  transform.h \
+  util.cc \
   util.h \
+  visualize.cc \
+  visualize.h \
+  vps.cc \
   vps.h \
-  vui.h vui.cc \
-  motion.cc motion.h \
-  threads.cc threads.h \
-  visualize.cc visualize.h \
-  acceleration.h \
-  fallback.cc fallback.h fallback-motion.cc fallback-motion.h \
-  fallback-dct.h fallback-dct.cc \
-  quality.cc quality.h \
-  configparam.cc configparam.h \
-  image-io.h image-io.cc \
-  alloc_pool.h alloc_pool.cc \
-  en265.h en265.cc \
-  contextmodel.cc
+  vui.cc \
+  vui.h
 
 SUBDIRS = encoder
 libde265_la_LIBADD += encoder/libde265_encoder.la
