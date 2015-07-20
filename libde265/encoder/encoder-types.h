@@ -57,15 +57,26 @@ class enc_node
 {
  public:
   enc_node() { mReconstruction=NULL; }
-  enc_node(int _x,int _y, int _log2Size)
-    : x(_x), y(_y), log2Size(_log2Size), mReconstruction(NULL) { }
+ enc_node(int _x,int _y, int _log2Size)
+   : x(_x), y(_y), log2Size(_log2Size), mReconstruction(NULL) { }
   virtual ~enc_node() { delete[] mReconstruction; }
 
   uint16_t x,y;
   uint8_t  log2Size : 3;
 
-  virtual void save(const de265_image*);
-  virtual void restore(de265_image*);
+  virtual void save(const de265_image*); // deprecated
+  virtual void restore(de265_image*);    // deprecated
+
+
+  // reconstruction
+
+  static const int METADATA_PIXEL_BORDERS = (1<<0);
+  static const int METADATA_PIXELS        = (1<<1);
+  static const int METADATA_INTRA_MODES   = (1<<2);
+
+  struct rectangle {
+    int left,top,right,bottom;
+  };
 
  private:
   uint8_t* mReconstruction;
@@ -78,7 +89,8 @@ class enc_tb : public enc_node
   enc_tb(int x,int y,int log2TbSize);
   ~enc_tb();
 
-  const enc_tb* parent;
+  enc_tb* parent;
+  enc_cb* cb;
 
   uint8_t split_transform_flag : 1;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
@@ -87,6 +99,8 @@ class enc_tb : public enc_node
   enum IntraPredMode intra_mode_chroma;
 
   uint8_t cbf[3];
+
+  uint8_t metadata_in_image;
 
   std::shared_ptr<small_image_buffer> intra_prediction[3];
   std::shared_ptr<small_image_buffer> residual[3];
@@ -119,6 +133,60 @@ class enc_tb : public enc_node
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
 
   void alloc_coeff_memory(int cIdx, int tbSize);
+
+
+
+  // === metadata ===
+
+  // externally modified metadata
+  void overwrittenMetadata(int whatFlags) { metadata_in_image &= ~whatFlags; }
+
+  // externally wrote metadata
+  void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
+
+  void writeMetadata(de265_image* img, int whatFlags);
+  /*
+  void writeSurroundingMetadata(int whatFlags, const rectangle& rect)
+  {
+    if (parent) {
+      parent->nodeNeedsSurroundingUp(whatFlags, rect);
+    }
+    else {
+      assert(cb);
+      // TODO cb->nodeNeedsSurroundingUp(whatFlags, rect);
+    }
+  }
+*/
+  /*
+  void writeSurroundingMetadata(int whatFlags)
+  {
+    if (parent) {
+      rectangle rect;
+      rect.left  = x;
+      rect.top   = y;
+      rect.right = x+(1<<log2Size)-1;
+      rect.bottom= y+(1<<log2Size)-1;
+      parent->nodeNeedsSurroundingUp(whatFlags, rect);
+    }
+  }
+  */
+
+  /*
+       +--------------------------------+
+       |////////////////////////////////|
+       |//1-----------------------------2
+       |//|                             |
+       |//|                             |
+       |//|         rectangle           |
+       |//|                             |
+       |//|                             |
+       +--3-----------------------------4
+   */
+  void writeSurroundingMetadata(de265_image* img, int whatFlags, const rectangle& rect);
+
+  // internal use only
+  void writeSurroundingMetadataDown(de265_image* img, int whatFlags, const rectangle& rect);
+
 
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
@@ -172,6 +240,8 @@ public:
   uint8_t split_cu_flag : 1;
   uint8_t ctDepth : 2;
 
+  uint8_t metadata_in_image;
+
   union {
     // split
     struct {
@@ -200,7 +270,7 @@ public:
         } inter;
       };
 
-      const enc_tb* transform_tree;
+      enc_tb* transform_tree;
     };
   };
 
@@ -221,6 +291,9 @@ public:
   /* Decode this CB: pixel data and write metadata to image.
    */
   void reconstruct(encoder_context* ectx,de265_image* img) const;
+
+
+  void writeMetadata(de265_image* img, int whatFlags);
 
 
   // memory management

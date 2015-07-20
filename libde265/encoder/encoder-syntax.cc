@@ -765,6 +765,7 @@ void encode_residual(encoder_context* ectx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
+      printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
       scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
     }
     else {

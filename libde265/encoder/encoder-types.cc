@@ -52,6 +52,8 @@ small_image_buffer::~small_image_buffer()
 
 void enc_node::save(const de265_image* img)
 {
+  logtrace(LogEncoder,"PERF-WARNING: enc_node save %d;%d size:%d\n",x,y,1<<log2Size);
+
   delete[] mReconstruction;
 
   int blkSize = Log2SizeToArea(log2Size);
@@ -78,6 +80,8 @@ void enc_node::save(const de265_image* img)
 
 void enc_node::restore(de265_image* img)
 {
+  logtrace(LogEncoder,"PERF-WARNING: enc_node restore %d;%d size:%d\n",x,y,1<<log2Size);
+
   assert(mReconstruction);
 
   int blkSize = Log2SizeToArea(log2Size);
@@ -140,6 +144,8 @@ enc_tb::enc_tb(int x,int y,int log2TbSize)
   TrafoDepth = 0;
   cbf[0] = cbf[1] = cbf[2] = 0;
 
+  metadata_in_image = 0;
+
   distortion = 0;
   rate = 0;
   rate_withoutCbfChroma = 0;
@@ -189,7 +195,9 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
   if (cb->PredMode == MODE_INTRA) {
 
-    enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+    // enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+    enum IntraPredMode intraPredMode  = intra_mode;
+    printf("reconstruct TB: intra mode = %d\n",intraPredMode);
 
     if (cIdx>0) {
       intraPredMode = cb->intra.chroma_mode;
@@ -293,6 +301,89 @@ void enc_tb::set_cbf_flags_from_children()
 }
 
 
+void enc_cb::writeMetadata(de265_image* img, int whatFlags)
+{
+  printf("cb write metadata\n");
+
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++)
+      children[i]->writeMetadata(img,whatFlags);
+  }
+  else {
+    transform_tree->writeMetadata(img,whatFlags);
+  }
+
+  metadata_in_image |= whatFlags;
+}
+
+
+void enc_tb::writeMetadata(de265_image* img, int whatFlags)
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++)
+      children[i]->writeMetadata(img,whatFlags);
+  }
+  else {
+    int missing = whatFlags & ~metadata_in_image;
+
+    printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
+
+    if (missing & METADATA_INTRA_MODES)
+      img->set_IntraPredMode(x,y,log2Size, intra_mode);
+  }
+
+  metadata_in_image |= whatFlags;
+}
+
+
+void enc_tb::writeSurroundingMetadata(de265_image* img, int whatFlags, const rectangle& rect)
+{
+  if (rect.left == x || rect.top == y) {
+    if (parent) {
+      parent->writeSurroundingMetadata(img, whatFlags, rect);
+    }
+    else {
+      assert(cb);
+      // TODO cb->nodeNeedsReconstruction(whatFlags, rect);
+    }
+  }
+  else {
+    writeSurroundingMetadataDown(img, whatFlags, rect);
+  }
+}
+
+
+void enc_tb::writeSurroundingMetadataDown(de265_image* img, int whatFlags, const rectangle& rect)
+{
+  if ((metadata_in_image & whatFlags) == whatFlags) {
+    // nothing to do, data already exists
+  }
+  else if (!split_transform_flag) {
+    writeMetadata(img, whatFlags);
+  }
+  else {
+    int xhalf = x+(1<<(log2Size-1));
+    int yhalf = y+(1<<(log2Size-1));
+
+    if (rect.left <= xhalf && rect.top <= yhalf) {
+      children[0]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    }
+
+    if (rect.right >= xhalf && rect.top <= yhalf) {
+      children[1]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    }
+
+    if (rect.left <= xhalf && rect.bottom >= yhalf) {
+      children[2]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    }
+
+    if (rect.right >= xhalf && rect.bottom >= yhalf) {
+      children[3]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    }
+  }
+}
+
+
 
 
 alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
@@ -306,6 +397,8 @@ enc_cb::enc_cb()
     distortion(0),
     rate(0)
 {
+  metadata_in_image = 0;
+
   if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
 }
 

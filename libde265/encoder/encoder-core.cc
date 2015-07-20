@@ -236,6 +236,9 @@ double encode_image(encoder_context* ectx,
 
         enable_logging(LogSymbols);
 
+        cb->writeMetadata(ectx->img,
+                          enc_node::METADATA_INTRA_MODES);
+
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
         //printf("================================================== WRITE\n");

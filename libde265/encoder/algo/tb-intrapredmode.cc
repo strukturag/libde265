@@ -376,7 +376,10 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     cb->intra.pred_mode[blkIdx] = intraMode;
     if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
-    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode); // DEPRECATED
+    //intraMode=(IntraPredMode)17; // HACK
+
+    printf("INTRA MODE (%d;%d) = %d\n",x0,y0,intraMode);
+    // ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode); // DEPRECATED
 
     enum IntraPredMode intraModeC = intraMode;
 
