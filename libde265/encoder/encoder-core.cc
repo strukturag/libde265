@@ -40,6 +40,7 @@ static int MPM_used[7][35];
 static int IntraPredModeCnt_total[35];
 static int MPM_used_total[35];
 
+/*
 void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const enc_cb* cb)
 {
   if (cb->split_cu_flag) {
@@ -74,6 +75,7 @@ void statistics_IntraPredMode(const encoder_context* ectx, int x,int y, const en
     }
   }
 }
+*/
 
 void statistics_print()
 {

@@ -1484,7 +1484,7 @@ void encode_coding_unit(encoder_context* ectx,
         for (int i=0;i<3;i++)
           logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
 
-        enum IntraPredMode mode = cb->intra.pred_mode[0];
+        enum IntraPredMode mode = cb->transform_tree->intra_mode;
         int intraPred = find_intra_pred_mode(mode, candModeList);
         encode_prev_intra_luma_pred_flag(ectx,cabac, intraPred);
         encode_intra_mpm_or_rem(ectx,cabac, intraPred);
@@ -1522,7 +1522,7 @@ void encode_coding_unit(encoder_context* ectx,
               fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                           availableA,availableB, img);
 
-              enum IntraPredMode mode = cb->intra.pred_mode[childIdx];
+              enum IntraPredMode mode = cb->transform_tree->children[childIdx]->intra_mode;
 
               assert(ectx->img->get_IntraPredMode(x,y) == mode);
 

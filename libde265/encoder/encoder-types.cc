@@ -501,13 +501,13 @@ void enc_cb::write_to_image(de265_image* img) const
 
       if (PartMode == PART_NxN) {
         int h = 1<<(log2Size-1);
-        img->set_IntraPredMode(x  ,y  ,log2Size-1, intra.pred_mode[0]);
-        img->set_IntraPredMode(x+h,y  ,log2Size-1, intra.pred_mode[1]);
-        img->set_IntraPredMode(x  ,y+h,log2Size-1, intra.pred_mode[2]);
-        img->set_IntraPredMode(x+h,y+h,log2Size-1, intra.pred_mode[3]);
+        img->set_IntraPredMode(x  ,y  ,log2Size-1, transform_tree->children[0]->intra_mode);
+        img->set_IntraPredMode(x+h,y  ,log2Size-1, transform_tree->children[1]->intra_mode);
+        img->set_IntraPredMode(x  ,y+h,log2Size-1, transform_tree->children[2]->intra_mode);
+        img->set_IntraPredMode(x+h,y+h,log2Size-1, transform_tree->children[3]->intra_mode);
       }
       else {
-        img->set_IntraPredMode(x,y,log2Size, intra.pred_mode[0]);
+        img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
       }
     }
     else {

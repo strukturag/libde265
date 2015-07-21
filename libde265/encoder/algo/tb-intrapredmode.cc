@@ -246,7 +246,10 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
-      cb->intra.pred_mode[blkIdx] = intraMode;
+
+      assert(tb[i]->blkIdx == blkIdx);
+
+      //cb->intra.pred_mode[blkIdx] = intraMode;
       //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
       tb[i]->intra_mode        = intraMode;
@@ -293,7 +296,9 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
-    cb->intra.pred_mode[blkIdx] = intraMode;
+    assert(tb[minCostIdx]->blkIdx == blkIdx);
+
+    //cb->intra.pred_mode[blkIdx] = intraMode;
     //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
 
     tb[minCostIdx]->intra_mode        = intraMode;
@@ -382,7 +387,9 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
       }
     }
 
-    cb->intra.pred_mode[blkIdx] = intraMode;
+    assert(tb->blkIdx == blkIdx);
+
+    //cb->intra.pred_mode[blkIdx] = intraMode;
     //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
     //intraMode=(IntraPredMode)17; // HACK
@@ -534,7 +541,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       if (!isPredModeEnabled(intraMode)) { continue; }
 
-      cb->intra.pred_mode[blkIdx] = intraMode;
+      assert(tb[intraMode]->blkIdx == blkIdx);
+
+      //cb->intra.pred_mode[blkIdx] = intraMode;
       //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
       tb[intraMode]->intra_mode        = intraMode;
@@ -577,7 +586,9 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
-    cb->intra.pred_mode[blkIdx] = intraMode;
+    assert(tb[minCostIdx]->blkIdx == blkIdx);
+
+    //cb->intra.pred_mode[blkIdx] = intraMode;
     //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
 
     tb[minCostIdx]->intra_mode        = intraMode;
