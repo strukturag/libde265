@@ -114,9 +114,9 @@ class enc_tb : public enc_node
   enc_tb* parent;
   enc_cb* cb;
 
-  uint8_t blkIdx = -1; // HACK: INIT FOR DEBUG
   uint8_t split_transform_flag : 1;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
+  uint8_t blkIdx : 2;
 
   enum IntraPredMode intra_mode;
   enum IntraPredMode intra_mode_chroma;

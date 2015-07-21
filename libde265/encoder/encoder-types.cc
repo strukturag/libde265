@@ -208,7 +208,12 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
     //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
 
-    decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+    //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+
+    copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
+                  img->get_image_stride(cIdx),
+                  intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+                  1<<log2TbSize, 1<<log2TbSize);
   }
   else {
     int size = 1<<log2TbSize;
