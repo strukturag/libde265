@@ -379,6 +379,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
+    if (tb_no_split) tb_no_split->willOverwriteMetadata(enc_node::METADATA_ALL);
+
     tb_split = new enc_tb(*tb);
 
     descend(tb,"split");
@@ -387,8 +389,6 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     ascend();
 
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
-
-    if (tb_no_split) tb_no_split->overwrittenMetadata(enc_node::METADATA_ALL);
   }
 
 

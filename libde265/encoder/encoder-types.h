@@ -162,7 +162,7 @@ class enc_tb : public enc_node
   // === metadata ===
 
   // externally modified metadata
-  void overwrittenMetadata(int whatFlags = METADATA_ALL) { metadata_in_image &= ~whatFlags; }
+  void willOverwriteMetadata(int whatFlags = METADATA_ALL) { metadata_in_image &= ~whatFlags; }
 
   // externally wrote metadata
   void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
