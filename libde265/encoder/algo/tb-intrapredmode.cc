@@ -247,7 +247,10 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
       cb->intra.pred_mode[blkIdx] = intraMode;
-      if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+      //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+
+      tb[i]->intra_mode        = intraMode;
+      tb[i]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
@@ -291,7 +294,11 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
     cb->intra.pred_mode[blkIdx] = intraMode;
-    if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+    //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+
+    tb[minCostIdx]->intra_mode        = intraMode;
+    tb[minCostIdx]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     tb[minCostIdx]->reconstruct(ectx, ectx->img,
@@ -376,7 +383,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     }
 
     cb->intra.pred_mode[blkIdx] = intraMode;
-    if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+    //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
     //intraMode=(IntraPredMode)17; // HACK
 
@@ -528,7 +535,10 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       if (!isPredModeEnabled(intraMode)) { continue; }
 
       cb->intra.pred_mode[blkIdx] = intraMode;
-      if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+      //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+
+      tb[intraMode]->intra_mode        = intraMode;
+      tb[intraMode]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
@@ -568,7 +578,11 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
     cb->intra.pred_mode[blkIdx] = intraMode;
-    if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+    //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
+
+    tb[minCostIdx]->intra_mode        = intraMode;
+    tb[minCostIdx]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
     tb[minCostIdx]->reconstruct(ectx, ectx->img, cb, blkIdx);

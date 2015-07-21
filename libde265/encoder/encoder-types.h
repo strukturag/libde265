@@ -291,7 +291,7 @@ public:
       union {
         struct {
           enum IntraPredMode pred_mode[4];
-          enum IntraPredMode chroma_mode;
+          //enum IntraPredMode chroma_mode;
         } intra;
 
         struct {
