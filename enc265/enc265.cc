@@ -175,6 +175,8 @@ void test_parameters_API(en265_encoder_context* ectx)
 extern int skipTBSplit, noskipTBSplit;
 extern int zeroBlockCorrelation[6][2][5];
 
+extern ImageSink_YUV reconstruction_sink;
+
 int main(int argc, char** argv)
 {
   de265_init();
@@ -247,7 +249,6 @@ int main(int argc, char** argv)
   //test_parameters_API(ectx);
 
 
-  ImageSink_YUV reconstruction_sink;
   if (strlen(inout_params.reconstruction_yuv.get().c_str()) != 0) {
     reconstruction_sink.set_filename(inout_params.reconstruction_yuv.get().c_str());
     //ectx.reconstruction_sink = &reconstruction_sink;

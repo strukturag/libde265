@@ -31,7 +31,7 @@
 
 
 #define ENCODER_DEVELOPMENT 0
-#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
+#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 1
 
 
 static int IntraPredModeCnt[7][35];
@@ -118,6 +118,8 @@ void print_cb_tree_rates(const enc_cb* cb, int level)
   }
 }
 
+
+ImageSink_YUV reconstruction_sink;
 
 double encode_image(encoder_context* ectx,
                     const de265_image* input,
@@ -236,8 +238,9 @@ double encode_image(encoder_context* ectx,
 
         enable_logging(LogSymbols);
 
-        cb->writeMetadata(ectx->img,
-                          enc_node::METADATA_INTRA_MODES);
+        cb->writeMetadata(ectx, ectx->img,
+                          enc_node::METADATA_INTRA_MODES |
+                          enc_node::METADATA_RECONSTRUCTION);
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
@@ -265,6 +268,9 @@ double encode_image(encoder_context* ectx,
 
         //ectx->free_all_pools();
       }
+
+
+  reconstruction_sink.send_image(ectx->img);
 
 
   //statistics_print();

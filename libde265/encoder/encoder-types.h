@@ -70,13 +70,35 @@ class enc_node
 
   // reconstruction
 
-  static const int METADATA_PIXEL_BORDERS = (1<<0);
-  static const int METADATA_PIXELS        = (1<<1);
-  static const int METADATA_INTRA_MODES   = (1<<2);
+  static const int METADATA_RECONSTRUCTION_BORDERS = (1<<0);
+  static const int METADATA_RECONSTRUCTION = (1<<1);
+  static const int METADATA_INTRA_MODES    = (1<<2);
+  static const int METADATA_ALL            = 0xFF;
 
   struct rectangle {
+    rectangle() { }
+    rectangle(int l,int t,int r, int b) : left(l), top(t), right(r), bottom(b) { }
+
     int left,top,right,bottom;
   };
+
+  rectangle get_rectangle() {
+    rectangle r;
+    r.left = x;
+    r.top  = y;
+    r.right  = x+(1<<log2Size);
+    r.bottom = y+(1<<log2Size);
+    return r;
+  }
+
+  rectangle get_rectangle(int size) {
+    rectangle r;
+    r.left = x;
+    r.top  = y;
+    r.right  = x+size;
+    r.bottom = y+size;
+    return r;
+  }
 
  private:
   uint8_t* mReconstruction;
@@ -86,12 +108,13 @@ class enc_node
 class enc_tb : public enc_node
 {
  public:
-  enc_tb(int x,int y,int log2TbSize);
+  enc_tb(int x,int y,int log2TbSize, enc_cb* _cb);
   ~enc_tb();
 
   enc_tb* parent;
   enc_cb* cb;
 
+  uint8_t blkIdx = -1; // HACK: INIT FOR DEBUG
   uint8_t split_transform_flag : 1;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
 
@@ -139,12 +162,12 @@ class enc_tb : public enc_node
   // === metadata ===
 
   // externally modified metadata
-  void overwrittenMetadata(int whatFlags) { metadata_in_image &= ~whatFlags; }
+  void overwrittenMetadata(int whatFlags = METADATA_ALL) { metadata_in_image &= ~whatFlags; }
 
   // externally wrote metadata
   void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
 
-  void writeMetadata(de265_image* img, int whatFlags);
+  void writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
   /*
   void writeSurroundingMetadata(int whatFlags, const rectangle& rect)
   {
@@ -174,18 +197,21 @@ class enc_tb : public enc_node
   /*
        +--------------------------------+
        |////////////////////////////////|
-       |//1-----------------------------2
+       |//1-----------------------------+2
        |//|                             |
        |//|                             |
        |//|         rectangle           |
        |//|                             |
        |//|                             |
-       +--3-----------------------------4
+       +--+-----------------------------+
+       .  3                              4
    */
-  void writeSurroundingMetadata(de265_image* img, int whatFlags, const rectangle& rect);
+  void writeSurroundingMetadata(encoder_context* ectx,
+                                de265_image* img, int whatFlags, const rectangle& rect);
 
   // internal use only
-  void writeSurroundingMetadataDown(de265_image* img, int whatFlags, const rectangle& rect);
+  void writeSurroundingMetadataDown(encoder_context* ectx,
+                                    de265_image* img, int whatFlags, const rectangle& rect);
 
 
   /*
@@ -293,7 +319,7 @@ public:
   void reconstruct(encoder_context* ectx,de265_image* img) const;
 
 
-  void writeMetadata(de265_image* img, int whatFlags);
+  void writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
 
 
   // memory management

@@ -337,6 +337,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            int blkIdx,
                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
+  enter();
+
   int x0 = tb->x;
   int y0 = tb->y;
   int xBase = cb->x;
@@ -378,7 +380,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     //intraMode=(IntraPredMode)17; // HACK
 
-    printf("INTRA MODE (%d;%d) = %d\n",x0,y0,intraMode);
+    //printf("INTRA MODE (%d;%d) = %d\n",x0,y0,intraMode);
     // ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode); // DEPRECATED
 
     enum IntraPredMode intraModeC = intraMode;
@@ -403,6 +405,10 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     debug_show_image(ectx->img, 0);
 
+
+    tb->writeSurroundingMetadata(ectx, ectx->img,
+                                 enc_node::METADATA_INTRA_MODES,
+                                 tb->get_rectangle());
 
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,

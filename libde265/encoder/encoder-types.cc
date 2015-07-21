@@ -135,9 +135,12 @@ void enc_cb::set_rqt_root_bf_from_children_cbf()
 
 alloc_pool enc_tb::mMemPool(sizeof(enc_tb));
 
-enc_tb::enc_tb(int x,int y,int log2TbSize)
+enc_tb::enc_tb(int x,int y,int log2TbSize, enc_cb* _cb)
   : enc_node(x,y,log2TbSize)
 {
+  parent = NULL;
+  cb = _cb;
+
   split_transform_flag = false;
   coeff[0]=coeff[1]=coeff[2]=NULL;
 
@@ -195,14 +198,15 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
   if (cb->PredMode == MODE_INTRA) {
 
-    // enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+    //enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
     enum IntraPredMode intraPredMode  = intra_mode;
-    printf("reconstruct TB: intra mode = %d\n",intraPredMode);
 
     if (cIdx>0) {
       intraPredMode = cb->intra.chroma_mode;
       //intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode, cb->intra.chroma_mode);
     }
+
+    //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
 
     decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
   }
@@ -227,12 +231,10 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
   //printf("--- quantized coeffs ---\n");
-  //printBlk(coeff[0],1<<log2BlkSize,1<<log2BlkSize);
+  //printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
 
   //printf("--- dequantized coeffs ---\n");
-  //printBlk(dequant_coeff[0],1<<log2BlkSize,1<<log2BlkSize);
-
-  //printf("--- plane at %d %d / %d ---\n",x0,y0,cIdx);
+  //printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
 
   uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
   int stride  = img->get_image_stride(cIdx);
@@ -245,14 +247,8 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   if (cbf[cIdx]) inv_transform(&ectx->acceleration,
                                ptr,stride,   dequant_coeff, log2TbSize,   trType);
 
-
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
-  //printBlk("prediction",ptr,1<<log2TbSize,stride);
-
-  //dequant_and_add_transform(accel, img, x0,y0, qp);
-
-  //printf("--- RECO add residual %d %d ---\n",x0,y0);
-  //img->printBlk(x0,y0,0,log2CbSize);
+  //printBlk("RECO",ptr,1<<log2TbSize,stride);
 }
 
 
@@ -301,84 +297,149 @@ void enc_tb::set_cbf_flags_from_children()
 }
 
 
-void enc_cb::writeMetadata(de265_image* img, int whatFlags)
+void enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
-  printf("cb write metadata\n");
+  int missing = whatFlags & ~metadata_in_image;
+  if (!missing) {
+    return; // leave early if we have everything we need
+  }
 
   if (split_cu_flag) {
     for (int i=0;i<4;i++)
-      children[i]->writeMetadata(img,whatFlags);
+      children[i]->writeMetadata(ectx, img,whatFlags);
   }
   else {
-    transform_tree->writeMetadata(img,whatFlags);
+    transform_tree->writeMetadata(ectx, img,whatFlags);
   }
 
   metadata_in_image |= whatFlags;
 }
 
 
-void enc_tb::writeMetadata(de265_image* img, int whatFlags)
+void enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
+  //printf("enc_tb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
+
+  int missing = whatFlags & ~metadata_in_image;
+  if (!missing) {
+    return; // leave early if we have everything we need
+  }
+
   if (split_transform_flag) {
     for (int i=0;i<4;i++)
-      children[i]->writeMetadata(img,whatFlags);
+      children[i]->writeMetadata(ectx, img,whatFlags);
   }
   else {
-    int missing = whatFlags & ~metadata_in_image;
+    //printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
 
-    printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
-
-    if (missing & METADATA_INTRA_MODES)
+    if (missing & METADATA_INTRA_MODES) {
       img->set_IntraPredMode(x,y,log2Size, intra_mode);
+      //img->set_IntraPredModeC(int x,int y) const
+    }
+
+    if (missing & METADATA_RECONSTRUCTION_BORDERS ||
+        missing & METADATA_RECONSTRUCTION) {
+      reconstruct(ectx, img, cb, blkIdx);
+    }
   }
 
   metadata_in_image |= whatFlags;
 }
 
 
-void enc_tb::writeSurroundingMetadata(de265_image* img, int whatFlags, const rectangle& rect)
+void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
+                                      de265_image* img, int whatFlags, const rectangle& rect)
 {
+  /*
+  printf("enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
+         rect.left,rect.right, rect.top,rect.bottom, whatFlags);
+  */
+
   if (rect.left == x || rect.top == y) {
     if (parent) {
-      parent->writeSurroundingMetadata(img, whatFlags, rect);
+      parent->writeSurroundingMetadata(ectx, img, whatFlags, rect);
     }
     else {
       assert(cb);
       // TODO cb->nodeNeedsReconstruction(whatFlags, rect);
+
+      // TODO: remove this later when we go up through CB [does not work, because we cannot
+      // reconstruct the currently coded block]
+      if (rect.left <= x && rect.top <= y) {
+        // NOP
+      }
+      else {
+        writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+      }
     }
   }
   else {
-    writeSurroundingMetadataDown(img, whatFlags, rect);
+    writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
   }
 }
 
 
-void enc_tb::writeSurroundingMetadataDown(de265_image* img, int whatFlags, const rectangle& rect)
+bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
 {
+  // left edge (full height)
+
+  if (y1 <= border.top-1 || y0 >= border.bottom) {
+  }
+  else if (x0 < border.left && x1 >= border.left) {
+    return true;
+  }
+
+  // top edge (excluding left pixel)
+
+  if (x1 <= border.left || x0 >= border.right) {
+  }
+  else if (y0 < border.top && y1 >= border.top) {
+    return true;
+  }
+
+  return false;
+}
+
+
+void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
+                                          de265_image* img, int whatFlags, const rectangle& rect)
+{
+  /*
+  printf("enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
+         rect.left,rect.right, rect.top,rect.bottom);
+  */
+
   if ((metadata_in_image & whatFlags) == whatFlags) {
     // nothing to do, data already exists
   }
   else if (!split_transform_flag) {
-    writeMetadata(img, whatFlags);
+    if (rect.left <= x && rect.top <= y) {
+      // NOP
+    }
+    else {
+      writeMetadata(ectx, img, whatFlags);
+    }
   }
   else {
     int xhalf = x+(1<<(log2Size-1));
     int yhalf = y+(1<<(log2Size-1));
+    int xend  = x+(1<<log2Size);
+    int yend  = y+(1<<log2Size);
 
-    if (rect.left <= xhalf && rect.top <= yhalf) {
-      children[0]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    if (overlaps(rect, x,y, xhalf,yhalf)) {
+      children[0]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
     }
 
-    if (rect.right >= xhalf && rect.top <= yhalf) {
-      children[1]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    if (overlaps(rect, xhalf,y, xend,yhalf) && children[1]) {
+      children[1]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
     }
 
-    if (rect.left <= xhalf && rect.bottom >= yhalf) {
-      children[2]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    if (overlaps(rect, x,yhalf, xhalf,yend) && children[2]) {
+      children[2]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
     }
 
-    if (rect.right >= xhalf && rect.bottom >= yhalf) {
-      children[3]->writeSurroundingMetadataDown(img, whatFlags, rect);
+    if (overlaps(rect, xhalf,yhalf, xend,yend)) {
+      children[3]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
     }
   }
 }
@@ -500,6 +561,7 @@ void enc_cb::write_to_image(de265_image* img) const
 
 void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
+  assert(0);
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
       children[i]->reconstruct(ectx, img);

@@ -83,12 +83,13 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     int dx = (i&1)  << (log2TbSize-1);
     int dy = (i>>1) << (log2TbSize-1);
 
-    enc_tb* child_tb = new enc_tb(x0+dx,y0+dy, log2TbSize-1);
+    enc_tb* child_tb = new enc_tb(x0+dx,y0+dy, log2TbSize-1,cb);
 
     child_tb->intra_mode        = tb->intra_mode;
     child_tb->intra_mode_chroma = tb->intra_mode_chroma;
     child_tb->TrafoDepth = tb->TrafoDepth + 1;
     child_tb->parent = tb;
+    child_tb->blkIdx = i;
 
     if (cb->PredMode == MODE_INTRA) {
       //descend(tb,"intra");
@@ -225,7 +226,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
 
-  printf("intra prediction %d;%d size:%d cIdx=%d\n",x,y,blkSize,cIdx);
+  //printf("intra prediction %d;%d size:%d cIdx=%d\n",x,y,blkSize,cIdx);
 
   decode_intra_prediction(ectx->img, x,y, mode,
                           tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
@@ -248,6 +249,11 @@ template <class pixel_t>
 void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input, int blkIdx)
 {
   int tbSize = 1<<tb->log2Size;
+
+  tb->writeSurroundingMetadata(ectx, ectx->img,
+                               enc_node::METADATA_RECONSTRUCTION_BORDERS,
+                               tb->get_rectangle(1<<(tb->log2Size+1)));
+
 
   compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
 
@@ -320,6 +326,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   int blkIdx,
                                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
+  enter();
+
   int log2TbSize = tb->log2Size;
 
   bool test_split = (log2TbSize > 2 &&
@@ -340,6 +348,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   enc_tb* tb_split    = NULL;
   float rd_cost_no_split = std::numeric_limits<float>::max();
   float rd_cost_split    = std::numeric_limits<float>::max();
+
+  //printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
 
   if (test_no_split) {
     tb_no_split = new enc_tb(*tb);
@@ -377,6 +387,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     ascend();
 
     rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
+
+    if (tb_no_split) tb_no_split->overwrittenMetadata(enc_node::METADATA_ALL);
   }
 
 
@@ -394,6 +406,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   bool split = (rd_cost_split < rd_cost_no_split);
 
+  // if (test_split) split=true;  /// DEBUGGING HACK
+
   if (split) {
     ctxModel = ctxSplit;
 
@@ -404,8 +418,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     delete tb_split;
     assert(tb_no_split);
+    /*
     tb_no_split->reconstruct(ectx, ectx->img,
                              cb, blkIdx);
+    */
 
     return tb_no_split;
   }

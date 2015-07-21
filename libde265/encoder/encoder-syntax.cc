@@ -765,7 +765,7 @@ void encode_residual(encoder_context* ectx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
+      //printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
       scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
     }
     else {
@@ -1531,6 +1531,12 @@ void encode_coding_unit(encoder_context* ectx,
         for (int i=0;i<4;i++)
           encode_intra_mpm_or_rem(ectx,cabac, intraPred[i]);
       }
+
+      /*
+      printf("write intra modes. Luma=%d Chroma=%d\n",
+             cb->intra.pred_mode[0],
+             cb->intra.chroma_mode);
+      */
 
       IntraChromaPredMode chromaPredMode = find_chroma_pred_mode(cb->intra.chroma_mode,
                                                                  cb->intra.pred_mode[0]);

@@ -74,14 +74,14 @@ void compute_transform_coeffs(encoder_context* ectx,
   int16_t* residual;
 
 
-  printf("transform-coeffs %d;%d size:%d cIdx:%d\n", tb->x,tb->y,1<<tb->log2Size,cIdx);
+  //printf("transform-coeffs %d;%d size:%d cIdx:%d\n", tb->x,tb->y,1<<tb->log2Size,cIdx);
 
   // --- do intra prediction ---
 
   if (predMode==MODE_INTRA) {
     residual = tb->residual[cIdx]->get_buffer_s16();
 
-    printf("intra residual: %p stride: %d\n",residual, tb->residual[cIdx]->get_stride());
+    //printf("intra residual: %p stride: %d\n",residual, tb->residual[cIdx]->get_stride());
   }
   else {
     // --- subtract prediction from input image ---
@@ -142,6 +142,8 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
 {
+  enter();
+
   de265_image* img = ectx->img;
 
   int stride = ectx->img->get_image_stride(0);
@@ -179,7 +181,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   // reconstruction
 
-  tb->reconstruct(ectx, ectx->img, cb, blkIdx);
+  // tb->reconstruct(ectx, ectx->img, cb, blkIdx);
 
 
 
