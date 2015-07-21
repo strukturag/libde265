@@ -202,8 +202,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     enum IntraPredMode intraPredMode  = intra_mode;
 
     if (cIdx>0) {
-      intraPredMode = cb->intra.chroma_mode;
-      //intraPredMode = lumaPredMode_to_chromaPredMode(intraPredMode, cb->intra.chroma_mode);
+      intraPredMode = intra_mode_chroma;
     }
 
     //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
@@ -499,7 +498,6 @@ void enc_cb::write_to_image(de265_image* img) const
     img->set_PartMode(x,y, PartMode);
 
     if (PredMode == MODE_INTRA) {
-      //img->set_ChromaIntraPredMode(x,y,log2Size, intra.chroma_mode);
 
       if (PartMode == PART_NxN) {
         int h = 1<<(log2Size-1);

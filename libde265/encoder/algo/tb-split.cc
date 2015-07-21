@@ -338,6 +338,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
+  //if (test_split) test_no_split = false;
+
   context_model_table ctxSplit;
   if (test_split) {
     ctxSplit = ctxModel.copy();
@@ -406,7 +408,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   bool split = (rd_cost_split < rd_cost_no_split);
 
-  // if (test_split) split=true;  /// DEBUGGING HACK
+  //if (test_split) split=true;  /// DEBUGGING HACK
 
   if (split) {
     ctxModel = ctxSplit;

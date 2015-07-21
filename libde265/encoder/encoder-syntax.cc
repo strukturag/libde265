@@ -766,14 +766,10 @@ void encode_residual(encoder_context* ectx,
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
       //printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, img->get_IntraPredMode(x0,y0));
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tb->intra_mode);
     }
     else {
-      enum IntraPredMode chromaMode = cb->intra.chroma_mode;
-      /*
-      enum IntraPredMode chromaMode = lumaPredMode_to_chromaPredMode(img->get_IntraPredMode(x0,y0),
-                                                                     cb->intra.chroma_mode);
-      */
+      enum IntraPredMode chromaMode = tb->intra_mode_chroma;
       scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, chromaMode);
     }
   }
@@ -1472,6 +1468,8 @@ void encode_coding_unit(encoder_context* ectx,
 
     if (PredMode == MODE_INTRA) {
 
+      assert(cb->split_cu_flag == 0);
+
       int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
       int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
 
@@ -1494,6 +1492,12 @@ void encode_coding_unit(encoder_context* ectx,
         logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
                  candModeList[0], candModeList[1], candModeList[2]);
         logtrace(LogSlice,"  MPM/REM = %d\n",intraPred);
+
+
+        IntraChromaPredMode chromaPredMode;
+        chromaPredMode = find_chroma_pred_mode(cb->transform_tree->intra_mode_chroma,
+                                               cb->transform_tree->intra_mode);
+        encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
       }
       else {
         IntraSplitFlag=1;
@@ -1530,6 +1534,14 @@ void encode_coding_unit(encoder_context* ectx,
 
         for (int i=0;i<4;i++)
           encode_intra_mpm_or_rem(ectx,cabac, intraPred[i]);
+
+
+        // send chroma mode
+
+        IntraChromaPredMode chromaPredMode;
+        chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[0]->intra_mode_chroma,
+                                               cb->transform_tree->children[0]->intra_mode);
+        encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
       }
 
       /*
@@ -1537,10 +1549,6 @@ void encode_coding_unit(encoder_context* ectx,
              cb->intra.pred_mode[0],
              cb->intra.chroma_mode);
       */
-
-      IntraChromaPredMode chromaPredMode = find_chroma_pred_mode(cb->intra.chroma_mode,
-                                                                 cb->intra.pred_mode[0]);
-      encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
     }
     else {
       switch (cb->PartMode) {

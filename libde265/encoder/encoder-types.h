@@ -162,7 +162,12 @@ class enc_tb : public enc_node
   // === metadata ===
 
   // externally modified metadata
-  void willOverwriteMetadata(int whatFlags = METADATA_ALL) { metadata_in_image &= ~whatFlags; }
+  // We call this before doing the actual modification. This allows to save e.g.
+  // pixel data that has been reconstructed into the image to be copied into the TB
+  // as it will most probably be needed later again.
+  void willOverwriteMetadata(int whatFlags = METADATA_ALL) {
+    metadata_in_image &= ~whatFlags;
+  }
 
   // externally wrote metadata
   void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
