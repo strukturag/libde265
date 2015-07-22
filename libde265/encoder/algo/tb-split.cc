@@ -30,124 +30,6 @@
 #include <iostream>
 
 
-#define ENCODER_DEVELOPMENT 1
-
-
-enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
-                                                   context_model_table& ctxModel,
-                                                   const de265_image* input,
-                                                   enc_tb* tb,
-                                                   enc_cb* cb,
-                                                   int TrafoDepth, int MaxTrafoDepth,
-                                                   int IntraSplitFlag)
-{
-  const de265_image* img = ectx->img;
-
-#if 0
-  tb->parent = parent;
-  tb->split_transform_flag = true;
-  tb->log2Size = log2TbSize;
-  tb->x = x0;
-  tb->y = y0;
-
-  tb->distortion = 0;
-  tb->rate = 0;
-  tb->rate_withoutCbfChroma = 0;
-
-
-  // Since we try to code all sub-blocks, we enable all CBF flags.
-  // Should we see later that the child TBs are zero, we clear those flags later.
-
-  tb->cbf[0]=1;
-  tb->cbf[1]=1;
-  tb->cbf[2]=1;
-#endif
-
-  int log2TbSize = tb->log2Size;
-  int x0 = tb->x;
-  int y0 = tb->y;
-
-  context_model ctxModelCbfChroma[4];
-  for (int i=0;i<4;i++) {
-    ctxModelCbfChroma[i] = ctxModel[CONTEXT_MODEL_CBF_CHROMA+i];
-  }
-
-  tb->split_transform_flag = true;
-
-  // --- encode all child nodes ---
-
-  for (int i=0;i<4;i++) {
-
-    // generate child node and propagate values down
-
-    int dx = (i&1)  << (log2TbSize-1);
-    int dy = (i>>1) << (log2TbSize-1);
-
-    enc_tb* child_tb = new enc_tb(x0+dx,y0+dy, log2TbSize-1,cb);
-
-    child_tb->intra_mode        = tb->intra_mode;
-    child_tb->intra_mode_chroma = tb->intra_mode_chroma;
-    child_tb->TrafoDepth = tb->TrafoDepth + 1;
-    child_tb->parent = tb;
-    child_tb->blkIdx = i;
-    child_tb->downPtr = &tb->children[i];
-
-    if (cb->PredMode == MODE_INTRA) {
-      //descend(tb,"intra");
-      tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
-                                                        child_tb, cb, i,
-                                                        TrafoDepth+1, MaxTrafoDepth,
-                                                        IntraSplitFlag);
-      //ascend("bits:%f",tb->rate);
-    }
-    else {
-      //descend(tb,"inter");
-      tb->children[i] = this->analyze(ectx, ctxModel, input,
-                                      child_tb, cb, i,
-                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
-      //ascend();
-    }
-
-    tb->distortion            += tb->children[i]->distortion;
-    tb->rate_withoutCbfChroma += tb->children[i]->rate_withoutCbfChroma;
-  }
-
-  tb->set_cbf_flags_from_children();
-
-
-  // --- add rate for this TB level ---
-
-  CABAC_encoder_estim estim;
-  estim.set_context_models(&ctxModel);
-
-
-
-
-  const seq_parameter_set* sps = &ectx->img->sps;
-
-  if (log2TbSize <= sps->Log2MaxTrafoSize &&
-      log2TbSize >  sps->Log2MinTrafoSize &&
-      TrafoDepth < MaxTrafoDepth &&
-      !(IntraSplitFlag && TrafoDepth==0))
-    {
-      encode_split_transform_flag(ectx, &estim, log2TbSize, 1);
-      tb->rate_withoutCbfChroma += estim.getRDBits();
-      estim.reset();
-    }
-
-  // restore chroma CBF context models
-
-  for (int i=0;i<4;i++) {
-    ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
-  }
-
-  tb->rate = (tb->rate_withoutCbfChroma +
-              recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
-
-  return tb;
-}
-
-
 
 struct Logging_TB_Split : public Logging
 {
@@ -274,47 +156,6 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
     compute_residual_channel<pixel_t>(ectx,tb,input, 1,x,y,log2BlkSize);
     compute_residual_channel<pixel_t>(ectx,tb,input, 2,x,y,log2BlkSize);
   }
-
-#if 0
-  for (int cIdx=0;cIdx<3;cIdx++) {
-    int x = tb->x;
-    int y = tb->y;
-    int blkSize  = (1<<tb->log2Size);
-    int log2Size = tb->log2Size;
-
-    enum IntraPredMode mode;
-
-    if (cIdx==0) {
-      mode = tb->intra_mode;
-    }
-    else {
-      mode = tb->intra_mode_chroma;
-      x /= input->SubWidthC;
-      y /= input->SubHeightC;
-      blkSize /= input->SubWidthC; // TODO (HACK)
-      log2Size--; // TODO (HACK)
-    }
-
-    // decode intra prediction
-
-    tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
-
-    decode_intra_prediction(ectx->img, x,y, mode,
-                            tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
-                            blkSize, cIdx);
-
-
-    // create residual buffer and compute differences
-
-    tb->residual[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(int16_t));
-
-    diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
-                      input->get_image_plane_at_pos(cIdx,x,y),
-                      input->get_image_stride(cIdx),
-                      tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
-                      blkSize);
-  }
-#endif
 }
 
 
@@ -425,11 +266,103 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   else {
     delete tb_split;
     assert(tb_no_split);
-    /*
-    tb_no_split->reconstruct(ectx, ectx->img,
-                             cb, blkIdx);
-    */
 
     return tb_no_split;
   }
+}
+
+
+
+enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
+                                                   context_model_table& ctxModel,
+                                                   const de265_image* input,
+                                                   enc_tb* tb,
+                                                   enc_cb* cb,
+                                                   int TrafoDepth, int MaxTrafoDepth,
+                                                   int IntraSplitFlag)
+{
+  const de265_image* img = ectx->img;
+
+  int log2TbSize = tb->log2Size;
+  int x0 = tb->x;
+  int y0 = tb->y;
+
+  context_model ctxModelCbfChroma[4];
+  for (int i=0;i<4;i++) {
+    ctxModelCbfChroma[i] = ctxModel[CONTEXT_MODEL_CBF_CHROMA+i];
+  }
+
+  tb->split_transform_flag = true;
+
+  // --- encode all child nodes ---
+
+  for (int i=0;i<4;i++) {
+
+    // generate child node and propagate values down
+
+    int dx = (i&1)  << (log2TbSize-1);
+    int dy = (i>>1) << (log2TbSize-1);
+
+    enc_tb* child_tb = new enc_tb(x0+dx,y0+dy, log2TbSize-1,cb);
+
+    child_tb->intra_mode        = tb->intra_mode;
+    child_tb->intra_mode_chroma = tb->intra_mode_chroma;
+    child_tb->TrafoDepth = tb->TrafoDepth + 1;
+    child_tb->parent = tb;
+    child_tb->blkIdx = i;
+    child_tb->downPtr = &tb->children[i];
+
+    if (cb->PredMode == MODE_INTRA) {
+      //descend(tb,"intra");
+      tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
+                                                        child_tb, cb, i,
+                                                        TrafoDepth+1, MaxTrafoDepth,
+                                                        IntraSplitFlag);
+      //ascend("bits:%f",tb->rate);
+    }
+    else {
+      //descend(tb,"inter");
+      tb->children[i] = this->analyze(ectx, ctxModel, input,
+                                      child_tb, cb, i,
+                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+      //ascend();
+    }
+
+    tb->distortion            += tb->children[i]->distortion;
+    tb->rate_withoutCbfChroma += tb->children[i]->rate_withoutCbfChroma;
+  }
+
+  tb->set_cbf_flags_from_children();
+
+
+  // --- add rate for this TB level ---
+
+  CABAC_encoder_estim estim;
+  estim.set_context_models(&ctxModel);
+
+
+
+
+  const seq_parameter_set* sps = &ectx->img->sps;
+
+  if (log2TbSize <= sps->Log2MaxTrafoSize &&
+      log2TbSize >  sps->Log2MinTrafoSize &&
+      TrafoDepth < MaxTrafoDepth &&
+      !(IntraSplitFlag && TrafoDepth==0))
+    {
+      encode_split_transform_flag(ectx, &estim, log2TbSize, 1);
+      tb->rate_withoutCbfChroma += estim.getRDBits();
+      estim.reset();
+    }
+
+  // restore chroma CBF context models
+
+  for (int i=0;i<4;i++) {
+    ctxModel[CONTEXT_MODEL_CBF_CHROMA+i] = ctxModelCbfChroma[i];
+  }
+
+  tb->rate = (tb->rate_withoutCbfChroma +
+              recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
+
+  return tb;
 }
