@@ -113,6 +113,22 @@ if eval "test x$need_strict_ansi = xyes"; then
 fi
 AC_MSG_RESULT([$need_strict_ansi])
 
+# Check if "std::move" is available
+AC_MSG_CHECKING([for std::move])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <utility>
+],[
+class A {};
+A* a = new A();
+A* b = std::move(a);
+],[has_std_move=yes],[has_std_move=no]);
+AC_LANG_POP(C++)
+if eval "test x$has_std_move = xno"; then
+  AC_DEFINE(NEED_STD_MOVE_FALLBACK,1,[Define to 1 if a fallback for "std::move" is required.])
+fi
+AC_MSG_RESULT([$has_std_move])
+
 # --- machine dependent optimizations ---
 
 #AX_EXT
