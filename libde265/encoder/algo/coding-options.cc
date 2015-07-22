@@ -48,6 +48,8 @@ CodingOptions::CodingOptions(encoder_context* ectx, enc_tb* tb, context_model_ta
   mBestRDO=-1;
 
   mECtx = ectx;
+
+  cabac = NULL;
 }
 
 CodingOptions::~CodingOptions()
@@ -73,7 +75,8 @@ CodingOption CodingOptions::new_option(bool active)
     else         { opt.tb = new enc_tb(*mTBInput); }
   }
 
-  opt.context = *mContextModelInput;
+  opt.context  = *mContextModelInput;
+  opt.computed = false;
 
   CodingOption option(this, mOptions.size());
 
@@ -122,11 +125,13 @@ void CodingOptions::start(enum RateEstimationMethod rateMethod)
 void CodingOptions::compute_rdo_costs()
 {
   for (int i=0;i<mOptions.size();i++) {
-    if (mCBMode) {
-      mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
-    }
-    else {
-      mOptions[i].rdoCost = mOptions[i].tb->distortion + mECtx->lambda * mOptions[i].tb->rate;
+    if (mOptions[i].computed) {
+      if (mCBMode) {
+        mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
+      }
+      else {
+        mOptions[i].rdoCost = mOptions[i].tb->distortion + mECtx->lambda * mOptions[i].tb->rate;
+      }
     }
   }
 }
@@ -142,11 +147,13 @@ int CodingOptions::find_best_rdo_index()
   int   bestRDO=-1;
 
   for (int i=0;i<mOptions.size();i++) {
-    float cost = mOptions[i].rdoCost;
-    if (first || cost < bestRDOCost) {
-      bestRDOCost = cost;
-      first = false;
-      bestRDO = i;
+    if (mOptions[i].computed) {
+      float cost = mOptions[i].rdoCost;
+      if (first || cost < bestRDOCost) {
+        bestRDOCost = cost;
+        first = false;
+        bestRDO = i;
+      }
     }
   }
 
@@ -162,7 +169,7 @@ enc_cb* CodingOptions::return_best_rdo_cb()
   assert(bestRDO>=0);
 
   if (bestRDO != mCurrentlyReconstructedOption) {
-    mOptions[bestRDO].cb->restore(mECtx->img);
+    //mOptions[bestRDO].cb->restore(mECtx->img);
   }
 
   *mContextModelInput = mOptions[bestRDO].context;
@@ -190,7 +197,7 @@ enc_tb* CodingOptions::return_best_rdo_tb()
   assert(bestRDO>=0);
 
   if (bestRDO != mCurrentlyReconstructedOption) {
-    mOptions[bestRDO].tb->restore(mECtx->img);
+    //mOptions[bestRDO].tb->restore(mECtx->img);
   }
 
   *mContextModelInput = mOptions[bestRDO].context;
@@ -214,13 +221,16 @@ enc_tb* CodingOptions::return_best_rdo_tb()
 void CodingOption::begin()
 {
   assert(mParent);
+  assert(mParent->cabac); // did you call CodingOptions.start() ?
 
   mParent->cabac->reset();
   mParent->cabac->set_context_models( &get_context() );
 
+  mParent->mOptions[mOptionIdx].computed = true;
+
   if (mParent->mCurrentlyReconstructedOption >= 0) {
-    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
-    //mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->willOverwriteMetadata(mParent->mECtx->img);
+    //mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
+    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->willOverwriteMetadata(mParent->mECtx->img);
   }
 
   mParent->mCurrentlyReconstructedOption = mOptionIdx;

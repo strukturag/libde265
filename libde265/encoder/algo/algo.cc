@@ -52,7 +52,7 @@ void Algo::descend(const enc_node* node, const char* option, ...)
 
     fprintf(stdout, "%s(", name());
     vfprintf(stdout, option, va);
-    fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+    fprintf(stdout, ") %d;%d %dx%d %p\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size,node);
   }
 }
 

@@ -24,10 +24,12 @@
 #include "libde265/encoder/encoder-core.h"
 #include "libde265/encoder/encoder-context.h"
 #include "libde265/encoder/encoder-syntax.h"
+#include "libde265/encoder/algo/coding-options.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
 #include <iostream>
+
 
 
 
@@ -180,24 +182,35 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
-  //if (test_split) test_no_split = false;
-  //if (test_no_split) test_split = false;
+  CodingOptions options(ectx, tb, ctxModel);
 
+  CodingOption option_no_split = options.new_option(test_no_split);
+  CodingOption option_split    = options.new_option(test_split);
+
+  //if (test_no_split) test_split = false;
+  //if (test_split) test_no_split = false;
+
+  /*
   context_model_table ctxSplit;
   if (test_split) {
     ctxSplit = ctxModel.copy();
   }
+  */
+
+  options.start();
 
 
   enc_tb* tb_no_split = NULL;
   enc_tb* tb_split    = NULL;
-  float rd_cost_no_split = std::numeric_limits<float>::max();
-  float rd_cost_split    = std::numeric_limits<float>::max();
+  //float rd_cost_no_split = std::numeric_limits<float>::max();
+  //float rd_cost_split    = std::numeric_limits<float>::max();
 
   //printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
 
   if (test_no_split) {
-    tb_no_split = new enc_tb(*tb);
+    option_no_split.begin();
+    tb_no_split = option_no_split.get_tb();
+    //tb_no_split = new enc_tb(*tb);
     *tb->downPtr = tb_no_split;
 
     if (cb->PredMode == MODE_INTRA) {
@@ -205,11 +218,14 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     }
 
     descend(tb,"no split");
-    tb_no_split = mAlgo_TB_Residual->analyze(ectx, ctxModel, input, tb_no_split, cb,
+    tb_no_split = mAlgo_TB_Residual->analyze(ectx, option_no_split.get_context(),
+                                             input, tb_no_split, cb,
                                              blkIdx, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
-    rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
+    option_no_split.set_tb(tb_no_split);
+
+    //rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
 
     if (log2TbSize <= mParams.zeroBlockPrune()) {
       bool zeroBlock = tb_no_split->isZeroBlock();
@@ -221,6 +237,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
       else
         logging_tb_split.noskipTBSplit++;
     }
+    option_no_split.end();
   }
 
 
@@ -231,11 +248,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     *tb->downPtr = tb_split;
 
     descend(tb,"split");
-    tb_split = encode_transform_tree_split(ectx, ctxSplit, input, tb_split, cb,
+    tb_split = encode_transform_tree_split(ectx, option_split.get_context(), input, tb_split, cb,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
 
-    rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
+    //rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
   }
 
 
@@ -251,10 +268,15 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   }
 
 
-  bool split = (rd_cost_split < rd_cost_no_split);
+  //bool split = (rd_cost_split < rd_cost_no_split);
 
   //if (test_split) split=true;  /// DEBUGGING HACK
 
+  options.compute_rdo_costs();
+
+  return options.return_best_rdo_tb();
+
+  /*
   if (split) {
     ctxModel = ctxSplit;
 
@@ -269,6 +291,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
     return tb_no_split;
   }
+  */
 }
 
 
@@ -295,6 +318,10 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   tb->split_transform_flag = true;
 
   // --- encode all child nodes ---
+
+  for (int i=0;i<4;i++) {
+    tb->children[i] = NULL;
+  }
 
   for (int i=0;i<4;i++) {
 

@@ -75,6 +75,7 @@ class CodingOptions
 
     context_model_table context;
     bool  mOptionActive;
+    bool  computed;
     float rdoCost;
   };
 
@@ -113,8 +114,19 @@ class CodingOption
   enc_cb* get_cb() { return mParent->mOptions[mOptionIdx].cb; }
   void set_cb(enc_cb* cb) { mParent->mOptions[mOptionIdx].cb = cb; }
 
+  enc_tb* get_tb() { return mParent->mOptions[mOptionIdx].tb; }
+  void set_tb(enc_tb* tb) {
+    if (tb != mParent->mOptions[mOptionIdx].tb) {
+      printf("delete TB %p\n", mParent->mOptions[mOptionIdx].tb);
+      delete mParent->mOptions[mOptionIdx].tb;
+    }
+    mParent->mOptions[mOptionIdx].tb = tb;
+  }
+
   context_model_table& get_context() { return mParent->mOptions[mOptionIdx].context; }
 
+  /** @return True if the option is active.
+   */
   operator bool() const { return mParent; }
 
   /* When modifying the metadata stored in the image, you have to

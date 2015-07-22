@@ -210,6 +210,8 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
     //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
 
+    //printf("access intra-prediction of TB %p\n",this);
+
     copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
                   img->get_image_stride(cIdx),
                   intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
@@ -304,7 +306,7 @@ void enc_tb::set_cbf_flags_from_children()
 
 int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags)
 {
-  //printf("enc_cb::writeMetadata_CBOnly (%d;%d x%d)\n",x,y,1<<log2Size);
+  logdebug(LogEncoderMetadata,"enc_cb::writeMetadata_CBOnly (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
   if (!missing) {
@@ -333,7 +335,7 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
 
 int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
-  //printf("enc_cb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
+  logdebug(LogEncoderMetadata,"enc_cb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
   if (!missing) {
@@ -359,7 +361,7 @@ int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 
 int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
-  //printf("enc_tb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
+  logdebug(LogEncoderMetadata,"enc_tb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
   if (!missing) {
@@ -400,8 +402,9 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
                                       de265_image* img, int whatFlags, const rectangle& rect)
 {
-  //printf("enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
-  //       rect.left,rect.right, rect.top,rect.bottom, whatFlags);
+  logdebug(LogEncoderMetadata,
+           "enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
+           rect.left,rect.right, rect.top,rect.bottom, whatFlags);
 
   // top and left border of block surrounding must always be within TB, as we call
   // this only for sub-blocks within this TB
@@ -436,8 +439,9 @@ void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
 void enc_cb::writeSurroundingMetadata(encoder_context* ectx,
                                       de265_image* img, int whatFlags, const rectangle& rect)
 {
-  //printf("enc_cb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
-  //       rect.left,rect.right, rect.top,rect.bottom, whatFlags);
+  logdebug(LogEncoderMetadata,
+           "enc_cb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",
+           x,y,1<<log2Size,rect.left,rect.right, rect.top,rect.bottom, whatFlags);
 
   // top and left border of block surrounding must always be within CB, as we call
   // this only for sub-blocks within this CB
@@ -477,8 +481,9 @@ bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
 void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
                                           de265_image* img, int whatFlags, const rectangle& rect)
 {
-  //printf("enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-  //       rect.left,rect.right, rect.top,rect.bottom);
+  logdebug(LogEncoderMetadata,
+           "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
+           rect.left,rect.right, rect.top,rect.bottom);
 
   if ((metadata_in_image & whatFlags) == whatFlags) {
     // nothing to do, data already exists
@@ -519,8 +524,9 @@ void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
 void enc_cb::writeSurroundingMetadataDown(encoder_context* ectx,
                                           de265_image* img, int whatFlags, const rectangle& rect)
 {
-  //printf("enc_cb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-  //       rect.left,rect.right, rect.top,rect.bottom);
+  logdebug(LogEncoderMetadata,
+           "enc_cb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
+           rect.left,rect.right, rect.top,rect.bottom);
 
   if ((metadata_in_image & whatFlags) == whatFlags) {
     // nothing to do, data already exists

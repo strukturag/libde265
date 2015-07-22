@@ -148,6 +148,7 @@ enum LogModule {
   LogSymbols,
   LogCABAC,
   LogEncoder,
+  LogEncoderMetadata,
   NUMBER_OF_LogModules
 };
 
