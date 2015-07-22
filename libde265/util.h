@@ -21,6 +21,10 @@
 #ifndef DE265_UTIL_H
 #define DE265_UTIL_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifndef _MSC_VER
 #include <inttypes.h>
 #endif
@@ -68,6 +72,19 @@
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
 namespace std { using namespace std::tr1; }
+#endif
+
+#ifdef NEED_STD_MOVE_FALLBACK
+// Provide fallback variant of "std::move" for older compilers with
+// incomplete/broken C++11 support.
+namespace std {
+
+template<typename _Tp>
+inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
+  return static_cast<typename std::remove_reference<_Tp>::type&&>(__t);
+}
+
+}  // namespace std
 #endif
 
 #if __GNUC__ && GCC_VERSION < 40600

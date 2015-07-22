@@ -58,6 +58,13 @@ AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
 
+AC_LANG_PUSH(C++)
+OLD_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CXXFLAGS"
+AC_CHECK_HEADERS([cstdint])
+CPPFLAGS="$OLD_CPPFLAGS"
+AC_LANG_POP(C++)
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_TYPE_SIZE_T
@@ -105,6 +112,47 @@ if eval "test x$need_strict_ansi = xyes"; then
   CXXFLAGS+=" -D__STRICT_ANSI__"
 fi
 AC_MSG_RESULT([$need_strict_ansi])
+
+# Check if "std::shared_ptr" is "std::tr1::shared_ptr"
+AC_MSG_CHECKING([for std::shared_ptr])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <memory>
+],[
+class A {};
+std::shared_ptr<A> a;
+],[has_std_shared_ptr=yes],[has_std_shared_ptr=no]);
+AC_MSG_RESULT([$has_std_shared_ptr])
+if eval "test x$has_std_shared_ptr = xno"; then
+  AC_MSG_CHECKING([for std::tr1::shared_ptr])
+  AC_TRY_COMPILE([
+  #include <tr1/memory>
+  ],[
+  class A {};
+  std::tr1::shared_ptr<A> a;
+  ],[has_std_tr1_shared_ptr=yes],[has_std_tr1_shared_ptr=no]);
+  AC_MSG_RESULT([$has_std_tr1_shared_ptr])
+  if eval "test x$has_std_tr1_shared_ptr = xyes"; then
+    AC_DEFINE(USE_STD_TR1_NAMESPACE,1,[Define to 1 if the std::tr1 namespace should be included in the std namespace.])
+  fi
+fi
+AC_LANG_POP(C++)
+
+# Check if "std::move" is available
+AC_MSG_CHECKING([for std::move])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <utility>
+],[
+class A {};
+A* a = new A();
+A* b = std::move(a);
+],[has_std_move=yes],[has_std_move=no]);
+AC_LANG_POP(C++)
+if eval "test x$has_std_move = xno"; then
+  AC_DEFINE(NEED_STD_MOVE_FALLBACK,1,[Define to 1 if a fallback for "std::move" is required.])
+fi
+AC_MSG_RESULT([$has_std_move])
 
 # --- machine dependent optimizations ---
 
