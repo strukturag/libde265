@@ -113,6 +113,31 @@ if eval "test x$need_strict_ansi = xyes"; then
 fi
 AC_MSG_RESULT([$need_strict_ansi])
 
+# Check if "std::shared_ptr" is "std::tr1::shared_ptr"
+AC_MSG_CHECKING([for std::shared_ptr])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <memory>
+],[
+class A {};
+std::shared_ptr<A> a;
+],[has_std_shared_ptr=yes],[has_std_shared_ptr=no]);
+AC_MSG_RESULT([$has_std_shared_ptr])
+if eval "test x$has_std_shared_ptr = xno"; then
+  AC_MSG_CHECKING([for std::tr1::shared_ptr])
+  AC_TRY_COMPILE([
+  #include <tr1/memory>
+  ],[
+  class A {};
+  std::tr1::shared_ptr<A> a;
+  ],[has_std_tr1_shared_ptr=yes],[has_std_tr1_shared_ptr=no]);
+  AC_MSG_RESULT([$has_std_tr1_shared_ptr])
+  if eval "test x$has_std_tr1_shared_ptr = xyes"; then
+    AC_DEFINE(USE_STD_TR1_NAMESPACE,1,[Define to 1 if the std::tr1 namespace should be included in the std namespace.])
+  fi
+fi
+AC_LANG_POP(C++)
+
 # Check if "std::move" is available
 AC_MSG_CHECKING([for std::move])
 AC_LANG_PUSH(C++)
