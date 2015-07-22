@@ -23,11 +23,16 @@
 #ifndef ALLOC_POOL_H
 #define ALLOC_POOL_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <vector>
 #include <cstddef>
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
-#else
+#endif
+#ifdef HAVE_CSTDINT
 #include <cstdint>
 #endif
 
