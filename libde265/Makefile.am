@@ -19,7 +19,6 @@ if HAVE_VISIBILITY
 endif
 
 libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(LIBDE265_AGE)
-libde265_la_LIBADD = -lstdc++
 
 libde265_la_SOURCES = \
   acceleration.h \
@@ -92,7 +91,7 @@ libde265_la_SOURCES = \
   vui.h
 
 SUBDIRS = encoder
-libde265_la_LIBADD += encoder/libde265_encoder.la
+libde265_la_LIBADD = encoder/libde265_encoder.la
 
 if ENABLE_SSE_OPT
   SUBDIRS += x86
