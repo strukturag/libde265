@@ -90,6 +90,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     child_tb->TrafoDepth = tb->TrafoDepth + 1;
     child_tb->parent = tb;
     child_tb->blkIdx = i;
+    child_tb->downPtr = &tb->children[i];
 
     if (cb->PredMode == MODE_INTRA) {
       //descend(tb,"intra");
@@ -339,6 +340,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
   //if (test_split) test_no_split = false;
+  //if (test_no_split) test_split = false;
 
   context_model_table ctxSplit;
   if (test_split) {
@@ -355,6 +357,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (test_no_split) {
     tb_no_split = new enc_tb(*tb);
+    *tb->downPtr = tb_no_split;
 
     if (cb->PredMode == MODE_INTRA) {
       compute_residual<uint8_t>(ectx, tb_no_split, input, blkIdx);
@@ -381,9 +384,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
-    if (tb_no_split) tb_no_split->willOverwriteMetadata(enc_node::METADATA_ALL);
+    if (tb_no_split) tb_no_split->willOverwriteMetadata(ectx->img, enc_node::METADATA_ALL);
 
     tb_split = new enc_tb(*tb);
+    *tb->downPtr = tb_split;
 
     descend(tb,"split");
     tb_split = encode_transform_tree_split(ectx, ctxSplit, input, tb_split, cb,
@@ -415,6 +419,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
     delete tb_no_split;
     assert(tb_split);
+
     return tb_split;
   }
   else {

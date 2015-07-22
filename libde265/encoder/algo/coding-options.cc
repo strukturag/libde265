@@ -220,6 +220,7 @@ void CodingOption::begin()
 
   if (mParent->mCurrentlyReconstructedOption >= 0) {
     mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
+    //mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->willOverwriteMetadata(mParent->mECtx->img);
   }
 
   mParent->mCurrentlyReconstructedOption = mOptionIdx;

@@ -59,8 +59,8 @@ class CodingOptions
   // --- end processing --- do not call any function after this one
 
   /* Return the CB with the lowest RDO cost. All other CBs are destroyed.
-     If the current reconstruction and metadata are not from the returned CB,
-     the data from the returned CB is reconstructed.
+     If the current metadata stored in the image are not from the returned block,
+     its metadata flags are set to zero.
    */
   enc_cb* return_best_rdo_cb();
   enc_tb* return_best_rdo_tb();
@@ -117,7 +117,7 @@ class CodingOption
 
   operator bool() const { return mParent; }
 
-  /* When modifying the reconstruction image or metadata, you have to
+  /* When modifying the metadata stored in the image, you have to
      encapsulate the modification between these two functions to ensure
      that the correct reconstruction will be active after return_best_rdo().
    */

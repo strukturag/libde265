@@ -113,6 +113,7 @@ class enc_tb : public enc_node
 
   enc_tb* parent;
   enc_cb* cb;
+  enc_tb** downPtr;
 
   uint8_t split_transform_flag : 1;
   uint8_t TrafoDepth : 2;  // 2 bits enough ? (TODO)
@@ -165,39 +166,17 @@ class enc_tb : public enc_node
   // We call this before doing the actual modification. This allows to save e.g.
   // pixel data that has been reconstructed into the image to be copied into the TB
   // as it will most probably be needed later again.
-  void willOverwriteMetadata(int whatFlags = METADATA_ALL) {
+  void willOverwriteMetadata(const de265_image* img, int whatFlags = METADATA_ALL) {
+    // note: theoretically, this should be propagated upwards, but the way we use it,
+    // this will never be needed.
+
     metadata_in_image &= ~whatFlags;
   }
 
   // externally wrote metadata
   void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
 
-  void writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
-  /*
-  void writeSurroundingMetadata(int whatFlags, const rectangle& rect)
-  {
-    if (parent) {
-      parent->nodeNeedsSurroundingUp(whatFlags, rect);
-    }
-    else {
-      assert(cb);
-      // TODO cb->nodeNeedsSurroundingUp(whatFlags, rect);
-    }
-  }
-*/
-  /*
-  void writeSurroundingMetadata(int whatFlags)
-  {
-    if (parent) {
-      rectangle rect;
-      rect.left  = x;
-      rect.top   = y;
-      rect.right = x+(1<<log2Size)-1;
-      rect.bottom= y+(1<<log2Size)-1;
-      parent->nodeNeedsSurroundingUp(whatFlags, rect);
-    }
-  }
-  */
+  int  writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
 
   /*
        +--------------------------------+
@@ -266,7 +245,8 @@ public:
   enc_cb();
   ~enc_cb();
 
-  const enc_cb* parent;
+  enc_cb* parent;
+  enc_cb** downPtr;
 
   uint8_t split_cu_flag : 1;
   uint8_t ctDepth : 2;
@@ -324,7 +304,33 @@ public:
   void reconstruct(encoder_context* ectx,de265_image* img) const;
 
 
-  void writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
+  // ===== METADATA =====
+
+  void willOverwriteMetadata(const de265_image* img, int whatFlags = METADATA_ALL) {
+    // note: theoretically, this should be propagated upwards, but the way we use it,
+    // this will never be needed.
+
+    metadata_in_image &= ~whatFlags;
+  }
+
+  // externally wrote metadata
+  void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
+
+  /** Write CB-data and TB-data into the image metadata.
+   */
+  int writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
+
+  /** Write the CB-data into the image metadata. Do not write TB data.
+      @return the metadata that has been written
+  */
+  int writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags);
+
+  void writeSurroundingMetadata(encoder_context* ectx,
+                                de265_image* img, int whatFlags, const rectangle& rect);
+
+  // internal use only
+  void writeSurroundingMetadataDown(encoder_context* ectx,
+                                    de265_image* img, int whatFlags, const rectangle& rect);
 
 
   // memory management

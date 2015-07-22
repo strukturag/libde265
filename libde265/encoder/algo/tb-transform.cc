@@ -144,6 +144,8 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 {
   enter();
 
+  *tb->downPtr = tb;
+
   de265_image* img = ectx->img;
 
   int stride = ectx->img->get_image_stride(0);

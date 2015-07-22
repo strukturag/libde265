@@ -363,6 +363,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
   if (selectIntraPredMode) {
 
+    *tb->downPtr = tb;
+
     enum IntraPredMode intraMode;
     float minDistortion = std::numeric_limits<float>::max();
 
