@@ -154,6 +154,20 @@ if eval "test x$has_std_move = xno"; then
 fi
 AC_MSG_RESULT([$has_std_move])
 
+# Check if "nullptr" is available
+AC_MSG_CHECKING([for nullptr])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+],[
+class A {};
+A* a = nullptr;
+],[has_nullptr=yes],[has_nullptr=no]);
+AC_LANG_POP(C++)
+if eval "test x$has_nullptr = xno"; then
+  AC_DEFINE(NEED_NULLPTR_FALLBACK,1,[Define to 1 if a fallback for "nullptr" is required.])
+fi
+AC_MSG_RESULT([$has_nullptr])
+
 # --- machine dependent optimizations ---
 
 #AX_EXT
