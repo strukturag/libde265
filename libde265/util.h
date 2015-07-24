@@ -87,8 +87,9 @@ inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
 }  // namespace std
 #endif
 
-#if __GNUC__ && GCC_VERSION < 40600
-// nullptr was introduced in gcc 4.6, a simple alias should be fine for our use case
+#ifdef NEED_NULLPTR_FALLBACK
+// Compilers with partial/incomplete support for C++11 don't know about
+// "nullptr". A simple alias should be fine for our use case.
 #define nullptr NULL
 #endif
 
