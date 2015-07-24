@@ -88,7 +88,8 @@ inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
 #endif
 
 #ifdef NEED_NULLPTR_FALLBACK
-// nullptr was introduced in gcc 4.6, a simple alias should be fine for our use case
+// Compilers with partial/incomplete support for C++11 don't know about
+// "nullptr". A simple alias should be fine for our use case.
 #define nullptr NULL
 #endif
 
