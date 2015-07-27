@@ -24,11 +24,11 @@
 #include "libde265/encoder/encoder-context.h"
 
 
-CodingOptions::CodingOptions(encoder_context* ectx, enc_cb* cb, context_model_table& tab)
+template <class node>
+CodingOptions<node>::CodingOptions(encoder_context* ectx, node* _node, context_model_table& tab)
 {
-  mCBMode = true;
-  mCBInput = cb;
-  mTBInput = NULL;
+  //mCBMode = true;
+  mInputNode = _node;
   mContextModelInput = &tab;
 
   mCurrentlyReconstructedOption=-1;
@@ -37,29 +37,16 @@ CodingOptions::CodingOptions(encoder_context* ectx, enc_cb* cb, context_model_ta
   mECtx = ectx;
 }
 
-CodingOptions::CodingOptions(encoder_context* ectx, enc_tb* tb, context_model_table& tab)
-{
-  mCBMode = false;
-  mCBInput = NULL;
-  mTBInput = tb;
-  mContextModelInput = &tab;
-
-  mCurrentlyReconstructedOption=-1;
-  mBestRDO=-1;
-
-  mECtx = ectx;
-
-  cabac = NULL;
-}
-
-CodingOptions::~CodingOptions()
+template <class node>
+CodingOptions<node>::~CodingOptions()
 {
 }
 
-CodingOption CodingOptions::new_option(bool active)
+template <class node>
+CodingOption<node> CodingOptions<node>::new_option(bool active)
 {
   if (!active) {
-    return CodingOption();
+    return CodingOption<node>();
   }
 
 
@@ -67,18 +54,16 @@ CodingOption CodingOptions::new_option(bool active)
 
   bool firstOption = mOptions.empty();
   if (firstOption) {
-    if (mCBMode) { opt.cb = mCBInput; }
-    else         { opt.tb = mTBInput; }
+    opt.mNode = mInputNode;
   }
   else {
-    if (mCBMode) { opt.cb = new enc_cb(*mCBInput); }
-    else         { opt.tb = new enc_tb(*mTBInput); }
+    opt.mNode = new node(*mInputNode);
   }
 
   opt.context  = *mContextModelInput;
   opt.computed = false;
 
-  CodingOption option(this, mOptions.size());
+  CodingOption<node> option(this, mOptions.size());
 
   mOptions.push_back( std::move(opt) );
 
@@ -86,7 +71,8 @@ CodingOption CodingOptions::new_option(bool active)
 }
 
 
-void CodingOptions::start(enum RateEstimationMethod rateMethod)
+template <class node>
+void CodingOptions<node>::start(enum RateEstimationMethod rateMethod)
 {
   /* We don't need the input context model anymore.
      Releasing it now may save a copy during a later decouple().
@@ -122,22 +108,19 @@ void CodingOptions::start(enum RateEstimationMethod rateMethod)
 }
 
 
-void CodingOptions::compute_rdo_costs()
+template <class node>
+void CodingOptions<node>::compute_rdo_costs()
 {
   for (int i=0;i<mOptions.size();i++) {
     if (mOptions[i].computed) {
-      if (mCBMode) {
-        mOptions[i].rdoCost = mOptions[i].cb->distortion + mECtx->lambda * mOptions[i].cb->rate;
-      }
-      else {
-        mOptions[i].rdoCost = mOptions[i].tb->distortion + mECtx->lambda * mOptions[i].tb->rate;
-      }
+      mOptions[i].rdoCost = mOptions[i].mNode->distortion + mECtx->lambda * mOptions[i].mNode->rate;
     }
   }
 }
 
 
-int CodingOptions::find_best_rdo_index()
+template <class node>
+int CodingOptions<node>::find_best_rdo_index()
 {
   assert(mOptions.size()>0);
 
@@ -161,11 +144,11 @@ int CodingOptions::find_best_rdo_index()
 }
 
 
-enc_cb* CodingOptions::return_best_rdo_cb()
+template <class node>
+node* CodingOptions<node>::return_best_rdo_node()
 {
   int bestRDO = find_best_rdo_index();
 
-  assert(mCBMode);
   assert(bestRDO>=0);
 
   if (bestRDO != mCurrentlyReconstructedOption) {
@@ -180,45 +163,17 @@ enc_cb* CodingOptions::return_best_rdo_cb()
   for (int i=0;i<mOptions.size();i++) {
     if (i != bestRDO)
       {
-        delete mOptions[i].cb;
-        mOptions[i].cb = NULL;
+        delete mOptions[i].mNode;
+        mOptions[i].mNode = NULL;
       }
   }
 
-  return mOptions[bestRDO].cb;
+  return mOptions[bestRDO].mNode;
 }
 
 
-enc_tb* CodingOptions::return_best_rdo_tb()
-{
-  int bestRDO = find_best_rdo_index();
-
-  assert(!mCBMode);
-  assert(bestRDO>=0);
-
-  if (bestRDO != mCurrentlyReconstructedOption) {
-    //mOptions[bestRDO].tb->restore(mECtx->img);
-  }
-
-  *mContextModelInput = mOptions[bestRDO].context;
-
-
-  // delete all CBs except the best one
-
-  for (int i=0;i<mOptions.size();i++) {
-    if (i != bestRDO)
-      {
-        delete mOptions[i].tb;
-        mOptions[i].tb = NULL;
-      }
-  }
-
-  return mOptions[bestRDO].tb;
-}
-
-
-
-void CodingOption::begin()
+template <class node>
+void CodingOption<node>::begin()
 {
   assert(mParent);
   assert(mParent->cabac); // did you call CodingOptions.start() ?
@@ -230,13 +185,22 @@ void CodingOption::begin()
 
   if (mParent->mCurrentlyReconstructedOption >= 0) {
     //mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
-    mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->willOverwriteMetadata(mParent->mECtx->img);
+    mParent->mOptions[mParent->mCurrentlyReconstructedOption].mNode->willOverwriteMetadata(mParent->mECtx->img);
   }
 
   mParent->mCurrentlyReconstructedOption = mOptionIdx;
 }
 
-void CodingOption::end()
+
+template <class node>
+void CodingOption<node>::end()
 {
   assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
 }
+
+
+template class CodingOptions<enc_tb>;
+template class CodingOptions<enc_cb>;
+
+template class CodingOption<enc_tb>;
+template class CodingOption<enc_cb>;

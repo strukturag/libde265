@@ -39,9 +39,9 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   bool try_skip  = (ectx->shdr->slice_type != SLICE_TYPE_I);
   bool try_nonskip = true;
 
-  CodingOptions options(ectx,cb,ctxModel);
-  CodingOption option_skip    = options.new_option(try_skip);
-  CodingOption option_nonskip = options.new_option(try_nonskip);
+  CodingOptions<enc_cb> options(ectx,cb,ctxModel);
+  CodingOption<enc_cb> option_skip    = options.new_option(try_skip);
+  CodingOption<enc_cb> option_nonskip = options.new_option(try_nonskip);
   options.start();
 
   for (int i=0;i<CONTEXT_MODEL_TABLE_LENGTH;i++) {
@@ -49,10 +49,10 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   }
 
   if (option_skip) {
-    CodingOption& opt = option_skip;
+    CodingOption<enc_cb>& opt = option_skip;
     opt.begin();
 
-    enc_cb* cb = opt.get_cb();
+    enc_cb* cb = opt.get_node();
 
     // calc rate for skip flag (=true)
 
@@ -75,13 +75,13 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     // add rate for PredMode
 
     cb->rate += rate_pred_mode;
-    opt.set_cb(cb);
+    opt.set_node(cb);
     opt.end();
   }
 
   if (option_nonskip) {
-    CodingOption& opt = option_nonskip;
-    enc_cb* cb = opt.get_cb();
+    CodingOption<enc_cb>& opt = option_nonskip;
+    enc_cb* cb = opt.get_node();
 
     opt.begin();
 
@@ -103,10 +103,10 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     // add rate for PredMode
 
     cb->rate += rate_pred_mode;
-    opt.set_cb(cb);
+    opt.set_node(cb);
     opt.end();
   }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo_cb();
+  return options.return_best_rdo_node();
 }

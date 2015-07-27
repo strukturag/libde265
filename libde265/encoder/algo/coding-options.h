@@ -26,19 +26,21 @@
 #include "libde265/encoder/encoder-types.h"
 
 
-class CodingOption;
+template <class node> class CodingOption;
 
 
+template <class node>
 class CodingOptions
 {
  public:
-  CodingOptions(encoder_context*, enc_cb*, context_model_table& tab);
-  CodingOptions(encoder_context*, enc_tb*, context_model_table& tab);
+  CodingOptions(encoder_context*, node*, context_model_table& tab);
   ~CodingOptions();
+
+  typedef CodingOption<node> Option;
 
   // --- init --- call before object use
 
-  CodingOption new_option(bool active=true);
+  CodingOption<node> new_option(bool active=true);
 
   enum RateEstimationMethod
   {
@@ -62,16 +64,12 @@ class CodingOptions
      If the current metadata stored in the image are not from the returned block,
      its metadata flags are set to zero.
    */
-  enc_cb* return_best_rdo_cb();
-  enc_tb* return_best_rdo_tb();
+  node* return_best_rdo_node();
 
  private:
   struct CodingOptionData
   {
-    union {
-      enc_cb* cb;
-      enc_tb* tb;
-    };
+    node* mNode;
 
     context_model_table context;
     bool  mOptionActive;
@@ -83,8 +81,7 @@ class CodingOptions
   encoder_context* mECtx;
 
   bool mCBMode;
-  enc_cb* mCBInput;
-  enc_tb* mTBInput;
+  node* mInputNode;
 
   context_model_table* mContextModelInput;
 
@@ -97,12 +94,13 @@ class CodingOptions
   CABAC_encoder_estim_constant  cabac_constant;
   CABAC_encoder_estim*          cabac;
 
-  friend class CodingOption;
+  friend class CodingOption<node>;
 
   int find_best_rdo_index();
 };
 
 
+template <class node>
 class CodingOption
 {
  public:
@@ -111,16 +109,13 @@ class CodingOption
     mOptionIdx = 0;
   }
 
-  enc_cb* get_cb() { return mParent->mOptions[mOptionIdx].cb; }
-  void set_cb(enc_cb* cb) { mParent->mOptions[mOptionIdx].cb = cb; }
-
-  enc_tb* get_tb() { return mParent->mOptions[mOptionIdx].tb; }
-  void set_tb(enc_tb* tb) {
-    if (tb != mParent->mOptions[mOptionIdx].tb) {
-      printf("delete TB %p\n", mParent->mOptions[mOptionIdx].tb);
-      delete mParent->mOptions[mOptionIdx].tb;
+  node* get_node() { return mParent->mOptions[mOptionIdx].mNode; }
+  void set_node(node* _node) {
+    if (_node != mParent->mOptions[mOptionIdx].mNode) {
+      //printf("delete TB %p\n", mParent->mOptions[mOptionIdx].tb);
+      delete mParent->mOptions[mOptionIdx].mNode;
     }
-    mParent->mOptions[mOptionIdx].tb = tb;
+    mParent->mOptions[mOptionIdx].mNode = _node;
   }
 
   context_model_table& get_context() { return mParent->mOptions[mOptionIdx].context; }
@@ -144,13 +139,13 @@ class CodingOption
   float get_cabac_rate() const { return mParent->cabac->getRDBits(); }
 
 private:
-  CodingOption(class CodingOptions* parent, int idx)
+  CodingOption(class CodingOptions<node>* parent, int idx)
     : mParent(parent), mOptionIdx(idx) { }
 
-  class CodingOptions* mParent;
+  class CodingOptions<node>* mParent;
   int   mOptionIdx;
 
-  friend class CodingOptions;
+  friend class CodingOptions<node>;
 };
 
 

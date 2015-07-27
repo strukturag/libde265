@@ -182,10 +182,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
-  CodingOptions options(ectx, tb, ctxModel);
+  CodingOptions<enc_tb> options(ectx, tb, ctxModel);
 
-  CodingOption option_no_split = options.new_option(test_no_split);
-  CodingOption option_split    = options.new_option(test_split);
+  CodingOption<enc_tb> option_no_split = options.new_option(test_no_split);
+  CodingOption<enc_tb> option_split    = options.new_option(test_split);
 
   //if (test_no_split) test_split = false;
   //if (test_split) test_no_split = false;
@@ -209,7 +209,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (test_no_split) {
     option_no_split.begin();
-    tb_no_split = option_no_split.get_tb();
+    tb_no_split = option_no_split.get_node();
     //tb_no_split = new enc_tb(*tb);
     *tb->downPtr = tb_no_split;
 
@@ -223,7 +223,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                              blkIdx, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
-    option_no_split.set_tb(tb_no_split);
+    option_no_split.set_node(tb_no_split);
 
     //rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
 
@@ -274,7 +274,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.compute_rdo_costs();
 
-  return options.return_best_rdo_tb();
+  return options.return_best_rdo_node();
 
   /*
   if (split) {

@@ -95,21 +95,21 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   //if (can_split_CB) { can_nosplit_CB=false; } // TODO TMP
   //if (can_nosplit_CB) { can_split_CB=false; } // TODO TMP
 
-  CodingOptions options(ectx, cb_input, ctxModel);
+  CodingOptions<enc_cb> options(ectx, cb_input, ctxModel);
 
-  CodingOption option_split    = options.new_option(can_split_CB);
-  CodingOption option_no_split = options.new_option(can_nosplit_CB);
+  CodingOption<enc_cb> option_split    = options.new_option(can_split_CB);
+  CodingOption<enc_cb> option_no_split = options.new_option(can_nosplit_CB);
 
   options.start();
 
   // --- encode without splitting ---
 
   if (option_no_split) {
-    CodingOption& opt = option_no_split; // abbrev.
+    CodingOption<enc_cb>& opt = option_no_split; // abbrev.
 
     opt.begin();
 
-    enc_cb* cb = opt.get_cb();
+    enc_cb* cb = opt.get_node();
 
     // set CB size in image data-structure
     ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
@@ -132,7 +132,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
       cb->rate += opt.get_cabac_rate();
     }
 
-    opt.set_cb(cb);
+    opt.set_node(cb);
     opt.end();
   }
 
@@ -141,7 +141,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   if (option_split) {
     option_split.begin();
 
-    enc_cb* cb = option_split.get_cb();
+    enc_cb* cb = option_split.get_node();
     cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
     // add rate for split flag
@@ -150,12 +150,12 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
       cb->rate += option_split.get_cabac_rate();
     }
 
-    option_split.set_cb(cb);
+    option_split.set_node(cb);
     option_split.end();
   }
 
   options.compute_rdo_costs();
-  enc_cb* bestCB = options.return_best_rdo_cb();
+  enc_cb* bestCB = options.return_best_rdo_node();
 
   return bestCB;
 }

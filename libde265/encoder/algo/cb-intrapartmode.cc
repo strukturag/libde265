@@ -54,8 +54,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   // 0: 2Nx2N  (always checked)
   // 1:  NxN   (only checked at MinCbSize)
 
-  CodingOptions options(ectx,cb_in,ctxModel);
-  CodingOption option[2];
+  CodingOptions<enc_cb> options(ectx,cb_in,ctxModel);
+  CodingOption<enc_cb> option[2];
   option[0] = options.new_option(true);
   option[1] = options.new_option(can_use_NxN);
 
@@ -65,7 +65,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     if (option[p]) {
       option[p].begin();
 
-      enc_cb* cb = option[p].get_cb();
+      enc_cb* cb = option[p].get_node();
 
       // --- set intra prediction mode ---
 
@@ -108,7 +108,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo_cb();
+  return options.return_best_rdo_node();
 }
 
 
