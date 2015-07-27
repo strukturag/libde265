@@ -41,6 +41,9 @@ small_image_buffer::small_image_buffer(int log2Size,int bytes_per_pixel)
   int bytes = (1<<(log2Size<<1))*bytes_per_pixel;
   mBuf = new uint8_t[bytes];
   mStride = 1<<log2Size;
+
+  mBytesPerRow = bytes_per_pixel * (1<<log2Size);
+  mHeight = 1<<log2Size;
 }
 
 
@@ -203,63 +206,80 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     yC>>=1;
   }
 
-  if (cb->PredMode == MODE_INTRA) {
 
-    //enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
-    enum IntraPredMode intraPredMode  = intra_mode;
+  if (!reconstruction[cIdx]) {
 
-    if (cIdx>0) {
-      intraPredMode = intra_mode_chroma;
+    reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
+
+    if (cb->PredMode == MODE_INTRA) {
+
+      //enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+      enum IntraPredMode intraPredMode  = intra_mode;
+
+      if (cIdx>0) {
+        intraPredMode = intra_mode_chroma;
+      }
+
+      //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
+
+      //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+
+      //printf("access intra-prediction of TB %p\n",this);
+
+      intra_prediction[cIdx]->copy_to(*reconstruction[cIdx]);
+      /*
+        copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
+        img->get_image_stride(cIdx),
+        intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+        1<<log2TbSize, 1<<log2TbSize);
+      */
     }
+    else {
+      int size = 1<<log2TbSize;
 
-    //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
+      uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+      int dst_stride  = img->get_image_stride(cIdx);
 
-    //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+      uint8_t* src_ptr  = ectx->prediction->get_image_plane_at_pos(cIdx, xC,  yC  );
+      int src_stride  = ectx->prediction->get_image_stride(cIdx);
 
-    //printf("access intra-prediction of TB %p\n",this);
-
-    copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
-                  img->get_image_stride(cIdx),
-                  intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
-                  1<<log2TbSize, 1<<log2TbSize);
-  }
-  else {
-    int size = 1<<log2TbSize;
-
-    uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
-    int dst_stride  = img->get_image_stride(cIdx);
-
-    uint8_t* src_ptr  = ectx->prediction->get_image_plane_at_pos(cIdx, xC,  yC  );
-    int src_stride  = ectx->prediction->get_image_stride(cIdx);
-
-    for (int y=0;y<size;y++) {
-      for (int x=0;x<size;x++) {
-        dst_ptr[y*dst_stride+x] = src_ptr[y*src_stride+x];
+      for (int y=0;y<size;y++) {
+        for (int x=0;x<size;x++) {
+          dst_ptr[y*dst_stride+x] = src_ptr[y*src_stride+x];
+        }
       }
     }
+
+    ALIGNED_16(int16_t) dequant_coeff[32*32];
+
+    if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
+
+    //printf("--- quantized coeffs ---\n");
+    //printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
+
+    //printf("--- dequantized coeffs ---\n");
+    //printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
+
+    uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+    int stride  = img->get_image_stride(cIdx);
+
+    int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
+
+    //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
+    //printBlk("prediction",ptr,1<<log2TbSize,stride);
+
+    if (cbf[cIdx]) inv_transform(&ectx->acceleration,
+                                 reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+                                 dequant_coeff, log2TbSize,   trType);
   }
 
-  ALIGNED_16(int16_t) dequant_coeff[32*32];
 
-  if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
+  // copy reconstruction into image
 
-  //printf("--- quantized coeffs ---\n");
-  //printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
-
-  //printf("--- dequantized coeffs ---\n");
-  //printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
-
-  uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
-  int stride  = img->get_image_stride(cIdx);
-
-  int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
-
-  //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
-  //printBlk("prediction",ptr,1<<log2TbSize,stride);
-
-  if (cbf[cIdx]) inv_transform(&ectx->acceleration,
-                               ptr,stride,   dequant_coeff, log2TbSize,   trType);
-
+  copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
+                img->get_image_stride(cIdx),
+                reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+                1<<log2TbSize, 1<<log2TbSize);
 
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
   //printBlk("RECO",ptr,1<<log2TbSize,stride);
