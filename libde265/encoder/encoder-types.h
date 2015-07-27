@@ -76,8 +76,8 @@ class enc_node
   uint16_t x,y;
   uint8_t  log2Size : 3;
 
-  virtual void save(const de265_image*); // deprecated
-  virtual void restore(de265_image*);    // deprecated
+  // virtual void save(const de265_image*); // deprecated
+  // virtual void restore(de265_image*);    // deprecated
 
 
   // reconstruction
@@ -306,8 +306,8 @@ public:
   /* Save CB reconstruction in the node and restore it again to the image.
      Pixel data and metadata.
    */
-  virtual void save(const de265_image*);
-  virtual void restore(de265_image*);
+  //virtual void save(const de265_image*);
+  //virtual void restore(de265_image*);
 
 
   /* Decode this CB: pixel data and write metadata to image.
@@ -350,7 +350,7 @@ public:
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
 
  private:
-  void write_to_image(de265_image*) const;
+  //void write_to_image(de265_image*) const;
 
   static alloc_pool mMemPool;
 };

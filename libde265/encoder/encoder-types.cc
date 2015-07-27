@@ -53,6 +53,7 @@ small_image_buffer::~small_image_buffer()
 }
 
 
+/*
 void enc_node::save(const de265_image* img)
 {
   assert(0); // is this still used ?
@@ -109,8 +110,10 @@ void enc_node::restore(de265_image* img)
                 mReconstruction + blkSize*5/4, w>>1,
                 w>>1,w>>1);
 }
+*/
 
 
+/*
 void enc_cb::save(const de265_image* img)
 {
   enc_node::save(img);
@@ -127,7 +130,7 @@ void enc_cb::restore(de265_image* img)
 
   write_to_image(img);
 }
-
+*/
 
 void enc_cb::set_rqt_root_bf_from_children_cbf()
 {
@@ -195,8 +198,6 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
                             int log2TbSize, // chroma adapted
                             int cIdx) const
 {
-  // YES, still used             assert(0); // is this still used ?
-
   // chroma adapted position
   int xC=x0;
   int yC=y0;
@@ -623,6 +624,7 @@ enc_cb::~enc_cb()
 }
 
 
+/*
 void enc_cb::write_to_image(de265_image* img) const
 {
   //printf("write_to_image %d %d size:%d\n",x,y,1<<log2Size);
@@ -701,7 +703,7 @@ void enc_cb::write_to_image(de265_image* img) const
     }
   }
 }
-
+*/
 
 void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
@@ -712,7 +714,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
     }
   }
   else {
-    write_to_image(img);
+    //write_to_image(img);
     transform_tree->reconstruct(ectx,img);
   }
 }
