@@ -193,7 +193,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
                             de265_image* img,
                             int x0,int y0,  // luma
                             int log2TbSize, // chroma adapted
-                            const enc_cb* cb, int cIdx) const
+                            int cIdx) const
 {
   // YES, still used             assert(0); // is this still used ?
 
@@ -286,30 +286,26 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 }
 
 
-void enc_tb::reconstruct(encoder_context* ectx,
-                         de265_image* img,
-                         const enc_cb* cb,
-                         int blkIdx) const
+void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->reconstruct(ectx,img,
-                               cb, i);
+      children[i]->reconstruct(ectx,img);
     }
   }
   else {
-    reconstruct_tb(ectx, img, x,y, log2Size, cb, 0);
+    reconstruct_tb(ectx, img, x,y, log2Size, 0);
 
     if (log2Size>2) {
-      reconstruct_tb(ectx, img, x,y, log2Size-1, cb, 1);
-      reconstruct_tb(ectx, img, x,y, log2Size-1, cb, 2);
+      reconstruct_tb(ectx, img, x,y, log2Size-1, 1);
+      reconstruct_tb(ectx, img, x,y, log2Size-1, 2);
     }
     else if (blkIdx==3) {
       int xBase = x - (1<<log2Size);
       int yBase = y - (1<<log2Size);
 
-      reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 1);
-      reconstruct_tb(ectx, img, xBase,yBase, log2Size, cb, 2);
+      reconstruct_tb(ectx, img, xBase,yBase, log2Size, 1);
+      reconstruct_tb(ectx, img, xBase,yBase, log2Size, 2);
     }
   }
 }
@@ -413,7 +409,7 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 
     if (missing & METADATA_RECONSTRUCTION_BORDERS ||
         missing & METADATA_RECONSTRUCTION) {
-      reconstruct(ectx, img, cb, blkIdx);
+      reconstruct(ectx, img);
 
       written |= (METADATA_RECONSTRUCTION_BORDERS |
                   METADATA_RECONSTRUCTION);
@@ -717,6 +713,6 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
   }
   else {
     write_to_image(img);
-    transform_tree->reconstruct(ectx,img,this,0);
+    transform_tree->reconstruct(ectx,img);
   }
 }

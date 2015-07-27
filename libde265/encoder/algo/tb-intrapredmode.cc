@@ -306,8 +306,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    tb[minCostIdx]->reconstruct(ectx, ectx->img,
-                                cb, blkIdx);
+    tb[minCostIdx]->reconstruct(ectx, ectx->img);
 
 
     //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
@@ -596,7 +595,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-    tb[minCostIdx]->reconstruct(ectx, ectx->img, cb, blkIdx);
+    tb[minCostIdx]->reconstruct(ectx, ectx->img);
     ctxModel = contexts[minCostIdx];
 
     for (int i = 0; i<35; i++) {
