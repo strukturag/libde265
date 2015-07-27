@@ -52,6 +52,8 @@ small_image_buffer::~small_image_buffer()
 
 void enc_node::save(const de265_image* img)
 {
+  assert(0); // is this still used ?
+
   logtrace(LogEncoder,"PERF-WARNING: enc_node save %d;%d size:%d\n",x,y,1<<log2Size);
 
   delete[] mReconstruction;
@@ -80,6 +82,8 @@ void enc_node::save(const de265_image* img)
 
 void enc_node::restore(de265_image* img)
 {
+  assert(0); // is this still used ?
+
   logtrace(LogEncoder,"PERF-WARNING: enc_node restore %d;%d size:%d\n",x,y,1<<log2Size);
 
   assert(mReconstruction);
@@ -188,6 +192,8 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
                             int log2TbSize, // chroma adapted
                             const enc_cb* cb, int cIdx) const
 {
+  // YES, still used             assert(0); // is this still used ?
+
   // chroma adapted position
   int xC=x0;
   int yC=y0;
@@ -253,6 +259,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
   if (cbf[cIdx]) inv_transform(&ectx->acceleration,
                                ptr,stride,   dequant_coeff, log2TbSize,   trType);
+
 
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
   //printBlk("RECO",ptr,1<<log2TbSize,stride);

@@ -37,7 +37,7 @@ class enc_cb;
 class small_image_buffer
 {
  public:
-  small_image_buffer(int log2Size,int bytes_per_pixel=1);
+  explicit small_image_buffer(int log2Size,int bytes_per_pixel=1);
   ~small_image_buffer();
 
   uint8_t*  get_buffer_u8() const { return mBuf; }
@@ -46,6 +46,11 @@ class small_image_buffer
   template <class pixel_t> pixel_t* get_buffer() const { return (pixel_t*)mBuf; }
 
   int get_stride() const { return mStride; }
+
+  // small_image_buffer cannot be copied
+
+  small_image_buffer(const small_image_buffer&) = delete;
+  small_image_buffer& operator=(const small_image_buffer&) = delete;
 
  private:
   uint8_t* mBuf;
@@ -128,6 +133,7 @@ class enc_tb : public enc_node
 
   std::shared_ptr<small_image_buffer> intra_prediction[3];
   std::shared_ptr<small_image_buffer> residual[3];
+  //std::shared_ptr<small_image_buffer> reconstruction[3];
 
   union {
     // split
