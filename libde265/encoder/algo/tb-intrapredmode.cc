@@ -360,6 +360,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
+  printf("tb-intrapredmode: %d %d %d\n", cb->PredMode, cb->PartMode, TrafoDepth);
+
   if (selectIntraPredMode) {
 
     *tb->downPtr = tb;

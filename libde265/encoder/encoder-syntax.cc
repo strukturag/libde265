@@ -1485,6 +1485,8 @@ void encode_coding_unit(encoder_context* ectx,
           logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
 
         enum IntraPredMode mode = cb->transform_tree->intra_mode;
+        printf("*** mode = %d\n",mode);
+
         int intraPred = find_intra_pred_mode(mode, candModeList);
         encode_prev_intra_luma_pred_flag(ectx,cabac, intraPred);
         encode_intra_mpm_or_rem(ectx,cabac, intraPred);
@@ -1500,6 +1502,8 @@ void encode_coding_unit(encoder_context* ectx,
         encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
       }
       else {
+        printf("*** mode = SPLIT\n");
+
         IntraSplitFlag=1;
 
         int pbOffset = nCbS/2;

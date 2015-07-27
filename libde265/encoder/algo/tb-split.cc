@@ -107,6 +107,8 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
     mode = tb->intra_mode_chroma;
   }
 
+  //printf("*** mode = %d\n",mode);
+
   // decode intra prediction
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
@@ -205,7 +207,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   //float rd_cost_no_split = std::numeric_limits<float>::max();
   //float rd_cost_split    = std::numeric_limits<float>::max();
 
-  //printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
+  printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
 
   if (test_no_split) {
     option_no_split.begin();
@@ -241,6 +243,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
   if (test_split) {
+    option_split.begin();
     if (tb_no_split) tb_no_split->willOverwriteMetadata(ectx->img, enc_node::METADATA_ALL);
 
     tb_split = new enc_tb(*tb);
@@ -249,9 +252,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     descend(tb,"split");
     tb_split = encode_transform_tree_split(ectx, option_split.get_context(), input, tb_split, cb,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
-    ascend();
+    option_split.set_node(tb_split);
+    ascend("bits:%f/%f",tb_split->rate,tb_split->rate_withoutCbfChroma);
 
     //rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
+
+    option_split.end();
   }
 
 
@@ -315,6 +321,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
   }
 
   tb->split_transform_flag = true;
+  tb->rate_withoutCbfChroma = 0;
+  tb->distortion = 0;
 
   // --- encode all child nodes ---
 
@@ -388,6 +396,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
   tb->rate = (tb->rate_withoutCbfChroma +
               recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
+
+  printf("tb-split total bits: %f\n",tb->rate);
 
   return tb;
 }
