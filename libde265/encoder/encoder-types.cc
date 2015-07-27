@@ -346,9 +346,28 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
   else {
     // write CB data
 
-    // TODO
+    // Intra modes have to be written in CB, because the PB-size is half of the CB size
+    // and TB sizes may be smaller. If we would write in the TB, it could be smaller than
+    // the PB and no metadata would be written at all.
+    if (missing & METADATA_INTRA_MODES) {
 
-    // metadata_in_image |= whatFlags;
+      if (PartMode == PART_2Nx2N) {
+        img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
+      }
+      else {
+        for (int i=0;i<4;i++)
+          img->set_IntraPredMode(childX(x,i,log2Size),
+                                 childY(y,i,log2Size),
+                                 log2Size-1, transform_tree->children[i]->intra_mode);
+      }
+
+      //img->set_IntraPredModeC(int x,int y) const
+
+      logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
+      logdebug(LogEncoderMetadata,"  intraPredMode at 0,31: %d\n", img->get_IntraPredMode(31,0));
+
+      written |= METADATA_INTRA_MODES;
+    }
   }
 
   metadata_in_image |= written;
@@ -400,13 +419,6 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
   }
   else {
     //printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
-
-    if (missing & METADATA_INTRA_MODES) {
-      img->set_IntraPredMode(x,y,log2Size, intra_mode);
-      //img->set_IntraPredModeC(int x,int y) const
-
-      written |= METADATA_INTRA_MODES;
-    }
 
     if (missing & METADATA_RECONSTRUCTION_BORDERS ||
         missing & METADATA_RECONSTRUCTION) {
