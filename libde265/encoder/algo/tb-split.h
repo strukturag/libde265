@@ -53,8 +53,6 @@ class Algo_TB_Split : public Algo
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          enc_cb* cb,
-                          int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
@@ -117,8 +115,6 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          enc_cb* cb,
-                          int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   const char* name() const { return "tb-split-bruteforce"; }

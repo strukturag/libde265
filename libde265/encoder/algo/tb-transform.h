@@ -57,8 +57,7 @@ public:
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          const enc_cb* cb,
-                          int blkIdx, int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   const char* name() const { return "residual-unknown"; }
 };
@@ -73,8 +72,7 @@ public:
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* parent,
-                          const enc_cb* cb,
-                          int blkIdx, int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   void setAlgo_TB_RateEstimation(Algo_TB_RateEstimation* algo) { mAlgo_TB_RateEstimation=algo; }
 

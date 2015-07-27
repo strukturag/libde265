@@ -345,11 +345,11 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            context_model_table& ctxModel,
                                            const de265_image* input,
                                            enc_tb* tb,
-                                           enc_cb* cb,
-                                           int blkIdx,
                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
   enter();
+
+  enc_cb* cb = tb->cb;
 
   int x0 = tb->x;
   int y0 = tb->y;
@@ -389,8 +389,6 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
       }
     }
 
-    assert(tb->blkIdx == blkIdx);
-
     //cb->intra.pred_mode[blkIdx] = intraMode;
     //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
@@ -415,8 +413,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
 
     descend(tb,"%d",intraMode);
-    tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,tb,cb,
-                               blkIdx, TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+    tb = mTBSplitAlgo->analyze(ectx,ctxModel,input,tb,
+                               TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
 
     debug_show_image(ectx->img, 0);
@@ -435,7 +433,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                                        intraMode,
                                                        intraModeC,
                                                        ctxModel,
-                                                       blkIdx == 0);
+                                                       tb->blkIdx == 0);
 
     tb->rate_withoutCbfChroma += intraPredModeBits;
     tb->rate += intraPredModeBits;
@@ -444,8 +442,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   }
   else {
     descend(tb,"NOP");
-    enc_tb* nop_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb, cb,
-                                           blkIdx, TrafoDepth, MaxTrafoDepth,
+    enc_tb* nop_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb,
+                                           TrafoDepth, MaxTrafoDepth,
                                            IntraSplitFlag);
     ascend();
     return nop_tb;

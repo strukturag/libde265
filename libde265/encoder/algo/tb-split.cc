@@ -166,11 +166,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table& ctxModel,
                                   const de265_image* input,
                                   enc_tb* tb,
-                                  enc_cb* cb,
-                                  int blkIdx,
                                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
   enter();
+
+  enc_cb* cb = tb->cb;
 
   int log2TbSize = tb->log2Size;
 
@@ -214,13 +214,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     *tb->downPtr = tb_no_split;
 
     if (cb->PredMode == MODE_INTRA) {
-      compute_residual<uint8_t>(ectx, tb_no_split, input, blkIdx);
+      compute_residual<uint8_t>(ectx, tb_no_split, input, tb->blkIdx);
     }
 
     descend(tb,"no split");
     tb_no_split = mAlgo_TB_Residual->analyze(ectx, option_no_split.get_context(),
-                                             input, tb_no_split, cb,
-                                             blkIdx, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+                                             input, tb_no_split, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
     option_no_split.set_node(tb_no_split);
@@ -342,7 +341,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     if (cb->PredMode == MODE_INTRA) {
       //descend(tb,"intra");
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
-                                                        child_tb, cb, i,
+                                                        child_tb,
                                                         TrafoDepth+1, MaxTrafoDepth,
                                                         IntraSplitFlag);
       //ascend("bits:%f",tb->rate);
@@ -350,8 +349,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     else {
       //descend(tb,"inter");
       tb->children[i] = this->analyze(ectx, ctxModel, input,
-                                      child_tb, cb, i,
-                                      TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
+                                      child_tb, TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
       //ascend();
     }
 

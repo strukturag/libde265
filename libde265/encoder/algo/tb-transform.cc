@@ -137,13 +137,12 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    context_model_table& ctxModel,
                                    const de265_image* input,
                                    enc_tb* tb,
-                                   const enc_cb* cb,
-                                   int blkIdx,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
 {
   enter();
 
+  const enc_cb* cb = tb->cb;
   *tb->downPtr = tb;
 
   de265_image* img = ectx->img;
@@ -174,7 +173,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
     compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
     compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
-  else if (blkIdx==3) {
+  else if (tb->blkIdx==3) {
     // if TB size is 4x4, do chroma transform for last sub-block
     compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
     compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
@@ -220,7 +219,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   descend(tb,"DCT");
   float bits = mAlgo_TB_RateEstimation->encode_transform_unit(ectx,ctxModel,
                                                               tb,cb, x0,y0, xBase,yBase,
-                                                              log2TbSize, trafoDepth, blkIdx);
+                                                              log2TbSize, trafoDepth, tb->blkIdx);
   ascend();
 
   tb->rate_withoutCbfChroma += bits + luma_cbf_bits;

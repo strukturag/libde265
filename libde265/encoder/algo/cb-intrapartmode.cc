@@ -85,8 +85,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       tb->downPtr = &cb->transform_tree;
 
       cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, option[p].get_context(),
-                                                         ectx->imgdata->input, tb, cb,
-                                                         0,
+                                                         ectx->imgdata->input, tb,
                                                          0, MaxTrafoDepth, IntraSplitFlag);
       ascend();
 
@@ -149,8 +148,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
   descend(cb,"fixed:%s", (PartMode==PART_2Nx2N ? "2Nx2N":"NxN"));
   cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, ctxModel,
-                                                     ectx->imgdata->input, tb, cb,
-                                                     0,
+                                                     ectx->imgdata->input, tb,
                                                      0, MaxTrafoDepth, IntraSplitFlag);
   ascend();
 

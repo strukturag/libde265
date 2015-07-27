@@ -37,20 +37,6 @@
 #include "libde265/configparam.h"
 
 
-/*  Encoder search tree, bottom up:
-
-    - Algo_TB_Split - whether TB is split or not
-
-    - Algo_TB_IntraPredMode - choose the intra prediction mode (or NOP, if at the wrong tree level)
-
-    - Algo_CB_IntraPartMode - choose between NxN and 2Nx2N intra parts
-
-    - Algo_CB_Split - whether CB is split or not
-
-    - Algo_CTB_QScale - select QScale on CTB granularity
- */
-
-
 // ========== TB intra prediction mode ==========
 
 enum ALGO_TB_IntraPredMode {
@@ -105,8 +91,6 @@ class Algo_TB_IntraPredMode : public Algo
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          enc_cb* cb,
-                          int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
@@ -237,8 +221,6 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          enc_cb* cb,
-                          int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); return 0; } // TODO
 
 
@@ -287,8 +269,6 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          enc_cb* cb,
-                          int blkIdx,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); return 0; } // TODO
 
 
@@ -324,8 +304,6 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
                   context_model_table&,
                   const de265_image* input,
                   enc_tb* tb,
-                  enc_cb* cb,
-                  int blkIdx,
                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
   const char* name() const { return "tb-intrapredmode_MinResidual"; }
