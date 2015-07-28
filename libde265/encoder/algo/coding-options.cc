@@ -113,7 +113,7 @@ void CodingOptions<node>::compute_rdo_costs()
 {
   for (int i=0;i<mOptions.size();i++) {
     if (mOptions[i].computed) {
-      printf("compute_rdo_costs %d: %f\n",i, mOptions[i].mNode->rate);
+      //printf("compute_rdo_costs %d: %f\n",i, mOptions[i].mNode->rate);
       mOptions[i].rdoCost = mOptions[i].mNode->distortion + mECtx->lambda * mOptions[i].mNode->rate;
     }
   }
@@ -134,7 +134,7 @@ int CodingOptions<node>::find_best_rdo_index()
     if (mOptions[i].computed) {
       float cost = mOptions[i].rdoCost;
 
-      printf("option %d cost: %f\n",i,cost);
+      //printf("option %d cost: %f\n",i,cost);
 
       if (first || cost < bestRDOCost) {
         bestRDOCost = cost;

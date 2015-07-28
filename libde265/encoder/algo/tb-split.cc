@@ -105,8 +105,6 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
     mode = tb->intra_mode_chroma;
   }
 
-  //printf("*** mode = %d\n",mode);
-
   // decode intra prediction
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
@@ -205,7 +203,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   //float rd_cost_no_split = std::numeric_limits<float>::max();
   //float rd_cost_split    = std::numeric_limits<float>::max();
 
-  printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
+  //printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
 
   if (test_no_split) {
     option_no_split.begin();
@@ -394,8 +392,6 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
   tb->rate = (tb->rate_withoutCbfChroma +
               recursive_cbfChroma_rate(&estim,tb, log2TbSize, TrafoDepth));
-
-  printf("tb-split total bits: %f\n",tb->rate);
 
   return tb;
 }
