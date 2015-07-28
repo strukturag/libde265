@@ -47,11 +47,15 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
   // encode all 4 children and sum their distortions and rates
 
   for (int i=0;i<4;i++) {
+    cb->children[i] = NULL;
+  }
+
+  for (int i=0;i<4;i++) {
     int child_x = cb->x + ((i&1)  << (cb->log2Size-1));
     int child_y = cb->y + ((i>>1) << (cb->log2Size-1));
 
     if (child_x>=w || child_y>=h) {
-      cb->children[i] = NULL;
+      // NOP
     }
     else {
       enc_cb* childCB = new enc_cb;
@@ -60,6 +64,8 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
 
       childCB->x = child_x;
       childCB->y = child_y;
+      childCB->parent  = cb;
+      childCB->downPtr = &cb->children[i];
 
       descend(cb,"yes %d/4",i+1);
       cb->children[i] = analyze(ectx, ctxModel, childCB);
@@ -102,6 +108,11 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.start();
 
+
+  cb_input->writeSurroundingMetadata(ectx, ectx->img,
+                                     enc_node::METADATA_CT_DEPTH, // for estimation cb-split bits
+                                     cb_input->get_rectangle(1<<cb_input->log2Size));
+
   // --- encode without splitting ---
 
   if (option_no_split) {
@@ -110,6 +121,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     opt.begin();
 
     enc_cb* cb = opt.get_node();
+    *cb_input->downPtr = cb;
 
     // set CB size in image data-structure
     ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
@@ -142,6 +154,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     option_split.begin();
 
     enc_cb* cb = option_split.get_node();
+    *cb_input->downPtr = cb;
+
     cb = encode_cb_split(ectx, option_split.get_context(), cb);
 
     // add rate for split flag

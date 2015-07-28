@@ -31,8 +31,6 @@
 #include <iostream>
 
 
-
-
 struct Logging_TB_Split : public Logging
 {
   int skipTBSplit, noskipTBSplit;

@@ -36,11 +36,13 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           int ctb_x,int ctb_y)
 {
   enc_cb* cb = new enc_cb();
+  enc_cb* dummy_cb_ptr = NULL;
 
   cb->log2Size = ectx->sps.Log2CtbSizeY;
   cb->ctDepth = 0;
   cb->x = ctb_x;
   cb->y = ctb_y;
+  cb->downPtr = &dummy_cb_ptr;
 
   ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, ectx->active_qp);
 
