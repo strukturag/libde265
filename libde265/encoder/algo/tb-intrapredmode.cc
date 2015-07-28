@@ -23,6 +23,7 @@
 
 #include "libde265/encoder/encoder-context.h"
 #include "libde265/encoder/algo/tb-split.h"
+#include "libde265/encoder/algo/coding-options.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
@@ -200,13 +201,12 @@ enc_tb*
 Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table& ctxModel,
                                           const de265_image* input,
-                                          const enc_tb* parent,
-                                          enc_cb* cb,
-                                          int x0,int y0, int xBase,int yBase,
-                                          int log2TbSize, int blkIdx,
+                                          enc_tb* tb,
                                           int TrafoDepth, int MaxTrafoDepth,
                                           int IntraSplitFlag)
 {
+  enter();
+
   //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
 
   /*
@@ -215,65 +215,70 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     input->get_image_stride(0));
   */
 
+  enc_cb* cb = tb->cb;
+
   bool selectIntraPredMode = false;
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    enc_tb* tb[35];
 
-    float minCost = std::numeric_limits<float>::max();
-    int   minCostIdx=0;
-    float minCandCost;
+    CodingOptions<enc_tb> options(ectx, tb, ctxModel);
+    CodingOption<enc_tb>  option[35];
+
+    for (int i=0;i<35;i++) {
+      bool computeIntraMode = isPredModeEnabled((enum IntraPredMode)i);
+      option[i] = options.new_option(computeIntraMode);
+    }
+
+    options.start();
+
+
+    tb->writeSurroundingMetadata(ectx, ectx->img,
+                                 enc_node::METADATA_INTRA_MODES,
+                                 tb->get_rectangle(1<<tb->log2Size));
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
     enum IntraPredMode candidates[3];
-    fillIntraPredModeCandidates(candidates, x0,y0,
-                                sps->getPUIndexRS(x0,y0),
-                                x0>0, y0>0, img);
+    fillIntraPredModeCandidates(candidates, tb->x,tb->y,
+                                sps->getPUIndexRS(tb->x,tb->y),
+                                tb->x > 0, tb->y > 0, img);
 
 
     for (int i = 0; i<35; i++) {
-      if (!isPredModeEnabled((enum IntraPredMode)i)) {
-        tb[i]=NULL;
+      if (!option[i]) {
         continue;
       }
 
 
-      context_model_table ctxIntra = ctxModel.copy();
-      //copy_context_model_table(ctxIntra, ctxModel);
-
       enum IntraPredMode intraMode = (IntraPredMode)i;
 
 
-      assert(tb[i]->blkIdx == blkIdx);
+      option[i].begin();
 
-      //cb->intra.pred_mode[blkIdx] = intraMode;
-      //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+      enc_tb* tb_option = option[i].get_node();
 
-      tb[i]->intra_mode        = intraMode;
-      tb[i]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+      tb_option->intra_mode        = intraMode;
+      tb_option->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
 
-      ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
+      //ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
-      descend(tb[i],"%d",intraMode);
-      assert(false);
-      /*
-      tb[intraMode] = mTBSplitAlgo->analyze(ectx,ctxIntra,input,parent,
-                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
-      */
+      descend(tb_option,"%d",intraMode);
+      tb_option = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,tb_option,
+                                        TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
       ascend();
 
+      /*
       float sad;
       if ((1<<log2TbSize)==8) {
         decode_intra_prediction(ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
         sad = estim_TB_bitrate(ectx,input, x0,y0, log2TbSize, TBBitrateEstim_SAD);
       }
+      */
 
 
-      float rate = tb[intraMode]->rate;
+      float rate = tb_option->rate;
       int enc_bin;
 
       /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
@@ -282,18 +287,29 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       else { rate += 5; enc_bin=0; }
 
       CABAC_encoder_estim estim;
-      estim.set_context_models(&ctxIntra);
+      estim.set_context_models(&option[i].get_context());
       rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
 
+      /*
       float cost = tb[intraMode]->distortion + ectx->lambda * rate;
       if (cost<minCost) {
         minCost=cost;
         minCostIdx=intraMode;
         //minCandCost=c;
       }
+      */
+
+      tb_option->rate = rate;
+
+      option[i].end();
     }
 
 
+    options.compute_rdo_costs();
+
+    return options.return_best_rdo_node();
+
+    /*
     enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
 
     assert(tb[minCostIdx]->blkIdx == blkIdx);
@@ -318,19 +334,14 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     }
 
     return tb[minCostIdx];
+    */
   }
   else {
-    descend(parent,"NOP"); // TODO: not parent
-    assert(false);
-    enc_tb* tb;
-    /*
-    enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
-                                       x0,y0,xBase,yBase, log2TbSize,
-                                       blkIdx, TrafoDepth, MaxTrafoDepth,
-                                       IntraSplitFlag);
-    */
+    descend(tb,"NOP"); // TODO: not parent
+    enc_tb* new_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb,
+                                           TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
-    return tb;
+    return new_tb;
   }
 
   assert(false);

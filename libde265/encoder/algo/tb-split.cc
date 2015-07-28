@@ -188,22 +188,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   //if (test_no_split) test_split = false;
   //if (test_split) test_no_split = false;
 
-  /*
-  context_model_table ctxSplit;
-  if (test_split) {
-    ctxSplit = ctxModel.copy();
-  }
-  */
-
   options.start();
 
 
   enc_tb* tb_no_split = NULL;
   enc_tb* tb_split    = NULL;
-  //float rd_cost_no_split = std::numeric_limits<float>::max();
-  //float rd_cost_split    = std::numeric_limits<float>::max();
-
-  //printf("TB-Split: test split=%d  test no-split=%d\n",test_split, test_no_split);
 
   if (test_no_split) {
     option_no_split.begin();
@@ -221,8 +210,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
     option_no_split.set_node(tb_no_split);
+    option_no_split.end();
 
-    //rd_cost_no_split = tb_no_split->distortion + ectx->lambda * tb_no_split->rate;
+
+    // --- some statistics ---
 
     if (log2TbSize <= mParams.zeroBlockPrune()) {
       bool zeroBlock = tb_no_split->isZeroBlock();
@@ -234,7 +225,6 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
       else
         logging_tb_split.noskipTBSplit++;
     }
-    option_no_split.end();
   }
 
 
@@ -251,11 +241,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     option_split.set_node(tb_split);
     ascend("bits:%f/%f",tb_split->rate,tb_split->rate_withoutCbfChroma);
 
-    //rd_cost_split    = tb_split->distortion    + ectx->lambda * tb_split->rate;
-
     option_split.end();
   }
 
+
+  // --- do some statistics that will help us develop a fast algorithm ---
 
   if (test_split && test_no_split) {
     bool zero_block = tb_no_split->isZeroBlock();
@@ -276,23 +266,6 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   options.compute_rdo_costs();
 
   return options.return_best_rdo_node();
-
-  /*
-  if (split) {
-    ctxModel = ctxSplit;
-
-    delete tb_no_split;
-    assert(tb_split);
-
-    return tb_split;
-  }
-  else {
-    delete tb_split;
-    assert(tb_no_split);
-
-    return tb_no_split;
-  }
-  */
 }
 
 
