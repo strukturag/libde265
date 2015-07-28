@@ -240,9 +240,12 @@ double encode_image(encoder_context* ectx,
 
         enable_logging(LogSymbols);
 
+        logdebug(LogEncoder,"write CTB %d;%d\n",x,y);
+
         cb->writeMetadata(ectx, ectx->img,
                           enc_node::METADATA_INTRA_MODES |
-                          enc_node::METADATA_RECONSTRUCTION);
+                          enc_node::METADATA_RECONSTRUCTION |
+                          enc_node::METADATA_CT_DEPTH);
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 

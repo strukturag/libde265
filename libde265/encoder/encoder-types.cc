@@ -368,6 +368,11 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
 
       written |= METADATA_INTRA_MODES;
     }
+
+    if (missing & METADATA_CT_DEPTH) {
+      img->set_ctDepth(x,y,log2Size, ctDepth);
+      written |= METADATA_CT_DEPTH;
+    }
   }
 
   metadata_in_image |= written;

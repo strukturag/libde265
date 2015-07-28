@@ -85,6 +85,7 @@ class enc_node
   static const int METADATA_RECONSTRUCTION_BORDERS = (1<<0);
   static const int METADATA_RECONSTRUCTION = (1<<1);
   static const int METADATA_INTRA_MODES    = (1<<2);
+  static const int METADATA_CT_DEPTH       = (1<<3);
   static const int METADATA_ALL            = 0xFF;
 
   struct rectangle {
