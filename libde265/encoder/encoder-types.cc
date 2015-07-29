@@ -620,6 +620,7 @@ enc_cb::enc_cb()
     distortion(0),
     rate(0)
 {
+  parent = NULL;
   downPtr = NULL;
   metadata_in_image = 0;
 

@@ -113,7 +113,7 @@ class CodingOption
   void set_node(node* _node) {
     if (_node != mParent->mOptions[mOptionIdx].mNode) {
       //printf("delete TB %p\n", mParent->mOptions[mOptionIdx].tb);
-      delete mParent->mOptions[mOptionIdx].mNode;
+      //delete mParent->mOptions[mOptionIdx].mNode;
     }
     mParent->mOptions[mOptionIdx].mNode = _node;
   }
