@@ -103,8 +103,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   CodingOptions<enc_cb> options(ectx, cb_input, ctxModel);
 
-  CodingOption<enc_cb> option_split    = options.new_option(can_split_CB);
   CodingOption<enc_cb> option_no_split = options.new_option(can_nosplit_CB);
+  CodingOption<enc_cb> option_split    = options.new_option(can_split_CB);
 
   options.start();
 

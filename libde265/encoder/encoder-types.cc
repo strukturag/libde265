@@ -208,6 +208,31 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 }
 
 
+void enc_tb::debug_writeBlack(encoder_context* ectx, de265_image* img) const
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->debug_writeBlack(ectx,img);
+    }
+  }
+  else {
+    //reconstruct_tb(ectx, img, x,y, log2Size, 0);
+
+    int size = 1<<(log2Size<<1);
+    uint8_t buf[size];
+    memset(buf,0x12,size);
+
+    int cIdx=0;
+    int xC=x,yC=y;
+
+    copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
+                  img->get_image_stride(cIdx),
+                  buf, 1<<log2Size,
+                  1<<log2Size, 1<<log2Size);
+  }
+}
+
+
 void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
   if (split_transform_flag) {

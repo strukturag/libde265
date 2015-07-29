@@ -153,6 +153,7 @@ class enc_tb : public enc_node
   void set_cbf_flags_from_children();
 
   void reconstruct(encoder_context* ectx, de265_image* img) const;
+  void debug_writeBlack(encoder_context* ectx, de265_image* img) const;
 
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
 
@@ -171,6 +172,12 @@ class enc_tb : public enc_node
     // this will never be needed.
 
     metadata_in_image &= ~whatFlags;
+
+    if (split_transform_flag) {
+      for (int i=0;i<4;i++) {
+        children[i]->willOverwriteMetadata(img,whatFlags);
+      }
+    }
   }
 
   // externally wrote metadata
@@ -311,6 +318,15 @@ public:
     // this will never be needed.
 
     metadata_in_image &= ~whatFlags;
+
+    if (split_cu_flag) {
+      for (int i=0;i<4;i++) {
+        children[i]->willOverwriteMetadata(img,whatFlags);
+      }
+    }
+    else {
+      transform_tree->willOverwriteMetadata(img,whatFlags);
+    }
   }
 
   // externally wrote metadata
@@ -331,6 +347,18 @@ public:
   // internal use only
   void writeSurroundingMetadataDown(encoder_context* ectx,
                                     de265_image* img, int whatFlags, const rectangle& rect);
+
+
+  void debug_writeBlack(encoder_context* ectx, de265_image* img) const
+  {
+    if (split_cu_flag) {
+      for (int i=0;i<4;i++)
+        children[i]->debug_writeBlack(ectx,img);
+    }
+    else {
+      transform_tree->debug_writeBlack(ectx,img);
+    }
+  }
 
 
   // memory management
