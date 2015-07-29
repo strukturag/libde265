@@ -230,7 +230,6 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   if (test_split) {
     option_split.begin();
-    if (tb_no_split) tb_no_split->willOverwriteMetadata(ectx->img, enc_node::METADATA_ALL);
 
     tb_split = option_split.get_node();
     *tb->downPtr = tb_split;
