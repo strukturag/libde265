@@ -188,8 +188,8 @@ void CodingOption<node>::begin()
   mParent->mOptions[mOptionIdx].computed = true;
 
   if (mParent->mCurrentlyReconstructedOption >= 0) {
-    //mParent->mOptions[mParent->mCurrentlyReconstructedOption].cb->save(mParent->mECtx->img);
-    mParent->mOptions[mParent->mCurrentlyReconstructedOption].mNode->willOverwriteMetadata(mParent->mECtx->img);
+    node* reconstructedNode = mParent->mOptions[mParent->mCurrentlyReconstructedOption].mNode;
+    reconstructedNode->invalidateMetadataInSubTree(mParent->mECtx->img);
   }
 
   mParent->mCurrentlyReconstructedOption = mOptionIdx;

@@ -167,7 +167,7 @@ class enc_tb : public enc_node
   // We call this before doing the actual modification. This allows to save e.g.
   // pixel data that has been reconstructed into the image to be copied into the TB
   // as it will most probably be needed later again.
-  void willOverwriteMetadata(const de265_image* img, int whatFlags = METADATA_ALL) {
+  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL) {
     // note: theoretically, this should be propagated upwards, but the way we use it,
     // this will never be needed.
 
@@ -175,7 +175,7 @@ class enc_tb : public enc_node
 
     if (split_transform_flag) {
       for (int i=0;i<4;i++) {
-        children[i]->willOverwriteMetadata(img,whatFlags);
+        children[i]->invalidateMetadataInSubTree(img,whatFlags);
       }
     }
   }
@@ -313,7 +313,7 @@ public:
 
   // ===== METADATA =====
 
-  void willOverwriteMetadata(const de265_image* img, int whatFlags = METADATA_ALL) {
+  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL) {
     // note: theoretically, this should be propagated upwards, but the way we use it,
     // this will never be needed.
 
@@ -321,11 +321,11 @@ public:
 
     if (split_cu_flag) {
       for (int i=0;i<4;i++) {
-        children[i]->willOverwriteMetadata(img,whatFlags);
+        children[i]->invalidateMetadataInSubTree(img,whatFlags);
       }
     }
     else {
-      transform_tree->willOverwriteMetadata(img,whatFlags);
+      transform_tree->invalidateMetadataInSubTree(img,whatFlags);
     }
   }
 
