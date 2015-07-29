@@ -111,7 +111,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   cb_input->writeSurroundingMetadata(ectx, ectx->img,
                                      enc_node::METADATA_CT_DEPTH, // for estimation cb-split bits
-                                     cb_input->get_rectangle(1<<cb_input->log2Size));
+                                     cb_input->get_rectangle());
 
   // --- encode without splitting ---
 
@@ -124,8 +124,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     *cb_input->downPtr = cb;
 
     // set CB size in image data-structure
-    ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
-    ectx->img->set_log2CbSize(cb->x,cb->y,cb->log2Size, true);
+    //ectx->img->set_ctDepth(cb->x,cb->y,cb->log2Size, cb->ctDepth);
+    //ectx->img->set_log2CbSize(cb->x,cb->y,cb->log2Size, true);
 
     /* We set QP here, because this is required at in non-split CBs only.
      */
