@@ -78,7 +78,7 @@ void context_model_table::release()
   // if (*refcnt == 1) { return; } <- keep memory for later, but does not work when we believe that we freed the memory and nulled all references
 
   (*refcnt)--;
-  if (refcnt==0) {
+  if (*refcnt==0) {
     delete[] model;
     delete refcnt;
   }
@@ -93,6 +93,8 @@ void context_model_table::decouple()
   if (D) printf("%p decouple (%p)\n",this,refcnt);
 
   assert(refcnt); // not necessarily so, but we never use it on an unitialized object
+
+  if (!refcnt) return;
 
   if (*refcnt > 1) {
     (*refcnt)--;
