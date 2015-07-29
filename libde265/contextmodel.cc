@@ -94,8 +94,6 @@ void context_model_table::decouple()
 
   assert(refcnt); // not necessarily so, but we never use it on an unitialized object
 
-  if (!refcnt) return;
-
   if (*refcnt > 1) {
     (*refcnt)--;
 
