@@ -143,7 +143,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   enter();
 
   const enc_cb* cb = tb->cb;
-  *tb->downPtr = tb;
+  *tb->downPtr = tb; // TODO: should be obsolet
 
   de265_image* img = ectx->img;
 
@@ -234,6 +234,8 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
 
   // measure distortion
+
+  tb->writeMetadata(ectx, ectx->img, enc_node::METADATA_RECONSTRUCTION);
 
   int tbSize = 1<<log2TbSize;
   tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
