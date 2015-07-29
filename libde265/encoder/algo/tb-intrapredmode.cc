@@ -267,6 +267,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       descend(tb_option,"%d",intraMode);
       tb_option = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,tb_option,
                                         TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+      option[i].set_node(tb_option);
       ascend();
 
       /*
