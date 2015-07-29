@@ -109,4 +109,3 @@ uint32_t compute_distortion_ssd(const de265_image* img1, const de265_image* img2
              img2->get_image_plane_at_pos(cIdx,x0,y0), img2->get_image_stride(cIdx),
              1<<log2size, 1<<log2size);
 }
-

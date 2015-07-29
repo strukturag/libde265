@@ -67,17 +67,13 @@ class small_image_buffer
 
 class enc_node
 {
- public:
-  enc_node() { mReconstruction=NULL; }
- enc_node(int _x,int _y, int _log2Size)
-   : x(_x), y(_y), log2Size(_log2Size), mReconstruction(NULL) { }
-  virtual ~enc_node() { delete[] mReconstruction; }
+public:
+  enc_node() { }
+  enc_node(int _x,int _y, int _log2Size) : x(_x), y(_y), log2Size(_log2Size) { }
+  virtual ~enc_node() { }
 
   uint16_t x,y;
   uint8_t  log2Size : 3;
-
-  // virtual void save(const de265_image*); // deprecated
-  // virtual void restore(de265_image*);    // deprecated
 
 
   // reconstruction
@@ -96,12 +92,7 @@ class enc_node
   };
 
   rectangle get_rectangle() {
-    rectangle r;
-    r.left = x;
-    r.top  = y;
-    r.right  = x+(1<<log2Size);
-    r.bottom = y+(1<<log2Size);
-    return r;
+    return get_rectangle(1<<log2Size);
   }
 
   rectangle get_rectangle(int size) {
@@ -112,9 +103,6 @@ class enc_node
     r.bottom = y+size;
     return r;
   }
-
- private:
-  uint8_t* mReconstruction;
 };
 
 
