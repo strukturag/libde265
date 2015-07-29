@@ -207,14 +207,6 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 {
   enter();
 
-  //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
-
-  /*
-    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
-    input->get_image_plane_at_pos(0,x0,y0),
-    input->get_image_stride(0));
-  */
-
   enc_cb* cb = tb->cb;
 
   bool selectIntraPredMode = false;
@@ -259,10 +251,10 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       enc_tb* tb_option = option[i].get_node();
 
+      enum IntraPredMode intraModeC = intraMode;
+
       tb_option->intra_mode        = intraMode;
       tb_option->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
-
-      //ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       descend(tb_option,"%d",intraMode);
       tb_option = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,tb_option,
@@ -270,37 +262,14 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       option[i].set_node(tb_option);
       ascend();
 
-      /*
-      float sad;
-      if ((1<<log2TbSize)==8) {
-        decode_intra_prediction(ectx->img, x0,y0, intraMode, 1<<log2TbSize, 0);
-        sad = estim_TB_bitrate(ectx,input, x0,y0, log2TbSize, TBBitrateEstim_SAD);
-      }
-      */
+      float intraPredModeBits = get_intra_pred_mode_bits(candidates,
+                                                         intraMode,
+                                                         intraModeC,
+                                                         option[i].get_context(),
+                                                         tb_option->blkIdx == 0);
 
-
-      float rate = tb_option->rate;
-      int enc_bin;
-
-      /**/ if (candidates[0]==intraMode) { rate += 1; enc_bin=1; }
-      else if (candidates[1]==intraMode) { rate += 2; enc_bin=1; }
-      else if (candidates[2]==intraMode) { rate += 2; enc_bin=1; }
-      else { rate += 5; enc_bin=0; }
-
-      CABAC_encoder_estim estim;
-      estim.set_context_models(&option[i].get_context());
-      rate += estim.RDBits_for_CABAC_bin(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, enc_bin);
-
-      /*
-      float cost = tb[intraMode]->distortion + ectx->lambda * rate;
-      if (cost<minCost) {
-        minCost=cost;
-        minCostIdx=intraMode;
-        //minCandCost=c;
-      }
-      */
-
-      tb_option->rate = rate;
+      tb_option->rate_withoutCbfChroma += intraPredModeBits;
+      tb_option->rate += intraPredModeBits;
 
       option[i].end();
     }
@@ -309,33 +278,6 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     options.compute_rdo_costs();
 
     return options.return_best_rdo_node();
-
-    /*
-    enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
-
-    assert(tb[minCostIdx]->blkIdx == blkIdx);
-
-    //cb->intra.pred_mode[blkIdx] = intraMode;
-    //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-
-    tb[minCostIdx]->intra_mode        = intraMode;
-    tb[minCostIdx]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
-
-    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
-
-    tb[minCostIdx]->reconstruct(ectx, ectx->img);
-
-
-    //printf("INTRA %d %d  %d\n",pre_intraMode,intraMode,minCandCost);
-
-    for (int i = 0; i<35; i++) {
-      if (i != minCostIdx) {
-        delete tb[i];
-      }
-    }
-
-    return tb[minCostIdx];
-    */
   }
   else {
     descend(tb,"NOP"); // TODO: not parent
