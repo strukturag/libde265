@@ -29,17 +29,17 @@
 /* When entering the next recursion level, it is assumed that
    a valid CB structure is passed down. Ownership is transferred to
    the new algorithm. That algorithm passes back a (possibly different)
-   CB structure that the first algorithm should use. The original CB
-   structure might have been deleted in the called algorithm.
+   CB structure that the first algorithm should use. The receiving
+   algorithm will be the owner of the passed back algorithm.
+   The original CB structure might have been deleted in the called algorithm.
+
+   When using CodingOptions, it is important to set the passed back
+   enc_node in the CodingOption (set_node()), so that the CodingOption
+   can correctly handle ownership and delete nodes as needed.
 
    The context_model_table passed down is at the current state.
    When the algorithm returns, the state should represent the state
    after running this algorithm.
-
-   When returning from the algorithm, it is also assumed that the
-   ectx->img content (reconstruction and metadata) represent the
-   current state. When the algorithm tries several variants, it
-   has to restore the state to the selected variant.
  */
 
 class Algo
