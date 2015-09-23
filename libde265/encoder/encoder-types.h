@@ -53,15 +53,15 @@ class small_image_buffer
     memcpy(b.mBuf, mBuf, mBytesPerRow*mHeight);
   }
 
-  // small_image_buffer cannot be copied
-
-  small_image_buffer(const small_image_buffer&) = delete;
-  small_image_buffer& operator=(const small_image_buffer&) = delete;
-
  private:
   uint8_t*  mBuf;
   uint16_t  mStride;
   uint16_t  mBytesPerRow, mHeight;
+
+  // small_image_buffer cannot be copied
+
+  small_image_buffer(const small_image_buffer&) { assert(false); } // = delete;
+  small_image_buffer& operator=(const small_image_buffer&) { assert(false); } // = delete;
 };
 
 
