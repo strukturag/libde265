@@ -297,14 +297,21 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
     // the PB and no metadata would be written at all.
     if (missing & METADATA_INTRA_MODES) {
 
+      bool wroteAllIntraModes = true;
+
       if (PartMode == PART_2Nx2N) {
         img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
       }
       else {
         for (int i=0;i<4;i++)
-          img->set_IntraPredMode(childX(x,i,log2Size),
-                                 childY(y,i,log2Size),
-                                 log2Size-1, transform_tree->children[i]->intra_mode);
+          if (transform_tree->children[i] != NULL) {
+            img->set_IntraPredMode(childX(x,i,log2Size),
+                                   childY(y,i,log2Size),
+                                   log2Size-1, transform_tree->children[i]->intra_mode);
+          }
+          else {
+            wroteAllIntraModes = false;
+          }
       }
 
       //img->set_IntraPredModeC(int x,int y) const
@@ -312,7 +319,7 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
       logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
       logdebug(LogEncoderMetadata,"  intraPredMode at 0,31: %d\n", img->get_IntraPredMode(31,0));
 
-      written |= METADATA_INTRA_MODES;
+      if (wroteAllIntraModes) { written |= METADATA_INTRA_MODES; }
     }
 
     if (missing & METADATA_CT_DEPTH) {
