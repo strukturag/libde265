@@ -285,40 +285,6 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
 
   int written = 0;
 
-  // write CB data
-
-  // Intra modes have to be written in CB, because the PB-size is half of the CB size
-  // and TB sizes may be smaller. If we would write in the TB, it could be smaller than
-  // the PB and no metadata would be written at all.
-  /*
-  if (missing & METADATA_INTRA_MODES) {
-
-    bool wroteAllIntraModes = true;
-
-    if (PartMode == PART_2Nx2N) {
-      img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
-    }
-    else {
-      for (int i=0;i<4;i++)
-        if (transform_tree->children[i] != NULL) {
-          img->set_IntraPredMode(childX(x,i,log2Size),
-                                 childY(y,i,log2Size),
-                                 log2Size-1, transform_tree->children[i]->intra_mode);
-        }
-        else {
-          wroteAllIntraModes = false;
-        }
-    }
-
-    //img->set_IntraPredModeC(int x,int y) const
-
-    logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
-    logdebug(LogEncoderMetadata,"  intraPredMode at 0,31: %d\n", img->get_IntraPredMode(31,0));
-
-    if (wroteAllIntraModes) { written |= METADATA_INTRA_MODES; }
-  }
-  */
-
   if (missing & METADATA_CT_DEPTH) {
     img->set_ctDepth(x,y,log2Size, ctDepth);
     written |= METADATA_CT_DEPTH;
@@ -370,6 +336,13 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
   int written = 0;
 
 
+  // write CB data
+
+  // We have to write intra modes at the highest level possible, because the PB-size is
+  // half of the CB size and TB sizes may be smaller than the min PB size.
+  // If we would write in a lower TB, it could be smaller than PB-min and no metadata
+  // would be written at all.
+
   if (missing & METADATA_INTRA_MODES) {
     if (cb->PartMode == PART_2Nx2N && TrafoDepth==0) {
       img->set_IntraPredMode(x,y,log2Size, intra_mode);
@@ -411,58 +384,62 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 
 
 void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
-                                      de265_image* img, int whatFlags, const rectangle& rect)
+                                      de265_image* img, int whatFlags,
+                                      const rectangle& borderRect)
 {
   logdebug(LogEncoderMetadata,
            "enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
-           rect.left,rect.right, rect.top,rect.bottom, whatFlags);
+           borderRect.left,borderRect.right,
+           borderRect.top, borderRect.bottom,
+           whatFlags);
 
-  // top and left border of block surrounding must always be within TB, as we call
-  // this only for sub-blocks within this TB
-  assert(rect.left >= x && rect.top >= y);
+  // --- first check whether we have to go up in the tree ---
 
-  if (rect.left == x || rect.top == y) {
+  const bool partOfBorderIsLeftOrTopOfTB = (borderRect.left <= x || borderRect.top <= y);
+
+  if (partOfBorderIsLeftOrTopOfTB) {
     if (parent) {
-      parent->writeSurroundingMetadata(ectx, img, whatFlags, rect);
+      // there is a parent TB
+
+      parent->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
     }
     else {
+      // go through parent CB
+
       assert(cb);
-      // TODO cb->nodeNeedsReconstruction(whatFlags, rect);
-
-      // TODO: remove this later when we go up through CB [does not work, because we cannot
-      // reconstruct the currently coded block]
-      if (rect.left <= x && rect.top <= y) {
-        // NOP
-      }
-      else {
-        //writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
-      }
-
-      cb->writeSurroundingMetadata(ectx, img, whatFlags, rect);
+      cb->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
     }
   }
   else {
-    writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    // We do not have to go further up. Process tree down.
+
+    writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
   }
 }
 
 
 void enc_cb::writeSurroundingMetadata(encoder_context* ectx,
-                                      de265_image* img, int whatFlags, const rectangle& rect)
+                                      de265_image* img, int whatFlags,
+                                      const rectangle& borderRect)
 {
   logdebug(LogEncoderMetadata,
            "enc_cb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",
-           x,y,1<<log2Size,rect.left,rect.right, rect.top,rect.bottom, whatFlags);
+           x,y,1<<log2Size,
+           borderRect.left,borderRect.right,
+           borderRect.top,borderRect.bottom,
+           whatFlags);
 
-  // top and left border of block surrounding must always be within CB, as we call
-  // this only for sub-blocks within this CB
-  assert(rect.left >= x && rect.top >= y);
+  const bool partOfBorderIsLeftOrTopOfTB = (borderRect.left <= x || borderRect.top <= y);
 
-  if (parent && (rect.left == x || rect.top == y)) {
-    parent->writeSurroundingMetadata(ectx, img, whatFlags, rect);
+  if (parent && partOfBorderIsLeftOrTopOfTB) {
+    // go further up if we have to and this is not the root
+
+    parent->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
   }
   else {
-    writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    // if we do not need to go up, go down.
+
+    writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
   }
 }
 
@@ -490,18 +467,31 @@ bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
 
 
 void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
-                                          de265_image* img, int whatFlags, const rectangle& rect)
+                                          de265_image* img, int whatFlags,
+                                          const rectangle& borderRect)
 {
   logdebug(LogEncoderMetadata,
            "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-           rect.left,rect.right, rect.top,rect.bottom);
+           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
 
   if ((metadata_in_image & whatFlags) == whatFlags) {
     // nothing to do, data already exists
   }
   else if (!split_transform_flag) {
-    if (rect.left <= x && rect.top <= y) {
-      // NOP
+    if (borderRect.left <= x && borderRect.top <= y) {
+      // we do not overlap with the border (right side or below border) -> NOP
+    }
+    if (x+(1<<log2Size) < borderRect.left ||
+        y+(1<<log2Size) < borderRect.top) {
+      // we do not overlap with the border (left side of or above borderRect) -> NOP
+
+      assert(0); // actually, in our implementation, this case never occurs
+    }
+    else if (x >= borderRect.right ||
+             y >= borderRect.bottom) {
+      // we do not overlap with the border (right side or below border) -> NOP
+
+      assert(0); // actually, in our implementation, this case never occurs
     }
     else {
       writeMetadata(ectx, img, whatFlags);
@@ -513,20 +503,20 @@ void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
     int xend  = x+(1<<log2Size);
     int yend  = y+(1<<log2Size);
 
-    if (overlaps(rect, x,y, xhalf,yhalf)) {
-      children[0]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    if (overlaps(borderRect, x,y, xhalf,yhalf)) {
+      children[0]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
     }
 
-    if (overlaps(rect, xhalf,y, xend,yhalf) && children[1]) {
-      children[1]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    if (overlaps(borderRect, xhalf,y, xend,yhalf) && children[1]) {
+      children[1]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
     }
 
-    if (overlaps(rect, x,yhalf, xhalf,yend) && children[2]) {
-      children[2]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    if (overlaps(borderRect, x,yhalf, xhalf,yend) && children[2]) {
+      children[2]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
     }
 
-    if (overlaps(rect, xhalf,yhalf, xend,yend)) {
-      children[3]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
+    if (overlaps(borderRect, xhalf,yhalf, xend,yend)) {
+      children[3]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
     }
   }
 }

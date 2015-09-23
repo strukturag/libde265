@@ -180,14 +180,16 @@ class enc_tb : public enc_node
        |//+-----------------------------+
        |//|1                            |2
        |//|                             |
-       |//|         rectangle           |
+       |//|         borderRect          |
        |//|                             |
        |//|                             |
        +--+-----------------------------+
        .   3                             4
+
+       Write all metadata in the shaded area around the borderRect.
    */
   void writeSurroundingMetadata(encoder_context* ectx,
-                                de265_image* img, int whatFlags, const rectangle& rect);
+                                de265_image* img, int whatFlags, const rectangle& borderRect);
 
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
