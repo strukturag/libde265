@@ -285,47 +285,43 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
 
   int written = 0;
 
-  if (split_cu_flag) {
-    for (int i=0;i<4;i++)
-      written = children[i]->writeMetadata_CBOnly(ectx, img,whatFlags);
+  // write CB data
+
+  // Intra modes have to be written in CB, because the PB-size is half of the CB size
+  // and TB sizes may be smaller. If we would write in the TB, it could be smaller than
+  // the PB and no metadata would be written at all.
+  /*
+  if (missing & METADATA_INTRA_MODES) {
+
+    bool wroteAllIntraModes = true;
+
+    if (PartMode == PART_2Nx2N) {
+      img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
+    }
+    else {
+      for (int i=0;i<4;i++)
+        if (transform_tree->children[i] != NULL) {
+          img->set_IntraPredMode(childX(x,i,log2Size),
+                                 childY(y,i,log2Size),
+                                 log2Size-1, transform_tree->children[i]->intra_mode);
+        }
+        else {
+          wroteAllIntraModes = false;
+        }
+    }
+
+    //img->set_IntraPredModeC(int x,int y) const
+
+    logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
+    logdebug(LogEncoderMetadata,"  intraPredMode at 0,31: %d\n", img->get_IntraPredMode(31,0));
+
+    if (wroteAllIntraModes) { written |= METADATA_INTRA_MODES; }
   }
-  else {
-    // write CB data
+  */
 
-    // Intra modes have to be written in CB, because the PB-size is half of the CB size
-    // and TB sizes may be smaller. If we would write in the TB, it could be smaller than
-    // the PB and no metadata would be written at all.
-    if (missing & METADATA_INTRA_MODES) {
-
-      bool wroteAllIntraModes = true;
-
-      if (PartMode == PART_2Nx2N) {
-        img->set_IntraPredMode(x,y,log2Size, transform_tree->intra_mode);
-      }
-      else {
-        for (int i=0;i<4;i++)
-          if (transform_tree->children[i] != NULL) {
-            img->set_IntraPredMode(childX(x,i,log2Size),
-                                   childY(y,i,log2Size),
-                                   log2Size-1, transform_tree->children[i]->intra_mode);
-          }
-          else {
-            wroteAllIntraModes = false;
-          }
-      }
-
-      //img->set_IntraPredModeC(int x,int y) const
-
-      logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
-      logdebug(LogEncoderMetadata,"  intraPredMode at 0,31: %d\n", img->get_IntraPredMode(31,0));
-
-      if (wroteAllIntraModes) { written |= METADATA_INTRA_MODES; }
-    }
-
-    if (missing & METADATA_CT_DEPTH) {
-      img->set_ctDepth(x,y,log2Size, ctDepth);
-      written |= METADATA_CT_DEPTH;
-    }
+  if (missing & METADATA_CT_DEPTH) {
+    img->set_ctDepth(x,y,log2Size, ctDepth);
+    written |= METADATA_CT_DEPTH;
   }
 
   metadata_in_image |= written;
@@ -346,8 +342,10 @@ int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
   int written = 0;
 
   if (split_cu_flag) {
+    int written = whatFlags;
+
     for (int i=0;i<4;i++)
-      written = children[i]->writeMetadata(ectx, img,whatFlags);
+      written &= children[i]->writeMetadata(ectx, img,whatFlags);
   }
   else {
     written |= writeMetadata_CBOnly(ectx,img,whatFlags);
@@ -371,9 +369,28 @@ int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 
   int written = 0;
 
+
+  if (missing & METADATA_INTRA_MODES) {
+    if (cb->PartMode == PART_2Nx2N && TrafoDepth==0) {
+      img->set_IntraPredMode(x,y,log2Size, intra_mode);
+    }
+    else if (cb->PartMode == PART_NxN && TrafoDepth==1) {
+      img->set_IntraPredMode(x,y,log2Size, intra_mode);
+    }
+
+    //img->set_IntraPredModeC(int x,int y) const
+
+    logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
+
+    written |= METADATA_INTRA_MODES;
+  }
+
+
   if (split_transform_flag) {
+    int written = whatFlags;
+
     for (int i=0;i<4;i++)
-      written = children[i]->writeMetadata(ectx, img,whatFlags);
+      written &= children[i]->writeMetadata(ectx, img,whatFlags);
   }
   else {
     //printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
