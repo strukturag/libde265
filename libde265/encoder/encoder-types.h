@@ -323,7 +323,7 @@ public:
         children[i]->invalidateMetadataInSubTree(img,whatFlags);
       }
     }
-    else {
+    else if (transform_tree) {
       transform_tree->invalidateMetadataInSubTree(img,whatFlags);
     }
 
