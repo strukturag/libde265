@@ -134,6 +134,7 @@ de265_error encoder_context::encode_headers()
   sps.set_CB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
   sps.set_TB_log2size_range( Log2(params.min_tb_size), Log2(params.max_tb_size));
   sps.max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
+  sps.max_transform_hierarchy_depth_inter = params.max_transform_hierarchy_depth_inter;
 
   sps.set_resolution(image_width, image_height);
   sop->set_SPS_header_values();

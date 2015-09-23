@@ -88,6 +88,7 @@ struct encoder_params
   option_int max_tb_size;
 
   option_int max_transform_hierarchy_depth_intra;
+  option_int max_transform_hierarchy_depth_inter;
 
 
   option_SOP_Structure sop_structure;
