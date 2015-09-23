@@ -458,7 +458,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 }
 
 
-de265_error seq_parameter_set::compute_derived_values()
+de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
 {
   // --- compute derived values ---
 
@@ -507,13 +507,34 @@ de265_error seq_parameter_set::compute_derived_values()
   Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
 
   if (max_transform_hierarchy_depth_inter > Log2CtbSizeY - Log2MinTrafoSize) {
-    fprintf(stderr,"SPS error: transform hierarchy depth (inter) > CTB size - min TB size\n");
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    if (sanitize_values) {
+      max_transform_hierarchy_depth_inter = Log2CtbSizeY - Log2MinTrafoSize;
+    } else {
+      fprintf(stderr,"SPS error: transform hierarchy depth (inter) > CTB size - min TB size\n");
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
   }
+
   if (max_transform_hierarchy_depth_intra > Log2CtbSizeY - Log2MinTrafoSize) {
-    fprintf(stderr,"SPS error: transform hierarchy depth (intra) > CTB size - min TB size\n");
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    if (sanitize_values) {
+      max_transform_hierarchy_depth_intra = Log2CtbSizeY - Log2MinTrafoSize;
+    } else {
+      fprintf(stderr,"SPS error: transform hierarchy depth (intra) > CTB size - min TB size\n");
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
   }
+
+
+  if (sanitize_values) {
+    if (max_transform_hierarchy_depth_inter < Log2CtbSizeY - Log2MaxTrafoSize) {
+      max_transform_hierarchy_depth_inter = Log2CtbSizeY - Log2MaxTrafoSize;
+    }
+
+    if (max_transform_hierarchy_depth_intra < Log2CtbSizeY - Log2MaxTrafoSize) {
+      max_transform_hierarchy_depth_intra = Log2CtbSizeY - Log2MaxTrafoSize;
+    }
+  }
+
 
   Log2MinPUSize = Log2MinCbSizeY-1;
   PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);

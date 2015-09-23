@@ -187,7 +187,7 @@ public:
 
   // --- derived values ---
 
-  de265_error compute_derived_values();
+  de265_error compute_derived_values(bool sanitize_values = false);
 
   int BitDepth_Y;
   int QpBdOffset_Y;
