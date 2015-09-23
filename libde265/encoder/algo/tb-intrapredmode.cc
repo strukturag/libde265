@@ -228,7 +228,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     tb->writeSurroundingMetadata(ectx, ectx->img,
                                  enc_node::METADATA_INTRA_MODES,
-                                 tb->get_rectangle(1<<tb->log2Size));
+                                 tb->get_rectangle());
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;

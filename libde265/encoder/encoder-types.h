@@ -92,10 +92,10 @@ public:
   };
 
   rectangle get_rectangle() {
-    return get_rectangle(1<<log2Size);
+    return get_rectangle_with_width(1<<log2Size);
   }
 
-  rectangle get_rectangle(int size) {
+  rectangle get_rectangle_with_width(int size) {
     rectangle r;
     r.left = x;
     r.top  = y;
@@ -167,43 +167,27 @@ class enc_tb : public enc_node
   // We call this before doing the actual modification. This allows to save e.g.
   // pixel data that has been reconstructed into the image to be copied into the TB
   // as it will most probably be needed later again.
-  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL) {
-    // note: theoretically, this should be propagated upwards, but the way we use it,
-    // this will never be needed.
-
-    metadata_in_image &= ~whatFlags;
-
-    if (split_transform_flag) {
-      for (int i=0;i<4;i++) {
-        children[i]->invalidateMetadataInSubTree(img,whatFlags);
-      }
-    }
-  }
+  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL);
 
   // externally wrote metadata
-  void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
+  //void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
 
   int  writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
 
   /*
        +--------------------------------+
        |////////////////////////////////|
-       |//1-----------------------------+2
-       |//|                             |
+       |//+-----------------------------+
+       |//|1                            |2
        |//|                             |
        |//|         rectangle           |
        |//|                             |
        |//|                             |
        +--+-----------------------------+
-       .  3                              4
+       .   3                             4
    */
   void writeSurroundingMetadata(encoder_context* ectx,
                                 de265_image* img, int whatFlags, const rectangle& rect);
-
-  // internal use only
-  void writeSurroundingMetadataDown(encoder_context* ectx,
-                                    de265_image* img, int whatFlags, const rectangle& rect);
-
 
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
@@ -216,6 +200,23 @@ private:
   void reconstruct_tb(encoder_context* ectx,
                       de265_image* img, int x0,int y0, int log2TbSize,
                       int cIdx) const;
+
+
+  void invalidateMetadataUpwardsInTree(int whatFlags)
+  {
+    if (metadata_in_image & whatFlags) {
+      metadata_in_image &= ~whatFlags;
+
+      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
+    }
+  }
+
+  // internal use only
+  void writeSurroundingMetadataDown(encoder_context* ectx,
+                                    de265_image* img, int whatFlags, const rectangle& rect);
+
+  // enc_cb may call writeSurroundingMetadataDown()
+  friend class enc_cb;
 };
 
 
@@ -317,8 +318,6 @@ public:
     // note: theoretically, this should be propagated upwards, but the way we use it,
     // this will never be needed.
 
-    metadata_in_image &= ~whatFlags;
-
     if (split_cu_flag) {
       for (int i=0;i<4;i++) {
         children[i]->invalidateMetadataInSubTree(img,whatFlags);
@@ -327,26 +326,23 @@ public:
     else {
       transform_tree->invalidateMetadataInSubTree(img,whatFlags);
     }
+
+    if (metadata_in_image & whatFlags) {
+      metadata_in_image &= ~whatFlags;
+
+      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
+    }
   }
 
   // externally wrote metadata
-  void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
+  // void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
 
   /** Write CB-data and TB-data into the image metadata.
    */
   int writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
 
-  /** Write the CB-data into the image metadata. Do not write TB data.
-      @return the metadata that has been written
-  */
-  int writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags);
-
   void writeSurroundingMetadata(encoder_context* ectx,
                                 de265_image* img, int whatFlags, const rectangle& rect);
-
-  // internal use only
-  void writeSurroundingMetadataDown(encoder_context* ectx,
-                                    de265_image* img, int whatFlags, const rectangle& rect);
 
 
   void debug_writeBlack(encoder_context* ectx, de265_image* img) const
@@ -370,6 +366,27 @@ public:
   //void write_to_image(de265_image*) const;
 
   static alloc_pool mMemPool;
+
+  void invalidateMetadataUpwardsInTree(int whatFlags)
+  {
+    if (metadata_in_image & whatFlags) {
+      metadata_in_image &= ~whatFlags;
+
+      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
+    }
+  }
+
+  // internal use only
+  void writeSurroundingMetadataDown(encoder_context* ectx,
+                                    de265_image* img, int whatFlags, const rectangle& rect);
+
+  /** Write the CB-data into the image metadata. Do not write TB data.
+      @return the metadata that has been written
+  */
+  int writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags);
+
+  // enc_tb may call invalidateMetadataUpwardsInTree()
+  friend class enc_tb;
 };
 
 
@@ -382,6 +399,28 @@ inline int childX(int x0, int idx, int log2CbSize)
 inline int childY(int y0, int idx, int log2CbSize)
 {
   return y0 + ((idx>>1) << (log2CbSize-1));
+}
+
+
+
+inline void enc_tb::invalidateMetadataInSubTree(const de265_image* img,
+                                                int whatFlags)
+{
+  // note: theoretically, this should be propagated upwards, but the way we use it,
+  // this will never be needed.
+
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->invalidateMetadataInSubTree(img,whatFlags);
+    }
+  }
+
+  if (metadata_in_image & whatFlags) {
+    metadata_in_image &= ~whatFlags;
+
+    if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
+    else if (cb) cb->invalidateMetadataUpwardsInTree(whatFlags);
+  }
 }
 
 

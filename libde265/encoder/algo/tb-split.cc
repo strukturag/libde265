@@ -135,7 +135,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
 
   tb->writeSurroundingMetadata(ectx, ectx->img,
                                enc_node::METADATA_RECONSTRUCTION_BORDERS,
-                               tb->get_rectangle(1<<(tb->log2Size+1)));
+                               tb->get_rectangle_with_width(1<<(tb->log2Size+1)));
 
 
   compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
