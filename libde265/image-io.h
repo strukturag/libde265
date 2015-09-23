@@ -30,7 +30,7 @@
 class ImageSource
 {
  public:
-  LIBDE265_API ImageSource() { }
+  LIBDE265_API ImageSource();
   virtual LIBDE265_API ~ImageSource() { }
 
   //enum ImageStatus { Available, Waiting, EndOfVideo };
@@ -48,7 +48,7 @@ class ImageSource
 class ImageSource_YUV : public ImageSource
 {
  public:
- LIBDE265_API ImageSource_YUV() : mFH(NULL) { }
+  LIBDE265_API ImageSource_YUV();
   virtual LIBDE265_API ~ImageSource_YUV();
 
   bool LIBDE265_API set_input_file(const char* filename, int w,int h);
@@ -108,7 +108,7 @@ class PacketSink
 class PacketSink_File : public PacketSink
 {
  public:
- LIBDE265_API PacketSink_File() : mFH(NULL) { }
+  LIBDE265_API PacketSink_File();
   virtual LIBDE265_API ~PacketSink_File();
 
   LIBDE265_API void set_filename(const char* filename);

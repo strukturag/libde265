@@ -24,6 +24,17 @@
 #include <assert.h>
 
 
+ImageSource::ImageSource()
+{
+}
+
+
+ImageSource_YUV::ImageSource_YUV()
+  : mFH(NULL)
+{
+}
+
+
 ImageSource_YUV::~ImageSource_YUV()
 {
   if (mFH) {
@@ -163,6 +174,12 @@ void ImageSink_YUV::send_image(const de265_image* img)
   }
 }
 
+
+
+PacketSink_File::PacketSink_File()
+  : mFH(NULL)
+{
+}
 
 
 LIBDE265_API PacketSink_File::~PacketSink_File()
