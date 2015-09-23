@@ -267,6 +267,8 @@ void fill_border_samples(de265_image* img,
   const seq_parameter_set* sps = &img->sps;
   const pic_parameter_set* pps = &img->pps;
 
+  assert(nT<=32);
+
   uint8_t available_data[2*64 + 1];
   uint8_t* available = &available_data[64];
 

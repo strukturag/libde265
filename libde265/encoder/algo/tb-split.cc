@@ -180,6 +180,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
   if (log2TbSize > ectx->sps.Log2MaxTrafoSize) test_no_split=false;
 
+  assert(test_no_split || test_split);
+
   CodingOptions<enc_tb> options(ectx, tb, ctxModel);
 
   CodingOption<enc_tb> option_no_split = options.new_option(test_no_split);
