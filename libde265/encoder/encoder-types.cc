@@ -219,15 +219,15 @@ void enc_tb::debug_writeBlack(encoder_context* ectx, de265_image* img) const
     //reconstruct_tb(ectx, img, x,y, log2Size, 0);
 
     int size = 1<<(log2Size<<1);
-    uint8_t buf[size];
-    memset(buf,0x12,size);
+    std::vector<uint8_t> buf(size);
+    memset(&buf[0],0x12,size);
 
     int cIdx=0;
     int xC=x,yC=y;
 
     copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
                   img->get_image_stride(cIdx),
-                  buf, 1<<log2Size,
+                  &buf[0], 1<<log2Size,
                   1<<log2Size, 1<<log2Size);
   }
 }
