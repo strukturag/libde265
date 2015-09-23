@@ -36,8 +36,8 @@ AC_PROG_GREP
 # Initialize automake stuff
 AM_INIT_AUTOMAKE
 
-CFLAGS+=" -std=c99"
-CXXFLAGS+=" -Werror=return-type -Werror=unused-result -Werror=reorder"
+CFLAGS="$CFLAGS -std=c99"
+CXXFLAGS="$CXXFLAGS -Werror=return-type -Werror=unused-result -Werror=reorder"
 AX_CXX_COMPILE_STDCXX_11()
 
 dnl Use -Wall if we have gcc.
@@ -57,6 +57,13 @@ AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
+
+AC_LANG_PUSH(C++)
+OLD_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CXXFLAGS"
+AC_CHECK_HEADERS([cstdint])
+CPPFLAGS="$OLD_CPPFLAGS"
+AC_LANG_POP(C++)
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -101,10 +108,65 @@ AC_TRY_COMPILE([
 ],[],[need_strict_ansi=no],[need_strict_ansi=yes]);
 AC_LANG_POP(C++)
 if eval "test x$need_strict_ansi = xyes"; then
-  CFLAGS+=" -D__STRICT_ANSI__"
-  CXXFLAGS+=" -D__STRICT_ANSI__"
+  CFLAGS="$CFLAGS -D__STRICT_ANSI__"
+  CXXFLAGS="$CXXFLAGS -D__STRICT_ANSI__"
 fi
 AC_MSG_RESULT([$need_strict_ansi])
+
+# Check if "std::shared_ptr" is "std::tr1::shared_ptr"
+AC_MSG_CHECKING([for std::shared_ptr])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <memory>
+],[
+class A {};
+std::shared_ptr<A> a;
+],[has_std_shared_ptr=yes],[has_std_shared_ptr=no]);
+AC_MSG_RESULT([$has_std_shared_ptr])
+if eval "test x$has_std_shared_ptr = xno"; then
+  AC_MSG_CHECKING([for std::tr1::shared_ptr])
+  AC_TRY_COMPILE([
+  #include <tr1/memory>
+  ],[
+  class A {};
+  std::tr1::shared_ptr<A> a;
+  ],[has_std_tr1_shared_ptr=yes],[has_std_tr1_shared_ptr=no]);
+  AC_MSG_RESULT([$has_std_tr1_shared_ptr])
+  if eval "test x$has_std_tr1_shared_ptr = xyes"; then
+    AC_DEFINE(USE_STD_TR1_NAMESPACE,1,[Define to 1 if the std::tr1 namespace should be included in the std namespace.])
+  fi
+fi
+AC_LANG_POP(C++)
+
+# Check if "std::move" is available
+AC_MSG_CHECKING([for std::move])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+#include <utility>
+],[
+class A {};
+A* a = new A();
+A* b = std::move(a);
+],[has_std_move=yes],[has_std_move=no]);
+AC_LANG_POP(C++)
+if eval "test x$has_std_move = xno"; then
+  AC_DEFINE(NEED_STD_MOVE_FALLBACK,1,[Define to 1 if a fallback for "std::move" is required.])
+fi
+AC_MSG_RESULT([$has_std_move])
+
+# Check if "nullptr" is available
+AC_MSG_CHECKING([for nullptr])
+AC_LANG_PUSH(C++)
+AC_TRY_COMPILE([
+],[
+class A {};
+A* a = nullptr;
+],[has_nullptr=yes],[has_nullptr=no]);
+AC_LANG_POP(C++)
+if eval "test x$has_nullptr = xno"; then
+  AC_DEFINE(NEED_NULLPTR_FALLBACK,1,[Define to 1 if a fallback for "nullptr" is required.])
+fi
+AC_MSG_RESULT([$has_nullptr])
 
 # --- machine dependent optimizations ---
 
@@ -180,7 +242,7 @@ AC_ARG_ENABLE(log-error,
   [enable_log_error=$enableval],
   [enable_log_error=yes])
 if eval "test $enable_log_error = yes"; then
-  CXXFLAGS+=" -DDE265_LOG_ERROR"
+  CXXFLAGS="$CXXFLAGS -DDE265_LOG_ERROR"
 fi
 
 AC_ARG_ENABLE(log-info,
@@ -189,7 +251,7 @@ AC_ARG_ENABLE(log-info,
   [enable_log_info=$enableval],
   [enable_log_info=no])
 if eval "test $enable_log_info = yes"; then
-  CXXFLAGS+=" -DDE265_LOG_INFO"
+  CXXFLAGS="$CXXFLAGS -DDE265_LOG_INFO"
 fi
 
 AC_ARG_ENABLE(log-debug,
@@ -198,7 +260,7 @@ AC_ARG_ENABLE(log-debug,
   [enable_log_debug=$enableval],
   [enable_log_debug=no])
 if eval "test $enable_log_debug = yes"; then
-  CXXFLAGS+=" -DDE265_LOG_DEBUG"
+  CXXFLAGS="$CXXFLAGS -DDE265_LOG_DEBUG"
 fi
 
 AC_ARG_ENABLE(log-trace,
@@ -207,7 +269,7 @@ AC_ARG_ENABLE(log-trace,
   [enable_log_trace=$enableval],
   [enable_log_trace=no])
 if eval "test $enable_log_trace = yes"; then
-  CXXFLAGS+=" -DDE265_LOG_TRACE"
+  CXXFLAGS="$CXXFLAGS -DDE265_LOG_TRACE"
 fi
 
 

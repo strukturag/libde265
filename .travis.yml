@@ -5,6 +5,10 @@ compiler:
   - gcc
 env:
   - HOST= WINE= DECODESTREAMS=
+  - HOST=i686-w64-mingw32 WINE=wine DECODESTREAMS=
+  - HOST=x86_64-w64-mingw32 WINE=wine64 DECODESTREAMS=
+  - HOST=arm-linux-gnueabihf WINE= DECODESTREAMS=
+  - HOST=cmake WINE= DECODESTREAMS=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
@@ -19,10 +23,6 @@ env:
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=--single-threaded
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=--single-threaded
-  - HOST=i686-w64-mingw32 WINE=wine DECODESTREAMS=
-  - HOST=x86_64-w64-mingw32 WINE=wine64 DECODESTREAMS=
-  - HOST=arm-linux-gnueabihf WINE= DECODESTREAMS=
-  - HOST=cmake WINE= DECODESTREAMS=
 
 matrix:
   include:
