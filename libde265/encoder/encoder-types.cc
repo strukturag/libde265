@@ -444,6 +444,53 @@ void enc_cb::writeSurroundingMetadata(encoder_context* ectx,
 }
 
 
+void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
+                                          de265_image* img, int whatFlags,
+                                          const rectangle& borderRect)
+{
+  logdebug(LogEncoderMetadata,
+           "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
+           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
+
+
+  // If we do not overlap with the border, we can stop here to process the tree.
+
+  if (borderRect.left <= x && borderRect.top <= y) {
+    // case A: we do not overlap with the border (right side or below border) -> NOP
+    return;
+  }
+  if (x+(1<<log2Size) < borderRect.left ||
+      y+(1<<log2Size) < borderRect.top) {
+    // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
+
+    assert(0); // actually, in our implementation, this case never occurs (true ?)
+    return;
+  }
+  else if (x >= borderRect.right ||
+           y >= borderRect.bottom) {
+    // case C: we do not overlap with the border (right side or below border) -> NOP
+    return;
+  }
+
+
+
+  // --- write metadata or recurse to deeper TB level ---
+
+  if ((metadata_in_image & whatFlags) == whatFlags) {
+    // nothing to do, data already exists
+  }
+  else if (!split_transform_flag) {
+    writeMetadata(ectx, img, whatFlags);
+  }
+  else {
+    for (int i=0;i<4;i++)
+      if (children[i] != NULL) {
+        children[i]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
+      }
+  }
+}
+
+
 bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
 {
   // left edge (full height)
@@ -463,62 +510,6 @@ bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
   }
 
   return false;
-}
-
-
-void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
-                                          de265_image* img, int whatFlags,
-                                          const rectangle& borderRect)
-{
-  logdebug(LogEncoderMetadata,
-           "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
-
-  if ((metadata_in_image & whatFlags) == whatFlags) {
-    // nothing to do, data already exists
-  }
-  else if (!split_transform_flag) {
-    if (borderRect.left <= x && borderRect.top <= y) {
-      // we do not overlap with the border (right side or below border) -> NOP
-    }
-    if (x+(1<<log2Size) < borderRect.left ||
-        y+(1<<log2Size) < borderRect.top) {
-      // we do not overlap with the border (left side of or above borderRect) -> NOP
-
-      assert(0); // actually, in our implementation, this case never occurs
-    }
-    else if (x >= borderRect.right ||
-             y >= borderRect.bottom) {
-      // we do not overlap with the border (right side or below border) -> NOP
-
-      assert(0); // actually, in our implementation, this case never occurs
-    }
-    else {
-      writeMetadata(ectx, img, whatFlags);
-    }
-  }
-  else {
-    int xhalf = x+(1<<(log2Size-1));
-    int yhalf = y+(1<<(log2Size-1));
-    int xend  = x+(1<<log2Size);
-    int yend  = y+(1<<log2Size);
-
-    if (overlaps(borderRect, x,y, xhalf,yhalf)) {
-      children[0]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-    }
-
-    if (overlaps(borderRect, xhalf,y, xend,yhalf) && children[1]) {
-      children[1]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-    }
-
-    if (overlaps(borderRect, x,yhalf, xhalf,yend) && children[2]) {
-      children[2]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-    }
-
-    if (overlaps(borderRect, xhalf,yhalf, xend,yend)) {
-      children[3]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-    }
-  }
 }
 
 
