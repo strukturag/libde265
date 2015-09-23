@@ -61,7 +61,7 @@ class small_image_buffer
   // small_image_buffer cannot be copied
 
   small_image_buffer(const small_image_buffer&) { assert(false); } // = delete;
-  small_image_buffer& operator=(const small_image_buffer&) { assert(false); } // = delete;
+  small_image_buffer& operator=(const small_image_buffer&) { assert(false); return *this; } // = delete;
 };
 
 
