@@ -491,69 +491,51 @@ void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
 }
 
 
-bool overlaps(const enc_node::rectangle& border, int x0,int y0,int x1,int y1)
-{
-  // left edge (full height)
-
-  if (y1 <= border.top-1 || y0 >= border.bottom) {
-  }
-  else if (x0 < border.left && x1 >= border.left) {
-    return true;
-  }
-
-  // top edge (excluding left pixel)
-
-  if (x1 <= border.left || x0 >= border.right) {
-  }
-  else if (y0 < border.top && y1 >= border.top) {
-    return true;
-  }
-
-  return false;
-}
-
-
 void enc_cb::writeSurroundingMetadataDown(encoder_context* ectx,
-                                          de265_image* img, int whatFlags, const rectangle& rect)
+                                          de265_image* img, int whatFlags,
+                                          const rectangle& borderRect)
 {
   logdebug(LogEncoderMetadata,
            "enc_cb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-           rect.left,rect.right, rect.top,rect.bottom);
+           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
 
   if ((metadata_in_image & whatFlags) == whatFlags) {
     // nothing to do, data already exists
-  }
-  else if (!split_cu_flag) {
-    if (rect.left <= x && rect.top <= y) {
-      // NOP
-    }
-    else {
-      writeMetadata_CBOnly(ectx, img, whatFlags);
 
-      transform_tree->writeSurroundingMetadataDown(ectx,img,whatFlags,rect);
-    }
+    return;
+  }
+
+
+  // If we do not overlap with the border, we can stop here to process the tree.
+
+  if (borderRect.left <= x && borderRect.top <= y) {
+    // case A: we do not overlap with the border (right side or below border) -> NOP
+    return;
+  }
+  if (x+(1<<log2Size) < borderRect.left ||
+      y+(1<<log2Size) < borderRect.top) {
+    // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
+
+    assert(0); // actually, in our implementation, this case never occurs (true ?)
+    return;
+  }
+  else if (x >= borderRect.right ||
+           y >= borderRect.bottom) {
+    // case C: we do not overlap with the border (right side or below border) -> NOP
+    return;
+  }
+
+
+  if (!split_cu_flag) {
+    writeMetadata_CBOnly(ectx, img, whatFlags);
+
+    transform_tree->writeSurroundingMetadataDown(ectx,img,whatFlags,borderRect);
   }
   else {
-    int xhalf = x+(1<<(log2Size-1));
-    int yhalf = y+(1<<(log2Size-1));
-    int xend  = x+(1<<log2Size);
-    int yend  = y+(1<<log2Size);
-
-    if (overlaps(rect, x,y, xhalf,yhalf)) {
-      children[0]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
-    }
-
-    if (overlaps(rect, xhalf,y, xend,yhalf) && children[1]) {
-      children[1]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
-    }
-
-    if (overlaps(rect, x,yhalf, xhalf,yend) && children[2]) {
-      children[2]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
-    }
-
-    if (overlaps(rect, xhalf,yhalf, xend,yend)) {
-      children[3]->writeSurroundingMetadataDown(ectx, img, whatFlags, rect);
-    }
+    for (int i=0;i<4;i++)
+      if (children[i] != NULL) {
+        children[i]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
+      }
   }
 }
 
