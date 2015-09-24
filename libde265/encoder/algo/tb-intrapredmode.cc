@@ -253,17 +253,20 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       *tb_option->downPtr = tb_option;
 
-      enum IntraPredMode intraModeC = intraMode;
-
       tb_option->intra_mode        = intraMode;
 
       // set chroma mode to same mode is its luma mode
+      enum IntraPredMode intraModeC;
+
       if (cb->PartMode==PART_NxN) {
-        tb_option->intra_mode_chroma = tb->parent->children[0]->intra_mode;
+        intraModeC = tb->parent->children[0]->intra_mode;
       }
       else {
-        tb_option->intra_mode_chroma = intraMode;
+        intraModeC = intraMode;
       }
+
+      tb_option->intra_mode_chroma = intraModeC;
+
 
       descend(tb_option,"%d",intraMode);
       tb_option = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,tb_option,
@@ -361,17 +364,19 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     //printf("INTRA MODE (%d;%d) = %d\n",x0,y0,intraMode);
     // ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode); // DEPRECATED
 
-    enum IntraPredMode intraModeC = intraMode;
-
     tb->intra_mode        = intraMode;
 
     // set chroma mode to same mode is its luma mode
+    enum IntraPredMode intraModeC;
+
     if (cb->PartMode==PART_NxN) {
-      tb->intra_mode_chroma = tb->parent->children[0]->intra_mode;
+      intraModeC = tb->parent->children[0]->intra_mode;
     }
     else {
-      tb->intra_mode_chroma = intraMode;
+      intraModeC = intraMode;
     }
+
+    tb->intra_mode_chroma = intraModeC;
 
 
     /*
@@ -509,7 +514,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       //copy_context_model_table(ctxIntra, ctxModel);
 
       enum IntraPredMode intraMode  = (IntraPredMode)distortions[i].first;
-      enum IntraPredMode intraModeC = intraMode;
 
       if (!isPredModeEnabled(intraMode)) { continue; }
 
@@ -521,12 +525,15 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       tb[intraMode]->intra_mode        = intraMode;
 
       // set chroma mode to same mode is its luma mode
+      enum IntraPredMode intraModeC;
       if (cb->PartMode==PART_NxN) {
-        tb[intraMode]->intra_mode_chroma = cb->transform_tree->children[0]->intra_mode;
+        intraModeC = cb->transform_tree->children[0]->intra_mode;
       }
       else {
-        tb[intraMode]->intra_mode_chroma = intraMode;
+        intraModeC = intraMode;
       }
+
+      tb[intraMode]->intra_mode_chroma = intraModeC;
 
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
