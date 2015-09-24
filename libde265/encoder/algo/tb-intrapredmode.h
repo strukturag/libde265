@@ -250,15 +250,6 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
                           const de265_image* input,
-                          const enc_tb* parent,
-                          enc_cb* cb,
-                          int x0,int y0, int xBase,int yBase, int log2TbSize,
-                          int blkIdx,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
-
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          const de265_image* input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 

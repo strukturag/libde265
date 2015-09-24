@@ -462,8 +462,6 @@ void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
   if (x+(1<<log2Size) < borderRect.left ||
       y+(1<<log2Size) < borderRect.top) {
     // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
-
-    assert(0); // actually, in our implementation, this case never occurs (true ?)
     return;
   }
   else if (x >= borderRect.right ||
@@ -515,8 +513,6 @@ void enc_cb::writeSurroundingMetadataDown(encoder_context* ectx,
   if (x+(1<<log2Size) < borderRect.left ||
       y+(1<<log2Size) < borderRect.top) {
     // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
-
-    assert(0); // actually, in our implementation, this case never occurs (true ?)
     return;
   }
   else if (x >= borderRect.right ||
