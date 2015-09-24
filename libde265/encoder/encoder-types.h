@@ -130,8 +130,15 @@ class enc_tb : public enc_node
 
   uint8_t metadata_in_image;
 
+
+  /* intra_prediction and residual is filled in tb-split, because this is where we decide
+     on the final block-size the TB is coded with.
+   */
   std::shared_ptr<small_image_buffer> intra_prediction[3];
   std::shared_ptr<small_image_buffer> residual[3];
+
+  /* Reconstruction is computed on-demand in writeMetadata().
+   */
   mutable std::shared_ptr<small_image_buffer> reconstruction[3];
 
   union {

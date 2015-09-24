@@ -436,24 +436,15 @@ static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
   return i.second < j.second;
 }
 
+
 enc_tb*
 Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          context_model_table& ctxModel,
                                          const de265_image* input,
-                                         const enc_tb* parent,
-                                         enc_cb* cb,
-                                         int x0,int y0, int xBase,int yBase,
-                                         int log2TbSize, int blkIdx,
-                                         int TrafoDepth, int MaxTrafoDepth,
-                                         int IntraSplitFlag)
+                                         enc_tb* tb,
+                                         int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
-  //printf("encode_transform_tree_may_split %d %d (%d %d) size %d\n",x0,y0,xBase,yBase,1<<log2TbSize);
-
-  /*
-    enum IntraPredMode pre_intraMode = find_best_intra_mode(ectx->img,x0,y0, log2TbSize, 0,
-    input->get_image_plane_at_pos(0,x0,y0),
-    input->get_image_stride(0));
-  */
+  enc_cb* cb = tb->cb;
 
   bool selectIntraPredMode = false;
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_2Nx2N && TrafoDepth==0);
@@ -464,12 +455,16 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     int   minCostIdx=0;
     float minCandCost;
 
+    tb->writeSurroundingMetadata(ectx, ectx->img,
+                                 enc_node::METADATA_INTRA_MODES,
+                                 tb->get_rectangle());
+
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
     enum IntraPredMode candidates[3];
-    fillIntraPredModeCandidates(candidates, x0,y0,
-                                sps->getPUIndexRS(x0,y0),
-                                x0>0, y0>0, img);
+    fillIntraPredModeCandidates(candidates, tb->x,tb->y,
+                                sps->getPUIndexRS(tb->x,tb->y),
+                                tb->x>0, tb->y>0, img);
 
 
 
@@ -480,10 +475,11 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
           isPredModeEnabled((enum IntraPredMode)idx))
         {
           enum IntraPredMode mode = (enum IntraPredMode)idx;
-          decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+          decode_intra_prediction(ectx->img, tb->x,tb->y, (enum IntraPredMode)mode,
+                                  1<<tb->log2Size, 0);
 
           float distortion;
-          distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
+          distortion = estim_TB_bitrate(ectx, input, tb->x,tb->y, tb->log2Size,
                                         mParams.bitrateEstimMethod());
 
           distortions.push_back( std::make_pair((enum IntraPredMode)idx, distortion) );
@@ -504,25 +500,26 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[2],0));
 
 
-    enc_tb* tb[35];
-    context_model_table contexts[35];
-
-    for (int i=0;i<35;i++) tb[i]=NULL;
+    CodingOptions<enc_tb> options(ectx, tb, ctxModel);
+    std::vector<CodingOption<enc_tb> >  option;
 
     for (int i=0;i<distortions.size();i++) {
-
-      //copy_context_model_table(ctxIntra, ctxModel);
-
       enum IntraPredMode intraMode  = (IntraPredMode)distortions[i].first;
-
       if (!isPredModeEnabled(intraMode)) { continue; }
 
-      assert(tb[intraMode]->blkIdx == blkIdx);
+      CodingOption<enc_tb> opt = options.new_option(isPredModeEnabled(intraMode));
+      opt.get_node()->intra_mode = intraMode;
+      option.push_back(opt);
+    }
 
-      //cb->intra.pred_mode[blkIdx] = intraMode;
-      //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
+    options.start();
 
-      tb[intraMode]->intra_mode        = intraMode;
+
+    for (int i=0;i<option.size();i++) {
+
+      enc_tb* opt_tb = option[i].get_node();
+
+      *opt_tb->downPtr = opt_tb;
 
       // set chroma mode to same mode is its luma mode
       enum IntraPredMode intraModeC;
@@ -530,90 +527,44 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
         intraModeC = cb->transform_tree->children[0]->intra_mode;
       }
       else {
-        intraModeC = intraMode;
+        intraModeC = opt_tb->intra_mode;
       }
 
-      tb[intraMode]->intra_mode_chroma = intraModeC;
+      opt_tb->intra_mode_chroma = intraModeC;
 
+      option[i].begin();
+      //ectx->img->set_IntraPredMode(tb->x,tb->y,tb->log2Size, opt_tb->intra_mode);
 
-      ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
-
-      contexts[intraMode] = ctxModel.copy();
-      descend(cb,"%d",intraMode); // TODO: not cb
-      assert(false); /*
-                       tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
-                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
-                     */
+      descend(opt_tb,"%d",opt_tb->intra_mode);
+      opt_tb = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,opt_tb,
+                                     TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+      option[i].set_node(opt_tb);
       ascend();
 
 
       float intraPredModeBits = get_intra_pred_mode_bits(candidates,
-                                                         intraMode,
+                                                         opt_tb->intra_mode,
                                                          intraModeC,
-                                                         contexts[intraMode],
-                                                         blkIdx == 0);
+                                                         option[i].get_context(),
+                                                         tb->blkIdx == 0);
 
-      tb[intraMode]->rate_withoutCbfChroma += intraPredModeBits;
-      tb[intraMode]->rate += intraPredModeBits;
+      opt_tb->rate_withoutCbfChroma += intraPredModeBits;
+      opt_tb->rate += intraPredModeBits;
 
-      //printf("QQQ %f %f\n", b, estim.getRDBits());
-
-      float cost = tb[intraMode]->distortion + ectx->lambda * tb[intraMode]->rate;
-
-      //printf("idx:%d mode:%d cost:%f\n",i,intraMode,cost);
-
-      if (cost<minCost) {
-        minCost=cost;
-        minCostIdx=intraMode;
-        //minCandCost=c;
-      }
+      option[i].end();
     }
 
 
-    enum IntraPredMode intraMode = (IntraPredMode)minCostIdx;
+    options.compute_rdo_costs();
 
-    assert(tb[minCostIdx]->blkIdx == blkIdx);
-
-    //cb->intra.pred_mode[blkIdx] = intraMode;
-    //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
-
-    tb[minCostIdx]->intra_mode        = intraMode;
-
-    // set chroma mode to same mode is its luma mode
-    if (cb->PartMode==PART_NxN) {
-      tb[minCostIdx]->intra_mode_chroma = cb->transform_tree->children[0]->intra_mode;
-    }
-    else {
-      tb[minCostIdx]->intra_mode_chroma = intraMode;
-    }
-
-
-    ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
-
-    tb[minCostIdx]->reconstruct(ectx, ectx->img);
-    ctxModel = contexts[minCostIdx];
-
-    for (int i = 0; i<35; i++) {
-      if (i != minCostIdx) {
-        delete tb[i];
-      }
-    }
-
-    return tb[minCostIdx];
+    return options.return_best_rdo_node();
   }
   else {
-    descend(cb,"NOP"); // TODO: not cb
-    assert(false);
-    enc_tb* tb;
-    /*
-      enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
-      x0,y0,xBase,yBase, log2TbSize,
-      blkIdx, TrafoDepth, MaxTrafoDepth,
-      IntraSplitFlag);
-    */
+    descend(tb,"NOP");
+    enc_tb* new_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb,
+                                           TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
-    return tb;
+    return new_tb;
   }
 
   assert(false);

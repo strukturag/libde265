@@ -260,7 +260,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
                           context_model_table&,
                           const de265_image* input,
                           enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) { assert(false); return 0; } // TODO
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
 
   const char* name() const { return "tb-intrapredmode_FastBrute"; }
