@@ -121,6 +121,9 @@ class enc_tb : public enc_node
   uint8_t blkIdx : 2;
 
   enum IntraPredMode intra_mode;
+
+  // Note: in NxN partition mode, the chroma mode is always derived from
+  // the top-left child's intra mode (for chroma 4:2:0).
   enum IntraPredMode intra_mode_chroma;
 
   uint8_t cbf[3];

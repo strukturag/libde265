@@ -254,7 +254,14 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       enum IntraPredMode intraModeC = intraMode;
 
       tb_option->intra_mode        = intraMode;
-      tb_option->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
+      // set chroma mode to same mode is its luma mode
+      if (cb->PartMode==PART_NxN) {
+        tb_option->intra_mode_chroma = tb->parent->children[0]->intra_mode;
+      }
+      else {
+        tb_option->intra_mode_chroma = intraMode;
+      }
 
       descend(tb_option,"%d",intraMode);
       tb_option = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,tb_option,
@@ -355,7 +362,15 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     enum IntraPredMode intraModeC = intraMode;
 
     tb->intra_mode        = intraMode;
-    tb->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
+    // set chroma mode to same mode is its luma mode
+    if (cb->PartMode==PART_NxN) {
+      tb->intra_mode_chroma = tb->parent->children[0]->intra_mode;
+    }
+    else {
+      tb->intra_mode_chroma = intraMode;
+    }
+
 
     /*
       decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
@@ -502,16 +517,24 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       //if (blkIdx==0) { cb->intra.chroma_mode = intraMode; }
 
       tb[intraMode]->intra_mode        = intraMode;
-      tb[intraMode]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
+      // set chroma mode to same mode is its luma mode
+      if (cb->PartMode==PART_NxN) {
+        tb[intraMode]->intra_mode_chroma = cb->transform_tree->children[0]->intra_mode;
+      }
+      else {
+        tb[intraMode]->intra_mode_chroma = intraMode;
+      }
+
 
       ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
       contexts[intraMode] = ctxModel.copy();
       descend(cb,"%d",intraMode); // TODO: not cb
       assert(false); /*
-      tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
-                                            cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
-                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+                       tb[intraMode] = mTBSplitAlgo->analyze(ectx,contexts[intraMode],input,parent,
+                       cb, x0,y0, xBase,yBase, log2TbSize, blkIdx,
+                       TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
                      */
       ascend();
 
@@ -547,7 +570,15 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     //if (blkIdx==0) { cb->intra.chroma_mode  = intraMode; } //INTRA_CHROMA_LIKE_LUMA;
 
     tb[minCostIdx]->intra_mode        = intraMode;
-    tb[minCostIdx]->intra_mode_chroma = intraMode; // TODO: chroma mode could be different
+
+    // set chroma mode to same mode is its luma mode
+    if (cb->PartMode==PART_NxN) {
+      tb[minCostIdx]->intra_mode_chroma = cb->transform_tree->children[0]->intra_mode;
+    }
+    else {
+      tb[minCostIdx]->intra_mode_chroma = intraMode;
+    }
+
 
     ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode);
 
@@ -567,10 +598,10 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     assert(false);
     enc_tb* tb;
     /*
-    enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
-                                       x0,y0,xBase,yBase, log2TbSize,
-                                       blkIdx, TrafoDepth, MaxTrafoDepth,
-                                       IntraSplitFlag);
+      enc_tb* tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, parent, cb,
+      x0,y0,xBase,yBase, log2TbSize,
+      blkIdx, TrafoDepth, MaxTrafoDepth,
+      IntraSplitFlag);
     */
     ascend();
     return tb;
