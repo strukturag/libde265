@@ -251,6 +251,8 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
       enc_tb* tb_option = option[i].get_node();
 
+      *tb_option->downPtr = tb_option;
+
       enum IntraPredMode intraModeC = intraMode;
 
       tb_option->intra_mode        = intraMode;
