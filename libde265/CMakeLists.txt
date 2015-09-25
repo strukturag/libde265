@@ -65,20 +65,16 @@ endif()
 
 add_definitions(-DLIBDE265_EXPORTS)
 
-add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources})
+add_subdirectory (encoder)
 
+if(SUPPORTS_SSE4_1)
+  add_definitions(-DHAVE_SSE4_1)
+  add_subdirectory (x86)
+endif()
+
+add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
 target_link_libraries(${LIBDE265_LIBRARY_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   SET_TARGET_PROPERTIES(${LIBDE265_LIBRARY_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-
-add_subdirectory (encoder)
-
-target_link_libraries(${LIBDE265_LIBRARY_NAME} encoder)
-
-if(SUPPORTS_SSE4_1)
-  add_definitions(-DHAVE_SSE4_1)
-  add_subdirectory (x86)
-  target_link_libraries(${LIBDE265_LIBRARY_NAME} x86)
-endif()

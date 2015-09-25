@@ -175,7 +175,7 @@ void test_parameters_API(en265_encoder_context* ectx)
 extern int skipTBSplit, noskipTBSplit;
 extern int zeroBlockCorrelation[6][2][5];
 
-extern ImageSink_YUV reconstruction_sink;
+LIBDE265_API ImageSink_YUV reconstruction_sink;
 
 int main(int argc, char** argv)
 {
