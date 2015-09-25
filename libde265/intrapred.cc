@@ -335,6 +335,44 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
 }
 
 
+template <class pixel_t>
+void reference_sample_substitution(pixel_t* out_border,
+                                   uint8_t* available,
+                                   int nT, int nAvail, int bit_depth, pixel_t firstValue)
+{
+  if (nAvail!=4*nT+1) {
+    if (nAvail==0) {
+      if (sizeof(pixel_t)==1) {
+        memset(out_border-2*nT, 1<<(bit_depth-1), 4*nT+1);
+      }
+      else {
+        for (int i = -2*nT; i <= 2*nT ; i++) {
+          out_border[i] = 1<<(bit_depth-1);
+        }
+      }
+    }
+    else {
+      if (!available[-2*nT]) {
+        out_border[-2*nT] = firstValue;
+      }
+
+      for (int i=-2*nT+1; i<=2*nT; i++)
+        if (!available[i]) {
+          out_border[i]=out_border[i-1];
+        }
+    }
+  }
+
+  logtrace(LogIntraPred,"availableN: ");
+  print_border(available,NULL,nT);
+  logtrace(LogIntraPred,"\n");
+
+  logtrace(LogIntraPred,"output:     ");
+  print_border(out_border,NULL,nT);
+  logtrace(LogIntraPred,"\n");
+}
+
+
 // (8.4.4.2.2)
 template <class pixel_t>
 void fill_border_samples(de265_image* img,
@@ -542,36 +580,7 @@ void fill_border_samples(de265_image* img,
 
     // reference sample substitution
 
-    if (nAvail!=4*nT+1) {
-      if (nAvail==0) {
-        if (sizeof(pixel_t)==1) {
-          memset(out_border-2*nT, 1<<(bit_depth-1), 4*nT+1);
-        }
-        else {
-          for (int i = -2*nT; i <= 2*nT ; i++) {
-            out_border[i] = 1<<(bit_depth-1);
-          }
-        }
-      }
-      else {
-        if (!available[-2*nT]) {
-          out_border[-2*nT] = firstValue;
-        }
-
-        for (int i=-2*nT+1; i<=2*nT; i++)
-          if (!available[i]) {
-            out_border[i]=out_border[i-1];
-          }
-      }
-    }
-
-    logtrace(LogIntraPred,"availableN: ");
-    print_border(available,NULL,nT);
-    logtrace(LogIntraPred,"\n");
-
-    logtrace(LogIntraPred,"output:     ");
-    print_border(out_border,NULL,nT);
-    logtrace(LogIntraPred,"\n");
+    reference_sample_substitution<pixel_t>(out_border, available, nT, nAvail, bit_depth, firstValue);
   }
 }
 
