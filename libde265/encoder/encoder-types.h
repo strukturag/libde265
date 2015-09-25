@@ -103,6 +103,9 @@ public:
     r.bottom = y+size;
     return r;
   }
+
+
+  virtual void debug_dumpTree(int indent=0) const = 0;
 };
 
 
@@ -205,6 +208,11 @@ class enc_tb : public enc_node
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
   */
+
+
+  virtual void debug_dumpTree(int indent=0) const;
+
+  void debug_assertTreeConsistency(const de265_image*) const;
 
 private:
   static alloc_pool mMemPool;
@@ -367,6 +375,11 @@ public:
       transform_tree->debug_writeBlack(ectx,img);
     }
   }
+
+
+  virtual void debug_dumpTree(int indent=0) const;
+
+  void debug_assertTreeConsistency(const de265_image*) const;
 
 
   // memory management

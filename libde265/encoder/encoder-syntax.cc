@@ -764,13 +764,25 @@ void encode_residual(encoder_context* ectx,
   int scanIdx;
 
   if (PredMode == MODE_INTRA) {
+    const enc_tb* tt = tb;
+      for (;;) {
+        if (tt->cb->PartMode == PART_2Nx2N && tt->TrafoDepth==0) break;
+        if (tt->cb->PartMode == PART_NxN   && tt->TrafoDepth==1) break;
+        tt=tt->parent;
+      }
+
+      assert(tt->intra_mode == tb->intra_mode);
+      assert(tt->intra_mode_chroma == tb->intra_mode_chroma);
+
     if (cIdx==0) {
       //printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tb->intra_mode);
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tt->intra_mode);
+      printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, tt->intra_mode);
     }
     else {
-      enum IntraPredMode chromaMode = tb->intra_mode_chroma;
+      enum IntraPredMode chromaMode = tt->intra_mode_chroma;
       scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, chromaMode);
+      printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, tt->intra_mode_chroma);
     }
   }
   else {
@@ -1523,18 +1535,26 @@ void encode_coding_unit(encoder_context* ectx,
               fillIntraPredModeCandidates(candModeList,x,y,PUidx,
                                           availableA,availableB, img);
 
+              for (int i=0;i<3;i++)
+                logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
+
               enum IntraPredMode mode = cb->transform_tree->children[childIdx]->intra_mode;
 
               assert(ectx->img->get_IntraPredMode(x,y) == mode);
 
               intraPred[childIdx] = find_intra_pred_mode(mode, candModeList);
+
+              logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
+                       candModeList[0], candModeList[1], candModeList[2]);
+              logtrace(LogSlice,"  MPM/REM = %d\n",intraPred[childIdx]);
             }
 
         for (int i=0;i<4;i++)
           encode_prev_intra_luma_pred_flag(ectx,cabac, intraPred[i]);
 
-        for (int i=0;i<4;i++)
+        for (int i=0;i<4;i++) {
           encode_intra_mpm_or_rem(ectx,cabac, intraPred[i]);
+        }
 
 
         // send chroma mode

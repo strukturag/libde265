@@ -72,6 +72,7 @@ enc_tb::enc_tb(int x,int y,int log2TbSize, enc_cb* _cb)
   parent = NULL;
   cb = _cb;
   downPtr = NULL;
+  blkIdx = 0;
 
   split_transform_flag = false;
   coeff[0]=coeff[1]=coeff[2]=NULL;
@@ -84,6 +85,9 @@ enc_tb::enc_tb(int x,int y,int log2TbSize, enc_cb* _cb)
   distortion = 0;
   rate = 0;
   rate_withoutCbfChroma = 0;
+
+  intra_mode = INTRA_PLANAR;
+  intra_mode_chroma = INTRA_PLANAR;
 
   if (DEBUG_ALLOCS) { allocTB++; printf("TB  : %d\n",allocTB); }
 }
@@ -663,5 +667,125 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
   else {
     //write_to_image(img);
     transform_tree->reconstruct(ectx,img);
+  }
+}
+
+
+void enc_cb::debug_dumpTree(int indent) const
+{
+  std::string indentStr;
+  indentStr.insert(0,indent,' ');
+
+  std::cout << indentStr << "CB " << x << ";" << y << " "
+            << (1<<log2Size) << "x" << (1<<log2Size) << "\n";
+
+  std::cout << indentStr << "| split_cu_flag: " << int(split_cu_flag) << "\n";
+  std::cout << indentStr << "| ctDepth:       " << int(ctDepth) << "\n";
+  std::cout << indentStr << "| metadata_in_image: " << int(metadata_in_image) << "\n";
+
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++)
+      if (children[i]) {
+        std::cout << indentStr << "| child CB " << i << ":\n";
+        children[i]->debug_dumpTree(indent+2);
+      }
+  }
+  else {
+    std::cout << indentStr << "| qp: " << int(qp) << "\n";
+    std::cout << indentStr << "| PredMode: " << PredMode << "\n";
+    std::cout << indentStr << "| PartMode: " << part_mode_name(PartMode) << "\n";
+    std::cout << indentStr << "| transform_tree:\n";
+
+    transform_tree->debug_dumpTree(indent+2);
+  }
+}
+
+
+void enc_tb::debug_dumpTree(int indent) const
+{
+  std::string indentStr;
+  indentStr.insert(0,indent,' ');
+
+  std::cout << indentStr << "TB " << x << ";" << y << " "
+            << (1<<log2Size) << "x" << (1<<log2Size) << "\n";
+
+  std::cout << indentStr << "| split_transform_flag: " << int(split_transform_flag) << "\n";
+  std::cout << indentStr << "| TrafoDepth:           " << int(TrafoDepth) << "\n";
+  std::cout << indentStr << "| blkIdx:               " << int(blkIdx) << "\n";
+
+  std::cout << indentStr << "| intra_mode:           " << int(intra_mode) << "\n";
+  std::cout << indentStr << "| intra_mode_chroma:    " << int(intra_mode_chroma) << "\n";
+
+  std::cout << indentStr << "| cbf:                  "
+            << int(cbf[0]) << ":"
+            << int(cbf[1]) << ":"
+            << int(cbf[2]) << "\n";
+  std::cout << indentStr << "| metadata_in_image: " << int(metadata_in_image) << "\n";
+
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++)
+      if (children[i]) {
+        std::cout << indentStr << "| child TB " << i << ":\n";
+        children[i]->debug_dumpTree(indent+2);
+      }
+  }
+}
+
+
+void enc_tb::debug_assertTreeConsistency(const de265_image* img) const
+{
+  if (metadata_in_image & METADATA_INTRA_MODES) {
+    assert(cb);
+    if ((cb->PartMode == PART_2Nx2N && TrafoDepth==0) ||
+        (cb->PartMode == PART_NxN   && TrafoDepth==1)) {
+      for (int cy=y;cy<y+(1<<log2Size);cy++)
+        for (int cx=x;cx<x+(1<<log2Size);cx++) {
+          assert(img->get_IntraPredMode(cx,cy) == intra_mode);
+        }
+    }
+  }
+
+
+
+  // when this is a split node, check that all metadata-flags in this node
+  // are also set in the children
+
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++)
+      if (children[i]) {
+        // flags set in this node also have to be set in child node
+        assert((children[i]->metadata_in_image & metadata_in_image) == metadata_in_image);
+
+        // check children node
+        children[i]->debug_assertTreeConsistency(img);
+      }
+  }
+}
+
+
+void enc_cb::debug_assertTreeConsistency(const de265_image* img) const
+{
+  if (metadata_in_image & METADATA_CT_DEPTH) {
+    for (int cy=y;cy<y+(1<<log2Size);cy++)
+      for (int cx=x;cx<x+(1<<log2Size);cx++) {
+        assert(img->get_ctDepth(cx,cy) == ctDepth);
+      }
+  }
+
+
+  // when this is a split node, check that all metadata-flags in this node
+  // are also set in the children
+
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++)
+      if (children[i]) {
+        // check children node
+        children[i]->debug_assertTreeConsistency(img);
+      }
+  }
+  else {
+    if (transform_tree) {
+      transform_tree->debug_assertTreeConsistency(img);
+    }
   }
 }

@@ -50,6 +50,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
   assert(cb_in->pcm_flag==0);
 
+  cb_in->debug_assertTreeConsistency(ectx->img);
+
 
   // 0: 2Nx2N  (always checked)
   // 1:  NxN   (only checked at MinCbSize)
@@ -74,6 +76,9 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);  // TODO: probably unnecessary
       ectx->img->set_PartMode (x,y, cb->PartMode);
 
+      cb->debug_assertTreeConsistency(ectx->img);
+      cb_in->debug_assertTreeConsistency(ectx->img);
+
       // encode transform tree
 
       int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
@@ -87,7 +92,13 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       cb->transform_tree = mTBIntraPredModeAlgo->analyze(ectx, option[p].get_context(),
                                                          ectx->imgdata->input, tb,
                                                          0, MaxTrafoDepth, IntraSplitFlag);
+
+      if (option[0]) option[0].get_node()->debug_assertTreeConsistency(ectx->img);
+      if (option[1]) option[1].get_node()->debug_assertTreeConsistency(ectx->img);
+
       ascend();
+
+      cb->debug_assertTreeConsistency(ectx->img);
 
       cb->distortion = cb->transform_tree->distortion;
       cb->rate       = cb->transform_tree->rate;
@@ -107,7 +118,11 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo_node();
+  enc_cb* bestCB = options.return_best_rdo_node();
+
+  bestCB->debug_assertTreeConsistency(ectx->img);
+
+  return bestCB;
 }
 
 
@@ -175,6 +190,8 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   }
 
   cb->rate += estim.getRDBits();
+
+  cb->debug_assertTreeConsistency(ectx->img);
 
   return cb;
 }

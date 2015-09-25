@@ -242,10 +242,17 @@ double encode_image(encoder_context* ectx,
 
         logdebug(LogEncoder,"write CTB %d;%d\n",x,y);
 
+        cb->debug_dumpTree();
+
+        cb->debug_assertTreeConsistency(ectx->img);
+
+        //cb->invalidateMetadataInSubTree(ectx->img);
         cb->writeMetadata(ectx, ectx->img,
                           enc_node::METADATA_INTRA_MODES |
                           enc_node::METADATA_RECONSTRUCTION |
                           enc_node::METADATA_CT_DEPTH);
+
+        cb->debug_assertTreeConsistency(ectx->img);
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 

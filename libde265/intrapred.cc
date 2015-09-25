@@ -92,9 +92,9 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y
 
   // build candidate list
 
-  logtrace(LogSlice,"%d;%d availableA:%d candA:%d & availableB:%d candB:%d\n", x,y,
-           availableA, candIntraPredModeA,
-           availableB, candIntraPredModeB);
+  logtrace(LogSlice,"%d;%d candA:%d / candB:%d\n", x,y,
+           availableA ? candIntraPredModeA : -999,
+           availableB ? candIntraPredModeB : -999);
 
   if (candIntraPredModeA == candIntraPredModeB) {
     if (candIntraPredModeA < 2) {

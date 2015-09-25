@@ -230,6 +230,8 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                  enc_node::METADATA_INTRA_MODES,
                                  tb->get_rectangle());
 
+    cb->debug_assertTreeConsistency(ectx->img);
+
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
     enum IntraPredMode candidates[3];
@@ -289,13 +291,20 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     options.compute_rdo_costs();
 
-    return options.return_best_rdo_node();
+    enc_tb* bestTB = options.return_best_rdo_node();
+
+    bestTB->debug_assertTreeConsistency(ectx->img);
+
+    return bestTB;
   }
   else {
     descend(tb,"NOP"); // TODO: not parent
     enc_tb* new_tb = mTBSplitAlgo->analyze(ectx, ctxModel, input, tb,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     ascend();
+
+    new_tb->debug_assertTreeConsistency(ectx->img);
+
     return new_tb;
   }
 
@@ -401,6 +410,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                  enc_node::METADATA_INTRA_MODES,
                                  tb->get_rectangle());
 
+    cb->debug_assertTreeConsistency(ectx->img);
+
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
                                 ectx->img->sps.getPUIndexRS(x0,y0),
@@ -458,6 +469,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     tb->writeSurroundingMetadata(ectx, ectx->img,
                                  enc_node::METADATA_INTRA_MODES,
                                  tb->get_rectangle());
+
+    cb->debug_assertTreeConsistency(ectx->img);
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;
