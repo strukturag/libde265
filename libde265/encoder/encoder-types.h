@@ -416,6 +416,50 @@ public:
 
 
 
+class CTBTreeMatrix
+{
+ public:
+ CTBTreeMatrix() : mWidthCtbs(0), mHeightCtbs(0), mLog2CtbSize(0) { }
+  ~CTBTreeMatrix() { free(); }
+
+  void alloc(int w,int h, int log2CtbSize);
+
+  void setCTB(int xCTB, int yCTB, enc_cb* ctb) {
+    int idx = xCTB + yCTB*mWidthCtbs;
+    assert(idx < mCTBs.size());
+    if (mCTBs[idx]) { delete mCTBs[idx]; }
+    mCTBs[idx] = ctb;
+  }
+
+  const enc_cb* getCTB(int xCTB, int yCTB) const {
+    int idx = xCTB + yCTB*mWidthCtbs;
+    assert(idx < mCTBs.size());
+    return mCTBs[idx];
+  }
+
+  enc_cb* getCB(int x,int y);
+  enc_tb* getTB(int x,int y);
+
+
+ private:
+  std::vector<enc_cb*> mCTBs;
+  int mWidthCtbs;
+  int mHeightCtbs;
+  int mLog2CtbSize;
+
+  void free() {
+    for (int i=0 ; i<mWidthCtbs*mHeightCtbs ; i++) {
+      if (mCTBs[i]) {
+        delete mCTBs[i];
+        mCTBs[i]=NULL;
+      }
+    }
+  }
+};
+
+
+
+
 inline int childX(int x0, int idx, int log2CbSize)
 {
   return x0 + ((idx&1) << (log2CbSize-1));

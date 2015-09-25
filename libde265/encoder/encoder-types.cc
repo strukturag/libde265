@@ -789,3 +789,92 @@ void enc_cb::debug_assertTreeConsistency(const de265_image* img) const
     }
   }
 }
+
+
+
+void CTBTreeMatrix::alloc(int w,int h, int log2CtbSize)
+{
+  int ctbSize = 1<<log2CtbSize;
+
+  mWidthCtbs  = (w+ctbSize-1) >> log2CtbSize;
+  mHeightCtbs = (h+ctbSize-1) >> log2CtbSize;
+  mLog2CtbSize = log2CtbSize;
+
+  free();
+  mCTBs.resize(mWidthCtbs * mHeightCtbs, NULL);
+}
+
+
+enc_cb* CTBTreeMatrix::getCB(int x,int y)
+{
+  int xCTB = x>>mLog2CtbSize;
+  int yCTB = y>>mLog2CtbSize;
+
+  int idx = xCTB + yCTB*mWidthCtbs;
+  assert(idx < mCTBs.size());
+
+  enc_cb* cb = mCTBs[idx];
+  if (!cb) { return NULL; }
+
+  while (cb->split_cu_flag) {
+    int xHalf = cb->x + (1<<(cb->log2Size-1));
+    int yHalf = cb->y + (1<<(cb->log2Size-1));
+
+    if (x<xHalf) {
+      if (y<yHalf) {
+        cb = cb->children[0];
+      }
+      else {
+        cb = cb->children[2];
+      }
+    }
+    else {
+      if (y<yHalf) {
+        cb = cb->children[1];
+      }
+      else {
+        cb = cb->children[3];
+      }
+    }
+
+    if (!cb) { return NULL; }
+  }
+
+  return cb;
+}
+
+
+enc_tb* CTBTreeMatrix::getTB(int x,int y)
+{
+  enc_cb* cb = getCB(x,y);
+  if (!cb) { return NULL; }
+
+  enc_tb* tb = cb->transform_tree;
+  if (!tb) { return NULL; }
+
+  while (tb->split_transform_flag) {
+    int xHalf = tb->x + (1<<(tb->log2Size-1));
+    int yHalf = tb->y + (1<<(tb->log2Size-1));
+
+    if (x<xHalf) {
+      if (y<yHalf) {
+        tb = tb->children[0];
+      }
+      else {
+        tb = tb->children[2];
+      }
+    }
+    else {
+      if (y<yHalf) {
+        tb = tb->children[1];
+      }
+      else {
+        tb = tb->children[3];
+      }
+    }
+
+    if (!tb) { return NULL; }
+  }
+
+  return tb;
+}
