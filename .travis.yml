@@ -31,7 +31,7 @@ matrix:
 
 before_install:
   - sh -c "if [ ! -z '$DECODESTREAMS' ]; then sudo add-apt-repository -y ppa:strukturag/libde265; fi"
-  - sh -c "if [ '$HOST' = 'cmake' ]; then sudo add-apt-repository -y ppa:kalakris/cmake; fi"
+  - sudo add-apt-repository -y ppa:kalakris/cmake
   - sudo apt-get update -qq
   - sh -c "if [ -z '$HOST' ]; then sudo apt-get install -qq valgrind libsdl-dev libqt4-dev libswscale-dev; fi"
   - sh -c "if [ -z '$HOST' ] && [ -z '$DECODESTREAMS' ]; then sudo apt-get install -qq devscripts; fi"
@@ -40,7 +40,7 @@ before_install:
   - sh -c "if [ '$WINE' = 'wine64' ]; then sudo apt-get install -qq gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev; fi"
   - sh -c "if ( echo '$HOST' | grep -q '^arm' ); then sudo apt-get install -qq g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf qemu-user; fi"
   - sh -c "if [ ! -z '$DECODESTREAMS' ]; then sudo apt-get install $DECODESTREAMS; fi"
-  - sh -c "if [ '$HOST' = 'cmake' ]; then sudo apt-get install cmake; fi"
+  - sudo apt-get install cmake
 
 install:
   - git clone https://github.com/strukturag/libde265-data.git
