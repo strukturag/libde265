@@ -15,7 +15,8 @@ set (algo_sources
   pb-mv.h pb-mv.cc
 )
 
-add_library(algo STATIC ${algo_sources})
+add_library(algo OBJECT ${algo_sources})
+set(ALGO_OBJECTS $<TARGET_OBJECTS:algo> PARENT_SCOPE)
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   SET_TARGET_PROPERTIES(algo PROPERTIES COMPILE_FLAGS "-fPIC")
