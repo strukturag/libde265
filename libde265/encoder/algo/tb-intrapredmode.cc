@@ -226,11 +226,13 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     options.start();
 
 
+    /*
     tb->writeSurroundingMetadata(ectx, ectx->img,
                                  enc_node::METADATA_INTRA_MODES,
                                  tb->get_rectangle());
 
     cb->debug_assertTreeConsistency(ectx->img);
+    */
 
     const de265_image* img = ectx->img;
     const seq_parameter_set* sps = &img->sps;

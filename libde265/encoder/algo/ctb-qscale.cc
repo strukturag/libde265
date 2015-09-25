@@ -33,22 +33,22 @@
 
 enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
                                           context_model_table& ctxModel,
-                                          int ctb_x,int ctb_y)
+                                          int x,int y)
 {
   enc_cb* cb = new enc_cb();
-  enc_cb* dummy_cb_ptr = NULL;
 
   cb->log2Size = ectx->sps.Log2CtbSizeY;
   cb->ctDepth = 0;
-  cb->x = ctb_x;
-  cb->y = ctb_y;
-  cb->downPtr = &dummy_cb_ptr;
+  cb->x = x;
+  cb->y = y;
+  cb->downPtr = ectx->ctbs.getCTBRootPointer(x,y);
+  *cb->downPtr = cb;
 
-  ectx->img->set_QPY(ctb_x,ctb_y, cb->log2Size, ectx->active_qp);
+  ectx->img->set_QPY(x,y, cb->log2Size, ectx->active_qp);
 
   // write currently unused coding options to image
-  ectx->img->set_cu_transquant_bypass(ctb_x,ctb_y,cb->log2Size, cb->cu_transquant_bypass_flag);
-  ectx->img->set_pcm_flag(ctb_x,ctb_y,cb->log2Size, cb->pcm_flag);
+  ectx->img->set_cu_transquant_bypass(x,y,cb->log2Size, cb->cu_transquant_bypass_flag);
+  ectx->img->set_pcm_flag(x,y,cb->log2Size, cb->pcm_flag);
 
   assert(mChildAlgo);
   descend(cb, "Q=%d",ectx->active_qp);

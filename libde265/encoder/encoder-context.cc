@@ -211,6 +211,8 @@ de265_error encoder_context::encode_picture_from_input_buffer()
     image_width  = id->input->get_width();
     image_height = id->input->get_height();
     image_spec_is_defined = true;
+
+    ctbs.alloc(image_width, image_height, Log2(params.max_cb_size));
   }
 
 

@@ -21,6 +21,7 @@
 #include "intrapred.h"
 #include "transform.h"
 #include "util.h"
+#include "encoder/encoder-types.h"
 #include <assert.h>
 
 
@@ -50,6 +51,51 @@ void print_border(pixel_t* data, uint8_t* available, int nT)
 #else
 #define print_border(data, available, nT)
 #endif
+
+
+void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
+                                 enum IntraPredMode candIntraPredModeA,
+                                 enum IntraPredMode candIntraPredModeB)
+{
+  // build candidate list
+
+  if (candIntraPredModeA == candIntraPredModeB) {
+    if (candIntraPredModeA < 2) {
+      candModeList[0] = INTRA_PLANAR;
+      candModeList[1] = INTRA_DC;
+      candModeList[2] = INTRA_ANGULAR_26;
+    }
+    else {
+      candModeList[0] = candIntraPredModeA;
+      candModeList[1] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 -1 +32) % 32));
+      candModeList[2] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 +1    ) % 32));
+    }
+  }
+  else {
+    candModeList[0] = candIntraPredModeA;
+    candModeList[1] = candIntraPredModeB;
+
+    if (candIntraPredModeA != INTRA_PLANAR &&
+        candIntraPredModeB != INTRA_PLANAR) {
+      candModeList[2] = INTRA_PLANAR;
+    }
+    else if (candIntraPredModeA != INTRA_DC &&
+             candIntraPredModeB != INTRA_DC) {
+      candModeList[2] = INTRA_DC;
+    }
+    else {
+      candModeList[2] = INTRA_ANGULAR_26;
+    }
+  }
+
+  /*
+    printf("candModeList: %d %d %d\n",
+    candModeList[0],
+    candModeList[1],
+    candModeList[2]
+    );
+  */
+}
 
 
 void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y, int PUidx,
@@ -90,48 +136,80 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y
   }
 
 
-  // build candidate list
+  logtrace(LogSlice,"%d;%d candA:%d / candB:%d\n", x,y,
+           availableA ? candIntraPredModeA : -999,
+           availableB ? candIntraPredModeB : -999);
+
+
+  fillIntraPredModeCandidates(candModeList,
+                              candIntraPredModeA,
+                              candIntraPredModeB);
+}
+
+
+void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
+                                 int x,int y,
+                                 bool availableA, // left
+                                 bool availableB, // top
+                                 const CTBTreeMatrix& ctbs,
+                                 const seq_parameter_set* sps)
+{
+
+  // block on left side
+
+  enum IntraPredMode candIntraPredModeA, candIntraPredModeB;
+
+  if (availableA==false) {
+    candIntraPredModeA=INTRA_DC;
+  }
+  else {
+    const enc_cb* cbL = ctbs.getCB(x-1,y);
+    assert(cbL != NULL);
+
+    if (cbL->PredMode != MODE_INTRA ||
+        cbL->pcm_flag) {
+      candIntraPredModeA=INTRA_DC;
+    }
+    else {
+      const enc_tb* tbL = cbL->getTB(x-1,y);
+      assert(tbL);
+      candIntraPredModeA = tbL->intra_mode;
+    }
+  }
+
+  // block above
+
+  if (availableB==false) {
+    candIntraPredModeB=INTRA_DC;
+  }
+  else {
+    const enc_cb* cbA = ctbs.getCB(x,y-1);
+    assert(cbA != NULL);
+
+    if (cbA->PredMode != MODE_INTRA ||
+        cbA->pcm_flag) {
+      candIntraPredModeB=INTRA_DC;
+    }
+    else if (y-1 < ((y >> sps->Log2CtbSizeY) << sps->Log2CtbSizeY)) {
+      candIntraPredModeB=INTRA_DC;
+    }
+    else {
+      const enc_tb* tbA = cbA->getTB(x,y-1);
+      assert(tbA);
+
+      candIntraPredModeB = tbA->intra_mode;
+    }
+  }
+
 
   logtrace(LogSlice,"%d;%d candA:%d / candB:%d\n", x,y,
            availableA ? candIntraPredModeA : -999,
            availableB ? candIntraPredModeB : -999);
 
-  if (candIntraPredModeA == candIntraPredModeB) {
-    if (candIntraPredModeA < 2) {
-      candModeList[0] = INTRA_PLANAR;
-      candModeList[1] = INTRA_DC;
-      candModeList[2] = INTRA_ANGULAR_26;
-    }
-    else {
-      candModeList[0] = candIntraPredModeA;
-      candModeList[1] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 -1 +32) % 32));
-      candModeList[2] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 +1    ) % 32));
-    }
-  }
-  else {
-    candModeList[0] = candIntraPredModeA;
-    candModeList[1] = candIntraPredModeB;
 
-    if (candIntraPredModeA != INTRA_PLANAR &&
-        candIntraPredModeB != INTRA_PLANAR) {
-      candModeList[2] = INTRA_PLANAR;
-    }
-    else if (candIntraPredModeA != INTRA_DC &&
-             candIntraPredModeB != INTRA_DC) {
-      candModeList[2] = INTRA_DC;
-    }
-    else {
-      candModeList[2] = INTRA_ANGULAR_26;
-    }
-  }
-
-  /*
-    printf("candModeList: %d %d %d\n",
-    candModeList[0],
-    candModeList[1],
-    candModeList[2]
-    );
-  */
+  fillIntraPredModeCandidates(candModeList,
+                              candIntraPredModeA,
+                              candIntraPredModeB);
 }
 
 

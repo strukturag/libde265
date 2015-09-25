@@ -76,8 +76,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       ectx->img->set_pred_mode(x,y, log2CbSize, cb->PredMode);  // TODO: probably unnecessary
       ectx->img->set_PartMode (x,y, cb->PartMode);
 
-      cb->debug_assertTreeConsistency(ectx->img);
-      cb_in->debug_assertTreeConsistency(ectx->img);
+      //cb->debug_assertTreeConsistency(ectx->img);
+      //cb_in->debug_assertTreeConsistency(ectx->img);
 
       // encode transform tree
 
@@ -120,7 +120,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   options.compute_rdo_costs();
   enc_cb* bestCB = options.return_best_rdo_node();
 
-  bestCB->debug_assertTreeConsistency(ectx->img);
+  //bestCB->debug_assertTreeConsistency(ectx->img);
 
   return bestCB;
 }
@@ -191,7 +191,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
 
   cb->rate += estim.getRDBits();
 
-  cb->debug_assertTreeConsistency(ectx->img);
+  //cb->debug_assertTreeConsistency(ectx->img);
 
   return cb;
 }

@@ -791,21 +791,65 @@ void enc_cb::debug_assertTreeConsistency(const de265_image* img) const
 }
 
 
+const enc_tb* enc_cb::getTB(int x,int y) const
+{
+  assert(!split_cu_flag);
+  assert(transform_tree);
+
+  return transform_tree->getTB(x,y);
+}
+
+
+const enc_tb* enc_tb::getTB(int x,int y) const
+{
+  if (split_transform_flag) {
+    int xHalf = x + (1<<(log2Size-1));
+    int yHalf = y + (1<<(log2Size-1));
+
+    enc_tb* child;
+
+    if (x<xHalf) {
+      if (y<yHalf) {
+        child = children[0];
+      }
+      else {
+        child = children[2];
+      }
+    }
+    else {
+      if (y<yHalf) {
+        child = children[1];
+      }
+      else {
+        child = children[3];
+      }
+    }
+
+    if (!child) { return NULL; }
+
+    return child->getTB(x,y);
+  }
+
+  return this;
+}
+
+
 
 void CTBTreeMatrix::alloc(int w,int h, int log2CtbSize)
 {
+  free();
+
   int ctbSize = 1<<log2CtbSize;
 
   mWidthCtbs  = (w+ctbSize-1) >> log2CtbSize;
   mHeightCtbs = (h+ctbSize-1) >> log2CtbSize;
   mLog2CtbSize = log2CtbSize;
 
-  free();
   mCTBs.resize(mWidthCtbs * mHeightCtbs, NULL);
 }
 
 
-enc_cb* CTBTreeMatrix::getCB(int x,int y)
+const enc_cb* CTBTreeMatrix::getCB(int x,int y) const
 {
   int xCTB = x>>mLog2CtbSize;
   int yCTB = y>>mLog2CtbSize;
@@ -844,37 +888,13 @@ enc_cb* CTBTreeMatrix::getCB(int x,int y)
 }
 
 
-enc_tb* CTBTreeMatrix::getTB(int x,int y)
+const enc_tb* CTBTreeMatrix::getTB(int x,int y) const
 {
-  enc_cb* cb = getCB(x,y);
+  const enc_cb* cb = getCB(x,y);
   if (!cb) { return NULL; }
 
-  enc_tb* tb = cb->transform_tree;
+  const enc_tb* tb = cb->transform_tree;
   if (!tb) { return NULL; }
 
-  while (tb->split_transform_flag) {
-    int xHalf = tb->x + (1<<(tb->log2Size-1));
-    int yHalf = tb->y + (1<<(tb->log2Size-1));
-
-    if (x<xHalf) {
-      if (y<yHalf) {
-        tb = tb->children[0];
-      }
-      else {
-        tb = tb->children[2];
-      }
-    }
-    else {
-      if (y<yHalf) {
-        tb = tb->children[1];
-      }
-      else {
-        tb = tb->children[3];
-      }
-    }
-
-    if (!tb) { return NULL; }
-  }
-
-  return tb;
+  return tb->getTB(x,y);
 }

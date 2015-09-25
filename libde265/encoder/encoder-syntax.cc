@@ -107,8 +107,8 @@ void encode_split_cu_flag(encoder_context* ectx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ectx->img->get_ctDepth(x0-1,y0) > ctDepth) condL=1;
-  if (availableA && ectx->img->get_ctDepth(x0,y0-1) > ctDepth) condA=1;
+  if (availableL && ectx->ctbs.getCB(x0-1,y0)->ctDepth > ctDepth) condL=1;
+  if (availableA && ectx->ctbs.getCB(x0,y0-1)->ctDepth > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;

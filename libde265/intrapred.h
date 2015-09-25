@@ -48,6 +48,13 @@ inline void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int 
 }
 
 
+void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
+                                 int x,int y,
+                                 bool availableA, // left
+                                 bool availableB, // top
+                                 const class CTBTreeMatrix& ctbs);
+
+
 
 /* Return value >= 0 -> use mpm_idx(return value)
    else              -> use rem_intra(-return value-1)

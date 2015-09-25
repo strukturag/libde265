@@ -172,6 +172,7 @@ class enc_tb : public enc_node
 
   void alloc_coeff_memory(int cIdx, int tbSize);
 
+  const enc_tb* getTB(int x,int y) const;
 
 
   // === metadata ===
@@ -331,6 +332,9 @@ public:
    */
   void reconstruct(encoder_context* ectx,de265_image* img) const;
 
+  // can only be called on the lowest-level CB (with TB-tree as its direct child)
+  const enc_tb* getTB(int x,int y) const;
+
 
   // ===== METADATA =====
 
@@ -423,6 +427,7 @@ class CTBTreeMatrix
   ~CTBTreeMatrix() { free(); }
 
   void alloc(int w,int h, int log2CtbSize);
+  void clear() { free(); }
 
   void setCTB(int xCTB, int yCTB, enc_cb* ctb) {
     int idx = xCTB + yCTB*mWidthCtbs;
@@ -437,8 +442,17 @@ class CTBTreeMatrix
     return mCTBs[idx];
   }
 
-  enc_cb* getCB(int x,int y);
-  enc_tb* getTB(int x,int y);
+  enc_cb** getCTBRootPointer(int x, int y) {
+    x >>= mLog2CtbSize;
+    y >>= mLog2CtbSize;
+
+    int idx = x + y*mWidthCtbs;
+    assert(idx < mCTBs.size());
+    return &mCTBs[idx];
+  }
+
+  const enc_cb* getCB(int x,int y) const;
+  const enc_tb* getTB(int x,int y) const;
 
 
  private:

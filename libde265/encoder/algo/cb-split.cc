@@ -108,10 +108,11 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.start();
 
-
+  /*
   cb_input->writeSurroundingMetadata(ectx, ectx->img,
                                      enc_node::METADATA_CT_DEPTH, // for estimation cb-split bits
                                      cb_input->get_rectangle());
+  */
 
   // --- encode without splitting ---
 
@@ -171,7 +172,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   options.compute_rdo_costs();
   enc_cb* bestCB = options.return_best_rdo_node();
 
-  bestCB->debug_assertTreeConsistency(ectx->img);
+  //bestCB->debug_assertTreeConsistency(ectx->img);
 
   return bestCB;
 }

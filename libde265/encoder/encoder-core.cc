@@ -178,6 +178,8 @@ double encode_image(encoder_context* ectx,
 
   // encode CTB by CTB
 
+  ectx->ctbs.clear();
+
   for (int y=0;y<ectx->sps.PicHeightInCtbsY;y++)
     for (int x=0;x<ectx->sps.PicWidthInCtbsY;x++)
       {
@@ -244,6 +246,7 @@ double encode_image(encoder_context* ectx,
 
         cb->debug_dumpTree();
 
+        /*
         cb->debug_assertTreeConsistency(ectx->img);
 
         //cb->invalidateMetadataInSubTree(ectx->img);
@@ -253,6 +256,7 @@ double encode_image(encoder_context* ectx,
                           enc_node::METADATA_CT_DEPTH);
 
         cb->debug_assertTreeConsistency(ectx->img);
+        */
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
@@ -276,7 +280,7 @@ double encode_image(encoder_context* ectx,
         ectx->cabac_encoder.write_CABAC_term_bit(last);
 
 
-        delete cb;
+        //delete cb;
 
         //ectx->free_all_pools();
       }
