@@ -31,6 +31,7 @@
 #include <iostream>
 
 
+#if 0
 enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
                                         const uint8_t* ref, int stride)
 {
@@ -45,8 +46,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
 
 
   fillIntraPredModeCandidates(candidates, x0,y0,
-                              sps->getPUIndexRS(x0,y0),
-                              x0>0, y0>0, &img);
+                              x0>0, y0>0, ectx->ctbs, &ectx->sps);
 
   // --- test candidates first ---
 
@@ -91,6 +91,7 @@ enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2
 
   return best_mode;
 }
+#endif
 
 
 float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
@@ -238,8 +239,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     const seq_parameter_set* sps = &img->sps;
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                sps->getPUIndexRS(tb->x,tb->y),
-                                tb->x > 0, tb->y > 0, img);
+                                tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->sps);
 
 
     for (int i = 0; i<35; i++) {
@@ -416,8 +416,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
-                                ectx->img->sps.getPUIndexRS(x0,y0),
-                                x0>0, y0>0, ectx->img);
+                                x0>0, y0>0, ectx->ctbs, &ectx->sps);
 
     float intraPredModeBits = get_intra_pred_mode_bits(candidates,
                                                        intraMode,
@@ -478,8 +477,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     const seq_parameter_set* sps = &img->sps;
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                sps->getPUIndexRS(tb->x,tb->y),
-                                tb->x>0, tb->y>0, img);
+                                tb->x>0, tb->y>0, ectx->ctbs, &ectx->sps);
 
 
 

@@ -52,7 +52,8 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
                                  int x,int y,
                                  bool availableA, // left
                                  bool availableB, // top
-                                 const class CTBTreeMatrix& ctbs);
+                                 const class CTBTreeMatrix& ctbs,
+                                 const seq_parameter_set* sps);
 
 
 
