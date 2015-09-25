@@ -3002,11 +3002,11 @@ int residual_coding(thread_context* tctx,
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
       scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredMode(x0,y0),  cIdx, sps);
-      printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredMode(x0,y0));
+      //printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredMode(x0,y0));
     }
     else {
       scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredModeC(x0,y0), cIdx, sps);
-      printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredModeC(x0,y0));
+      //printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredModeC(x0,y0));
     }
   }
   else {
@@ -3145,11 +3145,9 @@ int residual_coding(thread_context* tctx,
         int ctxInc;
         if (sps->range_extension.transform_skip_context_enabled_flag &&
             (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
-          printf("QWE\n");
           ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
         }
         else {
-          printf("xC:%d yC:%d trafoSize:%d\n",xC,yC,log2TrafoSize);
           ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
         }
 
