@@ -1176,17 +1176,18 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
 
-  if (sps.range_extension.intra_smoothing_disabled_flag == 0 &&
-      (cIdx==0 || sps.ChromaArrayType==CHROMA_444))
-    {
-      intra_prediction_sample_filtering(sps, border_pixels, 1<<tb->log2Size, cIdx, intraPredMode);
-    }
-
-
   int nT = 1<<tb->log2Size;
   if (cIdx>0) {
     nT >>= 1; // TODO: 4:2:2 / 4:4:4
   }
+
+
+  if (sps.range_extension.intra_smoothing_disabled_flag == 0 &&
+      (cIdx==0 || sps.ChromaArrayType==CHROMA_444))
+    {
+      intra_prediction_sample_filtering(sps, border_pixels, nT, cIdx, intraPredMode);
+    }
+
 
   switch (intraPredMode) {
   case INTRA_PLANAR:
