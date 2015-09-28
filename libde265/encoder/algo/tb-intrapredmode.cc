@@ -263,7 +263,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       enum IntraPredMode intraModeC;
 
       if (cb->PartMode==PART_NxN) {
-        intraModeC = tb->parent->children[0]->intra_mode;
+        intraModeC = tb_option->parent->children[0]->intra_mode;
       }
       else {
         intraModeC = intraMode;
