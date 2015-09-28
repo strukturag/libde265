@@ -96,6 +96,14 @@ void decode_intra_prediction(de265_image* img,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx);
 
+void decode_intra_prediction_from_tree(const de265_image* img,
+                                       const class enc_tb* tb,
+                                       const class CTBTreeMatrix& ctbs,
+                                       const class seq_parameter_set& sps,
+                                       uint8_t* dst, int dstStride,
+                                       int cIdx);
+
+// TODO: remove this
 template <class pixel_t> void decode_intra_prediction(de265_image* img,
                                                       int xB0,int yB0,
                                                       enum IntraPredMode intraPredMode,

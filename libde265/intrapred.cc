@@ -340,7 +340,7 @@ struct intra_border_computer
 {
   pixel_t* out_border;
 
-  de265_image* img;
+  const de265_image* img;
   int nT;
   int cIdx;
 
@@ -355,10 +355,10 @@ struct intra_border_computer
   int SubWidth;
   int SubHeight;
 
-  bool availableLeft=true;    // is CTB at left side available?
-  bool availableTop=true;     // is CTB at top side available?
-  bool availableTopRight=true; // is CTB at top-right side available?
-  bool availableTopLeft=true;  // if CTB at top-left pixel available?
+  bool availableLeft;    // is CTB at left side available?
+  bool availableTop;     // is CTB at top side available?
+  bool availableTopRight; // is CTB at top-right side available?
+  bool availableTopLeft;  // if CTB at top-left pixel available?
 
   int nBottom;
   int nRight;
@@ -366,13 +366,19 @@ struct intra_border_computer
   pixel_t firstValue;
 
   void init(pixel_t* _out_border,
-            de265_image* _img, int _nT, int _cIdx, int _xB, int _yB) {
+            const de265_image* _img, int _nT, int _cIdx, int _xB, int _yB) {
     img=_img; nT=_nT; cIdx=_cIdx;
     out_border=_out_border; xB=_xB; yB=_yB;
+
+    availableLeft=true;
+    availableTop=true;
+    availableTopRight=true;
+    availableTopLeft=true;
   }
   void preproc();
   void fill_from_image();
-  void fill_from_ctbtree() { }
+  void fill_from_ctbtree(const enc_tb* tb,
+                         const CTBTreeMatrix& ctbs);
   void reference_sample_substitution();
 };
 
@@ -528,6 +534,35 @@ void fill_border_samples(de265_image* img,
 }
 
 
+// (8.4.4.2.2)
+template <class pixel_t>
+void fill_border_samples_from_tree(const de265_image* img,
+                                   const enc_tb* tb,
+                                   const CTBTreeMatrix& ctbs,
+                                   int cIdx,
+                                   pixel_t* out_border)
+{
+  intra_border_computer<pixel_t> c;
+
+  // xB,yB in component specific resolution
+  int xB = tb->x;
+  int yB = tb->y;
+
+  // TODO: proper chroma handling
+  if (cIdx > 0) {
+    xB >>= 1;
+    yB >>= 1;
+  }
+
+  int nT = 1<<tb->log2Size;
+
+  c.init(out_border, img, nT, cIdx, xB, yB);
+  c.preproc();
+  c.fill_from_ctbtree(tb, ctbs);
+  c.reference_sample_substitution();
+}
+
+
 template <class pixel_t>
 void intra_border_computer<pixel_t>::fill_from_image()
 {
@@ -635,9 +670,16 @@ void intra_border_computer<pixel_t>::fill_from_image()
 }
 
 
+template <class pixel_t>
+void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* tb,
+                                                       const CTBTreeMatrix& ctbs)
+{
+}
+
+
 // (8.4.4.2.3)
 template <class pixel_t>
-void intra_prediction_sample_filtering(de265_image* img,
+void intra_prediction_sample_filtering(const seq_parameter_set& sps,
                                        pixel_t* p,
                                        int nT, int cIdx,
                                        enum IntraPredMode intraPredMode)
@@ -660,11 +702,11 @@ void intra_prediction_sample_filtering(de265_image* img,
 
 
   if (filterFlag) {
-    int biIntFlag = (img->sps.strong_intra_smoothing_enable_flag &&
+    int biIntFlag = (sps.strong_intra_smoothing_enable_flag &&
                      cIdx==0 &&
                      nT==32 &&
-                     abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(img->sps.bit_depth_luma-5)) &&
-                     abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(img->sps.bit_depth_luma-5)))
+                     abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(sps.bit_depth_luma-5)) &&
+                     abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(sps.bit_depth_luma-5)))
       ? 1 : 0;
 
     pixel_t  pF_mem[2*64+1];
@@ -717,7 +759,7 @@ static const int invAngle_table[25-10] =
 // (8.4.4.2.6)
 template <class pixel_t>
 void intra_prediction_angular(pixel_t* dst, int dstStride,
-                              de265_image* img,
+                              int bit_depth, bool disableIntraBoundaryFilter,
                               int xB0,int yB0,
                               enum IntraPredMode intraPredMode,
                               int nT,int cIdx,
@@ -726,21 +768,10 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
   pixel_t  ref_mem[2*64+1];
   pixel_t* ref=&ref_mem[64];
 
-  pixel_t* pred;
-  int      stride;
-  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
-  stride = img->get_image_stride(cIdx);
-
-  int bit_depth = img->get_bit_depth(cIdx);
-
   assert(intraPredMode<35);
   assert(intraPredMode>=2);
 
   int intraPredAngle = intraPredAngle_table[intraPredMode];
-
-  bool disableIntraBoundaryFilter =
-    (img->sps.range_extension.implicit_rdpcm_enabled_flag &&
-     img->get_cu_transquant_bypass(xB0,yB0));
 
   if (intraPredMode >= 18) {
 
@@ -834,14 +865,9 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
 
 template <class pixel_t>
 void intra_prediction_planar(pixel_t* dst, int dstStride,
-                             de265_image* img,int xB0,int yB0,int nT,int cIdx,
+                             int nT,int cIdx,
                              pixel_t* border)
 {
-  pixel_t* pred;
-  int      stride;
-  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
-  stride = img->get_image_stride(cIdx);
-
   int Log2_nT = Log2(nT);
 
   for (int y=0;y<nT;y++)
@@ -866,14 +892,9 @@ void intra_prediction_planar(pixel_t* dst, int dstStride,
 
 template <class pixel_t>
 void intra_prediction_DC(pixel_t* dst, int dstStride,
-                         de265_image* img,int xB0,int yB0,int nT,int cIdx,
+                         int nT,int cIdx,
                          pixel_t* border)
 {
-  pixel_t* pred;
-  int      stride;
-  pred   = img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,xB0,yB0);
-  stride = img->get_image_stride(cIdx);
-
   int Log2_nT = Log2(nT);
 
   int dcVal = 0;
@@ -903,16 +924,6 @@ void intra_prediction_DC(pixel_t* dst, int dstStride,
           dst[x+y*dstStride] = dcVal;
         }
   }
-
-
-  logtrace(LogIntraPred,"INTRAPRED DC\n");
-  for (int y=0;y<nT;y++)
-    {
-      for (int x=0;x<nT;x++)
-        logtrace(LogIntraPred,"%02x ", pred[x+y*stride]);
-
-      logtrace(LogIntraPred,"\n");
-    }
 }
 
 
@@ -932,19 +943,27 @@ void decode_intra_prediction_internal(de265_image* img,
   if (img->sps.range_extension.intra_smoothing_disabled_flag == 0 &&
       (cIdx==0 || img->sps.ChromaArrayType==CHROMA_444))
     {
-      intra_prediction_sample_filtering(img, border_pixels, nT, cIdx, intraPredMode);
+      intra_prediction_sample_filtering(img->sps, border_pixels, nT, cIdx, intraPredMode);
     }
 
 
   switch (intraPredMode) {
   case INTRA_PLANAR:
-    intra_prediction_planar(dst,dstStride, img,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_planar(dst,dstStride, nT,cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, img,xB0,yB0,nT,cIdx, border_pixels);
+    intra_prediction_DC(dst,dstStride, nT,cIdx, border_pixels);
     break;
   default:
-    intra_prediction_angular(dst,dstStride, img,xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    {
+      int bit_depth = img->get_bit_depth(cIdx);
+      bool disableIntraBoundaryFilter =
+        (img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+         img->get_cu_transquant_bypass(xB0,yB0));
+
+      intra_prediction_angular(dst,dstStride, bit_depth,disableIntraBoundaryFilter,
+                               xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+    }
     break;
   }
 }
@@ -978,6 +997,7 @@ void decode_intra_prediction(de265_image* img,
 }
 
 
+// TODO: remove this
 template <> void decode_intra_prediction<uint8_t>(de265_image* img,
                                                   int xB0,int yB0,
                                                   enum IntraPredMode intraPredMode,
@@ -989,6 +1009,7 @@ template <> void decode_intra_prediction<uint8_t>(de265_image* img,
 }
 
 
+// TODO: remove this
 template <> void decode_intra_prediction<uint16_t>(de265_image* img,
                                                    int xB0,int yB0,
                                                    enum IntraPredMode intraPredMode,
@@ -997,4 +1018,65 @@ template <> void decode_intra_prediction<uint16_t>(de265_image* img,
   decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
                                              dst,nT,
                                              nT,cIdx);
+}
+
+
+template <class pixel_t>
+void decode_intra_prediction_from_tree_internal(const de265_image* img,
+                                                const enc_tb* tb,
+                                                const CTBTreeMatrix& ctbs,
+                                                const seq_parameter_set& sps,
+                                                pixel_t* dst, int dstStride,
+                                                int cIdx)
+{
+  enum IntraPredMode intraPredMode;
+  if (cIdx==0) intraPredMode = tb->intra_mode;
+  else         intraPredMode = tb->intra_mode_chroma;
+
+  pixel_t  border_pixels_mem[2*64+1];
+  pixel_t* border_pixels = &border_pixels_mem[64];
+
+  fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
+
+  if (sps.range_extension.intra_smoothing_disabled_flag == 0 &&
+      (cIdx==0 || sps.ChromaArrayType==CHROMA_444))
+    {
+      intra_prediction_sample_filtering(sps, border_pixels, 1<<tb->log2Size, cIdx, intraPredMode);
+    }
+
+
+  switch (intraPredMode) {
+  case INTRA_PLANAR:
+    intra_prediction_planar(dst,dstStride, 1<<tb->log2Size, cIdx, border_pixels);
+    break;
+  case INTRA_DC:
+    intra_prediction_DC(dst,dstStride, 1<<tb->log2Size, cIdx, border_pixels);
+    break;
+  default:
+    {
+      //int bit_depth = img->get_bit_depth(cIdx);
+      int bit_depth = 8; // TODO
+
+      bool disableIntraBoundaryFilter =
+        (sps.range_extension.implicit_rdpcm_enabled_flag &&
+         tb->cb->cu_transquant_bypass_flag);
+
+      intra_prediction_angular(dst,dstStride, bit_depth,disableIntraBoundaryFilter,
+                               tb->x,tb->y,intraPredMode,1<<tb->log2Size,cIdx, border_pixels);
+    }
+    break;
+  }
+}
+
+
+void decode_intra_prediction_from_tree(const de265_image* img,
+                                       const enc_tb* tb,
+                                       const CTBTreeMatrix& ctbs,
+                                       const seq_parameter_set& sps,
+                                       uint8_t* dst, int dstStride,
+                                       int cIdx)
+{
+  // TODO: high bit depths
+
+  decode_intra_prediction_from_tree_internal(img ,tb, ctbs, sps, dst, dstStride, cIdx);
 }
