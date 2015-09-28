@@ -1523,7 +1523,7 @@ void encode_coding_unit(encoder_context* ectx,
 
               enum IntraPredMode candModeList[3];
               fillIntraPredModeCandidates(candModeList,x,y,
-                                          availableA0,availableB0, ectx->ctbs, sps);
+                                          availableA,availableB, ectx->ctbs, sps);
 
               for (int i=0;i<3;i++)
                 logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
