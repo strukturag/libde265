@@ -800,7 +800,7 @@ const enc_tb* enc_cb::getTB(int x,int y) const
 }
 
 
-const enc_tb* enc_tb::getTB(int x,int y) const
+const enc_tb* enc_tb::getTB(int px,int py) const
 {
   if (split_transform_flag) {
     int xHalf = x + (1<<(log2Size-1));
@@ -808,8 +808,8 @@ const enc_tb* enc_tb::getTB(int x,int y) const
 
     enc_tb* child;
 
-    if (x<xHalf) {
-      if (y<yHalf) {
+    if (px<xHalf) {
+      if (py<yHalf) {
         child = children[0];
       }
       else {
@@ -817,7 +817,7 @@ const enc_tb* enc_tb::getTB(int x,int y) const
       }
     }
     else {
-      if (y<yHalf) {
+      if (py<yHalf) {
         child = children[1];
       }
       else {
@@ -827,7 +827,7 @@ const enc_tb* enc_tb::getTB(int x,int y) const
 
     if (!child) { return NULL; }
 
-    return child->getTB(x,y);
+    return child->getTB(px,py);
   }
 
   return this;
@@ -849,10 +849,10 @@ void CTBTreeMatrix::alloc(int w,int h, int log2CtbSize)
 }
 
 
-const enc_cb* CTBTreeMatrix::getCB(int x,int y) const
+const enc_cb* CTBTreeMatrix::getCB(int px,int py) const
 {
-  int xCTB = x>>mLog2CtbSize;
-  int yCTB = y>>mLog2CtbSize;
+  int xCTB = px>>mLog2CtbSize;
+  int yCTB = py>>mLog2CtbSize;
 
   int idx = xCTB + yCTB*mWidthCtbs;
   assert(idx < mCTBs.size());
@@ -864,8 +864,8 @@ const enc_cb* CTBTreeMatrix::getCB(int x,int y) const
     int xHalf = cb->x + (1<<(cb->log2Size-1));
     int yHalf = cb->y + (1<<(cb->log2Size-1));
 
-    if (x<xHalf) {
-      if (y<yHalf) {
+    if (px<xHalf) {
+      if (py<yHalf) {
         cb = cb->children[0];
       }
       else {
@@ -873,7 +873,7 @@ const enc_cb* CTBTreeMatrix::getCB(int x,int y) const
       }
     }
     else {
-      if (y<yHalf) {
+      if (py<yHalf) {
         cb = cb->children[1];
       }
       else {

@@ -121,7 +121,7 @@ void print_cb_tree_rates(const enc_cb* cb, int level)
 }
 
 
-LIBDE265_API ImageSink_YUV reconstruction_sink;
+// /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
 
 double encode_image(encoder_context* ectx,
                     const de265_image* input,
@@ -244,7 +244,7 @@ double encode_image(encoder_context* ectx,
 
         logdebug(LogEncoder,"write CTB %d;%d\n",x,y);
 
-        cb->debug_dumpTree();
+        //cb->debug_dumpTree();
 
         /*
         cb->debug_assertTreeConsistency(ectx->img);

@@ -53,6 +53,9 @@ class small_image_buffer
     memcpy(b.mBuf, mBuf, mBytesPerRow*mHeight);
   }
 
+  int getHeight() const { return mHeight; }
+  int getWidth() const { return mStride; }
+
  private:
   uint8_t*  mBuf;
   uint16_t  mStride;
@@ -388,8 +391,15 @@ public:
 
   // memory management
 
-  static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
-  static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
+  static void* operator new(const size_t size) {
+    void* p = mMemPool.new_obj(size);
+    //printf("ALLOC %p\n",p);
+    return p;
+  }
+  static void operator delete(void* obj) {
+    //printf("DELETE %p\n",obj);
+    mMemPool.delete_obj(obj);
+  }
 
  private:
   //void write_to_image(de265_image*) const;

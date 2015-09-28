@@ -100,7 +100,6 @@ void decode_intra_prediction_from_tree(const de265_image* img,
                                        const class enc_tb* tb,
                                        const class CTBTreeMatrix& ctbs,
                                        const class seq_parameter_set& sps,
-                                       uint8_t* dst, int dstStride,
                                        int cIdx);
 
 // TODO: remove this

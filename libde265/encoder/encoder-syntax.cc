@@ -764,25 +764,15 @@ void encode_residual(encoder_context* ectx,
   int scanIdx;
 
   if (PredMode == MODE_INTRA) {
-    const enc_tb* tt = tb;
-      for (;;) {
-        if (tt->cb->PartMode == PART_2Nx2N && tt->TrafoDepth==0) break;
-        if (tt->cb->PartMode == PART_NxN   && tt->TrafoDepth==1) break;
-        tt=tt->parent;
-      }
-
-      assert(tt->intra_mode == tb->intra_mode);
-      assert(tt->intra_mode_chroma == tb->intra_mode_chroma);
-
     if (cIdx==0) {
       //printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tt->intra_mode);
-      printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, tt->intra_mode);
+      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tb->intra_mode);
+      //printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, tb->intra_mode);
     }
     else {
-      enum IntraPredMode chromaMode = tt->intra_mode_chroma;
+      enum IntraPredMode chromaMode = tb->intra_mode_chroma;
       scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, chromaMode);
-      printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, tt->intra_mode_chroma);
+      //printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, tb->intra_mode_chroma);
     }
   }
   else {
@@ -1490,8 +1480,8 @@ void encode_coding_unit(encoder_context* ectx,
         int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
         enum IntraPredMode candModeList[3];
-        fillIntraPredModeCandidates(candModeList,x0,y0,PUidx,
-                                    availableA0,availableB0, img);
+        fillIntraPredModeCandidates(candModeList,x0,y0,
+                                    availableA0,availableB0, ectx->ctbs, sps);
 
         for (int i=0;i<3;i++)
           logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
@@ -1532,15 +1522,13 @@ void encode_coding_unit(encoder_context* ectx,
               PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
               enum IntraPredMode candModeList[3];
-              fillIntraPredModeCandidates(candModeList,x,y,PUidx,
-                                          availableA,availableB, img);
+              fillIntraPredModeCandidates(candModeList,x,y,
+                                          availableA0,availableB0, ectx->ctbs, sps);
 
               for (int i=0;i<3;i++)
                 logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
 
               enum IntraPredMode mode = cb->transform_tree->children[childIdx]->intra_mode;
-
-              assert(ectx->img->get_IntraPredMode(x,y) == mode);
 
               intraPred[childIdx] = find_intra_pred_mode(mode, candModeList);
 

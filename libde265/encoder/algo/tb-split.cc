@@ -111,10 +111,12 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
   //printf("intra prediction %d;%d size:%d cIdx=%d\n",x,y,blkSize,cIdx);
 
+  /*
   decode_intra_prediction(ectx->img, x,y, mode,
                           tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
                           blkSize, cIdx);
-
+  */
+  decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, cIdx);
 
   // create residual buffer and compute differences
 

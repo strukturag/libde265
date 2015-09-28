@@ -54,5 +54,8 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   descend(cb, "Q=%d",ectx->active_qp);
   enc_cb* result_cb = mChildAlgo->analyze(ectx,ctxModel,cb);
   ascend();
+
+  *cb->downPtr = result_cb;
+
   return result_cb;
 }

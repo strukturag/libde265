@@ -175,7 +175,8 @@ void test_parameters_API(en265_encoder_context* ectx)
 extern int skipTBSplit, noskipTBSplit;
 extern int zeroBlockCorrelation[6][2][5];
 
-LIBDE265_API ImageSink_YUV reconstruction_sink;
+/*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
+
 
 int main(int argc, char** argv)
 {
@@ -242,6 +243,7 @@ int main(int argc, char** argv)
 
 
   de265_set_verbosity(verbosity);
+
 #if HAVE_VIDEOGFX
   //debug_set_image_output(debug_show_image_libvideogfx);
 #endif
@@ -307,7 +309,6 @@ int main(int argc, char** argv)
         en265_free_packet(ectx,pck);
       }
     }
-
 
 
   // --- print statistics ---

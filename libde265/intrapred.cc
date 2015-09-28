@@ -671,9 +671,145 @@ void intra_border_computer<pixel_t>::fill_from_image()
 
 
 template <class pixel_t>
-void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* tb,
+void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
                                                        const CTBTreeMatrix& ctbs)
 {
+  assert(nT<=32);
+
+  int xBLuma = xB * SubWidth;
+  int yBLuma = yB * SubHeight;
+
+  int currBlockAddr = pps->MinTbAddrZS[ (xBLuma>>sps->Log2MinTrafoSize) +
+                                        (yBLuma>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
+
+
+  // copy pixels at left column
+
+  for (int y=nBottom-1 ; y>=0 ; y-=4)
+    if (availableLeft)
+      {
+        int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                           (((yB+y)*SubHeight)>>sps->Log2MinTrafoSize)
+                                           * sps->PicWidthInTbsY ];
+
+        bool availableN = NBlockAddr <= currBlockAddr;
+
+        int xN = (xB-1)*SubWidth;
+        int yN = (yB+y)*SubHeight;
+
+        const enc_cb* cb = ctbs.getCB(xN,yN);
+
+        if (pps->constrained_intra_pred_flag) {
+          if (cb->PredMode != MODE_INTRA)
+            availableN = false;
+        }
+
+        if (availableN) {
+          const enc_tb* tb = cb->getTB(xN,yN);
+
+          uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
+          int stride = tb->reconstruction[cIdx]->get_stride();
+
+          int xTbC = tb->x / SubWidth;
+          int yTbC = tb->y / SubHeight;
+
+          if (!nAvail) firstValue = pixelBuf[xB-1-xTbC + (yB+y-yTbC)*stride];
+
+          for (int i=0;i<4;i++) {
+            available[-y+i-1] = availableN;
+            out_border[-y+i-1] = pixelBuf[xB-1-xTbC + (yB+y-i-yTbC)*stride];
+          }
+
+          nAvail+=4;
+        }
+      }
+
+  // copy pixel at top-left position
+
+  if (availableTopLeft)
+    {
+      int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                         (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                         * sps->PicWidthInTbsY ];
+
+      bool availableN = NBlockAddr <= currBlockAddr;
+
+      int xN = (xB-1)*SubWidth;
+      int yN = (yB-1)*SubHeight;
+
+      const enc_cb* cb = ctbs.getCB(xN,yN);
+
+      if (pps->constrained_intra_pred_flag) {
+        if (cb->PredMode!=MODE_INTRA) {
+          availableN = false;
+        }
+      }
+
+      if (availableN) {
+        const enc_tb* tb = cb->getTB(xN,yN);
+
+        uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
+        int stride = tb->reconstruction[cIdx]->get_stride();
+
+        int xTbC = tb->x / SubWidth;
+        int yTbC = tb->y / SubHeight;
+
+        if (!nAvail) firstValue = pixelBuf[xB-1-xTbC + (yB-1-yTbC)*stride];
+
+        out_border[0] = pixelBuf[xB-1-xTbC + (yB-1-yTbC)*stride];
+        available[0] = availableN;
+        nAvail++;
+      }
+    }
+
+
+  // copy pixels at top row
+
+  for (int x=0 ; x<nRight ; x+=4) {
+    bool borderAvailable;
+    if (x<nT) borderAvailable=availableTop;
+    else      borderAvailable=availableTopRight;
+
+    if (borderAvailable)
+      {
+        int NBlockAddr = pps->MinTbAddrZS[ (((xB+x)*SubWidth )>>sps->Log2MinTrafoSize) +
+                                           (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
+                                           * sps->PicWidthInTbsY ];
+
+        bool availableN = NBlockAddr <= currBlockAddr;
+
+        int xN = (xB+x)*SubWidth;
+        int yN = (yB-1)*SubHeight;
+
+        const enc_cb* cb = ctbs.getCB(xN,yN);
+
+        if (pps->constrained_intra_pred_flag) {
+          if (cb->PredMode!=MODE_INTRA) {
+            availableN = false;
+          }
+        }
+
+
+        if (availableN) {
+          const enc_tb* tb = cb->getTB(xN,yN);
+
+          uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
+          int stride = tb->reconstruction[cIdx]->get_stride();
+
+          int xTbC = tb->x / SubWidth;
+          int yTbC = tb->y / SubHeight;
+
+          if (!nAvail) firstValue = pixelBuf[xB+x-xTbC + (yB-1-yTbC)*stride];
+
+          for (int i=0;i<4;i++) {
+            out_border[x+i+1] = pixelBuf[xB+x+i-xTbC + (yB-1-yTbC)*stride];
+            available[x+i+1] = availableN;
+          }
+
+          nAvail+=4;
+        }
+      }
+  }
 }
 
 
@@ -1026,12 +1162,14 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
                                                 const enc_tb* tb,
                                                 const CTBTreeMatrix& ctbs,
                                                 const seq_parameter_set& sps,
-                                                pixel_t* dst, int dstStride,
                                                 int cIdx)
 {
   enum IntraPredMode intraPredMode;
   if (cIdx==0) intraPredMode = tb->intra_mode;
   else         intraPredMode = tb->intra_mode_chroma;
+
+  pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
+  int dstStride = tb->intra_prediction[cIdx]->get_stride();
 
   pixel_t  border_pixels_mem[2*64+1];
   pixel_t* border_pixels = &border_pixels_mem[64];
@@ -1045,12 +1183,17 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
     }
 
 
+  int nT = 1<<tb->log2Size;
+  if (cIdx>0) {
+    nT >>= 1; // TODO: 4:2:2 / 4:4:4
+  }
+
   switch (intraPredMode) {
   case INTRA_PLANAR:
-    intra_prediction_planar(dst,dstStride, 1<<tb->log2Size, cIdx, border_pixels);
+    intra_prediction_planar(dst,dstStride, nT, cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, 1<<tb->log2Size, cIdx, border_pixels);
+    intra_prediction_DC(dst,dstStride, nT, cIdx, border_pixels);
     break;
   default:
     {
@@ -1062,7 +1205,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
          tb->cb->cu_transquant_bypass_flag);
 
       intra_prediction_angular(dst,dstStride, bit_depth,disableIntraBoundaryFilter,
-                               tb->x,tb->y,intraPredMode,1<<tb->log2Size,cIdx, border_pixels);
+                               tb->x,tb->y,intraPredMode,nT,cIdx, border_pixels);
     }
     break;
   }
@@ -1073,10 +1216,9 @@ void decode_intra_prediction_from_tree(const de265_image* img,
                                        const enc_tb* tb,
                                        const CTBTreeMatrix& ctbs,
                                        const seq_parameter_set& sps,
-                                       uint8_t* dst, int dstStride,
                                        int cIdx)
 {
   // TODO: high bit depths
 
-  decode_intra_prediction_from_tree_internal(img ,tb, ctbs, sps, dst, dstStride, cIdx);
+  decode_intra_prediction_from_tree_internal<uint8_t>(img ,tb, ctbs, sps, cIdx);
 }
