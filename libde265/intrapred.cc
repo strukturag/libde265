@@ -708,7 +708,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
           const enc_tb* tb = cb->getTB(xN,yN);
 
           uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-          int stride = tb->reconstruction[cIdx]->get_stride();
+          int stride = tb->reconstruction[cIdx]->getStride();
 
           int xTbC = tb->x / SubWidth;
           int yTbC = tb->y / SubHeight;
@@ -749,7 +749,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
         const enc_tb* tb = cb->getTB(xN,yN);
 
         uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-        int stride = tb->reconstruction[cIdx]->get_stride();
+        int stride = tb->reconstruction[cIdx]->getStride();
 
         int xTbC = tb->x / SubWidth;
         int yTbC = tb->y / SubHeight;
@@ -794,7 +794,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
           const enc_tb* tb = cb->getTB(xN,yN);
 
           uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-          int stride = tb->reconstruction[cIdx]->get_stride();
+          int stride = tb->reconstruction[cIdx]->getStride();
 
           int xTbC = tb->x / SubWidth;
           int yTbC = tb->y / SubHeight;
@@ -1169,7 +1169,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
   else         intraPredMode = tb->intra_mode_chroma;
 
   pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
-  int dstStride = tb->intra_prediction[cIdx]->get_stride();
+  int dstStride = tb->intra_prediction[cIdx]->getStride();
 
   pixel_t  border_pixels_mem[2*64+1];
   pixel_t* border_pixels = &border_pixels_mem[64];

@@ -45,21 +45,23 @@ class small_image_buffer
   uint16_t* get_buffer_u16() const { return (uint16_t*)mBuf; }
   template <class pixel_t> pixel_t* get_buffer() const { return (pixel_t*)mBuf; }
 
-  int get_stride() const { return mStride; } // pixels per row
-
   void copy_to(small_image_buffer& b) const {
     assert(b.mHeight==mHeight);
     assert(b.mBytesPerRow==mBytesPerRow);
     memcpy(b.mBuf, mBuf, mBytesPerRow*mHeight);
   }
 
+  int getWidth() const { return mWidth; }
   int getHeight() const { return mHeight; }
-  int getWidth() const { return mStride; }
+
+  int getStride() const { return mStride; } // pixels per row
 
  private:
   uint8_t*  mBuf;
   uint16_t  mStride;
-  uint16_t  mBytesPerRow, mHeight;
+  uint16_t  mBytesPerRow;
+
+  uint8_t   mWidth, mHeight;
 
   // small_image_buffer cannot be copied
 

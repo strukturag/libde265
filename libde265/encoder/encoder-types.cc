@@ -38,12 +38,13 @@ int allocCB = 0;
 
 small_image_buffer::small_image_buffer(int log2Size,int bytes_per_pixel)
 {
-  int bytes = (1<<(log2Size<<1))*bytes_per_pixel;
-  mBuf = new uint8_t[bytes];
-  mStride = 1<<log2Size;
-
-  mBytesPerRow = bytes_per_pixel * (1<<log2Size);
+  mWidth  = 1<<log2Size;
   mHeight = 1<<log2Size;
+  mStride = 1<<log2Size;
+  mBytesPerRow = bytes_per_pixel * (1<<log2Size);
+
+  int nBytes = mWidth*mHeight*bytes_per_pixel;
+  mBuf = new uint8_t[nBytes];
 }
 
 
