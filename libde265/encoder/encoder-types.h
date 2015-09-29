@@ -110,7 +110,12 @@ public:
   }
 
 
-  virtual void debug_dumpTree(int indent=0) const = 0;
+  static const int DUMPTREE_INTRA_PREDICTION = (1<<0);
+  static const int DUMPTREE_RESIDUAL         = (1<<1);
+  static const int DUMPTREE_RECONSTRUCTION   = (1<<2);
+  static const int DUMPTREE_ALL              = 0xFFFF;
+
+  virtual void debug_dumpTree(int flags, int indent=0) const = 0;
 };
 
 
@@ -216,7 +221,7 @@ class enc_tb : public enc_node
   */
 
 
-  virtual void debug_dumpTree(int indent=0) const;
+  virtual void debug_dumpTree(int flags, int indent=0) const;
 
   void debug_assertTreeConsistency(const de265_image*) const;
 
@@ -386,7 +391,7 @@ public:
   }
 
 
-  virtual void debug_dumpTree(int indent=0) const;
+  virtual void debug_dumpTree(int flags, int indent=0) const;
 
   void debug_assertTreeConsistency(const de265_image*) const;
 

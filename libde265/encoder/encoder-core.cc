@@ -244,7 +244,7 @@ double encode_image(encoder_context* ectx,
 
         logdebug(LogEncoder,"write CTB %d;%d\n",x,y);
 
-        //cb->debug_dumpTree();
+        cb->debug_dumpTree(enc_tb::DUMPTREE_ALL);
 
         /*
         cb->debug_assertTreeConsistency(ectx->img);

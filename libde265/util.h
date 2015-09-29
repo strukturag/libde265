@@ -30,6 +30,7 @@
 #endif
 
 #include <stdio.h>
+#include <string>
 
 #include "libde265/de265.h"
 
@@ -215,9 +216,9 @@ void logtrace(enum LogModule module, const char* string, ...);
 void log2fh(FILE* fh, const char* string, ...);
 
 
-void printBlk(const char* title,const int32_t* data, int blksize, int stride);
-void printBlk(const char* title,const int16_t* data, int blksize, int stride);
-void printBlk(const char* title,const uint8_t* data, int blksize, int stride);
+void printBlk(const char* title,const int32_t* data, int blksize, int stride, const std::string& prefix="  ");
+void printBlk(const char* title,const int16_t* data, int blksize, int stride, const std::string& prefix="  ");
+void printBlk(const char* title,const uint8_t* data, int blksize, int stride, const std::string& prefix="  ");
 
 void debug_set_image_output(void (*)(const struct de265_image*, int slot));
 void debug_show_image(const struct de265_image*, int slot);

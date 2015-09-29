@@ -158,6 +158,9 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
     compute_residual_channel<pixel_t>(ectx,tb,input, 1,x,y,log2BlkSize);
     compute_residual_channel<pixel_t>(ectx,tb,input, 2,x,y,log2BlkSize);
   }
+
+
+  tb->reconstruct(ectx, ectx->img);
 }
 
 

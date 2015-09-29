@@ -822,12 +822,17 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
 {
   int filterFlag;
 
+  printf("filtering, mode: %d\n",intraPredMode);
+
   if (intraPredMode==INTRA_DC || nT==4) {
     filterFlag = 0;
   } else {
     // int-cast below prevents a typing problem that leads to wrong results when abs_value is a macro
     int minDistVerHor = libde265_min( abs_value((int)intraPredMode-26),
                                       abs_value((int)intraPredMode-10) );
+
+    printf("mindist: %d\n",minDistVerHor);
+
     switch (nT) {
     case 8:  filterFlag = (minDistVerHor>7) ? 1 : 0; break;
     case 16: filterFlag = (minDistVerHor>1) ? 1 : 0; break;

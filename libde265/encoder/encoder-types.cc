@@ -281,6 +281,8 @@ void enc_tb::set_cbf_flags_from_children()
 
 int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags)
 {
+  return 0;
+
   logdebug(LogEncoderMetadata,"enc_cb::writeMetadata_CBOnly (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
@@ -331,6 +333,8 @@ int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags
 
 int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
+  return 0;
+
   logdebug(LogEncoderMetadata,"enc_tb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
@@ -672,7 +676,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 }
 
 
-void enc_cb::debug_dumpTree(int indent) const
+void enc_cb::debug_dumpTree(int flags, int indent) const
 {
   std::string indentStr;
   indentStr.insert(0,indent,' ');
@@ -688,7 +692,7 @@ void enc_cb::debug_dumpTree(int indent) const
     for (int i=0;i<4;i++)
       if (children[i]) {
         std::cout << indentStr << "| child CB " << i << ":\n";
-        children[i]->debug_dumpTree(indent+2);
+        children[i]->debug_dumpTree(flags, indent+2);
       }
   }
   else {
@@ -697,12 +701,12 @@ void enc_cb::debug_dumpTree(int indent) const
     std::cout << indentStr << "| PartMode: " << part_mode_name(PartMode) << "\n";
     std::cout << indentStr << "| transform_tree:\n";
 
-    transform_tree->debug_dumpTree(indent+2);
+    transform_tree->debug_dumpTree(flags, indent+2);
   }
 }
 
 
-void enc_tb::debug_dumpTree(int indent) const
+void enc_tb::debug_dumpTree(int flags, int indent) const
 {
   std::string indentStr;
   indentStr.insert(0,indent,' ');
@@ -723,11 +727,36 @@ void enc_tb::debug_dumpTree(int indent) const
             << int(cbf[2]) << "\n";
   std::cout << indentStr << "| metadata_in_image: " << int(metadata_in_image) << "\n";
 
+
+  if (flags & DUMPTREE_RECONSTRUCTION) {
+    for (int i=0;i<3;i++)
+      if (reconstruction[i]) {
+        std::cout << indentStr << "| Reconstruction, channel " << i << ":\n";
+        printBlk(NULL,
+                 reconstruction[i]->get_buffer_u8(),
+                 reconstruction[i]->getWidth(),
+                 reconstruction[i]->getStride(),
+                 indentStr + "| ");
+      }
+  }
+
+  if (flags & DUMPTREE_INTRA_PREDICTION) {
+    for (int i=0;i<3;i++)
+      if (intra_prediction[i]) {
+        std::cout << indentStr << "| Intra prediction, channel " << i << ":\n";
+        printBlk(NULL,
+                 intra_prediction[i]->get_buffer_u8(),
+                 intra_prediction[i]->getWidth(),
+                 intra_prediction[i]->getStride(),
+                 indentStr + "| ");
+      }
+  }
+
   if (split_transform_flag) {
     for (int i=0;i<4;i++)
       if (children[i]) {
         std::cout << indentStr << "| child TB " << i << ":\n";
-        children[i]->debug_dumpTree(indent+2);
+        children[i]->debug_dumpTree(flags, indent+2);
       }
   }
 }
