@@ -147,6 +147,7 @@ class enc_tb : public enc_node
   /* intra_prediction and residual is filled in tb-split, because this is where we decide
      on the final block-size the TB is coded with.
    */
+  //mutable uint8_t debug_intra_border[2*64+1];
   std::shared_ptr<small_image_buffer> intra_prediction[3];
   std::shared_ptr<small_image_buffer> residual[3];
 

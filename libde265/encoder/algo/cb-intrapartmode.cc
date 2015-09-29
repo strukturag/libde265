@@ -68,6 +68,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       option[p].begin();
 
       enc_cb* cb = option[p].get_node();
+      *(cb_in->downPtr) = cb;
 
       // --- set intra prediction mode ---
 

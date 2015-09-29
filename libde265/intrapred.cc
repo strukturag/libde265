@@ -53,6 +53,7 @@ void print_border(pixel_t* data, uint8_t* available, int nT)
 #endif
 
 
+
 void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
                                  enum IntraPredMode candIntraPredModeA,
                                  enum IntraPredMode candIntraPredModeB)
@@ -822,7 +823,7 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
 {
   int filterFlag;
 
-  printf("filtering, mode: %d\n",intraPredMode);
+  //printf("filtering, mode: %d\n",intraPredMode);
 
   if (intraPredMode==INTRA_DC || nT==4) {
     filterFlag = 0;
@@ -831,7 +832,7 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
     int minDistVerHor = libde265_min( abs_value((int)intraPredMode-26),
                                       abs_value((int)intraPredMode-10) );
 
-    printf("mindist: %d\n",minDistVerHor);
+    //printf("mindist: %d\n",minDistVerHor);
 
     switch (nT) {
     case 8:  filterFlag = (minDistVerHor>7) ? 1 : 0; break;
@@ -1180,6 +1181,10 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
   pixel_t* border_pixels = &border_pixels_mem[64];
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
+
+  if (cIdx==0) {
+    // memcpy(tb->debug_intra_border, border_pixels_mem, 2*64+1);
+  }
 
   int nT = 1<<tb->log2Size;
   if (cIdx>0) {

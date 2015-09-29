@@ -162,6 +162,8 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
       */
     }
     else {
+      assert(0); // -> TODO: now only store in tb_enc
+
       int size = 1<<log2TbSize;
 
       uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
@@ -181,14 +183,18 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
     if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
-    //printf("--- quantized coeffs ---\n");
-    //printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
+    if (0 && cbf[cIdx]) {
+      printf("--- quantized coeffs ---\n");
+      printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
 
-    //printf("--- dequantized coeffs ---\n");
-    //printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
+      printf("--- dequantized coeffs ---\n");
+      printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
+    }
 
+#if 0
     uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
     int stride  = img->get_image_stride(cIdx);
+#endif
 
     int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
 
@@ -198,15 +204,20 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     if (cbf[cIdx]) inv_transform(&ectx->acceleration,
                                  reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
                                  dequant_coeff, log2TbSize,   trType);
+
+    //printBlk("RECO",reconstruction[cIdx]->get_buffer_u8(),1<<log2TbSize,
+    //         reconstruction[cIdx]->getStride());
   }
 
 
   // copy reconstruction into image
 
+#if 0
   copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
                 img->get_image_stride(cIdx),
                 reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
                 1<<log2TbSize, 1<<log2TbSize);
+#endif
 
   //printf("--- RECO intra prediction %d %d ---\n",x0,y0);
   //printBlk("RECO",ptr,1<<log2TbSize,stride);
@@ -305,6 +316,8 @@ int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int wh
 
 int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
 {
+  return 0;
+
   logdebug(LogEncoderMetadata,"enc_cb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
 
   int missing = whatFlags & ~metadata_in_image;
@@ -396,6 +409,8 @@ void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
                                       de265_image* img, int whatFlags,
                                       const rectangle& borderRect)
 {
+  return;
+
   logdebug(LogEncoderMetadata,
            "enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
            borderRect.left,borderRect.right,
@@ -431,6 +446,8 @@ void enc_cb::writeSurroundingMetadata(encoder_context* ectx,
                                       de265_image* img, int whatFlags,
                                       const rectangle& borderRect)
 {
+  return;
+
   logdebug(LogEncoderMetadata,
            "enc_cb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",
            x,y,1<<log2Size,
@@ -457,6 +474,8 @@ void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
                                           de265_image* img, int whatFlags,
                                           const rectangle& borderRect)
 {
+  return;
+
   logdebug(LogEncoderMetadata,
            "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
            borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
@@ -502,6 +521,8 @@ void enc_cb::writeSurroundingMetadataDown(encoder_context* ectx,
                                           de265_image* img, int whatFlags,
                                           const rectangle& borderRect)
 {
+  return;
+
   logdebug(LogEncoderMetadata,
            "enc_cb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
            borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
@@ -682,7 +703,7 @@ void enc_cb::debug_dumpTree(int flags, int indent) const
   indentStr.insert(0,indent,' ');
 
   std::cout << indentStr << "CB " << x << ";" << y << " "
-            << (1<<log2Size) << "x" << (1<<log2Size) << "\n";
+            << (1<<log2Size) << "x" << (1<<log2Size) << " [" << this << "]\n";
 
   std::cout << indentStr << "| split_cu_flag: " << int(split_cu_flag) << "\n";
   std::cout << indentStr << "| ctDepth:       " << int(ctDepth) << "\n";
@@ -712,7 +733,7 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
   indentStr.insert(0,indent,' ');
 
   std::cout << indentStr << "TB " << x << ";" << y << " "
-            << (1<<log2Size) << "x" << (1<<log2Size) << "\n";
+            << (1<<log2Size) << "x" << (1<<log2Size) << " [" << this << "]\n";
 
   std::cout << indentStr << "| split_transform_flag: " << int(split_transform_flag) << "\n";
   std::cout << indentStr << "| TrafoDepth:           " << int(TrafoDepth) << "\n";
@@ -743,6 +764,8 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
   if (flags & DUMPTREE_INTRA_PREDICTION) {
     for (int i=0;i<3;i++)
       if (intra_prediction[i]) {
+        //if (i==0) print_border(debug_intra_border+64, NULL, 1<<log2Size);
+
         std::cout << indentStr << "| Intra prediction, channel " << i << ":\n";
         printBlk(NULL,
                  intra_prediction[i]->get_buffer_u8(),
@@ -764,6 +787,8 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
 
 void enc_tb::debug_assertTreeConsistency(const de265_image* img) const
 {
+  return;
+
   if (metadata_in_image & METADATA_INTRA_MODES) {
     assert(cb);
     if ((cb->PartMode == PART_2Nx2N && TrafoDepth==0) ||
@@ -795,6 +820,8 @@ void enc_tb::debug_assertTreeConsistency(const de265_image* img) const
 
 void enc_cb::debug_assertTreeConsistency(const de265_image* img) const
 {
+  return;
+
   if (metadata_in_image & METADATA_CT_DEPTH) {
     for (int cy=y;cy<y+(1<<log2Size);cy++)
       for (int cx=x;cx<x+(1<<log2Size);cx++) {

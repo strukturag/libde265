@@ -193,6 +193,11 @@ void CodingOption<node>::begin()
   }
 
   mParent->mCurrentlyReconstructedOption = mOptionIdx;
+
+  // link this node into the coding tree
+
+  node* n = get_node();
+  *(n->downPtr) = n;
 }
 
 

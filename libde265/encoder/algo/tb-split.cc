@@ -109,13 +109,6 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
 
-  //printf("intra prediction %d;%d size:%d cIdx=%d\n",x,y,blkSize,cIdx);
-
-  /*
-  decode_intra_prediction(ectx->img, x,y, mode,
-                          tb->intra_prediction[cIdx]->get_buffer<pixel_t>(),
-                          blkSize, cIdx);
-  */
   decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, cIdx);
 
   // create residual buffer and compute differences
@@ -135,10 +128,11 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
 {
   int tbSize = 1<<tb->log2Size;
 
+  /*
   tb->writeSurroundingMetadata(ectx, ectx->img,
                                enc_node::METADATA_RECONSTRUCTION_BORDERS,
                                tb->get_rectangle_with_width(1<<(tb->log2Size+1)));
-
+  */
 
   compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
 
@@ -158,9 +152,6 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
     compute_residual_channel<pixel_t>(ectx,tb,input, 1,x,y,log2BlkSize);
     compute_residual_channel<pixel_t>(ectx,tb,input, 2,x,y,log2BlkSize);
   }
-
-
-  tb->reconstruct(ectx, ectx->img);
 }
 
 
@@ -202,6 +193,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   enc_tb* tb_split    = NULL;
 
   if (test_no_split) {
+    descend(tb,"no split");
     option_no_split.begin();
     tb_no_split = option_no_split.get_node();
     //tb_no_split = new enc_tb(*tb);
@@ -211,10 +203,9 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
       compute_residual<uint8_t>(ectx, tb_no_split, input, tb->blkIdx);
     }
 
-    descend(tb,"no split");
     tb_no_split = mAlgo_TB_Residual->analyze(ectx, option_no_split.get_context(),
                                              input, tb_no_split, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
-    ascend("bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
+    ascend(tb_no_split,"bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
     option_no_split.set_node(tb_no_split);
     option_no_split.end();
@@ -241,11 +232,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     tb_split = option_split.get_node();
     *tb->downPtr = tb_split;
 
-    descend(tb,"split");
+    //descend(tb,"split");
     tb_split = encode_transform_tree_split(ectx, option_split.get_context(), input, tb_split, cb,
                                            TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
     option_split.set_node(tb_split);
-    ascend("bits:%f/%f",tb_split->rate,tb_split->rate_withoutCbfChroma);
+    //ascend("bits:%f/%f",tb_split->rate,tb_split->rate_withoutCbfChroma);
 
     option_split.end();
   }
@@ -271,7 +262,10 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.compute_rdo_costs();
 
-  return options.return_best_rdo_node();
+  enc_tb* bestTB = options.return_best_rdo_node();
+  bestTB->reconstruct(ectx, ectx->img); // TODO: we could also do this lazy on first access
+
+  return bestTB;
 }
 
 
@@ -321,6 +315,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
     child_tb->blkIdx = i;
     child_tb->downPtr = &tb->children[i];
 
+    descend(tb,"split %d/4",i+1);
+
     if (cb->PredMode == MODE_INTRA) {
       //descend(tb,"intra");
       tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
@@ -335,6 +331,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                       child_tb, TrafoDepth+1, MaxTrafoDepth, IntraSplitFlag);
       //ascend();
     }
+
+    ascend();
 
     tb->distortion            += tb->children[i]->distortion;
     tb->rate_withoutCbfChroma += tb->children[i]->rate_withoutCbfChroma;
