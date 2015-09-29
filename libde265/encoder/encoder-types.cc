@@ -81,8 +81,6 @@ enc_tb::enc_tb(int x,int y,int log2TbSize, enc_cb* _cb)
   TrafoDepth = 0;
   cbf[0] = cbf[1] = cbf[2] = 0;
 
-  metadata_in_image = 0;
-
   distortion = 0;
   rate = 0;
   rate_withoutCbfChroma = 0;
@@ -290,283 +288,6 @@ void enc_tb::set_cbf_flags_from_children()
 }
 
 
-int enc_cb::writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags)
-{
-  return 0;
-
-  logdebug(LogEncoderMetadata,"enc_cb::writeMetadata_CBOnly (%d;%d x%d)\n",x,y,1<<log2Size);
-
-  int missing = whatFlags & ~metadata_in_image;
-  if (!missing) {
-    return 0; // leave early if we have everything we need
-  }
-
-  int written = 0;
-
-  if (missing & METADATA_CT_DEPTH) {
-    img->set_ctDepth(x,y,log2Size, ctDepth);
-    written |= METADATA_CT_DEPTH;
-  }
-
-  metadata_in_image |= written;
-
-  return written;
-}
-
-
-int enc_cb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
-{
-  return 0;
-
-  logdebug(LogEncoderMetadata,"enc_cb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
-
-  int missing = whatFlags & ~metadata_in_image;
-  if (!missing) {
-    return 0; // leave early if we have everything we need
-  }
-
-  int written = 0;
-
-  if (split_cu_flag) {
-    int written = whatFlags;
-
-    for (int i=0;i<4;i++)
-      written &= children[i]->writeMetadata(ectx, img,whatFlags);
-  }
-  else {
-    written |= writeMetadata_CBOnly(ectx,img,whatFlags);
-    written |= transform_tree->writeMetadata(ectx, img,whatFlags);
-  }
-
-  metadata_in_image |= written;
-
-  return written;
-}
-
-
-int enc_tb::writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags)
-{
-  return 0;
-
-  logdebug(LogEncoderMetadata,"enc_tb::writeMetadata (%d;%d x%d)\n",x,y,1<<log2Size);
-
-  int missing = whatFlags & ~metadata_in_image;
-  if (!missing) {
-    return 0; // leave early if we have everything we need
-  }
-
-  int written = 0;
-
-
-  // write CB data
-
-  // We have to write intra modes at the highest level possible, because the PB-size is
-  // half of the CB size and TB sizes may be smaller than the min PB size.
-  // If we would write in a lower TB, it could be smaller than PB-min and no metadata
-  // would be written at all.
-
-  if (missing & METADATA_INTRA_MODES) {
-    if (cb->PartMode == PART_2Nx2N && TrafoDepth==0) {
-      img->set_IntraPredMode(x,y,log2Size, intra_mode);
-    }
-    else if (cb->PartMode == PART_NxN && TrafoDepth==1) {
-      img->set_IntraPredMode(x,y,log2Size, intra_mode);
-    }
-
-    //img->set_IntraPredModeC(int x,int y) const
-
-    logdebug(LogEncoderMetadata,"  writeIntraPredMode=%d (log2size=%d)\n",log2Size);
-
-    written |= METADATA_INTRA_MODES;
-  }
-
-
-  if (split_transform_flag) {
-    int written = whatFlags;
-
-    for (int i=0;i<4;i++)
-      written &= children[i]->writeMetadata(ectx, img,whatFlags);
-  }
-  else {
-    //printf("write intra pred mode (%d;%d) = %d\n",x,y,intra_mode);
-
-    if (missing & METADATA_RECONSTRUCTION_BORDERS ||
-        missing & METADATA_RECONSTRUCTION) {
-      reconstruct(ectx, img);
-
-      written |= (METADATA_RECONSTRUCTION_BORDERS |
-                  METADATA_RECONSTRUCTION);
-    }
-  }
-
-  metadata_in_image |= written;
-
-  return written;
-}
-
-
-void enc_tb::writeSurroundingMetadata(encoder_context* ectx,
-                                      de265_image* img, int whatFlags,
-                                      const rectangle& borderRect)
-{
-  return;
-
-  logdebug(LogEncoderMetadata,
-           "enc_tb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",x,y,1<<log2Size,
-           borderRect.left,borderRect.right,
-           borderRect.top, borderRect.bottom,
-           whatFlags);
-
-  // --- first check whether we have to go up in the tree ---
-
-  const bool partOfBorderIsLeftOrTopOfTB = (borderRect.left <= x || borderRect.top <= y);
-
-  if (partOfBorderIsLeftOrTopOfTB) {
-    if (parent) {
-      // there is a parent TB
-
-      parent->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
-    }
-    else {
-      // go through parent CB
-
-      assert(cb);
-      cb->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
-    }
-  }
-  else {
-    // We do not have to go further up. Process tree down.
-
-    writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-  }
-}
-
-
-void enc_cb::writeSurroundingMetadata(encoder_context* ectx,
-                                      de265_image* img, int whatFlags,
-                                      const rectangle& borderRect)
-{
-  return;
-
-  logdebug(LogEncoderMetadata,
-           "enc_cb::writeSurroundingMetadata (%d;%d x%d) (%d;%d;%d;%d) flags=%d\n",
-           x,y,1<<log2Size,
-           borderRect.left,borderRect.right,
-           borderRect.top,borderRect.bottom,
-           whatFlags);
-
-  const bool partOfBorderIsLeftOrTopOfTB = (borderRect.left <= x || borderRect.top <= y);
-
-  if (parent && partOfBorderIsLeftOrTopOfTB) {
-    // go further up if we have to and this is not the root
-
-    parent->writeSurroundingMetadata(ectx, img, whatFlags, borderRect);
-  }
-  else {
-    // if we do not need to go up, go down.
-
-    writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-  }
-}
-
-
-void enc_tb::writeSurroundingMetadataDown(encoder_context* ectx,
-                                          de265_image* img, int whatFlags,
-                                          const rectangle& borderRect)
-{
-  return;
-
-  logdebug(LogEncoderMetadata,
-           "enc_tb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
-
-
-  // If we do not overlap with the border, we can stop here to process the tree.
-
-  if (borderRect.left <= x && borderRect.top <= y) {
-    // case A: we do not overlap with the border (right side or below border) -> NOP
-    return;
-  }
-  if (x+(1<<log2Size) < borderRect.left ||
-      y+(1<<log2Size) < borderRect.top) {
-    // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
-    return;
-  }
-  else if (x >= borderRect.right ||
-           y >= borderRect.bottom) {
-    // case C: we do not overlap with the border (right side or below border) -> NOP
-    return;
-  }
-
-
-
-  // --- write metadata or recurse to deeper TB level ---
-
-  if ((metadata_in_image & whatFlags) == whatFlags) {
-    // nothing to do, data already exists
-  }
-  else if (!split_transform_flag) {
-    writeMetadata(ectx, img, whatFlags);
-  }
-  else {
-    for (int i=0;i<4;i++)
-      if (children[i] != NULL) {
-        children[i]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-      }
-  }
-}
-
-
-void enc_cb::writeSurroundingMetadataDown(encoder_context* ectx,
-                                          de265_image* img, int whatFlags,
-                                          const rectangle& borderRect)
-{
-  return;
-
-  logdebug(LogEncoderMetadata,
-           "enc_cb::writeSurroundingMetadataDown (%d;%d x%d) (%d;%d;%d;%d)\n",x,y,1<<log2Size,
-           borderRect.left,borderRect.right, borderRect.top,borderRect.bottom);
-
-  if ((metadata_in_image & whatFlags) == whatFlags) {
-    // nothing to do, data already exists
-
-    return;
-  }
-
-
-  // If we do not overlap with the border, we can stop here to process the tree.
-
-  if (borderRect.left <= x && borderRect.top <= y) {
-    // case A: we do not overlap with the border (right side or below border) -> NOP
-    return;
-  }
-  if (x+(1<<log2Size) < borderRect.left ||
-      y+(1<<log2Size) < borderRect.top) {
-    // case B: we do not overlap with the border (left side of or above borderRect) -> NOP
-    return;
-  }
-  else if (x >= borderRect.right ||
-           y >= borderRect.bottom) {
-    // case C: we do not overlap with the border (right side or below border) -> NOP
-    return;
-  }
-
-
-  if (!split_cu_flag) {
-    writeMetadata_CBOnly(ectx, img, whatFlags);
-
-    transform_tree->writeSurroundingMetadataDown(ectx,img,whatFlags,borderRect);
-  }
-  else {
-    for (int i=0;i<4;i++)
-      if (children[i] != NULL) {
-        children[i]->writeSurroundingMetadataDown(ectx, img, whatFlags, borderRect);
-      }
-  }
-}
-
-
-
 
 alloc_pool enc_cb::mMemPool(sizeof(enc_cb), 200);
 
@@ -581,7 +302,6 @@ enc_cb::enc_cb()
 {
   parent = NULL;
   downPtr = NULL;
-  metadata_in_image = 0;
 
   if (DEBUG_ALLOCS) { allocCB++; printf("CB  : %d\n",allocCB); }
 }
@@ -707,7 +427,6 @@ void enc_cb::debug_dumpTree(int flags, int indent) const
 
   std::cout << indentStr << "| split_cu_flag: " << int(split_cu_flag) << "\n";
   std::cout << indentStr << "| ctDepth:       " << int(ctDepth) << "\n";
-  std::cout << indentStr << "| metadata_in_image: " << int(metadata_in_image) << "\n";
 
   if (split_cu_flag) {
     for (int i=0;i<4;i++)
@@ -746,7 +465,6 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
             << int(cbf[0]) << ":"
             << int(cbf[1]) << ":"
             << int(cbf[2]) << "\n";
-  std::cout << indentStr << "| metadata_in_image: " << int(metadata_in_image) << "\n";
 
 
   if (flags & DUMPTREE_RECONSTRUCTION) {
@@ -784,68 +502,6 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
   }
 }
 
-
-void enc_tb::debug_assertTreeConsistency(const de265_image* img) const
-{
-  return;
-
-  if (metadata_in_image & METADATA_INTRA_MODES) {
-    assert(cb);
-    if ((cb->PartMode == PART_2Nx2N && TrafoDepth==0) ||
-        (cb->PartMode == PART_NxN   && TrafoDepth==1)) {
-      for (int cy=y;cy<y+(1<<log2Size);cy++)
-        for (int cx=x;cx<x+(1<<log2Size);cx++) {
-          assert(img->get_IntraPredMode(cx,cy) == intra_mode);
-        }
-    }
-  }
-
-
-
-  // when this is a split node, check that all metadata-flags in this node
-  // are also set in the children
-
-  if (split_transform_flag) {
-    for (int i=0;i<4;i++)
-      if (children[i]) {
-        // flags set in this node also have to be set in child node
-        assert((children[i]->metadata_in_image & metadata_in_image) == metadata_in_image);
-
-        // check children node
-        children[i]->debug_assertTreeConsistency(img);
-      }
-  }
-}
-
-
-void enc_cb::debug_assertTreeConsistency(const de265_image* img) const
-{
-  return;
-
-  if (metadata_in_image & METADATA_CT_DEPTH) {
-    for (int cy=y;cy<y+(1<<log2Size);cy++)
-      for (int cx=x;cx<x+(1<<log2Size);cx++) {
-        assert(img->get_ctDepth(cx,cy) == ctDepth);
-      }
-  }
-
-
-  // when this is a split node, check that all metadata-flags in this node
-  // are also set in the children
-
-  if (split_cu_flag) {
-    for (int i=0;i<4;i++)
-      if (children[i]) {
-        // check children node
-        children[i]->debug_assertTreeConsistency(img);
-      }
-  }
-  else {
-    if (transform_tree) {
-      transform_tree->debug_assertTreeConsistency(img);
-    }
-  }
-}
 
 
 const enc_tb* enc_cb::getTB(int x,int y) const

@@ -85,7 +85,6 @@ class CodingOptions
 
   context_model_table* mContextModelInput;
 
-  int mCurrentlyReconstructedOption;
   int mBestRDO;
 
   std::vector<CodingOptionData> mOptions;

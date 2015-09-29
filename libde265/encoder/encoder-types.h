@@ -81,35 +81,6 @@ public:
   uint8_t  log2Size : 3;
 
 
-  // reconstruction
-
-  static const int METADATA_RECONSTRUCTION_BORDERS = (1<<0);
-  static const int METADATA_RECONSTRUCTION = (1<<1);
-  static const int METADATA_INTRA_MODES    = (1<<2);
-  static const int METADATA_CT_DEPTH       = (1<<3);
-  static const int METADATA_ALL            = 0xFF;
-
-  struct rectangle {
-    rectangle() { }
-    rectangle(int l,int t,int r, int b) : left(l), top(t), right(r), bottom(b) { }
-
-    int left,top,right,bottom;
-  };
-
-  rectangle get_rectangle() {
-    return get_rectangle_with_width(1<<log2Size);
-  }
-
-  rectangle get_rectangle_with_width(int size) {
-    rectangle r;
-    r.left = x;
-    r.top  = y;
-    r.right  = x+size;
-    r.bottom = y+size;
-    return r;
-  }
-
-
   static const int DUMPTREE_INTRA_PREDICTION = (1<<0);
   static const int DUMPTREE_RESIDUAL         = (1<<1);
   static const int DUMPTREE_RECONSTRUCTION   = (1<<2);
@@ -140,8 +111,6 @@ class enc_tb : public enc_node
   enum IntraPredMode intra_mode_chroma;
 
   uint8_t cbf[3];
-
-  uint8_t metadata_in_image;
 
 
   /* intra_prediction and residual is filled in tb-split, because this is where we decide
@@ -186,36 +155,6 @@ class enc_tb : public enc_node
   const enc_tb* getTB(int x,int y) const;
 
 
-  // === metadata ===
-
-  // externally modified metadata
-  // We call this before doing the actual modification. This allows to save e.g.
-  // pixel data that has been reconstructed into the image to be copied into the TB
-  // as it will most probably be needed later again.
-  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL);
-
-  // externally wrote metadata
-  //void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
-
-  int  writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
-
-  /*
-       +--------------------------------+
-       |////////////////////////////////|
-       |//+-----------------------------+
-       |//|1                            |2
-       |//|                             |
-       |//|         borderRect          |
-       |//|                             |
-       |//|                             |
-       +--+-----------------------------+
-       .   3                             4
-
-       Write all metadata in the shaded area around the borderRect.
-   */
-  void writeSurroundingMetadata(encoder_context* ectx,
-                                de265_image* img, int whatFlags, const rectangle& borderRect);
-
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
   static void operator delete(void* obj) { mMemPool.delete_obj(obj); }
@@ -224,31 +163,12 @@ class enc_tb : public enc_node
 
   virtual void debug_dumpTree(int flags, int indent=0) const;
 
-  void debug_assertTreeConsistency(const de265_image*) const;
-
 private:
   static alloc_pool mMemPool;
 
   void reconstruct_tb(encoder_context* ectx,
                       de265_image* img, int x0,int y0, int log2TbSize,
                       int cIdx) const;
-
-
-  void invalidateMetadataUpwardsInTree(int whatFlags)
-  {
-    if (metadata_in_image & whatFlags) {
-      metadata_in_image &= ~whatFlags;
-
-      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
-    }
-  }
-
-  // internal use only
-  void writeSurroundingMetadataDown(encoder_context* ectx,
-                                    de265_image* img, int whatFlags, const rectangle& rect);
-
-  // enc_cb may call writeSurroundingMetadataDown()
-  friend class enc_cb;
 };
 
 
@@ -291,7 +211,6 @@ public:
   uint8_t split_cu_flag : 1;
   uint8_t ctDepth : 2;
 
-  uint8_t metadata_in_image;
 
   union {
     // split
@@ -347,54 +266,7 @@ public:
   const enc_tb* getTB(int x,int y) const;
 
 
-  // ===== METADATA =====
-
-  void invalidateMetadataInSubTree(const de265_image* img, int whatFlags = METADATA_ALL) {
-    // note: theoretically, this should be propagated upwards, but the way we use it,
-    // this will never be needed.
-
-    if (split_cu_flag) {
-      for (int i=0;i<4;i++) {
-        children[i]->invalidateMetadataInSubTree(img,whatFlags);
-      }
-    }
-    else if (transform_tree) {
-      transform_tree->invalidateMetadataInSubTree(img,whatFlags);
-    }
-
-    if (metadata_in_image & whatFlags) {
-      metadata_in_image &= ~whatFlags;
-
-      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
-    }
-  }
-
-  // externally wrote metadata
-  // void setHaveMetadata(int whatFlags) { metadata_in_image |= whatFlags; }
-
-  /** Write CB-data and TB-data into the image metadata.
-   */
-  int writeMetadata(encoder_context* ectx, de265_image* img, int whatFlags);
-
-  void writeSurroundingMetadata(encoder_context* ectx,
-                                de265_image* img, int whatFlags, const rectangle& rect);
-
-
-  void debug_writeBlack(encoder_context* ectx, de265_image* img) const
-  {
-    if (split_cu_flag) {
-      for (int i=0;i<4;i++)
-        children[i]->debug_writeBlack(ectx,img);
-    }
-    else {
-      transform_tree->debug_writeBlack(ectx,img);
-    }
-  }
-
-
   virtual void debug_dumpTree(int flags, int indent=0) const;
-
-  void debug_assertTreeConsistency(const de265_image*) const;
 
 
   // memory management
@@ -413,27 +285,6 @@ public:
   //void write_to_image(de265_image*) const;
 
   static alloc_pool mMemPool;
-
-  void invalidateMetadataUpwardsInTree(int whatFlags)
-  {
-    if (metadata_in_image & whatFlags) {
-      metadata_in_image &= ~whatFlags;
-
-      if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
-    }
-  }
-
-  // internal use only
-  void writeSurroundingMetadataDown(encoder_context* ectx,
-                                    de265_image* img, int whatFlags, const rectangle& rect);
-
-  /** Write the CB-data into the image metadata. Do not write TB data.
-      @return the metadata that has been written
-  */
-  int writeMetadata_CBOnly(encoder_context* ectx, de265_image* img, int whatFlags);
-
-  // enc_tb may call invalidateMetadataUpwardsInTree()
-  friend class enc_tb;
 };
 
 
@@ -502,27 +353,6 @@ inline int childY(int y0, int idx, int log2CbSize)
   return y0 + ((idx>>1) << (log2CbSize-1));
 }
 
-
-
-inline void enc_tb::invalidateMetadataInSubTree(const de265_image* img,
-                                                int whatFlags)
-{
-  // note: theoretically, this should be propagated upwards, but the way we use it,
-  // this will never be needed.
-
-  if (split_transform_flag) {
-    for (int i=0;i<4;i++) {
-      children[i]->invalidateMetadataInSubTree(img,whatFlags);
-    }
-  }
-
-  if (metadata_in_image & whatFlags) {
-    metadata_in_image &= ~whatFlags;
-
-    if (parent)  parent->invalidateMetadataUpwardsInTree(whatFlags);
-    else if (cb) cb->invalidateMetadataUpwardsInTree(whatFlags);
-  }
-}
 
 
 #endif

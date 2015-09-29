@@ -31,7 +31,6 @@ CodingOptions<node>::CodingOptions(encoder_context* ectx, node* _node, context_m
   mInputNode = _node;
   mContextModelInput = &tab;
 
-  mCurrentlyReconstructedOption=-1;
   mBestRDO=-1;
 
   mECtx = ectx;
@@ -155,10 +154,6 @@ node* CodingOptions<node>::return_best_rdo_node()
 
   assert(bestRDO>=0);
 
-  if (bestRDO != mCurrentlyReconstructedOption) {
-    //mOptions[bestRDO].cb->restore(mECtx->img);
-  }
-
   *mContextModelInput = mOptions[bestRDO].context;
 
 
@@ -187,13 +182,6 @@ void CodingOption<node>::begin()
 
   mParent->mOptions[mOptionIdx].computed = true;
 
-  if (mParent->mCurrentlyReconstructedOption >= 0) {
-    node* reconstructedNode = mParent->mOptions[mParent->mCurrentlyReconstructedOption].mNode;
-    reconstructedNode->invalidateMetadataInSubTree(mParent->mECtx->img);
-  }
-
-  mParent->mCurrentlyReconstructedOption = mOptionIdx;
-
   // link this node into the coding tree
 
   node* n = get_node();
@@ -204,7 +192,6 @@ void CodingOption<node>::begin()
 template <class node>
 void CodingOption<node>::end()
 {
-  assert(mParent->mCurrentlyReconstructedOption == mOptionIdx);
 }
 
 
