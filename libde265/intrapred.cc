@@ -439,8 +439,6 @@ void intra_border_computer<pixel_t>::preproc()
   sps = &img->sps;
   pps = &img->pps;
 
-  printf("preproc A %p -> sps = %p\n",this,sps);
-
   SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
   SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
 
@@ -524,12 +522,7 @@ void intra_border_computer<pixel_t>::preproc()
 
   available = &available_data[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
-  printf("preproc B %p -> sps = %p\n",this,sps);
-  printf("nT = %d\n",nT);
-
   memset(available-2*nT, 0, 4*nT+1);
-
-  printf("preproc %p -> sps = %p\n",this,sps);
 }
 
 
@@ -697,8 +690,6 @@ template <class pixel_t>
 void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
                                                        const CTBTreeMatrix& ctbs)
 {
-  printf("fill-from-cbttree %p -> sps = %p\n",this,sps);
-
   int xBLuma = xB * SubWidth;
   int yBLuma = yB * SubHeight;
 
@@ -717,10 +708,10 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
 
         bool availableN = NBlockAddr <= currBlockAddr;
 
-        int xN = (xB-1)*SubWidth;
-        int yN = (yB+y)*SubHeight;
+        int xN = xB-1;
+        int yN = yB+y;
 
-        const enc_cb* cb = ctbs.getCB(xN,yN);
+        const enc_cb* cb = ctbs.getCB(xN*SubWidth, yN*SubHeight);
 
         if (pps->constrained_intra_pred_flag) {
           if (cb->PredMode != MODE_INTRA)
@@ -751,10 +742,10 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
 
       bool availableN = NBlockAddr <= currBlockAddr;
 
-      int xN = (xB-1)*SubWidth;
-      int yN = (yB-1)*SubHeight;
+      int xN = xB-1;
+      int yN = yB-1;
 
-      const enc_cb* cb = ctbs.getCB(xN,yN);
+      const enc_cb* cb = ctbs.getCB(xN*SubWidth, yN*SubHeight);
 
       if (pps->constrained_intra_pred_flag) {
         if (cb->PredMode!=MODE_INTRA) {
@@ -789,10 +780,10 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
 
         bool availableN = NBlockAddr <= currBlockAddr;
 
-        int xN = (xB+x)*SubWidth;
-        int yN = (yB-1)*SubHeight;
+        int xN = xB+x;
+        int yN = yB-1;
 
-        const enc_cb* cb = ctbs.getCB(xN,yN);
+        const enc_cb* cb = ctbs.getCB(xN*SubWidth, yN*SubHeight);
 
         if (pps->constrained_intra_pred_flag) {
           if (cb->PredMode!=MODE_INTRA) {
