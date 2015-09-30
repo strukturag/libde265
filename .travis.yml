@@ -28,6 +28,21 @@ matrix:
   include:
     - compiler: clang
       env: HOST= WINE= DECODESTREAMS=
+  allow_failures:
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=--single-threaded
 
 before_install:
   - sh -c "if [ ! -z '$DECODESTREAMS' ]; then sudo add-apt-repository -y ppa:strukturag/libde265; fi"
