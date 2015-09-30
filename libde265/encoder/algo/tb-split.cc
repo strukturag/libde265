@@ -207,6 +207,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                              input, tb_no_split, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend(tb_no_split,"bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
+
     option_no_split.set_node(tb_no_split);
     option_no_split.end();
 
@@ -263,8 +264,6 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   options.compute_rdo_costs();
 
   enc_tb* bestTB = options.return_best_rdo_node();
-  bestTB->reconstruct(ectx, ectx->img); // TODO: we could also do this lazy on first access
-
   return bestTB;
 }
 

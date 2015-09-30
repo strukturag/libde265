@@ -111,6 +111,8 @@ class PixelAccessor
   int getTop() const { return mYMin; }
   int getHeight() const { return mHeight; }
 
+  void copyToImage(de265_image* img, int cIdx) const;
+
   static PixelAccessor invalid() {
     return PixelAccessor();
   }
@@ -193,6 +195,9 @@ class enc_tb : public enc_node
   const enc_tb* getTB(int x,int y) const;
 
   PixelAccessor getPixels(int x,int y, int cIdx, const seq_parameter_set& sps);
+
+  void writeReconstructionToImage(de265_image* img,
+                                  const seq_parameter_set* sps) const;
 
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }
@@ -304,6 +309,9 @@ public:
   // can only be called on the lowest-level CB (with TB-tree as its direct child)
   const enc_tb* getTB(int x,int y) const;
 
+  void writeReconstructionToImage(de265_image* img,
+                                  const seq_parameter_set* sps) const;
+
 
   virtual void debug_dumpTree(int flags, int indent=0) const;
 
@@ -362,6 +370,8 @@ class CTBTreeMatrix
   const enc_cb* getCB(int x,int y) const;
   const enc_tb* getTB(int x,int y) const;
 
+  void writeReconstructionToImage(de265_image* img,
+                                  const seq_parameter_set*) const;
 
  private:
   std::vector<enc_cb*> mCTBs;

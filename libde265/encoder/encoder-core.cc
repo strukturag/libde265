@@ -28,6 +28,7 @@
 #include <limits>
 #include <math.h>
 #include <iostream>
+#include <fstream>
 
 
 #define ENCODER_DEVELOPMENT 0
@@ -175,6 +176,8 @@ double encode_image(encoder_context* ectx,
   uint8_t* cb_plane   = ectx->img->get_image_plane(1);
   uint8_t* cr_plane   = ectx->img->get_image_plane(2);
 
+  double mse=0;
+
 
   // encode CTB by CTB
 
@@ -279,11 +282,14 @@ double encode_image(encoder_context* ectx,
                     x==ectx->sps.PicWidthInCtbsY-1);
         ectx->cabac_encoder.write_CABAC_term_bit(last);
 
-
         //delete cb;
 
         //ectx->free_all_pools();
+
+        mse += cb->distortion;
       }
+
+  mse /= ectx->img->get_width() * ectx->img->get_height();
 
 
   //reconstruction_sink.send_image(ectx->img);
@@ -297,9 +303,26 @@ double encode_image(encoder_context* ectx,
 
   // frame PSNR
 
-  double psnr = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
-                         luma_plane, ectx->img->get_image_stride(0),
-                         input->get_width(), input->get_height()));
+  ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->sps);
+
+#if 0
+  std::ofstream ostr("out.pgm");
+  ostr << "P5\n" << ectx->img->get_width() << " " << ectx->img->get_height() << "\n255\n";
+  for (int y=0;y<ectx->img->get_height();y++) {
+    ostr.write( (char*)ectx->img->get_image_plane_at_pos(0,0,y), ectx->img->get_width() );
+  }
+#endif
+
+  double psnr = 10*log10(255.0*255.0 / mse);
+
+#if 0
+  double psnr2 = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
+                          luma_plane, ectx->img->get_image_stride(0),
+                          input->get_width(), input->get_height()));
+
+  printf("rate-estim PSNR: %f vs %f\n",psnr,psnr2);
+#endif
+
   return psnr;
 }
 

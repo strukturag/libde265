@@ -613,6 +613,45 @@ const enc_tb* CTBTreeMatrix::getTB(int x,int y) const
 }
 
 
+void CTBTreeMatrix::writeReconstructionToImage(de265_image* img,
+                                               const seq_parameter_set* sps) const
+{
+  for (int i=0;i<mCTBs.size();i++) {
+    const enc_cb* cb = mCTBs[i];
+    cb->writeReconstructionToImage(img, sps);
+  }
+}
+
+void enc_cb::writeReconstructionToImage(de265_image* img,
+                                        const seq_parameter_set* sps) const
+{
+  if (split_cu_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->writeReconstructionToImage(img,sps);
+    }
+  }
+  else {
+    transform_tree->writeReconstructionToImage(img,sps);
+  }
+}
+
+void enc_tb::writeReconstructionToImage(de265_image* img,
+                                        const seq_parameter_set* sps) const
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->writeReconstructionToImage(img,sps);
+    }
+  }
+  else {
+    PixelAccessor lumaPixels(*reconstruction[0], x,y);
+    lumaPixels.copyToImage(img, 0);
+
+    // TODO: chroma pixels
+  }
+}
+
+
 PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& sps)
 {
   int xL = x <<  sps.get_chroma_shift_W(cIdx);
@@ -644,5 +683,17 @@ PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& 
     assert(false); // not supported yet
 
     return PixelAccessor::invalid();
+  }
+}
+
+
+void PixelAccessor::copyToImage(de265_image* img, int cIdx) const
+{
+  uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
+  int stride = img->get_image_stride(cIdx);
+
+  for (int y=0;y<mHeight;y++) {
+    memcpy(p, mBase+mXMin+(y+mYMin)*mStride, mWidth);
+    p += stride;
   }
 }
