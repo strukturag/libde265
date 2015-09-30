@@ -611,3 +611,38 @@ const enc_tb* CTBTreeMatrix::getTB(int x,int y) const
 
   return tb->getTB(x,y);
 }
+
+
+PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& sps)
+{
+  int xL = x <<  sps.get_chroma_shift_W(cIdx);
+  int yL = y <<  sps.get_chroma_shift_H(cIdx);
+
+  const enc_tb* tb = getTB(xL,yL);
+
+  if (cIdx==0 || sps.chroma_format_idc == CHROMA_444) {
+    return PixelAccessor(*tb->reconstruction[cIdx], tb->x, tb->y);
+  }
+  else if (sps.chroma_format_idc == CHROMA_420) {
+    if (tb->log2Size > 2) {
+      return PixelAccessor(*tb->reconstruction[cIdx],
+                           tb->x >> 1,
+                           tb->y >> 1);
+    }
+    else {
+      enc_tb* parent = tb->parent;
+      tb = parent->children[3];
+
+      return PixelAccessor(*tb->reconstruction[cIdx],
+                           parent->x >> 1,
+                           parent->y >> 1);
+    }
+  }
+  else {
+    assert(sps.chroma_format_idc == CHROMA_422);
+
+    assert(false); // not supported yet
+
+    return PixelAccessor::invalid();
+  }
+}

@@ -184,7 +184,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
   CodingOption<enc_tb> option_split    = options.new_option(test_split);
 
   //if (test_no_split) test_split = false;
-  //if (test_split) test_no_split = false;
+  //if (test_split) test_no_split = false;   // HACK for debugging
 
   options.start();
 

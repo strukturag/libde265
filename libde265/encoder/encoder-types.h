@@ -90,6 +90,44 @@ public:
 };
 
 
+class PixelAccessor
+{
+ public:
+  PixelAccessor(small_image_buffer& buf, int x0,int y0) {
+    mBase = buf.get_buffer_u8();
+    mStride = buf.getStride();
+    mXMin = x0;
+    mYMin = y0;
+    mWidth = buf.getWidth();
+    mHeight= buf.getHeight();
+
+    mBase -= x0 + y0*mStride;
+  }
+
+  const uint8_t* operator[](int y) const { return mBase+y*mStride; }
+
+  int getLeft() const { return mXMin; }
+  int getWidth() const { return mWidth; }
+  int getTop() const { return mYMin; }
+  int getHeight() const { return mHeight; }
+
+  static PixelAccessor invalid() {
+    return PixelAccessor();
+  }
+
+ private:
+  uint8_t* mBase;
+  short   mStride;
+  short   mXMin,  mYMin;
+  uint8_t mWidth, mHeight;
+
+  PixelAccessor() {
+    mBase = NULL;
+    mStride = mXMin = mYMin = mWidth = mHeight = 0;
+  }
+};
+
+
 class enc_tb : public enc_node
 {
  public:
@@ -154,6 +192,7 @@ class enc_tb : public enc_node
 
   const enc_tb* getTB(int x,int y) const;
 
+  PixelAccessor getPixels(int x,int y, int cIdx, const seq_parameter_set& sps);
 
   /*
   static void* operator new(const size_t size) { return mMemPool.new_obj(size); }

@@ -546,16 +546,24 @@ void fill_border_samples_from_tree(const de265_image* img,
   intra_border_computer<pixel_t> c;
 
   // xB,yB in component specific resolution
-  int xB = tb->x;
-  int yB = tb->y;
+  int xB,yB;
+  int nT = 1<<tb->log2Size;
 
-  // TODO: proper chroma handling
+  xB = tb->x;
+  yB = tb->y;
+
   if (cIdx > 0) {
+    // TODO: proper chroma handling
     xB >>= 1;
     yB >>= 1;
-  }
+    nT >>= 1;
 
-  int nT = 1<<tb->log2Size;
+    if (tb->log2Size==2) {
+      xB = tb->parent->x >> 1;
+      yB = tb->parent->y >> 1;
+      nT = 4;
+    }
+  }
 
   c.init(out_border, img, nT, cIdx, xB, yB);
   c.preproc();
@@ -706,19 +714,13 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
         }
 
         if (availableN) {
-          const enc_tb* tb = cb->getTB(xN,yN);
+          PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
-          uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-          int stride = tb->reconstruction[cIdx]->getStride();
-
-          int xTbC = tb->x / SubWidth;
-          int yTbC = tb->y / SubHeight;
-
-          if (!nAvail) firstValue = pixelBuf[xB-1-xTbC + (yB+y-yTbC)*stride];
+          if (!nAvail) firstValue = pa[yB+y][xB-1];
 
           for (int i=0;i<4;i++) {
             available[-y+i-1] = availableN;
-            out_border[-y+i-1] = pixelBuf[xB-1-xTbC + (yB+y-i-yTbC)*stride];
+            out_border[-y+i-1] = pa[yB+y-i][xB-1];
           }
 
           nAvail+=4;
@@ -747,18 +749,12 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
       }
 
       if (availableN) {
-        const enc_tb* tb = cb->getTB(xN,yN);
+        PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
-        uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-        int stride = tb->reconstruction[cIdx]->getStride();
-
-        int xTbC = tb->x / SubWidth;
-        int yTbC = tb->y / SubHeight;
-
-        if (!nAvail) firstValue = pixelBuf[xB-1-xTbC + (yB-1-yTbC)*stride];
-
-        out_border[0] = pixelBuf[xB-1-xTbC + (yB-1-yTbC)*stride];
+        out_border[0] = pa[yB-1][xB-1];
         available[0] = availableN;
+
+        if (!nAvail) firstValue = out_border[0];
         nAvail++;
       }
     }
@@ -792,18 +788,12 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
 
 
         if (availableN) {
-          const enc_tb* tb = cb->getTB(xN,yN);
+          PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
-          uint8_t* pixelBuf = tb->reconstruction[cIdx]->get_buffer_u8();
-          int stride = tb->reconstruction[cIdx]->getStride();
-
-          int xTbC = tb->x / SubWidth;
-          int yTbC = tb->y / SubHeight;
-
-          if (!nAvail) firstValue = pixelBuf[xB+x-xTbC + (yB-1-yTbC)*stride];
+          if (!nAvail) firstValue = pa[yB-1][xB+x];
 
           for (int i=0;i<4;i++) {
-            out_border[x+i+1] = pixelBuf[xB+x+i-xTbC + (yB-1-yTbC)*stride];
+            out_border[x+i+1] = pa[yB-1][xB+x+i];
             available[x+i+1] = availableN;
           }
 
@@ -1187,8 +1177,8 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
   }
 
   int nT = 1<<tb->log2Size;
-  if (cIdx>0) {
-    nT >>= 1; // TODO: 4:2:2 / 4:4:4
+  if (cIdx>0 && tb->log2Size>2 && sps.chroma_format_idc == CHROMA_420) {
+    nT >>= 1; // TODO: 4:2:2
   }
 
 
