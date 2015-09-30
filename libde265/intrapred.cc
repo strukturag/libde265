@@ -28,6 +28,11 @@
 #include <sys/types.h>
 #include <string.h>
 
+// Actually, the largest TB block can only be 32, but in some intra-pred-mode algorithms
+// (e.g. min-residual), we may call intra prediction on the maximum CTB size (64).
+static const int MAX_INTRA_PRED_BLOCK_SIZE = 64;
+
+
 
 #ifdef DE265_LOG_TRACE
 template <class pixel_t>
@@ -350,7 +355,7 @@ struct intra_border_computer
   const seq_parameter_set* sps;
   const pic_parameter_set* pps;
 
-  uint8_t available_data[2*64 + 1];
+  uint8_t available_data[4*MAX_INTRA_PRED_BLOCK_SIZE + 1];
   uint8_t* available;
 
   int SubWidth;
@@ -370,6 +375,8 @@ struct intra_border_computer
             const de265_image* _img, int _nT, int _cIdx, int _xB, int _yB) {
     img=_img; nT=_nT; cIdx=_cIdx;
     out_border=_out_border; xB=_xB; yB=_yB;
+
+    assert(nT <= MAX_INTRA_PRED_BLOCK_SIZE);
 
     availableLeft=true;
     availableTop=true;
@@ -431,6 +438,8 @@ void intra_border_computer<pixel_t>::preproc()
 {
   sps = &img->sps;
   pps = &img->pps;
+
+  printf("preproc A %p -> sps = %p\n",this,sps);
 
   SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
   SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
@@ -513,9 +522,14 @@ void intra_border_computer<pixel_t>::preproc()
 
   nAvail=0;
 
-  available = &available_data[64];
+  available = &available_data[2*MAX_INTRA_PRED_BLOCK_SIZE];
+
+  printf("preproc B %p -> sps = %p\n",this,sps);
+  printf("nT = %d\n",nT);
 
   memset(available-2*nT, 0, 4*nT+1);
+
+  printf("preproc %p -> sps = %p\n",this,sps);
 }
 
 
@@ -683,7 +697,7 @@ template <class pixel_t>
 void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
                                                        const CTBTreeMatrix& ctbs)
 {
-  assert(nT<=32);
+  printf("fill-from-cbttree %p -> sps = %p\n",this,sps);
 
   int xBLuma = xB * SubWidth;
   int yBLuma = yB * SubHeight;
@@ -828,6 +842,9 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
     case 8:  filterFlag = (minDistVerHor>7) ? 1 : 0; break;
     case 16: filterFlag = (minDistVerHor>1) ? 1 : 0; break;
     case 32: filterFlag = (minDistVerHor>0) ? 1 : 0; break;
+      // there is no official 64x64 TB block, but we call this for some intra-pred mode algorithms
+      // on the whole CB (2Nx2N mode for the whole CTB)
+    case 64: filterFlag = 0; break;
     default: filterFlag = -1; assert(false); break; // should never happen
     }
   }
@@ -841,8 +858,8 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
                      abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(sps.bit_depth_luma-5)))
       ? 1 : 0;
 
-    pixel_t  pF_mem[2*64+1];
-    pixel_t* pF = &pF_mem[64];
+    pixel_t  pF_mem[4*32+1];
+    pixel_t* pF = &pF_mem[2*32];
 
     if (biIntFlag) {
       pF[-2*nT] = p[-2*nT];
@@ -897,7 +914,7 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
                               int nT,int cIdx,
                               pixel_t* border)
 {
-  pixel_t  ref_mem[2*64+1];
+  pixel_t  ref_mem[2*64+1]; // TODO: what is the required range here ?
   pixel_t* ref=&ref_mem[64];
 
   assert(intraPredMode<35);
@@ -1067,8 +1084,8 @@ void decode_intra_prediction_internal(de265_image* img,
                                       pixel_t* dst, int dstStride,
                                       int nT, int cIdx)
 {
-  pixel_t  border_pixels_mem[2*64+1];
-  pixel_t* border_pixels = &border_pixels_mem[64];
+  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
@@ -1167,8 +1184,8 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
   pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
   int dstStride = tb->intra_prediction[cIdx]->getStride();
 
-  pixel_t  border_pixels_mem[2*64+1];
-  pixel_t* border_pixels = &border_pixels_mem[64];
+  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
 
