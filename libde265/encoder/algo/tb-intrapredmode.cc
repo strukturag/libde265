@@ -167,8 +167,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     options.start();
 
 
-    const de265_image* img = ectx->img;
-    const seq_parameter_set* sps = &img->sps;
+    const seq_parameter_set* sps = &ectx->sps;
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
                                 tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->sps);
@@ -284,7 +283,6 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
       for (int idx=0;idx<nPredModesEnabled();idx++) {
         enum IntraPredMode mode = getPredMode(idx);
-        //decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
 
         tb->intra_mode = mode;
         decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, 0);
@@ -306,7 +304,6 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     //intraMode=(IntraPredMode)17; // HACK
 
     //printf("INTRA MODE (%d;%d) = %d\n",x0,y0,intraMode);
-    // ectx->img->set_IntraPredMode(x0,y0,log2TbSize, intraMode); // DEPRECATED
 
     tb->intra_mode        = intraMode;
 
@@ -322,12 +319,6 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     tb->intra_mode_chroma = intraModeC;
 
-
-    /*
-      decode_intra_prediction(ectx->img, x0,y0,       intraMode, 1<< log2TbSize,    0);
-      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 1);
-      decode_intra_prediction(ectx->img, x0>>1,y0>>1, intraMode, 1<<(log2TbSize-1), 2);
-    */
 
     // Note: cannot prepare intra prediction pixels here, because this has to
     // be done at the lowest TB split level.
@@ -394,8 +385,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     int   minCostIdx=0;
     float minCandCost;
 
-    const de265_image* img = ectx->img;
-    const seq_parameter_set* sps = &img->sps;
+    const seq_parameter_set* sps = &ectx->sps;
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
                                 tb->x>0, tb->y>0, ectx->ctbs, &ectx->sps);
@@ -467,7 +457,6 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       opt_tb->intra_mode_chroma = intraModeC;
 
       option[i].begin();
-      //ectx->img->set_IntraPredMode(tb->x,tb->y,tb->log2Size, opt_tb->intra_mode);
 
       descend(opt_tb,"%d",opt_tb->intra_mode);
       opt_tb = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,opt_tb,

@@ -180,10 +180,12 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   }
 
 
-  // reconstruction
+  // --- reconstruction ---
 
-  // tb->reconstruct(ectx, ectx->img, cb, blkIdx);
-
+  /* We could compute the reconstruction lazy on first access. However, we currently
+     use it right away for computing the distortion.
+  */
+  tb->reconstruct(ectx, ectx->img);
 
 
   // measure rate
@@ -234,12 +236,6 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
 
   // measure distortion
-
-  /* We could compute the reconstruction lazy on first access. However, we currently
-     use it right away for computing the distortion.
-  */
-  tb->reconstruct(ectx, ectx->img);
-
 
   int tbSize = 1<<log2TbSize;
   tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
