@@ -905,8 +905,8 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
                               int nT,int cIdx,
                               pixel_t* border)
 {
-  pixel_t  ref_mem[2*64+1]; // TODO: what is the required range here ?
-  pixel_t* ref=&ref_mem[64];
+  pixel_t  ref_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1]; // TODO: what is the required range here ?
+  pixel_t* ref=&ref_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   assert(intraPredMode<35);
   assert(intraPredMode>=2);

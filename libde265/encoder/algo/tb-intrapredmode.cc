@@ -100,8 +100,13 @@ float estim_TB_bitrate(const encoder_context* ectx,
     case TBBitrateEstim_SATD_DCT:
     case TBBitrateEstim_SATD_Hadamard:
       {
-        int16_t coeffs[32*32];
-        int16_t diff[32*32];
+        int16_t coeffs[64*64];
+        int16_t diff[64*64];
+
+        // Usually, TBs are max. 32x32 big. However, it may be that this is still called
+        // for 64x64 blocks, because we are sometimes computing an intra pred mode for a
+        // whole CTB at once.
+        assert(blkSize <= 64);
 
         diff_blk(diff,blkSize,
                  input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
@@ -109,11 +114,38 @@ float estim_TB_bitrate(const encoder_context* ectx,
                  tb->intra_prediction[0]->getStride(),
                  blkSize);
 
-        if (method == TBBitrateEstim_SATD_Hadamard) {
-          ectx->acceleration.hadamard_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+        void (*transform)(int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
+
+
+        if (tb->log2Size == 6) {
+          // hack for 64x64 blocks: compute 4 times 32x32 blocks
+
+          if (method == TBBitrateEstim_SATD_Hadamard) {
+            transform = ectx->acceleration.hadamard_transform_8[6-1-2];
+
+            transform(coeffs,         &diff[0       ], 64);
+            transform(coeffs+1*32*32, &diff[32      ], 64);
+            transform(coeffs+2*32*32, &diff[32*64   ], 64);
+            transform(coeffs+3*32*32, &diff[32*64+32], 64);
+          }
+          else {
+            transform = ectx->acceleration.fwd_transform_8[6-1-2];
+
+            transform(coeffs,         &diff[0       ], 64);
+            transform(coeffs+1*32*32, &diff[32      ], 64);
+            transform(coeffs+2*32*32, &diff[32*64   ], 64);
+            transform(coeffs+3*32*32, &diff[32*64+32], 64);
+          }
         }
         else {
-          ectx->acceleration.fwd_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          assert(tb->log2Size-2 <= 3);
+
+          if (method == TBBitrateEstim_SATD_Hadamard) {
+            ectx->acceleration.hadamard_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          }
+          else {
+            ectx->acceleration.fwd_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          }
         }
 
         float distortion=0;
