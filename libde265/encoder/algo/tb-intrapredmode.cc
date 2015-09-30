@@ -31,69 +31,6 @@
 #include <iostream>
 
 
-#if 0
-enum IntraPredMode find_best_intra_mode(de265_image& img,int x0,int y0, int log2BlkSize, int cIdx,
-                                        const uint8_t* ref, int stride)
-{
-  //return INTRA_ANGULAR_20;
-
-  enum IntraPredMode best_mode;
-  int min_sad=-1;
-
-  enum IntraPredMode candidates[3];
-
-  const seq_parameter_set* sps = &img.sps;
-
-
-  fillIntraPredModeCandidates(candidates, x0,y0,
-                              x0>0, y0>0, ectx->ctbs, &ectx->sps);
-
-  // --- test candidates first ---
-
-  for (int idx=0;idx<3;idx++) {
-    enum IntraPredMode mode = (enum IntraPredMode)candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, 1<<log2BlkSize, cIdx);
-
-    uint32_t distortion = SSD(ref,stride,
-      img.get_image_plane_at_pos(cIdx, x0,y0), img.get_image_stride(cIdx),
-      1<<log2BlkSize, 1<<log2BlkSize);
-
-    int sad=distortion;
-
-    sad *= 0.5;
-    //sad *= 0.9;
-
-    if (mode==0 || sad<min_sad) {
-      min_sad = sad;
-      best_mode = (enum IntraPredMode)mode;
-    }
-  }
-
-
-  // --- test all modes ---
-
-  for (int idx=0;idx<35;idx++) {
-    enum IntraPredMode mode = (enum IntraPredMode)idx; //candidates[idx];
-    decode_intra_prediction(&img, x0,y0, (enum IntraPredMode)mode, 1<<log2BlkSize, cIdx);
-
-
-    uint32_t distortion = SSD(ref,stride,
-      img.get_image_plane_at_pos(cIdx, x0,y0), img.get_image_stride(cIdx),
-      1<<log2BlkSize, 1<<log2BlkSize);
-
-    int sad=distortion;
-
-    if (min_sad<0 || sad<min_sad) {
-      min_sad = sad;
-      best_mode = (enum IntraPredMode)mode;
-    }
-  }
-
-  return best_mode;
-}
-#endif
-
-
 float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
                                enum IntraPredMode intraMode,
                                enum IntraPredMode intraModeC,
@@ -133,10 +70,12 @@ float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
 
 float estim_TB_bitrate(const encoder_context* ectx,
                        const de265_image* input,
-                       int x0,int y0, int log2BlkSize,
+                       const enc_tb* tb,
                        enum TBBitrateEstimMethod method)
 {
-  int blkSize = 1<<log2BlkSize;
+  int x0 = tb->x;
+  int y0 = tb->y;
+  int blkSize = 1 << tb->log2Size;
 
   float distortion;
 
@@ -145,17 +84,17 @@ float estim_TB_bitrate(const encoder_context* ectx,
     case TBBitrateEstim_SSD:
       return SSD(input->get_image_plane_at_pos(0, x0,y0),
                  input->get_image_stride(0),
-                 ectx->img->get_image_plane_at_pos(0, x0,y0),
-                 ectx->img->get_image_stride(0),
-                 1<<log2BlkSize, 1<<log2BlkSize);
+                 tb->intra_prediction[0]->get_buffer_u8(),
+                 tb->intra_prediction[0]->getStride(),
+                 blkSize, blkSize);
       break;
 
     case TBBitrateEstim_SAD:
       return SAD(input->get_image_plane_at_pos(0, x0,y0),
                  input->get_image_stride(0),
-                 ectx->img->get_image_plane_at_pos(0, x0,y0),
-                 ectx->img->get_image_stride(0),
-                 1<<log2BlkSize, 1<<log2BlkSize);
+                 tb->intra_prediction[0]->get_buffer_u8(),
+                 tb->intra_prediction[0]->getStride(),
+                 blkSize, blkSize);
       break;
 
     case TBBitrateEstim_SATD_DCT:
@@ -166,14 +105,15 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
         diff_blk(diff,blkSize,
                  input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
-                 ectx->img->get_image_plane_at_pos(0, x0,y0), ectx->img->get_image_stride(0),
+                 tb->intra_prediction[0]->get_buffer_u8(),
+                 tb->intra_prediction[0]->getStride(),
                  blkSize);
 
         if (method == TBBitrateEstim_SATD_Hadamard) {
-          ectx->acceleration.hadamard_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          ectx->acceleration.hadamard_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
         }
         else {
-          ectx->acceleration.fwd_transform_8[log2BlkSize-2](coeffs, diff, &diff[blkSize] - &diff[0]);
+          ectx->acceleration.fwd_transform_8[tb->log2Size-2](coeffs, diff, &diff[blkSize] - &diff[0]);
         }
 
         float distortion=0;
@@ -340,12 +280,17 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
       intraMode = getPredMode(0);
     }
     else {
+      tb->intra_prediction[0] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
+
       for (int idx=0;idx<nPredModesEnabled();idx++) {
         enum IntraPredMode mode = getPredMode(idx);
-        decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+        //decode_intra_prediction(ectx->img, x0,y0, (enum IntraPredMode)mode, 1<<log2TbSize, 0);
+
+        tb->intra_mode = mode;
+        decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, 0);
 
         float distortion;
-        distortion = estim_TB_bitrate(ectx, input, x0,y0, log2TbSize,
+        distortion = estim_TB_bitrate(ectx, input, tb,
                                       mParams.bitrateEstimMethod());
 
         if (distortion<minDistortion) {
@@ -468,7 +413,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                   1<<tb->log2Size, 0);
 
           float distortion;
-          distortion = estim_TB_bitrate(ectx, input, tb->x,tb->y, tb->log2Size,
+          distortion = estim_TB_bitrate(ectx, input, tb,
                                         mParams.bitrateEstimMethod());
 
           distortions.push_back( std::make_pair((enum IntraPredMode)idx, distortion) );
