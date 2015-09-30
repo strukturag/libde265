@@ -44,11 +44,11 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->downPtr = ectx->ctbs.getCTBRootPointer(x,y);
   *cb->downPtr = cb;
 
-  ectx->img->set_QPY(x,y, cb->log2Size, ectx->active_qp);
+  cb->qp = ectx->active_qp;
 
-  // write currently unused coding options to image
-  ectx->img->set_cu_transquant_bypass(x,y,cb->log2Size, cb->cu_transquant_bypass_flag);
-  ectx->img->set_pcm_flag(x,y,cb->log2Size, cb->pcm_flag);
+  // write currently unused coding options
+  cb->cu_transquant_bypass_flag = false;
+  cb->pcm_flag = false;
 
   assert(mChildAlgo);
   descend(cb, "Q=%d",ectx->active_qp);

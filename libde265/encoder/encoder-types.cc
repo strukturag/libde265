@@ -627,7 +627,9 @@ void enc_cb::writeReconstructionToImage(de265_image* img,
 {
   if (split_cu_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->writeReconstructionToImage(img,sps);
+      if (children[i]) {
+        children[i]->writeReconstructionToImage(img,sps);
+      }
     }
   }
   else {
@@ -640,7 +642,9 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
-      children[i]->writeReconstructionToImage(img,sps);
+      if (children[i]) {
+        children[i]->writeReconstructionToImage(img,sps);
+      }
     }
   }
   else {
