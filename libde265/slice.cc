@@ -3006,7 +3006,8 @@ int residual_coding(thread_context* tctx,
     }
     else {
       scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredModeC(x0,y0), cIdx, sps);
-      //printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredModeC(x0,y0));
+      //printf("chroma scan idx=%d <- intra mode=%d chroma:%d trsize:%d\n",scanIdx,
+      //       img->get_IntraPredModeC(x0,y0), sps->chroma_format_idc, 1<<log2TrafoSize);
     }
   }
   else {
@@ -3118,6 +3119,9 @@ int residual_coding(thread_context* tctx,
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
+      logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n",
+               log2w,cIdx,scanIdx,prevCsbf);
+
 
       // set the last coded coefficient in the last subblock
 
@@ -3150,6 +3154,8 @@ int residual_coding(thread_context* tctx,
         else {
           ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
         }
+
+        logtrace(LogSlice,"trafoSize: %d\n",1<<log2TrafoSize);
 
         int significant_coeff = decode_significant_coeff_flag_lookup(tctx, ctxInc);
 

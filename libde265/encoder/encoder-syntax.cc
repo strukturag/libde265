@@ -765,14 +765,13 @@ void encode_residual(encoder_context* ectx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      //printf("encoder-syntax.cc:768 scanIdx intraMode(%d;%d)=%d\n",x0,y0, img->get_IntraPredMode(x0,y0));
-      scanIdx = get_intra_scan_idx_luma(log2TrafoSize, tb->intra_mode);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode,  cIdx, &sps);
       //printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, tb->intra_mode);
     }
     else {
-      enum IntraPredMode chromaMode = tb->intra_mode_chroma;
-      scanIdx = get_intra_scan_idx_chroma(log2TrafoSize, chromaMode);
-      //printf("chroma scan idx=%d <- intra mode=%d\n",scanIdx, tb->intra_mode_chroma);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode_chroma,  cIdx, &sps);
+      //printf("chroma scan idx=%d <- intra mode=%d chroma:%d trsize:%d\n",scanIdx,
+      //       tb->intra_mode_chroma, sps.chroma_format_idc, 1<<log2TrafoSize);
     }
   }
   else {
@@ -900,7 +899,8 @@ void encode_residual(encoder_context* ectx,
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
-
+      logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n",
+               log2w,cIdx,scanIdx,prevCsbf);
 
 
       // set the last coded coefficient in the last subblock
@@ -930,6 +930,7 @@ void encode_residual(encoder_context* ectx,
 
         logtrace(LogSlice,"coeff %d is significant: %d\n", n, isSignificant);
 
+        logtrace(LogSlice,"trafoSize: %d\n",1<<log2TrafoSize);
         logtrace(LogSlice,"context idx: %d;%d\n",xC,yC);
 
         encode_significant_coeff_flag_lookup(ectx, cabac,

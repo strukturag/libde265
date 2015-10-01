@@ -226,13 +226,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     separate_colour_plane_flag = 0;
   }
 
-  if (separate_colour_plane_flag) {
-    ChromaArrayType = 0;
-  }
-  else {
-    ChromaArrayType = chroma_format_idc;
-  }
-
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
     errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
@@ -464,6 +457,13 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
 
   SubWidthC  = SubWidthC_tab [chroma_format_idc];
   SubHeightC = SubHeightC_tab[chroma_format_idc];
+
+  if (separate_colour_plane_flag) {
+    ChromaArrayType = 0;
+  }
+  else {
+    ChromaArrayType = chroma_format_idc;
+  }
 
   if (ChromaArrayType==0) {
     WinUnitX = 1;
