@@ -1235,7 +1235,7 @@ void encode_transform_tree(encoder_context* ectx,
 
   // For 4x4 luma, there is no signaling of chroma CBF, because only the
   // chroma CBF for 8x8 is relevant.
-  if (log2TrafoSize>2) {
+  if (log2TrafoSize>2 || sps->ChromaArrayType == CHROMA_444) {
     if (trafoDepth==0 || tb->parent->cbf[1]) {
       encode_cbf_chroma(cabac, trafoDepth, tb->cbf[1]);
     }
