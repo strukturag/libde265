@@ -559,7 +559,9 @@ void fill_border_samples_from_tree(const de265_image* img,
   xB = tb->x;
   yB = tb->y;
 
-  if (cIdx > 0) {
+  if (img->sps.chroma_format_idc == CHROMA_444) {
+  }
+  else if (cIdx > 0) {
     // TODO: proper chroma handling
     xB >>= 1;
     yB >>= 1;

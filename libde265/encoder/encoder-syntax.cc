@@ -745,15 +745,15 @@ void encode_residual(encoder_context* ectx,
   }
 
 
-#if 0
-  printf("write coefficients\n");
+#if 1
+  logdebug(LogEncoder,"write coefficients\n");
   for (int y=0;y<(1<<log2TrafoSize);y++)
     {
       for (int x=0;x<(1<<log2TrafoSize);x++)
         {
-          printf("%4d ",coeff[x+y*(1<<log2TrafoSize)]);
+          logdebug(LogEncoder,"*%4d ",coeff[x+y*(1<<log2TrafoSize)]);
         }
-      printf("\n");
+      logdebug(LogEncoder,"*\n");
     }
 #endif
 
@@ -1158,8 +1158,13 @@ void encode_transform_unit(encoder_context* ectx,
       encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,0);
     }
 
-    // larger than 4x4
-    if (log2TrafoSize>2) {
+    if (ectx->sps.chroma_format_idc == CHROMA_444) {
+      encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,1);
+      encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,2);
+    }
+    else if (log2TrafoSize>2) {
+      // larger than 4x4
+
       if (tb->cbf[1]) {
         encode_residual(ectx,cabac,tb,cb,x0,y0,log2TrafoSize-1,1);
       }
