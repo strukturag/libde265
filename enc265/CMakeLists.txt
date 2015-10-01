@@ -1,5 +1,6 @@
 set (enc265_sources
   enc265.cc
+  image-io-png.cc
 )
 
 if(MSVC)
