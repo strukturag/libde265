@@ -136,6 +136,10 @@ de265_error encoder_context::encode_headers()
   sps.max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
   sps.max_transform_hierarchy_depth_inter = params.max_transform_hierarchy_depth_inter;
 
+  if (imgdata->input->get_chroma_format() == de265_chroma_444) {
+    sps.chroma_format_idc = CHROMA_444;
+  }
+
   sps.set_resolution(image_width, image_height);
   sop->set_SPS_header_values();
   de265_error err = sps.compute_derived_values(true);
@@ -230,11 +234,6 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   }
 
 
-  if (!headers_have_been_sent) {
-    encode_headers();
-  }
-
-
 
 
 
@@ -246,6 +245,13 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   this->imgdata = imgdata;
   this->shdr    = &imgdata->shdr;
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
+
+
+  // write headers if not written yet
+
+  if (!headers_have_been_sent) {
+    encode_headers();
+  }
 
 
   // write slice header

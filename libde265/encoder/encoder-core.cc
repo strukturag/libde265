@@ -140,7 +140,7 @@ double encode_image(encoder_context* ectx,
   ectx->img->pps  = ectx->pps;
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
-  ectx->img->alloc_image(w,h, de265_chroma_420, &ectx->sps, true,
+  ectx->img->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, true,
                          NULL /* no decctx */, ectx, 0,NULL,false);
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
@@ -148,7 +148,7 @@ double encode_image(encoder_context* ectx,
 #if 1
   if (1) {
     ectx->prediction = new de265_image;
-    ectx->prediction->alloc_image(w,h, de265_chroma_420, &ectx->sps, false /* no metadata */,
+    ectx->prediction->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, false /* no metadata */,
                                   NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
     ectx->prediction->vps = ectx->vps;
     ectx->prediction->sps = ectx->sps;

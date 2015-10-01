@@ -126,7 +126,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   int xC=x0;
   int yC=y0;
 
-  if (cIdx>0) {
+  if (cIdx>0 && ectx->sps.chroma_format_idc == CHROMA_420) {
     xC>>=1;
     yC>>=1;
   }
@@ -257,7 +257,11 @@ void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
   else {
     reconstruct_tb(ectx, img, x,y, log2Size, 0);
 
-    if (log2Size>2) {
+    if (ectx->sps.chroma_format_idc == CHROMA_444) {
+      reconstruct_tb(ectx, img, x,y, log2Size, 1);
+      reconstruct_tb(ectx, img, x,y, log2Size, 2);
+    }
+    else if (log2Size>2) {
       reconstruct_tb(ectx, img, x,y, log2Size-1, 1);
       reconstruct_tb(ectx, img, x,y, log2Size-1, 2);
     }
