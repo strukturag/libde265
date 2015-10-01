@@ -1159,8 +1159,12 @@ void encode_transform_unit(encoder_context* ectx,
     }
 
     if (ectx->sps.chroma_format_idc == CHROMA_444) {
-      encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,1);
-      encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,2);
+      if (tb->cbf[1]) {
+        encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,1);
+      }
+      if (tb->cbf[2]) {
+        encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,2);
+      }
     }
     else if (log2TrafoSize>2) {
       // larger than 4x4
