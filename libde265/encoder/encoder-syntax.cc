@@ -1557,10 +1557,20 @@ void encode_coding_unit(encoder_context* ectx,
 
         // send chroma mode
 
-        IntraChromaPredMode chromaPredMode;
-        chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[0]->intra_mode_chroma,
-                                               cb->transform_tree->children[0]->intra_mode);
-        encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+        if (sps->ChromaArrayType == CHROMA_444) {
+          for (int i=0;i<4;i++) {
+            IntraChromaPredMode chromaPredMode;
+            chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[i]->intra_mode_chroma,
+                                                   cb->transform_tree->children[i]->intra_mode);
+            encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+          }
+        }
+        else {
+          IntraChromaPredMode chromaPredMode;
+          chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[0]->intra_mode_chroma,
+                                                 cb->transform_tree->children[0]->intra_mode);
+          encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+        }
       }
 
       /*
