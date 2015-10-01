@@ -83,8 +83,15 @@ de265_image* ImageSource_PNG::get_image(bool block)
   int stride;
 
   for (int c=0;c<3;c++) {
-    p = img->get_image_plane(c);
-    stride = img->get_image_stride(c);
+    int h265channel;
+    switch (c) {
+    case 0: h265channel=2; break; // R
+    case 1: h265channel=0; break; // G
+    case 2: h265channel=1; break; // B
+    }
+
+    p = img->get_image_plane(h265channel);
+    stride = img->get_image_stride(h265channel);
 
     for (int y=0;y<mHeight;y++) {
       memcpy(p, input.AskFrame((BitmapChannel(c)))[y], mWidth);
