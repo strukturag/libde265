@@ -18,7 +18,10 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libde265/en265.h" //coder-context.h"
+#include "libde265/en265.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "libde265/configparam.h"
 #include "libde265/image-io.h"
