@@ -281,26 +281,39 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     spec.format = de265_image_format_YUV420P8;
     chroma_width  = (chroma_width +1)/2;
     chroma_height = (chroma_height+1)/2;
+    SubWidthC  = 2;
+    SubHeightC = 2;
     break;
 
   case de265_chroma_422:
     spec.format = de265_image_format_YUV422P8;
     chroma_width = (chroma_width+1)/2;
+    SubWidthC  = 2;
+    SubHeightC = 1;
     break;
 
   case de265_chroma_444:
     spec.format = de265_image_format_YUV444P8;
+    SubWidthC  = 1;
+    SubHeightC = 1;
     break;
 
   case de265_chroma_mono:
     spec.format = de265_image_format_mono8;
     chroma_width = 0;
     chroma_height= 0;
+    SubWidthC  = 1;
+    SubHeightC = 1;
     break;
 
   default:
     assert(false);
     break;
+  }
+
+  if (sps) {
+    assert(sps->SubWidthC  == SubWidthC);
+    assert(sps->SubHeightC == SubHeightC);
   }
 
   spec.width  = w;
@@ -331,9 +344,6 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   BitDepth_Y = (sps==NULL) ? 8 : sps->BitDepth_Y;
   BitDepth_C = (sps==NULL) ? 8 : sps->BitDepth_C;
-
-  SubWidthC  = (sps==NULL) ? 2 : sps->SubWidthC;
-  SubHeightC = (sps==NULL) ? 2 : sps->SubHeightC;
 
   bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
   bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;

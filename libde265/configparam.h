@@ -63,6 +63,7 @@ class option_base
 
   void set_description(std::string descr) { mDescription = descr; }
   std::string get_description() const { return mDescription; }
+  bool has_description() const { return !mDescription.empty(); }
 
 
   // --- value ---
@@ -130,8 +131,8 @@ public:
   void set_default(bool v) { default_value=v; default_set=true; }
   virtual std::string get_default_string() const { return default_value ? "true":"false"; }
 
-  virtual std::string getTypeDescr() const { return "boolean"; }
-  virtual LIBDE265_API bool processCmdLineArguments(char** argv, int* argc, int idx) { value=true; return true; }
+  virtual std::string getTypeDescr() const { return "(boolean)"; }
+  virtual LIBDE265_API bool processCmdLineArguments(char** argv, int* argc, int idx) { set(true); return true; }
 
   bool set(bool v) { value_set=true; value=v; return true; }
 

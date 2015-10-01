@@ -71,7 +71,6 @@ class ImageSource_YUV : public ImageSource
 
 
 
-
 class ImageSink
 {
  public:

@@ -241,6 +241,8 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
                                                      argv[i]+2)==0) {
             option_found=true;
 
+            printf("FOUND %s\n",argv[i]);
+
             bool success = mOptions[o]->processCmdLineArguments(argv,argc, i+1);
             if (!success) {
               if (first_idx_ptr) { *first_idx_ptr = i; }
@@ -346,6 +348,10 @@ void config_parameters::print_params() const
       sstr << ", default=" << o->get_default_string();
     }
 
+    if (o->has_description()) {
+      sstr << " : " << o->get_description();
+    }
+
     sstr << "\n";
 
     std::cerr << sstr.str();
@@ -399,7 +405,7 @@ std::vector<std::string> config_parameters::get_parameter_choices(const char* pa
 
   choice_option_base* o = dynamic_cast<choice_option_base*>(option);
   assert(o);
-  
+
   return o->get_choice_names();
 }
 
