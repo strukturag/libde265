@@ -225,11 +225,11 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       // set chroma mode to same mode is its luma mode
       enum IntraPredMode intraModeC;
 
-      if (cb->PartMode==PART_NxN) {
-        intraModeC = tb_option->parent->children[0]->intra_mode;
+      if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+        intraModeC = intraMode;
       }
       else {
-        intraModeC = intraMode;
+        intraModeC = tb_option->parent->children[0]->intra_mode;
       }
 
       tb_option->intra_mode_chroma = intraModeC;
@@ -342,11 +342,11 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     // set chroma mode to same mode is its luma mode
     enum IntraPredMode intraModeC;
 
-    if (cb->PartMode==PART_NxN) {
-      intraModeC = tb->parent->children[0]->intra_mode;
+    if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+      intraModeC = intraMode;
     }
     else {
-      intraModeC = intraMode;
+      intraModeC = tb->parent->children[0]->intra_mode;
     }
 
     tb->intra_mode_chroma = intraModeC;
@@ -479,11 +479,11 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       // set chroma mode to same mode is its luma mode
       enum IntraPredMode intraModeC;
-      if (cb->PartMode==PART_NxN) {
-        intraModeC = cb->transform_tree->children[0]->intra_mode;
+      if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+        intraModeC = opt_tb->intra_mode;
       }
       else {
-        intraModeC = opt_tb->intra_mode;
+        intraModeC = opt_tb->parent->children[0]->intra_mode;
       }
 
       opt_tb->intra_mode_chroma = intraModeC;
