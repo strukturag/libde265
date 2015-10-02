@@ -426,13 +426,17 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     std::vector< std::pair<enum IntraPredMode,float> > distortions;
 
+    int log2TbSize = tb->log2Size;
+    tb->intra_prediction[0] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
+
     for (int idx=0;idx<35;idx++)
       if (idx!=candidates[0] && idx!=candidates[1] && idx!=candidates[2] &&
           isPredModeEnabled((enum IntraPredMode)idx))
         {
           enum IntraPredMode mode = (enum IntraPredMode)idx;
-          decode_intra_prediction(ectx->img, tb->x,tb->y, (enum IntraPredMode)mode,
-                                  1<<tb->log2Size, 0);
+
+          tb->intra_mode = mode;
+          decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, 0);
 
           float distortion;
           distortion = estim_TB_bitrate(ectx, input, tb,
