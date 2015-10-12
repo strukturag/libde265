@@ -136,75 +136,81 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 
     reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
 
-    if (cb->PredMode == MODE_INTRA) {
-
-      //enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
-      enum IntraPredMode intraPredMode  = intra_mode;
-
-      if (cIdx>0) {
-        intraPredMode = intra_mode_chroma;
-      }
-
-      //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
-
-      //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
-
-      //printf("access intra-prediction of TB %p\n",this);
-
-      intra_prediction[cIdx]->copy_to(*reconstruction[cIdx]);
-      /*
-        copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
-        img->get_image_stride(cIdx),
-        intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
-        1<<log2TbSize, 1<<log2TbSize);
-      */
+    if (cb->PredMode == MODE_SKIP) {
+      PixelAccessor dstPixels(*reconstruction[cIdx], xC,yC);
+      dstPixels.copyFromImage(img, cIdx);
     }
-    else {
-      assert(0); // -> TODO: now only store in tb_enc
+    else { // not SKIP mode
+      if (cb->PredMode == MODE_INTRA) {
 
-      int size = 1<<log2TbSize;
+        //enum IntraPredMode intraPredMode  = img->get_IntraPredMode(x0,y0);
+        enum IntraPredMode intraPredMode  = intra_mode;
 
-      uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
-      int dst_stride  = img->get_image_stride(cIdx);
+        if (cIdx>0) {
+          intraPredMode = intra_mode_chroma;
+        }
 
-      uint8_t* src_ptr  = ectx->prediction->get_image_plane_at_pos(cIdx, xC,  yC  );
-      int src_stride  = ectx->prediction->get_image_stride(cIdx);
+        //printf("reconstruct TB (%d;%d): intra mode (cIdx=%d) = %d\n",xC,yC,cIdx,intraPredMode);
 
-      for (int y=0;y<size;y++) {
-        for (int x=0;x<size;x++) {
-          dst_ptr[y*dst_stride+x] = src_ptr[y*src_stride+x];
+        //decode_intra_prediction(img, xC,yC,  intraPredMode, 1<< log2TbSize   , cIdx);
+
+        //printf("access intra-prediction of TB %p\n",this);
+
+        intra_prediction[cIdx]->copy_to(*reconstruction[cIdx]);
+        /*
+          copy_subimage(img->get_image_plane_at_pos(cIdx,xC,yC),
+          img->get_image_stride(cIdx),
+          intra_prediction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+          1<<log2TbSize, 1<<log2TbSize);
+        */
+      }
+      else {
+        assert(0); // -> TODO: now only store in tb_enc
+
+        int size = 1<<log2TbSize;
+
+        uint8_t* dst_ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+        int dst_stride  = img->get_image_stride(cIdx);
+
+        uint8_t* src_ptr  = ectx->prediction->get_image_plane_at_pos(cIdx, xC,  yC  );
+        int src_stride  = ectx->prediction->get_image_stride(cIdx);
+
+        for (int y=0;y<size;y++) {
+          for (int x=0;x<size;x++) {
+            dst_ptr[y*dst_stride+x] = src_ptr[y*src_stride+x];
+          }
         }
       }
-    }
 
-    ALIGNED_16(int16_t) dequant_coeff[32*32];
+      ALIGNED_16(int16_t) dequant_coeff[32*32];
 
-    if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
+      if (cbf[cIdx]) dequant_coefficients(dequant_coeff, coeff[cIdx], log2TbSize, cb->qp);
 
-    if (0 && cbf[cIdx]) {
-      printf("--- quantized coeffs ---\n");
-      printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
+      if (0 && cbf[cIdx]) {
+        printf("--- quantized coeffs ---\n");
+        printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
 
-      printf("--- dequantized coeffs ---\n");
-      printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
-    }
+        printf("--- dequantized coeffs ---\n");
+        printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
+      }
 
 #if 0
-    uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
-    int stride  = img->get_image_stride(cIdx);
+      uint8_t* ptr  = img->get_image_plane_at_pos(cIdx, xC,  yC  );
+      int stride  = img->get_image_stride(cIdx);
 #endif
 
-    int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
+      int trType = (cIdx==0 && log2TbSize==2); // TODO: inter
 
-    //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
-    //printBlk("prediction",ptr,1<<log2TbSize,stride);
+      //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
+      //printBlk("prediction",ptr,1<<log2TbSize,stride);
 
-    if (cbf[cIdx]) inv_transform(&ectx->acceleration,
-                                 reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
-                                 dequant_coeff, log2TbSize,   trType);
+      if (cbf[cIdx]) inv_transform(&ectx->acceleration,
+                                   reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
+                                   dequant_coeff, log2TbSize,   trType);
 
-    //printBlk("RECO",reconstruction[cIdx]->get_buffer_u8(),1<<log2TbSize,
-    //         reconstruction[cIdx]->getStride());
+      //printBlk("RECO",reconstruction[cIdx]->get_buffer_u8(),1<<log2TbSize,
+      //         reconstruction[cIdx]->getStride());
+    }
   }
 
 
@@ -652,10 +658,44 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
     }
   }
   else {
+    // luma pixels
+
     PixelAccessor lumaPixels(*reconstruction[0], x,y);
     lumaPixels.copyToImage(img, 0);
 
-    // TODO: chroma pixels
+    // chroma pixels
+
+    if (sps->chroma_format_idc == CHROMA_444) {
+      PixelAccessor chroma1Pixels(*reconstruction[1], x,y);
+      chroma1Pixels.copyToImage(img, 1);
+      PixelAccessor chroma2Pixels(*reconstruction[2], x,y);
+      chroma2Pixels.copyToImage(img, 2);
+      assert(0);
+
+    }
+    else if (log2Size>2) {
+      PixelAccessor chroma1Pixels(*reconstruction[1], x>>1,y>>1);
+      chroma1Pixels.copyToImage(img, 1);
+      PixelAccessor chroma2Pixels(*reconstruction[2], x>>1,y>>1);
+      chroma2Pixels.copyToImage(img, 2);
+
+      //reconstruct_tb(ectx, img, x,y, log2Size-1, 1);
+      //reconstruct_tb(ectx, img, x,y, log2Size-1, 2);
+    }
+    else if (blkIdx==3) {
+      int xBase = x - (1<<log2Size);
+      int yBase = y - (1<<log2Size);
+
+      assert(0);
+
+      PixelAccessor chroma1Pixels(*reconstruction[1], xBase>>1,yBase>>1);
+      chroma1Pixels.copyToImage(img, 1);
+      PixelAccessor chroma2Pixels(*reconstruction[2], xBase>>1,yBase>>1);
+      chroma2Pixels.copyToImage(img, 2);
+
+      //reconstruct_tb(ectx, img, xBase,yBase, log2Size, 1);
+      //reconstruct_tb(ectx, img, xBase,yBase, log2Size, 2);
+    }
   }
 }
 

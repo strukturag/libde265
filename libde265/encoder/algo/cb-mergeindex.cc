@@ -137,6 +137,13 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     cb->rate = cabac.getRDBits();
 
     cb->inter.rqt_root_cbf = 0;
+
+
+    enc_tb* tb = new enc_tb(x0,y0,cb->log2Size,cb);
+    tb->downPtr = &cb->transform_tree;
+    cb->transform_tree = tb;
+
+    tb->reconstruct(ectx, ectx->img); // reconstruct luma
   }
 
   //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);

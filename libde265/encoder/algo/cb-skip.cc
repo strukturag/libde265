@@ -39,6 +39,8 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   bool try_skip  = (ectx->shdr->slice_type != SLICE_TYPE_I);
   bool try_nonskip = true;
 
+  //try_nonskip = !try_skip;
+
   CodingOptions<enc_cb> options(ectx,cb,ctxModel);
   CodingOption<enc_cb> option_skip    = options.new_option(try_skip);
   CodingOption<enc_cb> option_nonskip = options.new_option(try_nonskip);

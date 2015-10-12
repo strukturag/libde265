@@ -40,7 +40,7 @@ enc_cb* Algo_CB_IntraInter_BruteForce::analyze(encoder_context* ectx,
   bool try_inter = (ectx->shdr->slice_type != SLICE_TYPE_I);
 
   bool debug_halt = try_inter;
-  //try_inter = false;
+  try_inter = false;
   //try_intra = !try_inter; // TODO HACK: no intra in inter frames
 
   if (ectx->imgdata->frame_number > 0) {

@@ -1299,8 +1299,8 @@ void encode_cu_skip_flag(encoder_context* ectx,
   int condL = 0;
   int condA = 0;
 
-  if (availableL && img->get_cu_skip_flag(x0-1,y0)) condL=1;
-  if (availableA && img->get_cu_skip_flag(x0,y0-1)) condA=1;
+  if (availableL && ectx->ctbs.getCB(x0-1,y0)->PredMode == MODE_SKIP) condL=1;
+  if (availableA && ectx->ctbs.getCB(x0,y0-1)->PredMode == MODE_SKIP) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
