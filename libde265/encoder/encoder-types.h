@@ -112,6 +112,7 @@ class PixelAccessor
   int getHeight() const { return mHeight; }
 
   void copyToImage(de265_image* img, int cIdx) const;
+  void copyFromImage(const de265_image* img, int cIdx);
 
   static PixelAccessor invalid() {
     return PixelAccessor();

@@ -705,3 +705,14 @@ void PixelAccessor::copyToImage(de265_image* img, int cIdx) const
     p += stride;
   }
 }
+
+void PixelAccessor::copyFromImage(const de265_image* img, int cIdx)
+{
+  uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
+  int stride = img->get_image_stride(cIdx);
+
+  for (int y=0;y<mHeight;y++) {
+    memcpy(mBase+mXMin+(y+mYMin)*mStride, p, mWidth);
+    p += stride;
+  }
+}
