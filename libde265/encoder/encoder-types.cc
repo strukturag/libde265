@@ -670,8 +670,6 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
       chroma1Pixels.copyToImage(img, 1);
       PixelAccessor chroma2Pixels(*reconstruction[2], x,y);
       chroma2Pixels.copyToImage(img, 2);
-      assert(0);
-
     }
     else if (log2Size>2) {
       PixelAccessor chroma1Pixels(*reconstruction[1], x>>1,y>>1);
@@ -685,8 +683,6 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
     else if (blkIdx==3) {
       int xBase = x - (1<<log2Size);
       int yBase = y - (1<<log2Size);
-
-      assert(0);
 
       PixelAccessor chroma1Pixels(*reconstruction[1], xBase>>1,yBase>>1);
       chroma1Pixels.copyToImage(img, 1);
