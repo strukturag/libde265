@@ -104,11 +104,11 @@ struct enc_pb_inter
 {
   /* absolute motion information (for MV-prediction candidates)
    */
-  MotionVectorSpec motion;
+  PBMotion motion;
 
   /* specification how to code the motion vector in the bitstream
    */
-  motion_spec    spec;
+  PBMotionCoding spec;
 
 
   // NOT TRUE: refIdx in 'spec' is not used. It is taken from 'motion'

@@ -288,8 +288,8 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 
             bS = 0;
 
-            const MotionVectorSpec* mviP = img->get_mv_info(xDiOpp,yDiOpp);
-            const MotionVectorSpec* mviQ = img->get_mv_info(xDi   ,yDi);
+            const PBMotion* mviP = img->get_mv_info(xDiOpp,yDiOpp);
+            const PBMotion* mviQ = img->get_mv_info(xDi   ,yDi);
 
             slice_segment_header* shdrP = img->get_SliceHeader(xDiOpp,yDiOpp);
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);

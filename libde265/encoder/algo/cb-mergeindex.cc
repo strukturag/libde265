@@ -38,7 +38,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   assert(cb->PredMode==MODE_SKIP); // TODO: || (cb->PredMode==MODE_INTER && cb->inter.skip_flag));
 
 
-  MotionVectorSpec mergeCandList[5];
+  PBMotion mergeCandList[5];
 
   int partIdx = 0;
 
@@ -52,7 +52,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                            partIdx, // partIdx
                            mergeCandList);
 
-  motion_spec&   spec = cb->inter.pb[partIdx].spec;
+  PBMotionCoding&   spec = cb->inter.pb[partIdx].spec;
 
   spec.merge_flag = 1; // we use merge mode
   spec.merge_idx  = 0;
@@ -75,7 +75,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   // TODO: fake motion data
 
-  const MotionVectorSpec& vec = mergeCandList[spec.merge_idx];
+  const PBMotion& vec = mergeCandList[spec.merge_idx];
   cb->inter.pb[partIdx].motion = vec;
 
   ectx->img->set_mv_info(cb->x,cb->y, 1<<cb->log2Size,1<<cb->log2Size, vec);
