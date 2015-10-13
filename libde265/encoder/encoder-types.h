@@ -370,6 +370,7 @@ class CTBTreeMatrix
 
   const enc_cb* getCB(int x,int y) const;
   const enc_tb* getTB(int x,int y) const;
+  const enc_pb_inter* getPB(int x,int y) const;
 
   void writeReconstructionToImage(de265_image* img,
                                   const seq_parameter_set*) const;

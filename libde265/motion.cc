@@ -22,6 +22,8 @@
 #include "decctx.h"
 #include "util.h"
 #include "dpb.h"
+#include "encoder/encoder-context.h"
+
 #include <assert.h>
 
 
@@ -691,6 +693,44 @@ LIBDE265_INLINE static bool equal_cand_MV(const MotionVectorSpec* a, const Motio
 }
 
 
+
+// TODO: add specializations for de265_image and encoder_context
+template <class T> class MotionVectorAccess
+{
+public:
+  enum PartMode get_PartMode(int x,int y);
+  const MotionVectorSpec& get_mv_info(int x,int y);
+};
+
+
+template <> class MotionVectorAccess<de265_image>
+{
+public:
+  MotionVectorAccess(const de265_image* i) : img(i) { }
+
+  enum PartMode get_PartMode(int x,int y) { return img->get_PartMode(x,y); }
+  const MotionVectorSpec& get_mv_info(int x,int y) { return *img->get_mv_info(x,y); }
+
+private:
+  const de265_image* img;
+};
+
+
+template <> class MotionVectorAccess<encoder_context>
+{
+public:
+  MotionVectorAccess(const encoder_context* e) : ectx(e) { }
+
+  enum PartMode get_PartMode(int x,int y) { return ectx->ctbs.getCB(x,y)->PartMode; }
+  const MotionVectorSpec& get_mv_info(int x,int y) {
+    return ectx->ctbs.getPB(x,y)->motion;
+  }
+
+private:
+  const encoder_context* ectx;
+};
+
+
 /*
   +--+                +--+--+
   |B2|                |B1|B0|
@@ -734,7 +774,10 @@ LIBDE265_INLINE static bool equal_cand_MV(const MotionVectorSpec* a, const Motio
   second part to the parameters of the first part, since then, we could use 2Nx2N
   right away. -> Exclude this candidate.
 */
-int derive_spatial_merging_candidates(const de265_image* img,
+template <class MVAccessType>
+int derive_spatial_merging_candidates(//const de265_image* img,
+                                      MotionVectorAccess<MVAccessType> mvaccess,
+                                      const de265_image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
@@ -745,7 +788,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
   const pic_parameter_set* pps = &img->pps;
   const int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
-  enum PartMode PartMode = img->get_PartMode(xC,yC);
+  enum PartMode PartMode = mvaccess.get_PartMode(xC,yC);
 
   /*
   const int A0 = SpatialMergingCandidates::PRED_A0;
@@ -789,7 +832,7 @@ int derive_spatial_merging_candidates(const de265_image* img,
 
   if (availableA1) {
     idxA1 = computed_candidates++;
-    out_cand[idxA1] = *img->get_mv_info(xA1,yA1);
+    out_cand[idxA1] = mvaccess.get_mv_info(xA1,yA1);
 
     logtrace(LogMotion,"spatial merging candidate A1:\n");
     logmvcand(out_cand[idxA1]);
@@ -828,17 +871,17 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB1) {
-    const MotionVectorSpec* b1 = img->get_mv_info(xB1,yB1);
+    const MotionVectorSpec& b1 = mvaccess.get_mv_info(xB1,yB1);
 
     // B1 == A1 -> discard B1
     if (availableA1 &&
-        equal_cand_MV(&out_cand[idxA1], b1)) {
+        equal_cand_MV(&out_cand[idxA1], &b1)) {
       idxB1 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B1: redundant to A1\n");
     }
     else {
       idxB1 = computed_candidates++;
-      out_cand[idxB1] = *b1;
+      out_cand[idxB1] = b1;
 
       logtrace(LogMotion,"spatial merging candidate B1:\n");
       logmvcand(out_cand[idxB1]);
@@ -867,17 +910,17 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB0) {
-    const MotionVectorSpec* b0 = img->get_mv_info(xB0,yB0);
+    const MotionVectorSpec& b0 = mvaccess.get_mv_info(xB0,yB0);
 
     // B0 == B1 -> discard B0
     if (availableB1 &&
-        equal_cand_MV(&out_cand[idxB1], b0)) {
+        equal_cand_MV(&out_cand[idxB1], &b0)) {
       idxB0 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B0: redundant to B1\n");
     }
     else {
       idxB0 = computed_candidates++;
-      out_cand[idxB0] = *b0;
+      out_cand[idxB0] = b0;
       logtrace(LogMotion,"spatial merging candidate B0:\n");
       logmvcand(out_cand[idxB0]);
     }
@@ -905,17 +948,17 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableA0) {
-    const MotionVectorSpec* a0 = img->get_mv_info(xA0,yA0);
+    const MotionVectorSpec& a0 = mvaccess.get_mv_info(xA0,yA0);
 
     // A0 == A1 -> discard A0
     if (availableA1 &&
-        equal_cand_MV(&out_cand[idxA1], a0)) {
+        equal_cand_MV(&out_cand[idxA1], &a0)) {
       idxA0 = idxA1;
       logtrace(LogMotion,"spatial merging candidate A0: redundant to A1\n");
     }
     else {
       idxA0 = computed_candidates++;
-      out_cand[idxA0] = *a0;
+      out_cand[idxA0] = a0;
       logtrace(LogMotion,"spatial merging candidate A0:\n");
       logmvcand(out_cand[idxA0]);
     }
@@ -948,23 +991,23 @@ int derive_spatial_merging_candidates(const de265_image* img,
   }
 
   if (availableB2) {
-    const MotionVectorSpec* b2 = img->get_mv_info(xB2,yB2);
+    const MotionVectorSpec& b2 = mvaccess.get_mv_info(xB2,yB2);
 
     // B2 == B1 -> discard B2
     if (availableB1 &&
-        equal_cand_MV(&out_cand[idxB1], b2)) {
+        equal_cand_MV(&out_cand[idxB1], &b2)) {
       idxB2 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to B1\n");
     }
     // B2 == A1 -> discard B2
     else if (availableA1 &&
-             equal_cand_MV(&out_cand[idxA1], b2)) {
+             equal_cand_MV(&out_cand[idxA1], &b2)) {
       idxB2 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to A1\n");
     }
     else {
       idxB2 = computed_candidates++;
-      out_cand[idxB2] = *b2;
+      out_cand[idxB2] = b2;
       logtrace(LogMotion,"spatial merging candidate B2:\n");
       logmvcand(out_cand[idxB2]);
     }
@@ -1406,13 +1449,15 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 
 
 // 8.5.3.1.1
-static void get_merge_candidate_list_without_step_9(base_context* ctx,
-                                                    const slice_segment_header* shdr,
-                                                    de265_image* img,
-                                                    int xC,int yC, int xP,int yP,
-                                                    int nCS, int nPbW,int nPbH, int partIdx,
-                                                    int max_merge_idx,
-                                                    MotionVectorSpec* mergeCandList)
+template <class MVAccess>
+void get_merge_candidate_list_without_step_9(base_context* ctx,
+                                             const slice_segment_header* shdr,
+                                             MotionVectorAccess<MVAccess> mvaccess,
+                                             de265_image* img,
+                                             int xC,int yC, int xP,int yP,
+                                             int nCS, int nPbW,int nPbH, int partIdx,
+                                             int max_merge_idx,
+                                             MotionVectorSpec* mergeCandList)
 {
 
   //int xOrigP = xP;
@@ -1427,8 +1472,8 @@ static void get_merge_candidate_list_without_step_9(base_context* ctx,
      Having additional candidates might have these advantages:
      - coding MVs for these small PBs is expensive, and
      - since the PBs are not far away from a proper (neighboring) merging candidate,
-       the quality of the candidates will still be good.
-   */
+     the quality of the candidates will still be good.
+  */
   singleMCLFlag = (img->pps.log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
@@ -1445,7 +1490,8 @@ static void get_merge_candidate_list_without_step_9(base_context* ctx,
 
   // --- spatial merge candidates
 
-  numMergeCand = derive_spatial_merging_candidates(img, xC,yC, nCS, xP,yP, singleMCLFlag,
+  numMergeCand = derive_spatial_merging_candidates(mvaccess,
+                                                   img, xC,yC, nCS, xP,yP, singleMCLFlag,
                                                    nPbW,nPbH,partIdx, mergeCandList,
                                                    maxCandidates);
 
@@ -1515,7 +1561,35 @@ void get_merge_candidate_list(base_context* ctx,
 {
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
-  get_merge_candidate_list_without_step_9(ctx, shdr, img,
+  get_merge_candidate_list_without_step_9(ctx, shdr,
+                                          MotionVectorAccess<de265_image>(img), img,
+                                          xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
+                                          max_merge_idx, mergeCandList);
+
+  // 9. for encoder: modify all merge candidates
+
+  for (int i=0;i<=max_merge_idx;i++) {
+    if (mergeCandList[i].predFlag[0] &&
+        mergeCandList[i].predFlag[1] &&
+        nPbW+nPbH==12)
+      {
+        mergeCandList[i].refIdx[1]   = -1;
+        mergeCandList[i].predFlag[1] = 0;
+      }
+  }
+}
+
+
+void get_merge_candidate_list_from_tree(encoder_context* ectx,
+                                        const slice_segment_header* shdr,
+                                        int xC,int yC, int xP,int yP,
+                                        int nCS, int nPbW,int nPbH, int partIdx,
+                                        MotionVectorSpec* mergeCandList)
+{
+  int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
+
+  get_merge_candidate_list_without_step_9(ectx, shdr,
+                                          MotionVectorAccess<encoder_context>(ectx), ectx->img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1544,7 +1618,8 @@ void derive_luma_motion_merge_mode(base_context* ctx,
 {
   MotionVectorSpec mergeCandList[5];
 
-  get_merge_candidate_list_without_step_9(ctx, shdr, img,
+  get_merge_candidate_list_without_step_9(ctx, shdr,
+                                          MotionVectorAccess<de265_image>(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           merge_idx, mergeCandList);
 

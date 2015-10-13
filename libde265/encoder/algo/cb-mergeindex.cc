@@ -45,13 +45,13 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
   int cbSize = 1 << cb->log2Size;
 
-  get_merge_candidate_list(ectx, ectx->shdr, ectx->img,
-                           cb->x, cb->y, // xC/yC
-                           cb->x, cb->y, // xP/yP
-                           cbSize, // nCS
-                           cbSize,cbSize, // nPbW/nPbH
-                           partIdx, // partIdx
-                           mergeCandList);
+  get_merge_candidate_list_from_tree(ectx, ectx->shdr,
+                                     cb->x, cb->y, // xC/yC
+                                     cb->x, cb->y, // xP/yP
+                                     cbSize, // nCS
+                                     cbSize,cbSize, // nPbW/nPbH
+                                     partIdx, // partIdx
+                                     mergeCandList);
 
   motion_spec&   spec = cb->inter.pb[partIdx].spec;
 
@@ -79,8 +79,9 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   const MotionVectorSpec& vec = mergeCandList[spec.merge_idx];
   cb->inter.pb[partIdx].motion = vec;
 
-  ectx->img->set_mv_info(cb->x,cb->y, 1<<cb->log2Size,1<<cb->log2Size, vec);
+  //ectx->img->set_mv_info(cb->x,cb->y, 1<<cb->log2Size,1<<cb->log2Size, vec);
 
+  /*
   generate_inter_prediction_samples(ectx, ectx->shdr, ectx->prediction,
                                     cb->x,cb->y, // int xC,int yC,
                                     0,0,         // int xB,int yB,
@@ -88,6 +89,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     1<<cb->log2Size,
                                     1<<cb->log2Size, // int nPbW,int nPbH,
                                     &vec);
+  */
 
   generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
                                     cb->x,cb->y, // int xC,int yC,
@@ -96,6 +98,13 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
                                     1<<cb->log2Size,
                                     1<<cb->log2Size, // int nPbW,int nPbH,
                                     &vec);
+
+  /*
+  printBlk("merge prediction:",
+           ectx->img->get_image_plane_at_pos(0, cb->x,cb->y), 1<<cb->log2Size,
+           ectx->img->get_image_stride(0),
+           "merge ");
+  */
 
   // estimate rate for sending merge index
 
@@ -123,7 +132,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   }
   else {
     const de265_image* input = ectx->imgdata->input;
-    de265_image* img   = ectx->prediction;
+    //de265_image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
@@ -133,7 +142,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     encode_merge_idx(ectx, &cabac, spec.merge_idx);
 
     leaf(cb,"no residual");
-    cb->distortion = compute_distortion_ssd(input, img, x0,y0, cb->log2Size, 0);
+
     cb->rate = cabac.getRDBits();
 
     cb->inter.rqt_root_cbf = 0;
@@ -144,6 +153,20 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     cb->transform_tree = tb;
 
     tb->reconstruct(ectx, ectx->img); // reconstruct luma
+
+    /*
+    printBlk("distortion input:",
+             input->get_image_plane_at_pos(0,x0,y0), 1<<cb->log2Size,
+             input->get_image_stride(0),
+             "input ");
+
+    printBlk("distortion prediction:",
+             ectx->img->get_image_plane_at_pos(0,x0,y0), 1<<cb->log2Size,
+             ectx->img->get_image_stride(0),
+             "pred ");
+    */
+
+    cb->distortion = compute_distortion_ssd(input, ectx->img, x0,y0, cb->log2Size, 0);
   }
 
   //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);

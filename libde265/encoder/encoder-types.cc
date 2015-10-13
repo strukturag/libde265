@@ -623,6 +623,16 @@ const enc_tb* CTBTreeMatrix::getTB(int x,int y) const
 }
 
 
+const enc_pb_inter* CTBTreeMatrix::getPB(int x,int y) const
+{
+  const enc_cb* cb = getCB(x,y);
+
+  // TODO: get PB block based on partitioning
+
+  return &cb->inter.pb[0];
+}
+
+
 void CTBTreeMatrix::writeReconstructionToImage(de265_image* img,
                                                const seq_parameter_set* sps) const
 {

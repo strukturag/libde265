@@ -59,6 +59,12 @@ void get_merge_candidate_list(base_context* ctx,
                               int nCS, int nPbW,int nPbH, int partIdx,
                               MotionVectorSpec* mergeCandList);
 
+void get_merge_candidate_list_from_tree(class encoder_context* ectx,
+                                        const slice_segment_header* shdr,
+                                        int xC,int yC, int xP,int yP,
+                                        int nCS, int nPbW,int nPbH, int partIdx,
+                                        MotionVectorSpec* mergeCandList);
+
 /*
 int derive_spatial_merging_candidates(const struct de265_image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
