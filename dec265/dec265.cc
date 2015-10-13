@@ -113,6 +113,7 @@ static void write_picture(const de265_image* img)
   for (int c=0;c<3;c++) {
     int stride;
     const uint8_t* p = de265_get_image_plane(img, c, &stride);
+
     int width = de265_get_image_width(img,c);
 
     if (de265_get_bits_per_pixel(img,c)<=8) {
@@ -125,12 +126,15 @@ static void write_picture(const de265_image* img)
     else {
       // --- save 16 bit YUV ---
 
+      int bpp = (de265_get_bits_per_pixel(img,c)+7)/8;
+      int pixelsPerLine = stride/bpp;
+
       uint8_t* buf = new uint8_t[width*2];
       uint16_t* p16 = (uint16_t*)p;
 
       for (int y=0;y<de265_get_image_height(img,c);y++) {
         for (int x=0;x<width;x++) {
-          uint16_t pixel_value = (p16+y*stride)[x];
+          uint16_t pixel_value = (p16+y*pixelsPerLine)[x];
           buf[2*x+0] = pixel_value & 0xFF;
           buf[2*x+1] = pixel_value >> 8;
         }
@@ -217,14 +221,15 @@ void display_image(const struct de265_image* img)
 }
 #endif
 
-static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height, int stride, int bit_depth)
+static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height,
+                                int pixelsPerLine, int bit_depth)
 {
   const uint16_t* data16 = (const uint16_t*)data;
-  uint8_t* out = new uint8_t[stride*height];
+  uint8_t* out = new uint8_t[pixelsPerLine*height];
 
   for (int y=0;y<height;y++) {
     for (int x=0;x<width;x++) {
-      out[y*stride + x] = *(data16 + y*stride +x) >> (bit_depth-8);
+      out[y*pixelsPerLine + x] = *(data16 + y*pixelsPerLine +x) >> (bit_depth-8);
     }
   }
 
@@ -264,25 +269,30 @@ bool display_sdl(const struct de265_image* img)
   const uint8_t* cb =de265_get_image_plane(img,1,&chroma_stride);
   const uint8_t* cr =de265_get_image_plane(img,2,NULL);
 
+  int bpp_y = (de265_get_bits_per_pixel(img,0)+7)/8;
+  int bpp_c = (de265_get_bits_per_pixel(img,1)+7)/8;
+  int ppl_y = stride/bpp_y;
+  int ppl_c = chroma_stride/bpp_c;
+
   uint8_t* y16  = NULL;
   uint8_t* cb16 = NULL;
   uint8_t* cr16 = NULL;
   int bd;
 
   if ((bd=de265_get_bits_per_pixel(img, 0)) > 8) {
-    y16  = convert_to_8bit(y,  width,height,stride,bd); y=y16;
+    y16  = convert_to_8bit(y,  width,height,ppl_y,bd); y=y16;
   }
 
   if (chroma != de265_chroma_mono) {
     if ((bd=de265_get_bits_per_pixel(img, 1)) > 8) {
-      cb16 = convert_to_8bit(cb, chroma_width,chroma_height,chroma_stride,bd); cb=cb16;
+      cb16 = convert_to_8bit(cb, chroma_width,chroma_height,ppl_c,bd); cb=cb16;
     }
     if ((bd=de265_get_bits_per_pixel(img, 2)) > 8) {
-      cr16 = convert_to_8bit(cr, chroma_width,chroma_height,chroma_stride,bd); cr=cr16;
+      cr16 = convert_to_8bit(cr, chroma_width,chroma_height,ppl_c,bd); cr=cr16;
     }
   }
 
-  sdlWin.display(y,cb,cr, stride, chroma_stride);
+  sdlWin.display(y,cb,cr, ppl_y, ppl_c);
 
   delete[] y16;
   delete[] cb16;
