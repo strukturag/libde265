@@ -214,12 +214,6 @@ typedef struct {
 } CB_ref_info;
 
 
-typedef struct {
-  MotionVectorSpec mv; // TODO: this can be done in 16x16 grid
-} PB_ref_info;
-
-// intraPredMode:   Used for determining scanIdx when decoding/encoding coefficients.
-
 
 
 struct de265_image {
@@ -389,7 +383,7 @@ public:
 private:
   MetaDataArray<CTB_info>    ctb_info;
   MetaDataArray<CB_ref_info> cb_info;
-  MetaDataArray<PB_ref_info> pb_info;
+  MetaDataArray<PBMotion>    pb_info;
   MetaDataArray<uint8_t>     intraPredMode;
   MetaDataArray<uint8_t>     intraPredModeC;
   MetaDataArray<uint8_t>     tu_info;
@@ -823,12 +817,12 @@ public:
 
   // --- PB metadata access ---
 
-  const MotionVectorSpec* get_mv_info(int x,int y) const
+  const PBMotion& get_mv_info(int x,int y) const
   {
-    return &pb_info.get(x,y).mv;
+    return pb_info.get(x,y);
   }
 
-  void set_mv_info(int x,int y, int nPbW,int nPbH, const MotionVectorSpec& mv);
+  void set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv);
 
   // --- value logging ---
 

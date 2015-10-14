@@ -35,21 +35,29 @@ typedef struct
 typedef struct
 {
   uint8_t predFlag[2];  // which of the two vectors is actually used
-   int8_t   refIdx[2];
-  MotionVector  mv[2];
-} MotionVectorSpec;
+  int8_t  refIdx[2];    // index into RefPicList
+  MotionVector  mv[2];  // the absolute motion vectors
+} PBMotion;
 
 
 typedef struct {
+  // index into RefPicList
   int8_t  refIdx[2];
+
+  // motion vector difference
   int16_t mvd[2][2]; // [L0/L1][x/y]  (only in top left position - ???)
 
-  uint8_t inter_pred_idc : 2; // enum InterPredIdc
+  // enum InterPredIdc, whether this is prediction from L0,L1, or BI
+  uint8_t inter_pred_idc : 2;
+
+  // which of the two MVPs is used
   uint8_t mvp_l0_flag : 1;
   uint8_t mvp_l1_flag : 1;
+
+  // whether merge mode is used
   uint8_t merge_flag : 1;
   uint8_t merge_idx  : 3;
-} motion_spec;
+} PBMotionCoding;
 
 
 void get_merge_candidate_list(base_context* ctx,
@@ -57,13 +65,13 @@ void get_merge_candidate_list(base_context* ctx,
                               struct de265_image* img,
                               int xC,int yC, int xP,int yP,
                               int nCS, int nPbW,int nPbH, int partIdx,
-                              MotionVectorSpec* mergeCandList);
+                              PBMotion* mergeCandList);
 
 void get_merge_candidate_list_from_tree(class encoder_context* ectx,
                                         const slice_segment_header* shdr,
                                         int xC,int yC, int xP,int yP,
                                         int nCS, int nPbW,int nPbH, int partIdx,
-                                        MotionVectorSpec* mergeCandList);
+                                        PBMotion* mergeCandList);
 
 /*
 int derive_spatial_merging_candidates(const struct de265_image* img,
@@ -81,7 +89,7 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int xC,int yC,
                                        int xB,int yB,
                                        int nCS, int nPbW,int nPbH,
-                                       const MotionVectorSpec* vi);
+                                       const PBMotion* vi);
 
 
 /* Fill list (two entries) of motion-vector predictors for MVD coding.
@@ -96,7 +104,7 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
 
 
 void decode_prediction_unit(base_context* ctx,const slice_segment_header* shdr,
-                            de265_image* img, const motion_spec& motion,
+                            de265_image* img, const PBMotionCoding& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
 #endif

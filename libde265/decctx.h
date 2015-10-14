@@ -61,7 +61,7 @@ public:
 
   // motion vectors
 
-  motion_spec motion;
+  PBMotionCoding motion;
 
 
   // prediction

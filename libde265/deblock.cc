@@ -288,16 +288,16 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 
             bS = 0;
 
-            const MotionVectorSpec* mviP = img->get_mv_info(xDiOpp,yDiOpp);
-            const MotionVectorSpec* mviQ = img->get_mv_info(xDi   ,yDi);
+            const PBMotion& mviP = img->get_mv_info(xDiOpp,yDiOpp);
+            const PBMotion& mviQ = img->get_mv_info(xDi   ,yDi);
 
             slice_segment_header* shdrP = img->get_SliceHeader(xDiOpp,yDiOpp);
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
 
-            int refPicP0 = mviP->predFlag[0] ? shdrP->RefPicList[0][ mviP->refIdx[0] ] : -1;
-            int refPicP1 = mviP->predFlag[1] ? shdrP->RefPicList[1][ mviP->refIdx[1] ] : -1;
-            int refPicQ0 = mviQ->predFlag[0] ? shdrQ->RefPicList[0][ mviQ->refIdx[0] ] : -1;
-            int refPicQ1 = mviQ->predFlag[1] ? shdrQ->RefPicList[1][ mviQ->refIdx[1] ] : -1;
+            int refPicP0 = mviP.predFlag[0] ? shdrP->RefPicList[0][ mviP.refIdx[0] ] : -1;
+            int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
+            int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;
+            int refPicQ1 = mviQ.predFlag[1] ? shdrQ->RefPicList[1][ mviQ.refIdx[1] ] : -1;
 
             bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
                              (refPicP0==refPicQ1 && refPicP1==refPicQ0));
@@ -306,13 +306,13 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
               bS = 1;
             }
             else {
-              MotionVector mvP0 = mviP->mv[0]; if (!mviP->predFlag[0]) { mvP0.x=mvP0.y=0; }
-              MotionVector mvP1 = mviP->mv[1]; if (!mviP->predFlag[1]) { mvP1.x=mvP1.y=0; }
-              MotionVector mvQ0 = mviQ->mv[0]; if (!mviQ->predFlag[0]) { mvQ0.x=mvQ0.y=0; }
-              MotionVector mvQ1 = mviQ->mv[1]; if (!mviQ->predFlag[1]) { mvQ1.x=mvQ1.y=0; }
+              MotionVector mvP0 = mviP.mv[0]; if (!mviP.predFlag[0]) { mvP0.x=mvP0.y=0; }
+              MotionVector mvP1 = mviP.mv[1]; if (!mviP.predFlag[1]) { mvP1.x=mvP1.y=0; }
+              MotionVector mvQ0 = mviQ.mv[0]; if (!mviQ.predFlag[0]) { mvQ0.x=mvQ0.y=0; }
+              MotionVector mvQ1 = mviQ.mv[1]; if (!mviQ.predFlag[1]) { mvQ1.x=mvQ1.y=0; }
 
-              int numMV_P = mviP->predFlag[0] + mviP->predFlag[1];
-              int numMV_Q = mviQ->predFlag[0] + mviQ->predFlag[1];
+              int numMV_P = mviP.predFlag[0] + mviP.predFlag[1];
+              int numMV_Q = mviQ.predFlag[0] + mviQ.predFlag[1];
 
               if (numMV_P!=numMV_Q) {
                 img->decctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);

@@ -292,20 +292,20 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
-    const MotionVectorSpec* mvi = srcimg->get_mv_info(x0,y0);
+    const PBMotion& mvi = srcimg->get_mv_info(x0,y0);
     int x = x0+w/2;
     int y = y0+h/2;
-    if (mvi->predFlag[0]) {
+    if (mvi.predFlag[0]) {
       draw_line(img,stride,0xFF0000,pixelSize,
                 srcimg->get_width(),
                 srcimg->get_height(),
-                x,y,x+mvi->mv[0].x,y+mvi->mv[0].y);
+                x,y,x+mvi.mv[0].x,y+mvi.mv[0].y);
     }
-    if (mvi->predFlag[1]) {
+    if (mvi.predFlag[1]) {
       draw_line(img,stride,0x00FF00,pixelSize,
                 srcimg->get_width(),
                 srcimg->get_height(),
-                x,y,x+mvi->mv[1].x,y+mvi->mv[1].y);
+                x,y,x+mvi.mv[1].x,y+mvi.mv[1].y);
     }
   }
 }
