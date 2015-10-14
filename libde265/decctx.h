@@ -35,6 +35,8 @@
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
 
+#include <memory>
+
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
@@ -294,10 +296,10 @@ class decoder_context : public base_context {
 
   void reset();
 
-  /* */ seq_parameter_set* get_sps(int id)       { return &sps[id]; }
-  const seq_parameter_set* get_sps(int id) const { return &sps[id]; }
-  /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }
-  const pic_parameter_set* get_pps(int id) const { return &pps[id]; }
+  /* */ seq_parameter_set* get_sps(int id)       { return sps[id].get(); }
+  const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
+  /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
+  const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
   /*
   const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
@@ -320,9 +322,6 @@ class decoder_context : public base_context {
 
 
   void process_nal_hdr(nal_header*);
-  void process_vps(video_parameter_set*);
-  void process_sps(seq_parameter_set*);
-  void process_pps(pic_parameter_set*);
 
   bool process_slice_segment_header(decoder_context*, slice_segment_header*,
                                     de265_error*, de265_PTS pts,
@@ -381,9 +380,9 @@ class decoder_context : public base_context {
  private:
   // --- internal data ---
 
-  video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
-  seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
-  pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
+  std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
+  std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
+  std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
 
   video_parameter_set* current_vps;
   seq_parameter_set*   current_sps;

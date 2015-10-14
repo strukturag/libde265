@@ -91,6 +91,8 @@ image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(const de
   data->frame_number = frame_number;
   data->input = img;
   data->shdr.set_defaults();
+  data->shdr.pps = &img->pps;
+  printf("shdr=%p ->pps = %p\n",&data->shdr, &img->pps);
 
   mImages.push_back(data);
 

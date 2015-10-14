@@ -527,17 +527,17 @@ de265_error decoder_context::read_vps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"---> read VPS\n");
 
-  video_parameter_set vps;
-  de265_error err = vps.read(this,&reader);
+  std::shared_ptr<video_parameter_set> new_vps = std::make_shared<video_parameter_set>();
+  de265_error err = new_vps->read(this,&reader);
   if (err != DE265_OK) {
     return err;
   }
 
   if (param_vps_headers_fd>=0) {
-    vps.dump(param_vps_headers_fd);
+    new_vps->dump(param_vps_headers_fd);
   }
 
-  process_vps(&vps);
+  vps[ new_vps->video_parameter_set_id ] = new_vps;
 
   return DE265_OK;
 }
@@ -546,18 +546,18 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"----> read SPS\n");
 
-  seq_parameter_set sps;
+  std::shared_ptr<seq_parameter_set> new_sps = std::make_shared<seq_parameter_set>();
   de265_error err;
 
-  if ((err=sps.read(this, &reader)) != DE265_OK) {
+  if ((err=new_sps->read(this, &reader)) != DE265_OK) {
     return err;
   }
 
   if (param_sps_headers_fd>=0) {
-    sps.dump(param_sps_headers_fd);
+    new_sps->dump(param_sps_headers_fd);
   }
 
-  process_sps(&sps);
+  sps[ new_sps->seq_parameter_set_id ] = new_sps;
 
   return DE265_OK;
 }
@@ -566,16 +566,16 @@ de265_error decoder_context::read_pps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"----> read PPS\n");
 
-  pic_parameter_set pps;
+  std::shared_ptr<pic_parameter_set> new_pps = std::make_shared<pic_parameter_set>();
 
-  bool success = pps.read(&reader,this);
+  bool success = new_pps->read(&reader,this);
 
   if (param_pps_headers_fd>=0) {
-    pps.dump(param_pps_headers_fd);
+    new_pps->dump(param_pps_headers_fd);
   }
 
   if (success) {
-    process_pps(&pps);
+    pps[ (int)new_pps->pic_parameter_set_id ] = new_pps;
   }
 
   return success ? DE265_OK : DE265_WARNING_PPS_HEADER_INVALID;
@@ -830,7 +830,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   // alloc CABAC-model array if entropy_coding_sync is enabled
 
-  if (pps->entropy_coding_sync_enabled_flag &&
+  if (imgunit->img->pps.entropy_coding_sync_enabled_flag &&
       sliceunit->shdr->first_slice_segment_in_pic_flag) {
     imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
@@ -1343,27 +1343,6 @@ void decoder_context::process_nal_hdr(nal_header* nal)
   RapPicFlag = isRapPic(nal->nal_unit_type);
 }
 
-
-void decoder_context::process_vps(video_parameter_set* vps)
-{
-  this->vps[ vps->video_parameter_set_id ] = *vps;
-}
-
-
-void decoder_context::process_sps(seq_parameter_set* sps)
-{
-  //push_current_picture_to_output_queue();
-
-  this->sps[ sps->seq_parameter_set_id ] = *sps;
-}
-
-
-void decoder_context::process_pps(pic_parameter_set* pps)
-{
-  //push_current_picture_to_output_queue();
-
-  this->pps[ (int)pps->pic_parameter_set_id ] = *pps;
-}
 
 
 /* 8.3.1
@@ -1982,14 +1961,14 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   // get PPS and SPS for this slice
 
   int pps_id = hdr->slice_pic_parameter_set_id;
-  if (ctx->pps[pps_id].pps_read==false) {
+  if (ctx->pps[pps_id]->pps_read==false) {
     logerror(LogHeaders, "PPS %d has not been read\n", pps_id);
     assert(false); // TODO
   }
 
-  ctx->current_pps = &ctx->pps[pps_id];
-  ctx->current_sps = &ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ];
-  ctx->current_vps = &ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ];
+  ctx->current_pps = ctx->pps[pps_id].get();
+  ctx->current_sps = ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ].get();
+  ctx->current_vps = ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ].get();
 
   calc_tid_and_framerate_ratio();
 

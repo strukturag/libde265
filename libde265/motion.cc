@@ -290,8 +290,11 @@ void generate_inter_prediction_samples(base_context* ctx,
   void*  pixels[3];
   int    stride[3];
 
-  const int SubWidthC  = img->sps.SubWidthC;
-  const int SubHeightC = img->sps.SubHeightC;
+  const pic_parameter_set* pps = shdr->pps;
+  const seq_parameter_set* sps = pps->sps;
+
+  const int SubWidthC  = sps->SubWidthC;
+  const int SubHeightC = sps->SubHeightC;
 
   pixels[0] = img->get_image_plane_at_pos_any_depth(0,xP,yP);
   stride[0] = img->get_image_stride(0);
@@ -313,14 +316,14 @@ void generate_inter_prediction_samples(base_context* ctx,
   predFlag[0] = vi->predFlag[0];
   predFlag[1] = vi->predFlag[1];
 
-  const int bit_depth_L = img->sps.BitDepth_Y;
-  const int bit_depth_C = img->sps.BitDepth_C;
+  const int bit_depth_L = sps->BitDepth_Y;
+  const int bit_depth_C = sps->BitDepth_C;
 
   // Some encoders use bi-prediction with two similar MVs.
   // Identify this case and use only one MV.
 
   // do this only without weighted prediction, because the weights/offsets may be different
-  if (img->pps.weighted_pred_flag==0) {
+  if (pps->weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
       if (vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
@@ -362,31 +365,31 @@ void generate_inter_prediction_samples(base_context* ctx,
         // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
 
         if (img->high_bit_depth(0)) {
-          mc_luma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                   predSamplesL[l],nCS,
                   (const uint16_t*)refPic->get_image_plane(0),
                   refPic->get_luma_stride(), nPbW,nPbH, bit_depth_L);
         }
         else {
-          mc_luma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                   predSamplesL[l],nCS,
                   (const uint8_t*)refPic->get_image_plane(0),
                   refPic->get_luma_stride(), nPbW,nPbH, bit_depth_L);
         }
 
         if (img->high_bit_depth(0)) {
-          mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                     predSamplesC[0][l],nCS, (const uint16_t*)refPic->get_image_plane(1),
                     refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-          mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                     predSamplesC[1][l],nCS, (const uint16_t*)refPic->get_image_plane(2),
                     refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
         }
         else {
-          mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                     predSamplesC[0][l],nCS, (const uint8_t*)refPic->get_image_plane(1),
                     refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-          mc_chroma(ctx, &img->sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
                     predSamplesC[1][l],nCS, (const uint8_t*)refPic->get_image_plane(2),
                     refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
         }
@@ -397,9 +400,9 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  const int shift1_L = libde265_max(2,14-img->sps.BitDepth_Y);
+  const int shift1_L = libde265_max(2,14-sps->BitDepth_Y);
   const int offset_shift1_L = img->sps.WpOffsetBdShiftY;
-  const int shift1_C = libde265_max(2,14-img->sps.BitDepth_C);
+  const int shift1_C = libde265_max(2,14-sps->BitDepth_C);
   const int offset_shift1_C = img->sps.WpOffsetBdShiftC;
 
   /*
@@ -435,7 +438,7 @@ void generate_inter_prediction_samples(base_context* ctx,
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
   if (shdr->slice_type == SLICE_TYPE_P) {
-    if (img->pps.weighted_pred_flag==0) {
+    if (pps->weighted_pred_flag==0) {
       if (predFlag[0]==1 && predFlag[1]==0) {
         ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
                                               predSamplesL[0],nCS, nPbW,nPbH, bit_depth_L);
@@ -491,7 +494,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     assert(shdr->slice_type == SLICE_TYPE_B);
 
     if (predFlag[0]==1 && predFlag[1]==1) {
-      if (img->pps.weighted_bipred_flag==0) {
+      if (pps->weighted_bipred_flag==0) {
         //const int shift2  = 15-8; // TODO: real bit depth
         //const int offset2 = 1<<(shift2-1);
 
@@ -568,7 +571,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     else if (predFlag[0]==1 || predFlag[1]==1) {
       int l = predFlag[0] ? 0 : 1;
 
-      if (img->pps.weighted_bipred_flag==0) {
+      if (pps->weighted_bipred_flag==0) {
         ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
                                               predSamplesL[l],nCS, nPbW,nPbH, bit_depth_L);
         ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
@@ -2134,6 +2137,12 @@ void motion_vectors_and_ref_indices(base_context* ctx,
 
 
 // 8.5.3
+
+/* xC/yC : CB position
+   xB/yB : position offset of the PB
+   nPbW/nPbH : size of PB
+   nCS   : CB size
+ */
 void decode_prediction_unit(base_context* ctx,
                             const slice_segment_header* shdr,
                             de265_image* img,

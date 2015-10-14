@@ -145,6 +145,8 @@ public:
 
 
   int  slice_index; // index through all slices in a picture  (internal only)
+  const pic_parameter_set* pps;
+
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;

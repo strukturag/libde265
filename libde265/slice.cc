@@ -244,6 +244,8 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
 void slice_segment_header::reset()
 {
+  pps = NULL;
+
   slice_index = 0;
 
   first_slice_segment_in_pic_flag = 0;
@@ -377,13 +379,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  pic_parameter_set* pps = ctx->get_pps((int)slice_pic_parameter_set_id);
+  pps = ctx->get_pps((int)slice_pic_parameter_set_id);
   if (!pps->pps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  const seq_parameter_set* sps = pps->sps;
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
