@@ -35,7 +35,7 @@ bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int siz
                                  const de265_image* imgB, int xB,int yB)
 {
   for (int c=0;c<3;c++) {
-    printf("COMPARE %d/%d\n",c+1,3);
+    //printf("COMPARE %d/%d\n",c+1,3);
 
     const uint8_t* pA = imgA->get_image_plane_at_pos(c, xA, yA);
     const uint8_t* pB = imgB->get_image_plane_at_pos(c, xB, yB);
@@ -92,11 +92,9 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
     for (int idx=0 ; idx<num_merge_cand ; idx++) {
       const PBMotion& vec = mergeCandList[idx];
 
-      /*
       if (idx>0 && vec == mergeCandList[idx-1]) {
         continue;
       }
-      */
 
       //printf("%d/%d  %d\n",cb->x,cb->y, idx);
 
