@@ -109,7 +109,7 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y
                                  bool availableB, // top
                                  const de265_image* img)
 {
-  const seq_parameter_set* sps = &img->sps;
+  const seq_parameter_set* sps = &img->get_sps();
 
   // block on left side
 
@@ -436,8 +436,8 @@ void intra_border_computer<pixel_t>::reference_sample_substitution()
 template <class pixel_t>
 void intra_border_computer<pixel_t>::preproc()
 {
-  sps = &img->sps;
-  pps = &img->pps;
+  sps = &img->get_sps();
+  pps = &img->get_pps();
 
   SubWidth  = (cIdx==0) ? 1 : sps->SubWidthC;
   SubHeight = (cIdx==0) ? 1 : sps->SubHeightC;
@@ -559,7 +559,7 @@ void fill_border_samples_from_tree(const de265_image* img,
   xB = tb->x;
   yB = tb->y;
 
-  if (img->sps.chroma_format_idc == CHROMA_444) {
+  if (img->get_sps().chroma_format_idc == CHROMA_444) {
   }
   else if (cIdx > 0) {
     // TODO: proper chroma handling
@@ -1082,10 +1082,10 @@ void decode_intra_prediction_internal(de265_image* img,
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
-  if (img->sps.range_extension.intra_smoothing_disabled_flag == 0 &&
-      (cIdx==0 || img->sps.ChromaArrayType==CHROMA_444))
+  if (img->get_sps().range_extension.intra_smoothing_disabled_flag == 0 &&
+      (cIdx==0 || img->get_sps().ChromaArrayType==CHROMA_444))
     {
-      intra_prediction_sample_filtering(img->sps, border_pixels, nT, cIdx, intraPredMode);
+      intra_prediction_sample_filtering(img->get_sps(), border_pixels, nT, cIdx, intraPredMode);
     }
 
 
@@ -1100,7 +1100,7 @@ void decode_intra_prediction_internal(de265_image* img,
     {
       int bit_depth = img->get_bit_depth(cIdx);
       bool disableIntraBoundaryFilter =
-        (img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+        (img->get_sps().range_extension.implicit_rdpcm_enabled_flag &&
          img->get_cu_transquant_bypass(xB0,yB0));
 
       intra_prediction_angular(dst,dstStride, bit_depth,disableIntraBoundaryFilter,

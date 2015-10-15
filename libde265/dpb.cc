@@ -201,7 +201,7 @@ void decoded_picture_buffer::clear()
 }
 
 
-int decoded_picture_buffer::new_image(const seq_parameter_set* sps,
+int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> sps,
                                       decoder_context* decctx,
                                       de265_PTS pts, void* user_data, bool isOutputImage)
 {

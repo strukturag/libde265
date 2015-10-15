@@ -130,22 +130,20 @@ double encode_image(encoder_context* ectx,
 {
   int stride=input->get_image_stride(0);
 
-  int w = ectx->sps.pic_width_in_luma_samples;
-  int h = ectx->sps.pic_height_in_luma_samples;
+  int w = ectx->get_sps().pic_width_in_luma_samples;
+  int h = ectx->get_sps().pic_height_in_luma_samples;
 
   // --- create reconstruction image ---
   ectx->img = new de265_image;
-  ectx->img->vps  = ectx->vps;
-  ectx->img->sps  = ectx->sps;
-  ectx->img->pps  = ectx->pps;
+  ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
-  ectx->img->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, true,
+  ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
                          NULL /* no decctx */, ectx, 0,NULL,false);
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 
-#if 1
+#if 0
   if (1) {
     ectx->prediction = new de265_image;
     ectx->prediction->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, false /* no metadata */,
@@ -156,7 +154,7 @@ double encode_image(encoder_context* ectx,
   }
 #endif
 
-  ectx->active_qp = ectx->pps.pic_init_qp; // TODO take current qp from slice
+  ectx->active_qp = ectx->get_pps().pic_init_qp; // TODO take current qp from slice
 
 
   ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
@@ -170,7 +168,7 @@ double encode_image(encoder_context* ectx,
   cabacEstim.set_context_models(&modelEstim);
 
 
-  int Log2CtbSize = ectx->sps.Log2CtbSizeY;
+  int Log2CtbSize = ectx->get_sps().Log2CtbSizeY;
 
   uint8_t* luma_plane = ectx->img->get_image_plane(0);
   uint8_t* cb_plane   = ectx->img->get_image_plane(1);
@@ -183,8 +181,8 @@ double encode_image(encoder_context* ectx,
 
   ectx->ctbs.clear();
 
-  for (int y=0;y<ectx->sps.PicHeightInCtbsY;y++)
-    for (int x=0;x<ectx->sps.PicWidthInCtbsY;x++)
+  for (int y=0;y<ectx->get_sps().PicHeightInCtbsY;y++)
+    for (int x=0;x<ectx->get_sps().PicWidthInCtbsY;x++)
       {
         ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
 
@@ -280,8 +278,8 @@ double encode_image(encoder_context* ectx,
         }
 
 
-        int last = (y==ectx->sps.PicHeightInCtbsY-1 &&
-                    x==ectx->sps.PicWidthInCtbsY-1);
+        int last = (y==ectx->get_sps().PicHeightInCtbsY-1 &&
+                    x==ectx->get_sps().PicWidthInCtbsY-1);
         ectx->cabac_encoder.write_CABAC_term_bit(last);
 
         //delete cb;
@@ -300,12 +298,12 @@ double encode_image(encoder_context* ectx,
   //statistics_print();
 
 
-  delete ectx->prediction;
+  //delete ectx->prediction;
 
 
   // frame PSNR
 
-  ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->sps);
+  ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->get_sps());
 
 #if 0
   std::ofstream ostr("out.pgm");

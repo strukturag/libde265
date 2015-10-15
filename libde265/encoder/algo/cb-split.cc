@@ -90,7 +90,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   // --- prepare coding options ---
 
-  const SplitType split_type = get_split_type(&ectx->sps,
+  const SplitType split_type = get_split_type(&ectx->get_sps(),
                                               cb_input->x, cb_input->y,
                                               cb_input->log2Size);
 

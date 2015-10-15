@@ -33,13 +33,13 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 {
   logtrace(LogTransform,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> decode_quantization_parameters(int xC,int yC)=(%d,%d)\n", xC,yC);
 
-  pic_parameter_set* pps = &tctx->img->pps;
-  seq_parameter_set* sps = &tctx->img->sps;
+  const pic_parameter_set& pps = tctx->img->get_pps();
+  const seq_parameter_set& sps = tctx->img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
 
   // top left pixel position of current quantization group
-  int xQG = xCUBase - (xCUBase & ((1<<pps->Log2MinCuQpDeltaSize)-1));
-  int yQG = yCUBase - (yCUBase & ((1<<pps->Log2MinCuQpDeltaSize)-1));
+  int xQG = xCUBase - (xCUBase & ((1<<pps.Log2MinCuQpDeltaSize)-1));
+  int yQG = yCUBase - (yCUBase & ((1<<pps.Log2MinCuQpDeltaSize)-1));
 
   logtrace(LogTransform,"QG: %d,%d\n",xQG,yQG);
 
@@ -69,35 +69,35 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   // first QG in CTB row ?
 
-  int ctbLSBMask = ((1<<sps->Log2CtbSizeY)-1);
+  int ctbLSBMask = ((1<<sps.Log2CtbSizeY)-1);
   bool firstInCTBRow = (xQG == 0 && ((yQG & ctbLSBMask)==0));
 
   // first QG in slice ?    TODO: a "firstQG" flag in the thread context would be faster
 
   int first_ctb_in_slice_RS = tctx->shdr->SliceAddrRS;
 
-  int SliceStartX = (first_ctb_in_slice_RS % sps->PicWidthInCtbsY) * sps->CtbSizeY;
-  int SliceStartY = (first_ctb_in_slice_RS / sps->PicWidthInCtbsY) * sps->CtbSizeY;
+  int SliceStartX = (first_ctb_in_slice_RS % sps.PicWidthInCtbsY) * sps.CtbSizeY;
+  int SliceStartY = (first_ctb_in_slice_RS / sps.PicWidthInCtbsY) * sps.CtbSizeY;
 
   bool firstQGInSlice = (SliceStartX == xQG && SliceStartY == yQG);
 
   // first QG in tile ?
 
   bool firstQGInTile = false;
-  if (pps->tiles_enabled_flag) {
-    if ((xQG & ((1 << sps->Log2CtbSizeY)-1)) == 0 &&
-        (yQG & ((1 << sps->Log2CtbSizeY)-1)) == 0)
+  if (pps.tiles_enabled_flag) {
+    if ((xQG & ((1 << sps.Log2CtbSizeY)-1)) == 0 &&
+        (yQG & ((1 << sps.Log2CtbSizeY)-1)) == 0)
       {
-        int ctbX = xQG >> sps->Log2CtbSizeY;
-        int ctbY = yQG >> sps->Log2CtbSizeY;
+        int ctbX = xQG >> sps.Log2CtbSizeY;
+        int ctbY = yQG >> sps.Log2CtbSizeY;
 
-        firstQGInTile = pps->is_tile_start_CTB(ctbX,ctbY); // TODO: this is slow
+        firstQGInTile = pps.is_tile_start_CTB(ctbX,ctbY); // TODO: this is slow
       }
   }
 
 
   if (firstQGInSlice || firstQGInTile ||
-      (firstInCTBRow && pps->entropy_coding_sync_enabled_flag)) {
+      (firstInCTBRow && pps.entropy_coding_sync_enabled_flag)) {
     qPY_PRED = tctx->shdr->SliceQPY;
   }
   else {
@@ -108,10 +108,10 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   int qPYA,qPYB;
 
   if (tctx->img->available_zscan(xQG,yQG, xQG-1,yQG)) {
-    int xTmp = (xQG-1) >> sps->Log2MinTrafoSize;
-    int yTmp = (yQG  ) >> sps->Log2MinTrafoSize;
-    int minTbAddrA = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    int ctbAddrA = minTbAddrA >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
+    int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;
+    int yTmp = (yQG  ) >> sps.Log2MinTrafoSize;
+    int minTbAddrA = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
+    int ctbAddrA = minTbAddrA >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
       qPYA = tctx->img->get_QPY(xQG-1,yQG);
     }
@@ -124,10 +124,10 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   }
 
   if (tctx->img->available_zscan(xQG,yQG, xQG,yQG-1)) {
-    int xTmp = (xQG  ) >> sps->Log2MinTrafoSize;
-    int yTmp = (yQG-1) >> sps->Log2MinTrafoSize;
-    int minTbAddrB = pps->MinTbAddrZS[xTmp + yTmp*sps->PicWidthInTbsY];
-    int ctbAddrB = minTbAddrB >> (2 * (sps->Log2CtbSizeY-sps->Log2MinTrafoSize));
+    int xTmp = (xQG  ) >> sps.Log2MinTrafoSize;
+    int yTmp = (yQG-1) >> sps.Log2MinTrafoSize;
+    int minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
+    int ctbAddrB = minTbAddrB >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrB == tctx->CtbAddrInTS) {
       qPYB = tctx->img->get_QPY(xQG,yQG-1);
     }
@@ -143,21 +143,21 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   logtrace(LogTransform,"qPY_PRED = %d  (%d, %d)\n",qPY_PRED, qPYA, qPYB);
 
-  int QPY = ((qPY_PRED + tctx->CuQpDelta + 52+2*sps->QpBdOffset_Y) %
-             (52 + sps->QpBdOffset_Y)) - sps->QpBdOffset_Y;
+  int QPY = ((qPY_PRED + tctx->CuQpDelta + 52+2*sps.QpBdOffset_Y) %
+             (52 + sps.QpBdOffset_Y)) - sps.QpBdOffset_Y;
 
-  tctx->qPYPrime = QPY + sps->QpBdOffset_Y;
+  tctx->qPYPrime = QPY + sps.QpBdOffset_Y;
 
-  int qPiCb = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cb_qp_offset + shdr->slice_cb_qp_offset + tctx->CuQpOffsetCb);
-  int qPiCr = Clip3(-sps->QpBdOffset_C,57, QPY+pps->pic_cr_qp_offset + shdr->slice_cr_qp_offset + tctx->CuQpOffsetCr);
+  int qPiCb = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cb_qp_offset + shdr->slice_cb_qp_offset + tctx->CuQpOffsetCb);
+  int qPiCr = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cr_qp_offset + shdr->slice_cr_qp_offset + tctx->CuQpOffsetCr);
 
   logtrace(LogTransform,"qPiCb:%d (%d %d), qPiCr:%d (%d %d)\n",
-           qPiCb, pps->pic_cb_qp_offset, shdr->slice_cb_qp_offset,
-           qPiCr, pps->pic_cr_qp_offset, shdr->slice_cr_qp_offset);
+           qPiCb, pps.pic_cb_qp_offset, shdr->slice_cb_qp_offset,
+           qPiCr, pps.pic_cr_qp_offset, shdr->slice_cr_qp_offset);
 
   int qPCb,qPCr;
 
-  if (sps->ChromaArrayType == CHROMA_420) {
+  if (sps.ChromaArrayType == CHROMA_420) {
     qPCb = table8_22(qPiCb);
     qPCr = table8_22(qPiCr);
   }
@@ -168,8 +168,8 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   //printf("q: %d %d\n",qPiCb, qPCb);
 
-  tctx->qPCbPrime = qPCb + sps->QpBdOffset_C;
-  tctx->qPCrPrime = qPCr + sps->QpBdOffset_C;
+  tctx->qPCbPrime = qPCb + sps.QpBdOffset_C;
+  tctx->qPCrPrime = qPCr + sps.QpBdOffset_C;
 
   /*
   printf("Q: %d (%d %d %d / %d %d) %d %d %d\n",QPY,
@@ -234,8 +234,8 @@ void transform_coefficients(acceleration_functions* acceleration,
 // TODO: make this an accelerated function
 void cross_comp_pred(const thread_context* tctx, int32_t* residual, int nT)
 {
-  const int BitDepthC = tctx->img->sps.BitDepth_C;
-  const int BitDepthY = tctx->img->sps.BitDepth_Y;
+  const int BitDepthC = tctx->img->get_sps().BitDepth_C;
+  const int BitDepthY = tctx->img->get_sps().BitDepth_Y;
 
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
@@ -356,8 +356,8 @@ void scale_coefficients_internal(thread_context* tctx,
                                  int nT, int cIdx,
                                  bool transform_skip_flag, bool intra, int rdpcmMode)
 {
-  seq_parameter_set* sps = &tctx->img->sps;
-  pic_parameter_set* pps = &tctx->img->pps;
+  const seq_parameter_set& sps = tctx->img->get_sps();
+  const pic_parameter_set& pps = tctx->img->get_pps();
 
   int qP;
   switch (cIdx) {
@@ -387,12 +387,12 @@ void scale_coefficients_internal(thread_context* tctx,
 
   // We explicitly include the case for sizeof(pixel_t)==1 so that the compiler
   // can optimize away a lot of code for 8-bit pixels.
-  const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps->get_bit_depth(cIdx));
+  const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps.get_bit_depth(cIdx));
 
   //assert(intra == (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA));
   int cuPredModeIntra = (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA);
 
-  bool rotateCoeffs = (sps->range_extension.transform_skip_rotation_enabled_flag &&
+  bool rotateCoeffs = (sps.range_extension.transform_skip_rotation_enabled_flag &&
                        nT == 4 &&
                        cuPredModeIntra);
 
@@ -440,7 +440,7 @@ void scale_coefficients_internal(thread_context* tctx,
   else {
     // (8.6.3)
 
-    int bdShift = (cIdx==0 ? sps->BitDepth_Y : sps->BitDepth_C) + Log2(nT) - 5;
+    int bdShift = (cIdx==0 ? sps.BitDepth_Y : sps.BitDepth_C) + Log2(nT) - 5;
 
     logtrace(LogTransform,"bdShift=%d\n",bdShift);
 
@@ -449,7 +449,7 @@ void scale_coefficients_internal(thread_context* tctx,
 
     // --- inverse quantization ---
 
-    if (sps->scaling_list_enable_flag==0) {
+    if (sps.scaling_list_enable_flag==0) {
 
       //const int m_x_y = 16;
       const int m_x_y = 1;
@@ -477,7 +477,7 @@ void scale_coefficients_internal(thread_context* tctx,
     else {
       const int offset = (1<<(bdShift-1));
 
-      uint8_t* sclist;
+      const uint8_t* sclist;
       int matrixID = cIdx;
       if (!intra) {
         if (nT<32) { matrixID += 3; }
@@ -485,10 +485,10 @@ void scale_coefficients_internal(thread_context* tctx,
       }
 
       switch (nT) {
-      case  4: sclist = &pps->scaling_list.ScalingFactor_Size0[matrixID][0][0]; break;
-      case  8: sclist = &pps->scaling_list.ScalingFactor_Size1[matrixID][0][0]; break;
-      case 16: sclist = &pps->scaling_list.ScalingFactor_Size2[matrixID][0][0]; break;
-      case 32: sclist = &pps->scaling_list.ScalingFactor_Size3[matrixID][0][0]; break;
+      case  4: sclist = &pps.scaling_list.ScalingFactor_Size0[matrixID][0][0]; break;
+      case  8: sclist = &pps.scaling_list.ScalingFactor_Size1[matrixID][0][0]; break;
+      case 16: sclist = &pps.scaling_list.ScalingFactor_Size2[matrixID][0][0]; break;
+      case 32: sclist = &pps.scaling_list.ScalingFactor_Size3[matrixID][0][0]; break;
       default: assert(0);
       }
 
@@ -521,7 +521,7 @@ void scale_coefficients_internal(thread_context* tctx,
       logtrace(LogTransform,"*\n");
     }
 
-    int bdShift2 = (cIdx==0) ? 20-sps->BitDepth_Y : 20-sps->BitDepth_C;
+    int bdShift2 = (cIdx==0) ? 20-sps.BitDepth_Y : 20-sps.BitDepth_C;
 
     logtrace(LogTransform,"bdShift2=%d\n",bdShift2);
 
@@ -591,7 +591,7 @@ void scale_coefficients_internal(thread_context* tctx,
       assert(rdpcmMode==0);
 
 
-      if (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag) {
+      if (tctx->img->get_pps().range_extension.cross_component_prediction_enabled_flag) {
         // cross-component-prediction: transform to residual buffer and add in a separate step
 
         transform_coefficients_explicit(tctx, coeff, coeffStride, nT, trType,

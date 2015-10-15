@@ -230,7 +230,7 @@ de265_image::de265_image()
 
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
-                                     const seq_parameter_set* sps, bool allocMetadata,
+                                     std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
                                      decoder_context* dctx,
                                      encoder_context* ectx,
                                      de265_PTS pts, void* user_data,
@@ -239,7 +239,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   //if (allocMetadata) { assert(sps); }
   if (allocMetadata) { assert(sps); }
 
-  if (sps != NULL) { this->sps = *sps; }
+  if (sps) { this->sps = sps; }
 
   release(); /* TODO: review code for efficient allocation when arrays are already
                 allocated to the requested size. Without the release, the old image-data
@@ -531,7 +531,7 @@ de265_error de265_image::copy_image(const de265_image* src)
      Another option would be to safe the copied data not in an de265_image at all.
   */
 
-  de265_error err = alloc_image(src->width, src->height, src->chroma_format, &src->sps, false,
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format, src->sps, false,
                                 src->decctx, src->encctx, src->pts, src->user_data, false);
   if (err != DE265_OK) {
     return err;
@@ -551,8 +551,8 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
   assert(first % 2 == 0);
   assert(end   % 2 == 0);
 
-  int luma_bpp   = (sps.BitDepth_Y+7)/8;
-  int chroma_bpp = (sps.BitDepth_C+7)/8;
+  int luma_bpp   = (sps->BitDepth_Y+7)/8;
+  int chroma_bpp = (sps->BitDepth_C+7)/8;
 
   if (src->stride == stride) {
     memcpy(pixels[0]      + first*stride * luma_bpp,
@@ -666,7 +666,7 @@ void de265_image::thread_finishes(const thread_task* task)
 
 void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
 {
-  const int ctbW = sps.PicWidthInCtbsY;
+  const int ctbW = sps->PicWidthInCtbsY;
 
   wait_for_progress(task, ctbx + ctbW*ctby, progress);
 }
@@ -750,28 +750,28 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv
 bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
 {
   if (xN<0 || yN<0) return false;
-  if (xN>=sps.pic_width_in_luma_samples ||
-      yN>=sps.pic_height_in_luma_samples) return false;
+  if (xN>=sps->pic_width_in_luma_samples ||
+      yN>=sps->pic_height_in_luma_samples) return false;
 
-  int minBlockAddrN = pps.MinTbAddrZS[ (xN>>sps.Log2MinTrafoSize) +
-                                       (yN>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
-  int minBlockAddrCurr = pps.MinTbAddrZS[ (xCurr>>sps.Log2MinTrafoSize) +
-                                          (yCurr>>sps.Log2MinTrafoSize) * sps.PicWidthInTbsY ];
+  int minBlockAddrN = pps->MinTbAddrZS[ (xN>>sps->Log2MinTrafoSize) +
+                                        (yN>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
+  int minBlockAddrCurr = pps->MinTbAddrZS[ (xCurr>>sps->Log2MinTrafoSize) +
+                                           (yCurr>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
 
   if (minBlockAddrN > minBlockAddrCurr) return false;
 
-  int xCurrCtb = xCurr >> sps.Log2CtbSizeY;
-  int yCurrCtb = yCurr >> sps.Log2CtbSizeY;
-  int xNCtb = xN >> sps.Log2CtbSizeY;
-  int yNCtb = yN >> sps.Log2CtbSizeY;
+  int xCurrCtb = xCurr >> sps->Log2CtbSizeY;
+  int yCurrCtb = yCurr >> sps->Log2CtbSizeY;
+  int xNCtb = xN >> sps->Log2CtbSizeY;
+  int yNCtb = yN >> sps->Log2CtbSizeY;
 
   if (get_SliceAddrRS(xCurrCtb,yCurrCtb) !=
       get_SliceAddrRS(xNCtb,   yNCtb)) {
     return false;
   }
 
-  if (pps.TileIdRS[xCurrCtb + yCurrCtb*sps.PicWidthInCtbsY] !=
-      pps.TileIdRS[xNCtb    + yNCtb   *sps.PicWidthInCtbsY]) {
+  if (pps->TileIdRS[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
+      pps->TileIdRS[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
     return false;
   }
 

@@ -199,10 +199,10 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     options.start();
 
 
-    const seq_parameter_set* sps = &ectx->sps;
+    const seq_parameter_set* sps = &ectx->get_sps();
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->sps);
+                                tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->get_sps());
 
 
     for (int i = 0; i<35; i++) {
@@ -225,7 +225,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
       // set chroma mode to same mode is its luma mode
       enum IntraPredMode intraModeC;
 
-      if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+      if (cb->PartMode==PART_2Nx2N || ectx->get_sps().ChromaArrayType==CHROMA_444) {
         intraModeC = intraMode;
       }
       else {
@@ -317,7 +317,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
         enum IntraPredMode mode = getPredMode(idx);
 
         tb->intra_mode = mode;
-        decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, 0);
+        decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->get_sps(), 0);
 
         float distortion;
         distortion = estim_TB_bitrate(ectx, input, tb,
@@ -342,7 +342,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     // set chroma mode to same mode is its luma mode
     enum IntraPredMode intraModeC;
 
-    if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+    if (cb->PartMode==PART_2Nx2N || ectx->get_sps().ChromaArrayType==CHROMA_444) {
       intraModeC = intraMode;
     }
     else {
@@ -366,7 +366,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, x0,y0,
-                                x0>0, y0>0, ectx->ctbs, &ectx->sps);
+                                x0>0, y0>0, ectx->ctbs, &ectx->get_sps());
 
     float intraPredModeBits = get_intra_pred_mode_bits(candidates,
                                                        intraMode,
@@ -417,10 +417,10 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     int   minCostIdx=0;
     float minCandCost;
 
-    const seq_parameter_set* sps = &ectx->sps;
+    const seq_parameter_set* sps = &ectx->get_sps();
     enum IntraPredMode candidates[3];
     fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                tb->x>0, tb->y>0, ectx->ctbs, &ectx->sps);
+                                tb->x>0, tb->y>0, ectx->ctbs, &ectx->get_sps());
 
 
 
@@ -436,7 +436,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
           enum IntraPredMode mode = (enum IntraPredMode)idx;
 
           tb->intra_mode = mode;
-          decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->sps, 0);
+          decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->get_sps(), 0);
 
           float distortion;
           distortion = estim_TB_bitrate(ectx, input, tb,
@@ -483,7 +483,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       // set chroma mode to same mode is its luma mode
       enum IntraPredMode intraModeC;
-      if (cb->PartMode==PART_2Nx2N || ectx->sps.ChromaArrayType==CHROMA_444) {
+      if (cb->PartMode==PART_2Nx2N || ectx->get_sps().ChromaArrayType==CHROMA_444) {
         intraModeC = opt_tb->intra_mode;
       }
       else {

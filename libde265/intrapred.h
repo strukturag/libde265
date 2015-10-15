@@ -43,7 +43,7 @@ inline void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int 
                                  bool availableB, // top
                                  const de265_image* img)
 {
-  int PUidx = img->sps.getPUIndexRS(x,y);
+  int PUidx = img->get_sps().getPUIndexRS(x,y);
   fillIntraPredModeCandidates(candModeList, x,y, PUidx, availableA,availableB, img);
 }
 

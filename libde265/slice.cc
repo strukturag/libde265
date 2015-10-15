@@ -379,11 +379,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  pps = ctx->get_pps((int)slice_pic_parameter_set_id);
-  if (!pps->pps_read) {
+  if (!ctx->has_pps(slice_pic_parameter_set_id)) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
+
+  pps = ctx->get_pps(slice_pic_parameter_set_id);
 
   const seq_parameter_set* sps = pps->sps;
   if (!sps->sps_read) {
@@ -1702,13 +1703,15 @@ static enum PartMode decode_part_mode(thread_context* tctx,
     return bit ? PART_2Nx2N : PART_NxN;
   }
   else {
+    const seq_parameter_set& sps = img->get_sps();
+
     int bit0 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+0]);
     if (bit0) { logtrace(LogSymbols,"$1 part_mode=%d\n",PART_2Nx2N); return PART_2Nx2N; }
 
     // CHECK_ME: I optimize code and fix bug here, need more VERIFY!
     int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE+1]);
-    if (cLog2CbSize > img->sps.Log2MinCbSizeY) {
-      if (!img->sps.amp_enabled_flag) {
+    if (cLog2CbSize > sps.Log2MinCbSizeY) {
+      if (!sps.amp_enabled_flag) {
         logtrace(LogSymbols,"$1 part_mode=%d\n",bit1 ? PART_2NxN : PART_Nx2N);
         return bit1 ? PART_2NxN : PART_Nx2N;
       }
@@ -2662,20 +2665,20 @@ static int  decode_explicit_rdpcm_dir(thread_context* tctx,int cIdx)
  */
 bool setCtbAddrFromTS(thread_context* tctx)
 {
-  const seq_parameter_set* sps = &tctx->img->sps;
+  const seq_parameter_set& sps = tctx->img->get_sps();
 
-  if (tctx->CtbAddrInTS < sps->PicSizeInCtbsY) {
-    tctx->CtbAddrInRS = tctx->img->pps.CtbAddrTStoRS[tctx->CtbAddrInTS];
+  if (tctx->CtbAddrInTS < sps.PicSizeInCtbsY) {
+    tctx->CtbAddrInRS = tctx->img->get_pps().CtbAddrTStoRS[tctx->CtbAddrInTS];
 
-    tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
+    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
+    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
     return false;
   }
   else {
-    tctx->CtbAddrInRS = sps->PicSizeInCtbsY;
+    tctx->CtbAddrInRS = sps.PicSizeInCtbsY;
 
-    tctx->CtbX = tctx->CtbAddrInRS % sps->PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps->PicWidthInCtbsY;
+    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
+    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
     return true;
   }
 }
@@ -2694,8 +2697,8 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 {
   slice_segment_header* shdr = tctx->shdr;
   de265_image* img = tctx->img;
-  const seq_parameter_set* sps = &img->sps;
-  const pic_parameter_set* pps = &img->pps;
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
 
   logtrace(LogSlice,"# read_sao(%d,%d)\n",xCtb,yCtb);
 
@@ -2710,8 +2713,8 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
   if (xCtb>0) {
     //char leftCtbInSliceSeg = (CtbAddrInSliceSeg>0);
     char leftCtbInSliceSeg = (tctx->CtbAddrInRS > shdr->SliceAddrRS);
-    char leftCtbInTile = (pps->TileIdRS[xCtb   + yCtb * sps->PicWidthInCtbsY] ==
-                          pps->TileIdRS[xCtb-1 + yCtb * sps->PicWidthInCtbsY]);
+    char leftCtbInTile = (pps.TileIdRS[xCtb   + yCtb * sps.PicWidthInCtbsY] ==
+                          pps.TileIdRS[xCtb-1 + yCtb * sps.PicWidthInCtbsY]);
 
     if (leftCtbInSliceSeg && leftCtbInTile) {
       sao_merge_left_flag = decode_sao_merge_flag(tctx);
@@ -2722,11 +2725,11 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
   if (yCtb>0 && sao_merge_left_flag==0) {
     logtrace(LogSlice,"CtbAddrInRS:%d PicWidthInCtbsY:%d slice_segment_address:%d\n",
              tctx->CtbAddrInRS,
-             sps->PicWidthInCtbsY,
+             sps.PicWidthInCtbsY,
              shdr->slice_segment_address);
-    char upCtbInSliceSeg = (tctx->CtbAddrInRS - sps->PicWidthInCtbsY) >= shdr->SliceAddrRS;
-    char upCtbInTile = (pps->TileIdRS[xCtb +  yCtb    * sps->PicWidthInCtbsY] ==
-                        pps->TileIdRS[xCtb + (yCtb-1) * sps->PicWidthInCtbsY]);
+    char upCtbInSliceSeg = (tctx->CtbAddrInRS - sps.PicWidthInCtbsY) >= shdr->SliceAddrRS;
+    char upCtbInTile = (pps.TileIdRS[xCtb +  yCtb    * sps.PicWidthInCtbsY] ==
+                        pps.TileIdRS[xCtb + (yCtb-1) * sps.PicWidthInCtbsY]);
 
     if (upCtbInSliceSeg && upCtbInTile) {
       sao_merge_up_flag = decode_sao_merge_flag(tctx);
@@ -2736,7 +2739,7 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 
   if (!sao_merge_up_flag && !sao_merge_left_flag) {
     int nChroma = 3;
-    if (sps->ChromaArrayType == CHROMA_MONO) nChroma=1;
+    if (sps.ChromaArrayType == CHROMA_MONO) nChroma=1;
 
     for (int cIdx=0; cIdx<nChroma; cIdx++) {
       if ((shdr->slice_sao_luma_flag && cIdx==0) ||
@@ -2802,10 +2805,10 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
           int log2OffsetScale;
 
           if (cIdx==0) {
-            log2OffsetScale = pps->range_extension.log2_sao_offset_scale_luma;
+            log2OffsetScale = pps.range_extension.log2_sao_offset_scale_luma;
           }
           else {
-            log2OffsetScale = pps->range_extension.log2_sao_offset_scale_chroma;
+            log2OffsetScale = pps.range_extension.log2_sao_offset_scale_chroma;
           }
 
           for (int i=0;i<4;i++) {
@@ -2833,12 +2836,12 @@ void read_coding_tree_unit(thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
   de265_image* img = tctx->img;
-  seq_parameter_set* sps = &img->sps;
+  const seq_parameter_set& sps = img->get_sps();
 
-  int xCtb = (tctx->CtbAddrInRS % sps->PicWidthInCtbsY);
-  int yCtb = (tctx->CtbAddrInRS / sps->PicWidthInCtbsY);
-  int xCtbPixels = xCtb << sps->Log2CtbSizeY;
-  int yCtbPixels = yCtb << sps->Log2CtbSizeY;
+  int xCtb = (tctx->CtbAddrInRS % sps.PicWidthInCtbsY);
+  int yCtb = (tctx->CtbAddrInRS / sps.PicWidthInCtbsY);
+  int xCtbPixels = xCtb << sps.Log2CtbSizeY;
+  int yCtbPixels = yCtb << sps.Log2CtbSizeY;
 
   logtrace(LogSlice,"----- decode CTB %d;%d (%d;%d) POC=%d, SliceAddrRS=%d\n",
            xCtbPixels,yCtbPixels, xCtb,yCtb,
@@ -2855,7 +2858,7 @@ void read_coding_tree_unit(thread_context* tctx)
       read_sao(tctx, xCtb,yCtb, CtbAddrInSliceSeg);
     }
 
-  read_coding_quadtree(tctx, xCtbPixels, yCtbPixels, sps->Log2CtbSizeY, 0);
+  read_coding_quadtree(tctx, xCtbPixels, yCtbPixels, sps.Log2CtbSizeY, 0);
 }
 
 
@@ -2874,12 +2877,12 @@ int check_CTB_available(const de265_image* img,
   // check whether neighbor is outside of frame
 
   if (xN < 0 || yN < 0) { return 0; }
-  if (xN >= img->sps.pic_width_in_luma_samples)  { return 0; }
-  if (yN >= img->sps.pic_height_in_luma_samples) { return 0; }
+  if (xN >= img->get_sps().pic_width_in_luma_samples)  { return 0; }
+  if (yN >= img->get_sps().pic_height_in_luma_samples) { return 0; }
 
 
-  int current_ctbAddrRS  = luma_pos_to_ctbAddrRS(&img->sps, xC,yC);
-  int neighbor_ctbAddrRS = luma_pos_to_ctbAddrRS(&img->sps, xN,yN);
+  int current_ctbAddrRS  = luma_pos_to_ctbAddrRS(&img->get_sps(), xC,yC);
+  int neighbor_ctbAddrRS = luma_pos_to_ctbAddrRS(&img->get_sps(), xN,yN);
 
   // TODO: check if this is correct (6.4.1)
 
@@ -2890,8 +2893,8 @@ int check_CTB_available(const de265_image* img,
 
   // check if both CTBs are in the same tile.
 
-  if (img->pps.TileIdRS[current_ctbAddrRS] !=
-      img->pps.TileIdRS[neighbor_ctbAddrRS]) {
+  if (img->get_pps().TileIdRS[current_ctbAddrRS] !=
+      img->get_pps().TileIdRS[neighbor_ctbAddrRS]) {
     return 0;
   }
 
@@ -2909,8 +2912,8 @@ int residual_coding(thread_context* tctx,
   //slice_segment_header* shdr = tctx->shdr;
 
   de265_image* img = tctx->img;
-  const seq_parameter_set* sps = &img->sps;
-  const pic_parameter_set* pps = &img->pps;
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
 
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
 
@@ -2919,9 +2922,9 @@ int residual_coding(thread_context* tctx,
   }
 
 
-  if (pps->transform_skip_enabled_flag &&
+  if (pps.transform_skip_enabled_flag &&
       !tctx->cu_transquant_bypass_flag &&
-      (log2TrafoSize <= pps->Log2MaxTransformSkipSize))
+      (log2TrafoSize <= pps.Log2MaxTransformSkipSize))
     {
       tctx->transform_skip_flag[cIdx] = decode_transform_skip_flag(tctx,cIdx);
     }
@@ -2933,7 +2936,7 @@ int residual_coding(thread_context* tctx,
 
   tctx->explicit_rdpcm_flag = false;
 
-  if (PredMode == MODE_INTER && sps->range_extension.explicit_rdpcm_enabled_flag &&
+  if (PredMode == MODE_INTER && sps.range_extension.explicit_rdpcm_enabled_flag &&
       ( tctx->transform_skip_flag[cIdx] || tctx->cu_transquant_bypass_flag))
     {
       tctx->explicit_rdpcm_flag = decode_explicit_rdpcm_flag(tctx,cIdx);
@@ -3003,11 +3006,11 @@ int residual_coding(thread_context* tctx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredMode(x0,y0),  cIdx, sps);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredMode(x0,y0),  cIdx, &sps);
       //printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, img->get_IntraPredMode(x0,y0));
     }
     else {
-      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredModeC(x0,y0), cIdx, sps);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, img->get_IntraPredModeC(x0,y0), cIdx, &sps);
       //printf("chroma scan idx=%d <- intra mode=%d chroma:%d trsize:%d\n",scanIdx,
       //       img->get_IntraPredModeC(x0,y0), sps->chroma_format_idc, 1<<log2TrafoSize);
     }
@@ -3149,7 +3152,7 @@ int residual_coding(thread_context* tctx,
         // for all AC coefficients in sub-block, a significant_coeff flag is coded
 
         int ctxInc;
-        if (sps->range_extension.transform_skip_context_enabled_flag &&
+        if (sps.range_extension.transform_skip_context_enabled_flag &&
             (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
           ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
         }
@@ -3182,7 +3185,7 @@ int residual_coding(thread_context* tctx,
             // if we cannot infert the DC coefficient, it is coded
 
             int ctxInc;
-            if (sps->range_extension.transform_skip_context_enabled_flag &&
+            if (sps.range_extension.transform_skip_context_enabled_flag &&
                 (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
               ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
             }
@@ -3291,7 +3294,7 @@ int residual_coding(thread_context* tctx,
 
       if (tctx->cu_transquant_bypass_flag ||
           (PredMode == MODE_INTRA &&
-           sps->range_extension.implicit_rdpcm_enabled_flag &&
+           sps.range_extension.implicit_rdpcm_enabled_flag &&
            tctx->transform_skip_flag[cIdx] &&
            ( predModeIntra == 10 || predModeIntra == 26 )) ||
           tctx->explicit_rdpcm_flag)
@@ -3310,7 +3313,7 @@ int residual_coding(thread_context* tctx,
       }
 
       // n==nCoefficients-1
-      if (!pps->sign_data_hiding_flag || !signHidden) {
+      if (!pps.sign_data_hiding_flag || !signHidden) {
         coeff_sign[nCoefficients-1] = decode_CABAC_bypass(&tctx->cabac_decoder);
         logtrace(LogSlice,"sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
       }
@@ -3324,7 +3327,7 @@ int residual_coding(thread_context* tctx,
       int sumAbsLevel=0;
       int uiGoRiceParam;
 
-      if (sps->range_extension.persistent_rice_adaptation_enabled_flag==0) {
+      if (sps.range_extension.persistent_rice_adaptation_enabled_flag==0) {
         uiGoRiceParam = 0;
       }
       else {
@@ -3345,7 +3348,7 @@ int residual_coding(thread_context* tctx,
           coeff_abs_level_remaining =
             decode_coeff_abs_level_remaining(tctx, uiGoRiceParam);
 
-          if (sps->range_extension.persistent_rice_adaptation_enabled_flag == 0) {
+          if (sps.range_extension.persistent_rice_adaptation_enabled_flag == 0) {
             // (2014.10 / 9-20)
             if (baseLevel + coeff_abs_level_remaining > 3*(1<<uiGoRiceParam)) {
               uiGoRiceParam++;
@@ -3358,7 +3361,7 @@ int residual_coding(thread_context* tctx,
           }
 
           // persistent_rice_adaptation_enabled_flag
-          if (sps->range_extension.persistent_rice_adaptation_enabled_flag &&
+          if (sps.range_extension.persistent_rice_adaptation_enabled_flag &&
               firstCoeffWithAbsLevelRemaining) {
             if (coeff_abs_level_remaining >= (3 << (tctx->StatCoeff[sbType]/4 ))) {
               tctx->StatCoeff[sbType]++;
@@ -3383,7 +3386,7 @@ int residual_coding(thread_context* tctx,
           currCoeff = -currCoeff;
         }
 
-        if (pps->sign_data_hiding_flag && signHidden) {
+        if (pps.sign_data_hiding_flag && signHidden) {
           sumAbsLevel += baseLevel + coeff_abs_level_remaining;
 
           if (n==nCoefficients-1 && (sumAbsLevel & 1)) {
@@ -3424,6 +3427,7 @@ static void decode_TU(thread_context* tctx,
                       int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
 {
   de265_image* img = tctx->img;
+  const seq_parameter_set& sps = img->get_sps();
 
   int residualDpcm = 0;
 
@@ -3435,8 +3439,8 @@ static void decode_TU(thread_context* tctx,
         intraPredMode = img->get_IntraPredMode(x0,y0);
       }
       else {
-        const int SubWidthC  = tctx->img->sps.SubWidthC;
-        const int SubHeightC = tctx->img->sps.SubHeightC;
+        const int SubWidthC  = sps.SubWidthC;
+        const int SubHeightC = sps.SubHeightC;
 
         intraPredMode = img->get_IntraPredModeC(x0*SubWidthC,y0*SubHeightC);
       }
@@ -3449,7 +3453,7 @@ static void decode_TU(thread_context* tctx,
       decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
 
 
-      residualDpcm = tctx->img->sps.range_extension.implicit_rdpcm_enabled_flag &&
+      residualDpcm = sps.range_extension.implicit_rdpcm_enabled_flag &&
         (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx]) &&
         (intraPredMode == 10 || intraPredMode == 26);
 
@@ -3558,7 +3562,9 @@ int read_transform_unit(thread_context* tctx,
   assert(cbf_cr != -1);
   assert(cbf_luma != -1);
 
-  const int ChromaArrayType = tctx->img->sps.ChromaArrayType;
+  const seq_parameter_set& sps = tctx->img->get_sps();
+
+  const int ChromaArrayType = sps.ChromaArrayType;
 
   int log2TrafoSizeC = (ChromaArrayType==CHROMA_444 ? log2TrafoSize : log2TrafoSize-1);
   log2TrafoSizeC = libde265_max(2, log2TrafoSizeC);
@@ -3579,7 +3585,7 @@ int read_transform_unit(thread_context* tctx,
     {
       bool doDecodeQuantParameters = false;
 
-      if (tctx->img->pps.cu_qp_delta_enabled_flag &&
+      if (tctx->img->get_pps().cu_qp_delta_enabled_flag &&
           !tctx->IsCuQpDeltaCoded) {
 
         int cu_qp_delta_abs = decode_cu_qp_delta_abs(tctx);
@@ -3609,10 +3615,10 @@ int read_transform_unit(thread_context* tctx,
                                                         &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_FLAG]);
 
 
-        const pic_parameter_set* pps = &tctx->img->pps;
+        const pic_parameter_set& pps = tctx->img->get_pps();
 
         int cu_chroma_qp_offset_idx = 0;
-        if (cu_chroma_qp_offset_flag && pps->range_extension.chroma_qp_offset_list_len > 1) {
+        if (cu_chroma_qp_offset_flag && pps.range_extension.chroma_qp_offset_list_len > 1) {
           cu_chroma_qp_offset_idx = decode_CABAC_bit(&tctx->cabac_decoder,
                                                      &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_IDX]);
         }
@@ -3620,8 +3626,8 @@ int read_transform_unit(thread_context* tctx,
         tctx->IsCuChromaQpOffsetCoded = 1;
 
         if (cu_chroma_qp_offset_flag) {
-          tctx->CuQpOffsetCb = pps->range_extension.cb_qp_offset_list[ cu_chroma_qp_offset_idx ];
-          tctx->CuQpOffsetCr = pps->range_extension.cr_qp_offset_list[ cu_chroma_qp_offset_idx ];
+          tctx->CuQpOffsetCb = pps.range_extension.cb_qp_offset_list[ cu_chroma_qp_offset_idx ];
+          tctx->CuQpOffsetCr = pps.range_extension.cr_qp_offset_list[ cu_chroma_qp_offset_idx ];
         }
         else {
           tctx->CuQpOffsetCb = 0;
@@ -3644,8 +3650,8 @@ int read_transform_unit(thread_context* tctx,
   int nT = 1<<log2TrafoSize;
   int nTC = 1<<log2TrafoSizeC;
 
-  const int SubWidthC  = tctx->img->sps.SubWidthC;
-  const int SubHeightC = tctx->img->sps.SubHeightC;
+  const int SubWidthC  = sps.SubWidthC;
+  const int SubHeightC = sps.SubHeightC;
 
   // --- luma ---
 
@@ -3667,7 +3673,7 @@ int read_transform_unit(thread_context* tctx,
     // TODO: cross-component prediction
 
     const bool do_cross_component_prediction =
-      (tctx->img->pps.range_extension.cross_component_prediction_enabled_flag &&
+      (tctx->img->get_pps().range_extension.cross_component_prediction_enabled_flag &&
        cbf_luma &&
        (cuPredMode == MODE_INTER || tctx->img->is_IntraPredModeC_Mode4(x0,y0)));
 
@@ -3683,7 +3689,7 @@ int read_transform_unit(thread_context* tctx,
         if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) != DE265_OK) return err;
       }
 
-      if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+      if (sps.ChromaArrayType != CHROMA_MONO) {
         decode_TU(tctx,
                   x0/SubWidthC,y0/SubHeightC,
                   xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, 1, cuPredMode, cbf_cb & 1);
@@ -3719,7 +3725,7 @@ int read_transform_unit(thread_context* tctx,
         if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,2)) != DE265_OK) return err;
       }
 
-      if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+      if (sps.ChromaArrayType != CHROMA_MONO) {
         decode_TU(tctx,
                   x0/SubWidthC,y0/SubHeightC,
                   xCUBase/SubWidthC,yCUBase/SubHeightC,
@@ -3749,7 +3755,7 @@ int read_transform_unit(thread_context* tctx,
                                log2TrafoSize,1)) != DE265_OK) return err;
     }
 
-    if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+    if (sps.ChromaArrayType != CHROMA_MONO) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC,
                 xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 1);
@@ -3773,7 +3779,7 @@ int read_transform_unit(thread_context* tctx,
                                log2TrafoSize,2)) != DE265_OK) return err;
     }
 
-    if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+    if (sps.ChromaArrayType != CHROMA_MONO) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC,
                 xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 1);
@@ -3829,7 +3835,7 @@ void read_transform_tree(thread_context* tctx,
            x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth,parent_cbf_cb,parent_cbf_cr);
 
   de265_image* img = tctx->img;
-  const seq_parameter_set* sps = &img->sps;
+  const seq_parameter_set& sps = img->get_sps();
 
   int split_transform_flag;
 
@@ -3842,8 +3848,8 @@ void read_transform_tree(thread_context* tctx,
       If intra-prediction is NxN mode            -> split automatically (only at level 0)
       Otherwise  ->  read split flag
   */
-  if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
-      log2TrafoSize >  sps->Log2MinTrafoSize &&
+  if (log2TrafoSize <= sps.Log2MaxTrafoSize &&
+      log2TrafoSize >  sps.Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && trafoDepth==0))
     {
@@ -3853,12 +3859,12 @@ void read_transform_tree(thread_context* tctx,
     {
       enum PartMode PartMode = img->get_PartMode(x0,y0);
 
-      int interSplitFlag= (sps->max_transform_hierarchy_depth_inter==0 &&
+      int interSplitFlag= (sps.max_transform_hierarchy_depth_inter==0 &&
                            trafoDepth == 0 &&
                            PredMode == MODE_INTER &&
                            PartMode != PART_2Nx2N);
 
-      split_transform_flag = (log2TrafoSize > sps->Log2MaxTrafoSize ||
+      split_transform_flag = (log2TrafoSize > sps.Log2MaxTrafoSize ||
                               (IntraSplitFlag==1 && trafoDepth==0) ||
                               interSplitFlag==1) ? 1:0;
     }
@@ -3875,13 +3881,13 @@ void read_transform_tree(thread_context* tctx,
   // 4:2:0 and 4:4:4 modes: binary flag in bit 0
   // 4:2:2 mode: bit 0: top block, bit 1: bottom block
 
-  if ((log2TrafoSize>2 && sps->ChromaArrayType != CHROMA_MONO) ||
-      sps->ChromaArrayType == CHROMA_444) {
+  if ((log2TrafoSize>2 && sps.ChromaArrayType != CHROMA_MONO) ||
+      sps.ChromaArrayType == CHROMA_444) {
     // we do not have to test for trafoDepth==0, because parent_cbf_cb is 1 at depth 0
     if (/*trafoDepth==0 ||*/ parent_cbf_cb) {
       cbf_cb = decode_cbf_chroma(tctx,trafoDepth);
 
-      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+      if (sps.ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
         cbf_cb |= (decode_cbf_chroma(tctx,trafoDepth) << 1);
       }
     }
@@ -3890,7 +3896,7 @@ void read_transform_tree(thread_context* tctx,
     if (/*trafoDepth==0 ||*/ parent_cbf_cr) {
       cbf_cr = decode_cbf_chroma(tctx,trafoDepth);
 
-      if (sps->ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
+      if (sps.ChromaArrayType == CHROMA_422 && (!split_transform_flag || log2TrafoSize==3)) {
         cbf_cr |= (decode_cbf_chroma(tctx,trafoDepth) << 1);
       }
     }
@@ -4138,7 +4144,7 @@ template <class pixel_t>
 void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbSize,
                                int cIdx, bitreader& br)
 {
-  const seq_parameter_set* sps = &tctx->img->sps;
+  const seq_parameter_set& sps = tctx->img->get_sps();
 
   int nPcmBits;
   int bitDepth;
@@ -4147,18 +4153,18 @@ void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbS
   int h = 1<<log2CbSize;
 
   if (cIdx>0) {
-    w /= tctx->img->sps.SubWidthC;
-    h /= tctx->img->sps.SubHeightC;
+    w /= sps.SubWidthC;
+    h /= sps.SubHeightC;
 
-    x0 /= tctx->img->sps.SubWidthC;
-    y0 /= tctx->img->sps.SubHeightC;
+    x0 /= sps.SubWidthC;
+    y0 /= sps.SubHeightC;
 
-    nPcmBits = sps->pcm_sample_bit_depth_chroma;
-    bitDepth = sps->BitDepth_C;
+    nPcmBits = sps.pcm_sample_bit_depth_chroma;
+    bitDepth = sps.BitDepth_C;
   }
   else {
-    nPcmBits = sps->pcm_sample_bit_depth_luma;
-    bitDepth = sps->BitDepth_Y;
+    nPcmBits = sps.pcm_sample_bit_depth_luma;
+    bitDepth = sps.BitDepth_Y;
   }
 
   pixel_t* ptr;
@@ -4191,7 +4197,7 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
     read_pcm_samples_internal<uint8_t>(tctx,x0,y0,log2CbSize,0,br);
   }
 
-  if (tctx->img->sps.ChromaArrayType != CHROMA_MONO) {
+  if (tctx->img->get_sps().ChromaArrayType != CHROMA_MONO) {
     if (tctx->img->high_bit_depth(1)) {
       read_pcm_samples_internal<uint16_t>(tctx,x0,y0,log2CbSize,1,br);
       read_pcm_samples_internal<uint16_t>(tctx,x0,y0,log2CbSize,2,br);
@@ -4242,8 +4248,8 @@ void read_coding_unit(thread_context* tctx,
                       int ctDepth)
 {
   de265_image* img = tctx->img;
-  const seq_parameter_set* sps = &img->sps;
-  const pic_parameter_set* pps = &img->pps;
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
   slice_segment_header* shdr = tctx->shdr;
 
   logtrace(LogSlice,"- read_coding_unit %d;%d cbsize:%d\n",x0,y0,1<<log2CbSize);
@@ -4264,7 +4270,7 @@ void read_coding_unit(thread_context* tctx,
   decode_quantization_parameters(tctx, x0,y0, x0, y0);
 
 
-  if (pps->transquant_bypass_enable_flag)
+  if (pps.transquant_bypass_enable_flag)
     {
       int transquant_bypass = decode_transquant_bypass_flag(tctx);
 
@@ -4320,7 +4326,7 @@ void read_coding_unit(thread_context* tctx,
     enum PartMode PartMode;
 
     if (cuPredMode != MODE_INTRA ||
-        log2CbSize == sps->Log2MinCbSizeY) {
+        log2CbSize == sps.Log2MinCbSizeY) {
       PartMode = decode_part_mode(tctx, cuPredMode, log2CbSize);
 
       if (PartMode==PART_NxN && cuPredMode==MODE_INTRA) {
@@ -4338,9 +4344,9 @@ void read_coding_unit(thread_context* tctx,
     bool pcm_flag = false;
 
     if (cuPredMode == MODE_INTRA) {
-      if (PartMode == PART_2Nx2N && sps->pcm_enabled_flag &&
-          log2CbSize >= sps->Log2MinIpcmCbSizeY &&
-          log2CbSize <= sps->Log2MaxIpcmCbSizeY) {
+      if (PartMode == PART_2Nx2N && sps.pcm_enabled_flag &&
+          log2CbSize >= sps.Log2MinIpcmCbSizeY &&
+          log2CbSize <= sps.Log2MaxIpcmCbSizeY) {
         pcm_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
       }
 
@@ -4393,7 +4399,7 @@ void read_coding_unit(thread_context* tctx,
 
 
 
-              int PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
+              int PUidx = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 
               enum IntraPredMode candModeList[3];
 
@@ -4438,7 +4444,7 @@ void read_coding_unit(thread_context* tctx,
 
         // set chroma intra prediction mode
 
-        if (sps->ChromaArrayType == CHROMA_444) {
+        if (sps.ChromaArrayType == CHROMA_444) {
           // chroma 4:4:4
 
           idx = 0;
@@ -4461,7 +4467,7 @@ void read_coding_unit(thread_context* tctx,
               idx++;
             }
         }
-        else if (sps->ChromaArrayType != CHROMA_MONO) {
+        else if (sps.ChromaArrayType != CHROMA_MONO) {
           // chroma 4:2:0 and 4:2:2
 
           int intra_chroma_pred_mode = decode_intra_chroma_pred_mode(tctx);
@@ -4469,7 +4475,7 @@ void read_coding_unit(thread_context* tctx,
           logtrace(LogSlice,"IntraPredMode: %d\n",IntraPredMode);
           int IntraPredModeC = map_chroma_pred_mode(intra_chroma_pred_mode, IntraPredMode);
 
-          if (sps->ChromaArrayType == CHROMA_422) {
+          if (sps.ChromaArrayType == CHROMA_422) {
             IntraPredModeC = map_chroma_422[ IntraPredModeC ];
           }
 
@@ -4548,16 +4554,16 @@ void read_coding_unit(thread_context* tctx,
         int MaxTrafoDepth;
 
         if (cuPredMode==MODE_INTRA) {
-          MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag;
+          MaxTrafoDepth = sps.max_transform_hierarchy_depth_intra + IntraSplitFlag;
         }
         else {
-          MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter;
+          MaxTrafoDepth = sps.max_transform_hierarchy_depth_inter;
         }
 
         logtrace(LogSlice,"MaxTrafoDepth: %d\n",MaxTrafoDepth);
 
         uint8_t initial_chroma_cbf = 1;
-        if (sps->ChromaArrayType == CHROMA_MONO) {
+        if (sps.ChromaArrayType == CHROMA_MONO) {
           initial_chroma_cbf = 0;
         }
 
@@ -4581,7 +4587,8 @@ void read_coding_quadtree(thread_context* tctx,
   logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d POC:%d\n",x0,y0,1<<log2CbSize,ctDepth,tctx->img->PicOrderCntVal);
 
   de265_image* img = tctx->img;
-  const seq_parameter_set* sps = &img->sps;
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
 
   int split_flag;
 
@@ -4589,18 +4596,18 @@ void read_coding_quadtree(thread_context* tctx,
   // completely contained within the image area.
   // If it is partly outside the image area and not at minimum size,
   // it is split. If already at minimum size, it is not split further.
-  if (x0+(1<<log2CbSize) <= sps->pic_width_in_luma_samples &&
-      y0+(1<<log2CbSize) <= sps->pic_height_in_luma_samples &&
-      log2CbSize > sps->Log2MinCbSizeY) {
+  if (x0+(1<<log2CbSize) <= sps.pic_width_in_luma_samples &&
+      y0+(1<<log2CbSize) <= sps.pic_height_in_luma_samples &&
+      log2CbSize > sps.Log2MinCbSizeY) {
     split_flag = decode_split_cu_flag(tctx, x0,y0, ctDepth);
   } else {
-    if (log2CbSize > sps->Log2MinCbSizeY) { split_flag=1; }
+    if (log2CbSize > sps.Log2MinCbSizeY) { split_flag=1; }
     else                                  { split_flag=0; }
   }
 
 
-  if (img->pps.cu_qp_delta_enabled_flag &&
-      log2CbSize >= img->pps.Log2MinCuQpDeltaSize)
+  if (pps.cu_qp_delta_enabled_flag &&
+      log2CbSize >= pps.Log2MinCuQpDeltaSize)
     {
       tctx->IsCuQpDeltaCoded = 0;
       tctx->CuQpDelta = 0;
@@ -4612,7 +4619,7 @@ void read_coding_quadtree(thread_context* tctx,
 
 
   if (tctx->shdr->cu_chroma_qp_offset_enabled_flag &&
-      log2CbSize >= img->pps.Log2MinCuChromaQpOffsetSize) {
+      log2CbSize >= pps.Log2MinCuChromaQpOffsetSize) {
     tctx->IsCuChromaQpOffsetCoded = 0;
   }
 
@@ -4622,14 +4629,14 @@ void read_coding_quadtree(thread_context* tctx,
 
     read_coding_quadtree(tctx,x0,y0, log2CbSize-1, ctDepth+1);
 
-    if (x1<sps->pic_width_in_luma_samples)
+    if (x1<sps.pic_width_in_luma_samples)
       read_coding_quadtree(tctx,x1,y0, log2CbSize-1, ctDepth+1);
 
-    if (y1<sps->pic_height_in_luma_samples)
+    if (y1<sps.pic_height_in_luma_samples)
       read_coding_quadtree(tctx,x0,y1, log2CbSize-1, ctDepth+1);
 
-    if (x1<sps->pic_width_in_luma_samples &&
-        y1<sps->pic_height_in_luma_samples)
+    if (x1<sps.pic_width_in_luma_samples &&
+        y1<sps.pic_height_in_luma_samples)
       read_coding_quadtree(tctx,x1,y1, log2CbSize-1, ctDepth+1);
   }
   else {
@@ -4658,10 +4665,10 @@ enum DecodeResult decode_substream(thread_context* tctx,
                                    bool block_wpp, // block on WPP dependencies
                                    bool first_independent_substream)
 {
-  const pic_parameter_set* pps = &tctx->img->pps;
-  const seq_parameter_set* sps = &tctx->img->sps;
+  const pic_parameter_set& pps = tctx->img->get_pps();
+  const seq_parameter_set& sps = tctx->img->get_sps();
 
-  const int ctbW = sps->PicWidthInCtbsY;
+  const int ctbW = sps.PicWidthInCtbsY;
 
 
   const int startCtbY = tctx->CtbY;
@@ -4671,10 +4678,10 @@ enum DecodeResult decode_substream(thread_context* tctx,
   // in WPP mode: initialize CABAC model with stored model from row above
 
   if ((!first_independent_substream || tctx->CtbY != startCtbY) &&
-      pps->entropy_coding_sync_enabled_flag &&
+      pps.entropy_coding_sync_enabled_flag &&
       tctx->CtbY>=1 && tctx->CtbX==0)
     {
-      if (sps->PicWidthInCtbsY>1) {
+      if (sps.PicWidthInCtbsY>1) {
         if ((tctx->CtbY-1) >= tctx->imgunit->ctx_models.size()) {
           return Decode_Error;
         }
@@ -4699,12 +4706,12 @@ enum DecodeResult decode_substream(thread_context* tctx,
     const int ctbx = tctx->CtbX;
     const int ctby = tctx->CtbY;
 
-    if (ctbx+ctby*ctbW >= tctx->img->pps.CtbAddrRStoTS.size()) {
+    if (ctbx+ctby*ctbW >= pps.CtbAddrRStoTS.size()) {
         return Decode_Error;
     }
 
-    if (ctbx >= tctx->img->sps.PicWidthInCtbsY ||
-        ctby >= tctx->img->sps.PicHeightInCtbsY) {
+    if (ctbx >= sps.PicWidthInCtbsY ||
+        ctby >= sps.PicHeightInCtbsY) {
         return Decode_Error;
     }
 
@@ -4731,9 +4738,9 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     // save CABAC-model for WPP (except in last CTB row)
 
-    if (pps->entropy_coding_sync_enabled_flag &&
+    if (pps.entropy_coding_sync_enabled_flag &&
         ctbx == 1 &&
-        ctby < sps->PicHeightInCtbsY-1)
+        ctby < sps.PicHeightInCtbsY-1)
       {
         // no storage for context table has been allocated
         if (tctx->imgunit->ctx_models.size() <= ctby) {
@@ -4754,7 +4761,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
       // at the end of the slice segment, we store the CABAC model if we need it
       // because a dependent slice may follow
 
-      if (pps->dependent_slice_segments_enabled_flag) {
+      if (pps.dependent_slice_segments_enabled_flag) {
         tctx->shdr->ctx_model_storage = tctx->ctx_model;
         tctx->shdr->ctx_model_storage.decouple(); // store an independent copy
 
@@ -4801,9 +4808,9 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     if (!end_of_slice_segment_flag) {
       bool end_of_sub_stream = false;
-      end_of_sub_stream |= (pps->tiles_enabled_flag &&
-                            pps->TileId[tctx->CtbAddrInTS] != pps->TileId[tctx->CtbAddrInTS-1]);
-      end_of_sub_stream |= (pps->entropy_coding_sync_enabled_flag &&
+      end_of_sub_stream |= (pps.tiles_enabled_flag &&
+                            pps.TileId[tctx->CtbAddrInTS] != pps.TileId[tctx->CtbAddrInTS-1]);
+      end_of_sub_stream |= (pps.entropy_coding_sync_enabled_flag &&
                             lastCtbY != tctx->CtbY);
 
       if (end_of_sub_stream) {
@@ -4827,12 +4834,12 @@ enum DecodeResult decode_substream(thread_context* tctx,
 bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 {
   de265_image* img = tctx->img;
-  const pic_parameter_set* pps = &img->pps;
-  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set& pps = img->get_pps();
+  const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
 
   if (shdr->dependent_slice_segment_flag) {
-    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
+    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
     int sliceIdx = img->get_SliceHeaderIndex_atIndex(prevCtb);
     if (sliceIdx >= img->slices.size()) {
@@ -4840,9 +4847,9 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     }
     slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ];
 
-    if (pps->is_tile_start_CTB(shdr->slice_segment_address % sps->PicWidthInCtbsY,
-                               shdr->slice_segment_address / sps->PicWidthInCtbsY
-                               )) {
+    if (pps.is_tile_start_CTB(shdr->slice_segment_address % sps.PicWidthInCtbsY,
+                              shdr->slice_segment_address / sps.PicWidthInCtbsY
+                              )) {
       initialize_CABAC_models(tctx);
     }
     else {
@@ -4941,8 +4948,8 @@ void thread_task_ctb_row::work()
   thread_context* tctx = data->tctx;
   de265_image* img = tctx->img;
 
-  seq_parameter_set* sps = &img->sps;
-  int ctbW = sps->PicWidthInCtbsY;
+  const seq_parameter_set& sps = img->get_sps();
+  int ctbW = sps.PicWidthInCtbsY;
 
   state = Running;
   img->thread_run(this);
@@ -4983,11 +4990,11 @@ void thread_task_ctb_row::work()
   // TODO: what about slices that end properly in the middle of a CTB row?
 
   if (tctx->CtbY == myCtbRow) {
-    int lastCtbX = sps->PicWidthInCtbsY; // assume no tiles when WPP is on
+    int lastCtbX = sps.PicWidthInCtbsY; // assume no tiles when WPP is on
     for (int x = tctx->CtbX; x<lastCtbX ; x++) {
 
-      if (x        < img->sps.PicWidthInCtbsY &&
-          myCtbRow < img->sps.PicHeightInCtbsY) {
+      if (x        < sps.PicWidthInCtbsY &&
+          myCtbRow < sps.PicHeightInCtbsY) {
         img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
       }
     }
@@ -5004,8 +5011,8 @@ de265_error read_slice_segment_data(thread_context* tctx)
   setCtbAddrFromTS(tctx);
 
   de265_image* img = tctx->img;
-  const pic_parameter_set* pps = &img->pps;
-  const seq_parameter_set* sps = &img->sps;
+  const pic_parameter_set& pps = img->get_pps();
+  const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
 
   bool success = initialize_CABAC_at_slice_segment_start(tctx);
@@ -5049,7 +5056,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
     first_slice_substream = false;
 
-    if (pps->tiles_enabled_flag) {
+    if (pps.tiles_enabled_flag) {
       initialize_CABAC_models(tctx);
     }
   } while (true);

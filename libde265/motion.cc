@@ -401,9 +401,9 @@ void generate_inter_prediction_samples(base_context* ctx,
   // weighted sample prediction  (8.5.3.2.3)
 
   const int shift1_L = libde265_max(2,14-sps->BitDepth_Y);
-  const int offset_shift1_L = img->sps.WpOffsetBdShiftY;
+  const int offset_shift1_L = img->get_sps().WpOffsetBdShiftY;
   const int shift1_C = libde265_max(2,14-sps->BitDepth_C);
-  const int offset_shift1_C = img->sps.WpOffsetBdShiftC;
+  const int offset_shift1_C = img->get_sps().WpOffsetBdShiftC;
 
   /*
   const int shift1_L = 14-img->sps.BitDepth_Y;
@@ -788,7 +788,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
                                       PBMotion* out_cand,
                                       int maxCandidates)
 {
-  const pic_parameter_set* pps = &img->pps;
+  const pic_parameter_set* pps = &img->get_pps();
   const int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
   enum PartMode PartMode = mvaccess.get_PartMode(xC,yC);
@@ -1300,7 +1300,7 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
 
   // --- find collocated reference image ---
 
-  int Log2CtbSizeY = img->sps.Log2CtbSizeY;
+  int Log2CtbSizeY = img->get_sps().Log2CtbSizeY;
 
   int colPic; // TODO: this is the same for the whole slice. We can precompute it.
 
@@ -1344,8 +1344,8 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
      This is to reduce the memory bandwidth requirements.
    */
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
-      xColBr < img->sps.pic_width_in_luma_samples &&
-      yColBr < img->sps.pic_height_in_luma_samples)
+      xColBr < img->get_sps().pic_width_in_luma_samples &&
+      yColBr < img->get_sps().pic_height_in_luma_samples)
     {
       xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
@@ -1478,7 +1478,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
      - since the PBs are not far away from a proper (neighboring) merging candidate,
      the quality of the candidates will still be good.
   */
-  singleMCLFlag = (img->pps.log2_parallel_merge_level > 2 && nCS==8);
+  singleMCLFlag = (img->get_pps().log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
     xP=xC;

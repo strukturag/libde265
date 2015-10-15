@@ -112,7 +112,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   //cabac.write_bits();
 
   int IntraSplitFlag = 0;
-  int MaxTrafoDepth = ectx->sps.max_transform_hierarchy_depth_inter;
+  int MaxTrafoDepth = ectx->get_sps().max_transform_hierarchy_depth_inter;
 
   if (mCodeResidual) {
     assert(false);

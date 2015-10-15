@@ -307,11 +307,12 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   num_ref_idx_l1_default_active++;
 
 
-  sps = ctx->get_sps(seq_parameter_set_id);
-  if (sps->sps_read==false) {
+  if (!ctx->has_sps(seq_parameter_set_id)) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
+
+  sps = ctx->get_sps(seq_parameter_set_id);
 
   if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);

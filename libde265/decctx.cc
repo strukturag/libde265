@@ -463,24 +463,24 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
   // find the previous CTB in TS order
 
-  const pic_parameter_set* pps = &tctx->img->pps;
-  const seq_parameter_set* sps = &tctx->img->sps;
+  const pic_parameter_set& pps = tctx->img->get_pps();
+  const seq_parameter_set& sps = tctx->img->get_sps();
 
 
   if (tctx->shdr->slice_segment_address > 0) {
-    int prevCtb = pps->CtbAddrTStoRS[ pps->CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
+    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
 
-    int ctbX = prevCtb % sps->PicWidthInCtbsY;
-    int ctbY = prevCtb / sps->PicWidthInCtbsY;
+    int ctbX = prevCtb % sps.PicWidthInCtbsY;
+    int ctbY = prevCtb / sps.PicWidthInCtbsY;
 
 
     // take the pixel at the bottom right corner (but consider that the image size might be smaller)
 
-    int x = ((ctbX+1) << sps->Log2CtbSizeY)-1;
-    int y = ((ctbY+1) << sps->Log2CtbSizeY)-1;
+    int x = ((ctbX+1) << sps.Log2CtbSizeY)-1;
+    int y = ((ctbY+1) << sps.Log2CtbSizeY)-1;
 
-    x = std::min(x,sps->pic_width_in_luma_samples-1);
-    y = std::min(y,sps->pic_height_in_luma_samples-1);
+    x = std::min(x,sps.pic_width_in_luma_samples-1);
+    y = std::min(y,sps.pic_height_in_luma_samples-1);
 
     //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
 
@@ -591,8 +591,8 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 
   de265_error err = DE265_OK;
 
-  if ((err=read_sei(&reader,&sei, suffix, current_sps)) == DE265_OK) {
-    dump_sei(&sei, current_sps);
+  if ((err=read_sei(&reader,&sei, suffix, current_sps.get())) == DE265_OK) {
+    dump_sei(&sei, current_sps.get());
 
     if (image_units.empty()==false && suffix) {
       image_units.back()->suffix_SEIs.push_back(sei);
@@ -633,7 +633,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   }
 
 
-  if (process_slice_segment_header(this, shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
+  if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (img!=NULL) img->integrity = INTEGRITY_NOT_DECODED;
       nal_parser.free_NAL_unit(nal);
@@ -803,7 +803,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-  if (sliceunit->shdr->slice_segment_address >= imgunit->img->pps.CtbAddrRStoTS.size()) {
+  if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
     return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
   }
 
@@ -815,7 +815,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.decctx = this;
   tctx.imgunit = imgunit;
   tctx.sliceunit= sliceunit;
-  tctx.CtbAddrInTS = imgunit->img->pps.CtbAddrRStoTS[tctx.shdr->slice_segment_address];
+  tctx.CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx.shdr->slice_segment_address];
   tctx.task = NULL;
 
   init_thread_context(&tctx);
@@ -830,9 +830,9 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   // alloc CABAC-model array if entropy_coding_sync is enabled
 
-  if (imgunit->img->pps.entropy_coding_sync_enabled_flag &&
+  if (imgunit->img->get_pps().entropy_coding_sync_enabled_flag &&
       sliceunit->shdr->first_slice_segment_in_pic_flag) {
-    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
+    imgunit->ctx_models.resize( (img->get_sps().PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
   sliceunit->nThreads=1;
@@ -890,21 +890,21 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   */
 
   de265_image* img = imgunit->img;
-  const pic_parameter_set* pps = &img->pps;
+  const pic_parameter_set& pps = img->get_pps();
 
   sliceunit->state = slice_unit::InProgress;
 
   bool use_WPP = (img->decctx->num_worker_threads > 0 &&
-                  pps->entropy_coding_sync_enabled_flag);
+                  pps.entropy_coding_sync_enabled_flag);
 
   bool use_tiles = (img->decctx->num_worker_threads > 0 &&
-                    pps->tiles_enabled_flag);
+                    pps.tiles_enabled_flag);
 
 
   // TODO: remove this warning later when we do frame-parallel decoding
   if (img->decctx->num_worker_threads > 0 &&
-      pps->entropy_coding_sync_enabled_flag == false &&
-      pps->tiles_enabled_flag == false) {
+      pps.entropy_coding_sync_enabled_flag == false &&
+      pps.tiles_enabled_flag == false) {
 
     img->decctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
   }
@@ -980,10 +980,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   de265_image* img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
-  const pic_parameter_set* pps = &img->pps;
+  const pic_parameter_set& pps = img->get_pps();
 
   int nRows = shdr->num_entry_point_offsets +1;
-  int ctbsWidth = img->sps.PicWidthInCtbsY;
+  int ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
   assert(img->num_threads_active() == 0);
@@ -993,7 +993,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   if (shdr->first_slice_segment_in_pic_flag) {
     // reserve space for nRows-1 because we don't need to save the CABAC model in the last CTB row
-    imgunit->ctx_models.resize( (img->sps.PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
+    imgunit->ctx_models.resize( (img->get_sps().PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
 
@@ -1030,7 +1030,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->img     = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
-    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
+    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
 
@@ -1094,10 +1094,10 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
   de265_image* img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
-  const pic_parameter_set* pps = &img->pps;
+  const pic_parameter_set& pps = img->get_pps();
 
   int nTiles = shdr->num_entry_point_offsets +1;
-  int ctbsWidth = img->sps.PicWidthInCtbsY;
+  int ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
   assert(img->num_threads_active() == 0);
@@ -1107,20 +1107,20 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
   // first CTB in this slice
   int ctbAddrRS = shdr->slice_segment_address;
-  int tileID = pps->TileIdRS[ctbAddrRS];
+  int tileID = pps.TileIdRS[ctbAddrRS];
 
   for (int entryPt=0;entryPt<nTiles;entryPt++) {
     // entry points other than the first start at tile beginnings
     if (entryPt>0) {
       tileID++;
 
-      if (tileID >= pps->num_tile_columns * pps->num_tile_rows) {
+      if (tileID >= pps.num_tile_columns * pps.num_tile_rows) {
         err = DE265_WARNING_SLICEHEADER_INVALID;
         break;
       }
 
-      int ctbX = pps->colBd[tileID % pps->num_tile_columns];
-      int ctbY = pps->rowBd[tileID / pps->num_tile_columns];
+      int ctbX = pps.colBd[tileID % pps.num_tile_columns];
+      int ctbY = pps.rowBd[tileID / pps.num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
     }
 
@@ -1133,7 +1133,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->img    = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
-    tctx->CtbAddrInTS = pps->CtbAddrRStoTS[ctbAddrRS];
+    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
 
@@ -1347,17 +1347,17 @@ void decoder_context::process_nal_hdr(nal_header* nal)
 
 /* 8.3.1
  */
-void decoder_context::process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr)
+void decoder_context::process_picture_order_count(slice_segment_header* hdr)
 {
   loginfo(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
-           hdr->slice_pic_order_cnt_lsb,
-           ctx->prevPicOrderCntLsb,
-           ctx->PicOrderCntMsb);
+          hdr->slice_pic_order_cnt_lsb,
+          prevPicOrderCntLsb,
+          PicOrderCntMsb);
 
-  if (isIRAP(ctx->nal_unit_type) &&
-      ctx->NoRaslOutputFlag)
+  if (isIRAP(nal_unit_type) &&
+      NoRaslOutputFlag)
     {
-      ctx->PicOrderCntMsb=0;
+      PicOrderCntMsb=0;
 
 
       // flush all images from reorder buffer
@@ -1367,37 +1367,37 @@ void decoder_context::process_picture_order_count(decoder_context* ctx, slice_se
     }
   else
     {
-      int MaxPicOrderCntLsb = ctx->current_sps->MaxPicOrderCntLsb;
+      int MaxPicOrderCntLsb = current_sps->MaxPicOrderCntLsb;
 
-      if ((hdr->slice_pic_order_cnt_lsb < ctx->prevPicOrderCntLsb) &&
-          (ctx->prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) >= MaxPicOrderCntLsb/2) {
-        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb + MaxPicOrderCntLsb;
+      if ((hdr->slice_pic_order_cnt_lsb < prevPicOrderCntLsb) &&
+          (prevPicOrderCntLsb - hdr->slice_pic_order_cnt_lsb) >= MaxPicOrderCntLsb/2) {
+        PicOrderCntMsb = prevPicOrderCntMsb + MaxPicOrderCntLsb;
       }
-      else if ((hdr->slice_pic_order_cnt_lsb > ctx->prevPicOrderCntLsb) &&
-               (hdr->slice_pic_order_cnt_lsb - ctx->prevPicOrderCntLsb) > MaxPicOrderCntLsb/2) {
-        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb - MaxPicOrderCntLsb;
+      else if ((hdr->slice_pic_order_cnt_lsb > prevPicOrderCntLsb) &&
+               (hdr->slice_pic_order_cnt_lsb - prevPicOrderCntLsb) > MaxPicOrderCntLsb/2) {
+        PicOrderCntMsb = prevPicOrderCntMsb - MaxPicOrderCntLsb;
       }
       else {
-        ctx->PicOrderCntMsb = ctx->prevPicOrderCntMsb;
+        PicOrderCntMsb = prevPicOrderCntMsb;
       }
     }
 
-  ctx->img->PicOrderCntVal = ctx->PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
-  ctx->img->picture_order_cnt_lsb = hdr->slice_pic_order_cnt_lsb;
+  img->PicOrderCntVal = PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
+  img->picture_order_cnt_lsb = hdr->slice_pic_order_cnt_lsb;
 
   loginfo(LogHeaders,"POC computation. new msb:%d POC=%d\n",
-           ctx->PicOrderCntMsb,
-           ctx->img->PicOrderCntVal);
+          PicOrderCntMsb,
+          img->PicOrderCntVal);
 
-  if (ctx->img->nal_hdr.nuh_temporal_id==0 &&
-      !isSublayerNonReference(ctx->nal_unit_type) &&
-      !isRASL(ctx->nal_unit_type) &&
-      !isRADL(ctx->nal_unit_type))
+  if (img->nal_hdr.nuh_temporal_id==0 &&
+      !isSublayerNonReference(nal_unit_type) &&
+      !isRASL(nal_unit_type) &&
+      !isRADL(nal_unit_type))
     {
       loginfo(LogHeaders,"set prevPicOrderCntLsb/Msb\n");
 
-      ctx->prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
-      ctx->prevPicOrderCntMsb = ctx->PicOrderCntMsb;
+      prevPicOrderCntLsb = hdr->slice_pic_order_cnt_lsb;
+      prevPicOrderCntMsb = PicOrderCntMsb;
     }
 }
 
@@ -1405,17 +1405,18 @@ void decoder_context::process_picture_order_count(decoder_context* ctx, slice_se
 /* 8.3.3.2
    Returns DPB index of the generated picture.
  */
-int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx,
-                                                            const seq_parameter_set* sps,
+int decoder_context::generate_unavailable_reference_picture(const seq_parameter_set* sps,
                                                             int POC, bool longTerm)
 {
-  assert(ctx->dpb.has_free_dpb_picture(true));
+  assert(dpb.has_free_dpb_picture(true));
 
-  int idx = ctx->dpb.new_image(ctx->current_sps, this, 0,0, false);
+  std::shared_ptr<const seq_parameter_set> current_sps = this->sps[ (int)current_pps->seq_parameter_set_id ];
+
+  int idx = dpb.new_image(current_sps, this, 0,0, false);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
-  de265_image* img = ctx->dpb.get_image(idx);
+  de265_image* img = dpb.get_image(idx);
 
   img->fill_image(1<<(sps->BitDepth_Y-1),
                   1<<(sps->BitDepth_C-1),
@@ -1437,16 +1438,16 @@ int decoder_context::generate_unavailable_reference_picture(decoder_context* ctx
 
    This function will mark pictures in the DPB as 'unused' or 'used for long-term reference'
  */
-void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr)
+void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
 {
   std::vector<int> removeReferencesList;
 
-  const int currentID = ctx->img->get_ID();
+  const int currentID = img->get_ID();
 
 
-  if (isIRAP(ctx->nal_unit_type) && ctx->NoRaslOutputFlag) {
+  if (isIRAP(nal_unit_type) && NoRaslOutputFlag) {
 
-    int currentPOC = ctx->img->PicOrderCntVal;
+    int currentPOC = img->PicOrderCntVal;
 
     // reset DPB
 
@@ -1460,14 +1461,14 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
     */
 
     for (int i=0;i<dpb.size();i++) {
-      de265_image* img = ctx->dpb.get_image(i);
+      de265_image* img = dpb.get_image(i);
 
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC &&
-          img->removed_at_picture_id > ctx->img->get_ID()) {
+          img->removed_at_picture_id > img->get_ID()) {
 
         removeReferencesList.push_back(img->get_ID());
-        img->removed_at_picture_id = ctx->img->get_ID();
+        img->removed_at_picture_id = img->get_ID();
 
         //printf("will remove ID %d (a)\n",img->get_ID());
       }
@@ -1475,15 +1476,15 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   }
 
 
-  if (isIDR(ctx->nal_unit_type)) {
+  if (isIDR(nal_unit_type)) {
 
     // clear all reference pictures
 
-    ctx->NumPocStCurrBefore = 0;
-    ctx->NumPocStCurrAfter = 0;
-    ctx->NumPocStFoll = 0;
-    ctx->NumPocLtCurr = 0;
-    ctx->NumPocLtFoll = 0;
+    NumPocStCurrBefore = 0;
+    NumPocStCurrAfter = 0;
+    NumPocStFoll = 0;
+    NumPocLtCurr = 0;
+    NumPocLtFoll = 0;
   }
   else {
     const ref_pic_set* rps = &hdr->CurrRps;
@@ -1499,15 +1500,15 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
          i++)
       {
         if (rps->UsedByCurrPicS0[i]) {
-          ctx->PocStCurrBefore[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
-          //printf("PocStCurrBefore = %d\n",ctx->PocStCurrBefore[j-1]);
+          PocStCurrBefore[j++] = img->PicOrderCntVal + rps->DeltaPocS0[i];
+          //printf("PocStCurrBefore = %d\n",PocStCurrBefore[j-1]);
         }
         else {
-          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS0[i];
+          PocStFoll[k++] = img->PicOrderCntVal + rps->DeltaPocS0[i];
         }
       }
 
-    ctx->NumPocStCurrBefore = j;
+    NumPocStCurrBefore = j;
 
 
     // scan ref-pic-set for larger POCs and fill into PocStCurrAfter / PocStFoll
@@ -1517,47 +1518,47 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
          i++)
       {
         if (rps->UsedByCurrPicS1[i]) {
-          ctx->PocStCurrAfter[j++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
-          //printf("PocStCurrAfter = %d\n",ctx->PocStCurrAfter[j-1]);
+          PocStCurrAfter[j++] = img->PicOrderCntVal + rps->DeltaPocS1[i];
+          //printf("PocStCurrAfter = %d\n",PocStCurrAfter[j-1]);
         }
         else {
-          ctx->PocStFoll[k++] = ctx->img->PicOrderCntVal + rps->DeltaPocS1[i];
+          PocStFoll[k++] = img->PicOrderCntVal + rps->DeltaPocS1[i];
         }
       }
 
-    ctx->NumPocStCurrAfter = j;
-    ctx->NumPocStFoll = k;
+    NumPocStCurrAfter = j;
+    NumPocStFoll = k;
 
 
     // find used / future long-term references
 
     for (i=0, j=0, k=0;
-         //i<ctx->current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
+         //i<current_sps->num_long_term_ref_pics_sps + hdr->num_long_term_pics;
          i<hdr->num_long_term_sps + hdr->num_long_term_pics;
          i++)
       {
-        int pocLt = ctx->PocLsbLt[i];
+        int pocLt = PocLsbLt[i];
 
         if (hdr->delta_poc_msb_present_flag[i]) {
-          int currentPictureMSB = ctx->img->PicOrderCntVal - hdr->slice_pic_order_cnt_lsb;
+          int currentPictureMSB = img->PicOrderCntVal - hdr->slice_pic_order_cnt_lsb;
           pocLt += currentPictureMSB
-            - ctx->DeltaPocMsbCycleLt[i] * ctx->current_sps->MaxPicOrderCntLsb;
+            - DeltaPocMsbCycleLt[i] * current_sps->MaxPicOrderCntLsb;
         }
 
-        if (ctx->UsedByCurrPicLt[i]) {
-          ctx->PocLtCurr[j] = pocLt;
-          ctx->CurrDeltaPocMsbPresentFlag[j] = hdr->delta_poc_msb_present_flag[i];
+        if (UsedByCurrPicLt[i]) {
+          PocLtCurr[j] = pocLt;
+          CurrDeltaPocMsbPresentFlag[j] = hdr->delta_poc_msb_present_flag[i];
           j++;
         }
         else {
-          ctx->PocLtFoll[k] = pocLt;
-          ctx->FollDeltaPocMsbPresentFlag[k] = hdr->delta_poc_msb_present_flag[i];
+          PocLtFoll[k] = pocLt;
+          FollDeltaPocMsbPresentFlag[k] = hdr->delta_poc_msb_present_flag[i];
           k++;
         }
       }
 
-    ctx->NumPocLtCurr = j;
-    ctx->NumPocLtFoll = k;
+    NumPocLtCurr = j;
+    NumPocLtFoll = k;
   }
 
 
@@ -1569,47 +1570,47 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 
   dpb.log_dpb_content();
 
-  for (int i=0;i<ctx->NumPocLtCurr;i++) {
+  for (int i=0;i<NumPocLtCurr;i++) {
     int k;
-    if (!ctx->CurrDeltaPocMsbPresentFlag[i]) {
-      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtCurr[i], currentID, true);
+    if (!CurrDeltaPocMsbPresentFlag[i]) {
+      k = dpb.DPB_index_of_picture_with_LSB(PocLtCurr[i], currentID, true);
     }
     else {
-      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtCurr[i], currentID, true);
+      k = dpb.DPB_index_of_picture_with_POC(PocLtCurr[i], currentID, true);
     }
 
-    ctx->RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
+    RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
       // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtCurr)
       // We do not know the correct MSB
-      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                    ctx->PocLtCurr[i], true);
-      ctx->RefPicSetLtCurr[i] = k = concealedPicture;
+      int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
+                                                                    PocLtCurr[i], true);
+      RefPicSetLtCurr[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
     }
 
-    if (ctx->dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
-      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
+    if (dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
+      img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
 
-  for (int i=0;i<ctx->NumPocLtFoll;i++) {
+  for (int i=0;i<NumPocLtFoll;i++) {
     int k;
-    if (!ctx->FollDeltaPocMsbPresentFlag[i]) {
-      k = ctx->dpb.DPB_index_of_picture_with_LSB(ctx->PocLtFoll[i], currentID, true);
+    if (!FollDeltaPocMsbPresentFlag[i]) {
+      k = dpb.DPB_index_of_picture_with_LSB(PocLtFoll[i], currentID, true);
     }
     else {
-      k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocLtFoll[i], currentID, true);
+      k = dpb.DPB_index_of_picture_with_POC(PocLtFoll[i], currentID, true);
     }
 
-    ctx->RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
+    RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
-      int concealedPicture = k = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                        ctx->PocLtFoll[i], true);
-      ctx->RefPicSetLtFoll[i] = concealedPicture;
+      int concealedPicture = k = generate_unavailable_reference_picture(current_sps.get(),
+                                                                        PocLtFoll[i], true);
+      RefPicSetLtFoll[i] = concealedPicture;
       picInAnyList[concealedPicture]=true;
     }
   }
@@ -1617,64 +1618,64 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
 
   // 2. Mark all pictures in RefPicSetLtCurr / RefPicSetLtFoll as UsedForLongTermReference
 
-  for (int i=0;i<ctx->NumPocLtCurr;i++) {
-    ctx->dpb.get_image(ctx->RefPicSetLtCurr[i])->PicState = UsedForLongTermReference;
+  for (int i=0;i<NumPocLtCurr;i++) {
+    dpb.get_image(RefPicSetLtCurr[i])->PicState = UsedForLongTermReference;
   }
 
-  for (int i=0;i<ctx->NumPocLtFoll;i++) {
-    ctx->dpb.get_image(ctx->RefPicSetLtFoll[i])->PicState = UsedForLongTermReference;
+  for (int i=0;i<NumPocLtFoll;i++) {
+    dpb.get_image(RefPicSetLtFoll[i])->PicState = UsedForLongTermReference;
   }
 
 
   // 3.
 
-  for (int i=0;i<ctx->NumPocStCurrBefore;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrBefore[i], currentID);
+  for (int i=0;i<NumPocStCurrBefore;i++) {
+    int k = dpb.DPB_index_of_picture_with_POC(PocStCurrBefore[i], currentID);
 
-    //printf("st curr before, poc=%d -> idx=%d\n",ctx->PocStCurrBefore[i], k);
+    //printf("st curr before, poc=%d -> idx=%d\n",PocStCurrBefore[i], k);
 
-    ctx->RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
+    RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
-      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                    ctx->PocStCurrBefore[i], false);
-      ctx->RefPicSetStCurrBefore[i] = k = concealedPicture;
+      int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
+                                                                    PocStCurrBefore[i], false);
+      RefPicSetStCurrBefore[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
 
       //printf("  concealed: %d\n", concealedPicture);
     }
 
-    if (ctx->dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
-      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
+    if (dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
+      img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
-  for (int i=0;i<ctx->NumPocStCurrAfter;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStCurrAfter[i], currentID);
+  for (int i=0;i<NumPocStCurrAfter;i++) {
+    int k = dpb.DPB_index_of_picture_with_POC(PocStCurrAfter[i], currentID);
 
-    //printf("st curr after, poc=%d -> idx=%d\n",ctx->PocStCurrAfter[i], k);
+    //printf("st curr after, poc=%d -> idx=%d\n",PocStCurrAfter[i], k);
 
-    ctx->RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
+    RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
     else {
-      int concealedPicture = generate_unavailable_reference_picture(ctx, ctx->current_sps,
-                                                                    ctx->PocStCurrAfter[i], false);
-      ctx->RefPicSetStCurrAfter[i] = k = concealedPicture;
+      int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
+                                                                    PocStCurrAfter[i], false);
+      RefPicSetStCurrAfter[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
 
       //printf("  concealed: %d\n", concealedPicture);
     }
 
-    if (ctx->dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
-      ctx->img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
+    if (dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
+      img->integrity = INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE;
     }
   }
 
-  for (int i=0;i<ctx->NumPocStFoll;i++) {
-    int k = ctx->dpb.DPB_index_of_picture_with_POC(ctx->PocStFoll[i], currentID);
+  for (int i=0;i<NumPocStFoll;i++) {
+    int k = dpb.DPB_index_of_picture_with_POC(PocStFoll[i], currentID);
     // if (k<0) { assert(false); } // IGNORE
 
-    ctx->RefPicSetStFoll[i] = k; // -1 == "no reference picture"
+    RefPicSetStFoll[i] = k; // -1 == "no reference picture"
     if (k>=0) picInAnyList[k]=true;
   }
 
@@ -1683,15 +1684,15 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
   for (int i=0;i<dpb.size();i++)
     if (!picInAnyList[i])        // no reference
       {
-        de265_image* dpbimg = ctx->dpb.get_image(i);
-        if (dpbimg != ctx->img &&  // not the current picture
-            dpbimg->removed_at_picture_id > ctx->img->get_ID()) // has not been removed before
+        de265_image* dpbimg = dpb.get_image(i);
+        if (dpbimg != img &&  // not the current picture
+            dpbimg->removed_at_picture_id > img->get_ID()) // has not been removed before
           {
             if (dpbimg->PicState != UnusedForReference) {
               removeReferencesList.push_back(dpbimg->get_ID());
               //printf("will remove ID %d (b)\n",dpbimg->get_ID());
 
-              dpbimg->removed_at_picture_id = ctx->img->get_ID();
+              dpbimg->removed_at_picture_id = img->get_ID();
             }
           }
       }
@@ -1711,7 +1712,7 @@ void decoder_context::process_reference_picture_set(decoder_context* ctx, slice_
    - the RefPicList_POC[2][], containing POCs.
    - LongTermRefPic[2][] is also set to true if it is a long-term reference
  */
-bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr)
+bool decoder_context::construct_reference_picture_lists(slice_segment_header* hdr)
 {
   int NumPocTotalCurr = hdr->NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
@@ -1732,27 +1733,27 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
   int rIdx=0;
   while (rIdx < NumRpsCurrTempList0) {
-    for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
-      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrBefore[i];
+    for (int i=0;i<NumPocStCurrBefore && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = RefPicSetStCurrBefore[i];
 
-    for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
-      RefPicListTemp0[rIdx] = ctx->RefPicSetStCurrAfter[i];
+    for (int i=0;i<NumPocStCurrAfter && rIdx<NumRpsCurrTempList0; rIdx++,i++)
+      RefPicListTemp0[rIdx] = RefPicSetStCurrAfter[i];
 
-    for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++) {
-      RefPicListTemp0[rIdx] = ctx->RefPicSetLtCurr[i];
+    for (int i=0;i<NumPocLtCurr && rIdx<NumRpsCurrTempList0; rIdx++,i++) {
+      RefPicListTemp0[rIdx] = RefPicSetLtCurr[i];
       isLongTerm[0][rIdx] = true;
     }
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
-      ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
       return false;
     }
   }
 
   /*
   if (hdr->num_ref_idx_l0_active > 16) {
-    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
     return false;
   }
   */
@@ -1765,7 +1766,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
     // remember POC of referenced image (needed in motion.c, derive_collocated_motion_vector)
-    de265_image* img_0_rIdx = ctx->dpb.get_image(hdr->RefPicList[0][rIdx]);
+    de265_image* img_0_rIdx = dpb.get_image(hdr->RefPicList[0][rIdx]);
     if (img_0_rIdx==NULL) {
       return false;
     }
@@ -1785,28 +1786,28 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {
-      for (int i=0;i<ctx->NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
-        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrAfter[i];
+      for (int i=0;i<NumPocStCurrAfter && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
+        RefPicListTemp1[rIdx] = RefPicSetStCurrAfter[i];
       }
 
-      for (int i=0;i<ctx->NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
-        RefPicListTemp1[rIdx] = ctx->RefPicSetStCurrBefore[i];
+      for (int i=0;i<NumPocStCurrBefore && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
+        RefPicListTemp1[rIdx] = RefPicSetStCurrBefore[i];
       }
 
-      for (int i=0;i<ctx->NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
-        RefPicListTemp1[rIdx] = ctx->RefPicSetLtCurr[i];
+      for (int i=0;i<NumPocLtCurr && rIdx<NumRpsCurrTempList1; rIdx++,i++) {
+        RefPicListTemp1[rIdx] = RefPicSetLtCurr[i];
         isLongTerm[1][rIdx] = true;
       }
 
       // This check is to prevent an endless loop when no images are added above.
       if (rIdx==0) {
-        ctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
         return false;
       }
     }
 
     if (hdr->num_ref_idx_l0_active > 16) {
-    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
     return false;
   }
 
@@ -1818,7 +1819,7 @@ bool decoder_context::construct_reference_picture_lists(decoder_context* ctx, sl
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      de265_image* img_1_rIdx = ctx->dpb.get_image(hdr->RefPicList[1][rIdx]);
+      de265_image* img_1_rIdx = dpb.get_image(hdr->RefPicList[1][rIdx]);
       if (img_1_rIdx == NULL) { return false; }
       hdr->RefPicList_POC[1][rIdx] = img_1_rIdx->PicOrderCntVal;
       hdr->RefPicList_PicState[1][rIdx] = img_1_rIdx->PicState;
@@ -1934,8 +1935,8 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
   // check for full reorder buffers
 
-  int sublayer = outimg->vps.vps_max_sub_layers -1;
-  int maxNumPicsInReorderBuffer = outimg->vps.layer[sublayer].vps_max_num_reorder_pics;
+  int sublayer = outimg->get_vps().vps_max_sub_layers -1;
+  int maxNumPicsInReorderBuffer = outimg->get_vps().layer[sublayer].vps_max_num_reorder_pics;
 
   if (dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
     dpb.output_next_picture_in_reorder_buffer();
@@ -1948,7 +1949,7 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
 
 // returns whether we can continue decoding the stream or whether we should give up
-bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_segment_header* hdr,
+bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
                                                    de265_error* err, de265_PTS pts,
                                                    nal_header* nal_hdr,
                                                    void* user_data)
@@ -1961,14 +1962,14 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   // get PPS and SPS for this slice
 
   int pps_id = hdr->slice_pic_parameter_set_id;
-  if (ctx->pps[pps_id]->pps_read==false) {
+  if (pps[pps_id]->pps_read==false) {
     logerror(LogHeaders, "PPS %d has not been read\n", pps_id);
     assert(false); // TODO
   }
 
-  ctx->current_pps = ctx->pps[pps_id].get();
-  ctx->current_sps = ctx->sps[ (int)ctx->current_pps->seq_parameter_set_id ].get();
-  ctx->current_vps = ctx->vps[ (int)ctx->current_sps->video_parameter_set_id ].get();
+  current_pps = pps[pps_id];
+  current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
+  current_vps = vps[ (int)current_sps->video_parameter_set_id ];
 
   calc_tid_and_framerate_ratio();
 
@@ -1981,76 +1982,76 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
 
     //ctx->push_current_picture_to_output_queue();
 
-    ctx->current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
+    current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 
 
-    seq_parameter_set* sps = ctx->current_sps;
+    seq_parameter_set* sps = current_sps.get();
 
 
     // --- find and allocate image buffer for decoding ---
 
     int image_buffer_idx;
-    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || ctx->param_disable_sao);
-    image_buffer_idx = ctx->dpb.new_image(sps, this, pts, user_data, isOutputImage);
+    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || param_disable_sao);
+    image_buffer_idx = dpb.new_image(current_sps, this, pts, user_data, isOutputImage);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;
     }
 
-    de265_image* img = ctx->dpb.get_image(image_buffer_idx);
+    /*de265_image* */ img = dpb.get_image(image_buffer_idx);
     img->nal_hdr = *nal_hdr;
-    ctx->img = img;
 
-    img->vps = *ctx->current_vps;
-    //img->sps = *ctx->current_sps;  // already set in new_image()
-    img->pps = *ctx->current_pps;
-    img->decctx = ctx;
+    // Note: sps is already set in new_image() -> ??? still the case with shared_ptr ?
+
+    img->set_headers(current_vps, current_sps, current_pps);
+
+    img->decctx = this;
 
     img->clear_metadata();
 
 
-    if (isIRAP(ctx->nal_unit_type)) {
-      if (isIDR(ctx->nal_unit_type) ||
-          isBLA(ctx->nal_unit_type) ||
-          ctx->first_decoded_picture ||
-          ctx->FirstAfterEndOfSequenceNAL)
+    if (isIRAP(nal_unit_type)) {
+      if (isIDR(nal_unit_type) ||
+          isBLA(nal_unit_type) ||
+          first_decoded_picture ||
+          FirstAfterEndOfSequenceNAL)
         {
-          ctx->NoRaslOutputFlag = true;
-          ctx->FirstAfterEndOfSequenceNAL = false;
+          NoRaslOutputFlag = true;
+          FirstAfterEndOfSequenceNAL = false;
         }
       else if (0) // TODO: set HandleCraAsBlaFlag by external means
         {
         }
       else
         {
-          ctx->NoRaslOutputFlag   = false;
-          ctx->HandleCraAsBlaFlag = false;
+          NoRaslOutputFlag   = false;
+          HandleCraAsBlaFlag = false;
         }
     }
 
 
-    if (isRASL(ctx->nal_unit_type) &&
-        ctx->NoRaslOutputFlag)
+    if (isRASL(nal_unit_type) &&
+        NoRaslOutputFlag)
       {
-        ctx->img->PicOutputFlag = false;
+        img->PicOutputFlag = false;
       }
     else
       {
-        ctx->img->PicOutputFlag = !!hdr->pic_output_flag;
+        img->PicOutputFlag = !!hdr->pic_output_flag;
       }
 
-    process_picture_order_count(ctx,hdr);
+    process_picture_order_count(hdr);
 
     if (hdr->first_slice_segment_in_pic_flag) {
       // mark picture so that it is not overwritten by unavailable reference frames
       img->PicState = UsedForShortTermReference;
 
-      process_reference_picture_set(ctx,hdr);
+      process_reference_picture_set(hdr);
     }
 
     img->PicState = UsedForShortTermReference;
 
-    log_set_current_POC(ctx->img->PicOrderCntVal);
+    log_set_current_POC(img->PicOrderCntVal);
 
 
     // next image is not the first anymore
@@ -2060,7 +2061,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   else {
     // claims to be not the first slice, but there is no active image available
 
-    if (ctx->img == NULL) {
+    if (img == NULL) {
       return false;
     }
   }
@@ -2068,7 +2069,7 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   if (hdr->slice_type == SLICE_TYPE_B ||
       hdr->slice_type == SLICE_TYPE_P)
     {
-      bool success = construct_reference_picture_lists(ctx,hdr);
+      bool success = construct_reference_picture_lists(hdr);
       if (!success) {
         return false;
       }
@@ -2077,16 +2078,16 @@ bool decoder_context::process_slice_segment_header(decoder_context* ctx, slice_s
   //printf("process slice segment header\n");
 
   loginfo(LogHeaders,"end of process-slice-header\n");
-  ctx->dpb.log_dpb_content();
+  dpb.log_dpb_content();
 
 
   if (hdr->dependent_slice_segment_flag==0) {
     hdr->SliceAddrRS = hdr->slice_segment_address;
   } else {
-    hdr->SliceAddrRS = ctx->previous_slice_header->SliceAddrRS;
+    hdr->SliceAddrRS = previous_slice_header->SliceAddrRS;
   }
 
-  ctx->previous_slice_header = hdr;
+  previous_slice_header = hdr;
 
 
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);

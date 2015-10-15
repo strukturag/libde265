@@ -620,10 +620,10 @@ LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int chan
 {
   switch (channel) {
   case 0:
-    return img->sps.BitDepth_Y;
+    return img->get_sps().BitDepth_Y;
   case 1:
   case 2:
-    return img->sps.BitDepth_C;
+    return img->get_sps().BitDepth_C;
   default:
     return 0;
   }

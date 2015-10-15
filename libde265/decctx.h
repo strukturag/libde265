@@ -296,6 +296,9 @@ class decoder_context : public base_context {
 
   void reset();
 
+  bool has_sps(int id) const { return (bool)sps[id]; }
+  bool has_pps(int id) const { return (bool)pps[id]; }
+
   /* */ seq_parameter_set* get_sps(int id)       { return sps[id].get(); }
   const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
@@ -323,7 +326,7 @@ class decoder_context : public base_context {
 
   void process_nal_hdr(nal_header*);
 
-  bool process_slice_segment_header(decoder_context*, slice_segment_header*,
+  bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,
                                     nal_header* nal_hdr, void* user_data);
 
@@ -384,9 +387,9 @@ class decoder_context : public base_context {
   std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
   std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
 
-  video_parameter_set* current_vps;
-  seq_parameter_set*   current_sps;
-  pic_parameter_set*   current_pps;
+  std::shared_ptr<video_parameter_set>  current_vps;
+  std::shared_ptr<seq_parameter_set>    current_sps;
+  std::shared_ptr<pic_parameter_set>    current_pps;
 
  public:
   thread_pool thread_pool_;
@@ -504,11 +507,11 @@ class decoder_context : public base_context {
                                      slice_unit* sliceunit,
                                      int progress);
 
-  void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
-  int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
+  void process_picture_order_count(slice_segment_header* hdr);
+  int generate_unavailable_reference_picture(const seq_parameter_set* sps,
                                              int POC, bool longTerm);
-  void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
-  bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
+  void process_reference_picture_set(slice_segment_header* hdr);
+  bool construct_reference_picture_lists(slice_segment_header* hdr);
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);

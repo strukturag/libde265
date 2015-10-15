@@ -29,7 +29,7 @@ sop_creator_intra_only::sop_creator_intra_only()
 
 void sop_creator_intra_only::set_SPS_header_values()
 {
-  mEncCtx->sps.log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
+  mEncCtx->get_sps().log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 
@@ -70,8 +70,8 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
   rps.NumNegativePics = 1;
   rps.NumPositivePics = 0;
   rps.compute_derived_values();
-  mEncCtx->sps.ref_pic_sets.push_back(rps);
-  mEncCtx->sps.log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
+  mEncCtx->get_sps().ref_pic_sets.push_back(rps);
+  mEncCtx->get_sps().log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 

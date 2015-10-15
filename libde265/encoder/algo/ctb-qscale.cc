@@ -37,7 +37,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
 {
   enc_cb* cb = new enc_cb();
 
-  cb->log2Size = ectx->sps.Log2CtbSizeY;
+  cb->log2Size = ectx->get_sps().Log2CtbSizeY;
   cb->ctDepth = 0;
   cb->x = x;
   cb->y = y;

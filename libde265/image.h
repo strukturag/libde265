@@ -29,9 +29,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <memory>
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
+
 #include "libde265/de265.h"
 #include "libde265/en265.h"
 #include "libde265/sps.h"
@@ -222,7 +224,7 @@ struct de265_image {
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c,
-                          const seq_parameter_set* sps,
+                          std::shared_ptr<const seq_parameter_set> sps,
                           bool allocMetadata,
                           decoder_context* dctx,
                           class encoder_context* ectx,
@@ -234,6 +236,14 @@ struct de265_image {
   bool is_allocated() const { return pixels[0] != NULL; }
 
   void release();
+
+  void set_headers(std::shared_ptr<video_parameter_set> _vps,
+                   std::shared_ptr<seq_parameter_set>   _sps,
+                   std::shared_ptr<pic_parameter_set>   _pps) {
+    vps = _vps;
+    sps = _sps;
+    pps = _pps;
+  }
 
   void fill_image(int y,int u,int v);
   de265_error copy_image(const de265_image* src);
@@ -298,8 +308,8 @@ struct de265_image {
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
   int get_bit_depth(int cIdx) const {
-    if (cIdx==0) return sps.BitDepth_Y;
-    else         return sps.BitDepth_C;
+    if (cIdx==0) return sps->BitDepth_Y;
+    else         return sps->BitDepth_C;
   }
 
   int get_bytes_per_pixel(int cIdx) const {
@@ -372,15 +382,28 @@ public:
 
   int32_t removed_at_picture_id;
 
-  video_parameter_set vps;
-  seq_parameter_set   sps;  // the SPS used for decoding this image
-  pic_parameter_set   pps;  // the PPS used for decoding this image
+  const video_parameter_set& get_vps() const { return *vps; }
+  const seq_parameter_set& get_sps() const { return *sps; }
+  const pic_parameter_set& get_pps() const { return *pps; }
+
+  std::shared_ptr<const seq_parameter_set> get_shared_sps() { return sps; }
+
+  //std::shared_ptr<const seq_parameter_set> get_shared_sps() const { return sps; }
+  //std::shared_ptr<const pic_parameter_set> get_shared_pps() const { return pps; }
+
   decoder_context*    decctx;
   class encoder_context*    encctx;
 
   int number_of_ctbs() const { return ctb_info.size(); }
 
 private:
+  // The image also keeps a reference to VPS/SPS/PPS, because when decoding is delayed,
+  // the currently active parameter sets in the decctx might already have been replaced
+  // with new parameters.
+  std::shared_ptr<const video_parameter_set> vps;
+  std::shared_ptr<const seq_parameter_set>   sps;  // the SPS used for decoding this image
+  std::shared_ptr<const pic_parameter_set>   pps;  // the PPS used for decoding this image
+
   MetaDataArray<CTB_info>    ctb_info;
   MetaDataArray<CB_ref_info> cb_info;
   MetaDataArray<PBMotion>    pb_info;
@@ -617,12 +640,12 @@ public:
                          enum IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
-    int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+    int PUidx  = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
     for (int y=0;y<pbSize;y++)
       for (int x=0;x<pbSize;x++) {
-        assert(x<sps.PicWidthInMinPUs);
-        assert(y<sps.PicHeightInMinPUs);
+        assert(x < sps->PicWidthInMinPUs);
+        assert(y < sps->PicHeightInMinPUs);
 
         int idx = PUidx + x + y*intraPredMode.width_in_units;
         assert(idx<intraPredMode.data_size);
@@ -648,12 +671,12 @@ public:
     if (is_mode4) combinedValue |= 0x80;
 
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
-    int PUidx  = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+    int PUidx  = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
     for (int y=0;y<pbSize;y++)
       for (int x=0;x<pbSize;x++) {
-        assert(x<sps.PicWidthInMinPUs);
-        assert(y<sps.PicHeightInMinPUs);
+        assert(x<sps->PicWidthInMinPUs);
+        assert(y<sps->PicHeightInMinPUs);
 
         int idx = PUidx + x + y*intraPredModeC.width_in_units;
         assert(idx<intraPredModeC.data_size);

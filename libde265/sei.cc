@@ -284,7 +284,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 
   //write_picture(img);
 
-  int nHashes = img->sps.chroma_format_idc==0 ? 1 : 3;
+  int nHashes = img->get_sps().chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     uint8_t* data;
     int w,h,stride;
