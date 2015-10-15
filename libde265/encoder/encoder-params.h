@@ -72,6 +72,21 @@ class option_MEMode : public choice_option<enum MEMode>
 };
 
 
+enum ALGO_CB_Skip {
+  ALGO_CB_Skip_BruteForce,
+  ALGO_CB_Skip_ScreenFast
+};
+
+class option_ALGO_CB_Skip : public choice_option<enum ALGO_CB_Skip>
+{
+ public:
+  option_ALGO_CB_Skip() {
+    add_choice("brute-force" ,ALGO_CB_Skip_BruteForce, true);
+    add_choice("screen-fast" ,ALGO_CB_Skip_ScreenFast);
+  }
+};
+
+
 struct encoder_params
 {
   encoder_params();
@@ -114,7 +129,8 @@ struct encoder_params
 
   option_ALGO_CB_IntraPartMode mAlgo_CB_IntraPartMode;
 
-  //Algo_CB_IntraPartMode_Fixed::params CB_IntraPartMode_Fixed;
+  option_ALGO_CB_Skip mAlgo_CB_Skip;
+
 
   // --- Algo_CB_Split
 

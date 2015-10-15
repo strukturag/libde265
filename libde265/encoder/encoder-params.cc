@@ -52,6 +52,8 @@ encoder_params::encoder_params()
   sop_structure.set_ID("sop-structure");
 
   mAlgo_TB_IntraPredMode.set_ID("TB-IntraPredMode");
+  mAlgo_CB_Skip.set_ID("CB-Skip");
+
   mAlgo_TB_IntraPredMode_Subset.set_ID("TB-IntraPredMode-subset");
   mAlgo_CB_IntraPartMode.set_ID("CB-IntraPartMode");
 
@@ -73,6 +75,7 @@ void encoder_params::registerParams(config_parameters& config)
   config.add_option(&sop_structure);
 
   config.add_option(&mAlgo_TB_IntraPredMode);
+  config.add_option(&mAlgo_CB_Skip);
   config.add_option(&mAlgo_TB_IntraPredMode_Subset);
   config.add_option(&mAlgo_CB_IntraPartMode);
 

@@ -333,11 +333,22 @@ void EncoderCore_Custom::setParams(encoder_params& params)
   // build algorithm tree
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
-  mAlgo_CB_Split_BruteForce.setChildAlgo(&mAlgo_CB_Skip_BruteForce);
 
-  mAlgo_CB_Skip_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);
-  mAlgo_CB_Skip_BruteForce.setNonSkipAlgo(&mAlgo_CB_IntraInter_BruteForce);
-  //&mAlgo_CB_InterPartMode_Fixed);
+  Algo_CB* algo_CB_skip = NULL;
+  switch (params.mAlgo_CB_Skip()) {
+  case ALGO_CB_Skip_BruteForce:
+    mAlgo_CB_Skip_BruteForce.setSkipAlgo(&mAlgo_CB_MergeIndex_Fixed);
+    mAlgo_CB_Skip_BruteForce.setNonSkipAlgo(&mAlgo_CB_IntraInter_BruteForce);
+    algo_CB_skip = &mAlgo_CB_Skip_BruteForce;
+    break;
+
+  case ALGO_CB_Skip_ScreenFast:
+    mAlgo_CB_Skip_ScreenFast.setNonSkipAlgo(&mAlgo_CB_IntraInter_BruteForce);
+    algo_CB_skip = &mAlgo_CB_Skip_ScreenFast;
+  }
+
+  mAlgo_CB_Split_BruteForce.setChildAlgo(algo_CB_skip);
+
 
   Algo_CB_IntraPartMode* algo_CB_IntraPartMode = NULL;
   switch (params.mAlgo_CB_IntraPartMode()) {
