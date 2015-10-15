@@ -678,8 +678,10 @@ void logmvcand(const PBMotion& p)
 #endif
 
 
-LIBDE265_INLINE static bool equal_cand_MV(const PBMotion& a, const PBMotion& b)
+bool PBMotion::operator==(const PBMotion& b) const
 {
+  const PBMotion& a = *this;
+
   // TODO: is this really correct? no check for predFlag? Standard says so... (p.127)
 
   for (int i=0;i<2;i++) {
@@ -694,7 +696,6 @@ LIBDE265_INLINE static bool equal_cand_MV(const PBMotion& a, const PBMotion& b)
 
   return true;
 }
-
 
 
 // TODO: add specializations for de265_image and encoder_context
@@ -877,8 +878,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     const PBMotion& b1 = img->get_mv_info(xB1,yB1);
 
     // B1 == A1 -> discard B1
-    if (availableA1 &&
-        equal_cand_MV(out_cand[idxA1], b1)) {
+    if (availableA1 && out_cand[idxA1] == b1) {
       idxB1 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B1: redundant to A1\n");
     }
@@ -916,8 +916,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     const PBMotion& b0 = img->get_mv_info(xB0,yB0);
 
     // B0 == B1 -> discard B0
-    if (availableB1 &&
-        equal_cand_MV(out_cand[idxB1], b0)) {
+    if (availableB1 && out_cand[idxB1]==b0) {
       idxB0 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B0: redundant to B1\n");
     }
@@ -954,8 +953,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     const PBMotion& a0 = img->get_mv_info(xA0,yA0);
 
     // A0 == A1 -> discard A0
-    if (availableA1 &&
-        equal_cand_MV(out_cand[idxA1], a0)) {
+    if (availableA1 && out_cand[idxA1]==a0) {
       idxA0 = idxA1;
       logtrace(LogMotion,"spatial merging candidate A0: redundant to A1\n");
     }
@@ -997,14 +995,12 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     const PBMotion& b2 = img->get_mv_info(xB2,yB2);
 
     // B2 == B1 -> discard B2
-    if (availableB1 &&
-        equal_cand_MV(out_cand[idxB1], b2)) {
+    if (availableB1 && out_cand[idxB1]==b2) {
       idxB2 = idxB1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to B1\n");
     }
     // B2 == A1 -> discard B2
-    else if (availableA1 &&
-             equal_cand_MV(out_cand[idxA1], b2)) {
+    else if (availableA1 && out_cand[idxA1]==b2) {
       idxB2 = idxA1;
       logtrace(LogMotion,"spatial merging candidate B2: redundant to A1\n");
     }

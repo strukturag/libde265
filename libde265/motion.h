@@ -26,21 +26,27 @@
 class base_context;
 class slice_segment_header;
 
-typedef struct
+class MotionVector
 {
+ public:
   int16_t x,y;
-} MotionVector;
+};
 
 
-typedef struct
+class PBMotion
 {
+ public:
   uint8_t predFlag[2];  // which of the two vectors is actually used
   int8_t  refIdx[2];    // index into RefPicList
   MotionVector  mv[2];  // the absolute motion vectors
-} PBMotion;
+
+  bool operator==(const PBMotion&) const;
+};
 
 
-typedef struct {
+class PBMotionCoding
+{
+ public:
   // index into RefPicList
   int8_t  refIdx[2];
 
@@ -57,7 +63,7 @@ typedef struct {
   // whether merge mode is used
   uint8_t merge_flag : 1;
   uint8_t merge_idx  : 3;
-} PBMotionCoding;
+};
 
 
 void get_merge_candidate_list(base_context* ctx,
