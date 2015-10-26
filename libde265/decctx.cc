@@ -1935,8 +1935,13 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
   // check for full reorder buffers
 
-  int sublayer = outimg->get_vps().vps_max_sub_layers -1;
-  int maxNumPicsInReorderBuffer = outimg->get_vps().layer[sublayer].vps_max_num_reorder_pics;
+  int maxNumPicsInReorderBuffer = 0;
+
+  // TODO: I'd like to have the has_vps() check somewhere else (not decode the picture at all)
+  if (outimg->has_vps()) {
+    int sublayer = outimg->get_vps().vps_max_sub_layers -1;
+    maxNumPicsInReorderBuffer = outimg->get_vps().layer[sublayer].vps_max_num_reorder_pics;
+  }
 
   if (dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
     dpb.output_next_picture_in_reorder_buffer();

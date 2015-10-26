@@ -386,6 +386,10 @@ public:
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
 
+  bool has_vps() const { return (bool)vps; }
+  bool has_sps() const { return (bool)sps; }
+  bool has_pps() const { return (bool)pps; }
+
   std::shared_ptr<const seq_parameter_set> get_shared_sps() { return sps; }
 
   //std::shared_ptr<const seq_parameter_set> get_shared_sps() const { return sps; }
