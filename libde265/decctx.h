@@ -268,7 +268,19 @@ public:
 };
 
 
-class base_context : public error_queue
+class image_history
+{
+ public:
+  virtual ~image_history() { }
+
+  //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  virtual const de265_image* get_image(int frame_id) const = 0;
+  virtual bool has_image(int frame_id) const = 0;
+};
+
+
+class base_context : public error_queue,
+                     public image_history
 {
  public:
   base_context();
@@ -279,10 +291,6 @@ class base_context : public error_queue
   void set_acceleration_functions(enum de265_acceleration);
 
   struct acceleration_functions acceleration; // CPU optimized functions
-
-  //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const de265_image* get_image(int frame_id) const = 0;
-  virtual bool has_image(int frame_id) const = 0;
 };
 
 

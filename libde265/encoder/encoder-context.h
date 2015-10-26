@@ -41,6 +41,9 @@ class encoder_context : public base_context
   encoder_context();
   ~encoder_context();
 
+
+  // --- image_history (decoded images) ---
+
   virtual const de265_image* get_image(int frame_id) const {
     return picbuf.get_picture(frame_id)->reconstruction;
   }
@@ -48,6 +51,9 @@ class encoder_context : public base_context
   virtual bool has_image(int frame_id) const {
     return picbuf.has_picture(frame_id);
   }
+
+
+
 
   bool encoder_started;
 
@@ -64,20 +70,12 @@ class encoder_context : public base_context
                        de265_image*,
                        void* userdata);
 
-  //error_queue errqueue;
-  //acceleration_functions accel;
-
   // quick links
   de265_image* img; // reconstruction
-  //de265_image* prediction;
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
   CTBTreeMatrix ctbs;
-
-  // temporary memory for motion compensated pixels (when CB-algo passes this down to TB-algo)
-  //uint8_t prediction[3][64*64]; // stride: 1<<(cb->log2Size)
-  //int prediction_x0,prediction_y0;
 
 
   int active_qp; // currently active QP
