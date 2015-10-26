@@ -41,6 +41,9 @@ class encoder_context : public base_context
   encoder_context();
   ~encoder_context();
 
+
+  // --- image_history (decoded images) ---
+
   virtual const de265_image* get_image(int frame_id) const {
     return picbuf.get_picture(frame_id)->reconstruction;
   }
@@ -48,6 +51,11 @@ class encoder_context : public base_context
   virtual bool has_image(int frame_id) const {
     return picbuf.has_picture(frame_id);
   }
+
+
+  const image_history& get_input_image_history() const { return m_input_image_history; }
+
+
 
   bool encoder_started;
 
@@ -64,25 +72,17 @@ class encoder_context : public base_context
                        de265_image*,
                        void* userdata);
 
-  //error_queue errqueue;
-  //acceleration_functions accel;
-
   // quick links
   de265_image* img; // reconstruction
-  //de265_image* prediction;
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
   CTBTreeMatrix ctbs;
 
-  // temporary memory for motion compensated pixels (when CB-algo passes this down to TB-algo)
-  //uint8_t prediction[3][64*64]; // stride: 1<<(cb->log2Size)
-  //int prediction_x0,prediction_y0;
-
 
   int active_qp; // currently active QP
   /*int target_qp;*/ /* QP we want to code at.
-                     (Not actually the real QP. Check image.get_QPY() for that.) */
+    (Not actually the real QP. Check image.get_QPY() for that.) */
 
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
@@ -105,9 +105,32 @@ class encoder_context : public base_context
   bool headers_have_been_sent;
 
   encoder_picture_buffer picbuf;
+
+
+  // --- image history that accesses the input images ---
+
+  class image_history_input : public image_history {
+  public:
+    image_history_input(const encoder_context* ectx) { m_ectx=ectx; }
+
+    virtual const de265_image* get_image(int frame_id) const {
+      return m_ectx->picbuf.get_picture(frame_id)->input;
+    }
+
+    virtual bool has_image(int frame_id) const {
+      return m_ectx->picbuf.has_picture(frame_id);
+    }
+
+  private:
+    const encoder_context* m_ectx;
+  } m_input_image_history;
+
+
+
   std::shared_ptr<sop_creator> sop;
 
   std::deque<en265_packet*> output_packets;
+
 
 
   // --- rate-control ---
@@ -137,15 +160,15 @@ class encoder_context : public base_context
 
 
   /*
-  void switch_CABAC(context_model_table2* model) {
+    void switch_CABAC(context_model_table2* model) {
     cabac      = cabac_estim.get();
     ctx_model  = model;
-  }
+    }
 
-  void switch_CABAC_to_bitstream() {
+    void switch_CABAC_to_bitstream() {
     cabac     = &cabac_bitstream;
     ctx_model = &ctx_model_bitstream;
-  }
+    }
   */
 
   en265_packet* create_packet(en265_packet_content_type t);
