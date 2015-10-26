@@ -27,6 +27,7 @@
 
 
 encoder_context::encoder_context()
+  : m_input_image_history(this)
 {
   encoder_started=false;
 
