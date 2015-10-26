@@ -98,9 +98,9 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
 
       //printf("%d/%d  %d\n",cb->x,cb->y, idx);
 
-      generate_inter_prediction_samples(ectx, ectx->shdr, ectx->img,
-                                        cb->x,cb->y, // int xC,int yC,
-                                        0,0,         // int xB,int yB,
+      generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(), TODO
+                                        ectx->shdr, ectx->img,
+                                        cb->x,cb->y, // xP,yP
                                         1<<cb->log2Size, // int nCS,
                                         1<<cb->log2Size,
                                         1<<cb->log2Size, // int nPbW,int nPbH,
