@@ -94,8 +94,7 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
                                        struct de265_image* img,
-                                       int xC,int yC,
-                                       int xB,int yB,
+                                       int xP,int yP,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi);
 

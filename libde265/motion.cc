@@ -280,14 +280,10 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
                                        de265_image* img,
-                                       int xC,int yC,
-                                       int xB,int yB,
+                                       int xP,int yP,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi)
 {
-  int xP = xC+xB;
-  int yP = yC+yB;
-
   void*  pixels[3];
   int    stride[3];
 
@@ -309,9 +305,6 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
   ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-
-  //int xP = xC+xB;
-  //int yP = yC+yB;
 
   int predFlag[2];
   predFlag[0] = vi->predFlag[0];
@@ -2159,7 +2152,7 @@ void decode_prediction_unit(base_context* ctx,
 
   // 2.
 
-  generate_inter_prediction_samples(ctx,ctx, shdr, img, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,ctx, shdr, img, xC+xB,yC+yB, nCS, nPbW,nPbH, &vi);
 
 
   img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
