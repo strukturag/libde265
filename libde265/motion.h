@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 class base_context;
+class image_history;
 class slice_segment_header;
 
 class MotionVector
@@ -90,6 +91,7 @@ int derive_spatial_merging_candidates(const struct de265_image* img,
 */
 
 void generate_inter_prediction_samples(base_context* ctx,
+                                       const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
                                        struct de265_image* img,
                                        int xC,int yC,

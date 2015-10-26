@@ -277,6 +277,7 @@ void mc_chroma(const base_context* ctx,
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(base_context* ctx,
+                                       const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
                                        de265_image* img,
                                        int xC,int yC,
@@ -345,7 +346,7 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      const de265_image* refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -2158,7 +2159,7 @@ void decode_prediction_unit(base_context* ctx,
 
   // 2.
 
-  generate_inter_prediction_samples(ctx,shdr, img, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
+  generate_inter_prediction_samples(ctx,ctx, shdr, img, xC,yC, xB,yB, nCS, nPbW,nPbH, &vi);
 
 
   img->set_mv_info(xC+xB,yC+yB,nPbW,nPbH, vi);
