@@ -129,9 +129,7 @@ class EncoderCore_Custom : public EncoderCore
 
 
 
-double encode_image(encoder_context*, const de265_image* input, EncoderCore&);
-
-void encode_sequence(encoder_context*);
+//void encode_sequence(encoder_context*);
 
 
 class Logging

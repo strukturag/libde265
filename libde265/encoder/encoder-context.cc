@@ -21,9 +21,16 @@
  */
 
 #include "encoder/encoder-context.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include "libde265/util.h"
 
 #include <math.h>
+
+#define ENCODER_DEVELOPMENT 0
+#define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
+
+
+double encode_image(encoder_context*, const de265_image* input, EncoderCore&);
 
 
 encoder_context::encoder_context()
@@ -311,4 +318,209 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   picbuf.mark_encoding_finished(imgdata->frame_number);
 
   return DE265_OK;
+}
+
+
+// /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
+
+double encode_image(encoder_context* ectx,
+                    const de265_image* input,
+                    EncoderCore& algo)
+{
+  int stride=input->get_image_stride(0);
+
+  int w = ectx->get_sps().pic_width_in_luma_samples;
+  int h = ectx->get_sps().pic_height_in_luma_samples;
+
+  // --- create reconstruction image ---
+  ectx->img = new de265_image;
+  ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
+  ectx->img->PicOrderCntVal = input->PicOrderCntVal;
+
+  ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
+                         NULL /* no decctx */, ectx, 0,NULL,false);
+  //ectx->img->alloc_encoder_data(&ectx->sps);
+  ectx->img->clear_metadata();
+
+#if 0
+  if (1) {
+    ectx->prediction = new de265_image;
+    ectx->prediction->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, false /* no metadata */,
+                                  NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
+    ectx->prediction->vps = ectx->vps;
+    ectx->prediction->sps = ectx->sps;
+    ectx->prediction->pps = ectx->pps;
+  }
+#endif
+
+  ectx->active_qp = ectx->get_pps().pic_init_qp; // TODO take current qp from slice
+
+
+  ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
+  ectx->cabac_encoder.set_context_models(&ectx->cabac_ctx_models);
+
+
+  context_model_table modelEstim;
+  CABAC_encoder_estim cabacEstim;
+
+  modelEstim.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
+  cabacEstim.set_context_models(&modelEstim);
+
+
+  int Log2CtbSize = ectx->get_sps().Log2CtbSizeY;
+
+  uint8_t* luma_plane = ectx->img->get_image_plane(0);
+  uint8_t* cb_plane   = ectx->img->get_image_plane(1);
+  uint8_t* cr_plane   = ectx->img->get_image_plane(2);
+
+  double mse=0;
+
+
+  // encode CTB by CTB
+
+  ectx->ctbs.clear();
+
+  for (int y=0;y<ectx->get_sps().PicHeightInCtbsY;y++)
+    for (int x=0;x<ectx->get_sps().PicWidthInCtbsY;x++)
+      {
+        ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
+
+        int x0 = x<<Log2CtbSize;
+        int y0 = y<<Log2CtbSize;
+
+        logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
+
+        // make a copy of the context model that we can modify for testing alternatives
+
+        context_model_table ctxModel;
+        //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
+        ctxModel = ectx->cabac_ctx_models.copy();
+        ctxModel = modelEstim.copy(); // TODO TMP
+
+        disable_logging(LogSymbols);
+        enable_logging(LogSymbols);  // TODO TMP
+
+        //printf("================================================== ANALYZE\n");
+
+#if 1
+        /*
+          enc_cb* cb = encode_cb_may_split(ectx, ctxModel,
+          input, x0,y0, Log2CtbSize, 0, qp);
+        */
+
+        enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel, x0,y0);
+#else
+        float minCost = std::numeric_limits<float>::max();
+        int bestQ = 0;
+        int qp = ectx->params.constant_QP;
+
+        enc_cb* cb;
+        for (int q=1;q<51;q++) {
+          copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
+
+          enc_cb* cbq = encode_cb_may_split(ectx, ctxModel,
+                                            input, x0,y0, Log2CtbSize, 0, q);
+
+          float cost = cbq->distortion + ectx->lambda * cbq->rate;
+          if (cost<minCost) { minCost=cost; bestQ=q; }
+
+          if (q==qp) { cb=cbq; }
+        }
+
+        printf("Q %d\n",bestQ);
+        fflush(stdout);
+#endif
+
+        //print_cb_tree_rates(cb,0);
+
+        //statistics_IntraPredMode(ectx, x0,y0, cb);
+
+
+        // --- write bitstream ---
+
+        //ectx->switch_CABAC_to_bitstream();
+
+        enable_logging(LogSymbols);
+
+        logdebug(LogEncoder,"write CTB %d;%d\n",x,y);
+
+        if (logdebug_enabled(LogEncoder)) {
+          cb->debug_dumpTree(enc_tb::DUMPTREE_ALL);
+        }
+
+        /*
+        cb->debug_assertTreeConsistency(ectx->img);
+
+        //cb->invalidateMetadataInSubTree(ectx->img);
+        cb->writeMetadata(ectx, ectx->img,
+                          enc_node::METADATA_INTRA_MODES |
+                          enc_node::METADATA_RECONSTRUCTION |
+                          enc_node::METADATA_CT_DEPTH);
+
+        cb->debug_assertTreeConsistency(ectx->img);
+        */
+
+        encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
+
+        //printf("================================================== WRITE\n");
+
+
+        if (COMPARE_ESTIMATED_RATE_TO_REAL_RATE) {
+          float realPre = cabacEstim.getRDBits();
+          encode_ctb(ectx, &cabacEstim, cb, x,y);
+          float realPost = cabacEstim.getRDBits();
+
+          printf("estim: %f  real: %f  diff: %f\n",
+                 cb->rate,
+                 realPost-realPre,
+                 cb->rate - (realPost-realPre));
+        }
+
+
+        int last = (y==ectx->get_sps().PicHeightInCtbsY-1 &&
+                    x==ectx->get_sps().PicWidthInCtbsY-1);
+        ectx->cabac_encoder.write_CABAC_term_bit(last);
+
+        //delete cb;
+
+        //ectx->free_all_pools();
+
+        mse += cb->distortion;
+      }
+
+  mse /= ectx->img->get_width() * ectx->img->get_height();
+
+
+  //reconstruction_sink.send_image(ectx->img);
+
+
+  //statistics_print();
+
+
+  //delete ectx->prediction;
+
+
+  // frame PSNR
+
+  ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->get_sps());
+
+#if 0
+  std::ofstream ostr("out.pgm");
+  ostr << "P5\n" << ectx->img->get_width() << " " << ectx->img->get_height() << "\n255\n";
+  for (int y=0;y<ectx->img->get_height();y++) {
+    ostr.write( (char*)ectx->img->get_image_plane_at_pos(0,0,y), ectx->img->get_width() );
+  }
+#endif
+
+  double psnr = 10*log10(255.0*255.0 / mse);
+
+#if 0
+  double psnr2 = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
+                          luma_plane, ectx->img->get_image_stride(0),
+                          input->get_width(), input->get_height()));
+
+  printf("rate-estim PSNR: %f vs %f\n",psnr,psnr2);
+#endif
+
+  return psnr;
 }
