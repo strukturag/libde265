@@ -198,8 +198,9 @@ struct en265_packet
 
   en265_encoder_context* encoder_context;
 
-  const struct de265_image* input_image;
-  const struct de265_image* reconstruction;
+  // TODO: de265_images should actually be reference counted and freed in en265_free_packet
+  //const struct de265_image* input_image;
+  //const struct de265_image* reconstruction;
 };
 
 // timeout_ms - timeout in milliseconds. 0 - no timeout, -1 - block forever

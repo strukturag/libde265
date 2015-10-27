@@ -122,8 +122,8 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
 
   pck->encoder_context = this;
 
-  pck->input_image = NULL;
-  pck->reconstruction = NULL;
+//pck->input_image = NULL;
+//  pck->reconstruction = NULL;
 
   cabac_encoder.reset();
 
@@ -306,8 +306,8 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   // build output packet
 
   en265_packet* pck = create_packet(EN265_PACKET_SLICE);
-  pck->input_image    = imgdata->input;
-  pck->reconstruction = imgdata->reconstruction;
+  //pck->input_image    = imgdata->input;
+  //pck->reconstruction = imgdata->reconstruction;
   pck->frame_number   = imgdata->frame_number;
   pck->nal_unit_type  = (enum en265_nal_unit_type)imgdata->nal.nal_unit_type;
   pck->nuh_layer_id   = imgdata->nal.nuh_layer_id;
