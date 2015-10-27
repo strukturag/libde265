@@ -303,7 +303,7 @@ LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packe
   if (pck->frame_number >= 0) {
     ectx->mark_image_is_outputted(pck->frame_number);
 
-    ectx->release_input_image(pck->frame_number);
+    //ectx->release_input_image(pck->frame_number);
   }
 
   delete[] pck->data;
@@ -317,4 +317,3 @@ LIBDE265_API int en265_number_of_queued_packets(en265_encoder_context* e)
 
   return ectx->output_packets.size();
 }
-
