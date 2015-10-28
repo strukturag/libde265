@@ -152,7 +152,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     tb->downPtr = &cb->transform_tree;
     cb->transform_tree = tb;
 
-    tb->reconstruct(ectx, ectx->img); // reconstruct luma
+    tb->copy_reconstruction_from_image(ectx, ectx->img); // reconstruct luma
 
     /*
     printBlk("distortion input:",
