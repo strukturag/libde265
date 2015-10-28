@@ -137,6 +137,11 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
 
     if (cb->PredMode == MODE_SKIP) {
+      assert(0);
+
+      // Note: it is not good to copy it from the image, because it is not defined
+      // that the content is available in the image.
+
       LocalizedSubImage dstPixels(*reconstruction[cIdx], xC,yC);
       dstPixels.copyFromImage(img, cIdx);
     }
