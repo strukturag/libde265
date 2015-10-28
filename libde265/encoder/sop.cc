@@ -79,6 +79,9 @@ void sop_creator_trivial_low_delay::insert_new_input_image(de265_image* img)
 {
   img->PicOrderCntVal = get_pic_order_count();
 
+  // fake input image state, so that we can use it for MC in some fast algorithms
+  img->PicState = UsedForShortTermReference;
+
   int frame = get_frame_number();
 
   std::vector<int> l0, l1, empty;

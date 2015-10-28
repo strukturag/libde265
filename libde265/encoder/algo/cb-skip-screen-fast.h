@@ -43,6 +43,7 @@
 class Algo_CB_Skip_ScreenFast : public Algo_CB
 {
  public:
+  Algo_CB_Skip_ScreenFast();
   virtual ~Algo_CB_Skip_ScreenFast() { }
 
   void setNonSkipAlgo(Algo_CB* algo) { mNonSkipAlgo = algo; }
@@ -55,6 +56,8 @@ class Algo_CB_Skip_ScreenFast : public Algo_CB
 
  protected:
   Algo_CB* mNonSkipAlgo;
+
+  int mMaxPixelDifference;
 };
 
 #endif
