@@ -181,7 +181,7 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
       tb->downPtr = &cb->transform_tree;
       cb->transform_tree = tb;
 
-      tb->reconstruct(ectx, ectx->img);
+      tb->copy_reconstruction_from_image(ectx, ectx->img);
     }
   }
 
