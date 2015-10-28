@@ -284,6 +284,66 @@ void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
 }
 
 
+void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
+                                                  const de265_image* img,
+                                                  int x0,int y0,  // luma
+                                                  int log2TbSize, // chroma adapted
+                                                  int cIdx)
+{
+  // reconstruction already available ?
+
+  if (reconstruction[cIdx]) {
+    assert(false); // actually, do we really want this or do we want to overwrite the data?
+    return;
+  }
+
+
+  // chroma adapted position
+  int xC=x0;
+  int yC=y0;
+
+  if (cIdx>0 && ectx->get_sps().chroma_format_idc == CHROMA_420) {
+    xC>>=1;
+    yC>>=1;
+  }
+
+
+  reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
+
+  PixelAccessor dstPixels(*reconstruction[cIdx], xC,yC);
+  dstPixels.copyFromImage(img, cIdx);
+}
+
+
+void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const de265_image* img)
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->copy_reconstruction_from_image(ectx,img);
+    }
+  }
+  else {
+    copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 0);
+
+    if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 1);
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 2);
+    }
+    else if (log2Size>2) {
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size-1, 1);
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size-1, 2);
+    }
+    else if (blkIdx==3) {
+      int xBase = x - (1<<log2Size);
+      int yBase = y - (1<<log2Size);
+
+      copy_reconstruction_from_image_plane(ectx, img, xBase,yBase, log2Size, 1);
+      copy_reconstruction_from_image_plane(ectx, img, xBase,yBase, log2Size, 2);
+    }
+  }
+}
+
+
 void enc_tb::set_cbf_flags_from_children()
 {
   assert(split_transform_flag);
@@ -414,6 +474,7 @@ void enc_cb::write_to_image(de265_image* img) const
 }
 */
 
+/*
 void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
   assert(0);
@@ -427,7 +488,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
     transform_tree->reconstruct(ectx,img);
   }
 }
-
+*/
 
 void enc_cb::debug_dumpTree(int flags, int indent) const
 {

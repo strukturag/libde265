@@ -187,6 +187,8 @@ class enc_tb : public enc_node
   void set_cbf_flags_from_children();
 
   void reconstruct(encoder_context* ectx, de265_image* img) const;
+  void copy_reconstruction_from_image(encoder_context* ectx, const de265_image* img);
+
   void debug_writeBlack(encoder_context* ectx, de265_image* img) const;
 
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
@@ -214,6 +216,12 @@ private:
   void reconstruct_tb(encoder_context* ectx,
                       de265_image* img, int x0,int y0, int log2TbSize,
                       int cIdx) const;
+
+  void copy_reconstruction_from_image_plane(encoder_context* ectx,
+                                            const de265_image* img,
+                                            int x0,int y0,  // luma
+                                            int log2TbSize, // chroma adapted
+                                            int cIdx);
 };
 
 
@@ -305,7 +313,7 @@ public:
 
   /* Decode this CB: pixel data and write metadata to image.
    */
-  void reconstruct(encoder_context* ectx,de265_image* img) const;
+  // DEPRECATED void reconstruct(encoder_context* ectx,de265_image* img) const;
 
   // can only be called on the lowest-level CB (with TB-tree as its direct child)
   const enc_tb* getTB(int x,int y) const;
