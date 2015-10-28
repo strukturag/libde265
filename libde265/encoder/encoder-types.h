@@ -90,10 +90,10 @@ public:
 };
 
 
-class PixelAccessor
+class LocalizedSubImage
 {
  public:
-  PixelAccessor(small_image_buffer& buf, int x0,int y0) {
+  LocalizedSubImage(small_image_buffer& buf, int x0,int y0) {
     mBase = buf.get_buffer_u8();
     mStride = buf.getStride();
     mXMin = x0;
@@ -114,8 +114,8 @@ class PixelAccessor
   void copyToImage(de265_image* img, int cIdx) const;
   void copyFromImage(const de265_image* img, int cIdx);
 
-  static PixelAccessor invalid() {
-    return PixelAccessor();
+  static LocalizedSubImage invalid() {
+    return LocalizedSubImage();
   }
 
  private:
@@ -124,7 +124,7 @@ class PixelAccessor
   short   mXMin,  mYMin;
   uint8_t mWidth, mHeight;
 
-  PixelAccessor() {
+  LocalizedSubImage() {
     mBase = NULL;
     mStride = mXMin = mYMin = mWidth = mHeight = 0;
   }
@@ -197,7 +197,7 @@ class enc_tb : public enc_node
 
   const enc_tb* getTB(int x,int y) const;
 
-  PixelAccessor getPixels(int x,int y, int cIdx, const seq_parameter_set& sps);
+  LocalizedSubImage getPixels(int x,int y, int cIdx, const seq_parameter_set& sps);
 
   void writeReconstructionToImage(de265_image* img,
                                   const seq_parameter_set* sps) const;
