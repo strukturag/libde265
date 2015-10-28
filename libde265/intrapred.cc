@@ -721,7 +721,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
         }
 
         if (availableN) {
-          PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
+          LocalizedSubImage pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
           if (!nAvail) firstValue = pa[yB+y][xB-1];
 
@@ -756,7 +756,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
       }
 
       if (availableN) {
-        PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
+        LocalizedSubImage pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
         out_border[0] = pa[yB-1][xB-1];
         available[0] = availableN;
@@ -795,7 +795,7 @@ void intra_border_computer<pixel_t>::fill_from_ctbtree(const enc_tb* blkTb,
 
 
         if (availableN) {
-          PixelAccessor pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
+          LocalizedSubImage pa = cb->transform_tree->getPixels(xN,yN, cIdx, *sps);
 
           if (!nAvail) firstValue = pa[yB-1][xB+x];
 

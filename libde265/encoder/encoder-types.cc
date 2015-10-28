@@ -137,7 +137,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
     reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
 
     if (cb->PredMode == MODE_SKIP) {
-      PixelAccessor dstPixels(*reconstruction[cIdx], xC,yC);
+      LocalizedSubImage dstPixels(*reconstruction[cIdx], xC,yC);
       dstPixels.copyFromImage(img, cIdx);
     }
     else { // not SKIP mode
@@ -284,6 +284,66 @@ void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
 }
 
 
+void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
+                                                  const de265_image* img,
+                                                  int x0,int y0,  // luma
+                                                  int log2TbSize, // chroma adapted
+                                                  int cIdx)
+{
+  // reconstruction already available ?
+
+  if (reconstruction[cIdx]) {
+    assert(false); // actually, do we really want this or do we want to overwrite the data?
+    return;
+  }
+
+
+  // chroma adapted position
+  int xC=x0;
+  int yC=y0;
+
+  if (cIdx>0 && ectx->get_sps().chroma_format_idc == CHROMA_420) {
+    xC>>=1;
+    yC>>=1;
+  }
+
+
+  reconstruction[cIdx] = std::make_shared<small_image_buffer>(log2TbSize, sizeof(uint8_t));
+
+  LocalizedSubImage dstPixels(*reconstruction[cIdx], xC,yC);
+  dstPixels.copyFromImage(img, cIdx);
+}
+
+
+void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const de265_image* img)
+{
+  if (split_transform_flag) {
+    for (int i=0;i<4;i++) {
+      children[i]->copy_reconstruction_from_image(ectx,img);
+    }
+  }
+  else {
+    copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 0);
+
+    if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 1);
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 2);
+    }
+    else if (log2Size>2) {
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size-1, 1);
+      copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size-1, 2);
+    }
+    else if (blkIdx==3) {
+      int xBase = x - (1<<log2Size);
+      int yBase = y - (1<<log2Size);
+
+      copy_reconstruction_from_image_plane(ectx, img, xBase,yBase, log2Size, 1);
+      copy_reconstruction_from_image_plane(ectx, img, xBase,yBase, log2Size, 2);
+    }
+  }
+}
+
+
 void enc_tb::set_cbf_flags_from_children()
 {
   assert(split_transform_flag);
@@ -414,6 +474,7 @@ void enc_cb::write_to_image(de265_image* img) const
 }
 */
 
+/*
 void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
 {
   assert(0);
@@ -427,7 +488,7 @@ void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
     transform_tree->reconstruct(ectx,img);
   }
 }
-
+*/
 
 void enc_cb::debug_dumpTree(int flags, int indent) const
 {
@@ -672,21 +733,21 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
   else {
     // luma pixels
 
-    PixelAccessor lumaPixels(*reconstruction[0], x,y);
+    LocalizedSubImage lumaPixels(*reconstruction[0], x,y);
     lumaPixels.copyToImage(img, 0);
 
     // chroma pixels
 
     if (sps->chroma_format_idc == CHROMA_444) {
-      PixelAccessor chroma1Pixels(*reconstruction[1], x,y);
+      LocalizedSubImage chroma1Pixels(*reconstruction[1], x,y);
       chroma1Pixels.copyToImage(img, 1);
-      PixelAccessor chroma2Pixels(*reconstruction[2], x,y);
+      LocalizedSubImage chroma2Pixels(*reconstruction[2], x,y);
       chroma2Pixels.copyToImage(img, 2);
     }
     else if (log2Size>2) {
-      PixelAccessor chroma1Pixels(*reconstruction[1], x>>1,y>>1);
+      LocalizedSubImage chroma1Pixels(*reconstruction[1], x>>1,y>>1);
       chroma1Pixels.copyToImage(img, 1);
-      PixelAccessor chroma2Pixels(*reconstruction[2], x>>1,y>>1);
+      LocalizedSubImage chroma2Pixels(*reconstruction[2], x>>1,y>>1);
       chroma2Pixels.copyToImage(img, 2);
 
       //reconstruct_tb(ectx, img, x,y, log2Size-1, 1);
@@ -696,9 +757,9 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
       int xBase = x - (1<<log2Size);
       int yBase = y - (1<<log2Size);
 
-      PixelAccessor chroma1Pixels(*reconstruction[1], xBase>>1,yBase>>1);
+      LocalizedSubImage chroma1Pixels(*reconstruction[1], xBase>>1,yBase>>1);
       chroma1Pixels.copyToImage(img, 1);
-      PixelAccessor chroma2Pixels(*reconstruction[2], xBase>>1,yBase>>1);
+      LocalizedSubImage chroma2Pixels(*reconstruction[2], xBase>>1,yBase>>1);
       chroma2Pixels.copyToImage(img, 2);
 
       //reconstruct_tb(ectx, img, xBase,yBase, log2Size, 1);
@@ -708,7 +769,7 @@ void enc_tb::writeReconstructionToImage(de265_image* img,
 }
 
 
-PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& sps)
+LocalizedSubImage enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& sps)
 {
   int xL = x <<  sps.get_chroma_shift_W(cIdx);
   int yL = y <<  sps.get_chroma_shift_H(cIdx);
@@ -716,11 +777,11 @@ PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& 
   const enc_tb* tb = getTB(xL,yL);
 
   if (cIdx==0 || sps.chroma_format_idc == CHROMA_444) {
-    return PixelAccessor(*tb->reconstruction[cIdx], tb->x, tb->y);
+    return LocalizedSubImage(*tb->reconstruction[cIdx], tb->x, tb->y);
   }
   else if (sps.chroma_format_idc == CHROMA_420) {
     if (tb->log2Size > 2) {
-      return PixelAccessor(*tb->reconstruction[cIdx],
+      return LocalizedSubImage(*tb->reconstruction[cIdx],
                            tb->x >> 1,
                            tb->y >> 1);
     }
@@ -728,7 +789,7 @@ PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& 
       enc_tb* parent = tb->parent;
       tb = parent->children[3];
 
-      return PixelAccessor(*tb->reconstruction[cIdx],
+      return LocalizedSubImage(*tb->reconstruction[cIdx],
                            parent->x >> 1,
                            parent->y >> 1);
     }
@@ -738,12 +799,12 @@ PixelAccessor enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_set& 
 
     assert(false); // not supported yet
 
-    return PixelAccessor::invalid();
+    return LocalizedSubImage::invalid();
   }
 }
 
 
-void PixelAccessor::copyToImage(de265_image* img, int cIdx) const
+void LocalizedSubImage::copyToImage(de265_image* img, int cIdx) const
 {
   uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
   int stride = img->get_image_stride(cIdx);
@@ -754,7 +815,7 @@ void PixelAccessor::copyToImage(de265_image* img, int cIdx) const
   }
 }
 
-void PixelAccessor::copyFromImage(const de265_image* img, int cIdx)
+void LocalizedSubImage::copyFromImage(const de265_image* img, int cIdx)
 {
   const uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
   int stride = img->get_image_stride(cIdx);
