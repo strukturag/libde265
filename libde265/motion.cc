@@ -746,7 +746,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
                                       PBMotion* out_cand,
                                       int maxCandidates)
 {
-  const pic_parameter_set* pps = &img->get_pps();
+  const pic_parameter_set* pps = &dataaccess.get_pps();
   const int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
   enum PartMode PartMode = dataaccess.get_PartMode(xC,yC);
@@ -832,7 +832,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
 
   if (availableB1) {
-    const PBMotion& b1 = img->get_mv_info(xB1,yB1);
+    const PBMotion& b1 = dataaccess.get_mv_info(xB1,yB1);
 
     // B1 == A1 -> discard B1
     if (availableA1 && out_cand[idxA1] == b1) {
@@ -870,7 +870,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
 
   if (availableB0) {
-    const PBMotion& b0 = img->get_mv_info(xB0,yB0);
+    const PBMotion& b0 = dataaccess.get_mv_info(xB0,yB0);
 
     // B0 == B1 -> discard B0
     if (availableB1 && out_cand[idxB1]==b0) {
@@ -907,7 +907,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
 
   if (availableA0) {
-    const PBMotion& a0 = img->get_mv_info(xA0,yA0);
+    const PBMotion& a0 = dataaccess.get_mv_info(xA0,yA0);
 
     // A0 == A1 -> discard A0
     if (availableA1 && out_cand[idxA1]==a0) {
@@ -949,7 +949,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
 
   if (availableB2) {
-    const PBMotion& b2 = img->get_mv_info(xB2,yB2);
+    const PBMotion& b2 = dataaccess.get_mv_info(xB2,yB2);
 
     // B2 == B1 -> discard B2
     if (availableB1 && out_cand[idxB1]==b2) {
@@ -1431,7 +1431,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
      - since the PBs are not far away from a proper (neighboring) merging candidate,
      the quality of the candidates will still be good.
   */
-  singleMCLFlag = (img->get_pps().log2_parallel_merge_level > 2 && nCS==8);
+  singleMCLFlag = (dataaccess.get_pps().log2_parallel_merge_level > 2 && nCS==8);
 
   if (singleMCLFlag) {
     xP=xC;
@@ -1602,6 +1602,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
                                            uint8_t out_availableFlagLXN[2],
                                            MotionVector out_mvLXN[2])
 {
+  CodingDataAccess<de265_image> dataaccess(img);
+
+
   int isScaledFlagLX = 0;
 
   const int A=0;
@@ -1629,8 +1632,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // 3. / 4.
 
-  CodingDataAccess<de265_image> dataaccess(img);
-
   bool availableA[2];
   availableA[0] = available_pred_blk(dataaccess,xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
   availableA[1] = available_pred_blk(dataaccess,xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
@@ -1653,11 +1654,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   for (int k=0;k<=1;k++) {
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 && // no A?-predictor so far
-        img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
+        dataaccess.get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
 
-      const PBMotion& vi = img->get_mv_info(xA[k],yA[k]);
+      const PBMotion& vi = dataaccess.get_mv_info(xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(vi);
 
@@ -1695,11 +1696,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
     if (availableA[k] &&
         // TODO: we could remove this call by storing the result of the similar computation above
-        img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
+        dataaccess.get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
 
       int Y=1-X;
 
-      const PBMotion& vi = img->get_mv_info(xA[k],yA[k]);
+      const PBMotion& vi = dataaccess.get_mv_info(xA[k],yA[k]);
       if (vi.predFlag[X]==1 &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
 
@@ -1791,7 +1792,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       int Y=1-X;
 
-      const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
+      const PBMotion& vi = dataaccess.get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
 
@@ -1846,7 +1847,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       if (availableB[k]) {
         int Y=1-X;
 
-        const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
+        const PBMotion& vi = dataaccess.get_mv_info(xB[k],yB[k]);
 
         if (vi.predFlag[X]==1 &&
             shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
@@ -2027,12 +2028,14 @@ void motion_vectors_and_ref_indices(base_context* ctx,
                                     int partIdx,
                                     PBMotion* out_vi)
 {
+  CodingDataAccess<de265_image> dataaccess(img);
+
   //slice_segment_header* shdr = tctx->shdr;
 
   int xP = xC+xB;
   int yP = yC+yB;
 
-  enum PredMode predMode = img->get_pred_mode(xC,yC);
+  enum PredMode predMode = dataaccess.get_pred_mode(xC,yC);
 
   if (predMode == MODE_SKIP ||
       (predMode == MODE_INTER && motion.merge_flag))
