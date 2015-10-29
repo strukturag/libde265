@@ -462,6 +462,8 @@ double encode_image(encoder_context* ectx,
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
+        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img, &ectx->get_sps());
+
         //printf("================================================== WRITE\n");
 
 
@@ -502,7 +504,8 @@ double encode_image(encoder_context* ectx,
 
   // frame PSNR
 
-  ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->get_sps());
+  // we write the reconstruction after each CTB
+  //ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->get_sps());
 
 #if 0
   std::ofstream ostr("out.pgm");

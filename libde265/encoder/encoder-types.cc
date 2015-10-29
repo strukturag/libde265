@@ -721,6 +721,8 @@ void enc_cb::writeReconstructionToImage(de265_image* img,
     }
   }
   else {
+    img->set_pred_mode(x,y,log2Size, PredMode);
+
     transform_tree->writeReconstructionToImage(img,sps);
   }
 }
