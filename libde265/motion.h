@@ -114,4 +114,11 @@ void decode_prediction_unit(base_context* ctx,const slice_segment_header* shdr,
                             de265_image* img, const PBMotionCoding& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
+
+#ifdef DE265_LOG_TRACE
+void logmvcand(const PBMotion& p);
+#else
+#define logmvcand(p)
+#endif
+
 #endif
