@@ -735,10 +735,8 @@ bool PBMotion::operator==(const PBMotion& b) const
   second part to the parameters of the first part, since then, we could use 2Nx2N
   right away. -> Exclude this candidate.
 */
-template <class MVAccessType>
-int derive_spatial_merging_candidates(//const de265_image* img,
-                                      CodingDataAccess<MVAccessType> dataaccess,
-                                      const de265_image* img,
+template <class AccessType>
+int derive_spatial_merging_candidates(CodingDataAccess<AccessType> dataaccess,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
@@ -1406,10 +1404,10 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 
 // 8.5.3.1.1
 
-template <class MVAccess>
+template <class AccessType>
 void get_merge_candidate_list_without_step_9(base_context* ctx,
                                              const slice_segment_header* shdr,
-                                             CodingDataAccess<MVAccess> dataaccess,
+                                             CodingDataAccess<AccessType> dataaccess,
                                              de265_image* img,
                                              int xC,int yC, int xP,int yP,
                                              int nCS, int nPbW,int nPbH, int partIdx,
@@ -1448,7 +1446,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
   // --- spatial merge candidates
 
   numMergeCand = derive_spatial_merging_candidates(dataaccess,
-                                                   img, xC,yC, nCS, xP,yP, singleMCLFlag,
+                                                   xC,yC, nCS, xP,yP, singleMCLFlag,
                                                    nPbW,nPbH,partIdx, mergeCandList,
                                                    maxCandidates);
 
