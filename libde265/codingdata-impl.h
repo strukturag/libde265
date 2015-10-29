@@ -52,7 +52,7 @@ template <> class CodingDataAccess<encoder_context>
 public:
   CodingDataAccess(const encoder_context* e) : ectx(e) { }
 
-  const video_parameter_set& get_vps() const { assert(0); } // return ectx->get_vps(); }
+  const video_parameter_set& get_vps() const { return ectx->get_vps(); }
   const seq_parameter_set& get_sps() const { return ectx->get_sps(); }
   const pic_parameter_set& get_pps() const { return ectx->get_pps(); }
 
