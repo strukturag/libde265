@@ -1,4 +1,4 @@
-set (libde265_sources 
+set (libde265_sources
   bitstream.cc
   cabac.cc
   de265.cc
@@ -8,6 +8,7 @@ set (libde265_sources
   nal-parser.h
   dpb.cc
   dpb.h
+  funcs.cc
   image.cc
   intrapred.cc
   md5.cc

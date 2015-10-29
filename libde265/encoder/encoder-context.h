@@ -84,9 +84,11 @@ class encoder_context : public base_context
   /*int target_qp;*/ /* QP we want to code at.
     (Not actually the real QP. Check image.get_QPY() for that.) */
 
+  const video_parameter_set& get_vps() const { return *vps; }
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
 
+  video_parameter_set& get_vps() { return *vps; }
   seq_parameter_set& get_sps() { return *sps; }
   pic_parameter_set& get_pps() { return *pps; }
 
