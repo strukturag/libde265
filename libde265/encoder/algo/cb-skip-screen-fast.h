@@ -38,7 +38,7 @@
 #include "libde265/encoder/algo/cb-mergeindex.h"
 
 
-// ========== CB Skip/Inter decision ==========
+// ========== CB Skip vs. Inter/Intra decision ==========
 
 class Algo_CB_Skip_ScreenFast : public Algo_CB
 {

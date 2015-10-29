@@ -47,6 +47,7 @@
 #include "libde265/encoder/algo/pb-mv.h"
 #include "libde265/encoder/algo/cb-skip.h"
 #include "libde265/encoder/algo/cb-skip-screen-fast.h"
+#include "libde265/encoder/algo/cb-mv-screen.h"
 #include "libde265/encoder/algo/cb-intra-inter.h"
 
 
@@ -107,6 +108,7 @@ class EncoderCore_Custom : public EncoderCore
   Algo_CB_Split_BruteForce         mAlgo_CB_Split_BruteForce;
   Algo_CB_Skip_BruteForce          mAlgo_CB_Skip_BruteForce;
   Algo_CB_Skip_ScreenFast          mAlgo_CB_Skip_ScreenFast;
+  Algo_CB_MV_Screen                mAlgo_CB_MV_Screen;
   Algo_CB_IntraInter_BruteForce    mAlgo_CB_IntraInter_BruteForce;
 
   Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;

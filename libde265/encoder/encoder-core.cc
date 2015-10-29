@@ -135,7 +135,7 @@ void EncoderCore_Custom::setParams(encoder_params& params)
     break;
 
   case ALGO_CB_Skip_ScreenFast:
-    mAlgo_CB_Skip_ScreenFast.setNonSkipAlgo(&mAlgo_CB_IntraInter_BruteForce);
+    mAlgo_CB_Skip_ScreenFast.setNonSkipAlgo(&mAlgo_CB_MV_Screen);
     algo_CB_skip = &mAlgo_CB_Skip_ScreenFast;
   }
 
@@ -151,6 +151,8 @@ void EncoderCore_Custom::setParams(encoder_params& params)
     algo_CB_IntraPartMode = &mAlgo_CB_IntraPartMode_Fixed;
     break;
   }
+
+  mAlgo_CB_MV_Screen.setIntraChildAlgo(algo_CB_IntraPartMode);
 
   mAlgo_CB_IntraInter_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
   mAlgo_CB_IntraInter_BruteForce.setInterChildAlgo(&mAlgo_CB_InterPartMode_Fixed);
