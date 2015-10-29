@@ -23,6 +23,8 @@
 #include "util.h"
 #include "dpb.h"
 #include "encoder/encoder-context.h"
+#include "codingdata-impl.h"
+#include "funcs.h"
 
 #include <assert.h>
 
@@ -690,43 +692,6 @@ bool PBMotion::operator==(const PBMotion& b) const
 }
 
 
-// TODO: add specializations for de265_image and encoder_context
-template <class T> class MotionVectorAccess
-{
-public:
-  enum PartMode get_PartMode(int x,int y);
-  const PBMotion& get_mv_info(int x,int y);
-};
-
-
-template <> class MotionVectorAccess<de265_image>
-{
-public:
-  MotionVectorAccess(const de265_image* i) : img(i) { }
-
-  enum PartMode get_PartMode(int x,int y) { return img->get_PartMode(x,y); }
-  const PBMotion& get_mv_info(int x,int y) { return img->get_mv_info(x,y); }
-
-private:
-  const de265_image* img;
-};
-
-
-template <> class MotionVectorAccess<encoder_context>
-{
-public:
-  MotionVectorAccess(const encoder_context* e) : ectx(e) { }
-
-  enum PartMode get_PartMode(int x,int y) { return ectx->ctbs.getCB(x,y)->PartMode; }
-  const PBMotion& get_mv_info(int x,int y) {
-    return ectx->ctbs.getPB(x,y)->motion;
-  }
-
-private:
-  const encoder_context* ectx;
-};
-
-
 /*
   +--+                +--+--+
   |B2|                |B1|B0|
@@ -772,7 +737,7 @@ private:
 */
 template <class MVAccessType>
 int derive_spatial_merging_candidates(//const de265_image* img,
-                                      MotionVectorAccess<MVAccessType> mvaccess,
+                                      CodingDataAccess<MVAccessType> dataaccess,
                                       const de265_image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
@@ -784,7 +749,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   const pic_parameter_set* pps = &img->get_pps();
   const int log2_parallel_merge_level = pps->log2_parallel_merge_level;
 
-  enum PartMode PartMode = mvaccess.get_PartMode(xC,yC);
+  enum PartMode PartMode = dataaccess.get_PartMode(xC,yC);
 
   /*
   const int A0 = SpatialMergingCandidates::PRED_A0;
@@ -822,13 +787,13 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
   // MV available in A1
   else {
-    availableA1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
+    availableA1 = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA1,yA1);
     if (!availableA1) logtrace(LogMotion,"spatial merging candidate A1: unavailable\n");
   }
 
   if (availableA1) {
     idxA1 = computed_candidates++;
-    out_cand[idxA1] = mvaccess.get_mv_info(xA1,yA1);
+    out_cand[idxA1] = dataaccess.get_mv_info(xA1,yA1);
 
     logtrace(LogMotion,"spatial merging candidate A1:\n");
     logmvcand(out_cand[idxA1]);
@@ -862,7 +827,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
   }
   // MV available in B1
   else {
-    availableB1 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
+    availableB1 = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB1,yB1);
     if (!availableB1) logtrace(LogMotion,"spatial merging candidate B1: unavailable\n");
   }
 
@@ -900,7 +865,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate B0: below parallel merge level\n");
   }
   else {
-    availableB0 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
+    availableB0 = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB0,yB0);
     if (!availableB0) logtrace(LogMotion,"spatial merging candidate B0: unavailable\n");
   }
 
@@ -937,7 +902,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate A0: below parallel merge level\n");
   }
   else {
-    availableA0 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
+    availableA0 = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA0,yA0);
     if (!availableA0) logtrace(LogMotion,"spatial merging candidate A0: unavailable\n");
   }
 
@@ -979,7 +944,7 @@ int derive_spatial_merging_candidates(//const de265_image* img,
     logtrace(LogMotion,"spatial merging candidate B2: below parallel merge level\n");
   }
   else {
-    availableB2 = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
+    availableB2 = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB2,yB2);
     if (!availableB2) logtrace(LogMotion,"spatial merging candidate B2: unavailable\n");
   }
 
@@ -1444,7 +1409,7 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 template <class MVAccess>
 void get_merge_candidate_list_without_step_9(base_context* ctx,
                                              const slice_segment_header* shdr,
-                                             MotionVectorAccess<MVAccess> mvaccess,
+                                             CodingDataAccess<MVAccess> dataaccess,
                                              de265_image* img,
                                              int xC,int yC, int xP,int yP,
                                              int nCS, int nPbW,int nPbH, int partIdx,
@@ -1482,7 +1447,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
 
   // --- spatial merge candidates
 
-  numMergeCand = derive_spatial_merging_candidates(mvaccess,
+  numMergeCand = derive_spatial_merging_candidates(dataaccess,
                                                    img, xC,yC, nCS, xP,yP, singleMCLFlag,
                                                    nPbW,nPbH,partIdx, mergeCandList,
                                                    maxCandidates);
@@ -1554,7 +1519,7 @@ void get_merge_candidate_list(base_context* ctx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          MotionVectorAccess<de265_image>(img), img,
+                                          CodingDataAccess<de265_image>(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1581,7 +1546,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ectx, shdr,
-                                          MotionVectorAccess<encoder_context>(ectx), ectx->img,
+                                          CodingDataAccess<encoder_context>(ectx), ectx->img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1611,7 +1576,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   PBMotion mergeCandList[5];
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          MotionVectorAccess<de265_image>(img), img,
+                                          CodingDataAccess<de265_image>(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           merge_idx, mergeCandList);
 
@@ -1664,9 +1629,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // 3. / 4.
 
+  CodingDataAccess<de265_image> dataaccess(img);
+
   bool availableA[2];
-  availableA[0] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
-  availableA[1] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
+  availableA[0] = available_pred_blk(dataaccess,xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
+  availableA[1] = available_pred_blk(dataaccess,xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
 
   // 5.
 
@@ -1818,7 +1785,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   bool availableB[3];
   for (int k=0;k<3;k++) {
-    availableB[k] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
+    availableB[k] = available_pred_blk(dataaccess, xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xB[k],yB[k]);
 
     if (availableB[k] && out_availableFlagLXN[B]==0) {
 

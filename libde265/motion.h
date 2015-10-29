@@ -22,6 +22,7 @@
 #define DE265_MOTION_H
 
 #include <stdint.h>
+#include <slice.h>
 
 class base_context;
 class image_history;
@@ -65,6 +66,7 @@ class PBMotionCoding
   uint8_t merge_flag : 1;
   uint8_t merge_idx  : 3;
 };
+
 
 
 void get_merge_candidate_list(base_context* ctx,

@@ -20,6 +20,8 @@
 
 #include "transform.h"
 #include "util.h"
+#include "funcs.h"
+#include "codingdata-impl.h"
 
 #include <assert.h>
 
@@ -107,7 +109,9 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   int qPYA,qPYB;
 
-  if (tctx->img->available_zscan(xQG,yQG, xQG-1,yQG)) {
+  CodingDataAccess<de265_image> dataaccess(tctx->img);
+
+  if (available_zscan(dataaccess, xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps.Log2MinTrafoSize;
     int minTbAddrA = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
@@ -123,7 +127,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
     qPYA = qPY_PRED;
   }
 
-  if (tctx->img->available_zscan(xQG,yQG, xQG,yQG-1)) {
+  if (available_zscan(dataaccess, xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps.Log2MinTrafoSize;
     int minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];

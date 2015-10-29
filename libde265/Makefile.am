@@ -28,6 +28,8 @@ libde265_la_SOURCES = \
   bitstream.h \
   cabac.cc \
   cabac.h \
+  codingdata.h \
+  codingdata-impl.h \
   configparam.cc \
   configparam.h \
   contextmodel.cc \
@@ -45,6 +47,8 @@ libde265_la_SOURCES = \
   fallback-dct.cc \
   fallback-motion.cc \
   fallback-motion.h \
+  funcs.cc \
+  funcs.h \
   dpb.cc \
   dpb.h \
   image.cc \

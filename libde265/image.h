@@ -329,13 +329,6 @@ struct de265_image {
   }
 
 
-  bool available_zscan(int xCurr,int yCurr, int xN,int yN) const;
-
-  bool available_pred_blk(int xC,int yC, int nCbS,
-                          int xP, int yP, int nPbW, int nPbH, int partIdx,
-                          int xN,int yN) const;
-
-
   static de265_image_allocation default_image_allocation;
 
   void printBlk(const char* title, int x0,int y0,int blkSize,int cIdx) const {
