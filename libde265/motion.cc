@@ -1052,16 +1052,17 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 
 // (L1003) 8.5.3.2.8
 
-void derive_collocated_motion_vectors(base_context* ctx,
-                                      de265_image* img,
-                                      const slice_segment_header* shdr,
-                                      int xP,int yP,
-                                      int colPic,
-                                      int xColPb,int yColPb,
-                                      int refIdxLX,  // (always 0 for merge mode)
-                                      int X,
-                                      MotionVector* out_mvLXCol,
-                                      uint8_t* out_availableFlagLXCol)
+template <class AccessType>
+de265_error derive_collocated_motion_vectors(base_context* ctx,
+                                             const CodingDataAccess<AccessType>& dataaccess,
+                                             const slice_segment_header* shdr,
+                                             int xP,int yP,
+                                             int colPic,
+                                             int xColPb,int yColPb,
+                                             int refIdxLX,  // (always 0 for merge mode)
+                                             int X,
+                                             MotionVector* out_mvLXCol,
+                                             uint8_t* out_availableFlagLXCol)
 {
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
@@ -1075,9 +1076,8 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
   if (xColPb >= colImg->get_width() ||
       yColPb >= colImg->get_height()) {
-    ctx->add_warning(DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA, false);
     *out_availableFlagLXCol = 0;
-    return;
+    return DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA;
   }
 
   enum PredMode predMode = colImg->get_pred_mode(xColPb,yColPb);
@@ -1089,7 +1089,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return;
+    return DE265_OK;
   }
 
 
@@ -1105,7 +1105,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return;
+    return DE265_OK;
   }
 
 
@@ -1136,7 +1136,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
   else {
     bool allRefFramesBeforeCurrentFrame = true;
 
-    const int currentPOC = img->PicOrderCntVal;
+    const int currentPOC = dataaccess.get_POC();
 
     // all reference POCs earlier than current POC (list 1)
     // Test L1 first, because there is a higher change to find a future reference frame.
@@ -1205,11 +1205,11 @@ void derive_collocated_motion_vectors(base_context* ctx,
     const bool isLongTerm = shdr->LongTermRefPic[X][refIdxLX];
 
     int colDist  = colImg->PicOrderCntVal - colShdr->RefPicList_POC[listCol][refIdxCol];
-    int currDist = img->PicOrderCntVal - shdr->RefPicList_POC[X][refIdxLX];
+    int currDist = dataaccess.get_POC() - shdr->RefPicList_POC[X][refIdxLX];
 
     logtrace(LogMotion,"COLPOCDIFF %d %d [%d %d / %d %d]\n",colDist, currDist,
              colImg->PicOrderCntVal, colShdr->RefPicList_POC[listCol][refIdxCol],
-             img->PicOrderCntVal, shdr->RefPicList_POC[X][refIdxLX]
+             dataaccess.get_POC(), shdr->RefPicList_POC[X][refIdxLX]
              );
 
     if (isLongTerm || colDist == currDist) {
@@ -1217,27 +1217,31 @@ void derive_collocated_motion_vectors(base_context* ctx,
     }
     else {
       if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
-        ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-        img->integrity = INTEGRITY_DECODING_ERRORS;
+        return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
+        //ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+        //img->integrity = INTEGRITY_DECODING_ERRORS;
       }
 
       logtrace(LogMotion,"scale: %d;%d to %d;%d\n",
                mvCol.x,mvCol.y, out_mvLXCol->x,out_mvLXCol->y);
     }
   }
+
+  return DE265_OK;
 }
 
 
 // 8.5.3.1.7
-void derive_temporal_luma_vector_prediction(base_context* ctx,
-                                            de265_image* img,
-                                            const slice_segment_header* shdr,
-                                            int xP,int yP,
-                                            int nPbW,int nPbH,
-                                            int refIdxL,
-                                            int X, // which MV (L0/L1) to get
-                                            MotionVector* out_mvLXCol,
-                                            uint8_t*      out_availableFlagLXCol)
+template <class AccessType>
+de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
+                                                   const CodingDataAccess<AccessType>& dataaccess,
+                                                   const slice_segment_header* shdr,
+                                                   int xP,int yP,
+                                                   int nPbW,int nPbH,
+                                                   int refIdxL,
+                                                   int X, // which MV (L0/L1) to get
+                                                   MotionVector* out_mvLXCol,
+                                                   uint8_t*      out_availableFlagLXCol)
 {
   // --- no temporal MVP -> exit ---
 
@@ -1245,13 +1249,13 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return;
+    return DE265_OK;
   }
 
 
   // --- find collocated reference image ---
 
-  int Log2CtbSizeY = img->get_sps().Log2CtbSizeY;
+  int Log2CtbSizeY = dataaccess.get_sps().Log2CtbSizeY;
 
   int colPic; // TODO: this is the same for the whole slice. We can precompute it.
 
@@ -1277,8 +1281,7 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
 
-    ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-    return;
+    return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
   }
 
 
@@ -1295,14 +1298,19 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
      This is to reduce the memory bandwidth requirements.
    */
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
-      xColBr < img->get_sps().pic_width_in_luma_samples &&
-      yColBr < img->get_sps().pic_height_in_luma_samples)
+      xColBr < dataaccess.get_sps().pic_width_in_luma_samples &&
+      yColBr < dataaccess.get_sps().pic_height_in_luma_samples)
     {
       xColPb = xColBr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
       yColPb = yColBr & ~0x0F;
 
-      derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
-                                       out_mvLXCol, out_availableFlagLXCol);
+      de265_error err = derive_collocated_motion_vectors(ctx,dataaccess,shdr,
+                                                         xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+                                                         out_mvLXCol, out_availableFlagLXCol);
+
+      if (err) {
+        return err;
+      }
     }
   else
     {
@@ -1320,9 +1328,16 @@ void derive_temporal_luma_vector_prediction(base_context* ctx,
     xColPb = xColCtr & ~0x0F; // reduce resolution of collocated motion-vectors to 16 pixels grid
     yColPb = yColCtr & ~0x0F;
 
-    derive_collocated_motion_vectors(ctx,img,shdr, xP,yP, colPic, xColPb,yColPb, refIdxL, X,
-                                     out_mvLXCol, out_availableFlagLXCol);
+    de265_error err = derive_collocated_motion_vectors(ctx,dataaccess,shdr,
+                                                       xP,yP, colPic, xColPb,yColPb, refIdxL, X,
+                                                       out_mvLXCol, out_availableFlagLXCol);
+
+    if (err) {
+      return err;
+    }
   }
+
+  return DE265_OK;
 }
 
 
@@ -1456,7 +1471,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
 
     MotionVector mvCol[2];
     uint8_t predFlagLCol[2];
-    derive_temporal_luma_vector_prediction(ctx,img,shdr, xP,yP,nPbW,nPbH,
+    derive_temporal_luma_vector_prediction(ctx,dataaccess,shdr, xP,yP,nPbW,nPbH,
                                            refIdxCol[0],0, &mvCol[0],
                                            &predFlagLCol[0]);
 
@@ -1464,7 +1479,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
     predFlagLCol[1] = 0;
 
     if (shdr->slice_type == SLICE_TYPE_B) {
-      derive_temporal_luma_vector_prediction(ctx,img,shdr,
+      derive_temporal_luma_vector_prediction(ctx,dataaccess,shdr,
                                              xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
                                              &predFlagLCol[1]);
       availableFlagCol |= predFlagLCol[1];
@@ -1591,18 +1606,16 @@ void derive_luma_motion_merge_mode(base_context* ctx,
 
 
 // 8.5.3.1.6
-void derive_spatial_luma_vector_prediction(base_context* ctx,
-                                           de265_image* img,
-                                           const slice_segment_header* shdr,
-                                           int xC,int yC,int nCS,int xP,int yP,
-                                           int nPbW,int nPbH, int X,
-                                           int refIdxLX, int partIdx,
-                                           uint8_t out_availableFlagLXN[2],
-                                           MotionVector out_mvLXN[2])
+template <class AccessType>
+de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
+                                                  const CodingDataAccess<AccessType>& dataaccess,
+                                                  const slice_segment_header* shdr,
+                                                  int xC,int yC,int nCS,int xP,int yP,
+                                                  int nPbW,int nPbH, int X,
+                                                  int refIdxLX, int partIdx,
+                                                  uint8_t out_availableFlagLXN[2],
+                                                  MotionVector out_mvLXN[2])
 {
-  CodingDataAccess<de265_image> dataaccess(img);
-
-
   int isScaledFlagLX = 0;
 
   const int A=0;
@@ -1646,7 +1659,8 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // the POC we want to reference in this PB
   const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
-  if (tmpimg==NULL) { return; }
+  if (tmpimg==NULL) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
+
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
@@ -1724,7 +1738,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
     if (out_availableFlagLXN[A]==1) {
       if (refIdxA<0) {
         out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
-        return; // error
+        return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
       }
 
       assert(refIdxA>=0);
@@ -1748,12 +1762,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
           picStateX == UsedForShortTermReference)
       */
         {
-          int distA = img->PicOrderCntVal - refPicA->PicOrderCntVal;
-          int distX = img->PicOrderCntVal - referenced_POC;
+          int distA = dataaccess.get_POC() - refPicA->PicOrderCntVal;
+          int distX = dataaccess.get_POC() - referenced_POC;
 
           if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
-            ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-            img->integrity = INTEGRITY_DECODING_ERRORS;
+            return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
           }
         }
     }
@@ -1866,7 +1879,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       if (out_availableFlagLXN[B]==1) {
         if (refIdxB<0) {
           out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
-          return; // error
+          return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
         }
 
         assert(refPicList>=0);
@@ -1879,44 +1892,49 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
 
         if (refPicB==NULL || refPicX==NULL) {
-          img->decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED,false);
-          img->integrity = INTEGRITY_DECODING_ERRORS;
+          return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
         }
         else if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
                  !isLongTermB && !isLongTermX) {
-          int distB = img->PicOrderCntVal - refPicB->PicOrderCntVal;
-          int distX = img->PicOrderCntVal - referenced_POC;
+          int distB = dataaccess.get_POC() - refPicB->PicOrderCntVal;
+          int distX = dataaccess.get_POC() - referenced_POC;
 
           logtrace(LogMotion,"scale MVP B: B-POC:%d X-POC:%d\n",refPicB->PicOrderCntVal,refPicX->PicOrderCntVal);
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
-            ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
-            img->integrity = INTEGRITY_DECODING_ERRORS;
+            return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
           }
         }
       }
     }
   }
+
+  return DE265_OK;
 }
 
 
 // 8.5.3.1.5
-void fill_luma_motion_vector_predictors(base_context* ctx,
-                                        const slice_segment_header* shdr,
-                                        de265_image* img,
-                                        int xC,int yC,int nCS,int xP,int yP,
-                                        int nPbW,int nPbH, int l,
-                                        int refIdx, int partIdx,
-                                        MotionVector out_mvpList[2])
+template <class AccessType>
+de265_error fill_luma_motion_vector_predictors(base_context* ctx,
+                                               const slice_segment_header* shdr,
+                                               const CodingDataAccess<AccessType>& dataaccess,
+                                               int xC,int yC,int nCS,int xP,int yP,
+                                               int nPbW,int nPbH, int l,
+                                               int refIdx, int partIdx,
+                                               MotionVector out_mvpList[2])
 {
   // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
 
   uint8_t availableFlagLXN[2];
   MotionVector mvLXN[2];
 
-  derive_spatial_luma_vector_prediction(ctx, img, shdr, xC,yC, nCS, xP,yP,
-                                        nPbW,nPbH, l, refIdx, partIdx,
-                                        availableFlagLXN, mvLXN);
+  de265_error err = derive_spatial_luma_vector_prediction(ctx, dataaccess, shdr, xC,yC, nCS, xP,yP,
+                                                          nPbW,nPbH, l, refIdx, partIdx,
+                                                          availableFlagLXN, mvLXN);
+
+  if (err) {
+    return err;
+  }
 
   // 8.5.3.1.7: if we only have one spatial vector or both spatial vectors are the same,
   // derive a temporal predictor
@@ -1931,7 +1949,7 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
     availableFlagLXCol = 0;
   }
   else {
-    derive_temporal_luma_vector_prediction(ctx, img, shdr,
+    derive_temporal_luma_vector_prediction(ctx, dataaccess, shdr,
                                            xP,yP, nPbW,nPbH, refIdx,l,
                                            &mvLXCol, &availableFlagLXCol);
   }
@@ -1974,6 +1992,46 @@ void fill_luma_motion_vector_predictors(base_context* ctx,
 
 
   assert(numMVPCandLX==2);
+
+  return DE265_OK;
+}
+
+
+void fill_luma_motion_vector_predictors_from_image(base_context* ctx,
+                                                   const slice_segment_header* shdr,
+                                                   de265_image* img,
+                                                   int xC,int yC,int nCS,int xP,int yP,
+                                                   int nPbW,int nPbH, int l,
+                                                   int refIdx, int partIdx,
+                                                   MotionVector out_mvpList[2])
+{
+  CodingDataAccess<de265_image> dataaccess(img);
+
+  de265_error err = fill_luma_motion_vector_predictors(ctx, shdr,
+                                                       dataaccess,
+                                                       xC,yC,nCS,xP,yP, nPbW,nPbH,l,
+                                                       refIdx, partIdx, out_mvpList);
+
+  if (err) {
+    ctx->add_warning(err, false);
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+  }
+}
+
+
+void fill_luma_motion_vector_predictors_from_tree(class encoder_context* ectx,
+                                                  const slice_segment_header* shdr,
+                                                  int xC,int yC,int nCS,int xP,int yP,
+                                                  int nPbW,int nPbH, int l,
+                                                  int refIdx, int partIdx,
+                                                  MotionVector out_mvpList[2])
+{
+  CodingDataAccess<encoder_context> dataaccess(ectx);
+
+  de265_error err = fill_luma_motion_vector_predictors(ectx, shdr,
+                                                       dataaccess,
+                                                       xC,yC,nCS,xP,yP, nPbW,nPbH,l,
+                                                       refIdx, partIdx, out_mvpList);
 }
 
 
@@ -1987,10 +2045,10 @@ MotionVector luma_motion_vector_prediction(base_context* ctx,
 {
   MotionVector mvpList[2];
 
-  fill_luma_motion_vector_predictors(ctx, shdr, img,
-                                     xC,yC,nCS,xP,yP,
-                                     nPbW, nPbH, l, refIdx, partIdx,
-                                     mvpList);
+  fill_luma_motion_vector_predictors_from_image(ctx, shdr, img,
+                                                xC,yC,nCS,xP,yP,
+                                                nPbW, nPbH, l, refIdx, partIdx,
+                                                mvpList);
 
   // select predictor according to mvp_lX_flag
 

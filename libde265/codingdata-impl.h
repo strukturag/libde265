@@ -37,6 +37,8 @@ public:
   const seq_parameter_set& get_sps() const { return img->get_sps(); }
   const pic_parameter_set& get_pps() const { return img->get_pps(); }
 
+  int  get_POC() const { return img->PicOrderCntVal; }
+
   int  get_SliceAddrRS(int ctbX, int ctbY) const { return img->get_SliceAddrRS(ctbX,ctbY); }
   enum PartMode get_PartMode(int x,int y) const { return img->get_PartMode(x,y); }
   enum PredMode get_pred_mode(int x,int y) const { return img->get_pred_mode(x,y); }
@@ -51,6 +53,8 @@ template <> class CodingDataAccess<encoder_context>
 {
 public:
   CodingDataAccess(const encoder_context* e) : ectx(e) { }
+
+  int  get_POC() const { return ectx->img->PicOrderCntVal; }
 
   const video_parameter_set& get_vps() const { return ectx->get_vps(); }
   const seq_parameter_set& get_sps() const { return ectx->get_sps(); }

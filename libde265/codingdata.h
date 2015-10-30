@@ -38,6 +38,8 @@ public:
   const seq_parameter_set& get_sps() const;
   const pic_parameter_set& get_pps() const;
 
+  int  get_POC() const;
+
   int  get_SliceAddrRS(int ctbX, int ctbY) const;
   enum PartMode get_PartMode(int x,int y) const;
   enum PredMode get_pred_mode(int x,int y) const;
