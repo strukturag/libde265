@@ -112,8 +112,8 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
       }
 
 
-      printf("try candidate\n");
-      logmvcand(mergeCandList[idx]);
+      //printf("try candidate\n");
+      //logmvcand(mergeCandList[idx]);
 
       // generate prediction. Luma and chroma because we will check the error in all channels.
 
@@ -134,7 +134,6 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
       // if it is similar enough, use this candidate
 
       if (equal) {
-        printf("--> match\n");
         selected_candidate = idx;
         break;
       }

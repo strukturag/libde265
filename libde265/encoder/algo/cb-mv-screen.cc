@@ -89,13 +89,13 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
     // get the two motion vector predictors
 
     MotionVector mvp[2];
-    fill_luma_motion_vector_predictors(ectx, ectx->shdr, ectx->img,
-                                       cb->x,cb->y,1<<cb->log2Size, x,y,cbSize,cbSize,
-                                       0, // l
-                                       0, 0, // int refIdx, int partIdx,
-                                       mvp);
+    fill_luma_motion_vector_predictors_from_tree(ectx, ectx->shdr,
+                                                 cb->x,cb->y,1<<cb->log2Size, x,y,cbSize,cbSize,
+                                                 0, // l
+                                                 0, 0, // int refIdx, int partIdx,
+                                                 mvp);
 
-    printf("pred vectors: %d/%d  %d/%d\n",mvp[0].x,mvp[0].y,   mvp[1].x,mvp[1].y);
+    //printf("pred vectors: %d/%d  %d/%d\n",mvp[0].x,mvp[0].y,   mvp[1].x,mvp[1].y);
 
     PBMotion motion;
     PBMotionCoding spec;
@@ -103,61 +103,66 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
     const int refIdx = 0; // get first reference frame
     const de265_image* refPic = ectx->get_image(ectx->shdr->RefPicList[0][refIdx]);
 
-    int range = 20;
+    int range = 30;
     int dx = 0;
 
     int maxPixelDifference = 32;
     bool isMatch = false;
 
-    for (int dy=-range; dy<=range; dy++)
-      {
-        if (y+dy < 0 || y+dy+cbSize >= h) {
-          continue;
+    for (int dx=-range; dx<=range && !isMatch; dx++)
+      for (int dy=-range; dy<=range; dy++)
+        {
+          if (y+dy < 0 || y+dy+cbSize >= h) {
+            continue;
+          }
+
+          if (x+dx < 0 || x+dx+cbSize >= w) {
+            continue;
+          }
+
+
+          isMatch = compare_blocks_for_equality(refPic, x+dx,y+dy, cbSize,
+                                                ectx->imgdata->input, x,y,
+                                                maxPixelDifference);
+
+          //isMatch = (dx==1) && (dy==0);
+
+          //printf("%d %d   %d %d    %s\n",x,y,dx,dy, isMatch ? "MATCH":"-----");
+
+          if (isMatch) {
+            motion.predFlag[0] = 1;
+            motion.predFlag[1] = 0;
+
+            motion.refIdx[0] = 0;
+            motion.mv[0].x = dx<<2;
+            motion.mv[0].y = dy<<2;
+
+            spec.merge_flag = 0;
+            spec.inter_pred_idc = PRED_L0;
+            spec.refIdx[0] = 0;
+            spec.mvp_l0_flag = 0; // use first predictor
+            spec.mvd[0][0] = (dx<<2) - mvp[0].x;
+            spec.mvd[0][1] = (dy<<2) - mvp[0].y;
+
+            break;
+          }
         }
-
-
-        isMatch = compare_blocks_for_equality(refPic, x+dx,y+dy, cbSize,
-                                              ectx->imgdata->input, x,y,
-                                              maxPixelDifference);
-
-
-        printf("%d %d   %d %d    %s\n",x,y,dx,dy, isMatch ? "MATCH":"-----");
-
-        if (isMatch) {
-          motion.predFlag[0] = 1;
-          motion.predFlag[1] = 0;
-
-          motion.refIdx[0] = 0;
-          motion.mv[0].x = 0;
-          motion.mv[0].y = dy<<2;
-
-          spec.merge_flag = 0;
-          spec.inter_pred_idc = PRED_L0;
-          spec.refIdx[0] = 0;
-          spec.mvp_l0_flag = 0; // use first predictor
-          spec.mvd[0][0] = 0  - mvp[0].x;
-          spec.mvd[0][1] = dy - mvp[0].y;
-
-          break;
-        }
-      }
-
-
-    // generate prediction. Luma and chroma because we will check the error in all channels.
-
-    generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
-                                      ectx->shdr, ectx->img,
-                                      cb->x,cb->y, // xP,yP
-                                      1<<cb->log2Size, // int nCS,
-                                      1<<cb->log2Size,
-                                      1<<cb->log2Size, // int nPbW,int nPbH,
-                                      &motion);
-
 
 
     // --- if we have found a matching candidate, use this to code the block in skip mode ---
 
     if (isMatch) {
+      // generate prediction. Luma and chroma because we will check the error in all channels.
+
+      generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
+                                        ectx->shdr, ectx->img,
+                                        cb->x,cb->y, // xP,yP
+                                        1<<cb->log2Size, // int nCS,
+                                        1<<cb->log2Size,
+                                        1<<cb->log2Size, // int nPbW,int nPbH,
+                                        &motion);
+
+
       // do not try intra mode when we found a good match
       try_intra = false;
 
