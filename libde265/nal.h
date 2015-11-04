@@ -31,6 +31,7 @@
 #endif
 
 #include "libde265/bitstream.h"
+#include "libde265/cabac.h"
 
 struct nal_header {
   nal_header() {
@@ -39,9 +40,18 @@ struct nal_header {
     nuh_temporal_id = 0;
   }
 
-  int nal_unit_type;
-  int nuh_layer_id;
-  int nuh_temporal_id;
+  void read(bitreader* reader);
+  void write(CABAC_encoder& writer) const;
+
+  void set(int unit_type, int layer_id=0, int temporal_id=0) {
+    nal_unit_type  =unit_type;
+    nuh_layer_id   =layer_id;
+    nuh_temporal_id=temporal_id;
+  }
+
+  uint8_t nal_unit_type;
+  uint8_t nuh_layer_id;
+  uint8_t nuh_temporal_id;
 };
 
 #define NAL_UNIT_TRAIL_N  0
@@ -95,8 +105,6 @@ struct nal_header {
 
 #define NAL_UNIT_UNDEFINED    255
 
-void nal_read_header(bitreader* reader, nal_header*);
-
 bool isIDR(uint8_t unit_type);
 bool isBLA(uint8_t unit_type);
 bool isCRA(uint8_t unit_type);
@@ -105,7 +113,17 @@ bool isRASL(uint8_t unit_type);
 bool isIRAP(uint8_t unit_type);
 bool isRADL(uint8_t unit_type);
 bool isReferenceNALU(uint8_t unit_type);
+bool isSublayerNonReference(uint8_t unit_type);
 
 const char* get_NAL_name(uint8_t unit_type);
+
+inline bool isIdrPic(uint8_t nal_unit_type) {
+  return (nal_unit_type == NAL_UNIT_IDR_W_RADL ||
+          nal_unit_type == NAL_UNIT_IDR_N_LP);
+}
+
+inline bool isRapPic(uint8_t nal_unit_type) {
+  return nal_unit_type >= 16 && nal_unit_type <= 23;
+}
 
 #endif

@@ -29,18 +29,28 @@
 #include "libde265/util.h"
 #include "libde265/refpic.h"
 #include "libde265/threads.h"
+#include "contextmodel.h"
 
 #include <vector>
+#include <string.h>
 
 #define MAX_NUM_REF_PICS    16
 
-#define SLICE_TYPE_B 0
-#define SLICE_TYPE_P 1
-#define SLICE_TYPE_I 2
+class decoder_context;
+class thread_context;
+class error_queue;
+class seq_parameter_set;
+class pic_parameter_set;
 
+enum SliceType
+  {
+    SLICE_TYPE_B = 0,
+    SLICE_TYPE_P = 1,
+    SLICE_TYPE_I = 2
+  };
 
 /*
-        2Nx2N           2NxN             Nx2N            NxN          
+        2Nx2N           2NxN             Nx2N            NxN
       +-------+       +-------+       +---+---+       +---+---+
       |       |       |       |       |   |   |       |   |   |
       |       |       |_______|       |   |   |       |___|___|
@@ -48,7 +58,7 @@
       |       |       |       |       |   |   |       |   |   |
       +-------+       +-------+       +---+---+       +---+---+
 
-        2NxnU           2NxnD           nLx2N           nRx2N        
+        2NxnU           2NxnD           nLx2N           nRx2N
       +-------+       +-------+       +-+-----+       +-----+-+
       |_______|       |       |       | |     |       |     | |
       |       |       |       |       | |     |       |     | |
@@ -72,6 +82,9 @@ enum PartMode
     PART_nRx2N = 7
   };
 
+const char* part_mode_name(enum PartMode);
+
+
 enum PredMode
   {
     MODE_INTRA, MODE_INTER, MODE_SKIP
@@ -89,57 +102,51 @@ enum IntraPredMode
     INTRA_ANGULAR_22 = 22,  INTRA_ANGULAR_23 = 23,  INTRA_ANGULAR_24 = 24,  INTRA_ANGULAR_25 = 25,
     INTRA_ANGULAR_26 = 26,  INTRA_ANGULAR_27 = 27,  INTRA_ANGULAR_28 = 28,  INTRA_ANGULAR_29 = 29,
     INTRA_ANGULAR_30 = 30,  INTRA_ANGULAR_31 = 31,  INTRA_ANGULAR_32 = 32,  INTRA_ANGULAR_33 = 33,
-    INTRA_ANGULAR_34 = 34,
-    INTRA_CHROMA_EQ_LUMA = 100  // chroma := luma
+    INTRA_ANGULAR_34 = 34
   };
+
+
+enum IntraChromaPredMode
+  {
+    INTRA_CHROMA_PLANAR_OR_34     = 0,
+    INTRA_CHROMA_ANGULAR_26_OR_34 = 1,
+    INTRA_CHROMA_ANGULAR_10_OR_34 = 2,
+    INTRA_CHROMA_DC_OR_34         = 3,
+    INTRA_CHROMA_LIKE_LUMA  = 4
+  };
+
 
 enum InterPredIdc
   {
-    PRED_L0=0,
-    PRED_L1=1,
-    PRED_BI=2
+    // note: values have to match the decoding function decode_inter_pred_idc()
+    PRED_L0=1,
+    PRED_L1=2,
+    PRED_BI=3
   };
 
-enum context_model_indices {
-  CONTEXT_MODEL_SAO_MERGE_FLAG = 0,
-  CONTEXT_MODEL_SAO_TYPE_IDX   = CONTEXT_MODEL_SAO_MERGE_FLAG +1,
-  CONTEXT_MODEL_SPLIT_CU_FLAG  = CONTEXT_MODEL_SAO_TYPE_IDX + 1,
-  CONTEXT_MODEL_CU_SKIP_FLAG   = CONTEXT_MODEL_SPLIT_CU_FLAG + 3,
-  CONTEXT_MODEL_PART_MODE      = CONTEXT_MODEL_CU_SKIP_FLAG + 3,
-  CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG = CONTEXT_MODEL_PART_MODE + 4,
-  CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE    = CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG + 1,
-  CONTEXT_MODEL_CBF_LUMA                  = CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE + 1,
-  CONTEXT_MODEL_CBF_CHROMA                = CONTEXT_MODEL_CBF_LUMA + 2,
-  CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG      = CONTEXT_MODEL_CBF_CHROMA + 4,
-  CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX = CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + 3,
-  CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX = CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX + 18,
-  CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG          = CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX + 18,
-  CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG        = CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + 4,
-  CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG = CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + 42,
-  CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG = CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + 24,
-  CONTEXT_MODEL_CU_QP_DELTA_ABS        = CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + 6,
-  CONTEXT_MODEL_TRANSFORM_SKIP_FLAG    = CONTEXT_MODEL_CU_QP_DELTA_ABS + 2,
-  CONTEXT_MODEL_MERGE_FLAG             = CONTEXT_MODEL_TRANSFORM_SKIP_FLAG + 2,
-  CONTEXT_MODEL_MERGE_IDX              = CONTEXT_MODEL_MERGE_FLAG + 1,
-  CONTEXT_MODEL_PRED_MODE_FLAG         = CONTEXT_MODEL_MERGE_IDX + 1,
-  CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG = CONTEXT_MODEL_PRED_MODE_FLAG + 1,
-  CONTEXT_MODEL_MVP_LX_FLAG            = CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 2,
-  CONTEXT_MODEL_RQT_ROOT_CBF           = CONTEXT_MODEL_MVP_LX_FLAG + 1,
-  CONTEXT_MODEL_REF_IDX_LX             = CONTEXT_MODEL_RQT_ROOT_CBF + 1,
-  CONTEXT_MODEL_INTER_PRED_IDC         = CONTEXT_MODEL_REF_IDX_LX + 2,
-  CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG = CONTEXT_MODEL_INTER_PRED_IDC + 5,
-  CONTEXT_MODEL_TABLE_LENGTH           = CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG + 1
-};
 
 
-typedef struct slice_segment_header {
-  slice_segment_header() { }
+class slice_segment_header {
+public:
+  slice_segment_header() {
+    reset();
+  }
 
-  de265_error read(bitreader* br, struct decoder_context*, bool* continueDecoding);
+  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
+  de265_error write(error_queue*, CABAC_encoder&,
+                    const seq_parameter_set* sps,
+                    const pic_parameter_set* pps,
+                    uint8_t nal_unit_type);
+
   void dump_slice_segment_header(const decoder_context*, int fd) const;
 
+  void set_defaults();
+  void reset();
 
-  int  slice_index; // index through all slices in a picture
+
+  int  slice_index; // index through all slices in a picture  (internal only)
+  const pic_parameter_set* pps;
+
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
@@ -203,6 +210,8 @@ typedef struct slice_segment_header {
   int  slice_cb_qp_offset;
   int  slice_cr_qp_offset;
 
+  char cu_chroma_qp_offset_enabled_flag;
+
   char deblocking_filter_override_flag;
   char slice_deblocking_filter_disabled_flag;
   int  slice_beta_offset; // = pps->beta_offset if undefined
@@ -219,17 +228,23 @@ typedef struct slice_segment_header {
 
   // --- derived data ---
 
-  int SliceAddrRS;  // start of last independent slice
   int SliceQPY;
-
   int initType;
 
-  int MaxNumMergeCand;
+  void compute_derived_values(const pic_parameter_set* pps);
+
+
+  // --- data for external modules ---
+
+  int SliceAddrRS;  // slice_segment_address of last independent slice
+
+  int MaxNumMergeCand;  // directly derived from 'five_minus_max_num_merge_cand'
   int CurrRpsIdx;
   ref_pic_set CurrRps;  // the active reference-picture set
   int NumPocTotalCurr;
 
-  int RefPicList[2][MAX_NUM_REF_PICS]; // contains indices into DPB
+  // number of entries: num_ref_idx_l0_active / num_ref_idx_l1_active
+  int RefPicList[2][MAX_NUM_REF_PICS]; // contains buffer IDs (D:indices into DPB/E:frame number)
   int RefPicList_POC[2][MAX_NUM_REF_PICS];
   int RefPicList_PicState[2][MAX_NUM_REF_PICS]; /* We have to save the PicState because the decoding
                                                    of an image may be delayed and the PicState can
@@ -240,11 +255,12 @@ typedef struct slice_segment_header {
                                                is a long-term picture. */
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
-  context_model ctx_model_storage[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model_table ctx_model_storage;
+  bool ctx_model_storage_defined; // whether there is valid data in ctx_model_storage
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice
 
-} slice_segment_header;
+};
 
 
 
@@ -255,13 +271,13 @@ typedef struct {
   unsigned char SaoEoClass; // use with (SaoTypeIdx>>(2*cIdx)) & 0x3
 
   uint8_t sao_band_position[3];
-  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always  
+  int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always
 } sao_info;
 
 
 
 
-de265_error read_slice_segment_data(struct thread_context* tctx);
+de265_error read_slice_segment_data(thread_context* tctx);
 
 bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
@@ -271,18 +287,26 @@ class thread_task_ctb_row : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  struct thread_context* tctx;
+  int    debug_startCtbRow;
+  thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
 
 class thread_task_slice_segment : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  struct thread_context* tctx;
+  int    debug_startCtbX, debug_startCtbY;
+  thread_context* tctx;
 
   virtual void work();
+  virtual std::string name() const;
 };
+
+
+int check_CTB_available(const de265_image* img,
+                        int xC,int yC, int xN,int yN);
 
 #endif

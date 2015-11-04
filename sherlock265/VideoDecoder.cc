@@ -33,7 +33,8 @@ using namespace videogfx;
 
 
 VideoDecoder::VideoDecoder()
-  : ctx(NULL),
+  : mFH(NULL),
+    ctx(NULL),
     img(NULL),
     mNextBuffer(0),
     mFrameCount(0),
@@ -41,16 +42,15 @@ VideoDecoder::VideoDecoder()
     mVideoEnded(false),
     mSingleStep(false),
     mShowDecodedImage(true),
+    mShowQuantPY(false),
     mCBShowPartitioning(false),
     mTBShowPartitioning(false),
     mPBShowPartitioning(false),
-    mShowPBPredMode(false),
     mShowIntraPredMode(false),
-    mShowQuantPY(false),
+    mShowPBPredMode(false),
     mShowMotionVec(false),
-    mShowSlices(false),
     mShowTiles(false),
-    mFH(NULL)
+    mShowSlices(false)
 #ifdef HAVE_SWSCALE
     , sws(NULL)
     , width(0)
@@ -173,19 +173,37 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
 {
   // --- convert to RGB ---
 
+  de265_chroma chroma = de265_get_chroma_format(img);
+
+  int map[3];
+
   Image<Pixel> visu;
-  visu.Create(img->get_width(), img->get_height(), Colorspace_YUV, Chroma_420);
+  if (chroma == de265_chroma_420) {
+    visu.Create(img->get_width(), img->get_height(), Colorspace_YUV, Chroma_420);
+    map[0]=0;
+    map[1]=1;
+    map[2]=2;
+  }
+  else {
+    visu.Create(img->get_width(), img->get_height(), Colorspace_RGB, Chroma_444);
+    map[0]=1;
+    map[1]=2;
+    map[2]=0;
+  }
 
   for (int y=0;y<img->get_height(0);y++) {
-    memcpy(visu.AskFrameY()[y], img->get_image_plane_at_pos(0, 0,y), img->get_width(0));
+    memcpy(visu.AskFrame(BitmapChannel(map[0]))[y],
+           img->get_image_plane_at_pos(0, 0,y), img->get_width(0));
   }
 
   for (int y=0;y<img->get_height(1);y++) {
-    memcpy(visu.AskFrameU()[y], img->get_image_plane_at_pos(1, 0,y), img->get_width(1));
+    memcpy(visu.AskFrame(BitmapChannel(map[1]))[y],
+           img->get_image_plane_at_pos(1, 0,y), img->get_width(1));
   }
 
   for (int y=0;y<img->get_height(2);y++) {
-    memcpy(visu.AskFrameV()[y], img->get_image_plane_at_pos(2, 0,y), img->get_width(2));
+    memcpy(visu.AskFrame(BitmapChannel(map[2]))[y],
+           img->get_image_plane_at_pos(2, 0,y), img->get_width(2));
   }
 
   Image<Pixel> debugvisu;

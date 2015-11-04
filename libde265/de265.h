@@ -72,6 +72,10 @@ extern "C" {
 LIBDE265_API const char *de265_get_version(void);
 LIBDE265_API uint32_t de265_get_version_number(void);
 
+LIBDE265_API int de265_get_version_number_major(void);
+LIBDE265_API int de265_get_version_number_minor(void);
+LIBDE265_API int de265_get_version_number_maintenance(void);
+
 
 /* === error codes === */
 
@@ -79,7 +83,7 @@ typedef enum {
   DE265_OK = 0,
   DE265_ERROR_NO_SUCH_FILE=1,
   //DE265_ERROR_NO_STARTCODE=2,  obsolet
-  DE265_ERROR_EOF=3,
+  //DE265_ERROR_EOF=3,
   DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS=4,
   DE265_ERROR_CHECKSUM_MISMATCH=5,
   DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA=6,
@@ -91,11 +95,15 @@ typedef enum {
   DE265_ERROR_LIBRARY_NOT_INITIALIZED=12,
   DE265_ERROR_WAITING_FOR_INPUT_DATA=13,
   DE265_ERROR_CANNOT_PROCESS_SEI=14,
+  DE265_ERROR_PARAMETER_PARSING=15,
+  DE265_ERROR_NO_INITIAL_SLICE_HEADER=16,
+  DE265_ERROR_PREMATURE_END_OF_SLICE=17,
+  DE265_ERROR_UNSPECIFIED_DECODING_ERROR=18,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
-  DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500,
-  DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501,
+  //DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500, obsolet
+  //DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501, obsolet
   DE265_ERROR_NOT_IMPLEMENTED_YET = 502,
   //DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED = 502, obsolet
 
@@ -126,7 +134,8 @@ typedef enum {
   DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM=1022,
   DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER=1023,
   DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY=1024,
-  DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI=1025
+  DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI=1025,
+  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA=1026
 } de265_error;
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);
@@ -149,7 +158,7 @@ struct de265_image;
 
 enum de265_chroma {
   de265_chroma_mono=0,
-  de265_chroma_420=1,  // currently the only used format
+  de265_chroma_420=1,
   de265_chroma_422=2,
   de265_chroma_444=3
 };
@@ -160,6 +169,8 @@ typedef int64_t de265_PTS;
 LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
 LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
+LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image*,int channel);
+/* The |out_stride| is returned as "bytes per line" if a non-NULL parameter is given. */
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
 LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
@@ -313,11 +324,11 @@ struct de265_image_spec
 
 struct de265_image_allocation
 {
-  int  (*get_buffer)(de265_decoder_context* ctx,
+  int  (*get_buffer)(de265_decoder_context* ctx, // first parameter deprecated
                      struct de265_image_spec* spec,
                      struct de265_image* img,
                      void* userdata);
-  void (*release_buffer)(de265_decoder_context* ctx,
+  void (*release_buffer)(de265_decoder_context* ctx, // first parameter deprecated
                          struct de265_image* img,
                          void* userdata);
 };

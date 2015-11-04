@@ -24,6 +24,7 @@
 #include "libde265/sps.h"
 #include "libde265/pps.h"
 #include "libde265/nal.h"
+#include "libde265/util.h"
 
 #include <vector>
 #include <queue>
@@ -47,9 +48,9 @@ class NAL_unit {
 
   // --- rbsp data ---
 
-  void resize(int new_size);
-  void append(const unsigned char* data, int n);
-  void set_data(const unsigned char* data, int n);
+  LIBDE265_CHECK_RESULT bool resize(int new_size);
+  LIBDE265_CHECK_RESULT bool append(const unsigned char* data, int n);
+  LIBDE265_CHECK_RESULT bool set_data(const unsigned char* data, int n);
 
   int size() const { return data_size; }
   void set_size(int s) { data_size=s; }
@@ -90,13 +91,12 @@ class NAL_Parser
   ~NAL_Parser();
 
   de265_error push_data(const unsigned char* data, int len,
-                        de265_PTS pts, void* user_data);
+                        de265_PTS pts, void* user_data = NULL);
 
   de265_error push_NAL(const unsigned char* data, int len,
-                       de265_PTS pts, void* user_data);
+                       de265_PTS pts, void* user_data = NULL);
 
   NAL_unit*   pop_from_NAL_queue();
-  void        push_to_NAL_queue(NAL_unit*);
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true; }
   void        mark_end_of_frame() { end_of_frame=true; }
@@ -112,6 +112,10 @@ class NAL_Parser
     int size = NAL_queue.size();
     if (pending_input_NAL) { size++; }
     return size;
+  }
+
+  int number_of_complete_NAL_units_pending() const {
+    return NAL_queue.size();
   }
 
   void free_NAL_unit(NAL_unit*);
@@ -136,12 +140,14 @@ class NAL_Parser
   std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
   int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
 
+  void push_to_NAL_queue(NAL_unit*);
+
 
   // pool of unused NAL memory
 
   std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
 
-  NAL_unit* alloc_NAL_unit(int size);
+  LIBDE265_CHECK_RESULT NAL_unit* alloc_NAL_unit(int size);
 };
 
 

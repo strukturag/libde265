@@ -52,7 +52,7 @@ Environment:
 Building
 ========
 
-[![Build Status](https://travis-ci.org/strukturag/libde265.png?branch=master)](https://travis-ci.org/strukturag/libde265)
+[![Build Status](https://travis-ci.org/strukturag/libde265.png?branch=master)](https://travis-ci.org/strukturag/libde265) [![Build Status](https://ci.appveyor.com/api/projects/status/github/strukturag/libde265?svg=true)](https://ci.appveyor.com/project/strukturag/libde265)
 
 If you got libde265 from the git repository, you will first need to run
 the included `autogen.sh` script to generate the `configure` script.
@@ -87,6 +87,23 @@ Additional logging information can be turned on and off using these `./configure
   --enable-log-info       turn on logging at info level (default=no)
   --enable-log-trace      turn on logging at trace level (default=no)
 </pre>
+
+
+Build using cmake
+=================
+
+cmake scripts to build libde265 and the sample scripts `dec265` and `enc265` are
+included and can be compiled using these commands:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+See the [cmake documentation](http://www.cmake.org) for further information on
+using cmake on other platforms.
 
 
 Prebuilt binaries

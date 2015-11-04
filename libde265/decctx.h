@@ -35,20 +35,24 @@
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
 
+#include <memory>
+
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
-#define MAX_THREAD_CONTEXTS 68  // enough for 4K @ 32 pixel CTBs, but TODO: make this dynamic
 
 #define MAX_WARNINGS 20
 
 
-struct slice_segment_header;
-struct image_unit;
+class slice_segment_header;
+class image_unit;
+class slice_unit;
+class decoder_context;
 
 
-struct thread_context
+class thread_context
 {
+public:
   thread_context();
 
   int CtbAddrInRS;
@@ -59,23 +63,21 @@ struct thread_context
 
   // motion vectors
 
-  int8_t  refIdx[2];
-  int16_t mvd[2][2]; // only in top left position
-  uint8_t merge_flag;
-  uint8_t merge_idx;
-  uint8_t mvp_lX_flag[2];
-  uint8_t inter_pred_idc; // enum InterPredIdc
+  PBMotionCoding motion;
 
 
   // prediction
 
-  enum IntraPredMode IntraPredModeC; // chroma intra-prediction mode for current CB
+  // enum IntraPredMode IntraPredModeC[4]; // chroma intra-prediction mode for current CB
+  int ResScaleVal;
 
 
   // residual data
 
   uint8_t cu_transquant_bypass_flag;
   uint8_t transform_skip_flag[3];
+  uint8_t explicit_rdpcm_flag;
+  uint8_t explicit_rdpcm_dir;
 
   ALIGNED_16(int16_t) _coeffBuf[(32*32)+8]; // alignment required for SSE code !
   int16_t *coeffBuf;
@@ -84,11 +86,15 @@ struct thread_context
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
 
+  int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
+
 
   // quantization
 
   int IsCuQpDeltaCoded;
   int CuQpDelta;
+  int IsCuChromaQpOffsetCoded;
+  int CuQpOffsetCb, CuQpOffsetCr;
 
   int currentQPY;
   int currentQG_x, currentQG_y;
@@ -98,14 +104,16 @@ struct thread_context
 
   CABAC_decoder cabac_decoder;
 
-  context_model ctx_model[CONTEXT_MODEL_TABLE_LENGTH];
+  context_model_table ctx_model;
+  uint8_t StatCoeff[4];
 
-  struct decoder_context* decctx;
+  decoder_context* decctx;
   struct de265_image *img;
-  struct slice_segment_header* shdr;
+  slice_segment_header* shdr;
 
-  struct image_unit* imgunit;
-  struct thread_task* task; // executing thread_task or NULL if not multi-threaded
+  image_unit* imgunit;
+  slice_unit* sliceunit;
+  thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
   thread_context(const thread_context&); // not allowed
@@ -131,8 +139,9 @@ class error_queue
 
 
 
-struct slice_unit
+class slice_unit
 {
+public:
   slice_unit(decoder_context* decctx);
   ~slice_unit();
 
@@ -140,32 +149,48 @@ struct slice_unit
   slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 
-  struct image_unit* imgunit;
+  image_unit* imgunit;
 
   bool flush_reorder_buffer;
 
-  enum { Unprocessed,
-         Inprogress,
-         Decoded
+
+  // decoding status
+
+  enum SliceDecodingProgress { Unprocessed,
+                               InProgress,
+                               Decoded
   } state;
 
+  de265_progress_lock finished_threads;
+  int nThreads;
+
+  int first_decoded_CTB_RS; // TODO
+  int last_decoded_CTB_RS;  // TODO
+
   void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) { return &thread_contexts[n]; }
+  thread_context* get_thread_context(int n) {
+    assert(n < nThreadContexts);
+    return &thread_contexts[n];
+  }
+  int num_thread_contexts() const { return nThreadContexts; }
 
 private:
   thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
                                       no copy constructor. */
+  int nThreadContexts;
 
+public:
   decoder_context* ctx;
 
-
+private:
   slice_unit(const slice_unit&); // not allowed
   const slice_unit& operator=(const slice_unit&); // not allowed
 };
 
 
-struct image_unit
+class image_unit
 {
+public:
   image_unit();
   ~image_unit();
 
@@ -174,6 +199,53 @@ struct image_unit
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
+
+  slice_unit* get_next_unprocessed_slice_segment() const {
+    for (int i=0;i<slice_units.size();i++) {
+      if (slice_units[i]->state == slice_unit::Unprocessed) {
+        return slice_units[i];
+      }
+    }
+
+    return NULL;
+  }
+
+  slice_unit* get_prev_slice_segment(slice_unit* s) const {
+    for (int i=1; i<slice_units.size(); i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i-1];
+      }
+    }
+
+    return NULL;
+  }
+
+  slice_unit* get_next_slice_segment(slice_unit* s) const {
+    for (int i=0; i<slice_units.size()-1; i++) {
+      if (slice_units[i]==s) {
+        return slice_units[i+1];
+      }
+    }
+
+    return NULL;
+  }
+
+  void dump_slices() const {
+    for (int i=0; i<slice_units.size(); i++) {
+      printf("[%d] = %p\n",i,slice_units[i]);
+    }
+  }
+
+  bool all_slice_segments_processed() const {
+    if (slice_units.size()==0) return true;
+    if (slice_units.back()->state != slice_unit::Unprocessed) return true;
+    return false;
+  }
+
+  bool is_first_slice_segment(const slice_unit* s) const {
+    if (slice_units.size()==0) return false;
+    return (slice_units[0] == s);
+  }
 
   enum { Invalid, // headers not read yet
          Unknown, // SPS/PPS available
@@ -192,12 +264,29 @@ struct image_unit
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
      The array is unused for non-WPP streams. */
-  std::vector<context_model> ctx_models;  // TODO: move this into image ?
+  std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
 };
 
 
+class base_context : public error_queue
+{
+ public:
+  base_context();
+  virtual ~base_context() { }
 
-class decoder_context : public error_queue {
+  // --- accelerated DSP functions ---
+
+  void set_acceleration_functions(enum de265_acceleration);
+
+  struct acceleration_functions acceleration; // CPU optimized functions
+
+  //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  virtual const de265_image* get_image(int frame_id) const = 0;
+  virtual bool has_image(int frame_id) const = 0;
+};
+
+
+class decoder_context : public base_context {
  public:
   decoder_context();
   ~decoder_context();
@@ -207,10 +296,13 @@ class decoder_context : public error_queue {
 
   void reset();
 
-  /* */ seq_parameter_set* get_sps(int id)       { return &sps[id]; }
-  const seq_parameter_set* get_sps(int id) const { return &sps[id]; }
-  /* */ pic_parameter_set* get_pps(int id)       { return &pps[id]; }
-  const pic_parameter_set* get_pps(int id) const { return &pps[id]; }
+  bool has_sps(int id) const { return (bool)sps[id]; }
+  bool has_pps(int id) const { return (bool)pps[id]; }
+
+  /* */ seq_parameter_set* get_sps(int id)       { return sps[id].get(); }
+  const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
+  /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
+  const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
   /*
   const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
@@ -224,19 +316,17 @@ class decoder_context : public error_queue {
   de265_error decode_NAL(NAL_unit* nal);
 
   de265_error decode(int* more);
-  de265_error decode_some();
+  de265_error decode_some(bool* did_work);
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
-  void process_nal_hdr(nal_header*);
-  void process_vps(video_parameter_set*);
-  void process_sps(seq_parameter_set*);
-  void process_pps(pic_parameter_set*);
 
-  bool process_slice_segment_header(decoder_context*, slice_segment_header*,
+  void process_nal_hdr(nal_header*);
+
+  bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,
                                     nal_header* nal_hdr, void* user_data);
 
@@ -266,13 +356,6 @@ class decoder_context : public error_queue {
   void*                  param_image_allocation_userdata;
 
 
-  // --- accelerated DSP functions ---
-
-  void set_acceleration_functions(enum de265_acceleration);
-
-  struct acceleration_functions acceleration; // CPU optimized functions
-
-
   // --- input stream data ---
 
   NAL_Parser nal_parser;
@@ -300,16 +383,16 @@ class decoder_context : public error_queue {
  private:
   // --- internal data ---
 
-  video_parameter_set  vps[ DE265_MAX_VPS_SETS ];
-  seq_parameter_set    sps[ DE265_MAX_SPS_SETS ];
-  pic_parameter_set    pps[ DE265_MAX_PPS_SETS ];
+  std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
+  std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
+  std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
 
-  video_parameter_set* current_vps;
-  seq_parameter_set*   current_sps;
-  pic_parameter_set*   current_pps;
+  std::shared_ptr<video_parameter_set>  current_vps;
+  std::shared_ptr<seq_parameter_set>    current_sps;
+  std::shared_ptr<pic_parameter_set>    current_pps;
 
  public:
-  struct thread_pool thread_pool;
+  thread_pool thread_pool_;
 
  private:
   int num_worker_threads;
@@ -415,20 +498,24 @@ class decoder_context : public error_queue {
   bool flush_reorder_buffer_at_this_frame;
 
  private:
-  void init_thread_context(class thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream);
-  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream);
+  void init_thread_context(thread_context* tctx);
+  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
+  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
+                                     int ctbX,int ctbY);
 
+  void mark_whole_slice_as_processed(image_unit* imgunit,
+                                     slice_unit* sliceunit,
+                                     int progress);
 
-  void process_picture_order_count(decoder_context* ctx, slice_segment_header* hdr);
-  int generate_unavailable_reference_picture(decoder_context* ctx, const seq_parameter_set* sps,
+  void process_picture_order_count(slice_segment_header* hdr);
+  int generate_unavailable_reference_picture(const seq_parameter_set* sps,
                                              int POC, bool longTerm);
-  void process_reference_picture_set(decoder_context* ctx, slice_segment_header* hdr);
-  bool construct_reference_picture_lists(decoder_context* ctx, slice_segment_header* hdr);
+  void process_reference_picture_set(slice_segment_header* hdr);
+  bool construct_reference_picture_lists(slice_segment_header* hdr);
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(de265_image* img);
+  void run_postprocessing_filters_sequential(struct de265_image* img);
   void run_postprocessing_filters_parallel(image_unit* img);
 };
 

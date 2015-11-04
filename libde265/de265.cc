@@ -47,13 +47,29 @@ LIBDE265_API uint32_t de265_get_version_number(void)
     return (LIBDE265_NUMERIC_VERSION);
 }
 
+LIBDE265_API int de265_get_version_number_major(void)
+{
+  return ((LIBDE265_NUMERIC_VERSION)>>24) & 0xFF;
+}
+
+LIBDE265_API int de265_get_version_number_minor(void)
+{
+  return ((LIBDE265_NUMERIC_VERSION)>>16) & 0xFF;
+}
+
+LIBDE265_API int de265_get_version_number_maintenance(void)
+{
+  return ((LIBDE265_NUMERIC_VERSION)>>8) & 0xFF;
+}
+
+
 LIBDE265_API const char* de265_get_error_text(de265_error err)
 {
   switch (err) {
   case DE265_OK: return "no error";
   case DE265_ERROR_NO_SUCH_FILE: return "no such file";
     //case DE265_ERROR_NO_STARTCODE: return "no startcode found";
-  case DE265_ERROR_EOF: return "end of file";
+    //case DE265_ERROR_EOF: return "end of file";
   case DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS: return "coefficient out of image bounds";
   case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
   case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
@@ -64,10 +80,10 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_LIBRARY_INITIALIZATION_FAILED: return "global library initialization failed";
   case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "cannot free library data (not initialized";
 
-  case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
-    return "internal error: maximum number of thread contexts exceeded";
-  case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
-    return "internal error: maximum number of slices exceeded";
+  //case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
+  //  return "internal error: maximum number of thread contexts exceeded";
+  //case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
+  //  return "internal error: maximum number of slices exceeded";
   case DE265_ERROR_NOT_IMPLEMENTED_YET:
     return "unimplemented decoder feature";
     //case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
@@ -77,6 +93,14 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "no more input data, decoder stalled";
   case DE265_ERROR_CANNOT_PROCESS_SEI:
     return "SEI data cannot be processed";
+  case DE265_ERROR_PARAMETER_PARSING:
+    return "command-line parameter error";
+  case DE265_ERROR_NO_INITIAL_SLICE_HEADER:
+    return "first slice missing, cannot decode dependent slice";
+  case DE265_ERROR_PREMATURE_END_OF_SLICE:
+    return "premature end of slice data";
+  case DE265_ERROR_UNSPECIFIED_DECODING_ERROR:
+    return "unspecified decoding error";
 
   case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
     return "Cannot run decoder multi-threaded because stream does not support WPP";
@@ -130,6 +154,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "cannot apply SAO because we ran out of memory";
   case DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI:
     return "SPS header missing, cannot decode SEI";
+  case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
+    return "collocated motion-vector is outside image area";
 
   default: return "unknown error";
   }
@@ -325,7 +351,6 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
   de265_push_end_of_NAL(de265ctx);
 
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->nal_parser.flush_data();
   ctx->nal_parser.mark_end_of_frame();
 }
 
@@ -591,6 +616,19 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
   }
 }
 
+LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
+{
+  switch (channel) {
+  case 0:
+    return img->get_sps().BitDepth_Y;
+  case 1:
+  case 2:
+    return img->get_sps().BitDepth_C;
+  default:
+    return 0;
+  }
+}
+
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
   return img->get_chroma_format();
@@ -602,7 +640,7 @@ LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int ch
 
   uint8_t* data = img->pixels_confwin[channel];
 
-  if (stride) *stride = img->get_image_stride(channel);
+  if (stride) *stride = img->get_image_stride(channel) * ((de265_get_bits_per_pixel(img, channel)+7) / 8);
 
   return data;
 }
@@ -616,6 +654,8 @@ LIBDE265_API void *de265_get_image_plane_user_data(const struct de265_image* img
 
 LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride, void *userdata)
 {
+  // The internal "stride" is the number of pixels per line.
+  stride = stride / ((de265_get_bits_per_pixel(img, cIdx)+7) / 8);
   img->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 

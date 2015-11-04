@@ -27,9 +27,10 @@
 #include <deque>
 #include <vector>
 
+class decoder_context;
 
-
-struct decoded_picture_buffer {
+class decoded_picture_buffer {
+public:
   decoded_picture_buffer();
   ~decoded_picture_buffer();
 
@@ -38,9 +39,9 @@ struct decoded_picture_buffer {
 
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, return -1. */
-  int new_image(const seq_parameter_set* sps, decoder_context* decctx,
+  int new_image(std::shared_ptr<const seq_parameter_set> sps, decoder_context* decctx,
                 de265_PTS pts, void* user_data, bool isOutputImage);
-  
+
   /* Check for a free slot in the DPB. There are some slots reserved for
      unavailable reference frames. If high_priority==true, these reserved slots
      are included in the check. */
@@ -52,18 +53,26 @@ struct decoded_picture_buffer {
   int size() const { return dpb.size(); }
 
   /* Raw access to the images. */
-  /* */ de265_image* get_image(int index)       { return dpb[index]; }
-  const de265_image* get_image(int index) const { return dpb[index]; }
+
+  /* */ de265_image* get_image(int index)       {
+    if (index>=dpb.size()) return NULL;
+    return dpb[index];
+  }
+
+  const de265_image* get_image(int index) const {
+    if (index>=dpb.size()) return NULL;
+    return dpb[index];
+  }
 
   /* Search DPB for the slot index of a specific picture. */
   int DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_ID (int id) const;
-  
+
 
   // --- reorder buffer ---
 
-  void insert_image_into_reorder_buffer(de265_image* img) {
+  void insert_image_into_reorder_buffer(struct de265_image* img) {
     reorder_output_queue.push_back(img);
   }
 
@@ -71,17 +80,17 @@ struct decoded_picture_buffer {
 
   // move next picture in reorder buffer to output queue
   void output_next_picture_in_reorder_buffer();
-  
+
   // Move all pictures in reorder buffer to output buffer. Return true if there were any pictures.
   bool flush_reorder_buffer();
-  
+
 
   // --- output buffer ---
 
   int num_pictures_in_output_queue() const { return image_output_queue.size(); }
 
   /* Get the next picture in the output queue, but do not remove it from the queue. */
-  de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
+  struct de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
 
   /* Remove the next picture in the output queue. */
   void pop_next_picture_in_output_queue();
@@ -91,15 +100,15 @@ struct decoded_picture_buffer {
 
   void log_dpb_content() const;
   void log_dpb_queues() const;
-  
+
 private:
   int max_images_in_DPB;
   int norm_images_in_DPB;
 
-  std::vector<de265_image*> dpb; // decoded picture buffer
+  std::vector<struct de265_image*> dpb; // decoded picture buffer
 
-  std::vector<de265_image*> reorder_output_queue;
-  std::deque<de265_image*>  image_output_queue;
+  std::vector<struct de265_image*> reorder_output_queue;
+  std::deque<struct de265_image*>  image_output_queue;
 
 private:
   decoded_picture_buffer(const decoded_picture_buffer&); // no copy

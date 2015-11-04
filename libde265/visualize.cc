@@ -92,7 +92,7 @@ void draw_block_boundary(const de265_image* srcimg,
     {
       int yi = y + i;
 
-      if (yi < srcimg->sps.pic_height_in_luma_samples) {
+      if (yi < srcimg->get_sps().pic_height_in_luma_samples) {
         set_pixel(img,x,yi,stride,color,pixelSize);
       }
     }
@@ -101,7 +101,7 @@ void draw_block_boundary(const de265_image* srcimg,
     {
       int xi = x + i;
 
-      if (xi < srcimg->sps.pic_width_in_luma_samples) {
+      if (xi < srcimg->get_sps().pic_width_in_luma_samples) {
         set_pixel(img,xi,y,stride,color,pixelSize);
       }
     }
@@ -152,7 +152,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
         {
           int dy = (slope*i+Sign(slope*i)*16)/32;
           int y = y0+w/2-dy;
-          if (y>=0 && y<srcimg->sps.pic_height_in_luma_samples) {
+          if (y>=0 && y<srcimg->get_sps().pic_height_in_luma_samples) {
             set_pixel(img, x0+i+w/2, y, stride, color, pixelSize);
           }
         }
@@ -162,7 +162,7 @@ void draw_intra_pred_mode(const de265_image* srcimg,
         {
           int dx = (slope*i+Sign(slope*i)*16)/32;
           int x = x0+w/2-dx;
-          if (x>=0 && x<srcimg->sps.pic_width_in_luma_samples) {
+          if (x>=0 && x<srcimg->get_sps().pic_width_in_luma_samples) {
             set_pixel(img, x, y0+i+w/2, stride, color, pixelSize);
           }
         }
@@ -292,20 +292,20 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
-    const PredVectorInfo* mvi = srcimg->get_mv_info(x0,y0);
+    const PBMotion& mvi = srcimg->get_mv_info(x0,y0);
     int x = x0+w/2;
     int y = y0+h/2;
-    if (mvi->predFlag[0]) {
+    if (mvi.predFlag[0]) {
       draw_line(img,stride,0xFF0000,pixelSize,
                 srcimg->get_width(),
                 srcimg->get_height(),
-                x,y,x+mvi->mv[0].x,y+mvi->mv[0].y);
+                x,y,x+mvi.mv[0].x,y+mvi.mv[0].y);
     }
-    if (mvi->predFlag[1]) {
+    if (mvi.predFlag[1]) {
       draw_line(img,stride,0x00FF00,pixelSize,
                 srcimg->get_width(),
                 srcimg->get_height(),
-                x,y,x+mvi->mv[1].x,y+mvi->mv[1].y);
+                x,y,x+mvi.mv[1].x,y+mvi.mv[1].y);
     }
   }
 }
@@ -314,11 +314,11 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
 void draw_tree_grid(const de265_image* srcimg, uint8_t* img, int stride,
                     uint32_t color, int pixelSize, enum DrawMode what)
 {
-  const seq_parameter_set* sps = &srcimg->sps;
-  int minCbSize = sps->MinCbSizeY;
+  const seq_parameter_set& sps = srcimg->get_sps();
+  int minCbSize = sps.MinCbSizeY;
 
-  for (int y0=0;y0<sps->PicHeightInMinCbsY;y0++)
-    for (int x0=0;x0<sps->PicWidthInMinCbsY;x0++)
+  for (int y0=0;y0<sps.PicHeightInMinCbsY;y0++)
+    for (int x0=0;x0<sps.PicWidthInMinCbsY;x0++)
       {
         int log2CbSize = srcimg->get_log2CbSize_cbUnits(x0,y0);
         if (log2CbSize==0) {
@@ -456,16 +456,18 @@ LIBDE265_API void draw_Motion(const de265_image* img, uint8_t* dst, int stride, 
 
 LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize)
 {
+  const seq_parameter_set& sps = img->get_sps();
+
   // --- mark first CTB in slice (red - independent / green - dependent) ---
 
-  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
-    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++)
+  for (int ctby=0;ctby<sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<sps.PicWidthInCtbsY;ctbx++)
       {
-        const int blkw = img->sps.Log2CtbSizeY;
+        const int blkw = sps.Log2CtbSizeY;
 
-        int ctbAddrRS = ctby*img->sps.PicWidthInCtbsY + ctbx;
+        int ctbAddrRS = ctby*sps.PicWidthInCtbsY + ctbx;
         int prevCtbRS = -1;
-        if (ctbx>0 || ctby>0) { prevCtbRS = img->pps.CtbAddrTStoRS[ img->pps.CtbAddrRStoTS[ctbAddrRS] -1 ]; }
+        if (ctbx>0 || ctby>0) { prevCtbRS = img->get_pps().CtbAddrTStoRS[ img->get_pps().CtbAddrRStoTS[ctbAddrRS] -1 ]; }
 
         if (prevCtbRS<0 ||
             img->get_SliceHeaderIndex_atIndex(ctbAddrRS) !=
@@ -483,8 +485,8 @@ LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, 
               int x1 = x + (ctbx<<blkw);
               int y1 = y + (ctby<<blkw);
 
-              if (x1<img->sps.pic_width_in_luma_samples &&
-                  y1<img->sps.pic_height_in_luma_samples)
+              if (x1<sps.pic_width_in_luma_samples &&
+                  y1<sps.pic_height_in_luma_samples)
                 {
                   set_pixel(dst,x1,y1,stride,fillcolor,pixelSize);
                 }
@@ -498,16 +500,16 @@ LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, 
 
   const uint32_t color = 0xff0000;
 
-  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
-    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++) {
+  for (int ctby=0;ctby<sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<sps.PicWidthInCtbsY;ctbx++) {
       if (ctbx>0 && (img->get_SliceHeaderIndexCtb(ctbx  ,ctby) !=
                      img->get_SliceHeaderIndexCtb(ctbx-1,ctby))) {
-        int x  = ctbx << img->sps.Log2CtbSizeY;
-        int y0 = ctby << img->sps.Log2CtbSizeY;
+        int x  = ctbx << sps.Log2CtbSizeY;
+        int y0 = ctby << sps.Log2CtbSizeY;
 
         for (int y=y0;
-             (y<y0+(1<<img->sps.Log2CtbSizeY) &&
-              y<img->sps.pic_height_in_luma_samples) ;
+             (y<y0+(1<<sps.Log2CtbSizeY) &&
+              y<sps.pic_height_in_luma_samples) ;
              y++) {
           set_pixel(dst,x,y,stride,color,pixelSize);
         }
@@ -515,16 +517,16 @@ LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, 
     }
 
 
-  for (int ctby=0;ctby<img->sps.PicHeightInCtbsY;ctby++)
-    for (int ctbx=0;ctbx<img->sps.PicWidthInCtbsY;ctbx++) {
+  for (int ctby=0;ctby<sps.PicHeightInCtbsY;ctby++)
+    for (int ctbx=0;ctbx<sps.PicWidthInCtbsY;ctbx++) {
       if (ctby>0 && (img->get_SliceHeaderIndexCtb(ctbx,ctby  ) !=
                      img->get_SliceHeaderIndexCtb(ctbx,ctby-1))) {
-        int x0 = ctbx << img->sps.Log2CtbSizeY;
-        int y  = ctby << img->sps.Log2CtbSizeY;
+        int x0 = ctbx << sps.Log2CtbSizeY;
+        int y  = ctby << sps.Log2CtbSizeY;
 
         for (int x=x0 ;
-             (x<x0+(1<<img->sps.Log2CtbSizeY) &&
-              x<img->sps.pic_width_in_luma_samples) ;
+             (x<x0+(1<<sps.Log2CtbSizeY) &&
+              x<sps.pic_width_in_luma_samples) ;
              x++) {
           set_pixel(dst,x,y,stride,color,pixelSize);
         }
@@ -538,20 +540,23 @@ LIBDE265_API void draw_Tiles(const de265_image* img, uint8_t* dst, int stride, i
 {
   const uint32_t color = 0xffff00;
 
-  for (int tx=1;tx<img->pps.num_tile_columns;tx++) {
-    int x = img->pps.colBd[tx] << img->sps.Log2CtbSizeY;
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
 
-    for (int y=0;y<img->sps.pic_height_in_luma_samples;y++) {
+
+  for (int tx=1;tx<pps.num_tile_columns;tx++) {
+    int x = pps.colBd[tx] << sps.Log2CtbSizeY;
+
+    for (int y=0;y<sps.pic_height_in_luma_samples;y++) {
       set_pixel(dst,x,y,stride,color,pixelSize);
     }
   }
 
-  for (int ty=1;ty<img->pps.num_tile_rows;ty++) {
-    int y = img->pps.rowBd[ty] << img->sps.Log2CtbSizeY;
+  for (int ty=1;ty<pps.num_tile_rows;ty++) {
+    int y = pps.rowBd[ty] << sps.Log2CtbSizeY;
 
-    for (int x=0;x<img->sps.pic_width_in_luma_samples;x++) {
+    for (int x=0;x<sps.pic_width_in_luma_samples;x++) {
       set_pixel(dst,x,y,stride,color,pixelSize);
     }
   }
 }
-

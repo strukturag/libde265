@@ -19,15 +19,25 @@
  */
 
 #include "nal.h"
+#include "cabac.h"
 #include <assert.h>
 
 
-void nal_read_header(bitreader* reader, nal_header* hdr)
+void nal_header::read(bitreader* reader)
 {
   skip_bits(reader,1);
-  hdr->nal_unit_type = get_bits(reader,6);
-  hdr->nuh_layer_id  = get_bits(reader,6);
-  hdr->nuh_temporal_id = get_bits(reader,3) -1;
+  nal_unit_type = get_bits(reader,6);
+  nuh_layer_id  = get_bits(reader,6);
+  nuh_temporal_id = get_bits(reader,3) -1;
+}
+
+
+void nal_header::write(CABAC_encoder& out) const
+{
+  out.skip_bits(1);
+  out.write_bits(nal_unit_type,6);
+  out.write_bits(nuh_layer_id ,6);
+  out.write_bits(nuh_temporal_id+1,3);
 }
 
 
@@ -80,6 +90,23 @@ bool isReferenceNALU(uint8_t unit_type)
             (unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23)) );
 }
 
+bool isSublayerNonReference(uint8_t unit_type)
+{
+  switch (unit_type) {
+  case NAL_UNIT_TRAIL_N:
+  case NAL_UNIT_TSA_N:
+  case NAL_UNIT_STSA_N:
+  case NAL_UNIT_RADL_N:
+  case NAL_UNIT_RASL_N:
+  case NAL_UNIT_RESERVED_VCL_N10:
+  case NAL_UNIT_RESERVED_VCL_N12:
+  case NAL_UNIT_RESERVED_VCL_N14:
+    return true;
+
+  default:
+    return false;
+  }
+}
 
 static const char* NAL_unit_name[] = {
   "TRAIL_N", // 0

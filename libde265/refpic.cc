@@ -26,22 +26,42 @@
 #include <stdlib.h>
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
-#else
+#elif defined(HAVE_ALLOCA_H)
 # include <alloca.h>
 #endif
 
 
-static void compute_NumPoc(ref_pic_set* rpset)
+void ref_pic_set::reset()
 {
-  rpset->NumPocTotalCurr_shortterm_only = 0;
+  NumNegativePics = 0;
+  NumPositivePics = 0;
+  NumDeltaPocs = 0;
+  NumPocTotalCurr_shortterm_only = 0;
 
-  for (int i=0; i<rpset->NumNegativePics; i++)
-    if (rpset->UsedByCurrPicS0[i])
-      rpset->NumPocTotalCurr_shortterm_only++;
+  for (int i=0;i<MAX_NUM_REF_PICS;i++) {
+    DeltaPocS0[i] = 0;
+    DeltaPocS1[i] = 0;
 
-  for (int i=0; i<rpset->NumPositivePics; i++)
-    if (rpset->UsedByCurrPicS1[i])
-      rpset->NumPocTotalCurr_shortterm_only++;
+    UsedByCurrPicS0[i] = 0;
+    UsedByCurrPicS1[i] = 0;
+  }
+}
+
+
+void ref_pic_set::compute_derived_values()
+{
+  NumPocTotalCurr_shortterm_only = 0;
+
+  for (int i=0; i<NumNegativePics; i++)
+    if (UsedByCurrPicS0[i])
+      NumPocTotalCurr_shortterm_only++;
+
+  for (int i=0; i<NumPositivePics; i++)
+    if (UsedByCurrPicS1[i])
+      NumPocTotalCurr_shortterm_only++;
+
+  NumDeltaPocs = NumNegativePics + NumPositivePics;
+
 
   /*
     NOTE: this is done when reading the slice header.
@@ -62,7 +82,7 @@ static void compute_NumPoc(ref_pic_set* rpset)
    When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
-bool read_short_term_ref_pic_set(decoder_context* ctx,
+bool read_short_term_ref_pic_set(error_queue* errqueue,
                                  const seq_parameter_set* sps,
                                  bitreader* br,
                                  ref_pic_set* out_set, // where to store the read set
@@ -228,19 +248,12 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
 
     out_set->NumPositivePics = i;
 
-    out_set->NumDeltaPocs = out_set->NumNegativePics + out_set->NumPositivePics;
-
   } else {
 
     // --- first, read the number of past and future frames in this set ---
 
     int num_negative_pics = get_uvlc(br);
     int num_positive_pics = get_uvlc(br);
-
-    if (num_negative_pics == UVLC_ERROR ||
-        num_positive_pics == UVLC_ERROR) {
-      return false;
-    }
 
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
@@ -251,19 +264,18 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
       out_set->NumDeltaPocs = 0;
       out_set->NumPocTotalCurr_shortterm_only = 0;
 
-      ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
 
     if (num_negative_pics > MAX_NUM_REF_PICS ||
         num_positive_pics > MAX_NUM_REF_PICS) {
-      ctx->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
 
     out_set->NumNegativePics = num_negative_pics;
     out_set->NumPositivePics = num_positive_pics;
-    out_set->NumDeltaPocs = num_positive_pics + num_negative_pics;
 
     // --- now, read the deltas between the reference frames to fill the lists ---
 
@@ -297,9 +309,73 @@ bool read_short_term_ref_pic_set(decoder_context* ctx,
   }
 
 
-  compute_NumPoc(out_set);
+  out_set->compute_derived_values();
 
   return true;
+}
+
+
+bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
+                                         const seq_parameter_set* sps,
+                                         CABAC_encoder& out,
+                                         const ref_pic_set* in_set, // which set to write
+                                         int idxRps,  // index of the set to be written
+                                         const std::vector<ref_pic_set>& sets, // previously read sets
+                                         bool sliceRefPicSet) // is this in the slice header?
+{
+  if (idxRps != 0) {
+    // inter_ref_pic_set_prediction_flag
+    out.write_bit(0);
+  }
+
+
+  // --- first, write the number of past and future frames in this set ---
+
+  out.write_uvlc(in_set->NumNegativePics);
+  out.write_uvlc(in_set->NumPositivePics);
+
+  // --- now, write the deltas between the reference frames to fill the lists ---
+
+  // past frames
+
+  int lastPocS=0;
+  for (int i=0;i<in_set->NumNegativePics;i++) {
+    int  delta_poc_s0 = lastPocS - in_set->DeltaPocS0[i];
+    char used_by_curr_pic_s0_flag = in_set->UsedByCurrPicS0[i];
+
+    assert(delta_poc_s0 >= 1);
+    out.write_uvlc(delta_poc_s0-1);
+    out.write_bit(used_by_curr_pic_s0_flag);
+    lastPocS = in_set->DeltaPocS0[i];
+  }
+
+  // future frames
+
+  lastPocS=0;
+  for (int i=0;i<in_set->NumPositivePics;i++) {
+    int  delta_poc_s1 = in_set->DeltaPocS1[i] - lastPocS;
+    char used_by_curr_pic_s1_flag = in_set->UsedByCurrPicS1[i];
+
+    assert(delta_poc_s1 >= 1);
+    out.write_uvlc(delta_poc_s1-1);
+    out.write_bit(used_by_curr_pic_s1_flag);
+    lastPocS = in_set->DeltaPocS1[i];
+  }
+
+  return true;
+}
+
+
+bool write_short_term_ref_pic_set(error_queue* errqueue,
+                                  const seq_parameter_set* sps,
+                                  CABAC_encoder& out,
+                                  const ref_pic_set* in_set, // which set to write
+                                  int idxRps,  // index of the set to be read
+                                  const std::vector<ref_pic_set>& sets, // previously read sets
+                                  bool sliceRefPicSet) // is this in the slice header?
+{
+  return write_short_term_ref_pic_set_nopred(errqueue, sps, out, in_set, idxRps, sets,
+                                             sliceRefPicSet);
 }
 
 

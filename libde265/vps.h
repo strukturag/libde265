@@ -31,58 +31,68 @@
 
 #include "libde265/bitstream.h"
 #include "libde265/de265.h"
+#include "libde265/cabac.h"
+
+#include <vector>
+
+class error_queue;
 
 #define MAX_TEMPORAL_SUBLAYERS 8
 
 
-struct profile_data {
+enum profile_idc {
+  Profile_Main   = 1,
+  Profile_Main10 = 2,
+  Profile_MainStillPicture = 3,
+  Profile_FormatRangeExtensions = 4
+};
+
+
+class profile_data {
+public:
+  void read(bitreader* reader);
+  void write(CABAC_encoder& writer) const;
+  void dump(bool general, FILE* fh) const;
+
+  void set_defaults(enum profile_idc, int level_major, int level_minor);
+
   // --- profile ---
 
-  char sub_layer_profile_present_flag;
+  char profile_present_flag;  // always true for general profile
 
-  char sub_layer_profile_space;
-  char sub_layer_tier_flag;
-  char sub_layer_profile_idc;
+  char profile_space;  // currently always 0
+  char tier_flag;      // main tier or low tier (see Table A-66/A-67)
+  enum profile_idc profile_idc; // profile
 
-  char sub_layer_profile_compatibility_flag[32];
+  char profile_compatibility_flag[32]; // to which profile we are compatible
 
-  char sub_layer_progressive_source_flag;
-  char sub_layer_interlaced_source_flag;
-  char sub_layer_non_packed_constraint_flag;
-  char sub_layer_frame_only_constraint_flag;
+  char progressive_source_flag;
+  char interlaced_source_flag;
+  char non_packed_constraint_flag;
+  char frame_only_constraint_flag;
 
 
   // --- level ---
 
-  char sub_layer_level_present_flag;
-  int  sub_layer_level_idc;
+  char level_present_flag; // always true for general level
+  int  level_idc;          // level * 30
 };
 
 
-struct profile_tier_level {
-  int general_profile_space;
-  int general_tier_flag;
-  int general_profile_idc;
+class profile_tier_level
+{
+public:
+  void read(bitreader* reader, int max_sub_layers);
+  void write(CABAC_encoder& writer, int max_sub_layers) const;
+  void dump(int max_sub_layers, FILE* fh) const;
 
-  char general_profile_compatibility_flag[32];
+  profile_data general;
 
-  char general_progressive_source_flag;
-  char general_interlaced_source_flag;
-  char general_non_packed_constraint_flag;
-  char general_frame_only_constraint_flag;
+  //bool sub_layer_profile_present[MAX_TEMPORAL_SUBLAYERS];
+  //bool sub_layer_level_present[MAX_TEMPORAL_SUBLAYERS];
 
-  int general_level_idc;
-
-  struct profile_data profile[MAX_TEMPORAL_SUBLAYERS];
+  profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
 };
-
-
-void read_profile_tier_level(bitreader* reader,
-                             struct profile_tier_level* hdr,
-                             int max_sub_layers);
-
-void dump_profile_tier_level(const struct profile_tier_level* hdr,
-                             int max_sub_layers, FILE* fh);
 
 
 /*
@@ -110,46 +120,54 @@ void dump_bit_rate_pic_rate_info(struct bit_rate_pic_rate_info* hdr,
 
 
 typedef struct {
-  int vps_max_dec_pic_buffering;
-  int vps_max_num_reorder_pics;
-  int vps_max_latency_increase;
+  int vps_max_dec_pic_buffering; // [1 ; ]
+  int vps_max_num_reorder_pics;  // [0 ; ]
+  int vps_max_latency_increase;  // 0 -> no limit, otherwise value is (x-1)
 } layer_data;
 
-typedef struct {
-  int video_parameter_set_id;
-  int vps_max_layers;
-  int vps_max_sub_layers;
-  int vps_temporal_id_nesting_flag;
-  struct profile_tier_level profile_tier_level;
-  //struct bit_rate_pic_rate_info bit_rate_pic_rate_info;
-  int vps_sub_layer_ordering_info_present_flag;
 
+class video_parameter_set
+{
+public:
+  de265_error read(error_queue* errqueue, bitreader* reader);
+  de265_error write(error_queue* errqueue, CABAC_encoder& out) const;
+  void dump(int fd) const;
+
+  void set_defaults(enum profile_idc profile, int level_major, int level_minor);
+
+  int video_parameter_set_id;
+  int vps_max_layers;            // [1;?]  currently always 1
+  int vps_max_sub_layers;        // [1;7]  number of temporal sub-layers
+  int vps_temporal_id_nesting_flag; // indicate temporal up-switching always possible
+  profile_tier_level profile_tier_level_;
+
+  int vps_sub_layer_ordering_info_present_flag;
   layer_data layer[MAX_TEMPORAL_SUBLAYERS];
 
-  uint8_t vps_max_layer_id;
-  int     vps_num_layer_sets;
+  uint8_t vps_max_layer_id;   // max value for nuh_layer_id in NALs
+  int     vps_num_layer_sets; // [1;1024], currently always 1
 
-  char layer_id_included_flag[1024][64];
+  std::vector<std::vector<bool> > layer_id_included_flag; // max size = [1024][64]
+
+
+  // --- timing info ---
 
   char     vps_timing_info_present_flag;
   uint32_t vps_num_units_in_tick;
   uint32_t vps_time_scale;
   char     vps_poc_proportional_to_timing_flag;
+  uint32_t vps_num_ticks_poc_diff_one;
 
-  int vps_num_ticks_poc_diff_one;
-  int vps_num_hrd_parameters;
+  int vps_num_hrd_parameters;     // currently [0;1]
 
-  uint16_t hrd_layer_set_idx[1024];
-  char     cprms_present_flag[1024];
+  std::vector<uint16_t> hrd_layer_set_idx;  // max size = 1024
+  std::vector<char>     cprms_present_flag; // max size = 1024
 
-  // hrd_parameters(cprms_present_flag[i], vps_max_sub_layers-1)
+
+  // --- vps extension ---
 
   char vps_extension_flag;
+};
 
-} video_parameter_set;
-
-
-de265_error read_vps(struct decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
-void dump_vps(video_parameter_set*, int fd);
 
 #endif

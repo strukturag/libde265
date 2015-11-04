@@ -69,15 +69,14 @@ typedef struct {
 } sei_decoded_picture_hash;
 
 
-struct sei_message {
+typedef struct {
   enum sei_payload_type payload_type;
   int payload_size;
 
   union {
     sei_decoded_picture_hash decoded_picture_hash;
   } data;
-};
-
+} sei_message;
 
 class seq_parameter_set;
 
@@ -85,6 +84,6 @@ const char* sei_type_name(enum sei_payload_type type);
 
 de265_error read_sei(bitreader* reader, sei_message*, bool suffix, const seq_parameter_set* sps);
 void dump_sei(const sei_message*, const seq_parameter_set* sps);
-de265_error process_sei(const sei_message*, class de265_image* img);
+de265_error process_sei(const sei_message*, struct de265_image* img);
 
 #endif

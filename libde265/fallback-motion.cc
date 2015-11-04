@@ -23,7 +23,7 @@
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
-#else
+#elif defined(HAVE_ALLOCA_H)
 # include <alloca.h>
 #endif
 
@@ -31,7 +31,7 @@
 
 
 void put_unweighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
-                                    int16_t *src, ptrdiff_t srcstride,
+                                    const int16_t *src, ptrdiff_t srcstride,
                                     int width, int height)
 {
   int offset8bit = 32;
@@ -40,7 +40,7 @@ void put_unweighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
   assert((width&1)==0);
 
   for (int y=0;y<height;y++) {
-    int16_t* in  = &src[y*srcstride];
+    const int16_t* in  = &src[y*srcstride];
     uint8_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x+=2) {
@@ -53,7 +53,7 @@ void put_unweighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 
 
 void put_weighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
-                                  int16_t *src, ptrdiff_t srcstride,
+                                  const int16_t *src, ptrdiff_t srcstride,
                                   int width, int height,
                                   int w,int o,int log2WD)
 {
@@ -62,7 +62,7 @@ void put_weighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
   const int rnd = (1<<(log2WD-1));
 
   for (int y=0;y<height;y++) {
-    int16_t* in  = &src[y*srcstride];
+    const int16_t* in  = &src[y*srcstride];
     uint8_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x++) {
@@ -73,7 +73,7 @@ void put_weighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 }
 
 void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
-                                    int16_t *src1, int16_t *src2, ptrdiff_t srcstride,
+                                    const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                     int width, int height,
                                     int w1,int o1, int w2,int o2, int log2WD)
 {
@@ -82,8 +82,8 @@ void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
   const int rnd = ((o1+o2+1) << log2WD);
 
   for (int y=0;y<height;y++) {
-    int16_t* in1 = &src1[y*srcstride];
-    int16_t* in2 = &src2[y*srcstride];
+    const int16_t* in1 = &src1[y*srcstride];
+    const int16_t* in2 = &src2[y*srcstride];
     uint8_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x++) {
@@ -95,7 +95,7 @@ void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 
 
 void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
-                                      int16_t *src1, int16_t *src2,
+                                      const int16_t *src1, const int16_t *src2,
                                       ptrdiff_t srcstride, int width,
                                       int height)
 {
@@ -144,8 +144,8 @@ void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 #endif
     {
       for (int y=0;y<height;y++) {
-        int16_t* in1 = &src1[y*srcstride];
-        int16_t* in2 = &src2[y*srcstride];
+        const int16_t* in1 = &src1[y*srcstride];
+        const int16_t* in2 = &src2[y*srcstride];
         uint8_t* out = &dst[y*dststride];
 
         for (int x=0;x<width;x+=2) {
@@ -159,8 +159,103 @@ void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 
 
 
+
+
+void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                     const int16_t *src, ptrdiff_t srcstride,
+                                     int width, int height, int bit_depth)
+{
+  int shift1 = 14-bit_depth;
+  int offset1 = 0;
+  if (shift1>0) { offset1 = 1<<(shift1-1); }
+
+  assert((width&1)==0);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in  = &src[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x+=2) {
+      out[0] = Clip_BitDepth((in[0] + offset1)>>shift1, bit_depth);
+      out[1] = Clip_BitDepth((in[1] + offset1)>>shift1, bit_depth);
+      out+=2; in+=2;
+    }
+  }
+}
+
+#include <stdlib.h>
+
+void put_weighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                   const int16_t *src, ptrdiff_t srcstride,
+                                   int width, int height,
+                                   int w,int o,int log2WD, int bit_depth)
+{
+  assert(log2WD>=1); // TODO
+
+  const int rnd = (1<<(log2WD-1));
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in  = &src[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip_BitDepth(((in[0]*w + rnd)>>log2WD) + o, bit_depth);
+      out++; in++;
+    }
+  }
+}
+
+void put_weighted_bipred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                     const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                                     int width, int height,
+                                     int w1,int o1, int w2,int o2, int log2WD, int bit_depth)
+{
+  assert(log2WD>=1); // TODO
+
+  const int rnd = ((o1+o2+1) << log2WD);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in1 = &src1[y*srcstride];
+    const int16_t* in2 = &src2[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x++) {
+      out[0] = Clip_BitDepth((in1[0]*w1 + in2[0]*w2 + rnd)>>(log2WD+1), bit_depth);
+      out++; in1++; in2++;
+    }
+  }
+}
+
+
+void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride, int width,
+                                       int height, int bit_depth)
+{
+  int shift2 = 15-bit_depth;
+  int offset2 = 1<<(shift2-1);
+
+  assert((width&1)==0);
+
+  for (int y=0;y<height;y++) {
+    const int16_t* in1 = &src1[y*srcstride];
+    const int16_t* in2 = &src2[y*srcstride];
+    uint16_t* out = &dst[y*dststride];
+
+    for (int x=0;x<width;x+=2) {
+      out[0] = Clip_BitDepth((in1[0] + in2[0] + offset2)>>shift2, bit_depth);
+      out[1] = Clip_BitDepth((in1[1] + in2[1] + offset2)>>shift2, bit_depth);
+      out+=2; in1+=2; in2+=2;
+    }
+  }
+}
+
+
+
+
+
 void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
-                         uint8_t *src, ptrdiff_t src_stride,
+                         const uint8_t *src, ptrdiff_t src_stride,
                          int width, int height,
                          int mx, int my, int16_t* mcbuffer)
 {
@@ -168,7 +263,7 @@ void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
 
   for (int y=0;y<height;y++) {
     int16_t* o = &out[y*out_stride];
-    uint8_t* i = &src[y*src_stride];
+    const uint8_t* i = &src[y*src_stride];
 
     for (int x=0;x<width;x++) {
       *o = *i << shift3;
@@ -179,12 +274,33 @@ void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
 }
 
 
-void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
-                            uint8_t *src, ptrdiff_t src_stride,
-                            int nPbWC, int nPbHC,
-                            int xFracC, int yFracC, int16_t* mcbuffer)
+void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
+                          const uint16_t *src, ptrdiff_t src_stride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth)
 {
-  const int shift1 = 0;
+  int shift3 = 14 - bit_depth;
+
+  for (int y=0;y<height;y++) {
+    int16_t* o = &out[y*out_stride];
+    const uint16_t* i = &src[y*src_stride];
+
+    for (int x=0;x<width;x++) {
+      *o = *i << shift3;
+      o++;
+      i++;
+    }
+  }
+}
+
+
+template <class pixel_t>
+void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
+                          const pixel_t *src, ptrdiff_t src_stride,
+                          int nPbWC, int nPbHC,
+                          int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth)
+{
+  const int shift1 = bit_depth-8;
   const int shift2 = 6;
   //const int shift3 = 6;
 
@@ -224,7 +340,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
   //printf("---H---(%d)\n",xFracC);
 
   for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
-    uint8_t* p = &src[y*src_stride - extra_left];
+    const pixel_t* p = &src[y*src_stride - extra_left];
 
     for (int x=0;x<nPbWC;x++) {
       int16_t v;
@@ -241,7 +357,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       }
 
       //printf("%d %d %d %d -> %d\n",p[0],p[1],p[2],p[3],v);
-        
+
       tmp2buf[y+extra_top + x*nPbH_extra] = v;
       p++;
 
@@ -272,7 +388,7 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
       default:
       case 7: v = (-2*p[0]+10*p[1]+58*p[2]-2*p[3])>>vshift; break;
       }
-        
+
       dst[x + y*dst_stride] = v;
       p++;
     }
@@ -291,10 +407,21 @@ void put_epel_hv_8_fallback(int16_t *dst, ptrdiff_t dst_stride,
 }
 
 
+template
+void put_epel_hv_fallback<uint8_t>(int16_t *dst, ptrdiff_t dst_stride,
+                                   const uint8_t *src, ptrdiff_t src_stride,
+                                   int nPbWC, int nPbHC,
+                                   int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
+template
+void put_epel_hv_fallback<uint16_t>(int16_t *dst, ptrdiff_t dst_stride,
+                                    const uint16_t *src, ptrdiff_t src_stride,
+                                    int nPbWC, int nPbHC,
+                                    int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
+
 
 
 void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
-                           uint8_t *src, ptrdiff_t srcstride,
+                           const uint8_t *src, ptrdiff_t srcstride,
                            int nPbW, int nPbH, int16_t* mcbuffer)
 {
   //const int shift1 = 0; // sps->BitDepth_Y-8;
@@ -303,14 +430,11 @@ void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
   // straight copy
 
   for (int y=0;y<nPbH;y++) {
-      uint8_t* p = src + srcstride*y;
+      const uint8_t* p = src + srcstride*y;
       int16_t* o = out + out_stride*y;
 
       for (int x=0;x<nPbW;x+=4) {
-#if 0
-        *o = *p << shift2;
-        o++; p++;
-#else
+
         // does not seem to be faster...
         int16_t o0,o1,o2,o3;
         o0 = p[0] << shift2;
@@ -324,8 +448,28 @@ void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
 
         o+=4;
         p+=4;
-#endif
       }
+  }
+}
+
+
+void put_qpel_0_0_fallback_16(int16_t *out, ptrdiff_t out_stride,
+                              const uint16_t *src, ptrdiff_t srcstride,
+                              int nPbW, int nPbH, int16_t* mcbuffer, int bit_depth)
+{
+  //const int shift1 = bit_depth-8;
+  //const int shift2 = 6;
+  const int shift3 = 14-bit_depth;
+
+  // straight copy
+
+  for (int y=0;y<nPbH;y++) {
+    const uint16_t* p = src + srcstride*y;
+    int16_t* o = out + out_stride*y;
+
+    for (int x=0;x<nPbW;x++) {
+      *o++ = *p++ << shift3;
+    }
   }
 }
 
@@ -334,10 +478,11 @@ void put_qpel_0_0_fallback(int16_t *out, ptrdiff_t out_stride,
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
+template <class pixel_t>
 void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
-                       uint8_t *src, ptrdiff_t srcstride,
+                       const pixel_t *src, ptrdiff_t srcstride,
                        int nPbW, int nPbH, int16_t* mcbuffer,
-                       int xFracL, int yFracL)
+                       int xFracL, int yFracL, int bit_depth)
 {
   int extra_left   = extra_before[xFracL];
   //int extra_right  = extra_after [xFracL];
@@ -347,7 +492,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   //int nPbW_extra = extra_left + nPbW + extra_right;
   int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
-  const int shift1 = 0; // sps->BitDepth_Y-8;
+  const int shift1 = bit_depth-8;
   const int shift2 = 6;
 
 
@@ -356,7 +501,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   switch (xFracL) {
   case 0:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      uint8_t* p = src + srcstride*y - extra_left;
+      const pixel_t* p = src + srcstride*y - extra_left;
       int16_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
@@ -368,7 +513,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 1:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      uint8_t* p = src + srcstride*y - extra_left;
+      const pixel_t* p = src + srcstride*y - extra_left;
       int16_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
@@ -380,7 +525,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 2:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      uint8_t* p = src + srcstride*y - extra_left;
+      const pixel_t* p = src + srcstride*y - extra_left;
       int16_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
@@ -392,7 +537,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 3:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-      uint8_t* p = src + srcstride*y - extra_left;
+      const pixel_t* p = src + srcstride*y - extra_left;
       int16_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
@@ -421,9 +566,9 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   switch (yFracL) {
   case 0:
     for (int x=0;x<nPbW;x++) {
-      int16_t* p = &mcbuffer[x*nPbH_extra];
+      const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = *p;
         o+=out_stride;
@@ -433,9 +578,9 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 1:
     for (int x=0;x<nPbW;x++) {
-      int16_t* p = &mcbuffer[x*nPbH_extra];
+      const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
         o+=out_stride;
@@ -445,9 +590,9 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 2:
     for (int x=0;x<nPbW;x++) {
-      int16_t* p = &mcbuffer[x*nPbH_extra];
+      const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
         o+=out_stride;
@@ -457,9 +602,9 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 3:
     for (int x=0;x<nPbW;x++) {
-      int16_t* p = &mcbuffer[x*nPbH_extra];
+      const int16_t* p = &mcbuffer[x*nPbH_extra];
       int16_t* o = &out[x];
-              
+
       for (int y=0;y<nPbH;y++) {
         *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
         o+=out_stride;
@@ -480,12 +625,24 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
 }
 
 
+
 #define QPEL(x,y) void put_qpel_ ## x ## _ ## y ## _fallback(int16_t *out, ptrdiff_t out_stride,    \
-                                             uint8_t *src, ptrdiff_t srcstride,     \
-                                             int nPbW, int nPbH, int16_t* mcbuffer) \
-{ put_qpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH,mcbuffer,x,y ); }
+                                                             const uint8_t *src, ptrdiff_t srcstride, \
+                                                             int nPbW, int nPbH, int16_t* mcbuffer) \
+  { put_qpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH,mcbuffer,x,y, 8 ); }
+
+
+#define QPEL16(x,y) void put_qpel_ ## x ## _ ## y ## _fallback_16(int16_t *out, ptrdiff_t out_stride,    \
+                                                                  const uint16_t *src, ptrdiff_t srcstride, \
+                                                                  int nPbW, int nPbH, int16_t* mcbuffer, int bit_depth) \
+{ put_qpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH,mcbuffer,x,y, bit_depth ); }
 
 /*     */ QPEL(0,1) QPEL(0,2) QPEL(0,3)
 QPEL(1,0) QPEL(1,1) QPEL(1,2) QPEL(1,3)
 QPEL(2,0) QPEL(2,1) QPEL(2,2) QPEL(2,3)
 QPEL(3,0) QPEL(3,1) QPEL(3,2) QPEL(3,3)
+
+/*       */ QPEL16(0,1) QPEL16(0,2) QPEL16(0,3)
+QPEL16(1,0) QPEL16(1,1) QPEL16(1,2) QPEL16(1,3)
+QPEL16(2,0) QPEL16(2,1) QPEL16(2,2) QPEL16(2,3)
+QPEL16(3,0) QPEL16(3,1) QPEL16(3,2) QPEL16(3,3)

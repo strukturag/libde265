@@ -24,7 +24,7 @@
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
-#else
+#elif defined(HAVE_ALLOCA_H)
 # include <alloca.h>
 #endif
 
@@ -34,6 +34,8 @@
 
 #define THREAD_RESULT       void*
 #define THREAD_PARAM        void*
+
+#include <stdio.h>
 
 int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
 void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
@@ -117,6 +119,16 @@ void de265_progress_lock::set_progress(int progress)
 
     de265_cond_broadcast(&cond, &mutex);
   }
+
+  de265_mutex_unlock(&mutex);
+}
+
+void de265_progress_lock::increase_progress(int progress)
+{
+  de265_mutex_lock(&mutex);
+
+  mProgress += progress;
+  de265_cond_broadcast(&cond, &mutex);
 
   de265_mutex_unlock(&mutex);
 }
