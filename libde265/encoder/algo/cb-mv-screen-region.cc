@@ -36,15 +36,18 @@
 Algo_CB_MV_ScreenRegion::Algo_CB_MV_ScreenRegion()
 {
   mMaxPixelDifference = 0;
+  mMaxMergePixelDifference = 5;
   mCurrentPicturePOC = -1;
+  mProcessedHashesPOC = -1;
 }
 
 
 static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
                                         const de265_image* imgB, int xB,int yB,
-                                        int maxPixelDifference)
+                                        int maxPixelDifference, int maxSADDifference)
 {
-  int nChannelsToCheck = 1;
+  int nChannelsToCheck = 3;
+  int sad=0;
 
   for (int c=0;c<nChannelsToCheck;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
@@ -63,27 +66,21 @@ static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, 
         int diff    = pA[x+strideA*y] - pB[x+strideB*y];
         int absdiff = abs_value(diff);
 
-        //printf("diff: %d/%d %d\n",x,y,diff);
-
         if (absdiff > maxPixelDifference) {
+          //printf("diff: %d\n",diff);
           return false;
         }
+
+        sad += absdiff;
       }
   }
 
+  if (sad>3*maxSADDifference) { return false; }
+
+  //printf("equal\n");
   return true;
 }
 
-
-static int feature_poc=-1;
-
-struct HashInfo
-{
-  uint32_t cnt;
-  uint16_t x,y;
-};
-
-static HashInfo hash[65536];
 
 const int hashBlkRadius = 7;
 const int hashBlkSize = (2*hashBlkRadius + 1);
@@ -129,7 +126,9 @@ static uint16_t block_hash_DJB2a(const uint8_t* p, int stride, int blkSize = has
 #define block_hash block_hash_DJB2a
 
 
-void build_feature_image(de265_image* feature_img, const de265_image* img, int blkSize)
+void Algo_CB_MV_ScreenRegion::build_feature_image(de265_image* feature_img,
+                                                  const de265_image* img,
+                                                  int blkSize)
 {
   int stride = img->get_image_stride(0);
 
@@ -179,7 +178,7 @@ void build_feature_image(de265_image* feature_img, const de265_image* img, int b
         }
       }
 
-  printf("features: %d / %d\n",cnt,w*h);
+  //printf("features: %d / %d\n",cnt,w*h);
 }
 
 
@@ -231,9 +230,12 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
 
       // check whether we can use skip mode with zero MV
 
+      //printf("test for skip: %d;%d\n",bx,by);
+
       bool equal = compare_blocks_for_equality(refPic,   x0,y0, blkSize,
                                                inputPic, x0,y0,
-                                               mMaxPixelDifference);
+                                               mMaxPixelDifference,
+                                               mMaxPixelDifference *blkSize*blkSize);
 
       if (equal) {
         blk.haveMV = true;
@@ -241,11 +243,11 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
         blk.mv.y = 0;
       }
 
-      //printf("%d %d -> %d\n",bx,by,equal);
-
       // find feature points and try to find matching hash in previous frame
 
       if (!equal) {
+        //printf("-------------------------------------------------------- match hashes\n");
+
         for (int dy=1;dy<blkSize-1;dy++)
           for (int dx=1;dx<blkSize-1;dx++) {
             int x = x0+dx;
@@ -295,7 +297,8 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
                       y0+dy+blkSize<h) {
                     if (compare_blocks_for_equality(inputPic, x0,   y0,    blkSize,
                                                     refPic,   x0+dx,y0+dy,
-                                                    mMaxPixelDifference))
+                                                    mMaxPixelDifference,
+                                                    mMaxPixelDifference*blkSize*blkSize))
                       {
                         blk.haveMV = true;
                         blk.mv.x = dx;
@@ -325,7 +328,8 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
 
 #if DEBUG_OUTPUT
   char buf[100];
-  sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
+  static int cnt=0;
+  sprintf(buf,"img%03d.yuv",cnt++);
   feature_img.write_image(buf);
 #endif
 }
@@ -350,6 +354,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
     const int refPicId = ectx->shdr->RefPicList[0][refIdx];
     const de265_image* refPic = ectx->get_input_image_history().get_image(refPicId);
 
+#if 0
     bool isNextImage = (inputPic->PicOrderCntVal != mCurrentPicturePOC);
     if (isNextImage) {
       mCurrentPicturePOC = inputPic->PicOrderCntVal;
@@ -363,7 +368,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
       printf("building feature image\n");
       build_feature_image(&feature_img, refPic, 0); //cbSize);
-      feature_poc = refPic->PicOrderCntVal;
+      mProcessedHashesPOC = refPic->PicOrderCntVal;
       printf("...done\n");
 
       char buf[100];
@@ -373,7 +378,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
       process_picture(ectx, cb);
     }
-
+#endif
 
     // --- get all merge candidates ---
 
@@ -423,9 +428,11 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
       // check error
 
+      //printf("check merge: %d %d\n",cb->x,cb->y);
       bool equal = compare_blocks_for_equality(ectx->img,            cb->x, cb->y, cbSize,
                                                ectx->imgdata->input, cb->x, cb->y,
-                                               mMaxPixelDifference);
+                                               255, //mMaxMergePixelDifference,
+                                               mMaxMergePixelDifference*cbSize*cbSize);
 
       // if it is similar enough, use this candidate
 
@@ -483,6 +490,31 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       tb->copy_reconstruction_from_image(ectx, ectx->img);
     }
     else {
+
+      if (mProcessedHashesPOC != refPic->PicOrderCntVal) {
+        //mCurrentPicturePOC = inputPic->PicOrderCntVal;
+
+        //assert(refPic->PicOrderCntVal != feature_poc);
+
+        de265_image feature_img;
+#if DEBUG_OUTPUT
+        feature_img.copy_image(refPic);
+#endif
+
+        printf("building feature image\n");
+        build_feature_image(&feature_img, refPic, 0); //cbSize);
+        mProcessedHashesPOC = refPic->PicOrderCntVal;
+        printf("...done\n");
+
+        char buf[100];
+        sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
+        //feature_img.write_image(buf);
+
+
+        process_picture(ectx, cb);
+      }
+
+
       int w = inputPic->get_width();
       int h = inputPic->get_height();
 

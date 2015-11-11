@@ -58,8 +58,22 @@ class Algo_CB_MV_ScreenRegion : public Algo_CB
   Algo_CB* mIntraAlgo;
 
   int mMaxPixelDifference;
+  int mMaxMergePixelDifference;
 
   int mCurrentPicturePOC;
+
+
+  struct HashInfo
+  {
+    uint32_t cnt;
+    uint16_t x,y;
+  };
+
+  HashInfo hash[65536];
+  int mProcessedHashesPOC;
+
+
+  void build_feature_image(de265_image* feature_img, const de265_image* img, int blkSize);
 
   void process_picture(const encoder_context* ectx,
                        const enc_cb* cb);
