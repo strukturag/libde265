@@ -252,6 +252,9 @@ struct de265_image {
 
   uint32_t get_ID() const { return ID; }
 
+  void write_image(const char* filename) const;
+
+
 
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
@@ -308,8 +311,8 @@ struct de265_image {
   enum de265_chroma get_chroma_format() const { return chroma_format; }
 
   int get_bit_depth(int cIdx) const {
-    if (cIdx==0) return sps->BitDepth_Y;
-    else         return sps->BitDepth_C;
+    if (cIdx==0) return BitDepth_Y;
+    else         return BitDepth_C;
   }
 
   int get_bytes_per_pixel(int cIdx) const {
