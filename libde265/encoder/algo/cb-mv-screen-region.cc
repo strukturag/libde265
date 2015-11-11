@@ -30,15 +30,15 @@
 #include <math.h>
 
 
-Algo_CB_Skip_ScreenFast::Algo_CB_Skip_ScreenFast()
+Algo_CB_MV_ScreenRegion::Algo_CB_MV_ScreenRegion()
 {
   mMaxPixelDifference = 32;
 }
 
 
-bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
-                                 const de265_image* imgB, int xB,int yB,
-                                 int maxPixelDifference)
+static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
+                                        const de265_image* imgB, int xB,int yB,
+                                        int maxPixelDifference)
 {
   for (int c=0;c<3;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
@@ -69,12 +69,72 @@ bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int siz
 }
 
 
-enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
+static int feature_poc=-1;
+
+
+void build_feature_image(de265_image* feature_img, const de265_image* img, int blkSize)
+{
+  int stride = img->get_image_stride(0);
+
+  int w = img->get_width();
+  int h = img->get_height();
+
+  int cnt=0;
+
+  std::vector<int16_t> rightPos(h, -2);
+  std::vector<int16_t> bottomPos(w, -2);
+
+  for (int y=1;y<h-1;y++)
+    for (int x=1;x<w-1;x++)
+      {
+        const uint8_t* p = img->get_image_plane_at_pos(0, x, y);
+
+        if (*p > *(p-1) &&
+            *p > *(p-stride) &&
+            *p > *(p-stride-1) &&
+            *p > *(p-stride+1) &&
+            *p > *(p+stride-1)) {
+
+          if (rightPos[y] != x-1 && bottomPos[x] != y-1) {
+            *feature_img->get_image_plane_at_pos(0, x, y) = 255;
+            *feature_img->get_image_plane_at_pos(1, x, y) = 0;
+            *feature_img->get_image_plane_at_pos(2, x, y) = 0;
+            cnt++;
+          }
+
+          rightPos[y] = x;
+          bottomPos[x] = y;
+        }
+      }
+
+  printf("features: %d / %d\n",cnt,w*h);
+}
+
+
+enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
                                          context_model_table& ctxModel,
                                          enc_cb* cb)
 {
   bool try_skip  = (ectx->shdr->slice_type != SLICE_TYPE_I);
   bool try_nonskip = true;
+
+
+  const int refIdx = 0; // get first reference frame
+  const de265_image* refPic = ectx->get_input_image_history().get_image(ectx->shdr->RefPicList[0][refIdx]);
+
+  if (refPic->PicOrderCntVal != feature_poc) {
+    de265_image feature_img;
+    feature_img.copy_image(refPic);
+
+    printf("building feature image\n");
+    build_feature_image(&feature_img, refPic, 0); //cbSize);
+    feature_poc = refPic->PicOrderCntVal;
+    printf("...done\n");
+
+    char buf[100];
+    sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
+    //feature_img.write_image(buf);
+  }
 
 
   // We try to find a good merge candidate for skipping.
@@ -98,6 +158,7 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
 
     int num_merge_cand = 5 - ectx->shdr->five_minus_max_num_merge_cand;
     int selected_candidate = -1;
+
 
 
     // --- try all merge candidates until we find one with low error ---
@@ -170,10 +231,10 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
       // for the moment ignore rate computation, because we will not use this
 
       /*
-      CABAC_encoder_estim cabac;
-      cabac.set_context_models(&ctxModel);
-      // cabac->write_CABAC_bit(CONTEXT_MODEL_CU_SKIP_FLAG, 1); TODO (cu_skip_flag)
-      */
+        CABAC_encoder_estim cabac;
+        cabac.set_context_models(&ctxModel);
+        // cabac->write_CABAC_bit(CONTEXT_MODEL_CU_SKIP_FLAG, 1); TODO (cu_skip_flag)
+        */
 
       cb->rate = 0; // ignore merge_candidate rate for now (TODO)
 
@@ -190,7 +251,9 @@ enc_cb* Algo_CB_Skip_ScreenFast::analyze(encoder_context* ectx,
 
 
   if (try_nonskip) {
-    cb = mNonSkipAlgo->analyze(ectx, ctxModel, cb);
+    cb->PredMode = MODE_INTRA;
+
+    cb = mIntraAlgo->analyze(ectx, ctxModel, cb);
   }
 
   return cb;

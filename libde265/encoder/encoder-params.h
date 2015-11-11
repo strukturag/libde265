@@ -74,15 +74,17 @@ class option_MEMode : public choice_option<enum MEMode>
 
 enum ALGO_CB_Skip {
   ALGO_CB_Skip_BruteForce,
-  ALGO_CB_Skip_ScreenFast
+  ALGO_CB_Skip_ScreenFast,
+  ALGO_CB_Skip_ScreenRegion  // TODO: actually, this handles not only skip
 };
 
 class option_ALGO_CB_Skip : public choice_option<enum ALGO_CB_Skip>
 {
  public:
   option_ALGO_CB_Skip() {
-    add_choice("brute-force" ,ALGO_CB_Skip_BruteForce, true);
-    add_choice("screen-fast" ,ALGO_CB_Skip_ScreenFast);
+    add_choice("brute-force"   ,ALGO_CB_Skip_BruteForce, true);
+    add_choice("screen-fast"   ,ALGO_CB_Skip_ScreenFast);
+    add_choice("screen-region" ,ALGO_CB_Skip_ScreenRegion);
   }
 };
 

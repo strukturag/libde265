@@ -86,23 +86,6 @@ Algo_CB_MV_ScreenHash::Algo_CB_MV_ScreenHas()
 }
 
 
-static void write_image(const char* name, const de265_image* img)
-{
-  FILE* fh = fopen(name,"wb");
-
-  int w = img->get_width();
-  int h = img->get_height();
-
-  for (int c=0;c<3;c++)
-    for (int y=0;y<h;y++) {
-      const uint8_t* p = img->get_image_plane_at_pos(c, 0,y);
-      fwrite(p,1,w,fh);
-    }
-
-  fclose(fh);
-}
-
-
 static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
                                         const de265_image* imgB, int xB,int yB,
                                         int maxPixelDifference)
@@ -178,7 +161,7 @@ enc_cb* Algo_CB_MV_ScreenHash::analyze(encoder_context* ectx,
 
       char buf[100];
       sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
-      //write_image(buf, refPic);
+      //refPic->write_image(buf);
     }
 
 

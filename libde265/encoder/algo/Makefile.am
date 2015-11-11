@@ -11,6 +11,7 @@ libde265_encoder_algo_la_SOURCES = \
   cb-skip.h cb-skip.cc \
   cb-skip-screen-fast.h cb-skip-screen-fast.cc \
   cb-mv-screen.h cb-mv-screen.cc \
+  cb-mv-screen-region.h cb-mv-screen-region.cc \
   cb-intra-inter.h cb-intra-inter.cc \
   cb-mergeindex.h cb-mergeindex.cc \
   tb-split.h tb-split.cc \

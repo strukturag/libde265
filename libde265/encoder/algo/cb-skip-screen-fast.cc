@@ -36,9 +36,9 @@ Algo_CB_Skip_ScreenFast::Algo_CB_Skip_ScreenFast()
 }
 
 
-bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
-                                 const de265_image* imgB, int xB,int yB,
-                                 int maxPixelDifference)
+static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
+                                        const de265_image* imgB, int xB,int yB,
+                                        int maxPixelDifference)
 {
   for (int c=0;c<3;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
