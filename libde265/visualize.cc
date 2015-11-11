@@ -258,21 +258,25 @@ void draw_line(uint8_t* img,int stride,uint32_t color,int pixelSize,
     set_pixel(img,x0,y0,stride,color,pixelSize);
   }
   else if (abs(x1-x0) < abs(y1-y0)) {
-    for (int y=y0;y<=y1;y += Sign(y1-y0))
+    for (int y=y0;;y += Sign(y1-y0))
       {
         int x = (y-y0)*(x1-x0)/(y1-y0) + x0;
 
         if (x>=0 && x<width && y>=0 && y<height)
          set_pixel(img,x,y,stride,color,pixelSize);
+
+        if (y==y1) break;
       }
   }
   else {
-    for (int x=x0;x<=x1;x += Sign(x1-x0))
+    for (int x=x0;;x += Sign(x1-x0))
       {
         int y = (x-x0)*(y1-y0)/(x1-x0) + y0;
 
         if (x>=0 && x<width && y>=0 && y<height)
           set_pixel(img,x,y,stride,color,pixelSize);
+
+        if (x==x1) break;
       }
   }
 }
@@ -292,20 +296,22 @@ void draw_PB_block(const de265_image* srcimg,uint8_t* img,int stride,
     tint_rect(img,stride, x0,y0,w,h, cols[predMode], pixelSize);
   }
   else if (what == PBMotionVectors) {
-    const PBMotion& mvi = srcimg->get_mv_info(x0,y0);
-    int x = x0+w/2;
-    int y = y0+h/2;
-    if (mvi.predFlag[0]) {
-      draw_line(img,stride,0xFF0000,pixelSize,
-                srcimg->get_width(),
-                srcimg->get_height(),
-                x,y,x+mvi.mv[0].x,y+mvi.mv[0].y);
-    }
-    if (mvi.predFlag[1]) {
-      draw_line(img,stride,0x00FF00,pixelSize,
-                srcimg->get_width(),
-                srcimg->get_height(),
-                x,y,x+mvi.mv[1].x,y+mvi.mv[1].y);
+    if (srcimg->get_pred_mode(x0,y0) != MODE_INTRA) {
+      const PBMotion& mvi = srcimg->get_mv_info(x0,y0);
+      int x = x0+w/2;
+      int y = y0+h/2;
+      if (mvi.predFlag[0]) {
+        draw_line(img,stride,0xFF0000,pixelSize,
+                  srcimg->get_width(),
+                  srcimg->get_height(),
+                  x,y,x+mvi.mv[0].x/4,y+mvi.mv[0].y/4);
+      }
+      if (mvi.predFlag[1]) {
+        draw_line(img,stride,0x00FF00,pixelSize,
+                  srcimg->get_width(),
+                  srcimg->get_height(),
+                  x,y,x+mvi.mv[1].x,y+mvi.mv[1].y);
+      }
     }
   }
 }
