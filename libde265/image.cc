@@ -551,8 +551,8 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
   assert(first % 2 == 0);
   assert(end   % 2 == 0);
 
-  int luma_bpp   = (sps->BitDepth_Y+7)/8;
-  int chroma_bpp = (sps->BitDepth_C+7)/8;
+  int luma_bpp   = (BitDepth_Y+7)/8;
+  int chroma_bpp = (BitDepth_C+7)/8;
 
   if (src->stride == stride) {
     memcpy(pixels[0]      + first*stride * luma_bpp,
@@ -744,4 +744,22 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv
       {
         pb_info[ xPu+pbx + (yPu+pby)*stride ] = mv;
       }
+}
+
+
+void de265_image::write_image(const char* name) const
+{
+  FILE* fh = fopen(name,"wb");
+
+  for (int c=0;c<3;c++) {
+    int w = get_width(c);
+    int h = get_height(c);
+
+    for (int y=0;y<h;y++) {
+      const uint8_t* p = get_image_plane_at_pos(c, 0,y);
+      fwrite(p,1,w,fh);
+    }
+  }
+
+  fclose(fh);
 }
