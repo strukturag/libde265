@@ -30,9 +30,13 @@
 #include <math.h>
 
 
+#define DEBUG_OUTPUT 0
+
+
 Algo_CB_MV_ScreenRegion::Algo_CB_MV_ScreenRegion()
 {
-  mMaxPixelDifference = 32;
+  mMaxPixelDifference = 0;
+  mCurrentPicturePOC = -1;
 }
 
 
@@ -40,7 +44,9 @@ static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, 
                                         const de265_image* imgB, int xB,int yB,
                                         int maxPixelDifference)
 {
-  for (int c=0;c<3;c++) {
+  int nChannelsToCheck = 1;
+
+  for (int c=0;c<nChannelsToCheck;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
 
     const uint8_t* pA = imgA->get_image_plane_at_pos(c, xA, yA);
@@ -49,8 +55,8 @@ static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, 
     int strideA = imgA->get_image_stride(c);
     int strideB = imgB->get_image_stride(c);
 
-    //printBlk(NULL,pA,size,strideA,"A ");
-    //printBlk(NULL,pB,size,strideB,"B ");
+    //printBlk("a",pA,size,strideA,"A ");
+    //printBlk("b",pB,size,strideB,"B ");
 
     for (int y=0;y<size;y++)
       for (int x=0;x<size;x++) {
@@ -71,6 +77,57 @@ static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, 
 
 static int feature_poc=-1;
 
+struct HashInfo
+{
+  uint32_t cnt;
+  uint16_t x,y;
+};
+
+static HashInfo hash[65536];
+
+const int hashBlkRadius = 7;
+const int hashBlkSize = (2*hashBlkRadius + 1);
+
+
+static inline uint16_t crc_process_byte_parallel(uint16_t crc, uint8_t byte)
+{
+  uint16_t s = byte ^ (crc >> 8);
+  uint16_t t = s ^ (s >> 4);
+
+  return  ((crc << 8) ^
+	   t ^
+	   (t <<  5) ^
+	   (t << 12)) & 0xFFFF;
+}
+
+
+static uint16_t block_hash_crc(const uint8_t* p, int stride, int blkSize = hashBlkSize)
+{
+  uint16_t crc = 0;
+  for (int yy=0;yy<blkSize;yy++)
+    for (int xx=0;xx<blkSize;xx++) {
+      crc = crc_process_byte_parallel(crc, *(p+xx+yy*stride));
+    }
+
+  return crc;
+}
+
+
+static uint16_t block_hash_DJB2a(const uint8_t* p, int stride, int blkSize = hashBlkSize)
+{
+  uint16_t hash = 0;
+
+  for (int yy=0;yy<blkSize;yy++)
+    for (int xx=0;xx<blkSize;xx++) {
+      hash = ((hash << 5) + hash) ^ *(p+xx+yy*stride); /* (hash * 33) ^ c */
+    }
+
+  return hash;
+}
+
+
+#define block_hash block_hash_DJB2a
+
 
 void build_feature_image(de265_image* feature_img, const de265_image* img, int blkSize)
 {
@@ -84,6 +141,8 @@ void build_feature_image(de265_image* feature_img, const de265_image* img, int b
   std::vector<int16_t> rightPos(h, -2);
   std::vector<int16_t> bottomPos(w, -2);
 
+  for (int i=0;i<65536;i++) { hash[i].cnt=0; }
+
   for (int y=1;y<h-1;y++)
     for (int x=1;x<w-1;x++)
       {
@@ -96,10 +155,23 @@ void build_feature_image(de265_image* feature_img, const de265_image* img, int b
             *p > *(p+stride-1)) {
 
           if (rightPos[y] != x-1 && bottomPos[x] != y-1) {
+#if DEBUG_OUTPUT
             *feature_img->get_image_plane_at_pos(0, x, y) = 255;
             *feature_img->get_image_plane_at_pos(1, x, y) = 0;
             *feature_img->get_image_plane_at_pos(2, x, y) = 0;
+#endif
             cnt++;
+
+              if (x>=hashBlkRadius &&
+                  y>=hashBlkRadius &&
+                  x< w-hashBlkRadius &&
+                  y< h-hashBlkRadius) {
+                int crc = block_hash(p-hashBlkRadius*(1+stride), stride);
+
+                hash[crc].cnt++;
+                hash[crc].x = x;
+                hash[crc].y = y;
+              }
           }
 
           rightPos[y] = x;
@@ -111,6 +183,154 @@ void build_feature_image(de265_image* feature_img, const de265_image* img, int b
 }
 
 
+struct BlkInfo
+{
+  bool haveMV;
+  MotionVector mv;
+};
+
+std::vector<BlkInfo> blkInfo;
+
+
+
+void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
+                                              const enc_cb* cb)
+{
+  const int blkSize = 1 << cb->log2Size;
+  const de265_image* inputPic = ectx->imgdata->input;
+
+  const int refIdx = 0; // get first reference frame
+  const int refPicId = ectx->shdr->RefPicList[0][refIdx];
+  const de265_image* refPic = ectx->get_input_image_history().get_image(refPicId);
+
+
+  int stride = inputPic->get_image_stride(0);
+
+  int w = inputPic->get_width();
+  int h = inputPic->get_height();
+
+  int bw = (w+blkSize-1)/blkSize;
+  int bh = (h+blkSize-1)/blkSize;
+
+  blkInfo.resize(bw*bh);
+
+
+#if DEBUG_OUTPUT
+  de265_image feature_img;
+  feature_img.copy_image(inputPic);
+#endif
+
+
+  for (int by=0;by<bh;by++)
+    for (int bx=0;bx<bw;bx++) {
+      int x0 = bx<<cb->log2Size;
+      int y0 = by<<cb->log2Size;
+
+      BlkInfo& blk = blkInfo[bx+by*bw];
+      blk.haveMV = false;
+
+      // check whether we can use skip mode with zero MV
+
+      bool equal = compare_blocks_for_equality(refPic,   x0,y0, blkSize,
+                                               inputPic, x0,y0,
+                                               mMaxPixelDifference);
+
+      if (equal) {
+        blk.haveMV = true;
+        blk.mv.x = 0;
+        blk.mv.y = 0;
+      }
+
+      //printf("%d %d -> %d\n",bx,by,equal);
+
+      // find feature points and try to find matching hash in previous frame
+
+      if (!equal) {
+        for (int dy=1;dy<blkSize-1;dy++)
+          for (int dx=1;dx<blkSize-1;dx++) {
+            int x = x0+dx;
+            int y = y0+dy;
+
+            const uint8_t* p = inputPic->get_image_plane_at_pos(0, x, y);
+
+            if (*p > *(p-1) &&
+                *p > *(p-stride) &&
+                *p > *(p-stride-1) &&
+                *p > *(p-stride+1) &&
+                *p > *(p+stride-1)) {
+
+              if (x>=hashBlkRadius &&
+                  y>=hashBlkRadius &&
+                  x< w-hashBlkRadius &&
+                  y< h-hashBlkRadius) {
+                int crc = block_hash(p-hashBlkRadius*(1+stride), stride);
+
+                //printf("%d %d, CRC: %d  [%d]\n",x,y,crc,hash[crc].cnt);
+
+#if DEBUG_OUTPUT
+                if (hash[crc].cnt==1) {
+                  *feature_img.get_image_plane_at_pos(0, x, y) = 255; // green
+                  *feature_img.get_image_plane_at_pos(1, x, y) = 0;
+                  *feature_img.get_image_plane_at_pos(2, x, y) = 0;
+                }
+                else if (hash[crc].cnt>1) {
+                  *feature_img.get_image_plane_at_pos(0, x, y) = 0;
+                  *feature_img.get_image_plane_at_pos(1, x, y) = 255; // blue
+                  *feature_img.get_image_plane_at_pos(2, x, y) = 0;
+                }
+                else {
+                  *feature_img.get_image_plane_at_pos(0, x, y) = 0;
+                  *feature_img.get_image_plane_at_pos(1, x, y) = 0;
+                  *feature_img.get_image_plane_at_pos(2, x, y) = 255; // red
+                }
+#endif
+
+                if (hash[crc].cnt==1) {
+
+                  int dx = hash[crc].x - x;
+                  int dy = hash[crc].y - y;
+
+                  if (x0+dx>=0 && y0+dy>=0 &&
+                      x0+dx+blkSize<w &&
+                      y0+dy+blkSize<h) {
+                    if (compare_blocks_for_equality(inputPic, x0,   y0,    blkSize,
+                                                    refPic,   x0+dx,y0+dy,
+                                                    mMaxPixelDifference))
+                      {
+                        blk.haveMV = true;
+                        blk.mv.x = dx;
+                        blk.mv.y = dy;
+
+                        //printf("exact match\n");
+                      }
+                  }
+                  else {
+                    //printf("hash collision\n");
+                  }
+                }
+
+                if (hash[crc].cnt<0) {
+                  //printf("no match\n");
+                }
+
+                if (hash[crc].cnt>1) {
+                  //printf("multiple matches\n");
+                }
+              }
+            }
+          }
+      }
+    }
+
+
+#if DEBUG_OUTPUT
+  char buf[100];
+  sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
+  feature_img.write_image(buf);
+#endif
+}
+
+
 enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
                                          context_model_table& ctxModel,
                                          enc_cb* cb)
@@ -119,29 +339,44 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
   bool try_nonskip = true;
 
 
-  const int refIdx = 0; // get first reference frame
-  const de265_image* refPic = ectx->get_input_image_history().get_image(ectx->shdr->RefPicList[0][refIdx]);
-
-  if (refPic->PicOrderCntVal != feature_poc) {
-    de265_image feature_img;
-    feature_img.copy_image(refPic);
-
-    printf("building feature image\n");
-    build_feature_image(&feature_img, refPic, 0); //cbSize);
-    feature_poc = refPic->PicOrderCntVal;
-    printf("...done\n");
-
-    char buf[100];
-    sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
-    //feature_img.write_image(buf);
-  }
+  const de265_image* inputPic = ectx->imgdata->input;
 
 
   // We try to find a good merge candidate for skipping.
   // If there is a good match, do not try to code without skipping.
   if (try_skip) {
 
+    const int refIdx = 0; // get first reference frame
+    const int refPicId = ectx->shdr->RefPicList[0][refIdx];
+    const de265_image* refPic = ectx->get_input_image_history().get_image(refPicId);
+
+    bool isNextImage = (inputPic->PicOrderCntVal != mCurrentPicturePOC);
+    if (isNextImage) {
+      mCurrentPicturePOC = inputPic->PicOrderCntVal;
+
+      //assert(refPic->PicOrderCntVal != feature_poc);
+
+      de265_image feature_img;
+#if DEBUG_OUTPUT
+      feature_img.copy_image(refPic);
+#endif
+
+      printf("building feature image\n");
+      build_feature_image(&feature_img, refPic, 0); //cbSize);
+      feature_poc = refPic->PicOrderCntVal;
+      printf("...done\n");
+
+      char buf[100];
+      sprintf(buf,"img%03d.yuv",refPic->PicOrderCntVal);
+      //feature_img.write_image(buf);
+
+
+      process_picture(ectx, cb);
+    }
+
+
     // --- get all merge candidates ---
+
 
     int partIdx = 0;
     int cbSize = 1 << cb->log2Size;
@@ -173,12 +408,12 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       }
 
 
-      //printf("try candidate\n");
+      //printf("try candidate %d\n",idx);
       //logmvcand(mergeCandList[idx]);
 
       // generate prediction. Luma and chroma because we will check the error in all channels.
 
-      generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
+      generate_inter_prediction_samples(ectx, &ectx->get_input_image_history(),
                                         ectx->shdr, ectx->img,
                                         cb->x,cb->y, // xP,yP
                                         1<<cb->log2Size, // int nCS,
@@ -246,6 +481,78 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       cb->transform_tree = tb;
 
       tb->copy_reconstruction_from_image(ectx, ectx->img);
+    }
+    else {
+      int w = inputPic->get_width();
+      int h = inputPic->get_height();
+
+      int bx = cb->x >> cb->log2Size;
+      int by = cb->y >> cb->log2Size;
+      int bw = (w+(1<<cb->log2Size)-1) >> cb->log2Size;
+
+      const BlkInfo& blk = blkInfo[bx+by*bw];
+      if (blk.haveMV) {
+
+        // get the two motion vector predictors
+
+        MotionVector mvp[2];
+        int x = cb->x;
+        int y = cb->y;
+        int cbSize = 1<<cb->log2Size;
+        fill_luma_motion_vector_predictors_from_tree(ectx, ectx->shdr,
+                                                     cb->x,cb->y,1<<cb->log2Size, x,y,cbSize,cbSize,
+                                                     0, // l
+                                                     0, 0, // int refIdx, int partIdx,
+                                                     mvp);
+
+        int dx = blk.mv.x;
+        int dy = blk.mv.y;
+
+        PBMotion motion;
+        PBMotionCoding spec;
+
+        motion.predFlag[0] = 1;
+        motion.predFlag[1] = 0;
+
+        motion.refIdx[0] = 0;
+        motion.mv[0].x = dx<<2;
+        motion.mv[0].y = dy<<2;
+
+        spec.merge_flag = 0;
+        spec.inter_pred_idc = PRED_L0;
+        spec.refIdx[0] = 0;
+        spec.mvp_l0_flag = 0; // use first predictor
+        spec.mvd[0][0] = (dx<<2) - mvp[0].x;
+        spec.mvd[0][1] = (dy<<2) - mvp[0].y;
+
+
+        // set motion parameters
+        int partIdx = 0;
+
+        cb->PartMode = PART_2Nx2N;
+        cb->PredMode = MODE_INTER;
+        cb->inter.rqt_root_cbf = 0; // no residual
+        cb->inter.pb[partIdx].motion = motion;
+        cb->inter.pb[partIdx].spec   = spec;
+
+        try_nonskip = false;
+
+        // --- build dummy TB tree and store reconstruction ---
+
+        enc_tb* tb = new enc_tb(cb->x,cb->y,cb->log2Size,cb);
+        tb->downPtr = &cb->transform_tree;
+        cb->transform_tree = tb;
+
+        generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
+                                          ectx->shdr, ectx->img,
+                                          cb->x,cb->y, // xP,yP
+                                          1<<cb->log2Size, // int nCS,
+                                          1<<cb->log2Size,
+                                          1<<cb->log2Size, // int nPbW,int nPbH,
+                                          &motion);
+
+        tb->copy_reconstruction_from_image(ectx, ectx->img);
+      }
     }
   }
 

@@ -58,6 +58,11 @@ class Algo_CB_MV_ScreenRegion : public Algo_CB
   Algo_CB* mIntraAlgo;
 
   int mMaxPixelDifference;
+
+  int mCurrentPicturePOC;
+
+  void process_picture(const encoder_context* ectx,
+                       const enc_cb* cb);
 };
 
 #endif
