@@ -1,21 +1,21 @@
 /*
- * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * libde265 example application "sherlock265".
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
- * This file is part of libde265.
+ * This file is part of sherlock265, an example application using libde265.
  *
- * libde265 is free software: you can redistribute it and/or modify
+ * sherlock265 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libde265 is distributed in the hope that it will be useful,
+ * sherlock265 is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
+ * along with sherlock265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "VideoPlayer.hh"
@@ -64,6 +64,31 @@ VideoPlayer::VideoPlayer(const char* filename)
   QObject::connect(showIntraPredModeButton, SIGNAL(toggled(bool)),
                    mDecoder, SLOT(showIntraPredMode(bool)));
 
+  QPushButton* showPBPredModeButton = new QPushButton("PB-mode");
+  showPBPredModeButton->setCheckable(true);
+  QObject::connect(showPBPredModeButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showPBPredMode(bool)));
+
+  QPushButton* showQuantPYButton = new QPushButton("Quant");
+  showQuantPYButton->setCheckable(true);
+  QObject::connect(showQuantPYButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showQuantPY(bool)));
+
+  QPushButton* showMotionVecButton = new QPushButton("MotionVec");
+  showMotionVecButton->setCheckable(true);
+  QObject::connect(showMotionVecButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showMotionVec(bool)));
+
+  QPushButton* showTilesButton = new QPushButton("Tiles");
+  showTilesButton->setCheckable(true);
+  QObject::connect(showTilesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showTiles(bool)));
+
+  QPushButton* showSlicesButton = new QPushButton("Slices");
+  showSlicesButton->setCheckable(true);
+  QObject::connect(showSlicesButton, SIGNAL(toggled(bool)),
+                   mDecoder, SLOT(showSlices(bool)));
+
   QPushButton* showDecodedImageButton = new QPushButton("image");
   showDecodedImageButton->setCheckable(true);
   showDecodedImageButton->setChecked(true);
@@ -71,15 +96,20 @@ VideoPlayer::VideoPlayer(const char* filename)
                    mDecoder, SLOT(showDecodedImage(bool)));
 
   QGridLayout *layout = new QGridLayout;
-  layout->addWidget(videoWidget, 0,0,1,5);
+  layout->addWidget(videoWidget, 0,0,1,7);
   layout->addWidget(startButton, 1,0,1,1);
   layout->addWidget(stopButton,  1,1,1,1);
   layout->addWidget(stepButton,  1,2,1,1);
+  layout->addWidget(showDecodedImageButton,  1,6,1,1);
+  layout->addWidget(showTilesButton,         1,5,1,1);
+  layout->addWidget(showSlicesButton,        1,4,1,1);
   layout->addWidget(showCBPartitioningButton,2,0,1,1);
   layout->addWidget(showTBPartitioningButton,2,1,1,1);
   layout->addWidget(showPBPartitioningButton,2,2,1,1);
   layout->addWidget(showIntraPredModeButton, 2,3,1,1);
-  layout->addWidget(showDecodedImageButton,  2,4,1,1);
+  layout->addWidget(showPBPredModeButton,    2,4,1,1);
+  layout->addWidget(showQuantPYButton,       2,5,1,1);
+  layout->addWidget(showMotionVecButton,     2,6,1,1);
   setLayout(layout);
 
 

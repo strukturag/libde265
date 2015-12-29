@@ -1,0 +1,23 @@
+.deps
+.libs
+*.o
+*.lo
+*~
+Makefile
+Makefile.in
+config.log
+config.h
+config.h.in
+config.status
+stamp-h1
+configure
+*.obj
+*.la
+.gitignore
+de265-config.h
+
+# MSVC
+*.sln
+*.ncb
+*.suo
+*.vcproj*

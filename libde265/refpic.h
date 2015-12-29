@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -23,29 +23,39 @@
 
 #include "libde265/bitstream.h"
 
+#define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
 
-#define MAX_NUM_REF_PICS 16
 
-typedef struct {
-  int NumDeltaPocs;
-  int NumNegativePics;
-  int NumPositivePics;
+class ref_pic_set
+{
+ public:
+  // Lists of pictures that have to be kept in the decoded picture buffer for future
+  // reference and that may optionally be used for prediction in the current frame.
+  // Lists contain the relative POC positions.
+  int16_t DeltaPocS0[MAX_NUM_REF_PICS]; // sorted in decreasing order (e.g. -1, -2, -4, -7, ...)
+  int16_t DeltaPocS1[MAX_NUM_REF_PICS]; // sorted in ascending order (e.g. 1, 2, 4, 7)
 
-  int DeltaPocS0[MAX_NUM_REF_PICS]; // sorted in decreasing order (e.g. -1, -2, -4, -7, ...)
-  int DeltaPocS1[MAX_NUM_REF_PICS]; // sorted in ascending order (e.g. 1, 2, 4, 7)
+  // flag for each reference whether this is actually used for prediction in the current frame
+  uint8_t UsedByCurrPicS0[MAX_NUM_REF_PICS];
+  uint8_t UsedByCurrPicS1[MAX_NUM_REF_PICS];
 
-  char UsedByCurrPicS0[MAX_NUM_REF_PICS];
-  char UsedByCurrPicS1[MAX_NUM_REF_PICS];
+  uint8_t NumNegativePics;  // number of past reference pictures
+  uint8_t NumPositivePics;  // number of future reference pictures
 
-  int NumPoc_withoutLongterm;
-} ref_pic_set;
+  // --- derived values ---
 
-//void alloc_ref_pic_set(ref_pic_set*, int max_dec_pic_buffering);
-//void free_ref_pic_set(ref_pic_set*);
+  void compute_derived_values();
 
-void dump_short_term_ref_pic_set(ref_pic_set*);
-void dump_compact_short_term_ref_pic_set(ref_pic_set* set, int range);
+  uint8_t NumDeltaPocs;     // total number of reference pictures (past + future)
 
-void read_short_term_ref_pic_set(bitreader* br, ref_pic_set* sets, int idxRps, int num_short_term_ref_pic_sets);
+  uint8_t NumPocTotalCurr_shortterm_only; /* Total number of reference pictures that may actually
+                                             be used for prediction in the current frame. */
+
+  void reset();
+};
+
+
+void dump_short_term_ref_pic_set(const ref_pic_set*, FILE* fh);
+void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE* fh);
 
 #endif

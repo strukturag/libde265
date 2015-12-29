@@ -1,21 +1,21 @@
 /*
- * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * libde265 example application "sherlock265".
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
- * This file is part of libde265.
+ * This file is part of sherlock265, an example application using libde265.
  *
- * libde265 is free software: you can redistribute it and/or modify
+ * sherlock265 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libde265 is distributed in the hope that it will be useful,
+ * sherlock265 is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
+ * along with sherlock265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "VideoWidget.hh"
@@ -27,13 +27,14 @@ VideoWidget::VideoWidget(QWidget *parent)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
-  setAttribute(Qt::WA_PaintOnScreen, true);
 
   QPalette palette = this->palette();
   palette.setColor(QPalette::Background, Qt::black);
   setPalette(palette);
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+
+  setUpdatesEnabled(true);
 }
 
 VideoWidget::~VideoWidget()

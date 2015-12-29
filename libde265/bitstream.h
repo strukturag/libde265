@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -21,38 +21,19 @@
 #ifndef DE265_BITSTREAM_H
 #define DE265_BITSTREAM_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
+#ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
+#endif
 #include <stdint.h>
 
 
-typedef struct {
-  unsigned char* data;
-  int size;
-  int capacity;
-} rbsp_buffer;
-
-void rbsp_buffer_init(rbsp_buffer* buffer);
-void rbsp_buffer_resize(rbsp_buffer* buffer, int new_size);
-void rbsp_buffer_free(rbsp_buffer* buffer);
-
-
-typedef struct input_context {
-  rbsp_buffer input_buffer;
-
-  bool (*refill_buffer)(struct input_context*);
-} input_context;
-
-
-typedef struct {
-  input_context ctx;
-  FILE* input_file;
-} input_context_FILE;
-
-
-int init_file_context(input_context_FILE* ctx, const char* filename);
-int read_nal_unit(input_context* ctx, rbsp_buffer* buffer);
-
+#define MAX_UVLC_LEADING_ZEROS 20
+#define UVLC_ERROR -99999
 
 
 typedef struct {
@@ -63,7 +44,7 @@ typedef struct {
   int nextbits_cnt;
 } bitreader;
 
-void bitreader_init(bitreader*, rbsp_buffer*);
+void bitreader_init(bitreader*, unsigned char* buffer, int len);
 void bitreader_refill(bitreader*); // refill to at least 56+1 bits
 int  next_bit(bitreader*);
 int  next_bit_norefill(bitreader*);
@@ -74,9 +55,9 @@ void skip_bits(bitreader*, int n);
 void skip_bits_fast(bitreader*, int n);
 void skip_to_byte_boundary(bitreader*);
 void prepare_for_CABAC(bitreader*);
-int  get_uvlc(bitreader*);
-int  get_svlc(bitreader*);
+int  get_uvlc(bitreader*);  // may return UVLC_ERROR
+int  get_svlc(bitreader*);  // may return UVLC_ERROR
 
-void check_rbsp_trailing_bits(bitreader*);
+bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 
 #endif

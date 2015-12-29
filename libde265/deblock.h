@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013 StrukturAG, Dirk Farin, <farin@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -23,6 +23,7 @@
 
 #include "libde265/decctx.h"
 
-void apply_deblocking_filter(decoder_context* ctx);
+void add_deblocking_tasks(image_unit* imgunit);
+void apply_deblocking_filter(de265_image* img); //decoder_context* ctx);
 
 #endif
