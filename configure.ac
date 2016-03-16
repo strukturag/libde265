@@ -234,6 +234,7 @@ AM_CONDITIONAL([ENABLE_ARM_OPT], [test x"$disable_arm" != x"yes"])
 AM_CONDITIONAL([ENABLE_NEON_OPT], [test x"$ax_cv_support_neon_ext" = x"yes"])
 AM_CONDITIONAL([ENABLE_ARM_THUMB], [test x"$enable_thumb" != x"no"])
 
+
 # --- additional logging ---
 
 AC_ARG_ENABLE(log-error,
@@ -271,6 +272,21 @@ AC_ARG_ENABLE(log-trace,
 if eval "test $enable_log_trace = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_TRACE"
 fi
+
+
+need_libx11=no
+
+AC_ARG_ENABLE(x11-screen-grabbing,
+              [AS_HELP_STRING([--enable-x11-screen-grabbing],
+                              [turn on screen-grabbing input in enc265 (default=yes)])],
+  [enable_x11_screen_grabbing=$enableval],
+  [enable_x11_screen_grabbing=yes])
+
+if eval "test $enable_x11_screen_grabbing = yes"; then
+  need_libx11=yes
+  AC_DEFINE([DE265_ENABLE_X11_SCREEN_GRABBING], [1], [Whether we use X11 screen grabbing.])
+fi
+
 
 
 # --- enable example programs ---
@@ -311,9 +327,25 @@ if eval "test x$enable_sherlock265 = xyes" && eval "test x$have_videogfx != xyes
                      )
 fi
 
+if eval "test x$need_libx11 = xyes" ; then
+   PKG_CHECK_MODULES([X11], [x11],
+                     [AC_DEFINE([HAVE_X11], [1], [Whether libx11 was found.])
+                      AC_SUBST(X11_CFLAGS)
+                      AC_SUBST(X11_LIBS)
+                      have_x11="yes"],
+                     [have_x11="no"
+                      AC_MSG_ERROR([Please install "libx11" for enc265 screen grabbing])
+                     ]
+                     )
+fi
+
+
+
 AM_CONDITIONAL([HAVE_VIDEOGFX], [test "x$have_videogfx" = "xyes"])
 AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" = "xyes"])
 AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" = "xyes"])
+AM_CONDITIONAL([HAVE_X11], [test "x$have_x11" = "xyes"])
+
 
 if eval "test $enable_dec265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_sdl != yes" ; then
   AC_MSG_WARN([Did not find libvideogfx or libsdl, video output of dec265 will be disabled.])
@@ -348,6 +380,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_DEC265], [test "x$enable_dec265" != "xno"])
 AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
+AM_CONDITIONAL([ENABLE_X11_SCREEN_GRABBING], [test "x$enable_x11_screen_grabbing" = "xyes"])
 
 
 # --- output configuration results ---
@@ -355,6 +388,7 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 AC_MSG_NOTICE([---------------------------------------])
 AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
 AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
+AC_MSG_NOTICE([Enabling enc265 screen grabbing: $enable_x11_screen_grabbing])
 AC_MSG_NOTICE([---------------------------------------])
 
 AC_CONFIG_FILES([Makefile])

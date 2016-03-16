@@ -7,7 +7,11 @@ enc265_DEPENDENCIES = ../libde265/libde265.la
 enc265_CXXFLAGS =
 enc265_LDFLAGS =
 enc265_LDADD = ../libde265/libde265.la -lstdc++
-enc265_SOURCES = enc265.cc image-io-png.cc image-io-png.h image-io-x11grab.h image-io-x11grab.cc
+enc265_SOURCES = enc265.cc image-io-png.cc image-io-png.h
+
+if ENABLE_X11_SCREEN_GRABBING
+  enc265_SOURCES += image-io-x11grab.h image-io-x11grab.cc
+endif
 
 if HAVE_VIDEOGFX
   enc265_CXXFLAGS += $(VIDEOGFX_CFLAGS)

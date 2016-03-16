@@ -28,7 +28,10 @@
 #include "libde265/encoder/encoder-core.h"
 #include "libde265/util.h"
 #include "image-io-png.h"
-#include "image-io-x11grab.h"
+
+#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
+#  include "image-io-x11grab.h"
+#endif
 
 #include <getopt.h>
 
@@ -280,24 +283,31 @@ int main(int argc, char** argv)
 
   ImageSource* image_source;
   ImageSource_YUV image_source_yuv;
+
 #if HAVE_VIDEOGFX
   ImageSource_PNG image_source_png;
 #endif
+
+#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
   ImageSource_X11Grab image_source_x11grab;
+#endif
 
-
+#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
   if (inout_params.input_is_screengrabbing) {
     image_source_x11grab.set_size(0,0);
     image_source_x11grab.set_size(1920,1072);
     image_source = &image_source_x11grab;
   }
-  else if (inout_params.input_is_rgb) {
+  else
+#endif
 #if HAVE_VIDEOGFX
+  if (inout_params.input_is_rgb) {
     image_source_png.set_input_file(inout_params.input_yuv.get().c_str());
     image_source = &image_source_png;
-#endif
   }
-  else {
+  else
+#endif
+  {
     image_source_yuv.set_input_file(inout_params.input_yuv.get().c_str(),
                                     inout_params.input_width,
                                     inout_params.input_height);
