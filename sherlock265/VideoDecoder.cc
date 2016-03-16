@@ -31,6 +31,13 @@ using namespace videogfx;
 //#include "decctx.h"
 #include "visualize.h"
 
+// Support compiling against old versions of FFmpeg/libav.
+#ifndef AV_PIX_FMT_BGRA
+#define AV_PIX_FMT_BGRA PIX_FMT_BGRA
+#endif
+#ifndef AV_PIX_FMT_YUV420P
+#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+#endif
 
 VideoDecoder::VideoDecoder()
   : mFH(NULL),
@@ -237,7 +244,7 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
     }
     width = img->get_width();
     height = img->get_height();
-    sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    sws = sws_getContext(width, height, AV_PIX_FMT_YUV420P, width, height, AV_PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
   }
 
   int stride[3];
