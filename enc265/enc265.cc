@@ -28,6 +28,7 @@
 #include "libde265/encoder/encoder-core.h"
 #include "libde265/util.h"
 #include "image-io-png.h"
+#include "image-io-x11grab.h"
 
 #include <getopt.h>
 
@@ -90,6 +91,7 @@ struct inout_params
   option_int input_height;
 
   option_bool input_is_rgb;
+  option_bool input_is_screengrabbing;
 
   // output
 
@@ -133,6 +135,10 @@ inout_params::inout_params()
   input_is_rgb.set_ID("rgb");
   input_is_rgb.set_default(false);
   input_is_rgb.set_description("input is sequence of RGB PNG images");
+
+  input_is_screengrabbing.set_ID("screen");
+  input_is_screengrabbing.set_default(false);
+  input_is_screengrabbing.set_description("input is real-time screen-grabbing");
 }
 
 
@@ -149,6 +155,7 @@ void inout_params::register_params(config_parameters& config)
     config.add_option(&input_is_rgb);
   }
 #endif
+  config.add_option(&input_is_screengrabbing);
 }
 
 
@@ -276,9 +283,15 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX
   ImageSource_PNG image_source_png;
 #endif
+  ImageSource_X11Grab image_source_x11grab;
 
 
-  if (inout_params.input_is_rgb) {
+  if (inout_params.input_is_screengrabbing) {
+    image_source_x11grab.set_size(0,0);
+    image_source_x11grab.set_size(1920,1072);
+    image_source = &image_source_x11grab;
+  }
+  else if (inout_params.input_is_rgb) {
 #if HAVE_VIDEOGFX
     image_source_png.set_input_file(inout_params.input_yuv.get().c_str());
     image_source = &image_source_png;

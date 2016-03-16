@@ -431,7 +431,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       //printf("check merge: %d %d\n",cb->x,cb->y);
       bool equal = compare_blocks_for_equality(ectx->img,            cb->x, cb->y, cbSize,
                                                ectx->imgdata->input, cb->x, cb->y,
-                                               255, //mMaxMergePixelDifference,
+                                               0, //mMaxMergePixelDifference,
                                                mMaxMergePixelDifference*cbSize*cbSize);
 
       // if it is similar enough, use this candidate
