@@ -176,11 +176,13 @@ void VideoDecoder::decoder_loop()
 }
 
 #ifdef HAVE_VIDEOGFX
-void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qimg)
+void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImage & qimg)
 {
+  const image* img = (const image*)de265_img;
+
   // --- convert to RGB ---
 
-  de265_chroma chroma = de265_get_chroma_format(img);
+  de265_chroma chroma = de265_get_chroma_format(de265_img);
 
   int map[3];
 
@@ -260,8 +262,10 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
 }
 #endif
 
-void VideoDecoder::show_frame(const de265_image* img)
+void VideoDecoder::show_frame(const de265_image* de265_img)
 {
+  const image* img = (const image*)de265_img;
+
   if (mFrameCount==0) {
     mImgBuffers[0] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
     mImgBuffers[1] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
@@ -275,7 +279,7 @@ void VideoDecoder::show_frame(const de265_image* img)
 
   if (mShowDecodedImage) {
 #ifdef HAVE_VIDEOGFX
-    convert_frame_libvideogfx(img, *qimg);
+    convert_frame_libvideogfx(de265_img, *qimg);
 #elif HAVE_SWSCALE
     convert_frame_swscale(img, *qimg);
 #else

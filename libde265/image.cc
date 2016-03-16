@@ -65,7 +65,7 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 
 static const int alignment = 16;
 
-LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx,
+LIBDE265_API void* de265_alloc_image_plane(struct image* img, int cIdx,
                                            void* inputdata, int inputstride, void *userdata)
 {
   int alignment = STANDARD_ALIGNMENT;
@@ -95,7 +95,7 @@ LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx,
 }
 
 
-LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
+LIBDE265_API void de265_free_image_plane(struct image* img, int cIdx)
 {
   uint8_t* p = (uint8_t*)img->get_image_plane(cIdx);
   assert(p);
@@ -103,9 +103,11 @@ LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
 }
 
 
-static int  de265_image_get_buffer(de265_decoder_context* ctx,
-                                   de265_image_spec* spec, de265_image* img, void* userdata)
+static int  image_get_buffer(de265_decoder_context* ctx,
+                             de265_image_spec* spec, de265_image* de265_img, void* userdata)
 {
+  image* img = (image*)de265_img;
+
   const int rawChromaWidth  = spec->width  / img->SubWidthC;
   const int rawChromaHeight = spec->height / img->SubHeightC;
 
@@ -155,9 +157,11 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   return 1;
 }
 
-static void de265_image_release_buffer(de265_decoder_context* ctx,
-                                       de265_image* img, void* userdata)
+static void image_release_buffer(de265_decoder_context* ctx,
+                                 de265_image* de265_img, void* userdata)
 {
+  image* img = (image*)de265_img;
+
   for (int i=0;i<3;i++) {
     uint8_t* p = (uint8_t*)img->get_image_plane(i);
     if (p) {
@@ -167,13 +171,13 @@ static void de265_image_release_buffer(de265_decoder_context* ctx,
 }
 
 
-de265_image_allocation de265_image::default_image_allocation = {
-  de265_image_get_buffer,
-  de265_image_release_buffer
+de265_image_allocation image::default_image_allocation = {
+  image_get_buffer,
+  image_release_buffer
 };
 
 
-void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
+void image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
 {
   pixels[cIdx] = mem;
   plane_user_data[cIdx] = userdata;
@@ -183,9 +187,9 @@ void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *user
 }
 
 
-uint32_t de265_image::s_next_image_ID = 0;
+uint32_t image::s_next_image_ID = 0;
 
-de265_image::de265_image()
+image::image()
 {
   ID = -1;
   removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
@@ -229,7 +233,7 @@ de265_image::de265_image()
 }
 
 
-de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
+de265_error image::alloc_image(int w,int h, enum de265_chroma c,
                                      std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
                                      decoder_context* dctx,
                                      encoder_context* ectx,
@@ -362,7 +366,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     // if we do not provide a release function, use our own
 
     if (encoder_image_release_func == NULL) {
-      image_allocation_functions = de265_image::default_image_allocation;
+      image_allocation_functions = image::default_image_allocation;
     }
     else {
       image_allocation_functions.get_buffer     = NULL;
@@ -373,13 +377,13 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     image_allocation_functions = decctx->param_image_allocation_functions;
   }
   else {
-    image_allocation_functions = de265_image::default_image_allocation;
+    image_allocation_functions = image::default_image_allocation;
   }
 
   bool mem_alloc_success = true;
 
   if (image_allocation_functions.get_buffer != NULL) {
-    mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, this,
+    mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, (de265_image*)this,
                                                               alloc_userdata);
 
     pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
@@ -459,7 +463,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 }
 
 
-de265_image::~de265_image()
+image::~image()
 {
   release();
 
@@ -474,7 +478,7 @@ de265_image::~de265_image()
 }
 
 
-void de265_image::release()
+void image::release()
 {
   // free image memory
 
@@ -485,8 +489,8 @@ void de265_image::release()
                                    encctx->param_image_allocation_userdata);
       }
       else {
-        image_allocation_functions.release_buffer(decctx, this,
-                                                decctx ?
+        image_allocation_functions.release_buffer(decctx, (de265_image*)this,
+                                                  decctx ?
                                                   decctx->param_image_allocation_userdata :
                                                   NULL);
       }
@@ -507,7 +511,7 @@ void de265_image::release()
 }
 
 
-void de265_image::fill_image(int y,int cb,int cr)
+void image::fill_image(int y,int cb,int cr)
 {
   if (y>=0) {
     memset(pixels[0], y, stride * height);
@@ -523,12 +527,12 @@ void de265_image::fill_image(int y,int cb,int cr)
 }
 
 
-de265_error de265_image::copy_image(const de265_image* src)
+de265_error image::copy_image(const image* src)
 {
   /* TODO: actually, since we allocate the image only for internal purpose, we
      do not have to call the external allocation routines for this. However, then
      we have to track for each image how to release it again.
-     Another option would be to safe the copied data not in an de265_image at all.
+     Another option would be to safe the copied data not in an image at all.
   */
 
   de265_error err = alloc_image(src->width, src->height, src->chroma_format, src->sps, false,
@@ -544,7 +548,7 @@ de265_error de265_image::copy_image(const de265_image* src)
 
 
 // end = last line + 1
-void de265_image::copy_lines_from(const de265_image* src, int first, int end)
+void image::copy_lines_from(const image* src, int first, int end)
 {
   if (end > src->height) end=src->height;
 
@@ -593,7 +597,7 @@ void de265_image::copy_lines_from(const de265_image* src, int first, int end)
 }
 
 
-void de265_image::exchange_pixel_data_with(de265_image& b)
+void image::exchange_pixel_data_with(image& b)
 {
   for (int i=0;i<3;i++) {
     std::swap(pixels[i], b.pixels[i]);
@@ -607,7 +611,7 @@ void de265_image::exchange_pixel_data_with(de265_image& b)
 }
 
 
-void de265_image::thread_start(int nThreads)
+void image::thread_start(int nThreads)
 {
   de265_mutex_lock(&mutex);
 
@@ -621,7 +625,7 @@ void de265_image::thread_start(int nThreads)
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_run(const thread_task* task)
+void image::thread_run(const thread_task* task)
 {
   //printf("run thread %s\n", task->name().c_str());
 
@@ -631,7 +635,7 @@ void de265_image::thread_run(const thread_task* task)
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_blocks()
+void image::thread_blocks()
 {
   de265_mutex_lock(&mutex);
   nThreadsRunning--;
@@ -639,7 +643,7 @@ void de265_image::thread_blocks()
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_unblocks()
+void image::thread_unblocks()
 {
   de265_mutex_lock(&mutex);
   nThreadsBlocked--;
@@ -647,7 +651,7 @@ void de265_image::thread_unblocks()
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::thread_finishes(const thread_task* task)
+void image::thread_finishes(const thread_task* task)
 {
   //printf("finish thread %s\n", task->name().c_str());
 
@@ -664,14 +668,14 @@ void de265_image::thread_finishes(const thread_task* task)
   de265_mutex_unlock(&mutex);
 }
 
-void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
+void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
 {
   const int ctbW = sps->PicWidthInCtbsY;
 
   wait_for_progress(task, ctbx + ctbW*ctby, progress);
 }
 
-void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
+void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 {
   if (task==NULL) { return; }
 
@@ -694,7 +698,7 @@ void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progre
 }
 
 
-void de265_image::wait_for_completion()
+void image::wait_for_completion()
 {
   de265_mutex_lock(&mutex);
   while (nThreadsFinished!=nThreadsTotal) {
@@ -703,14 +707,14 @@ void de265_image::wait_for_completion()
   de265_mutex_unlock(&mutex);
 }
 
-bool de265_image::debug_is_completed() const
+bool image::debug_is_completed() const
 {
   return nThreadsFinished==nThreadsTotal;
 }
 
 
 
-void de265_image::clear_metadata()
+void image::clear_metadata()
 {
   // TODO: maybe we could avoid the memset by ensuring that all data is written to
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
@@ -728,7 +732,7 @@ void de265_image::clear_metadata()
 }
 
 
-void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv)
+void image::set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv)
 {
   int log2PuSize = 2;
 
@@ -747,7 +751,7 @@ void de265_image::set_mv_info(int x,int y, int nPbW,int nPbH, const PBMotion& mv
 }
 
 
-void de265_image::write_image(const char* name) const
+void image::write_image(const char* name) const
 {
   FILE* fh = fopen(name,"wb");
 

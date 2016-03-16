@@ -30,7 +30,7 @@
 #define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
 
 
-double encode_image(encoder_context*, const de265_image* input, EncoderCore&);
+double encode_image(encoder_context*, const image* input, EncoderCore&);
 
 
 encoder_context::encoder_context()
@@ -324,7 +324,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 // /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
 
 double encode_image(encoder_context* ectx,
-                    const de265_image* input,
+                    const image* input,
                     EncoderCore& algo)
 {
   int stride=input->get_image_stride(0);
@@ -333,7 +333,7 @@ double encode_image(encoder_context* ectx,
   int h = ectx->get_sps().pic_height_in_luma_samples;
 
   // --- create reconstruction image ---
-  ectx->img = new de265_image;
+  ectx->img = new image;
   ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
@@ -344,7 +344,7 @@ double encode_image(encoder_context* ectx,
 
 #if 0
   if (1) {
-    ectx->prediction = new de265_image;
+    ectx->prediction = new image;
     ectx->prediction->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, false /* no metadata */,
                                   NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
     ectx->prediction->vps = ectx->vps;

@@ -55,7 +55,7 @@ public:
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          const image* input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
@@ -70,7 +70,7 @@ public:
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          const image* input,
                           enc_tb* parent,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 

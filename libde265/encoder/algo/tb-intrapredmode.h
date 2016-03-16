@@ -89,7 +89,7 @@ class Algo_TB_IntraPredMode : public Algo
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          const image* input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
@@ -210,7 +210,7 @@ class Algo_TB_IntraPredMode_BruteForce : public Algo_TB_IntraPredMode_ModeSubset
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          const image* input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
@@ -249,7 +249,7 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          const image* input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
@@ -284,7 +284,7 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
 
   enc_tb* analyze(encoder_context*,
                   context_model_table&,
-                  const de265_image* input,
+                  const image* input,
                   enc_tb* tb,
                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 

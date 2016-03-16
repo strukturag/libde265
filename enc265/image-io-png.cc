@@ -48,7 +48,7 @@ bool ImageSource_PNG::set_input_file(const char* filename)
   return true;
 }
 
-de265_image* ImageSource_PNG::get_image(bool block)
+image* ImageSource_PNG::get_image(bool block)
 {
   if (mReachedEndOfStream) return NULL;
 
@@ -73,7 +73,7 @@ de265_image* ImageSource_PNG::get_image(bool block)
   mWidth = input.AskWidth();
   mHeight= input.AskHeight();
 
-  de265_image* img = new de265_image;
+  image* img = new image;
   img->alloc_image(mWidth,mHeight,de265_chroma_444, NULL, false,
                    NULL, NULL, 0, NULL, false);
   assert(img); // TODO: error handling

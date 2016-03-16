@@ -84,7 +84,7 @@ void encoder_picture_buffer::flush_images()
 }
 
 
-image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(const de265_image* img,
+image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(const image* img,
                                                                         int frame_number)
 {
   image_data* data = new image_data();
@@ -175,14 +175,14 @@ void encoder_picture_buffer::mark_encoding_started(int frame_number)
   data->state = image_data::state_encoding;
 }
 
-void encoder_picture_buffer::set_prediction_image(int frame_number, de265_image* pred)
+void encoder_picture_buffer::set_prediction_image(int frame_number, image* pred)
 {
   image_data* data = get_picture(frame_number);
 
   data->prediction = pred;
 }
 
-void encoder_picture_buffer::set_reconstruction_image(int frame_number, de265_image* reco)
+void encoder_picture_buffer::set_reconstruction_image(int frame_number, image* reco)
 {
   image_data* data = get_picture(frame_number);
 

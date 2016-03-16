@@ -218,9 +218,9 @@ typedef struct {
 
 
 
-struct de265_image {
-  de265_image();
-  ~de265_image();
+struct image {
+  image();
+  ~image();
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c,
@@ -246,9 +246,9 @@ struct de265_image {
   }
 
   void fill_image(int y,int u,int v);
-  de265_error copy_image(const de265_image* src);
-  void copy_lines_from(const de265_image* src, int first, int end);
-  void exchange_pixel_data_with(de265_image&);
+  de265_error copy_image(const image* src);
+  void copy_lines_from(const image* src, int first, int end);
+  void exchange_pixel_data_with(image&);
 
   uint32_t get_ID() const { return ID; }
 
@@ -420,7 +420,7 @@ public:
   void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
   de265_image_allocation image_allocation_functions; // the functions used for memory allocation
   void (*encoder_image_release_func)(en265_encoder_context*,
-                                     de265_image*,
+                                     image*,
                                      void* userdata);
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.

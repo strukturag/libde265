@@ -69,7 +69,7 @@ float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
 
 
 float estim_TB_bitrate(const encoder_context* ectx,
-                       const de265_image* input,
+                       const image* input,
                        const enc_tb* tb,
                        enum TBBitrateEstimMethod method)
 {
@@ -173,7 +173,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 enc_tb*
 Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
                                           context_model_table& ctxModel,
-                                          const de265_image* input,
+                                          const image* input,
                                           enc_tb* tb,
                                           int TrafoDepth, int MaxTrafoDepth,
                                           int IntraSplitFlag)
@@ -278,7 +278,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 enc_tb*
 Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
                                            context_model_table& ctxModel,
-                                           const de265_image* input,
+                                           const image* input,
                                            enc_tb* tb,
                                            int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
@@ -402,7 +402,7 @@ static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
 enc_tb*
 Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
                                          context_model_table& ctxModel,
-                                         const de265_image* input,
+                                         const image* input,
                                          enc_tb* tb,
                                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {

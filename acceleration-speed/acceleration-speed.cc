@@ -73,7 +73,7 @@ static struct option long_options[] = {
 DSPFunc* DSPFunc::first = NULL;
 
 
-bool DSPFunc::runOnImage(std::shared_ptr<const de265_image> img, bool compareToReference)
+bool DSPFunc::runOnImage(std::shared_ptr<const image> img, bool compareToReference)
 {
   int w = img->get_width(0);
   int h = img->get_height(0);
@@ -190,7 +190,7 @@ int main(int argc, char** argv)
   bool eof = false;
   for (int f=0; f<nframes ; f++)
     {
-      std::shared_ptr<de265_image> image(image_source.get_image());
+      std::shared_ptr<image> image(image_source.get_image());
       if (!image) {
         eof=true;
         break;

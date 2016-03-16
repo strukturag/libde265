@@ -107,7 +107,7 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
 void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y, int PUidx,
                                  bool availableA, // left
                                  bool availableB, // top
-                                 const de265_image* img)
+                                 const image* img)
 {
   const seq_parameter_set* sps = &img->get_sps();
 
@@ -346,7 +346,7 @@ struct intra_border_computer
 {
   pixel_t* out_border;
 
-  const de265_image* img;
+  const image* img;
   int nT;
   int cIdx;
 
@@ -372,7 +372,7 @@ struct intra_border_computer
   pixel_t firstValue;
 
   void init(pixel_t* _out_border,
-            const de265_image* _img, int _nT, int _cIdx, int _xB, int _yB) {
+            const image* _img, int _nT, int _cIdx, int _xB, int _yB) {
     img=_img; nT=_nT; cIdx=_cIdx;
     out_border=_out_border; xB=_xB; yB=_yB;
 
@@ -529,7 +529,7 @@ void intra_border_computer<pixel_t>::preproc()
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples(de265_image* img,
+void fill_border_samples(image* img,
                          int xB,int yB,  // in component specific resolution
                          int nT, int cIdx,
                          pixel_t* out_border)
@@ -544,7 +544,7 @@ void fill_border_samples(de265_image* img,
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples_from_tree(const de265_image* img,
+void fill_border_samples_from_tree(const image* img,
                                    const enc_tb* tb,
                                    const CTBTreeMatrix& ctbs,
                                    int cIdx,
@@ -1071,7 +1071,7 @@ void intra_prediction_DC(pixel_t* dst, int dstStride,
 
 
 template <class pixel_t>
-void decode_intra_prediction_internal(de265_image* img,
+void decode_intra_prediction_internal(image* img,
                                       int xB0,int yB0,
                                       enum IntraPredMode intraPredMode,
                                       pixel_t* dst, int dstStride,
@@ -1112,7 +1112,7 @@ void decode_intra_prediction_internal(de265_image* img,
 
 
 // (8.4.4.2.1)
-void decode_intra_prediction(de265_image* img,
+void decode_intra_prediction(image* img,
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx)
@@ -1140,7 +1140,7 @@ void decode_intra_prediction(de265_image* img,
 
 
 // TODO: remove this
-template <> void decode_intra_prediction<uint8_t>(de265_image* img,
+template <> void decode_intra_prediction<uint8_t>(image* img,
                                                   int xB0,int yB0,
                                                   enum IntraPredMode intraPredMode,
                                                   uint8_t* dst, int nT, int cIdx)
@@ -1152,7 +1152,7 @@ template <> void decode_intra_prediction<uint8_t>(de265_image* img,
 
 
 // TODO: remove this
-template <> void decode_intra_prediction<uint16_t>(de265_image* img,
+template <> void decode_intra_prediction<uint16_t>(image* img,
                                                    int xB0,int yB0,
                                                    enum IntraPredMode intraPredMode,
                                                    uint16_t* dst, int nT, int cIdx)
@@ -1164,7 +1164,7 @@ template <> void decode_intra_prediction<uint16_t>(de265_image* img,
 
 
 template <class pixel_t>
-void decode_intra_prediction_from_tree_internal(const de265_image* img,
+void decode_intra_prediction_from_tree_internal(const image* img,
                                                 const enc_tb* tb,
                                                 const CTBTreeMatrix& ctbs,
                                                 const seq_parameter_set& sps,
@@ -1223,7 +1223,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
 }
 
 
-void decode_intra_prediction_from_tree(const de265_image* img,
+void decode_intra_prediction_from_tree(const image* img,
                                        const enc_tb* tb,
                                        const CTBTreeMatrix& ctbs,
                                        const seq_parameter_set& sps,

@@ -62,7 +62,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   // build prediction
 
   // previous frame (TODO)
-  const de265_image* refimg = ectx->get_image(ectx->imgdata->frame_number -1);
+  const image* refimg = ectx->get_image(ectx->imgdata->frame_number -1);
 
   //printf("prev frame: %p %d\n",refimg,ectx->imgdata->frame_number);
 
@@ -131,7 +131,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const de265_image* input = ectx->imgdata->input;
+    const image* input = ectx->imgdata->input;
     //de265_image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;

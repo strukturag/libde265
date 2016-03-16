@@ -33,7 +33,7 @@ void sop_creator_intra_only::set_SPS_header_values()
 }
 
 
-void sop_creator_intra_only::insert_new_input_image(de265_image* img)
+void sop_creator_intra_only::insert_new_input_image(image* img)
 {
   img->PicOrderCntVal = get_pic_order_count();
 
@@ -75,7 +75,7 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
 }
 
 
-void sop_creator_trivial_low_delay::insert_new_input_image(de265_image* img)
+void sop_creator_trivial_low_delay::insert_new_input_image(image* img)
 {
   img->PicOrderCntVal = get_pic_order_count();
 

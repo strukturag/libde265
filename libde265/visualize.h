@@ -25,7 +25,7 @@
 #include "libde265/image.h"
 
 
-void write_picture_to_file(const de265_image* img, const char* filename);
+void write_picture_to_file(const image* img, const char* filename);
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,15 +33,15 @@ extern "C" {
 
 // TODO: these should either move to "sherlock265", or be part of the
 // "official" public API
-LIBDE265_API void draw_CB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-LIBDE265_API void draw_TB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-LIBDE265_API void draw_PB_grid(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-LIBDE265_API void draw_PB_pred_modes(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-LIBDE265_API void draw_intra_pred_modes(const de265_image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
-LIBDE265_API void draw_QuantPY(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-LIBDE265_API void draw_Motion(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
-LIBDE265_API void draw_Tiles(const de265_image* img, uint8_t* dst, int stride, int pixelSize);
+LIBDE265_API void draw_CB_grid(const image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
+LIBDE265_API void draw_TB_grid(const image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
+LIBDE265_API void draw_PB_grid(const image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
+LIBDE265_API void draw_PB_pred_modes(const image* img, uint8_t* dst, int stride, int pixelSize);
+LIBDE265_API void draw_intra_pred_modes(const image* img, uint8_t* dst, int stride, uint32_t value, int pixelSize);
+LIBDE265_API void draw_QuantPY(const image* img, uint8_t* dst, int stride, int pixelSize);
+LIBDE265_API void draw_Motion(const image* img, uint8_t* dst, int stride, int pixelSize);
+LIBDE265_API void draw_Slices(const image* img, uint8_t* dst, int stride, int pixelSize);
+LIBDE265_API void draw_Tiles(const image* img, uint8_t* dst, int stride, int pixelSize);
 
 #ifdef __cplusplus
 }

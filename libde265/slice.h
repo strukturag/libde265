@@ -306,7 +306,7 @@ public:
 };
 
 
-int check_CTB_available(const de265_image* img,
+int check_CTB_available(const image* img,
                         int xC,int yC, int xN,int yN);
 
 #endif

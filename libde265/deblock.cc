@@ -28,7 +28,7 @@
 
 
 // 8.7.2.1 for both EDGE_HOR and EDGE_VER at the same time
-void markTransformBlockBoundary(de265_image* img, int x0,int y0,
+void markTransformBlockBoundary(image* img, int x0,int y0,
                                 int log2TrafoSize,int trafoDepth,
                                 int filterLeftCbEdge, int filterTopCbEdge)
 {
@@ -63,7 +63,7 @@ void markTransformBlockBoundary(de265_image* img, int x0,int y0,
 
 
 // 8.7.2.2 for both EDGE_HOR and EDGE_VER at the same time
-void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
+void markPredictionBlockBoundary(image* img, int x0,int y0,
                                  int log2CbSize,
                                  int filterLeftCbEdge, int filterTopCbEdge)
 {
@@ -127,7 +127,7 @@ void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
 }
 
 
-bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
+bool derive_edgeFlags_CTBRow(image* img, int ctby)
 {
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
@@ -225,7 +225,7 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
 }
 
 
-bool derive_edgeFlags(de265_image* img)
+bool derive_edgeFlags(image* img)
 {
   bool deblocking_enabled=false;
 
@@ -238,7 +238,7 @@ bool derive_edgeFlags(de265_image* img)
 
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
-void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEnd,
+void derive_boundaryStrength(image* img, bool vertical, int yStart,int yEnd,
                              int xStart,int xEnd)
 {
   int xIncr = vertical ? 2 : 1;
@@ -375,7 +375,7 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 }
 
 
-void derive_boundaryStrength_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void derive_boundaryStrength_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -402,7 +402,7 @@ static uint8_t table_8_23_tc[54] = {
 
 // 8.7.2.4
 template <class pixel_t>
-void edge_filtering_luma_internal(de265_image* img, bool vertical,
+void edge_filtering_luma_internal(image* img, bool vertical,
                                   int yStart,int yEnd, int xStart,int xEnd)
 {
   //printf("luma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
@@ -699,7 +699,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 }
 
 
-void edge_filtering_luma(de265_image* img, bool vertical,
+void edge_filtering_luma(image* img, bool vertical,
                          int yStart,int yEnd, int xStart,int xEnd)
 {
   if (img->high_bit_depth(0)) {
@@ -710,7 +710,7 @@ void edge_filtering_luma(de265_image* img, bool vertical,
   }
 }
 
-void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void edge_filtering_luma_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -727,7 +727,7 @@ void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 /** ?Start and ?End values in 4-luma pixels resolution.
  */
 template <class pixel_t>
-void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+void edge_filtering_chroma_internal(image* img, bool vertical,
                                     int yStart,int yEnd,
                                     int xStart,int xEnd)
 {
@@ -871,7 +871,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 }
 
 
-void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
+void edge_filtering_chroma(image* img, bool vertical, int yStart,int yEnd,
                            int xStart,int xEnd)
 {
   if (img->high_bit_depth(1)) {
@@ -883,7 +883,7 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
 }
 
 
-void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void edge_filtering_chroma_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -898,7 +898,7 @@ void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCt
 class thread_task_deblock_CTBRow : public thread_task
 {
 public:
-  struct de265_image* img;
+  struct image* img;
   int  ctb_y;
   bool vertical;
 
@@ -991,7 +991,7 @@ void thread_task_deblock_CTBRow::work()
 
 void add_deblocking_tasks(image_unit* imgunit)
 {
-  de265_image* img = imgunit->img;
+  image* img = imgunit->img;
   decoder_context* ctx = img->decctx;
 
   int nRows = img->get_sps().PicHeightInCtbsY;
@@ -1017,7 +1017,7 @@ void add_deblocking_tasks(image_unit* imgunit)
 }
 
 
-void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
+void apply_deblocking_filter(image* img) // decoder_context* ctx)
 {
   decoder_context* ctx = img->decctx;
 

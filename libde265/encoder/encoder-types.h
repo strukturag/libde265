@@ -111,8 +111,8 @@ class LocalizedSubImage
   int getTop() const { return mYMin; }
   int getHeight() const { return mHeight; }
 
-  void copyToImage(de265_image* img, int cIdx) const;
-  void copyFromImage(const de265_image* img, int cIdx);
+  void copyToImage(image* img, int cIdx) const;
+  void copyFromImage(const image* img, int cIdx);
 
   static LocalizedSubImage invalid() {
     return LocalizedSubImage();
@@ -186,10 +186,10 @@ class enc_tb : public enc_node
 
   void set_cbf_flags_from_children();
 
-  void reconstruct(encoder_context* ectx, de265_image* img) const;
-  void copy_reconstruction_from_image(encoder_context* ectx, const de265_image* img);
+  void reconstruct(encoder_context* ectx, image* img) const;
+  void copy_reconstruction_from_image(encoder_context* ectx, const image* img);
 
-  void debug_writeBlack(encoder_context* ectx, de265_image* img) const;
+  void debug_writeBlack(encoder_context* ectx, image* img) const;
 
   bool isZeroBlock() const { return cbf[0]==false && cbf[1]==false && cbf[2]==false; }
 
@@ -199,7 +199,7 @@ class enc_tb : public enc_node
 
   LocalizedSubImage getPixels(int x,int y, int cIdx, const seq_parameter_set& sps);
 
-  void writeReconstructionToImage(de265_image* img,
+  void writeReconstructionToImage(image* img,
                                   const seq_parameter_set* sps) const;
 
   /*
@@ -214,11 +214,11 @@ private:
   static alloc_pool mMemPool;
 
   void reconstruct_tb(encoder_context* ectx,
-                      de265_image* img, int x0,int y0, int log2TbSize,
+                      image* img, int x0,int y0, int log2TbSize,
                       int cIdx) const;
 
   void copy_reconstruction_from_image_plane(encoder_context* ectx,
-                                            const de265_image* img,
+                                            const image* img,
                                             int x0,int y0,  // luma
                                             int log2TbSize, // chroma adapted
                                             int cIdx);
@@ -318,7 +318,7 @@ public:
   // can only be called on the lowest-level CB (with TB-tree as its direct child)
   const enc_tb* getTB(int x,int y) const;
 
-  void writeReconstructionToImage(de265_image* img,
+  void writeReconstructionToImage(image* img,
                                   const seq_parameter_set* sps) const;
 
 
@@ -380,7 +380,7 @@ class CTBTreeMatrix
   const enc_tb* getTB(int x,int y) const;
   const enc_pb_inter* getPB(int x,int y) const;
 
-  void writeReconstructionToImage(de265_image* img,
+  void writeReconstructionToImage(image* img,
                                   const seq_parameter_set*) const;
 
  private:

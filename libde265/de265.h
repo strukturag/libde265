@@ -154,7 +154,7 @@ LIBDE265_API void de265_set_verbosity(int level);
    But you may want to check the chroma format anyway for future compatibility.
  */
 
-struct de265_image;
+struct de265_image { };
 
 enum de265_chroma {
   de265_chroma_mono=0,

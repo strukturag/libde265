@@ -108,7 +108,7 @@ public:
   uint8_t StatCoeff[4];
 
   decoder_context* decctx;
-  struct de265_image *img;
+  struct image *img;
   slice_segment_header* shdr;
 
   image_unit* imgunit;
@@ -194,8 +194,8 @@ public:
   image_unit();
   ~image_unit();
 
-  de265_image* img;
-  de265_image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
+  image* img;
+  image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;
@@ -274,7 +274,7 @@ class image_history
   virtual ~image_history() { }
 
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const de265_image* get_image(int frame_id) const = 0;
+  virtual const image* get_image(int frame_id) const = 0;
   virtual bool has_image(int frame_id) const = 0;
 };
 
@@ -371,14 +371,14 @@ class decoder_context : public base_context {
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
-  /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+  /* */ image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  const image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
 
   bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
 
-  de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
-  int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
-  void         pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
+  image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
+  int    num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
+  void   pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
 
  private:
   de265_error read_vps_NAL(bitreader&);
@@ -450,7 +450,7 @@ class decoder_context : public base_context {
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
-  de265_image* img;
+  image* img;
 
  public:
   const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
@@ -523,7 +523,7 @@ class decoder_context : public base_context {
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(struct de265_image* img);
+  void run_postprocessing_filters_sequential(struct image* img);
   void run_postprocessing_filters_parallel(image_unit* img);
 };
 

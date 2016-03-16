@@ -54,12 +54,12 @@ public:
 
   /* Raw access to the images. */
 
-  /* */ de265_image* get_image(int index)       {
+  /* */ image* get_image(int index)       {
     if (index>=dpb.size()) return NULL;
     return dpb[index];
   }
 
-  const de265_image* get_image(int index) const {
+  const image* get_image(int index) const {
     if (index>=dpb.size()) return NULL;
     return dpb[index];
   }
@@ -72,7 +72,7 @@ public:
 
   // --- reorder buffer ---
 
-  void insert_image_into_reorder_buffer(struct de265_image* img) {
+  void insert_image_into_reorder_buffer(struct image* img) {
     reorder_output_queue.push_back(img);
   }
 
@@ -90,7 +90,7 @@ public:
   int num_pictures_in_output_queue() const { return image_output_queue.size(); }
 
   /* Get the next picture in the output queue, but do not remove it from the queue. */
-  struct de265_image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
+  struct image* get_next_picture_in_output_queue() const { return image_output_queue.front(); }
 
   /* Remove the next picture in the output queue. */
   void pop_next_picture_in_output_queue();
@@ -105,10 +105,10 @@ private:
   int max_images_in_DPB;
   int norm_images_in_DPB;
 
-  std::vector<struct de265_image*> dpb; // decoded picture buffer
+  std::vector<struct image*> dpb; // decoded picture buffer
 
-  std::vector<struct de265_image*> reorder_output_queue;
-  std::deque<struct de265_image*>  image_output_queue;
+  std::vector<struct image*> reorder_output_queue;
+  std::deque<struct image*>  image_output_queue;
 
 private:
   decoded_picture_buffer(const decoded_picture_buffer&); // no copy

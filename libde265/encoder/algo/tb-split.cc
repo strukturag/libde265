@@ -91,7 +91,7 @@ void diff_blk(int16_t* out,int out_stride,
 
 
 template <class pixel_t>
-void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_image* input,
+void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const image* input,
                               int cIdx, int x,int y,int log2Size)
 {
   int blkSize = (1<<log2Size);
@@ -124,7 +124,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
 
 template <class pixel_t>
-void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input, int blkIdx)
+void compute_residual(encoder_context* ectx, enc_tb* tb, const image* input, int blkIdx)
 {
   int tbSize = 1<<tb->log2Size;
 
@@ -162,7 +162,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
 enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table& ctxModel,
-                                  const de265_image* input,
+                                  const image* input,
                                   enc_tb* tb,
                                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
@@ -275,13 +275,13 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                    context_model_table& ctxModel,
-                                                   const de265_image* input,
+                                                   const image* input,
                                                    enc_tb* tb,
                                                    enc_cb* cb,
                                                    int TrafoDepth, int MaxTrafoDepth,
                                                    int IntraSplitFlag)
 {
-  const de265_image* img = ectx->img;
+  const image* img = ectx->img;
 
   int log2TbSize = tb->log2Size;
   int x0 = tb->x;

@@ -37,7 +37,7 @@
 #include <libvideogfx.hh>
 using namespace videogfx;
 
-void debug_show_image_libvideogfx(const de265_image* input, int slot)
+void debug_show_image_libvideogfx(const image* input, int slot)
 {
     static X11Win debugwin;
     static bool opened=false;
@@ -312,13 +312,13 @@ int main(int argc, char** argv)
     {
       // push one image into the encoder
 
-      de265_image* input_image = image_source->get_image();
+      image* input_image = image_source->get_image();
       if (input_image==NULL) {
         en265_push_eof(ectx);
         eof=true;
       }
       else {
-        en265_push_image(ectx, input_image);
+        en265_push_image(ectx, (de265_image*)input_image);
       }
 
 

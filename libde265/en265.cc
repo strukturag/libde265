@@ -48,7 +48,7 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                                                    void (*release_func)(en265_encoder_context*,
-                                                                        de265_image*,
+                                                                        image*,
                                                                         void* userdata),
                                                    void* alloc_userdata)
 {
@@ -178,14 +178,14 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  de265_image* img = new de265_image;
+  image* img = new image;
   if (img->alloc_image(width,height,de265_chroma_420, NULL, false,
                        NULL,ectx, pts, image_userdata, true) != DE265_OK) {
     delete img;
     return NULL;
   }
 
-  return img;
+  return (de265_image*)img;
 }
 
 // Request a specification of the image memory layout for an image of the specified dimensions.
@@ -218,7 +218,7 @@ LIBDE265_API de265_error en265_push_image(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  ectx->sop->insert_new_input_image(img);
+  ectx->sop->insert_new_input_image((image*)img);
   return DE265_OK;
 }
 

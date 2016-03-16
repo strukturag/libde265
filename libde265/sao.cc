@@ -26,7 +26,7 @@
 
 
 template <class pixel_t>
-void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
+void apply_sao_internal(image* img, int xCtb,int yCtb,
                         const slice_segment_header* shdr, int cIdx, int nSW,int nSH,
                         const pixel_t* in_img,  int in_stride,
                         /* */ pixel_t* out_img, int out_stride)
@@ -255,7 +255,7 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
 
 template <class pixel_t>
-void apply_sao(de265_image* img, int xCtb,int yCtb,
+void apply_sao(image* img, int xCtb,int yCtb,
                const slice_segment_header* shdr, int cIdx, int nSW,int nSH,
                const pixel_t* in_img,  int in_stride,
                /* */ pixel_t* out_img, int out_stride)
@@ -273,7 +273,7 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 }
 
 
-void apply_sample_adaptive_offset(de265_image* img)
+void apply_sample_adaptive_offset(image* img)
 {
   const seq_parameter_set& sps = img->get_sps();
 
@@ -281,7 +281,7 @@ void apply_sample_adaptive_offset(de265_image* img)
     return;
   }
 
-  de265_image inputCopy;
+  image inputCopy;
   de265_error err = inputCopy.copy_image(img);
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
@@ -315,7 +315,7 @@ void apply_sample_adaptive_offset(de265_image* img)
 }
 
 
-void apply_sample_adaptive_offset_sequential(de265_image* img)
+void apply_sample_adaptive_offset_sequential(image* img)
 {
   const seq_parameter_set& sps = img->get_sps();
 
@@ -376,12 +376,12 @@ class thread_task_sao : public thread_task
 {
 public:
   int  ctb_y;
-  de265_image* img; /* this is where we get the SPS from
-                       (either inputImg or outputImg can be a dummy image)
-                    */
+  image* img; /* this is where we get the SPS from
+                 (either inputImg or outputImg can be a dummy image)
+              */
 
-  de265_image* inputImg;
-  de265_image* outputImg;
+  image* inputImg;
+  image* outputImg;
   int inputProgress;
 
   virtual void work();
@@ -467,7 +467,7 @@ void thread_task_sao::work()
 
 bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 {
-  de265_image* img = imgunit->img;
+  image* img = imgunit->img;
   const seq_parameter_set& sps = img->get_sps();
 
   if (sps.sample_adaptive_offset_enabled_flag==0) {

@@ -84,6 +84,6 @@ const char* sei_type_name(enum sei_payload_type type);
 
 de265_error read_sei(bitreader* reader, sei_message*, bool suffix, const seq_parameter_set* sps);
 void dump_sei(const sei_message*, const seq_parameter_set* sps);
-de265_error process_sei(const sei_message*, struct de265_image* img);
+de265_error process_sei(const sei_message*, struct image* img);
 
 #endif

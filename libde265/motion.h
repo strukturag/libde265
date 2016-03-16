@@ -71,7 +71,7 @@ class PBMotionCoding
 
 void get_merge_candidate_list(base_context* ctx,
                               const slice_segment_header* shdr,
-                              struct de265_image* img,
+                              struct image* img,
                               int xC,int yC, int xP,int yP,
                               int nCS, int nPbW,int nPbH, int partIdx,
                               PBMotion* mergeCandList);
@@ -83,7 +83,7 @@ void get_merge_candidate_list_from_tree(class encoder_context* ectx,
                                         PBMotion* mergeCandList);
 
 /*
-int derive_spatial_merging_candidates(const struct de265_image* img,
+int derive_spatial_merging_candidates(const struct image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
@@ -95,7 +95,7 @@ int derive_spatial_merging_candidates(const struct de265_image* img,
 void generate_inter_prediction_samples(base_context* ctx,
                                        const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
-                                       struct de265_image* img,
+                                       struct image* img,
                                        int xP,int yP,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi);
@@ -105,7 +105,7 @@ void generate_inter_prediction_samples(base_context* ctx,
  */
 void fill_luma_motion_vector_predictors_from_image(base_context* ctx,
                                                    const slice_segment_header* shdr,
-                                                   de265_image* img,
+                                                   image* img,
                                                    int xC,int yC,int nCS,int xP,int yP,
                                                    int nPbW,int nPbH, int l,
                                                    int refIdx, int partIdx,
@@ -120,7 +120,7 @@ void fill_luma_motion_vector_predictors_from_tree(class encoder_context* ctx,
 
 
 void decode_prediction_unit(base_context* ctx,const slice_segment_header* shdr,
-                            de265_image* img, const PBMotionCoding& motion,
+                            image* img, const PBMotionCoding& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx);
 
 

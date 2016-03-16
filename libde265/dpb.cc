@@ -239,13 +239,13 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   if (free_image_buffer_idx == -1) {
     free_image_buffer_idx = dpb.size();
-    dpb.push_back(new de265_image);
+    dpb.push_back(new image);
   }
 
 
   // --- allocate new image ---
 
-  de265_image* img = dpb[free_image_buffer_idx];
+  image* img = dpb[free_image_buffer_idx];
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;

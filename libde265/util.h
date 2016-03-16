@@ -220,7 +220,7 @@ void printBlk(const char* title,const int32_t* data, int blksize, int stride, co
 void printBlk(const char* title,const int16_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const uint8_t* data, int blksize, int stride, const std::string& prefix="  ");
 
-void debug_set_image_output(void (*)(const struct de265_image*, int slot));
-void debug_show_image(const struct de265_image*, int slot);
+void debug_set_image_output(void (*)(const struct image*, int slot));
+void debug_show_image(const struct image*, int slot);
 
 #endif

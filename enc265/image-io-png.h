@@ -37,7 +37,7 @@ class ImageSource_PNG : public ImageSource
   bool LIBDE265_API set_input_file(const char* filename);
 
   //virtual ImageStatus  get_status();
-  virtual LIBDE265_API de265_image* get_image(bool block=true);
+  virtual LIBDE265_API image* get_image(bool block=true);
   virtual LIBDE265_API void skip_frames(int n);
 
   virtual LIBDE265_API int get_width() const { return mWidth; }

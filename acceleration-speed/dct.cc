@@ -58,7 +58,7 @@ bool DSPFunc_FDCT_Base::compareToReferenceImplementation()
 }
 
 
-bool DSPFunc_FDCT_Base::prepareNextImage(std::shared_ptr<const de265_image> img)
+bool DSPFunc_FDCT_Base::prepareNextImage(std::shared_ptr<const image> img)
 {
   if (!curr_image) {
     curr_image = img;
@@ -105,7 +105,7 @@ bool DSPFunc_IDCT_Base::compareToReferenceImplementation()
 }
 
 
-bool DSPFunc_IDCT_Base::prepareNextImage(std::shared_ptr<const de265_image> img)
+bool DSPFunc_IDCT_Base::prepareNextImage(std::shared_ptr<const image> img)
 {
   // --- generate fake coefficients ---
   // difference between two frames

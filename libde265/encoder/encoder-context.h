@@ -44,7 +44,7 @@ class encoder_context : public base_context
 
   // --- image_history (decoded images) ---
 
-  virtual const de265_image* get_image(int frame_id) const {
+  virtual const image* get_image(int frame_id) const {
     return picbuf.get_picture(frame_id)->reconstruction;
   }
 
@@ -69,11 +69,11 @@ class encoder_context : public base_context
 
   void* param_image_allocation_userdata;
   void (*release_func)(en265_encoder_context*,
-                       de265_image*,
+                       image*,
                        void* userdata);
 
   // quick links
-  de265_image* img; // reconstruction
+  image* img; // reconstruction
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
@@ -115,7 +115,7 @@ class encoder_context : public base_context
   public:
     image_history_input(const encoder_context* ectx) { m_ectx=ectx; }
 
-    virtual const de265_image* get_image(int frame_id) const {
+    virtual const image* get_image(int frame_id) const {
       return m_ectx->picbuf.get_picture(frame_id)->input;
     }
 

@@ -116,7 +116,7 @@ private:
   SwsContext* sws;
   int width;
   int height;
-  void convert_frame_swscale(const de265_image* img, QImage & qimg);
+  void convert_frame_swscale(const image* img, QImage & qimg);
 #endif
 };
 

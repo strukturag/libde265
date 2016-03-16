@@ -117,7 +117,7 @@ void enc_tb::alloc_coeff_memory(int cIdx, int tbSize)
 
 
 void enc_tb::reconstruct_tb(encoder_context* ectx,
-                            de265_image* img,
+                            image* img,
                             int x0,int y0,  // luma
                             int log2TbSize, // chroma adapted
                             int cIdx) const
@@ -235,7 +235,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
 }
 
 
-void enc_tb::debug_writeBlack(encoder_context* ectx, de265_image* img) const
+void enc_tb::debug_writeBlack(encoder_context* ectx, image* img) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
@@ -260,7 +260,7 @@ void enc_tb::debug_writeBlack(encoder_context* ectx, de265_image* img) const
 }
 
 
-void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
+void enc_tb::reconstruct(encoder_context* ectx, image* img) const
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
@@ -290,7 +290,7 @@ void enc_tb::reconstruct(encoder_context* ectx, de265_image* img) const
 
 
 void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
-                                                  const de265_image* img,
+                                                  const image* img,
                                                   int x0,int y0,  // luma
                                                   int log2TbSize, // chroma adapted
                                                   int cIdx)
@@ -320,7 +320,7 @@ void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
 }
 
 
-void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const de265_image* img)
+void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const image* img)
 {
   if (split_transform_flag) {
     for (int i=0;i<4;i++) {
@@ -399,7 +399,7 @@ enc_cb::~enc_cb()
 
 
 /*
-void enc_cb::write_to_image(de265_image* img) const
+void enc_cb::write_to_image(image* img) const
 {
   //printf("write_to_image %d %d size:%d\n",x,y,1<<log2Size);
 
@@ -480,7 +480,7 @@ void enc_cb::write_to_image(de265_image* img) const
 */
 
 /*
-void enc_cb::reconstruct(encoder_context* ectx, de265_image* img) const
+void enc_cb::reconstruct(encoder_context* ectx, image* img) const
 {
   assert(0);
   if (split_cu_flag) {
@@ -701,7 +701,7 @@ const enc_pb_inter* CTBTreeMatrix::getPB(int x,int y) const
 }
 
 
-void CTBTreeMatrix::writeReconstructionToImage(de265_image* img,
+void CTBTreeMatrix::writeReconstructionToImage(image* img,
                                                const seq_parameter_set* sps) const
 {
   for (int i=0;i<mCTBs.size();i++) {
@@ -710,7 +710,7 @@ void CTBTreeMatrix::writeReconstructionToImage(de265_image* img,
   }
 }
 
-void enc_cb::writeReconstructionToImage(de265_image* img,
+void enc_cb::writeReconstructionToImage(image* img,
                                         const seq_parameter_set* sps) const
 {
   if (split_cu_flag) {
@@ -727,7 +727,7 @@ void enc_cb::writeReconstructionToImage(de265_image* img,
   }
 }
 
-void enc_tb::writeReconstructionToImage(de265_image* img,
+void enc_tb::writeReconstructionToImage(image* img,
                                         const seq_parameter_set* sps) const
 {
   if (split_transform_flag) {
@@ -811,7 +811,7 @@ LocalizedSubImage enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_s
 }
 
 
-void LocalizedSubImage::copyToImage(de265_image* img, int cIdx) const
+void LocalizedSubImage::copyToImage(image* img, int cIdx) const
 {
   uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
   int stride = img->get_image_stride(cIdx);
@@ -822,7 +822,7 @@ void LocalizedSubImage::copyToImage(de265_image* img, int cIdx) const
   }
 }
 
-void LocalizedSubImage::copyFromImage(const de265_image* img, int cIdx)
+void LocalizedSubImage::copyFromImage(const image* img, int cIdx)
 {
   const uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
   int stride = img->get_image_stride(cIdx);

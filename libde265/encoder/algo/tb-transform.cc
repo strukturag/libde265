@@ -56,7 +56,7 @@ static bool has_nonzero_value(const int16_t* data, int n)
 
 void compute_transform_coeffs(encoder_context* ectx,
                               enc_tb* tb,
-                              const de265_image* input, // TODO: probably pass pixels/stride directly
+                              const image* input, // TODO: probably pass pixels/stride directly
                               //int16_t* residual, int stride,
                               int x0,int y0, // luma position
                               int log2TbSize, // chroma adapted
@@ -138,7 +138,7 @@ void compute_transform_coeffs(encoder_context* ectx,
 
 enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    context_model_table& ctxModel,
-                                   const de265_image* input,
+                                   const image* input,
                                    enc_tb* tb,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
@@ -148,7 +148,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   const enc_cb* cb = tb->cb;
   *tb->downPtr = tb; // TODO: should be obsolet
 
-  de265_image* img = ectx->img;
+  image* img = ectx->img;
 
   int stride = ectx->img->get_image_stride(0);
 

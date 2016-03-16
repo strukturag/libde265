@@ -124,9 +124,9 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const de265_image* input = ectx->imgdata->input;
+    const image* input = ectx->imgdata->input;
     /* TODO TMP REMOVE: prediction does not exist anymore
-    de265_image* img   = ectx->prediction;
+    image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
@@ -195,8 +195,8 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
   int vrange = mParams.vrange();
 
   // previous frame (TODO)
-  const de265_image* refimg   = ectx->get_image(ectx->imgdata->frame_number -1);
-  const de265_image* inputimg = ectx->imgdata->input;
+  const image* refimg   = ectx->get_image(ectx->imgdata->frame_number -1);
+  const image* inputimg = ectx->imgdata->input;
 
   int w = refimg->get_width();
   int h = refimg->get_height();
@@ -299,8 +299,8 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const de265_image* input = ectx->imgdata->input;
-    de265_image* img   = ectx->img;
+    const image* input = ectx->imgdata->input;
+    image* img   = ectx->img;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;

@@ -1689,7 +1689,7 @@ static int decode_cu_skip_flag(thread_context* tctx,
 static enum PartMode decode_part_mode(thread_context* tctx,
 				      enum PredMode pred_mode, int cLog2CbSize)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
 
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
@@ -2696,7 +2696,7 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
               int CtbAddrInSliceSeg)
 {
   slice_segment_header* shdr = tctx->shdr;
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -2835,7 +2835,7 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 void read_coding_tree_unit(thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
 
   int xCtb = (tctx->CtbAddrInRS % sps.PicWidthInCtbsY);
@@ -2871,7 +2871,7 @@ LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(const seq_parameter_set* sps, i
 }
 
 
-int check_CTB_available(const de265_image* img,
+int check_CTB_available(const image* img,
                         int xC,int yC, int xN,int yN)
 {
   // check whether neighbor is outside of frame
@@ -2911,7 +2911,7 @@ int residual_coding(thread_context* tctx,
 
   //slice_segment_header* shdr = tctx->shdr;
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -3426,7 +3426,7 @@ static void decode_TU(thread_context* tctx,
                       int xCUBase,int yCUBase,
                       int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
 
   int residualDpcm = 0;
@@ -3804,7 +3804,7 @@ int read_transform_unit(thread_context* tctx,
 }
 
 
-static void dump_cbsize(de265_image* img)
+static void dump_cbsize(image* img)
 {
   int w = img->get_width(0);
   int h = img->get_height(0);
@@ -3834,7 +3834,7 @@ void read_transform_tree(thread_context* tctx,
            "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d parent-cbf-cb:%d parent-cbf-cr:%d\n",
            x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth,parent_cbf_cb,parent_cbf_cr);
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
 
   int split_transform_flag;
@@ -4247,7 +4247,7 @@ void read_coding_unit(thread_context* tctx,
                       int log2CbSize,
                       int ctDepth)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
   slice_segment_header* shdr = tctx->shdr;
@@ -4586,7 +4586,7 @@ void read_coding_quadtree(thread_context* tctx,
 {
   logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d POC:%d\n",x0,y0,1<<log2CbSize,ctDepth,tctx->img->PicOrderCntVal);
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -4833,7 +4833,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const pic_parameter_set& pps = img->get_pps();
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
@@ -4908,7 +4908,7 @@ void thread_task_slice_segment::work()
 {
   thread_task_slice_segment* data = this;
   thread_context* tctx = data->tctx;
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
 
   state = Running;
   img->thread_run(this);
@@ -4946,7 +4946,7 @@ void thread_task_ctb_row::work()
 {
   thread_task_ctb_row* data = this;
   thread_context* tctx = data->tctx;
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
 
   const seq_parameter_set& sps = img->get_sps();
   int ctbW = sps.PicWidthInCtbsY;
@@ -5010,7 +5010,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 {
   setCtbAddrFromTS(tctx);
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img;
   const pic_parameter_set& pps = img->get_pps();
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;

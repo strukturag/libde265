@@ -61,11 +61,11 @@ bool ImageSource_YUV::set_input_file(const char* filename, int w,int h)
 }
 
 
-de265_image* ImageSource_YUV::read_next_image()
+image* ImageSource_YUV::read_next_image()
 {
   if (mReachedEndOfFile) return NULL;
 
-  de265_image* img = new de265_image;
+  image* img = new image;
   img->alloc_image(width,height,de265_chroma_420, NULL, false,
                    NULL, NULL, 0, NULL, false);
   assert(img); // TODO: error handling
@@ -117,9 +117,9 @@ ImageSource::ImageStatus  ImageSource_YUV::get_status()
 }
 */
 
-de265_image* ImageSource_YUV::get_image(bool block)
+image* ImageSource_YUV::get_image(bool block)
 {
-  de265_image* img = read_next_image();
+  image* img = read_next_image();
   return img;
 }
 
@@ -149,7 +149,7 @@ bool ImageSink_YUV::set_filename(const char* filename)
   return true;
 }
 
-void ImageSink_YUV::send_image(const de265_image* img)
+void ImageSink_YUV::send_image(const image* img)
 {
   // --- write image ---
 

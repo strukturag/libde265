@@ -84,7 +84,7 @@ class sop_creator : public pic_order_counter
      - SHDR.slice_pic_order_cnt_lsb
      - IMGDATA.references
    */
-  virtual void insert_new_input_image(de265_image*) = 0;
+  virtual void insert_new_input_image(image*) = 0;
   virtual void insert_end_of_stream() { mEncPicBuf->insert_end_of_stream(); }
 
   virtual int  get_number_of_temporal_layers() const { return 1; }
@@ -104,7 +104,7 @@ class sop_creator_intra_only : public sop_creator
   sop_creator_intra_only();
 
   virtual void set_SPS_header_values();
-  virtual void insert_new_input_image(de265_image* img);
+  virtual void insert_new_input_image(image* img);
 };
 
 
@@ -131,7 +131,7 @@ class sop_creator_trivial_low_delay : public sop_creator
   void setParams(const params& p) { mParams=p; }
 
   virtual void set_SPS_header_values();
-  virtual void insert_new_input_image(de265_image* img);
+  virtual void insert_new_input_image(image* img);
 
  private:
   params mParams;

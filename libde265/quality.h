@@ -41,7 +41,7 @@ LIBDE265_API double MSE(const uint8_t* img, int imgStride,
 LIBDE265_API double PSNR(double mse);
 
 
-LIBDE265_API uint32_t compute_distortion_ssd(const de265_image* img1, const de265_image* img2,
+LIBDE265_API uint32_t compute_distortion_ssd(const image* img1, const image* img2,
                                              int x0, int y0, int log2size, int cIdx);
 
 #endif

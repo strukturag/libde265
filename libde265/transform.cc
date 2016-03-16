@@ -109,7 +109,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   int qPYA,qPYB;
 
-  CodingDataAccess<de265_image> dataaccess(tctx->img);
+  CodingDataAccess<image> dataaccess(tctx->img);
 
   if (available_zscan(dataaccess, xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;

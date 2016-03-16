@@ -281,7 +281,7 @@ void mc_chroma(const base_context* ctx,
 void generate_inter_prediction_samples(base_context* ctx,
                                        const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
-                                       de265_image* img,
+                                       image* img,
                                        int xP,int yP,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi)
@@ -341,7 +341,7 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const de265_image* refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      const image* refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -1070,7 +1070,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
   // get collocated image and the prediction mode at the collocated position
 
   assert(ctx->has_image(colPic));
-  const de265_image* colImg = ctx->get_image(colPic);
+  const image* colImg = ctx->get_image(colPic);
 
   // check for access outside image area
 
@@ -1143,7 +1143,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]);
+        const image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]);
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1155,7 +1155,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const de265_image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]);
+        const image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]);
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1379,8 +1379,8 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(l1Cand);
 
-      const de265_image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]) : NULL;
-      const de265_image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]) : NULL;
+      const image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]) : NULL;
+      const image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]) : NULL;
 
       if (l0Cand.predFlag[0] && !img0) {
         return; // TODO error
@@ -1423,7 +1423,7 @@ template <class AccessType>
 void get_merge_candidate_list_without_step_9(base_context* ctx,
                                              const slice_segment_header* shdr,
                                              CodingDataAccess<AccessType> dataaccess,
-                                             de265_image* img,
+                                             image* img,
                                              int xC,int yC, int xP,int yP,
                                              int nCS, int nPbW,int nPbH, int partIdx,
                                              int max_merge_idx,
@@ -1524,7 +1524,7 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
 
 void get_merge_candidate_list(base_context* ctx,
                               const slice_segment_header* shdr,
-                              de265_image* img,
+                              image* img,
                               int xC,int yC, int xP,int yP,
                               int nCS, int nPbW,int nPbH, int partIdx,
                               PBMotion* mergeCandList)
@@ -1532,7 +1532,7 @@ void get_merge_candidate_list(base_context* ctx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          CodingDataAccess<de265_image>(img), img,
+                                          CodingDataAccess<image>(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1580,7 +1580,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
 
 void derive_luma_motion_merge_mode(base_context* ctx,
                                    const slice_segment_header* shdr,
-                                   de265_image* img,
+                                   image* img,
                                    int xC,int yC, int xP,int yP,
                                    int nCS, int nPbW,int nPbH, int partIdx,
                                    int merge_idx,
@@ -1589,7 +1589,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   PBMotion mergeCandList[5];
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          CodingDataAccess<de265_image>(img), img,
+                                          CodingDataAccess<image>(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           merge_idx, mergeCandList);
 
@@ -1658,7 +1658,7 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
-  const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
+  const image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
   if (tmpimg==NULL) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
 
   const int referenced_POC = tmpimg->PicOrderCntVal;
@@ -1674,9 +1674,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(vi);
 
-      const de265_image* imgX = NULL;
+      const image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
-      const de265_image* imgY = NULL;
+      const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
 
       // check whether the predictor X is available and references the same POC
@@ -1744,8 +1744,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       assert(refIdxA>=0);
       assert(refPicList>=0);
 
-      const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
-      const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+      const image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
+      const image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
 
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
@@ -1808,9 +1808,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       logmvcand(vi);
 
 
-      const de265_image* imgX = NULL;
+      const image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
-      const de265_image* imgY = NULL;
+      const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
 
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
@@ -1885,8 +1885,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
-        const de265_image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
-        const de265_image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+        const image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
+        const image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
 
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
@@ -1999,13 +1999,13 @@ de265_error fill_luma_motion_vector_predictors(base_context* ctx,
 
 void fill_luma_motion_vector_predictors_from_image(base_context* ctx,
                                                    const slice_segment_header* shdr,
-                                                   de265_image* img,
+                                                   image* img,
                                                    int xC,int yC,int nCS,int xP,int yP,
                                                    int nPbW,int nPbH, int l,
                                                    int refIdx, int partIdx,
                                                    MotionVector out_mvpList[2])
 {
-  CodingDataAccess<de265_image> dataaccess(img);
+  CodingDataAccess<image> dataaccess(img);
 
   de265_error err = fill_luma_motion_vector_predictors(ctx, shdr,
                                                        dataaccess,
@@ -2037,7 +2037,7 @@ void fill_luma_motion_vector_predictors_from_tree(class encoder_context* ectx,
 
 MotionVector luma_motion_vector_prediction(base_context* ctx,
                                            const slice_segment_header* shdr,
-                                           de265_image* img,
+                                           image* img,
                                            const PBMotionCoding& motion,
                                            int xC,int yC,int nCS,int xP,int yP,
                                            int nPbW,int nPbH, int l,
@@ -2078,13 +2078,13 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PBMotion* mv)
 // 8.5.3.1
 void motion_vectors_and_ref_indices(base_context* ctx,
                                     const slice_segment_header* shdr,
-                                    de265_image* img,
+                                    image* img,
                                     const PBMotionCoding& motion,
                                     int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH,
                                     int partIdx,
                                     PBMotion* out_vi)
 {
-  CodingDataAccess<de265_image> dataaccess(img);
+  CodingDataAccess<image> dataaccess(img);
 
   //slice_segment_header* shdr = tctx->shdr;
 
@@ -2159,7 +2159,7 @@ void motion_vectors_and_ref_indices(base_context* ctx,
  */
 void decode_prediction_unit(base_context* ctx,
                             const slice_segment_header* shdr,
-                            de265_image* img,
+                            image* img,
                             const PBMotionCoding& motion,
                             int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH, int partIdx)
 {
