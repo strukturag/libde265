@@ -29,7 +29,7 @@
 #include "libde265/util.h"
 #include "image-io-png.h"
 
-#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
+#if DE265_ENABLE_X11_SCREEN_GRABBING
 #  include "image-io-x11grab.h"
 #endif
 
@@ -158,7 +158,9 @@ void inout_params::register_params(config_parameters& config)
     config.add_option(&input_is_rgb);
   }
 #endif
+#if DE265_ENABLE_X11_SCREEN_GRABBING
   config.add_option(&input_is_screengrabbing);
+#endif
 }
 
 
@@ -288,11 +290,11 @@ int main(int argc, char** argv)
   ImageSource_PNG image_source_png;
 #endif
 
-#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
+#if DE265_ENABLE_X11_SCREEN_GRABBING
   ImageSource_X11Grab image_source_x11grab;
 #endif
 
-#ifdef DE265_ENABLE_X11_SCREEN_GRABBING
+#if DE265_ENABLE_X11_SCREEN_GRABBING
   if (inout_params.input_is_screengrabbing) {
     image_source_x11grab.set_size(0,0);
     image_source_x11grab.set_size(1920,1072);
