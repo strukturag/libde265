@@ -61,6 +61,7 @@ bool show_help=false;
 bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
+bool output_as_rgb=false;
 bool logging=true;
 bool no_acceleration=false;
 const char *output_filename = "out.yuv";
@@ -87,6 +88,7 @@ static struct option long_options[] = {
   {"dump",       no_argument,       0, 'd' },
   {"nal",        no_argument,       0, 'n' },
   {"videogfx",   no_argument,       0, 'V' },
+  {"rgb",        no_argument,       0, 'R' },
   {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
@@ -174,7 +176,12 @@ void display_image(const struct de265_image* img)
   de265_chroma chroma = de265_get_chroma_format(img);
 
   ChromaFormat vgfx_chroma;
-  Colorspace   vgfx_cs = Colorspace_YUV;
+  Colorspace   vgfx_cs;
+
+  if (output_as_rgb)
+    vgfx_cs = Colorspace_RGB;
+  else
+    vgfx_cs = Colorspace_YUV;
 
   switch (chroma) {
   case de265_chroma_420:  vgfx_chroma = Chroma_420; break;
@@ -191,13 +198,24 @@ void display_image(const struct de265_image* img)
     nChannels = 1;
   }
 
+  const int channel_map_yuv[] = { 0,1,2 };
+  const int channel_map_rgb[] = { 2,0,1 };
+  const int* channel_map;
+
+  if (output_as_rgb) {
+    channel_map = channel_map_rgb;
+  }
+  else {
+    channel_map = channel_map_yuv;
+  }
+
   for (int ch=0;ch<nChannels;ch++) {
     const uint8_t* data;
     int stride;
 
-    data   = de265_get_image_plane(img,ch,&stride);
-    width  = de265_get_image_width(img,ch);
-    height = de265_get_image_height(img,ch);
+    data   = de265_get_image_plane(img,channel_map[ch],&stride);
+    width  = de265_get_image_width(img,channel_map[ch]);
+    height = de265_get_image_height(img,channel_map[ch]);
 
     int bit_depth = de265_get_bits_per_pixel(img,ch);
 
@@ -332,6 +350,10 @@ bool output_image(const de265_image* img)
     if (output_with_videogfx) {
       display_image(img);
     } else {
+      if (output_as_rgb) {
+        fprintf(stderr,"RGB output requires libvideogfx output method\n");
+        exit(10);
+      }
       stop = display_sdl(img);
     }
 #elif HAVE_SDL
@@ -553,7 +575,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:se"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:seR"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -571,6 +593,7 @@ int main(int argc, char** argv)
     case 'd': dump_headers=true; break;
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
+    case 'R': output_as_rgb=true; break;
     case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
@@ -599,6 +622,7 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
+    fprintf(stderr,"  -R, --rgb         show h.265 files coded in RGB colorspace\n");
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
