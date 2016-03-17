@@ -283,7 +283,7 @@ void VideoDecoder::show_frame(const de265_image* de265_img)
 #ifdef HAVE_VIDEOGFX
     convert_frame_libvideogfx(de265_img, *qimg);
 #elif HAVE_SWSCALE
-    convert_frame_swscale(img, *qimg);
+    convert_frame_swscale(de265_img, *qimg);
 #else
     qimg->fill(QColor(0, 0, 0));
 #endif
