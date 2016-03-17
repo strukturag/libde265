@@ -218,6 +218,9 @@ typedef struct {
 
 
 
+typedef std::shared_ptr<image> image_ptr;
+
+
 struct image {
   image();
   ~image();

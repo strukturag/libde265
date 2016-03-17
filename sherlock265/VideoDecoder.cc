@@ -238,8 +238,10 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImag
 #endif
 
 #ifdef HAVE_SWSCALE
-void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
+void VideoDecoder::convert_frame_swscale(const de265_image* de265_img, QImage & qimg)
 {
+  const image* img = (const image*)de265_img;
+
   if (sws == NULL || img->get_width() != width || img->get_height() != height) {
     if (sws != NULL) {
       sws_freeContext(sws);
