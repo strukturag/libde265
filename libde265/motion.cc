@@ -353,7 +353,7 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
-      const image* refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+      std::shared_ptr<const image> refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -1082,7 +1082,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
   // get collocated image and the prediction mode at the collocated position
 
   assert(ctx->has_image(colPic));
-  const image* colImg = ctx->get_image(colPic);
+  const image* colImg = ctx->get_image(colPic).get();
 
   // check for access outside image area
 
@@ -1155,7 +1155,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l1_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]);
+        const image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1167,7 +1167,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
     for (int rIdx=0; rIdx<shdr->num_ref_idx_l0_active && allRefFramesBeforeCurrentFrame; rIdx++)
       {
-        const image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]);
+        const image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
 
         if (refPOC > currentPOC) {
@@ -1391,8 +1391,8 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(l1Cand);
 
-      const image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]) : NULL;
-      const image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]) : NULL;
+      const image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]).get() : NULL;
+      const image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]).get() : NULL;
 
       if (l0Cand.predFlag[0] && !img0) {
         return; // TODO error
@@ -1571,7 +1571,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ectx, shdr,
-                                          CodingDataAccess<encoder_context>(ectx), ectx->img,
+                                          CodingDataAccess<encoder_context>(ectx), ectx->img.get(),
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1670,8 +1670,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
-  const image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
-  if (tmpimg==NULL) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
+  auto tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
+  if (!tmpimg) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
 
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
@@ -1687,9 +1687,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       logmvcand(vi);
 
       const image* imgX = NULL;
-      if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
+      if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]).get();
       const image* imgY = NULL;
-      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
 
       // check whether the predictor X is available and references the same POC
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
@@ -1756,8 +1756,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       assert(refIdxA>=0);
       assert(refPicList>=0);
 
-      const image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
-      const image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+      const image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]).get();
+      const image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
@@ -1821,9 +1821,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
 
 
       const image* imgX = NULL;
-      if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
+      if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]).get();
       const image* imgY = NULL;
-      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
 
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
@@ -1897,8 +1897,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
         assert(refPicList>=0);
         assert(refIdxB>=0);
 
-        const image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]);
-        const image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+        const image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]).get();
+        const image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];

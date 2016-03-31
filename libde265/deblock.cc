@@ -898,7 +898,7 @@ void edge_filtering_chroma_CTB(image* img, bool vertical, int xCtb,int yCtb)
 class thread_task_deblock_CTBRow : public thread_task
 {
 public:
-  struct image* img;
+  image_ptr img;
   int  ctb_y;
   bool vertical;
 
@@ -959,7 +959,7 @@ void thread_task_deblock_CTBRow::work()
 
   // first pass: check edge flags and whether we have to deblock
   if (vertical) {
-    deblocking_enabled = derive_edgeFlags_CTBRow(img, ctb_y);
+    deblocking_enabled = derive_edgeFlags_CTBRow(img.get(), ctb_y);
 
     //for (int x=0;x<=rightCtb;x++) {
     int x=0; img->set_CtbDeblockFlag(x,ctb_y, deblocking_enabled);
@@ -970,12 +970,12 @@ void thread_task_deblock_CTBRow::work()
   }
 
   if (deblocking_enabled) {
-    derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
+    derive_boundaryStrength(img.get(), vertical, first,last, xStart,xEnd);
 
-    edge_filtering_luma(img, vertical, first,last, xStart,xEnd);
+    edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
 
     if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
-      edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+      edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
     }
   }
 
@@ -991,7 +991,7 @@ void thread_task_deblock_CTBRow::work()
 
 void add_deblocking_tasks(image_unit* imgunit)
 {
-  image* img = imgunit->img;
+  image_ptr img = imgunit->img;
   decoder_context* ctx = img->decctx;
 
   int nRows = img->get_sps().PicHeightInCtbsY;

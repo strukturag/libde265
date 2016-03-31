@@ -56,12 +56,6 @@ image_data::image_data()
 image_data::~image_data()
 {
   //printf("delete %p\n",this);
-
-  delete input;
-  // TODO: this could still be referenced in the packet output queue, so the
-  //       images should really be refcounted. release for now to prevent leaks
-  delete reconstruction;
-  delete prediction;
 }
 
 
@@ -84,7 +78,7 @@ void encoder_picture_buffer::flush_images()
 }
 
 
-image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(const image* img,
+image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<const image> img,
                                                                         int frame_number)
 {
   image_data* data = new image_data();
@@ -175,14 +169,14 @@ void encoder_picture_buffer::mark_encoding_started(int frame_number)
   data->state = image_data::state_encoding;
 }
 
-void encoder_picture_buffer::set_prediction_image(int frame_number, image* pred)
+void encoder_picture_buffer::set_prediction_image(int frame_number, image_ptr pred)
 {
   image_data* data = get_picture(frame_number);
 
   data->prediction = pred;
 }
 
-void encoder_picture_buffer::set_reconstruction_image(int frame_number, image* reco)
+void encoder_picture_buffer::set_reconstruction_image(int frame_number, image_ptr reco)
 {
   image_data* data = get_picture(frame_number);
 
@@ -316,6 +310,5 @@ void encoder_picture_buffer::release_input_image(int frame_number)
   image_data* idata = get_picture(frame_number);
   assert(idata);
 
-  delete idata->input;
-  idata->input = NULL;
+  idata->input.reset();
 }

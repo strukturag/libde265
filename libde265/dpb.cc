@@ -36,8 +36,6 @@ decoded_picture_buffer::decoded_picture_buffer()
 
 decoded_picture_buffer::~decoded_picture_buffer()
 {
-  for (int i=0;i<dpb.size();i++)
-    delete dpb[i];
 }
 
 
@@ -231,7 +229,6 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
       free_image_buffer_idx != dpb.size()-1 &&     // last slot not reused in this alloc
       dpb.back()->can_be_released())               // last slot is free
     {
-      delete dpb.back();
       dpb.pop_back();
     }
 
@@ -240,13 +237,13 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   if (free_image_buffer_idx == -1) {
     free_image_buffer_idx = dpb.size();
-    dpb.push_back(new image);
+    dpb.push_back( std::make_shared<image>() );
   }
 
 
   // --- allocate new image ---
 
-  image* img = dpb[free_image_buffer_idx];
+  image_ptr img = dpb[free_image_buffer_idx];
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;

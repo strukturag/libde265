@@ -33,6 +33,7 @@
 
 #include <vector>
 #include <string.h>
+#include <memory>
 
 #define MAX_NUM_REF_PICS    16
 
@@ -41,6 +42,7 @@ class thread_context;
 class error_queue;
 class seq_parameter_set;
 class pic_parameter_set;
+class image;
 
 enum SliceType
   {
@@ -306,7 +308,7 @@ public:
 };
 
 
-int check_CTB_available(const image* img,
+int check_CTB_available(const std::shared_ptr<image> img,
                         int xC,int yC, int xN,int yN);
 
 #endif

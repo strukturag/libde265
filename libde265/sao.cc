@@ -467,7 +467,7 @@ void thread_task_sao::work()
 
 bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 {
-  image* img = imgunit->img;
+  image* img = imgunit->img.get();
   const seq_parameter_set& sps = img->get_sps();
 
   if (sps.sample_adaptive_offset_enabled_flag==0) {

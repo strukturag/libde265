@@ -108,7 +108,7 @@ public:
   uint8_t StatCoeff[4];
 
   decoder_context* decctx;
-  struct image *img;
+  image_ptr img;
   slice_segment_header* shdr;
 
   image_unit* imgunit;
@@ -194,7 +194,7 @@ public:
   image_unit();
   ~image_unit();
 
-  image* img;
+  image_ptr img;
   image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
 
   std::vector<slice_unit*> slice_units;
@@ -274,7 +274,7 @@ class image_history
   virtual ~image_history() { }
 
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const image* get_image(int frame_id) const = 0;
+  virtual std::shared_ptr<const image> get_image(int frame_id) const = 0;
   virtual bool has_image(int frame_id) const = 0;
 };
 
@@ -370,12 +370,12 @@ class decoder_context : public base_context {
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
-  /* */ image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  const image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+  std::shared_ptr</* */ image> get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  std::shared_ptr<const image> get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
 
   bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
 
-  image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
+  image_ptr get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
   int    num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
   void   pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
 
@@ -449,7 +449,7 @@ class decoder_context : public base_context {
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
-  image* img;
+  image_ptr img;
 
  public:
   const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
@@ -522,7 +522,7 @@ class decoder_context : public base_context {
 
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(struct image* img);
+  void run_postprocessing_filters_sequential(image_ptr img);
   void run_postprocessing_filters_parallel(image_unit* img);
 };
 

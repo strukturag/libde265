@@ -33,6 +33,12 @@
 #include <stdlib.h>
 
 
+// WARNING: duplicate definition. Also defined in en265.cc
+struct de265_image {
+  std::shared_ptr<image> m_image;
+};
+
+
 // TODO: should be in some vps.c related header
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 
@@ -380,8 +386,8 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
-  const struct de265_image* img = (de265_image*)de265_peek_next_picture(de265ctx);
-  if (img) {
+  const de265_image* img = de265_peek_next_picture(de265ctx);
+  if (img && img->m_image) {
     de265_release_next_picture(de265ctx);
   }
 
@@ -394,7 +400,8 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
   decoder_context* ctx = (decoder_context*)de265ctx;
 
   if (ctx->num_pictures_in_output_queue()>0) {
-    de265_image* img = (de265_image*)ctx->get_next_picture_in_output_queue();
+    de265_image* img = new de265_image;
+    img->m_image = ctx->get_next_picture_in_output_queue();
     return img;
   }
   else {
@@ -411,7 +418,7 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
 
   if (ctx->num_pictures_in_output_queue()==0) { return; }
 
-  image* next_image = ctx->get_next_picture_in_output_queue();
+  image_ptr next_image = ctx->get_next_picture_in_output_queue();
 
   loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
 
@@ -594,10 +601,10 @@ LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel
 {
   switch (channel) {
   case 0:
-    return ((image*)img)->width_confwin;
+    return img->m_image->width_confwin;
   case 1:
   case 2:
-    return ((image*)img)->chroma_width_confwin;
+    return img->m_image->chroma_width_confwin;
   default:
     return 0;
   }
@@ -607,10 +614,10 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
 {
   switch (channel) {
   case 0:
-    return ((image*)img)->height_confwin;
+    return img->m_image->height_confwin;
   case 1:
   case 2:
-    return ((image*)img)->chroma_height_confwin;
+    return img->m_image->chroma_height_confwin;
   default:
     return 0;
   }
@@ -620,10 +627,10 @@ LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int chan
 {
   switch (channel) {
   case 0:
-    return ((image*)img)->get_sps().BitDepth_Y;
+    return img->m_image->get_sps().BitDepth_Y;
   case 1:
   case 2:
-    return ((image*)img)->get_sps().BitDepth_C;
+    return img->m_image->get_sps().BitDepth_C;
   default:
     return 0;
   }
@@ -631,16 +638,16 @@ LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int chan
 
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
-  return ((image*)img)->get_chroma_format();
+  return img->m_image->get_chroma_format();
 }
 
 LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)
 {
   assert(channel>=0 && channel <= 2);
 
-  uint8_t* data = ((image*)img)->pixels_confwin[channel];
+  uint8_t* data = img->m_image->pixels_confwin[channel];
 
-  if (stride) *stride = ((image*)img)->get_image_stride(channel) *
+  if (stride) *stride = img->m_image->get_image_stride(channel) *
                 ((de265_get_bits_per_pixel(img, channel)+7) / 8);
 
   return data;
@@ -650,14 +657,14 @@ LIBDE265_API void *de265_get_image_plane_user_data(const struct de265_image* img
 {
   assert(channel>=0 && channel <= 2);
 
-  return ((image*)img)->plane_user_data[channel];
+  return img->m_image->plane_user_data[channel];
 }
 
 LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride, void *userdata)
 {
   // The internal "stride" is the number of pixels per line.
   stride = stride / ((de265_get_bits_per_pixel(img, cIdx)+7) / 8);
-  ((image*)img)->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
+  img->m_image->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context* de265ctx,
@@ -675,28 +682,31 @@ LIBDE265_API const struct de265_image_allocation *de265_get_default_image_alloca
 
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image* img)
 {
-  return ((image*)img)->pts;
+  return img->m_image->pts;
 }
 
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
 {
-  return ((image*)img)->user_data;
+  return img->m_image->user_data;
 }
 
 LIBDE265_API void de265_set_image_user_data(struct de265_image* img, void *user_data)
 {
-  ((image*)img)->user_data = user_data;
+  img->m_image->user_data = user_data;
 }
 
-LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
+LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265,
                                              int* nal_unit_type,
                                              const char** nal_unit_name,
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id)
 {
-  if (nal_unit_type)   *nal_unit_type   = ((image*)img)->nal_hdr.nal_unit_type;
-  if (nal_unit_name)   *nal_unit_name   = get_NAL_name(((image*)img)->nal_hdr.nal_unit_type);
-  if (nuh_layer_id)    *nuh_layer_id    = ((image*)img)->nal_hdr.nuh_layer_id;
-  if (nuh_temporal_id) *nuh_temporal_id = ((image*)img)->nal_hdr.nuh_temporal_id;
+  const image_ptr& img = img_de265->m_image;
+
+  if (nal_unit_type)   *nal_unit_type   = img->nal_hdr.nal_unit_type;
+  if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_hdr.nal_unit_type);
+  if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
+  if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
+
 }

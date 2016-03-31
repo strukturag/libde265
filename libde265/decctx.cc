@@ -885,7 +885,7 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   imgunit->dump_slices();
   */
 
-  image* img = imgunit->img;
+  image_ptr img = imgunit->img;
   const pic_parameter_set& pps = img->get_pps();
 
   sliceunit->state = slice_unit::InProgress;
@@ -974,7 +974,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
-  image* img = imgunit->img;
+  image_ptr img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
   const pic_parameter_set& pps = img->get_pps();
 
@@ -1088,7 +1088,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
-  image* img = imgunit->img;
+  image_ptr img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
   const pic_parameter_set& pps = img->get_pps();
 
@@ -1413,7 +1413,7 @@ int decoder_context::generate_unavailable_reference_picture(const seq_parameter_
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
-  image* img = dpb.get_image(idx);
+  image_ptr img = dpb.get_image(idx);
 
   img->fill_image(1<<(sps->BitDepth_Y-1),
                   1<<(sps->BitDepth_C-1),
@@ -1458,7 +1458,7 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     */
 
     for (int i=0;i<dpb.size();i++) {
-      image* img = dpb.get_image(i);
+      image_ptr img = dpb.get_image(i);
 
       if (img->PicState != UnusedForReference &&
           img->PicOrderCntVal < currentPOC &&
@@ -1681,7 +1681,7 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
   for (int i=0;i<dpb.size();i++)
     if (!picInAnyList[i])        // no reference
       {
-        image* dpbimg = dpb.get_image(i);
+        image_ptr dpbimg = dpb.get_image(i);
         if (dpbimg != img &&  // not the current picture
             dpbimg->removed_at_picture_id > img->get_ID()) // has not been removed before
           {
@@ -1763,8 +1763,8 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
     // remember POC of referenced image (needed in motion.c, derive_collocated_motion_vector)
-    image* img_0_rIdx = dpb.get_image(hdr->RefPicList[0][rIdx]);
-    if (img_0_rIdx==NULL) {
+    image_ptr img_0_rIdx = dpb.get_image(hdr->RefPicList[0][rIdx]);
+    if (!img_0_rIdx) {
       return false;
     }
     hdr->RefPicList_POC[0][rIdx] = img_0_rIdx->PicOrderCntVal;
@@ -1816,8 +1816,8 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
 
       // remember POC of referenced imaged (needed in motion.c, derive_collocated_motion_vector)
-      image* img_1_rIdx = dpb.get_image(hdr->RefPicList[1][rIdx]);
-      if (img_1_rIdx == NULL) { return false; }
+      image_ptr img_1_rIdx = dpb.get_image(hdr->RefPicList[1][rIdx]);
+      if (!img_1_rIdx) { return false; }
       hdr->RefPicList_POC[1][rIdx] = img_1_rIdx->PicOrderCntVal;
       hdr->RefPicList_PicState[1][rIdx] = img_1_rIdx->PicState;
     }
@@ -1853,7 +1853,7 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
 
 
 
-void decoder_context::run_postprocessing_filters_sequential(image* img)
+void decoder_context::run_postprocessing_filters_sequential(image_ptr img)
 {
 #if SAVE_INTERMEDIATE_IMAGES
     char buf[1000];
@@ -1862,7 +1862,7 @@ void decoder_context::run_postprocessing_filters_sequential(image* img)
 #endif
 
     if (!img->decctx->param_disable_deblocking) {
-      apply_deblocking_filter(img);
+      apply_deblocking_filter(img.get());
     }
 
 #if SAVE_INTERMEDIATE_IMAGES
@@ -1871,7 +1871,7 @@ void decoder_context::run_postprocessing_filters_sequential(image* img)
 #endif
 
     if (!img->decctx->param_disable_sao) {
-      apply_sample_adaptive_offset_sequential(img);
+      apply_sample_adaptive_offset_sequential(img.get());
     }
 
 #if SAVE_INTERMEDIATE_IMAGES
@@ -1883,7 +1883,7 @@ void decoder_context::run_postprocessing_filters_sequential(image* img)
 
 void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
 {
-  image* img = imgunit->img;
+  image* img = imgunit->img.get();
 
   int saoWaitsForProgress = CTB_PROGRESS_PREFILTER;
   bool waitForCompletion = false;
@@ -1910,9 +1910,9 @@ void decoder_context::push_current_picture_to_output_queue()
 
 de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 {
-  image* outimg = imgunit->img;
+  image_ptr outimg = imgunit->img;
 
-  if (outimg==NULL) { return DE265_OK; }
+  if (!outimg) { return DE265_OK; }
 
 
   // push image into output queue
@@ -2105,7 +2105,7 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
     int idx = dpb.DPB_index_of_picture_with_ID( removeImageList[i] );
     if (idx>=0) {
       //printf("remove ID %d\n", removeImageList[i]);
-      image* dpbimg = dpb.get_image( idx );
+      image_ptr dpbimg = dpb.get_image( idx );
       dpbimg->PicState = UnusedForReference;
     }
   }

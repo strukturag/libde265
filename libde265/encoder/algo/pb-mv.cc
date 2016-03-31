@@ -40,7 +40,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
 
   MotionVector mvp[2];
 
-  fill_luma_motion_vector_predictors_from_image(ectx, ectx->shdr, ectx->img,
+  fill_luma_motion_vector_predictors_from_image(ectx, ectx->shdr, ectx->img.get(),
                                                 cb->x,cb->y,1<<cb->log2Size, x,y,w,h,
                                                 0, // l
                                                 0, 0, // int refIdx, int partIdx,
@@ -124,7 +124,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const image* input = ectx->imgdata->input;
+    std::shared_ptr<const image> input = ectx->imgdata->input;
     /* TODO TMP REMOVE: prediction does not exist anymore
     image* img   = ectx->prediction;
     int x0 = cb->x;
@@ -175,7 +175,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
   MotionVector mvp[2];
 
-  fill_luma_motion_vector_predictors_from_image(ectx, ectx->shdr, ectx->img,
+  fill_luma_motion_vector_predictors_from_image(ectx, ectx->shdr, ectx->img.get(),
                                                 cb->x,cb->y,1<<cb->log2Size, x,y,pbW,pbH,
                                                 0, // l
                                                 0, 0, // int refIdx, int partIdx,
@@ -195,8 +195,8 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
   int vrange = mParams.vrange();
 
   // previous frame (TODO)
-  const image* refimg   = ectx->get_image(ectx->imgdata->frame_number -1);
-  const image* inputimg = ectx->imgdata->input;
+  const image* refimg   = ectx->get_image(ectx->imgdata->frame_number -1).get();
+  const image* inputimg = ectx->imgdata->input.get();
 
   int w = refimg->get_width();
   int h = refimg->get_height();
@@ -299,13 +299,13 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const image* input = ectx->imgdata->input;
-    image* img   = ectx->img;
+    std::shared_ptr<const image> input = ectx->imgdata->input;
+    std::shared_ptr<image> img   = ectx->img;
     int x0 = cb->x;
     int y0 = cb->y;
     int tbSize = 1<<cb->log2Size;
 
-    cb->distortion = compute_distortion_ssd(input, img, x0,y0, cb->log2Size, 0);
+    cb->distortion = compute_distortion_ssd(input.get(), img.get(), x0,y0, cb->log2Size, 0);
     cb->rate = 5; // fake (MV)
 
     cb->inter.rqt_root_cbf = 0;

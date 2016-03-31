@@ -62,7 +62,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   // build prediction
 
   // previous frame (TODO)
-  const image* refimg = ectx->get_image(ectx->imgdata->frame_number -1);
+  std::shared_ptr<const image> refimg = ectx->get_image(ectx->imgdata->frame_number -1);
 
   //printf("prev frame: %p %d\n",refimg,ectx->imgdata->frame_number);
 
@@ -92,7 +92,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
   */
 
   generate_inter_prediction_samples(ectx, ectx,
-                                    ectx->shdr, ectx->img,
+                                    ectx->shdr, ectx->img.get(),
                                     cb->x,cb->y, // xP,yP
                                     1<<cb->log2Size, // int nCS,
                                     1<<cb->log2Size,
@@ -131,7 +131,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     cb->rate       = cb->transform_tree->rate;
   }
   else {
-    const image* input = ectx->imgdata->input;
+    std::shared_ptr<const image> input = ectx->imgdata->input;
     //de265_image* img   = ectx->prediction;
     int x0 = cb->x;
     int y0 = cb->y;
@@ -152,7 +152,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
     tb->downPtr = &cb->transform_tree;
     cb->transform_tree = tb;
 
-    tb->copy_reconstruction_from_image(ectx, ectx->img); // reconstruct luma
+    tb->copy_reconstruction_from_image(ectx, ectx->img.get()); // reconstruct luma
 
     /*
     printBlk("distortion input:",
@@ -166,7 +166,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
              "pred ");
     */
 
-    cb->distortion = compute_distortion_ssd(input, ectx->img, x0,y0, cb->log2Size, 0);
+    cb->distortion = compute_distortion_ssd(input.get(), ectx->img.get(), x0,y0, cb->log2Size, 0);
   }
 
   //printf("%d;%d rqt_root_cbf=%d\n",cb->x,cb->y,cb->inter.rqt_root_cbf);

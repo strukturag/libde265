@@ -30,7 +30,7 @@
 #define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
 
 
-double encode_image(encoder_context*, const image* input, EncoderCore&);
+double encode_image(encoder_context*, std::shared_ptr<const image> input, EncoderCore&);
 
 
 encoder_context::encoder_context()
@@ -323,7 +323,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 // /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
 
 double encode_image(encoder_context* ectx,
-                    const image* input,
+                    std::shared_ptr<const image> input,
                     EncoderCore& algo)
 {
   int stride=input->get_image_stride(0);
@@ -332,7 +332,7 @@ double encode_image(encoder_context* ectx,
   int h = ectx->get_sps().pic_height_in_luma_samples;
 
   // --- create reconstruction image ---
-  ectx->img = new image;
+  ectx->img = std::make_shared<image>();
   ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
@@ -466,7 +466,7 @@ double encode_image(encoder_context* ectx,
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
-        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img, &ectx->get_sps());
+        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), &ectx->get_sps());
 
         //printf("================================================== WRITE\n");
 

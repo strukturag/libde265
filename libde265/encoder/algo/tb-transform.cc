@@ -148,7 +148,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   const enc_cb* cb = tb->cb;
   *tb->downPtr = tb; // TODO: should be obsolet
 
-  image* img = ectx->img;
+  image* img = ectx->img.get();
 
   int stride = ectx->img->get_image_stride(0);
 
@@ -192,7 +192,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   /* We could compute the reconstruction lazy on first access. However, we currently
      use it right away for computing the distortion.
   */
-  tb->reconstruct(ectx, ectx->img);
+  tb->reconstruct(ectx, ectx->img.get());
 
 
   // measure rate

@@ -735,7 +735,7 @@ void encode_residual(encoder_context* ectx,
 {
   logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
 
-  const image* img = ectx->img;
+  const image* img = ectx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -1286,15 +1286,15 @@ void encode_cu_skip_flag(encoder_context* ectx,
 {
   logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",skip);
 
-  const image* img = ectx->img;
+  const image* img = ectx->img.get();
 
   int x0 = cb->x;
   int y0 = cb->y;
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1444,7 +1444,7 @@ void encode_coding_unit(encoder_context* ectx,
 {
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
-  image* img = ectx->img;
+  image* img = ectx->img.get();
   const slice_segment_header* shdr = &ectx->imgdata->shdr;
   const seq_parameter_set& sps = ectx->img->get_sps();
 
@@ -1482,8 +1482,8 @@ void encode_coding_unit(encoder_context* ectx,
 
       assert(cb->split_cu_flag == 0);
 
-      int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
-      int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
+      int availableA0 = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
+      int availableB0 = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
 
       if (PartMode==PART_2Nx2N) {
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
@@ -1719,7 +1719,7 @@ void encode_ctb(encoder_context* ectx,
   printf("\n");
 #endif
 
-  image* img = ectx->img;
+  image* img = ectx->img.get();
   int log2ctbSize = img->get_sps().Log2CtbSizeY;
 
   encode_quadtree(ectx,cabac, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);

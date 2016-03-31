@@ -154,7 +154,7 @@ LIBDE265_API void de265_set_verbosity(int level);
    But you may want to check the chroma format anyway for future compatibility.
  */
 
-struct de265_image { };
+struct de265_image;
 
 enum de265_chroma {
   de265_chroma_mono=0,
@@ -289,9 +289,13 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
    You can use the picture only until you call any other de265_* function. */
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
-/* Release the current decoded picture for reuse in the decoder. You should not
-   use the data anymore after calling this function. */
-LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
+
+  // DEPRECATED
+LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx);
+
+/* Release the image received from de265_peek_next_picture() or de265_get_next_picture()
+ */
+//LIBDE265_API void de265_release_picture(de265_image*);
 
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
