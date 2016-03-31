@@ -1408,7 +1408,8 @@ int decoder_context::generate_unavailable_reference_picture(const seq_parameter_
 
   std::shared_ptr<const seq_parameter_set> current_sps = this->sps[ (int)current_pps->seq_parameter_set_id ];
 
-  int idx = dpb.new_image(current_sps, this, 0,0, false);
+  de265_image_allocation* alloc_functions = nullptr; // use internal allocation
+  int idx = dpb.new_image(current_sps, this, 0,0, alloc_functions);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
@@ -1993,7 +1994,8 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
 
     int image_buffer_idx;
     bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || param_disable_sao);
-    image_buffer_idx = dpb.new_image(current_sps, this, pts, user_data, isOutputImage);
+    image_buffer_idx = dpb.new_image(current_sps, this, pts, user_data,
+                                     isOutputImage ? &param_image_allocation_functions : nullptr);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;

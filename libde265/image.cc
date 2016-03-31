@@ -238,13 +238,12 @@ image::image()
 
 
 de265_error image::alloc_image(int w,int h, enum de265_chroma c,
-                                     std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
-                                     decoder_context* dctx,
-                                     encoder_context* ectx,
-                                     de265_PTS pts, void* user_data,
-                                     bool useCustomAllocFunc)
+                               std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
+                               decoder_context* dctx,
+                               encoder_context* ectx,
+                               de265_PTS pts, void* user_data,
+                               const de265_image_allocation* alloc_functions)
 {
-  //if (allocMetadata) { assert(sps); }
   if (allocMetadata) { assert(sps); }
 
   if (sps) { this->sps = sps; }
@@ -357,11 +356,8 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  if (encctx && useCustomAllocFunc) {
-    image_allocation_functions = encctx->image_allocation_functions;
-  }
-  else if (decctx && useCustomAllocFunc) {
-    image_allocation_functions = decctx->param_image_allocation_functions;
+  if (alloc_functions != nullptr) {
+    image_allocation_functions = *alloc_functions;
   }
   else {
     image_allocation_functions = image::default_image_allocation;

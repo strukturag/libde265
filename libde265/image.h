@@ -232,7 +232,7 @@ struct image {
                           decoder_context* dctx,
                           class encoder_context* ectx,
                           de265_PTS pts, void* user_data,
-                          bool useCustomAllocFunctions);
+                          const de265_image_allocation* alloc_functions = nullptr);
 
   //de265_error alloc_encoder_data(const seq_parameter_set* sps);
 
@@ -335,7 +335,10 @@ struct image {
   }
 
 
+  // simple image allocation on the heap
   static de265_image_allocation default_image_allocation;
+
+  // dummy image allocation function that does nothing
   static int image_allocation_get_buffer_NOP(struct de265_image*,
                                              const struct de265_image_spec*,
                                              void* userdata);
