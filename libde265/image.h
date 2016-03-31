@@ -229,10 +229,11 @@ struct image {
   de265_error alloc_image(int w,int h, enum de265_chroma c,
                           std::shared_ptr<const seq_parameter_set> sps,
                           bool allocMetadata,
-                          decoder_context* dctx,
-                          class encoder_context* ectx,
                           de265_PTS pts, void* user_data,
                           const de265_image_allocation* alloc_functions = nullptr);
+
+  void set_decoder_context(decoder_context* ctx) { decctx = ctx; }
+  void set_encoder_context(class encoder_context* ctx) { encctx = ctx; }
 
   //de265_error alloc_encoder_data(const seq_parameter_set* sps);
 

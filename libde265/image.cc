@@ -239,8 +239,6 @@ image::image()
 
 de265_error image::alloc_image(int w,int h, enum de265_chroma c,
                                std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
-                               decoder_context* dctx,
-                               encoder_context* ectx,
                                de265_PTS pts, void* user_data,
                                const de265_image_allocation* alloc_functions)
 {
@@ -254,9 +252,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
-
-  decctx = dctx;
-  encctx = ectx;
 
   // --- allocate image buffer ---
 
@@ -511,10 +506,13 @@ de265_error image::copy_image(const image* src)
   */
 
   de265_error err = alloc_image(src->width, src->height, src->chroma_format, src->sps, false,
-                                src->decctx, src->encctx, src->pts, src->user_data, false);
+                                src->pts, src->user_data, false);
   if (err != DE265_OK) {
     return err;
   }
+
+  set_decoder_context(src->decctx);
+  set_encoder_context(src->encctx);
 
   copy_lines_from(src, 0, src->height);
 

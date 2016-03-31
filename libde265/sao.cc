@@ -481,13 +481,15 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
                                                     img->get_chroma_format(),
                                                     img->get_shared_sps(),
                                                     false,
-                                                    img->decctx, img->encctx,
                                                     img->pts, img->user_data,
                                                     &ctx->param_image_allocation_functions);
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;
   }
+
+  imgunit->sao_output.set_decoder_context(img->decctx);
+  imgunit->sao_output.set_encoder_context(img->encctx);
 
   int nRows = sps.PicHeightInCtbsY;
 

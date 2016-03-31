@@ -75,7 +75,7 @@ image* ImageSource_PNG::get_image(bool block)
 
   image* img = new image;
   img->alloc_image(mWidth,mHeight,de265_chroma_444, NULL, false,
-                   NULL, NULL, 0, NULL, false);
+                   0, NULL, false);
   assert(img); // TODO: error handling
 
 
