@@ -101,8 +101,8 @@ void encode_split_cu_flag(encoder_context* ectx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(ectx->img.get(), x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ectx->img.get(), x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1293,8 +1293,8 @@ void encode_cu_skip_flag(encoder_context* ectx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(img, x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(img, x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1482,8 +1482,8 @@ void encode_coding_unit(encoder_context* ectx,
 
       assert(cb->split_cu_flag == 0);
 
-      int availableA0 = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
-      int availableB0 = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
+      int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
+      int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
 
       if (PartMode==PART_2Nx2N) {
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);

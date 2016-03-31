@@ -308,7 +308,7 @@ public:
 };
 
 
-int check_CTB_available(const std::shared_ptr<image> img,
+int check_CTB_available(const image* img,
                         int xC,int yC, int xN,int yN);
 
 #endif
