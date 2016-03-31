@@ -358,10 +358,9 @@ class decoder_context : public base_context {
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
-  void set_image_allocation_functions(de265_image_allocation* allocfunc, void* userdata);
+  void set_image_allocation_functions(de265_image_allocation* allocfunc);
 
   de265_image_allocation param_image_allocation_functions;
-  void*                  param_image_allocation_userdata;
 
 
   // --- input stream data ---

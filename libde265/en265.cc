@@ -193,7 +193,7 @@ LIBDE265_API void en265_get_image_spec(en265_encoder_context* e,
                                        int width, int height, de265_chroma chroma,
                                        struct de265_image_spec* out_spec)
 {
-  out_spec->format = de265_image_format_YUV420P8;
+  out_spec->chroma = de265_chroma_420;
   out_spec->width = width;
   out_spec->height= height;
   out_spec->alignment = 1;

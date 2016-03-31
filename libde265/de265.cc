@@ -661,12 +661,11 @@ LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, i
 }
 
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context* de265ctx,
-                                                       de265_image_allocation* allocfunc,
-                                                       void* userdata)
+                                                       de265_image_allocation* allocfunc)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->set_image_allocation_functions(allocfunc, userdata);
+  ctx->set_image_allocation_functions(allocfunc);
 }
 
 LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void)

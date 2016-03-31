@@ -103,8 +103,7 @@ LIBDE265_API void de265_free_image_plane(struct image* img, int cIdx)
 }
 
 
-static int  image_get_buffer(de265_decoder_context* ctx,
-                             de265_image_spec* spec, de265_image* de265_img, void* userdata)
+static int  image_get_buffer(de265_image* de265_img, const de265_image_spec* spec, void* userdata)
 {
   image* img = (image*)de265_img;
 
@@ -157,8 +156,7 @@ static int  image_get_buffer(de265_decoder_context* ctx,
   return 1;
 }
 
-static void image_release_buffer(de265_decoder_context* ctx,
-                                 de265_image* de265_img, void* userdata)
+static void image_release_buffer(de265_image* de265_img, void* userdata)
 {
   image* img = (image*)de265_img;
 
@@ -282,7 +280,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   switch (chroma_format) {
   case de265_chroma_420:
-    spec.format = de265_image_format_YUV420P8;
     chroma_width  = (chroma_width +1)/2;
     chroma_height = (chroma_height+1)/2;
     SubWidthC  = 2;
@@ -290,20 +287,17 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
     break;
 
   case de265_chroma_422:
-    spec.format = de265_image_format_YUV422P8;
     chroma_width = (chroma_width+1)/2;
     SubWidthC  = 2;
     SubHeightC = 1;
     break;
 
   case de265_chroma_444:
-    spec.format = de265_image_format_YUV444P8;
     SubWidthC  = 1;
     SubHeightC = 1;
     break;
 
   case de265_chroma_mono:
-    spec.format = de265_image_format_mono8;
     chroma_width = 0;
     chroma_height= 0;
     SubWidthC  = 1;
@@ -322,6 +316,7 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   spec.width  = w;
   spec.height = h;
+  spec.chroma = chroma_format;
   spec.alignment = STANDARD_ALIGNMENT;
 
 
@@ -356,10 +351,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  void* alloc_userdata = NULL;
-  if (decctx) alloc_userdata = decctx->param_image_allocation_userdata;
-  if (encctx) alloc_userdata = encctx->param_image_allocation_userdata; // actually not needed
-
   if (encctx && useCustomAllocFunc) {
     encoder_image_release_func = encctx->release_func;
 
@@ -383,8 +374,8 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   bool mem_alloc_success = true;
 
   if (image_allocation_functions.get_buffer != NULL) {
-    mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, (de265_image*)this,
-                                                              alloc_userdata);
+    mem_alloc_success = image_allocation_functions.get_buffer((de265_image*)this, &spec,
+                                                              image_allocation_functions.userdata);
 
     pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
     pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
@@ -489,10 +480,8 @@ void image::release()
                                    encctx->param_image_allocation_userdata);
       }
       else {
-        image_allocation_functions.release_buffer(decctx, (de265_image*)this,
-                                                  decctx ?
-                                                  decctx->param_image_allocation_userdata :
-                                                  NULL);
+        image_allocation_functions.release_buffer((de265_image*)this,
+                                                  image_allocation_functions.userdata);
       }
 
       for (int i=0;i<3;i++)
