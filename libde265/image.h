@@ -297,17 +297,19 @@ class image {
 
   /// xpos;ypos in actual plane resolution
   template <class pixel_t>
-  pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
+  pixel_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
     int stride = get_image_stride(cIdx);
     return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
   }
 
-  const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
+  template <class pixel_t>
+  const pixel_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
   {
     int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + xpos + ypos*stride;
+    return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
   }
+
 
   void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos)
   {
@@ -368,7 +370,7 @@ class image {
                                              void* userdata);
 
   void printBlk(const char* title, int x0,int y0,int blkSize,int cIdx) const {
-    ::printBlk(title, get_image_plane_at_pos(cIdx,x0,y0),
+    ::printBlk(title, get_image_plane_at_pos<uint8_t>(cIdx,x0,y0),
                blkSize, get_image_stride(cIdx));
   }
 

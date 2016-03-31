@@ -1126,13 +1126,13 @@ void decode_intra_prediction(image* img,
 
   if (img->high_bit_depth(cIdx)) {
     decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
-                                               img->get_image_plane_at_pos_NEW<uint16_t>(cIdx,xB0,yB0),
+                                               img->get_image_plane_at_pos<uint16_t>(cIdx,xB0,yB0),
                                                img->get_image_stride(cIdx),
                                                nT,cIdx);
   }
   else {
     decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
-                                              img->get_image_plane_at_pos_NEW<uint8_t>(cIdx,xB0,yB0),
+                                              img->get_image_plane_at_pos<uint8_t>(cIdx,xB0,yB0),
                                               img->get_image_stride(cIdx),
                                               nT,cIdx);
   }

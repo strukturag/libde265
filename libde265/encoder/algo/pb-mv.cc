@@ -235,9 +235,9 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
       {
         if (mx<0 || mx+pbW>w || my<0 || my+pbH>h) continue;
 
-        int cost = sad(refimg->get_image_plane_at_pos(0,mx,my),
+        int cost = sad(refimg->get_image_plane_at_pos<uint8_t>(0,mx,my),
                        refimg->get_image_stride(0),
-                       inputimg->get_image_plane_at_pos(0,x,y),
+                       inputimg->get_image_plane_at_pos<uint8_t>(0,x,y),
                        inputimg->get_image_stride(0),
                        pbW,pbH);
 

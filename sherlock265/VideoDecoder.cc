@@ -202,17 +202,17 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImag
 
   for (int y=0;y<img->get_height(0);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[0]))[y],
-           img->get_image_plane_at_pos(0, 0,y), img->get_width(0));
+           img->get_image_plane_at_pos<uint8_t>(0, 0,y), img->get_width(0));
   }
 
   for (int y=0;y<img->get_height(1);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[1]))[y],
-           img->get_image_plane_at_pos(1, 0,y), img->get_width(1));
+           img->get_image_plane_at_pos<uint8_t>(1, 0,y), img->get_width(1));
   }
 
   for (int y=0;y<img->get_height(2);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[2]))[y],
-           img->get_image_plane_at_pos(2, 0,y), img->get_width(2));
+           img->get_image_plane_at_pos<uint8_t>(2, 0,y), img->get_width(2));
   }
 
   Image<Pixel> debugvisu;

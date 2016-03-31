@@ -52,11 +52,11 @@ void debug_show_image_libvideogfx(const image* input, int slot)
     img.Create(w,h,Colorspace_YUV, Chroma_420);
 
     for (int y=0;y<h;y++)
-      memcpy(img.AskFrameY()[y], input->get_image_plane_at_pos(0,0,y), w);
+      memcpy(img.AskFrameY()[y], input->get_image_plane_at_pos<uint8_t>(0,0,y), w);
 
     for (int y=0;y<h/2;y++) {
-      memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos(1,0,y), w/2);
-      memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos(2,0,y), w/2);
+      memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos<uint8_t>(1,0,y), w/2);
+      memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos<uint8_t>(2,0,y), w/2);
     }
 
     debugwin.Display(img);

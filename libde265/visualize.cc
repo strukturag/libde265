@@ -68,7 +68,7 @@ void write_picture_to_file(const image* img, const char* filename)
 
   for (int c=0;c<3;c++)
     for (int y=0;y<img->get_height(c);y++)
-      fwrite(img->get_image_plane_at_pos(c, 0,y), img->get_width(c), 1, fh);
+      fwrite(img->get_image_plane_at_pos<uint8_t>(c, 0,y), img->get_width(c), 1, fh);
 
   fflush(fh);
   fclose(fh);

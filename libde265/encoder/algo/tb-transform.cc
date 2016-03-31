@@ -245,7 +245,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   // measure distortion
 
   int tbSize = 1<<log2TbSize;
-  tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+  tb->distortion = SSD(input->get_image_plane_at_pos<uint8_t>(0, x0,y0), input->get_image_stride(0),
                        tb->reconstruction[0]->get_buffer_u8(),
                        tb->reconstruction[0]->getStride(),
                        tbSize, tbSize);

@@ -116,7 +116,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const image* in
   tb->residual[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(int16_t));
 
   diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
-                    input->get_image_plane_at_pos(cIdx,x,y),
+                    input->get_image_plane_at_pos<pixel_t>(cIdx,x,y),
                     input->get_image_stride(cIdx),
                     tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
                     blkSize);

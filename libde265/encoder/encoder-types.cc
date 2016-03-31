@@ -824,7 +824,7 @@ void LocalizedSubImage::copyToImage(image* img, int cIdx) const
 
 void LocalizedSubImage::copyFromImage(const image* img, int cIdx)
 {
-  const uint8_t* p = img->get_image_plane_at_pos(cIdx, mXMin, mYMin);
+  const uint8_t* p = img->get_image_plane_at_pos<uint8_t>(cIdx, mXMin, mYMin);
   int stride = img->get_image_stride(cIdx);
 
   for (int y=0;y<mHeight;y++) {

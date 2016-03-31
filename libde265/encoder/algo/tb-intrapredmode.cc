@@ -82,7 +82,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
   switch (method)
     {
     case TBBitrateEstim_SSD:
-      return SSD(input->get_image_plane_at_pos(0, x0,y0),
+      return SSD(input->get_image_plane_at_pos<uint8_t>(0, x0,y0),
                  input->get_image_stride(0),
                  tb->intra_prediction[0]->get_buffer_u8(),
                  tb->intra_prediction[0]->getStride(),
@@ -90,7 +90,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
       break;
 
     case TBBitrateEstim_SAD:
-      return SAD(input->get_image_plane_at_pos(0, x0,y0),
+      return SAD(input->get_image_plane_at_pos<uint8_t>(0, x0,y0),
                  input->get_image_stride(0),
                  tb->intra_prediction[0]->get_buffer_u8(),
                  tb->intra_prediction[0]->getStride(),
@@ -109,7 +109,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
         assert(blkSize <= 64);
 
         diff_blk(diff,blkSize,
-                 input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+                 input->get_image_plane_at_pos<uint8_t>(0, x0,y0), input->get_image_stride(0),
                  tb->intra_prediction[0]->get_buffer_u8(),
                  tb->intra_prediction[0]->getStride(),
                  blkSize);

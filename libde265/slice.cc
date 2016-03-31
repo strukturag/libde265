@@ -4169,7 +4169,7 @@ void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbS
 
   pixel_t* ptr;
   int stride;
-  ptr    = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,x0,y0);
+  ptr    = tctx->img->get_image_plane_at_pos<pixel_t>(cIdx,x0,y0);
   stride = tctx->img->get_image_stride(cIdx);
 
   int shift = bitDepth - nPcmBits;

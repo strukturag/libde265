@@ -79,8 +79,8 @@ bool DSPFunc_FDCT_Base::prepareNextImage(std::shared_ptr<const image> img)
 
   int cstride = curr_image->get_luma_stride();
   int pstride = prev_image->get_luma_stride();
-  const uint8_t* curr = curr_image->get_image_plane_at_pos(0,0,0);
-  const uint8_t* prev = prev_image->get_image_plane_at_pos(0,0,0);
+  const uint8_t* curr = curr_image->get_image_plane_at_pos<uint8_t>(0,0,0);
+  const uint8_t* prev = prev_image->get_image_plane_at_pos<uint8_t>(0,0,0);
 
   for (int y=0;y<h;y++)
     for (int x=0;x<w;x++) {
@@ -132,8 +132,8 @@ bool DSPFunc_IDCT_Base::prepareNextImage(std::shared_ptr<const image> img)
 
   int cstride = curr_image->get_luma_stride();
   int pstride = prev_image->get_luma_stride();
-  const uint8_t* curr = curr_image->get_image_plane_at_pos(0,0,0);
-  const uint8_t* prev = prev_image->get_image_plane_at_pos(0,0,0);
+  const uint8_t* curr = curr_image->get_image_plane_at_pos<uint8_t>(0,0,0);
+  const uint8_t* prev = prev_image->get_image_plane_at_pos<uint8_t>(0,0,0);
 
   for (int y=0;y<h;y++)
     for (int x=0;x<w;x++) {

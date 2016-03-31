@@ -386,7 +386,7 @@ void scale_coefficients_internal(thread_context* tctx,
 
   pixel_t* pred;
   int      stride;
-  pred = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx, xT,yT);
+  pred = tctx->img->get_image_plane_at_pos<pixel_t>(cIdx, xT,yT);
   stride = tctx->img->get_image_stride(cIdx);
 
   // We explicitly include the case for sizeof(pixel_t)==1 so that the compiler

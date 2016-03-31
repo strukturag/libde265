@@ -467,7 +467,7 @@ void edge_filtering_luma_internal(image* img, bool vertical,
 
         // 8.7.2.4.3
 
-        pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(0, xDi,yDi);
+        pixel_t* ptr = img->get_image_plane_at_pos<pixel_t>(0, xDi,yDi);
 
         pixel_t q[4][4], p[4][4];
         for (int k=0;k<4;k++)
@@ -768,7 +768,7 @@ void edge_filtering_chroma_internal(image* img, bool vertical,
                               img->get_pps().pic_cb_qp_offset :
                               img->get_pps().pic_cr_qp_offset);
 
-          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
+          pixel_t* ptr = img->get_image_plane_at_pos<pixel_t>(cplane+1, xDi,yDi);
 
           pixel_t p[2][4];
           pixel_t q[2][4];

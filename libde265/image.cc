@@ -531,7 +531,7 @@ de265_error image::copy_image(const image* src)
                                 src->BitDepth_C,
                                 src->pts,
                                 src->get_supplementary_data(),
-                                src->user_data, false);
+                                src->user_data, nullptr);
   if (err != DE265_OK) {
     return err;
   }
@@ -758,7 +758,7 @@ void image::write_image(const char* name) const
     int h = get_height(c);
 
     for (int y=0;y<h;y++) {
-      const uint8_t* p = get_image_plane_at_pos(c, 0,y);
+      const uint8_t* p = get_image_plane_at_pos<uint8_t>(c, 0,y);
       fwrite(p,1,w,fh);
     }
   }
