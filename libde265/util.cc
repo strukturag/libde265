@@ -232,14 +232,14 @@ void printBlk(const char* title, const uint8_t* data, int blksize, int stride,
 }
 
 
-static void (*debug_image_output_func)(const struct image*, int slot) = NULL;
+static void (*debug_image_output_func)(const image*, int slot) = NULL;
 
-void debug_set_image_output(void (*func)(const struct image*, int slot))
+void debug_set_image_output(void (*func)(const image*, int slot))
 {
   debug_image_output_func = func;
 }
 
-void debug_show_image(const struct image* img, int slot)
+void debug_show_image(const image* img, int slot)
 {
   if (debug_image_output_func) {
     debug_image_output_func(img,slot);

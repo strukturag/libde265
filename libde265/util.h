@@ -104,6 +104,8 @@ inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
   #endif
 #endif
 
+class image;
+
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
 #define Clip_BitDepth(value, bit_depth) ((value)<0 ? 0 : (value)>((1<<bit_depth)-1) ? ((1<<bit_depth)-1) : (value))
@@ -220,7 +222,7 @@ void printBlk(const char* title,const int32_t* data, int blksize, int stride, co
 void printBlk(const char* title,const int16_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const uint8_t* data, int blksize, int stride, const std::string& prefix="  ");
 
-void debug_set_image_output(void (*)(const struct image*, int slot));
-void debug_show_image(const struct image*, int slot);
+void debug_set_image_output(void (*)(const image*, int slot));
+void debug_show_image(const class image*, int slot);
 
 #endif
