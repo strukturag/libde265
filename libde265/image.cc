@@ -357,10 +357,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   BitDepth_Y = bitDepth_luma;
   BitDepth_C = bitDepth_chroma;
 
-  bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
-  bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;
-  bpp_shift[2] = bpp_shift[1];
-
 
   // allocate memory and set conformance window pointers
 
