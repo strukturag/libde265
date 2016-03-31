@@ -65,6 +65,7 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 
 static const int alignment = 16;
 
+
 LIBDE265_API void* de265_alloc_image_plane(struct image* img, int cIdx,
                                            void* inputdata, int inputstride, void *userdata)
 {
@@ -175,6 +176,16 @@ de265_image_allocation image::default_image_allocation = {
 };
 
 
+int image::image_allocation_get_buffer_NOP(struct de265_image*,
+                                           const struct de265_image_spec*,
+                                           void* userdata)
+{
+  // NOP
+
+  return 1;
+}
+
+
 void image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
 {
   pixels[cIdx] = mem;
@@ -194,11 +205,6 @@ image::image()
 
   decctx = NULL;
   encctx = NULL;
-
-  encoder_image_release_func = NULL;
-
-  //alloc_functions.get_buffer = NULL;
-  //alloc_functions.release_buffer = NULL;
 
   for (int c=0;c<3;c++) {
     pixels[c] = NULL;
@@ -352,17 +358,7 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   // allocate memory and set conformance window pointers
 
   if (encctx && useCustomAllocFunc) {
-    encoder_image_release_func = encctx->release_func;
-
-    // if we do not provide a release function, use our own
-
-    if (encoder_image_release_func == NULL) {
-      image_allocation_functions = image::default_image_allocation;
-    }
-    else {
-      image_allocation_functions.get_buffer     = NULL;
-      image_allocation_functions.release_buffer = NULL;
-    }
+    image_allocation_functions = encctx->image_allocation_functions;
   }
   else if (decctx && useCustomAllocFunc) {
     image_allocation_functions = decctx->param_image_allocation_functions;
@@ -475,14 +471,8 @@ void image::release()
 
   if (pixels[0])
     {
-      if (encoder_image_release_func != NULL) {
-        encoder_image_release_func(encctx, this,
-                                   encctx->param_image_allocation_userdata);
-      }
-      else {
-        image_allocation_functions.release_buffer((de265_image*)this,
-                                                  image_allocation_functions.userdata);
-      }
+      image_allocation_functions.release_buffer((de265_image*)this,
+                                                image_allocation_functions.userdata);
 
       for (int i=0;i<3;i++)
         {

@@ -67,10 +67,14 @@ class encoder_context : public base_context
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size
 
+  de265_image_allocation image_allocation_functions;
+
+  /*
   void* param_image_allocation_userdata; // TODO: clean up allocation API
   void (*release_func)(en265_encoder_context*,
                        image*,
                        void* userdata);
+  */
 
   // quick links
   image* img; // reconstruction

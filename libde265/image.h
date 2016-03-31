@@ -336,6 +336,9 @@ struct image {
 
 
   static de265_image_allocation default_image_allocation;
+  static int image_allocation_get_buffer_NOP(struct de265_image*,
+                                             const struct de265_image_spec*,
+                                             void* userdata);
 
   void printBlk(const char* title, int x0,int y0,int blkSize,int cIdx) const {
     ::printBlk(title, get_image_plane_at_pos(cIdx,x0,y0),
@@ -422,9 +425,6 @@ public:
   void*     user_data;
   void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
   de265_image_allocation image_allocation_functions; // the functions used for memory allocation
-  void (*encoder_image_release_func)(en265_encoder_context*,
-                                     image*,
-                                     void* userdata);
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,

@@ -50,7 +50,7 @@ encoder_context::encoder_context()
   parameters_have_been_set = false;
   headers_have_been_sent = false;
 
-  release_func = NULL;
+  image_allocation_functions = image::default_image_allocation;
 
   use_adaptive_context = true; //false;
 

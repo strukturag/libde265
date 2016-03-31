@@ -46,6 +46,7 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 }
 
 
+/*
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                                                    void (*release_func)(en265_encoder_context*,
                                                                         image*,
@@ -57,6 +58,25 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
 
   ectx->param_image_allocation_userdata = alloc_userdata;
   ectx->release_func = release_func;
+}
+*/
+
+LIBDE265_API void en265_set_image_allocation_functions(en265_encoder_context* e,
+                                                       struct de265_image_allocation* allocfunc)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
+
+  if (allocfunc) {
+    ectx->image_allocation_functions = *allocfunc;
+
+    if (ectx->image_allocation_functions.get_buffer == nullptr) {
+      ectx->image_allocation_functions.get_buffer = image::image_allocation_get_buffer_NOP;
+    }
+  }
+  else {
+    ectx->image_allocation_functions = image::default_image_allocation;
+  }
 }
 
 
