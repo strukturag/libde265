@@ -479,8 +479,8 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   de265_error err = imgunit->sao_output.alloc_image(img->get_width(), img->get_height(),
                                                     img->get_chroma_format(),
-                                                    img->get_shared_sps(),
-                                                    false,
+                                                    img->get_bit_depth(0),
+                                                    img->get_bit_depth(1),
                                                     img->pts,
                                                     img->get_supplementary_data(),
                                                     img->user_data,

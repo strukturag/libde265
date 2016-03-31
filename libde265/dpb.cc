@@ -256,9 +256,12 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   image::supplementary_data supp_data;
   supp_data.set_from_SPS(sps);
 
-  img->alloc_image(w,h, chroma, sps, true, pts, supp_data, user_data, alloc_functions);
+  img->alloc_image(w,h, chroma,
+                   sps->BitDepth_Y,
+                   sps->BitDepth_C,
+                   pts, supp_data, user_data, alloc_functions);
   img->set_decoder_context(decctx);
-
+  img->alloc_metadata(sps);
   img->integrity = INTEGRITY_CORRECT;
 
   return free_image_buffer_idx;

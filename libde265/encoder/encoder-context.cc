@@ -336,13 +336,14 @@ double encode_image(encoder_context* ectx,
   ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
-  ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
+  ectx->img->alloc_image(w,h, input->get_chroma_format(), 8,8,
                          0, // PTS
                          image::supplementary_data(),
                          NULL, // user data
                          nullptr); // alloc_funcs
   ectx->img->set_encoder_context(ectx);
-  //ectx->img->alloc_encoder_data(&ectx->sps);
+
+  ectx->img->alloc_metadata(ectx->get_shared_sps());
   ectx->img->clear_metadata();
 
 #if 0

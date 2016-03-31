@@ -74,8 +74,8 @@ image* ImageSource_PNG::get_image(bool block)
   mHeight= input.AskHeight();
 
   image* img = new image;
-  img->alloc_image(mWidth,mHeight,de265_chroma_444, NULL, false,
-                   0,
+  img->alloc_image(mWidth,mHeight,de265_chroma_444, 8,8,
+                   0, // PTS
                    image::supplementary_data(),
                    NULL, false);
   assert(img); // TODO: error handling

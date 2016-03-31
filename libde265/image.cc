@@ -256,16 +256,12 @@ image::image()
 
 
 de265_error image::alloc_image(int w,int h, enum de265_chroma c,
-                               std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
+                               int bitDepth_luma, int bitDepth_chroma,
                                de265_PTS pts,
                                const supplementary_data& supp_data,
                                void* user_data,
                                const de265_image_allocation* alloc_functions)
 {
-  if (allocMetadata) { assert(sps); }
-
-  if (sps) { this->sps = sps; }
-
   m_supplementary_data = supp_data;
 
   release(); /* TODO: review code for efficient allocation when arrays are already
@@ -331,11 +327,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
     break;
   }
 
-  if (sps) {
-    assert(sps->SubWidthC  == SubWidthC);
-    assert(sps->SubHeightC == SubHeightC);
-  }
-
   spec.width  = w;
   spec.height = h;
   spec.chroma = chroma_format;
@@ -363,8 +354,8 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   spec.visible_height= height_confwin;
 
 
-  BitDepth_Y = (sps==NULL) ? 8 : sps->BitDepth_Y;
-  BitDepth_C = (sps==NULL) ? 8 : sps->BitDepth_C;
+  BitDepth_Y = bitDepth_luma;   // (sps==NULL) ? 8 : sps->BitDepth_Y;
+  BitDepth_C = bitDepth_chroma; // (sps==NULL) ? 8 : sps->BitDepth_C;
 
   bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
   bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;
@@ -399,65 +390,73 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
       }
   }
 
-  //alloc_functions = *allocfunc;
-  //alloc_userdata  = userdata;
+  return DE265_OK;
+}
+
+
+de265_error image::alloc_metadata(std::shared_ptr<const seq_parameter_set> sps)
+{
+  assert(sps);
+  this->sps = sps;
+
 
   // --- allocate decoding info arrays ---
 
-  if (allocMetadata) {
-    // intra pred mode
+  // intra pred mode
 
-    mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
-                                             sps->Log2MinPUSize);
+  bool mem_alloc_success = true;
 
-    mem_alloc_success &= intraPredModeC.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
-                                              sps->Log2MinPUSize);
+  mem_alloc_success &= intraPredMode.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
+                                           sps->Log2MinPUSize);
 
-    // cb info
+  mem_alloc_success &= intraPredModeC.alloc(sps->PicWidthInMinPUs, sps->PicHeightInMinPUs,
+                                            sps->Log2MinPUSize);
 
-    mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
-                                       sps->Log2MinCbSizeY);
+  // cb info
 
-    // pb info
+  mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
+                                     sps->Log2MinCbSizeY);
 
-    int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
-    int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
+  // pb info
 
-    mem_alloc_success &= pb_info.alloc(puWidth,puHeight, 2);
+  int puWidth  = sps->PicWidthInMinCbsY  << (sps->Log2MinCbSizeY -2);
+  int puHeight = sps->PicHeightInMinCbsY << (sps->Log2MinCbSizeY -2);
 
-
-    // tu info
-
-    mem_alloc_success &= tu_info.alloc(sps->PicWidthInTbsY, sps->PicHeightInTbsY,
-                                       sps->Log2MinTrafoSize);
-
-    // deblk info
-
-    int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
-    int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
-
-    mem_alloc_success &= deblk_info.alloc(deblk_w, deblk_h, 2);
-
-    // CTB info
-
-    if (ctb_info.data_size != sps->PicSizeInCtbsY)
-      {
-        delete[] ctb_progress;
-
-        mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
-                                            sps->Log2CtbSizeY);
-
-        ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
-      }
+  mem_alloc_success &= pb_info.alloc(puWidth,puHeight, 2);
 
 
-    // check for memory shortage
+  // tu info
 
-    if (!mem_alloc_success)
-      {
-        return DE265_ERROR_OUT_OF_MEMORY;
-      }
-  }
+  mem_alloc_success &= tu_info.alloc(sps->PicWidthInTbsY, sps->PicHeightInTbsY,
+                                     sps->Log2MinTrafoSize);
+
+  // deblk info
+
+  int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
+  int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
+
+  mem_alloc_success &= deblk_info.alloc(deblk_w, deblk_h, 2);
+
+  // CTB info
+
+  if (ctb_info.data_size != sps->PicSizeInCtbsY)
+    {
+      delete[] ctb_progress;
+
+      mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
+                                          sps->Log2CtbSizeY);
+
+      ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+    }
+
+
+  // check for memory shortage
+
+  if (!mem_alloc_success)
+    {
+      return DE265_ERROR_OUT_OF_MEMORY;
+    }
+
 
   return DE265_OK;
 }
@@ -527,7 +526,9 @@ de265_error image::copy_image(const image* src)
      Another option would be to safe the copied data not in an image at all.
   */
 
-  de265_error err = alloc_image(src->width, src->height, src->chroma_format, src->sps, false,
+  de265_error err = alloc_image(src->width, src->height, src->chroma_format,
+                                src->BitDepth_Y,
+                                src->BitDepth_C,
                                 src->pts,
                                 src->get_supplementary_data(),
                                 src->user_data, false);
