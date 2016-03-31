@@ -311,18 +311,6 @@ class image {
   }
 
 
-  void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos)
-  {
-    int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
-  }
-
-  const void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos) const
-  {
-    int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
-  }
-
   /* Number of pixels in one row (not number of bytes).
    */
   int get_image_stride(int cIdx) const

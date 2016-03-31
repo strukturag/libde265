@@ -295,13 +295,25 @@ void generate_inter_prediction_samples(base_context* ctx,
   const int SubWidthC  = sps->SubWidthC;
   const int SubHeightC = sps->SubHeightC;
 
-  pixels[0] = img->get_image_plane_at_pos_any_depth(0,xP,yP);
+
+  if (img->high_bit_depth(0)) {
+    pixels[0] = img->get_image_plane_at_pos<uint16_t>(0,xP,yP);
+  }
+  else {
+    pixels[0] = img->get_image_plane_at_pos<uint8_t>(0,xP,yP);
+  }
+
+  if (img->high_bit_depth(1)) {
+    pixels[1] = img->get_image_plane_at_pos<uint16_t>(1,xP/SubWidthC,yP/SubHeightC);
+    pixels[2] = img->get_image_plane_at_pos<uint16_t>(2,xP/SubWidthC,yP/SubHeightC);
+  }
+  else {
+    pixels[1] = img->get_image_plane_at_pos<uint8_t>(1,xP/SubWidthC,yP/SubHeightC);
+    pixels[2] = img->get_image_plane_at_pos<uint8_t>(2,xP/SubWidthC,yP/SubHeightC);
+  }
+
   stride[0] = img->get_image_stride(0);
-
-  pixels[1] = img->get_image_plane_at_pos_any_depth(1,xP/SubWidthC,yP/SubHeightC);
   stride[1] = img->get_image_stride(1);
-
-  pixels[2] = img->get_image_plane_at_pos_any_depth(2,xP/SubWidthC,yP/SubHeightC);
   stride[2] = img->get_image_stride(2);
 
 
