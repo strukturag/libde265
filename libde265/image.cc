@@ -340,22 +340,22 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   int top    = m_supplementary_data.crop_top;
   int bottom = m_supplementary_data.crop_bottom;
 
-  width_confwin = width - (left+right)*WinUnitX;
-  height_confwin= height- (top+bottom)*WinUnitY;
-  chroma_width_confwin = chroma_width -left-right;
-  chroma_height_confwin= chroma_height-top-bottom;
+  width_confwin = width - (left+right);
+  height_confwin= height- (top+bottom);
+  chroma_width_confwin = chroma_width -(left+right)/WinUnitX;
+  chroma_height_confwin= chroma_height-(top+bottom)/WinUnitY;
 
-  spec.crop_left  = left *WinUnitX;
-  spec.crop_right = right*WinUnitX;
-  spec.crop_top   = top   *WinUnitY;
-  spec.crop_bottom= bottom*WinUnitY;
+  spec.crop_left  = left;
+  spec.crop_right = right;
+  spec.crop_top   = top;
+  spec.crop_bottom= bottom;
 
   spec.visible_width = width_confwin;
   spec.visible_height= height_confwin;
 
 
-  BitDepth_Y = bitDepth_luma;   // (sps==NULL) ? 8 : sps->BitDepth_Y;
-  BitDepth_C = bitDepth_chroma; // (sps==NULL) ? 8 : sps->BitDepth_C;
+  BitDepth_Y = bitDepth_luma;
+  BitDepth_C = bitDepth_chroma;
 
   bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
   bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;
