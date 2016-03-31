@@ -245,6 +245,16 @@ public:
     else         return BitDepth_C;
   }
 
+  enum de265_chroma get_chroma() const;
+
+  int get_chroma_horizontal_subsampling() const {
+    return (chroma_format_idc==CHROMA_420 ||
+            chroma_format_idc==CHROMA_422) ? 2 : 1;
+  }
+  int get_chroma_vertical_subsampling() const {
+    return (chroma_format_idc==CHROMA_420) ? 2 : 1;
+  }
+
   int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
   int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
 };

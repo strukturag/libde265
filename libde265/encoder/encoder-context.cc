@@ -338,6 +338,7 @@ double encode_image(encoder_context* ectx,
 
   ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
                          0, // PTS
+                         image::supplementary_data(),
                          NULL, // user data
                          nullptr); // alloc_funcs
   ectx->img->set_encoder_context(ectx);

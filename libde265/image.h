@@ -221,15 +221,36 @@ typedef struct {
 typedef std::shared_ptr<image> image_ptr;
 
 
-struct image {
+class image {
+ public:
   image();
   ~image();
+
+
+  class supplementary_data
+  {
+  public:
+    supplementary_data();
+
+    void set_from_SPS(std::shared_ptr<const seq_parameter_set> sps);
+
+    // visible area
+
+    int crop_left;
+    int crop_right;
+    int crop_top;
+    int crop_bottom;
+  };
+
+  supplementary_data get_supplementary_data() const { return m_supplementary_data; }
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c,
                           std::shared_ptr<const seq_parameter_set> sps,
                           bool allocMetadata,
-                          de265_PTS pts, void* user_data,
+                          de265_PTS pts,
+                          const supplementary_data& supp_data,
+                          void* user_data,
                           const de265_image_allocation* alloc_functions = nullptr);
 
   void set_decoder_context(decoder_context* ctx) { decctx = ctx; }
@@ -369,6 +390,7 @@ public:
   std::vector<slice_segment_header*> slices;
 
 public:
+  supplementary_data m_supplementary_data;
 
   // --- conformance cropping window ---
 

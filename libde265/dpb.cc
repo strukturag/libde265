@@ -251,16 +251,12 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
-  enum de265_chroma chroma;
-  switch (sps->chroma_format_idc) {
-  case 0: chroma = de265_chroma_mono; break;
-  case 1: chroma = de265_chroma_420;  break;
-  case 2: chroma = de265_chroma_422;  break;
-  case 3: chroma = de265_chroma_444;  break;
-  default: chroma = de265_chroma_420; assert(0); break; // should never happen
-  }
+  enum de265_chroma chroma = sps->get_chroma();
 
-  img->alloc_image(w,h, chroma, sps, true, pts, user_data, alloc_functions);
+  image::supplementary_data supp_data;
+  supp_data.set_from_SPS(sps);
+
+  img->alloc_image(w,h, chroma, sps, true, pts, supp_data, user_data, alloc_functions);
   img->set_decoder_context(decctx);
 
   img->integrity = INTEGRITY_CORRECT;

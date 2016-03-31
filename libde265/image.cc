@@ -66,6 +66,24 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
 static const int alignment = 16;
 
 
+image::supplementary_data::supplementary_data()
+{
+  crop_left  =0;
+  crop_right =0;
+  crop_top   =0;
+  crop_bottom=0;
+}
+
+
+void image::supplementary_data::set_from_SPS(std::shared_ptr<const seq_parameter_set> sps)
+{
+  crop_left   = sps->conf_win_left_offset   * sps->get_chroma_horizontal_subsampling();
+  crop_right  = sps->conf_win_right_offset  * sps->get_chroma_horizontal_subsampling();
+  crop_top    = sps->conf_win_top_offset    * sps->get_chroma_vertical_subsampling();
+  crop_bottom = sps->conf_win_bottom_offset * sps->get_chroma_vertical_subsampling();
+}
+
+
 LIBDE265_API void* de265_alloc_image_plane(struct image* img, int cIdx,
                                            void* inputdata, int inputstride, void *userdata)
 {
@@ -239,12 +257,16 @@ image::image()
 
 de265_error image::alloc_image(int w,int h, enum de265_chroma c,
                                std::shared_ptr<const seq_parameter_set> sps, bool allocMetadata,
-                               de265_PTS pts, void* user_data,
+                               de265_PTS pts,
+                               const supplementary_data& supp_data,
+                               void* user_data,
                                const de265_image_allocation* alloc_functions)
 {
   if (allocMetadata) { assert(sps); }
 
   if (sps) { this->sps = sps; }
+
+  m_supplementary_data = supp_data;
 
   release(); /* TODO: review code for efficient allocation when arrays are already
                 allocated to the requested size. Without the release, the old image-data
@@ -322,10 +344,10 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   // conformance window cropping
 
-  int left   = sps ? sps->conf_win_left_offset : 0;
-  int right  = sps ? sps->conf_win_right_offset : 0;
-  int top    = sps ? sps->conf_win_top_offset : 0;
-  int bottom = sps ? sps->conf_win_bottom_offset : 0;
+  int left   = m_supplementary_data.crop_left;
+  int right  = m_supplementary_data.crop_right;
+  int top    = m_supplementary_data.crop_top;
+  int bottom = m_supplementary_data.crop_bottom;
 
   width_confwin = width - (left+right)*WinUnitX;
   height_confwin= height- (top+bottom)*WinUnitY;
@@ -506,7 +528,9 @@ de265_error image::copy_image(const image* src)
   */
 
   de265_error err = alloc_image(src->width, src->height, src->chroma_format, src->sps, false,
-                                src->pts, src->user_data, false);
+                                src->pts,
+                                src->get_supplementary_data(),
+                                src->user_data, false);
   if (err != DE265_OK) {
     return err;
   }

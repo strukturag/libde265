@@ -1286,3 +1286,18 @@ void sps_range_extension::dump(int fd) const
 }
 #undef LOG1
 #undef LOG0
+
+
+enum de265_chroma seq_parameter_set::get_chroma() const
+{
+  switch (chroma_format_idc) {
+  case CHROMA_MONO: return de265_chroma_mono; break;
+  case CHROMA_420: return de265_chroma_420;  break;
+  case CHROMA_422: return de265_chroma_422;  break;
+  case CHROMA_444: return de265_chroma_444;  break;
+  default: assert(false); break;
+  }
+
+  // should never happen
+  return de265_chroma_420;
+}
