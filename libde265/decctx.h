@@ -375,9 +375,9 @@ class decoder_context : public base_context {
 
   bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
 
-  image_ptr get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
-  int    num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
-  void   pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
+  image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
+  int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
+  void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
 
  private:
   de265_error read_vps_NAL(bitreader&);
@@ -438,6 +438,7 @@ class decoder_context : public base_context {
   // --- decoded picture buffer ---
 
   decoded_picture_buffer dpb;
+  picture_output_queue   m_output_queue;
 
   int current_image_poc_lsb;
   bool first_decoded_picture;

@@ -29,6 +29,9 @@
 
 class decoder_context;
 
+
+/* Buffer of all decoded pictures that can still be used as a reference picture.
+ */
 class decoded_picture_buffer {
 public:
   decoded_picture_buffer();
@@ -71,16 +74,43 @@ public:
   int DPB_index_of_picture_with_ID (int id) const;
 
 
+  // --- debug ---
+
+  void log_dpb_content() const;
+
+private:
+  int max_images_in_DPB;
+  int norm_images_in_DPB;
+
+  std::vector<image_ptr> dpb; // decoded picture buffer
+
+private:
+  decoded_picture_buffer(const decoded_picture_buffer&); // no copy
+  decoded_picture_buffer& operator=(const decoded_picture_buffer&); // no copy
+};
+
+
+/* The picture_output_queue holds all decoded pictures (and also the skipped pictures).
+   The queue consists of two parts:
+   - First, the pictures enter a reordering queue and after the reordering delay,
+     they are forwarded to
+   - the output FIFO.
+ */
+class picture_output_queue
+{
+public:
+  picture_output_queue() : m_num_reorder_pics(0) { }
+
+  void set_num_reorder_pics(int n) { m_num_reorder_pics = n; }
+
+  void clear();
+
+
   // --- reorder buffer ---
 
-  void insert_image_into_reorder_buffer(image_ptr img) {
-    reorder_output_queue.push_back(img);
-  }
+  void insert_image_into_reorder_buffer(image_ptr img);
 
   int num_pictures_in_reorder_buffer() const { return reorder_output_queue.size(); }
-
-  // move next picture in reorder buffer to output queue
-  void output_next_picture_in_reorder_buffer();
 
   // Move all pictures in reorder buffer to output buffer. Return true if there were any pictures.
   bool flush_reorder_buffer();
@@ -99,21 +129,17 @@ public:
 
   // --- debug ---
 
-  void log_dpb_content() const;
   void log_dpb_queues() const;
 
-private:
-  int max_images_in_DPB;
-  int norm_images_in_DPB;
-
-  std::vector<image_ptr> dpb; // decoded picture buffer
+ private:
+  int m_num_reorder_pics;
 
   std::vector<image_ptr> reorder_output_queue;
   std::deque<image_ptr>  image_output_queue;
 
-private:
-  decoded_picture_buffer(const decoded_picture_buffer&); // no copy
-  decoded_picture_buffer& operator=(const decoded_picture_buffer&); // no copy
+
+  // move next picture in reorder buffer to output queue
+  void move_next_picture_in_reorder_buffer_to_output_queue();
 };
 
 #endif

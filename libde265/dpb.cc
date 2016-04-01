@@ -140,7 +140,20 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 }
 
 
-void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
+void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
+{
+  reorder_output_queue.push_back(img);
+
+
+  // using 'while' instead of 'if' if case the reorder buffer size shrinks with a new VPS
+
+  while (num_pictures_in_reorder_buffer() > m_num_reorder_pics) {
+    move_next_picture_in_reorder_buffer_to_output_queue();
+  }
+}
+
+
+void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
 {
   assert(!reorder_output_queue.empty());
 
@@ -169,13 +182,13 @@ void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 }
 
 
-bool decoded_picture_buffer::flush_reorder_buffer()
+bool picture_output_queue::flush_reorder_buffer()
 {
   // return 'false' when there are no pictures in reorder buffer
   if (reorder_output_queue.empty()) return false;
 
   while (!reorder_output_queue.empty()) {
-    output_next_picture_in_reorder_buffer();
+    move_next_picture_in_reorder_buffer_to_output_queue();
   }
 
   return true;
@@ -193,7 +206,11 @@ void decoded_picture_buffer::clear()
         dpb[i]->release();
       }
   }
+}
 
+
+void picture_output_queue::clear()
+{
   reorder_output_queue.clear();
   image_output_queue.clear();
 }
@@ -265,7 +282,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 }
 
 
-void decoded_picture_buffer::pop_next_picture_in_output_queue()
+void picture_output_queue::pop_next_picture_in_output_queue()
 {
   image_output_queue.pop_front();
 
@@ -278,7 +295,7 @@ void decoded_picture_buffer::pop_next_picture_in_output_queue()
 }
 
 
-void decoded_picture_buffer::log_dpb_queues() const
+void picture_output_queue::log_dpb_queues() const
 {
     loginfo(LogDPB, "DPB reorder queue (after push): ");
     for (int i=0;i<num_pictures_in_reorder_buffer();i++) {

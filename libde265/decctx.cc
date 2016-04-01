@@ -714,7 +714,7 @@ de265_error decoder_context::decode_some(bool* did_work)
       //pop_front(imgunit->slice_units);
 
       if (sliceunit->flush_reorder_buffer) {
-        dpb.flush_reorder_buffer();
+        m_output_queue.flush_reorder_buffer();
       }
 
       *did_work = true;
@@ -1271,9 +1271,9 @@ de265_error decoder_context::decode(int* more)
     // flush all pending pictures into output queue
 
     // ctx->push_current_picture_to_output_queue(); // TODO: not with new queue
-    ctx->dpb.flush_reorder_buffer();
+    ctx->m_output_queue.flush_reorder_buffer();
 
-    if (more) { *more = ctx->dpb.num_pictures_in_output_queue(); }
+    if (more) { *more = ctx->m_output_queue.num_pictures_in_output_queue(); }
 
     return DE265_OK;
   }
@@ -1917,6 +1917,14 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
 
   // push image into output queue
 
+  if (outimg->has_vps()) {
+    int sublayer = outimg->get_vps().vps_max_sub_layers -1;
+    const layer_data& layer = outimg->get_vps().layer[sublayer];
+
+    m_output_queue.set_num_reorder_pics( layer.vps_max_num_reorder_pics );
+  }
+
+
   if (outimg->PicOutputFlag) {
     loginfo(LogDPB,"new picture has output-flag=true\n");
 
@@ -1924,27 +1932,13 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
         param_suppress_faulty_pictures) {
     }
     else {
-      dpb.insert_image_into_reorder_buffer(outimg);
+      m_output_queue.insert_image_into_reorder_buffer(outimg);
     }
 
     loginfo(LogDPB,"push image %d into reordering queue\n", outimg->PicOrderCntVal);
   }
 
-  // check for full reorder buffers
-
-  int maxNumPicsInReorderBuffer = 0;
-
-  // TODO: I'd like to have the has_vps() check somewhere else (not decode the picture at all)
-  if (outimg->has_vps()) {
-    int sublayer = outimg->get_vps().vps_max_sub_layers -1;
-    maxNumPicsInReorderBuffer = outimg->get_vps().layer[sublayer].vps_max_num_reorder_pics;
-  }
-
-  if (dpb.num_pictures_in_reorder_buffer() > maxNumPicsInReorderBuffer) {
-    dpb.output_next_picture_in_reorder_buffer();
-  }
-
-  dpb.log_dpb_queues();
+  m_output_queue.log_dpb_queues();
 
   return DE265_OK;
 }
