@@ -228,10 +228,9 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   int free_image_buffer_idx = -1;
   for (int i=0;i<dpb.size();i++) {
-    if (dpb[i]->can_be_released()) {
-      dpb[i]->release(); /* TODO: this is surely not the best place to free the image, but
-                            we have to do it here because releasing it in de265_release_image()
-                            would break the API compatibility. */
+    if (dpb[i]->PicState==UnusedForReference) {
+      // TODO: this is probably not the best place to free the old image
+      dpb[i] = std::make_shared<image>();
 
       free_image_buffer_idx = i;
       break;
@@ -244,7 +243,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   if (dpb.size() > norm_images_in_DPB &&           // buffer too large
       free_image_buffer_idx != dpb.size()-1 &&     // last slot not reused in this alloc
-      dpb.back()->can_be_released())               // last slot is free
+      dpb.back()->PicState==UnusedForReference)    // last slot is free
     {
       dpb.pop_back();
     }

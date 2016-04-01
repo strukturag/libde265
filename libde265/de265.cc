@@ -391,7 +391,6 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
   if (ctx->num_pictures_in_output_queue()>0) {
     de265_image* img = new de265_image;
     img->m_image = ctx->get_next_picture_in_output_queue();
-    img->m_image->PicOutputFlag = false;
 
     // pop output queue
 
@@ -408,9 +407,6 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 LIBDE265_API void de265_skip_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-
-  auto img = ctx->get_next_picture_in_output_queue();
-  img->PicOutputFlag = false;
 
   ctx->pop_next_picture_in_output_queue();
 }

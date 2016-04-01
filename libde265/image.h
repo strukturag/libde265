@@ -340,8 +340,6 @@ class image {
     return get_bit_depth(cIdx)>8;
   }
 
-  bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
-
 
   void add_slice_segment_header(slice_segment_header* shdr) {
     shdr->slice_index = slices.size();
