@@ -140,61 +140,6 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 }
 
 
-void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
-{
-  reorder_output_queue.push_back(img);
-
-
-  // using 'while' instead of 'if' if case the reorder buffer size shrinks with a new VPS
-
-  while (num_pictures_in_reorder_buffer() > m_num_reorder_pics) {
-    move_next_picture_in_reorder_buffer_to_output_queue();
-  }
-}
-
-
-void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
-{
-  assert(!reorder_output_queue.empty());
-
-  // search for picture in reorder buffer with minimum POC
-
-  int minPOC = reorder_output_queue[0]->PicOrderCntVal;
-  int minIdx = 0;
-  for (int i=1;i<reorder_output_queue.size();i++)
-    {
-      if (reorder_output_queue[i]->PicOrderCntVal < minPOC) {
-        minPOC = reorder_output_queue[i]->PicOrderCntVal;
-        minIdx = i;
-      }
-    }
-
-
-  // put image into output queue
-
-  image_output_queue.push_back(reorder_output_queue[minIdx]);
-
-
-  // remove image from reorder buffer
-
-  reorder_output_queue[minIdx] = reorder_output_queue.back();
-  reorder_output_queue.pop_back();
-}
-
-
-bool picture_output_queue::flush_reorder_buffer()
-{
-  // return 'false' when there are no pictures in reorder buffer
-  if (reorder_output_queue.empty()) return false;
-
-  while (!reorder_output_queue.empty()) {
-    move_next_picture_in_reorder_buffer_to_output_queue();
-  }
-
-  return true;
-}
-
-
 void decoded_picture_buffer::clear()
 {
   for (int i=0;i<dpb.size();i++) {
@@ -206,13 +151,6 @@ void decoded_picture_buffer::clear()
         dpb[i]->release();
       }
   }
-}
-
-
-void picture_output_queue::clear()
-{
-  reorder_output_queue.clear();
-  image_output_queue.clear();
 }
 
 
@@ -278,6 +216,71 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   img->integrity = INTEGRITY_CORRECT;
 
   return free_image_buffer_idx;
+}
+
+
+// --------------------------------------------------------------------------------
+
+
+void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
+{
+  reorder_output_queue.push_back(img);
+
+
+  // using 'while' instead of 'if' if case the reorder buffer size shrinks with a new VPS
+
+  while (num_pictures_in_reorder_buffer() > m_num_reorder_pics) {
+    move_next_picture_in_reorder_buffer_to_output_queue();
+  }
+}
+
+
+void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
+{
+  assert(!reorder_output_queue.empty());
+
+  // search for picture in reorder buffer with minimum POC
+
+  int minPOC = reorder_output_queue[0]->PicOrderCntVal;
+  int minIdx = 0;
+  for (int i=1;i<reorder_output_queue.size();i++)
+    {
+      if (reorder_output_queue[i]->PicOrderCntVal < minPOC) {
+        minPOC = reorder_output_queue[i]->PicOrderCntVal;
+        minIdx = i;
+      }
+    }
+
+
+  // put image into output queue
+
+  image_output_queue.push_back(reorder_output_queue[minIdx]);
+
+
+  // remove image from reorder buffer
+
+  reorder_output_queue[minIdx] = reorder_output_queue.back();
+  reorder_output_queue.pop_back();
+}
+
+
+bool picture_output_queue::flush_reorder_buffer()
+{
+  // return 'false' when there are no pictures in reorder buffer
+  if (reorder_output_queue.empty()) return false;
+
+  while (!reorder_output_queue.empty()) {
+    move_next_picture_in_reorder_buffer_to_output_queue();
+  }
+
+  return true;
+}
+
+
+void picture_output_queue::clear()
+{
+  reorder_output_queue.clear();
+  image_output_queue.clear();
 }
 
 
