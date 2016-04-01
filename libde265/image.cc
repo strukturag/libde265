@@ -214,11 +214,11 @@ void image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
 }
 
 
-uint32_t image::s_next_image_ID = 0;
+uint32_t image::s_next_image_ID = 1; // start with ID 1, as 0 means 'no ID'
 
 image::image()
 {
-  ID = -1;
+  ID = 0;
   removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
   decctx = NULL;
