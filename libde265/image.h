@@ -390,12 +390,10 @@ public:
 
   // --- decoding info ---
 
-  // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
-
   int  picture_order_cnt_lsb;
   int  PicOrderCntVal;
   enum PictureState PicState;
-  bool PicOutputFlag;
+  bool PicOutputFlag; // picture will be sent to output
 
   int32_t removed_at_picture_id;
 

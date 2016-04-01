@@ -583,8 +583,6 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 
   sei_message sei;
 
-  //push_current_picture_to_output_queue();
-
   de265_error err = DE265_OK;
 
   if ((err=read_sei(&reader,&sei, suffix, current_sps.get())) == DE265_OK) {
@@ -711,21 +709,16 @@ de265_error decoder_context::decode_some(bool* did_work)
 
     if (sliceunit != NULL) {
 
-      //pop_front(imgunit->slice_units);
-
       if (sliceunit->flush_reorder_buffer) {
         m_output_queue.flush_reorder_buffer();
       }
 
       *did_work = true;
 
-      //err = decode_slice_unit_sequential(imgunit, sliceunit);
       err = decode_slice_unit_parallel(imgunit, sliceunit);
       if (err) {
         return err;
       }
-
-      //delete sliceunit;
     }
   }
 
@@ -1176,8 +1169,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
 {
-  //return decode_NAL_OLD(nal);
-
   decoder_context* ctx = this;
 
   de265_error err = DE265_OK;
@@ -1305,15 +1296,15 @@ de265_error decoder_context::decode(int* more)
   de265_error err = DE265_OK;
   bool did_work = false;
 
-  if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
+  if (ctx->nal_parser.get_NAL_queue_length() > 0) { // number_of_NAL_units_pending()) {
     NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = ctx->decode_NAL(nal);
-    // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
+
     did_work=true;
   }
   else if (ctx->nal_parser.is_end_of_frame() == true &&
-      ctx->image_units.empty()) {
+           ctx->image_units.empty()) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
@@ -1433,8 +1424,11 @@ int decoder_context::generate_unavailable_reference_picture(const seq_parameter_
 
 /* 8.3.2   invoked once per picture
 
-   This function will mark pictures in the DPB as 'unused' or 'used for long-term reference'
- */
+   This function will mark pictures in the DPB as 'unused' or 'used for long-term reference'.
+   Note: this function will not mark pictures as unused immediately, but put all unused
+   picture IDs into a list. They can be removed from the DPB later with
+   remove_images_from_dpb(vector).
+*/
 void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
 {
   std::vector<int> removeReferencesList;
