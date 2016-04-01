@@ -387,7 +387,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
   const de265_image* img = de265_peek_next_picture(de265ctx);
-  if (img && img->m_image) {
+  if (img) {
     de265_release_next_picture(de265ctx);
   }
 
