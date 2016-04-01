@@ -290,12 +290,16 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
 
+/* Remove the next picture in the output queue.
+ */
+LIBDE265_API void de265_skip_next_picture(de265_decoder_context*);
+
   // DEPRECATED
-LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx);
+  //LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx);
 
 /* Release the image received from de265_peek_next_picture() or de265_get_next_picture()
  */
-//LIBDE265_API void de265_release_picture(de265_image*);
+LIBDE265_API void de265_release_picture(const de265_image*);
 
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);

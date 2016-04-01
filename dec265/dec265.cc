@@ -789,6 +789,8 @@ int main(int argc, char** argv)
             stop = output_image(img);
             if (stop) more=0;
             else      more=1;
+
+            de265_release_picture(img);
           }
 
           // show warnings

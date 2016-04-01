@@ -39,6 +39,11 @@ using namespace videogfx;
 #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
 #endif
 
+struct de265_image {
+  std::shared_ptr<image> m_image;
+};
+
+
 VideoDecoder::VideoDecoder()
   : mFH(NULL),
     ctx(NULL),
@@ -121,8 +126,10 @@ void VideoDecoder::decoder_loop()
         mutex.lock();
 
         if (img) {
+          de265_release_picture(img);
+          de265_skip_next_picture(ctx);
+
           img = NULL;
-          de265_release_next_picture(ctx);
         }
 
         img = de265_peek_next_picture(ctx);
@@ -178,7 +185,7 @@ void VideoDecoder::decoder_loop()
 #ifdef HAVE_VIDEOGFX
 void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImage & qimg)
 {
-  const image* img = (const image*)de265_img;
+  const image* img = de265_img->m_image.get();
 
   // --- convert to RGB ---
 
@@ -240,7 +247,7 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImag
 #ifdef HAVE_SWSCALE
 void VideoDecoder::convert_frame_swscale(const de265_image* de265_img, QImage & qimg)
 {
-  const image* img = (const image*)de265_img;
+  const image* img = de265_img->m_image.get();
 
   if (sws == NULL || img->get_width() != width || img->get_height() != height) {
     if (sws != NULL) {
@@ -266,7 +273,7 @@ void VideoDecoder::convert_frame_swscale(const de265_image* de265_img, QImage & 
 
 void VideoDecoder::show_frame(const de265_image* de265_img)
 {
-  const image* img = (const image*)de265_img;
+  const image* img = de265_img->m_image.get();
 
   if (mFrameCount==0) {
     mImgBuffers[0] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);

@@ -386,12 +386,33 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
-  const de265_image* img = de265_peek_next_picture(de265ctx);
-  if (img) {
-    de265_release_next_picture(de265ctx);
-  }
+  decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return img;
+  if (ctx->num_pictures_in_output_queue()>0) {
+    de265_image* img = new de265_image;
+    img->m_image = ctx->get_next_picture_in_output_queue();
+    img->m_image->PicOutputFlag = false;
+
+    // pop output queue
+
+    ctx->pop_next_picture_in_output_queue();
+
+    return img;
+  }
+  else {
+    return NULL;
+  }
+}
+
+
+LIBDE265_API void de265_skip_next_picture(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  auto img = ctx->get_next_picture_in_output_queue();
+  img->PicOutputFlag = false;
+
+  ctx->pop_next_picture_in_output_queue();
 }
 
 
@@ -410,31 +431,11 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 }
 
 
-LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
+LIBDE265_API void de265_release_picture(const de265_image* de265img)
 {
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  // no active output picture -> ignore release request
-
-  if (ctx->num_pictures_in_output_queue()==0) { return; }
-
-  image_ptr next_image = ctx->get_next_picture_in_output_queue();
-
-  loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
-
-  next_image->PicOutputFlag = false;
-
-  // TODO: actually, we want to release it here, but we cannot without breaking API
-  // compatibility, because get_next_picture calls this immediately. Hence, we release
-  // images while scanning for available slots in the DPB.
-  // if (next_image->can_be_released()) { next_image->release(); }
-
-  // pop output queue
-
-  ctx->pop_next_picture_in_output_queue();
+  assert(de265img);
+  delete de265img;
 }
-
-
 
 LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
 {
