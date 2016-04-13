@@ -149,9 +149,11 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 {
   int vlc;
 
-  pic_parameter_set* pps = ctx->get_pps((int)shdr->slice_pic_parameter_set_id);
+  frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
+
+  pic_parameter_set* pps = frontend.get_pps((int)shdr->slice_pic_parameter_set_id);
   assert(pps);
-  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  seq_parameter_set* sps = frontend.get_sps((int)pps->seq_parameter_set_id);
   assert(sps);
 
   shdr->luma_log2_weight_denom = vlc = get_uvlc(br);
@@ -357,6 +359,8 @@ void slice_segment_header::reset()
 de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
                                        bool* continueDecoding)
 {
+  frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
+
   *continueDecoding = false;
   reset();
 
@@ -369,7 +373,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   first_slice_segment_in_pic_flag = get_bits(br,1);
 
-  if (ctx->get_RapPicFlag()) { // TODO: is this still correct ? Should we drop RapPicFlag ?
+  if (frontend.get_RapPicFlag()) { // TODO: is this still correct ? Should we drop RapPicFlag ?
     no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
@@ -380,12 +384,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  if (!ctx->has_pps(slice_pic_parameter_set_id)) {
+  if (!frontend.has_pps(slice_pic_parameter_set_id)) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  pps = ctx->get_pps(slice_pic_parameter_set_id);
+  pps = frontend.get_pps(slice_pic_parameter_set_id);
 
   const seq_parameter_set* sps = pps->sps;
   if (!sps->sps_read) {
@@ -410,11 +414,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      if (ctx->previous_slice_header == NULL) {
+      if (frontend.previous_slice_header == NULL) {
         return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
       }
 
-      *this = *ctx->previous_slice_header;
+      *this = *frontend.previous_slice_header;
 
       first_slice_segment_in_pic_flag = 0;
       dependent_slice_segment_flag = 1;
@@ -466,8 +470,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     int NumLtPics = 0;
 
-    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if (frontend.get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
+        frontend.get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
@@ -542,19 +546,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             // delta_poc_msb_present_flag[i] = 0; // TODO ?
 
-            ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
-            ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
+            frontend.PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
+            frontend.UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
             poc_lsb_lt[i] = get_bits(br, nBits);
             used_by_curr_pic_lt_flag[i] = get_bits(br,1);
 
-            ctx->PocLsbLt[i] = poc_lsb_lt[i];
-            ctx->UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
+            frontend.PocLsbLt[i] = poc_lsb_lt[i];
+            frontend.UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
           }
 
-          if (ctx->UsedByCurrPicLt[i]) {
+          if (frontend.UsedByCurrPicLt[i]) {
             NumLtPics++;
           }
 
@@ -570,11 +574,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           }
 
           if (i==0 || i==num_long_term_sps) {
-            ctx->DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
+            frontend.DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
           }
           else {
-            ctx->DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
-                                          ctx->DeltaPocMsbCycleLt[i-1]);
+            frontend.DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
+                                              frontend.DeltaPocMsbCycleLt[i-1]);
           }
         }
       }
@@ -1278,17 +1282,19 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
 #define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
 
-  const pic_parameter_set* pps = ctx->get_pps(slice_pic_parameter_set_id);
+  const frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
+
+  const pic_parameter_set* pps = frontend.get_pps(slice_pic_parameter_set_id);
   assert(pps->pps_read); // TODO: error handling
 
-  const seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  const seq_parameter_set* sps = frontend.get_sps((int)pps->seq_parameter_set_id);
   assert(sps->sps_read); // TODO: error handling
 
 
   LOG0("----------------- SLICE -----------------\n");
   LOG1("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
-  if (ctx->get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
-      ctx->get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
+  if (frontend.get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
+      frontend.get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
     LOG1("no_output_of_prior_pics_flag         : %d\n", no_output_of_prior_pics_flag);
   }
 
@@ -1320,8 +1326,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
     LOG1("slice_pic_order_cnt_lsb              : %d\n", slice_pic_order_cnt_lsb);
 
-    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if (frontend.get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
+        frontend.get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
 
       if (!short_term_ref_pic_set_sps_flag) {

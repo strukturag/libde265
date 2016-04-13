@@ -340,7 +340,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->decode(more);
+  return ctx->get_frontend_syntax_decoder().decode(more);
 }
 
 
@@ -436,7 +436,7 @@ LIBDE265_API void de265_release_picture(const de265_image* de265img)
 LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  return ctx->get_highest_TID();
+  return ctx->get_frontend_syntax_decoder().get_highest_TID();
 }
 
 LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
@@ -517,19 +517,19 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
   switch (param)
     {
     case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
-      ctx->param_sps_headers_fd = value;
+      ctx->get_frontend_syntax_decoder().param_sps_headers_fd = value;
       break;
 
     case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
-      ctx->param_vps_headers_fd = value;
+      ctx->get_frontend_syntax_decoder().param_vps_headers_fd = value;
       break;
 
     case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
-      ctx->param_pps_headers_fd = value;
+      ctx->get_frontend_syntax_decoder().param_pps_headers_fd = value;
       break;
 
     case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
-      ctx->param_slice_headers_fd = value;
+      ctx->get_frontend_syntax_decoder().param_slice_headers_fd = value;
       break;
 
     case DE265_DECODER_PARAM_ACCELERATION_CODE:

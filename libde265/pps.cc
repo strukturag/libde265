@@ -46,7 +46,7 @@ void pps_range_extension::reset()
 
 bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_parameter_set* pps)
 {
-  const seq_parameter_set* sps = ctx->get_sps(pps->seq_parameter_set_id);
+  const seq_parameter_set* sps = ctx->get_frontend_syntax_decoder().get_sps(pps->seq_parameter_set_id);
 
   int uvlc;
 
@@ -307,12 +307,12 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   num_ref_idx_l1_default_active++;
 
 
-  if (!ctx->has_sps(seq_parameter_set_id)) {
+  if (!ctx->get_frontend_syntax_decoder().has_sps(seq_parameter_set_id)) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
 
-  sps = ctx->get_sps(seq_parameter_set_id);
+  sps = ctx->get_frontend_syntax_decoder().get_sps(seq_parameter_set_id);
 
   if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);

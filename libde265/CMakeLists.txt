@@ -29,6 +29,7 @@ set (libde265_sources
   decctx.h
   image.h
   image-unit.h
+  image-unit.cc
   intrapred.h
   md5.h
   nal.h

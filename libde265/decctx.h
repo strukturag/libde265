@@ -34,6 +34,7 @@
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
+#include "libde265/image-unit.h"
 
 #include <memory>
 
@@ -49,7 +50,7 @@ class image_unit;
 class slice_unit;
 class decoder_context;
 
-typedef std::shared_ptr<image_unit> image_unit_ptr;
+//typedef std::shared_ptr<image_unit> image_unit_ptr;
 
 
 class thread_context
@@ -175,34 +176,15 @@ class image_unit_sink;
 class frontend_syntax_decoder
 {
  public:
-  frontend_syntax_decoder(decoder_context* ctx) { m_decctx=ctx; m_image_unit_sink = nullptr; }
+  frontend_syntax_decoder(decoder_context* ctx);
 
   void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
 
-  void process_slice_NAL(NAL_unit* nal); // transfers ownership of NAL
-
- private:
-  decoder_context* m_decctx;
-  image_unit_sink* m_image_unit_sink;
-
-  image_unit* m_current_unit;
-};
-
-
-
-
-class decoder_context : public base_context {
- public:
-  decoder_context();
-  ~decoder_context();
-
-  de265_error start_thread_pool(int nThreads);
-  void        stop_thread_pool();
-
   void reset();
 
+  //void process_slice_NAL(NAL_unit* nal); // transfers ownership of NAL
 
-  // -------------------------------------------------- frontend_syntax_decoder
+
 
   NAL_Parser& get_NAL_parser() { return nal_parser; }
 
@@ -213,6 +195,8 @@ class decoder_context : public base_context {
   const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
   const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
+
+  int  get_highest_TID() const;
 
   uint8_t get_nal_unit_type() const { return nal_unit_type; }
   bool    get_RapPicFlag() const { return RapPicFlag; }
@@ -225,6 +209,17 @@ class decoder_context : public base_context {
   bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,
                                     nal_header* nal_hdr, void* user_data);
+
+ public:
+  int  param_sps_headers_fd;
+  int  param_vps_headers_fd;
+  int  param_pps_headers_fd;
+  int  param_slice_headers_fd;
+
+ private:
+  decoder_context* m_decctx;
+  image_unit_sink* m_image_unit_sink;
+
 
  private:
   de265_error read_vps_NAL(bitreader&);
@@ -242,7 +237,9 @@ class decoder_context : public base_context {
   bool HandleCraAsBlaFlag;
   bool FirstAfterEndOfSequenceNAL;
 
-  int  PicOrderCntMsb;
+  bool flush_reorder_buffer_at_this_frame;
+
+  int PicOrderCntMsb;
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
@@ -309,8 +306,42 @@ class decoder_context : public base_context {
   bool construct_reference_picture_lists(slice_segment_header* hdr);
 
 
+ private:
+  // --- internal data ---
+
+  std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
+  std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
+  std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
+
+  std::shared_ptr<video_parameter_set>  current_vps;
+ public: std::shared_ptr<seq_parameter_set>    current_sps;
+  std::shared_ptr<pic_parameter_set>    current_pps;
+};
 
 
+
+
+class decoder_context : public base_context,
+                        public image_unit_sink
+{
+ public:
+  decoder_context();
+  ~decoder_context();
+
+  de265_error start_thread_pool(int nThreads);
+  void        stop_thread_pool();
+
+  void reset();
+
+
+  // -------------------------------------------------- frontend_syntax_decoder
+
+  NAL_Parser& get_NAL_parser() { return m_frontend_syntax_decoder.get_NAL_parser(); }
+  frontend_syntax_decoder& get_frontend_syntax_decoder() { return m_frontend_syntax_decoder; }
+  const frontend_syntax_decoder& get_frontend_syntax_decoder() const { return m_frontend_syntax_decoder; }
+
+ private:
+  frontend_syntax_decoder m_frontend_syntax_decoder;
 
 
 
@@ -320,6 +351,11 @@ class decoder_context : public base_context {
   // still TODO
 
   // -------------------------------------------------- decoding main loop
+
+
+  virtual void send_image_unit(image_unit_ptr imgunit) {
+    image_units.push_back(imgunit);
+  }
 
  public:
 
@@ -340,11 +376,6 @@ class decoder_context : public base_context {
   bool param_sei_check_hash;
   bool param_conceal_stream_errors;
   bool param_suppress_faulty_pictures;
-
-  int  param_sps_headers_fd;
-  int  param_vps_headers_fd;
-  int  param_pps_headers_fd;
-  int  param_slice_headers_fd;
 
   bool param_disable_deblocking;
   bool param_disable_sao;
@@ -368,16 +399,6 @@ class decoder_context : public base_context {
   int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
   void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
 
- private:
-  // --- internal data ---
-
-  std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
-  std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
-  std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
-
-  std::shared_ptr<video_parameter_set>  current_vps;
-  std::shared_ptr<seq_parameter_set>    current_sps;
-  std::shared_ptr<pic_parameter_set>    current_pps;
 
  public:
   thread_pool thread_pool_;
@@ -390,7 +411,6 @@ class decoder_context : public base_context {
   // --- frame dropping ---
 
   void set_limit_TID(int tid);
-  int  get_highest_TID() const;
   int  get_current_TID() const { return current_HighestTid; }
   int  change_framerate(int more_vs_less); // 1: more, -1: less
   void set_framerate_ratio(int percent);
@@ -413,20 +433,22 @@ class decoder_context : public base_context {
   int framedrop_tid_index[6+1];
 
   void compute_framedrop_table();
+
+ public:
   void calc_tid_and_framerate_ratio();
 
  private:
   // --- decoded picture buffer ---
 
+ public:
   decoded_picture_buffer dpb;
   picture_output_queue   m_output_queue;
 
 
   // --- image unit queue ---
 
+ public:
   std::vector<image_unit_ptr> image_units;
-
-  bool flush_reorder_buffer_at_this_frame;
 
  private:
   void init_thread_context(thread_context* tctx);

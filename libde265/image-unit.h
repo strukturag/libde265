@@ -46,6 +46,8 @@
 
 class slice_segment_header;
 class decoder_context;
+class image_unit;
+class thread_context;
 
 
 class slice_unit
@@ -77,10 +79,7 @@ public:
   int last_decoded_CTB_RS;  // TODO
 
   void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) {
-    assert(n < nThreadContexts);
-    return &thread_contexts[n];
-  }
+  thread_context* get_thread_context(int n);
   int num_thread_contexts() const { return nThreadContexts; }
 
 private:
@@ -186,7 +185,7 @@ class image_unit_sink
  public:
   virtual ~image_unit_sink() { }
 
-  virtual void send_image_unit(image_unit*) = 0; // transfers ownership of image_unit
+  virtual void send_image_unit(image_unit_ptr) = 0; // transfers ownership of image_unit
 };
 
 

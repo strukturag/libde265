@@ -56,6 +56,7 @@ libde265_la_SOURCES = \
   image-io.h \
   image-io.cc \
   image-unit.h \
+  image-unit.cc \
   intrapred.cc \
   intrapred.h \
   md5.cc \

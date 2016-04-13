@@ -200,8 +200,59 @@ base_context::base_context()
 }
 
 
-decoder_context::decoder_context()
+
+frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
 {
+  m_decctx=ctx;
+  m_image_unit_sink = nullptr;
+
+  current_vps = NULL;
+  current_sps = NULL;
+  current_pps = NULL;
+
+  current_image_poc_lsb = 0;
+  first_decoded_picture = 0;
+  NoRaslOutputFlag = 0;
+  HandleCraAsBlaFlag = 0;
+  FirstAfterEndOfSequenceNAL = 0;
+  PicOrderCntMsb = 0;
+  prevPicOrderCntLsb = 0;
+  prevPicOrderCntMsb = 0;
+
+  first_decoded_picture = true;
+
+  current_image_poc_lsb = -1; // any invalid number
+
+
+  param_sps_headers_fd = -1;
+  param_vps_headers_fd = -1;
+  param_pps_headers_fd = -1;
+  param_slice_headers_fd = -1;
+}
+
+
+void frontend_syntax_decoder::reset()
+{
+  // --- decoded picture buffer ---
+
+  current_image_poc_lsb = -1; // any invalid number
+  first_decoded_picture = true;
+
+  nal_parser.remove_pending_input_data();
+
+  m_curr_image_unit.reset();
+  m_curr_img.reset();
+
+}
+
+
+
+decoder_context::decoder_context()
+  : m_frontend_syntax_decoder(this)
+{
+  m_frontend_syntax_decoder.set_image_unit_sink(this);
+
+
   //memset(ctx, 0, sizeof(decoder_context));
 
   // --- parameters ---
@@ -217,11 +268,6 @@ decoder_context::decoder_context()
 
   // --- processing ---
 
-  param_sps_headers_fd = -1;
-  param_vps_headers_fd = -1;
-  param_pps_headers_fd = -1;
-  param_slice_headers_fd = -1;
-
   param_image_allocation_functions = image::default_image_allocation;
 
   /*
@@ -230,10 +276,6 @@ decoder_context::decoder_context()
   memset(&pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
   memset(&slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
   */
-
-  current_vps = NULL;
-  current_sps = NULL;
-  current_pps = NULL;
 
   //memset(&thread_pool,0,sizeof(struct thread_pool));
   num_worker_threads = 0;
@@ -253,19 +295,9 @@ decoder_context::decoder_context()
 
   //
 
-  current_image_poc_lsb = 0;
-  first_decoded_picture = 0;
-  NoRaslOutputFlag = 0;
-  HandleCraAsBlaFlag = 0;
-  FirstAfterEndOfSequenceNAL = 0;
-  PicOrderCntMsb = 0;
-  prevPicOrderCntLsb = 0;
-  prevPicOrderCntMsb = 0;
-
 
   // --- internal data ---
 
-  first_decoded_picture = true;
   //ctx->FirstAfterEndOfSequenceNAL = true;
   //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
 
@@ -273,7 +305,6 @@ decoder_context::decoder_context()
 
   // --- decoded picture buffer ---
 
-  current_image_poc_lsb = -1; // any invalid number
 }
 
 
@@ -349,11 +380,7 @@ void decoder_context::reset()
 #endif
 
 
-
-  // --- decoded picture buffer ---
-
-  current_image_poc_lsb = -1; // any invalid number
-  first_decoded_picture = true;
+  m_frontend_syntax_decoder.reset();
 
 
   // --- remove all pictures from output queue ---
@@ -364,15 +391,10 @@ void decoder_context::reset()
   // The error showed while scrubbing the ToS video in VLC.
   dpb.clear();
 
-  nal_parser.remove_pending_input_data();
-
 
   while (!image_units.empty()) {
     image_units.pop_back();
   }
-
-  m_curr_image_unit.reset();
-  m_curr_img.reset();
 
 
   // --- start threads again ---
@@ -479,12 +501,12 @@ void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool f
 }
 
 
-de265_error decoder_context::read_vps_NAL(bitreader& reader)
+de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"---> read VPS\n");
 
   std::shared_ptr<video_parameter_set> new_vps = std::make_shared<video_parameter_set>();
-  de265_error err = new_vps->read(this,&reader);
+  de265_error err = new_vps->read(m_decctx,&reader);
   if (err != DE265_OK) {
     return err;
   }
@@ -498,14 +520,14 @@ de265_error decoder_context::read_vps_NAL(bitreader& reader)
   return DE265_OK;
 }
 
-de265_error decoder_context::read_sps_NAL(bitreader& reader)
+de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"----> read SPS\n");
 
   std::shared_ptr<seq_parameter_set> new_sps = std::make_shared<seq_parameter_set>();
   de265_error err;
 
-  if ((err=new_sps->read(this, &reader)) != DE265_OK) {
+  if ((err=new_sps->read(m_decctx, &reader)) != DE265_OK) {
     return err;
   }
 
@@ -518,13 +540,13 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
   return DE265_OK;
 }
 
-de265_error decoder_context::read_pps_NAL(bitreader& reader)
+de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"----> read PPS\n");
 
   std::shared_ptr<pic_parameter_set> new_pps = std::make_shared<pic_parameter_set>();
 
-  bool success = new_pps->read(&reader,this);
+  bool success = new_pps->read(&reader,m_decctx);
 
   if (param_pps_headers_fd>=0) {
     new_pps->dump(param_pps_headers_fd);
@@ -537,7 +559,7 @@ de265_error decoder_context::read_pps_NAL(bitreader& reader)
   return success ? DE265_OK : DE265_WARNING_PPS_HEADER_INVALID;
 }
 
-de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
+de265_error frontend_syntax_decoder::read_sei_NAL(bitreader& reader, bool suffix)
 {
   logdebug(LogHeaders,"----> read SEI\n");
 
@@ -553,19 +575,19 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
     }
   }
   else {
-    add_warning(err, false);
+    m_decctx->add_warning(err, false);
   }
 
   return err;
 }
 
-de265_error decoder_context::read_eos_NAL(bitreader& reader)
+de265_error frontend_syntax_decoder::read_eos_NAL(bitreader& reader)
 {
   FirstAfterEndOfSequenceNAL = true;
   return DE265_OK;
 }
 
-de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
+de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
 {
   logdebug(LogHeaders,"---> read slice segment header\n");
 
@@ -574,7 +596,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   slice_segment_header* shdr = new slice_segment_header;
   bool continueDecoding;
-  de265_error err = shdr->read(&reader,this, &continueDecoding);
+  de265_error err = shdr->read(&reader,m_decctx, &continueDecoding);
   if (!continueDecoding) {
     if (m_curr_img) { m_curr_img->integrity = INTEGRITY_NOT_DECODED; }
     nal_parser.free_NAL_unit(nal);
@@ -583,7 +605,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   }
 
   if (param_slice_headers_fd>=0) {
-    shdr->dump_slice_segment_header(this, param_slice_headers_fd);
+    shdr->dump_slice_segment_header(m_decctx, param_slice_headers_fd);
   }
 
 
@@ -615,7 +637,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   if (shdr->first_slice_segment_in_pic_flag) {
     if (m_curr_image_unit) {
-      image_units.push_back(m_curr_image_unit);
+      m_image_unit_sink->send_image_unit(m_curr_image_unit);
     }
 
     m_curr_image_unit = std::make_shared<image_unit>();
@@ -627,7 +649,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   if (m_curr_image_unit) {
 
-    slice_unit* sliceunit = new slice_unit(this);
+    slice_unit* sliceunit = new slice_unit(m_decctx);
     sliceunit->nal = nal;
     sliceunit->shdr = shdr;
     sliceunit->reader = reader;
@@ -639,7 +661,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   }
 
   bool did_work;
-  err = decode_image_unit(&did_work);
+  err = m_decctx->decode_image_unit(&did_work);
 
   return DE265_OK;
 }
@@ -689,6 +711,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   // if we decoded all slices of the current image and there will not
   // be added any more slices to the image, output the image
+
+  NAL_Parser& nal_parser = m_frontend_syntax_decoder.get_NAL_parser();
 
   if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
        ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
@@ -1128,9 +1152,9 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 }
 
 
-de265_error decoder_context::decode_NAL(NAL_unit* nal)
+de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 {
-  decoder_context* ctx = this;
+  decoder_context* ctx = m_decctx;
 
   de265_error err = DE265_OK;
 
@@ -1139,7 +1163,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
   nal_header nal_hdr;
   nal_hdr.read(&reader);
-  ctx->process_nal_hdr(&nal_hdr);
+  process_nal_hdr(&nal_hdr);
 
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
@@ -1165,7 +1189,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
   //printf("hTid: %d\n", current_HighestTid);
 
-  if (nal_hdr.nuh_temporal_id > current_HighestTid) {
+  if (nal_hdr.nuh_temporal_id > m_decctx->get_current_TID()) {
     nal_parser.free_NAL_unit(nal);
     return DE265_OK;
   }
@@ -1197,7 +1221,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
       break;
 
     case NAL_UNIT_EOS_NUT:
-      ctx->FirstAfterEndOfSequenceNAL = true;
+      FirstAfterEndOfSequenceNAL = true;
       nal_parser.free_NAL_unit(nal);
       break;
 
@@ -1210,15 +1234,15 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 }
 
 
-de265_error decoder_context::decode(int* more)
+de265_error frontend_syntax_decoder::decode(int* more)
 {
-  decoder_context* ctx = this;
+  decoder_context* ctx = m_decctx;
 
   // if the stream has ended, and no more NALs are to be decoded, flush all pictures
 
-  if (ctx->nal_parser.get_NAL_queue_length() == 0 &&
-      (ctx->nal_parser.is_end_of_stream() || ctx->nal_parser.is_end_of_frame()) &&
-      ctx->image_units.empty()) {
+  if (nal_parser.get_NAL_queue_length() == 0 &&
+      (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) &&
+      m_decctx->image_units.empty()) {
 
     // flush all pending pictures into output queue
 
@@ -1234,9 +1258,9 @@ de265_error decoder_context::decode(int* more)
   // if NAL-queue is empty, we need more data
   // -> input stalled
 
-  if (ctx->nal_parser.is_end_of_stream() == false &&
-      ctx->nal_parser.is_end_of_frame() == false &&
-      ctx->nal_parser.get_NAL_queue_length() == 0) {
+  if (nal_parser.is_end_of_stream() == false &&
+      nal_parser.is_end_of_frame() == false &&
+      nal_parser.get_NAL_queue_length() == 0) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
@@ -1257,21 +1281,21 @@ de265_error decoder_context::decode(int* more)
   de265_error err = DE265_OK;
   bool did_work = false;
 
-  if (ctx->nal_parser.get_NAL_queue_length() > 0) { // number_of_NAL_units_pending()) {
-    NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
+  if (nal_parser.get_NAL_queue_length() > 0) { // number_of_NAL_units_pending()) {
+    NAL_unit* nal = nal_parser.pop_from_NAL_queue();
     assert(nal);
-    err = ctx->decode_NAL(nal);
+    err = decode_NAL(nal);
 
     did_work=true;
   }
-  else if (ctx->nal_parser.is_end_of_frame() == true &&
+  else if (nal_parser.is_end_of_frame() == true &&
            ctx->image_units.empty()) {
     if (more) { *more=1; }
 
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
   }
   else {
-    err = decode_image_unit(&did_work);
+    err = m_decctx->decode_image_unit(&did_work);
   }
 
   if (more) {
@@ -1283,7 +1307,7 @@ de265_error decoder_context::decode(int* more)
 }
 
 
-void decoder_context::process_nal_hdr(nal_header* nal)
+void frontend_syntax_decoder::process_nal_hdr(nal_header* nal)
 {
   nal_unit_type = nal->nal_unit_type;
 
@@ -1295,7 +1319,7 @@ void decoder_context::process_nal_hdr(nal_header* nal)
 
 /* 8.3.1
  */
-void decoder_context::process_picture_order_count(slice_segment_header* hdr)
+void frontend_syntax_decoder::process_picture_order_count(slice_segment_header* hdr)
 {
   loginfo(LogHeaders,"POC computation. lsb:%d prev.pic.lsb:%d msb:%d\n",
           hdr->slice_pic_order_cnt_lsb,
@@ -1353,15 +1377,17 @@ void decoder_context::process_picture_order_count(slice_segment_header* hdr)
 /* 8.3.3.2
    Returns DPB index of the generated picture.
  */
-int decoder_context::generate_unavailable_reference_picture(const seq_parameter_set* sps,
-                                                            int POC, bool longTerm)
+int frontend_syntax_decoder::generate_unavailable_reference_picture(const seq_parameter_set* sps,
+                                                                    int POC, bool longTerm)
 {
+  decoded_picture_buffer& dpb = m_decctx->dpb;
+
   assert(dpb.has_free_dpb_picture(true));
 
   std::shared_ptr<const seq_parameter_set> current_sps = this->sps[ (int)current_pps->seq_parameter_set_id ];
 
   de265_image_allocation* alloc_functions = nullptr; // use internal allocation
-  int idx = dpb.new_image(current_sps, this, 0,0, alloc_functions);
+  int idx = dpb.new_image(current_sps, m_decctx, 0,0, alloc_functions);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
@@ -1390,8 +1416,10 @@ int decoder_context::generate_unavailable_reference_picture(const seq_parameter_
    picture IDs into a list. They can be removed from the DPB later with
    remove_images_from_dpb(vector).
 */
-void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
+void frontend_syntax_decoder::process_reference_picture_set(slice_segment_header* hdr)
 {
+  decoded_picture_buffer& dpb = m_decctx->dpb;
+
   std::vector<int> removeReferencesList;
 
   const int currentID = m_curr_img->get_ID();
@@ -1664,8 +1692,10 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
    - the RefPicList_POC[2][], containing POCs.
    - LongTermRefPic[2][] is also set to true if it is a long-term reference
  */
-bool decoder_context::construct_reference_picture_lists(slice_segment_header* hdr)
+bool frontend_syntax_decoder::construct_reference_picture_lists(slice_segment_header* hdr)
 {
+  decoded_picture_buffer& dpb = m_decctx->dpb;
+
   int NumPocTotalCurr = hdr->NumPocTotalCurr;
   int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
@@ -1698,7 +1728,7 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
-      add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      m_decctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
       return false;
     }
   }
@@ -1753,15 +1783,15 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
 
       // This check is to prevent an endless loop when no images are added above.
       if (rIdx==0) {
-        add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        m_decctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
         return false;
       }
     }
 
     if (hdr->num_ref_idx_l0_active > 16) {
-    add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-    return false;
-  }
+      m_decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+      return false;
+    }
 
     assert(hdr->num_ref_idx_l1_active <= 16);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
@@ -1892,10 +1922,10 @@ de265_error decoder_context::push_picture_to_output_queue(image_ptr outimg)
 
 
 // returns whether we can continue decoding the stream or whether we should give up
-bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
-                                                   de265_error* err, de265_PTS pts,
-                                                   nal_header* nal_hdr,
-                                                   void* user_data)
+bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header* hdr,
+                                                           de265_error* err, de265_PTS pts,
+                                                           nal_header* nal_hdr,
+                                                           void* user_data)
 {
   *err = DE265_OK;
 
@@ -1914,7 +1944,7 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
   current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
   current_vps = vps[ (int)current_sps->video_parameter_set_id ];
 
-  calc_tid_and_framerate_ratio();
+  m_decctx->calc_tid_and_framerate_ratio();
 
 
   // --- prepare decoding of new picture ---
@@ -1933,10 +1963,12 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
 
     // --- find and allocate image buffer for decoding ---
 
+    decoded_picture_buffer& dpb = m_decctx->dpb;
+
     int image_buffer_idx;
-    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || param_disable_sao);
-    image_buffer_idx = dpb.new_image(current_sps, this, pts, user_data,
-                                     isOutputImage ? &param_image_allocation_functions : nullptr);
+    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
+    image_buffer_idx = dpb.new_image(current_sps, m_decctx, pts, user_data,
+                                     isOutputImage ? &m_decctx->param_image_allocation_functions : nullptr);
     if (image_buffer_idx == -1) {
       *err = DE265_ERROR_IMAGE_BUFFER_FULL;
       return false;
@@ -1949,7 +1981,7 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
 
     m_curr_img->set_headers(current_vps, current_sps, current_pps);
 
-    m_curr_img->decctx = this;
+    m_curr_img->decctx = m_decctx;
 
     m_curr_img->clear_metadata();
 
@@ -2022,7 +2054,7 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
   //printf("process slice segment header\n");
 
   loginfo(LogHeaders,"end of process-slice-header\n");
-  dpb.log_dpb_content();
+  m_decctx->dpb.log_dpb_content();
 
 
   if (hdr->dependent_slice_segment_flag==0) {
@@ -2062,7 +2094,7 @@ void decoder_context::remove_images_from_dpb(const std::vector<int>& removeImage
   0     33    66    100     <- framerate_ratio
  */
 
-int  decoder_context::get_highest_TID() const
+int  frontend_syntax_decoder::get_highest_TID() const
 {
   if (current_sps) { return current_sps->sps_max_sub_layers-1; }
   if (current_vps) { return current_vps->vps_max_sub_layers-1; }
@@ -2078,9 +2110,9 @@ void decoder_context::set_limit_TID(int max_tid)
 
 int decoder_context::change_framerate(int more)
 {
-  if (current_sps == NULL) { return framerate_ratio; }
+  if (get_frontend_syntax_decoder().current_sps == NULL) { return framerate_ratio; }
 
-  int highestTid = get_highest_TID();
+  int highestTid = get_frontend_syntax_decoder().get_highest_TID();
 
   assert(more>=-1 && more<=1);
 
@@ -2103,7 +2135,7 @@ void decoder_context::set_framerate_ratio(int percent)
 
 void decoder_context::compute_framedrop_table()
 {
-  int highestTID = get_highest_TID();
+  int highestTID = get_frontend_syntax_decoder().get_highest_TID();
 
   for (int tid=highestTID ; tid>=0 ; tid--) {
     int lower  = 100 *  tid   /(highestTID+1);
@@ -2138,7 +2170,7 @@ void decoder_context::compute_framedrop_table()
 
 void decoder_context::calc_tid_and_framerate_ratio()
 {
-  int highestTID = get_highest_TID();
+  int highestTID = get_frontend_syntax_decoder().get_highest_TID();
 
 
   // if number of temporal layers changed, we have to recompute the framedrop table
