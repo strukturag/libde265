@@ -323,8 +323,6 @@ class decoder_context : public base_context {
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
-  image_ptr img;
-
  public:
   const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
                                                         dependent slice. */
@@ -376,7 +374,7 @@ class decoder_context : public base_context {
   // --- building the next image_unit ---
 
   image_unit_ptr m_curr_image_unit;
-
+  image_ptr m_curr_img;
 
   // --- image unit queue ---
 
