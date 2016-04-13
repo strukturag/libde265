@@ -23,6 +23,7 @@
 #include "sao.h"
 #include "sei.h"
 #include "deblock.h"
+#include "image-unit.h"
 
 #include <string.h>
 #include <assert.h>
@@ -315,7 +316,7 @@ decoder_context::decoder_context()
 decoder_context::~decoder_context()
 {
   while (!image_units.empty()) {
-    delete image_units.back();
+    //delete image_units.back();
     image_units.pop_back();
   }
 }
@@ -411,7 +412,7 @@ void decoder_context::reset()
 
 
   while (!image_units.empty()) {
-    delete image_units.back();
+    //delete image_units.back();
     image_units.pop_back();
   }
 
@@ -654,7 +655,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   // --- start a new image if this is the first slice ---
 
   if (shdr->first_slice_segment_in_pic_flag) {
-    image_unit* imgunit = new image_unit;
+    image_unit_ptr imgunit = std::make_shared<image_unit>();
     imgunit->img = this->img;
     image_units.push_back(imgunit);
   }
@@ -704,7 +705,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   if ( ! image_units.empty() ) { // && ! image_units[0]->slice_units.empty() ) {
 
-    image_unit* imgunit = image_units[0];
+    image_unit* imgunit = image_units[0].get();
     slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
     if (sliceunit != NULL) {
@@ -732,7 +733,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
          nal_parser.number_of_NAL_units_pending()==0 &&
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
 
-    image_unit* imgunit = image_units[0];
+    image_unit* imgunit = image_units[0].get();
 
     *did_work=true;
 
@@ -765,11 +766,11 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     }
 
 
-    push_picture_to_output_queue(imgunit);
+    push_picture_to_output_queue(imgunit->img);
 
     // remove just decoded image unit from queue
 
-    delete imgunit;
+    //delete imgunit;
 
     pop_front(image_units);
   }
@@ -1895,17 +1896,9 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
   img->wait_for_completion();
 }
 
-/*
-void decoder_context::push_current_picture_to_output_queue()
-{
-  push_picture_to_output_queue(img);
-}
-*/
 
-de265_error decoder_context::push_picture_to_output_queue(image_unit* imgunit)
+de265_error decoder_context::push_picture_to_output_queue(image_ptr outimg)
 {
-  image_ptr outimg = imgunit->img;
-
   if (!outimg) { return DE265_OK; }
 
 

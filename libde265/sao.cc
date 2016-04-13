@@ -20,6 +20,7 @@
 
 #include "sao.h"
 #include "util.h"
+#include "image-unit.h"
 
 #include <stdlib.h>
 #include <string.h>

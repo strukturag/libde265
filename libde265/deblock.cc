@@ -22,6 +22,7 @@
 #include "util.h"
 #include "transform.h"
 #include "de265.h"
+#include "image-unit.h"
 
 #include <assert.h>
 

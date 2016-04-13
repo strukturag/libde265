@@ -29,6 +29,7 @@
 #include "transform.h"
 #include "threads.h"
 #include "image.h"
+#include "image-unit.h"
 
 #include <assert.h>
 #include <string.h>

@@ -49,6 +49,8 @@ class image_unit;
 class slice_unit;
 class decoder_context;
 
+typedef std::shared_ptr<image_unit> image_unit_ptr;
+
 
 class thread_context
 {
@@ -139,135 +141,6 @@ class error_queue
 
 
 
-class slice_unit
-{
-public:
-  slice_unit(decoder_context* decctx);
-  ~slice_unit();
-
-  NAL_unit* nal;   // we are the owner
-  slice_segment_header* shdr;  // not the owner (de265_image is owner)
-  bitreader reader;
-
-  image_unit* imgunit;
-
-  bool flush_reorder_buffer;
-
-
-  // decoding status
-
-  enum SliceDecodingProgress { Unprocessed,
-                               InProgress,
-                               Decoded
-  } state;
-
-  de265_progress_lock finished_threads;
-  int nThreads;
-
-  int first_decoded_CTB_RS; // TODO
-  int last_decoded_CTB_RS;  // TODO
-
-  void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) {
-    assert(n < nThreadContexts);
-    return &thread_contexts[n];
-  }
-  int num_thread_contexts() const { return nThreadContexts; }
-
-private:
-  thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
-                                      no copy constructor. */
-  int nThreadContexts;
-
-public:
-  decoder_context* ctx;
-
-private:
-  slice_unit(const slice_unit&); // not allowed
-  const slice_unit& operator=(const slice_unit&); // not allowed
-};
-
-
-class image_unit
-{
-public:
-  image_unit();
-  ~image_unit();
-
-  image_ptr img;
-  image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
-
-  std::vector<slice_unit*> slice_units;
-  std::vector<sei_message> suffix_SEIs;
-
-  slice_unit* get_next_unprocessed_slice_segment() const {
-    for (int i=0;i<slice_units.size();i++) {
-      if (slice_units[i]->state == slice_unit::Unprocessed) {
-        return slice_units[i];
-      }
-    }
-
-    return NULL;
-  }
-
-  slice_unit* get_prev_slice_segment(slice_unit* s) const {
-    for (int i=1; i<slice_units.size(); i++) {
-      if (slice_units[i]==s) {
-        return slice_units[i-1];
-      }
-    }
-
-    return NULL;
-  }
-
-  slice_unit* get_next_slice_segment(slice_unit* s) const {
-    for (int i=0; i<slice_units.size()-1; i++) {
-      if (slice_units[i]==s) {
-        return slice_units[i+1];
-      }
-    }
-
-    return NULL;
-  }
-
-  void dump_slices() const {
-    for (int i=0; i<slice_units.size(); i++) {
-      printf("[%d] = %p\n",i,slice_units[i]);
-    }
-  }
-
-  bool all_slice_segments_processed() const {
-    if (slice_units.size()==0) return true;
-    if (slice_units.back()->state != slice_unit::Unprocessed) return true;
-    return false;
-  }
-
-  bool is_first_slice_segment(const slice_unit* s) const {
-    if (slice_units.size()==0) return false;
-    return (slice_units[0] == s);
-  }
-
-  enum { Invalid, // headers not read yet
-         Unknown, // SPS/PPS available
-         Reference, // will be used as reference
-         Leaf       // not a reference picture
-  } role;
-
-  enum { Unprocessed,
-         InProgress,
-         Decoded,
-         Dropped         // will not be decoded
-  } state;
-
-  std::vector<thread_task*> tasks; // we are the owner
-
-  /* Saved context models for WPP.
-     There is one saved model for the initialization of each CTB row.
-     The array is unused for non-WPP streams. */
-  std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
-};
-
-
 class image_history
 {
  public:
@@ -339,7 +212,7 @@ class decoder_context : public base_context {
                                     nal_header* nal_hdr, void* user_data);
 
   //void push_current_picture_to_output_queue();
-  de265_error push_picture_to_output_queue(image_unit*);
+  de265_error push_picture_to_output_queue(image_ptr);
 
 
   // --- parameters ---
@@ -499,9 +372,14 @@ class decoder_context : public base_context {
   char RapPicFlag;
 
 
+  // --- building the next image_unit ---
+
+  //image_unit* m_curr_image_unit;
+
+
   // --- image unit queue ---
 
-  std::vector<image_unit*> image_units;
+  std::vector<image_unit_ptr> image_units;
 
   bool flush_reorder_buffer_at_this_frame;
 
