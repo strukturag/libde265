@@ -186,7 +186,16 @@ class frontend_syntax_decoder
 
 
 
+  // --- frontend for pushing data into the decoder ---
+
   NAL_Parser& get_NAL_parser() { return nal_parser; }
+
+
+
+  // --- query the current state ---
+
+  uint8_t get_nal_unit_type() const { return nal_unit_type; }
+  bool    get_RapPicFlag() const { return RapPicFlag; }
 
   bool has_sps(int id) const { return (bool)sps[id]; }
   bool has_pps(int id) const { return (bool)pps[id]; }
@@ -198,8 +207,8 @@ class frontend_syntax_decoder
 
   int  get_highest_TID() const;
 
-  uint8_t get_nal_unit_type() const { return nal_unit_type; }
-  bool    get_RapPicFlag() const { return RapPicFlag; }
+
+  // --- (TODO) make this private and reorganize ---
 
   de265_error decode(int* more);
   de265_error decode_NAL(NAL_unit* nal);
@@ -209,6 +218,15 @@ class frontend_syntax_decoder
   bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,
                                     nal_header* nal_hdr, void* user_data);
+
+ private:
+  de265_error read_vps_NAL(bitreader&);
+  de265_error read_sps_NAL(bitreader&);
+  de265_error read_pps_NAL(bitreader&);
+  de265_error read_sei_NAL(bitreader& reader, bool suffix);
+  de265_error read_eos_NAL(bitreader& reader);
+  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
+
 
  public:
   int  param_sps_headers_fd;
@@ -220,14 +238,6 @@ class frontend_syntax_decoder
   decoder_context* m_decctx;
   image_unit_sink* m_image_unit_sink;
 
-
- private:
-  de265_error read_vps_NAL(bitreader&);
-  de265_error read_sps_NAL(bitreader&);
-  de265_error read_pps_NAL(bitreader&);
-  de265_error read_sei_NAL(bitreader& reader, bool suffix);
-  de265_error read_eos_NAL(bitreader& reader);
-  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
 
   // --- input stream data ---
 
@@ -254,6 +264,7 @@ class frontend_syntax_decoder
   int PocLsbLt[MAX_NUM_REF_PICS];
   int UsedByCurrPicLt[MAX_NUM_REF_PICS];
   int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+
  private:
   int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
   int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
@@ -279,6 +290,13 @@ class frontend_syntax_decoder
   int RefPicSetLtCurr[MAX_NUM_REF_PICS];
   int RefPicSetLtFoll[MAX_NUM_REF_PICS];
 
+  void process_picture_order_count(slice_segment_header* hdr);
+  int  generate_unavailable_reference_picture(const seq_parameter_set* sps,
+                                              int POC, bool longTerm);
+  void process_reference_picture_set(slice_segment_header* hdr);
+  bool construct_reference_picture_lists(slice_segment_header* hdr);
+
+
 
   // --- parameters derived from parameter sets ---
 
@@ -297,13 +315,6 @@ class frontend_syntax_decoder
 
   image_unit_ptr m_curr_image_unit;
   image_ptr m_curr_img;
-
-
-  void process_picture_order_count(slice_segment_header* hdr);
-  int  generate_unavailable_reference_picture(const seq_parameter_set* sps,
-                                              int POC, bool longTerm);
-  void process_reference_picture_set(slice_segment_header* hdr);
-  bool construct_reference_picture_lists(slice_segment_header* hdr);
 
 
  private:
