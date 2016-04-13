@@ -375,7 +375,7 @@ class decoder_context : public base_context {
 
   // --- building the next image_unit ---
 
-  //image_unit_ptr m_curr_image_unit;
+  image_unit_ptr m_curr_image_unit;
 
 
   // --- image unit queue ---

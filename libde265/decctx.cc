@@ -408,6 +408,9 @@ void decoder_context::reset()
     image_units.pop_back();
   }
 
+  m_curr_image_unit.reset();
+
+
   // --- start threads again ---
 
   if (num_worker_threads>0) {
@@ -581,8 +584,8 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
   if ((err=read_sei(&reader,&sei, suffix, current_sps.get())) == DE265_OK) {
     dump_sei(&sei, current_sps.get());
 
-    if (image_units.empty()==false && suffix) {
-      image_units.back()->suffix_SEIs.push_back(sei);
+    if (m_curr_image_unit && suffix) {
+      m_curr_image_unit->suffix_SEIs.push_back(sei);
     }
   }
   else {
@@ -647,15 +650,18 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   // --- start a new image if this is the first slice ---
 
   if (shdr->first_slice_segment_in_pic_flag) {
-    image_unit_ptr imgunit = std::make_shared<image_unit>();
-    imgunit->img = this->img;
-    image_units.push_back(imgunit);
+    if (m_curr_image_unit) {
+      image_units.push_back(m_curr_image_unit);
+    }
+
+    m_curr_image_unit = std::make_shared<image_unit>();
+    m_curr_image_unit->img = this->img;
   }
 
 
   // --- add slice to current picture ---
 
-  if ( ! image_units.empty() ) {
+  if (m_curr_image_unit) {
 
     slice_unit* sliceunit = new slice_unit(this);
     sliceunit->nal = nal;
@@ -665,7 +671,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     sliceunit->flush_reorder_buffer = flush_reorder_buffer_at_this_frame;
 
 
-    image_units.back()->slice_units.push_back(sliceunit);
+    m_curr_image_unit->slice_units.push_back(sliceunit);
   }
 
   bool did_work;
