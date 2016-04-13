@@ -28,6 +28,7 @@ set (libde265_sources
   deblock.h
   decctx.h
   image.h
+  image-unit.h
   intrapred.h
   md5.h
   nal.h
