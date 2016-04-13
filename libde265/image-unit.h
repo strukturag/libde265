@@ -190,22 +190,5 @@ class image_unit_sink
 };
 
 
-/*
-class image_unit_composer
-{
- public:
-  image_unit_composer(decoder_context* ctx) { m_decctx=ctx; m_image_unit_sink = nullptr; }
-
-  void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
-
-  void process_slice_NAL(NAL_unit* nal); // transfers ownership of NAL
-
- private:
-  decoder_context* m_decctx;
-  image_unit_sink* m_image_unit_sink;
-
-  image_unit* m_current_unit;
-};
-*/
 
 #endif

@@ -318,7 +318,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
   //printf("push data (size %d)\n",len);
   //dumpdata(data8,16);
 
-  return ctx->nal_parser.push_data(data,len,pts,user_data);
+  return ctx->get_NAL_parser().push_data(data,len,pts,user_data);
 }
 
 
@@ -332,7 +332,7 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   //printf("push NAL (size %d)\n",len);
   //dumpdata(data8,16);
 
-  return ctx->nal_parser.push_NAL(data,len,pts,user_data);
+  return ctx->get_NAL_parser().push_NAL(data,len,pts,user_data);
 }
 
 
@@ -348,7 +348,7 @@ LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->nal_parser.flush_data();
+  ctx->get_NAL_parser().flush_data();
 }
 
 
@@ -357,7 +357,7 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
   de265_push_end_of_NAL(de265ctx);
 
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->nal_parser.mark_end_of_frame();
+  ctx->get_NAL_parser().mark_end_of_frame();
 }
 
 
@@ -367,8 +367,8 @@ LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
 
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->nal_parser.flush_data();
-  ctx->nal_parser.mark_end_of_stream();
+  ctx->get_NAL_parser().flush_data();
+  ctx->get_NAL_parser().mark_end_of_stream();
 
   return DE265_OK;
 }
@@ -582,7 +582,7 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context* 
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->nal_parser.bytes_in_input_queue();
+  return ctx->get_NAL_parser().bytes_in_input_queue();
 }
 
 
@@ -590,7 +590,7 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context* de
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->nal_parser.number_of_NAL_units_pending();
+  return ctx->get_NAL_parser().number_of_NAL_units_pending();
 }
 
 

@@ -152,6 +152,7 @@ class image_history
 };
 
 
+
 class base_context : public error_queue,
                      public image_history
 {
@@ -167,6 +168,29 @@ class base_context : public error_queue,
 };
 
 
+
+class image_unit_sink;
+
+
+class frontend_syntax_decoder
+{
+ public:
+  frontend_syntax_decoder(decoder_context* ctx) { m_decctx=ctx; m_image_unit_sink = nullptr; }
+
+  void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
+
+  void process_slice_NAL(NAL_unit* nal); // transfers ownership of NAL
+
+ private:
+  decoder_context* m_decctx;
+  image_unit_sink* m_image_unit_sink;
+
+  image_unit* m_current_unit;
+};
+
+
+
+
 class decoder_context : public base_context {
  public:
   decoder_context();
@@ -177,6 +201,11 @@ class decoder_context : public base_context {
 
   void reset();
 
+
+  // -------------------------------------------------- frontend_syntax_decoder
+
+  NAL_Parser& get_NAL_parser() { return nal_parser; }
+
   bool has_sps(int id) const { return (bool)sps[id]; }
   bool has_pps(int id) const { return (bool)pps[id]; }
 
@@ -185,18 +214,115 @@ class decoder_context : public base_context {
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
   const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
-  /*
-  const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
-    return img->slices[img->get_SliceHeaderIndex_atIndex(ctb)];
-  }
-  */
-
   uint8_t get_nal_unit_type() const { return nal_unit_type; }
   bool    get_RapPicFlag() const { return RapPicFlag; }
 
+  de265_error decode(int* more);
   de265_error decode_NAL(NAL_unit* nal);
 
-  de265_error decode(int* more);
+  void process_nal_hdr(nal_header*);
+
+  bool process_slice_segment_header(slice_segment_header*,
+                                    de265_error*, de265_PTS pts,
+                                    nal_header* nal_hdr, void* user_data);
+
+ private:
+  de265_error read_vps_NAL(bitreader&);
+  de265_error read_sps_NAL(bitreader&);
+  de265_error read_pps_NAL(bitreader&);
+  de265_error read_sei_NAL(bitreader& reader, bool suffix);
+  de265_error read_eos_NAL(bitreader& reader);
+  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
+
+  // --- input stream data ---
+
+  int  current_image_poc_lsb;
+  bool first_decoded_picture;
+  bool NoRaslOutputFlag;
+  bool HandleCraAsBlaFlag;
+  bool FirstAfterEndOfSequenceNAL;
+
+  int  PicOrderCntMsb;
+  int prevPicOrderCntLsb;  // at precTid0Pic
+  int prevPicOrderCntMsb;  // at precTid0Pic
+
+ public:
+  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
+                                                        dependent slice. */
+
+
+  // --- motion compensation ---
+
+ public:
+  int PocLsbLt[MAX_NUM_REF_PICS];
+  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
+  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+ private:
+  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+
+  // The number of entries in the lists below.
+  int NumPocStCurrBefore;
+  int NumPocStCurrAfter;
+  int NumPocStFoll;
+  int NumPocLtCurr;
+  int NumPocLtFoll;
+
+  // These lists contain absolute POC values.
+  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
+  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
+  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
+  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
+  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
+
+  // These lists contain indices into the DPB.
+  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS];
+  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS];
+  int RefPicSetStFoll[MAX_NUM_REF_PICS];
+  int RefPicSetLtCurr[MAX_NUM_REF_PICS];
+  int RefPicSetLtFoll[MAX_NUM_REF_PICS];
+
+
+  // --- parameters derived from parameter sets ---
+
+
+  // --- current NAL ---
+
+  NAL_Parser nal_parser;
+
+  uint8_t nal_unit_type;
+
+  char IdrPicFlag;
+  char RapPicFlag;
+
+
+  // --- building the next image_unit ---
+
+  image_unit_ptr m_curr_image_unit;
+  image_ptr m_curr_img;
+
+
+  void process_picture_order_count(slice_segment_header* hdr);
+  int  generate_unavailable_reference_picture(const seq_parameter_set* sps,
+                                              int POC, bool longTerm);
+  void process_reference_picture_set(slice_segment_header* hdr);
+  bool construct_reference_picture_lists(slice_segment_header* hdr);
+
+
+
+
+
+
+
+
+  // -------------------------------------------------- image_unit classifier
+
+  // still TODO
+
+  // -------------------------------------------------- decoding main loop
+
+ public:
+
   de265_error decode_image_unit(bool* did_work);
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
@@ -204,12 +330,6 @@ class decoder_context : public base_context {
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
-
-  void process_nal_hdr(nal_header*);
-
-  bool process_slice_segment_header(slice_segment_header*,
-                                    de265_error*, de265_PTS pts,
-                                    nal_header* nal_hdr, void* user_data);
 
   //void push_current_picture_to_output_queue();
   de265_error push_picture_to_output_queue(image_ptr);
@@ -236,10 +356,6 @@ class decoder_context : public base_context {
   de265_image_allocation param_image_allocation_functions;
 
 
-  // --- input stream data ---
-
-  NAL_Parser nal_parser;
-
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
@@ -251,14 +367,6 @@ class decoder_context : public base_context {
   image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
   int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
   void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
-
- private:
-  de265_error read_vps_NAL(bitreader&);
-  de265_error read_sps_NAL(bitreader&);
-  de265_error read_pps_NAL(bitreader&);
-  de265_error read_sei_NAL(bitreader& reader, bool suffix);
-  de265_error read_eos_NAL(bitreader& reader);
-  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
 
  private:
   // --- internal data ---
@@ -313,68 +421,6 @@ class decoder_context : public base_context {
   decoded_picture_buffer dpb;
   picture_output_queue   m_output_queue;
 
-  int current_image_poc_lsb;
-  bool first_decoded_picture;
-  bool NoRaslOutputFlag;
-  bool HandleCraAsBlaFlag;
-  bool FirstAfterEndOfSequenceNAL;
-
-  int  PicOrderCntMsb;
-  int prevPicOrderCntLsb;  // at precTid0Pic
-  int prevPicOrderCntMsb;  // at precTid0Pic
-
- public:
-  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
-                                                        dependent slice. */
-
-
-  // --- motion compensation ---
-
- public:
-  int PocLsbLt[MAX_NUM_REF_PICS];
-  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
-  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
- private:
-  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-
-  // The number of entries in the lists below.
-  int NumPocStCurrBefore;
-  int NumPocStCurrAfter;
-  int NumPocStFoll;
-  int NumPocLtCurr;
-  int NumPocLtFoll;
-
-  // These lists contain absolute POC values.
-  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
-  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
-  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
-  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
-  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
-
-  // These lists contain indices into the DPB.
-  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS];
-  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS];
-  int RefPicSetStFoll[MAX_NUM_REF_PICS];
-  int RefPicSetLtCurr[MAX_NUM_REF_PICS];
-  int RefPicSetLtFoll[MAX_NUM_REF_PICS];
-
-
-  // --- parameters derived from parameter sets ---
-
-
-  // --- current NAL ---
-
-  uint8_t nal_unit_type;
-
-  char IdrPicFlag;
-  char RapPicFlag;
-
-
-  // --- building the next image_unit ---
-
-  image_unit_ptr m_curr_image_unit;
-  image_ptr m_curr_img;
 
   // --- image unit queue ---
 
@@ -391,13 +437,6 @@ class decoder_context : public base_context {
   void mark_whole_slice_as_processed(image_unit* imgunit,
                                      slice_unit* sliceunit,
                                      int progress);
-
-  void process_picture_order_count(slice_segment_header* hdr);
-  int generate_unavailable_reference_picture(const seq_parameter_set* sps,
-                                             int POC, bool longTerm);
-  void process_reference_picture_set(slice_segment_header* hdr);
-  bool construct_reference_picture_lists(slice_segment_header* hdr);
-
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
   void run_postprocessing_filters_sequential(image_ptr img);
