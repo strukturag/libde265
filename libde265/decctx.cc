@@ -676,7 +676,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   }
 
   bool did_work;
-  err = decode_some(&did_work);
+  err = decode_image_unit(&did_work);
 
   return DE265_OK;
 }
@@ -691,7 +691,7 @@ template <class T> void pop_front(std::vector<T>& vec)
 }
 
 
-de265_error decoder_context::decode_some(bool* did_work)
+de265_error decoder_context::decode_image_unit(bool* did_work)
 {
   de265_error err = DE265_OK;
 
@@ -1310,7 +1310,7 @@ de265_error decoder_context::decode(int* more)
     return DE265_ERROR_WAITING_FOR_INPUT_DATA;
   }
   else {
-    err = decode_some(&did_work);
+    err = decode_image_unit(&did_work);
   }
 
   if (more) {
