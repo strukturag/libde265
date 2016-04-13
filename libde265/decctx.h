@@ -364,7 +364,8 @@ class decoder_context : public base_context {
 
   // --- parameters derived from parameter sets ---
 
-  // NAL
+
+  // --- current NAL ---
 
   uint8_t nal_unit_type;
 
@@ -374,7 +375,7 @@ class decoder_context : public base_context {
 
   // --- building the next image_unit ---
 
-  //image_unit* m_curr_image_unit;
+  //image_unit_ptr m_curr_image_unit;
 
 
   // --- image unit queue ---

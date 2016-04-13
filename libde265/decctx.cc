@@ -315,10 +315,6 @@ decoder_context::decoder_context()
 
 decoder_context::~decoder_context()
 {
-  while (!image_units.empty()) {
-    //delete image_units.back();
-    image_units.pop_back();
-  }
 }
 
 
@@ -391,9 +387,6 @@ void decoder_context::reset()
   img = NULL;
 
 
-  // TODO: remove all pending image_units
-
-
   // --- decoded picture buffer ---
 
   current_image_poc_lsb = -1; // any invalid number
@@ -412,7 +405,6 @@ void decoder_context::reset()
 
 
   while (!image_units.empty()) {
-    //delete image_units.back();
     image_units.pop_back();
   }
 
