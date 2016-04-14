@@ -84,6 +84,15 @@ class NAL_unit {
 };
 
 
+
+class on_NAL_inserted_listener {
+ public:
+  virtual void on_NAL_inserted() { }
+  virtual void on_end_of_stream() { }
+  virtual void on_end_of_frame() { }
+};
+
+
 class NAL_Parser
 {
  public:
@@ -98,8 +107,18 @@ class NAL_Parser
 
   NAL_unit*   pop_from_NAL_queue();
   de265_error flush_data();
-  void        mark_end_of_stream() { end_of_stream=true; }
-  void        mark_end_of_frame() { end_of_frame=true; }
+  void        mark_end_of_stream() { end_of_stream=true;
+    if (m_on_NAL_inserted_listener) {
+      m_on_NAL_inserted_listener->on_end_of_stream();
+    }
+  }
+
+  void        mark_end_of_frame() { end_of_frame=true;
+    if (m_on_NAL_inserted_listener) {
+      m_on_NAL_inserted_listener->on_end_of_frame();
+    }
+  }
+
   void  remove_pending_input_data();
 
   int bytes_in_input_queue() const {
@@ -125,6 +144,8 @@ class NAL_Parser
   bool is_end_of_stream() const { return end_of_stream; }
   bool is_end_of_frame() const { return end_of_frame; }
 
+  void set_on_NAL_inserted_listener(on_NAL_inserted_listener* l) { m_on_NAL_inserted_listener = l ; }
+
  private:
   // byte-stream level
 
@@ -146,6 +167,9 @@ class NAL_Parser
   // pool of unused NAL memory
 
   std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
+
+
+  on_NAL_inserted_listener* m_on_NAL_inserted_listener;
 
   LIBDE265_CHECK_RESULT NAL_unit* alloc_NAL_unit(int size);
 };

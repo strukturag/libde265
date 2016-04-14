@@ -119,7 +119,7 @@ void NAL_unit::remove_stuffing_bytes()
   for (int i=0;i<size()-2;i++)
     {
 #if 0
-        for (int k=i;k<i+64;k++) 
+        for (int k=i;k<i+64;k++)
           if (i*0+k<size()) {
             printf("%c%02x", (k==i) ? '[':' ', data()[k]);
           }
@@ -159,6 +159,8 @@ NAL_Parser::NAL_Parser()
   input_push_state = 0;
   pending_input_NAL = NULL;
   nBytes_in_NAL_queue = 0;
+
+  m_on_NAL_inserted_listener = nullptr;
 }
 
 
@@ -243,6 +245,10 @@ void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
 {
   NAL_queue.push(nal);
   nBytes_in_NAL_queue += nal->size();
+
+  if (m_on_NAL_inserted_listener) {
+    m_on_NAL_inserted_listener->on_NAL_inserted();
+  }
 }
 
 de265_error NAL_Parser::push_data(const unsigned char* data, int len,

@@ -51,6 +51,8 @@
 #include "visualize.h"
 #endif
 
+#include <iostream> // TODO TMP
+
 extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);
 
@@ -228,6 +230,9 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
   param_vps_headers_fd = -1;
   param_pps_headers_fd = -1;
   param_slice_headers_fd = -1;
+
+
+  nal_parser.set_on_NAL_inserted_listener(this);
 }
 
 
@@ -1231,6 +1236,12 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
     }
 
   return err;
+}
+
+
+void frontend_syntax_decoder::on_NAL_inserted()
+{
+  std::cout << "ON-NAL-inserted\n";
 }
 
 

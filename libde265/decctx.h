@@ -173,7 +173,7 @@ class base_context : public error_queue,
 class image_unit_sink;
 
 
-class frontend_syntax_decoder
+class frontend_syntax_decoder : private on_NAL_inserted_listener
 {
  public:
   frontend_syntax_decoder(decoder_context* ctx);
@@ -327,6 +327,13 @@ class frontend_syntax_decoder
   std::shared_ptr<video_parameter_set>  current_vps;
  public: std::shared_ptr<seq_parameter_set>    current_sps;
   std::shared_ptr<pic_parameter_set>    current_pps;
+
+ private:
+  // on_NAL_inserted_listener
+
+  virtual void on_NAL_inserted();
+  virtual void on_end_of_stream() { }
+  virtual void on_end_of_frame() { }
 };
 
 
