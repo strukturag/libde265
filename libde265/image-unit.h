@@ -186,6 +186,7 @@ class image_unit_sink
   virtual ~image_unit_sink() { }
 
   virtual void send_image_unit(image_unit_ptr) = 0; // transfers ownership of image_unit
+  virtual void send_end_of_stream() = 0;
 };
 
 

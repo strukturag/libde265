@@ -397,6 +397,8 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
     de265_image* img = new de265_image;
     img->m_image = ctx->get_next_picture_in_output_queue();
 
+    loginfo(LogHighlevel,"get image with ID %d\n", img->m_image->get_ID());
+
     // pop output queue
 
     ctx->pop_next_picture_in_output_queue();

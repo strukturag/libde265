@@ -768,6 +768,8 @@ int main(int argc, char** argv)
 
           // decode some more
 
+          //std::cout << "-------- decoded frames " << framecnt << "\n";
+
           err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
             // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));

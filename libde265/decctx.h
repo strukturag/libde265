@@ -380,6 +380,9 @@ class decoder_context : public base_context,
     debug_imageunit_state();
   }
 
+  virtual void send_end_of_stream();
+
+
  public:
 
   de265_error decode_image_unit(bool* did_work);
@@ -474,6 +477,8 @@ class decoder_context : public base_context,
 
  public:
   std::vector<image_unit_ptr> image_units;
+
+  bool m_end_of_stream;
 
  private:
   void init_thread_context(thread_context* tctx);
