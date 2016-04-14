@@ -2018,12 +2018,10 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
 
     process_picture_order_count(hdr);
 
-    if (hdr->first_slice_segment_in_pic_flag) {
-      // mark picture so that it is not overwritten by unavailable reference frames
-      m_curr_img->PicState = UsedForShortTermReference;
+    // mark picture so that it is not overwritten by unavailable reference frames
+    m_curr_img->PicState = UsedForShortTermReference;
 
-      process_reference_picture_set(hdr);
-    }
+    process_reference_picture_set(hdr);
 
     m_curr_img->PicState = UsedForShortTermReference;
 
