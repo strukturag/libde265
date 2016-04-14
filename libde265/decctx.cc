@@ -1269,7 +1269,13 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 
   nal_header nal_hdr;
   nal_hdr.read(&reader);
-  process_nal_hdr(&nal_hdr);
+
+
+  nal_unit_type = nal_hdr.nal_unit_type;
+
+  IdrPicFlag = isIdrPic(nal_hdr.nal_unit_type);
+  RapPicFlag = isRapPic(nal_hdr.nal_unit_type);
+
 
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
@@ -1396,16 +1402,6 @@ bool frontend_syntax_decoder::is_input_buffer_full() const
 {
   return !m_decctx->dpb.has_free_dpb_picture(false);
   // return DE265_ERROR_IMAGE_BUFFER_FULL;
-}
-
-
-
-void frontend_syntax_decoder::process_nal_hdr(nal_header* nal)
-{
-  nal_unit_type = nal->nal_unit_type;
-
-  IdrPicFlag = isIdrPic(nal->nal_unit_type);
-  RapPicFlag = isRapPic(nal->nal_unit_type);
 }
 
 

@@ -214,9 +214,7 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
 
   // --- (TODO) make this private and reorganize ---
 
-  de265_error decode_NAL(NAL_unit* nal);
 
-  void process_nal_hdr(nal_header*);
 
   bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,
@@ -226,6 +224,8 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   void debug_imageunit_state();
 
  private:
+  de265_error decode_NAL(NAL_unit* nal);
+
   de265_error read_vps_NAL(bitreader&);
   de265_error read_sps_NAL(bitreader&);
   de265_error read_pps_NAL(bitreader&);
