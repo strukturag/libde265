@@ -208,18 +208,37 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
   const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
+  std::shared_ptr<seq_parameter_set>  get_current_sps() { return current_sps; }
+
   // get highest temporal sub-layer ID
   int  get_highest_TID() const;
 
 
+  // The previously decoded slice header (so that we can copy it in dependent slices)
+  bool has_previous_slice_header() const { return previous_slice_header != NULL; }
+  const slice_segment_header& get_previous_slice_header() { return *previous_slice_header; }
+
+
+  // --- modify state by slice header ---
+
+  void set_PocLsbLt(int picIdx, int lsb) { PocLsbLt[picIdx] = lsb; }
+  void set_UsedByCurrPicLt(int picIdx, int used) { UsedByCurrPicLt[picIdx] = used; }
+  void set_DeltaPocMsbCycleLt(int picIdx, int delta) { DeltaPocMsbCycleLt[picIdx] = delta; }
+
+  bool is_UsedByCurrPicLt(int picIdx) { return UsedByCurrPicLt[picIdx]; }
+  int  get_DeltaPocMsbCycleLt(int picIdx) { return DeltaPocMsbCycleLt[picIdx]; }
+
+
+  // --- debugging ---
+
+  int  param_sps_headers_fd;
+  int  param_vps_headers_fd;
+  int  param_pps_headers_fd;
+  int  param_slice_headers_fd;
+
+
+
   // --- (TODO) make this private and reorganize ---
-
-
-
-  bool process_slice_segment_header(slice_segment_header*,
-                                    de265_error*, de265_PTS pts,
-                                    nal_header* nal_hdr, void* user_data);
-
 
   void debug_imageunit_state();
 
@@ -233,14 +252,13 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   de265_error read_eos_NAL(bitreader& reader);
   de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
 
+  bool process_slice_segment_header(slice_segment_header*,
+                                    de265_error*, de265_PTS pts,
+                                    nal_header* nal_hdr, void* user_data);
 
- public:
-  int  param_sps_headers_fd;
-  int  param_vps_headers_fd;
-  int  param_pps_headers_fd;
-  int  param_slice_headers_fd;
 
- private:
+  // ---
+
   decoder_context* m_decctx;
   image_unit_sink* m_image_unit_sink;
 
@@ -259,19 +277,16 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   int prevPicOrderCntLsb;  // at precTid0Pic
   int prevPicOrderCntMsb;  // at precTid0Pic
 
- public:
   const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
                                                         dependent slice. */
 
 
   // --- motion compensation ---
 
- public:
   int PocLsbLt[MAX_NUM_REF_PICS];
   int UsedByCurrPicLt[MAX_NUM_REF_PICS];
   int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
 
- private:
   int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
   int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
 
@@ -323,7 +338,6 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   image_ptr m_curr_img;
 
 
- private:
   // --- internal data ---
 
   std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
@@ -331,10 +345,9 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
 
   std::shared_ptr<video_parameter_set>  current_vps;
- public: std::shared_ptr<seq_parameter_set>    current_sps;
+  std::shared_ptr<seq_parameter_set>    current_sps;
   std::shared_ptr<pic_parameter_set>    current_pps;
 
- private:
   // on_NAL_inserted_listener
 
   virtual de265_error on_NAL_inserted();

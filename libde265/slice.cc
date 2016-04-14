@@ -414,11 +414,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      if (frontend.previous_slice_header == NULL) {
+      if (frontend.has_previous_slice_header()) {
+        *this = frontend.get_previous_slice_header();
+      }
+      else {
         return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
       }
-
-      *this = *frontend.previous_slice_header;
 
       first_slice_segment_in_pic_flag = 0;
       dependent_slice_segment_flag = 1;
@@ -546,19 +547,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             // delta_poc_msb_present_flag[i] = 0; // TODO ?
 
-            frontend.PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
-            frontend.UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
+            frontend.set_PocLsbLt(i, sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ]);
+            frontend.set_UsedByCurrPicLt(i, sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ]);
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
             poc_lsb_lt[i] = get_bits(br, nBits);
             used_by_curr_pic_lt_flag[i] = get_bits(br,1);
 
-            frontend.PocLsbLt[i] = poc_lsb_lt[i];
-            frontend.UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
+            frontend.set_PocLsbLt(i, poc_lsb_lt[i]);
+            frontend.set_UsedByCurrPicLt(i, used_by_curr_pic_lt_flag[i]);
           }
 
-          if (frontend.UsedByCurrPicLt[i]) {
+          if (frontend.is_UsedByCurrPicLt(i)) {
             NumLtPics++;
           }
 
@@ -574,11 +575,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           }
 
           if (i==0 || i==num_long_term_sps) {
-            frontend.DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
+            frontend.set_DeltaPocMsbCycleLt(i, delta_poc_msb_cycle_lt[i]);
           }
           else {
-            frontend.DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
-                                              frontend.DeltaPocMsbCycleLt[i-1]);
+            frontend.set_DeltaPocMsbCycleLt(i, (delta_poc_msb_cycle_lt[i] +
+                                                frontend.get_DeltaPocMsbCycleLt(i-1)) );
           }
         }
       }

@@ -2155,7 +2155,7 @@ void decoder_context::set_limit_TID(int max_tid)
 
 int decoder_context::change_framerate(int more)
 {
-  if (get_frontend_syntax_decoder().current_sps == NULL) { return framerate_ratio; }
+  if (!get_frontend_syntax_decoder().get_current_sps()) { return framerate_ratio; }
 
   int highestTid = get_frontend_syntax_decoder().get_highest_TID();
 
