@@ -87,7 +87,7 @@ class NAL_unit {
 
 class on_NAL_inserted_listener {
  public:
-  virtual void on_NAL_inserted() { }
+  virtual de265_error on_NAL_inserted() { return DE265_OK; }
   virtual void on_end_of_stream() { }
   virtual void on_end_of_frame() { }
 };

@@ -247,7 +247,8 @@ void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
   nBytes_in_NAL_queue += nal->size();
 
   if (m_on_NAL_inserted_listener) {
-    m_on_NAL_inserted_listener->on_NAL_inserted();
+    de265_error err = m_on_NAL_inserted_listener->on_NAL_inserted();
+    // TODO: handle error
   }
 }
 

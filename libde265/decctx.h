@@ -219,6 +219,9 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
                                     de265_error*, de265_PTS pts,
                                     nal_header* nal_hdr, void* user_data);
 
+
+  void debug_imageunit_state();
+
  private:
   de265_error read_vps_NAL(bitreader&);
   de265_error read_sps_NAL(bitreader&);
@@ -331,9 +334,9 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
  private:
   // on_NAL_inserted_listener
 
-  virtual void on_NAL_inserted();
-  virtual void on_end_of_stream() { }
-  virtual void on_end_of_frame() { }
+  virtual de265_error on_NAL_inserted();
+  virtual void on_end_of_stream();
+  virtual void on_end_of_frame();
 };
 
 
@@ -373,6 +376,8 @@ class decoder_context : public base_context,
 
   virtual void send_image_unit(image_unit_ptr imgunit) {
     image_units.push_back(imgunit);
+
+    debug_imageunit_state();
   }
 
  public:
@@ -417,6 +422,8 @@ class decoder_context : public base_context,
   int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
   void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
 
+
+  void debug_imageunit_state();
 
  public:
   thread_pool thread_pool_;

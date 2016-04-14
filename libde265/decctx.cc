@@ -665,8 +665,8 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
     m_curr_image_unit->slice_units.push_back(sliceunit);
   }
 
-  bool did_work;
-  err = m_decctx->decode_image_unit(&did_work);
+  //TODO TMP DISABLE bool did_work;
+  //TODO TMP DISABLE err = m_decctx->decode_image_unit(&did_work);
 
   return DE265_OK;
 }
@@ -1157,6 +1157,31 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 }
 
 
+void frontend_syntax_decoder::debug_imageunit_state()
+{
+  std::cout << "m_curr_image_unit: ";
+  if (m_curr_image_unit)
+    std::cout << m_curr_image_unit->img->get_ID() << "\n";
+  else
+    std::cout << "NULL\n";
+
+  std::cout << "NALs: " << nal_parser.get_NAL_queue_length()
+            << " EOS: " << nal_parser.is_end_of_stream()
+            << " EOF: " << nal_parser.is_end_of_frame() << "\n";
+}
+
+
+void decoder_context::debug_imageunit_state()
+{
+  std::cout << "image_units: ";
+  for (int i=0;i<image_units.size();i++) {
+    std::cout << image_units[i]->img->get_ID() << " ";
+  }
+  std::cout << "\n";
+}
+
+
+
 de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 {
   decoder_context* ctx = m_decctx;
@@ -1201,31 +1226,37 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 
 
   if (nal_hdr.nal_unit_type<32) {
+    std::cout << "read slice NAL\n";
     err = read_slice_NAL(reader, nal, nal_hdr);
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
+      std::cout << "read VPS NAL\n";
       err = read_vps_NAL(reader);
       nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_SPS_NUT:
+      std::cout << "read SPS NAL\n";
       err = read_sps_NAL(reader);
       nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PPS_NUT:
+      std::cout << "read PPS NAL\n";
       err = read_pps_NAL(reader);
       nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
+      std::cout << "read SEI NAL\n";
       err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
       nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_EOS_NUT:
+      std::cout << "read EOS NAL\n";
       FirstAfterEndOfSequenceNAL = true;
       nal_parser.free_NAL_unit(nal);
       break;
@@ -1239,9 +1270,41 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 }
 
 
-void frontend_syntax_decoder::on_NAL_inserted()
+de265_error frontend_syntax_decoder::on_NAL_inserted()
 {
-  std::cout << "ON-NAL-inserted\n";
+  std::cout << "================== ON-NAL-inserted\n";
+
+  de265_error err = DE265_OK;
+
+  while (nal_parser.get_NAL_queue_length() > 0) {
+    NAL_unit* nal = nal_parser.pop_from_NAL_queue();
+    assert(nal);
+    err = decode_NAL(nal);
+  }
+
+  debug_imageunit_state();
+
+  return err;
+}
+
+
+void frontend_syntax_decoder::on_end_of_stream()
+{
+  on_end_of_frame();
+}
+
+
+void frontend_syntax_decoder::on_end_of_frame()
+{
+  std::cout << "================== ON-EOF\n";
+
+  if (m_curr_image_unit) {
+    m_image_unit_sink->send_image_unit(m_curr_image_unit);
+  }
+
+  m_curr_image_unit = nullptr;
+
+  debug_imageunit_state();
 }
 
 
@@ -1292,6 +1355,7 @@ de265_error frontend_syntax_decoder::decode(int* more)
   de265_error err = DE265_OK;
   bool did_work = false;
 
+  /*
   if (nal_parser.get_NAL_queue_length() > 0) { // number_of_NAL_units_pending()) {
     NAL_unit* nal = nal_parser.pop_from_NAL_queue();
     assert(nal);
@@ -1299,7 +1363,8 @@ de265_error frontend_syntax_decoder::decode(int* more)
 
     did_work=true;
   }
-  else if (nal_parser.is_end_of_frame() == true &&
+  else  */
+ if (nal_parser.is_end_of_frame() == true &&
            ctx->image_units.empty()) {
     if (more) { *more=1; }
 
