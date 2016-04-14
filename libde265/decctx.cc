@@ -645,6 +645,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
       m_image_unit_sink->send_image_unit(m_curr_image_unit);
     }
 
+
+    // TODO: move image allocation to here (TAG3847)
+
     m_curr_image_unit = std::make_shared<image_unit>();
     m_curr_image_unit->img = m_curr_img;
   }
@@ -694,6 +697,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   if ( ! image_units.empty() ) { // && ! image_units[0]->slice_units.empty() ) {
 
+    std::cout << "decode_image_unit -> decode a slice\n";
+
     image_unit* imgunit = image_units[0].get();
     slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
@@ -717,12 +722,18 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
   // if we decoded all slices of the current image and there will not
   // be added any more slices to the image, output the image
 
+  /*
   NAL_Parser& nal_parser = m_frontend_syntax_decoder.get_NAL_parser();
 
   if ( ( image_units.size()>=2 && image_units[0]->all_slice_segments_processed()) ||
        ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed() &&
          nal_parser.number_of_NAL_units_pending()==0 &&
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
+  */
+
+  if ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed()) {
+
+    std::cout << "postprocess image\n";
 
     image_unit* imgunit = image_units[0].get();
 
@@ -2037,7 +2048,7 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
     seq_parameter_set* sps = current_sps.get();
 
 
-    // --- find and allocate image buffer for decoding ---
+    // --- find and allocate image buffer for decoding (TAG3847) ---
 
     decoded_picture_buffer& dpb = m_decctx->dpb;
 

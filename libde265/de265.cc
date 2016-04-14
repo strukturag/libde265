@@ -340,7 +340,12 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->get_frontend_syntax_decoder().decode(more);
+  //return ctx->get_frontend_syntax_decoder().decode(more);
+
+  bool did_work;
+  de265_error err = ctx->decode_image_unit(&did_work);
+  if (more) { *more = did_work; }
+  return err;
 }
 
 
