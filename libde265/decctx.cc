@@ -247,7 +247,6 @@ void frontend_syntax_decoder::reset()
 
   m_curr_image_unit.reset();
   m_curr_img.reset();
-
 }
 
 
@@ -619,6 +618,64 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
   }
 
 
+  // --- get PPS and SPS for this slice ---
+
+  int pps_id = shdr->slice_pic_parameter_set_id;
+  if (pps[pps_id]->pps_read==false) {
+    logerror(LogHeaders, "PPS %d has not been read\n", pps_id);
+    assert(false); // TODO
+  }
+
+  current_pps = pps[pps_id];
+  current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
+  current_vps = vps[ (int)current_sps->video_parameter_set_id ];
+
+  m_decctx->calc_tid_and_framerate_ratio();
+
+
+  // --- start a new image if this is the first slice ---
+
+  if (shdr->first_slice_segment_in_pic_flag) {
+
+    // output previous image_unit if available
+
+    if (m_curr_image_unit) {
+      m_image_unit_sink->send_image_unit(m_curr_image_unit);
+    }
+
+
+    // --- find and allocate image buffer for decoding ---
+
+    seq_parameter_set* sps = current_sps.get();
+    decoded_picture_buffer& dpb = m_decctx->dpb;
+
+    int image_buffer_idx;
+    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
+    image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
+                                     isOutputImage ?
+                                     &m_decctx->param_image_allocation_functions :
+                                     nullptr);
+    if (image_buffer_idx == -1) {
+      return DE265_ERROR_IMAGE_BUFFER_FULL;
+    }
+
+    m_curr_img = dpb.get_image(image_buffer_idx);
+    m_curr_img->nal_hdr = nal_hdr;
+
+    // Note: sps is already set in new_image() -> ??? still the case with shared_ptr ?
+
+    m_curr_img->set_headers(current_vps, current_sps, current_pps);
+    m_curr_img->decctx = m_decctx;
+    m_curr_img->clear_metadata();
+
+
+    // --- create new image_unit ---
+
+    m_curr_image_unit = std::make_shared<image_unit>();
+    m_curr_image_unit->img = m_curr_img;
+  }
+
+
   if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (m_curr_img!=NULL) m_curr_img->integrity = INTEGRITY_NOT_DECODED;
@@ -626,6 +683,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
       delete shdr;
       return err;
     }
+
 
   m_curr_img->add_slice_segment_header(shdr);
 
@@ -641,21 +699,6 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
                                                                  headerLength);
   }
 
-
-
-  // --- start a new image if this is the first slice ---
-
-  if (shdr->first_slice_segment_in_pic_flag) {
-    if (m_curr_image_unit) {
-      m_image_unit_sink->send_image_unit(m_curr_image_unit);
-    }
-
-
-    // TODO: move image allocation to here (TAG3847)
-
-    m_curr_image_unit = std::make_shared<image_unit>();
-    m_curr_image_unit->img = m_curr_img;
-  }
 
 
   // --- add slice to current picture ---
@@ -2045,21 +2088,6 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
   flush_reorder_buffer_at_this_frame = false;
 
 
-  // get PPS and SPS for this slice
-
-  int pps_id = hdr->slice_pic_parameter_set_id;
-  if (pps[pps_id]->pps_read==false) {
-    logerror(LogHeaders, "PPS %d has not been read\n", pps_id);
-    assert(false); // TODO
-  }
-
-  current_pps = pps[pps_id];
-  current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
-  current_vps = vps[ (int)current_sps->video_parameter_set_id ];
-
-  m_decctx->calc_tid_and_framerate_ratio();
-
-
   // --- prepare decoding of new picture ---
 
   if (hdr->first_slice_segment_in_pic_flag) {
@@ -2070,33 +2098,6 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
 
     current_image_poc_lsb = hdr->slice_pic_order_cnt_lsb;
 
-
-    seq_parameter_set* sps = current_sps.get();
-
-
-    // --- find and allocate image buffer for decoding (TAG3847) ---
-
-    decoded_picture_buffer& dpb = m_decctx->dpb;
-
-    int image_buffer_idx;
-    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
-    image_buffer_idx = dpb.new_image(current_sps, m_decctx, pts, user_data,
-                                     isOutputImage ? &m_decctx->param_image_allocation_functions : nullptr);
-    if (image_buffer_idx == -1) {
-      *err = DE265_ERROR_IMAGE_BUFFER_FULL;
-      return false;
-    }
-
-    m_curr_img = dpb.get_image(image_buffer_idx);
-    m_curr_img->nal_hdr = *nal_hdr;
-
-    // Note: sps is already set in new_image() -> ??? still the case with shared_ptr ?
-
-    m_curr_img->set_headers(current_vps, current_sps, current_pps);
-
-    m_curr_img->decctx = m_decctx;
-
-    m_curr_img->clear_metadata();
 
 
     if (isIRAP(nal_unit_type)) {
