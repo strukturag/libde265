@@ -178,17 +178,20 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
  public:
   frontend_syntax_decoder(decoder_context* ctx);
 
-  void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
-
   void reset();
-
-  //void process_slice_NAL(NAL_unit* nal); // transfers ownership of NAL
-
 
 
   // --- frontend for pushing data into the decoder ---
 
+  bool is_input_buffer_full() const;
+
+  // Pushing data into the NAL-parser will automatically forward the complete NALs
+  // the the frontend_syntax_decoder, where they are subsequently combines into image_units.
   NAL_Parser& get_NAL_parser() { return nal_parser; }
+
+
+  // Complete image_units are forwarded to this sink.
+  void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
 
 
 
@@ -205,12 +208,12 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
   const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
+  // get highest temporal sub-layer ID
   int  get_highest_TID() const;
 
 
   // --- (TODO) make this private and reorganize ---
 
-  de265_error decode(int* more);
   de265_error decode_NAL(NAL_unit* nal);
 
   void process_nal_hdr(nal_header*);

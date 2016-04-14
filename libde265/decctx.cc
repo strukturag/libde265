@@ -635,6 +635,8 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
 
   // --- start a new image if this is the first slice ---
 
+  // TODO: what happens when the first slice of an image is missing? Are the remaining
+  // slices added to the previous image and decoded twice without noticing the error?
   if (shdr->first_slice_segment_in_pic_flag) {
 
     // output previous image_unit if available
@@ -738,12 +740,14 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   *did_work = false;
 
-  if (image_units.empty()) { return DE265_OK; }  // nothing to do
+  if (image_units.empty()) {
+    return DE265_ERROR_WAITING_FOR_INPUT_DATA; // nothing to do
+  }
 
 
   // decode something if there is work to do
 
-  if ( ! image_units.empty() ) { // && ! image_units[0]->slice_units.empty() ) {
+  if ( ! image_units.empty() ) {
 
     loginfo(LogHighlevel,"decode_image_unit -> decode a slice\n");
 
@@ -1388,79 +1392,12 @@ void decoder_context::send_end_of_stream()
 }
 
 
-de265_error frontend_syntax_decoder::decode(int* more)
+bool frontend_syntax_decoder::is_input_buffer_full() const
 {
-  decoder_context* ctx = m_decctx;
-
-  // if the stream has ended, and no more NALs are to be decoded, flush all pictures
-
-  if (nal_parser.get_NAL_queue_length() == 0 &&
-      (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) &&
-      m_decctx->image_units.empty()) {
-
-    // flush all pending pictures into output queue
-
-    // ctx->push_current_picture_to_output_queue(); // TODO: not with new queue
-    ctx->m_output_queue.flush_reorder_buffer();
-
-    if (more) { *more = ctx->m_output_queue.num_pictures_in_output_queue(); }
-
-    return DE265_OK;
-  }
-
-
-  // if NAL-queue is empty, we need more data
-  // -> input stalled
-
-  if (nal_parser.is_end_of_stream() == false &&
-      nal_parser.is_end_of_frame() == false &&
-      nal_parser.get_NAL_queue_length() == 0) {
-    if (more) { *more=1; }
-
-    return DE265_ERROR_WAITING_FOR_INPUT_DATA;
-  }
-
-
-  // when there are no free image buffers in the DPB, pause decoding
-  // -> output stalled
-
-  if (!ctx->dpb.has_free_dpb_picture(false)) {
-    if (more) *more = 1;
-    return DE265_ERROR_IMAGE_BUFFER_FULL;
-  }
-
-
-  // decode one NAL from the queue
-
-  de265_error err = DE265_OK;
-  bool did_work = false;
-
-  /*
-  if (nal_parser.get_NAL_queue_length() > 0) { // number_of_NAL_units_pending()) {
-    NAL_unit* nal = nal_parser.pop_from_NAL_queue();
-    assert(nal);
-    err = decode_NAL(nal);
-
-    did_work=true;
-  }
-  else  */
- if (nal_parser.is_end_of_frame() == true &&
-           ctx->image_units.empty()) {
-    if (more) { *more=1; }
-
-    return DE265_ERROR_WAITING_FOR_INPUT_DATA;
-  }
-  else {
-    err = m_decctx->decode_image_unit(&did_work);
-  }
-
-  if (more) {
-    // decoding error is assumed to be unrecoverable
-    *more = (err==DE265_OK && did_work);
-  }
-
-  return err;
+  return !m_decctx->dpb.has_free_dpb_picture(false);
+  // return DE265_ERROR_IMAGE_BUFFER_FULL;
 }
+
 
 
 void frontend_syntax_decoder::process_nal_hdr(nal_header* nal)
