@@ -357,6 +357,7 @@ void slice_segment_header::reset()
 
 
 de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
+                                       uint8_t nal_unit_type,
                                        bool* continueDecoding)
 {
   frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
@@ -373,7 +374,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   first_slice_segment_in_pic_flag = get_bits(br,1);
 
-  if (frontend.get_RapPicFlag()) { // TODO: is this still correct ? Should we drop RapPicFlag ?
+  if (isRapPic(nal_unit_type)) { // TODO: is this still correct ? Should we drop RapPicFlag ?
     no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
@@ -471,8 +472,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     int NumLtPics = 0;
 
-    if (frontend.get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        frontend.get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if (nal_unit_type != NAL_UNIT_IDR_W_RADL &&
+        nal_unit_type != NAL_UNIT_IDR_N_LP) {
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
@@ -1270,7 +1271,9 @@ void slice_segment_header::compute_derived_values(const pic_parameter_set* pps)
 //-----------------------------------------------------------------------
 
 
-void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx, int fd) const
+void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
+                                                     uint8_t nal_unit_type,
+                                                     int fd) const
 {
   FILE* fh;
   if (fd==1) fh=stdout;
@@ -1294,8 +1297,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
   LOG0("----------------- SLICE -----------------\n");
   LOG1("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
-  if (frontend.get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
-      frontend.get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
+  if (nal_unit_type >= NAL_UNIT_BLA_W_LP &&
+      nal_unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23) {
     LOG1("no_output_of_prior_pics_flag         : %d\n", no_output_of_prior_pics_flag);
   }
 
@@ -1327,8 +1330,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
     LOG1("slice_pic_order_cnt_lsb              : %d\n", slice_pic_order_cnt_lsb);
 
-    if (frontend.get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        frontend.get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if (nal_unit_type != NAL_UNIT_IDR_W_RADL &&
+        nal_unit_type != NAL_UNIT_IDR_N_LP) {
       LOG1("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
 
       if (!short_term_ref_pic_set_sps_flag) {

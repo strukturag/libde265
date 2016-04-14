@@ -197,9 +197,6 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
 
   // --- query the current state ---
 
-  uint8_t get_nal_unit_type() const { return nal_unit_type; }
-  bool    get_RapPicFlag() const { return RapPicFlag; }
-
   bool has_sps(int id) const { return (bool)sps[id]; }
   bool has_pps(int id) const { return (bool)pps[id]; }
 

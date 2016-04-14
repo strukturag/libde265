@@ -605,7 +605,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
 
   slice_segment_header* shdr = new slice_segment_header;
   bool continueDecoding;
-  de265_error err = shdr->read(&reader,m_decctx, &continueDecoding);
+  de265_error err = shdr->read(&reader,m_decctx, nal_unit_type, &continueDecoding);
   if (!continueDecoding) {
     if (m_curr_img) { m_curr_img->integrity = INTEGRITY_NOT_DECODED; }
     nal_parser.free_NAL_unit(nal);
@@ -614,7 +614,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
   }
 
   if (param_slice_headers_fd>=0) {
-    shdr->dump_slice_segment_header(m_decctx, param_slice_headers_fd);
+    shdr->dump_slice_segment_header(m_decctx, nal_unit_type, param_slice_headers_fd);
   }
 
 

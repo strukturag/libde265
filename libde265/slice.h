@@ -134,13 +134,17 @@ public:
     reset();
   }
 
-  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
+  de265_error read(bitreader* br, decoder_context*,
+                   uint8_t nal_unit_type,
+                   bool* continueDecoding);
   de265_error write(error_queue*, CABAC_encoder&,
                     const seq_parameter_set* sps,
                     const pic_parameter_set* pps,
                     uint8_t nal_unit_type);
 
-  void dump_slice_segment_header(const decoder_context*, int fd) const;
+  void dump_slice_segment_header(const decoder_context*,
+                                 uint8_t nal_unit_type,
+                                 int fd) const;
 
   void set_defaults();
   void reset();
