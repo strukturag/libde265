@@ -91,6 +91,7 @@ class encoder_context : public base_context
   const video_parameter_set& get_vps() const { return *vps; }
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
+  std::shared_ptr<const pic_parameter_set> get_pps_ptr() const { return pps; }
 
   video_parameter_set& get_vps() { return *vps; }
   seq_parameter_set& get_sps() { return *sps; }

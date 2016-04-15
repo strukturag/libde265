@@ -151,7 +151,7 @@ public:
 
 
   int  slice_index; // index through all slices in a picture  (internal only)
-  const pic_parameter_set* pps;
+  std::shared_ptr<const pic_parameter_set> pps;
 
 
   char first_slice_segment_in_pic_flag;

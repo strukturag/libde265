@@ -390,9 +390,9 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  pps = frontend.get_pps(slice_pic_parameter_set_id);
+  pps = frontend.get_pps_ptr(slice_pic_parameter_set_id);
 
-  const seq_parameter_set* sps = pps->sps;
+  const seq_parameter_set* sps = pps->get_sps();
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
@@ -416,6 +416,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
 
       if (frontend.has_previous_slice_header()) {
+
+        if (slice_pic_parameter_set_id !=
+            frontend.get_previous_slice_header().slice_pic_parameter_set_id) {
+          ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+          return DE265_OK;
+        }
+
         *this = frontend.get_previous_slice_header();
       }
       else {
@@ -879,7 +886,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
 
-  compute_derived_values(pps);
+  compute_derived_values(pps.get());
 
   *continueDecoding = true;
   return DE265_OK;

@@ -604,6 +604,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
   // --- read slice header ---
 
   slice_segment_header* shdr = new slice_segment_header;
+
   bool continueDecoding;
   de265_error err = shdr->read(&reader,m_decctx, nal_unit_type, &continueDecoding);
   if (!continueDecoding) {

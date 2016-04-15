@@ -204,6 +204,7 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
   /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
   const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
+  std::shared_ptr<const pic_parameter_set> get_pps_ptr(int id) const { return pps[id]; }
 
   std::shared_ptr<seq_parameter_set>  get_current_sps() { return current_sps; }
 

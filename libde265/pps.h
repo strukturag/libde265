@@ -72,8 +72,12 @@ public:
   void set_defaults(enum PresetSet = Preset_Default);
 
   bool pps_read; // whether this pps has been read from bitstream
-  const seq_parameter_set* sps;
 
+ private:
+  const seq_parameter_set* sps;
+ public:
+  const seq_parameter_set* get_sps() const { return sps; }
+  void set_sps(seq_parameter_set* s) { sps=s; }
 
   char pic_parameter_set_id;
   char seq_parameter_set_id;
