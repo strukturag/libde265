@@ -251,14 +251,28 @@ void frontend_syntax_decoder::reset()
 
 
 
+void decoder_context::set_frame_dropping_ratio(float ratio)
+{
+  if (ratio==0.0) {
+    m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_nop );
+  }
+  else {
+    m_frame_dropper_ratio.set_dropping_ratio(ratio);
+    m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_ratio );
+  }
+}
+
+
 decoder_context::decoder_context()
   : m_frontend_syntax_decoder(this)
 {
-  m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_ratio );
+  m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_nop );
 
   m_frame_dropper_nop      .set_image_unit_sink( this );
   m_frame_dropper_IRAP_only.set_image_unit_sink( this );
   m_frame_dropper_ratio    .set_image_unit_sink( this );
+
+  m_frame_dropper_ratio.set_decoder_context(*this);
 
 
   //memset(ctx, 0, sizeof(decoder_context));
@@ -2204,7 +2218,11 @@ int decoder_context::change_framerate(int more)
 void decoder_context::set_framerate_ratio(int percent)
 {
   framerate_ratio = percent;
-  calc_tid_and_framerate_ratio();
+  // TODO: ideally, we should combine this with dropping temporal layers
+  // (maybe in another frame_dropper implementation, pipelined)
+  // calc_tid_and_framerate_ratio();
+
+  set_frame_dropping_ratio((100-percent)/100.0);
 }
 
 void decoder_context::compute_framedrop_table()

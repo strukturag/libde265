@@ -68,10 +68,15 @@ class frame_dropper_IRAP_only : public frame_dropper
 };
 
 
+class decoder_context;
+
+
 class frame_dropper_ratio : public frame_dropper
 {
 public:
-  frame_dropper_ratio() : m_dropping_ratio(0.0) { }
+  frame_dropper_ratio();
+
+  void set_decoder_context(decoder_context& decctx) { m_decctx=&decctx; }
 
   virtual void send_image_unit(image_unit_ptr);
 
@@ -81,9 +86,23 @@ public:
 private:
   float m_dropping_ratio;
 
-  std::deque<image_unit_ptr> m_image_queue;
+  decoder_context* m_decctx;
 
+  struct frame_item {
+    image_unit_ptr imgunit;
+    bool           used_for_reference;
+    bool           in_dpb;
+  };
 
+  std::deque<frame_item> m_image_queue;
+
+  int m_n_dropped;
+  int m_n_total;
+  std::deque<bool> m_dropped_history;
+
+  static const int HISTORY_LEN = 50;
+
+  void mark_used(int dpb_idx);
 };
 
 #endif

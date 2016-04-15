@@ -74,6 +74,7 @@ bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
 int highestTID = 100;
+int decode_rate_percent = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
@@ -97,6 +98,7 @@ static struct option long_options[] = {
   {"ssim",        no_argument,       0, 's' },
   {"errmap",      no_argument,       0, 'e' },
   {"highest-TID", required_argument, 0, 'T' },
+  {"decoding-framerate-percent", required_argument, 0, 'D' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
@@ -575,7 +577,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:seR"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seR"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -601,6 +603,7 @@ int main(int argc, char** argv)
     case 's': show_ssim_map=true; break;
     case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
+    case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
   }
@@ -633,6 +636,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -e, --errmap      show error-map (only when -m active)\n");
 #endif
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
+    fprintf(stderr,"  -D, --decoding-framerate-percent    percentage of frames to decode (others will be dropped)\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
     fprintf(stderr,"  -h, --help        show help\n");
@@ -676,7 +680,7 @@ int main(int argc, char** argv)
   }
 
   de265_set_limit_TID(ctx, highestTID);
-
+  de265_set_framerate_ratio(ctx, decode_rate_percent);
 
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
