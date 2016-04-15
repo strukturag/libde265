@@ -35,6 +35,7 @@
 #include "libde265/image-unit.h"
 
 #include <memory>
+#include <deque>
 
 
 class frame_dropper : public image_unit_sink
@@ -64,6 +65,25 @@ class frame_dropper_IRAP_only : public frame_dropper
 {
  public:
   virtual void send_image_unit(image_unit_ptr);
+};
+
+
+class frame_dropper_ratio : public frame_dropper
+{
+public:
+  frame_dropper_ratio() : m_dropping_ratio(0.0) { }
+
+  virtual void send_image_unit(image_unit_ptr);
+
+  void set_dropping_ratio(float ratio) { m_dropping_ratio = ratio; }
+  void send_end_of_stream();
+
+private:
+  float m_dropping_ratio;
+
+  std::deque<image_unit_ptr> m_image_queue;
+
+
 };
 
 #endif

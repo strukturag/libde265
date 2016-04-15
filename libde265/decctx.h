@@ -387,6 +387,7 @@ class decoder_context : public base_context,
 
   frame_dropper_nop        m_frame_dropper_nop;
   frame_dropper_IRAP_only  m_frame_dropper_IRAP_only;
+  frame_dropper_ratio      m_frame_dropper_ratio;
 
   // -------------------------------------------------- decoding main loop
 

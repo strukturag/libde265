@@ -254,10 +254,11 @@ void frontend_syntax_decoder::reset()
 decoder_context::decoder_context()
   : m_frontend_syntax_decoder(this)
 {
-  m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_nop );
+  m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_ratio );
 
   m_frame_dropper_nop      .set_image_unit_sink( this );
   m_frame_dropper_IRAP_only.set_image_unit_sink( this );
+  m_frame_dropper_ratio    .set_image_unit_sink( this );
 
 
   //memset(ctx, 0, sizeof(decoder_context));
@@ -790,15 +791,26 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
   */
 
+  // --- process the dropped frames (process remove-references list and push
+  //     dummy frame to output
+
   if ( image_units.size()>=1 && image_units[0]->state == image_unit::Dropped) {
     // push a dummy 'dropped' image to the output as a placeholder
 
     image_unit* imgunit = image_units[0].get();
+
+    slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
+    if (sliceunit) {
+      remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
+    }
+
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+
     push_picture_to_output_queue(imgunit->img);
 
     pop_front(image_units);
   }
+
 
 
   if ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed()) {

@@ -31,3 +31,22 @@ void frame_dropper_IRAP_only::send_image_unit(image_unit_ptr imgunit)
 
   m_image_unit_sink->send_image_unit(imgunit);
 }
+
+
+
+void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
+{
+  if (imgunit->img->PicOrderCntVal % 2 == 1) {
+    imgunit->state = image_unit::Dropped;
+    loginfo(LogHighlevel,"...\n");
+  }
+  else
+    loginfo(LogHighlevel,"SHOW\n");
+
+  m_image_unit_sink->send_image_unit(imgunit);
+}
+
+
+void frame_dropper_ratio::send_end_of_stream()
+{
+}
