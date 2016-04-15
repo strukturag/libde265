@@ -103,6 +103,8 @@ public:
   image_unit();
   ~image_unit();
 
+  uint8_t nal_unit_type; // of NAL containing first slice header
+
   image_ptr img;
   image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
 

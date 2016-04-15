@@ -313,7 +313,6 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   sps = ctx->get_frontend_syntax_decoder().get_sps_ptr(seq_parameter_set_id);
-  printf("pps %p, set sps[%d]=%p\n",this, seq_parameter_set_id, sps.get());
 
   if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);

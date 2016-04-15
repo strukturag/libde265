@@ -35,6 +35,7 @@
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
 #include "libde265/image-unit.h"
+#include "libde265/frame-dropper.h"
 
 #include <memory>
 
@@ -327,7 +328,7 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
 
   uint8_t nal_unit_type;
 
-  char IdrPicFlag;
+  //char IdrPicFlag; // unused ?
   char RapPicFlag;
 
 
@@ -384,7 +385,8 @@ class decoder_context : public base_context,
 
   // -------------------------------------------------- image_unit classifier
 
-  // still TODO
+  frame_dropper_nop        m_frame_dropper_nop;
+  frame_dropper_IRAP_only  m_frame_dropper_IRAP_only;
 
   // -------------------------------------------------- decoding main loop
 

@@ -254,7 +254,10 @@ void frontend_syntax_decoder::reset()
 decoder_context::decoder_context()
   : m_frontend_syntax_decoder(this)
 {
-  m_frontend_syntax_decoder.set_image_unit_sink(this);
+  m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_nop );
+
+  m_frame_dropper_nop      .set_image_unit_sink( this );
+  m_frame_dropper_IRAP_only.set_image_unit_sink( this );
 
 
   //memset(ctx, 0, sizeof(decoder_context));
@@ -676,6 +679,8 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
 
     m_curr_image_unit = std::make_shared<image_unit>();
     m_curr_image_unit->img = m_curr_img;
+
+    m_curr_image_unit->nal_unit_type = nal_unit_type;
   }
 
 
@@ -756,7 +761,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     image_unit* imgunit = image_units[0].get();
     slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
-    if (sliceunit != NULL) {
+    if (sliceunit != NULL && imgunit->state != image_unit::Dropped) {
 
       if (sliceunit->flush_reorder_buffer) {
         m_output_queue.flush_reorder_buffer();
@@ -785,8 +790,18 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
          (nal_parser.is_end_of_stream() || nal_parser.is_end_of_frame()) )) {
   */
 
-  if ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed()) {
+  if ( image_units.size()>=1 && image_units[0]->state == image_unit::Dropped) {
+    // push a dummy 'dropped' image to the output as a placeholder
 
+    image_unit* imgunit = image_units[0].get();
+    imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+    push_picture_to_output_queue(imgunit->img);
+
+    pop_front(image_units);
+  }
+
+
+  if ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed()) {
     loginfo(LogHighlevel,"postprocess image\n");
 
     image_unit* imgunit = image_units[0].get();
@@ -1275,7 +1290,7 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
 
   nal_unit_type = nal_hdr.nal_unit_type;
 
-  IdrPicFlag = isIdrPic(nal_hdr.nal_unit_type);
+  //IdrPicFlag = isIdrPic(nal_hdr.nal_unit_type);
   RapPicFlag = isRapPic(nal_hdr.nal_unit_type);
 
 

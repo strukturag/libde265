@@ -25,11 +25,8 @@
 
 void frame_dropper_IRAP_only::send_image_unit(image_unit_ptr imgunit)
 {
-  if (!imgunit->slice_units.empty()) {
-    slice_unit* sunit = imgunit->slice_units[0];
-    slice_segment_header* shdr = sunit->shdr;
-
-
+  if (!isIRAP(imgunit->nal_unit_type)) {
+    imgunit->state = image_unit::Dropped;
   }
 
   m_image_unit_sink->send_image_unit(imgunit);

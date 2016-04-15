@@ -393,21 +393,23 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (ctx->num_pictures_in_output_queue()>0) {
-    de265_image* img = new de265_image;
-    img->m_image = ctx->get_next_picture_in_output_queue();
-
-    loginfo(LogHighlevel,"get image with ID %d\n", img->m_image->get_ID());
+  while (ctx->num_pictures_in_output_queue()>0) {
+    image_ptr i = ctx->get_next_picture_in_output_queue();
 
     // pop output queue
 
     ctx->pop_next_picture_in_output_queue();
 
-    return img;
+    if (i->integrity != INTEGRITY_NOT_DECODED) {
+
+      de265_image* img = new de265_image;
+      img->m_image = i;
+
+      return img;
+    }
   }
-  else {
-    return NULL;
-  }
+
+  return NULL;
 }
 
 
@@ -423,14 +425,20 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (ctx->num_pictures_in_output_queue()>0) {
-    de265_image* img = new de265_image;
-    img->m_image = ctx->get_next_picture_in_output_queue();
-    return img;
+  while (ctx->num_pictures_in_output_queue()>0) {
+    image_ptr i = ctx->get_next_picture_in_output_queue();
+
+    if (i->integrity != INTEGRITY_NOT_DECODED) {
+      de265_image* img = new de265_image;
+      img->m_image = i;
+      return img;
+    }
+    else {
+      ctx->pop_next_picture_in_output_queue();
+    }
   }
-  else {
-    return NULL;
-  }
+
+  return NULL;
 }
 
 

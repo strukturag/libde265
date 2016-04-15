@@ -52,7 +52,7 @@ class frame_dropper : public image_unit_sink
     m_image_unit_sink->send_end_of_stream();
   }
 
- private:
+ protected:
   image_unit_sink* m_image_unit_sink;
 };
 
@@ -60,7 +60,7 @@ class frame_dropper : public image_unit_sink
 class frame_dropper_nop : public frame_dropper { };
 
 
-class frame_dropper_IRAP_only : public image_unit_sink
+class frame_dropper_IRAP_only : public frame_dropper
 {
  public:
   virtual void send_image_unit(image_unit_ptr);
