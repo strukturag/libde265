@@ -8,6 +8,8 @@ set (libde265_sources
   nal-parser.h
   dpb.cc
   dpb.h
+  frame-dropper.h
+  frame-dropper.cc
   funcs.cc
   image.cc
   intrapred.cc

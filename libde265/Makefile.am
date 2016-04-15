@@ -47,6 +47,8 @@ libde265_la_SOURCES = \
   fallback-dct.cc \
   fallback-motion.cc \
   fallback-motion.h \
+  frame-dropper.h \
+  frame-dropper.cc \
   funcs.cc \
   funcs.h \
   dpb.cc \
