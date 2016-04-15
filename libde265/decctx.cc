@@ -741,7 +741,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
   *did_work = false;
 
   if (image_units.empty()) {
-    return DE265_ERROR_WAITING_FOR_INPUT_DATA; // nothing to do
+    // do not return error, because actually, we do not mind...
+    return DE265_OK; // DE265_ERROR_WAITING_FOR_INPUT_DATA; // nothing to do
   }
 
 
