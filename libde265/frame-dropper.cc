@@ -123,6 +123,13 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
     bool drop = ( !item.used_for_reference &&
                   float(m_n_dropped)/m_n_total < m_dropping_ratio);
 
+    /*
+    printf("can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+           !item.used_for_reference,
+           m_n_dropped,m_n_total, m_dropping_ratio,
+           drop);
+    */
+
     if (drop) {
       item.imgunit->state = image_unit::Dropped;
       m_n_dropped++;

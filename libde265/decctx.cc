@@ -776,6 +776,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     image_unit* imgunit = image_units[0].get();
     slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
+    //printf("DROP: %s\n", imgunit->state != image_unit::Dropped ? "no":"yes");
+
     if (sliceunit != NULL && imgunit->state != image_unit::Dropped) {
 
       if (sliceunit->flush_reorder_buffer) {
@@ -819,6 +821,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     }
 
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+
+    *did_work=true;
 
     push_picture_to_output_queue(imgunit->img);
 
@@ -2218,6 +2222,7 @@ int decoder_context::change_framerate(int more)
 void decoder_context::set_framerate_ratio(int percent)
 {
   framerate_ratio = percent;
+
   // TODO: ideally, we should combine this with dropping temporal layers
   // (maybe in another frame_dropper implementation, pipelined)
   // calc_tid_and_framerate_ratio();
