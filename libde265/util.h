@@ -192,27 +192,27 @@ void log_set_current_POC(int poc);
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...);
 #else
-#define logerror(a,b, ...) { }
+#define logerror(a,b, ...) do { } while(0)
 #endif
 
 #ifdef DE265_LOG_INFO
 void loginfo (enum LogModule module, const char* string, ...);
 #else
-#define loginfo(a,b, ...) { }
+#define loginfo(a,b, ...) do { } while(0)
 #endif
 
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...);
 bool logdebug_enabled(enum LogModule module);
 #else
-#define logdebug(a,b, ...) { }
+#define logdebug(a,b, ...) do { } while(0)
 inline bool logdebug_enabled(enum LogModule module) { return false; }
 #endif
 
 #ifdef DE265_LOG_TRACE
 void logtrace(enum LogModule module, const char* string, ...);
 #else
-#define logtrace(a,b, ...) { }
+#define logtrace(a,b, ...) do { } while(0)
 #endif
 
 void log2fh(FILE* fh, const char* string, ...);
