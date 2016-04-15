@@ -25,6 +25,7 @@
 #include "libde265/sps.h" // for scaling list only
 
 #include <vector>
+#include <memory>
 
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
@@ -73,11 +74,7 @@ public:
 
   bool pps_read; // whether this pps has been read from bitstream
 
- private:
-  const seq_parameter_set* sps;
- public:
-  const seq_parameter_set* get_sps() const { return sps; }
-  void set_sps(seq_parameter_set* s) { sps=s; }
+  std::shared_ptr<const seq_parameter_set> sps;
 
   char pic_parameter_set_id;
   char seq_parameter_set_id;

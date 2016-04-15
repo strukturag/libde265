@@ -379,7 +379,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   slice_pic_parameter_set_id = get_uvlc(br);
-  if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
+  if (slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
       slice_pic_parameter_set_id == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
@@ -392,7 +392,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   pps = frontend.get_pps_ptr(slice_pic_parameter_set_id);
 
-  const seq_parameter_set* sps = pps->get_sps();
+  std::shared_ptr<const seq_parameter_set> sps = pps->sps;
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
@@ -485,7 +485,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        read_short_term_ref_pic_set(ctx, sps,
+        read_short_term_ref_pic_set(ctx, sps.get(),
                                     br, &slice_ref_pic_set,
                                     sps->num_short_term_ref_pic_sets(),
                                     sps->ref_pic_sets,

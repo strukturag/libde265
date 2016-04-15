@@ -191,7 +191,7 @@ pic_parameter_set::~pic_parameter_set()
 void pic_parameter_set::set_defaults(enum PresetSet)
 {
   pps_read = false;
-  sps = NULL;
+  sps = nullptr;
 
   pic_parameter_set_id = 0;
   seq_parameter_set_id = 0;
@@ -312,7 +312,8 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     return false;
   }
 
-  sps = ctx->get_frontend_syntax_decoder().get_sps(seq_parameter_set_id);
+  sps = ctx->get_frontend_syntax_decoder().get_sps_ptr(seq_parameter_set_id);
+  printf("pps %p, set sps[%d]=%p\n",this, seq_parameter_set_id, sps.get());
 
   if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -471,7 +472,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   if (pic_scaling_list_data_present_flag) {
-    de265_error err = read_scaling_list(br, sps, &scaling_list, true);
+    de265_error err = read_scaling_list(br, sps.get(), &scaling_list, true);
     if (err != DE265_OK) {
       ctx->add_warning(err, false);
       return false;
@@ -525,7 +526,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
 
-  set_derived_values(sps);
+  set_derived_values(sps.get());
 
   pps_read = true;
 

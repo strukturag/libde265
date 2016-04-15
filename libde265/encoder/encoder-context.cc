@@ -163,7 +163,7 @@ de265_error encoder_context::encode_headers()
   // PPS
 
   pps->set_defaults();
-  pps->set_sps( sps.get() );
+  pps->sps = sps;
   pps->pic_init_qp = algo.getPPS_QP();
 
   // turn off deblocking filter
