@@ -264,7 +264,8 @@ void decoder_context::set_frame_dropping_ratio(float ratio)
 
 
 decoder_context::decoder_context()
-  : m_frontend_syntax_decoder(this)
+  : m_frontend_syntax_decoder(this),
+    m_main_loop_thread(this)
 {
   m_frontend_syntax_decoder.set_image_unit_sink( &m_frame_dropper_nop );
 
@@ -330,6 +331,8 @@ decoder_context::decoder_context()
 
   // --- decoded picture buffer ---
 
+
+  start_decoding_thread();
 }
 
 
@@ -754,6 +757,23 @@ template <class T> void pop_front(std::vector<T>& vec)
   vec.pop_back();
 }
 
+
+void decoder_context::start_decoding_thread()
+{
+  m_main_loop_thread.start();
+}
+
+void decoder_context::stop_decoding_thread()
+{
+  m_main_loop_thread.stop();
+}
+
+
+void decoder_context::run_main_loop()
+{
+  printf("loop\n");
+  sleep(1);
+}
 
 de265_error decoder_context::decode_image_unit(bool* did_work)
 {

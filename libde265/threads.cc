@@ -83,6 +83,63 @@ void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
 
 
 
+de265_thread_class::de265_thread_class()
+{
+  m_running = false;
+}
+
+
+de265_thread_class::~de265_thread_class()
+{
+}
+
+void de265_thread_class::start()
+{
+  assert(!m_running);
+
+  m_stop_request = false;
+  de265_thread_create(&m_thread, (void* (*)(void*))start_thread_main, this);
+  m_running = true;
+}
+
+void de265_thread_class::stop()
+{
+  m_stop_request = true;
+
+  assert(m_running);
+  de265_thread_join(m_thread);
+  de265_thread_destroy(&m_thread);
+  m_running = false;
+}
+
+bool de265_thread_class::running() const
+{
+  return m_running;
+}
+
+void* de265_thread_class::start_thread_main(de265_thread_class* me)
+{
+  me->run();
+  return nullptr;
+}
+
+//virtual void run() = 0;
+
+
+de265_cond_class::de265_cond_class()
+{
+  de265_mutex_init(&m_mutex);
+  de265_cond_init(&m_cond);
+}
+
+
+de265_cond_class::~de265_cond_class()
+{
+  de265_cond_destroy(&m_cond);
+  de265_mutex_destroy(&m_mutex);
+}
+
+
 de265_progress_lock::de265_progress_lock()
 {
   mProgress = 0;

@@ -403,6 +403,11 @@ class decoder_context : public base_context,
 
   de265_error decode_image_unit(bool* did_work);
 
+  // --- frame-parallel decoding ---
+
+  void start_decoding_thread();
+  void stop_decoding_thread();
+
  private:
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
@@ -453,6 +458,21 @@ class decoder_context : public base_context,
 
  private:
   int num_worker_threads;
+
+
+  class thread_main_loop : public de265_thread_class {
+  public:
+    thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
+    void run() { while (!should_stop()) { m_decctx->run_main_loop(); } }
+  private:
+    decoder_context* m_decctx;
+  };
+
+  thread_main_loop m_main_loop_thread;
+  de265_cond_class  m_main_loop_cond;
+
+  void run_main_loop();
+
 
 
  public:

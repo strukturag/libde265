@@ -102,6 +102,49 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
+class de265_thread_class
+{
+ public:
+  de265_thread_class();
+  virtual ~de265_thread_class();
+
+  void start();
+  void stop();
+  bool running() const;
+
+  virtual void run() = 0;
+
+ protected:
+  bool should_stop() const { return m_stop_request; }
+
+ private:
+  de265_thread m_thread;
+  bool m_running;
+  bool m_stop_request;
+
+  static void* start_thread_main(de265_thread_class* me);
+};
+
+
+class de265_cond_class
+{
+ public:
+  de265_cond_class();
+  ~de265_cond_class();
+
+  void lock_mutex() { de265_mutex_lock(&m_mutex); }
+  void unlock_mutex() { de265_mutex_unlock(&m_mutex); }
+
+  void wait() { de265_cond_wait(&m_cond, &m_mutex); }
+  void signal() { de265_cond_signal(&m_cond); }
+  void broadcast() { de265_cond_broadcast(&m_cond, &m_mutex); }
+
+ private:
+  de265_mutex m_mutex;
+  de265_cond  m_cond;
+};
+
+
 class de265_progress_lock
 {
 public:
