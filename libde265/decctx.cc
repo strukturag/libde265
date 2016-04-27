@@ -1439,6 +1439,14 @@ void frontend_syntax_decoder::on_end_of_frame()
 }
 
 
+void decoder_context::send_image_unit(image_unit_ptr imgunit)
+{
+  image_units.push_back(imgunit);
+
+  debug_imageunit_state();
+}
+
+
 void decoder_context::send_end_of_stream()
 {
   m_end_of_stream = true;

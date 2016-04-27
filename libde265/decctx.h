@@ -389,32 +389,31 @@ class decoder_context : public base_context,
   frame_dropper_IRAP_only  m_frame_dropper_IRAP_only;
   frame_dropper_ratio      m_frame_dropper_ratio;
 
+
   // -------------------------------------------------- decoding main loop
 
+  // --- image_unit input queue ---
 
-  virtual void send_image_unit(image_unit_ptr imgunit) {
-    image_units.push_back(imgunit);
-
-    debug_imageunit_state();
-  }
-
+  virtual void send_image_unit(image_unit_ptr imgunit);
   virtual void send_end_of_stream();
 
 
  public:
+  // --- decoding loop ---
 
   de265_error decode_image_unit(bool* did_work);
 
+ private:
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
 
-  //void push_current_picture_to_output_queue();
   de265_error push_picture_to_output_queue(image_ptr);
 
 
+ public:
   // --- parameters ---
 
   bool param_sei_check_hash;
