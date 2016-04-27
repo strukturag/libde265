@@ -249,9 +249,6 @@ image::image()
   nThreadsBlocked  = 0;
   nThreadsFinished = 0;
   nThreadsTotal    = 0;
-
-  de265_mutex_init(&mutex);
-  de265_cond_init(&finished_cond);
 }
 
 
@@ -467,9 +464,6 @@ image::~image()
   if (ctb_progress) {
     delete[] ctb_progress;
   }
-
-  de265_cond_destroy(&finished_cond);
-  de265_mutex_destroy(&mutex);
 }
 
 
@@ -607,7 +601,7 @@ void image::exchange_pixel_data_with(image& b)
 
 void image::thread_start(int nThreads)
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
 
   //printf("nThreads before: %d %d\n",nThreadsQueued, nThreadsTotal);
 
@@ -616,50 +610,50 @@ void image::thread_start(int nThreads)
 
   //printf("nThreads after: %d %d\n",nThreadsQueued, nThreadsTotal);
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void image::thread_run(const thread_task* task)
 {
   //printf("run thread %s\n", task->name().c_str());
 
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   nThreadsQueued--;
   nThreadsRunning++;
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void image::thread_blocks()
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   nThreadsRunning--;
   nThreadsBlocked++;
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void image::thread_unblocks()
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   nThreadsBlocked--;
   nThreadsRunning++;
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void image::thread_finishes(const thread_task* task)
 {
   //printf("finish thread %s\n", task->name().c_str());
 
-  de265_mutex_lock(&mutex);
+  mutex.lock();
 
   nThreadsRunning--;
   nThreadsFinished++;
   assert(nThreadsRunning >= 0);
 
   if (nThreadsFinished==nThreadsTotal) {
-    de265_cond_broadcast(&finished_cond, &mutex);
+    finished_cond.broadcast(mutex);
   }
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
@@ -694,11 +688,11 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 
 void image::wait_for_completion()
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   while (nThreadsFinished!=nThreadsTotal) {
-    de265_cond_wait(&finished_cond, &mutex);
+    finished_cond.wait(mutex);
   }
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 bool image::debug_is_completed() const

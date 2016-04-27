@@ -37,24 +37,26 @@
 
 #include <stdio.h>
 
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
-void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
-void de265_thread_destroy(de265_thread* t) { }
-void de265_mutex_init(de265_mutex* m) { pthread_mutex_init(m,NULL); }
-void de265_mutex_destroy(de265_mutex* m) { pthread_mutex_destroy(m); }
-void de265_mutex_lock(de265_mutex* m) { pthread_mutex_lock(m); }
-void de265_mutex_unlock(de265_mutex* m) { pthread_mutex_unlock(m); }
-void de265_cond_init(de265_cond* c) { pthread_cond_init(c,NULL); }
-void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c,de265_mutex* m) { pthread_cond_broadcast(c); }
-void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
-void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
+int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void *), void *arg)
+{ return pthread_create(t,NULL,start_routine,arg); }
+void de265_thread_join(de265_thread_primitive t) { pthread_join(t,NULL); }
+void de265_thread_destroy(de265_thread_primitive* t) { }
+void de265_mutex_init(de265_mutex_primitive* m) { pthread_mutex_init(m,NULL); }
+void de265_mutex_destroy(de265_mutex_primitive* m) { pthread_mutex_destroy(m); }
+void de265_mutex_lock(de265_mutex_primitive* m) { pthread_mutex_lock(m); }
+void de265_mutex_unlock(de265_mutex_primitive* m) { pthread_mutex_unlock(m); }
+void de265_cond_init(de265_cond_primitive* c) { pthread_cond_init(c,NULL); }
+void de265_cond_destroy(de265_cond_primitive* c) { pthread_cond_destroy(c); }
+void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
+{ pthread_cond_broadcast(c); }
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { pthread_cond_wait(c,m); }
+void de265_cond_signal(de265_cond_primitive* c) { pthread_cond_signal(c); }
 #else  // _WIN32
 
 #define THREAD_RESULT       DWORD WINAPI
 #define THREAD_PARAM        LPVOID
 
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
+int  de265_thread_create(de265_thread_primitive* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
     HANDLE handle = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
     if (handle == NULL) {
         return -1;
@@ -62,22 +64,22 @@ int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, 
     *t = handle;
     return 0;
 }
-void de265_thread_join(de265_thread t) { WaitForSingleObject(t, INFINITE); }
-void de265_thread_destroy(de265_thread* t) { CloseHandle(*t); *t = NULL; }
-void de265_mutex_init(de265_mutex* m) { *m = CreateMutex(NULL, FALSE, NULL); }
-void de265_mutex_destroy(de265_mutex* m) { CloseHandle(*m); }
-void de265_mutex_lock(de265_mutex* m) { WaitForSingleObject(*m, INFINITE); }
-void de265_mutex_unlock(de265_mutex* m) { ReleaseMutex(*m); }
-void de265_cond_init(de265_cond* c) { win32_cond_init(c); }
-void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c,de265_mutex* m)
+void de265_thread_join(de265_thread_primitive t) { WaitForSingleObject(t, INFINITE); }
+void de265_thread_destroy(de265_thread_primitive* t) { CloseHandle(*t); *t = NULL; }
+void de265_mutex_init(de265_mutex_primitive* m) { *m = CreateMutex(NULL, FALSE, NULL); }
+void de265_mutex_destroy(de265_mutex_primitive* m) { CloseHandle(*m); }
+void de265_mutex_lock(de265_mutex_primitive* m) { WaitForSingleObject(*m, INFINITE); }
+void de265_mutex_unlock(de265_mutex_primitive* m) { ReleaseMutex(*m); }
+void de265_cond_init(de265_cond_primitive* c) { win32_cond_init(c); }
+void de265_cond_destroy(de265_cond_primitive* c) { win32_cond_destroy(c); }
+void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
 {
   de265_mutex_lock(m);
   win32_cond_broadcast(c);
   de265_mutex_unlock(m);
 }
-void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
-void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_cond_wait(c,m); }
+void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 #endif // _WIN32
 
 
@@ -126,32 +128,13 @@ void* de265_thread_class::start_thread_main(de265_thread_class* me)
 //virtual void run() = 0;
 
 
-de265_cond_class::de265_cond_class()
-{
-  de265_mutex_init(&m_mutex);
-  de265_cond_init(&m_cond);
-}
-
-
-de265_cond_class::~de265_cond_class()
-{
-  de265_cond_destroy(&m_cond);
-  de265_mutex_destroy(&m_mutex);
-}
-
-
 de265_progress_lock::de265_progress_lock()
 {
   mProgress = 0;
-
-  de265_mutex_init(&mutex);
-  de265_cond_init(&cond);
 }
 
 de265_progress_lock::~de265_progress_lock()
 {
-  de265_mutex_destroy(&mutex);
-  de265_cond_destroy(&cond);
 }
 
 void de265_progress_lock::wait_for_progress(int progress)
@@ -160,34 +143,34 @@ void de265_progress_lock::wait_for_progress(int progress)
     return;
   }
 
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   while (mProgress < progress) {
-    de265_cond_wait(&cond, &mutex);
+    cond.wait(mutex);
   }
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void de265_progress_lock::set_progress(int progress)
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
 
   if (progress>mProgress) {
     mProgress = progress;
 
-    de265_cond_broadcast(&cond, &mutex);
+    cond.broadcast(mutex);
   }
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void de265_progress_lock::increase_progress(int progress)
 {
-  de265_mutex_lock(&mutex);
+  mutex.lock();
 
   mProgress += progress;
-  de265_cond_broadcast(&cond, &mutex);
+  cond.broadcast(mutex);
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 int  de265_progress_lock::get_progress() const

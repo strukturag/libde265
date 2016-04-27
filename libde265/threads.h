@@ -37,9 +37,9 @@
 #ifndef _WIN32
 #include <pthread.h>
 
-typedef pthread_t        de265_thread;
-typedef pthread_mutex_t  de265_mutex;
-typedef pthread_cond_t   de265_cond;
+typedef pthread_t        de265_thread_primitive;
+typedef pthread_mutex_t  de265_mutex_primitive;
+typedef pthread_cond_t   de265_cond_primitive;
 
 #else // _WIN32
 #include <windows.h>
@@ -55,27 +55,27 @@ extern "C"
 #define InterlockedExchangeAdd _InterlockedExchangeAdd
 #endif
 
-typedef HANDLE              de265_thread;
-typedef HANDLE              de265_mutex;
-typedef win32_cond_t        de265_cond;
+typedef HANDLE              de265_thread_primitive;
+typedef HANDLE              de265_mutex_primitive;
+typedef win32_cond_t        de265_cond_primitive;
 #endif  // _WIN32
 
 #ifndef _WIN32
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg);
+int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void *), void *arg);
 #else
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg);
+int  de265_thread_create(de265_thread_primitive* t,LPTHREAD_START_ROUTINE start_routine, void *arg);
 #endif
-void de265_thread_join(de265_thread t);
-void de265_thread_destroy(de265_thread* t);
-void de265_mutex_init(de265_mutex* m);
-void de265_mutex_destroy(de265_mutex* m);
-void de265_mutex_lock(de265_mutex* m);
-void de265_mutex_unlock(de265_mutex* m);
-void de265_cond_init(de265_cond* c);
-void de265_cond_destroy(de265_cond* c);
-void de265_cond_broadcast(de265_cond* c, de265_mutex* m);
-void de265_cond_wait(de265_cond* c,de265_mutex* m);
-void de265_cond_signal(de265_cond* c);
+void de265_thread_join(de265_thread_primitive t);
+void de265_thread_destroy(de265_thread_primitive* t);
+void de265_mutex_init(de265_mutex_primitive* m);
+void de265_mutex_destroy(de265_mutex_primitive* m);
+void de265_mutex_lock(de265_mutex_primitive* m);
+void de265_mutex_unlock(de265_mutex_primitive* m);
+void de265_cond_init(de265_cond_primitive* c);
+void de265_cond_destroy(de265_cond_primitive* c);
+void de265_cond_broadcast(de265_cond_primitive* c, de265_mutex_primitive* m);
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m);
+void de265_cond_signal(de265_cond_primitive* c);
 
 typedef volatile long de265_sync_int;
 
@@ -118,7 +118,7 @@ class de265_thread_class
   bool should_stop() const { return m_stop_request; }
 
  private:
-  de265_thread m_thread;
+  de265_thread_primitive m_thread;
   bool m_running;
   bool m_stop_request;
 
@@ -126,18 +126,46 @@ class de265_thread_class
 };
 
 
-class de265_cond_class
+class de265_mutex
 {
  public:
-  de265_cond_class();
-  ~de265_cond_class();
+  de265_mutex() { de265_mutex_init(&m_mutex); }
+  ~de265_mutex() { de265_mutex_destroy(&m_mutex); }
 
-  void lock_mutex() { de265_mutex_lock(&m_mutex); }
-  void unlock_mutex() { de265_mutex_unlock(&m_mutex); }
+  void lock() { de265_mutex_lock(&m_mutex); }
+  void unlock() { de265_mutex_unlock(&m_mutex); }
 
-  void wait() { de265_cond_wait(&m_cond, &m_mutex); }
+ private:
+  de265_mutex_primitive m_mutex;
+
+  friend class de265_cond;
+};
+
+
+class de265_cond
+{
+ public:
+  de265_cond() { de265_cond_init(&m_cond); }
+  ~de265_cond() { de265_cond_destroy(&m_cond); }
+
+  void broadcast(de265_mutex& mutex) { de265_cond_broadcast(&m_cond, &mutex.m_mutex); }
+  void wait(de265_mutex& mutex) { de265_cond_wait(&m_cond, &mutex.m_mutex); }
   void signal() { de265_cond_signal(&m_cond); }
-  void broadcast() { de265_cond_broadcast(&m_cond, &m_mutex); }
+
+ private:
+  de265_cond_primitive m_cond;
+};
+
+
+class de265_easy_cond_class
+{
+ public:
+  void lock_mutex() { m_mutex.lock(); }
+  void unlock_mutex() { m_mutex.unlock(); }
+
+  void wait() { m_cond.wait(m_mutex); }
+  void signal() { m_cond.signal(); }
+  void broadcast() { m_cond.broadcast(m_mutex); }
 
  private:
   de265_mutex m_mutex;
@@ -197,7 +225,7 @@ class thread_pool
 
   std::deque<thread_task*> tasks;  // we are not the owner
 
-  de265_thread thread[MAX_THREADS];
+  de265_thread_primitive thread[MAX_THREADS];
   int num_threads;
 
   int num_threads_working;
@@ -205,8 +233,8 @@ class thread_pool
   int ctbx[MAX_THREADS]; // the CTB the thread is working on
   int ctby[MAX_THREADS];
 
-  de265_mutex  mutex;
-  de265_cond   cond_var;
+  de265_mutex_primitive  mutex;
+  de265_cond_primitive   cond_var;
 };
 
 

@@ -460,6 +460,8 @@ class decoder_context : public base_context,
   int num_worker_threads;
 
 
+  // --- main loop ---
+
   class thread_main_loop : public de265_thread_class {
   public:
     thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
@@ -469,10 +471,16 @@ class decoder_context : public base_context,
   };
 
   thread_main_loop m_main_loop_thread;
-  de265_cond_class  m_main_loop_cond;
+  de265_mutex m_main_loop_mutex;
+  de265_cond  m_main_loop_full_cond;
+  de265_cond  m_input_empty_cond;
 
   void run_main_loop();
 
+  std::vector<image_unit_ptr> m_image_units_in_progress;
+  static const int m_max_images_processed_in_parallel = 4;
+
+  void decode_image_frame_parallel(image_unit_ptr imgunit);
 
 
  public:

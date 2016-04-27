@@ -771,9 +771,55 @@ void decoder_context::stop_decoding_thread()
 
 void decoder_context::run_main_loop()
 {
-  printf("loop\n");
-  sleep(1);
+  m_main_loop_mutex.lock();
+
+  // --- wait until we have new image_units and the decoding queue has some space ---
+
+  for (;;) {
+    bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
+    bool input_empty= (image_units.empty());
+
+    if (queue_full) {
+      m_main_loop_full_cond.wait(m_main_loop_mutex);
+      continue;
+    }
+
+    if (input_empty && !m_end_of_stream) {
+      m_input_empty_cond.wait(m_main_loop_mutex);
+      continue;
+    }
+
+    break;
+  }
+
+
+  // --- move one image_unit to the decoding queue ---
+
+  image_unit_ptr to_be_decoded;
+
+  if (!image_units.empty()) {
+    to_be_decoded = image_units.front();
+    pop_front(image_units);
+
+    m_image_units_in_progress.push_back(to_be_decoded);
+  }
+
+  m_main_loop_mutex.unlock();
+
+
+  // --- create threads to decode this image ---
+
+  if (to_be_decoded) {
+    decode_image_frame_parallel(to_be_decoded);
+  }
 }
+
+
+void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
+{
+  std::cout << "decoding of image " << imgunit->img->PicOrderCntVal << "\n";
+}
+
 
 de265_error decoder_context::decode_image_unit(bool* did_work)
 {
@@ -1461,7 +1507,12 @@ void frontend_syntax_decoder::on_end_of_frame()
 
 void decoder_context::send_image_unit(image_unit_ptr imgunit)
 {
+  m_main_loop_mutex.lock();
+
   image_units.push_back(imgunit);
+
+  m_input_empty_cond.signal();
+  m_main_loop_mutex.unlock();
 
   debug_imageunit_state();
 }
@@ -1469,7 +1520,12 @@ void decoder_context::send_image_unit(image_unit_ptr imgunit)
 
 void decoder_context::send_end_of_stream()
 {
+  m_main_loop_mutex.lock();
+
   m_end_of_stream = true;
+
+  m_input_empty_cond.signal();
+  m_main_loop_mutex.unlock();
 }
 
 
