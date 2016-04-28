@@ -241,14 +241,6 @@ decoder_context::decoder_context()
 
   param_image_allocation_functions = image::default_image_allocation;
 
-  /*
-  memset(&vps, 0, sizeof(video_parameter_set)*DE265_MAX_VPS_SETS);
-  memset(&sps, 0, sizeof(seq_parameter_set)  *DE265_MAX_SPS_SETS);
-  memset(&pps, 0, sizeof(pic_parameter_set)  *DE265_MAX_PPS_SETS);
-  memset(&slice,0,sizeof(slice_segment_header)*DE265_MAX_SLICES);
-  */
-
-  //memset(&thread_pool,0,sizeof(struct thread_pool));
   num_worker_threads = 0;
 
 
@@ -467,12 +459,12 @@ void decoder_context::run_main_loop()
     bool input_empty= (image_units.empty());
 
     if (queue_full) {
-      m_main_loop_full_cond.wait(m_main_loop_mutex);
+      m_decoding_loop_has_space_cond.wait(m_main_loop_mutex);
       continue;
     }
 
     if (input_empty && !m_end_of_stream) {
-      m_input_empty_cond.wait(m_main_loop_mutex);
+      m_input_available_cond.wait(m_main_loop_mutex);
       continue;
     }
 
@@ -1206,7 +1198,7 @@ void decoder_context::send_image_unit(image_unit_ptr imgunit)
 
   image_units.push_back(imgunit);
 
-  m_input_empty_cond.signal();
+  m_input_available_cond.signal();
   m_main_loop_mutex.unlock();
 
   debug_imageunit_state();
@@ -1219,7 +1211,7 @@ void decoder_context::send_end_of_stream()
 
   m_end_of_stream = true;
 
-  m_input_empty_cond.signal();
+  m_input_available_cond.signal();
   m_main_loop_mutex.unlock();
 }
 

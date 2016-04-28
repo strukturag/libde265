@@ -216,7 +216,7 @@ class decoder_context : public base_context,
   void start_decoding_thread();
   void stop_decoding_thread();
 
-  void check_decoding_queue_for_finished_images();
+  void check_decoding_queue_for_finished_images(); // internal use only (by decoding tasks)
 
 
 
@@ -301,8 +301,8 @@ class decoder_context : public base_context,
 
   thread_main_loop m_main_loop_thread;
   de265_mutex m_main_loop_mutex;
-  de265_cond  m_main_loop_full_cond;
-  de265_cond  m_input_empty_cond;
+  de265_cond  m_decoding_loop_has_space_cond;
+  de265_cond  m_input_available_cond;
 
   void run_main_loop();
 
