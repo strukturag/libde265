@@ -501,7 +501,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   for (int y=0;y<nRows;y++)
     {
-      thread_task_sao* task = new thread_task_sao;
+      auto task = std::make_shared<thread_task_sao>();
 
       task->inputImg  = img;
       task->outputImg = &imgunit->sao_output;

@@ -226,14 +226,14 @@ void printblks(const thread_pool* pool)
 
 void* thread_pool::main_loop_thread(thread_pool* pool)
 {
-  pool->main_loop();
+  pool->worker_thread_main_loop();
 
   return (THREAD_RESULT)NULL;
 }
 
 
 
-void thread_pool::main_loop()
+void thread_pool::worker_thread_main_loop()
 {
   m_mutex.lock();
 
@@ -262,7 +262,7 @@ void thread_pool::main_loop()
 
     // get a task
 
-    thread_task* task = m_tasks.front();
+    thread_task_ptr task = m_tasks.front();
     m_tasks.pop_front();
 
     m_num_threads_working++;
@@ -338,7 +338,7 @@ void thread_pool::stop()
 }
 
 
-void thread_pool::add_task(thread_task* task)
+void thread_pool::add_task(thread_task_ptr task)
 {
   m_mutex.lock();
   if (!m_stopped) {

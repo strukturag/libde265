@@ -189,10 +189,6 @@ image_unit::~image_unit()
   for (int i=0;i<slice_units.size();i++) {
     delete slice_units[i];
   }
-
-  for (int i=0;i<tasks.size();i++) {
-    delete tasks[i];
-  }
 }
 
 
@@ -503,7 +499,7 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
                                               bool firstSliceSubstream,
                                               int ctbRow)
 {
-  thread_task_ctb_row* task = new thread_task_ctb_row;
+  auto task = std::make_shared<thread_task_ctb_row>();
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
   task->debug_startCtbRow = ctbRow;
@@ -518,7 +514,7 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
 void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
                                                     int ctbx,int ctby)
 {
-  thread_task_slice_segment* task = new thread_task_slice_segment;
+  auto task = std::make_shared<thread_task_slice_segment>();
   task->firstSliceSubstream = firstSliceSubstream;
   task->tctx = tctx;
   task->debug_startCtbX = ctbx;
@@ -1247,8 +1243,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   img->wait_for_completion();
 
-  for (int i=0;i<imgunit->tasks.size();i++)
-    delete imgunit->tasks[i];
   imgunit->tasks.clear();
 
   return DE265_OK;
@@ -1337,8 +1331,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
   img->wait_for_completion();
 
-  for (int i=0;i<imgunit->tasks.size();i++)
-    delete imgunit->tasks[i];
   imgunit->tasks.clear();
 
   return err;

@@ -170,7 +170,7 @@ public:
          Dropped         // will not be decoded
   } state;
 
-  std::vector<thread_task*> tasks; // we are the owner
+  std::vector<thread_task_ptr> tasks; // we are the owner
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.

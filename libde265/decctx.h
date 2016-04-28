@@ -117,7 +117,7 @@ public:
 
   image_unit* imgunit;
   slice_unit* sliceunit;
-  thread_task* task; // executing thread_task or NULL if not multi-threaded
+  thread_task_ptr task; // executing thread_task or NULL if not multi-threaded
 
 private:
   thread_context(const thread_context&); // not allowed

@@ -4707,14 +4707,14 @@ enum DecodeResult decode_substream(thread_context* tctx,
         //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
 
         // we have to wait until the context model data is there
-        tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+        tctx->img->wait_for_progress(tctx->task.get(), 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
 
         // copy CABAC model from previous CTB row
         tctx->ctx_model = tctx->imgunit->ctx_models[(tctx->CtbY-1)];
         tctx->imgunit->ctx_models[(tctx->CtbY-1)].release(); // not used anymore
       }
       else {
-        tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
+        tctx->img->wait_for_progress(tctx->task.get(), 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
         initialize_CABAC_models(tctx);
       }
     }
@@ -4739,7 +4739,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
       //printf("wait on %d/%d (%d)\n",ctbx+1,ctby-1, ctbx+1+(ctby-1)*sps->PicWidthInCtbsY);
 
-      tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
+      tctx->img->wait_for_progress(tctx->task.get(), ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d;%d\n", tctx, tctx->CtbX,tctx->CtbY);

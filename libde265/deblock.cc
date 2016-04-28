@@ -1004,7 +1004,7 @@ void add_deblocking_tasks(image_unit* imgunit)
     {
       for (int y=0;y<img->get_sps().PicHeightInCtbsY;y++)
         {
-          thread_task_deblock_CTBRow* task = new thread_task_deblock_CTBRow;
+          auto task = std::make_shared<thread_task_deblock_CTBRow>();
 
           task->img   = img;
           task->ctb_y = y;

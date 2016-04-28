@@ -33,6 +33,7 @@
 
 #include <deque>
 #include <string>
+#include <memory>
 
 #ifndef _WIN32
 #  include <pthread.h>
@@ -210,6 +211,9 @@ public:
 };
 
 
+typedef std::shared_ptr<thread_task> thread_task_ptr;
+
+
 #define MAX_THREADS 32
 
 /* TODO NOTE: When unblocking a task, we have to check first
@@ -224,12 +228,12 @@ class thread_pool
   de265_error start(int num_threads);
   void stop();
 
-  void add_task(thread_task* task);
+  void add_task(thread_task_ptr task);
 
  private:
   bool m_stopped;
 
-  std::deque<thread_task*> m_tasks;  // we are not the owner
+  std::deque<thread_task_ptr> m_tasks;  // we are not the owner
 
   de265_thread_primitive m_thread[MAX_THREADS];
   int m_num_threads;
@@ -240,7 +244,9 @@ class thread_pool
   de265_cond   m_cond_var;
 
   static void* main_loop_thread(thread_pool* pool_ptr);
-  void main_loop();
+
+  // main loop for each worker thread
+  void worker_thread_main_loop();
 };
 
 #endif
