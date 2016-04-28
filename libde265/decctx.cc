@@ -332,7 +332,7 @@ decoder_context::decoder_context()
   // --- decoded picture buffer ---
 
 
-  start_decoding_thread();
+  //start_decoding_thread();
 }
 
 
