@@ -459,12 +459,16 @@ void decoder_context::run_main_loop()
     bool input_empty= (image_units.empty());
 
     if (queue_full) {
+      printf("... wait has space\n");
       m_decoding_loop_has_space_cond.wait(m_main_loop_mutex);
+      printf("... signalled has space\n");
       continue;
     }
 
     if (input_empty && !m_end_of_stream) {
+      printf("... wait has input\n");
       m_input_available_cond.wait(m_main_loop_mutex);
+      printf("... signalled has input\n");
       continue;
     }
 
@@ -502,6 +506,8 @@ void decoder_context::check_decoding_queue_for_finished_images()
          m_image_units_in_progress.front()->img->debug_is_completed()) {
     image_unit_ptr imgunit = m_image_units_in_progress.front();
     m_image_units_in_progress.pop_front();
+
+    m_decoding_loop_has_space_cond.signal();
 
     printf("pushing to output queue: %d\n", imgunit->img->PicOrderCntVal);
     push_picture_to_output_queue(imgunit->img);
