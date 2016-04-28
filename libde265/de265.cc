@@ -349,6 +349,14 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 }
 
 
+LIBDE265_API int de265_get_action(de265_decoder_context* de265ctx, bool blocking)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  return ctx->get_action(blocking);
+}
+
+
 LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;

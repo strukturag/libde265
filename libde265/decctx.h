@@ -216,6 +216,8 @@ class decoder_context : public base_context,
   void start_decoding_thread();
   void stop_decoding_thread();
 
+  int  get_action(bool blocking);
+
   void check_decoding_queue_for_finished_images(); // internal use only (by decoding tasks)
 
 

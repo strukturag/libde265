@@ -711,70 +711,77 @@ int main(int argc, char** argv)
       //tid = (framecnt/1000) & 1;
       //de265_set_limit_TID(ctx, tid);
 
-      if (nal_input) {
-        uint8_t len[4];
-        int n = fread(len,1,4,fh);
-        int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
 
-        uint8_t* buf = (uint8_t*)malloc(length);
-        n = fread(buf,1,length,fh);
-        err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+      int actions = de265_get_action(ctx, true);
 
-        if (write_bytestream) {
-          uint8_t sc[3] = { 0,0,1 };
-          fwrite(sc ,1,3,bytestream_fh);
-          fwrite(buf,1,n,bytestream_fh);
+
+      // --- push more input ---
+
+      if (actions & de265_action_push_more_input) {
+
+        if (nal_input) {
+          uint8_t len[4];
+          int n = fread(len,1,4,fh);
+          int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
+
+          uint8_t* buf = (uint8_t*)malloc(length);
+          n = fread(buf,1,length,fh);
+          err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+
+          if (write_bytestream) {
+            uint8_t sc[3] = { 0,0,1 };
+            fwrite(sc ,1,3,bytestream_fh);
+            fwrite(buf,1,n,bytestream_fh);
+          }
+
+          free(buf);
+          pos+=n;
         }
+        else {
+          // read a chunk of input data
+          uint8_t buf[BUFFER_SIZE];
+          int n = fread(buf,1,BUFFER_SIZE,fh);
 
-        free(buf);
-        pos+=n;
-      }
-      else {
-        // read a chunk of input data
-        uint8_t buf[BUFFER_SIZE];
-        int n = fread(buf,1,BUFFER_SIZE,fh);
+          // decode input data
+          if (n) {
+            err = de265_push_data(ctx, buf, n, pos, (void*)2);
+            if (err != DE265_OK) {
+              break;
+            }
+          }
 
-        // decode input data
-        if (n) {
-          err = de265_push_data(ctx, buf, n, pos, (void*)2);
-          if (err != DE265_OK) {
-            break;
+          pos+=n;
+
+          if (0) { // fake skipping
+            if (pos>1000000) {
+              printf("RESET\n");
+              de265_reset(ctx);
+              pos=0;
+
+              fseek(fh,-200000,SEEK_CUR);
+            }
           }
         }
 
-        pos+=n;
+        // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
-        if (0) { // fake skipping
-          if (pos>1000000) {
-            printf("RESET\n");
-            de265_reset(ctx);
-            pos=0;
-
-            fseek(fh,-200000,SEEK_CUR);
-          }
+        if (feof(fh)) {
+          err = de265_flush_data(ctx); // indicate end of stream
+          stop = true;
         }
       }
 
-      // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
-      if (feof(fh)) {
-        err = de265_flush_data(ctx); // indicate end of stream
-        stop = true;
-      }
+      // --- get images ---
 
-
-      // decoding / display loop
-
-      int more=1;
-      while (more)
-        {
-          more = 0;
+      if (actions & de265_action_get_image) {
 
           // decode some more
 
           //std::cout << "-------- decoded frames " << framecnt << "\n";
 
-          // err = de265_decode(ctx, &more);
+        /*
+          err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
             // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
 
@@ -783,21 +790,20 @@ int main(int argc, char** argv)
             more = 0;
             break;
           }
+        */
 
           // show available images
 
           const de265_image* img = de265_get_next_picture(ctx);
-          if (img) {
-            if (measure_quality) {
-              measure(img);
-            }
+          assert(img);
 
-            stop = output_image(img);
-            if (stop) more=0;
-            else      more=1;
-
-            de265_release_picture(img);
+          if (measure_quality) {
+            measure(img);
           }
+
+          stop = output_image(img);
+
+          de265_release_picture(img);
 
           // show warnings
 
@@ -809,7 +815,7 @@ int main(int argc, char** argv)
 
             if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
           }
-        }
+      }
     }
 
   fclose(fh);

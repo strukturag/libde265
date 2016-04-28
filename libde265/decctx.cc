@@ -448,6 +448,33 @@ void decoder_context::stop_decoding_thread()
 }
 
 
+int  decoder_context::get_action(bool blocking)
+{
+  int actions = 0;
+
+  m_main_loop_mutex.lock();
+
+  bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
+  bool input_pending = (image_units.size() > 1); // at least one image-unit is complete
+
+  // fill more data until decoding queue is full and there is at least one complete
+  // image-unit pending at the input
+  if (!queue_full || !input_pending) {
+    actions |= de265_action_push_more_input;
+  }
+
+  if (num_pictures_in_output_queue() > 0) {
+    actions |= de265_action_get_image;
+  }
+
+  //#define de265_action_end_of_stream       4
+
+  m_main_loop_mutex.unlock();
+
+  return actions;
+}
+
+
 void decoder_context::run_main_loop()
 {
   m_main_loop_mutex.lock();

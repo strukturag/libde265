@@ -275,6 +275,15 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
  */
 LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* more);
 
+
+#define de265_action_push_more_input     1
+#define de265_action_get_image           2
+#define de265_action_end_of_stream       4
+
+// returns de265_action_flags
+LIBDE265_API int de265_get_action(de265_decoder_context*, bool blocking);
+
+
 /* Clear decoder state. Call this when skipping in the stream.
  */
 LIBDE265_API void de265_reset(de265_decoder_context*);
