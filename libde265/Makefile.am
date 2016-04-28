@@ -49,6 +49,8 @@ libde265_la_SOURCES = \
   fallback-motion.h \
   frame-dropper.h \
   frame-dropper.cc \
+  frontend-syntax-decoder.h \
+  frontend-syntax-decoder.cc \
   funcs.cc \
   funcs.h \
   dpb.cc \

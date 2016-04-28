@@ -289,6 +289,15 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
 
 
+class thread_task_slice : public thread_task
+{
+public:
+  thread_context* tctx;
+
+  virtual void work();
+  virtual std::string name() const { return "slice"; }
+};
+
 class thread_task_ctb_row : public thread_task
 {
 public:

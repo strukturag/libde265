@@ -10,6 +10,8 @@ set (libde265_sources
   dpb.h
   frame-dropper.h
   frame-dropper.cc
+  frontend-syntax-decoder.h
+  frontend-syntax-decoder.cc
   funcs.cc
   image.cc
   intrapred.cc

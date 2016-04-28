@@ -482,7 +482,7 @@ public:
   int   nThreadsTotal;
 
   // ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
-  de265_mutex mutex;
+  mutable de265_mutex mutex;
   de265_cond  finished_cond;
 
 public:
