@@ -38,6 +38,9 @@
 #ifndef _WIN32
 #  include <pthread.h>
 
+#define THREAD_RESULT       void*
+#define THREAD_PARAM        void*
+
 typedef pthread_t        de265_thread_primitive;
 typedef pthread_mutex_t  de265_mutex_primitive;
 typedef pthread_cond_t   de265_cond_primitive;
@@ -55,6 +58,9 @@ extern "C"
 #    pragma intrinsic (_InterlockedExchangeAdd)
 #    define InterlockedExchangeAdd _InterlockedExchangeAdd
 #  endif
+
+#define THREAD_RESULT       DWORD WINAPI
+#define THREAD_PARAM        LPVOID
 
 typedef HANDLE              de265_thread_primitive;
 typedef HANDLE              de265_mutex_primitive;
@@ -123,7 +129,7 @@ class de265_thread
   bool m_running;
   bool m_stop_request;
 
-  static void* start_thread_main(de265_thread* me);
+  static THREAD_RESULT start_thread_main(THREAD_PARAM me);
 };
 
 
