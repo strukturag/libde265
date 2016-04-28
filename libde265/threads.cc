@@ -307,7 +307,7 @@ de265_error thread_pool::start(int num_threads)
 
   // start worker threads
 
-  for (int i=0; i<m_num_threads; i++) {
+  for (int i=0; i<num_threads; i++) {
     int ret = de265_thread_create(&m_thread[i],
                                   (THREAD_RESULT (*)(THREAD_PARAM))main_loop_thread,
                                   this);
