@@ -119,7 +119,7 @@ bool de265_thread::running() const
   return m_running;
 }
 
-THREAD_RESULT de265_thread::start_thread_main(de265_thread* me)
+void* de265_thread::start_thread_main(de265_thread* me)
 {
   me->run();
   return nullptr;
@@ -250,7 +250,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     if (pool->stopped) {
       de265_mutex_unlock(&pool->mutex);
-      return NULL;
+      return (THREAD_RESULT)NULL;
     }
 
 
@@ -278,7 +278,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
   }
   de265_mutex_unlock(&pool->mutex);
 
-  return NULL;
+  return (THREAD_RESULT)NULL;
 }
 
 
