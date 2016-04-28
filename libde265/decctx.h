@@ -462,7 +462,7 @@ class decoder_context : public base_context,
 
   // --- main loop ---
 
-  class thread_main_loop : public de265_thread_class {
+  class thread_main_loop : public de265_thread {
   public:
     thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
     void run() { while (!should_stop()) { m_decctx->run_main_loop(); } }

@@ -85,26 +85,26 @@ void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 
 
 
-de265_thread_class::de265_thread_class()
+de265_thread::de265_thread()
 {
   m_running = false;
 }
 
 
-de265_thread_class::~de265_thread_class()
+de265_thread::~de265_thread()
 {
 }
 
-void de265_thread_class::start()
+void de265_thread::start()
 {
   assert(!m_running);
 
   m_stop_request = false;
-  de265_thread_create(&m_thread, (void* (*)(void*))start_thread_main, this);
+  de265_thread_create(&m_thread, (THREAD_RESULT (*)(THREAD_PARAM))start_thread_main, this);
   m_running = true;
 }
 
-void de265_thread_class::stop()
+void de265_thread::stop()
 {
   m_stop_request = true;
 
@@ -114,12 +114,12 @@ void de265_thread_class::stop()
   m_running = false;
 }
 
-bool de265_thread_class::running() const
+bool de265_thread::running() const
 {
   return m_running;
 }
 
-void* de265_thread_class::start_thread_main(de265_thread_class* me)
+THREAD_RESULT de265_thread::start_thread_main(de265_thread* me)
 {
   me->run();
   return nullptr;

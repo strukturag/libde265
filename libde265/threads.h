@@ -35,25 +35,25 @@
 #include <string>
 
 #ifndef _WIN32
-#include <pthread.h>
+#  include <pthread.h>
 
 typedef pthread_t        de265_thread_primitive;
 typedef pthread_mutex_t  de265_mutex_primitive;
 typedef pthread_cond_t   de265_cond_primitive;
 
 #else // _WIN32
-#include <windows.h>
-#include "../extra/win32cond.h"
-#if _MSC_VER > 1310
-#include <intrin.h>
-#else
+#  include <windows.h>
+#  include "../extra/win32cond.h"
+#  if _MSC_VER > 1310
+#    include <intrin.h>
+#  else
 extern "C"
 {
    LONG  __cdecl _InterlockedExchangeAdd(long volatile *Addend, LONG Value);
 }
-#pragma intrinsic (_InterlockedExchangeAdd)
-#define InterlockedExchangeAdd _InterlockedExchangeAdd
-#endif
+#    pragma intrinsic (_InterlockedExchangeAdd)
+#    define InterlockedExchangeAdd _InterlockedExchangeAdd
+#  endif
 
 typedef HANDLE              de265_thread_primitive;
 typedef HANDLE              de265_mutex_primitive;
@@ -102,11 +102,11 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
-class de265_thread_class
+class de265_thread
 {
  public:
-  de265_thread_class();
-  virtual ~de265_thread_class();
+  de265_thread();
+  virtual ~de265_thread();
 
   void start();
   void stop();
@@ -122,7 +122,7 @@ class de265_thread_class
   bool m_running;
   bool m_stop_request;
 
-  static void* start_thread_main(de265_thread_class* me);
+  static void* start_thread_main(de265_thread* me);
 };
 
 
@@ -229,9 +229,6 @@ class thread_pool
   int num_threads;
 
   int num_threads_working;
-
-  int ctbx[MAX_THREADS]; // the CTB the thread is working on
-  int ctby[MAX_THREADS];
 
   de265_mutex_primitive  mutex;
   de265_cond_primitive   cond_var;
