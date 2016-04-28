@@ -187,20 +187,57 @@ class decoder_context : public base_context,
   de265_error start_thread_pool(int nThreads);
   void        stop_thread_pool();
 
+  thread_pool& get_thread_pool() { return m_thread_pool; }
+
+  int get_num_worker_threads() const { return num_worker_threads; }
+
+
   void reset();
+
+  void set_image_allocation_functions(de265_image_allocation* allocfunc);
+
 
 
   // -------------------------------------------------- frontend_syntax_decoder
 
   NAL_Parser& get_NAL_parser() { return m_frontend_syntax_decoder.get_NAL_parser(); }
-  frontend_syntax_decoder& get_frontend_syntax_decoder() { return m_frontend_syntax_decoder; }
+
+  /* */ frontend_syntax_decoder& get_frontend_syntax_decoder()       { return m_frontend_syntax_decoder; }
   const frontend_syntax_decoder& get_frontend_syntax_decoder() const { return m_frontend_syntax_decoder; }
 
+
+
+  // -------------------------------------------------- decoding loop ---
+
+  de265_error decode_image_unit(bool* did_work);
+
+  // --- frame-parallel decoding ---
+
+  void start_decoding_thread();
+  void stop_decoding_thread();
+
+  void check_decoding_queue_for_finished_images();
+
+
+
+  // -------------------------------------------------- output
+
+  std::shared_ptr</* */ image> get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  std::shared_ptr<const image> get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+
+  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
+
+  image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
+  int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
+  void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
+
+
+  void debug_imageunit_state();
+
+
  private:
+
   frontend_syntax_decoder m_frontend_syntax_decoder;
-
-
-
 
   // -------------------------------------------------- image_unit classifier
 
@@ -217,19 +254,8 @@ class decoder_context : public base_context,
   virtual void send_end_of_stream();
 
 
- public:
-  // --- decoding loop ---
+  thread_pool m_thread_pool;
 
-  de265_error decode_image_unit(bool* did_work);
-
-  // --- frame-parallel decoding ---
-
-  void start_decoding_thread();
-  void stop_decoding_thread();
-
-  void check_decoding_queue_for_finished_images();
-
- private:
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_frame_parallel(image_unit* imgunit, slice_unit* sliceunit);
@@ -255,28 +281,9 @@ class decoder_context : public base_context,
   void set_frame_dropping_ratio(float ratio);
 
 
-  void set_image_allocation_functions(de265_image_allocation* allocfunc);
-
   de265_image_allocation param_image_allocation_functions;
 
 
-
-  int get_num_worker_threads() const { return num_worker_threads; }
-
-  std::shared_ptr</* */ image> get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  std::shared_ptr<const image> get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
-
-  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
-
-  image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
-  int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
-  void   pop_next_picture_in_output_queue() { m_output_queue.pop_next_picture_in_output_queue(); }
-
-
-  void debug_imageunit_state();
-
- public:
-  thread_pool thread_pool_;
 
  private:
   int num_worker_threads;

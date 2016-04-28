@@ -510,7 +510,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
       task->inputProgress = saoInputProgress;
 
       imgunit->tasks.push_back(task);
-      ctx->thread_pool_.add_task(task);
+      ctx->get_thread_pool().add_task(task);
       n++;
     }
 

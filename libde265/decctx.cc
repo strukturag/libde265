@@ -304,7 +304,7 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
-  thread_pool_.start(nThreads);
+  m_thread_pool.start(nThreads);
 
   num_worker_threads = nThreads;
 
@@ -316,7 +316,7 @@ void decoder_context::stop_thread_pool()
 {
   if (get_num_worker_threads()>0) {
     //flush_thread_pool(&ctx->thread_pool);
-    thread_pool_.stop();
+    m_thread_pool.stop();
   }
 }
 
@@ -325,7 +325,7 @@ void decoder_context::reset()
 {
   if (num_worker_threads>0) {
     //flush_thread_pool(&ctx->thread_pool);
-    thread_pool_.stop();
+    m_thread_pool.stop();
   }
 
   // --------------------------------------------------
@@ -464,7 +464,7 @@ void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool f
   task->debug_startCtbY = ctby;
   tctx->task = task;
 
-  thread_pool_.add_task(task);
+  m_thread_pool.add_task(task);
 
   tctx->imgunit->tasks.push_back(task);
 }
@@ -765,7 +765,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   task->tctx = tctx;
   tctx->task = task;
 
-  thread_pool_.add_task(task);
+  m_thread_pool.add_task(task);
 
   tctx->imgunit->tasks.push_back(task);
 
@@ -1100,7 +1100,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     task->debug_startCtbRow = ctbRow;
     tctx->task = task;
 
-    thread_pool_.add_task(task);
+    m_thread_pool.add_task(task);
 
     tctx->imgunit->tasks.push_back(task);
   }
