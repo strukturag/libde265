@@ -447,29 +447,6 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
-                                              bool firstSliceSubstream,
-                                              int ctbRow)
-{
-}
-
-
-void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
-                                                    int ctbx,int ctby)
-{
-  auto task = std::make_shared<thread_task_slice_segment>();
-  task->firstSliceSubstream = firstSliceSubstream;
-  task->tctx = tctx;
-  task->debug_startCtbX = ctbx;
-  task->debug_startCtbY = ctby;
-  tctx->task = task;
-
-  m_thread_pool.add_task(task);
-
-  tctx->imgunit->tasks.push_back(task);
-}
-
-
 template <class T> void pop_front(std::vector<T>& vec)
 {
   for (int i=1;i<vec.size();i++)
@@ -1202,9 +1179,17 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     //printf("add tiles thread\n");
     img->thread_start(1);
     sliceunit->nThreads++;
-    add_task_decode_slice_segment(tctx, entryPt==0,
-                                  ctbAddrRS % ctbsWidth,
-                                  ctbAddrRS / ctbsWidth);
+
+    auto task = std::make_shared<thread_task_slice_segment>();
+    task->firstSliceSubstream = (entryPt==0);
+    task->tctx = tctx;
+    task->debug_startCtbX = ctbAddrRS % ctbsWidth,
+    task->debug_startCtbY = ctbAddrRS / ctbsWidth;
+    tctx->task = task;
+
+    m_thread_pool.add_task(task);
+
+    tctx->imgunit->tasks.push_back(task);
   }
 
   img->wait_for_completion();

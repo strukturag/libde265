@@ -359,9 +359,6 @@ class decoder_context : public base_context,
 
  private:
   void init_thread_context(thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
-  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
-                                     int ctbX,int ctbY);
 
   void mark_whole_slice_as_processed(image_unit* imgunit,
                                      slice_unit* sliceunit,
