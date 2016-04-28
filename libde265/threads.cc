@@ -224,12 +224,18 @@ void printblks(const thread_pool* pool)
 #endif
 
 
-static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
+void* thread_pool::main_loop_thread(thread_pool* pool)
 {
-  thread_pool* pool = (thread_pool*)pool_ptr;
+  pool->main_loop();
+
+  return (THREAD_RESULT)NULL;
+}
 
 
-  de265_mutex_lock(&pool->mutex);
+
+void thread_pool::main_loop()
+{
+  m_mutex.lock();
 
   while(true) {
 
@@ -238,32 +244,32 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     for (;;) {
       // end waiting if thread-pool has been stopped or we have a task to execute
 
-      if (pool->stopped || pool->tasks.size()>0) {
+      if (m_stopped || m_tasks.size()>0) {
         break;
       }
 
       //printf("going idle\n");
-      de265_cond_wait(&pool->cond_var, &pool->mutex);
+      m_cond_var.wait(m_mutex);
     }
 
     // if the pool was shut down, end the execution
 
-    if (pool->stopped) {
-      de265_mutex_unlock(&pool->mutex);
-      return (THREAD_RESULT)NULL;
+    if (m_stopped) {
+      m_mutex.unlock();
+      return;
     }
 
 
     // get a task
 
-    thread_task* task = pool->tasks.front();
-    pool->tasks.pop_front();
+    thread_task* task = m_tasks.front();
+    m_tasks.pop_front();
 
-    pool->num_threads_working++;
+    m_num_threads_working++;
 
     //printblks(pool);
 
-    de265_mutex_unlock(&pool->mutex);
+    m_mutex.unlock();
 
 
     // execute the task
@@ -272,17 +278,16 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     // end processing and check if this was the last task to be processed
 
-    de265_mutex_lock(&pool->mutex);
+    m_mutex.lock();
 
-    pool->num_threads_working--;
+    m_num_threads_working--;
   }
-  de265_mutex_unlock(&pool->mutex);
 
-  return (THREAD_RESULT)NULL;
+  m_mutex.unlock();
 }
 
 
-de265_error start_thread_pool(thread_pool* pool, int num_threads)
+de265_error thread_pool::start(int num_threads)
 {
   de265_error err = DE265_OK;
 
@@ -293,62 +298,58 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
     err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
   }
 
-  pool->num_threads = 0; // will be increased below
+  m_num_threads = 0; // will be increased below
 
-  de265_mutex_init(&pool->mutex);
-  de265_cond_init(&pool->cond_var);
-
-  de265_mutex_lock(&pool->mutex);
-  pool->num_threads_working = 0;
-  pool->stopped = false;
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.lock();
+  m_num_threads_working = 0;
+  m_stopped = false;
+  m_mutex.unlock();
 
   // start worker threads
 
-  for (int i=0; i<num_threads; i++) {
-    int ret = de265_thread_create(&pool->thread[i], worker_thread, pool);
+  for (int i=0; i<m_num_threads; i++) {
+    int ret = de265_thread_create(&m_thread[i],
+                                  (THREAD_RESULT (*)(THREAD_PARAM))main_loop_thread,
+                                  this);
     if (ret != 0) {
       // cerr << "pthread_create() failed: " << ret << endl;
       return DE265_ERROR_CANNOT_START_THREADPOOL;
     }
 
-    pool->num_threads++;
+    m_num_threads++;
   }
 
   return err;
 }
 
 
-void stop_thread_pool(thread_pool* pool)
+void thread_pool::stop()
 {
-  de265_mutex_lock(&pool->mutex);
-  pool->stopped = true;
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.lock();
+  m_stopped = true;
+  m_mutex.unlock();
 
-  de265_cond_broadcast(&pool->cond_var, &pool->mutex);
+  m_cond_var.broadcast(m_mutex);
 
-  for (int i=0;i<pool->num_threads;i++) {
-    de265_thread_join(pool->thread[i]);
-    de265_thread_destroy(&pool->thread[i]);
+  for (int i=0;i<m_num_threads;i++) {
+    de265_thread_join(m_thread[i]);
+    de265_thread_destroy(&m_thread[i]);
   }
-
-  de265_mutex_destroy(&pool->mutex);
-  de265_cond_destroy(&pool->cond_var);
 }
 
 
-void   add_task(thread_pool* pool, thread_task* task)
+void thread_pool::add_task(thread_task* task)
 {
-  de265_mutex_lock(&pool->mutex);
-  if (!pool->stopped) {
+  m_mutex.lock();
+  if (!m_stopped) {
 
-    pool->tasks.push_back(task);
+    m_tasks.push_back(task);
 
     // wake up one thread
 
-    de265_cond_signal(&pool->cond_var);
+    m_cond_var.signal();
   }
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.unlock();
 }
 
 extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);

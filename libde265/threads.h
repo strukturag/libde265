@@ -221,23 +221,26 @@ public:
 class thread_pool
 {
  public:
-  bool stopped;
+  de265_error start(int num_threads);
+  void stop();
 
-  std::deque<thread_task*> tasks;  // we are not the owner
+  void add_task(thread_task* task);
 
-  de265_thread_primitive thread[MAX_THREADS];
-  int num_threads;
+ private:
+  bool m_stopped;
 
-  int num_threads_working;
+  std::deque<thread_task*> m_tasks;  // we are not the owner
 
-  de265_mutex_primitive  mutex;
-  de265_cond_primitive   cond_var;
+  de265_thread_primitive m_thread[MAX_THREADS];
+  int m_num_threads;
+
+  int m_num_threads_working;
+
+  de265_mutex  m_mutex;
+  de265_cond   m_cond_var;
+
+  static void* main_loop_thread(thread_pool* pool_ptr);
+  void main_loop();
 };
-
-
-de265_error start_thread_pool(thread_pool* pool, int num_threads);
-void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
-
-void        add_task(thread_pool* pool, thread_task* task); // TOCO: can make thread_task const
 
 #endif
