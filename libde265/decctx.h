@@ -306,7 +306,7 @@ class decoder_context : public base_context,
 
   void run_main_loop();
 
-  std::vector<image_unit_ptr> m_image_units_in_progress;
+  std::deque<image_unit_ptr> m_image_units_in_progress;
   static const int m_max_images_processed_in_parallel = 4;
 
   void decode_image_frame_parallel(image_unit_ptr imgunit);
@@ -353,7 +353,7 @@ class decoder_context : public base_context,
   // --- image unit queue ---
 
  public:
-  std::vector<image_unit_ptr> image_units;
+  std::deque<image_unit_ptr> image_units;
 
   bool m_end_of_stream;
 

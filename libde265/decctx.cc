@@ -368,9 +368,7 @@ void decoder_context::reset()
   dpb.clear();
 
 
-  while (!image_units.empty()) {
-    image_units.pop_back();
-  }
+  image_units.clear();
 
   m_end_of_stream = false;
 
@@ -447,15 +445,6 @@ void decoder_context::init_thread_context(thread_context* tctx)
 }
 
 
-template <class T> void pop_front(std::vector<T>& vec)
-{
-  for (int i=1;i<vec.size();i++)
-    vec[i-1] = vec[i];
-
-  vec.pop_back();
-}
-
-
 void decoder_context::start_decoding_thread()
 {
   m_main_loop_thread.start();
@@ -497,7 +486,7 @@ void decoder_context::run_main_loop()
 
   if (!image_units.empty()) {
     to_be_decoded = image_units.front();
-    pop_front(image_units);
+    image_units.pop_front();
 
     m_image_units_in_progress.push_back(to_be_decoded);
   }
@@ -520,7 +509,7 @@ void decoder_context::check_decoding_queue_for_finished_images()
   while (!m_image_units_in_progress.empty() &&
          m_image_units_in_progress.front()->img->debug_is_completed()) {
     image_unit_ptr imgunit = m_image_units_in_progress.front();
-    pop_front(m_image_units_in_progress);
+    m_image_units_in_progress.pop_front();
 
     printf("pushing to output queue: %d\n", imgunit->img->PicOrderCntVal);
     push_picture_to_output_queue(imgunit->img);
@@ -623,7 +612,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     push_picture_to_output_queue(imgunit->img);
 
-    pop_front(image_units);
+    image_units.pop_front();
   }
 
 
@@ -668,7 +657,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     // remove just decoded image unit from queue
 
-    pop_front(image_units);
+    image_units.pop_front();
   }
 
 
