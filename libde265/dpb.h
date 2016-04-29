@@ -26,7 +26,6 @@
 
 #include <deque>
 #include <vector>
-#include <mutex>
 
 class decoder_context;
 
@@ -138,7 +137,7 @@ public:
   std::vector<image_ptr> reorder_output_queue;
   std::deque<image_ptr>  image_output_queue;
 
-  mutable std::recursive_mutex m_mutex;
+  mutable de265_mutex m_mutex;
 
   // move next picture in reorder buffer to output queue
   void move_next_picture_in_reorder_buffer_to_output_queue();
