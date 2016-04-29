@@ -385,26 +385,26 @@ void decoder_context::run_main_loop()
     bool input_empty= (image_units.empty());
 
     if (queue_full) {
-      printf("... wait has space\n");
+      loginfo(LogThreading,"... wait has space\n");
       m_decoding_loop_has_space_cond.wait(m_main_loop_mutex);
 
       if (m_main_loop_thread.should_stop()) {
         break;
       }
 
-      printf("... signalled has space\n");
+      loginfo(LogThreading,"... signalled has space\n");
       continue;
     }
 
     if (input_empty && !m_end_of_stream) {
-      printf("... wait has input\n");
+      loginfo(LogThreading,"... wait has input\n");
       m_input_available_cond.wait(m_main_loop_mutex);
 
       if (m_main_loop_thread.should_stop()) {
         break;
       }
 
-      printf("... signalled has input\n");
+      loginfo(LogThreading,"... signalled has input\n");
       continue;
     }
 
@@ -423,24 +423,20 @@ void decoder_context::run_main_loop()
     m_image_units_in_progress.push_back(to_be_decoded);
   }
 
-  m_main_loop_mutex.unlock();
-
 
   // --- create threads to decode this image ---
 
   if (to_be_decoded) {
     decode_image_frame_parallel(to_be_decoded);
   }
+
+  m_main_loop_mutex.unlock();
 }
 
 
 void decoder_context::on_image_decoding_finished()
 {
-  printf("mainloop lock\n");
-
   m_main_loop_mutex.lock();
-
-  printf("on_image_decoding_finished()\n");
 
   while (!m_image_units_in_progress.empty() &&
          m_image_units_in_progress.front()->img->debug_is_completed()) {
@@ -449,14 +445,11 @@ void decoder_context::on_image_decoding_finished()
 
     m_decoding_loop_has_space_cond.signal();
 
-    printf("pushing to output queue: %d\n", imgunit->img->PicOrderCntVal);
     push_picture_to_output_queue(imgunit->img);
   }
 
   if (m_end_of_stream &&
       m_image_units_in_progress.empty()) {
-
-    printf("flushing reorder buffer\n");
 
     m_output_queue.flush_reorder_buffer();
   }
@@ -469,7 +462,7 @@ void decoder_context::on_image_decoding_finished()
 
 void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
-  std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
+  // std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
 
 
   for (slice_unit* sliceunit : imgunit->slice_units) {
@@ -629,11 +622,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
+  /*
   printf("create tasks to decode slice POC=%d addr=%d, img=%p\n",
          sliceunit->shdr->slice_pic_order_cnt_lsb,
          sliceunit->shdr->slice_segment_address,
          imgunit->img.get());
-
+  */
 
   // TODO: remove later from DPB
   //remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
@@ -884,7 +878,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
   if (!use_WPP && !use_tiles) {
-    printf("SEQ\n");
+    //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
@@ -1019,7 +1013,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->imgunit->tasks.push_back(task);
   }
 
-#if 1
+#if 0
   for (;;) {
     printf("q:%d r:%d b:%d f:%d\n",
            img->nThreadsQueued,

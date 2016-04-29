@@ -176,7 +176,7 @@ de265_error frontend_syntax_decoder::read_eos_NAL(bitreader& reader)
 }
 
 
-de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
+de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_ptr nal, nal_header& nal_hdr)
 {
   logdebug(LogHeaders,"---> read slice segment header\n");
 
@@ -189,7 +189,6 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
   de265_error err = shdr->read(&reader,m_decctx, nal_unit_type, &continueDecoding);
   if (!continueDecoding) {
     if (m_curr_img) { m_curr_img->integrity = INTEGRITY_NOT_DECODED; }
-    nal_parser.free_NAL_unit(nal);
     delete shdr;
     return err;
   }
@@ -264,7 +263,6 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
   if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (m_curr_img!=NULL) m_curr_img->integrity = INTEGRITY_NOT_DECODED;
-      nal_parser.free_NAL_unit(nal);
       delete shdr;
       return err;
     }
@@ -323,7 +321,7 @@ void frontend_syntax_decoder::debug_imageunit_state()
 }
 
 
-de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
+de265_error frontend_syntax_decoder::decode_NAL(NAL_unit_ptr nal)
 {
   decoder_context* ctx = m_decctx;
 
@@ -345,7 +343,6 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
     // These will have to be handeled by an SHVC decoder.
-    nal_parser.free_NAL_unit(nal);
     return DE265_OK;
   }
 
@@ -367,7 +364,6 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
   //printf("hTid: %d\n", current_HighestTid);
 
   if (nal_hdr.nuh_temporal_id > m_decctx->get_current_TID()) {
-    nal_parser.free_NAL_unit(nal);
     return DE265_OK;
   }
 
@@ -380,36 +376,30 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit* nal)
     case NAL_UNIT_VPS_NUT:
       loginfo(LogHighlevel, "read VPS NAL\n");
       err = read_vps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_SPS_NUT:
       loginfo(LogHighlevel, "read SPS NAL\n");
       err = read_sps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PPS_NUT:
       loginfo(LogHighlevel, "read PPS NAL\n");
       err = read_pps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
       loginfo(LogHighlevel, "read SEI NAL\n");
       err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
-      nal_parser.free_NAL_unit(nal);
       break;
 
     case NAL_UNIT_EOS_NUT:
       loginfo(LogHighlevel, "read EOS NAL\n");
       FirstAfterEndOfSequenceNAL = true;
-      nal_parser.free_NAL_unit(nal);
       break;
 
     default:
-      nal_parser.free_NAL_unit(nal);
       break;
     }
 
@@ -424,7 +414,7 @@ de265_error frontend_syntax_decoder::on_NAL_inserted()
   de265_error err = DE265_OK;
 
   while (nal_parser.get_NAL_queue_length() > 0) {
-    NAL_unit* nal = nal_parser.pop_from_NAL_queue();
+    NAL_unit_ptr nal = nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = decode_NAL(nal);
   }

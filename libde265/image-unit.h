@@ -56,7 +56,7 @@ public:
   slice_unit(decoder_context* decctx);
   ~slice_unit();
 
-  NAL_unit* nal;   // we are the owner
+  NAL_unit_ptr nal;   // we are the owner
   slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 

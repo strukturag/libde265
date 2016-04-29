@@ -156,6 +156,7 @@ void copy_subimage(uint8_t* dst,int dststride,
 
 enum LogModule {
   LogHighlevel,
+  LogThreading,
   LogHeaders,
   LogSlice,
   LogDPB,

@@ -38,6 +38,8 @@ class NAL_unit {
   NAL_unit();
   ~NAL_unit();
 
+  static std::shared_ptr<NAL_unit> alloc(int size);
+
   nal_header header;
 
   de265_PTS  pts;
@@ -84,6 +86,9 @@ class NAL_unit {
 };
 
 
+typedef std::shared_ptr<NAL_unit> NAL_unit_ptr;
+
+
 
 class on_NAL_inserted_listener {
  public:
@@ -105,7 +110,7 @@ class NAL_Parser
   de265_error push_NAL(const unsigned char* data, int len,
                        de265_PTS pts, void* user_data = NULL);
 
-  NAL_unit*   pop_from_NAL_queue();
+  NAL_unit_ptr pop_from_NAL_queue();
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true;
     if (m_on_NAL_inserted_listener) {
@@ -137,7 +142,6 @@ class NAL_Parser
     return NAL_queue.size();
   }
 
-  void free_NAL_unit(NAL_unit*);
 
 
   int get_NAL_queue_length() const { return NAL_queue.size(); }
@@ -153,25 +157,18 @@ class NAL_Parser
   bool end_of_frame;  // data in pending_input_data is end of frame
   int  input_push_state;
 
-  NAL_unit* pending_input_NAL;
+  NAL_unit_ptr pending_input_NAL;
 
 
   // NAL level
 
-  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
+  std::queue<NAL_unit_ptr> NAL_queue;  // enqueued NALs have suffing bytes removed
   int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
 
-  void push_to_NAL_queue(NAL_unit*);
-
-
-  // pool of unused NAL memory
-
-  std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
+  void push_to_NAL_queue(NAL_unit_ptr);
 
 
   on_NAL_inserted_listener* m_on_NAL_inserted_listener;
-
-  LIBDE265_CHECK_RESULT NAL_unit* alloc_NAL_unit(int size);
 };
 
 

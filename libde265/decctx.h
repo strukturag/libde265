@@ -237,8 +237,10 @@ class decoder_context : public base_context,
   image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
   int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
   void   pop_next_picture_in_output_queue() {
+    m_main_loop_mutex.lock();
     m_output_queue.pop_next_picture_in_output_queue();
     m_cond_api_action.signal();
+    m_main_loop_mutex.unlock();
   }
 
 
@@ -326,7 +328,7 @@ class decoder_context : public base_context,
 
 
   std::deque<image_unit_ptr> m_image_units_in_progress;
-  static const int m_max_images_processed_in_parallel = 4;
+  static const int m_max_images_processed_in_parallel = 10;
 
 
   // condition variable that signals when api-user action might change

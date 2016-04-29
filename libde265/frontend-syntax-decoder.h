@@ -124,14 +124,14 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   void debug_imageunit_state();
 
  private:
-  de265_error decode_NAL(NAL_unit* nal);
+  de265_error decode_NAL(NAL_unit_ptr nal);
 
   de265_error read_vps_NAL(bitreader&);
   de265_error read_sps_NAL(bitreader&);
   de265_error read_pps_NAL(bitreader&);
   de265_error read_sei_NAL(bitreader& reader, bool suffix);
   de265_error read_eos_NAL(bitreader& reader);
-  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
+  de265_error read_slice_NAL(bitreader&, NAL_unit_ptr nal, nal_header& nal_hdr);
 
   bool process_slice_segment_header(slice_segment_header*,
                                     de265_error*, de265_PTS pts,

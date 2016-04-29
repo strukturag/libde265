@@ -700,7 +700,6 @@ bool image::debug_is_completed() const
   bool completed;
 
   mutex.lock();
-  printf("finished: %d  total: %d\n", nThreadsFinished,nThreadsTotal);
   completed = (nThreadsFinished==nThreadsTotal);
   mutex.unlock();
 

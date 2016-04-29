@@ -4924,29 +4924,19 @@ std::string thread_task_slice_segment::name() const {
 
 void thread_task_slice::work()
 {
-  printf("thread_task_slice::work()\n");
+  //printf("thread_task_slice::work()\n");
 
   state = Running;
   tctx->img->thread_run(this);
 
-  printf("a\n");
-
   de265_error err=read_slice_segment_data(tctx);
-
-  printf("b\n");
 
   state = Finished;
   tctx->sliceunit->finished_threads.set_progress(1);
 
-  printf("c\n");
-
   tctx->img->thread_finishes(this);
 
-  printf("d\n");
-
   tctx->decctx->on_image_decoding_finished();
-
-  printf("e\n");
 
   return; // DE265_OK;
 }

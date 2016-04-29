@@ -32,7 +32,7 @@ pic_parameter_set   pps;
 CABAC_encoder_bitstream writer;
 
 
-void process_nal(NAL_unit* nal)
+void process_nal(NAL_unit_ptr nal)
 {
   de265_error err = DE265_OK;
 
@@ -101,10 +101,8 @@ int main(int argc, char** argv)
       }
 
       if (nal_parser.get_NAL_queue_length()>0) {
-        NAL_unit* nal = nal_parser.pop_from_NAL_queue();
-        assert(nal);
+        NAL_unit_ptr nal = nal_parser.pop_from_NAL_queue();
         process_nal(nal);
-        nal_parser.free_NAL_unit(nal);
       }
     }
 

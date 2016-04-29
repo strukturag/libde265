@@ -706,7 +706,7 @@ int main(int argc, char** argv)
 
   int pos=0;
 
-  while (!stop && false)
+  while (!stop)
     {
       //tid = (framecnt/1000) & 1;
       //de265_set_limit_TID(ctx, tid);
@@ -715,7 +715,7 @@ int main(int argc, char** argv)
       int actions = de265_get_action(ctx, true);
 
 
-      printf("actions: push-input:%d get-image:%d eos:%d\n",
+      loginfo(LogThreading,"actions: push-input:%d get-image:%d eos:%d\n",
              !!(actions & de265_action_push_more_input),
              !!(actions & de265_action_get_image),
              !!(actions & de265_action_end_of_stream));
