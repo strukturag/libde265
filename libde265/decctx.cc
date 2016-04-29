@@ -1106,7 +1106,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     if (img->debug_is_completed()) break;
 
-    usleep(1000);
+    //usleep(1000);
   }
 #endif
 
@@ -1216,11 +1216,15 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 void decoder_context::debug_imageunit_state()
 {
+  m_main_loop_mutex.lock();
+
   loginfo(LogHighlevel,"image_units: ");
   for (int i=0;i<image_units.size();i++) {
     loginfo(LogHighlevel,"%d ", image_units[i]->img->get_ID());
   }
   loginfo(LogHighlevel,"\n");
+
+  m_main_loop_mutex.unlock();
 }
 
 

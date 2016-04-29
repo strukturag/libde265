@@ -224,6 +224,8 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
 void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
   reorder_output_queue.push_back(img);
 
 
@@ -235,8 +237,34 @@ void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
 }
 
 
+int picture_output_queue::num_pictures_in_reorder_buffer() const
+{
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+  return reorder_output_queue.size();
+}
+
+
+int picture_output_queue::num_pictures_in_output_queue() const
+{
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+  return image_output_queue.size();
+}
+
+
+image_ptr picture_output_queue::get_next_picture_in_output_queue() const
+{
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+  return image_output_queue.front();
+}
+
+
 void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
   assert(!reorder_output_queue.empty());
 
   // search for picture in reorder buffer with minimum POC
@@ -266,6 +294,8 @@ void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
 
 bool picture_output_queue::flush_reorder_buffer()
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
   // return 'false' when there are no pictures in reorder buffer
   if (reorder_output_queue.empty()) return false;
 
@@ -279,6 +309,8 @@ bool picture_output_queue::flush_reorder_buffer()
 
 void picture_output_queue::clear()
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
   reorder_output_queue.clear();
   image_output_queue.clear();
 }
@@ -286,6 +318,8 @@ void picture_output_queue::clear()
 
 void picture_output_queue::pop_next_picture_in_output_queue()
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
   image_output_queue.pop_front();
 
 
@@ -299,6 +333,8 @@ void picture_output_queue::pop_next_picture_in_output_queue()
 
 void picture_output_queue::log_dpb_queues() const
 {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     loginfo(LogDPB, "DPB reorder queue (after push): ");
     for (int i=0;i<num_pictures_in_reorder_buffer();i++) {
       loginfo(LogDPB, "*%d ", reorder_output_queue[i]->PicOrderCntVal);

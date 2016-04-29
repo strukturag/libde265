@@ -26,6 +26,7 @@
 
 #include <deque>
 #include <vector>
+#include <mutex>
 
 class decoder_context;
 
@@ -110,7 +111,7 @@ public:
 
   void insert_image_into_reorder_buffer(image_ptr img);
 
-  int num_pictures_in_reorder_buffer() const { return reorder_output_queue.size(); }
+  int num_pictures_in_reorder_buffer() const;
 
   // Move all pictures in reorder buffer to output buffer. Return true if there were any pictures.
   bool flush_reorder_buffer();
@@ -118,10 +119,10 @@ public:
 
   // --- output buffer ---
 
-  int num_pictures_in_output_queue() const { return image_output_queue.size(); }
+  int num_pictures_in_output_queue() const;
 
   /* Get the next picture in the output queue, but do not remove it from the queue. */
-  image_ptr get_next_picture_in_output_queue() const { return image_output_queue.front(); }
+  image_ptr get_next_picture_in_output_queue() const;
 
   /* Remove the next picture in the output queue. */
   void pop_next_picture_in_output_queue();
@@ -137,6 +138,7 @@ public:
   std::vector<image_ptr> reorder_output_queue;
   std::deque<image_ptr>  image_output_queue;
 
+  mutable std::recursive_mutex m_mutex;
 
   // move next picture in reorder buffer to output queue
   void move_next_picture_in_reorder_buffer_to_output_queue();
