@@ -323,7 +323,8 @@ int  decoder_context::get_action(bool blocking)
 
     // fill more data until decoding queue is full and there is at least one complete
     // image-unit pending at the input
-    if (!queue_full || !input_pending) {
+    if (!m_end_of_stream &&
+        !(queue_full && input_pending)) {
       actions |= de265_action_push_more_input;
     }
 
