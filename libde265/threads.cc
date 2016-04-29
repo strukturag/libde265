@@ -38,7 +38,13 @@ int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void
 { return pthread_create(t,NULL,start_routine,arg); }
 void de265_thread_join(de265_thread_primitive t) { pthread_join(t,NULL); }
 void de265_thread_destroy(de265_thread_primitive* t) { }
-void de265_mutex_init(de265_mutex_primitive* m) { pthread_mutex_init(m,NULL); }
+void de265_mutex_init(de265_mutex_primitive* m) {
+  pthread_mutexattr_t attr;
+
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(m,&attr);
+}
 void de265_mutex_destroy(de265_mutex_primitive* m) { pthread_mutex_destroy(m); }
 void de265_mutex_lock(de265_mutex_primitive* m) { pthread_mutex_lock(m); }
 void de265_mutex_unlock(de265_mutex_primitive* m) { pthread_mutex_unlock(m); }

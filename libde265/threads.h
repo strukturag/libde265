@@ -136,13 +136,7 @@ class de265_thread
 class de265_mutex
 {
  public:
-  de265_mutex() {
-    pthread_mutexattr_t attr;
-
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    de265_mutex_init(&m_mutex);
-  }
+  de265_mutex() { de265_mutex_init(&m_mutex); }
   ~de265_mutex() { de265_mutex_destroy(&m_mutex); }
 
   void lock() { de265_mutex_lock(&m_mutex); }
