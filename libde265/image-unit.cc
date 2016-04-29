@@ -23,8 +23,60 @@
 #include "decctx.h"
 
 
+slice_unit::slice_unit(decoder_context* decctx)
+  : nal(NULL),
+    shdr(NULL),
+    imgunit(NULL),
+    flush_reorder_buffer(false),
+    nThreads(0),
+    first_decoded_CTB_RS(-1),
+    last_decoded_CTB_RS(-1),
+    thread_contexts(NULL),
+    ctx(decctx)
+{
+  state = Unprocessed;
+  nThreadContexts = 0;
+}
+
+slice_unit::~slice_unit()
+{
+  ctx->get_NAL_parser().free_NAL_unit(nal);
+
+  if (thread_contexts) {
+    delete[] thread_contexts;
+  }
+}
+
+
+void slice_unit::allocate_thread_contexts(int n)
+{
+  assert(thread_contexts==NULL);
+
+  thread_contexts = new thread_context[n];
+  nThreadContexts = n;
+}
+
+
 thread_context* slice_unit::get_thread_context(int n)
 {
   assert(n < nThreadContexts);
   return &thread_contexts[n];
+}
+
+
+
+
+image_unit::image_unit()
+{
+  img=NULL;
+  role=Invalid;
+  state=Unprocessed;
+}
+
+
+image_unit::~image_unit()
+{
+  for (int i=0;i<slice_units.size();i++) {
+    delete slice_units[i];
+  }
 }

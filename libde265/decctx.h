@@ -60,6 +60,8 @@ class thread_context
 public:
   thread_context();
 
+  void init();
+
   int CtbAddrInRS;
   int CtbAddrInTS;
 
@@ -111,6 +113,9 @@ public:
 
   context_model_table ctx_model;
   uint8_t StatCoeff[4];
+
+
+  // --- decoder pointers ---
 
   decoder_context* decctx;
   image_ptr img;
@@ -360,8 +365,6 @@ class decoder_context : public base_context,
   bool m_end_of_stream;
 
  private:
-  void init_thread_context(thread_context* tctx);
-
   void mark_whole_slice_as_processed(image_unit* imgunit,
                                      slice_unit* sliceunit,
                                      int progress);

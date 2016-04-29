@@ -59,63 +59,12 @@ extern void thread_decode_slice_segment(void* d);
 
 thread_context::thread_context()
 {
-  /*
-  CtbAddrInRS = 0;
-  CtbAddrInTS = 0;
-
-  CtbX = 0;
-  CtbY = 0;
-  */
-
-  /*
-  refIdx[0] = refIdx[1] = 0;
-  mvd[0][0] = mvd[0][1] = mvd[1][0] = mvd[1][1] = 0;
-  merge_flag = 0;
-  merge_idx = 0;
-  mvp_lX_flag[0] = mvp_lX_flag[1] = 0;
-  inter_pred_idc = 0;
-  */
-
-  /*
-  enum IntraPredMode IntraPredModeC; // chroma intra-prediction mode for current CB
-  */
-
-  /*
-  cu_transquant_bypass_flag = false;
-  memset(transform_skip_flag,0, 3*sizeof(uint8_t));
-  */
-
-
-  //memset(coeffList,0,sizeof(int16_t)*3*32*32);
-  //memset(coeffPos,0,sizeof(int16_t)*3*32*32);
-  //memset(nCoeff,0,sizeof(int16_t)*3);
-
-
-
   IsCuQpDeltaCoded = false;
   CuQpDelta = 0;
 
   IsCuChromaQpOffsetCoded = false;
   CuQpOffsetCb = 0;
   CuQpOffsetCr = 0;
-
-  /*
-  currentQPY = 0;
-  currentQG_x = 0;
-  currentQG_y = 0;
-  lastQPYinPreviousQG = 0;
-  */
-
-  /*
-  qPYPrime = 0;
-  qPCbPrime = 0;
-  qPCrPrime = 0;
-  */
-
-  /*
-  memset(&cabac_decoder, 0, sizeof(CABAC_decoder));
-  memset(&ctx_model, 0, sizeof(ctx_model));
-  */
 
   decctx = NULL;
   img = NULL;
@@ -124,8 +73,6 @@ thread_context::thread_context()
   imgunit = NULL;
   sliceunit = NULL;
 
-
-  //memset(this,0,sizeof(thread_context));
 
   // some compilers/linkers don't align struct members correctly,
   // adjust if necessary
@@ -141,55 +88,6 @@ thread_context::thread_context()
   memset(coeffBuf, 0, 32*32*sizeof(int16_t));
 }
 
-
-slice_unit::slice_unit(decoder_context* decctx)
-  : nal(NULL),
-    shdr(NULL),
-    imgunit(NULL),
-    flush_reorder_buffer(false),
-    nThreads(0),
-    first_decoded_CTB_RS(-1),
-    last_decoded_CTB_RS(-1),
-    thread_contexts(NULL),
-    ctx(decctx)
-{
-  state = Unprocessed;
-  nThreadContexts = 0;
-}
-
-slice_unit::~slice_unit()
-{
-  ctx->get_NAL_parser().free_NAL_unit(nal);
-
-  if (thread_contexts) {
-    delete[] thread_contexts;
-  }
-}
-
-
-void slice_unit::allocate_thread_contexts(int n)
-{
-  assert(thread_contexts==NULL);
-
-  thread_contexts = new thread_context[n];
-  nThreadContexts = n;
-}
-
-
-image_unit::image_unit()
-{
-  img=NULL;
-  role=Invalid;
-  state=Unprocessed;
-}
-
-
-image_unit::~image_unit()
-{
-  for (int i=0;i<slice_units.size();i++) {
-    delete slice_units[i];
-  }
-}
 
 
 base_context::base_context()
@@ -234,8 +132,6 @@ decoder_context::decoder_context()
 
   param_disable_deblocking = false;
   param_disable_sao = false;
-  //param_disable_mc_residual_idct = false;
-  //param_disable_intra_residual_idct = false;
 
   // --- processing ---
 
@@ -259,18 +155,10 @@ decoder_context::decoder_context()
   compute_framedrop_table();
 
 
-  //
-
-
-  // --- internal data ---
-
-  //ctx->FirstAfterEndOfSequenceNAL = true;
-  //ctx->last_RAP_picture_NAL_type = NAL_UNIT_UNDEFINED;
-
-  //de265_init_image(&ctx->coeff);
-
   // --- decoded picture buffer ---
 
+
+  // --- start main loop ---
 
   start_decoding_thread();
 }
@@ -316,36 +204,8 @@ void decoder_context::stop_thread_pool()
 void decoder_context::reset()
 {
   if (num_worker_threads>0) {
-    //flush_thread_pool(&ctx->thread_pool);
     m_thread_pool.stop();
   }
-
-  // --------------------------------------------------
-
-#if 0
-  ctx->end_of_stream = false;
-  ctx->pending_input_NAL = NULL;
-  ctx->current_vps = NULL;
-  ctx->current_sps = NULL;
-  ctx->current_pps = NULL;
-  ctx->num_worker_threads = 0;
-  ctx->current_image_poc_lsb = 0;
-  ctx->first_decoded_picture = 0;
-  ctx->NoRaslOutputFlag = 0;
-  ctx->HandleCraAsBlaFlag = 0;
-  ctx->FirstAfterEndOfSequenceNAL = 0;
-  ctx->PicOrderCntMsb = 0;
-  ctx->prevPicOrderCntLsb = 0;
-  ctx->prevPicOrderCntMsb = 0;
-  ctx->NumPocStCurrBefore=0;
-  ctx->NumPocStCurrAfter=0;
-  ctx->NumPocStFoll=0;
-  ctx->NumPocLtCurr=0;
-  ctx->NumPocLtFoll=0;
-  ctx->nal_unit_type=0;
-  ctx->IdrPicFlag=0;
-  ctx->RapPicFlag=0;
-#endif
 
 
   m_frontend_syntax_decoder.reset();
@@ -373,6 +233,7 @@ void decoder_context::reset()
   }
 }
 
+
 void base_context::set_acceleration_functions(enum de265_acceleration l)
 {
   // fill scalar functions first (so that function table is completely filled)
@@ -395,13 +256,13 @@ void base_context::set_acceleration_functions(enum de265_acceleration l)
 }
 
 
-void decoder_context::init_thread_context(thread_context* tctx)
+void thread_context::init()
 {
   // zero scrap memory for coefficient blocks
-  memset(tctx->_coeffBuf, 0, sizeof(tctx->_coeffBuf));  // TODO: check if we can safely remove this
+  memset(_coeffBuf, 0, sizeof(_coeffBuf));  // TODO: check if we can safely remove this
 
-  tctx->currentQG_x = -1;
-  tctx->currentQG_y = -1;
+  currentQG_x = -1;
+  currentQG_y = -1;
 
 
 
@@ -409,12 +270,12 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
   // find the previous CTB in TS order
 
-  const pic_parameter_set& pps = tctx->img->get_pps();
-  const seq_parameter_set& sps = tctx->img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
+  const seq_parameter_set& sps = img->get_sps();
 
 
-  if (tctx->shdr->slice_segment_address > 0) {
-    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
+  if (shdr->slice_segment_address > 0) {
+    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
 
     int ctbX = prevCtb % sps.PicWidthInCtbsY;
     int ctbY = prevCtb / sps.PicWidthInCtbsY;
@@ -430,9 +291,7 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
     //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
 
-    //if (tctx->shdr->dependent_slice_segment_flag) {  // TODO: do we need this condition ?
-    tctx->currentQPY = tctx->img->get_QPY(x,y);
-      //}
+    currentQPY = img->get_QPY(x,y);
   }
 }
 
@@ -771,7 +630,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx->shdr->slice_segment_address];
   tctx->task = NULL;
 
-  init_thread_context(tctx);
+  tctx->init();
 
   if (sliceunit->reader.bytes_remaining <= 0) {
     return DE265_ERROR_PREMATURE_END_OF_SLICE;
@@ -1095,7 +954,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
-    init_thread_context(tctx);
+    tctx->init();
 
 
     // init CABAC
@@ -1205,7 +1064,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
-    init_thread_context(tctx);
+    tctx->init();
 
 
     // init CABAC
