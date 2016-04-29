@@ -714,6 +714,12 @@ int main(int argc, char** argv)
 
       int actions = de265_get_action(ctx, true);
 
+      /*
+      printf("actions: push-input:%d get-image:%d eos:%d\n",
+             !!(actions & de265_action_push_more_input),
+             !!(actions & de265_action_get_image),
+             !!(actions & de265_action_end_of_stream));
+      */
 
       // --- push more input ---
 
@@ -767,7 +773,6 @@ int main(int argc, char** argv)
 
         if (feof(fh)) {
           err = de265_flush_data(ctx); // indicate end of stream
-          stop = true;
         }
       }
 
@@ -815,6 +820,10 @@ int main(int argc, char** argv)
 
             if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
           }
+      }
+
+      if (actions & de265_action_end_of_stream) {
+        stop = true;
       }
     }
 

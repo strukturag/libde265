@@ -454,20 +454,52 @@ int  decoder_context::get_action(bool blocking)
 
   m_main_loop_mutex.lock();
 
-  bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
-  bool input_pending = (image_units.size() > 1); // at least one image-unit is complete
+  for (;;) {
+    bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
+    bool input_pending = (image_units.size() > 1); // at least one image-unit is complete
 
-  // fill more data until decoding queue is full and there is at least one complete
-  // image-unit pending at the input
-  if (!queue_full || !input_pending) {
-    actions |= de265_action_push_more_input;
+    // fill more data until decoding queue is full and there is at least one complete
+    // image-unit pending at the input
+    if (!queue_full || !input_pending) {
+      actions |= de265_action_push_more_input;
+    }
+
+    if (num_pictures_in_output_queue() > 0) {
+      actions |= de265_action_get_image;
+    }
+
+    bool decoding_queue_empty = m_image_units_in_progress.empty();
+    bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 ||
+                               m_output_queue.num_pictures_in_reorder_buffer() ==0);
+
+    /*
+    printf("buffer status: %d %d %d %d\n",
+           m_end_of_stream,
+           input_pending,
+           decoding_queue_empty,
+           output_queue_empty);
+    */
+
+    if (m_end_of_stream &&
+        !input_pending &&
+        decoding_queue_empty &&
+        output_queue_empty) {
+      actions |= de265_action_end_of_stream;
+    }
+
+
+    if (!blocking) {
+      break;
+    }
+    else if (actions != 0) {
+      break;
+    }
+    else {
+      // block until queue status changes
+
+      break; // TODO -> wait on condition variable
+    }
   }
-
-  if (num_pictures_in_output_queue() > 0) {
-    actions |= de265_action_get_image;
-  }
-
-  //#define de265_action_end_of_stream       4
 
   m_main_loop_mutex.unlock();
 
@@ -538,6 +570,14 @@ void decoder_context::check_decoding_queue_for_finished_images()
 
     printf("pushing to output queue: %d\n", imgunit->img->PicOrderCntVal);
     push_picture_to_output_queue(imgunit->img);
+  }
+
+  if (m_end_of_stream &&
+      m_image_units_in_progress.empty()) {
+
+    printf("flushing reorder buffer\n");
+
+    m_output_queue.flush_reorder_buffer();
   }
 
   m_main_loop_mutex.unlock();
