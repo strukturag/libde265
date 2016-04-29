@@ -109,30 +109,6 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
-class de265_thread
-{
- public:
-  de265_thread();
-  virtual ~de265_thread();
-
-  void start();
-  void stop();
-  bool running() const;
-
-  virtual void run() = 0;
-
- protected:
-  bool should_stop() const { return m_stop_request; }
-
- private:
-  de265_thread_primitive m_thread;
-  bool m_running;
-  bool m_stop_request;
-
-  static THREAD_RESULT start_thread_main(THREAD_PARAM me);
-};
-
-
 class de265_mutex
 {
  public:
@@ -212,6 +188,32 @@ private:
   de265_cond  cond;
 };
 
+
+
+class de265_thread
+{
+ public:
+  de265_thread();
+  virtual ~de265_thread();
+
+  void start();
+  void stop();
+  void join();
+  bool running() const;
+
+  virtual void run() = 0;
+
+  bool should_stop() const;
+
+ private:
+  de265_thread_primitive m_thread;
+  bool m_running;
+  bool m_stop_request;
+
+  mutable de265_mutex m_mutex;
+
+  static THREAD_RESULT start_thread_main(THREAD_PARAM me);
+};
 
 
 class thread_task

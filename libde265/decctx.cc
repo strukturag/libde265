@@ -208,6 +208,7 @@ decoder_context::decoder_context()
 
 decoder_context::~decoder_context()
 {
+  stop_decoding_thread();
 }
 
 
@@ -308,6 +309,8 @@ void decoder_context::start_decoding_thread()
 void decoder_context::stop_decoding_thread()
 {
   m_main_loop_thread.stop();
+  send_main_loop_stop_signals();
+  m_main_loop_thread.join();
 }
 
 
@@ -384,6 +387,11 @@ void decoder_context::run_main_loop()
     if (queue_full) {
       printf("... wait has space\n");
       m_decoding_loop_has_space_cond.wait(m_main_loop_mutex);
+
+      if (m_main_loop_thread.should_stop()) {
+        break;
+      }
+
       printf("... signalled has space\n");
       continue;
     }
@@ -391,6 +399,11 @@ void decoder_context::run_main_loop()
     if (input_empty && !m_end_of_stream) {
       printf("... wait has input\n");
       m_input_available_cond.wait(m_main_loop_mutex);
+
+      if (m_main_loop_thread.should_stop()) {
+        break;
+      }
+
       printf("... signalled has input\n");
       continue;
     }

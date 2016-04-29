@@ -706,7 +706,7 @@ int main(int argc, char** argv)
 
   int pos=0;
 
-  while (!stop)
+  while (!stop && false)
     {
       //tid = (framecnt/1000) & 1;
       //de265_set_limit_TID(ctx, tid);

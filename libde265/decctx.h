@@ -305,6 +305,7 @@ class decoder_context : public base_context,
   public:
     thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
     void run() { while (!should_stop()) { m_decctx->run_main_loop(); } }
+
   private:
     decoder_context* m_decctx;
   };
@@ -315,6 +316,14 @@ class decoder_context : public base_context,
   de265_cond  m_input_available_cond;
 
   void run_main_loop();
+
+  void send_main_loop_stop_signals() {
+    m_main_loop_mutex.lock();
+    m_decoding_loop_has_space_cond.signal();
+    m_input_available_cond.signal();
+    m_main_loop_mutex.unlock();
+  }
+
 
   std::deque<image_unit_ptr> m_image_units_in_progress;
   static const int m_max_images_processed_in_parallel = 4;

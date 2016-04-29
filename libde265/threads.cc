@@ -106,12 +106,24 @@ void de265_thread::start()
 
 void de265_thread::stop()
 {
+  m_mutex.lock();
   m_stop_request = true;
+  m_mutex.unlock();
+}
 
+void de265_thread::join()
+{
   assert(m_running);
   de265_thread_join(m_thread);
   de265_thread_destroy(&m_thread);
   m_running = false;
+}
+
+bool de265_thread::should_stop() const
+{
+  lock_guard lock(m_mutex);
+
+  return m_stop_request;
 }
 
 bool de265_thread::running() const
@@ -328,9 +340,9 @@ void thread_pool::stop()
 {
   m_mutex.lock();
   m_stopped = true;
-  m_mutex.unlock();
 
   m_cond_var.broadcast(m_mutex);
+  m_mutex.unlock();
 
   for (int i=0;i<m_num_threads;i++) {
     de265_thread_join(m_thread[i]);
