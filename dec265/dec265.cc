@@ -714,12 +714,12 @@ int main(int argc, char** argv)
 
       int actions = de265_get_action(ctx, true);
 
-      /*
+
       printf("actions: push-input:%d get-image:%d eos:%d\n",
              !!(actions & de265_action_push_more_input),
              !!(actions & de265_action_get_image),
              !!(actions & de265_action_end_of_stream));
-      */
+
 
       // --- push more input ---
 

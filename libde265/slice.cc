@@ -4944,7 +4944,7 @@ void thread_task_slice::work()
 
   printf("d\n");
 
-  tctx->decctx->check_decoding_queue_for_finished_images();
+  tctx->decctx->on_image_decoding_finished();
 
   printf("e\n");
 

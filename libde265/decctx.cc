@@ -89,6 +89,48 @@ thread_context::thread_context()
 }
 
 
+void thread_context::init_quantization()
+{
+  // zero scrap memory for coefficient blocks
+  memset(_coeffBuf, 0, sizeof(_coeffBuf));  // TODO: check if we can safely remove this
+
+  currentQG_x = -1;
+  currentQG_y = -1;
+
+
+
+  // --- find QPY that was active at the end of the previous slice ---
+
+  // find the previous CTB in TS order
+
+  const pic_parameter_set& pps = img->get_pps();
+  const seq_parameter_set& sps = img->get_sps();
+
+
+  if (shdr->slice_segment_address > 0) {
+    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
+
+    int ctbX = prevCtb % sps.PicWidthInCtbsY;
+    int ctbY = prevCtb / sps.PicWidthInCtbsY;
+
+
+    // take the pixel at the bottom right corner (but consider that the image size might be smaller)
+
+    int x = ((ctbX+1) << sps.Log2CtbSizeY)-1;
+    int y = ((ctbY+1) << sps.Log2CtbSizeY)-1;
+
+    x = std::min(x,sps.pic_width_in_luma_samples-1);
+    y = std::min(y,sps.pic_height_in_luma_samples-1);
+
+    //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
+
+    currentQPY = img->get_QPY(x,y);
+  }
+}
+
+
+
+
 
 base_context::base_context()
 {
@@ -256,44 +298,6 @@ void base_context::set_acceleration_functions(enum de265_acceleration l)
 }
 
 
-void thread_context::init()
-{
-  // zero scrap memory for coefficient blocks
-  memset(_coeffBuf, 0, sizeof(_coeffBuf));  // TODO: check if we can safely remove this
-
-  currentQG_x = -1;
-  currentQG_y = -1;
-
-
-
-  // --- find QPY that was active at the end of the previous slice ---
-
-  // find the previous CTB in TS order
-
-  const pic_parameter_set& pps = img->get_pps();
-  const seq_parameter_set& sps = img->get_sps();
-
-
-  if (shdr->slice_segment_address > 0) {
-    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[shdr->slice_segment_address] -1 ];
-
-    int ctbX = prevCtb % sps.PicWidthInCtbsY;
-    int ctbY = prevCtb / sps.PicWidthInCtbsY;
-
-
-    // take the pixel at the bottom right corner (but consider that the image size might be smaller)
-
-    int x = ((ctbX+1) << sps.Log2CtbSizeY)-1;
-    int y = ((ctbY+1) << sps.Log2CtbSizeY)-1;
-
-    x = std::min(x,sps.pic_width_in_luma_samples-1);
-    y = std::min(y,sps.pic_height_in_luma_samples-1);
-
-    //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
-
-    currentQPY = img->get_QPY(x,y);
-  }
-}
 
 
 void decoder_context::start_decoding_thread()
@@ -356,7 +360,7 @@ int  decoder_context::get_action(bool blocking)
     else {
       // block until queue status changes
 
-      break; // TODO -> wait on condition variable
+      m_cond_api_action.wait(m_main_loop_mutex);
     }
   }
 
@@ -416,9 +420,13 @@ void decoder_context::run_main_loop()
 }
 
 
-void decoder_context::check_decoding_queue_for_finished_images()
+void decoder_context::on_image_decoding_finished()
 {
+  printf("mainloop lock\n");
+
   m_main_loop_mutex.lock();
+
+  printf("on_image_decoding_finished()\n");
 
   while (!m_image_units_in_progress.empty() &&
          m_image_units_in_progress.front()->img->debug_is_completed()) {
@@ -439,13 +447,15 @@ void decoder_context::check_decoding_queue_for_finished_images()
     m_output_queue.flush_reorder_buffer();
   }
 
+  m_cond_api_action.signal();
+
   m_main_loop_mutex.unlock();
 }
 
 
 void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
-  std::cout << "decoding of image " << imgunit->img->PicOrderCntVal << "\n";
+  std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
 
 
   for (slice_unit* sliceunit : imgunit->slice_units) {
@@ -605,7 +615,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 {
   de265_error err = DE265_OK;
 
-  printf("decode slice POC=%d addr=%d, img=%p\n",
+  printf("create tasks to decode slice POC=%d addr=%d, img=%p\n",
          sliceunit->shdr->slice_pic_order_cnt_lsb,
          sliceunit->shdr->slice_segment_address,
          imgunit->img.get());
@@ -630,7 +640,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx->shdr->slice_segment_address];
   tctx->task = NULL;
 
-  tctx->init();
+  tctx->init_quantization();
 
   if (sliceunit->reader.bytes_remaining <= 0) {
     return DE265_ERROR_PREMATURE_END_OF_SLICE;
@@ -954,7 +964,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
-    tctx->init();
+    tctx->init_quantization();
 
 
     // init CABAC
@@ -1064,7 +1074,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->sliceunit= sliceunit;
     tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
-    tctx->init();
+    tctx->init_quantization();
 
 
     // init CABAC
@@ -1135,6 +1145,8 @@ void decoder_context::send_image_unit(image_unit_ptr imgunit)
   image_units.push_back(imgunit);
 
   m_input_available_cond.signal();
+  m_cond_api_action.signal();
+
   m_main_loop_mutex.unlock();
 
   debug_imageunit_state();
@@ -1148,6 +1160,8 @@ void decoder_context::send_end_of_stream()
   m_end_of_stream = true;
 
   m_input_available_cond.signal();
+  m_cond_api_action.signal();
+
   m_main_loop_mutex.unlock();
 }
 
