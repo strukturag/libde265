@@ -244,6 +244,8 @@ typedef std::shared_ptr<thread_task> thread_task_ptr;
 class thread_pool
 {
  public:
+  thread_pool() { m_stopped=true; }
+
   de265_error start(int num_threads);
   void stop();
 
