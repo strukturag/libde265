@@ -219,10 +219,8 @@ class de265_thread
 class thread_task
 {
 public:
-  thread_task() : state(Queued) { }
+  thread_task() { }
   virtual ~thread_task() { }
-
-  enum { Queued, Running, Blocked, Finished } state;
 
   virtual void work() = 0;
 

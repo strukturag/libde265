@@ -674,7 +674,6 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
     thread_blocks();
 
     assert(task!=NULL);
-    task->state = thread_task::Blocked;
 
     /* TODO: check whether we are the first blocked task in the list.
        If we are, we have to conceal input errors.
@@ -682,7 +681,6 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
     */
 
     progresslock->wait_for_progress(progress);
-    task->state = thread_task::Running;
     thread_unblocks();
   }
 }

@@ -914,7 +914,6 @@ public:
 
 void thread_task_deblock_CTBRow::work()
 {
-  state = Running;
   img->thread_run(this);
 
   int xStart=0;
@@ -985,7 +984,6 @@ void thread_task_deblock_CTBRow::work()
     img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
-  state = Finished;
   img->thread_finishes(this);
 }
 

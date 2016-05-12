@@ -4926,12 +4926,10 @@ void thread_task_slice::work()
 {
   //printf("thread_task_slice::work()\n");
 
-  state = Running;
   tctx->img->thread_run(this);
 
   de265_error err=read_slice_segment_data(tctx);
 
-  state = Finished;
   tctx->sliceunit->finished_threads.set_progress(1);
 
   tctx->img->thread_finishes(this);
@@ -4948,7 +4946,6 @@ void thread_task_slice_segment::work()
   thread_context* tctx = data->tctx;
   image_ptr img = tctx->img;
 
-  state = Running;
   img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
@@ -4958,7 +4955,6 @@ void thread_task_slice_segment::work()
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
-      state = Finished;
       tctx->sliceunit->finished_threads.increase_progress(1);
       img->thread_finishes(this);
       return;
@@ -4972,7 +4968,6 @@ void thread_task_slice_segment::work()
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
-  state = Finished;
   tctx->sliceunit->finished_threads.increase_progress(1);
   img->thread_finishes(this);
 
@@ -4989,7 +4984,6 @@ void thread_task_ctb_row::work()
   const seq_parameter_set& sps = img->get_sps();
   int ctbW = sps.PicWidthInCtbsY;
 
-  state = Running;
   img->thread_run(this);
 
   setCtbAddrFromTS(tctx);
@@ -5007,7 +5001,6 @@ void thread_task_ctb_row::work()
         img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
       }
 
-      state = Finished;
       tctx->sliceunit->finished_threads.increase_progress(1);
       img->thread_finishes(this);
       return;
@@ -5038,7 +5031,6 @@ void thread_task_ctb_row::work()
     }
   }
 
-  state = Finished;
   tctx->sliceunit->finished_threads.increase_progress(1);
   img->thread_finishes(this);
 }

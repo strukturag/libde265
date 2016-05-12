@@ -396,7 +396,6 @@ public:
 
 void thread_task_sao::work()
 {
-  state = Running;
   img->thread_run(this);
 
   const seq_parameter_set& sps = img->get_sps();
@@ -461,7 +460,6 @@ void thread_task_sao::work()
   }
 
 
-  state = Finished;
   img->thread_finishes(this);
 }
 
