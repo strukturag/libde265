@@ -75,8 +75,12 @@ public:
   de265_progress_lock finished_threads;
   int nThreads;
 
-  int first_decoded_CTB_RS; // TODO
-  int last_decoded_CTB_RS;  // TODO
+  // CTBs that are covered by this slice-unit.
+  // Note: this does not necessarily equal exactly which CTBs are decoded. If some slices
+  // are missing in the stream, the missing CTBs are added to some slice-units. Hence, the
+  // whole picture is always covered. Even if some slices are missing.
+  int first_CTB_TS;
+  int last_CTB_TS;
 
   void allocate_thread_contexts(int n);
   thread_context* get_thread_context(int n);

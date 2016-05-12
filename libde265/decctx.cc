@@ -510,6 +510,9 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
 
   for (slice_unit* sliceunit : imgunit->slice_units) {
+
+    //printf("decoding slice CTBs: %d - %d\n",sliceunit->first_CTB_TS, sliceunit->last_CTB_TS);
+
     de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
       // TODO
@@ -733,29 +736,19 @@ void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
                                                     slice_unit* sliceunit,
                                                     int progress)
 {
-  //printf("mark whole slice\n");
+  // mark all CTBs assigned to this slice as processed
 
+  for (int ctb=sliceunit->first_CTB_TS;
+       ctb <=  sliceunit->last_CTB_TS;
+       ctb++)
+    {
+      if (ctb >= imgunit->img->number_of_ctbs())
+        break;
 
-  // mark all CTBs upto the next slice segment as processed
+      int ctb_rs = sliceunit->shdr->pps->CtbAddrTStoRS[ctb];
 
-  slice_unit* nextSegment = imgunit->get_next_slice_segment(sliceunit);
-  if (nextSegment) {
-    /*
-    printf("mark whole slice between %d and %d\n",
-           sliceunit->shdr->slice_segment_address,
-           nextSegment->shdr->slice_segment_address);
-    */
-
-    for (int ctb=sliceunit->shdr->slice_segment_address;
-         ctb < nextSegment->shdr->slice_segment_address;
-         ctb++)
-      {
-        if (ctb >= imgunit->img->number_of_ctbs())
-          break;
-
-        imgunit->img->ctb_progress[ctb].set_progress(progress);
-      }
-  }
+      imgunit->img->ctb_progress[ctb].set_progress(progress);
+    }
 }
 
 

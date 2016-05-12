@@ -296,6 +296,24 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     sliceunit->flush_reorder_buffer = flush_reorder_buffer_at_this_frame;
 
 
+    // --- assign CTB-range that is covered by this slice-unit ---
+
+    sliceunit->first_CTB_TS = shdr->pps->CtbAddrTStoRS[shdr->slice_segment_address];
+    sliceunit->last_CTB_TS  = shdr->pps->sps->PicSizeInCtbsY -1;
+
+    bool first_observed_slice_unit = (m_curr_image_unit->slice_units.empty());
+
+    if (!first_observed_slice_unit) {
+      m_curr_image_unit->slice_units.back()->last_CTB_TS = sliceunit->first_CTB_TS - 1;
+    }
+
+    if (first_observed_slice_unit) {
+      sliceunit->first_CTB_TS = 0;
+    }
+
+
+    // --- add slice-unit to image-unit ---
+
     m_curr_image_unit->slice_units.push_back(sliceunit);
   }
 

@@ -29,8 +29,8 @@ slice_unit::slice_unit(decoder_context* decctx)
     imgunit(NULL),
     flush_reorder_buffer(false),
     nThreads(0),
-    first_decoded_CTB_RS(-1),
-    last_decoded_CTB_RS(-1),
+    first_CTB_TS(-1),
+    last_CTB_TS(-1),
     thread_contexts(NULL),
     ctx(decctx)
 {
