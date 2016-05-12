@@ -86,6 +86,9 @@ public:
   thread_context* get_thread_context(int n);
   int num_thread_contexts() const { return nThreadContexts; }
 
+
+  void mark_whole_slice_as_processed(int progress);
+
 private:
   thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
                                       no copy constructor. */
