@@ -884,20 +884,12 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
-
-
-  if (use_WPP && use_tiles) {
-    // TODO: this is not allowed ... output some warning or error
-
-    return DE265_WARNING_PPS_HEADER_INVALID;
-  }
-
-
-  if (use_WPP) {
-    //printf("WPP\n");
+  else if (use_WPP) {
+    printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    printf("WPP end\n");
     return err;
   }
   else if (use_tiles) {
@@ -906,6 +898,11 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     sliceunit->state = slice_unit::Decoded;
     mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
+  }
+  else if (use_WPP && use_tiles) {
+    // TODO: this is not allowed ... output some warning or error
+
+    return DE265_WARNING_PPS_HEADER_INVALID;
   }
 
   assert(false);
