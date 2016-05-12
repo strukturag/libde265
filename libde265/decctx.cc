@@ -560,7 +560,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
       *did_work = true;
 
-      err = decode_slice_unit_parallel(imgunit, sliceunit);
+      err = decode_slice_unit_parallel(sliceunit);
       if (err) {
         return err;
       }
@@ -732,10 +732,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 }
 
 
-void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
-                                                    slice_unit* sliceunit,
+void decoder_context::mark_whole_slice_as_processed(slice_unit* sliceunit,
                                                     int progress)
 {
+  const image_unit* imgunit = sliceunit->imgunit;
+
+
   // mark all CTBs assigned to this slice as processed
 
   for (int ctb=sliceunit->first_CTB_TS;
@@ -752,10 +754,11 @@ void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
 }
 
 
-de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
-                                                        slice_unit* sliceunit)
+de265_error decoder_context::decode_slice_unit_parallel(slice_unit* sliceunit)
 {
   de265_error err = DE265_OK;
+
+  image_unit* imgunit = sliceunit->imgunit;
 
   // TODO: do this when the slice is moved from processing to output queue
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
@@ -809,7 +812,7 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
   slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
   //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
   if (prevSlice && prevSlice->state == slice_unit::Decoded) {
-    mark_whole_slice_as_processed(imgunit,prevSlice,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(prevSlice,CTB_PROGRESS_PREFILTER);
   }
 
 
@@ -819,7 +822,7 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
     //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
 
@@ -835,14 +838,14 @@ de265_error decoder_context::decode_slice_unit_parallel(image_unit* imgunit,
     //printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_tiles) {
     //printf("TILE\n");
     err = decode_slice_unit_tiles(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
 
@@ -908,7 +911,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
   //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
   if (prevSlice && prevSlice->state == slice_unit::Decoded) {
-    mark_whole_slice_as_processed(imgunit,prevSlice,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(prevSlice,CTB_PROGRESS_PREFILTER);
   }
 
 
@@ -918,14 +921,14 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_WPP) {
     printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     printf("WPP end\n");
     return err;
   }
@@ -933,7 +936,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     //printf("TILE\n");
     err = decode_slice_unit_tiles(imgunit, sliceunit);
     sliceunit->state = slice_unit::Decoded;
-    mark_whole_slice_as_processed(imgunit,sliceunit,CTB_PROGRESS_PREFILTER);
+    mark_whole_slice_as_processed(sliceunit,CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_WPP && use_tiles) {

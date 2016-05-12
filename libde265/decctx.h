@@ -292,7 +292,7 @@ class decoder_context : public base_context,
   thread_pool m_thread_pool;
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
-  de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
+  de265_error decode_slice_unit_parallel(slice_unit* sliceunit);
   de265_error decode_slice_unit_frame_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
@@ -406,9 +406,7 @@ class decoder_context : public base_context,
   bool m_end_of_stream;
 
  private:
-  void mark_whole_slice_as_processed(image_unit* imgunit,
-                                     slice_unit* sliceunit,
-                                     int progress);
+  void mark_whole_slice_as_processed(slice_unit* sliceunit, int progress);
 
   void remove_images_from_dpb(const std::vector<int>& removeImageList);
   void run_postprocessing_filters_sequential(image_ptr img);
