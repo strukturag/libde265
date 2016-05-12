@@ -747,7 +747,7 @@ void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
 
       int ctb_rs = sliceunit->shdr->pps->CtbAddrTStoRS[ctb];
 
-      imgunit->img->ctb_progress[ctb].set_progress(progress);
+      imgunit->img->ctb_progress[ctb_rs].set_progress(progress);
     }
 }
 
