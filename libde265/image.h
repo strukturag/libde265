@@ -472,6 +472,9 @@ public:
   bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
 
+  bool do_all_CTBs_have_progress(int progress) const;
+  void wait_until_all_CTBs_have_progress(thread_task* task, int progress);
+
  private:
   void thread_blocks();
   void thread_unblocks();

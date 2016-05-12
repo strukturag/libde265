@@ -688,6 +688,26 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 }
 
 
+void image::wait_until_all_CTBs_have_progress(thread_task* task, int progress)
+{
+  for (int i=0;i<ctb_info.data_size;i++) {
+    wait_for_progress(task,i,progress);
+  }
+}
+
+
+bool image::do_all_CTBs_have_progress(int progress) const
+{
+  for (int i=0;i<ctb_info.data_size;i++) {
+    if (ctb_progress[i].get_progress() < progress) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 void image::wait_for_completion()
 {
   mutex.lock();
