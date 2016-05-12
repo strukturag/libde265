@@ -59,6 +59,8 @@ extern void thread_decode_slice_segment(void* d);
 
 thread_context::thread_context()
 {
+  m_CTB_out_of_image = true;
+
   IsCuQpDeltaCoded = false;
   CuQpDelta = 0;
 
@@ -129,7 +131,25 @@ void thread_context::init_quantization()
 }
 
 
-bool thread_context::setCtbAddrFromTS()
+void thread_context::set_CTB_address_RS(int addr)
+{
+  CtbAddrInTS = img->get_pps().CtbAddrRStoTS[addr];
+  setCtbAddrFromTS();
+}
+
+
+bool thread_context::advance_CTB_TS()
+{
+  CtbAddrInTS++;
+  setCtbAddrFromTS();
+
+  return m_CTB_out_of_image;
+}
+
+
+
+
+void thread_context::setCtbAddrFromTS()
 {
   const seq_parameter_set& sps = img->get_sps();
 
@@ -138,14 +158,16 @@ bool thread_context::setCtbAddrFromTS()
 
     CtbX = CtbAddrInRS % sps.PicWidthInCtbsY;
     CtbY = CtbAddrInRS / sps.PicWidthInCtbsY;
-    return false;
+
+    m_CTB_out_of_image = false;
   }
   else {
     CtbAddrInRS = sps.PicSizeInCtbsY;
 
     CtbX = CtbAddrInRS % sps.PicWidthInCtbsY;
     CtbY = CtbAddrInRS / sps.PicWidthInCtbsY;
-    return true;
+
+    m_CTB_out_of_image = true;
   }
 }
 
@@ -667,7 +689,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->decctx = this;
   tctx->imgunit = imgunit;
   tctx->sliceunit= sliceunit;
-  tctx->CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx->shdr->slice_segment_address];
+  tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
   tctx->task = NULL;
 
   tctx->init_quantization();
@@ -989,7 +1011,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->img     = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
-    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    tctx->set_CTB_address_RS(ctbAddrRS);
 
     tctx->init_quantization();
 
@@ -1099,7 +1121,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->img    = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
-    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    tctx->set_CTB_address_RS(ctbAddrRS);
 
     tctx->init_quantization();
 

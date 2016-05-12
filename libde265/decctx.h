@@ -62,14 +62,18 @@ public:
 
   void init_quantization();
 
-  int CtbAddrInTS;  // primary CTB address, this is incremented during decoding
-  int CtbAddrInRS;  // derived CTB address in raster scan
+  int  get_CTB_address_TS() const { return CtbAddrInTS; }
+  int  get_CTB_address_RS() const { return CtbAddrInRS; }
 
-  int CtbX, CtbY;
+  int  get_CTB_x() const { return CtbX; }
+  int  get_CTB_y() const { return CtbY; }
 
-  // Take CtbAddrInTS and compute: CtbAddrInRS, CtbX, CtbY.
-  // Returns 'true' when we reached the end of the image (addresses out of image area)
-  bool setCtbAddrFromTS();
+  void set_CTB_address_RS(int addr);
+
+  // returns 'true' when we left the image area
+  bool advance_CTB_TS();
+
+  bool current_CTB_outside_image() const { return m_CTB_out_of_image; }
 
 
   // motion vectors
@@ -130,6 +134,18 @@ public:
   thread_task_ptr task; // executing thread_task or NULL if not multi-threaded
 
 private:
+  bool m_CTB_out_of_image;
+  int CtbAddrInTS;  // primary CTB address, this is incremented during decoding
+  int CtbAddrInRS;  // derived CTB address in raster scan
+
+  int CtbX, CtbY;
+
+  // Take CtbAddrInTS and compute: CtbAddrInRS, CtbX, CtbY, out-of-image flag.
+  void setCtbAddrFromTS();
+
+
+
+
   thread_context(const thread_context&); // not allowed
   const thread_context& operator=(const thread_context&); // not allowed
 };
