@@ -460,8 +460,6 @@ public:
 
   void thread_start(int nThreads);
   void thread_run(const thread_task*);
-  void thread_blocks();
-  void thread_unblocks();
   /* NOTE: you should not access any data in the thread_task after
      calling this, as this function may unlock other threads that
      will push this image to the output queue and free all decoder data. */
@@ -473,6 +471,10 @@ public:
   void wait_for_completion();  // block until image is decoded by background threads
   bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
+
+ private:
+  void thread_blocks();
+  void thread_unblocks();
 
   //private:
   int   nThreadsQueued;

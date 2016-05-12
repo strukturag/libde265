@@ -623,6 +623,7 @@ void image::thread_run(const thread_task* task)
   mutex.unlock();
 }
 
+
 void image::thread_blocks()
 {
   mutex.lock();
@@ -638,6 +639,7 @@ void image::thread_unblocks()
   nThreadsRunning++;
   mutex.unlock();
 }
+
 
 void image::thread_finishes(const thread_task* task)
 {
