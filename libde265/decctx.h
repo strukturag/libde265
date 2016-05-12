@@ -62,10 +62,14 @@ public:
 
   void init_quantization();
 
-  int CtbAddrInRS;
-  int CtbAddrInTS;
+  int CtbAddrInTS;  // primary CTB address, this is incremented during decoding
+  int CtbAddrInRS;  // derived CTB address in raster scan
 
   int CtbX, CtbY;
+
+  // Take CtbAddrInTS and compute: CtbAddrInRS, CtbX, CtbY.
+  // Returns 'true' when we reached the end of the image (addresses out of image area)
+  bool setCtbAddrFromTS();
 
 
   // motion vectors

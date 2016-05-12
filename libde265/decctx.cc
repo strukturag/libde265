@@ -129,6 +129,28 @@ void thread_context::init_quantization()
 }
 
 
+bool thread_context::setCtbAddrFromTS()
+{
+  const seq_parameter_set& sps = img->get_sps();
+
+  if (CtbAddrInTS < sps.PicSizeInCtbsY) {
+    CtbAddrInRS = img->get_pps().CtbAddrTStoRS[CtbAddrInTS];
+
+    CtbX = CtbAddrInRS % sps.PicWidthInCtbsY;
+    CtbY = CtbAddrInRS / sps.PicWidthInCtbsY;
+    return false;
+  }
+  else {
+    CtbAddrInRS = sps.PicSizeInCtbsY;
+
+    CtbX = CtbAddrInRS % sps.PicWidthInCtbsY;
+    CtbY = CtbAddrInRS / sps.PicWidthInCtbsY;
+    return true;
+  }
+}
+
+
+
 
 
 

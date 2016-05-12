@@ -2678,35 +2678,12 @@ static int  decode_explicit_rdpcm_dir(thread_context* tctx,int cIdx)
 
 
 
-/* Take CtbAddrInTS and compute
-   -> CtbAddrInRS, CtbX, CtbY
- */
-bool setCtbAddrFromTS(thread_context* tctx)
-{
-  const seq_parameter_set& sps = tctx->img->get_sps();
-
-  if (tctx->CtbAddrInTS < sps.PicSizeInCtbsY) {
-    tctx->CtbAddrInRS = tctx->img->get_pps().CtbAddrTStoRS[tctx->CtbAddrInTS];
-
-    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
-    return false;
-  }
-  else {
-    tctx->CtbAddrInRS = sps.PicSizeInCtbsY;
-
-    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
-    return true;
-  }
-}
-
 // returns true when we reached the end of the image (ctbAddr==picSizeInCtbsY)
 bool advanceCtbAddr(thread_context* tctx)
 {
     tctx->CtbAddrInTS++;
 
-    return setCtbAddrFromTS(tctx);
+    return tctx->setCtbAddrFromTS();
 }
 
 
@@ -4948,7 +4925,7 @@ void thread_task_slice_segment::work()
 
   img->thread_run(this);
 
-  setCtbAddrFromTS(tctx);
+  tctx->setCtbAddrFromTS();
 
   //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
 
@@ -4986,7 +4963,7 @@ void thread_task_ctb_row::work()
 
   img->thread_run(this);
 
-  setCtbAddrFromTS(tctx);
+  tctx->setCtbAddrFromTS();
 
   int ctby = tctx->CtbAddrInRS / ctbW;
   int myCtbRow = ctby;
@@ -5038,7 +5015,7 @@ void thread_task_ctb_row::work()
 
 de265_error read_slice_segment_data(thread_context* tctx)
 {
-  setCtbAddrFromTS(tctx);
+  tctx->setCtbAddrFromTS();
 
   image* img = tctx->img.get();
   const pic_parameter_set& pps = img->get_pps();

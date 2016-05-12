@@ -158,7 +158,7 @@ public:
   char no_output_of_prior_pics_flag;
   int  slice_pic_parameter_set_id;
   char dependent_slice_segment_flag;
-  int  slice_segment_address;
+  int  slice_segment_address; // in raster-scan
 
   int  slice_type;
   char pic_output_flag;
