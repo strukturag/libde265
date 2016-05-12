@@ -62,6 +62,9 @@ public:
 
   void init_quantization();
 
+
+  // --- current CTB address --
+
   int  get_CTB_address_TS() const { return CtbAddrInTS; }
   int  get_CTB_address_RS() const { return CtbAddrInRS; }
 
@@ -76,7 +79,7 @@ public:
   bool current_CTB_outside_image() const { return m_CTB_out_of_image; }
 
 
-  // motion vectors
+  // --- motion vectors ---
 
   PBMotionCoding motion;
 
