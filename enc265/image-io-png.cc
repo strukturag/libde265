@@ -77,7 +77,7 @@ image* ImageSource_PNG::get_image(bool block)
   img->alloc_image(mWidth,mHeight,de265_chroma_444, 8,8,
                    0, // PTS
                    image::supplementary_data(),
-                   NULL, false);
+                   NULL);
   assert(img); // TODO: error handling
 
 
