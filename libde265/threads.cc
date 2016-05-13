@@ -168,6 +168,8 @@ void de265_progress_lock::set_progress(int progress)
   mutex.lock();
 
   if (progress>mProgress) {
+  printf("set progress %d\n",progress);
+
     mProgress = progress;
 
     cond.broadcast(mutex);
@@ -188,7 +190,11 @@ void de265_progress_lock::increase_progress(int progress)
 
 int  de265_progress_lock::get_progress() const
 {
-  return mProgress;
+  mutex.lock(); // need lock, otherwise helgrind complains
+  int progress = mProgress;
+  mutex.unlock();
+
+  return progress;
 }
 
 
@@ -287,7 +293,9 @@ void thread_pool::worker_thread_main_loop()
 
     // execute the task
 
+    printf("start task: %s\n",task->name().c_str());
     task->work();
+    printf("end task: %s\n",task->name().c_str());
 
     // end processing and check if this was the last task to be processed
 

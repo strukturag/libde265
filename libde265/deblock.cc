@@ -914,7 +914,7 @@ public:
 
 void thread_task_deblock_CTBRow::work()
 {
-  img->thread_run(this);
+  //img->thread_run(this);
 
   int xStart=0;
   int xEnd = img->get_deblk_width();
@@ -984,7 +984,7 @@ void thread_task_deblock_CTBRow::work()
     img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
 }
 
 
@@ -996,7 +996,7 @@ void add_deblocking_tasks(image_unit* imgunit)
   int nRows = img->get_sps().PicHeightInCtbsY;
 
   int n=0;
-  img->thread_start(nRows*2);
+  //img->thread_start(nRows*2);
 
   for (int pass=0;pass<2;pass++)
     {

@@ -177,7 +177,12 @@ public:
          Dropped         // will not be decoded
   } state;
 
-  std::vector<thread_task_ptr> tasks; // we are the owner
+
+  // The main purpose of having pointers to all tasks is to keep them alive until the
+  // image is decoded.
+  std::vector<thread_task_ptr> tasks;
+
+
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.

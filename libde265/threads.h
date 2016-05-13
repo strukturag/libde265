@@ -184,8 +184,8 @@ private:
 
   // private data
 
-  de265_mutex mutex;
-  de265_cond  cond;
+  mutable de265_mutex mutex;
+  mutable de265_cond  cond;
 };
 
 

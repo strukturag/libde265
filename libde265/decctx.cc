@@ -272,6 +272,7 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
   m_thread_pool.start(nThreads);
+  m_master_thread_pool.start(m_max_images_processed_in_parallel);
 
   num_worker_threads = nThreads;
 
@@ -285,6 +286,8 @@ void decoder_context::stop_thread_pool()
     //flush_thread_pool(&ctx->thread_pool);
     m_thread_pool.stop();
   }
+
+  m_master_thread_pool.stop();
 }
 
 
@@ -292,6 +295,7 @@ void decoder_context::reset()
 {
   if (num_worker_threads>0) {
     m_thread_pool.stop();
+    m_master_thread_pool.stop();
   }
 
 
@@ -317,6 +321,7 @@ void decoder_context::reset()
   if (num_worker_threads>0) {
     // TODO: need error checking
     start_thread_pool(num_worker_threads);
+    m_master_thread_pool.start(m_max_images_processed_in_parallel);
   }
 }
 
@@ -482,8 +487,10 @@ void decoder_context::on_image_decoding_finished()
 {
   m_main_loop_mutex.lock();
 
-  while (!m_image_units_in_progress.empty() &&
-         m_image_units_in_progress.front()->img->debug_is_completed()) {
+  printf("on_finished\n");
+
+  while (!m_image_units_in_progress.empty() &&              // TODO -----> final progress
+         m_image_units_in_progress.front()->img->do_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER)) {
     image_unit_ptr imgunit = m_image_units_in_progress.front();
     m_image_units_in_progress.pop_front();
 
@@ -504,10 +511,57 @@ void decoder_context::on_image_decoding_finished()
 }
 
 
+
+class thread_task_image_master_control : public thread_task
+{
+public:
+  image_unit* imgunit;
+
+  virtual std::string name() const { return "image_master_control"; }
+  virtual void work() {
+    printf("master waits\n");
+    imgunit->img->wait_until_all_CTBs_have_progress(this, CTB_PROGRESS_PREFILTER);
+    imgunit->img->decctx->on_image_decoding_finished();
+    printf("master finished\n");
+  }
+};
+
+
 void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
   // std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
 
+
+  // generate master-control thread
+
+  auto master_thread = std::make_shared<thread_task_image_master_control>();
+  master_thread->imgunit = imgunit.get();
+
+  m_master_thread_pool.add_task(master_thread);
+  imgunit->tasks.push_back(master_thread);
+
+
+  // --- build map which CTB is controled by which slice-header ---
+
+  const seq_parameter_set& sps = imgunit->img->get_sps();
+  const pic_parameter_set& pps = imgunit->img->get_pps();
+
+  for (slice_unit* sliceunit : imgunit->slice_units) {
+    for (int ctb = sliceunit->first_CTB_TS ;
+         ctb <= sliceunit->last_CTB_TS ;
+         ctb++) {
+      int ctb_rs = pps.CtbAddrTStoRS[ctb];
+
+      int xCtb = ctb_rs % sps.PicWidthInCtbsY;
+      int yCtb = ctb_rs / sps.PicWidthInCtbsY;
+
+      imgunit->img->set_SliceAddrRS          (xCtb,yCtb, sliceunit->shdr->SliceAddrRS);
+      imgunit->img->set_SliceHeaderIndex_ctbs(xCtb,yCtb, sliceunit->shdr->slice_index);
+    }
+  }
+
+
+  // --- generate decoding thread tasks for each slice ---
 
   for (slice_unit* sliceunit : imgunit->slice_units) {
 
@@ -625,6 +679,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     // run post-processing filters (deblocking & SAO)
 
+    printf("QWE\n");
+
     if (num_worker_threads)
       run_postprocessing_filters_parallel(imgunit);
     else
@@ -712,7 +768,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
     imgunit->ctx_models.resize( (imgunit->img->get_sps().PicHeightInCtbsY-1) ); //* CONTEXT_MODEL_TABLE_LENGTH );
   }
 
-  tctx->img->thread_start(1);
+  //tctx->img->thread_start(1);
   sliceunit->nThreads++;
 
 
@@ -898,23 +954,19 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   if (!use_WPP && !use_tiles) {
     //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
-    sliceunit->state = slice_unit::Decoded;
-    sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_WPP) {
     printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
-    sliceunit->state = slice_unit::Decoded;
-    sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
     printf("WPP end\n");
     return err;
   }
   else if (use_tiles) {
     //printf("TILE\n");
     err = decode_slice_unit_tiles(imgunit, sliceunit);
-    sliceunit->state = slice_unit::Decoded;
-    sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
+    //sliceunit->state = slice_unit::Decoded;
+    //sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
     return err;
   }
   else if (use_WPP && use_tiles) {
@@ -941,7 +993,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
-  assert(img->num_threads_active() == 0);
+  //assert(img->num_threads_active() == 0);
 
 
   // reserve space to store entropy coding context models for each CTB row
@@ -1014,7 +1066,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     // add task
 
     //printf("start task for ctb-row: %d\n",ctbRow);
-    img->thread_start(1);
+    //img->thread_start(1);
     sliceunit->nThreads++;
 
     auto task = std::make_shared<thread_task_ctb_row>();
@@ -1042,7 +1094,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 #endif
 
-  img->wait_for_completion();
+  //img->wait_for_completion();
 
   imgunit->tasks.clear();
 
@@ -1062,7 +1114,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   int ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
-  assert(img->num_threads_active() == 0);
+  //assert(img->num_threads_active() == 0);
 
   sliceunit->allocate_thread_contexts(nTiles);
 
@@ -1123,7 +1175,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     // add task
 
     //printf("add tiles thread\n");
-    img->thread_start(1);
+    //img->thread_start(1);
     sliceunit->nThreads++;
 
     auto task = std::make_shared<thread_task_slice_segment>();
@@ -1138,7 +1190,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->imgunit->tasks.push_back(task);
   }
 
-  img->wait_for_completion();
+  //img->wait_for_completion();
 
   imgunit->tasks.clear();
 
@@ -1234,7 +1286,7 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
     //apply_sample_adaptive_offset(img);
   }
 
-  img->wait_for_completion();
+  //img->wait_for_completion();
 }
 
 

@@ -237,7 +237,7 @@ void display_image(const struct de265_image* img)
   }
 
   win.Display(visu);
-  win.WaitForKeypress();
+  //win.WaitForKeypress();
 }
 #endif
 
@@ -645,6 +645,8 @@ int main(int argc, char** argv)
   }
 
 
+  de265_set_verbosity(verbosity);
+
   de265_error err =DE265_OK;
 
   de265_decoder_context* ctx = de265_new_decoder();
@@ -670,7 +672,6 @@ int main(int argc, char** argv)
     de265_disable_logging();
   }
 
-  de265_set_verbosity(verbosity);
 
 
   if (argc>=3) {

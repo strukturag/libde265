@@ -2833,9 +2833,8 @@ void read_coding_tree_unit(thread_context* tctx)
            xCtbPixels,yCtbPixels, xCtb,yCtb,
            tctx->img->PicOrderCntVal, tctx->shdr->SliceAddrRS);
 
-  img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
-
-  img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
+  //img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
+  //img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
 
   int CtbAddrInSliceSeg = tctx->get_CTB_address_RS() - shdr->slice_segment_address;
 
@@ -4902,17 +4901,28 @@ std::string thread_task_slice_segment::name() const {
 
 void thread_task_slice::work()
 {
-  //printf("thread_task_slice::work()\n");
+  printf("thread_task_slice::work()\n");
 
-  tctx->img->thread_run(this);
+  //tctx->img->thread_run(this);
+
+  printf("task_slice::work start decoding\n");
 
   de265_error err=read_slice_segment_data(tctx);
 
+  printf("task_slice::work set progress\n");
+
+  tctx->sliceunit->state = slice_unit::Decoded;
+  tctx->sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
+
   tctx->sliceunit->finished_threads.set_progress(1);
 
-  tctx->img->thread_finishes(this);
+  printf("task_slice::work thread_finishes\n");
 
-  tctx->decctx->on_image_decoding_finished();
+  //tctx->img->thread_finishes(this);
+
+  printf("task_slice::work END\n");
+
+  //tctx->decctx->on_image_decoding_finished();
 
   return; // DE265_OK;
 }
@@ -4924,7 +4934,7 @@ void thread_task_slice_segment::work()
   thread_context* tctx = data->tctx;
   image_ptr img = tctx->img;
 
-  img->thread_run(this);
+  //img->thread_run(this);
 
   //tctx->setCtbAddrFromTS();
 
@@ -4934,7 +4944,7 @@ void thread_task_slice_segment::work()
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
       tctx->sliceunit->finished_threads.increase_progress(1);
-      img->thread_finishes(this);
+      //img->thread_finishes(this);
       return;
     }
   }
@@ -4947,7 +4957,7 @@ void thread_task_slice_segment::work()
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
   tctx->sliceunit->finished_threads.increase_progress(1);
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
 
   return; // DE265_OK;
 }
@@ -4962,7 +4972,7 @@ void thread_task_ctb_row::work()
   const seq_parameter_set& sps = img->get_sps();
   int ctbW = sps.PicWidthInCtbsY;
 
-  img->thread_run(this);
+  //img->thread_run(this);
 
   //tctx->setCtbAddrFromTS();
 
@@ -4980,7 +4990,7 @@ void thread_task_ctb_row::work()
       }
 
       tctx->sliceunit->finished_threads.increase_progress(1);
-      img->thread_finishes(this);
+      //img->thread_finishes(this);
       return;
     }
     //initialize_CABAC(tctx);
@@ -5010,9 +5020,11 @@ void thread_task_ctb_row::work()
   }
 
   tctx->sliceunit->finished_threads.increase_progress(1);
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
 }
 
+
+#include <unistd.h>
 
 de265_error read_slice_segment_data(thread_context* tctx)
 {
@@ -5023,10 +5035,16 @@ de265_error read_slice_segment_data(thread_context* tctx)
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
 
+  printf("a %p\n", tctx);
+  //sleep(1000);
+
   bool success = initialize_CABAC_at_slice_segment_start(tctx);
   if (!success) {
+  printf("b\n");
     return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
   }
+
+  printf("c %p\n",&tctx->cabac_decoder);
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
@@ -5038,6 +5056,8 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   enum DecodeResult result;
   do {
+    printf("decoding CTB %d;%d\n",tctx->get_CTB_x(),tctx->get_CTB_y());
+
     int ctby = tctx->get_CTB_y();
 
 

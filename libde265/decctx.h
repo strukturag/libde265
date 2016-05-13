@@ -290,6 +290,7 @@ class decoder_context : public base_context,
 
 
   thread_pool m_thread_pool;
+  thread_pool m_master_thread_pool;  // pool for all the master threads
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(slice_unit* sliceunit);
@@ -321,7 +322,7 @@ class decoder_context : public base_context,
 
 
  private:
-  int num_worker_threads;
+  int num_worker_threads;  // input parameter: the number of desired worker threads
 
 
   // --- main loop ---
@@ -351,7 +352,7 @@ class decoder_context : public base_context,
 
 
   std::deque<image_unit_ptr> m_image_units_in_progress;
-  static const int m_max_images_processed_in_parallel = 10;
+  static const int m_max_images_processed_in_parallel = 1; //////////////////// PARAMETER
 
 
   // condition variable that signals when api-user action might change

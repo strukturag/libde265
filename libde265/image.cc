@@ -244,11 +244,13 @@ image::image()
   PicState = UnusedForReference;
   PicOutputFlag = false;
 
+  /*
   nThreadsQueued   = 0;
   nThreadsRunning  = 0;
   nThreadsBlocked  = 0;
   nThreadsFinished = 0;
   nThreadsTotal    = 0;
+  */
 }
 
 
@@ -599,6 +601,7 @@ void image::exchange_pixel_data_with(image& b)
 }
 
 
+/*
 void image::thread_start(int nThreads)
 {
   mutex.lock();
@@ -657,6 +660,7 @@ void image::thread_finishes(const thread_task* task)
 
   mutex.unlock();
 }
+*/
 
 void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
 {
@@ -670,8 +674,9 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
   if (task==NULL) { return; }
 
   de265_progress_lock* progresslock = &ctb_progress[ctbAddrRS];
+  printf("wait for progress %d %d\n",progresslock->get_progress() , progress);
   if (progresslock->get_progress() < progress) {
-    thread_blocks();
+    //thread_blocks();
 
     assert(task!=NULL);
 
@@ -681,7 +686,7 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
     */
 
     progresslock->wait_for_progress(progress);
-    thread_unblocks();
+    //thread_unblocks();
   }
 }
 
@@ -689,6 +694,7 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 void image::wait_until_all_CTBs_have_progress(thread_task* task, int progress)
 {
   for (int i=0;i<ctb_info.data_size;i++) {
+    printf("wait for CTB %i   %p\n",i,task);
     wait_for_progress(task,i,progress);
   }
 }
@@ -706,6 +712,7 @@ bool image::do_all_CTBs_have_progress(int progress) const
 }
 
 
+/*
 void image::wait_for_completion()
 {
   mutex.lock();
@@ -725,6 +732,7 @@ bool image::debug_is_completed() const
 
   return completed;
 }
+*/
 
 
 

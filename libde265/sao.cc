@@ -396,7 +396,7 @@ public:
 
 void thread_task_sao::work()
 {
-  img->thread_run(this);
+  //img->thread_run(this);
 
   const seq_parameter_set& sps = img->get_sps();
 
@@ -460,7 +460,7 @@ void thread_task_sao::work()
   }
 
 
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
 }
 
 
@@ -495,7 +495,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
   int nRows = sps.PicHeightInCtbsY;
 
   int n=0;
-  img->thread_start(nRows);
+  //img->thread_start(nRows);
 
   for (int y=0;y<nRows;y++)
     {
@@ -514,7 +514,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   /* Currently need barrier here because when are finished, we have to swap the pixel
      data back into the main image. */
-  img->wait_for_completion();
+  //img->wait_for_completion();
 
   img->exchange_pixel_data_with(imgunit->sao_output);
 

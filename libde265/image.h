@@ -458,33 +458,39 @@ public:
   }
 
 
-  void thread_start(int nThreads);
-  void thread_run(const thread_task*);
+  //void thread_start(int nThreads);
+  //void thread_run(const thread_task*);
   /* NOTE: you should not access any data in the thread_task after
      calling this, as this function may unlock other threads that
      will push this image to the output queue and free all decoder data. */
-  void thread_finishes(const thread_task*);
+  //void thread_finishes(const thread_task*);
 
   void wait_for_progress(thread_task* task, int ctbx,int ctby, int progress);
   void wait_for_progress(thread_task* task, int ctbAddrRS, int progress);
 
+  /*
   void wait_for_completion();  // block until image is decoded by background threads
   bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
+  */
 
   bool do_all_CTBs_have_progress(int progress) const;
   void wait_until_all_CTBs_have_progress(thread_task* task, int progress);
 
  private:
+  /*
   void thread_blocks();
   void thread_unblocks();
+  */
 
   //private:
+  /*
   int   nThreadsQueued;
   int   nThreadsRunning;
   int   nThreadsBlocked;
   int   nThreadsFinished;
   int   nThreadsTotal;
+  */
 
   // ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
   mutable de265_mutex mutex;
@@ -740,8 +746,15 @@ public:
   }
 
 
+  void set_SliceHeaderIndex_ctbs(int ctbX, int ctbY, int SliceHeaderIndex)
+  {
+    int idx = ctbX + ctbY*ctb_info.width_in_units;
+    ctb_info[idx].SliceHeaderIndex = SliceHeaderIndex;
+  }
+
   void set_SliceHeaderIndex(int x, int y, int SliceHeaderIndex)
   {
+    assert(false);
     ctb_info.get(x,y).SliceHeaderIndex = SliceHeaderIndex;
   }
 
