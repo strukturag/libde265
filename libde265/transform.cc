@@ -394,7 +394,10 @@ void scale_coefficients_internal(thread_context* tctx,
   const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps.get_bit_depth(cIdx));
 
   //assert(intra == (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA));
-  int cuPredModeIntra = (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA);
+
+  const int xLuma = xT << sps.get_chroma_shift_W(cIdx);
+  const int yLuma = yT << sps.get_chroma_shift_H(cIdx);
+  int cuPredModeIntra = (tctx->img->get_pred_mode(xLuma,yLuma)==MODE_INTRA);
 
   bool rotateCoeffs = (sps.range_extension.transform_skip_rotation_enabled_flag &&
                        nT == 4 &&
