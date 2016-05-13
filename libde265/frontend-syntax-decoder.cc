@@ -292,6 +292,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     sliceunit->nal = nal;
     sliceunit->shdr = shdr;
     sliceunit->reader = reader;
+    sliceunit->imgunit = m_curr_image_unit.get();
 
     sliceunit->flush_reorder_buffer = flush_reorder_buffer_at_this_frame;
 

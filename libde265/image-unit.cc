@@ -64,9 +64,6 @@ thread_context* slice_unit::get_thread_context(int n)
 
 void slice_unit::mark_whole_slice_as_processed(int progress)
 {
-  const image_unit* imgunit = imgunit;
-
-
   // mark all CTBs assigned to this slice as processed
 
   for (int ctb=first_CTB_TS; ctb <= last_CTB_TS; ctb++)
