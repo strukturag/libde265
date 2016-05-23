@@ -215,16 +215,39 @@ class de265_thread
   static THREAD_RESULT start_thread_main(THREAD_PARAM me);
 };
 
+typedef std::shared_ptr<de265_thread> de265_thread_ptr;
+
 
 class thread_task
 {
 public:
-  thread_task() { }
+ thread_task() : m_finished(false) { }
   virtual ~thread_task() { }
 
   virtual void work() = 0;
 
+  bool finished() const {
+    //printf("finished / lock\n");
+    m_mutex.lock();
+    bool finished = m_finished;
+    m_mutex.unlock();
+    //printf("finished / unlock\n");
+
+    return finished;
+  }
+  void wait_until_finished() const;
+
   virtual std::string name() const { return "noname"; }
+
+ private:
+  mutable de265_mutex m_mutex;
+  mutable de265_cond  m_cond_finished;
+
+  bool m_finished;
+
+  void mark_finished(); // only called by thread_pool
+
+  friend class thread_pool;
 };
 
 

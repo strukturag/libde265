@@ -671,14 +671,14 @@ void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress
 
 void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 {
-  if (task==NULL) { return; }
+  //if (task==NULL) { return; }
 
   de265_progress_lock* progresslock = &ctb_progress[ctbAddrRS];
-  printf("wait for progress %d %d\n",progresslock->get_progress() , progress);
+  //printf("wait for progress %d %d\n",progresslock->get_progress() , progress);
   if (progresslock->get_progress() < progress) {
     //thread_blocks();
 
-    assert(task!=NULL);
+    //assert(task!=NULL);
 
     /* TODO: check whether we are the first blocked task in the list.
        If we are, we have to conceal input errors.
@@ -694,7 +694,7 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 void image::wait_until_all_CTBs_have_progress(thread_task* task, int progress)
 {
   for (int i=0;i<ctb_info.data_size;i++) {
-    printf("wait for CTB %i   %p\n",i,task);
+    //printf("wait for CTB %i   %p\n",i,task);
     wait_for_progress(task,i,progress);
   }
 }

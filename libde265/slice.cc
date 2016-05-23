@@ -5035,16 +5035,10 @@ de265_error read_slice_segment_data(thread_context* tctx)
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
 
-  printf("a %p\n", tctx);
-  //sleep(1000);
-
   bool success = initialize_CABAC_at_slice_segment_start(tctx);
   if (!success) {
-  printf("b\n");
     return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
   }
-
-  printf("c %p\n",&tctx->cabac_decoder);
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
 
@@ -5056,7 +5050,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   enum DecodeResult result;
   do {
-    printf("decoding CTB %d;%d\n",tctx->get_CTB_x(),tctx->get_CTB_y());
+    //printf("decoding CTB %d;%d\n",tctx->get_CTB_x(),tctx->get_CTB_y());
 
     int ctby = tctx->get_CTB_y();
 

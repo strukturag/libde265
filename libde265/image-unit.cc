@@ -96,3 +96,28 @@ image_unit::~image_unit()
     delete slice_units[i];
   }
 }
+
+
+bool image_unit::did_finish_decoding() const
+{
+  printf("did_finish_decoding\n");
+
+  for (const auto& task : tasks) {
+
+    printf("task %p\n",task.get());
+
+    if (!task->finished()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+void image_unit::wait_to_finish_decoding()
+{
+  for (const auto& task : tasks) {
+    task->wait_until_finished();
+  }
+}

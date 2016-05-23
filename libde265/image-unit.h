@@ -179,15 +179,19 @@ public:
 
 
   // The main purpose of having pointers to all tasks is to keep them alive until the
-  // image is decoded.
+  // image is decoded, and to check whether they are finished.
   std::vector<thread_task_ptr> tasks;
-
+  de265_thread_ptr master_task;
 
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
      The array is unused for non-WPP streams. */
   std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
+
+
+  bool did_finish_decoding() const;
+  void wait_to_finish_decoding();
 };
 
 

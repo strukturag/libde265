@@ -292,6 +292,8 @@ class decoder_context : public base_context,
   thread_pool m_thread_pool;
   thread_pool m_master_thread_pool;  // pool for all the master threads
 
+  //std::set<thread_task_ptr> master_tasks;
+
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_parallel(slice_unit* sliceunit);
   de265_error decode_slice_unit_frame_parallel(image_unit* imgunit, slice_unit* sliceunit);
@@ -330,7 +332,7 @@ class decoder_context : public base_context,
   class thread_main_loop : public de265_thread {
   public:
     thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
-    void run() { while (!should_stop()) { m_decctx->run_main_loop(); } }
+    void run() { m_decctx->run_main_loop(); }
 
   private:
     decoder_context* m_decctx;
@@ -338,28 +340,55 @@ class decoder_context : public base_context,
 
   thread_main_loop m_main_loop_thread;
   de265_mutex m_main_loop_mutex;
-  de265_cond  m_decoding_loop_has_space_cond;
-  de265_cond  m_input_available_cond;
+  //de265_cond  m_decoding_loop_has_space_cond;
+  //de265_cond  m_input_available_cond;
+  de265_cond m_main_loop_block_cond;
 
   void run_main_loop();
 
   void send_main_loop_stop_signals() {
     m_main_loop_mutex.lock();
-    m_decoding_loop_has_space_cond.signal();
-    m_input_available_cond.signal();
+    //m_decoding_loop_has_space_cond.signal();
+    //m_input_available_cond.signal();
+    m_main_loop_block_cond.signal();
     m_main_loop_mutex.unlock();
   }
 
 
+  void decode_image_frame_parallel(image_unit_ptr imgunit);
+
+
+ public:
+  // --- decoded picture buffer ---
+  decoded_picture_buffer dpb;
+
+
+ private:
+  // --- image unit queue ---
+
+  //public:
+  std::deque<image_unit_ptr> m_undecoded_image_units;
+  bool m_end_of_stream;
+
   std::deque<image_unit_ptr> m_image_units_in_progress;
-  static const int m_max_images_processed_in_parallel = 1; //////////////////// PARAMETER
+  static const int m_max_images_processed_in_parallel = 5; //////////////////// PARAMETER
+
+  std::deque<image_unit_ptr> m_decoded_image_units;
+
+  picture_output_queue   m_output_queue;
 
 
   // condition variable that signals when api-user action might change
   de265_cond  m_cond_api_action;
 
-  void decode_image_frame_parallel(image_unit_ptr imgunit);
 
+
+ private:
+  void mark_whole_slice_as_processed(slice_unit* sliceunit, int progress);
+
+  void remove_images_from_dpb(const std::vector<int>& removeImageList);
+  void run_postprocessing_filters_sequential(image_ptr img);
+  void run_postprocessing_filters_parallel(image_unit* img);
 
  public:
   // --- frame dropping ---
@@ -390,28 +419,6 @@ class decoder_context : public base_context,
 
  public:
   void calc_tid_and_framerate_ratio();
-
- private:
-  // --- decoded picture buffer ---
-
- public:
-  decoded_picture_buffer dpb;
-  picture_output_queue   m_output_queue;
-
-
-  // --- image unit queue ---
-
- public:
-  std::deque<image_unit_ptr> image_units;
-
-  bool m_end_of_stream;
-
- private:
-  void mark_whole_slice_as_processed(slice_unit* sliceunit, int progress);
-
-  void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(image_ptr img);
-  void run_postprocessing_filters_parallel(image_unit* img);
 };
 
 

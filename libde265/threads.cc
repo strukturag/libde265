@@ -74,6 +74,7 @@ void de265_cond_init(de265_cond_primitive* c) { win32_cond_init(c); }
 void de265_cond_destroy(de265_cond_primitive* c) { win32_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
 {
+  // TODO: why do we lock the mutex here? The mutex should already be locked outside...
   de265_mutex_lock(m);
   win32_cond_broadcast(c);
   de265_mutex_unlock(m);
@@ -121,9 +122,16 @@ void de265_thread::join()
 
 bool de265_thread::should_stop() const
 {
-  lock_guard lock(m_mutex);
+  bool req;
 
-  return m_stop_request;
+  {
+    printf("thread LOCK\n");
+    lock_guard lock(m_mutex);
+    req = m_stop_request;
+    printf("thread UNLOCK\n");
+  }
+
+  return req;
 }
 
 bool de265_thread::running() const
@@ -168,7 +176,7 @@ void de265_progress_lock::set_progress(int progress)
   mutex.lock();
 
   if (progress>mProgress) {
-  printf("set progress %d\n",progress);
+    //printf("set progress %d\n",progress);
 
     mProgress = progress;
 
@@ -197,6 +205,25 @@ int  de265_progress_lock::get_progress() const
   return progress;
 }
 
+
+
+void thread_task::wait_until_finished() const
+{
+  m_mutex.lock();
+  while (!m_finished) {
+    m_cond_finished.wait(m_mutex);
+  }
+  m_mutex.unlock();
+}
+
+
+void thread_task::mark_finished()
+{
+  m_mutex.lock();
+  m_finished = true;
+  m_cond_finished.broadcast(m_mutex);
+  m_mutex.unlock();
+}
 
 
 
@@ -293,9 +320,10 @@ void thread_pool::worker_thread_main_loop()
 
     // execute the task
 
-    printf("start task: %s\n",task->name().c_str());
+    //printf("start task: %s\n",task->name().c_str());
     task->work();
-    printf("end task: %s\n",task->name().c_str());
+    task->mark_finished();
+    //printf("end task: %s\n",task->name().c_str());
 
     // end processing and check if this was the last task to be processed
 

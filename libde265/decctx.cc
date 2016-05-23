@@ -311,7 +311,8 @@ void decoder_context::reset()
   dpb.clear();
 
 
-  image_units.clear();
+  m_undecoded_image_units.clear();
+  m_decoded_image_units.clear();
 
   m_end_of_stream = false;
 
@@ -368,25 +369,49 @@ int  decoder_context::get_action(bool blocking)
   int actions = 0;
 
   m_main_loop_mutex.lock();
+  printf("LOCK get_action\n");
 
   for (;;) {
-    bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
-    bool input_pending = (image_units.size() > 1); // at least one image-unit is complete
+    // check whether all decoding threads are busy
+    bool decoding_slots_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
+
+    // at least one image-unit is complete
+    int num_pending_input_images = m_undecoded_image_units.size();
 
     // fill more data until decoding queue is full and there is at least one complete
     // image-unit pending at the input
-    if (!m_end_of_stream &&
-        !(queue_full && input_pending)) {
+    bool want_more_data = true;
+
+    if (m_end_of_stream) {
+      want_more_data = false;
+    }
+
+    // We stop requesting more data when all decoding slots are full and
+    // there are already some (two) undecoded images waiting at the input.
+    const int norm_num_pending_input_images = 2;
+    if (decoding_slots_full && num_pending_input_images >= norm_num_pending_input_images) {
+      want_more_data = false;
+    }
+
+    if (want_more_data) {
       actions |= de265_action_push_more_input;
     }
+
+
+    // --- Do we have decoded images ready for the client ? ---
 
     if (num_pictures_in_output_queue() > 0) {
       actions |= de265_action_get_image;
     }
 
-    bool decoding_queue_empty = m_image_units_in_progress.empty();
-    bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 ||
-                               m_output_queue.num_pictures_in_reorder_buffer() ==0);
+
+    // --- check whether decoding has finished ---
+
+    const bool no_input_pending = m_undecoded_image_units.empty();
+    const bool decoding_slots_empty = m_image_units_in_progress.empty();
+    const bool decoded_images_queue_empty = m_decoded_image_units.empty();
+    const bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 ||
+                                     m_output_queue.num_pictures_in_reorder_buffer() ==0);
 
     /*
     printf("buffer status: %d %d %d %d\n",
@@ -397,8 +422,9 @@ int  decoder_context::get_action(bool blocking)
     */
 
     if (m_end_of_stream &&
-        !input_pending &&
-        decoding_queue_empty &&
+        no_input_pending &&
+        decoding_slots_empty &&
+        decoded_images_queue_empty &&
         output_queue_empty) {
       actions |= de265_action_end_of_stream;
     }
@@ -411,12 +437,15 @@ int  decoder_context::get_action(bool blocking)
       break;
     }
     else {
-      // block until queue status changes
+      // block until API-action status changes
 
+      printf("COND UNLOCK get_action\n");
       m_cond_api_action.wait(m_main_loop_mutex);
+      printf("COND LOCK get_action\n");
     }
   }
 
+  printf("UNLOCK get_action\n");
   m_main_loop_mutex.unlock();
 
   return actions;
@@ -426,59 +455,73 @@ int  decoder_context::get_action(bool blocking)
 void decoder_context::run_main_loop()
 {
   m_main_loop_mutex.lock();
-
-  // --- wait until we have new image_units and the decoding queue has some space ---
+  printf("LOCK run_main_loop\n");
 
   for (;;) {
-    bool queue_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
-    bool input_empty= (image_units.empty());
+    bool did_something = false;
 
-    if (queue_full) {
-      loginfo(LogThreading,"... wait has space\n");
-      m_decoding_loop_has_space_cond.wait(m_main_loop_mutex);
 
-      if (m_main_loop_thread.should_stop()) {
-        break;
-      }
+    printf("main_loop\n");
 
-      loginfo(LogThreading,"... signalled has space\n");
-      continue;
+    // === start decoding a new image ===
+
+    // --- check whether we have new image_units and we have some decoding slots available ---
+
+    bool decoding_slots_available = (m_image_units_in_progress.size() <
+                                     m_max_images_processed_in_parallel);
+    bool input_available= !m_undecoded_image_units.empty();
+
+    if (input_available &&
+        decoding_slots_available) {
+
+      // --- move one image_unit to the decoding queue ---
+
+      image_unit_ptr to_be_decoded = m_undecoded_image_units.front();
+      m_undecoded_image_units.pop_front();
+
+      m_image_units_in_progress.push_back(to_be_decoded);
+
+      // --- create threads to decode this image ---
+
+      decode_image_frame_parallel(to_be_decoded);
+
+      did_something = true;
     }
 
-    if (input_empty && !m_end_of_stream) {
-      loginfo(LogThreading,"... wait has input\n");
-      m_input_available_cond.wait(m_main_loop_mutex);
 
-      if (m_main_loop_thread.should_stop()) {
-        break;
-      }
+    // === move decoded images to output queue ===
 
-      loginfo(LogThreading,"... signalled has input\n");
-      continue;
+    while (!m_decoded_image_units.empty()) {
+      printf("move image\n");
+
+      image_unit_ptr imgunit = m_decoded_image_units.front();
+      m_decoded_image_units.pop_front();
+
+      // make sure the master-thread has ended
+      // we have to temporally unlock the mutex to let the master thread finish
+
+      m_main_loop_mutex.unlock();
+      imgunit->master_task->join();
+      m_main_loop_mutex.lock();
+
+      push_picture_to_output_queue(imgunit->img);
+
+      did_something = true;
     }
 
-    break;
+
+    if (!did_something) {
+      printf("COND UNLOCK run_main_loop\n");
+      m_main_loop_block_cond.wait(m_main_loop_mutex);
+      printf("COND LOCK run_main_loop\n");
+    }
+
+    if (m_main_loop_thread.should_stop()) {
+      break;
+    }
   }
 
-
-  // --- move one image_unit to the decoding queue ---
-
-  image_unit_ptr to_be_decoded;
-
-  if (!image_units.empty()) {
-    to_be_decoded = image_units.front();
-    image_units.pop_front();
-
-    m_image_units_in_progress.push_back(to_be_decoded);
-  }
-
-
-  // --- create threads to decode this image ---
-
-  if (to_be_decoded) {
-    decode_image_frame_parallel(to_be_decoded);
-  }
-
+  printf("UNLOCK run_main_loop\n");
   m_main_loop_mutex.unlock();
 }
 
@@ -486,18 +529,27 @@ void decoder_context::run_main_loop()
 void decoder_context::on_image_decoding_finished()
 {
   m_main_loop_mutex.lock();
+  printf("LOCK on_image_decoding_finished\n");
 
   printf("on_finished\n");
 
+
+  // --- move all pictures that are completely decoded from progress queue to decoded queue ---
+
   while (!m_image_units_in_progress.empty() &&              // TODO -----> final progress
-         m_image_units_in_progress.front()->img->do_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER)) {
+         m_image_units_in_progress.front()->did_finish_decoding()) {
+    //m_image_units_in_progress.front()->img->do_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER)) {
+
     image_unit_ptr imgunit = m_image_units_in_progress.front();
     m_image_units_in_progress.pop_front();
 
-    m_decoding_loop_has_space_cond.signal();
+    // inform main thread that there are now decoding slots available
+    m_main_loop_block_cond.signal();
 
-    push_picture_to_output_queue(imgunit->img);
+    m_decoded_image_units.push_back(imgunit);
   }
+
+  printf("on_finished after while \n");
 
   if (m_end_of_stream &&
       m_image_units_in_progress.empty()) {
@@ -507,38 +559,42 @@ void decoder_context::on_image_decoding_finished()
 
   m_cond_api_action.signal();
 
+  printf("UNLOCK on_image_decoding_finished\n");
   m_main_loop_mutex.unlock();
 }
 
 
 
-class thread_task_image_master_control : public thread_task
+class thread_image_master_control : public de265_thread
 {
 public:
   image_unit* imgunit;
 
-  virtual std::string name() const { return "image_master_control"; }
-  virtual void work() {
-    printf("master waits\n");
-    imgunit->img->wait_until_all_CTBs_have_progress(this, CTB_PROGRESS_PREFILTER);
+  //virtual std::string name() const { return "image_master_control"; }
+  virtual void run() {
+    printf("master waits (CTB)\n");
+    imgunit->img->wait_until_all_CTBs_have_progress(NULL, CTB_PROGRESS_PREFILTER);
+    printf("master waits (finish)\n");
+    imgunit->wait_to_finish_decoding();
+    printf("master -> on image decoding finished\n");
     imgunit->img->decctx->on_image_decoding_finished();
     printf("master finished\n");
   }
+
+  /*
+  virtual void cleanup() {
+    image_unit_ptr i = imgunit;
+
+    imgunit.reset();
+    i->decctx->master_tasks.erase(this);
+  }
+  */
 };
 
 
 void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
   // std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
-
-
-  // generate master-control thread
-
-  auto master_thread = std::make_shared<thread_task_image_master_control>();
-  master_thread->imgunit = imgunit.get();
-
-  m_master_thread_pool.add_task(master_thread);
-  imgunit->tasks.push_back(master_thread);
 
 
   // --- build map which CTB is controled by which slice-header ---
@@ -572,6 +628,20 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
       // TODO
     }
   }
+
+
+
+  // Generate master-control thread (we have to create this after the other threads,
+  // because the master thread waits for all other threads to finish).
+
+  auto master_thread = std::make_shared<thread_image_master_control>();
+  master_thread->imgunit = imgunit.get();
+
+  imgunit->master_task = master_thread;
+  master_thread->start();
+
+  //master_tasks.push_back(master_thread);
+  //m_master_thread_pool.add_task(master_thread);
 }
 
 
@@ -586,10 +656,10 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   *did_work = true; return DE265_OK; // TMP HACK
 
+#if 0
 
 
-
-  if (image_units.empty()) {
+  if (m_undecoded_image_units.empty()) {
     // do not return error, because actually, we do not mind...
     return DE265_OK; // DE265_ERROR_WAITING_FOR_INPUT_DATA; // nothing to do
   }
@@ -597,11 +667,11 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
   // decode something if there is work to do
 
-  if ( ! image_units.empty() ) {
+  if ( ! m_undecoded_image_units.empty() ) {
 
     loginfo(LogHighlevel,"decode_image_unit -> decode a slice\n");
 
-    image_unit* imgunit = image_units[0].get();
+    image_unit* imgunit = m_undecoded_image_units[0].get();
     slice_unit* sliceunit = imgunit->get_next_unprocessed_slice_segment();
 
     //printf("DROP: %s\n", imgunit->state != image_unit::Dropped ? "no":"yes");
@@ -638,7 +708,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
   // --- process the dropped frames (process remove-references list and push
   //     dummy frame to output
 
-  if ( image_units.size()>=1 && image_units[0]->state == image_unit::Dropped) {
+  if ( m_undecoded_image_units.size()>=1 &&
+       m_undecoded_image_units[0]->state == image_unit::Dropped) {
     // push a dummy 'dropped' image to the output as a placeholder
 
     image_unit* imgunit = image_units[0].get();
@@ -654,15 +725,16 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     push_picture_to_output_queue(imgunit->img);
 
-    image_units.pop_front();
+    m_undecoded_image_units.pop_front();
   }
 
 
 
-  if ( image_units.size()>=1 && image_units[0]->all_slice_segments_processed()) {
+  if ( m_undecoded_image_units.size()>=1 &&
+       m_undecoded_image_units[0]->all_slice_segments_processed()) {
     loginfo(LogHighlevel,"postprocess image\n");
 
-    image_unit* imgunit = image_units[0].get();
+    image_unit* imgunit = m_undecoded_image_units[0].get();
 
     *did_work=true;
 
@@ -701,11 +773,11 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     // remove just decoded image unit from queue
 
-    image_units.pop_front();
+    m_undecoded_image_units.pop_front();
   }
 
 
-  if (m_end_of_stream && image_units.empty()) {
+  if (m_end_of_stream && m_undecoded_image_units.empty()) {
     // flush all pending pictures into output queue
 
     loginfo(LogHighlevel,"FLUSH\n");
@@ -717,6 +789,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
   dpb.log_dpb_content();
 
   return err;
+#endif
 }
 
 
@@ -1203,8 +1276,8 @@ void decoder_context::debug_imageunit_state()
   m_main_loop_mutex.lock();
 
   loginfo(LogHighlevel,"image_units: ");
-  for (int i=0;i<image_units.size();i++) {
-    loginfo(LogHighlevel,"%d ", image_units[i]->img->get_ID());
+  for (int i=0;i<m_undecoded_image_units.size();i++) {
+    loginfo(LogHighlevel,"%d ", m_undecoded_image_units[i]->img->get_ID());
   }
   loginfo(LogHighlevel,"\n");
 
@@ -1217,9 +1290,9 @@ void decoder_context::send_image_unit(image_unit_ptr imgunit)
 {
   m_main_loop_mutex.lock();
 
-  image_units.push_back(imgunit);
+  m_undecoded_image_units.push_back(imgunit);
 
-  m_input_available_cond.signal();
+  m_main_loop_block_cond.signal();
   m_cond_api_action.signal();
 
   m_main_loop_mutex.unlock();
@@ -1234,7 +1307,7 @@ void decoder_context::send_end_of_stream()
 
   m_end_of_stream = true;
 
-  m_input_available_cond.signal();
+  m_main_loop_block_cond.signal();
   m_cond_api_action.signal();
 
   m_main_loop_mutex.unlock();
