@@ -410,16 +410,17 @@ int  decoder_context::get_action(bool blocking)
     const bool no_input_pending = m_undecoded_image_units.empty();
     const bool decoding_slots_empty = m_image_units_in_progress.empty();
     const bool decoded_images_queue_empty = m_decoded_image_units.empty();
-    const bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 ||
+    const bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 &&
                                      m_output_queue.num_pictures_in_reorder_buffer() ==0);
 
-    /*
-    printf("buffer status: %d %d %d %d\n",
+
+    printf("buffer status: %d %d %d %d %d\n",
            m_end_of_stream,
-           input_pending,
-           decoding_queue_empty,
+           no_input_pending,
+           decoding_slots_empty,
+           decoded_images_queue_empty,
            output_queue_empty);
-    */
+
 
     if (m_end_of_stream &&
         no_input_pending &&
@@ -495,7 +496,6 @@ void decoder_context::run_main_loop()
       printf("move image\n");
 
       image_unit_ptr imgunit = m_decoded_image_units.front();
-      m_decoded_image_units.pop_front();
 
       // make sure the master-thread has ended
       // we have to temporally unlock the mutex to let the master thread finish
@@ -504,9 +504,18 @@ void decoder_context::run_main_loop()
       imgunit->master_task->join();
       m_main_loop_mutex.lock();
 
+      m_decoded_image_units.pop_front();
+
+      printf("decoded_image_units length: %d\n", m_decoded_image_units.size());
+
+
       push_picture_to_output_queue(imgunit->img);
 
       did_something = true;
+
+      m_cond_api_action.signal();
+
+      printf("destroying image unit %p\n",imgunit.get());
     }
 
 
@@ -547,6 +556,8 @@ void decoder_context::on_image_decoding_finished()
     m_main_loop_block_cond.signal();
 
     m_decoded_image_units.push_back(imgunit);
+
+    printf("after push: decoded_image_units length: %d\n", m_decoded_image_units.size());
   }
 
   printf("on_finished after while \n");

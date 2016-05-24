@@ -92,6 +92,8 @@ image_unit::image_unit()
 
 image_unit::~image_unit()
 {
+  //wait_to_finish_decoding();
+
   for (int i=0;i<slice_units.size();i++) {
     delete slice_units[i];
   }
@@ -118,6 +120,10 @@ bool image_unit::did_finish_decoding() const
 void image_unit::wait_to_finish_decoding()
 {
   for (const auto& task : tasks) {
+    printf("checking tasks to finish (img unit %p)\n",this);
+
     task->wait_until_finished();
   }
+
+  printf("checking tasks to finish end %p\n",this);
 }

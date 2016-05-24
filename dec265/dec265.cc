@@ -780,7 +780,7 @@ int main(int argc, char** argv)
 
       // --- get images ---
 
-      if (actions & de265_action_get_image) {
+      else if (actions & de265_action_get_image) {
 
           // decode some more
 
@@ -823,8 +823,10 @@ int main(int argc, char** argv)
           }
       }
 
-      if (actions & de265_action_end_of_stream) {
+      else if (actions & de265_action_end_of_stream) {
         stop = true;
+
+        printf("dec265: END_OF_STREAM\n");
       }
     }
 

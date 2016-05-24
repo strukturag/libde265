@@ -221,7 +221,9 @@ typedef std::shared_ptr<de265_thread> de265_thread_ptr;
 class thread_task
 {
 public:
- thread_task() : m_finished(false) { }
+ thread_task() : m_finished(false) {
+    //printf("-------------------- %p %p\n", &m_mutex, this);
+  }
   virtual ~thread_task() { }
 
   virtual void work() = 0;
