@@ -1085,7 +1085,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   //img->wait_for_completion();
 
-  imgunit->tasks.clear();
+  //imgunit->tasks.clear();
 
   return DE265_OK;
 }
