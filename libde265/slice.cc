@@ -4684,8 +4684,6 @@ enum DecodeResult decode_substream(thread_context* tctx,
           // copy CABAC model from previous CTB row
           tctx->ctx_model = tctx->imgunit->ctx_models[ctby-1];
           tctx->imgunit->ctx_models[ctby-1].release(); // not used anymore
-
-          std::cout << "copy CTX: " << tctx->ctx_model.debug_dump() << "\n";
         }
         else {
           tctx->img->wait_for_progress(tctx->task.get(), 0,ctby-1,CTB_PROGRESS_PREFILTER);
@@ -4740,7 +4738,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
           return Decode_Error;
         }
 
-        printf("store ctx model of row %d\n",ctby);
+        //printf("store ctx model of row %d\n",ctby);
 
         tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
         tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
@@ -4984,7 +4982,7 @@ void thread_task_ctb_row::work()
   int ctby = tctx->get_CTB_y();
   int myCtbRow = ctby;
 
-  printf("start CTB-row decoding at row %d\n", ctby);
+  //printf("start CTB-row decoding at row %d\n", ctby);
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
