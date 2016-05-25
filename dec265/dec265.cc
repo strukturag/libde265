@@ -780,7 +780,9 @@ int main(int argc, char** argv)
 
       // --- get images ---
 
-      else if (actions & de265_action_get_image) {
+      if (actions & de265_action_get_image) {
+
+        printf("------------------------------------------------------------------------------------------------------------------------\n");
 
           // decode some more
 
