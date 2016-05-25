@@ -4915,7 +4915,7 @@ void thread_task_slice::work()
   printf("task_slice::work set progress\n");
 
   tctx->sliceunit->state = slice_unit::Decoded;
-  tctx->sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
 
   tctx->sliceunit->finished_threads.set_progress(1);
 
@@ -4959,6 +4959,8 @@ void thread_task_slice_segment::work()
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+
   tctx->sliceunit->finished_threads.increase_progress(1);
   //img->thread_finishes(this);
 
@@ -4987,16 +4989,9 @@ void thread_task_ctb_row::work()
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
-      // could not decode this row, mark whole row as finished
-      for (int x=0;x<ctbW;x++) {
-        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
-      }
-
-      tctx->sliceunit->finished_threads.increase_progress(1);
-      //img->thread_finishes(this);
+      tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
       return;
     }
-    //initialize_CABAC(tctx);
   }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
@@ -5007,23 +5002,11 @@ void thread_task_ctb_row::work()
   /*enum DecodeResult result =*/
   decode_substream(tctx, true, firstIndependentSubstream);
 
-  // mark progress on remaining CTBs in row (in case of decoder error and early termination)
-
-  // TODO: what about slices that end properly in the middle of a CTB row?
-
-  if (tctx->get_CTB_y() == myCtbRow) {
-    int lastCtbX = sps.PicWidthInCtbsY; // assume no tiles when WPP is on
-    for (int x = tctx->get_CTB_x(); x<lastCtbX ; x++) {
-
-      if (x        < sps.PicWidthInCtbsY &&
-          myCtbRow < sps.PicHeightInCtbsY) {
-        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
-      }
-    }
-  }
 
   tctx->sliceunit->finished_threads.increase_progress(1);
   //img->thread_finishes(this);
+
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
 }
 
 

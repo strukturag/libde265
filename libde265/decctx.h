@@ -83,6 +83,8 @@ public:
   int first_CTB_TS;
   int last_CTB_TS;
 
+  void mark_covered_CTBs_as_processed(int progress);
+
 
   // --- motion vectors ---
 

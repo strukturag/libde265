@@ -62,20 +62,6 @@ thread_context* slice_unit::get_thread_context(int n)
 }
 
 
-void slice_unit::mark_whole_slice_as_processed(int progress)
-{
-  // mark all CTBs assigned to this slice as processed
-
-  for (int ctb=first_CTB_TS; ctb <= last_CTB_TS; ctb++)
-    {
-      if (ctb >= imgunit->img->number_of_ctbs())
-        break;
-
-      int ctb_rs = shdr->pps->CtbAddrTStoRS[ctb];
-
-      imgunit->img->ctb_progress[ctb_rs].set_progress(progress);
-    }
-}
 
 
 

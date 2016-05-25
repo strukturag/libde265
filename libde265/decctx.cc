@@ -173,6 +173,22 @@ void thread_context::setCtbAddrFromTS()
 
 
 
+void thread_context::mark_covered_CTBs_as_processed(int progress)
+{
+  // mark all CTBs assigned to this slice as processed
+
+  for (int ctb=first_CTB_TS; ctb <= last_CTB_TS; ctb++)
+    {
+      if (ctb >= img->number_of_ctbs())
+        break;
+
+      int ctb_rs = shdr->pps->CtbAddrTStoRS[ctb];
+
+      img->ctb_progress[ctb_rs].set_progress(progress);
+    }
+}
+
+
 
 
 
@@ -911,32 +927,6 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     img->decctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
   }
 
-
-  // If this is the first slice segment, mark all CTBs before this as processed
-  // (the real first slice segment could be missing).
-
-  /*
-  if (imgunit->is_first_slice_segment(sliceunit)) {
-    slice_segment_header* shdr = sliceunit->shdr;
-    int firstCTB = shdr->slice_segment_address;
-
-    for (int ctb=0;ctb<firstCTB;ctb++) {
-      //printf("mark pre progress %d\n",ctb);
-      img->ctb_progress[ctb].set_progress(CTB_PROGRESS_PREFILTER);
-    }
-  }
-
-
-  // if there is a previous slice that has been completely decoded,
-  // mark all CTBs until the start of this slice as completed
-
-  //printf("this slice: %p\n",sliceunit);
-  slice_unit* prevSlice = imgunit->get_prev_slice_segment(sliceunit);
-  //if (prevSlice) printf("prev slice state: %d\n",prevSlice->state);
-  if (prevSlice && prevSlice->state == slice_unit::Decoded) {
-    prevSlice->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
-  }
-  */
 
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
