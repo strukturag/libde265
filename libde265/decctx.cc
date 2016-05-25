@@ -508,7 +508,7 @@ void decoder_context::run_main_loop()
 
       m_decoded_image_units.pop_front();
 
-      printf("decoded_image_units length: %d\n", m_decoded_image_units.size());
+      printf("decoded_image_units length: %ld\n", m_decoded_image_units.size());
 
 
       push_picture_to_output_queue(imgunit->img);
@@ -559,7 +559,7 @@ void decoder_context::on_image_decoding_finished()
 
     m_decoded_image_units.push_back(imgunit);
 
-    printf("after push: decoded_image_units length: %d\n", m_decoded_image_units.size());
+    printf("after push: decoded_image_units length: %ld\n", m_decoded_image_units.size());
   }
 
   printf("on_finished after while \n");
@@ -836,6 +836,8 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->sliceunit= sliceunit;
   tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
   tctx->task = NULL;
+  tctx->first_CTB_TS = sliceunit->first_CTB_TS;
+  tctx->last_CTB_TS  = sliceunit->last_CTB_TS;
 
   tctx->init_quantization();
 
@@ -998,6 +1000,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbAddrRS = shdr->slice_segment_address;
   int ctbRow    = ctbAddrRS / ctbsWidth;
 
+  thread_task_ptr tasks[nRows];
+
   for (int entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
     if (entryPt>0) {
@@ -1025,6 +1029,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
     tctx->set_CTB_address_RS(ctbAddrRS);
+    tctx->first_CTB_TS = tctx->get_CTB_address_TS();
 
     tctx->init_quantization();
 
@@ -1064,10 +1069,30 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     task->debug_startCtbRow = ctbRow;
     tctx->task = task;
 
-    m_thread_pool.add_task(task);
+    tasks[entryPt] = task;
 
     tctx->imgunit->tasks.push_back(task);
   }
+
+
+  for (int entryPt=0;entryPt<nRows;entryPt++) {
+    auto tctx = sliceunit->get_thread_context(entryPt);
+
+    if (entryPt < nRows-1) {
+      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+    }
+    else {
+      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+    }
+
+    printf("THREAD RANGE: %d %d\n",tctx->first_CTB_TS, tctx->last_CTB_TS);
+  }
+
+
+  for (int entryPt=0;entryPt<nRows;entryPt++) {
+    m_thread_pool.add_task(tasks[entryPt]);
+  }
+
 
 #if 0
   for (;;) {
@@ -1112,6 +1137,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   int ctbAddrRS = shdr->slice_segment_address;
   int tileID = pps.TileIdRS[ctbAddrRS];
 
+  thread_task_ptr tasks[nTiles];
+
   for (int entryPt=0;entryPt<nTiles;entryPt++) {
     // entry points other than the first start at tile beginnings
     if (entryPt>0) {
@@ -1137,6 +1164,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
     tctx->set_CTB_address_RS(ctbAddrRS);
+    tctx->first_CTB_TS = tctx->get_CTB_address_TS();
 
     tctx->init_quantization();
 
@@ -1174,10 +1202,30 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     task->debug_startCtbY = ctbAddrRS / ctbsWidth;
     tctx->task = task;
 
+    tasks[entryPt] = task;
+
     m_thread_pool.add_task(task);
 
     tctx->imgunit->tasks.push_back(task);
   }
+
+
+  for (int entryPt=0;entryPt<nTiles;entryPt++) {
+    auto tctx = sliceunit->get_thread_context(entryPt);
+
+    if (entryPt < nTiles-1) {
+      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+    }
+    else {
+      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+    }
+  }
+
+
+  for (int entryPt=0;entryPt<nTiles;entryPt++) {
+    m_thread_pool.add_task(tasks[entryPt]);
+  }
+
 
   //img->wait_for_completion();
 

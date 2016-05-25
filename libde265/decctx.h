@@ -79,6 +79,11 @@ public:
   bool current_CTB_outside_image() const { return m_CTB_out_of_image; }
 
 
+  // range of CTBs covered by this thread_context
+  int first_CTB_TS;
+  int last_CTB_TS;
+
+
   // --- motion vectors ---
 
   PBMotionCoding motion;
