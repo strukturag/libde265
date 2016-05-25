@@ -278,8 +278,10 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
   int headerLength = reader.data - nal->data();
   for (int i=0;i<shdr->num_entry_point_offsets;i++) {
+    printf("modify entry point %d -> ",shdr->entry_point_offset[i]);
     shdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
                                                                  headerLength);
+    printf("%d\n",shdr->entry_point_offset[i]);
   }
 
 

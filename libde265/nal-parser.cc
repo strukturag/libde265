@@ -31,7 +31,7 @@
 
 
 NAL_unit::NAL_unit()
-  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
+//  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
 {
   pts=0;
   user_data = NULL;
@@ -70,6 +70,7 @@ void NAL_unit::clear()
   // set size to zero but keep memory
   data_size = 0;
 
+  printf("clear\n");
   skipped_bytes.clear();
 }
 
@@ -115,14 +116,19 @@ bool LIBDE265_CHECK_RESULT NAL_unit::set_data(const unsigned char* in_data, int 
 void NAL_unit::insert_skipped_byte(int pos)
 {
   skipped_bytes.push_back(pos);
+  printf("skip %d (list length: %d)\n",pos, skipped_bytes.size());
 }
 
 int NAL_unit::num_skipped_bytes_before(int byte_position, int headerLength) const
 {
-  for (int k=skipped_bytes.size()-1;k>=0;k--)
+  printf("header length: %d\n",headerLength);
+
+  for (int k=skipped_bytes.size()-1;k>=0;k--) {
+    printf("skipped[%d] = %d\n",k,skipped_bytes[k]);
     if (skipped_bytes[k]-headerLength <= byte_position) {
       return k+1;
     }
+  }
 
   return 0;
 }
@@ -148,7 +154,7 @@ void NAL_unit::remove_stuffing_bytes()
       }
       else {
         if (p[0]==0 && p[1]==0 && p[2]==3) {
-          //printf("SKIP NAL @ %d\n",i+2+num_skipped_bytes);
+          printf("SKIP NAL @ %d\n",i+2+num_skipped_bytes());
           insert_skipped_byte(i+2 + num_skipped_bytes());
 
           memmove(p+2, p+3, size()-i-3);

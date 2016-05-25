@@ -1143,6 +1143,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       break;
     }
 
+    printf("init CABAC for task %d with start index %d\n",entryPt,dataStartIndex);
+
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
                        dataEnd-dataStartIndex);
