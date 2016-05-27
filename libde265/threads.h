@@ -264,6 +264,8 @@ typedef std::shared_ptr<thread_task> thread_task_ptr;
    of the just unblocked task.
  */
 
+/* TODO: blocked threads should not count towards the max thread limit
+ */
 class thread_pool
 {
  public:

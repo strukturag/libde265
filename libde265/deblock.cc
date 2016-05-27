@@ -942,12 +942,15 @@ void thread_task_deblock_CTBRow::work()
   else {
     // pass 2: horizontal
 
+    // wait for CTB-row above this task's row
     if (ctb_y>0) {
       img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
     }
 
+    // wait for CTB-row of this task's row
     img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
 
+    // wait for CTB-row below this task's row
     if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
       img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
     }
