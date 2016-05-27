@@ -987,6 +987,10 @@ void thread_task_deblock_CTBRow::work()
     img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
+  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk %c %d\n",
+         vertical ? 'V' : 'H',
+         ctb_y);
+
   //img->thread_finishes(this);
 }
 

@@ -573,6 +573,8 @@ void decoder_context::on_image_decoding_finished()
     // inform main thread that there are now decoding slots available
     m_main_loop_block_cond.signal();
 
+    //imgunit->img->exchange_pixel_data_with(imgunit->sao_output);
+
     m_decoded_image_units.push_back(imgunit);
 
     printf("after push: decoded_image_units length: %ld\n", m_decoded_image_units.size());
@@ -599,10 +601,14 @@ class thread_image_master_control : public de265_thread
 public:
   image_unit* imgunit;
 
+  int ctb_finished_progress;
+
+  // (CTB_PROGRESS_SAO); PREFILTER);
+
   //virtual std::string name() const { return "image_master_control"; }
   virtual void run() {
     printf("master waits (CTB)\n");
-    imgunit->img->wait_until_all_CTBs_have_progress(NULL, CTB_PROGRESS_PREFILTER);
+    imgunit->img->wait_until_all_CTBs_have_progress(NULL, ctb_finished_progress);
     printf("master waits (finish)\n");
     imgunit->wait_to_finish_decoding();
     printf("master -> on image decoding finished\n");
@@ -660,11 +666,34 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
 
 
+  int final_ctb_progress = CTB_PROGRESS_PREFILTER;
+
+  // --- generate tasks for deblocking ---
+
+  if (!imgunit->img->decctx->param_disable_deblocking) {
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> deblocking\n");
+
+    add_deblocking_tasks(imgunit.get());
+    final_ctb_progress = CTB_PROGRESS_DEBLK_H;
+  }
+
+  // --- generate tasks for SAO ---
+
+  if (!imgunit->img->decctx->param_disable_sao) {
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> SAO\n");
+    if (add_sao_tasks(imgunit.get(), final_ctb_progress)) {
+    //apply_sample_adaptive_offset(img);
+      final_ctb_progress = CTB_PROGRESS_SAO;
+    }
+  }
+
+
   // Generate master-control thread (we have to create this after the other threads,
   // because the master thread waits for all other threads to finish).
 
   auto master_thread = std::make_shared<thread_image_master_control>();
   master_thread->imgunit = imgunit.get();
+  master_thread->ctb_finished_progress = final_ctb_progress;
 
   imgunit->master_task = master_thread;
   master_thread->start();

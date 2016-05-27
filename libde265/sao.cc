@@ -416,6 +416,7 @@ void thread_task_sao::work()
     img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
   }
 
+  printf("========================================================== SAO %d\n",ctb_y);
 
   // copy input image to output for this CTB-row
 
@@ -456,12 +457,36 @@ void thread_task_sao::work()
 
   for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO);
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
   }
 
 
   //img->thread_finishes(this);
 }
+
+
+class thread_task_sao_exchange_image : public thread_task
+{
+public:
+  image* inputImg;
+  image* outputImg;
+
+  virtual void work() {
+    const seq_parameter_set& sps = inputImg->get_sps();
+
+    for (int i=0;i<sps.PicSizeInCtbsY;i++) {
+      inputImg->wait_for_progress(this, i, CTB_PROGRESS_SAO_INTERNAL);
+    }
+
+    printf("============================================================= SAO EXCH\n");
+
+    inputImg->exchange_pixel_data_with(*outputImg);
+
+    inputImg->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+  }
+
+  virtual std::string name() const { return "sao_exchange_image"; }
+};
 
 
 bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
@@ -494,7 +519,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   int nRows = sps.PicHeightInCtbsY;
 
-  int n=0;
+  //int n=0;
   //img->thread_start(nRows);
 
   for (int y=0;y<nRows;y++)
@@ -509,14 +534,26 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
       imgunit->tasks.push_back(task);
       ctx->get_thread_pool().add_task(task);
-      n++;
+      //n++;
     }
 
   /* Currently need barrier here because when are finished, we have to swap the pixel
      data back into the main image. */
   //img->wait_for_completion();
 
-  img->exchange_pixel_data_with(imgunit->sao_output);
+  //img->exchange_pixel_data_with(imgunit->sao_output);
+
+  // add exchange-image task
+
+  {
+    auto task = std::make_shared<thread_task_sao_exchange_image>();
+
+    task->inputImg  = img;
+    task->outputImg = &imgunit->sao_output;
+
+    imgunit->tasks.push_back(task);
+    ctx->get_thread_pool().add_task(task);
+  }
 
   return true;
 }

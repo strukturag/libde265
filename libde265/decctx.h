@@ -377,7 +377,7 @@ class decoder_context : public base_context,
   bool m_end_of_stream;
 
   std::deque<image_unit_ptr> m_image_units_in_progress;
-  static const int m_max_images_processed_in_parallel = 5; //////////////////// PARAMETER
+  static const int m_max_images_processed_in_parallel = 10; //////////////////// PARAMETER
 
   std::deque<image_unit_ptr> m_decoded_image_units;
 

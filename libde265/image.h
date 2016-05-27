@@ -78,7 +78,8 @@ enum PictureState {
 #define CTB_PROGRESS_PREFILTER 1
 #define CTB_PROGRESS_DEBLK_V   2
 #define CTB_PROGRESS_DEBLK_H   3
-#define CTB_PROGRESS_SAO       4
+#define CTB_PROGRESS_SAO_INTERNAL 4
+#define CTB_PROGRESS_SAO       5
 
 class decoder_context;
 
