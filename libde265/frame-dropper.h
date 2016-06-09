@@ -43,6 +43,8 @@ class frame_dropper : public image_unit_sink
  public:
  frame_dropper() : m_image_unit_sink(nullptr) { }
 
+  void reset() { }
+
   void set_image_unit_sink(image_unit_sink* sink) { m_image_unit_sink = sink; }
 
   virtual void send_image_unit(image_unit_ptr imgunit) {
@@ -75,6 +77,8 @@ class frame_dropper_ratio : public frame_dropper
 {
 public:
   frame_dropper_ratio();
+
+  void reset();
 
   void set_decoder_context(decoder_context& decctx) { m_decctx=&decctx; }
 

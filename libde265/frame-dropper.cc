@@ -56,6 +56,14 @@ frame_dropper_ratio::frame_dropper_ratio()
   m_n_total   = 1;
 }
 
+void frame_dropper_ratio::reset()
+{
+  m_image_queue.clear();
+  m_n_dropped = 0;
+  m_n_total = 0;
+  m_dropped_history.clear();
+}
+
 void frame_dropper_ratio::mark_used(int dpb_idx)
 {
   // find ID of image

@@ -407,6 +407,9 @@ void decoder_context::reset()
 
   m_frontend_syntax_decoder.reset();
 
+  m_frame_dropper_nop.reset();
+  m_frame_dropper_IRAP_only.reset();
+  m_frame_dropper_ratio.reset();
 
   m_output_queue.clear();
 
