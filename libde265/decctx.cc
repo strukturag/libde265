@@ -408,6 +408,8 @@ void decoder_context::reset()
   m_frontend_syntax_decoder.reset();
 
 
+  m_output_queue.clear();
+
   // --- remove all pictures from output queue ---
 
   // there was a bug the peek_next_image did not return NULL on empty output queues.
