@@ -155,6 +155,7 @@ LIBDE265_API void de265_set_verbosity(int level);
  */
 
 struct de265_image;
+struct de265_image_intern;
 
 enum de265_chroma {
   de265_chroma_mono=0,
@@ -172,10 +173,13 @@ LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image*,int channel);
 /* The |out_stride| is returned as "bytes per line" if a non-NULL parameter is given. */
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
-LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
 LIBDE265_API void de265_set_image_user_data(struct de265_image*, void *user_data);
+LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
+
+LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern*,int channel);
+LIBDE265_API void* de265_get_image_plane_user_data_intern(const struct de265_image_intern*, int channel);
 
 /* Get NAL-header information of this frame. You can pass in NULL pointers if you
    do not need this piece of information.
@@ -294,12 +298,9 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
  */
 LIBDE265_API void de265_skip_next_picture(de265_decoder_context*);
 
-  // DEPRECATED
-  //LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx);
-
 /* Release the image received from de265_peek_next_picture() or de265_get_next_picture()
  */
-LIBDE265_API void de265_release_picture(const de265_image*);
+LIBDE265_API void de265_release_picture(const struct de265_image*);
 
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
@@ -333,10 +334,10 @@ struct de265_image_spec
 
 struct de265_image_allocation
 {
-  int  (*get_buffer)(struct de265_image* img,
+  int  (*get_buffer)(struct de265_image_intern* img,
                      const struct de265_image_spec* spec,
                      void* userdata);
-  void (*release_buffer)(struct de265_image* img,
+  void (*release_buffer)(struct de265_image_intern* img,
                          void* userdata);
 
   // the user data that is passed to each call of get_buffer() and release_buffer()
@@ -346,10 +347,10 @@ struct de265_image_allocation
 
 /*
  */
-LIBDE265_API void de265_set_image_plane(struct de265_image* img,
-                                        int cIdx,
-                                        void* mem, int stride,
-                                        void *userdata);
+LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,
+                                               int cIdx,
+                                               void* mem, int stride,
+                                               void *userdata);
 
 
 

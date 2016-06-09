@@ -23,6 +23,7 @@
 #include "encoder/encoder-context.h"
 #include "libde265/encoder/encoder-syntax.h"
 #include "libde265/util.h"
+#include "libde265/image.h"
 
 #include <math.h>
 

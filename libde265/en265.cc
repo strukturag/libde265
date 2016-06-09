@@ -25,9 +25,11 @@
 
 
 // WARNING: duplicate definition. Also defined in de265.cc
+/*
 struct de265_image {
   std::shared_ptr<image> m_image;
 };
+*/
 
 
 LIBDE265_API en265_encoder_context* en265_new_encoder(void)
