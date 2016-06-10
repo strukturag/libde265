@@ -54,6 +54,15 @@ frame_dropper_ratio::frame_dropper_ratio()
 {
   m_n_dropped = 0;
   m_n_total   = 1;
+
+  /* VLC will show "pictures leaked" errors when we delay the decoding too much.
+     As a quick fix, we limit the frame-dropping queue to a maximum length.
+     This may affect the dropping capabilities.
+
+     A better solution would be to allocate the image buffer _after_ the dropping queue.
+     However, this will need further work on the pipeline.
+   */
+  m_max_queue_length = 12;
 }
 
 void frame_dropper_ratio::reset()
@@ -88,7 +97,7 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   item.in_dpb = true;
 
   m_image_queue.push_back(item);
-
+  //printf("-------------------- %d\n",m_image_queue.size());
 
   slice_unit* sunit = imgunit->get_next_unprocessed_slice_segment();
   if (sunit) {
@@ -119,7 +128,10 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   }
 
 
-  while (m_image_queue.front().in_dpb == false) {
+  while (m_image_queue.front().in_dpb == false ||
+         m_image_queue.front().used_for_reference == true ||
+         m_image_queue.size() > m_max_queue_length
+         ) {
     /*
     printf("%d REF: %s\n",
            m_image_queue.front().imgunit->img->get_ID(),
@@ -130,6 +142,10 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
 
     bool drop = ( !item.used_for_reference &&
                   float(m_n_dropped)/m_n_total < m_dropping_ratio);
+
+    if (m_image_queue.size() > m_max_queue_length) {
+      drop=false;
+    }
 
     /*
     printf("can be dropped %d  -> drop %d/%d (%f) -> %d\n",

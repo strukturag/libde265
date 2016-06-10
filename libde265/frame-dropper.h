@@ -89,6 +89,7 @@ public:
 
 private:
   float m_dropping_ratio;
+  int   m_max_queue_length;
 
   decoder_context* m_decctx;
 
