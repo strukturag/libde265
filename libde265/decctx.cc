@@ -118,7 +118,7 @@ thread_context::thread_context()
   */
 
   decctx = NULL;
-  img = NULL;
+  img.reset();
   shdr = NULL;
 
   imgunit = NULL;
@@ -178,7 +178,7 @@ void slice_unit::allocate_thread_contexts(int n)
 
 image_unit::image_unit()
 {
-  img=NULL;
+  img.reset();
   role=Invalid;
   state=Unprocessed;
 }
@@ -208,9 +208,9 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
   m_decctx=ctx;
   m_image_unit_sink = nullptr;
 
-  current_vps = NULL;
-  current_sps = NULL;
-  current_pps = NULL;
+  current_vps.reset();
+  current_sps.reset();
+  current_pps.reset();
 
   current_image_poc_lsb = 0;
   first_decoded_picture = 0;
@@ -1436,7 +1436,7 @@ void frontend_syntax_decoder::on_end_of_frame()
     m_image_unit_sink->send_image_unit(m_curr_image_unit);
   }
 
-  m_curr_image_unit = nullptr;
+  m_curr_image_unit.reset();
 
   m_image_unit_sink->send_end_of_stream();
 

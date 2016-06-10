@@ -38,9 +38,9 @@ image_data::image_data()
 
   frame_number = 0;
 
-  input = NULL;
-  prediction = NULL;
-  reconstruction = NULL;
+  input.reset();
+  prediction.reset();
+  reconstruction.reset();
 
   // SOP metadata
 

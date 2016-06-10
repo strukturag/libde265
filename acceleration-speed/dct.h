@@ -68,7 +68,7 @@ class DSPFunc_IDCT_Base : public DSPFunc
 {
 public:
   DSPFunc_IDCT_Base(int size) {
-    prev_image=NULL; curr_image=NULL; coeffs=NULL; blkSize=size;
+    prev_image.reset(); curr_image.reset(); coeffs=NULL; blkSize=size;
     out = new uint8_t[size*size]; // allocate it to ensure alignment
   }
 

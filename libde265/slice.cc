@@ -247,7 +247,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
 void slice_segment_header::reset()
 {
-  pps = NULL;
+  pps.reset();
 
   slice_index = 0;
 
