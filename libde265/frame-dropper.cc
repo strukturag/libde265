@@ -79,7 +79,6 @@ void frame_dropper_ratio::mark_used(int dpb_idx)
 
   image_ptr img = m_decctx->get_image(dpb_idx);
   int id = img->get_ID();
-
   for (int i=0;i<m_image_queue.size();i++) {
     if (m_image_queue[i].imgunit->img->get_ID() == id) {
       m_image_queue[i].used_for_reference = true;
@@ -105,12 +104,18 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
 
     // mark images that are used as reference by this image
 
+    /*
+    printf("FRD processing POC %d (ID=%d):\n",
+           item.imgunit->img->PicOrderCntVal,
+           item.imgunit->img->get_ID());
+    */
+
     for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
       mark_used(shdr->RefPicList[0][i]);
     }
 
-    for (int j=0;j<shdr->num_ref_idx_l0_active;j++) {
-      mark_used(shdr->RefPicList[0][j]);
+    for (int j=0;j<shdr->num_ref_idx_l1_active;j++) {
+      mark_used(shdr->RefPicList[1][j]);
     }
 
 
@@ -132,6 +137,11 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
          m_image_queue.front().used_for_reference == true ||
          m_image_queue.size() > m_max_queue_length
          ) {
+
+    if (m_image_queue.empty()) {
+      break;
+    }
+
     /*
     printf("%d REF: %s\n",
            m_image_queue.front().imgunit->img->get_ID(),
@@ -148,7 +158,8 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
     }
 
     /*
-    printf("can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+    printf("FRD POC %d can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+           item.imgunit->img->PicOrderCntVal,
            !item.used_for_reference,
            m_n_dropped,m_n_total, m_dropping_ratio,
            drop);
