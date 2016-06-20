@@ -720,9 +720,9 @@ int main(int argc, char** argv)
 
 
       loginfo(LogThreading,"actions: push-input:%d get-image:%d eos:%d\n",
-             !!(actions & de265_action_push_more_input),
-             !!(actions & de265_action_get_image),
-             !!(actions & de265_action_end_of_stream));
+              !!(actions & de265_action_push_more_input),
+              !!(actions & de265_action_get_image),
+              !!(actions & de265_action_end_of_stream));
 
 
       // --- push more input ---
@@ -762,24 +762,24 @@ int main(int argc, char** argv)
 
           pos+=n;
 
-        static bool skipped = false;
-        if (0 && !skipped) { // fake skipping
-          skipped = true;
+          static bool skipped = false;
+          if (0 && !skipped) { // fake skipping
+            skipped = true;
 
-          printf("RESET\n");
-          de265_reset(ctx);
-          pos=0;
+            printf("RESET\n");
+            de265_reset(ctx);
+            pos=0;
 
-          fseek(fh, 71000000,SEEK_CUR);
-        }
+            fseek(fh, 71000000,SEEK_CUR);
+          }
 
-        // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
+          // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
-        if (feof(fh)) {
-          err = de265_flush_data(ctx); // indicate end of stream
+          if (feof(fh)) {
+            err = de265_flush_data(ctx); // indicate end of stream
+          }
         }
       }
-
 
       // --- get images ---
 
@@ -787,45 +787,45 @@ int main(int argc, char** argv)
 
         printf("------------------------------------------------------------------------------------------------------------------------\n");
 
-          // decode some more
+        // decode some more
 
-          //std::cout << "-------- decoded frames " << framecnt << "\n";
+        //std::cout << "-------- decoded frames " << framecnt << "\n";
 
         /*
           err = de265_decode(ctx, &more);
           if (err != DE265_OK) {
-            // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
+          // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
 
-            if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
-              stop = 1;
-            more = 0;
-            break;
+          if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
+          stop = 1;
+          more = 0;
+          break;
           }
         */
 
-          // show available images
+        // show available images
 
-          const de265_image* img = de265_get_next_picture(ctx);
-          assert(img);
+        const de265_image* img = de265_get_next_picture(ctx);
+        assert(img);
 
-          if (measure_quality) {
-            measure(img);
+        if (measure_quality) {
+          measure(img);
+        }
+
+        stop = output_image(img);
+
+        de265_release_picture(img);
+
+        // show warnings
+
+        for (;;) {
+          de265_error warning = de265_get_warning(ctx);
+          if (warning==DE265_OK) {
+            break;
           }
 
-          stop = output_image(img);
-
-          de265_release_picture(img);
-
-          // show warnings
-
-          for (;;) {
-            de265_error warning = de265_get_warning(ctx);
-            if (warning==DE265_OK) {
-              break;
-            }
-
-            if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
-          }
+          if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+        }
       }
 
       else if (actions & de265_action_end_of_stream) {
