@@ -72,7 +72,15 @@
 
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
-namespace std { using namespace std::tr1; }
+namespace std {
+  using namespace std::tr1;
+
+  // TODO: put a separate IFDEF around this one
+
+  template <class T, typename... Args> shared_ptr<T> make_shared(Args&& ... args) {
+    return shared_ptr<T>( new T(args...) );
+  }
+}
 #endif
 
 #ifdef NEED_STD_MOVE_FALLBACK

@@ -191,7 +191,7 @@ pic_parameter_set::~pic_parameter_set()
 void pic_parameter_set::set_defaults(enum PresetSet)
 {
   pps_read = false;
-  sps = nullptr;
+  sps.reset();
 
   pic_parameter_set_id = 0;
   seq_parameter_set_id = 0;

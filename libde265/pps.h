@@ -21,6 +21,7 @@
 #ifndef DE265_PPS_H
 #define DE265_PPS_H
 
+#include "util.h"
 #include "libde265/bitstream.h"
 #include "libde265/sps.h" // for scaling list only
 

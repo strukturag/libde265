@@ -59,12 +59,12 @@ public:
   /* Raw access to the images. */
 
   std::shared_ptr</* */ image> get_image(int index)       {
-    if (index>=dpb.size()) return NULL;
+    if (index>=dpb.size()) return std::shared_ptr<image>();
     return dpb[index];
   }
 
   std::shared_ptr<const image> get_image(int index) const {
-    if (index>=dpb.size()) return NULL;
+    if (index>=dpb.size()) return std::shared_ptr<image>();
     return dpb[index];
   }
 

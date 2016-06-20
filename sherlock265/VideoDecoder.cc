@@ -39,10 +39,6 @@ using namespace videogfx;
 #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
 #endif
 
-struct de265_image {
-  std::shared_ptr<image> m_image;
-};
-
 
 VideoDecoder::VideoDecoder()
   : mFH(NULL),

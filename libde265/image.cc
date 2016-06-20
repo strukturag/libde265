@@ -122,7 +122,8 @@ LIBDE265_API void de265_free_image_plane(struct image* img, int cIdx)
 }
 
 
-static int  image_get_buffer(de265_image* de265_img, const de265_image_spec* spec, void* userdata)
+static int  image_get_buffer(de265_image_intern* de265_img,
+                             const de265_image_spec* spec, void* userdata)
 {
   image* img = (image*)de265_img;
 
@@ -175,7 +176,7 @@ static int  image_get_buffer(de265_image* de265_img, const de265_image_spec* spe
   return 1;
 }
 
-static void image_release_buffer(de265_image* de265_img, void* userdata)
+static void image_release_buffer(de265_image_intern* de265_img, void* userdata)
 {
   image* img = (image*)de265_img;
 
@@ -194,7 +195,7 @@ de265_image_allocation image::default_image_allocation = {
 };
 
 
-int image::image_allocation_get_buffer_NOP(struct de265_image*,
+int image::image_allocation_get_buffer_NOP(struct de265_image_intern*,
                                            const struct de265_image_spec*,
                                            void* userdata)
 {
@@ -369,7 +370,7 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   bool mem_alloc_success = true;
 
   if (image_allocation_functions.get_buffer != NULL) {
-    mem_alloc_success = image_allocation_functions.get_buffer((de265_image*)this, &spec,
+    mem_alloc_success = image_allocation_functions.get_buffer((de265_image_intern*)this, &spec,
                                                               image_allocation_functions.userdata);
 
     pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
@@ -475,7 +476,7 @@ void image::release()
 
   if (pixels[0])
     {
-      image_allocation_functions.release_buffer((de265_image*)this,
+      image_allocation_functions.release_buffer((de265_image_intern*)this,
                                                 image_allocation_functions.userdata);
 
       for (int i=0;i<3;i++)

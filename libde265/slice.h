@@ -250,7 +250,7 @@ public:
   int NumPocTotalCurr;
 
   // number of entries: num_ref_idx_l0_active / num_ref_idx_l1_active
-  int RefPicList[2][MAX_NUM_REF_PICS]; // contains buffer IDs (D:indices into DPB/E:frame number)
+  int RefPicList[2][MAX_NUM_REF_PICS]; // contains buffer ID (Dec:indices into DPB/Enc:frame number)
   int RefPicList_POC[2][MAX_NUM_REF_PICS];
   int RefPicList_PicState[2][MAX_NUM_REF_PICS]; /* We have to save the PicState because the decoding
                                                    of an image may be delayed and the PicState can

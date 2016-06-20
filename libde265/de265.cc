@@ -33,12 +33,6 @@
 #include <stdlib.h>
 
 
-// WARNING: duplicate definition. Also defined in en265.cc
-struct de265_image {
-  std::shared_ptr<image> m_image;
-};
-
-
 // TODO: should be in some vps.c related header
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 
@@ -404,6 +398,11 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
   while (ctx->num_pictures_in_output_queue()>0) {
     image_ptr i = ctx->get_next_picture_in_output_queue();
 
+    if (0) {
+      printf("output POC %d %d integr:%d\n",i->PicOrderCntVal,
+             (i->integrity != INTEGRITY_NOT_DECODED), i->integrity);
+    }
+
     // pop output queue
 
     ctx->pop_next_picture_in_output_queue();
@@ -643,6 +642,21 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
   }
 }
 
+LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern* img,int channel)
+{
+  image* iimg = (image*)img;
+
+  switch (channel) {
+  case 0:
+    return iimg->BitDepth_Y;
+  case 1:
+  case 2:
+    return iimg->BitDepth_C;
+  default:
+    return 0;
+  }
+}
+
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
 {
   switch (channel) {
@@ -680,11 +694,21 @@ LIBDE265_API void *de265_get_image_plane_user_data(const struct de265_image* img
   return img->m_image->plane_user_data[channel];
 }
 
-LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride, void *userdata)
+LIBDE265_API void *de265_get_image_plane_user_data_intern(const struct de265_image_intern* img, int channel)
+{
+  assert(channel>=0 && channel <= 2);
+
+  image* iimg = (image*)img;
+  return iimg->plane_user_data[channel];
+}
+
+LIBDE265_API void de265_set_image_plane_intern(de265_image_intern* img, int cIdx, void* mem, int stride, void *userdata)
 {
   // The internal "stride" is the number of pixels per line.
-  stride = stride / ((de265_get_bits_per_pixel(img, cIdx)+7) / 8);
-  img->m_image->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
+  stride = stride / ((de265_get_bits_per_pixel_intern(img, cIdx)+7) / 8);
+
+  image* iimg = (image*)img;
+  iimg->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context* de265ctx,

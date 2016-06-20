@@ -54,6 +54,23 @@ frame_dropper_ratio::frame_dropper_ratio()
 {
   m_n_dropped = 0;
   m_n_total   = 1;
+
+  /* VLC will show "pictures leaked" errors when we delay the decoding too much.
+     As a quick fix, we limit the frame-dropping queue to a maximum length.
+     This may affect the dropping capabilities.
+
+     A better solution would be to allocate the image buffer _after_ the dropping queue.
+     However, this will need further work on the pipeline.
+   */
+  m_max_queue_length = 12;
+}
+
+void frame_dropper_ratio::reset()
+{
+  m_image_queue.clear();
+  m_n_dropped = 0;
+  m_n_total = 0;
+  m_dropped_history.clear();
 }
 
 void frame_dropper_ratio::mark_used(int dpb_idx)
@@ -62,7 +79,6 @@ void frame_dropper_ratio::mark_used(int dpb_idx)
 
   image_ptr img = m_decctx->get_image(dpb_idx);
   int id = img->get_ID();
-
   for (int i=0;i<m_image_queue.size();i++) {
     if (m_image_queue[i].imgunit->img->get_ID() == id) {
       m_image_queue[i].used_for_reference = true;
@@ -80,7 +96,7 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   item.in_dpb = true;
 
   m_image_queue.push_back(item);
-
+  //printf("-------------------- %d\n",m_image_queue.size());
 
   slice_unit* sunit = imgunit->get_next_unprocessed_slice_segment();
   if (sunit) {
@@ -88,12 +104,18 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
 
     // mark images that are used as reference by this image
 
+    /*
+    printf("FRD processing POC %d (ID=%d):\n",
+           item.imgunit->img->PicOrderCntVal,
+           item.imgunit->img->get_ID());
+    */
+
     for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
       mark_used(shdr->RefPicList[0][i]);
     }
 
-    for (int j=0;j<shdr->num_ref_idx_l0_active;j++) {
-      mark_used(shdr->RefPicList[0][j]);
+    for (int j=0;j<shdr->num_ref_idx_l1_active;j++) {
+      mark_used(shdr->RefPicList[1][j]);
     }
 
 
@@ -111,7 +133,15 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   }
 
 
-  while (m_image_queue.front().in_dpb == false) {
+  while (m_image_queue.front().in_dpb == false ||
+         m_image_queue.front().used_for_reference == true ||
+         m_image_queue.size() > m_max_queue_length
+         ) {
+
+    if (m_image_queue.empty()) {
+      break;
+    }
+
     /*
     printf("%d REF: %s\n",
            m_image_queue.front().imgunit->img->get_ID(),
@@ -123,8 +153,13 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
     bool drop = ( !item.used_for_reference &&
                   float(m_n_dropped)/m_n_total < m_dropping_ratio);
 
+    if (m_image_queue.size() > m_max_queue_length) {
+      drop=false;
+    }
+
     /*
-    printf("can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+    printf("FRD POC %d can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+           item.imgunit->img->PicOrderCntVal,
            !item.used_for_reference,
            m_n_dropped,m_n_total, m_dropping_ratio,
            drop);

@@ -352,7 +352,7 @@ class image {
   static de265_image_allocation default_image_allocation;
 
   // dummy image allocation function that does nothing
-  static int image_allocation_get_buffer_NOP(struct de265_image*,
+  static int image_allocation_get_buffer_NOP(struct de265_image_intern*,
                                              const struct de265_image_spec*,
                                              void* userdata);
 
@@ -885,6 +885,12 @@ public:
   // --- value logging ---
 
   void printBlk(int x0,int y0, int cIdx, int log2BlkSize);
+};
+
+
+// WARNING: duplicate definition. Also defined in en265.cc
+struct de265_image {
+  std::shared_ptr<image> m_image;
 };
 
 
