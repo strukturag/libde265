@@ -390,6 +390,11 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
   while (ctx->num_pictures_in_output_queue()>0) {
     image_ptr i = ctx->get_next_picture_in_output_queue();
 
+    if (0) {
+      printf("output POC %d %d integr:%d\n",i->PicOrderCntVal,
+             (i->integrity != INTEGRITY_NOT_DECODED), i->integrity);
+    }
+
     // pop output queue
 
     ctx->pop_next_picture_in_output_queue();

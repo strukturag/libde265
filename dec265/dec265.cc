@@ -156,6 +156,7 @@ static void write_picture(const de265_image* img)
 
 
 #if HAVE_VIDEOGFX
+//#include "libde265/image.h"
 void display_image(const struct de265_image* img)
 {
   static X11Win win;
@@ -235,6 +236,8 @@ void display_image(const struct de265_image* img)
       }
     }
   }
+
+  //printf("displaying frame: %d\n", img->m_image->PicOrderCntVal);
 
   win.Display(visu);
   win.WaitForKeypress();
@@ -744,14 +747,15 @@ int main(int argc, char** argv)
 
         pos+=n;
 
-        if (0) { // fake skipping
-          if (pos>1000000) {
-            printf("RESET\n");
-            de265_reset(ctx);
-            pos=0;
+        static bool skipped = false;
+        if (0 && !skipped) { // fake skipping
+          skipped = true;
 
-            fseek(fh,-200000,SEEK_CUR);
-          }
+          printf("RESET\n");
+          de265_reset(ctx);
+          pos=0;
+
+          fseek(fh, 71000000,SEEK_CUR);
         }
       }
 
