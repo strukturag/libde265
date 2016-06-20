@@ -1024,7 +1024,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbAddrRS = shdr->slice_segment_address;
   int ctbRow    = ctbAddrRS / ctbsWidth;
 
-  thread_task_ptr tasks[nRows];
+  std::vector<thread_task_ptr> tasks(nRows);
 
   for (int entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
@@ -1161,7 +1161,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   int ctbAddrRS = shdr->slice_segment_address;
   int tileID = pps.TileIdRS[ctbAddrRS];
 
-  thread_task_ptr tasks[nTiles];
+  std::vector<thread_task_ptr> tasks(nTiles);
 
   for (int entryPt=0;entryPt<nTiles;entryPt++) {
     // entry points other than the first start at tile beginnings
