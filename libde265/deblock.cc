@@ -995,6 +995,116 @@ void thread_task_deblock_CTBRow::work()
 }
 
 
+class thread_task_deblock_image : public thread_task
+{
+public:
+  image_ptr img;
+  bool vertical;
+
+  virtual void work();
+  virtual std::string name() const {
+    char buf[100];
+    sprintf(buf,"deblock-%c",vertical ? 'V' : 'H');
+    return buf;
+  }
+};
+
+
+void thread_task_deblock_image::work()
+{
+  //img->thread_run(this);
+
+  int xStart=0;
+  int xEnd = img->get_deblk_width();
+
+  int ctbSize = img->get_sps().CtbSizeY;
+  int deblkSize = ctbSize/4;
+
+  int nRows = img->get_sps().PicHeightInCtbsY;
+
+  // wait for top CTB row
+  const int rightCtb = img->get_sps().PicWidthInCtbsY-1;
+  img->wait_for_progress(this, rightCtb,0, CTB_PROGRESS_PREFILTER);
+
+
+  for (int ctb_y=0; ctb_y<nRows; ctb_y++) {
+
+    int first =  ctb_y    * deblkSize;
+    int last  = (ctb_y+1) * deblkSize;
+    if (last > img->get_deblk_height()) {
+      last = img->get_deblk_height();
+    }
+
+    int finalProgress = CTB_PROGRESS_DEBLK_V;
+    if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
+
+    if (vertical) {
+      // pass 1: vertical
+
+      int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
+      img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+    }
+    else {
+      // pass 2: horizontal
+
+      // wait for CTB-row below this task's row
+      if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
+        img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
+      }
+
+      /*
+      // wait for CTB-row of this task's row
+      img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
+
+      // wait for CTB-row above this task's row
+      if (ctb_y>0) {
+      img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
+      }
+      */
+    }
+
+    //printf("deblock %d to %d orientation: %d\n",first,last,vertical);
+
+    bool deblocking_enabled;
+
+    // first pass: check edge flags and whether we have to deblock
+    if (vertical) {
+      deblocking_enabled = derive_edgeFlags_CTBRow(img.get(), ctb_y);
+
+      //for (int x=0;x<=rightCtb;x++) {
+      int x=0; img->set_CtbDeblockFlag(x,ctb_y, deblocking_enabled);
+      //}
+    }
+    else {
+      int x=0; deblocking_enabled=img->get_CtbDeblockFlag(x,ctb_y);
+    }
+
+    if (deblocking_enabled) {
+      derive_boundaryStrength(img.get(), vertical, first,last, xStart,xEnd);
+
+      edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
+
+      if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
+      }
+    }
+
+    for (int x=0;x<=rightCtb;x++) {
+      const int CtbWidth = img->get_sps().PicWidthInCtbsY;
+      img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
+    }
+
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk %c %d\n",
+           vertical ? 'V' : 'H',
+           ctb_y);
+  }
+
+  //img->thread_finishes(this);
+}
+
+
+
+
 void add_deblocking_tasks(image_unit* imgunit)
 {
   image_ptr img = imgunit->img;
@@ -1002,23 +1112,32 @@ void add_deblocking_tasks(image_unit* imgunit)
 
   int nRows = img->get_sps().PicHeightInCtbsY;
 
-  int n=0;
-  //img->thread_start(nRows*2);
+  bool row_parallel = false;
 
   for (int pass=0;pass<2;pass++)
     {
-      for (int y=0;y<img->get_sps().PicHeightInCtbsY;y++)
-        {
-          auto task = std::make_shared<thread_task_deblock_CTBRow>();
+      if (row_parallel) {
+        for (int y=0;y<img->get_sps().PicHeightInCtbsY;y++)
+          {
+            auto task = std::make_shared<thread_task_deblock_CTBRow>();
 
-          task->img   = img;
-          task->ctb_y = y;
-          task->vertical = (pass==0);
+            task->img   = img;
+            task->ctb_y = y;
+            task->vertical = (pass==0);
 
-          imgunit->tasks.push_back(task);
-          ctx->get_thread_pool().add_task(task);
-          n++;
-        }
+            imgunit->tasks.push_back(task);
+            ctx->get_thread_pool().add_task(task);
+          }
+      }
+      else {
+        auto task = std::make_shared<thread_task_deblock_image>();
+
+        task->img = img;
+        task->vertical = (pass==0);
+
+        imgunit->tasks.push_back(task);
+        ctx->get_thread_pool().add_task(task);
+      }
     }
 }
 
