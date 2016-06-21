@@ -240,7 +240,7 @@ void display_image(const struct de265_image* img)
   //printf("displaying frame: %d\n", img->m_image->PicOrderCntVal);
 
   win.Display(visu);
-  //win.WaitForKeypress();
+  win.WaitForKeypress();
 }
 #endif
 
