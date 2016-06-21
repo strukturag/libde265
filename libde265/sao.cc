@@ -465,6 +465,96 @@ void thread_task_sao::work()
 }
 
 
+
+class thread_task_sao_image : public thread_task
+{
+public:
+  image* img; /* this is where we get the SPS from
+                 (either inputImg or outputImg can be a dummy image)
+              */
+
+  image* inputImg;
+  image* outputImg;
+  int inputProgress;
+
+  virtual void work();
+  virtual std::string name() const {
+    char buf[100];
+    sprintf(buf,"sao-image");
+    return buf;
+  }
+};
+
+
+void thread_task_sao_image::work()
+{
+  //img->thread_run(this);
+
+  const seq_parameter_set& sps = img->get_sps();
+
+  const int rightCtb = sps.PicWidthInCtbsY-1;
+  const int ctbSize  = (1<<sps.Log2CtbSizeY);
+
+
+  // wait until also the CTB-rows below and above are ready
+
+  img->wait_for_progress(this, rightCtb,0,  inputProgress);
+
+  for (int ctb_y=0; ctb_y < sps.PicHeightInCtbsY; ctb_y++)
+    {
+      if (ctb_y+1<sps.PicHeightInCtbsY) {
+        img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
+      }
+
+      printf("========================================================== SAO %d\n",ctb_y);
+
+      // copy input image to output for this CTB-row
+
+      outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
+
+
+      // process SAO in the CTB-row
+
+      for (int xCtb=0; xCtb<sps.PicWidthInCtbsY; xCtb++)
+        {
+          const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
+          if (shdr==NULL) {
+            break;
+          }
+
+          if (shdr->slice_sao_luma_flag) {
+            apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize, ctbSize,
+                      inputImg ->get_image_plane(0), inputImg ->get_image_stride(0),
+                      outputImg->get_image_plane(0), outputImg->get_image_stride(0));
+          }
+
+          if (shdr->slice_sao_chroma_flag) {
+            int nSW = ctbSize / sps.SubWidthC;
+            int nSH = ctbSize / sps.SubHeightC;
+
+            apply_sao(img, xCtb,ctb_y, shdr, 1, nSW,nSH,
+                      inputImg ->get_image_plane(1), inputImg ->get_image_stride(1),
+                      outputImg->get_image_plane(1), outputImg->get_image_stride(1));
+
+            apply_sao(img, xCtb,ctb_y, shdr, 2, nSW,nSH,
+                      inputImg ->get_image_plane(2), inputImg ->get_image_stride(2),
+                      outputImg->get_image_plane(2), outputImg->get_image_stride(2));
+          }
+        }
+
+
+      // mark SAO progress
+
+      for (int x=0;x<=rightCtb;x++) {
+        const int CtbWidth = sps.PicWidthInCtbsY;
+        img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
+      }
+    }
+}
+
+
+
+
 class thread_task_sao_exchange_image : public thread_task
 {
 public:
@@ -522,20 +612,35 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
   //int n=0;
   //img->thread_start(nRows);
 
-  for (int y=0;y<nRows;y++)
-    {
-      auto task = std::make_shared<thread_task_sao>();
+  bool row_parallel = false;
 
-      task->inputImg  = img;
-      task->outputImg = &imgunit->sao_output;
-      task->img = img;
-      task->ctb_y = y;
-      task->inputProgress = saoInputProgress;
+  if (row_parallel) {
+    for (int y=0;y<nRows;y++)
+      {
+        auto task = std::make_shared<thread_task_sao>();
 
-      imgunit->tasks.push_back(task);
-      ctx->get_thread_pool().add_task(task);
-      //n++;
-    }
+        task->inputImg  = img;
+        task->outputImg = &imgunit->sao_output;
+        task->img = img;
+        task->ctb_y = y;
+        task->inputProgress = saoInputProgress;
+
+        imgunit->tasks.push_back(task);
+        ctx->get_thread_pool().add_task(task);
+        //n++;
+      }
+  }
+  else {
+    auto task = std::make_shared<thread_task_sao_image>();
+
+    task->inputImg  = img;
+    task->outputImg = &imgunit->sao_output;
+    task->img = img;
+    task->inputProgress = saoInputProgress;
+
+    imgunit->tasks.push_back(task);
+    ctx->get_thread_pool().add_task(task);
+  }
 
   /* Currently need barrier here because when are finished, we have to swap the pixel
      data back into the main image. */
