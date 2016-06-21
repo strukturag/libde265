@@ -28,11 +28,11 @@
 # include <alloca.h>
 #endif
 
+#include <stdio.h>
+
 
 #ifndef _WIN32
 // #include <intrin.h>
-
-#include <stdio.h>
 
 int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void *), void *arg)
 { return pthread_create(t,NULL,start_routine,arg); }
@@ -125,10 +125,10 @@ bool de265_thread::should_stop() const
   bool req;
 
   {
-    printf("thread LOCK\n");
+    //printf("thread LOCK\n");
     lock_guard lock(m_mutex);
     req = m_stop_request;
-    printf("thread UNLOCK\n");
+    //printf("thread UNLOCK\n");
   }
 
   return req;
