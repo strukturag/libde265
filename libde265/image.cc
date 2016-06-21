@@ -122,6 +122,8 @@ LIBDE265_API void de265_free_image_plane(struct image* img, int cIdx)
 }
 
 
+static int nAllocImages = 0;
+
 static int  image_get_buffer(de265_image_intern* de265_img,
                              const de265_image_spec* spec, void* userdata)
 {
@@ -258,9 +260,7 @@ image::image()
 
 de265_error image::alloc_image(int w,int h, enum de265_chroma c,
                                int bitDepth_luma, int bitDepth_chroma,
-                               de265_PTS pts,
                                const supplementary_data& supp_data,
-                               void* user_data,
                                const de265_image_allocation* alloc_functions)
 {
   m_supplementary_data = supp_data;
@@ -280,9 +280,6 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   height = h;
   chroma_width = w;
   chroma_height= h;
-
-  this->user_data = user_data;
-  this->pts = pts;
 
   de265_image_spec spec;
 
@@ -371,6 +368,9 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   bool mem_alloc_success = true;
 
   if (image_allocation_functions.get_buffer != NULL) {
+    nAllocImages++;
+    //printf("nalloc: %d\n",nAllocImages);
+
     mem_alloc_success = image_allocation_functions.get_buffer((de265_image_intern*)this, &spec,
                                                               image_allocation_functions.userdata);
 
@@ -480,6 +480,7 @@ void image::release()
 
   if (pixels[0])
     {
+      nAllocImages--;
       image_allocation_functions.release_buffer((de265_image_intern*)this,
                                                 image_allocation_functions.userdata);
 
@@ -526,12 +527,14 @@ de265_error image::copy_image(const image* src)
   de265_error err = alloc_image(src->width, src->height, src->chroma_format,
                                 src->BitDepth_Y,
                                 src->BitDepth_C,
-                                src->pts,
                                 src->get_supplementary_data(),
-                                src->user_data, nullptr);
+                                nullptr);
   if (err != DE265_OK) {
     return err;
   }
+
+  set_PTS(src->pts);
+  set_user_data(src->user_data);
 
   set_decoder_context(src->decctx);
   set_encoder_context(src->encctx);

@@ -247,10 +247,12 @@ class image {
 
   de265_error alloc_image(int w,int h, enum de265_chroma c,
                           int bitDepth_luma, int bitDepth_chroma,
-                          de265_PTS pts,
                           const supplementary_data& supp_data,
-                          void* user_data,
                           const de265_image_allocation* alloc_functions = nullptr);
+
+  void set_PTS(de265_PTS pts) { this->pts = pts; }
+  void set_user_data(void* user_data) { this->user_data = user_data; }
+
 
   void set_decoder_context(decoder_context* ctx) { decctx = ctx; }
   void set_encoder_context(class encoder_context* ctx) { encctx = ctx; }

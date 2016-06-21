@@ -482,10 +482,12 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
                                                     img->get_chroma_format(),
                                                     img->get_bit_depth(0),
                                                     img->get_bit_depth(1),
-                                                    img->pts,
                                                     img->get_supplementary_data(),
-                                                    img->user_data,
                                                     &ctx->param_image_allocation_functions);
+
+  imgunit->sao_output.set_PTS(img->pts);
+  imgunit->sao_output.set_user_data(img->user_data);
+
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;

@@ -67,9 +67,7 @@ image* ImageSource_YUV::read_next_image()
 
   image* img = new image;
   img->alloc_image(width,height,de265_chroma_420, 8,8,
-                   0, // PTS
                    image::supplementary_data(),
-                   NULL, // user data
                    nullptr); // alloc-functions
   assert(img); // TODO: error handling
 

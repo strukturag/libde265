@@ -42,9 +42,8 @@ public:
 
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, return -1. */
-  int new_image(std::shared_ptr<const seq_parameter_set> sps, decoder_context* decctx,
-                de265_PTS pts, void* user_data,
-                const de265_image_allocation* alloc_functions = nullptr);
+  int new_image(std::shared_ptr<const seq_parameter_set> sps, decoder_context* decctx);
+
 
   /* Check for a free slot in the DPB. There are some slots reserved for
      unavailable reference frames. If high_priority==true, these reserved slots

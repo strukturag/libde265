@@ -676,17 +676,36 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit*
     decoded_picture_buffer& dpb = m_decctx->dpb;
 
     int image_buffer_idx;
-    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
-    image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
-                                     isOutputImage ?
-                                     &m_decctx->param_image_allocation_functions :
-                                     nullptr);
+    image_buffer_idx = dpb.new_image(current_sps, m_decctx);
     if (image_buffer_idx == -1) {
       return DE265_ERROR_IMAGE_BUFFER_FULL;
     }
 
     m_curr_img = dpb.get_image(image_buffer_idx);
     m_curr_img->nal_hdr = nal_hdr;
+
+
+
+    m_curr_img->set_PTS(nal->pts);
+    m_curr_img->set_user_data(nal->user_data);
+
+    int w = sps->pic_width_in_luma_samples;
+    int h = sps->pic_height_in_luma_samples;
+    enum de265_chroma chroma = sps->get_chroma();
+    image::supplementary_data supp_data;
+    supp_data.set_from_SPS(current_sps);
+
+    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
+
+    m_curr_img->alloc_image(w,h, chroma,
+                            sps->BitDepth_Y,
+                            sps->BitDepth_C,
+                            supp_data,
+                            isOutputImage ?
+                            &m_decctx->param_image_allocation_functions :
+                            nullptr);
+
+
 
     // Note: sps is already set in new_image() -> ??? still the case with shared_ptr ?
 
@@ -1528,11 +1547,28 @@ int frontend_syntax_decoder::generate_unavailable_reference_picture(const seq_pa
   std::shared_ptr<const seq_parameter_set> current_sps = this->sps[ (int)current_pps->seq_parameter_set_id ];
 
   de265_image_allocation* alloc_functions = nullptr; // use internal allocation
-  int idx = dpb.new_image(current_sps, m_decctx, 0,0, alloc_functions);
+  int idx = dpb.new_image(current_sps, m_decctx);
   assert(idx>=0);
   //printf("-> fill with unavailable POC %d\n",POC);
 
   image_ptr img = dpb.get_image(idx);
+
+
+  // allocate image memory
+  image::supplementary_data supp_data;
+  supp_data.set_from_SPS(current_sps);
+
+  int w = current_sps->pic_width_in_luma_samples;
+  int h = current_sps->pic_height_in_luma_samples;
+  enum de265_chroma chroma = sps->get_chroma();
+  img->alloc_image(w,h, chroma,
+                   current_sps->BitDepth_Y,
+                   current_sps->BitDepth_C,
+                   supp_data,
+                   nullptr);
+
+
+  // fill with middle bright grey
 
   img->fill_image(1<<(sps->BitDepth_Y-1),
                   1<<(sps->BitDepth_C-1),

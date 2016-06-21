@@ -155,9 +155,7 @@ void decoded_picture_buffer::clear()
 
 
 int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> sps,
-                                      decoder_context* decctx,
-                                      de265_PTS pts, void* user_data,
-                                      const de265_image_allocation* alloc_functions)
+                                      decoder_context* decctx)
 {
   loginfo(LogHeaders,"DPB::new_image\n");
   log_dpb_content();
@@ -204,6 +202,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   enum de265_chroma chroma = sps->get_chroma();
 
+  /*
   image::supplementary_data supp_data;
   supp_data.set_from_SPS(sps);
 
@@ -211,6 +210,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
                    sps->BitDepth_Y,
                    sps->BitDepth_C,
                    pts, supp_data, user_data, alloc_functions);
+  */
   img->set_decoder_context(decctx);
   img->alloc_metadata(sps);
   img->integrity = INTEGRITY_CORRECT;
