@@ -289,7 +289,7 @@ class thread_pool
   de265_mutex  m_mutex;
   de265_cond   m_cond_var;
 
-  static void* main_loop_thread(thread_pool* pool_ptr);
+  static THREAD_RESULT main_loop_thread(THREAD_PARAM pool_ptr);
 
   // main loop for each worker thread
   void worker_thread_main_loop();

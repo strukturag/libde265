@@ -270,8 +270,10 @@ void printblks(const thread_pool* pool)
 #endif
 
 
-void* thread_pool::main_loop_thread(thread_pool* pool)
+THREAD_RESULT thread_pool::main_loop_thread(THREAD_PARAM pool_ptr)
 {
+  thread_pool* pool = (thread_pool*)pool_ptr;
+
   pool->worker_thread_main_loop();
 
   return (THREAD_RESULT)NULL;
@@ -358,7 +360,7 @@ de265_error thread_pool::start(int num_threads)
 
   for (int i=0; i<num_threads; i++) {
     int ret = de265_thread_create(&m_thread[i],
-                                  (THREAD_RESULT (*)(THREAD_PARAM))main_loop_thread,
+                                  main_loop_thread,
                                   this);
     if (ret != 0) {
       // cerr << "pthread_create() failed: " << ret << endl;
