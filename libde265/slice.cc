@@ -5040,6 +5040,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
     int ctby = tctx->get_CTB_y();
 
+    printf("------------------------------ decode POC %d, y=%d\n",img->PicOrderCntVal,ctby);
 
     // check whether entry_points[] are correct in the bitstream
 

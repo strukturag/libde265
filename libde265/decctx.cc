@@ -390,7 +390,6 @@ int  decoder_context::get_action(bool blocking)
   int actions = 0;
 
   m_main_loop_mutex.lock();
-  printf("LOCK get_action\n");
 
   for (;;) {
     // check whether all decoding threads are busy
@@ -421,8 +420,6 @@ int  decoder_context::get_action(bool blocking)
 
     // --- Do we have decoded images ready for the client ? ---
 
-    printf("NUMOUT %d\n", num_pictures_in_output_queue());
-
     if (num_pictures_in_output_queue() > 0) {
       actions |= de265_action_get_image;
     }
@@ -437,13 +434,14 @@ int  decoder_context::get_action(bool blocking)
                                      m_output_queue.num_pictures_in_reorder_buffer() ==0);
 
 
+    /*
     printf("buffer status: %d %d %d %d %d\n",
            m_end_of_stream,
            no_input_pending,
            decoding_slots_empty,
            decoded_images_queue_empty,
            output_queue_empty);
-
+    */
 
     if (m_end_of_stream &&
         no_input_pending &&
@@ -463,13 +461,10 @@ int  decoder_context::get_action(bool blocking)
     else {
       // block until API-action status changes
 
-      printf("COND UNLOCK get_action\n");
       m_cond_api_action.wait(m_main_loop_mutex);
-      printf("COND LOCK get_action\n");
     }
   }
 
-  printf("UNLOCK get_action\n");
   m_main_loop_mutex.unlock();
 
   return actions;
@@ -479,13 +474,10 @@ int  decoder_context::get_action(bool blocking)
 void decoder_context::run_main_loop()
 {
   m_main_loop_mutex.lock();
-  printf("LOCK run_main_loop\n");
 
   for (;;) {
     bool did_something = false;
 
-
-    printf("main_loop\n");
 
     // === start decoding a new image ===
 
@@ -516,8 +508,6 @@ void decoder_context::run_main_loop()
     // === move decoded images to output queue ===
 
     while (!m_decoded_image_units.empty()) {
-      printf("move image\n");
-
       image_unit_ptr imgunit = m_decoded_image_units.front();
 
       // make sure the master-thread has ended
@@ -529,23 +519,17 @@ void decoder_context::run_main_loop()
 
       m_decoded_image_units.pop_front();
 
-      printf("decoded_image_units length: %ld\n", m_decoded_image_units.size());
-
 
       push_picture_to_output_queue(imgunit->img);
 
       did_something = true;
 
       m_cond_api_action.signal();
-
-      printf("destroying image unit %p\n",imgunit.get());
     }
 
 
     if (!did_something) {
-      printf("COND UNLOCK run_main_loop\n");
       m_main_loop_block_cond.wait(m_main_loop_mutex);
-      printf("COND LOCK run_main_loop\n");
     }
 
     if (m_main_loop_thread.should_stop()) {
@@ -553,7 +537,6 @@ void decoder_context::run_main_loop()
     }
   }
 
-  printf("UNLOCK run_main_loop\n");
   m_main_loop_mutex.unlock();
 }
 
@@ -561,9 +544,6 @@ void decoder_context::run_main_loop()
 void decoder_context::on_image_decoding_finished()
 {
   m_main_loop_mutex.lock();
-  printf("LOCK on_image_decoding_finished\n");
-
-  printf("on_finished\n");
 
 
   // --- move all pictures that are completely decoded from progress queue to decoded queue ---
@@ -581,11 +561,7 @@ void decoder_context::on_image_decoding_finished()
     //imgunit->img->exchange_pixel_data_with(imgunit->sao_output);
 
     m_decoded_image_units.push_back(imgunit);
-
-    printf("after push: decoded_image_units length: %ld\n", m_decoded_image_units.size());
   }
-
-  printf("on_finished after while \n");
 
   if (m_end_of_stream &&
       m_image_units_in_progress.empty()) {
@@ -595,7 +571,6 @@ void decoder_context::on_image_decoding_finished()
 
   m_cond_api_action.signal();
 
-  printf("UNLOCK on_image_decoding_finished\n");
   m_main_loop_mutex.unlock();
 }
 
@@ -612,13 +587,9 @@ public:
 
   //virtual std::string name() const { return "image_master_control"; }
   virtual void run() {
-    printf("master waits (CTB)\n");
     imgunit->img->wait_until_all_CTBs_have_progress(ctb_finished_progress);
-    printf("master waits (finish)\n");
     imgunit->wait_to_finish_decoding();
-    printf("master -> on image decoding finished\n");
     imgunit->img->decctx->on_image_decoding_finished();
-    printf("master finished\n");
   }
 
   /*
@@ -676,8 +647,6 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   // --- generate tasks for deblocking ---
 
   if (!imgunit->img->decctx->param_disable_deblocking) {
-    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> deblocking\n");
-
     add_deblocking_tasks(imgunit.get());
     final_ctb_progress = CTB_PROGRESS_DEBLK_H;
   }
@@ -685,7 +654,6 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   // --- generate tasks for SAO ---
 
   if (!imgunit->img->decctx->param_disable_sao) {
-    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> SAO\n");
     if (add_sao_tasks(imgunit.get(), final_ctb_progress)) {
     //apply_sample_adaptive_offset(img);
       final_ctb_progress = CTB_PROGRESS_SAO;
@@ -813,8 +781,6 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
 
     // run post-processing filters (deblocking & SAO)
-
-    printf("QWE\n");
 
     if (num_worker_threads)
       run_postprocessing_filters_parallel(imgunit);
@@ -970,9 +936,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     return err;
   }
   else if (use_WPP) {
-    printf("WPP\n");
     err = decode_slice_unit_WPP(imgunit, sliceunit);
-    printf("WPP end\n");
     return err;
   }
   else if (use_tiles) {
@@ -1075,8 +1039,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       break;
     }
 
-    printf("init CABAC for task %d with start index %d\n",entryPt,dataStartIndex);
-
     init_CABAC_decoder(&tctx->cabac_decoder,
                        &sliceunit->reader.data[dataStartIndex],
                        dataEnd-dataStartIndex);
@@ -1108,8 +1070,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     else {
       tctx->last_CTB_TS = sliceunit->last_CTB_TS;
     }
-
-    printf("THREAD RANGE: %d %d\n",tctx->first_CTB_TS, tctx->last_CTB_TS);
   }
 
 

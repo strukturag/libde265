@@ -1094,7 +1094,8 @@ void thread_task_deblock_image::work()
       img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
     }
 
-    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk %c %d\n",
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk POC=%d %c %d\n",
+           img->PicOrderCntVal,
            vertical ? 'V' : 'H',
            ctb_y);
   }

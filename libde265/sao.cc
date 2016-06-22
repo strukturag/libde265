@@ -506,7 +506,8 @@ void thread_task_sao_image::work()
         img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
       }
 
-      printf("========================================================== SAO %d\n",ctb_y);
+      printf("========================================================== SAO POC=%d %d\n",
+             img->PicOrderCntVal, ctb_y);
 
       // copy input image to output for this CTB-row
 
