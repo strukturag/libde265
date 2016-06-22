@@ -187,6 +187,8 @@ class image_history
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   virtual std::shared_ptr<const image> get_image(int frame_id) const = 0;
   virtual bool has_image(int frame_id) const = 0;
+
+  virtual void debug_dump() const { }
 };
 
 
@@ -261,6 +263,9 @@ class decoder_context : public base_context,
 
   std::shared_ptr</* */ image> get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
   std::shared_ptr<const image> get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+
+  void debug_dump() const { dpb.log_dpb_content(); }
+
 
   bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
 

@@ -47,9 +47,10 @@ static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
 
+#define LOCK 1
 
 template <class pixel_t>
-void mc_luma(const base_context* ctx,
+static void mc_luma(const base_context* ctx,
              const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
@@ -174,7 +175,7 @@ void mc_luma(const base_context* ctx,
 
 
 template <class pixel_t>
-void mc_chroma(const base_context* ctx,
+static void mc_chroma(const base_context* ctx,
                const seq_parameter_set* sps,
                int mv_x, int mv_y,
                int xP,int yP,
@@ -353,7 +354,15 @@ void generate_inter_prediction_samples(base_context* ctx,
         return;
       }
 
+
+      //printf("access image %d\n",shdr->RefPicList[l][vi->refIdx[l]]);
+
       std::shared_ptr<const image> refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+
+      //if (!refPic) { imgbuffers->debug_dump(); }
+
+      assert(refPic);
+      if (LOCK) refPic->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -748,7 +757,7 @@ bool PBMotion::operator==(const PBMotion& b) const
   right away. -> Exclude this candidate.
 */
 template <class AccessType>
-int derive_spatial_merging_candidates(CodingDataAccess<AccessType> dataaccess,
+static int derive_spatial_merging_candidates(CodingDataAccess<AccessType> dataaccess,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
                                       int nPbW, int nPbH,
@@ -984,7 +993,7 @@ int derive_spatial_merging_candidates(CodingDataAccess<AccessType> dataaccess,
 
 
 // 8.5.3.1.4
-void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
+static void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
                                           PBMotion* out_mergeCandList,
                                           int* inout_numCurrMergeCand,
                                           int maxCandidates)
@@ -1041,7 +1050,7 @@ void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
 }
 
 
-bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
+static bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 {
   int td = Clip3(-128,127, colDist);
   int tb = Clip3(-128,127, currDist);
@@ -1065,7 +1074,7 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
 // (L1003) 8.5.3.2.8
 
 template <class AccessType>
-de265_error derive_collocated_motion_vectors(base_context* ctx,
+static de265_error derive_collocated_motion_vectors(base_context* ctx,
                                              const CodingDataAccess<AccessType>& dataaccess,
                                              const slice_segment_header* shdr,
                                              int xP,int yP,
@@ -1083,6 +1092,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
   assert(ctx->has_image(colPic));
   const image* colImg = ctx->get_image(colPic).get();
+  if (LOCK) colImg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
   // check for access outside image area
 
@@ -1157,6 +1167,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
       {
         const image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
+        if (LOCK) refimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
         if (refPOC > currentPOC) {
           allRefFramesBeforeCurrentFrame = false;
@@ -1169,6 +1180,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
       {
         const image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
+        if (LOCK) refimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
         if (refPOC > currentPOC) {
           allRefFramesBeforeCurrentFrame = false;
@@ -1245,7 +1257,7 @@ de265_error derive_collocated_motion_vectors(base_context* ctx,
 
 // 8.5.3.1.7
 template <class AccessType>
-de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
+static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
                                                    const CodingDataAccess<AccessType>& dataaccess,
                                                    const slice_segment_header* shdr,
                                                    int xP,int yP,
@@ -1362,7 +1374,7 @@ static int table_8_19[2][12] = {
 /* Note (TODO): during decoding, we know which of the candidates we will select.
 +   Hence, we do not really have to generate the other ones...
 + */
-void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
+static void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
                                                      const slice_segment_header* shdr,
                                                      PBMotion* inout_mergeCandList,
                                                      int* inout_numMergeCand,
@@ -1393,6 +1405,9 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 
       const image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]).get() : NULL;
       const image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]).get() : NULL;
+
+      if (img0 && LOCK) img0->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (img1 && LOCK) img1->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
       if (l0Cand.predFlag[0] && !img0) {
         return; // TODO error
@@ -1432,7 +1447,7 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 // 8.5.3.1.1
 
 template <class AccessType>
-void get_merge_candidate_list_without_step_9(base_context* ctx,
+static void get_merge_candidate_list_without_step_9(base_context* ctx,
                                              const slice_segment_header* shdr,
                                              CodingDataAccess<AccessType> dataaccess,
                                              image* img,
@@ -1590,7 +1605,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
 
 
 
-void derive_luma_motion_merge_mode(base_context* ctx,
+static void derive_luma_motion_merge_mode(base_context* ctx,
                                    const slice_segment_header* shdr,
                                    image* img,
                                    int xC,int yC, int xP,int yP,
@@ -1619,7 +1634,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
 
 // 8.5.3.1.6
 template <class AccessType>
-de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
+static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
                                                   const CodingDataAccess<AccessType>& dataaccess,
                                                   const slice_segment_header* shdr,
                                                   int xC,int yC,int nCS,int xP,int yP,
@@ -1673,6 +1688,8 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
   auto tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
   if (!tmpimg) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
 
+  // NOT NEEDED (only POC accessed) if (LOCK) tmpimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
@@ -1690,6 +1707,10 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]).get();
       const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
+
+      if (imgX && LOCK) imgX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgY && LOCK) imgY->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+
 
       // check whether the predictor X is available and references the same POC
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
@@ -1759,6 +1780,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       const image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]).get();
       const image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
+      if (LOCK) refPicA->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (LOCK) refPicX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
 
@@ -1824,6 +1848,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]).get();
       const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
+
+      if (imgX && LOCK) imgX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgY && LOCK) imgY->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
@@ -1900,6 +1927,9 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
         const image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]).get();
         const image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
+        if (LOCK) refPicB->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+        if (LOCK) refPicX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
 
@@ -1927,7 +1957,7 @@ de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
 
 // 8.5.3.1.5
 template <class AccessType>
-de265_error fill_luma_motion_vector_predictors(base_context* ctx,
+static de265_error fill_luma_motion_vector_predictors(base_context* ctx,
                                                const slice_segment_header* shdr,
                                                const CodingDataAccess<AccessType>& dataaccess,
                                                int xC,int yC,int nCS,int xP,int yP,
@@ -2047,13 +2077,13 @@ void fill_luma_motion_vector_predictors_from_tree(class encoder_context* ectx,
 }
 
 
-MotionVector luma_motion_vector_prediction(base_context* ctx,
-                                           const slice_segment_header* shdr,
-                                           image* img,
-                                           const PBMotionCoding& motion,
-                                           int xC,int yC,int nCS,int xP,int yP,
-                                           int nPbW,int nPbH, int l,
-                                           int refIdx, int partIdx)
+static MotionVector luma_motion_vector_prediction(base_context* ctx,
+                                                  const slice_segment_header* shdr,
+                                                  image* img,
+                                                  const PBMotionCoding& motion,
+                                                  int xC,int yC,int nCS,int xP,int yP,
+                                                  int nPbW,int nPbH, int l,
+                                                  int refIdx, int partIdx)
 {
   MotionVector mvpList[2];
 
@@ -2069,7 +2099,7 @@ MotionVector luma_motion_vector_prediction(base_context* ctx,
 
 
 #if DE265_LOG_TRACE
-void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PBMotion* mv)
+static void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PBMotion* mv)
 {
   int pred0 = mv->predFlag[0];
   int pred1 = mv->predFlag[1];
@@ -2088,13 +2118,13 @@ void logMV(int x0,int y0,int nPbW,int nPbH, const char* mode,const PBMotion* mv)
 
 
 // 8.5.3.1
-void motion_vectors_and_ref_indices(base_context* ctx,
-                                    const slice_segment_header* shdr,
-                                    image* img,
-                                    const PBMotionCoding& motion,
-                                    int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH,
-                                    int partIdx,
-                                    PBMotion* out_vi)
+static void motion_vectors_and_ref_indices(base_context* ctx,
+                                           const slice_segment_header* shdr,
+                                           image* img,
+                                           const PBMotionCoding& motion,
+                                           int xC,int yC, int xB,int yB, int nCS, int nPbW,int nPbH,
+                                           int partIdx,
+                                           PBMotion* out_vi)
 {
   CodingDataAccess<image> dataaccess(img);
 

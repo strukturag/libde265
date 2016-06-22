@@ -663,14 +663,14 @@ void image::thread_finishes(const thread_task* task)
 }
 */
 
-void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
+void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress) const
 {
   const int ctbW = sps->PicWidthInCtbsY;
 
   wait_for_progress(task, ctbx + ctbW*ctby, progress);
 }
 
-void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
+void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress) const
 {
   //if (task==NULL) { return; }
 
