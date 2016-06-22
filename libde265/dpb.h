@@ -59,11 +59,13 @@ public:
   /* Raw access to the images. */
 
   std::shared_ptr</* */ image> get_image(int index)       {
+    lock_guard lock(m_mutex);
     if (index>=dpb.size()) return std::shared_ptr<image>();
     return dpb[index];
   }
 
   std::shared_ptr<const image> get_image(int index) const {
+    lock_guard lock(m_mutex);
     if (index>=dpb.size()) return std::shared_ptr<image>();
     return dpb[index];
   }
@@ -73,12 +75,17 @@ public:
   int DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm=false) const;
   int DPB_index_of_picture_with_ID (int id) const;
 
+  void lock() const { m_mutex.lock(); }
+  void unlock() const { m_mutex.unlock(); }
+
 
   // --- debug ---
 
   void log_dpb_content() const;
 
 private:
+  mutable de265_mutex m_mutex;
+
   int max_images_in_DPB;
   int norm_images_in_DPB;
 

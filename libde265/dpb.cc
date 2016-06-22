@@ -41,6 +41,8 @@ decoded_picture_buffer::~decoded_picture_buffer()
 
 void decoded_picture_buffer::log_dpb_content() const
 {
+  lock_guard lock(m_mutex);
+
   for (int i=0;i<dpb.size();i++) {
     loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i,
             dpb[i]->PicOrderCntVal,
@@ -54,6 +56,8 @@ void decoded_picture_buffer::log_dpb_content() const
 
 bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 {
+  lock_guard lock(m_mutex);
+
   // we will always adapt the buffer to insert high-priority images
   if (high_priority) return true;
 
@@ -73,6 +77,8 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
 
 int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm) const
 {
+  lock_guard lock(m_mutex);
+
   logdebug(LogHeaders,"DPB_index_of_picture_with_POC POC=%d\n",poc);
 
   //log_dpb_content(ctx);
@@ -102,6 +108,8 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
 
 int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm) const
 {
+  lock_guard lock(m_mutex);
+
   logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
   if (preferLongTerm) {
@@ -128,6 +136,8 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
 
 int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 {
+  lock_guard lock(m_mutex);
+
   logdebug(LogHeaders,"get access to picture with ID %d from DPB\n",id);
 
   for (int k=0;k<dpb.size();k++) {
@@ -142,6 +152,8 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 
 void decoded_picture_buffer::clear()
 {
+  lock_guard lock(m_mutex);
+
   for (int i=0;i<dpb.size();i++) {
     if (dpb[i]->PicOutputFlag ||
         dpb[i]->PicState != UnusedForReference)
@@ -159,6 +171,8 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
                                       de265_PTS pts, void* user_data,
                                       const de265_image_allocation* alloc_functions)
 {
+  lock_guard lock(m_mutex);
+
   loginfo(LogHeaders,"DPB::new_image\n");
   log_dpb_content();
 
