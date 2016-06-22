@@ -670,6 +670,17 @@ void image::wait_for_progress(int ctbx,int ctby, int progress) const
   wait_for_progress(ctbx + ctbW*ctby, progress);
 }
 
+void image::wait_for_progress_at_pixel(int x,int y, int progress) const
+{
+  int ctbx = x/sps->CtbSizeY;
+  int ctby = y/sps->CtbSizeY;
+
+  if (ctbx >= sps->PicWidthInCtbsY)  ctbx = sps->PicWidthInCtbsY-1;
+  if (ctby >= sps->PicHeightInCtbsY) ctby = sps->PicHeightInCtbsY-1;
+
+  wait_for_progress(ctbx,ctby,progress);
+}
+
 void image::wait_for_progress(int ctbAddrRS, int progress) const
 {
   //if (task==NULL) { return; }

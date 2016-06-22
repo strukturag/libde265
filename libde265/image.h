@@ -467,6 +467,7 @@ public:
   //void thread_finishes(const thread_task*);
 
   void wait_for_progress(int ctbx,int ctby, int progress) const;
+  void wait_for_progress_at_pixel(int x,int y, int progress) const;
   void wait_for_progress(int ctbAddrRS, int progress) const;
 
   /*
