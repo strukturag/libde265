@@ -520,7 +520,7 @@ void decoder_context::run_main_loop()
       m_decoded_image_units.pop_front();
 
 
-      push_picture_to_output_queue(imgunit->img);
+      push_picture_to_output_queue(imgunit);
 
       did_something = true;
 
@@ -754,7 +754,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
 
     *did_work=true;
 
-    push_picture_to_output_queue(imgunit->img);
+    push_picture_to_output_queue(imgunit);
 
     m_undecoded_image_units.pop_front();
   }
@@ -798,7 +798,7 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     }
 
 
-    push_picture_to_output_queue(imgunit->img);
+    push_picture_to_output_queue(imgunit);
 
     // remove just decoded image unit from queue
 
@@ -1311,9 +1311,16 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
 }
 
 
-de265_error decoder_context::push_picture_to_output_queue(image_ptr outimg)
+de265_error decoder_context::push_picture_to_output_queue(image_unit_ptr outimgunit)
 {
+  image_ptr outimg = outimgunit->img;
+
   if (!outimg) { return DE265_OK; }
+
+
+  if (!outimgunit->slice_units.empty()) {
+    remove_images_from_dpb(outimgunit->slice_units[0]->shdr->RemoveReferencesList);
+  }
 
 
   // push image into output queue

@@ -312,7 +312,7 @@ class decoder_context : public base_context,
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
 
-  de265_error push_picture_to_output_queue(image_ptr);
+  de265_error push_picture_to_output_queue(image_unit_ptr);
 
 
  public:
