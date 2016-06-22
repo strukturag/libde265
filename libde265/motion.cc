@@ -362,7 +362,7 @@ void generate_inter_prediction_samples(base_context* ctx,
       //if (!refPic) { imgbuffers->debug_dump(); }
 
       assert(refPic);
-      if (LOCK) refPic->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (LOCK) refPic->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -1092,7 +1092,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 
   assert(ctx->has_image(colPic));
   const image* colImg = ctx->get_image(colPic).get();
-  if (LOCK) colImg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+  if (LOCK) colImg->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
   // check for access outside image area
 
@@ -1167,7 +1167,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
       {
         const image* refimg = ctx->get_image(shdr->RefPicList[1][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
-        if (LOCK) refimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+        if (LOCK) refimg->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
         if (refPOC > currentPOC) {
           allRefFramesBeforeCurrentFrame = false;
@@ -1180,7 +1180,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
       {
         const image* refimg = ctx->get_image(shdr->RefPicList[0][rIdx]).get();
         int refPOC = refimg->PicOrderCntVal;
-        if (LOCK) refimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+        if (LOCK) refimg->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
         if (refPOC > currentPOC) {
           allRefFramesBeforeCurrentFrame = false;
@@ -1406,8 +1406,8 @@ static void derive_combined_bipredictive_merging_candidates(const base_context* 
       const image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]).get() : NULL;
       const image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]).get() : NULL;
 
-      if (img0 && LOCK) img0->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
-      if (img1 && LOCK) img1->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (img0 && LOCK) img0->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
+      if (img1 && LOCK) img1->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
       if (l0Cand.predFlag[0] && !img0) {
         return; // TODO error
@@ -1708,8 +1708,8 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
 
-      if (imgX && LOCK) imgX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
-      if (imgY && LOCK) imgY->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgX && LOCK) imgX->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgY && LOCK) imgY->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
 
       // check whether the predictor X is available and references the same POC
@@ -1780,8 +1780,8 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       const image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]).get();
       const image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
-      if (LOCK) refPicA->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
-      if (LOCK) refPicX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (LOCK) refPicA->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
+      if (LOCK) refPicX->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
@@ -1849,8 +1849,8 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       const image* imgY = NULL;
       if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]).get();
 
-      if (imgX && LOCK) imgX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
-      if (imgY && LOCK) imgY->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgX && LOCK) imgX->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
+      if (imgY && LOCK) imgY->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
@@ -1927,8 +1927,8 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
         const image* refPicB=ctx->get_image(shdr->RefPicList[refPicList][refIdxB ]).get();
         const image* refPicX=ctx->get_image(shdr->RefPicList[X         ][refIdxLX]).get();
 
-        if (LOCK) refPicB->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
-        if (LOCK) refPicX->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
+        if (LOCK) refPicB->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
+        if (LOCK) refPicX->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];

@@ -406,14 +406,14 @@ void thread_task_sao::work()
 
   // wait until also the CTB-rows below and above are ready
 
-  img->wait_for_progress(this, rightCtb,ctb_y,  inputProgress);
+  img->wait_for_progress(rightCtb,ctb_y,  inputProgress);
 
   if (ctb_y>0) {
-    img->wait_for_progress(this, rightCtb,ctb_y-1, inputProgress);
+    img->wait_for_progress(rightCtb,ctb_y-1, inputProgress);
   }
 
   if (ctb_y+1<sps.PicHeightInCtbsY) {
-    img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
+    img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
   }
 
   printf("========================================================== SAO %d\n",ctb_y);
@@ -498,12 +498,12 @@ void thread_task_sao_image::work()
 
   // wait until also the CTB-rows below and above are ready
 
-  img->wait_for_progress(this, rightCtb,0,  inputProgress);
+  img->wait_for_progress(rightCtb,0,  inputProgress);
 
   for (int ctb_y=0; ctb_y < sps.PicHeightInCtbsY; ctb_y++)
     {
       if (ctb_y+1<sps.PicHeightInCtbsY) {
-        img->wait_for_progress(this, rightCtb,ctb_y+1, inputProgress);
+        img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
       }
 
       printf("========================================================== SAO %d\n",ctb_y);
@@ -565,7 +565,7 @@ public:
     const seq_parameter_set& sps = inputImg->get_sps();
 
     for (int i=0;i<sps.PicSizeInCtbsY;i++) {
-      inputImg->wait_for_progress(this, i, CTB_PROGRESS_SAO_INTERNAL);
+      inputImg->wait_for_progress(i, CTB_PROGRESS_SAO_INTERNAL);
     }
 
     printf("============================================================= SAO EXCH\n");

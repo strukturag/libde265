@@ -663,14 +663,14 @@ void image::thread_finishes(const thread_task* task)
 }
 */
 
-void image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress) const
+void image::wait_for_progress(int ctbx,int ctby, int progress) const
 {
   const int ctbW = sps->PicWidthInCtbsY;
 
-  wait_for_progress(task, ctbx + ctbW*ctby, progress);
+  wait_for_progress(ctbx + ctbW*ctby, progress);
 }
 
-void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress) const
+void image::wait_for_progress(int ctbAddrRS, int progress) const
 {
   //if (task==NULL) { return; }
 
@@ -692,11 +692,11 @@ void image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress) co
 }
 
 
-void image::wait_until_all_CTBs_have_progress(thread_task* task, int progress)
+void image::wait_until_all_CTBs_have_progress(int progress)
 {
   for (int i=0;i<ctb_info.data_size;i++) {
     //printf("wait for CTB %i   %p\n",i,task);
-    wait_for_progress(task,i,progress);
+    wait_for_progress(i,progress);
   }
 }
 

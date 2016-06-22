@@ -937,22 +937,22 @@ void thread_task_deblock_CTBRow::work()
     // pass 1: vertical
 
     int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
-    img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+    img->wait_for_progress(rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
   }
   else {
     // pass 2: horizontal
 
     // wait for CTB-row above this task's row
     if (ctb_y>0) {
-      img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
+      img->wait_for_progress(rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
     }
 
     // wait for CTB-row of this task's row
-    img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
+    img->wait_for_progress(rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
 
     // wait for CTB-row below this task's row
     if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
-      img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
+      img->wait_for_progress(rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
     }
   }
 
@@ -1024,7 +1024,7 @@ void thread_task_deblock_image::work()
 
   // wait for top CTB row
   const int rightCtb = img->get_sps().PicWidthInCtbsY-1;
-  img->wait_for_progress(this, rightCtb,0, CTB_PROGRESS_PREFILTER);
+  img->wait_for_progress(rightCtb,0, CTB_PROGRESS_PREFILTER);
 
 
   for (int ctb_y=0; ctb_y<nRows; ctb_y++) {
@@ -1042,14 +1042,14 @@ void thread_task_deblock_image::work()
       // pass 1: vertical
 
       int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
-      img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+      img->wait_for_progress(rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
     }
     else {
       // pass 2: horizontal
 
       // wait for CTB-row below this task's row
       if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
-        img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
+        img->wait_for_progress(rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
       }
 
       /*

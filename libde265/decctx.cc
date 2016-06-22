@@ -613,7 +613,7 @@ public:
   //virtual std::string name() const { return "image_master_control"; }
   virtual void run() {
     printf("master waits (CTB)\n");
-    imgunit->img->wait_until_all_CTBs_have_progress(NULL, ctb_finished_progress);
+    imgunit->img->wait_until_all_CTBs_have_progress(ctb_finished_progress);
     printf("master waits (finish)\n");
     imgunit->wait_to_finish_decoding();
     printf("master -> on image decoding finished\n");

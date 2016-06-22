@@ -466,8 +466,8 @@ public:
      will push this image to the output queue and free all decoder data. */
   //void thread_finishes(const thread_task*);
 
-  void wait_for_progress(thread_task* task, int ctbx,int ctby, int progress) const;
-  void wait_for_progress(thread_task* task, int ctbAddrRS, int progress) const;
+  void wait_for_progress(int ctbx,int ctby, int progress) const;
+  void wait_for_progress(int ctbAddrRS, int progress) const;
 
   /*
   void wait_for_completion();  // block until image is decoded by background threads
@@ -476,7 +476,7 @@ public:
   */
 
   bool do_all_CTBs_have_progress(int progress) const;
-  void wait_until_all_CTBs_have_progress(thread_task* task, int progress);
+  void wait_until_all_CTBs_have_progress(int progress);
 
  private:
   /*
