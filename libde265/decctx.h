@@ -274,6 +274,7 @@ class decoder_context : public base_context,
   void   pop_next_picture_in_output_queue() {
     m_main_loop_mutex.lock();
     m_output_queue.pop_next_picture_in_output_queue();
+
     m_cond_api_action.signal();
     m_main_loop_mutex.unlock();
   }

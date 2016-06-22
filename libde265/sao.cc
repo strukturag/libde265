@@ -416,7 +416,9 @@ void thread_task_sao::work()
     img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
   }
 
+#if D_MT
   printf("========================================================== SAO %d\n",ctb_y);
+#endif
 
   // copy input image to output for this CTB-row
 
@@ -506,8 +508,10 @@ void thread_task_sao_image::work()
         img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
       }
 
+#if D_MT
       printf("========================================================== SAO POC=%d %d\n",
              img->PicOrderCntVal, ctb_y);
+#endif
 
       // copy input image to output for this CTB-row
 
@@ -569,7 +573,9 @@ public:
       inputImg->wait_for_progress(i, CTB_PROGRESS_SAO_INTERNAL);
     }
 
+#if D_MT
     printf("============================================================= SAO EXCH\n");
+#endif
 
     inputImg->exchange_pixel_data_with(*outputImg);
 

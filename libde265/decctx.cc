@@ -433,7 +433,6 @@ int  decoder_context::get_action(bool blocking)
     const bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 &&
                                      m_output_queue.num_pictures_in_reorder_buffer() ==0);
 
-
     /*
     printf("buffer status: %d %d %d %d %d\n",
            m_end_of_stream,
@@ -528,6 +527,14 @@ void decoder_context::run_main_loop()
     }
 
 
+    if (m_end_of_stream &&
+        m_image_units_in_progress.empty()) {
+
+      m_output_queue.flush_reorder_buffer();
+    }
+
+
+
     if (!did_something) {
       m_main_loop_block_cond.wait(m_main_loop_mutex);
     }
@@ -561,12 +568,6 @@ void decoder_context::on_image_decoding_finished()
     //imgunit->img->exchange_pixel_data_with(imgunit->sao_output);
 
     m_decoded_image_units.push_back(imgunit);
-  }
-
-  if (m_end_of_stream &&
-      m_image_units_in_progress.empty()) {
-
-    m_output_queue.flush_reorder_buffer();
   }
 
   m_cond_api_action.signal();
@@ -659,6 +660,9 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
       final_ctb_progress = CTB_PROGRESS_SAO;
     }
   }
+
+
+  imgunit->img->mFinalCTBProgress = final_ctb_progress;
 
 
   // Generate master-control thread (we have to create this after the other threads,
@@ -924,7 +928,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
       pps.entropy_coding_sync_enabled_flag == false &&
       pps.tiles_enabled_flag == false) {
 
-    img->decctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
+    //img->decctx->add_warning(DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING, true);
   }
 
 

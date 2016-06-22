@@ -366,7 +366,7 @@ void generate_inter_prediction_samples(base_context* ctx,
 
       refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+nPbW+5,
                                          yP+(vi->mv[l].y>>2)+nPbH+5,
-                                         CTB_PROGRESS_SAO); // LOCK
+                                         refPic->mFinalCTBProgress); // LOCK
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 

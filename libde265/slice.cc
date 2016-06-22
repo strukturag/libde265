@@ -4697,6 +4697,12 @@ enum DecodeResult decode_substream(thread_context* tctx,
     const int ctbx = tctx->get_CTB_x();
     const int ctby = tctx->get_CTB_y();
 
+#if D_MT
+    if (ctbx==0) {
+      printf("------------------------------ decode POC %d, y=%d\n",tctx->img->PicOrderCntVal,ctby);
+    }
+#endif
+
     if (ctbx+ctby*ctbW >= pps.CtbAddrRStoTS.size()) {
       return Decode_Error;
     }
@@ -4904,28 +4910,12 @@ std::string thread_task_slice_segment::name() const {
 
 void thread_task_slice::work()
 {
-  printf("thread_task_slice::work()\n");
-
-  //tctx->img->thread_run(this);
-
-  printf("task_slice::work start decoding\n");
-
   de265_error err=read_slice_segment_data(tctx);
-
-  printf("task_slice::work set progress\n");
 
   tctx->sliceunit->state = slice_unit::Decoded;
   tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
 
   tctx->sliceunit->finished_threads.set_progress(1);
-
-  printf("task_slice::work thread_finishes\n");
-
-  //tctx->img->thread_finishes(this);
-
-  printf("task_slice::work END\n");
-
-  //tctx->decctx->on_image_decoding_finished();
 
   return; // DE265_OK;
 }
@@ -5039,8 +5029,6 @@ de265_error read_slice_segment_data(thread_context* tctx)
     //printf("decoding CTB %d;%d\n",tctx->get_CTB_x(),tctx->get_CTB_y());
 
     int ctby = tctx->get_CTB_y();
-
-    printf("------------------------------ decode POC %d, y=%d\n",img->PicOrderCntVal,ctby);
 
     // check whether entry_points[] are correct in the bitstream
 

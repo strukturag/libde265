@@ -785,8 +785,6 @@ int main(int argc, char** argv)
 
       if (actions & de265_action_get_image) {
 
-        printf("------------------------------------------------------------------------------------------------------------------------\n");
-
         // decode some more
 
         //std::cout << "-------- decoded frames " << framecnt << "\n";
@@ -830,8 +828,6 @@ int main(int argc, char** argv)
 
       else if (actions & de265_action_end_of_stream) {
         stop = true;
-
-        printf("dec265: END_OF_STREAM\n");
       }
     }
 

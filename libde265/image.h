@@ -458,6 +458,7 @@ public:
     }
   }
 
+  int mFinalCTBProgress; // the progress value when a CTB is completely decoded incl. postfilters
 
   //void thread_start(int nThreads);
   //void thread_run(const thread_task*);

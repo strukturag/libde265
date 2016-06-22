@@ -88,11 +88,7 @@ image_unit::~image_unit()
 
 bool image_unit::did_finish_decoding() const
 {
-  printf("did_finish_decoding\n");
-
   for (const auto& task : tasks) {
-
-    printf("task %p\n",task.get());
 
     if (!task->finished()) {
       return false;
@@ -106,10 +102,6 @@ bool image_unit::did_finish_decoding() const
 void image_unit::wait_to_finish_decoding()
 {
   for (const auto& task : tasks) {
-    printf("checking tasks to finish (img unit %p)\n",this);
-
     task->wait_until_finished();
   }
-
-  printf("checking tasks to finish end %p\n",this);
 }

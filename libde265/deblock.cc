@@ -987,9 +987,11 @@ void thread_task_deblock_CTBRow::work()
     img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
+#if D_MT
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk %c %d\n",
          vertical ? 'V' : 'H',
          ctb_y);
+#endif
 
   //img->thread_finishes(this);
 }
@@ -1094,10 +1096,12 @@ void thread_task_deblock_image::work()
       img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
     }
 
+#if D_MT
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk POC=%d %c %d\n",
            img->PicOrderCntVal,
            vertical ? 'V' : 'H',
            ctb_y);
+#endif
   }
 
   //img->thread_finishes(this);
