@@ -443,6 +443,17 @@ de265_error image::alloc_metadata(std::shared_ptr<const seq_parameter_set> sps)
                                           sps->Log2CtbSizeY);
 
       ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+
+#if D_MT
+      for (int i=0;i<sps->PicSizeInCtbsY;i++) {
+        int x = i % sps->PicWidthInCtbsY;
+        int y = i / sps->PicWidthInCtbsY;
+
+        char buf[100];
+        sprintf(buf,"CTB[%d;%d]",x,y);
+        ctb_progress[i].set_name(buf);
+      }
+#endif
     }
 
 
@@ -677,6 +688,8 @@ void image::wait_for_progress_at_pixel(int x,int y, int progress) const
 
   if (ctbx >= sps->PicWidthInCtbsY)  ctbx = sps->PicWidthInCtbsY-1;
   if (ctby >= sps->PicHeightInCtbsY) ctby = sps->PicHeightInCtbsY-1;
+  if (ctbx < 0) ctbx=0;
+  if (ctby < 0) ctby=0;
 
   wait_for_progress(ctbx,ctby,progress);
 }

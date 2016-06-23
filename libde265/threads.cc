@@ -151,11 +151,15 @@ THREAD_RESULT de265_thread::start_thread_main(THREAD_PARAM me)
 
 de265_progress_lock::de265_progress_lock()
 {
+  initialized = true;
+  destroyed = false;
   mProgress = 0;
 }
 
 de265_progress_lock::~de265_progress_lock()
 {
+  initialized = false;
+  destroyed = true;
 }
 
 void de265_progress_lock::wait_for_progress(int progress)
@@ -166,13 +170,25 @@ void de265_progress_lock::wait_for_progress(int progress)
 
   mutex.lock();
   while (mProgress < progress) {
+#if D_MT
+    printf("waiting for %s, progress %d<%d\n",
+           get_name(), mProgress, progress);
+#endif
     cond.wait(mutex);
   }
+
+#if D_MT
+  printf("continuing for %s, progress %d>=%d\n",
+         get_name(), mProgress, progress);
+#endif
+
   mutex.unlock();
 }
 
 void de265_progress_lock::set_progress(int progress)
 {
+  assert(initialized);
+
   mutex.lock();
 
   if (progress>mProgress) {
@@ -188,6 +204,8 @@ void de265_progress_lock::set_progress(int progress)
 
 void de265_progress_lock::increase_progress(int progress)
 {
+  assert(initialized);
+
   mutex.lock();
 
   mProgress += progress;
@@ -198,6 +216,11 @@ void de265_progress_lock::increase_progress(int progress)
 
 int  de265_progress_lock::get_progress() const
 {
+  if (!initialized) {
+    printf("destroyed: %d\n", destroyed);
+  }
+  assert(initialized);
+
   mutex.lock(); // need lock, otherwise helgrind complains
   int progress = mProgress;
   mutex.unlock();

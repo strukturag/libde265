@@ -179,8 +179,16 @@ public:
   int  get_progress() const;
   void reset(int value=0) { mProgress=value; }
 
+  void set_name(const std::string& n) { name=n; }
+  const char* get_name() const { return name.c_str(); }
+
 private:
+  bool initialized; // debug only
+  bool destroyed; // debug only
+
   int mProgress;
+
+  std::string name;
 
   // private data
 
