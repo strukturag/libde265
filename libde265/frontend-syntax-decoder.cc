@@ -562,6 +562,8 @@ int frontend_syntax_decoder::generate_unavailable_reference_picture(const seq_pa
   img->PicState = (longTerm ? UsedForLongTermReference : UsedForShortTermReference);
   img->integrity = INTEGRITY_UNAVAILABLE_REFERENCE;
 
+  img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+
   return idx;
 }
 
