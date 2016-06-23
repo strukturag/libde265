@@ -416,9 +416,9 @@ void thread_pool::add_task(thread_task_ptr task)
 {
   m_mutex.lock();
 
-  assert(!m_stopped);
+  //assert(!m_stopped);
 
-  if (!m_stopped) {
+  if (true) { // !m_stopped) {
 
     m_tasks.push_back(task);
 
