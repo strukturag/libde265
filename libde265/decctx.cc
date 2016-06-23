@@ -588,7 +588,7 @@ public:
 
   //virtual std::string name() const { return "image_master_control"; }
   virtual void run() {
-    imgunit->img->wait_until_all_CTBs_have_progress(ctb_finished_progress);
+    //imgunit->img->wait_until_all_CTBs_have_progress(ctb_finished_progress);
     imgunit->wait_to_finish_decoding();
     imgunit->img->decctx->on_image_decoding_finished();
   }
