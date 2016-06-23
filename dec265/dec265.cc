@@ -676,12 +676,11 @@ int main(int argc, char** argv)
   }
 
 
-
-  if (argc>=3) {
-    if (nThreads>0) {
-      err = de265_start_worker_threads(ctx, nThreads);
-    }
+  if (nThreads==0) {
+    nThreads = 1;
   }
+
+  err = de265_start_worker_threads(ctx, nThreads);
 
   de265_set_limit_TID(ctx, highestTID);
   de265_set_framerate_ratio(ctx, decode_rate_percent);
