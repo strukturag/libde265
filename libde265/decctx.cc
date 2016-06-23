@@ -841,11 +841,6 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   // TODO: remove later from DPB
   //remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-  if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
-    return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
-  }
-
-
   sliceunit->allocate_thread_contexts(1);
   thread_context* tctx = sliceunit->get_thread_context(0);
 
@@ -854,14 +849,21 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->decctx = this;
   tctx->imgunit = imgunit;
   tctx->sliceunit= sliceunit;
-  tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
   tctx->task = NULL;
   tctx->first_CTB_TS = sliceunit->first_CTB_TS;
   tctx->last_CTB_TS  = sliceunit->last_CTB_TS;
 
+  if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
+    tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+    return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+  }
+
+  tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
+
   tctx->init_quantization();
 
   if (sliceunit->reader.bytes_remaining <= 0) {
+    tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
     return DE265_ERROR_PREMATURE_END_OF_SLICE;
   }
 
