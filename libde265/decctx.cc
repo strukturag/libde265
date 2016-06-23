@@ -513,7 +513,9 @@ void decoder_context::run_main_loop()
       // we have to temporally unlock the mutex to let the master thread finish
 
       m_main_loop_mutex.unlock();
-      imgunit->master_task->join();
+      if (imgunit->master_task) {
+        imgunit->master_task->join();
+      }
       m_main_loop_mutex.lock();
 
       m_decoded_image_units.pop_front();
@@ -643,40 +645,46 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
 
 
-  int final_ctb_progress = CTB_PROGRESS_PREFILTER;
+  if (!imgunit->tasks.empty()) {
+    int final_ctb_progress = CTB_PROGRESS_PREFILTER;
 
-  // --- generate tasks for deblocking ---
+    // --- generate tasks for deblocking ---
 
-  if (!imgunit->img->decctx->param_disable_deblocking) {
-    add_deblocking_tasks(imgunit.get());
-    final_ctb_progress = CTB_PROGRESS_DEBLK_H;
-  }
-
-  // --- generate tasks for SAO ---
-
-  if (!imgunit->img->decctx->param_disable_sao) {
-    if (add_sao_tasks(imgunit.get(), final_ctb_progress)) {
-    //apply_sample_adaptive_offset(img);
-      final_ctb_progress = CTB_PROGRESS_SAO;
+    if (!imgunit->img->decctx->param_disable_deblocking) {
+      add_deblocking_tasks(imgunit.get());
+      final_ctb_progress = CTB_PROGRESS_DEBLK_H;
     }
+
+    // --- generate tasks for SAO ---
+
+    if (!imgunit->img->decctx->param_disable_sao) {
+      if (add_sao_tasks(imgunit.get(), final_ctb_progress)) {
+        //apply_sample_adaptive_offset(img);
+        final_ctb_progress = CTB_PROGRESS_SAO;
+      }
+    }
+
+
+    imgunit->img->mFinalCTBProgress = final_ctb_progress;
+
+
+    // Generate master-control thread (we have to create this after the other threads,
+    // because the master thread waits for all other threads to finish).
+
+    auto master_thread = std::make_shared<thread_image_master_control>();
+    master_thread->imgunit = imgunit.get();
+    master_thread->ctb_finished_progress = final_ctb_progress;
+
+    imgunit->master_task = master_thread;
+    master_thread->start();
+
+    //master_tasks.push_back(master_thread);
+    //m_master_thread_pool.add_task(master_thread);
   }
-
-
-  imgunit->img->mFinalCTBProgress = final_ctb_progress;
-
-
-  // Generate master-control thread (we have to create this after the other threads,
-  // because the master thread waits for all other threads to finish).
-
-  auto master_thread = std::make_shared<thread_image_master_control>();
-  master_thread->imgunit = imgunit.get();
-  master_thread->ctb_finished_progress = final_ctb_progress;
-
-  imgunit->master_task = master_thread;
-  master_thread->start();
-
-  //master_tasks.push_back(master_thread);
-  //m_master_thread_pool.add_task(master_thread);
+  else {
+    imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+    on_image_decoding_finished();
+  }
 }
 
 

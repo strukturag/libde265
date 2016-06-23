@@ -803,15 +803,16 @@ int main(int argc, char** argv)
         // show available images
 
         const de265_image* img = de265_get_next_picture(ctx);
-        assert(img);
+        if (img) {
 
-        if (measure_quality) {
-          measure(img);
+          if (measure_quality) {
+            measure(img);
+          }
+
+          stop = output_image(img);
+
+          de265_release_picture(img);
         }
-
-        stop = output_image(img);
-
-        de265_release_picture(img);
 
         // show warnings
 
