@@ -138,6 +138,7 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
     new_pps->dump(param_pps_headers_fd);
   }
 
+  //printf("read PPS (success=%d)\n",success);
   if (success) {
     pps[ (int)new_pps->pic_parameter_set_id ] = new_pps;
   }
@@ -206,9 +207,18 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     assert(false); // TODO
   }
 
-  current_pps = pps[pps_id];
-  current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
-  current_vps = vps[ (int)current_sps->video_parameter_set_id ];
+  // We only set the current PPS/SPS/VPS for the first slice segment in the picture
+  // because faulty streams may send new a PPS between slices, for example with a different
+  // tile structure which then completely confuses the decoder.
+  // E.g. fuzzing/id:000225,sig:11,src:002437+005717,op:splice,rep:128.bin
+  if (shdr->first_slice_segment_in_pic_flag) {
+    current_pps = pps[pps_id];
+    current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
+    current_vps = vps[ (int)current_sps->video_parameter_set_id ];
+  }
+  else {
+    shdr->pps = current_pps;
+  }
 
   m_decctx->calc_tid_and_framerate_ratio();
 
