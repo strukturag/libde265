@@ -1085,15 +1085,17 @@ static bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int cur
 
 template <class AccessType>
 static de265_error derive_collocated_motion_vectors(base_context* ctx,
-                                             const CodingDataAccess<AccessType>& dataaccess,
-                                             const slice_segment_header* shdr,
-                                             int xP,int yP,
-                                             int colPic,
-                                             int xColPb,int yColPb,
-                                             int refIdxLX,  // (always 0 for merge mode)
-                                             int X,
-                                             MotionVector* out_mvLXCol,
-                                             uint8_t* out_availableFlagLXCol)
+                                                    const CodingDataAccess<AccessType>& dataaccess,
+                                                    const slice_segment_header* shdr,
+                                                    int xP,int yP,
+                                                    int colPic,
+                                                    int xColPb,int yColPb,
+                                                    int refIdxLX,  // (always 0 for merge mode)
+                                                    int X,
+                                                    MotionVector* out_mvLXCol,
+                                                    uint8_t* out_availableFlagLXCol,
+                                                    const image* current_image
+                                                    )
 {
   logtrace(LogMotion,"derive_collocated_motion_vectors %d;%d\n",xP,yP);
 
@@ -1105,8 +1107,9 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 
   //if (LOCK) colImg->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
-  colImg->wait_for_progress_at_pixel(xColPb,yColPb, CTB_PROGRESS_PREFILTER); // LOCK
-
+  if (colImg != current_image) {
+    colImg->wait_for_progress_at_pixel(xColPb,yColPb, CTB_PROGRESS_PREFILTER); // LOCK
+  }
 
   // check for access outside image area
 
@@ -1212,7 +1215,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 
        If all references point into the past, we cannot say much about the temporal order or
        L0,L1 and thus take over both parts.
-     */
+    */
 
     if (allRefFramesBeforeCurrentFrame) {
       mvCol = mvi.mv[X];
@@ -1272,14 +1275,15 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 // 8.5.3.1.7
 template <class AccessType>
 static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
-                                                   const CodingDataAccess<AccessType>& dataaccess,
-                                                   const slice_segment_header* shdr,
-                                                   int xP,int yP,
-                                                   int nPbW,int nPbH,
-                                                   int refIdxL,
-                                                   int X, // which MV (L0/L1) to get
-                                                   MotionVector* out_mvLXCol,
-                                                   uint8_t*      out_availableFlagLXCol)
+                                                          const CodingDataAccess<AccessType>& dataaccess,
+                                                          const slice_segment_header* shdr,
+                                                          int xP,int yP,
+                                                          int nPbW,int nPbH,
+                                                          int refIdxL,
+                                                          int X, // which MV (L0/L1) to get
+                                                          MotionVector* out_mvLXCol,
+                                                          uint8_t*      out_availableFlagLXCol,
+                                                          const image* current_img)
 {
   // --- no temporal MVP -> exit ---
 
@@ -1334,7 +1338,7 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
 
      Note: see 2014, Sze, Sect. 5.2.1.2 why candidate C0 is excluded when on another CTB-row.
      This is to reduce the memory bandwidth requirements.
-   */
+  */
   if ((yP>>Log2CtbSizeY) == (yColBr>>Log2CtbSizeY) &&
       xColBr < dataaccess.get_sps().pic_width_in_luma_samples &&
       yColBr < dataaccess.get_sps().pic_height_in_luma_samples)
@@ -1344,7 +1348,8 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
 
       de265_error err = derive_collocated_motion_vectors(ctx,dataaccess,shdr,
                                                          xP,yP, colPic, xColPb,yColPb, refIdxL, X,
-                                                         out_mvLXCol, out_availableFlagLXCol);
+                                                         out_mvLXCol, out_availableFlagLXCol,
+                                                         current_img);
 
       if (err) {
         return err;
@@ -1368,7 +1373,8 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
 
     de265_error err = derive_collocated_motion_vectors(ctx,dataaccess,shdr,
                                                        xP,yP, colPic, xColPb,yColPb, refIdxL, X,
-                                                       out_mvLXCol, out_availableFlagLXCol);
+                                                       out_mvLXCol, out_availableFlagLXCol,
+                                                       current_img);
 
     if (err) {
       return err;
@@ -1514,7 +1520,7 @@ static void get_merge_candidate_list_without_step_9(base_context* ctx,
     uint8_t predFlagLCol[2];
     derive_temporal_luma_vector_prediction(ctx,dataaccess,shdr, xP,yP,nPbW,nPbH,
                                            refIdxCol[0],0, &mvCol[0],
-                                           &predFlagLCol[0]);
+                                           &predFlagLCol[0], img);
 
     uint8_t availableFlagCol = predFlagLCol[0];
     predFlagLCol[1] = 0;
@@ -1522,7 +1528,7 @@ static void get_merge_candidate_list_without_step_9(base_context* ctx,
     if (shdr->slice_type == SLICE_TYPE_B) {
       derive_temporal_luma_vector_prediction(ctx,dataaccess,shdr,
                                              xP,yP,nPbW,nPbH, refIdxCol[1],1, &mvCol[1],
-                                             &predFlagLCol[1]);
+                                             &predFlagLCol[1], img);
       availableFlagCol |= predFlagLCol[1];
     }
 
@@ -1971,12 +1977,13 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
 // 8.5.3.1.5
 template <class AccessType>
 static de265_error fill_luma_motion_vector_predictors(base_context* ctx,
-                                               const slice_segment_header* shdr,
-                                               const CodingDataAccess<AccessType>& dataaccess,
-                                               int xC,int yC,int nCS,int xP,int yP,
-                                               int nPbW,int nPbH, int l,
-                                               int refIdx, int partIdx,
-                                               MotionVector out_mvpList[2])
+                                                      const slice_segment_header* shdr,
+                                                      const CodingDataAccess<AccessType>& dataaccess,
+                                                      int xC,int yC,int nCS,int xP,int yP,
+                                                      int nPbW,int nPbH, int l,
+                                                      int refIdx, int partIdx,
+                                                      MotionVector out_mvpList[2],
+                                                      const image* current_img)
 {
   // 8.5.3.1.6: derive two spatial vector predictors A (0) and B (1)
 
@@ -2006,7 +2013,7 @@ static de265_error fill_luma_motion_vector_predictors(base_context* ctx,
   else {
     derive_temporal_luma_vector_prediction(ctx, dataaccess, shdr,
                                            xP,yP, nPbW,nPbH, refIdx,l,
-                                           &mvLXCol, &availableFlagLXCol);
+                                           &mvLXCol, &availableFlagLXCol, current_img);
   }
 
 
@@ -2065,7 +2072,7 @@ void fill_luma_motion_vector_predictors_from_image(base_context* ctx,
   de265_error err = fill_luma_motion_vector_predictors(ctx, shdr,
                                                        dataaccess,
                                                        xC,yC,nCS,xP,yP, nPbW,nPbH,l,
-                                                       refIdx, partIdx, out_mvpList);
+                                                       refIdx, partIdx, out_mvpList, img);
 
   if (err) {
     ctx->add_warning(err, false);
@@ -2086,7 +2093,7 @@ void fill_luma_motion_vector_predictors_from_tree(class encoder_context* ectx,
   de265_error err = fill_luma_motion_vector_predictors(ectx, shdr,
                                                        dataaccess,
                                                        xC,yC,nCS,xP,yP, nPbW,nPbH,l,
-                                                       refIdx, partIdx, out_mvpList);
+                                                       refIdx, partIdx, out_mvpList, NULL); // TODO: current image not known here
 }
 
 
