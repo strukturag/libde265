@@ -82,6 +82,7 @@ void de265_cond_init(de265_cond_primitive* c);
 void de265_cond_destroy(de265_cond_primitive* c);
 void de265_cond_broadcast(de265_cond_primitive* c, de265_mutex_primitive* m);
 void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m);
+bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs);
 void de265_cond_signal(de265_cond_primitive* c);
 
 typedef volatile long de265_sync_int;
@@ -144,6 +145,7 @@ class de265_cond
 
   void broadcast(de265_mutex& mutex) { de265_cond_broadcast(&m_cond, &mutex.m_mutex); }
   void wait(de265_mutex& mutex) { de265_cond_wait(&m_cond, &mutex.m_mutex); }
+  bool timedwait(de265_mutex& mutex, int msecs) { return de265_cond_timedwait(&m_cond, &mutex.m_mutex, msecs); }
   void signal() { de265_cond_signal(&m_cond); }
 
  private:
@@ -248,6 +250,7 @@ public:
   void wait_until_finished() const;
 
   virtual std::string name() const { return "noname"; }
+  virtual void debug_dump() const { }
 
  private:
   mutable de265_mutex m_mutex;

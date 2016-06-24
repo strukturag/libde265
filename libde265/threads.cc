@@ -52,7 +52,29 @@ void de265_cond_init(de265_cond_primitive* c) { pthread_cond_init(c,NULL); }
 void de265_cond_destroy(de265_cond_primitive* c) { pthread_cond_destroy(c); }
 void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
 { pthread_cond_broadcast(c); }
-void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { pthread_cond_wait(c,m); }
+#include <sys/time.h>
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m)
+{
+  pthread_cond_wait(c,m);
+}
+
+bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs)
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  struct timespec abstime;
+  abstime.tv_sec = tv.tv_sec+msecs/1000;
+  abstime.tv_nsec= tv.tv_usec*1000 + (msecs%1000)*1000*1000;
+
+  abstime.tv_sec  += abstime.tv_nsec / 1000000000;
+  abstime.tv_nsec  = abstime.tv_nsec % 1000000000;
+
+  int error = pthread_cond_timedwait(c,m,&abstime);
+
+  return error = ETIMEDOUT;
+}
+
 void de265_cond_signal(de265_cond_primitive* c) { pthread_cond_signal(c); }
 #else  // _WIN32
 
@@ -80,6 +102,10 @@ void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
   de265_mutex_unlock(m);
 }
 void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_cond_wait(c,m); }
+bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs) {
+  // TODO: we have no cond_timedwait for windows yet. Fall back to the non-timeout version.
+  win32_cond_wait(c,m);
+}
 void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 #endif // _WIN32
 
@@ -175,6 +201,7 @@ void de265_progress_lock::wait_for_progress(int progress)
            get_name(), mProgress, progress);
 #endif
     cond.wait(mutex);
+    //if (cond.timedwait(mutex, 2000)) { break; }
   }
 
 #if D_MT
@@ -415,6 +442,11 @@ void thread_pool::stop()
 void thread_pool::add_task(thread_task_ptr task)
 {
   m_mutex.lock();
+
+#if D_MT
+  printf("adding task %s\n",task->name().c_str());
+  task->debug_dump();
+#endif
 
   //assert(!m_stopped);
 
