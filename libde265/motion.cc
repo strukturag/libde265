@@ -369,8 +369,8 @@ void generate_inter_prediction_samples(base_context* ctx,
       // do not want to block.
       // TODO: actually, it would be better to check whether the RefPicList is valid.
       if (refPic.get() != img) {
-        refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+nPbW+5,
-                                           yP+(vi->mv[l].y>>2)+nPbH+5,
+        refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+1+nPbW+5,
+                                           yP+(vi->mv[l].y>>2)+1+nPbH+5,
                                            refPic->mFinalCTBProgress); // LOCK
       }
 
