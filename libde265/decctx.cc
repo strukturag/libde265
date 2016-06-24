@@ -765,6 +765,8 @@ de265_error decoder_context::decode_image_unit(bool* did_work)
     }
 
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+    //imgunit->img->mFinalCTBProgress = CTB_PROGRESS_SAO;
+    //imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
 
     *did_work=true;
 

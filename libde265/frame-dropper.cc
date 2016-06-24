@@ -199,4 +199,6 @@ void frame_dropper_ratio::send_end_of_stream()
     m_image_unit_sink->send_image_unit( item.imgunit );
     m_image_queue.pop_front();
   }
+
+  m_image_unit_sink->send_end_of_stream();
 }
