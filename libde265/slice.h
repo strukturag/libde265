@@ -296,6 +296,8 @@ public:
 
   virtual void work();
   virtual std::string name() const { return "slice"; }
+
+  virtual void debug_dump() const;
 };
 
 class thread_task_ctb_row : public thread_task
@@ -307,6 +309,8 @@ public:
 
   virtual void work();
   virtual std::string name() const;
+
+  virtual void debug_dump() const;
 };
 
 class thread_task_slice_segment : public thread_task
@@ -318,6 +322,8 @@ public:
 
   virtual void work();
   virtual std::string name() const;
+
+  virtual void debug_dump() const;
 };
 
 

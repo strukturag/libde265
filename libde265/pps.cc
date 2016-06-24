@@ -629,7 +629,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
     }
 
 
-#if 0
+#if 1
   logtrace(LogHeaders,"6.5.1 CtbAddrRSToTS\n");
   for (int y=0;y<sps->PicHeightInCtbsY;y++)
     {
@@ -652,13 +652,13 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
             TileId  [ CtbAddrRStoTS[y*sps->PicWidthInCtbsY + x] ] = tIdx;
             TileIdRS[ y*sps->PicWidthInCtbsY + x ] = tIdx;
 
-            //logtrace(LogHeaders,"tileID[%d,%d] = %d\n",x,y,pps->TileIdRS[ y*sps->PicWidthInCtbsY + x ]);
+            logtrace(LogHeaders,"tileID[%d,%d] = %d\n",x,y,TileIdRS[ y*sps->PicWidthInCtbsY + x ]);
           }
 
         tIdx++;
       }
 
-#if 0
+#if 1
   logtrace(LogHeaders,"Tile IDs RS:\n");
   for (int y=0;y<sps->PicHeightInCtbsY;y++) {
     for (int x=0;x<sps->PicWidthInCtbsY;x++) {

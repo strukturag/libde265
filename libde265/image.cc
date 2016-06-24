@@ -674,6 +674,21 @@ void image::thread_finishes(const thread_task* task)
 }
 */
 
+
+void image::debug_show_ctb_progress() const
+{
+#if 0
+  for (int i=0;i<ctb_info.data_size;i++) {
+    int ctbx = i%sps->PicWidthInCtbsY;
+    int ctby = i/sps->PicWidthInCtbsY;
+
+    printf("%d %d;%d: %d\n",i,ctbx,ctby,
+           ctb_progress[i].get_progress());
+  }
+#endif
+}
+
+
 void image::wait_for_progress(int ctbx,int ctby, int progress) const
 {
   const int ctbW = sps->PicWidthInCtbsY;

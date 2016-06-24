@@ -1071,6 +1071,22 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
     log_set_current_POC(m_curr_img->PicOrderCntVal);
 
 
+    // check whether RefPicLists erroneously reference current picture
+
+    /*
+    for (int i=0;i<hdr->num_ref_idx_l0_active;i++) {
+      if (m_decctx->get_image(hdr->RefPicList[0][i]) == m_curr_img) {
+        return false;
+      }
+    }
+
+    for (int i=0;i<hdr->num_ref_idx_l1_active;i++) {
+      if (m_decctx->get_image(hdr->RefPicList[1][i]) == m_curr_img) {
+        return false;
+      }
+    }
+    */
+
     // next image is not the first anymore
 
     first_decoded_picture = false;

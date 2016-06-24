@@ -4903,6 +4903,22 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 }
 
 
+
+void thread_task_slice::debug_dump() const {
+  printf("CTB range: %d %d\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
+void thread_task_ctb_row::debug_dump() const {
+  printf("CTB range: %d %d [row]\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
+void thread_task_slice_segment::debug_dump() const {
+  printf("CTB range: %d %d [segment]\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
 std::string thread_task_ctb_row::name() const {
   char buf[100];
   sprintf(buf,"ctb-row-%d",debug_startCtbRow);
@@ -5055,12 +5071,14 @@ de265_error read_slice_segment_data(thread_context* tctx)
     result = decode_substream(tctx, false, first_slice_substream);
 
 
-    if (result == Decode_EndOfSliceSegment ||
-        result == Decode_Error) {
-#if D_MT
-    printf("err\n");
-#endif
+    if (result == Decode_EndOfSliceSegment)
       break;
+
+    if (result == Decode_Error) {
+#if D_MT
+      printf("err\n");
+#endif
+      return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
     }
 
     first_slice_substream = false;

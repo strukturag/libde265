@@ -1040,6 +1040,8 @@ void thread_task_deblock_image::work()
     int finalProgress = CTB_PROGRESS_DEBLK_V;
     if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
 
+  img->debug_show_ctb_progress();
+
     if (vertical) {
       // pass 1: vertical
 
