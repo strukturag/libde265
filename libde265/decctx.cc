@@ -1159,7 +1159,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     thread_context* tctx = sliceunit->get_thread_context(entryPt);
 
     tctx->shdr   = shdr;
-    tctx->decctx = img->decctx;
+    tctx->decctx = this;
     tctx->img    = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
@@ -1204,7 +1204,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     tasks[entryPt] = task;
 
-    m_thread_pool.add_task(task);
+    //m_thread_pool.add_task(task);
 
     tctx->imgunit->tasks.push_back(task);
   }
@@ -1229,7 +1229,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
   //img->wait_for_completion();
 
-  imgunit->tasks.clear();
+  //imgunit->tasks.clear();
 
   return err;
 }

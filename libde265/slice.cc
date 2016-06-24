@@ -4776,7 +4776,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
 #if D_MT
-    printf("set progress %d %d\n",ctbx,ctby);
+    printf("set progress %d;%d TS=%d\n",ctbx,ctby, tctx->get_CTB_address_TS());
 #endif
 
     //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
@@ -4956,7 +4956,7 @@ void thread_task_slice_segment::work()
 
   //tctx->setCtbAddrFromTS();
 
-  //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
+  //printf("%p: A start decoding at %d;%d\n", tctx, tctx->get_CTB_x(),tctx->get_CTB_y());
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
