@@ -4678,15 +4678,21 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
           //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
 
-          // we have to wait until the context model data is there
-          tctx->img->wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
+          if (block_wpp) {
+            // we have to wait until the context model data is there
+            tctx->img->wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
+          }
 
           // copy CABAC model from previous CTB row
           tctx->ctx_model = tctx->imgunit->ctx_models[ctby-1];
+
           tctx->imgunit->ctx_models[ctby-1].release(); // not used anymore
         }
         else {
-          tctx->img->wait_for_progress(0,ctby-1,CTB_PROGRESS_PREFILTER);
+          if (block_wpp) {
+            tctx->img->wait_for_progress(0,ctby-1,CTB_PROGRESS_PREFILTER);
+          }
+
           initialize_CABAC_models(tctx);
         }
       }
@@ -4769,6 +4775,9 @@ enum DecodeResult decode_substream(thread_context* tctx,
     }
 
     tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+#if D_MT
+    printf("set progress %d %d\n",ctbx,ctby);
+#endif
 
     //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
 
@@ -5048,6 +5057,9 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
     if (result == Decode_EndOfSliceSegment ||
         result == Decode_Error) {
+#if D_MT
+    printf("err\n");
+#endif
       break;
     }
 
