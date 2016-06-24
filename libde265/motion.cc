@@ -364,9 +364,15 @@ void generate_inter_prediction_samples(base_context* ctx,
       assert(refPic);
       //if (LOCK) refPic->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
-      refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+nPbW+5,
-                                         yP+(vi->mv[l].y>>2)+nPbH+5,
-                                         refPic->mFinalCTBProgress); // LOCK
+      // On some broken streams (fuzzing/id:000280,sig:11,src:004691+006522,op:splice,rep:128.bin)
+      // it may happen that the reference image is set to the current image. In this case, we
+      // do not want to block.
+      // TODO: actually, it would be better to check whether the RefPicList is valid.
+      if (refPic.get() != img) {
+        refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+nPbW+5,
+                                           yP+(vi->mv[l].y>>2)+nPbH+5,
+                                           refPic->mFinalCTBProgress); // LOCK
+      }
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 

@@ -184,6 +184,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
       int ctb_rs = shdr->pps->CtbAddrTStoRS[ctb];
 
+      //printf("mark progress RS:%d (TS:%d) = %d\n",ctb_rs,ctb, progress);
       img->ctb_progress[ctb_rs].set_progress(progress);
     }
 }
@@ -683,6 +684,7 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   }
   else {
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+    imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
     on_image_decoding_finished();
   }
 }
