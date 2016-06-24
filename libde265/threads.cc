@@ -105,6 +105,7 @@ void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_c
 bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs) {
   // TODO: we have no cond_timedwait for windows yet. Fall back to the non-timeout version.
   win32_cond_wait(c,m);
+  return false;
 }
 void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 #endif // _WIN32
