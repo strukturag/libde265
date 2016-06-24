@@ -111,7 +111,7 @@ public:
   uint8_t nal_unit_type; // of NAL containing first slice header
 
   image_ptr img;
-  image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
+  image  sao_tmp_img; // if SAO is used, this is allocated and used as temporary SAO buffer
 
   std::vector<slice_unit*> slice_units;
   std::vector<sei_message> suffix_SEIs;

@@ -378,11 +378,11 @@ class thread_task_sao : public thread_task
 public:
   int  ctb_y;
   image* img; /* this is where we get the SPS from
-                 (either inputImg or outputImg can be a dummy image)
+                 (either inputImg or tmpImg can be a dummy image)
               */
 
   image* inputImg;
-  image* outputImg;
+  image* tmpImg;
   int inputProgress;
 
   virtual void work();
@@ -404,25 +404,33 @@ void thread_task_sao::work()
   const int ctbSize  = (1<<sps.Log2CtbSizeY);
 
 
-  // wait until also the CTB-rows below and above are ready
-
-  img->wait_for_progress(rightCtb,ctb_y,  inputProgress);
-
-  if (ctb_y>0) {
-    img->wait_for_progress(rightCtb,ctb_y-1, inputProgress);
-  }
-
-  if (ctb_y+1<sps.PicHeightInCtbsY) {
-    img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
-  }
-
 #if D_MT
   printf("========================================================== SAO %d\n",ctb_y);
 #endif
 
   // copy input image to output for this CTB-row
 
-  outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
+  img->wait_for_progress(rightCtb,ctb_y,  inputProgress);
+  tmpImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
+
+  // mark SAO progress
+
+  for (int x=0;x<=rightCtb;x++) {
+    const int CtbWidth = sps.PicWidthInCtbsY;
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
+  }
+
+
+  // wait until also the CTB-rows below and above are ready
+
+  if (ctb_y>0) {
+    img->wait_for_progress(rightCtb,ctb_y-1, CTB_PROGRESS_SAO_INTERNAL);
+  }
+
+  if (ctb_y+1<sps.PicHeightInCtbsY) {
+    img->wait_for_progress(rightCtb,ctb_y+1, CTB_PROGRESS_SAO_INTERNAL);
+  }
+
 
 
   // process SAO in the CTB-row
@@ -436,8 +444,8 @@ void thread_task_sao::work()
 
       if (shdr->slice_sao_luma_flag) {
         apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize, ctbSize,
-                  inputImg ->get_image_plane(0), inputImg ->get_image_stride(0),
-                  outputImg->get_image_plane(0), outputImg->get_image_stride(0));
+                  tmpImg->get_image_plane(0), tmpImg->get_image_stride(0),
+                  inputImg ->get_image_plane(0), inputImg ->get_image_stride(0));
       }
 
       if (shdr->slice_sao_chroma_flag) {
@@ -445,12 +453,12 @@ void thread_task_sao::work()
         int nSH = ctbSize / sps.SubHeightC;
 
         apply_sao(img, xCtb,ctb_y, shdr, 1, nSW,nSH,
-                  inputImg ->get_image_plane(1), inputImg ->get_image_stride(1),
-                  outputImg->get_image_plane(1), outputImg->get_image_stride(1));
+                  tmpImg->get_image_plane(1), tmpImg->get_image_stride(1),
+                  inputImg ->get_image_plane(1), inputImg ->get_image_stride(1));
 
         apply_sao(img, xCtb,ctb_y, shdr, 2, nSW,nSH,
-                  inputImg ->get_image_plane(2), inputImg ->get_image_stride(2),
-                  outputImg->get_image_plane(2), outputImg->get_image_stride(2));
+                  tmpImg->get_image_plane(2), tmpImg->get_image_stride(2),
+                  inputImg ->get_image_plane(2), inputImg ->get_image_stride(2));
       }
     }
 
@@ -459,11 +467,8 @@ void thread_task_sao::work()
 
   for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
+    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO); //_INTERNAL);
   }
-
-
-  //img->thread_finishes(this);
 }
 
 
@@ -472,11 +477,11 @@ class thread_task_sao_image : public thread_task
 {
 public:
   image* img; /* this is where we get the SPS from
-                 (either inputImg or outputImg can be a dummy image)
+                 (either inputImg or tmpImg can be a dummy image)
               */
 
   image* inputImg;
-  image* outputImg;
+  image* tmpImg;
   int inputProgress;
 
   virtual void work();
@@ -501,11 +506,13 @@ void thread_task_sao_image::work()
   // wait until also the CTB-rows below and above are ready
 
   img->wait_for_progress(rightCtb,0,  inputProgress);
+  tmpImg->copy_lines_from(inputImg, 0 * ctbSize, (0+1) * ctbSize);
 
   for (int ctb_y=0; ctb_y < sps.PicHeightInCtbsY; ctb_y++)
     {
       if (ctb_y+1<sps.PicHeightInCtbsY) {
         img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
+        tmpImg->copy_lines_from(inputImg, (ctb_y+1) * ctbSize, (ctb_y+1+1) * ctbSize);
       }
 
 #if D_MT
@@ -515,7 +522,7 @@ void thread_task_sao_image::work()
 
       // copy input image to output for this CTB-row
 
-      outputImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
+      //tmpImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
 
       // process SAO in the CTB-row
@@ -529,8 +536,8 @@ void thread_task_sao_image::work()
 
           if (shdr->slice_sao_luma_flag) {
             apply_sao(img, xCtb,ctb_y, shdr, 0, ctbSize, ctbSize,
-                      inputImg ->get_image_plane(0), inputImg ->get_image_stride(0),
-                      outputImg->get_image_plane(0), outputImg->get_image_stride(0));
+                      tmpImg->get_image_plane(0), tmpImg->get_image_stride(0),
+                      inputImg ->get_image_plane(0), inputImg ->get_image_stride(0));
           }
 
           if (shdr->slice_sao_chroma_flag) {
@@ -538,12 +545,12 @@ void thread_task_sao_image::work()
             int nSH = ctbSize / sps.SubHeightC;
 
             apply_sao(img, xCtb,ctb_y, shdr, 1, nSW,nSH,
-                      inputImg ->get_image_plane(1), inputImg ->get_image_stride(1),
-                      outputImg->get_image_plane(1), outputImg->get_image_stride(1));
+                      tmpImg->get_image_plane(1), tmpImg->get_image_stride(1),
+                      inputImg ->get_image_plane(1), inputImg ->get_image_stride(1));
 
             apply_sao(img, xCtb,ctb_y, shdr, 2, nSW,nSH,
-                      inputImg ->get_image_plane(2), inputImg ->get_image_stride(2),
-                      outputImg->get_image_plane(2), outputImg->get_image_stride(2));
+                      tmpImg->get_image_plane(2), tmpImg->get_image_stride(2),
+                      inputImg ->get_image_plane(2), inputImg ->get_image_stride(2));
           }
         }
 
@@ -552,38 +559,12 @@ void thread_task_sao_image::work()
 
       for (int x=0;x<=rightCtb;x++) {
         const int CtbWidth = sps.PicWidthInCtbsY;
-        img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
+        img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO);
       }
     }
 }
 
 
-
-
-class thread_task_sao_exchange_image : public thread_task
-{
-public:
-  image* inputImg;
-  image* outputImg;
-
-  virtual void work() {
-    const seq_parameter_set& sps = inputImg->get_sps();
-
-    for (int i=0;i<sps.PicSizeInCtbsY;i++) {
-      inputImg->wait_for_progress(i, CTB_PROGRESS_SAO_INTERNAL);
-    }
-
-#if D_MT
-    printf("============================================================= SAO EXCH\n");
-#endif
-
-    inputImg->exchange_pixel_data_with(*outputImg);
-
-    inputImg->mark_all_CTB_progress(CTB_PROGRESS_SAO);
-  }
-
-  virtual std::string name() const { return "sao_exchange_image"; }
-};
 
 
 bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
@@ -598,70 +579,46 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   decoder_context* ctx = img->decctx;
 
-  de265_error err = imgunit->sao_output.alloc_image(img->get_width(), img->get_height(),
-                                                    img->get_chroma_format(),
-                                                    img->get_bit_depth(0),
-                                                    img->get_bit_depth(1),
-                                                    img->pts,
-                                                    img->get_supplementary_data(),
-                                                    img->user_data,
-                                                    &ctx->param_image_allocation_functions);
+  de265_error err = imgunit->sao_tmp_img.alloc_image(img->get_width(), img->get_height(),
+                                                     img->get_chroma_format(),
+                                                     img->get_bit_depth(0),
+                                                     img->get_bit_depth(1),
+                                                     img->pts,
+                                                     img->get_supplementary_data(),
+                                                     img->user_data,
+                                                     nullptr);
   if (err != DE265_OK) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return false;
   }
 
-  imgunit->sao_output.set_decoder_context(img->decctx);
-  imgunit->sao_output.set_encoder_context(img->encctx);
-
-  int nRows = sps.PicHeightInCtbsY;
-
-  //int n=0;
-  //img->thread_start(nRows);
+  imgunit->sao_tmp_img.set_decoder_context(img->decctx);
+  imgunit->sao_tmp_img.set_encoder_context(img->encctx);
 
   bool row_parallel = false;
 
   if (row_parallel) {
-    for (int y=0;y<nRows;y++)
+    for (int y=0;y<sps.PicHeightInCtbsY;y++)
       {
         auto task = std::make_shared<thread_task_sao>();
 
         task->inputImg  = img;
-        task->outputImg = &imgunit->sao_output;
+        task->tmpImg = &imgunit->sao_tmp_img;
         task->img = img;
         task->ctb_y = y;
         task->inputProgress = saoInputProgress;
 
         imgunit->tasks.push_back(task);
         ctx->get_thread_pool().add_task(task);
-        //n++;
       }
   }
   else {
     auto task = std::make_shared<thread_task_sao_image>();
 
     task->inputImg  = img;
-    task->outputImg = &imgunit->sao_output;
+    task->tmpImg = &imgunit->sao_tmp_img;
     task->img = img;
     task->inputProgress = saoInputProgress;
-
-    imgunit->tasks.push_back(task);
-    ctx->get_thread_pool().add_task(task);
-  }
-
-  /* Currently need barrier here because when are finished, we have to swap the pixel
-     data back into the main image. */
-  //img->wait_for_completion();
-
-  //img->exchange_pixel_data_with(imgunit->sao_output);
-
-  // add exchange-image task
-
-  {
-    auto task = std::make_shared<thread_task_sao_exchange_image>();
-
-    task->inputImg  = img;
-    task->outputImg = &imgunit->sao_output;
 
     imgunit->tasks.push_back(task);
     ctx->get_thread_pool().add_task(task);
