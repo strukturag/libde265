@@ -696,6 +696,15 @@ void image::wait_for_progress(int ctbx,int ctby, int progress) const
   wait_for_progress(ctbx + ctbW*ctby, progress);
 }
 
+void image::wait_for_progress_ctb_row(int ctby, int progress) const
+{
+  // Wait from right CTB to left CTB. This should reduce the number of cond.variable locks.
+
+  for (int x=sps->PicWidthInCtbsY-1; x>=0; x--) {
+    wait_for_progress(x,ctby,progress);
+  }
+}
+
 void image::wait_for_progress_at_pixel(int x,int y, int progress) const
 {
   int ctbx = x/sps->CtbSizeY;

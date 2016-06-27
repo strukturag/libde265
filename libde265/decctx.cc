@@ -948,7 +948,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
 
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
-  if (true) { // !use_WPP && !use_tiles) {
+  if (!use_WPP && !use_tiles) {
     //printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     return err;
