@@ -374,7 +374,6 @@ class decoder_context : public base_context,
   // --- decoded picture buffer ---
   decoded_picture_buffer dpb;
 
-
  private:
   // --- image unit queue ---
 

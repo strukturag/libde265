@@ -137,6 +137,7 @@ public:
   // --- debug ---
 
   void log_dpb_queues() const;
+  void dump_queues() const;
 
  private:
   int m_num_reorder_pics;

@@ -1327,6 +1327,10 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit_ptr outimgu
 
   if (!outimgunit->slice_units.empty()) {
     remove_images_from_dpb(outimgunit->slice_units[0]->shdr->RemoveReferencesList);
+
+    if (outimgunit->slice_units[0]->flush_reorder_buffer) {
+      m_output_queue.flush_reorder_buffer();
+    }
   }
 
 

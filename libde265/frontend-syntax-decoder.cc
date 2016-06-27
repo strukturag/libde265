@@ -502,7 +502,7 @@ void frontend_syntax_decoder::process_picture_order_count(slice_segment_header* 
       // flush all images from reorder buffer
 
       flush_reorder_buffer_at_this_frame = true;
-      //ctx->dpb.flush_reorder_buffer();
+      //m_decctx->dpb.flush_reorder_buffer();
     }
   else
     {

@@ -240,13 +240,25 @@ void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
 {
   lock_guard lock(m_mutex);
 
+  const bool D = false;
+  if (D) printf("insert:%d ",img->PicOrderCntVal);
+
   reorder_output_queue.push_back(img);
 
+  if (D) {
+    dump_queues();
+    printf(" process -> ");
+  }
 
-  // using 'while' instead of 'if' if case the reorder buffer size shrinks with a new VPS
+  // using 'while' instead of 'if' in case the reorder buffer size shrinks with a new VPS
 
   while (num_pictures_in_reorder_buffer() > m_num_reorder_pics) {
     move_next_picture_in_reorder_buffer_to_output_queue();
+  }
+
+  if (D) {
+    dump_queues();
+    printf("\n");
   }
 }
 
@@ -334,7 +346,16 @@ void picture_output_queue::pop_next_picture_in_output_queue()
 {
   lock_guard lock(m_mutex);
 
+  const bool D = false;
+
+  if (D) printf("remove %d: ",image_output_queue.front()->PicOrderCntVal);
+
   image_output_queue.pop_front();
+
+  if (D) {
+    dump_queues();
+    printf("\n");
+  }
 
 
   loginfo(LogDPB, "DPB output queue: ");
@@ -349,15 +370,32 @@ void picture_output_queue::log_dpb_queues() const
 {
   lock_guard lock(m_mutex);
 
-    loginfo(LogDPB, "DPB reorder queue (after push): ");
-    for (int i=0;i<num_pictures_in_reorder_buffer();i++) {
-      loginfo(LogDPB, "*%d ", reorder_output_queue[i]->PicOrderCntVal);
-    }
-    loginfo(LogDPB,"*\n");
+  loginfo(LogDPB, "DPB reorder queue (after push): ");
+  for (int i=0;i<num_pictures_in_reorder_buffer();i++) {
+    loginfo(LogDPB, "*%d ", reorder_output_queue[i]->PicOrderCntVal);
+  }
+  loginfo(LogDPB,"*\n");
 
-    loginfo(LogDPB, "DPB output queue (after push): ");
-    for (int i=0;i<num_pictures_in_output_queue();i++) {
-      loginfo(LogDPB, "*%d ", image_output_queue[i]->PicOrderCntVal);
-    }
-    loginfo(LogDPB,"*\n");
+  loginfo(LogDPB, "DPB output queue (after push): ");
+  for (int i=0;i<num_pictures_in_output_queue();i++) {
+    loginfo(LogDPB, "*%d ", image_output_queue[i]->PicOrderCntVal);
+  }
+  loginfo(LogDPB,"*\n");
+}
+
+void picture_output_queue::dump_queues() const
+{
+  lock_guard lock(m_mutex);
+
+  printf("[");
+  for (int i=0;i<num_pictures_in_reorder_buffer();i++) {
+    if (i>0) printf(" ");
+    printf("%d",reorder_output_queue[i]->PicOrderCntVal);
+  }
+  printf("](size=%d) -> [",m_num_reorder_pics);
+  for (int i=0;i<num_pictures_in_output_queue();i++) {
+    if (i>0) printf(" ");
+    printf("%d",image_output_queue[i]->PicOrderCntVal);
+  }
+  printf("]");
 }
