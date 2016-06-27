@@ -565,6 +565,14 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
 }
 
 
+LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
+                                                       int parallel_frames)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_max_images_processed_in_parallel = parallel_frames;
+}
+
+
 
 
 LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)

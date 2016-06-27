@@ -54,6 +54,7 @@ using namespace videogfx;
 #define NUM_THREADS 4
 
 int nThreads=0;
+int nParallelFrames=10;
 bool nal_input=false;
 int quiet=0;
 bool check_hash=false;
@@ -82,6 +83,7 @@ int disable_sao=0;
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
   {"threads",    required_argument, 0, 't' },
+  {"parallel-frames", required_argument, 0, 'P' },
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
   {"frames",     required_argument, 0, 'f' },
@@ -580,7 +582,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seR"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seRP:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -591,6 +593,7 @@ int main(int argc, char** argv)
     switch (c) {
     case 'q': quiet++; break;
     case 't': nThreads=atoi(optarg); break;
+    case 'P': nParallelFrames=atoi(optarg); break;
     case 'c': check_hash=true; break;
     case 'f': max_frames=atoi(optarg); break;
     case 'o': write_yuv=true; output_filename=optarg; break;
@@ -620,6 +623,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"options:\n");
     fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
+    fprintf(stderr,"  -P, --parallel-frames N   number of frames to decode in parallel (default=%d)\n", nParallelFrames);
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
@@ -680,6 +684,13 @@ int main(int argc, char** argv)
     nThreads = 1;
   }
 
+  if (nParallelFrames <= 0) {
+    nParallelFrames = 1;
+  }
+
+  printf("nP: %d\n",nParallelFrames);
+
+  de265_set_max_decode_frames_parallel(ctx, nParallelFrames);
   err = de265_start_worker_threads(ctx, nThreads);
 
   de265_set_limit_TID(ctx, highestTID);

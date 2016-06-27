@@ -204,6 +204,8 @@ LIBDE265_API de265_decoder_context* de265_new_decoder(void);
    all decoding is done in the main thread (no multi-threading). */
 LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
 
+LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context*, int parallel_frames);
+
 /* Free decoder context. May only be called once on a context. */
 LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 

@@ -325,6 +325,9 @@ class decoder_context : public base_context,
 
   bool param_disable_deblocking;
   bool param_disable_sao;
+
+  int  param_max_images_processed_in_parallel;
+
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
@@ -382,7 +385,6 @@ class decoder_context : public base_context,
   bool m_end_of_stream;
 
   std::deque<image_unit_ptr> m_image_units_in_progress;
-  static const int m_max_images_processed_in_parallel = 10; //////////////////// PARAMETER
 
   picture_output_queue   m_output_queue;
 

@@ -236,6 +236,8 @@ decoder_context::decoder_context()
   param_disable_deblocking = false;
   param_disable_sao = false;
 
+  param_max_images_processed_in_parallel = 10;
+
   // --- processing ---
 
   param_image_allocation_functions = image::default_image_allocation;
@@ -289,7 +291,7 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
   m_thread_pool.start(nThreads);
-  m_master_thread_pool.start(m_max_images_processed_in_parallel);
+  m_master_thread_pool.start(param_max_images_processed_in_parallel);
 
   num_worker_threads = nThreads;
 
@@ -344,7 +346,7 @@ void decoder_context::reset()
   if (num_worker_threads>0) {
     // TODO: need error checking
     start_thread_pool(num_worker_threads);
-    m_master_thread_pool.start(m_max_images_processed_in_parallel);
+    m_master_thread_pool.start(param_max_images_processed_in_parallel);
   }
 }
 
@@ -394,7 +396,7 @@ int  decoder_context::get_action(bool blocking)
 
   for (;;) {
     // check whether all decoding threads are busy
-    bool decoding_slots_full = (m_image_units_in_progress.size() >= m_max_images_processed_in_parallel);
+    bool decoding_slots_full = (m_image_units_in_progress.size() >= param_max_images_processed_in_parallel);
 
     // at least one image-unit is complete
     int num_pending_input_images = m_undecoded_image_units.size();
@@ -484,7 +486,7 @@ void decoder_context::run_main_loop()
     // --- check whether we have new image_units and we have some decoding slots available ---
 
     bool decoding_slots_available = (m_image_units_in_progress.size() <
-                                     m_max_images_processed_in_parallel);
+                                     param_max_images_processed_in_parallel);
     bool input_available= !m_undecoded_image_units.empty();
 
     if (input_available &&
