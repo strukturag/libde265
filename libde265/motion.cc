@@ -372,6 +372,8 @@ void generate_inter_prediction_samples(base_context* ctx,
         refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+1+nPbW+5,
                                            yP+(vi->mv[l].y>>2)+1+nPbH+5,
                                            refPic->mFinalCTBProgress); // LOCK
+
+        //refPic->wait_until_all_CTBs_have_progress(refPic->mFinalCTBProgress); // LOCK
       }
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
@@ -1109,6 +1111,8 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 
   if (colImg != current_image) {
     colImg->wait_for_progress_at_pixel(xColPb,yColPb, CTB_PROGRESS_PREFILTER); // LOCK
+
+    //colImg->wait_until_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER); // LOCK
   }
 
   // check for access outside image area

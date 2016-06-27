@@ -481,7 +481,7 @@ public:
   */
 
   bool do_all_CTBs_have_progress(int progress) const;
-  void wait_until_all_CTBs_have_progress(int progress);
+  void wait_until_all_CTBs_have_progress(int progress) const;
 
  private:
   /*

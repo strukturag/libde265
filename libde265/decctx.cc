@@ -504,7 +504,11 @@ void decoder_context::run_main_loop()
       else {
         // --- create threads to decode this image ---
 
+        // We could release the main-loop mutex while generating the image decoding tasks,
+        // however, this seems to be _slower_ than holding the mutex.
+        //m_main_loop_mutex.unlock();
         decode_image_frame_parallel(to_be_decoded);
+        //m_main_loop_mutex.lock();
       }
 
       did_something = true;
@@ -527,6 +531,20 @@ void decoder_context::run_main_loop()
         imgunit->master_task->join();
       }
       m_main_loop_mutex.lock();
+
+
+      // process suffix SEIs (TODO: process SEI in thread task)
+
+      for (int i=0;i<imgunit->suffix_SEIs.size();i++) {
+        const sei_message& sei = imgunit->suffix_SEIs[i];
+
+        de265_error err = process_sei(&sei, imgunit->img);
+        /*
+        if (err != DE265_OK)
+          break;
+        */
+      }
+
 
       push_picture_to_output_queue(imgunit);
 

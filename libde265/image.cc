@@ -740,7 +740,7 @@ void image::wait_for_progress(int ctbAddrRS, int progress) const
 }
 
 
-void image::wait_until_all_CTBs_have_progress(int progress)
+void image::wait_until_all_CTBs_have_progress(int progress) const
 {
   for (int i=0;i<ctb_info.data_size;i++) {
     //printf("wait for CTB %i   %p\n",i,task);
