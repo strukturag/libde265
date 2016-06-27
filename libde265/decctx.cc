@@ -334,7 +334,7 @@ void decoder_context::reset()
 
 
   m_undecoded_image_units.clear();
-  m_decoded_image_units.clear();
+  //m_decoded_image_units.clear();
 
   m_end_of_stream = false;
 
@@ -430,7 +430,7 @@ int  decoder_context::get_action(bool blocking)
 
     const bool no_input_pending = m_undecoded_image_units.empty();
     const bool decoding_slots_empty = m_image_units_in_progress.empty();
-    const bool decoded_images_queue_empty = m_decoded_image_units.empty();
+    const bool decoded_images_queue_empty = true; //m_decoded_image_units.empty();
     const bool output_queue_empty = (m_output_queue.num_pictures_in_output_queue() == 0 &&
                                      m_output_queue.num_pictures_in_reorder_buffer() ==0);
 
@@ -497,9 +497,15 @@ void decoder_context::run_main_loop()
 
       m_image_units_in_progress.push_back(to_be_decoded);
 
-      // --- create threads to decode this image ---
+      if (to_be_decoded->state == image_unit::Dropped) {
+        to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
+        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+      }
+      else {
+        // --- create threads to decode this image ---
 
-      decode_image_frame_parallel(to_be_decoded);
+        decode_image_frame_parallel(to_be_decoded);
+      }
 
       did_something = true;
     }
@@ -507,8 +513,11 @@ void decoder_context::run_main_loop()
 
     // === move decoded images to output queue ===
 
-    while (!m_decoded_image_units.empty()) {
-      image_unit_ptr imgunit = m_decoded_image_units.front();
+    while (!m_image_units_in_progress.empty() &&              // TODO -----> final progress
+           m_image_units_in_progress.front()->did_finish_decoding()) {
+
+      image_unit_ptr imgunit = m_image_units_in_progress.front();
+      m_image_units_in_progress.pop_front();
 
       // make sure the master-thread has ended
       // we have to temporally unlock the mutex to let the master thread finish
@@ -519,14 +528,9 @@ void decoder_context::run_main_loop()
       }
       m_main_loop_mutex.lock();
 
-      m_decoded_image_units.pop_front();
-
-
       push_picture_to_output_queue(imgunit);
 
       did_something = true;
-
-      m_cond_api_action.signal();
     }
 
 
@@ -537,8 +541,10 @@ void decoder_context::run_main_loop()
     }
 
 
-
-    if (!did_something) {
+    if (did_something) {
+      m_cond_api_action.signal();
+    }
+    else {
       m_main_loop_block_cond.wait(m_main_loop_mutex);
     }
 
@@ -555,25 +561,8 @@ void decoder_context::on_image_decoding_finished()
 {
   m_main_loop_mutex.lock();
 
-
-  // --- move all pictures that are completely decoded from progress queue to decoded queue ---
-
-  while (!m_image_units_in_progress.empty() &&              // TODO -----> final progress
-         m_image_units_in_progress.front()->did_finish_decoding()) {
-    //m_image_units_in_progress.front()->img->do_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER)) {
-
-    image_unit_ptr imgunit = m_image_units_in_progress.front();
-    m_image_units_in_progress.pop_front();
-
-    // inform main thread that there are now decoding slots available
-    m_main_loop_block_cond.signal();
-
-    //imgunit->img->exchange_pixel_data_with(imgunit->sao_output);
-
-    m_decoded_image_units.push_back(imgunit);
-  }
-
-  m_cond_api_action.signal();
+  // inform main thread that there are now decoding slots available
+  m_main_loop_block_cond.signal();
 
   m_main_loop_mutex.unlock();
 }
@@ -685,7 +674,7 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   else {
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
     imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
-    on_image_decoding_finished();
+    on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
 }
 
