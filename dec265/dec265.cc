@@ -772,15 +772,17 @@ int main(int argc, char** argv)
 
           pos+=n;
 
-          static bool skipped = false;
-          if (false && pos>1000000 && !skipped) { // fake skipping
-            skipped = true;
-
+          static int skippos=0;
+          if (pos>skippos+1000000) { // fake skipping
             printf("RESET\n");
             de265_reset(ctx);
-            pos=0;
 
-            fseek(fh, 7100000,SEEK_CUR);
+            int skip = 4000000;
+
+            pos += skip;
+            skippos=pos;
+
+            fseek(fh, skip,SEEK_CUR);
           }
 
           // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));

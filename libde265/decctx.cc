@@ -313,14 +313,13 @@ void decoder_context::reset()
 {
   assert(num_worker_threads>0);
 
-  printf("STOP task thread pool\n");
   m_thread_pool.stop();
-  printf("pool stopped\n");
 
   m_thread_pool.reset();
 
 
   m_frontend_syntax_decoder.reset();
+  m_image_units_in_progress.clear();
 
   m_frame_dropper_nop.reset();
   m_frame_dropper_IRAP_only.reset();
@@ -344,8 +343,6 @@ void decoder_context::reset()
 
 
   // --- start threads again ---
-
-  printf("restart threads\n");
 
   // TODO: need error checking
   start_thread_pool(num_worker_threads);
@@ -594,6 +591,7 @@ public:
 
   void work() {
     m_imgunit->wait_to_finish_decoding();
+    printf("finalize task: ok image decoded\n");
     m_imgunit->img->decctx->on_image_decoding_finished();
   }
 
@@ -845,6 +843,12 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   sliceunit->allocate_thread_contexts(1);
   thread_context* tctx = sliceunit->get_thread_context(0);
 
+  printf("decoder_context::decode_slice_unit_sequential  shdr-lsb:%d\n",
+         sliceunit->shdr->slice_pic_order_cnt_lsb);
+  printf("shdr: %p\n", sliceunit->shdr);
+  printf("shdr->pps->pps_read: %d (pps=%p)\n", sliceunit->shdr->pps->pps_read,
+         sliceunit->shdr->pps.get());
+
   tctx->shdr = sliceunit->shdr;
   tctx->img  = imgunit->img;
   tctx->decctx = this;
@@ -938,7 +942,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
   if (!use_WPP && !use_tiles) {
-    //printf("SEQ\n");
+    printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     return err;
   }

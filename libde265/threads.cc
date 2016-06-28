@@ -244,9 +244,6 @@ void de265_progress_lock::increase_progress(int progress)
 
 int  de265_progress_lock::get_progress() const
 {
-  if (!initialized) {
-    printf("destroyed: %d\n", destroyed);
-  }
   assert(initialized);
 
   mutex.lock(); // need lock, otherwise helgrind complains
@@ -373,18 +370,16 @@ void thread_pool::worker_thread_main_loop()
 
     // execute the task
 
-    printf("start task: %s\n",task->name().c_str());
+    printf("start task: %s %p\n",task->name().c_str(),task.get());
     task->work();
     task->mark_finished();
-    printf("end task: %s\n",task->name().c_str());
+    printf("end task: %s %p\n",task->name().c_str(),task.get());
 
     // end processing and check if this was the last task to be processed
 
     m_mutex.lock();
 
     m_num_threads_working--;
-
-    printf("pool stopped: %d\n",m_stopped);
   }
 
   m_mutex.unlock();
@@ -454,7 +449,7 @@ void thread_pool::add_task(thread_task_ptr task)
   m_mutex.lock();
 
 #if 1 //D_MT
-  printf("adding task %s\n",task->name().c_str());
+  printf("adding task %s %p\n",task->name().c_str(), task.get());
   task->debug_dump();
 #endif
 
@@ -474,7 +469,7 @@ void thread_pool::add_task(thread_task_ptr task)
 
 void thread_pool::debug_list_tasks() const
 {
-#if 1
+#if D_MT
   printf("thread pool tasks:\n");
   for (const auto& task : m_tasks) {
     printf("pool task: %s\n",task->name().c_str());

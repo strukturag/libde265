@@ -82,6 +82,10 @@ void frontend_syntax_decoder::reset()
 
   m_curr_image_unit.reset();
   m_curr_img.reset();
+
+  current_vps.reset();
+  current_sps.reset();
+  current_pps.reset();
 }
 
 
