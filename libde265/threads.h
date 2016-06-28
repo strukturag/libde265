@@ -285,12 +285,16 @@ class thread_pool
   de265_error start(int num_threads);
   void stop();
 
+  void reset(); // remove all pending tasks
+
   void add_task(thread_task_ptr task);
+
+  void debug_list_tasks() const;
 
  private:
   bool m_stopped;
 
-  std::deque<thread_task_ptr> m_tasks;  // we are not the owner
+  std::deque<thread_task_ptr> m_tasks;
 
   de265_thread_primitive m_thread[MAX_THREADS];
   int m_num_threads;

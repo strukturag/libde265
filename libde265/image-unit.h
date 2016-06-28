@@ -179,7 +179,6 @@ public:
   // The main purpose of having pointers to all tasks is to keep them alive until the
   // image is decoded, and to check whether they are finished.
   std::vector<thread_task_ptr> tasks;
-  de265_thread_ptr master_task;
 
 
   /* Saved context models for WPP.

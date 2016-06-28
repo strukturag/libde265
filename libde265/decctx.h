@@ -303,9 +303,6 @@ class decoder_context : public base_context,
 
 
   thread_pool m_thread_pool;
-  thread_pool m_master_thread_pool;  // pool for all the master threads
-
-  //std::set<thread_task_ptr> master_tasks;
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_frame_parallel(image_unit* imgunit, slice_unit* sliceunit);

@@ -373,16 +373,18 @@ void thread_pool::worker_thread_main_loop()
 
     // execute the task
 
-    //printf("start task: %s\n",task->name().c_str());
+    printf("start task: %s\n",task->name().c_str());
     task->work();
     task->mark_finished();
-    //printf("end task: %s\n",task->name().c_str());
+    printf("end task: %s\n",task->name().c_str());
 
     // end processing and check if this was the last task to be processed
 
     m_mutex.lock();
 
     m_num_threads_working--;
+
+    printf("pool stopped: %d\n",m_stopped);
   }
 
   m_mutex.unlock();
@@ -440,11 +442,18 @@ void thread_pool::stop()
 }
 
 
+void thread_pool::reset()
+{
+  assert(m_stopped);
+  m_tasks.clear();
+}
+
+
 void thread_pool::add_task(thread_task_ptr task)
 {
   m_mutex.lock();
 
-#if D_MT
+#if 1 //D_MT
   printf("adding task %s\n",task->name().c_str());
   task->debug_dump();
 #endif
@@ -461,6 +470,19 @@ void thread_pool::add_task(thread_task_ptr task)
   }
   m_mutex.unlock();
 }
+
+
+void thread_pool::debug_list_tasks() const
+{
+#if 1
+  printf("thread pool tasks:\n");
+  for (const auto& task : m_tasks) {
+    printf("pool task: %s\n",task->name().c_str());
+  }
+  printf("thread pool task list end\n");
+#endif
+}
+
 
 extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);
 extern inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n);

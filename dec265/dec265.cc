@@ -773,14 +773,14 @@ int main(int argc, char** argv)
           pos+=n;
 
           static bool skipped = false;
-          if (0 && !skipped) { // fake skipping
+          if (false && pos>1000000 && !skipped) { // fake skipping
             skipped = true;
 
             printf("RESET\n");
             de265_reset(ctx);
             pos=0;
 
-            fseek(fh, 71000000,SEEK_CUR);
+            fseek(fh, 7100000,SEEK_CUR);
           }
 
           // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));

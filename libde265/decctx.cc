@@ -290,8 +290,9 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
+  m_thread_pool.debug_list_tasks();
+
   m_thread_pool.start(nThreads);
-  m_master_thread_pool.start(param_max_images_processed_in_parallel);
 
   num_worker_threads = nThreads;
 
@@ -305,17 +306,18 @@ void decoder_context::stop_thread_pool()
     //flush_thread_pool(&ctx->thread_pool);
     m_thread_pool.stop();
   }
-
-  m_master_thread_pool.stop();
 }
 
 
 void decoder_context::reset()
 {
-  if (num_worker_threads>0) {
-    m_thread_pool.stop();
-    m_master_thread_pool.stop();
-  }
+  assert(num_worker_threads>0);
+
+  printf("STOP task thread pool\n");
+  m_thread_pool.stop();
+  printf("pool stopped\n");
+
+  m_thread_pool.reset();
 
 
   m_frontend_syntax_decoder.reset();
@@ -343,11 +345,16 @@ void decoder_context::reset()
 
   // --- start threads again ---
 
-  if (num_worker_threads>0) {
-    // TODO: need error checking
-    start_thread_pool(num_worker_threads);
-    m_master_thread_pool.start(param_max_images_processed_in_parallel);
-  }
+  printf("restart threads\n");
+
+  // TODO: need error checking
+  start_thread_pool(num_worker_threads);
+
+
+  m_main_loop_mutex.lock();
+  m_main_loop_block_cond.signal();
+  m_cond_api_action.signal();
+  m_main_loop_mutex.unlock();
 }
 
 
@@ -525,15 +532,6 @@ void decoder_context::run_main_loop()
       image_unit_ptr imgunit = m_image_units_in_progress.front();
       m_image_units_in_progress.pop_front();
 
-      // make sure the master-thread has ended
-      // we have to temporally unlock the mutex to let the master thread finish
-
-      m_main_loop_mutex.unlock();
-      if (imgunit->master_task) {
-        imgunit->master_task->join();
-      }
-      m_main_loop_mutex.lock();
-
 
       // process suffix SEIs (TODO: process SEI in thread task)
 
@@ -589,30 +587,20 @@ void decoder_context::on_image_decoding_finished()
 
 
 
-class thread_image_master_control : public de265_thread
+class thread_task_finalize_image : public thread_task
 {
 public:
-  image_unit* imgunit;
+  thread_task_finalize_image(image_unit_ptr imgunit) : m_imgunit(imgunit) { }
 
-  int ctb_finished_progress;
-
-  // (CTB_PROGRESS_SAO); PREFILTER);
-
-  //virtual std::string name() const { return "image_master_control"; }
-  virtual void run() {
-    //imgunit->img->wait_until_all_CTBs_have_progress(ctb_finished_progress);
-    imgunit->wait_to_finish_decoding();
-    imgunit->img->decctx->on_image_decoding_finished();
+  void work() {
+    m_imgunit->wait_to_finish_decoding();
+    m_imgunit->img->decctx->on_image_decoding_finished();
   }
 
-  /*
-  virtual void cleanup() {
-    image_unit_ptr i = imgunit;
+  std::string name() const { return "finalize-image"; }
 
-    imgunit.reset();
-    i->decctx->master_tasks.erase(this);
-  }
-  */
+private:
+  image_unit_ptr m_imgunit;
 };
 
 
@@ -678,18 +666,10 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     imgunit->img->mFinalCTBProgress = final_ctb_progress;
 
 
-    // Generate master-control thread (we have to create this after the other threads,
-    // because the master thread waits for all other threads to finish).
+    // Add finalize-task that moves the image into the output queue.
 
-    auto master_thread = std::make_shared<thread_image_master_control>();
-    master_thread->imgunit = imgunit.get();
-    master_thread->ctb_finished_progress = final_ctb_progress;
-
-    imgunit->master_task = master_thread;
-    master_thread->start();
-
-    //master_tasks.push_back(master_thread);
-    //m_master_thread_pool.add_task(master_thread);
+    auto task = std::make_shared<thread_task_finalize_image>(imgunit);
+    m_thread_pool.add_task(task);
   }
   else {
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
