@@ -181,6 +181,8 @@ LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, in
 LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern*,int channel);
 LIBDE265_API void* de265_get_image_plane_user_data_intern(const struct de265_image_intern*, int channel);
 
+LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img);
+
 /* Get NAL-header information of this frame. You can pass in NULL pointers if you
    do not need this piece of information.
  */

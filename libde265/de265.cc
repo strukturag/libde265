@@ -420,6 +420,12 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 }
 
 
+LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img)
+{
+  return img->m_image->integrity == INTEGRITY_CORRECT;
+}
+
+
 LIBDE265_API void de265_skip_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
