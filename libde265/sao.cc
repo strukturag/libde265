@@ -169,12 +169,10 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
           edgeIdx = ( Sign(in_ptr[i] - in_ptr[i+hPos[0]+vPosStride[0]]) +
                       Sign(in_ptr[i] - in_ptr[i+hPos[1]+vPosStride[1]])   );
 
-          if (1) { // edgeIdx != 0) {   // seems to be faster without this check (zero in offset table)
-            int offset = saoOffsetVal[edgeIdx+2];
+          int offset = saoOffsetVal[edgeIdx+2];
 
-            out_ptr[i] = Clip3(0,maxPixelValue,
-                               in_ptr[i] + offset);
-          }
+          out_ptr[i] = Clip3(0,maxPixelValue,
+                             in_ptr[i] + offset);
         }
       }
     }
@@ -495,7 +493,10 @@ public:
 
 void thread_task_sao_image::work()
 {
-  //img->thread_run(this);
+#if D_TIMER
+  debug_timer timer;
+  timer.start();
+#endif
 
   const seq_parameter_set& sps = img->get_sps();
 
@@ -562,6 +563,11 @@ void thread_task_sao_image::work()
         img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO);
       }
     }
+
+#if D_TIMER
+  timer.stop();
+  printf("sao: %f\n", timer.get_usecs());
+#endif
 }
 
 

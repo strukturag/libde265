@@ -1014,7 +1014,10 @@ public:
 
 void thread_task_deblock_image::work()
 {
-  //img->thread_run(this);
+#if D_TIMER
+  debug_timer timer;
+  timer.start();
+#endif
 
   int xStart=0;
   int xEnd = img->get_deblk_width();
@@ -1106,7 +1109,10 @@ void thread_task_deblock_image::work()
 #endif
   }
 
-  //img->thread_finishes(this);
+#if D_TIMER
+  timer.stop();
+  printf("deblock %c: %f\n",vertical ? 'V':'H', timer.get_usecs());
+#endif
 }
 
 

@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <time.h>
 
 #include "libde265/de265.h"
 
@@ -233,5 +234,20 @@ void printBlk(const char* title,const uint8_t* data, int blksize, int stride, co
 
 void debug_set_image_output(void (*)(const image*, int slot));
 void debug_show_image(const class image*, int slot);
+
+class debug_timer
+{
+ public:
+  void start() { clock_gettime(CLOCK_MONOTONIC, &mStart); }
+  void stop()  { clock_gettime(CLOCK_MONOTONIC, &mEnd);   }
+  double get_usecs() const {
+    double elapsed = (mEnd.tv_sec - mStart.tv_sec);
+    elapsed += (mEnd.tv_nsec - mStart.tv_nsec) / 1000.0;
+    return elapsed;
+  }
+
+ private:
+  struct timespec mStart,mEnd;
+};
 
 #endif

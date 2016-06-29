@@ -4935,7 +4935,15 @@ std::string thread_task_slice_segment::name() const {
 
 void thread_task_slice::work()
 {
+#if D_TIMER
+  debug_timer timer;
+  timer.start();
+#endif
   de265_error err=read_slice_segment_data(tctx);
+#if D_TIMER
+  timer.stop();
+  printf("slice: %f\n",timer.get_usecs());
+#endif
 
   tctx->sliceunit->state = slice_unit::Decoded;
   tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
