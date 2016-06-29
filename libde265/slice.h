@@ -151,9 +151,15 @@ public:
 
 
   int  slice_index; // index through all slices in a picture  (internal only)
+
+  const std::shared_ptr<const pic_parameter_set>& get_pps() const { return pps; }
+  void set_pps(std::shared_ptr<const pic_parameter_set> p) { pps=p; }
+
+ private:
   std::shared_ptr<const pic_parameter_set> pps;
 
 
+ public:
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
   int  slice_pic_parameter_set_id;

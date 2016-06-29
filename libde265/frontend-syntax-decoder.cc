@@ -43,22 +43,7 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
   m_decctx=ctx;
   m_image_unit_sink = nullptr;
 
-  current_vps = NULL;
-  current_sps = NULL;
-  current_pps = NULL;
-
-  current_image_poc_lsb = 0;
-  first_decoded_picture = 0;
-  NoRaslOutputFlag = 0;
-  HandleCraAsBlaFlag = 0;
-  FirstAfterEndOfSequenceNAL = 0;
-  PicOrderCntMsb = 0;
-  prevPicOrderCntLsb = 0;
-  prevPicOrderCntMsb = 0;
-
-  first_decoded_picture = true;
-
-  current_image_poc_lsb = -1; // any invalid number
+  reset();
 
 
   param_sps_headers_fd = -1;
@@ -75,13 +60,22 @@ void frontend_syntax_decoder::reset()
 {
   // --- decoded picture buffer ---
 
-  current_image_poc_lsb = -1; // any invalid number
   first_decoded_picture = true;
+  NoRaslOutputFlag = false;
+  HandleCraAsBlaFlag = false;
+  FirstAfterEndOfSequenceNAL = false;
+
+  current_image_poc_lsb = -1; // any invalid number
+  PicOrderCntMsb = 0;
+  prevPicOrderCntLsb = 0;
+  prevPicOrderCntMsb = 0;
 
   nal_parser.remove_pending_input_data();
 
   m_curr_image_unit.reset();
   m_curr_img.reset();
+
+  previous_slice_header=NULL;
 
   current_vps.reset();
   current_sps.reset();
@@ -215,14 +209,16 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
   // because faulty streams may send new a PPS between slices, for example with a different
   // tile structure which then completely confuses the decoder.
   // E.g. fuzzing/id:000225,sig:11,src:002437+005717,op:splice,rep:128.bin
-  if (shdr->first_slice_segment_in_pic_flag) {
+  if (shdr->first_slice_segment_in_pic_flag
+      // || (m_curr_image_unit && !m_curr_image_unit->slice_units.empty())
+      ) {
     current_pps = pps[pps_id];
     current_sps = sps[ (int)current_pps->seq_parameter_set_id ];
     current_vps = vps[ (int)current_sps->video_parameter_set_id ];
   }
-  else {
-    shdr->pps = current_pps;
-  }
+
+  shdr->set_pps( current_pps );
+
 
   m_decctx->calc_tid_and_framerate_ratio();
 
@@ -313,8 +309,8 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
     // --- assign CTB-range that is covered by this slice-unit ---
 
-    sliceunit->first_CTB_TS = shdr->pps->CtbAddrTStoRS[shdr->slice_segment_address];
-    sliceunit->last_CTB_TS  = shdr->pps->sps->PicSizeInCtbsY -1;
+    sliceunit->first_CTB_TS = shdr->get_pps()->CtbAddrTStoRS[shdr->slice_segment_address];
+    sliceunit->last_CTB_TS  = shdr->get_pps()->sps->PicSizeInCtbsY -1;
 
     bool first_observed_slice_unit = (m_curr_image_unit->slice_units.empty());
 
@@ -351,6 +347,11 @@ void frontend_syntax_decoder::debug_imageunit_state()
           nal_parser.get_NAL_queue_length(),
           nal_parser.is_end_of_stream(),
           nal_parser.is_end_of_frame() );
+}
+
+
+void frontend_syntax_decoder::debug_dump_state()
+{
 }
 
 

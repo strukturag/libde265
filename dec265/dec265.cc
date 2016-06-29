@@ -707,6 +707,9 @@ int main(int argc, char** argv)
     exit(10);
   }
 
+  //fseek(fh, 15500000,SEEK_CUR);
+
+
   FILE* bytestream_fh = NULL;
 
   if (write_bytestream) {
@@ -773,7 +776,7 @@ int main(int argc, char** argv)
           pos+=n;
 
           static int skippos=0;
-          if (pos>skippos+1000000) { // fake skipping
+          if (false && pos>skippos+1000000) { // fake skipping
             printf("RESET\n");
             de265_reset(ctx);
 

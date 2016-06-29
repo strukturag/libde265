@@ -118,10 +118,8 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
   int  param_slice_headers_fd;
 
 
-
-  // --- (TODO) make this private and reorganize ---
-
   void debug_imageunit_state();
+  void debug_dump_state();
 
  private:
   de265_error decode_NAL(NAL_unit_ptr nal);

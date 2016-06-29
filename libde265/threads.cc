@@ -370,10 +370,10 @@ void thread_pool::worker_thread_main_loop()
 
     // execute the task
 
-    printf("start task: %s %p\n",task->name().c_str(),task.get());
+    //printf("start task: %s %p\n",task->name().c_str(),task.get());
     task->work();
     task->mark_finished();
-    printf("end task: %s %p\n",task->name().c_str(),task.get());
+    //printf("end task: %s %p\n",task->name().c_str(),task.get());
 
     // end processing and check if this was the last task to be processed
 
@@ -448,7 +448,7 @@ void thread_pool::add_task(thread_task_ptr task)
 {
   m_mutex.lock();
 
-#if 1 //D_MT
+#if D_MT
   printf("adding task %s %p\n",task->name().c_str(), task.get());
   task->debug_dump();
 #endif

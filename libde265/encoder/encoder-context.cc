@@ -275,7 +275,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
   imgdata->shdr.compute_derived_values(pps.get());
 
-  imgdata->shdr.pps = get_pps_ptr();
+  imgdata->shdr.set_pps(pps); //get_pps_ptr() );
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 

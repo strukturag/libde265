@@ -182,7 +182,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
       if (ctb >= img->number_of_ctbs())
         break;
 
-      int ctb_rs = shdr->pps->CtbAddrTStoRS[ctb];
+      int ctb_rs = shdr->get_pps()->CtbAddrTStoRS[ctb];
 
       //printf("mark progress RS:%d (TS:%d) = %d\n",ctb_rs,ctb, progress);
       img->ctb_progress[ctb_rs].set_progress(progress);
@@ -275,46 +275,13 @@ decoder_context::~decoder_context()
 }
 
 
-void decoder_context::set_image_allocation_functions(de265_image_allocation* allocfunc)
-{
-  if (allocfunc) {
-    param_image_allocation_functions = *allocfunc;
-  }
-  else {
-    assert(false); // actually, it makes no sense to reset the allocation functions
-
-    param_image_allocation_functions = image::default_image_allocation;
-  }
-}
-
-
-de265_error decoder_context::start_thread_pool(int nThreads)
-{
-  m_thread_pool.debug_list_tasks();
-
-  m_thread_pool.start(nThreads);
-
-  num_worker_threads = nThreads;
-
-  return DE265_OK;
-}
-
-
-void decoder_context::stop_thread_pool()
-{
-  if (get_num_worker_threads()>0) {
-    //flush_thread_pool(&ctx->thread_pool);
-    m_thread_pool.stop();
-  }
-}
-
-
 void decoder_context::reset()
 {
   assert(num_worker_threads>0);
 
-  m_thread_pool.stop();
+  stop_decoding_thread();
 
+  m_thread_pool.stop();
   m_thread_pool.reset();
 
 
@@ -347,11 +314,48 @@ void decoder_context::reset()
   // TODO: need error checking
   start_thread_pool(num_worker_threads);
 
+  start_decoding_thread();
 
   m_main_loop_mutex.lock();
   m_main_loop_block_cond.signal();
   m_cond_api_action.signal();
   m_main_loop_mutex.unlock();
+}
+
+
+
+
+void decoder_context::set_image_allocation_functions(de265_image_allocation* allocfunc)
+{
+  if (allocfunc) {
+    param_image_allocation_functions = *allocfunc;
+  }
+  else {
+    assert(false); // actually, it makes no sense to reset the allocation functions
+
+    param_image_allocation_functions = image::default_image_allocation;
+  }
+}
+
+
+de265_error decoder_context::start_thread_pool(int nThreads)
+{
+  m_thread_pool.debug_list_tasks();
+
+  m_thread_pool.start(nThreads);
+
+  num_worker_threads = nThreads;
+
+  return DE265_OK;
+}
+
+
+void decoder_context::stop_thread_pool()
+{
+  if (get_num_worker_threads()>0) {
+    //flush_thread_pool(&ctx->thread_pool);
+    m_thread_pool.stop();
+  }
 }
 
 
@@ -503,7 +507,19 @@ void decoder_context::run_main_loop()
 
       m_image_units_in_progress.push_back(to_be_decoded);
 
+      /*
+      printf("decode frame? nslices=%d %d shdr=%p\n",
+             to_be_decoded->slice_units.size(),
+             to_be_decoded->slice_units[0]->shdr->first_slice_segment_in_pic_flag,
+             to_be_decoded->slice_units[0]->shdr);
+      */
+
       if (to_be_decoded->state == image_unit::Dropped) {
+        to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
+        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+      }
+      else if (!to_be_decoded->slice_units.empty() &&
+               to_be_decoded->slice_units[0]->shdr->first_slice_segment_in_pic_flag == false) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
         to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
       }
@@ -591,7 +607,6 @@ public:
 
   void work() {
     m_imgunit->wait_to_finish_decoding();
-    printf("finalize task: ok image decoded\n");
     m_imgunit->img->decctx->on_image_decoding_finished();
   }
 
@@ -843,11 +858,13 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   sliceunit->allocate_thread_contexts(1);
   thread_context* tctx = sliceunit->get_thread_context(0);
 
+  /*
   printf("decoder_context::decode_slice_unit_sequential  shdr-lsb:%d\n",
          sliceunit->shdr->slice_pic_order_cnt_lsb);
   printf("shdr: %p\n", sliceunit->shdr);
-  printf("shdr->pps->pps_read: %d (pps=%p)\n", sliceunit->shdr->pps->pps_read,
-         sliceunit->shdr->pps.get());
+  printf("shdr->pps->pps_read: %d (pps=%p)\n", sliceunit->shdr->get_pps()->pps_read,
+         sliceunit->shdr->get_pps().get());
+  */
 
   tctx->shdr = sliceunit->shdr;
   tctx->img  = imgunit->img;
@@ -942,7 +959,6 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   // TODO: even though we cannot split this into several tasks, we should run it
   // as a background thread
   if (!use_WPP && !use_tiles) {
-    printf("SEQ\n");
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     return err;
   }
