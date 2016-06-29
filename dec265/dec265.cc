@@ -688,8 +688,6 @@ int main(int argc, char** argv)
     nParallelFrames = 1;
   }
 
-  printf("nP: %d\n",nParallelFrames);
-
   de265_set_max_decode_frames_parallel(ctx, nParallelFrames);
   err = de265_start_worker_threads(ctx, nThreads);
 
