@@ -70,7 +70,6 @@ thread_context* slice_unit::get_thread_context(int n)
 
 image_unit::image_unit()
 {
-  img=NULL;
   role=Invalid;
   state=Unprocessed;
 }

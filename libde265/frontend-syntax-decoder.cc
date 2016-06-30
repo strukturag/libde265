@@ -473,7 +473,7 @@ void frontend_syntax_decoder::on_end_of_frame()
     m_image_unit_sink->send_image_unit(m_curr_image_unit);
   }
 
-  m_curr_image_unit = nullptr;
+  m_curr_image_unit.reset();
 
   m_image_unit_sink->send_end_of_stream();
 
