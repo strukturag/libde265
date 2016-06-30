@@ -871,7 +871,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx->decctx = this;
   tctx->imgunit = imgunit;
   tctx->sliceunit= sliceunit;
-  tctx->task = NULL;
+  tctx->task.reset();
   tctx->first_CTB_TS = sliceunit->first_CTB_TS;
   tctx->last_CTB_TS  = sliceunit->last_CTB_TS;
 

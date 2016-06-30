@@ -58,6 +58,7 @@ void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m)
   pthread_cond_wait(c,m);
 }
 
+#if 0
 bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs)
 {
   struct timeval tv;
@@ -72,8 +73,9 @@ bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int 
 
   int error = pthread_cond_timedwait(c,m,&abstime);
 
-  return error = ETIMEDOUT;
+  return error == ETIMEDOUT;
 }
+#endif
 
 void de265_cond_signal(de265_cond_primitive* c) { pthread_cond_signal(c); }
 #else  // _WIN32
@@ -102,11 +104,13 @@ void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
   de265_mutex_unlock(m);
 }
 void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_cond_wait(c,m); }
+#if 0
 bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs) {
   // TODO: we have no cond_timedwait for windows yet. Fall back to the non-timeout version.
   win32_cond_wait(c,m);
   return false;
 }
+#endif
 void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 #endif // _WIN32
 

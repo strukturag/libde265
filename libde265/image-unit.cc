@@ -24,8 +24,7 @@
 
 
 slice_unit::slice_unit(decoder_context* decctx)
-  : nal(NULL),
-    shdr(NULL),
+  : shdr(NULL),
     imgunit(NULL),
     flush_reorder_buffer(false),
     nThreads(0),

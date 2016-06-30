@@ -173,7 +173,6 @@ NAL_Parser::NAL_Parser()
   end_of_stream = false;
   end_of_frame = false;
   input_push_state = 0;
-  pending_input_NAL = NULL;
   nBytes_in_NAL_queue = 0;
 
   m_on_NAL_inserted_listener = nullptr;
@@ -188,7 +187,7 @@ NAL_Parser::~NAL_Parser()
 NAL_unit_ptr NAL_Parser::pop_from_NAL_queue()
 {
   if (NAL_queue.empty()) {
-    return NULL;
+    return NAL_unit_ptr();
   }
   else {
     NAL_unit_ptr nal = NAL_queue.front();
@@ -381,7 +380,7 @@ de265_error NAL_Parser::flush_data()
 
     if (input_push_state>=5) {
       push_to_NAL_queue(nal);
-      pending_input_NAL = NULL;
+      pending_input_NAL.reset();
     }
 
     input_push_state = 0;
@@ -396,7 +395,7 @@ void NAL_Parser::remove_pending_input_data()
   // --- remove pending input data ---
 
   if (pending_input_NAL) {
-    pending_input_NAL = NULL;
+    pending_input_NAL.reset();
   }
 
   for (;;) {
