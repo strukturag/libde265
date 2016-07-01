@@ -233,21 +233,6 @@ float frame_drop_calc_ratio  (float fps_max, float fps_eff)
 
 
 
-frame_drop_ratio_calculator::frame_drop_ratio_calculator()
-{
-}
-
-void frame_drop_ratio_calculator::reset_ratio_levels()
-{
-  m_ratio_levels.clear();
-}
-
-void frame_drop_ratio_calculator::add_ratio_level(float ratio)
-{
-  m_ratio_levels.push_back(ratio);
-  std::sort(m_ratio_levels.begin(), m_ratio_levels.end());
-}
-
 fps_estimator::fps_estimator()
 {
   m_estimator_min_timespan = 1.0f; // seconds
@@ -294,4 +279,67 @@ float fps_estimator::get_fps_measurement() const
 
   float timespan = m_frame_timestamps.back() - m_frame_timestamps.front();
   return (m_frame_timestamps.size()-1) / timespan;
+}
+
+
+
+
+frame_drop_ratio_calculator::frame_drop_ratio_calculator()
+{
+  m_target_fps = 50.0f;
+  m_current_decoding_ratio = 1.0f;
+
+  m_model_param = 1.0f; //0.25f; // minimum decoder fps (virtually, at ratio=0%).
+  m_decrease_update_factor = 0.5f;
+  m_increase_update_factor = 0.1f;
+}
+
+void frame_drop_ratio_calculator::reset_ratio_levels()
+{
+  m_ratio_levels.clear();
+}
+
+void frame_drop_ratio_calculator::add_ratio_level(float ratio)
+{
+  m_ratio_levels.push_back(ratio);
+  std::sort(m_ratio_levels.begin(), m_ratio_levels.end());
+}
+
+
+void frame_drop_ratio_calculator::set_target_fps(float fps)
+{
+  m_target_fps = fps;
+}
+
+
+float frame_drop_ratio_calculator::update_decoding_ratio(float measured_fps)
+{
+  // effective fps (how fast the video plays, if we ignore the fact that some frames are skipped)
+  float fps_eff = measured_fps / m_current_decoding_ratio;
+  printf("fps_eff=%f\n",fps_eff);
+
+  // estimated decoder speed at 100% decoding ratio
+  float fps_100 = measured_fps / (m_model_param + (1-m_model_param)*m_current_decoding_ratio);
+  printf("fps_100=%f\n",fps_100);
+
+  // new decoding ratio
+  float ratio = m_model_param / (m_target_fps/fps_100 - (1-m_model_param));
+
+
+  // --- post-process the new decoding-rate to prevent oscillation (even though that should
+  // --- not happen with conservative model_parameter settings) ---
+
+  if (ratio<0) ratio=0;
+  if (ratio>1) ratio=1;
+
+  if (ratio<m_current_decoding_ratio) {
+    m_current_decoding_ratio = (1-m_decrease_update_factor)*m_current_decoding_ratio
+      + m_decrease_update_factor * ratio;
+  }
+  else {
+    m_current_decoding_ratio = (1-m_increase_update_factor)*m_current_decoding_ratio
+      + m_increase_update_factor * ratio;
+  }
+
+  return m_current_decoding_ratio;
 }

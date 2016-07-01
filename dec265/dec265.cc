@@ -714,6 +714,9 @@ int main(int argc, char** argv)
   fps_estimator fps_estim;
   fps_estim.set_fps_estimator_timespan(5.0f);
 
+  frame_drop_ratio_calculator drop_ratio;
+  drop_ratio.set_target_fps(50.0);
+
   uint32_t framecnt=0;
 
   int pos=0;
@@ -806,9 +809,20 @@ int main(int argc, char** argv)
           fps_estim.on_frame_decoded( de265_get_time() );
 
           framecnt++;
-          if ((framecnt%25)==0) {
+          if ((framecnt%100)==0) {
             fprintf(stderr,"frame %d  fps=%.2f\r",framecnt,
                     fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0);
+
+            if (false && fps_estim.fps_measurement_available()) {
+              printf("\n");
+              float ratio = drop_ratio.update_decoding_ratio(fps_estim.get_fps_measurement());
+              printf("ratio = %f\n",ratio);
+
+              //drop_ratio.set_decoding_ratio(ratio);
+              de265_set_framerate_ratio(ctx, ratio*100);
+
+              fps_estim.reset_fps_estimator();
+            }
           }
 
           stop = output_image(img);

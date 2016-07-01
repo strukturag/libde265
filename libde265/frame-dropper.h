@@ -111,10 +111,6 @@ private:
 };
 
 
-float frame_drop_calc_fps_eff(float fps_max, float ratio);
-float frame_drop_calc_fps_max(float fps_eff, float ratio);
-float frame_drop_calc_ratio  (float fps_max, float fps_eff);
-
 
 class fps_estimator
 {
@@ -142,15 +138,28 @@ class frame_drop_ratio_calculator
  public:
   frame_drop_ratio_calculator();
 
+  void set_model_parameter(float p) { m_model_param=p; }
+
   void reset_ratio_levels();
   void add_ratio_level(float ratio);
 
-  void set_fps_measurement(float fps);
   void set_target_fps(float fps);
   // ??? void set_safety_offset(float ratio_offset);
 
+  //void  set_decoding_ratio(float ratio) { m_current_decoding_ratio=ratio; }
+  float update_decoding_ratio(float measured_fps);
+
  private:
   std::vector<float> m_ratio_levels;
+
+  float m_target_fps;
+
+  float m_current_decoding_ratio;
+
+
+  float m_model_param;
+  float m_decrease_update_factor;
+  float m_increase_update_factor;
 };
 
 #endif
