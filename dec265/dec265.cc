@@ -39,6 +39,8 @@
 #endif
 
 #include "libde265/quality.h"
+#include "libde265/frame-dropper.h"
+#include "libde265/util.h"
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -329,7 +331,6 @@ bool display_sdl(const struct de265_image* img)
 
 
 static int width,height;
-static uint32_t framecnt=0;
 
 bool output_image(const de265_image* img)
 {
@@ -338,7 +339,6 @@ bool output_image(const de265_image* img)
   width  = de265_get_image_width(img,0);
   height = de265_get_image_height(img,0);
 
-  framecnt++;
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
 
@@ -373,14 +373,6 @@ bool output_image(const de265_image* img)
     write_picture(img);
   }
 
-  if ((framecnt%100)==0) {
-    fprintf(stderr,"frame %d\r",framecnt);
-  }
-
-  if (framecnt>=max_frames) {
-    stop=true;
-  }
-
   return stop;
 }
 
@@ -391,7 +383,7 @@ static int    mse_frames=0;
 static double ssim_y=0.0;
 static int    ssim_frames=0;
 
-void measure(const de265_image* img)
+void measure(const de265_image* img, int framecnt)
 {
   // --- compute PSNR ---
 
@@ -719,6 +711,11 @@ int main(int argc, char** argv)
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
 
+  fps_estimator fps_estim;
+  fps_estim.set_fps_estimator_timespan(5.0f);
+
+  uint32_t framecnt=0;
+
   int pos=0;
 
   while (!stop)
@@ -775,7 +772,6 @@ int main(int argc, char** argv)
 
           static int skippos=0;
           if (false && pos>skippos+1000000) { // fake skipping
-            printf("RESET\n");
             de265_reset(ctx);
 
             int skip = 4000000;
@@ -798,32 +794,29 @@ int main(int argc, char** argv)
 
       if (actions & de265_action_get_image) {
 
-        // decode some more
-
-        //std::cout << "-------- decoded frames " << framecnt << "\n";
-
-        /*
-          err = de265_decode(ctx, &more);
-          if (err != DE265_OK) {
-          // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
-
-          if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
-          stop = 1;
-          more = 0;
-          break;
-          }
-        */
-
         // show available images
 
         const de265_image* img = de265_get_next_picture(ctx);
         if (img) {
 
           if (measure_quality) {
-            measure(img);
+            measure(img, framecnt);
+          }
+
+          fps_estim.on_frame_decoded( de265_get_time() );
+
+          framecnt++;
+          if ((framecnt%25)==0) {
+            fprintf(stderr,"frame %d  fps=%.2f\r",framecnt,
+                    fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0);
           }
 
           stop = output_image(img);
+
+          if (framecnt>=max_frames) {
+            stop=true;
+          }
+
 
           de265_release_picture(img);
         }

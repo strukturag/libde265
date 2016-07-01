@@ -110,4 +110,47 @@ private:
   void mark_used(int dpb_idx);
 };
 
+
+float frame_drop_calc_fps_eff(float fps_max, float ratio);
+float frame_drop_calc_fps_max(float fps_eff, float ratio);
+float frame_drop_calc_ratio  (float fps_max, float fps_eff);
+
+
+class fps_estimator
+{
+ public:
+  fps_estimator();
+
+  void  set_fps_estimator_min_timespan(float sec);
+  void  set_fps_estimator_timespan(float sec);
+
+  void  reset_fps_estimator();
+  void  on_frame_decoded(float timestamp_s);
+
+  bool  fps_measurement_available() const;
+  float get_fps_measurement() const;
+
+ private:
+  float m_estimator_timespan;
+  float m_estimator_min_timespan;
+  std::deque<float> m_frame_timestamps;
+};
+
+
+class frame_drop_ratio_calculator
+{
+ public:
+  frame_drop_ratio_calculator();
+
+  void reset_ratio_levels();
+  void add_ratio_level(float ratio);
+
+  void set_fps_measurement(float fps);
+  void set_target_fps(float fps);
+  // ??? void set_safety_offset(float ratio_offset);
+
+ private:
+  std::vector<float> m_ratio_levels;
+};
+
 #endif

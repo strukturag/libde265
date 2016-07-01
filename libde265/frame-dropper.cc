@@ -22,6 +22,8 @@
 #include "frame-dropper.h"
 #include "decctx.h"
 
+#include <algorithm>
+
 
 void frame_dropper_IRAP_only::send_image_unit(image_unit_ptr imgunit)
 {
@@ -201,4 +203,95 @@ void frame_dropper_ratio::send_end_of_stream()
   }
 
   m_image_unit_sink->send_end_of_stream();
+}
+
+
+
+/* Our model for the fps after frame-dropping to ratio 'p' is:
+   fps(p) = fps_max*(1/4 + 3/4*p)
+
+   Hence, the effective frame-rate fps_eff (decoding speed neglecting that some
+   frames are dropped) is:
+
+   fps_eff = fps(p) / p
+*/
+
+float frame_drop_calc_fps_eff(float fps_max, float ratio)
+{
+  return fps_max * (1/(4.0*ratio) + 3/4.0);
+}
+
+float frame_drop_calc_fps_max(float fps_eff, float ratio)
+{
+  return fps_eff / (1/(4.0*ratio) + 3/4.0);
+}
+
+float frame_drop_calc_ratio  (float fps_max, float fps_eff)
+{
+  return 1.0/( 4*(fps_eff/fps_max - 3/4.0) );
+}
+
+
+
+frame_drop_ratio_calculator::frame_drop_ratio_calculator()
+{
+}
+
+void frame_drop_ratio_calculator::reset_ratio_levels()
+{
+  m_ratio_levels.clear();
+}
+
+void frame_drop_ratio_calculator::add_ratio_level(float ratio)
+{
+  m_ratio_levels.push_back(ratio);
+  std::sort(m_ratio_levels.begin(), m_ratio_levels.end());
+}
+
+fps_estimator::fps_estimator()
+{
+  m_estimator_min_timespan = 1.0f; // seconds
+  m_estimator_timespan = 5.0f; // 5 seconds
+}
+
+void  fps_estimator::reset_fps_estimator()
+{
+  m_frame_timestamps.clear();
+}
+
+void  fps_estimator::set_fps_estimator_timespan(float sec)
+{
+  m_estimator_timespan = sec;
+}
+
+void  fps_estimator::set_fps_estimator_min_timespan(float sec)
+{
+  m_estimator_min_timespan = sec;
+}
+
+void  fps_estimator::on_frame_decoded(float timestamp_s)
+{
+  m_frame_timestamps.push_back(timestamp_s);
+
+  while (m_frame_timestamps.front() < timestamp_s - m_estimator_timespan) {
+    m_frame_timestamps.pop_front();
+  }
+}
+
+bool  fps_estimator::fps_measurement_available() const
+{
+  if (m_frame_timestamps.empty()) { return false; }
+
+  return m_frame_timestamps.back() - m_frame_timestamps.front() >= m_estimator_min_timespan;
+}
+
+float fps_estimator::get_fps_measurement() const
+{
+  assert(fps_measurement_available());
+
+  // should always have at least two entries when above test valid
+  assert(m_frame_timestamps.size() >= 2);
+
+  float timespan = m_frame_timestamps.back() - m_frame_timestamps.front();
+  return (m_frame_timestamps.size()-1) / timespan;
 }
