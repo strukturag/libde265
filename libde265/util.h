@@ -235,6 +235,7 @@ void printBlk(const char* title,const uint8_t* data, int blksize, int stride, co
 void debug_set_image_output(void (*)(const image*, int slot));
 void debug_show_image(const class image*, int slot);
 
+#if D_TIMER
 class debug_timer
 {
  public:
@@ -249,5 +250,6 @@ class debug_timer
  private:
   struct timespec mStart,mEnd;
 };
+#endif
 
 #endif
