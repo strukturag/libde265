@@ -133,6 +133,27 @@ class fps_estimator
 };
 
 
+/* Definition of different fps values:
+   fps_measured = actual fps output of decoder. Dropped frames do not count.
+   fps_eff      = video speed as observed by user (as if no frames were dropped)
+   fps_100      = decoder fps when running at ratio 100%.
+   fps_dec(r)   = decoder fps when running at ratio r
+   fps_target   = the effective rate that we want at the output
+   dec_ratio    = percentage of frames that are decoded
+
+   fps_eff = fps_measured / dec_ratio
+
+   We assume a model for fps_dec:
+   fps_dec(ratio) = fps_100 * (alpha + (1-alpha)*ratio)
+   alpha = 1/4 seems to be a typical parameter
+
+   Hence:
+   ratio = alpha / (fps_target/fps_100 - (1-alpha))
+
+   It can be observed that for adjusting the decoding rate, it is better to
+   assume a too conservative value for alpha (closer to 1). Otherwise, the
+   ratio control may start to oscillate.
+ */
 class frame_drop_ratio_calculator
 {
  public:
