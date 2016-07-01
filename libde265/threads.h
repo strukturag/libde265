@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include "util.h"
+
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
