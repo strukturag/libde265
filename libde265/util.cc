@@ -245,3 +245,37 @@ void debug_show_image(const image* img, int slot)
     debug_image_output_func(img,slot);
   }
 }
+
+
+
+#if __APPLE__
+#  include <mach/mach_time.h>
+#  define ORWL_NANO (+1.0E-9)
+
+double de265_get_time()
+{
+  static double timebase = 0.0;
+  static uint64_t timestart = 0;
+
+  if (timebase==0.0) {
+    mach_timebase_info_data_t tb = { 0 };
+    mach_timebase_info(&tb);
+    timebase = tb.numer;
+    timebase /= tb.denom;
+  }
+
+  return mach_absolute_time() * ORWL_NANO;
+}
+
+#else
+#  include <time.h>
+
+double de265_get_time()
+{
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+
+  return t.tv_sec + t.tv_nsec * 1.0E-9;
+}
+
+#endif
