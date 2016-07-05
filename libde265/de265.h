@@ -289,7 +289,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* more);
 #define de265_action_end_of_stream       4
 
 // returns de265_action_flags
-LIBDE265_API int de265_get_action(de265_decoder_context*, bool blocking);
+LIBDE265_API int de265_get_action(de265_decoder_context*, int blocking);
 
 
 /* Clear decoder state. Call this when skipping in the stream.

@@ -343,7 +343,7 @@ LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more
 }
 
 
-LIBDE265_API int de265_get_action(de265_decoder_context* de265ctx, bool blocking)
+LIBDE265_API int de265_get_action(de265_decoder_context* de265ctx, int blocking)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
