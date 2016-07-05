@@ -66,6 +66,7 @@ OBJS=\
         vui.obj \
         frame-dropper.obj \
         frontend-syntax-decoder.obj \
+        image-unit.obj \
 	encoder\encoder-core.obj \
 	encoder\encoder-types.obj \
 	encoder\encoder-context.obj \
