@@ -39,8 +39,11 @@
 #endif
 
 #include "libde265/quality.h"
-#include "libde265/frame-dropper.h"
 #include "libde265/util.h"
+
+#ifdef WITH_FPS
+#include "libde265/frame-dropper.h"
+#endif
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -711,11 +714,13 @@ int main(int argc, char** argv)
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
 
+#ifdef WITH_FPS
   fps_estimator fps_estim;
   fps_estim.set_fps_estimator_timespan(5.0f);
 
   frame_drop_ratio_calculator drop_ratio;
   drop_ratio.set_target_fps(50.0);
+#endif
 
   uint32_t framecnt=0;
 
@@ -806,13 +811,21 @@ int main(int argc, char** argv)
             measure(img, framecnt);
           }
 
+#if WITH_FPS
           fps_estim.on_frame_decoded( de265_get_time() );
+#endif
 
           framecnt++;
           if ((framecnt%100)==0) {
             fprintf(stderr,"frame %d  fps=%.2f\r",framecnt,
-                    fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0);
+#if WITH_FPS
+                    fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0
+#else
+                    0.0
+#endif
+                    );
 
+#if WITH_FPS
             if (false && fps_estim.fps_measurement_available()) {
               printf("\n");
               float ratio = drop_ratio.update_decoding_ratio(fps_estim.get_fps_measurement());
@@ -823,6 +836,7 @@ int main(int argc, char** argv)
 
               fps_estim.reset_fps_estimator();
             }
+#endif
           }
 
           stop = output_image(img);
