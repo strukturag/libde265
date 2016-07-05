@@ -67,6 +67,7 @@ OBJS=\
         frame-dropper.obj \
         frontend-syntax-decoder.obj \
         image-unit.obj \
+        funcs.obj \
 	encoder\encoder-core.obj \
 	encoder\encoder-types.obj \
 	encoder\encoder-context.obj \
