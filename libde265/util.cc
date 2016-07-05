@@ -247,7 +247,6 @@ void debug_show_image(const image* img, int slot)
 }
 
 
-
 #if __APPLE__
 #  include <mach/mach_time.h>
 #  define ORWL_NANO (+1.0E-9)
@@ -268,8 +267,13 @@ double de265_get_time()
 }
 
 #else
-#  include <time.h>
-
+#  ifdef _MSC_VER
+double de265_get_time()
+{
+  return 0;
+}
+#  else
+#    include <time.h>
 double de265_get_time()
 {
   struct timespec t;
@@ -278,4 +282,5 @@ double de265_get_time()
   return t.tv_sec + t.tv_nsec * 1.0E-9;
 }
 
+#  endif
 #endif
