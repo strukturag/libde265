@@ -5033,8 +5033,6 @@ void thread_task_ctb_row::work()
 }
 
 
-#include <unistd.h>
-
 de265_error read_slice_segment_data(thread_context* tctx)
 {
   //tctx->setCtbAddrFromTS();
