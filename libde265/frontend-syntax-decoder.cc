@@ -242,11 +242,8 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     decoded_picture_buffer& dpb = m_decctx->dpb;
 
     int image_buffer_idx;
-    bool isOutputImage = (!sps->sample_adaptive_offset_enabled_flag || m_decctx->param_disable_sao);
     image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
-                                     isOutputImage ?
-                                     &m_decctx->param_image_allocation_functions :
-                                     nullptr);
+                                     &m_decctx->param_image_allocation_functions);
     if (image_buffer_idx == -1) {
       return DE265_ERROR_IMAGE_BUFFER_FULL;
     }
