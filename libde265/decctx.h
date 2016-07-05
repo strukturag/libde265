@@ -248,6 +248,9 @@ class decoder_context : public base_context,
 
   de265_error decode_image_unit(bool* did_work);
 
+  int number_of_frames_pending_at_input() const { return m_undecoded_image_units.size(); }
+
+
   // --- frame-parallel decoding ---
 
   void start_decoding_thread();
@@ -368,7 +371,6 @@ class decoder_context : public base_context,
 
 
   void decode_image_frame_parallel(image_unit_ptr imgunit);
-
 
  public:
   // --- decoded picture buffer ---

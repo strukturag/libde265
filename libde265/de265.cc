@@ -420,6 +420,13 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 }
 
 
+LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->number_of_frames_pending_at_input();
+}
+
+
 LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img)
 {
   return img->m_image->integrity == INTEGRITY_CORRECT;

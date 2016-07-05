@@ -306,6 +306,7 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
    You can use the picture only until you call any other de265_* function. */
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
+LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context*);
 
 /* Remove the next picture in the output queue.
  */
