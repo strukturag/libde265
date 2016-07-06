@@ -60,6 +60,7 @@ using namespace videogfx;
 
 int nThreads=0;
 int nParallelFrames=10;
+int max_latency=0; // off
 bool nal_input=false;
 int quiet=0;
 bool check_hash=false;
@@ -85,6 +86,8 @@ int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
 
+#define OPTION_MAX_LATENCY 1000
+
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
   {"threads",    required_argument, 0, 't' },
@@ -109,6 +112,7 @@ static struct option long_options[] = {
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
+  {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
   {0,         0,                 0,  0 }
 };
 
@@ -606,6 +610,7 @@ int main(int argc, char** argv)
     case 'T': highestTID=atoi(optarg); break;
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
+    case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
 
@@ -641,6 +646,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -D, --decoding-framerate-percent    percentage of frames to decode (others will be dropped)\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
+    fprintf(stderr,"      --max-latency          maximum picture latency in reorder buffer\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
@@ -688,6 +694,9 @@ int main(int argc, char** argv)
 
   de265_set_limit_TID(ctx, highestTID);
   de265_set_framerate_ratio(ctx, decode_rate_percent);
+  de265_set_max_reorder_buffer_latency(ctx, max_latency);
+
+  printf("latency: %d\n",max_latency);
 
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");

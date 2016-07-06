@@ -106,9 +106,10 @@ private:
 class picture_output_queue
 {
 public:
-  picture_output_queue() : m_num_reorder_pics(0) { }
+  picture_output_queue();
 
   void set_num_reorder_pics(int n) { m_num_reorder_pics = n; }
+  void set_max_latency(int n) { m_max_latency = n; } // set to zero to disable max_latency (default)
 
   void clear();
 
@@ -141,6 +142,7 @@ public:
 
  private:
   int m_num_reorder_pics;
+  int m_max_latency;
 
   std::vector<image_ptr> reorder_output_queue;
   std::deque<image_ptr>  image_output_queue;

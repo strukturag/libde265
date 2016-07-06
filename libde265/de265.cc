@@ -637,6 +637,14 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context* de
 }
 
 
+LIBDE265_API void de265_set_max_reorder_buffer_latency(de265_decoder_context* de265ctx, int n)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->set_max_latency(n);
+}
+
+
 LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel)
 {
   switch (channel) {

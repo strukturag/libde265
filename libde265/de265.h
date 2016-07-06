@@ -268,6 +268,17 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context*)
  */
 LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
 
+/* When switching input streams without resetting the decoder, the changes in the POCs
+   may result in old pictures staying in the reorder buffer for too long. This then
+   results in a wrong picture output sequence. To prevent this, you can here set
+   a maximum picture delay in the reorder buffer.
+   Deactivate the max_latency by setting it to zero (default).
+
+   If a maximum delay is specified in the video stream, this is used instead
+   (TODO: not yet implemented to take value from stream).
+ */
+LIBDE265_API void de265_set_max_reorder_buffer_latency(de265_decoder_context*, int n);
+
 /* Do some decoding. Returns status whether it did perform some decoding or
    why it could not do so. If 'more' is non-null, indicates whether de265_decode()
    should be called again (possibly after resolving the indicated problem).

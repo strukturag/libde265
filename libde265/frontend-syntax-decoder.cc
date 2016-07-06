@@ -525,6 +525,7 @@ void frontend_syntax_decoder::process_picture_order_count(slice_segment_header* 
 
   m_curr_img->PicOrderCntVal = PicOrderCntMsb + hdr->slice_pic_order_cnt_lsb;
   m_curr_img->picture_order_cnt_lsb = hdr->slice_pic_order_cnt_lsb;
+  m_curr_img->PicLatencyCount = 0;
 
   loginfo(LogHeaders,"POC computation. new msb:%d POC=%d\n",
           PicOrderCntMsb,

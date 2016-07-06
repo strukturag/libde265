@@ -242,6 +242,7 @@ image::image()
 
   picture_order_cnt_lsb = -1; // undefined
   PicOrderCntVal = -1; // undefined
+  PicLatencyCount = 0;
   PicState = UnusedForReference;
   PicOutputFlag = false;
 

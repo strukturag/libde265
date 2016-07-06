@@ -236,6 +236,12 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 // --------------------------------------------------------------------------------
 
 
+picture_output_queue::picture_output_queue()
+  : m_num_reorder_pics(0),
+    m_max_latency(0)
+{
+}
+
 void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
 {
   lock_guard lock(m_mutex);
@@ -250,11 +256,33 @@ void picture_output_queue::insert_image_into_reorder_buffer(image_ptr img)
     printf(" process -> ");
   }
 
-  // using 'while' instead of 'if' in case the reorder buffer size shrinks with a new VPS
+  // move pictures from reorder buffer to output queue
 
-  while (num_pictures_in_reorder_buffer() > m_num_reorder_pics) {
-    move_next_picture_in_reorder_buffer_to_output_queue();
+  for (;;) {
+    bool output_image = false;
+
+    // reorder buffer capacity exceeded -> output image
+    if (num_pictures_in_reorder_buffer() > m_num_reorder_pics) { output_image=true; }
+
+    // any images with too long latency? -> output image
+
+    if (m_max_latency != 0 && !output_image) {
+      for (int i=0;i<reorder_output_queue.size();i++) {
+        if (reorder_output_queue[i]->PicLatencyCount > m_max_latency) {
+          output_image = true;
+          break;
+        }
+      }
+    }
+
+    if (output_image) {
+      move_next_picture_in_reorder_buffer_to_output_queue();
+    }
+    else {
+      break;
+    }
   }
+
 
   if (D) {
     dump_queues();
@@ -315,6 +343,13 @@ void picture_output_queue::move_next_picture_in_reorder_buffer_to_output_queue()
 
   reorder_output_queue[minIdx] = reorder_output_queue.back();
   reorder_output_queue.pop_back();
+
+
+  // increase image latency
+
+  for (int i=0;i<reorder_output_queue.size();i++) {
+    reorder_output_queue[i]->PicLatencyCount++;
+  }
 }
 
 

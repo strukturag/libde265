@@ -393,6 +393,7 @@ public:
 
   int  picture_order_cnt_lsb;
   int  PicOrderCntVal;
+  int  PicLatencyCount;
   enum PictureState PicState;
   bool PicOutputFlag; // picture will be sent to output
 

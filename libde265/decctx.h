@@ -282,6 +282,8 @@ class decoder_context : public base_context,
     m_main_loop_mutex.unlock();
   }
 
+  void set_max_latency(int n) { m_output_queue.set_max_latency(n); }
+
 
   void debug_imageunit_state();
 
