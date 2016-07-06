@@ -696,8 +696,6 @@ int main(int argc, char** argv)
   de265_set_framerate_ratio(ctx, decode_rate_percent);
   de265_set_max_reorder_buffer_latency(ctx, max_latency);
 
-  printf("latency: %d\n",max_latency);
-
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
   }
