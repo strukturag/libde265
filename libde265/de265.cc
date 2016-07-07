@@ -258,41 +258,6 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 }
 
 
-#ifndef LIBDE265_DISABLE_DEPRECATED
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
-                                           const void* data8, int len)
-{
-  //decoder_context* ctx = (decoder_context*)de265ctx;
-  de265_error err;
-  if (len > 0) {
-    err = de265_push_data(de265ctx, data8, len, 0, NULL);
-  } else {
-    err = de265_flush_data(de265ctx);
-  }
-  if (err != DE265_OK) {
-    return err;
-  }
-
-  int more = 0;
-  do {
-    err = de265_decode(de265ctx, &more);
-    if (err != DE265_OK) {
-        more = 0;
-    }
-
-    switch (err) {
-    case DE265_ERROR_WAITING_FOR_INPUT_DATA:
-      // ignore error (didn't exist in 0.4 and before)
-      err = DE265_OK;
-      break;
-    default:
-      break;
-    }
-  } while (more);
-  return err;
-}
-#endif
-
 static void dumpdata(const void* data, int len)
 {
   for (int i=0;i<len;i++) {
@@ -327,19 +292,6 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   //dumpdata(data8,16);
 
   return ctx->get_NAL_parser().push_NAL(data,len,pts,user_data);
-}
-
-
-LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  //return ctx->get_frontend_syntax_decoder().decode(more);
-
-  bool did_work;
-  de265_error err = ctx->decode_image_unit(&did_work);
-  if (more) { *more = did_work; }
-  return err;
 }
 
 

@@ -246,8 +246,6 @@ class decoder_context : public base_context,
 
   // -------------------------------------------------- decoding loop ---
 
-  de265_error decode_image_unit(bool* did_work);
-
   int number_of_frames_pending_at_input() const { return m_undecoded_image_units.size(); }
 
 

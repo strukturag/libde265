@@ -211,22 +211,6 @@ LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context*, i
 /* Free decoder context. May only be called once on a context. */
 LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 
-#ifndef LIBDE265_DISABLE_DEPRECATED
-/* Push more data into the decoder, must be raw h265.
-   All complete images in the data will be decoded, hence, do not push
-   too much data at once to prevent image buffer overflows.
-   The end of a picture can only be detected when the succeeding start-code
-   is read from the data.
-   If you want to flush the data and force decoding of the data so far
-   (e.g. at the end of a file), call de265_decode_data() with 'length' zero.
-
-   NOTE: This method is deprecated and will be removed in a future version.
-   You should use "de265_push_data" or "de265_push_NAL" and "de265_decode"
-   instead.
-*/
-LIBDE265_API LIBDE265_DEPRECATED de265_error de265_decode_data(de265_decoder_context*, const void* data, int length);
-#endif
-
 /* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
    The PTS is assigned to all NALs whose start-code 0x000001 is contained in the data.
    The bytestream must contain all stuffing-bytes.
@@ -279,31 +263,27 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
  */
 LIBDE265_API void de265_set_max_reorder_buffer_latency(de265_decoder_context*, int n);
 
-/* Do some decoding. Returns status whether it did perform some decoding or
-   why it could not do so. If 'more' is non-null, indicates whether de265_decode()
-   should be called again (possibly after resolving the indicated problem).
-   DE265_OK - decoding ok
-   DE265_ERROR_IMAGE_BUFFER_FULL - DPB full, extract some images before continuing
-   DE265_ERROR_WAITING_FOR_INPUT_DATA - insert more data before continuing
 
-   You have to consider these cases:
-   - decoding successful   -> err  = DE265_OK, more=true
-   - decoding stalled      -> err != DE265_OK, more=true
-   - decoding finished     -> err  = DE265_OK, more=false
-   - unresolvable error    -> err != DE265_OK, more=false
+
+/* Query decoder whether:
+   - there are decoded images available,
+   - more input data is needed,
+   - the end of stream is reached.
+
+   These result is returned as a bit field of (de265_action_* values).
+   Several flags may be active at once. When 'blocking' is set to 'true',
+   this function blocks until one of the actions becomes active
+   (image ready, data needed, end of stream).
  */
-LIBDE265_API de265_error de265_decode(de265_decoder_context*, int* more);
-
-
+LIBDE265_API int de265_get_action(de265_decoder_context*, int blocking);
 #define de265_action_push_more_input     1
 #define de265_action_get_image           2
 #define de265_action_end_of_stream       4
 
-// returns de265_action_flags
-LIBDE265_API int de265_get_action(de265_decoder_context*, int blocking);
-
 
 /* Clear decoder state. Call this when skipping in the stream.
+   This can be called even while the decoder is active. Pictures that are
+   currently in the queue are removed.
  */
 LIBDE265_API void de265_reset(de265_decoder_context*);
 
@@ -317,6 +297,10 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
    You can use the picture only until you call any other de265_* function. */
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
+/* The number of frames pending at the input of the decoder, waiting to be decoded.
+   You can check this to avoid pushing too much data into the decoder and thus growing
+   the input buffer without limits.
+ */
 LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context*);
 
 /* Remove the next picture in the output queue.

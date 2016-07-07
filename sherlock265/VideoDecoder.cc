@@ -128,32 +128,26 @@ void VideoDecoder::decoder_loop()
           img = NULL;
         }
 
-        img = de265_peek_next_picture(ctx);
-        while (img==NULL)
-          {
-            mutex.unlock();
-            int more=1;
-            de265_error err = de265_decode(ctx, &more);
-            mutex.lock();
-
-            if (more && err == DE265_OK) {
-              // try again to get picture
-
-              img = de265_peek_next_picture(ctx);
-            }
-            else if (more && err == DE265_ERROR_WAITING_FOR_INPUT_DATA) {
+        for (;;) {
+          int action = de265_get_action(ctx, true);
+          if (action & de265_action_push_more_input) {
               uint8_t buf[4096];
               int buf_size = fread(buf,1,sizeof(buf),mFH);
               int err = de265_push_data(ctx,buf,buf_size ,0,0);
-            }
-            else if (!more)
-              {
-                mVideoEnded=true;
-                mPlayingVideo=false; // TODO: send signal back
-                break;
-              }
           }
 
+          if (action & de265_action_end_of_stream) {
+            mVideoEnded=true;
+            mPlayingVideo=false; // TODO: send signal back
+          }
+
+          if (action & de265_action_get_image) {
+            img = de265_peek_next_picture(ctx);
+            if (img) {
+              break;
+            }
+          }
+        }
 
         // show one decoded picture
 
