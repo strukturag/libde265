@@ -156,6 +156,8 @@ LIBDE265_API void de265_set_verbosity(int level);
 
 struct de265_image;
 struct de265_image_intern;
+typedef void de265_decoder_context; // private structure
+
 
 enum de265_chroma {
   de265_chroma_mono=0,
@@ -171,7 +173,9 @@ LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
 LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image*,int channel);
-/* The |out_stride| is returned as "bytes per line" if a non-NULL parameter is given. */
+
+/* The |out_stride| is returned as "bytes per line".
+   When out_stride is NULL, no value will be written. */
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
@@ -193,10 +197,62 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
                                              int* nuh_temporal_id);
 
 
+// --- image allocation API ---
+
+struct de265_image_spec
+{
+  int width;
+  int height;
+  int alignment;
+
+  enum de265_chroma chroma;
+
+  char luma_bytes_per_pixel;
+  char chroma_bytes_per_pixel;
+
+
+  // conformance window
+
+  int crop_left;
+  int crop_right;
+  int crop_top;
+  int crop_bottom;
+
+  int visible_width;  // convenience, width  - crop_left - crop_right
+  int visible_height; // convenience, height - crop_top - crop_bottom
+};
+
+
+struct de265_image_allocation
+{
+  int  (*get_buffer)(struct de265_image_intern* img,
+                     const struct de265_image_spec* spec,
+                     void* userdata);
+  void (*release_buffer)(struct de265_image_intern* img,
+                         void* userdata);
+
+  // the user data that is passed to each call of get_buffer() and release_buffer()
+  void* userdata;
+};
+
+
+/*
+ */
+LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,
+                                               int cIdx,
+                                               void* mem, int stride,
+                                               void *userdata);
+
+
+
+/* The user data pointer will be given to the get_buffer() and release_buffer() functions
+   in de265_image_allocation. */
+LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
+                                                       struct de265_image_allocation*);
+LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
+
+
 /* === decoder === */
-
-typedef void de265_decoder_context; // private structure
-
 
 
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
@@ -313,61 +369,6 @@ LIBDE265_API void de265_release_picture(const struct de265_image*);
 
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
-
-
-struct de265_image_spec
-{
-  int width;
-  int height;
-  int alignment;
-
-  enum de265_chroma chroma;
-
-  char luma_bytes_per_pixel;
-  char chroma_bytes_per_pixel;
-
-
-  // conformance window
-
-  int crop_left;
-  int crop_right;
-  int crop_top;
-  int crop_bottom;
-
-  int visible_width;  // convenience, width  - crop_left - crop_right
-  int visible_height; // convenience, height - crop_top - crop_bottom
-};
-
-
-// --- image allocation API ---
-
-struct de265_image_allocation
-{
-  int  (*get_buffer)(struct de265_image_intern* img,
-                     const struct de265_image_spec* spec,
-                     void* userdata);
-  void (*release_buffer)(struct de265_image_intern* img,
-                         void* userdata);
-
-  // the user data that is passed to each call of get_buffer() and release_buffer()
-  void* userdata;
-};
-
-
-/*
- */
-LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,
-                                               int cIdx,
-                                               void* mem, int stride,
-                                               void *userdata);
-
-
-
-/* The user data pointer will be given to the get_buffer() and release_buffer() functions
-   in de265_image_allocation. */
-LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
-                                                       struct de265_image_allocation*);
-LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
 
 
 /* --- frame dropping API ---
