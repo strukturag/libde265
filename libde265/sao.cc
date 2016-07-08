@@ -217,14 +217,15 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
           //if (bandShift>=8) { band=0; }
 
           int offset = bandOffset[band];
+          if (offset) {
+            logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,band,
+                     offset,
+                     in_img[xC+i+(yC+j)*in_stride],
+                     in_img[xC+i+(yC+j)*in_stride]+offset);
 
-          logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,band,
-                   offset,
-                   in_img[xC+i+(yC+j)*in_stride],
-                   in_img[xC+i+(yC+j)*in_stride]+offset);
-
-          out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                  in_img[xC+i+(yC+j)*in_stride] + offset);
+            out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                    in_img[xC+i+(yC+j)*in_stride] + offset);
+          }
         }
     }
     else
@@ -239,9 +240,10 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
             //if (bandShift>=8) { band=0; }
 
             int offset = bandOffset[band];
-
-            out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                    in_img[xC+i+(yC+j)*in_stride] + offset);
+            if (offset) {
+              out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                      in_img[xC+i+(yC+j)*in_stride] + offset);
+            }
           }
       }
   }
