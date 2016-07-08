@@ -23,9 +23,12 @@
 #include <emmintrin.h>
 #include <tmmintrin.h>
 #include <smmintrin.h>
-#include <inttypes.h>
 #include <stdio.h>
 #include <assert.h>
+
+#ifndef _MSC_VER
+#include <inttypes.h>
+#endif
 
 #define D 0
 
