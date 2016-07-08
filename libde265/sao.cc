@@ -238,6 +238,8 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
     }
     else
       {
+        // (B) simplified version (only works if no PCM and transquant_bypass is active)
+
         if (sizeof(pixel_t)==1) {
           acceleration.sao_band_8((uint8_t*)&out_img[xC+yC*out_stride],out_stride,
                                   (uint8_t*)&in_img[xC+yC*in_stride],in_stride,
@@ -249,13 +251,7 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
                                   saoinfo->saoOffsetVal[cIdx][3]);
         }
         else {
-          assert(false);
-        }
 
-
-        // (B) simplified version (only works if no PCM and transquant_bypass is active)
-
-        if (0)
         for (int j=0;j<ctbH;j++)
           for (int i=0;i<ctbW;i++) {
 
@@ -269,6 +265,7 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
                                                       in_img[xC+i+(yC+j)*in_stride] + offset);
             }
           }
+        }
       }
   }
 }
