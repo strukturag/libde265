@@ -13,6 +13,9 @@
 const bool D=0;
 
 
+void intra_dc();
+
+
 void print128(__m128i m)
 {
   for (int i=0;i<16;i++) {
@@ -83,7 +86,8 @@ void sao()
 
 int main()
 {
-  sao();
+  //sao();
+  intra_dc();
 
   return 0;
 }
