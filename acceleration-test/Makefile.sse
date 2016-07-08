@@ -1,0 +1,9 @@
+
+SRCS=sse.cc ../libde265/fallback-sao.cc ../libde265/x86/sse-sao.cc
+OBJS=$(SRCS:.cc=.o)
+
+sse: $(SRCS)
+	g++ $(SRCS) -I.. -I../libde265 -O3 -msse4 -o sse
+
+clean:
+	rm sse
