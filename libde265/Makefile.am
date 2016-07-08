@@ -47,6 +47,8 @@ libde265_la_SOURCES = \
   fallback-dct.cc \
   fallback-motion.cc \
   fallback-motion.h \
+  fallback-sao.h \
+  fallback-sao.cc \
   frame-dropper.h \
   frame-dropper.cc \
   frontend-syntax-decoder.h \

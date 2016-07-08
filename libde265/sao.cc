@@ -26,12 +26,20 @@
 #include <string.h>
 
 
+/* Maximum SAO offsets:
+      8 bit:  +/-  7
+      9 bit:  +/- 15
+   >=10 bit:  +/- 31
+ */
+
 template <class pixel_t>
 void apply_sao_internal(image* img, int xCtb,int yCtb,
                         const slice_segment_header* shdr, int cIdx, int nSW,int nSH,
                         const pixel_t* in_img,  int in_stride,
                         /* */ pixel_t* out_img, int out_stride)
 {
+  const acceleration_functions& acceleration = img->decctx->acceleration;
+
   const sao_info* saoinfo = img->get_sao_info(xCtb,yCtb);
 
   int SaoTypeIdx = (saoinfo->SaoTypeIdx >> (2*cIdx)) & 0x3;
@@ -182,8 +190,8 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
     int saoLeftClass = saoinfo->sao_band_position[cIdx];
     logtrace(LogSAO,"saoLeftClass: %d\n",saoLeftClass);
 
-    int bandOffset[32];
-    memset(bandOffset, 0, sizeof(int)*32);
+    char bandOffset[32];
+    memset(bandOffset, 0, sizeof(char)*32);
 
     for (int k=0;k<4;k++) {
       bandOffset[ (k+saoLeftClass)&31 ] = saoinfo->saoOffsetVal[cIdx][k];
@@ -230,8 +238,24 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
     }
     else
       {
+        if (sizeof(pixel_t)==1) {
+          acceleration.sao_band_8((uint8_t*)&out_img[xC+yC*out_stride],out_stride,
+                                  (uint8_t*)&in_img[xC+yC*in_stride],in_stride,
+                                  ctbW,ctbH,
+                                  saoLeftClass,
+                                  saoinfo->saoOffsetVal[cIdx][0],
+                                  saoinfo->saoOffsetVal[cIdx][1],
+                                  saoinfo->saoOffsetVal[cIdx][2],
+                                  saoinfo->saoOffsetVal[cIdx][3]);
+        }
+        else {
+          assert(false);
+        }
+
+
         // (B) simplified version (only works if no PCM and transquant_bypass is active)
 
+        if (0)
         for (int j=0;j<ctbH;j++)
           for (int i=0;i<ctbW;i++) {
 

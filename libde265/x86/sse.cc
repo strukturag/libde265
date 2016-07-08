@@ -25,6 +25,7 @@
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
 #include "x86/sse-dct.h"
+#include "x86/sse-sao.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -50,7 +51,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
   uint32_t eax,ebx;
   __get_cpuid(1, &eax,&ebx,&ecx,&edx);
 #endif
-  
+
   // printf("CPUID EAX=1 -> ECX=%x EDX=%x\n", regs[2], regs[3]);
 
   //int have_MMX    = !!(edx & (1<<23));
@@ -98,7 +99,9 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->transform_add_8[1] = ff_hevc_transform_8x8_add_8_sse4;
     accel->transform_add_8[2] = ff_hevc_transform_16x16_add_8_sse4;
     accel->transform_add_8[3] = ff_hevc_transform_32x32_add_8_sse4;
+
+
+    accel->sao_band_8 = sao_band_sse_8bit;
   }
 #endif
 }
-

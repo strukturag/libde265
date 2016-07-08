@@ -198,6 +198,16 @@ struct acceleration_functions
   // forward Hadamard transform (without scaling factor)
   // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
+
+
+  // --- SAO ---
+
+  void (*sao_band_8)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
+                     int width, int height,
+                     int baseBand, int offset0, int offset1, int offset2, int offset3);
+  void (*sao_band)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride, int bitDepth,
+                   int width, int height,
+                   int baseBand, int offset0, int offset1, int offset2, int offset3);
 };
 
 
