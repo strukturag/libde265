@@ -18,8 +18,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FALLBACK_SAO_H
-#define FALLBACK_SAO_H
+#ifndef SSE_SAO_H
+#define SSE_SAO_H
 
 #include <stddef.h>
 #include <stdint.h>
