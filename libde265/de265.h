@@ -28,8 +28,6 @@ extern "C" {
 
 #include <libde265/de265-version.h>
 
-//#define inline static __inline
-
 
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS 1
@@ -154,6 +152,7 @@ LIBDE265_API void de265_set_verbosity(int level);
    But you may want to check the chroma format anyway for future compatibility.
  */
 
+typedef int64_t de265_PTS;
 struct de265_image;
 struct de265_image_intern;
 typedef void de265_decoder_context; // private structure
@@ -165,8 +164,6 @@ enum de265_chroma {
   de265_chroma_422=2,
   de265_chroma_444=3
 };
-
-typedef int64_t de265_PTS;
 
 
 LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
@@ -187,7 +184,7 @@ LIBDE265_API void* de265_get_image_plane_user_data_intern(const struct de265_ima
 
 LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img);
 
-/* Get NAL-header information of this frame. You can pass in NULL pointers if you
+/* Get NAL-header information for this frame. You can pass in NULL pointers if you
    do not need this piece of information.
  */
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
