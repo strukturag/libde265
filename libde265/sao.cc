@@ -182,11 +182,11 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
     int saoLeftClass = saoinfo->sao_band_position[cIdx];
     logtrace(LogSAO,"saoLeftClass: %d\n",saoLeftClass);
 
-    int bandTable[32];
-    memset(bandTable, 0, sizeof(int)*32);
+    int bandOffset[32];
+    memset(bandOffset, 0, sizeof(int)*32);
 
     for (int k=0;k<4;k++) {
-      bandTable[ (k+saoLeftClass)&31 ] = k+1;
+      bandOffset[ (k+saoLeftClass)&31 ] = saoinfo->saoOffsetVal[cIdx][k];
     }
 
 
@@ -210,23 +210,21 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
             continue;
           }
 
-          int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+          int band = in_img[xC+i+(yC+j)*in_stride]>>bandShift;
 
           // Shifts are a strange thing. On x86, >>x actually computes >>(x%64).
           // So we have to take care of large bandShifts.
-          if (bandShift>=8) { bandIdx=0; }
+          //if (bandShift>=8) { band=0; }
 
-          if (bandIdx>0) {
-            int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
+          int offset = bandOffset[band];
 
-            logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,bandIdx,
-                     offset,
-                     in_img[xC+i+(yC+j)*in_stride],
-                     in_img[xC+i+(yC+j)*in_stride]+offset);
+          logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,band,
+                   offset,
+                   in_img[xC+i+(yC+j)*in_stride],
+                   in_img[xC+i+(yC+j)*in_stride]+offset);
 
-            out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                    in_img[xC+i+(yC+j)*in_stride] + offset);
-          }
+          out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                  in_img[xC+i+(yC+j)*in_stride] + offset);
         }
     }
     else
@@ -236,17 +234,14 @@ void apply_sao_internal(image* img, int xCtb,int yCtb,
         for (int j=0;j<ctbH;j++)
           for (int i=0;i<ctbW;i++) {
 
-            int bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
-
+            int band = in_img[xC+i+(yC+j)*in_stride]>>bandShift;
             // see above
-            if (bandShift>=8) { bandIdx=0; }
+            //if (bandShift>=8) { band=0; }
 
-            if (bandIdx>0) {
-              int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
+            int offset = bandOffset[band];
 
-              out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
-                                                      in_img[xC+i+(yC+j)*in_stride] + offset);
-            }
+            out_img[xC+i+(yC+j)*out_stride] = Clip3(0,maxPixelValue,
+                                                    in_img[xC+i+(yC+j)*in_stride] + offset);
           }
       }
   }
