@@ -938,7 +938,7 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
     // special case: vertical prediction
     if (intraPredMode==26) {
       for (int y=0;y<nT;y++) {
-        memcpy(&dst[y*dstStride], &border[1], nT);
+        memcpy(&dst[y*dstStride], &border[1], nT * sizeof(pixel_t));
       }
 
       if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
