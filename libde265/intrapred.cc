@@ -1033,43 +1033,58 @@ void intra_prediction_planar(pixel_t* dst, int dstStride,
 
 
 template <class pixel_t>
-void intra_prediction_DC(pixel_t* dst, int dstStride,
+void intra_prediction_DC(const acceleration_functions& acceleration,
+                         pixel_t* dst, int dstStride,
                          int nT,int cIdx,
                          pixel_t* border)
 {
   int Log2_nT = Log2(nT);
+#if 1
+  if (sizeof(pixel_t)==1) {
+    bool avg = (cIdx==0 && nT<32);
 
-  int dcVal = 0;
-  for (int i=0;i<nT;i++)
-    {
-      dcVal += border[ i+1];
-      dcVal += border[-i-1];
+    if (avg) {
+      acceleration.intra_dc_avg_8[Log2_nT-2]((uint8_t*)dst,dstStride,(uint8_t*)border);
     }
-
-  dcVal += nT;
-  dcVal >>= Log2_nT+1;
-
-  if (cIdx==0 && nT<32) {
-    dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
-
-    for (int x=1;x<nT;x++) {
-      dst[x] = (border[ x+1] + 3*dcVal+2)>>2;
+    else {
+      acceleration.intra_dc_noavg_8[Log2_nT-2]((uint8_t*)dst,dstStride,(uint8_t*)border);
     }
+  }
+  else
+#endif
+{
+    int dcVal = 0;
+    for (int i=0;i<nT;i++)
+      {
+        dcVal += border[ i+1];
+        dcVal += border[-i-1];
+      }
 
-    for (int y=1;y<nT;y++) {
-      dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2;
+    dcVal += nT;
+    dcVal >>= Log2_nT+1;
 
-      for (int x=1;x<nT;x++)
-        {
-          dst[x+y*dstStride] = dcVal;
-        }
+    if (cIdx==0 && nT<32) {
+      dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
+
+      for (int x=1;x<nT;x++) {
+        dst[x] = (border[ x+1] + 3*dcVal+2)>>2;
+      }
+
+      for (int y=1;y<nT;y++) {
+        dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2;
+
+        for (int x=1;x<nT;x++)
+          {
+            dst[x+y*dstStride] = dcVal;
+          }
+      }
+    } else {
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = dcVal;
+          }
     }
-  } else {
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          dst[x+y*dstStride] = dcVal;
-        }
   }
 }
 
@@ -1094,12 +1109,14 @@ void decode_intra_prediction_internal(image* img,
     }
 
 
+  const acceleration_functions& acceleration = img->decctx->acceleration;
+
   switch (intraPredMode) {
   case INTRA_PLANAR:
     intra_prediction_planar(dst,dstStride, nT,cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, nT,cIdx, border_pixels);
+    intra_prediction_DC(acceleration, dst,dstStride, nT,cIdx, border_pixels);
     break;
   default:
     {
@@ -1209,7 +1226,7 @@ void decode_intra_prediction_from_tree_internal(const image* img,
     intra_prediction_planar(dst,dstStride, nT, cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, nT, cIdx, border_pixels);
+    intra_prediction_DC(img->decctx->acceleration, dst,dstStride, nT, cIdx, border_pixels);
     break;
   default:
     {

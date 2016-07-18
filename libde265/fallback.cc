@@ -19,6 +19,7 @@
  */
 
 #include "fallback.h"
+#include "fallback-intra-dc.h"
 #include "fallback-motion.h"
 #include "fallback-dct.h"
 #include "fallback-sao.h"
@@ -125,6 +126,15 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->hadamard_transform_8[1] = hadamard_8x8_8_fallback;
   accel->hadamard_transform_8[2] = hadamard_16x16_8_fallback;
   accel->hadamard_transform_8[3] = hadamard_32x32_8_fallback;
+
+  accel->intra_dc_noavg_8[0] = intra_dc_noavg_8_4x4_fallback;
+  accel->intra_dc_avg_8[0]   = intra_dc_avg_8_4x4_fallback;
+  accel->intra_dc_noavg_8[1] = intra_dc_noavg_8_8x8_fallback;
+  accel->intra_dc_avg_8[1]   = intra_dc_avg_8_8x8_fallback;
+  accel->intra_dc_noavg_8[2] = intra_dc_noavg_8_16x16_fallback;
+  accel->intra_dc_avg_8[2]   = intra_dc_avg_8_16x16_fallback;
+  accel->intra_dc_noavg_8[3] = intra_dc_noavg_8_32x32_fallback;
+  accel->intra_dc_avg_8[3]   = nullptr;
 
   accel->sao_band_8 = sao_band_fallback_8bit;
   accel->sao_band   = sao_band_fallback_hibit;

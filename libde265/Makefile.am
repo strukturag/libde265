@@ -45,6 +45,8 @@ libde265_la_SOURCES = \
   fallback.h \
   fallback-dct.h \
   fallback-dct.cc \
+  fallback-intra-dc.h \
+  fallback-intra-dc.cc \
   fallback-motion.cc \
   fallback-motion.h \
   fallback-sao.h \

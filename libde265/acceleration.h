@@ -200,6 +200,14 @@ struct acceleration_functions
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
 
 
+
+  // --- intra prediction ---
+
+  void (*intra_dc_noavg_8[4])(uint8_t* dst,int dstStride, uint8_t* border);
+  void (*intra_dc_avg_8[4])(uint8_t* dst,int dstStride, uint8_t* border);
+
+
+
   // --- SAO ---
 
   void (*sao_band_8)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
