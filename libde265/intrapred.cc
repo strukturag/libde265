@@ -1052,13 +1052,18 @@ void intra_prediction_DC(pixel_t* dst, int dstStride,
   if (cIdx==0 && nT<32) {
     dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
 
-    for (int x=1;x<nT;x++) { dst[x]           = (border[ x+1] + 3*dcVal+2)>>2; }
-    for (int y=1;y<nT;y++) { dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2; }
-    for (int y=1;y<nT;y++)
+    for (int x=1;x<nT;x++) {
+      dst[x] = (border[ x+1] + 3*dcVal+2)>>2;
+    }
+
+    for (int y=1;y<nT;y++) {
+      dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2;
+
       for (int x=1;x<nT;x++)
         {
           dst[x+y*dstStride] = dcVal;
         }
+    }
   } else {
     for (int y=0;y<nT;y++)
       for (int x=0;x<nT;x++)
