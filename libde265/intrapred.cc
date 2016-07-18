@@ -917,78 +917,92 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
 
   if (intraPredMode >= 18) {
 
-    for (int x=0;x<=nT;x++)
-      { ref[x] = border[x]; }
-
-    if (intraPredAngle<0) {
-      int invAngle = invAngle_table[intraPredMode-11];
-
-      if ((nT*intraPredAngle)>>5 < -1) {
-        for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
-          ref[x] = border[0-((x*invAngle+128)>>8)];
-        }
+    // special case: vertical prediction
+    if (intraPredMode==26) {
+      for (int y=0;y<nT;y++) {
+        memcpy(&dst[y*dstStride], &border[1], nT);
       }
-    } else {
-      for (int x=nT+1; x<=2*nT;x++) {
-        ref[x] = border[x];
+
+      if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
+        for (int y=0;y<nT;y++) {
+          dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1),
+                                             bit_depth);
+        }
       }
     }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[x]; }
 
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          int iIdx = ((y+1)*intraPredAngle)>>5;
-          int iFact= ((y+1)*intraPredAngle)&31;
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
 
-          if (iFact != 0) {
-            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
-          } else {
-            dst[x+y*dstStride] = ref[x+iIdx+1];
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[0-((x*invAngle+128)>>8)];
           }
         }
-
-    if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
-      for (int y=0;y<nT;y++) {
-        dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[x];
+        }
       }
+
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            int iIdx = ((y+1)*intraPredAngle)>>5;
+            int iFact= ((y+1)*intraPredAngle)&31;
+
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+          }
     }
   }
   else { // intraPredAngle < 18
 
-    for (int x=0;x<=nT;x++)
-      { ref[x] = border[-x]; }  // DIFF (neg)
+    // special case: vertical prediction
+    if (intraPredMode==10) {
+      for (int y=0;y<nT;y++) {
+        pixel_t val = border[-y-1];
 
-    if (intraPredAngle<0) {
-      int invAngle = invAngle_table[intraPredMode-11];
-
-      if ((nT*intraPredAngle)>>5 < -1) {
-        for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
-          ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
+        for (int x=0;x<nT;x++) {
+          dst[x+y*dstStride] = val;
         }
       }
-    } else {
-      for (int x=nT+1; x<=2*nT;x++) {
-        ref[x] = border[-x]; // DIFF (neg)
+
+
+      if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
+        for (int x=0;x<nT;x++) { // DIFF (x<->y)
+          dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+        }
       }
     }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[-x]; }  // DIFF (neg)
 
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
-          int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
 
-          if (iFact != 0) {
-            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5; // DIFF (x<->y)
-          } else {
-            dst[x+y*dstStride] = ref[y+iIdx+1]; // DIFF (x<->y)
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
           }
         }
-
-    if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
-      for (int x=0;x<nT;x++) { // DIFF (x<->y)
-        dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[-x]; // DIFF (neg)
+        }
       }
+
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
+            int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+
+            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5;
+          }
     }
   }
 
