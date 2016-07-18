@@ -147,9 +147,6 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
 }
 
 
-template void intra_dc_sse_8bit_4x4<true>(uint8_t* dst,int dstStride, uint8_t* border);
-template void intra_dc_sse_8bit_4x4<false>(uint8_t* dst,int dstStride, uint8_t* border);
-
 
 
 // with    avg: 2.43x faster
@@ -391,7 +388,7 @@ intra_dc_sse_8bit_16x16(uint8_t* dst,int dstStride, uint8_t* border)
 
 
 // 1.97x faster
-void //__attribute__ ((noinline))
+static void //__attribute__ ((noinline))
 intra_dc_sse_noavg_8bit_32x32(uint8_t* dst,int dstStride, uint8_t* border)
 {
   __m128i zero   = _mm_setzero_si128();
