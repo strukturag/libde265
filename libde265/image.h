@@ -615,9 +615,10 @@ public:
 
   // --- TU metadata access ---
 
-  void set_split_transform_flag(int x0,int y0,int trafoDepth)
+  // If 'flag'==0, it is not set, but it is not cleared !
+  void set_split_transform_flag(int x0,int y0,int trafoDepth,int flag)
   {
-    tu_info.get(x0,y0) |= (1<<trafoDepth);
+    tu_info.get(x0,y0) |= (flag<<trafoDepth);
   }
 
   void clear_split_transform_flags(int x0,int y0,int log2CbSize)

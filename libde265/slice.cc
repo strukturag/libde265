@@ -3855,10 +3855,8 @@ void read_transform_tree(thread_context* tctx,
                               interSplitFlag==1) ? 1:0;
     }
 
-  if (split_transform_flag) {
-    logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
-    img->set_split_transform_flag(x0,y0,trafoDepth);
-  }
+  logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
+  img->set_split_transform_flag(x0,y0,trafoDepth, split_transform_flag);
 
   int cbf_cb=-1;
   int cbf_cr=-1;
