@@ -102,15 +102,15 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->transform_add_8[3] = ff_hevc_transform_32x32_add_8_sse4;
 
 #if 0
-    //accel->intra_dc_noavg_8[0] = intra_dc_noavg_8_4x4_sse4;
-    //accel->intra_dc_avg_8[0]   = intra_dc_avg_8_4x4_sse4;
+    accel->intra_dc_noavg_8[0] = intra_dc_noavg_8_4x4_sse4;
+    accel->intra_dc_avg_8[0]   = intra_dc_avg_8_4x4_sse4;
+#endif
     accel->intra_dc_noavg_8[1] = intra_dc_noavg_8_8x8_sse4;
     accel->intra_dc_avg_8[1]   = intra_dc_avg_8_8x8_sse4;
     accel->intra_dc_noavg_8[2] = intra_dc_noavg_8_16x16_sse4;
     accel->intra_dc_avg_8[2]   = intra_dc_avg_8_16x16_sse4;
     accel->intra_dc_noavg_8[3] = intra_dc_noavg_8_32x32_sse4;
     accel->intra_dc_avg_8[3]   = nullptr;
-#endif
 
     accel->sao_band_8 = sao_band_sse_8bit;
   }

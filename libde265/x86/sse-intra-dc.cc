@@ -28,6 +28,8 @@
 #include <tmmintrin.h>
 #include <smmintrin.h>
 
+//#include "iacaMarks.h"
+
 
 #define D 0
 
@@ -38,8 +40,19 @@
 #endif
 
 
-// without avg: slightly faster
-// with    avg: slower
+static void print128(__m128i m)
+{
+  for (int i=0;i<16;i++) {
+    uint8_t v = ((uint8_t*)&m)[15-i];
+    printf("%02x",v);
+  }
+}
+
+
+// SNB, avg=0 : 28 cyc
+// HSW, avg=0 : 27 cyc
+// SNB, avg=1 : 38 cyc
+// HSW, avg=1 : 38 cyc
 template <bool avg>
 void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstStride, uint8_t* border)
 {
@@ -148,7 +161,8 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
 
 
 
-
+// avg=0, SNB : 34 cyc
+// avg=0, HSW : 34 cyc
 // with    avg: 2.43x faster
 // without avg: 1.95x faster
 template <bool avg>
@@ -465,7 +479,9 @@ void intra_dc_avg_8_4x4_sse4(uint8_t* dst,int dstStride, uint8_t* border)
 { intra_dc_sse_8bit_4x4<true>(dst,dstStride,border); }
 
 void intra_dc_noavg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_8x8<false>(dst,dstStride,border); }
+{
+  intra_dc_sse_8bit_8x8<false>(dst,dstStride,border);
+}
 void intra_dc_avg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border)
 { intra_dc_sse_8bit_8x8<true>(dst,dstStride,border); }
 

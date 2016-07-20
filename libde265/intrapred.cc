@@ -897,6 +897,28 @@ static const int invAngle_table[25-10] =
   { -4096,-1638,-910,-630,-482,-390,-315,-256,
     -315,-390,-482,-630,-910,-1638,-4096 };
 
+#if 1
+#include <emmintrin.h>
+#include <tmmintrin.h>
+#include <smmintrin.h>
+
+
+void print128(__m128i m)
+{
+  for (int i=0;i<16;i++) {
+    uint8_t v = ((uint8_t*)&m)[15-i];
+    printf("%02x",v);
+  }
+}
+#endif
+
+#define D 0
+
+#if D
+#define Deb(x) if (D) { print128(x); printf(" " #x "\n"); }
+#else
+#define Deb(x)
+#endif
 
 // (8.4.4.2.6)
 template <class pixel_t>
@@ -949,15 +971,81 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
           ref[x] = border[x];
         }
       }
+#if 0
+      if (nT==8) {
+        __m128i round16 = _mm_set1_epi16(16);
 
-      for (int y=0;y<nT;y++)
-        for (int x=0;x<nT;x++)
-          {
-            int iIdx = ((y+1)*intraPredAngle)>>5;
-            int iFact= ((y+1)*intraPredAngle)&31;
+        for (int y=0;y<nT;y++) {
+          int iIdx = ((y+1)*intraPredAngle)>>5;
+          int iFact= ((y+1)*intraPredAngle)&31;
 
-            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
-          }
+          __m128i fact1 = _mm_set1_epi16(32-iFact);
+          __m128i fact2 = _mm_set1_epi16(iFact);
+          Deb(fact1);
+          Deb(fact2);
+
+          __m128i data1 = _mm_loadl_epi64((const __m128i*)(&ref[1+iIdx]));
+          __m128i data2 = _mm_loadl_epi64((const __m128i*)(&ref[2+iIdx]));
+          __m128i zero = _mm_setzero_si128();
+          Deb(data1);
+          Deb(data2);
+
+          data1 = _mm_unpacklo_epi8(data1,zero);
+          data2 = _mm_unpacklo_epi8(data2,zero);
+
+          data1 = _mm_mullo_epi16(data1, fact1);
+          data2 = _mm_mullo_epi16(data2, fact2);
+          Deb(data1);
+          Deb(data2);
+
+          __m128i sum = _mm_add_epi16(data1,data2);
+          Deb(sum);
+          sum = _mm_add_epi16(sum,round16);
+          Deb(sum);
+          sum = _mm_srai_epi16(sum, 5);
+          Deb(sum);
+
+          __m128i packed = _mm_packus_epi16(sum,sum);
+          Deb(packed);
+          _mm_storel_epi64((__m128i*)(dst+y*dstStride), packed);
+        }
+      }
+      else
+#endif
+#if 0
+      if (nT==8) {
+        for (int y=0;y<nT;y++) {
+          int iIdx = ((y+1)*intraPredAngle)>>5;
+          int iFact= ((y+1)*intraPredAngle)&31;
+
+          __m128i r0,r1,r3;
+
+          r3 = _mm_set1_epi16((iFact << 8) + (32 - iFact));
+          r1 = _mm_loadu_si128((__m128i*)(&ref[iIdx+1]));
+          r0 = _mm_srli_si128(r1, 1);
+          r1 = _mm_unpacklo_epi8(r1, r0);
+          r1 = _mm_maddubs_epi16(r1, r3);
+          r1 = _mm_mulhrs_epi16(r1, _mm_set1_epi16(1024));
+          r1 = _mm_packus_epi16(r1, r1);
+          _mm_storel_epi64((__m128i *)(dst+y*dstStride), r1);
+        }
+      }
+      else
+#endif
+        {
+        for (int y=0;y<nT;y++) {
+          int iIdx = ((y+1)*intraPredAngle)>>5;
+          int iFact= ((y+1)*intraPredAngle)&31;
+
+          for (int x=0;x<nT;x++)
+            {
+              dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+
+              //printf("%02x %02x %02x | ",dst[x+y*dstStride],ref[x+iIdx+1],ref[x+iIdx+2]);
+            }
+          //printf("\n");
+        }
+      }
     }
   }
   else { // intraPredAngle < 18
@@ -1019,6 +1107,133 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
       logtrace(LogIntraPred,"\n");
     }
 }
+
+
+
+// (8.4.4.2.6)
+template <class pixel_t>
+void intra_prediction_angular_fallback(pixel_t* dst, int dstStride,
+                              int bit_depth, bool disableIntraBoundaryFilter,
+                              int xB0,int yB0,
+                              enum IntraPredMode intraPredMode,
+                              int nT,int cIdx,
+                              pixel_t* border)
+{
+  // +1 for corner pixel
+  // +2 for safety on both sides (since we do not test for iFact==0 (TODO: is this required?)
+  pixel_t  ref_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1 +2]; // TODO: what is the required range here ?
+  pixel_t* ref=&ref_mem[2*MAX_INTRA_PRED_BLOCK_SIZE +1];
+
+  assert(intraPredMode<35);
+  assert(intraPredMode>=2);
+
+  int intraPredAngle = intraPredAngle_table[intraPredMode];
+
+  if (intraPredMode >= 18) {
+
+    // special case: vertical prediction
+    if (intraPredMode==26) {
+      for (int y=0;y<nT;y++) {
+        memcpy(&dst[y*dstStride], &border[1], nT);
+      }
+
+      if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
+        for (int y=0;y<nT;y++) {
+          dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1),
+                                             bit_depth);
+        }
+      }
+    }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[x]; }
+
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
+
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[0-((x*invAngle+128)>>8)];
+          }
+        }
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[x];
+        }
+      }
+
+      for (int y=0;y<nT;y++) {
+        int iIdx = ((y+1)*intraPredAngle)>>5;
+        int iFact= ((y+1)*intraPredAngle)&31;
+
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+          }
+      }
+    }
+  }
+  else { // intraPredAngle < 18
+
+    // special case: vertical prediction
+    if (intraPredMode==10) {
+      for (int y=0;y<nT;y++) {
+        pixel_t val = border[-y-1];
+
+        for (int x=0;x<nT;x++) {
+          dst[x+y*dstStride] = val;
+        }
+      }
+
+
+      if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
+        for (int x=0;x<nT;x++) { // DIFF (x<->y)
+          dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+        }
+      }
+    }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[-x]; }  // DIFF (neg)
+
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
+
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
+          }
+        }
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[-x]; // DIFF (neg)
+        }
+      }
+
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
+            int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+
+            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5;
+          }
+    }
+  }
+
+
+  logtrace(LogIntraPred,"result of angular intra prediction (mode=%d):\n",intraPredMode);
+
+  for (int y=0;y<nT;y++)
+    {
+      for (int x=0;x<nT;x++)
+        logtrace(LogIntraPred,"%02x ", dst[x+y*dstStride]);
+
+      logtrace(LogIntraPred,"\n");
+    }
+}
+
+
 
 
 template <class pixel_t>

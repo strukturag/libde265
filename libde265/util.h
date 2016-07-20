@@ -39,6 +39,12 @@
 #endif
 
 #ifdef _MSC_VER
+#define IS_LITTLE_ENDIAN 1
+#else
+#define IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
+#endif
+
+#ifdef _MSC_VER
 #define LIBDE265_DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
 #define likely(x)      (x)
 #define unlikely(x)    (x)
@@ -111,6 +117,7 @@ inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
   #define RTTI_ENABLED
   #endif
 #endif
+
 
 class image;
 
