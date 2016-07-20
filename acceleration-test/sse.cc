@@ -84,10 +84,53 @@ void sao()
 }
 
 
+void memory()
+{
+  uint64_t size = 10000000;
+
+  uint8_t* m = new uint8_t[size];
+  printf("%p\n",m);
+
+  uint64_t pos = 0;
+  for (int k=0;k<100;k++)
+    for (int i=0;i<10000000;i++) {
+      pos = (pos*173+58) % size;
+
+      m[pos] = i;
+    }
+
+  delete[] m;
+}
+
+
+void matrix()
+{
+  int w = 32768;
+  int32_t* mm = new int32_t[w*w+64];
+  int32_t* m = (int32_t*)(((uint64_t)mm+63) & ~0x3F); // align to 64-byte boundary (cache line)
+  printf("%p %p\n",m,mm);
+
+  for (int x=0;x<w;x+=32)
+    for (int y=0;y<w;y++)
+      {
+        for (int i=0;i<16;i++) {
+          _mm_stream_si32(&m[x+y*w+i], 1);
+
+          //m[x+y*w+i] = 1;
+        }
+      }
+
+  delete[] mm;
+}
+
+
 int main()
 {
   //sao();
   intra_dc();
+
+  //memory();
+  //matrix();
 
   return 0;
 }
