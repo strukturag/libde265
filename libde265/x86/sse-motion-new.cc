@@ -223,3 +223,73 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
     }
   }
 }
+
+
+
+void put_hevc_qpel_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+                                const uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                                int16_t* mcbuffer)
+{
+  __m128i zero = _mm_setzero_si128();
+
+  while (width>=16) {
+    for (int y=0; y<height; y++) {
+      __m128i input = _mm_loadu_si128((__m128i *) &src[y*srcstride]);
+
+      __m128i input16low  = _mm_unpacklo_epi8(input, zero);
+      __m128i input16high = _mm_unpackhi_epi8(input, zero);
+
+      __m128i shifted_low = _mm_slli_epi16(input16low,  6);
+      __m128i shifted_high= _mm_slli_epi16(input16high, 6);
+
+      _mm_storeu_si128((__m128i *) &dst[y*dststride  ], shifted_low);
+      _mm_storeu_si128((__m128i *) &dst[y*dststride+8], shifted_high);
+    }
+
+    width -= 16;
+    src += 16;
+    dst += 16;
+  }
+
+  if (width>=8) {
+    for (int y=0; y<height; y++) {
+      __m128i input = _mm_loadl_epi64((__m128i *) &src[y*srcstride]);
+
+      __m128i input16 = _mm_unpacklo_epi8(input, zero);
+      __m128i shifted = _mm_slli_epi16(input16, 6);
+
+      _mm_storeu_si128((__m128i *) &dst[y*dststride], shifted);
+    }
+
+    width -= 8;
+    src += 8;
+    dst += 8;
+  }
+
+  if (width>0) {
+    for (int y=0; y<height; y++) {
+      __m128i input = _mm_loadl_epi64((__m128i *) &src[y*srcstride]);
+
+      __m128i input16 = _mm_unpacklo_epi8(input, zero);
+      __m128i shifted = _mm_slli_epi16(input16, 6);
+
+      uint32_t result = _mm_cvtsi128_si32(shifted);
+
+      if (width==4) {
+        *(uint32_t*)(dst+y*dststride) = result;
+      }
+      else if (width==2) {
+        *(uint16_t*)(dst+y*dststride) = result;
+      }
+      else { // width==6
+        *(uint32_t*)(dst+  y*dststride) = result;
+
+        // remaining two pixels
+        __m128i result8 = _mm_srli_si128(shifted, 4);
+
+        uint16_t result2 = _mm_cvtsi128_si32(result8);
+        *(uint16_t*)(dst+4+y*dststride) = result2;
+      }
+    }
+  }
+}
