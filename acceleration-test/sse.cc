@@ -14,6 +14,7 @@ const bool D=0;
 
 
 void intra_dc();
+void motion();
 
 
 void print128(__m128i m)
@@ -127,7 +128,8 @@ void matrix()
 int main()
 {
   //sao();
-  intra_dc();
+  //intra_dc();
+  motion();
 
   //memory();
   //matrix();

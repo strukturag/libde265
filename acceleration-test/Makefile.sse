@@ -1,7 +1,7 @@
 
 SRCS=sse.cc ../libde265/fallback-sao.cc ../libde265/x86/sse-sao.cc \
   ../libde265/fallback-intra-dc.cc ../libde265/x86/sse-intra-dc.cc \
-  intra-dc.cc
+  intra-dc.cc motion.cc
 
 INTELPATH=$(HOME)/src/IntelPerformanceCounterMonitor-V2.11
 INTELSRCS=msr.cpp cpucounters.cpp pci.cpp client_bw.cpp utils.cpp
