@@ -350,9 +350,10 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
 
 
 
-void put_hevc_qpel_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                                int16_t* mcbuffer)
+template <bool chroma>
+inline void put_hevc_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+                                  const uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                                  int16_t* mcbuffer)
 {
   __m128i zero = _mm_setzero_si128();
 
@@ -390,6 +391,7 @@ void put_hevc_qpel_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
     dst += 8;
   }
 
+
   if (width>0) {
     for (int y=0; y<height; y++) {
       __m128i input = _mm_loadl_epi64((__m128i *) &src[y*srcstride]);
@@ -397,23 +399,39 @@ void put_hevc_qpel_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
       __m128i input16 = _mm_unpacklo_epi8(input, zero);
       __m128i shifted = _mm_slli_epi16(input16, 6);
 
-      uint32_t result = _mm_cvtsi128_si32(shifted);
-
-      if (width==4) {
+      if (chroma && width==2) {
+        uint32_t result = _mm_cvtsi128_si32(shifted);
         *(uint32_t*)(dst+y*dststride) = result;
       }
-      else if (width==2) {
-        *(uint16_t*)(dst+y*dststride) = result;
-      }
-      else { // width==6
-        *(uint32_t*)(dst+  y*dststride) = result;
+      else {
+        _mm_storel_epi64((__m128i*)&dst[y*dststride], shifted);
 
-        // remaining two pixels
-        __m128i result8 = _mm_srli_si128(shifted, 4);
+        if (chroma && width==6) {
+          // remaining two pixels
+          __m128i result8 = _mm_srli_si128(shifted, 4*2);
 
-        uint16_t result2 = _mm_cvtsi128_si32(result8);
-        *(uint16_t*)(dst+4+y*dststride) = result2;
+          uint32_t result2 = _mm_cvtsi128_si32(result8);
+          *(uint32_t*)(dst+4+y*dststride) = result2;
+        }
       }
     }
   }
+}
+
+
+void put_hevc_luma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+                                const uint8_t *src, ptrdiff_t srcstride,
+                                int width, int height,
+                                int16_t* mcbuffer)
+{
+  put_hevc_direct_8_sse<false>(dst,dststride, src,srcstride, width,height, mcbuffer);
+}
+
+
+void put_hevc_chroma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+                                  const uint8_t *src, ptrdiff_t srcstride,
+                                  int width, int height, int mx,
+                                  int my, int16_t* mcbuffer)
+{
+  put_hevc_direct_8_sse<true>(dst,dststride, src,srcstride, width,height, mcbuffer);
 }

@@ -35,9 +35,14 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                                int width, int height,
                                int w1,int o1, int w2,int o2, int log2WD);
 
-void put_hevc_qpel_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+void put_hevc_luma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
                                 const uint8_t *_src, ptrdiff_t _srcstride,
                                 int width, int height,
                                 int16_t* mcbuffer);
+
+void put_hevc_chroma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
+                                  const uint8_t *src, ptrdiff_t srcstride,
+                                  int width, int height, int mx,
+                                  int my, int16_t* mcbuffer);
 
 #endif

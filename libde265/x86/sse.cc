@@ -73,12 +73,12 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->put_weighted_pred_8 = put_weighted_pred_8_sse;
     accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse;
 
-    accel->put_hevc_epel_8    = ff_hevc_put_hevc_epel_pixels_8_sse;
+    accel->put_hevc_epel_8    = put_hevc_chroma_direct_8_sse;
     accel->put_hevc_epel_h_8  = ff_hevc_put_hevc_epel_h_8_sse;
     accel->put_hevc_epel_v_8  = ff_hevc_put_hevc_epel_v_8_sse;
     accel->put_hevc_epel_hv_8 = ff_hevc_put_hevc_epel_hv_8_sse;
 
-    accel->put_hevc_qpel_8[0][0] = put_hevc_qpel_direct_8_sse;
+    accel->put_hevc_qpel_8[0][0] = put_hevc_luma_direct_8_sse;
     accel->put_hevc_qpel_8[0][1] = ff_hevc_put_hevc_qpel_v_1_8_sse;
     accel->put_hevc_qpel_8[0][2] = ff_hevc_put_hevc_qpel_v_2_8_sse;
     accel->put_hevc_qpel_8[0][3] = ff_hevc_put_hevc_qpel_v_3_8_sse;
