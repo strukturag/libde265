@@ -28,10 +28,12 @@
 
 struct acceleration_functions
 {
+  // better name: put_bipred_8 ?
   void (*put_weighted_pred_avg_8)(uint8_t *_dst, ptrdiff_t dststride,
                                   const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                   int width, int height);
 
+  // better name: put_pred_8 ?
   void (*put_unweighted_pred_8)(uint8_t *_dst, ptrdiff_t dststride,
                                 const int16_t *src, ptrdiff_t srcstride,
                                 int width, int height);

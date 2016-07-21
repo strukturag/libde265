@@ -93,6 +93,7 @@ OBJS=\
 	x86\sse.obj \
 	x86\sse-dct.obj \
 	x86\sse-motion.obj \
+	x86\sse-motion-new.obj \
 	x86\sse-sao.obj \
 	x86\sse-intra-dc.obj \
 	..\extra\win32cond.obj

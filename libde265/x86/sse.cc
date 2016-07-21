@@ -24,6 +24,7 @@
 
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
+#include "x86/sse-motion-new.h"
 #include "x86/sse-dct.h"
 #include "x86/sse-sao.h"
 #include "x86/sse-intra-dc.h"
@@ -68,6 +69,8 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
   if (have_SSE4_1) {
     accel->put_unweighted_pred_8   = ff_hevc_put_unweighted_pred_8_sse;
     accel->put_weighted_pred_avg_8 = ff_hevc_put_weighted_pred_avg_8_sse;
+
+    accel->put_weighted_pred_8 = put_weighted_pred_8_sse;
 
     accel->put_hevc_epel_8    = ff_hevc_put_hevc_epel_pixels_8_sse;
     accel->put_hevc_epel_h_8  = ff_hevc_put_hevc_epel_h_8_sse;

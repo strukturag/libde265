@@ -290,6 +290,8 @@ void generate_inter_prediction_samples(base_context* ctx,
   void*  pixels[3];
   int    stride[3];
 
+  //printf("nPbW: %d\n",nPbW);
+
   const pic_parameter_set* pps = shdr->get_pps().get();
   const seq_parameter_set* sps = pps->sps.get();
 
@@ -318,8 +320,9 @@ void generate_inter_prediction_samples(base_context* ctx,
   stride[2] = img->get_image_stride(2);
 
 
-  ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-  ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  // +16 so that we can read past the end with SSE instructions
+  ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE + 16];
+  ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE + 16];
 
   int predFlag[2];
   predFlag[0] = vi->predFlag[0];
