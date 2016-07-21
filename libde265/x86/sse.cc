@@ -71,6 +71,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->put_weighted_pred_avg_8 = ff_hevc_put_weighted_pred_avg_8_sse;
 
     accel->put_weighted_pred_8 = put_weighted_pred_8_sse;
+    accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse;
 
     accel->put_hevc_epel_8    = ff_hevc_put_hevc_epel_pixels_8_sse;
     accel->put_hevc_epel_h_8  = ff_hevc_put_hevc_epel_h_8_sse;
