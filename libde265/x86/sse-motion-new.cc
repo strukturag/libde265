@@ -37,16 +37,84 @@
 #include "sse-motion.h"
 
 
+inline void store_2_4_6(uint8_t* dst, __m128i& result, int width)
+{
+  uint32_t result32 = _mm_cvtsi128_si32(result);
+
+  if (width==4) {
+    *(uint32_t*)(dst) = result32;
+  }
+  else if (width==2) {
+    *(uint16_t*)(dst) = result32;
+  }
+  else { // width==6
+    *(uint32_t*)(dst) = result32;
+
+    // remaining two pixels
+    __m128i result2 = _mm_srli_si128(result, 4);
+
+    *(uint16_t*)(dst+4) = _mm_cvtsi128_si32(result2);
+  }
+}
+
+
+void put_pred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
+                    const int16_t __restrict__ *src, ptrdiff_t srcstride,
+                    int width, int height)
+{
+  __m128i round_offset = _mm_set1_epi16(32);
+
+  while (width >= 16) {
+    for (int y=0; y < height; y++) {
+      __m128i input1 = _mm_load_si128((__m128i *) (src  +y*srcstride));
+      __m128i input2 = _mm_load_si128((__m128i *) (src+8+y*srcstride));
+      __m128i round1 = _mm_adds_epi16(input1, round_offset);
+      __m128i round2 = _mm_adds_epi16(input2, round_offset);
+      __m128i shifted1 = _mm_srai_epi16(round1, 6);
+      __m128i shifted2 = _mm_srai_epi16(round2, 6);
+      __m128i result8  = _mm_packus_epi16(shifted1, shifted2);
+
+      _mm_storeu_si128((__m128i *) (dst + y*dststride), result8);
+    }
+
+    width -= 16;
+    dst += 16;
+    src += 16;
+  }
+
+  if (width >= 8) {
+    for (int y=0; y < height; y++) {
+      __m128i input = _mm_load_si128((__m128i *) (src + y*srcstride));
+      __m128i round = _mm_adds_epi16(input, round_offset);
+      __m128i shifted = _mm_srai_epi16(round, 6);
+      __m128i result8 = _mm_packus_epi16(shifted, shifted);
+      _mm_storel_epi64((__m128i *) (dst + y*dststride), result8);
+    }
+
+    width -= 8;
+    dst += 8;
+    src += 8;
+  }
+
+  if (width > 0) {
+    for (int y=0; y < height; y++) {
+      __m128i input = _mm_load_si128((__m128i *) (src + y*srcstride));
+      __m128i round = _mm_adds_epi16(input, round_offset);
+      __m128i shifted = _mm_srai_epi16(round, 6);
+      __m128i result8 = _mm_packus_epi16(shifted, shifted);
+
+      store_2_4_6(dst+y*dststride, result8, width);
+    }
+  }
+}
+
+
+
 void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                              const int16_t *src, ptrdiff_t srcstride,
                              int width, int height,
                              int w,int o,int log2WD)
 {
-  if (w==(1<<(log2WD-6)) && o==0) {
-    ff_hevc_put_unweighted_pred_8_sse(dst,dststride, src,srcstride, width,height);
-    return;
-  }
-
   __m128i flat_w = _mm_set1_epi16( w<<(15-log2WD) );
   __m128i offset = _mm_set1_epi16( o );
 
@@ -89,56 +157,12 @@ void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
       __m128i result16 = _mm_add_epi16(mul,offset);
       __m128i result8  = _mm_packus_epi16(result16, result16);
 
-      uint32_t result = _mm_cvtsi128_si32(result8);
+      //uint32_t result = _mm_cvtsi128_si32(result8);
 
-      if (width==4) {
-        *(uint32_t*)(dst+y*dststride) = result;
-      }
-      else if (width==2) {
-        *(uint16_t*)(dst+y*dststride) = result;
-      }
-      else { // width==6
-        *(uint32_t*)(dst+y*dststride) = result;
-
-        // remaining two pixels
-        result8 = _mm_srli_si128(result8, 4);
-
-        uint16_t result2 = _mm_cvtsi128_si32(result8);
-        *(uint16_t*)(dst+4+y*dststride) = result2;
-      }
+      store_2_4_6(dst+y*dststride, result8, width);
     }
   }
 }
-
-/*
-  void put_weighted_pred_8_w32_sse4(uint8_t *dst, ptrdiff_t dststride,
-  const int16_t *src, ptrdiff_t srcstride,
-  int height,
-  int w,int o,int log2WD)
-  {
-  __m128i flat_w = _mm_set1_epi16( w<<(15-log2WD) );
-  __m128i offset = _mm_set1_epi16( o );
-
-  for (int y=0;y<height;y++) {
-  __m128i in_a = _mm_load_si128((const __m128i*)(&src[y*srcstride]));
-  __m128i in_b = _mm_load_si128((const __m128i*)(&src[y*srcstride+8]));
-  __m128i in_c = _mm_load_si128((const __m128i*)(&src[y*srcstride+16]));
-  __m128i in_d = _mm_load_si128((const __m128i*)(&src[y*srcstride+24]));
-  __m128i mul_a = _mm_mulhrs_epi16(in_a, flat_w);
-  __m128i mul_b = _mm_mulhrs_epi16(in_b, flat_w);
-  __m128i mul_c = _mm_mulhrs_epi16(in_c, flat_w);
-  __m128i mul_d = _mm_mulhrs_epi16(in_d, flat_w);
-  __m128i result_a16 = _mm_add_epi16(mul_a,offset);
-  __m128i result_b16 = _mm_add_epi16(mul_b,offset);
-  __m128i result_c16 = _mm_add_epi16(mul_c,offset);
-  __m128i result_d16 = _mm_add_epi16(mul_d,offset);
-  __m128i result_A8  = _mm_packus_epi16(result_a16, result_b16);
-  _mm_store_si128((__m128i*)(dst+y*dststride),   result_A8);
-  __m128i result_B8  = _mm_packus_epi16(result_c16, result_d16);
-  _mm_store_si128((__m128i*)(dst+16+y*dststride),   result_B8);
-  }
-  }
-*/
 
 
 #define D 0
@@ -166,12 +190,6 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                                int w1,int o1, int w2,int o2, int log2WD)
 {
   if (D) printf("w1:%d w2:%d  o1:%d o2:%d log2WD:%d\n",w1,w2,o1,o2,log2WD);
-
-  if (w1==(1<<(log2WD-6)) && o1==0 &&
-      w2==(1<<(log2WD-6)) && o2==0) {
-    ff_hevc_put_weighted_pred_avg_8_sse(dst,dststride, src1,src2,srcstride, width,height);
-    return;
-  }
 
   /* Here is a worst case computation:
      11a110400cc6101d163d0fdb3016 3fef input1
@@ -260,6 +278,9 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
           _mm_storel_epi64 ((__m128i*)(dst+y*dststride), result8);
         }
         else {
+          store_2_4_6(dst+y*dststride, result8, width);
+
+#if 0
           uint32_t result = _mm_cvtsi128_si32(result8);
 
           if (width==4) {
@@ -269,7 +290,7 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
             *(uint16_t*)(dst+y*dststride) = result;
           }
           else { // width==6
-            *(uint32_t*)(dst+  y*dststride) = result;
+            *(uint32_t*)(dst+y*dststride) = result;
 
             // remaining two pixels
             result8 = _mm_srli_si128(result8, 4);
@@ -277,6 +298,7 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
             uint16_t result2 = _mm_cvtsi128_si32(result8);
             *(uint16_t*)(dst+4+y*dststride) = result2;
           }
+#endif
         }
 
         Deb(result16);
@@ -369,6 +391,8 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
       __m128i result16 = _mm_srai_epi16(result_tmp, log2WD+1);
       __m128i result8  = _mm_packus_epi16(result16, result16);
 
+      store_2_4_6(dst+y*dststride, result8, width);
+#if 0
       uint32_t result = _mm_cvtsi128_si32(result8);
 
       if (width==4) {
@@ -386,6 +410,7 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
         uint16_t result2 = _mm_cvtsi128_si32(result8);
         *(uint16_t*)(dst+4+y*dststride) = result2;
       }
+#endif
     }
   }
 }
