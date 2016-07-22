@@ -28,6 +28,7 @@
 #include "x86/sse-dct.h"
 #include "x86/sse-sao.h"
 #include "x86/sse-intra-dc.h"
+#include "de265.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -37,7 +38,8 @@
 #include <cpuid.h>
 #endif
 
-void init_acceleration_functions_sse(struct acceleration_functions* accel)
+void init_acceleration_functions_sse(struct acceleration_functions* accel,
+                                     uint32_t inexact_computation_flags)
 {
   uint32_t ecx=0,edx=0;
 
@@ -71,7 +73,12 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->put_weighted_pred_avg_8 = ff_hevc_put_weighted_pred_avg_8_sse;
 
     accel->put_weighted_pred_8 = put_weighted_pred_8_sse;
-    accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse;
+
+    if (inexact_computation_flags & de265_inexact_decoding_weighted_prediction) {
+      accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse_inexact;
+    } else {
+      accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse;
+    }
 
     accel->put_hevc_epel_8    = put_hevc_chroma_direct_8_sse;
     accel->put_hevc_epel_h_8  = ff_hevc_put_hevc_epel_h_8_sse;

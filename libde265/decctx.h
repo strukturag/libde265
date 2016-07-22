@@ -200,9 +200,13 @@ class base_context : public error_queue,
   base_context();
   virtual ~base_context() { }
 
+  enum de265_acceleration param_acceleration_type;
+  uint32_t param_inexact_decoding_flags;
+
+
   // --- accelerated DSP functions ---
 
-  void set_acceleration_functions(enum de265_acceleration);
+  void set_acceleration_functions();
 
   struct acceleration_functions acceleration; // CPU optimized functions
 };

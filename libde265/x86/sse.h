@@ -23,6 +23,7 @@
 
 #include "acceleration.h"
 
-void init_acceleration_functions_sse(struct acceleration_functions* accel);
+void init_acceleration_functions_sse(struct acceleration_functions* accel,
+                                     uint32_t inexact_computation_flags);
 
 #endif

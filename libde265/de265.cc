@@ -520,7 +520,7 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
       break;
 
     case DE265_DECODER_PARAM_ACCELERATION_CODE:
-      ctx->set_acceleration_functions((enum de265_acceleration)value);
+      ctx->param_acceleration_type = (enum de265_acceleration)value;
       break;
 
     default:
@@ -570,6 +570,13 @@ LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum 
       assert(false);
       return false;
     }
+}
+
+
+LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context* de265ctx, int flags)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_inexact_decoding_flags = flags;
 }
 
 

@@ -85,6 +85,7 @@ int decode_rate_percent = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
+int enable_inexact_decoding=0;
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -112,6 +113,7 @@ static struct option long_options[] = {
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
+  {"enable-inexact-decoding", no_argument, 0, 'I' },
   {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
   {0,         0,                 0,  0 }
 };
@@ -581,7 +583,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seRP:"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seRP:I"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -610,6 +612,7 @@ int main(int argc, char** argv)
     case 'T': highestTID=atoi(optarg); break;
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
+    case 'I': enable_inexact_decoding=0xFFFF; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
@@ -646,6 +649,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -D, --decoding-framerate-percent    percentage of frames to decode (others will be dropped)\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
+    fprintf(stderr,"  -I, --enable-inexact-decoding  enable optimizations that may lead to slightly wrong output\n");
     fprintf(stderr,"      --max-latency          maximum picture latency in reorder buffer\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
@@ -664,6 +668,7 @@ int main(int argc, char** argv)
 
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
   de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
+  de265_set_parameter_inexact_decoding(ctx, enable_inexact_decoding);
 
   if (dump_headers) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);

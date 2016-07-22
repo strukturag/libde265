@@ -406,8 +406,9 @@ enum de265_param {
   DE265_DECODER_PARAM_ACCELERATION_CODE=5,   // (int)  enum de265_acceleration, default: AUTO
   DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6, // (bool)  do not output frames with decoding errors, default: no (output all images)
 
-  DE265_DECODER_PARAM_DISABLE_DEBLOCKING=7,   // (bool)  disable deblocking
-  DE265_DECODER_PARAM_DISABLE_SAO=8           // (bool)  disable SAO filter
+  DE265_DECODER_PARAM_DISABLE_DEBLOCKING=7,    // (bool)  disable deblocking
+  DE265_DECODER_PARAM_DISABLE_SAO=8            // (bool)  disable SAO filter
+
   //DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT=9,     // (bool)  disable decoding of IDCT residuals in MC blocks
   //DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT=10  // (bool)  disable decoding of IDCT residuals in MC blocks
 };
@@ -434,6 +435,15 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_par
 
 /* Get decoding parameters. */
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
+
+
+#define de265_inexact_decoding_weighted_prediction 1
+#define de265_inexact_decoding_idct                2   // not used yet
+#define de265_inexact_decoding_mask_all            0xFFFF
+#define de265_inexact_decoding_mask_weak           (1)
+#define de265_inexact_decoding_mask_strong         0xFFFF
+#define de265_inexact_decoding_mask_none           0
+LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context*, int flags);
 
 
 

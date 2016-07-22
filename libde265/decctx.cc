@@ -195,7 +195,10 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
 base_context::base_context()
 {
-  set_acceleration_functions(de265_acceleration_AUTO);
+  param_acceleration_type = de265_acceleration_AUTO;
+  param_inexact_decoding_flags = de265_inexact_decoding_mask_none;
+
+  //set_acceleration_functions(de265_acceleration_AUTO);
 }
 
 
@@ -340,6 +343,8 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
+  set_acceleration_functions();
+
   m_thread_pool.debug_list_tasks();
 
   m_thread_pool.start(nThreads);
@@ -359,7 +364,7 @@ void decoder_context::stop_thread_pool()
 }
 
 
-void base_context::set_acceleration_functions(enum de265_acceleration l)
+void base_context::set_acceleration_functions()
 {
   // fill scalar functions first (so that function table is completely filled)
 
@@ -369,12 +374,12 @@ void base_context::set_acceleration_functions(enum de265_acceleration l)
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
-  if (l>=de265_acceleration_SSE) {
-    init_acceleration_functions_sse(&acceleration);
+  if (param_acceleration_type>=de265_acceleration_SSE) {
+    init_acceleration_functions_sse(&acceleration, param_inexact_decoding_flags);
   }
 #endif
 #ifdef HAVE_ARM
-  if (l>=de265_acceleration_ARM) {
+  if (param_acceleration_type>=de265_acceleration_ARM) {
     init_acceleration_functions_arm(&acceleration);
   }
 #endif
