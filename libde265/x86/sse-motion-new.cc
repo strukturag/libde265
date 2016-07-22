@@ -152,24 +152,53 @@ static void print128(__m128i m)
 }
 
 
-void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                               const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
-                               int width, int height,
-                               int w1,int o1, int w2,int o2, int log2WD)
+template <bool inexact_decoding>
+inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride,
+                                               const int16_t *src1, const int16_t *src2,
+                                               ptrdiff_t srcstride,
+                                               int width, int height,
+                                               int w1,int o1, int w2,int o2, int log2WD)
 {
   if (D) printf("w1:%d w2:%d  o1:%d o2:%d log2WD:%d\n",w1,w2,o1,o2,log2WD);
 
-  __m128i flat_w1 = _mm_set1_epi16( w1 );
-  __m128i flat_w2 = _mm_set1_epi16( w2 );
-  __m128i offset  = _mm_set1_epi32( (o1+o2+1)<<log2WD );
-  Deb(flat_w1);
-  Deb(flat_w2);
-  Deb(offset);
 
-  if (log2WD+1 + 8+1 > 16) {
+  /* Here is a worst case computation:
+     11a110400cc6101d163d0fdb3016 3fef input1
+     10fb0fa50f6f124f19bc0ffc2e9b 40ab input2
+     11a110400cc6101d163d0fdb3016 3fef mul1
+     10fb0fa50f6f124f19bc0ffc2e9b 40ab mul2
+     229c1fe51c35226c2ff91fd75eb1 809a mul
+     22dc20251c7522ac303920175ef1 80da result
+     00450040003800450060004000bd ff01 result16
+     454038456040bd00454038456040bd 00 result8
+     .               ffbd406045384045 reference
+     .               00bd406045384045 sse
+
+     One of the input pixels already comes in with one bit overflow.
+     This leads to a total overflow of the sum into the sign bit.
+  */
+
+
+  // input bit width (8 bits + 1 overflow + 1 sign bit)
+  // The case that the weighted sum overflows can only happen when
+  // one input overflows and the other is also near the maximum.
+  // This is a very seldom case in which can in outputting 0x00 instead of 0xff.
+  int input_width = (inexact_decoding ? 8+1 : 8+1+1);
+
+  if (log2WD+1 // additional precision
+      + input_width // input bit width (8 bits + 1 overflow + 1 sign bit)
+      > 16) {  // available precision
+
     // need 32bit computation
     // precision computation: last shift is log2WD+1
     // final precision = 8 bit + 1 sign bit from possible negative overflow
+
+    __m128i flat_w1 = _mm_set1_epi16( w1 );
+    __m128i flat_w2 = _mm_set1_epi16( w2 );
+    __m128i offset  = _mm_set1_epi32( (o1+o2+1)<<log2WD );
+    Deb(flat_w1);
+    Deb(flat_w2);
+    Deb(offset);
 
     __m128i zero = _mm_setzero_si128();
 
@@ -202,14 +231,14 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
         Deb(mul32_lower);
         Deb(mul32_upper);
 
-        __m128i result32_upper = _mm_add_epi16(mul32_upper,offset);
-        __m128i result32_lower = _mm_add_epi16(mul32_lower,offset);
-        Deb(result32_upper);
+        __m128i result32_lower = _mm_add_epi32(mul32_lower,offset);
+        __m128i result32_upper = _mm_add_epi32(mul32_upper,offset);
+        Deb(result32_lower);
         Deb(result32_upper);
 
-        result32_upper = _mm_srai_epi32(result32_upper,log2WD+1);
         result32_lower = _mm_srai_epi32(result32_lower,log2WD+1);
-        Deb(result32_upper);
+        result32_upper = _mm_srai_epi32(result32_upper,log2WD+1);
+        Deb(result32_lower);
         Deb(result32_upper);
 
         __m128i result16 = _mm_packus_epi32(result32_lower, result32_upper);
@@ -240,7 +269,6 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
 
         Deb(result16);
         Deb(result8);
-        if (D) printf("\n");
       }
 
       src1 += 8;
@@ -249,23 +277,16 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
       width -= 8;
     }
 
-    /*
-    const int rnd = ((o1+o2+1) << log2WD);
-
-    for (int y=0;y<height;y++) {
-      const int16_t* in1 = &src1[y*srcstride];
-      const int16_t* in2 = &src2[y*srcstride];
-      uint8_t* out = &dst[y*dststride];
-
-      for (int x=0;x<width;x++) {
-        out[0] = Clip1_8bit((in1[0]*w1 + in2[0]*w2 + rnd)>>(log2WD+1));
-        out++; in1++; in2++;
-      }
-    }
-    */
-
     return;
   }
+
+
+  __m128i flat_w1 = _mm_set1_epi16( w1 );
+  __m128i flat_w2 = _mm_set1_epi16( w2 );
+  __m128i offset  = _mm_set1_epi16( (o1+o2+1)<<log2WD );
+  Deb(flat_w1);
+  Deb(flat_w2);
+  Deb(offset);
 
   while (width>=16) {
     for (int y=0;y<height;y++) {
@@ -300,13 +321,22 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
     for (int y=0;y<height;y++) {
       __m128i input1 = _mm_loadu_si128((const __m128i*)(&src1[y*srcstride]));
       __m128i input2 = _mm_loadu_si128((const __m128i*)(&src2[y*srcstride]));
+      Deb(input1);
+      Deb(input2);
       __m128i mul1 = _mm_mullo_epi16( flat_w1, input1 );
       __m128i mul2 = _mm_mullo_epi16( flat_w2, input2 );
       __m128i mul  = _mm_add_epi16(mul1,mul2);
+      Deb(mul1);
+      Deb(mul2);
+      Deb(mul);
       __m128i result   = _mm_add_epi16(mul,offset);
       __m128i result16 = _mm_srai_epi16(result, log2WD+1);
       __m128i result8  = _mm_packus_epi16(result16, result16);
       _mm_storel_epi64 ((__m128i*)(dst+y*dststride), result8);
+
+      Deb(result);
+      Deb(result16);
+      Deb(result8);
     }
 
     src1 += 8;
@@ -347,6 +377,33 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
     }
   }
 }
+
+
+void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
+                               const int16_t *src1, const int16_t *src2,
+                               ptrdiff_t srcstride,
+                               int width, int height,
+                               int w1,int o1, int w2,int o2, int log2WD)
+{
+  put_weighted_bipred_8_sse_internal<false>(dst,dststride,
+                                            src1,src2,srcstride,
+                                            width,height,
+                                            w1,o1,w2,o2,log2WD);
+}
+
+
+void put_weighted_bipred_8_sse_inexact(uint8_t *dst, ptrdiff_t dststride,
+                                       const int16_t *src1, const int16_t *src2,
+                                       ptrdiff_t srcstride,
+                                       int width, int height,
+                                       int w1,int o1, int w2,int o2, int log2WD)
+{
+  put_weighted_bipred_8_sse_internal<true>(dst,dststride,
+                                           src1,src2,srcstride,
+                                           width,height,
+                                           w1,o1,w2,o2,log2WD);
+}
+
 
 
 
