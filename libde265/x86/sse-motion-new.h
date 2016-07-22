@@ -35,13 +35,6 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                                int width, int height,
                                int w1,int o1, int w2,int o2, int log2WD);
 
-// Faster version of put_weighted_bipred_8_sse(), but which may give output errors
-// at very seldom edge cases.
-void put_weighted_bipred_8_sse_inexact(uint8_t *dst, ptrdiff_t dststride,
-                                       const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
-                                       int width, int height,
-                                       int w1,int o1, int w2,int o2, int log2WD);
-
 void put_hevc_luma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
                                 const uint8_t *_src, ptrdiff_t _srcstride,
                                 int width, int height,

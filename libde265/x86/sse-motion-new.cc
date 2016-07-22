@@ -34,12 +34,19 @@
 #include "sse-motion-new.h"
 #include "libde265/util.h"
 
+#include "sse-motion.h"
+
 
 void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                              const int16_t *src, ptrdiff_t srcstride,
                              int width, int height,
                              int w,int o,int log2WD)
 {
+  if (w==(1<<(log2WD-6)) && o==0) {
+    ff_hevc_put_unweighted_pred_8_sse(dst,dststride, src,srcstride, width,height);
+    return;
+  }
+
   __m128i flat_w = _mm_set1_epi16( w<<(15-log2WD) );
   __m128i offset = _mm_set1_epi16( o );
 
@@ -152,15 +159,19 @@ static void print128(__m128i m)
 }
 
 
-template <bool inexact_decoding>
-inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride,
-                                               const int16_t *src1, const int16_t *src2,
-                                               ptrdiff_t srcstride,
-                                               int width, int height,
-                                               int w1,int o1, int w2,int o2, int log2WD)
+void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
+                               const int16_t *src1, const int16_t *src2,
+                               ptrdiff_t srcstride,
+                               int width, int height,
+                               int w1,int o1, int w2,int o2, int log2WD)
 {
   if (D) printf("w1:%d w2:%d  o1:%d o2:%d log2WD:%d\n",w1,w2,o1,o2,log2WD);
 
+  if (w1==(1<<(log2WD-6)) && o1==0 &&
+      w2==(1<<(log2WD-6)) && o2==0) {
+    ff_hevc_put_weighted_pred_avg_8_sse(dst,dststride, src1,src2,srcstride, width,height);
+    return;
+  }
 
   /* Here is a worst case computation:
      11a110400cc6101d163d0fdb3016 3fef input1
@@ -176,17 +187,18 @@ inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride
 
      One of the input pixels already comes in with one bit overflow.
      This leads to a total overflow of the sum into the sign bit.
+
+     -> we now solve this by using saturating 'add's
   */
 
 
   // input bit width (8 bits + 1 overflow + 1 sign bit)
   // The case that the weighted sum overflows can only happen when
   // one input overflows and the other is also near the maximum.
-  // This is a very seldom case in which can in outputting 0x00 instead of 0xff.
-  int input_width = (inexact_decoding ? 8+1 : 8+1+1);
+  // Without saturating 'add's, this resulted in outputting 0x00 instead of 0xff.
 
   if (log2WD+1 // additional precision
-      + input_width // input bit width (8 bits + 1 overflow + 1 sign bit)
+      + 8+1 // input bit width (8 bits + 1 sign bit) + 1 overflow, which is clipped away in 'adds'
       > 16) {  // available precision
 
     // need 32bit computation
@@ -300,11 +312,11 @@ inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride
       __m128i mul1B = _mm_mullo_epi16( flat_w1, input1B );
       __m128i mul2B = _mm_mullo_epi16( flat_w2, input2B );
 
-      __m128i mulA  = _mm_add_epi16(mul1A,mul2A);
-      __m128i mulB  = _mm_add_epi16(mul1B,mul2B);
+      __m128i mulA  = _mm_adds_epi16(mul1A,mul2A);
+      __m128i mulB  = _mm_adds_epi16(mul1B,mul2B);
 
-      __m128i resultA   = _mm_add_epi16(mulA,offset);
-      __m128i resultB   = _mm_add_epi16(mulB,offset);
+      __m128i resultA   = _mm_adds_epi16(mulA,offset);
+      __m128i resultB   = _mm_adds_epi16(mulB,offset);
       __m128i resultA16 = _mm_srai_epi16(resultA, log2WD+1);
       __m128i resultB16 = _mm_srai_epi16(resultB, log2WD+1);
       __m128i result8  = _mm_packus_epi16(resultA16, resultB16);
@@ -325,11 +337,11 @@ inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride
       Deb(input2);
       __m128i mul1 = _mm_mullo_epi16( flat_w1, input1 );
       __m128i mul2 = _mm_mullo_epi16( flat_w2, input2 );
-      __m128i mul  = _mm_add_epi16(mul1,mul2);
+      __m128i mul  = _mm_adds_epi16(mul1,mul2);
       Deb(mul1);
       Deb(mul2);
       Deb(mul);
-      __m128i result   = _mm_add_epi16(mul,offset);
+      __m128i result   = _mm_adds_epi16(mul,offset);
       __m128i result16 = _mm_srai_epi16(result, log2WD+1);
       __m128i result8  = _mm_packus_epi16(result16, result16);
       _mm_storel_epi64 ((__m128i*)(dst+y*dststride), result8);
@@ -352,8 +364,8 @@ inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride
       __m128i input2 = _mm_loadu_si128((const __m128i*)(&src2[y*srcstride]));
       __m128i mul1 = _mm_mullo_epi16( flat_w1, input1 );
       __m128i mul2 = _mm_mullo_epi16( flat_w2, input2 );
-      __m128i mul  = _mm_add_epi16(mul1,mul2);
-      __m128i result_tmp  = _mm_add_epi16(mul,offset);
+      __m128i mul  = _mm_adds_epi16(mul1,mul2);
+      __m128i result_tmp  = _mm_adds_epi16(mul,offset);
       __m128i result16 = _mm_srai_epi16(result_tmp, log2WD+1);
       __m128i result8  = _mm_packus_epi16(result16, result16);
 
@@ -376,32 +388,6 @@ inline void put_weighted_bipred_8_sse_internal(uint8_t *dst, ptrdiff_t dststride
       }
     }
   }
-}
-
-
-void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                               const int16_t *src1, const int16_t *src2,
-                               ptrdiff_t srcstride,
-                               int width, int height,
-                               int w1,int o1, int w2,int o2, int log2WD)
-{
-  put_weighted_bipred_8_sse_internal<false>(dst,dststride,
-                                            src1,src2,srcstride,
-                                            width,height,
-                                            w1,o1,w2,o2,log2WD);
-}
-
-
-void put_weighted_bipred_8_sse_inexact(uint8_t *dst, ptrdiff_t dststride,
-                                       const int16_t *src1, const int16_t *src2,
-                                       ptrdiff_t srcstride,
-                                       int width, int height,
-                                       int w1,int o1, int w2,int o2, int log2WD)
-{
-  put_weighted_bipred_8_sse_internal<true>(dst,dststride,
-                                           src1,src2,srcstride,
-                                           width,height,
-                                           w1,o1,w2,o2,log2WD);
 }
 
 

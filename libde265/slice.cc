@@ -191,23 +191,28 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
             // delta_luma_weight
 
-            vlc = get_svlc(br);
-            if (vlc < -128 || vlc > 127) return false;
+            int weight_diff = get_svlc(br);
+            if (weight_diff < -128 || weight_diff > 127) return false;
 
-            shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + vlc;
+            shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + weight_diff;
 
             // luma_offset
 
-            vlc = get_svlc(br);
-            if (vlc < -sps->WpOffsetHalfRangeY || vlc > sps->WpOffsetHalfRangeY-1) return false;
-            shdr->luma_offset[l][i] = vlc;
+            int offset = get_svlc(br);
+            if (offset < -sps->WpOffsetHalfRangeY || offset > sps->WpOffsetHalfRangeY-1) return false;
+            shdr->luma_offset[l][i] = offset;
+
+            // optimization: if the weighting is actually ineffective, switch it off
+            if (weight_diff==0 && offset==0) {
+              shdr->luma_weight_flag[l][i] = 0;
+            }
           }
           else {
             shdr->LumaWeight[l][i] = 1<<shdr->luma_log2_weight_denom;
             shdr->luma_offset[l][i] = 0;
           }
 
-          if (shdr->chroma_weight_flag[l][i])
+          if (shdr->chroma_weight_flag[l][i]) {
             for (int j=0;j<2;j++) {
               // delta_chroma_weight
 
@@ -231,6 +236,16 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
               shdr->ChromaOffset[l][i][j] = vlc;
             }
+
+            // optimization: if the weighting is actually ineffective, switch it off
+            if (shdr->ChromaWeight[l][i][0] == (1<<shdr->ChromaLog2WeightDenom) &&
+                shdr->ChromaWeight[l][i][1] == (1<<shdr->ChromaLog2WeightDenom) &&
+                shdr->ChromaOffset[l][i][0] == 0 &&
+                shdr->ChromaOffset[l][i][1] == 0)
+              {
+                shdr->chroma_weight_flag[l][i] = 0;
+              }
+          }
           else {
             for (int j=0;j<2;j++) {
               shdr->ChromaWeight[l][i][j] = 1<<shdr->ChromaLog2WeightDenom;
@@ -1433,7 +1448,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
                                num_ref_idx_l0_active-1 :
                                num_ref_idx_l1_active-1);
 
-                if (false) { // do not show these flags
+                if (true) { // do not show these flags
                   for (int i=0;i<=num_ref;i++) {
                     LOG3("luma_weight_flag_l%d[%d]        : %d\n",l,i,luma_weight_flag[l][i]);
                   }

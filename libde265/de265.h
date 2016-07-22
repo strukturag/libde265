@@ -437,10 +437,10 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_par
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
 
 
-#define de265_inexact_decoding_weighted_prediction 1
-#define de265_inexact_decoding_idct                2   // not used yet
+#define de265_inexact_decoding_idct                1   // not used yet
 #define de265_inexact_decoding_mask_all            0xFFFF
-#define de265_inexact_decoding_mask_weak           (1)
+#define de265_inexact_decoding_mask_weak           (0)
+#define de265_inexact_decoding_mask_preferred      (0)
 #define de265_inexact_decoding_mask_strong         0xFFFF
 #define de265_inexact_decoding_mask_none           0
 LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context*, int flags);
