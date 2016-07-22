@@ -3073,6 +3073,8 @@ int residual_coding(thread_context* tctx,
   // ----- decode coefficients -----
 
   tctx->nCoeff[cIdx] = 0;
+  tctx->maxCoeffColumn[cIdx] = 0;
+  tctx->maxCoeffRow[cIdx] = 0;
 
 
   // i - subblock index
@@ -3405,6 +3407,9 @@ int residual_coding(thread_context* tctx,
         int p = coeff_scan_pos[n];
         xC = (S.x<<2) + ScanOrderPos[p].x;
         yC = (S.y<<2) + ScanOrderPos[p].y;
+
+        if (xC > tctx->maxCoeffColumn[cIdx]) { tctx->maxCoeffColumn[cIdx]=xC; }
+        if (yC > tctx->maxCoeffRow[cIdx])    { tctx->maxCoeffRow[cIdx]   =yC; }
 
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;

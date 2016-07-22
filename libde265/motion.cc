@@ -485,9 +485,6 @@ void generate_inter_prediction_samples(base_context* ctx,
           int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
           int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(offset_shift1_C));
 
-          logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n",
-                   refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
-
           ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
                                               predSamplesC[0][0],nCS, nPbW/SubWidthC,nPbH/SubHeightC,
                                               chroma0_w0, chroma0_o0, chroma_log2WD, bit_depth_C);
@@ -581,11 +578,6 @@ void generate_inter_prediction_samples(base_context* ctx,
           int chroma1_w1 = shdr->ChromaWeight[1][refIdx1][1];
           int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(offset_shift1_C));
 
-          logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n",
-                   refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
-          logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n",
-                   refIdx1, luma_log2WD-6,luma_w1,luma_o1,nPbW,nPbH);
-
           ctx->acceleration.put_weighted_bipred(pixels[1], stride[1],
                                                 in00,in01, nCS, nPbW/SubWidthC, nPbH/SubHeightC,
                                                 chroma0_w0,chroma0_o0,
@@ -644,8 +636,6 @@ void generate_inter_prediction_samples(base_context* ctx,
           int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(offset_shift1_C));
           int chroma1_w = shdr->ChromaWeight[l][refIdx][1];
           int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(offset_shift1_C));
-
-          logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
 
           ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
                                               predSamplesC[0][l],nCS,

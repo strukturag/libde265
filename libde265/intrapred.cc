@@ -897,7 +897,7 @@ static const int invAngle_table[25-10] =
   { -4096,-1638,-910,-630,-482,-390,-315,-256,
     -315,-390,-482,-630,-910,-1638,-4096 };
 
-#if 1
+#if 0
 #include <emmintrin.h>
 #include <tmmintrin.h>
 #include <smmintrin.h>

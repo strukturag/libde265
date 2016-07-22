@@ -208,7 +208,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 template <class pixel_t>
 void transform_coefficients(acceleration_functions* acceleration,
                             int16_t* coeff, int coeffStride, int nT, int trType,
-                            pixel_t* dst, int dstStride, int bit_depth)
+                            pixel_t* dst, int dstStride, int bit_depth, int maxColumn,int maxRow)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
@@ -218,6 +218,9 @@ void transform_coefficients(acceleration_functions* acceleration,
     acceleration->transform_4x4_dst_add<pixel_t>(dst, coeff, dstStride, bit_depth);
 
   } else {
+    if (nT==32) {
+      //printf("region: %dx%d\n",maxColumn,maxRow);
+    }
 
     /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth); }
     else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth); }
@@ -283,7 +286,6 @@ void transform_coefficients_explicit(thread_context* tctx,
     acceleration->transform_idst_4x4(residual, coeff, bdShift, max_coeff_bits);
 
   } else {
-
     /**/ if (nT==4)  { acceleration->transform_idct_4x4(residual,coeff,bdShift,max_coeff_bits); }
     else if (nT==8)  { acceleration->transform_idct_8x8(residual,coeff,bdShift,max_coeff_bits); }
     else if (nT==16) { acceleration->transform_idct_16x16(residual,coeff,bdShift,max_coeff_bits); }
@@ -606,7 +608,9 @@ void scale_coefficients_internal(thread_context* tctx,
       }
       else {
         transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                               pred, stride, bit_depth);
+                               pred, stride, bit_depth,
+                               tctx->maxCoeffColumn[cIdx],
+                               tctx->maxCoeffRow[cIdx]);
       }
     }
   }

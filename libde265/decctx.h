@@ -111,6 +111,9 @@ public:
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
 
+  int8_t  maxCoeffRow[3];
+  int8_t  maxCoeffColumn[3];
+
   int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
 
 
