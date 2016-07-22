@@ -29,6 +29,11 @@ void put_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                     const int16_t *src, ptrdiff_t srcstride,
                     int width, int height);
 
+void put_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
+                      const int16_t *src1,
+                      const int16_t *src2, ptrdiff_t srcstride,
+                      int width, int height);
+
 void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
                              const int16_t *src, ptrdiff_t srcstride,
                              int width, int height,
