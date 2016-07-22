@@ -54,7 +54,7 @@ static void print128(__m128i m)
 // SNB, avg=1 : 38 cyc
 // HSW, avg=1 : 38 cyc
 template <bool avg>
-void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstStride, uint8_t* border)
+void intra_dc_sse_8bit_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
 {
   __m128i zero   = _mm_setzero_si128();
   __m128i ones16 = _mm_set_epi16(1,1,1,1,0,0,0,0);
@@ -66,7 +66,7 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
 #if 1
   __m128i mask = _mm_set_epi8(0,0,0, 0xFF,0xFF,0xFF,0xFF,0,0xFF,0xFF,0xFF,0xFF,0,0,0,0);
   __m128i maskedborder = _mm_and_si128(rawborder, mask);
-  __m128i border16 = _mm_shuffle_epi8(maskedborder,
+  __m128i border16 = _mm_shuffle_epi8(maskedborder, // SSSE3
                                       _mm_set_epi8(15,4,15,5,15,6,15,7,15,12,15,11,15,10,15,9));
   Deb(maskedborder);
 #endif
@@ -87,7 +87,7 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
 
   Deb(bordersum);
 
-  __m128i dcsum4 = _mm_hadd_epi16(bordersum, zero);
+  __m128i dcsum4 = _mm_hadd_epi16(bordersum, zero); // SSSE3
   __m128i dcsum2 = _mm_hadd_epi16(dcsum4, zero);
   __m128i dcsum1 = _mm_hadd_epi16(dcsum2, zero);
 
@@ -144,7 +144,7 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
     border_packed = _mm_srli_si128(border_packed, 5);
 
     for (int y=1;y<4;y++) {
-      __m128i row = _mm_blendv_epi8(flatdc, border_packed, leftbytemask);
+      __m128i row = _mm_blendv_epi8(flatdc, border_packed, leftbytemask); // SSE4.1
       Deb(row);
 
       border_packed = _mm_srli_si128(border_packed, 1);
@@ -167,7 +167,7 @@ void /*__attribute__ ((noinline))*/ intra_dc_sse_8bit_4x4(uint8_t* dst,int dstSt
 // without avg: 1.95x faster
 template <bool avg>
 void //__attribute__ ((noinline))
-intra_dc_sse_8bit_8x8(uint8_t* dst,int dstStride, uint8_t* border)
+intra_dc_sse_8bit_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
 {
   __m128i zero   = _mm_setzero_si128();
   __m128i ones16 = _mm_set1_epi16(1);
@@ -193,7 +193,7 @@ intra_dc_sse_8bit_8x8(uint8_t* dst,int dstStride, uint8_t* border)
   Deb(bordersum_a);
   Deb(bordersum_b);
 
-  __m128i dcsum4 = _mm_hadd_epi16(bordersum_b, zero);
+  __m128i dcsum4 = _mm_hadd_epi16(bordersum_b, zero); // SSSE3
   __m128i dcsum2 = _mm_hadd_epi16(dcsum4, zero);
   __m128i dcsum1 = _mm_hadd_epi16(dcsum2, zero);
 
@@ -259,7 +259,7 @@ intra_dc_sse_8bit_8x8(uint8_t* dst,int dstStride, uint8_t* border)
     __m128i leftbytemask = _mm_set_epi8(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80);
 
     for (int y=1;y<8;y++) {
-      __m128i row = _mm_blendv_epi8(flatdc, leftborder_packed, leftbytemask);
+      __m128i row = _mm_blendv_epi8(flatdc, leftborder_packed, leftbytemask); // SSE4.1
       Deb(row);
 
       leftborder_packed = _mm_srli_si128(leftborder_packed, 1);
@@ -277,8 +277,7 @@ intra_dc_sse_8bit_8x8(uint8_t* dst,int dstStride, uint8_t* border)
 // with    avg : 5.3x
 // without avg : 2.9x
 template <bool avg>
-void //__attribute__ ((noinline))
-intra_dc_sse_8bit_16x16(uint8_t* dst,int dstStride, uint8_t* border)
+void intra_dc_sse_8bit_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
 {
   __m128i zero   = _mm_setzero_si128();
   __m128i ones16 = _mm_set1_epi16(2);
@@ -388,7 +387,7 @@ intra_dc_sse_8bit_16x16(uint8_t* dst,int dstStride, uint8_t* border)
     for (int y=1;y<16;y++) {
       leftborder_packed = _mm_srli_si128(leftborder_packed, 1);
 
-      __m128i row = _mm_blendv_epi8(flatdc, leftborder_packed, leftbytemask);
+      __m128i row = _mm_blendv_epi8(flatdc, leftborder_packed, leftbytemask); // SSE4.1
       Deb(row);
 
       _mm_store_si128((__m128i*)(dst+y*dstStride), row);
@@ -402,8 +401,7 @@ intra_dc_sse_8bit_16x16(uint8_t* dst,int dstStride, uint8_t* border)
 
 
 // 1.97x faster
-static void //__attribute__ ((noinline))
-intra_dc_sse_noavg_8bit_32x32(uint8_t* dst,int dstStride, uint8_t* border)
+void intra_dc_noavg_8_32x32_ssse3(uint8_t* dst,int dstStride, uint8_t* border)
 {
   __m128i zero   = _mm_setzero_si128();
   __m128i ones16 = _mm_set1_epi16(4);
@@ -449,7 +447,7 @@ intra_dc_sse_noavg_8bit_32x32(uint8_t* dst,int dstStride, uint8_t* border)
   Deb(bordersum_a);
   Deb(bordersum_b);
 
-  __m128i dcsum4 = _mm_hadd_epi16(bordersum_b, zero);
+  __m128i dcsum4 = _mm_hadd_epi16(bordersum_b, zero); // SSSE3
   __m128i dcsum2 = _mm_hadd_epi16(dcsum4, zero);
   __m128i dcsum1 = _mm_hadd_epi16(dcsum2, zero);
 
@@ -462,7 +460,7 @@ intra_dc_sse_noavg_8bit_32x32(uint8_t* dst,int dstStride, uint8_t* border)
 
   Deb(dcsum);
 
-  __m128i flatdc = _mm_shuffle_epi8(dcsum, zero);
+  __m128i flatdc = _mm_shuffle_epi8(dcsum, zero); // SSSE3
 
   Deb(flatdc);
 
@@ -473,22 +471,17 @@ intra_dc_sse_noavg_8bit_32x32(uint8_t* dst,int dstStride, uint8_t* border)
 }
 
 
-void intra_dc_noavg_8_4x4_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_4x4<false>(dst,dstStride,border); }
-void intra_dc_avg_8_4x4_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_4x4<true>(dst,dstStride,border); }
+void intra_dc_noavg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_4x4_ssse3_sse41<false>(dst,dstStride,border); }
+void intra_dc_avg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_4x4_ssse3_sse41<true>(dst,dstStride,border); }
 
-void intra_dc_noavg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{
-  intra_dc_sse_8bit_8x8<false>(dst,dstStride,border);
-}
-void intra_dc_avg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_8x8<true>(dst,dstStride,border); }
+void intra_dc_noavg_8_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_8x8_ssse3_sse41<false>(dst,dstStride,border); }
+void intra_dc_avg_8_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_8x8_ssse3_sse41<true>(dst,dstStride,border); }
 
-void intra_dc_noavg_8_16x16_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_16x16<false>(dst,dstStride,border); }
-void intra_dc_avg_8_16x16_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_8bit_16x16<true>(dst,dstStride,border); }
-
-void intra_dc_noavg_8_32x32_sse4(uint8_t* dst,int dstStride, uint8_t* border)
-{ intra_dc_sse_noavg_8bit_32x32(dst,dstStride,border); }
+void intra_dc_noavg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_16x16_ssse3_sse41<false>(dst,dstStride,border); }
+void intra_dc_avg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
+{ intra_dc_sse_8bit_16x16_ssse3_sse41<true>(dst,dstStride,border); }

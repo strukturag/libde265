@@ -51,16 +51,16 @@ inline void store_2_4_6(uint8_t* dst, __m128i& result, int width)
     *(uint32_t*)(dst) = result32;
 
     // remaining two pixels
-    __m128i result2 = _mm_srli_si128(result, 4);
+    __m128i result2 = _mm_srli_si128(result, 4);  // SSE2
 
-    *(uint16_t*)(dst+4) = _mm_cvtsi128_si32(result2);
+    *(uint16_t*)(dst+4) = _mm_cvtsi128_si32(result2); // SSE2
   }
 }
 
 
-void put_pred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                    const int16_t __restrict__ *src, ptrdiff_t srcstride,
-                    int width, int height)
+void put_pred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
+                     const int16_t __restrict__ *src, ptrdiff_t srcstride,
+                     int width, int height)
 {
   __m128i round_offset = _mm_set1_epi16(32);
 
@@ -68,13 +68,13 @@ void put_pred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
     for (int y=0; y < height; y++) {
       __m128i input1 = _mm_load_si128((__m128i *) (src  +y*srcstride));
       __m128i input2 = _mm_load_si128((__m128i *) (src+8+y*srcstride));
-      __m128i round1 = _mm_adds_epi16(input1, round_offset);
+      __m128i round1 = _mm_adds_epi16(input1, round_offset); // SSE2
       __m128i round2 = _mm_adds_epi16(input2, round_offset);
-      __m128i shifted1 = _mm_srai_epi16(round1, 6);
+      __m128i shifted1 = _mm_srai_epi16(round1, 6); // SSE2
       __m128i shifted2 = _mm_srai_epi16(round2, 6);
       __m128i result8  = _mm_packus_epi16(shifted1, shifted2);
 
-      _mm_storeu_si128((__m128i *) (dst + y*dststride), result8);
+      _mm_storeu_si128((__m128i *) (dst + y*dststride), result8); // SSE2
     }
 
     width -= 16;
@@ -109,10 +109,10 @@ void put_pred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 }
 
 
-void put_bipred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                      const int16_t __restrict__ *src1,
-                      const int16_t __restrict__ *src2, ptrdiff_t srcstride,
-                      int width, int height)
+void put_bipred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
+                       const int16_t __restrict__ *src1,
+                       const int16_t __restrict__ *src2, ptrdiff_t srcstride,
+                       int width, int height)
 {
   __m128i round_offset = _mm_set1_epi16(64);
 
@@ -171,10 +171,10 @@ void put_bipred_8_sse(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 
 
 
-void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                             const int16_t *src, ptrdiff_t srcstride,
-                             int width, int height,
-                             int w,int o,int log2WD)
+void put_weighted_pred_8_ssse3(uint8_t *dst, ptrdiff_t dststride,
+                               const int16_t *src, ptrdiff_t srcstride,
+                               int width, int height,
+                               int w,int o,int log2WD)
 {
   __m128i flat_w = _mm_set1_epi16( w<<(15-log2WD) );
   __m128i offset = _mm_set1_epi16( o );
@@ -183,9 +183,9 @@ void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
     for (int y=0;y<height;y++) {
       __m128i in_a = _mm_load_si128((const __m128i*)(&src[y*srcstride]));
       __m128i in_b = _mm_load_si128((const __m128i*)(&src[y*srcstride+8]));
-      __m128i mul_a = _mm_mulhrs_epi16(in_a, flat_w);
+      __m128i mul_a = _mm_mulhrs_epi16(in_a, flat_w); // SSSE3
       __m128i mul_b = _mm_mulhrs_epi16(in_b, flat_w);
-      __m128i result_a16 = _mm_add_epi16(mul_a,offset);
+      __m128i result_a16 = _mm_add_epi16(mul_a,offset); // SSE2
       __m128i result_b16 = _mm_add_epi16(mul_b,offset);
       __m128i result_8  = _mm_packus_epi16(result_a16, result_b16);
       _mm_storeu_si128((__m128i*)(dst+y*dststride),   result_8);
@@ -242,11 +242,11 @@ static void print128(__m128i m)
 }
 
 
-void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                               const int16_t *src1, const int16_t *src2,
-                               ptrdiff_t srcstride,
-                               int width, int height,
-                               int w1,int o1, int w2,int o2, int log2WD)
+void put_weighted_bipred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
+                                const int16_t *src1, const int16_t *src2,
+                                ptrdiff_t srcstride,
+                                int width, int height,
+                                int w1,int o1, int w2,int o2, int log2WD)
 {
   if (D) printf("w1:%d w2:%d  o1:%d o2:%d log2WD:%d\n",w1,w2,o1,o2,log2WD);
 
@@ -297,7 +297,7 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
         __m128i input2 = _mm_loadu_si128((const __m128i*)(&src2[y*srcstride]));
         Deb(input1);
         Deb(input2);
-        __m128i mul1low  = _mm_mullo_epi16( flat_w1, input1 );
+        __m128i mul1low  = _mm_mullo_epi16( flat_w1, input1 ); // SSE2
         __m128i mul2low  = _mm_mullo_epi16( flat_w2, input2 );
         __m128i mul1high = _mm_mulhi_epi16( flat_w1, input1 );
         __m128i mul2high = _mm_mulhi_epi16( flat_w2, input2 );
@@ -439,9 +439,9 @@ void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
 
 
 template <bool chroma>
-inline void put_hevc_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                  const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                                  int16_t* mcbuffer)
+inline void put_hevc_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
+                                   const uint8_t *src, ptrdiff_t srcstride, int width, int height,
+                                   int16_t* mcbuffer)
 {
   __m128i zero = _mm_setzero_si128();
 
@@ -452,7 +452,7 @@ inline void put_hevc_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
       __m128i input16low  = _mm_unpacklo_epi8(input, zero);
       __m128i input16high = _mm_unpackhi_epi8(input, zero);
 
-      __m128i shifted_low = _mm_slli_epi16(input16low,  6);
+      __m128i shifted_low = _mm_slli_epi16(input16low,  6); // SSE2
       __m128i shifted_high= _mm_slli_epi16(input16high, 6);
 
       _mm_storeu_si128((__m128i *) &dst[y*dststride  ], shifted_low);
@@ -507,19 +507,19 @@ inline void put_hevc_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
 }
 
 
-void put_hevc_luma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                const uint8_t *src, ptrdiff_t srcstride,
-                                int width, int height,
-                                int16_t* mcbuffer)
+void put_hevc_luma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
+                                 const uint8_t *src, ptrdiff_t srcstride,
+                                 int width, int height,
+                                 int16_t* mcbuffer)
 {
-  put_hevc_direct_8_sse<false>(dst,dststride, src,srcstride, width,height, mcbuffer);
+  put_hevc_direct_8_sse2<false>(dst,dststride, src,srcstride, width,height, mcbuffer);
 }
 
 
-void put_hevc_chroma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                  const uint8_t *src, ptrdiff_t srcstride,
-                                  int width, int height, int mx,
-                                  int my, int16_t* mcbuffer)
+void put_hevc_chroma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
+                                   const uint8_t *src, ptrdiff_t srcstride,
+                                   int width, int height, int mx,
+                                   int my, int16_t* mcbuffer)
 {
-  put_hevc_direct_8_sse<true>(dst,dststride, src,srcstride, width,height, mcbuffer);
+  put_hevc_direct_8_sse2<true>(dst,dststride, src,srcstride, width,height, mcbuffer);
 }

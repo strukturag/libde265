@@ -25,16 +25,15 @@
 #include <stdint.h>
 
 
-void intra_dc_noavg_8_4x4_sse4(uint8_t* dst,int dstStride, uint8_t* border);
-void intra_dc_avg_8_4x4_sse4(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_noavg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_avg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
 
-void intra_dc_noavg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border);
-void intra_dc_avg_8_8x8_sse4(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_noavg_8_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_avg_8_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
 
-void intra_dc_noavg_8_16x16_sse4(uint8_t* dst,int dstStride, uint8_t* border);
-void intra_dc_avg_8_16x16_sse4(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_noavg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_avg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border);
 
-void intra_dc_noavg_8_32x32_sse4(uint8_t* dst,int dstStride, uint8_t* border);
-void intra_dc_avg_8_32x32_sse4(uint8_t* dst,int dstStride, uint8_t* border);
+void intra_dc_noavg_8_32x32_ssse3(uint8_t* dst,int dstStride, uint8_t* border);
 
 #endif

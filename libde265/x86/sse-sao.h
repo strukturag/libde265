@@ -26,8 +26,8 @@
 
 // --- SAO ---
 
-void sao_band_sse_8bit(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
-                       int width, int height,
-                       int baseBand, int offset0, int offset1, int offset2, int offset3);
+void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
+                        int width, int height,
+                        int baseBand, int offset0, int offset1, int offset2, int offset3);
 
 #endif

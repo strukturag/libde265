@@ -41,9 +41,9 @@ static void print128(__m128i m)
 }
 
 
-void sao_band_sse_8bit(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
-                       int width, int height,
-                       int baseBand, int offset0, int offset1, int offset2, int offset3)
+void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
+                        int width, int height,
+                        int baseBand, int offset0, int offset1, int offset2, int offset3)
 {
   const char bitDepth = 8;
   const char shift = bitDepth-5;
@@ -69,7 +69,7 @@ void sao_band_sse_8bit(uint8_t* dst,int dststride, const uint8_t* src,int srcstr
 
       __m128i masked_input = _mm_load_si128(in);
       masked_input = _mm_and_si128(masked_input, mask);
-      __m128i cmpband0 = _mm_cmpeq_epi8(masked_input, band0);
+      __m128i cmpband0 = _mm_cmpeq_epi8(masked_input, band0); // SSE2
       __m128i cmpband1 = _mm_cmpeq_epi8(masked_input, band1);
       __m128i cmpband2 = _mm_cmpeq_epi8(masked_input, band2);
       __m128i cmpband3 = _mm_cmpeq_epi8(masked_input, band3);
@@ -80,12 +80,12 @@ void sao_band_sse_8bit(uint8_t* dst,int dststride, const uint8_t* src,int srcstr
       if (D) { print128(cmpband2);  printf(" cmpband2\n"); }
       if (D) { print128(cmpband3);  printf(" cmpband3\n"); }
 
-      __m128i offsetband0 = _mm_and_si128(cmpband0, _mm_set1_epi8(offset0));
+      __m128i offsetband0 = _mm_and_si128(cmpband0, _mm_set1_epi8(offset0)); // SSE2
       __m128i offsetband1 = _mm_and_si128(cmpband1, _mm_set1_epi8(offset1));
       __m128i offsetband2 = _mm_and_si128(cmpband2, _mm_set1_epi8(offset2));
       __m128i offsetband3 = _mm_and_si128(cmpband3, _mm_set1_epi8(offset3));
 
-      __m128i offset = _mm_or_si128( _mm_or_si128(offsetband0, offsetband1),
+      __m128i offset = _mm_or_si128( _mm_or_si128(offsetband0, offsetband1), // SSE2
                                      _mm_or_si128(offsetband2, offsetband3) );
 
       if (D) { print128(offset);  printf(" offset\n"); }

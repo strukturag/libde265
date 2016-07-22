@@ -25,33 +25,33 @@
 #include <stdint.h>
 
 
-void put_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                    const int16_t *src, ptrdiff_t srcstride,
-                    int width, int height);
+void put_pred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
+                     const int16_t *src, ptrdiff_t srcstride,
+                     int width, int height);
 
-void put_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                      const int16_t *src1,
-                      const int16_t *src2, ptrdiff_t srcstride,
-                      int width, int height);
+void put_bipred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
+                       const int16_t *src1,
+                       const int16_t *src2, ptrdiff_t srcstride,
+                       int width, int height);
 
-void put_weighted_pred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                             const int16_t *src, ptrdiff_t srcstride,
-                             int width, int height,
-                             int w,int o,int log2WD);
-
-void put_weighted_bipred_8_sse(uint8_t *dst, ptrdiff_t dststride,
-                               const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+void put_weighted_pred_8_ssse3(uint8_t *dst, ptrdiff_t dststride,
+                               const int16_t *src, ptrdiff_t srcstride,
                                int width, int height,
-                               int w1,int o1, int w2,int o2, int log2WD);
+                               int w,int o,int log2WD);
 
-void put_hevc_luma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                const uint8_t *_src, ptrdiff_t _srcstride,
+void put_weighted_bipred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
+                                const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                 int width, int height,
-                                int16_t* mcbuffer);
+                                int w1,int o1, int w2,int o2, int log2WD);
 
-void put_hevc_chroma_direct_8_sse(int16_t *dst, ptrdiff_t dststride,
-                                  const uint8_t *src, ptrdiff_t srcstride,
-                                  int width, int height, int mx,
-                                  int my, int16_t* mcbuffer);
+void put_hevc_luma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
+                                 const uint8_t *_src, ptrdiff_t _srcstride,
+                                 int width, int height,
+                                 int16_t* mcbuffer);
+
+void put_hevc_chroma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
+                                   const uint8_t *src, ptrdiff_t srcstride,
+                                   int width, int height, int mx,
+                                   int my, int16_t* mcbuffer);
 
 #endif
