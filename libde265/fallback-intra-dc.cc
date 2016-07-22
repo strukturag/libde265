@@ -102,7 +102,7 @@ inline void intra_dc_fallback_8x8_8bit(uint8_t* dst,int dstStride,
   dcVal += nT;
   dcVal >>= Log2_nT+1;
 
-  if (1 || avg) {
+  if (avg) {
     dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
 
     for (int x=1;x<nT;x++) {
