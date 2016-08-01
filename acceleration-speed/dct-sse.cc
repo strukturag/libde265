@@ -35,7 +35,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,4*4);
-    ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4);
+    ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4, 3,3);
   }
 };
 
@@ -50,7 +50,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,8*8);
-    ff_hevc_transform_8x8_add_8_sse4(out, xy2coeff(x,y), 8);
+    ff_hevc_transform_8x8_add_8_sse4(out, xy2coeff(x,y), 8, 7,7);
   }
 };
 
@@ -65,7 +65,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,16*16);
-    ff_hevc_transform_16x16_add_8_sse4(out, xy2coeff(x,y), 16);
+    ff_hevc_transform_16x16_add_8_sse4(out, xy2coeff(x,y), 16, 15,15);
   }
 };
 
@@ -80,7 +80,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,32*32);
-    ff_hevc_transform_32x32_add_8_sse4(out, xy2coeff(x,y), 32);
+    ff_hevc_transform_32x32_add_8_sse4(out, xy2coeff(x,y), 32, 31,31);
   }
 };
 

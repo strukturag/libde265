@@ -222,10 +222,14 @@ void transform_coefficients(acceleration_functions* acceleration,
       //printf("region: %dx%d\n",maxColumn,maxRow);
     }
 
-    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth); }
-    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth); }
-    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth); }
-    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth); }
+    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
   }
 
 #if 0
@@ -310,7 +314,7 @@ void transform_coefficients_explicit(thread_context* tctx,
 
 void inv_transform(acceleration_functions* acceleration,
                    uint8_t* dst, int dstStride, int16_t* coeff,
-                   int log2TbSize, int trType)
+                   int log2TbSize, int trType, int maxColumn, int maxRow)
 {
   if (trType==1) {
     assert(log2TbSize==2);
@@ -318,7 +322,7 @@ void inv_transform(acceleration_functions* acceleration,
     acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
 
   } else {
-    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride);
+    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride, maxColumn,maxRow);
   }
 
 

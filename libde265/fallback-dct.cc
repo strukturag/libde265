@@ -862,43 +862,47 @@ void transform_idct_32x32_fallback(int32_t *dst, const int16_t *coeffs,
 
 
 
-void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                  int maxColumn,int maxRow)
 {
   transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8);
 }
 
-void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                  int maxColumn,int maxRow)
 {
   transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8);
 }
 
-void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                    int maxColumn,int maxRow)
 {
   transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8);
 }
 
-void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                    int maxColumn,int maxRow)
 {
   transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8);
 }
 
 
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
   transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth);
 }
 
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
   transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth);
 }
 
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
   transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth);
 }
 
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
   transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth);
 }

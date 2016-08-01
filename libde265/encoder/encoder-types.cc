@@ -211,9 +211,12 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
       //printf("--- prediction %d %d / %d ---\n",x0,y0,cIdx);
       //printBlk("prediction",ptr,1<<log2TbSize,stride);
 
+      const int worstCaseWidth = (1<<log2TbSize)-1; // TODO: can later be derived from data
+
       if (cbf[cIdx]) inv_transform(&ectx->acceleration,
                                    reconstruction[cIdx]->get_buffer<uint8_t>(), 1<<log2TbSize,
-                                   dequant_coeff, log2TbSize,   trType);
+                                   dequant_coeff, log2TbSize,   trType,
+                                   worstCaseWidth, worstCaseWidth);
 
       //printBlk("RECO",reconstruction[cIdx]->get_buffer_u8(),1<<log2TbSize,
       //         reconstruction[cIdx]->getStride());
