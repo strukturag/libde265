@@ -34,6 +34,10 @@
 #endif
 
 
+#define enable_fast 1
+
+
+
 ALIGNED_16(static const int16_t) transform4x4_luma[8][8] =
 {
     {   29, +84, 29,  +84,  29, +84,  29, +84 },
@@ -343,8 +347,8 @@ void ff_hevc_transform_skip_8_sse(uint8_t *_dst, const int16_t *coeffs, ptrdiff_
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                           ptrdiff_t _stride) {
-
+                                           ptrdiff_t _stride)
+{
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
@@ -624,7 +628,58 @@ void ff_hevc_transform_4x4_luma_add_10_sse4(uint8_t *_dst, const int16_t *coeffs
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_4x4_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                      ptrdiff_t _stride,int maxColumn,int maxRow) {
+                                      ptrdiff_t _stride,int maxColumn,int maxRow)
+{
+  if (enable_fast)
+  if (maxColumn==0 && maxRow==0) {
+    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
+    int r = (g+32)>>(12-6);   // 9 bit (8 bit + sign)
+    // TODO: this can theoretically overflow when (g+32) exceeds 0x3FFF
+
+    if (r>0) {
+      __m128i dc8  = _mm_set1_epi8(r); // 8 bit (no sign)
+
+      for (int y=0;y<4;y++) {
+        uint32_t in = *(uint32_t*)(_dst + y*_stride);
+        __m128i input8_a = _mm_cvtsi32_si128(in);
+        __m128i output8_a = _mm_adds_epu8(input8_a, dc8);
+        *(uint32_t*)(_dst + y*_stride) = _mm_cvtsi128_si32(output8_a);
+      }
+    }
+    else if (r<0) {
+      __m128i dc8  = _mm_set1_epi8(-r); // 8 bit (no sign)
+
+      for (int y=0;y<4;y++) {
+        uint32_t in = *(uint32_t*)(_dst + y*_stride);
+        __m128i input8_a = _mm_cvtsi32_si128(in);
+        __m128i output8_a = _mm_subs_epu8(input8_a, dc8);
+        *(uint32_t*)(_dst + y*_stride) = _mm_cvtsi128_si32(output8_a);
+      }
+    }
+    else {
+      // r==0
+    }
+
+    return;
+  }
+
+
+  static int total=0;
+  total++;
+
+  if (enable_fast)
+  if (maxColumn==0 && maxRow==0) {
+    static int dc = 0;
+    dc++;
+
+    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
+    int r = g>>(12-6);        // 9 bit (8 bit + sign)
+
+    static int z = 0;
+    if (r==0) z++;
+    printf("4x4 : %d / %d / %d\n",z,dc,total);
+  }
+
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
@@ -840,7 +895,40 @@ void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                      ptrdiff_t _stride,int maxColumn,int maxRow) {
+                                      ptrdiff_t _stride,int maxColumn,int maxRow)
+{
+  if (enable_fast)
+  if (maxColumn==0 && maxRow==0) {
+    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
+    int r = (g+32)>>(12-6);   // 9 bit (8 bit + sign)
+    // TODO: this can theoretically overflow when (g+32) exceeds 0x3FFF
+
+    if (r>0) {
+      __m128i dc8  = _mm_set1_epi8(r); // 8 bit (no sign)
+
+      for (int y=0;y<8;y++) {
+        __m128i input8_a = _mm_loadl_epi64((const __m128i*)(_dst + y*_stride));
+        __m128i output8_a = _mm_adds_epu8(input8_a, dc8);
+        _mm_storel_epi64((__m128i*)(_dst+y*_stride),    output8_a);
+      }
+    }
+    else if (r<0) {
+      __m128i dc8  = _mm_set1_epi8(-r); // 8 bit (no sign)
+
+      for (int y=0;y<8;y++) {
+        __m128i input8_a = _mm_loadl_epi64((const __m128i*)(_dst + y*_stride));
+        __m128i output8_a = _mm_subs_epu8(input8_a, dc8);
+        _mm_storel_epi64((__m128i*)(_dst+y*_stride),    output8_a);
+      }
+    }
+    else {
+      // r==0
+    }
+
+    return;
+  }
+
+
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
@@ -1490,7 +1578,50 @@ void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                        ptrdiff_t _stride,int maxColumn,int maxRow) {
+                                        ptrdiff_t _stride,int maxColumn,int maxRow)
+{
+  //static int total=0;
+  //total++;
+
+  if (enable_fast)
+  if (maxColumn==0 && maxRow==0) {
+    //static int dc = 0;
+    //dc++;
+
+    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
+    int r = (g+32)>>(12-6);   // 9 bit (8 bit + sign)
+
+    //static int z = 0;
+    //if (r==0) z++;
+    //printf("%d / %d / %d\n",z,dc,total);
+
+    if (r>0) {
+      __m128i dc8  = _mm_set1_epi8(r); // 8 bit (no sign)
+
+      for (int y=0;y<16;y++) {
+        __m128i input8_a = _mm_load_si128((const __m128i*)(_dst + y*_stride));
+        __m128i output8_a = _mm_adds_epu8(input8_a, dc8);
+        _mm_store_si128((__m128i*)(_dst+y*_stride),    output8_a);
+      }
+    }
+    else if (r<0) {
+      __m128i dc8  = _mm_set1_epi8(-r); // 8 bit (no sign)
+
+      for (int y=0;y<16;y++) {
+        __m128i input8_a = _mm_load_si128((const __m128i*)(_dst + y*_stride));
+        __m128i output8_a = _mm_subs_epu8(input8_a, dc8);
+        _mm_store_si128((__m128i*)(_dst+y*_stride),    output8_a);
+      }
+    }
+    else {
+      // r==0
+      return;
+    }
+
+    return;
+  }
+
+
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
     int i;
@@ -2910,7 +3041,87 @@ void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                        ptrdiff_t _stride,int maxColumn,int maxRow) {
+                                        ptrdiff_t _stride,int maxColumn,int maxRow)
+{
+  //static int total=0;
+  //total++;
+  if (enable_fast)
+  if (maxColumn==0 && maxRow==0) {
+    //static int dc = 0;
+    //dc++;
+
+    //int g = Clip3(-32768,32767, (coeffs[0]+1)>>1);
+    int g = (coeffs[0]+1)>>1;
+    int r = (g+32)>>(12-6);
+
+    //static int z = 0;
+    //if (r==0) z++;
+    //printf("%d / %d / %d\n",z,dc,total);
+
+    if (r>0) {
+      __m128i dc8  = _mm_set1_epi8(r);
+
+      for (int y=0;y<32;y++) {
+        __m128i input8_a = _mm_load_si128((const __m128i*)(_dst + y*_stride));
+        __m128i input8_b = _mm_load_si128((const __m128i*)(_dst + y*_stride +16));
+
+        __m128i output8_a = _mm_adds_epu8(input8_a, dc8);
+        __m128i output8_b = _mm_adds_epu8(input8_b, dc8);
+
+        _mm_store_si128((__m128i*)(_dst+y*_stride),    output8_a);
+        _mm_store_si128((__m128i*)(_dst+y*_stride+16), output8_b);
+      }
+    }
+    else if (r<0) {
+      __m128i dc8  = _mm_set1_epi8(-r);
+
+      for (int y=0;y<32;y++) {
+        __m128i input8_a = _mm_load_si128((const __m128i*)(_dst + y*_stride));
+        __m128i input8_b = _mm_load_si128((const __m128i*)(_dst + y*_stride +16));
+
+        __m128i output8_a = _mm_subs_epu8(input8_a, dc8);
+        __m128i output8_b = _mm_subs_epu8(input8_b, dc8);
+
+        _mm_store_si128((__m128i*)(_dst+y*_stride),    output8_a);
+        _mm_store_si128((__m128i*)(_dst+y*_stride+16), output8_b);
+      }
+    }
+    else {
+      // r==0
+      return;
+    }
+
+    if (0) {
+      __m128i dc16 = _mm_set1_epi16(r);
+      __m128i zero = _mm_setzero_si128();
+
+      for (int y=0;y<32;y++) {
+        __m128i input8_a = _mm_load_si128((const __m128i*)(_dst + y*_stride));
+        __m128i input8_b = _mm_load_si128((const __m128i*)(_dst + y*_stride +16));
+
+        __m128i input16_a_low  = _mm_unpacklo_epi8(input8_a ,zero);
+        __m128i input16_a_high = _mm_unpackhi_epi8(input8_a ,zero);
+        __m128i input16_b_low  = _mm_unpacklo_epi8(input8_b ,zero);
+        __m128i input16_b_high = _mm_unpackhi_epi8(input8_b ,zero);
+
+        input16_a_low = _mm_add_epi16(input16_a_low,  dc16);
+        input16_a_high= _mm_add_epi16(input16_a_high, dc16);
+        input16_b_low = _mm_add_epi16(input16_b_low,  dc16);
+        input16_b_high= _mm_add_epi16(input16_b_high, dc16);
+
+        __m128i output8_a = _mm_packus_epi16(input16_a_low, input16_a_high);
+        __m128i output8_b = _mm_packus_epi16(input16_b_low, input16_b_high);
+
+        _mm_store_si128((__m128i*)(_dst+y*_stride),    output8_a);
+        _mm_store_si128((__m128i*)(_dst+y*_stride+16), output8_b);
+      }
+    }
+
+    //printf("32x32 DC\n");
+
+    return;
+  }
+
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
     int i, j;
