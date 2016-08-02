@@ -15,6 +15,7 @@ const bool D=0;
 
 void intra_dc();
 void motion();
+void dct();
 
 
 void print128(__m128i m)
@@ -58,7 +59,7 @@ void sao()
 
   for (int i=0;i<10000;i++) {
     for (int j=0;j<1000;j++) {
-      sao_band_sse_8bit     (dstsse,16, blk,16, 16,16,  31, 10,-10,5,-5);
+      //sao_band_sse_8bit     (dstsse,16, blk,16, 16,16,  31, 10,-10,5,-5);
       //sao_band_fallback_8bit(dstc,  16, blk,16, 16,16,  31, 10,-10,5,-5);
     }
   }
@@ -129,7 +130,8 @@ int main()
 {
   //sao();
   //intra_dc();
-  motion();
+  //motion();
+  dct();
 
   //memory();
   //matrix();

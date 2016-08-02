@@ -89,7 +89,7 @@ void intra_dc()
       //intra_dc_noavg_8_8x8_sse4(dstc,imgw, border+2*w);
 
       //intra_dc_avg_8_8x8_fallback(dstc,imgw, border+2*w);
-      intra_dc_avg_8_8x8_sse4(dstc,imgw, border+2*w);
+      //intra_dc_avg_8_8x8_sse4(dstc,imgw, border+2*w);
     }
 
     if (w==16) {
@@ -97,7 +97,7 @@ void intra_dc()
       //intra_dc_noavg_8_16x16_sse4(dstsse,imgw, border+2*w);
 
       //intra_dc_avg_8_16x16_fallback(dstc,imgw, border+2*w);
-      intra_dc_avg_8_16x16_sse4(dstsse,imgw, border+2*w);
+      //intra_dc_avg_8_16x16_sse4(dstsse,imgw, border+2*w);
     }
 
     if (w==32) {

@@ -131,8 +131,8 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
 
     // actually, for these two functions, the scalar fallback seems to be faster than the SSE code
     //accel->transform_4x4_luma_add_8 = ff_hevc_transform_4x4_luma_add_8_sse4; // SSE-4 only TODO
-    //accel->transform_add_8[0] = ff_hevc_transform_4x4_add_8_sse4;
 
+    accel->transform_add_8[0] = idct_4x4_add_8_sse4;
     accel->transform_add_8[1] = ff_hevc_transform_8x8_add_8_sse4;
     accel->transform_add_8[2] = ff_hevc_transform_16x16_add_8_sse4;
     accel->transform_add_8[3] = ff_hevc_transform_32x32_add_8_sse4;

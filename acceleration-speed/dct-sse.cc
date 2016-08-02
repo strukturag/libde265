@@ -35,7 +35,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,4*4);
-    ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4, 3,3);
+    //ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4, 3,3);
   }
 };
 

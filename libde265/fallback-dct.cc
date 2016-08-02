@@ -599,6 +599,16 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     }
   */
 
+#if 0
+  if (nT==4) {
+  printf("--- input\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%04x ",coeffs[c+r*nT]);
+    }
+  }
+#endif
+
   for (int c=0;c<nT;c++) {
 
     /*
@@ -619,40 +629,47 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-
-      /*
+#if 0
+      if (nT==4) {
       printf("input: ");
       for (int j=0;j<nT;j++) {
-        printf("%3d ",coeffs[c+j*nT]);
+        printf("%04x ",coeffs[c+j*nT]);
       }
       printf("\n");
 
-      printf("mat: ");
+      printf("mat[%d]: ",i);
       for (int j=0;j<nT;j++) {
-        printf("%3d ",mat_dct[fact*j][i]);
+        printf("%04x ",mat_dct[fact*j][i]);
       }
       printf("\n");
-      */
-
+      }
+#endif
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
       }
 
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
-
+#if 0
+      if (nT==4) {
+        printf("out[%d] : %04x + %04x -> %04x\n",i,sum,rnd1,g[c+i*nT]);
+      }
+#endif
       logtrace(LogTransform,"*%d ",g[c+i*nT]);
     }
     logtrace(LogTransform,"*\n");
   }
 
-  /*
+#if 0
+  if (nT==4) {
   printf("--- temp\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
-      printf("%3d ",g[c+r*nT]);
+      printf("%04x ",g[c+r*nT]);
     }
-  */
+  }
 
+  printf("------------------------ H\n");
+#endif
   for (int y=0;y<nT;y++) {
     /*
     logtrace(LogTransform,"DCT-H: ");
@@ -676,7 +693,11 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * g[y*nT+j];
+
+        //        printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
       }
+
+      //      printf("-> %04x\n",sum);
 
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
@@ -686,6 +707,8 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
         printf("%d -> g[0]=%d sum=%d bdShift=%d add=%d\n",coeffs[0],g[0],sum,postShift,out);
       }
       */
+
+      //      printf("------------------------------------> out = %04x\n",out);
 
       //fprintf(stderr,"%d*%d+%d = %d\n",y,stride,i,y*stride+i);
       //fprintf(stderr,"[%p]=%d\n",&dst[y*stride+i], Clip1_8bit(dst[y*stride+i]));
