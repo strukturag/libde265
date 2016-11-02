@@ -54,6 +54,7 @@ set (libde265_sources
   acceleration.h
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h
   fallback-dct.h fallback-dct.cc fallback-sao.h fallback-sao.cc
+  fallback-intra-dc.cc
   quality.cc quality.h
   configparam.cc configparam.h
   image-io.h image-io.cc
