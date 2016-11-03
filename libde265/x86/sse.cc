@@ -76,7 +76,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
   int have_SSE    = !!(edx & (1<<25));
   int have_SSE2   = !!(edx & (1<<26));
   int have_SSE3   = !!(ecx & (1<< 0));
-  int have_SSSE3  = !!(edx & (1<< 9));
+  int have_SSSE3  = !!(ecx & (1<< 9));
   int have_SSE4_1 = !!(ecx & (1<<19));
   int have_SSE4_2 = !!(ecx & (1<<20));
   int have_AVX    = !!(ecx & (1<<28));
@@ -94,22 +94,25 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
   }
 
 #if HAVE_SSE4_1
-  if (have_SSE2) {
+  if (have_SSE4_1) {
     accel->put_unweighted_pred_8   = put_pred_8_sse2;
     accel->put_weighted_pred_avg_8 = put_bipred_8_sse2;
   }
 
   if (have_SSSE3) { accel->put_weighted_pred_8 = put_weighted_pred_8_ssse3; }
+
   if (have_SSE2)  { accel->put_weighted_bipred_8 = put_weighted_bipred_8_sse2; }
 
-  if (have_SSE2) { accel->put_hevc_epel_8    = put_hevc_chroma_direct_8_sse2; }
+  if (have_SSE4_1) { accel->put_hevc_epel_8    = put_hevc_chroma_direct_8_sse2; }
+
   if (have_SSE4_1) { // TODO: check requirements
     accel->put_hevc_epel_h_8  = ff_hevc_put_hevc_epel_h_8_sse;
     accel->put_hevc_epel_v_8  = ff_hevc_put_hevc_epel_v_8_sse;
     accel->put_hevc_epel_hv_8 = ff_hevc_put_hevc_epel_hv_8_sse;
   }
 
-  if (have_SSE2) { accel->put_hevc_qpel_8[0][0] = put_hevc_luma_direct_8_sse2; }
+  if (have_SSE4_1) { accel->put_hevc_qpel_8[0][0] = put_hevc_luma_direct_8_sse2; }
+
   if (have_SSE4_1) { // TODO: check requirements
     accel->put_hevc_qpel_8[0][1] = ff_hevc_put_hevc_qpel_v_1_8_sse;
     accel->put_hevc_qpel_8[0][2] = ff_hevc_put_hevc_qpel_v_2_8_sse;
@@ -152,6 +155,6 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
   if (have_SSSE3) { accel->intra_dc_noavg_8[3] = intra_dc_noavg_8_32x32_ssse3; }
   accel->intra_dc_avg_8[3]   = nullptr;
 
-  if (have_SSE2) { accel->sao_band_8 = sao_band_8bit_sse2; }
+  if (have_SSSE3) { accel->sao_band_8 = sao_band_8bit_sse2; }
 #endif
 }
