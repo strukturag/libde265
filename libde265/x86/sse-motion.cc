@@ -25,8 +25,8 @@
 
 #include <stdio.h>
 #include <emmintrin.h>
-#include <tmmintrin.h> // SSSE3
 #if HAVE_SSE4_1
+#include <tmmintrin.h> // SSSE3
 #include <smmintrin.h>
 #endif
 
@@ -820,6 +820,7 @@ void ff_hevc_put_hevc_epel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
 }
 #endif
 
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_epel_h_8_sse(int16_t *dst, ptrdiff_t dststride,
                                    const uint8_t *_src, ptrdiff_t _srcstride,
                                    int width, int height, int mx,
@@ -916,7 +917,9 @@ void ff_hevc_put_hevc_epel_h_8_sse(int16_t *dst, ptrdiff_t dststride,
         }
     }
 }
+#endif
 
+#if HAVE_SSE4_1
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_h_10_sse(int16_t *dst, ptrdiff_t dststride,
                                     const uint8_t *_src, ptrdiff_t _srcstride,
@@ -979,7 +982,7 @@ void ff_hevc_put_hevc_epel_h_10_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 #endif
-
+#endif
 
 void ff_hevc_put_hevc_epel_v_8_sse(int16_t *dst, ptrdiff_t dststride,
                                    const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
@@ -1287,6 +1290,7 @@ void ff_hevc_put_hevc_epel_v_10_sse(int16_t *dst, ptrdiff_t dststride,
 }
 #endif
 
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_epel_hv_8_sse(int16_t *dst, ptrdiff_t dststride,
                                     const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
                                     int my, int16_t* mcbuffer, int bit_depth) {
@@ -1511,8 +1515,10 @@ void ff_hevc_put_hevc_epel_hv_8_sse(int16_t *dst, ptrdiff_t dststride,
 	}
 
 }
+#endif
 
 
+#if HAVE_SSE4_1
 #ifndef __native_client__
 void ff_hevc_put_hevc_epel_hv_10_sse(int16_t *dst, ptrdiff_t dststride,
                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height, int mx,
@@ -1675,6 +1681,7 @@ void ff_hevc_put_hevc_epel_hv_10_sse(int16_t *dst, ptrdiff_t dststride,
     }
 }
 #endif
+#endif
 
 
 #ifndef __native_client__
@@ -1725,6 +1732,7 @@ void ff_hevc_put_hevc_qpel_pixels_10_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_1_8_sse(int16_t *dst, ptrdiff_t dststride,
                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -1820,6 +1828,10 @@ void ff_hevc_put_hevc_qpel_h_1_8_sse(int16_t *dst, ptrdiff_t dststride,
     }
 
 }
+#endif
+
+
+#if HAVE_SSE4_1
 #ifndef __native_client__
 /*
  * @TODO : Valgrind to see if it's useful to use SSE or wait for AVX2 implementation
@@ -1856,8 +1868,10 @@ void ff_hevc_put_hevc_qpel_h_1_10_sse(int16_t *dst, ptrdiff_t dststride,
 
 }
 #endif
+#endif
 
 
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_2_8_sse(int16_t *dst, ptrdiff_t dststride,
                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -1924,8 +1938,8 @@ void ff_hevc_put_hevc_qpel_h_2_8_sse(int16_t *dst, ptrdiff_t dststride,
             dst += dststride;
         }
     }
-
 }
+#endif
 
 #if 0
 static void ff_hevc_put_hevc_qpel_h_2_sse(int16_t *dst, ptrdiff_t dststride,
@@ -2063,6 +2077,7 @@ static void ff_hevc_put_hevc_qpel_h_3_sse(int16_t *dst, ptrdiff_t dststride,
 }
 #endif
 
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_3_8_sse(int16_t *dst, ptrdiff_t dststride,
                                      const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -2126,6 +2141,9 @@ void ff_hevc_put_hevc_qpel_h_3_8_sse(int16_t *dst, ptrdiff_t dststride,
         }
     }
 }
+#endif
+
+
 /**
  for column MC treatment, we will calculate 8 pixels at the same time by multiplying the values
  of each row.
@@ -3030,7 +3048,7 @@ void ff_hevc_put_hevc_qpel_v_3_10_sse(int16_t *dst, ptrdiff_t dststride,
 #endif
 
 
-
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_1_v_1_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3203,6 +3221,10 @@ void ff_hevc_put_hevc_qpel_h_1_v_1_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_1_v_2_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3386,6 +3408,10 @@ void ff_hevc_put_hevc_qpel_h_1_v_2_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_1_v_3_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3563,6 +3589,10 @@ void ff_hevc_put_hevc_qpel_h_1_v_3_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_2_v_1_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3734,6 +3764,10 @@ void ff_hevc_put_hevc_qpel_h_2_v_1_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_2_v_2_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -3917,6 +3951,10 @@ void ff_hevc_put_hevc_qpel_h_2_v_2_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_2_v_3_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -4095,6 +4133,10 @@ void ff_hevc_put_hevc_qpel_h_2_v_3_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_3_v_1_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -4268,6 +4310,10 @@ void ff_hevc_put_hevc_qpel_h_3_v_1_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_3_v_2_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -4454,6 +4500,10 @@ void ff_hevc_put_hevc_qpel_h_3_v_2_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif
+
+
+#if HAVE_SSE4_1
 void ff_hevc_put_hevc_qpel_h_3_v_3_sse(int16_t *dst, ptrdiff_t dststride,
                                        const uint8_t *_src, ptrdiff_t _srcstride, int width, int height,
         int16_t* mcbuffer) {
@@ -4634,3 +4684,4 @@ void ff_hevc_put_hevc_qpel_h_3_v_3_sse(int16_t *dst, ptrdiff_t dststride,
         dst += dststride;
     }
 }
+#endif

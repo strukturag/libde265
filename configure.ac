@@ -172,31 +172,52 @@ AC_MSG_RESULT([$has_nullptr])
 
 #AX_EXT
 
-AC_ARG_ENABLE(sse,
-              [AS_HELP_STRING([--disable-sse],
-                              [disable SSE optimizations (default=no)])],
-  [disable_sse=yes],
-  [disable_sse=no])
+AC_ARG_ENABLE(sse2,
+              [AS_HELP_STRING([--enable-sse2],
+                              [enable SSE2 optimizations (default=yes)])],[],[enable_sse2=yes])
 
-if eval "test x$disable_sse != xyes"; then
-    case $target_cpu in
-      powerpc*)
-        ;;
+AC_ARG_ENABLE(sse4,
+              [AS_HELP_STRING([--enable-sse4],
+                              [enable SSE4.1 optimizations (default=yes)])],[],[enable_sse4=yes])
 
-      i[[3456]]86*|x86_64*|amd64*)
 
-        AX_CHECK_COMPILE_FLAG(-msse4.1, ax_cv_support_sse41_ext=yes, [])
-        if test x"$ax_cv_support_sse41_ext" = x"yes"; then
-#          SIMD_FLAGS="$SIMD_FLAGS -msse4.1"
-          AC_DEFINE(HAVE_SSE4_1,1,[Support SSSE4.1 (Streaming SIMD Extensions 4.1) instructions])
-        else
-          AC_MSG_WARN([Your compiler does not support SSE4.1 instructions, can you try another compiler?])
-        fi
-        ;;
+case $target_cpu in
+  powerpc*)
+    ;;
 
-    esac
+  i[[3456]]86*|x86_64*|amd64*)
+
+    if [[ $enable_sse4 == yes ]] ; then
+      AX_CHECK_COMPILE_FLAG(-msse4.1,
+          [ AC_DEFINE(HAVE_SSE4_1,1,[Support SSE4.1 instructions])
+            SSE_COMPILER_OPTION=-msse4.1
+            MSG_ACCELERATION_OPTION+="SSE4.1 "
+          ],
+          [ AC_MSG_ERROR([Your compiler does not support SSE4.1 instructions.]) ])
+    elif [[ $enable_sse2 == yes ]] ; then
+      AX_CHECK_COMPILE_FLAG(-msse2,
+          [ AC_DEFINE(HAVE_SSE2,1,[Support SSE2 instructions])
+            SSE_COMPILER_OPTION=-msse2
+            MSG_ACCELERATION_OPTION+="SSE2 "
+          ],
+          [ AC_MSG_ERROR([Your compiler does not support SSE2 instructions.]) ])
+    fi
+    ;;
+esac
+
+if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
+  MSG_ACCELERATION_OPTION=none
 fi
-AM_CONDITIONAL([ENABLE_SSE_OPT], [test x"$ax_cv_support_sse41_ext" = x"yes"])
+
+AC_SUBST([SSE_COMPILER_OPTION])
+
+if [[ $enable_sse2 == yes ]] || [[ $enable_sse4 == yes ]] ; then
+  enable_sse=yes
+else
+  enable_sse=no
+fi
+
+AM_CONDITIONAL([ENABLE_SSE_OPT], [ [[ $enable_sse == yes ]] ])
 
 # CFLAGS+=$SIMD_FLAGS
 # CFLAGS+=" -march=x86-64"
@@ -353,6 +374,7 @@ AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
 # --- output configuration results ---
 
 AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([Processor acceleration: $MSG_ACCELERATION_OPTION])
 AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
 AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
 AC_MSG_NOTICE([---------------------------------------])

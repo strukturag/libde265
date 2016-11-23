@@ -18,11 +18,17 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "x86/sse-sao.h"
 
 #include <emmintrin.h>
+#if HAVE_SSE4_1
 #include <tmmintrin.h>
 #include <smmintrin.h>
+#endif
 #include <stdio.h>
 #include <assert.h>
 

@@ -24,8 +24,8 @@
 
 #include <stdio.h>
 #include <emmintrin.h>
-#include <tmmintrin.h> // SSSE3
 #if HAVE_SSE4_1
+#include <tmmintrin.h> // SSSE3
 #include <smmintrin.h>
 #endif
 
@@ -170,7 +170,7 @@ void put_bipred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 }
 
 
-
+#if HAVE_SSE4_1
 void put_weighted_pred_8_ssse3(uint8_t *dst, ptrdiff_t dststride,
                                const int16_t *src, ptrdiff_t srcstride,
                                int width, int height,
@@ -222,6 +222,7 @@ void put_weighted_pred_8_ssse3(uint8_t *dst, ptrdiff_t dststride,
     }
   }
 }
+#endif
 
 
 #define D 0
@@ -330,7 +331,8 @@ void put_weighted_bipred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
         Deb(result32_lower);
         Deb(result32_upper);
 
-        __m128i result16 = _mm_packus_epi32(result32_lower, result32_upper);
+        // packus_epi32 would be SSE4.1, hence use packs()
+        __m128i result16 = _mm_packs_epi32(result32_lower, result32_upper);
         __m128i result8  = _mm_packus_epi16(result16, result16);
 
         if (width>=8) {

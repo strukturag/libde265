@@ -11,7 +11,7 @@ endif
 
 # SSE4 specific functions
 
-libde265_x86_sse_la_CXXFLAGS = -msse4.1 -I.. $(CFLAG_VISIBILITY)
+libde265_x86_sse_la_CXXFLAGS = $(SSE_COMPILER_OPTION) -I.. $(CFLAG_VISIBILITY)
 libde265_x86_sse_la_SOURCES = \
   sse-motion.cc sse-motion.h \
   sse-motion-new.cc sse-motion-new.h \

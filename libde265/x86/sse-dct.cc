@@ -27,9 +27,9 @@
 #endif
 
 #include <emmintrin.h> // SSE2
-#include <tmmintrin.h> // SSSE3
 
 #if HAVE_SSE4_1
+#include <tmmintrin.h> // SSSE3
 #include <smmintrin.h> // SSE4.1
 #endif
 

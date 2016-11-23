@@ -18,6 +18,10 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "fallback-intra-dc.h"
 #include "util.h"
 
@@ -25,8 +29,10 @@
 #include <string.h>
 
 #include <emmintrin.h>
+#if HAVE_SSE4_1
 #include <tmmintrin.h>
 #include <smmintrin.h>
+#endif
 
 //#include "iacaMarks.h"
 
@@ -49,6 +55,7 @@ static void print128(__m128i m)
 }
 
 
+#if HAVE_SSE4_1
 // SNB, avg=0 : 28 cyc
 // HSW, avg=0 : 27 cyc
 // SNB, avg=1 : 38 cyc
@@ -158,9 +165,10 @@ void intra_dc_sse_8bit_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* bord
     *dst = (2*flatdc32 + 2 + border[-1] + border[1]) >> 2;
   }
 }
+#endif
 
 
-
+#if HAVE_SSE4_1
 // avg=0, SNB : 34 cyc
 // avg=0, HSW : 34 cyc
 // with    avg: 2.43x faster
@@ -272,8 +280,10 @@ intra_dc_sse_8bit_8x8_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
     *dst = (2*flatdc32 + 2 + border[-1] + border[1]) >> 2;
   }
 }
+#endif
 
 
+#if HAVE_SSE4_1
 // with    avg : 5.3x
 // without avg : 2.9x
 template <bool avg>
@@ -398,8 +408,10 @@ void intra_dc_sse_8bit_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* bo
     *dst = (2*flatdc32 + 2 + border[-1] + border[1]) >> 2;
   }
 }
+#endif
 
 
+#if HAVE_SSE4_1
 // 1.97x faster
 void intra_dc_noavg_8_32x32_ssse3(uint8_t* dst,int dstStride, uint8_t* border)
 {
@@ -469,8 +481,10 @@ void intra_dc_noavg_8_32x32_ssse3(uint8_t* dst,int dstStride, uint8_t* border)
     _mm_store_si128((__m128i*)(dst+y*dstStride+16), flatdc);
   }
 }
+#endif
 
 
+#if HAVE_SSE4_1
 void intra_dc_noavg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
 { intra_dc_sse_8bit_4x4_ssse3_sse41<false>(dst,dstStride,border); }
 void intra_dc_avg_8_4x4_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
@@ -485,3 +499,4 @@ void intra_dc_noavg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* bor
 { intra_dc_sse_8bit_16x16_ssse3_sse41<false>(dst,dstStride,border); }
 void intra_dc_avg_8_16x16_ssse3_sse41(uint8_t* dst,int dstStride, uint8_t* border)
 { intra_dc_sse_8bit_16x16_ssse3_sse41<true>(dst,dstStride,border); }
+#endif

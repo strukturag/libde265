@@ -23,7 +23,7 @@
 #include "dct.h"
 #include "dct-scalar.h"
 
-
+#if HAVE_SSE4_1
 class DSPFunc_IDCT_SSE_4x4 : public DSPFunc_IDCT_Base
 {
 public:
@@ -88,7 +88,7 @@ DSPFunc_IDCT_SSE_4x4   idct_sse_4x4;
 DSPFunc_IDCT_SSE_8x8   idct_sse_8x8;
 DSPFunc_IDCT_SSE_16x16 idct_sse_16x16;
 DSPFunc_IDCT_SSE_32x32 idct_sse_32x32;
-
+#endif
 
 
 
