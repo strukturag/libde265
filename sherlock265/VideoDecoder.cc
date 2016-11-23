@@ -32,12 +32,12 @@ using namespace videogfx;
 #include "visualize.h"
 
 // Support compiling against old versions of FFmpeg/libav.
-#ifndef AV_PIX_FMT_BGRA
-#define AV_PIX_FMT_BGRA PIX_FMT_BGRA
-#endif
-#ifndef AV_PIX_FMT_YUV420P
-#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
-#endif
+//#ifndef AV_PIX_FMT_BGRA
+//#define AV_PIX_FMT_BGRA PIX_FMT_BGRA
+//#endif
+//#ifndef AV_PIX_FMT_YUV420P
+//#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+//#endif
 
 
 VideoDecoder::VideoDecoder()
