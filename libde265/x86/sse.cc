@@ -76,7 +76,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
   int have_SSE    = !!(edx & (1<<25));
   int have_SSE2   = !!(edx & (1<<26));
   int have_SSE3   = !!(ecx & (1<< 0));
-  int have_SSSE3  = !!(edx & (1<< 9));
+  int have_SSSE3  = !!(ecx & (1<< 9));
   int have_SSE4_1 = !!(ecx & (1<<19));
   int have_SSE4_2 = !!(ecx & (1<<20));
   int have_AVX    = !!(ecx & (1<<28));
