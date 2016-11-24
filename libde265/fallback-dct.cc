@@ -30,6 +30,8 @@
 #include <algorithm>
 
 
+#define D 0
+
 static void printMatrix(const char* name, const int16_t* v, int n)
 {
   printf("--- %s ---\n",name);
@@ -599,7 +601,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     }
   */
 
-#if 1
+#if D
   if (nT==8) {
   printf("--- input\n");
   for (int r=0;r<nT;r++, printf("\n"))
@@ -629,7 +631,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-#if 1
+#if D
       if (nT==8) {
       printf("input: ");
       for (int j=0;j<nT;j++) {
@@ -649,7 +651,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
       }
 
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
-#if 1
+#if D
       if (nT==8) {
         printf("out[%d] : %04x + %04x -> %04x\n",i,sum,rnd1,g[c+i*nT]);
       }
@@ -659,7 +661,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     logtrace(LogTransform,"*\n");
   }
 
-#if 1
+#if D
   if (nT==8) {
   printf("--- temp\n");
   for (int r=0;r<nT;r++, printf("\n"))
@@ -694,10 +696,10 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * g[y*nT+j];
 
-        printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
+        if (D) printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
       }
 
-      printf("-> %04x\n",sum);
+      if (D) printf("-> %04x\n",sum);
 
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
