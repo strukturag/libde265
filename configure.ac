@@ -181,6 +181,8 @@ AC_ARG_ENABLE(sse4,
                               [enable SSE4.1 optimizations (default=yes)])],[],[enable_sse4=yes])
 
 
+enable_sse=no  # default, will be overwritten below
+
 case $target_cpu in
   powerpc*)
     ;;
@@ -192,6 +194,7 @@ case $target_cpu in
           [ AC_DEFINE(HAVE_SSE4_1,1,[Support SSE4.1 instructions])
             SSE_COMPILER_OPTION=-msse4.1
             MSG_ACCELERATION_OPTION+="SSE4.1 "
+	    enable_sse=yes
           ],
           [ AC_MSG_ERROR([Your compiler does not support SSE4.1 instructions.]) ])
     elif [[ $enable_sse2 == yes ]] ; then
@@ -199,6 +202,7 @@ case $target_cpu in
           [ AC_DEFINE(HAVE_SSE2,1,[Support SSE2 instructions])
             SSE_COMPILER_OPTION=-msse2
             MSG_ACCELERATION_OPTION+="SSE2 "
+	    enable_sse=yes
           ],
           [ AC_MSG_ERROR([Your compiler does not support SSE2 instructions.]) ])
     fi
@@ -210,12 +214,6 @@ if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
 fi
 
 AC_SUBST([SSE_COMPILER_OPTION])
-
-if [[ $enable_sse2 == yes ]] || [[ $enable_sse4 == yes ]] ; then
-  enable_sse=yes
-else
-  enable_sse=no
-fi
 
 AM_CONDITIONAL([ENABLE_SSE_OPT], [ [[ $enable_sse == yes ]] ])
 
