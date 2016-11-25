@@ -41,7 +41,7 @@
 #include "x86/sse.h"
 #endif
 
-#ifdef HAVE_ARM
+#ifdef HAVE_NEON
 #include "arm/arm.h"
 #endif
 
@@ -195,7 +195,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
 base_context::base_context()
 {
-  param_acceleration_type = de265_acceleration_AUTO;
+  deprecated_set_acceleration_type( de265_acceleration_AUTO );
   param_inexact_decoding_flags = de265_inexact_decoding_mask_none;
 
   //set_acceleration_functions(de265_acceleration_AUTO);
@@ -374,17 +374,58 @@ void base_context::set_acceleration_functions()
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
-  if (param_acceleration_type>=de265_acceleration_SSE) {
+  if (param_cpu_capabilities & (de265_cpu_capability_X86_SSE2 | de265_cpu_capability_X86_SSE41)) {
     init_acceleration_functions_sse(&acceleration, param_inexact_decoding_flags);
   }
 #endif
-#ifdef HAVE_ARM
-  if (param_acceleration_type>=de265_acceleration_ARM) {
-    init_acceleration_functions_arm(&acceleration);
+
+#ifdef HAVE_NEON
+  if (param_cpu_capabilities & de265_cpu_capability_ARM_NEON) {
+    init_acceleration_functions_neon(&acceleration);
+  }
+#endif
+
+#ifdef HAVE_AARCH64
+  if (param_cpu_capabilities & de265_cpu_capability_ARM_AARCH64) {
+    init_acceleration_functions_aarch64(&acceleration);
   }
 #endif
 }
 
+
+void base_context::deprecated_set_acceleration_type(enum de265_acceleration acc)
+{
+  param_cpu_capabilities = 0;
+
+  switch (acc) {
+  case de265_acceleration_SCALAR:
+  case de265_acceleration_MMX: // unused
+  case de265_acceleration_SSE: // unused
+    break;
+
+  case de265_acceleration_SSE2:
+    param_cpu_capabilities |= de265_cpu_capability_X86_SSE2;
+    break;
+
+  case de265_acceleration_SSE4:
+  case de265_acceleration_AVX:  // unused
+  case de265_acceleration_AVX2: // unused
+    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
+			       de265_cpu_capability_X86_SSE41);
+
+  case de265_acceleration_ARM:  // unused
+  case de265_acceleration_NEON: // unused
+    break;
+    
+  case de265_acceleration_AUTO:
+    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
+			       de265_cpu_capability_X86_SSE41 |
+			       de265_cpu_capability_ARM_NEON    |
+			       de265_cpu_capability_ARM_AARCH64 
+			       );
+    break;
+  }
+}
 
 
 

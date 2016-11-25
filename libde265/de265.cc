@@ -520,7 +520,11 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum 
       break;
 
     case DE265_DECODER_PARAM_ACCELERATION_CODE:
-      ctx->param_acceleration_type = (enum de265_acceleration)value;
+      ctx->deprecated_set_acceleration_type( (enum de265_acceleration)value );
+      break;
+
+    case DE265_DECODER_PARAM_CPU_CAPABILITIES:
+      ctx->param_cpu_capabilities = value;
       break;
 
     default:

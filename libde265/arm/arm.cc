@@ -24,9 +24,36 @@
 
 #include "arm.h"
 
-#ifdef HAVE_NEON
+#include <stdio.h>
 
-#define QPEL_FUNC(name) \
+// TODO: on linux, use getauxval(AT_HWCAP);
+static bool detect_neon()
+{
+  return true;
+}
+
+
+void init_acceleration_functions_neon(struct acceleration_functions* accel)
+{
+#ifdef HAVE_NEON
+  printf("neon\n");
+#endif
+}
+
+void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
+{
+#ifdef HAVE_AARCH64
+  printf("aarch64\n");
+#endif
+}
+
+
+
+
+
+
+#if 0
+#define QPEL_FUNC(name)							\
     extern "C" void ff_##name(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride, \
                                    int height, int width); \
     void libde265_##name(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride, \
@@ -51,54 +78,6 @@ QPEL_FUNC(hevc_put_qpel_h3v2_neon_8);
 QPEL_FUNC(hevc_put_qpel_h3v3_neon_8);
 #undef QPEL_FUNC
 
-#if defined(HAVE_SIGNAL_H) && defined(HAVE_SETJMP_H)
-
-#include <signal.h>
-#include <setjmp.h>
-
-extern "C" void libde265_detect_neon(void);
-
-static jmp_buf jump_env;
-
-static void sighandler(int sig) {
-  (void)sig;
-  longjmp(jump_env, 1);
-}
-
-static bool has_NEON() {
-  static bool checked_NEON = false;
-  static bool have_NEON = false;
-
-  if (!checked_NEON) {
-    void (*oldsignal)(int);
-
-    checked_NEON = true;
-    oldsignal = signal(SIGILL, sighandler);
-    if (setjmp(jump_env)) {
-      signal(SIGILL, oldsignal);
-      have_NEON = false;
-      return false;
-    }
-    libde265_detect_neon();
-    signal(SIGILL, oldsignal);
-    have_NEON = true;
-  }
-
-  return have_NEON;
-}
-
-#else  // #if defined(HAVE_SIGNAL_H) && defined(HAVE_SETJMP_H)
-
-#warning "Don't know how to detect NEON support at runtime- will be disabled"
-
-static bool has_NEON() {
-  return false;
-}
-
-#endif
-
-#endif  // #ifdef HAVE_NEON
-
 void init_acceleration_functions_arm(struct acceleration_functions* accel)
 {
 #ifdef HAVE_NEON
@@ -121,3 +100,5 @@ void init_acceleration_functions_arm(struct acceleration_functions* accel)
   }
 #endif  // #ifdef HAVE_NEON
 }
+#endif
+

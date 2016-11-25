@@ -407,7 +407,8 @@ enum de265_param {
   DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6, // (bool)  do not output frames with decoding errors, default: no (output all images)
 
   DE265_DECODER_PARAM_DISABLE_DEBLOCKING=7,    // (bool)  disable deblocking
-  DE265_DECODER_PARAM_DISABLE_SAO=8            // (bool)  disable SAO filter
+  DE265_DECODER_PARAM_DISABLE_SAO=8,           // (bool)  disable SAO filter
+  DE265_DECODER_PARAM_CPU_CAPABILITIES=9       // (bitset)  de265_cpu_capability_*
 
   //DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT=9,     // (bool)  disable decoding of IDCT residuals in MC blocks
   //DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT=10  // (bool)  disable decoding of IDCT residuals in MC blocks
@@ -427,6 +428,10 @@ enum de265_acceleration {
   de265_acceleration_AUTO = 10000
 };
 
+#define de265_cpu_capability_X86_SSE2    (1<<0)
+#define de265_cpu_capability_X86_SSE41   (1<<1)
+#define de265_cpu_capability_ARM_NEON    (1<<10)
+#define de265_cpu_capability_ARM_AARCH64 (1<<11)
 
 /* Set decoding parameters. */
 LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);

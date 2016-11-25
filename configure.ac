@@ -209,10 +209,6 @@ case $target_cpu in
     ;;
 esac
 
-if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
-  MSG_ACCELERATION_OPTION=none
-fi
-
 AC_SUBST([SSE_COMPILER_OPTION])
 
 AM_CONDITIONAL([ENABLE_SSE_OPT], [ [[ $enable_sse == yes ]] ])
@@ -220,38 +216,49 @@ AM_CONDITIONAL([ENABLE_SSE_OPT], [ [[ $enable_sse == yes ]] ])
 # CFLAGS+=$SIMD_FLAGS
 # CFLAGS+=" -march=x86-64"
 
-case $target_cpu in
+echo CPU $target_cpu
+
+AC_ARG_ENABLE(arm,
+              [AS_HELP_STRING([--enable-arm],
+                              [enable ARM optimizations (default=yes)])],[],[enable_arm=yes])
+
+if [[ $enable_arm == yes ]] ; then
+  case $target_cpu in
   arm*)
-    AC_ARG_ENABLE(arm,
-                  [AS_HELP_STRING([--disable-arm],
-                                  [disable ARM optimizations (default=no)])],
-      [disable_arm=yes],
-      [disable_arm=no])
-
-    if test x"$disable_arm" != x"yes"; then
-      AC_DEFINE(HAVE_ARM, 1, [Support ARM instructions])
-
       AX_CHECK_COMPILE_FLAG(-mfpu=neon, [
           AC_DEFINE(HAVE_NEON, 1, [Support ARM NEON instructions])
-          ax_cv_support_neon_ext=yes], [])
+          NEON_COMPILER_OPTION=-mfpu=neon
+          MSG_ACCELERATION_OPTION=NEON
+	  enable_neon=yes
+          ], [])
 
-      AC_ARG_ENABLE(thumb,
-                    [AS_HELP_STRING([--enable-thumb],
-                                    [disable ARM THUMB instructions (default=no)])],
-        [enable_thumb=yes],
-        [enable_thumb=no])
-    fi
+#      AC_ARG_ENABLE(thumb,
+#                    [AS_HELP_STRING([--enable-thumb],
+#                                    [disable ARM THUMB instructions (default=no)])],
+#        [enable_thumb=yes],
+#        [enable_thumb=no])
     ;;
 
-  *)
-    disable_arm=yes
+  aarch64)
+      AC_DEFINE(HAVE_NEON, 1, [Support ARM NEON instructions])
+      AC_DEFINE(HAVE_AARCH64, 1, [Support ARM AArch64 instructions])
+      MSG_ACCELERATION_OPTION=AArch64
+      enable_neon=yes
+      enable_aarch64=yes
     ;;
+  esac
+fi
 
-esac
 
-AM_CONDITIONAL([ENABLE_ARM_OPT], [test x"$disable_arm" != x"yes"])
-AM_CONDITIONAL([ENABLE_NEON_OPT], [test x"$ax_cv_support_neon_ext" = x"yes"])
-AM_CONDITIONAL([ENABLE_ARM_THUMB], [test x"$enable_thumb" != x"no"])
+AM_CONDITIONAL([ENABLE_ARM_OPT], [ [[ $enable_neon == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_NEON_OPT], [ [[ $enable_neon == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_AARCH64_OPT], [ [[ $enable_aarch64 == "yes" ]] ])
+
+
+if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
+  MSG_ACCELERATION_OPTION=none
+fi
+
 
 # --- additional logging ---
 
