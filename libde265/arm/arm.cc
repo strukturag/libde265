@@ -48,6 +48,7 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
 #endif
 
   accel->put_unweighted_pred_8   = put_pred_8_neon;
+  accel->put_weighted_pred_avg_8 = put_bipred_8_neon;
 }
 
 

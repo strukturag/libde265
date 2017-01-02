@@ -28,4 +28,9 @@ void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
                      const int16_t __restrict__ *src, ptrdiff_t srcstride,
                      int width, int height);
 
+void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
+                       const int16_t __restrict__ *src1,
+                       const int16_t __restrict__ *src2, ptrdiff_t srcstride,
+                       int width, int height);
+
 #endif
