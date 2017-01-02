@@ -23,6 +23,7 @@
 #endif
 
 #include "arm.h"
+#include "arm-motion.h"
 
 #include <stdio.h>
 
@@ -45,6 +46,8 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
 #ifdef HAVE_AARCH64
   printf("aarch64\n");
 #endif
+
+  accel->put_unweighted_pred_8   = put_pred_8_neon;
 }
 
 
@@ -101,4 +104,3 @@ void init_acceleration_functions_arm(struct acceleration_functions* accel)
 #endif  // #ifdef HAVE_NEON
 }
 #endif
-

@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libde265_arm.la
 
 libde265_arm_la_CXXFLAGS = -I.. $(CFLAG_VISIBILITY)
-libde265_arm_la_SOURCES = arm.cc arm.h
+libde265_arm_la_SOURCES = arm.cc arm.h arm-motion.cc
 libde265_arm_la_LIBADD =
 
 if HAVE_VISIBILITY
