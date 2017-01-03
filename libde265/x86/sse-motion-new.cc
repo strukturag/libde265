@@ -442,8 +442,7 @@ void put_weighted_bipred_8_sse2(uint8_t *dst, ptrdiff_t dststride,
 
 template <bool chroma>
 inline void put_hevc_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
-                                   const uint8_t *src, ptrdiff_t srcstride, int width, int height,
-                                   int16_t* mcbuffer)
+                                   const uint8_t *src, ptrdiff_t srcstride, int width, int height)
 {
   __m128i zero = _mm_setzero_si128();
 
@@ -514,7 +513,7 @@ void put_hevc_luma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
                                  int width, int height,
                                  int16_t* mcbuffer)
 {
-  put_hevc_direct_8_sse2<false>(dst,dststride, src,srcstride, width,height, mcbuffer);
+  put_hevc_direct_8_sse2<false>(dst,dststride, src,srcstride, width,height);
 }
 
 
@@ -523,5 +522,5 @@ void put_hevc_chroma_direct_8_sse2(int16_t *dst, ptrdiff_t dststride,
                                    int width, int height, int mx,
                                    int my, int16_t* mcbuffer)
 {
-  put_hevc_direct_8_sse2<true>(dst,dststride, src,srcstride, width,height, mcbuffer);
+  put_hevc_direct_8_sse2<true>(dst,dststride, src,srcstride, width,height);
 }
