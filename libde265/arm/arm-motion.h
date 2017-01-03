@@ -33,4 +33,14 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
                        const int16_t __restrict__ *src2, ptrdiff_t srcstride,
                        int width, int height);
 
+// TODO: for noshift-variant, we do not need mx/my/mcbuffer
+void mc_get_noshift_8_luma_neon(int16_t *dst, ptrdiff_t dststride,
+                                const uint8_t *src, ptrdiff_t srcstride,
+                                int width, int height,
+                                int16_t* mcbuffer);
+
+void mc_get_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
+                                  const uint8_t *src, ptrdiff_t srcstride,
+                                  int width, int height, int mx,
+                                  int my, int16_t* mcbuffer);
 #endif
