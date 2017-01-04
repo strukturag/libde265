@@ -370,22 +370,29 @@ void mc_get_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
 
 static uint8_t qpel_filter[3][16] = {
   // 1/4 pel shift
-  { 0,0,4, 0,58,17,0,1,   // plus
-    0,1,0,10, 0, 0,5,0 }, // minus
+  { 0,4, 0,58,17,0,1,0,   // plus
+    1,0,10, 0, 0,5,0,0 }, // minus
+  // 2/4 pel shift
+  { 0,4, 0,40,40, 0,4,0,   // plus
+    1,0,11, 0, 0,11,0,1 }, // minus
+  // 3/4 pel shift
+  { 0,1,0,17,58, 0,4,0,   // plus
+    0,0,5, 0, 0,10,0,1 }  // minus
 };
 
-void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int width, int height,
-                           int16_t* mcbuffer)
+template<int filterIdx>
+void mc_get_qpel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
+                          const uint8_t *src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int16_t* mcbuffer)
 {
   while (width>=4) {
-    uint8x8_t filter_plus  = vld1_u8(qpel_filter[1-1]);
-    uint8x8_t filter_minus = vld1_u8(qpel_filter[1-1]+8);
+    uint8x8_t filter_plus  = vld1_u8(qpel_filter[filterIdx-1]);
+    uint8x8_t filter_minus = vld1_u8(qpel_filter[filterIdx-1]+8);
 
     for (int y=0;y<height;y++) {
-      uint8x8_t input_left  = vld1_u8(src+y*srcstride -4);
-      uint8x8_t input_right = vld1_u8(src+y*srcstride -4+8);
+      uint8x8_t input_left  = vld1_u8(src+y*srcstride -3);
+      uint8x8_t input_right = vld1_u8(src+y*srcstride -3+8);
 
       uint16x8_t acc0p = vmull_u8(       input_left, filter_plus);
       uint16x8_t acc0_ = vmlsl_u8(acc0p, input_left, filter_minus);
@@ -423,4 +430,29 @@ void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
   }
 
   assert(width==0);
+}
+
+
+void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                          const uint8_t *src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int16_t* mcbuffer)
+{
+  mc_get_qpel_h_8_neon<1>(dst,dststride, src,srcstride, width,height,mcbuffer);
+}
+
+void mc_get_qpel_h2_8_neon(int16_t *dst, ptrdiff_t dststride,
+                          const uint8_t *src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int16_t* mcbuffer)
+{
+  mc_get_qpel_h_8_neon<2>(dst,dststride, src,srcstride, width,height,mcbuffer);
+}
+
+void mc_get_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
+                          const uint8_t *src, ptrdiff_t srcstride,
+                          int width, int height,
+                          int16_t* mcbuffer)
+{
+  mc_get_qpel_h_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
