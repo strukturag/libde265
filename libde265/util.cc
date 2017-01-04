@@ -47,14 +47,7 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
 
-static int disable_logging_OLD=0;
 static int verbosity = 0;
-
-
-LIBDE265_API void de265_disable_logging() // DEPRECATED
-{
-  disable_logging_OLD=1;
-}
 
 
 LIBDE265_API void de265_set_verbosity(int level)

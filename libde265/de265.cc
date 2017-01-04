@@ -320,7 +320,7 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
 }
 
 
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+LIBDE265_API de265_error de265_push_end_of_stream(de265_decoder_context* de265ctx)
 {
   de265_push_end_of_NAL(de265ctx);
 
@@ -372,7 +372,7 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 }
 
 
-LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
+LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->number_of_frames_pending_at_input();
@@ -426,14 +426,20 @@ LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
   return ctx->get_frontend_syntax_decoder().get_highest_TID();
 }
 
+/*
 LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->get_current_TID();
 }
+*/
 
 LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
 {
+  if (max_tid == de265_limit_TID_unlimited) {
+    max_tid = 6;
+  }
+
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->set_limit_TID(max_tid);
 }
@@ -444,12 +450,13 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context* de265ctx,int 
   ctx->set_framerate_ratio(percent);
 }
 
+  /*
 LIBDE265_API int  de265_change_framerate(de265_decoder_context* de265ctx,int more)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->change_framerate(more);
 }
-
+  */
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
@@ -634,20 +641,20 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
   }
 }
 
-LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern* img,int channel)
-{
-  image* iimg = (image*)img;
 
+LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spec* spec,int channel)
+{
   switch (channel) {
   case 0:
-    return iimg->BitDepth_Y;
+    return spec->luma_bits_per_pixel;
   case 1:
   case 2:
-    return iimg->BitDepth_C;
+    return spec->chroma_bits_per_pixel;
   default:
     return 0;
   }
 }
+
 
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
 {
@@ -696,10 +703,11 @@ LIBDE265_API void *de265_get_image_plane_user_data_intern(const struct de265_ima
 
 LIBDE265_API void de265_set_image_plane_intern(de265_image_intern* img, int cIdx, void* mem, int stride, void *userdata)
 {
-  // The internal "stride" is the number of pixels per line.
-  stride = stride / ((de265_get_bits_per_pixel_intern(img, cIdx)+7) / 8);
-
   image* iimg = (image*)img;
+
+  // The internal "stride" is the number of pixels per line.
+  stride = stride / iimg->get_bytes_per_pixel(cIdx);
+
   iimg->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 
@@ -726,11 +734,19 @@ LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
   return img->m_image->user_data;
 }
 
-LIBDE265_API void de265_set_image_user_data(struct de265_image* img, void *user_data)
+LIBDE265_API void de265_set_image_user_data_intern(struct de265_image_intern* img, void *user_data)
 {
-  img->m_image->user_data = user_data;
+  image* iimg = (image*)img;
+  iimg->user_data = user_data;
 }
 
+LIBDE265_API void* de265_get_image_user_data_intern(const struct de265_image_intern* img)
+{
+  const image* iimg = (const image*)img;
+  return iimg->user_data;
+}
+
+  /*
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265,
                                              int* nal_unit_type,
                                              const char** nal_unit_name,
@@ -744,5 +760,6 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265
   if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
+  */
 
 }

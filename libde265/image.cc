@@ -333,6 +333,9 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
   spec.chroma = chroma_format;
   spec.alignment = STANDARD_ALIGNMENT;
 
+  spec.luma_bits_per_pixel = bitDepth_luma;
+  spec.chroma_bits_per_pixel = bitDepth_chroma;
+
 
   // conformance window cropping
 
@@ -372,7 +375,7 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
   if (image_allocation_functions.get_buffer != NULL) {
     mem_alloc_success = image_allocation_functions.get_buffer((de265_image_intern*)this, &spec,
-                                                              image_allocation_functions.userdata);
+                                                              image_allocation_functions.allocation_userdata);
 
     pixels_confwin[0] = pixels[0] + left*WinUnitX + top*WinUnitY*stride;
     pixels_confwin[1] = pixels[1] + left + top*chroma_stride;
@@ -489,7 +492,7 @@ void image::release()
   if (pixels[0])
     {
       image_allocation_functions.release_buffer((de265_image_intern*)this,
-                                                image_allocation_functions.userdata);
+                                                image_allocation_functions.allocation_userdata);
 
       for (int i=0;i<3;i++)
         {

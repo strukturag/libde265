@@ -69,7 +69,6 @@ bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
 bool output_as_rgb=false;
-bool logging=true;
 bool no_acceleration=false;
 const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
@@ -101,7 +100,6 @@ static struct option long_options[] = {
   {"nal",        no_argument,       0, 'n' },
   {"videogfx",   no_argument,       0, 'V' },
   {"rgb",        no_argument,       0, 'R' },
-  {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
@@ -351,16 +349,6 @@ bool output_image(const de265_image* img)
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
 
-  if (0) {
-    const char* nal_unit_name;
-    int nuh_layer_id;
-    int nuh_temporal_id;
-    de265_get_image_NAL_header(img, NULL, &nal_unit_name, &nuh_layer_id, &nuh_temporal_id);
-
-    printf("NAL: %s layer:%d temporal:%d\n",nal_unit_name, nuh_layer_id, nuh_temporal_id);
-  }
-
-
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
     if (output_with_videogfx) {
@@ -583,7 +571,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seRP:I"
+    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:I"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -603,7 +591,6 @@ int main(int argc, char** argv)
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
     case 'R': output_as_rgb=true; break;
-    case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
     case 'm': measure_quality=true; reference_filename=optarg; break;
@@ -638,7 +625,6 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -R, --rgb         show h.265 files coded in RGB colorspace\n");
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
-    fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");
 #if HAVE_VIDEOGFX
@@ -680,11 +666,6 @@ int main(int argc, char** argv)
   if (no_acceleration) {
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
   }
-
-  if (!logging) {
-    de265_disable_logging();
-  }
-
 
   if (nThreads==0) {
     nThreads = 1;
@@ -805,7 +786,7 @@ int main(int argc, char** argv)
           // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
           if (feof(fh)) {
-            err = de265_flush_data(ctx); // indicate end of stream
+            err = de265_push_end_of_stream(ctx); // indicate end of stream
           }
         }
       }

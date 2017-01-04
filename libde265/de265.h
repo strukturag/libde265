@@ -64,15 +64,16 @@ extern "C" {
 #define LIBDE265_INLINE inline
 #endif
 
+
 /* === version numbers === */
 
 // version of linked libde265 library
 LIBDE265_API const char *de265_get_version(void);
-LIBDE265_API uint32_t de265_get_version_number(void);
+LIBDE265_API uint32_t de265_get_version_number(void); // 0xHHMMLL00 = HH.MM.LL
 
-LIBDE265_API int de265_get_version_number_major(void);
-LIBDE265_API int de265_get_version_number_minor(void);
-LIBDE265_API int de265_get_version_number_maintenance(void);
+LIBDE265_API int de265_get_version_number_major(void); // HH
+LIBDE265_API int de265_get_version_number_minor(void); // MM
+LIBDE265_API int de265_get_version_number_maintenance(void); // LL
 
 
 /* === error codes === */
@@ -80,8 +81,6 @@ LIBDE265_API int de265_get_version_number_maintenance(void);
 typedef enum {
   DE265_OK = 0,
   DE265_ERROR_NO_SUCH_FILE=1,
-  //DE265_ERROR_NO_STARTCODE=2,  obsolet
-  //DE265_ERROR_EOF=3,
   DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS=4,
   DE265_ERROR_CHECKSUM_MISMATCH=5,
   DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA=6,
@@ -100,10 +99,7 @@ typedef enum {
 
   // --- errors that should become obsolete in later libde265 versions ---
 
-  //DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500, obsolet
-  //DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501, obsolet
   DE265_ERROR_NOT_IMPLEMENTED_YET = 502,
-  //DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED = 502, obsolet
 
   // --- warnings ---
 
@@ -142,20 +138,17 @@ LIBDE265_API const char* de265_get_error_text(de265_error err);
  */
 LIBDE265_API int  de265_isOK(de265_error err);
 
-LIBDE265_API void de265_disable_logging(); // DEPRECATED
 LIBDE265_API void de265_set_verbosity(int level);
+
+
+
+typedef void de265_decoder_context; // private structure
 
 
 /* === image === */
 
-/* The image is currently always 3-channel YCbCr, with 4:2:0 chroma.
-   But you may want to check the chroma format anyway for future compatibility.
- */
-
 typedef int64_t de265_PTS;
 struct de265_image;
-struct de265_image_intern;
-typedef void de265_decoder_context; // private structure
 
 
 enum de265_chroma {
@@ -174,27 +167,34 @@ LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image*,int channel)
 /* The |out_stride| is returned as "bytes per line".
    When out_stride is NULL, no value will be written. */
 LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
-LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
-LIBDE265_API void de265_set_image_user_data(struct de265_image*, void *user_data);
 LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
+LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
 
-LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern*,int channel);
-LIBDE265_API void* de265_get_image_plane_user_data_intern(const struct de265_image_intern*, int channel);
-
+/* True if the image contains no decoding errors because of bitstream errors or
+   unavailable references. The image may still contain non-standard content when
+   e.g. SAO or deblocking has been deliberately turned off.
+*/
 LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img);
 
 /* Get NAL-header information for this frame. You can pass in NULL pointers if you
    do not need this piece of information.
  */
+/*
+This function is Currently not exposed to API.
+
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
                                              int* nal_unit_type,
                                              const char** nal_unit_name, // textual description of 'nal_unit_type'
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id);
+*/
 
 
-// --- image allocation API ---
+// === image allocation API ===
+
+struct de265_image_intern;
+
 
 struct de265_image_spec
 {
@@ -204,8 +204,8 @@ struct de265_image_spec
 
   enum de265_chroma chroma;
 
-  char luma_bytes_per_pixel;
-  char chroma_bytes_per_pixel;
+  char luma_bits_per_pixel;
+  char chroma_bits_per_pixel;
 
 
   // conformance window
@@ -215,35 +215,40 @@ struct de265_image_spec
   int crop_top;
   int crop_bottom;
 
-  int visible_width;  // convenience, width  - crop_left - crop_right
-  int visible_height; // convenience, height - crop_top - crop_bottom
+  int visible_width;  // convenience, = width  - crop_left - crop_right
+  int visible_height; // convenience, = height - crop_top - crop_bottom
 };
+
+LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spec*,int channel);
 
 
 struct de265_image_allocation
 {
   int  (*get_buffer)(struct de265_image_intern* img,
                      const struct de265_image_spec* spec,
-                     void* userdata);
+                     void* allocation_userdata);
   void (*release_buffer)(struct de265_image_intern* img,
-                         void* userdata);
+                         void* allocation_userdata);
 
   // the user data that is passed to each call of get_buffer() and release_buffer()
-  void* userdata;
+  void* allocation_userdata;
 };
 
 
-/*
+/* Assign self-allocated memory to an image plane. Stride is number of bytes per line.
  */
 LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,
                                                int cIdx,
                                                void* mem, int stride,
-                                               void *userdata);
+                                               void* userdata);
+LIBDE265_API void  de265_set_image_user_data_intern(struct de265_image_intern*, void *user_data);
+
+LIBDE265_API void* de265_get_image_user_data_intern(const struct de265_image_intern*);
+LIBDE265_API void* de265_get_image_plane_user_data_intern(const struct de265_image_intern*, int channel);
 
 
 
-/* The user data pointer will be given to the get_buffer() and release_buffer() functions
-   in de265_image_allocation. */
+/* Set custom image allocation functions. */
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
                                                        struct de265_image_allocation*);
 LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
@@ -255,14 +260,15 @@ LIBDE265_API const struct de265_image_allocation *de265_get_default_image_alloca
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 LIBDE265_API de265_decoder_context* de265_new_decoder(void);
 
+/* Free decoder context. May only be called once on a context. */
+LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
+
 /* Initialize background decoding threads. If this function is not called,
    all decoding is done in the main thread (no multi-threading). */
 LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
 
 LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context*, int parallel_frames);
 
-/* Free decoder context. May only be called once on a context. */
-LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
 
 /* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
    The PTS is assigned to all NALs whose start-code 0x000001 is contained in the data.
@@ -285,7 +291,6 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context*);
 
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
-   This function only pushes data into the decoder, nothing will be decoded.
 */
 LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data, int length,
                                         de265_PTS pts, void* user_data);
@@ -293,7 +298,7 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data
 /* Indicate the end-of-stream. All data pending at the decoder input will be
    pushed into the decoder and the decoded picture queue will be completely emptied.
  */
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context*);
+LIBDE265_API de265_error de265_push_end_of_stream(de265_decoder_context*);
 
 /* Return number of bytes pending at the decoder input.
    Can be used to avoid overflowing the decoder with too much data.
@@ -305,11 +310,20 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context*)
  */
 LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context*);
 
+/* The number of frames pending at the input of the decoder, waiting to be decoded.
+   You can check this to avoid pushing too much data into the decoder and thus growing
+   the input buffer without limits.
+ */
+LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_context*);
+
 /* When switching input streams without resetting the decoder, the changes in the POCs
    may result in old pictures staying in the reorder buffer for too long. This then
    results in a wrong picture output sequence. To prevent this, you can here set
    a maximum picture delay in the reorder buffer.
    Deactivate the max_latency by setting it to zero (default).
+
+   Note: if possible, the decoder should be reset when switching streams.
+   The maximum latency safety threshold is only for cases in which this is not possible.
 
    If a maximum delay is specified in the video stream, this is used instead
    (TODO: not yet implemented to take value from stream).
@@ -341,20 +355,17 @@ LIBDE265_API int de265_get_action(de265_decoder_context*, int blocking);
 LIBDE265_API void de265_reset(de265_decoder_context*);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
-   decoded yet, NULL is returned. You should call de265_release_next_picture() to
+   decoded yet, NULL is returned. You should call de265_skip_next_picture() to
+   advance to the next picture.
+   Note that you also have to call de265_release_picture() even if you do not
    advance to the next picture. */
 LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
 
 /* Get next decoded picture and remove this picture from the decoder output queue.
    Returns NULL is there is no decoded picture ready.
-   You can use the picture only until you call any other de265_* function. */
+   You have to release the picture again with de265_release_picture(), but you may keep
+   the picture for as long as you need it. */
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
-
-/* The number of frames pending at the input of the decoder, waiting to be decoded.
-   You can check this to avoid pushing too much data into the decoder and thus growing
-   the input buffer without limits.
- */
-LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context*);
 
 /* Remove the next picture in the output queue.
  */
@@ -374,25 +385,25 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
    The maximum layer ID in the stream can be queried with de265_get_highest_TID().
    Note that the maximum layer ID can change throughout the stream.
 
-   For a fine-grained selection of the frame-rate, use de265_set_framerate_ratio().
-   A percentage of 100% will decode all frames in all temporal layers. A lower percentage
-   will drop approximately as many frames. Note that this only accurate if the frames
-   are distributed evenly among the layers. Otherwise, the mapping is non-linear.
-
-   The limit_TID has a higher precedence than framerate_ratio. Hence, setting a higher
-   framerate-ratio will decode at limit_TID without dropping.
-
-   With change_framerate(), the output frame-rate can be increased/decreased to some
-   discrete preferable values. Currently, these are non-dropped decoding at various
-   TID layers.
+   For a fine-grained reduction of the frame-rate, use de265_set_framerate_ratio().
+   This also works on streams without temporal layers by dropping frames which are
+   not required as references. Note that the resulting frame-rate may be higher than
+   the requested frame-rate when frames are required as references.
 */
 
 LIBDE265_API int  de265_get_highest_TID(de265_decoder_context*); // highest temporal substream to decode
-LIBDE265_API int  de265_get_current_TID(de265_decoder_context*); // currently decoded temporal substream
+#define de265_highest_TID_unknown -1
 
 LIBDE265_API void de265_set_limit_TID(de265_decoder_context*,int max_tid); // highest temporal substream to decode
+#define de265_limit_TID_unlimited -1
+
 LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent); // percentage of frames to decode (approx)
-LIBDE265_API int  de265_change_framerate(de265_decoder_context*,int more_vs_less); // 1: more, -1: less, returns corresponding framerate_ratio
+
+// not exported into API yet
+// LIBDE265_API int  de265_get_current_TID(de265_decoder_context*); // currently decoded temporal substream
+
+// not exported into API yet...
+// LIBDE265_API int  de265_change_framerate(de265_decoder_context*,int more_vs_less); // 1: more, -1: less, returns corresponding framerate_ratio
 
 
 /* --- decoding parameters --- */
