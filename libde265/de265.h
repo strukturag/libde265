@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
+ * Copyright (c) 2013-2017 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -181,7 +181,7 @@ LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img);
    do not need this piece of information.
  */
 /*
-This function is Currently not exposed to API.
+This function is currently not exposed to API.
 
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
                                              int* nal_unit_type,
@@ -358,14 +358,15 @@ LIBDE265_API void de265_reset(de265_decoder_context*);
    decoded yet, NULL is returned. You should call de265_skip_next_picture() to
    advance to the next picture.
    Note that you also have to call de265_release_picture() even if you do not
-   advance to the next picture. */
-LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
+   advance to the next picture.
+*/
+LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context*);
 
 /* Get next decoded picture and remove this picture from the decoder output queue.
    Returns NULL is there is no decoded picture ready.
    You have to release the picture again with de265_release_picture(), but you may keep
    the picture for as long as you need it. */
-LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
+LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*);
 
 /* Remove the next picture in the output queue.
  */
@@ -379,7 +380,7 @@ LIBDE265_API void de265_release_picture(const struct de265_image*);
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 
-/* --- frame dropping API ---
+/* === frame dropping API ===
 
    To limit decoding to a maximum temporal layer (TID), use de265_set_limit_TID().
    The maximum layer ID in the stream can be queried with de265_get_highest_TID().
@@ -406,7 +407,7 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent);
 // LIBDE265_API int  de265_change_framerate(de265_decoder_context*,int more_vs_less); // 1: more, -1: less, returns corresponding framerate_ratio
 
 
-/* --- decoding parameters --- */
+/* === decoding parameters === */
 
 /* Set CPU features that the decoder may use.
    For x86, the decoder will itself check existing CPU features and does not use non-existing features.
@@ -446,7 +447,7 @@ LIBDE265_API void de265_dump_headers(de265_decoder_context*, void (*callback)(in
 
 
 
-/* --- optional library initialization --- */
+/* === optional library initialization === */
 
 /* Static library initialization. Must be paired with de265_free().
    Initialization is optional, since it will be done implicitly in de265_new_decoder().
