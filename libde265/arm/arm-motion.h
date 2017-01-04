@@ -43,4 +43,9 @@ void mc_get_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
                                   const uint8_t *src, ptrdiff_t srcstride,
                                   int width, int height, int mx,
                                   int my, int16_t* mcbuffer);
+
+void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                           const uint8_t *src, ptrdiff_t srcstride,
+                           int width, int height,
+                           int16_t* mcbuffer);
 #endif

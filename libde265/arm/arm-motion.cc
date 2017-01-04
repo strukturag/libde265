@@ -31,7 +31,55 @@
 #include "util.h"
 
 
-static const uint16_t rnd_8bit_values[8] = { 32,32,32,32, 32,32,32,32 };
+#define D 1
+
+#if D
+#define Deb(x)  if (D) { print(x); printf(" " #x "\n"); }
+#else
+#define Deb(x)
+#define print(x)
+#endif
+
+
+static void print128(const uint8_t* m,int group=16)
+{
+  for (int i=0;i<16;i++) {
+    printf("%02x",m[i]);
+    if ((i%group)==group-1) printf(" ");
+  }
+}
+
+static void print64(const uint8_t* m, int group=8)
+{
+  for (int i=0;i<8;i++) {
+    printf("%02x",m[i]);
+    if ((i%group)==group-1) printf(" ");
+  }
+}
+
+#if D
+inline void print(uint8x8_t& v)
+{
+  uint8_t m[8];
+  vst1_u8(m, v);
+  print64(m,1);
+}
+
+inline void print(uint16x8_t& v)
+{
+  uint16_t m[8];
+  vst1q_u16(m, v);
+  print128((uint8_t*)m,2);
+}
+
+inline void print(int16x4_t& v)
+{
+  int16_t m[4];
+  vst1_s16(m, v);
+  print64((uint8_t*)m,2);
+}
+#endif
+
 
 void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
                      const int16_t __restrict__ *src, ptrdiff_t srcstride,
@@ -39,7 +87,7 @@ void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 {
   //printf("PUT-PRED %d %d\n",width,height);
 
-#if 1
+#if 0
   while (width >= 16) {
     //uint16x8_t rnd = vmovq_n_u16(32);
 
@@ -68,15 +116,30 @@ void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
   }
 #endif
 
-#if 1
+#if 0
   if (width >= 8) {
-    //uint16x8_t rnd = vmovq_n_u16(32);
-
     for (int y=0;y<height;y++) {
       uint16x8_t input = vld1q_u16((uint16_t*)(src+y*srcstride));
-      //uint16x8_t sum   = vaddq_u16(input, rnd);
-      //uint16x8_t shiftedsum = vshrq_n_u16(sum, 6);
-      //uint8x8_t  output = vqmovn_u16(shiftedsum);
+      uint8x8_t  output = vqrshrn_n_u16(input, 6);
+
+      vst1_u8((uint8_t*)(dst+dststride*y), output);
+    }
+
+    width -= 8;
+    src += 8;
+    dst += 8;
+  }
+#endif
+
+// alternative
+#if 1
+  if (width >= 8) {
+    int16x8_t  zero16 = vdupq_n_s16(0);
+
+    for (int y=0;y<height;y++) {
+      int16x8_t input_signed = vld1q_s16((int16_t*)(src+y*srcstride));
+      input_signed = vmaxq_s16(input_signed, zero16);
+      uint16x8_t input = vreinterpretq_u16_s16( input_signed );
 
       uint8x8_t  output = vqrshrn_n_u16(input, 6);
 
@@ -89,7 +152,7 @@ void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
   }
 #endif
 
-#if 1
+#if 0
   if (width >= 4) {
     //uint16x4_t rnd = vmov_n_u16(32);
 
@@ -340,4 +403,81 @@ void mc_get_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
                                   int my, int16_t* mcbuffer)
 {
   mc_get_noshift_8_neon<true>(dst,dststride, src,srcstride, width,height);
+}
+
+
+static uint8_t filter_h1_plus [8] = { 0,4, 0,58,17,0,1,0 };
+static uint8_t filter_h1_minus[8] = { 1,0,10, 0, 0,5,0,0 };
+
+void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                           const uint8_t *src, ptrdiff_t srcstride,
+                           int width, int height,
+                           int16_t* mcbuffer)
+{
+  while (width>=4) {
+    uint8x8_t filter_plus  = vld1_u8(filter_h1_plus);
+    uint8x8_t filter_minus = vld1_u8(filter_h1_minus);
+
+
+
+    for (int y=0;y<height;y++) {
+      uint8x8_t input_left  = vld1_u8(src+y*srcstride -3);
+      uint8x8_t input_right = vld1_u8(src+y*srcstride -3+8);
+
+      if (D) { print128(src+y*srcstride-3); printf("\n"); }
+
+      Deb(input_left);
+      Deb(filter_plus);
+      Deb(filter_minus);
+
+      uint16x8_t acc0p = vmull_u8(       input_left, filter_plus);
+      uint16x8_t acc0_ = vmlsl_u8(acc0p, input_left, filter_minus);
+      int16x8_t  acc0  = vreinterpretq_s16_u16(acc0_);
+
+      Deb(acc0p);
+      Deb(acc0_);
+
+      int16x4_t  sum0 = vpadd_s16(vget_low_s16(acc0), vget_high_s16(acc0));
+      Deb(sum0);
+
+      uint8x8_t input1 = vext_u8(input_left, input_right, 1);
+      Deb(input1);
+
+      uint16x8_t acc1p = vmull_u8(       input1, filter_plus);
+      uint16x8_t acc1_ = vmlsl_u8(acc1p, input1, filter_minus);
+      int16x8_t  acc1  = vreinterpretq_s16_u16(acc1_);
+      int16x4_t  sum1 = vpadd_s16(vget_low_s16(acc1), vget_high_s16(acc1));
+      Deb(sum1);
+
+      uint8x8_t input2 = vext_u8(input_left, input_right, 2);
+      uint16x8_t acc2p = vmull_u8(       input2, filter_plus);
+      uint16x8_t acc2_ = vmlsl_u8(acc2p, input2, filter_minus);
+      int16x8_t  acc2  = vreinterpretq_s16_u16(acc2_);
+      int16x4_t  sum2 = vpadd_s16(vget_low_s16(acc2), vget_high_s16(acc2));
+      Deb(sum2);
+
+      uint8x8_t input3 = vext_u8(input_left, input_right, 3);
+      uint16x8_t acc3p = vmull_u8(       input3, filter_plus);
+      uint16x8_t acc3_ = vmlsl_u8(acc3p, input3, filter_minus);
+      int16x8_t  acc3  = vreinterpretq_s16_u16(acc3_);
+      int16x4_t  sum3 = vpadd_s16(vget_low_s16(acc3), vget_high_s16(acc3));
+      Deb(sum3);
+
+      int16x4_t  sum01 = vpadd_s16(sum0,sum1);
+      int16x4_t  sum23 = vpadd_s16(sum2,sum3);
+      int16x4_t  sum0123 = vpadd_s16(sum01,sum23);
+
+      Deb(sum01);
+      Deb(sum23);
+      Deb(sum0123);
+
+      vst1_s16((dst+dststride*y), sum0123);
+    }
+
+    width-=4;
+    src+=4;
+    dst+=4;
+  }
+
+  assert(width==0);
 }
