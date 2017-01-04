@@ -84,7 +84,7 @@ int decode_rate_percent = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
-int enable_inexact_decoding=0;
+int inexact_decoding_flags=0;
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -599,7 +599,7 @@ int main(int argc, char** argv)
     case 'T': highestTID=atoi(optarg); break;
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
-    case 'I': enable_inexact_decoding=0xFFFF; break;
+    case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_numeric; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
@@ -649,23 +649,23 @@ int main(int argc, char** argv)
 
   de265_decoder_context* ctx = de265_new_decoder();
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+  // TODO de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+  de265_suppress_faulty_pictures(ctx, false);
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
-  de265_set_parameter_inexact_decoding(ctx, enable_inexact_decoding);
+  if (disable_deblocking) inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
+  if (disable_sao)        inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
+  de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
+    /* TODO
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
     de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+    */
   }
 
-  if (no_acceleration) {
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
-  }
+  de265_set_CPU_capabilities(ctx, no_acceleration ? 0 : de265_cpu_capability_all);
 
   if (nThreads==0) {
     nThreads = 1;

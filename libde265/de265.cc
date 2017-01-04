@@ -465,80 +465,44 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
   return ctx->get_warning();
 }
 
-LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
+
+LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context* de265ctx, int capabilities)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_cpu_capabilities = capabilities;
+}
 
-  switch (param)
-    {
+
+LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context* de265ctx, int flags)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_inexact_decoding_flags = flags;
+
+  ctx->param_disable_deblocking = !!(flags & de265_inexact_decoding_no_deblocking);
+  ctx->param_disable_sao        = !!(flags & de265_inexact_decoding_no_SAO);
+}
+
+
+LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context* de265ctx, int suppress)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_suppress_faulty_pictures = !!suppress;
+}
+
+
+LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
+                                     void (*callback)(int nal_unit, const char* text))
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->get_frontend_syntax_decoder().param_header_callback = callback;
+}
+
+
+  /*
     case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
       ctx->param_sei_check_hash = !!value;
       break;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      ctx->param_suppress_faulty_pictures = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      ctx->param_disable_deblocking = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      ctx->param_disable_sao = !!value;
-      break;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      ctx->param_disable_mc_residual_idct = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      ctx->param_disable_intra_residual_idct = !!value;
-      break;
-      */
-
-    default:
-      assert(false);
-      break;
-    }
-}
-
-
-LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum de265_param param, int value)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_sps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_vps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_pps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_slice_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_ACCELERATION_CODE:
-      ctx->deprecated_set_acceleration_type( (enum de265_acceleration)value );
-      break;
-
-    case DE265_DECODER_PARAM_CPU_CAPABILITIES:
-      ctx->param_cpu_capabilities = value;
-      break;
-
-    default:
-      assert(false);
-      break;
-    }
-}
+  */
 
 
 LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
@@ -546,48 +510,6 @@ LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->param_max_images_processed_in_parallel = parallel_frames;
-}
-
-
-
-
-LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
-      return ctx->param_sei_check_hash;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      return ctx->param_suppress_faulty_pictures;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      return ctx->param_disable_deblocking;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      return ctx->param_disable_sao;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      return ctx->param_disable_mc_residual_idct;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      return ctx->param_disable_intra_residual_idct;
-      */
-
-    default:
-      assert(false);
-      return false;
-    }
-}
-
-
-LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context* de265ctx, int flags)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->param_inexact_decoding_flags = flags;
 }
 
 

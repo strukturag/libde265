@@ -195,7 +195,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
 base_context::base_context()
 {
-  deprecated_set_acceleration_type( de265_acceleration_AUTO );
+  //deprecated_set_acceleration_type( de265_acceleration_AUTO );
   param_inexact_decoding_flags = de265_inexact_decoding_mask_none;
 
   //set_acceleration_functions(de265_acceleration_AUTO);
@@ -393,6 +393,7 @@ void base_context::set_acceleration_functions()
 }
 
 
+/*
 void base_context::deprecated_set_acceleration_type(enum de265_acceleration acc)
 {
   param_cpu_capabilities = 0;
@@ -416,17 +417,17 @@ void base_context::deprecated_set_acceleration_type(enum de265_acceleration acc)
   case de265_acceleration_ARM:  // unused
   case de265_acceleration_NEON: // unused
     break;
-    
+
   case de265_acceleration_AUTO:
     param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
 			       de265_cpu_capability_X86_SSE41 |
 			       de265_cpu_capability_ARM_NEON    |
-			       de265_cpu_capability_ARM_AARCH64 
+			       de265_cpu_capability_ARM_AARCH64
 			       );
     break;
   }
 }
-
+*/
 
 
 void decoder_context::start_decoding_thread()

@@ -408,58 +408,41 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent);
 
 /* --- decoding parameters --- */
 
-enum de265_param {
-  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
-  DE265_DECODER_PARAM_DUMP_SPS_HEADERS=1,    // (int)  Dump headers to specified file-descriptor.
-  DE265_DECODER_PARAM_DUMP_VPS_HEADERS=2,
-  DE265_DECODER_PARAM_DUMP_PPS_HEADERS=3,
-  DE265_DECODER_PARAM_DUMP_SLICE_HEADERS=4,
-  DE265_DECODER_PARAM_ACCELERATION_CODE=5,   // (int)  enum de265_acceleration, default: AUTO
-  DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES=6, // (bool)  do not output frames with decoding errors, default: no (output all images)
-
-  DE265_DECODER_PARAM_DISABLE_DEBLOCKING=7,    // (bool)  disable deblocking
-  DE265_DECODER_PARAM_DISABLE_SAO=8,           // (bool)  disable SAO filter
-  DE265_DECODER_PARAM_CPU_CAPABILITIES=9       // (bitset)  de265_cpu_capability_*
-
-  //DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT=9,     // (bool)  disable decoding of IDCT residuals in MC blocks
-  //DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT=10  // (bool)  disable decoding of IDCT residuals in MC blocks
-};
-
-// sorted such that a large ID includes all optimizations from lower IDs
-enum de265_acceleration {
-  de265_acceleration_SCALAR = 0, // only fallback implementation
-  de265_acceleration_MMX  = 10,
-  de265_acceleration_SSE  = 20,
-  de265_acceleration_SSE2 = 30,
-  de265_acceleration_SSE4 = 40,
-  de265_acceleration_AVX  = 50,    // not implemented yet
-  de265_acceleration_AVX2 = 60,    // not implemented yet
-  de265_acceleration_ARM  = 70,
-  de265_acceleration_NEON = 80,
-  de265_acceleration_AUTO = 10000
-};
-
+/* Set CPU features that the decoder may use.
+   For x86, the decoder will itself check existing CPU features and does not use non-existing features.
+   Hence, you can always enable all of them to get maximum acceleration.
+   For ARM, you have to specify the capabilities correctly as they are not checked.
+ */
+LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context*, int capabilities);
 #define de265_cpu_capability_X86_SSE2    (1<<0)
 #define de265_cpu_capability_X86_SSE41   (1<<1)
+#define de265_cpu_capability_X86_AVX2    (1<<2)
+#define de265_cpu_capability_X86_all     (de265_cpu_capability_X86_SSE2  | \
+                                          de265_cpu_capability_X86_SSE41 | \
+                                          de265_cpu_capability_X86_AVX2)
 #define de265_cpu_capability_ARM_NEON    (1<<10)
 #define de265_cpu_capability_ARM_AARCH64 (1<<11)
-
-/* Set decoding parameters. */
-LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
-
-LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_param param, int value);
-
-/* Get decoding parameters. */
-LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
+#define de265_cpu_capability_all         (0xFFFF)
 
 
-#define de265_inexact_decoding_idct                1   // not used yet
-#define de265_inexact_decoding_mask_all            0xFFFF
-#define de265_inexact_decoding_mask_weak           (0)
-#define de265_inexact_decoding_mask_preferred      (0)
-#define de265_inexact_decoding_mask_strong         0xFFFF
+LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context*, int flags);
+#define de265_inexact_decoding_no_SAO              1
+#define de265_inexact_decoding_no_deblocking       2
+#define de265_inexact_decoding_idct                4   // not used yet
 #define de265_inexact_decoding_mask_none           0
-LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context*, int flags);
+#define de265_inexact_decoding_mask_numeric        (de265_inexact_decoding_idct)
+#define de265_inexact_decoding_mask_all            0xFFFF
+
+
+LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context*, int suppress_enable);
+
+
+// set callback to NULL to disable
+LIBDE265_API void de265_dump_headers(de265_decoder_context*, void (*callback)(int nal_unit, const char* text));
+
+
+// TODO:  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
+
 
 
 
