@@ -46,6 +46,7 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
   reset();
 
 
+  param_header_callback = nullptr;
   param_sps_headers_fd = -1;
   param_vps_headers_fd = -1;
   param_pps_headers_fd = -1;

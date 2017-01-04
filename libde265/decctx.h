@@ -205,7 +205,7 @@ class base_context : public error_queue,
 
   //enum de265_acceleration param_acceleration_type = de265_acceleration_SCALAR;
   uint32_t param_inexact_decoding_flags;
-  int param_cpu_capabilities = 0;
+  int param_cpu_capabilities;
 
   //void deprecated_set_acceleration_type(enum de265_acceleration acc);
 

@@ -232,6 +232,8 @@ decoder_context::decoder_context()
 
   // --- parameters ---
 
+  param_cpu_capabilities = 0;
+
   param_sei_check_hash = false;
   param_conceal_stream_errors = true;
   param_suppress_faulty_pictures = false;
