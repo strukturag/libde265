@@ -1129,7 +1129,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     auto task = std::make_shared<thread_task_slice_segment>();
     task->firstSliceSubstream = (entryPt==0);
     task->tctx = tctx;
-    task->debug_startCtbX = ctbAddrRS % ctbsWidth,
+    task->debug_startCtbX = ctbAddrRS % ctbsWidth;
     task->debug_startCtbY = ctbAddrRS / ctbsWidth;
     tctx->task = task;
 
@@ -1141,22 +1141,23 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   }
 
 
-  for (int entryPt=0;entryPt<nTiles;entryPt++) {
-    auto tctx = sliceunit->get_thread_context(entryPt);
+  if (err == DE265_OK) {
+    for (int entryPt=0;entryPt<nTiles;entryPt++) {
+      auto tctx = sliceunit->get_thread_context(entryPt);
 
-    if (entryPt < nTiles-1) {
-      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      if (entryPt < nTiles-1) {
+        tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      }
+      else {
+        tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+      }
+
     }
-    else {
-      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+
+    for (int entryPt=0;entryPt<nTiles;entryPt++) {
+      m_thread_pool.add_task(tasks[entryPt]);
     }
   }
-
-
-  for (int entryPt=0;entryPt<nTiles;entryPt++) {
-    m_thread_pool.add_task(tasks[entryPt]);
-  }
-
 
   //img->wait_for_completion();
 
