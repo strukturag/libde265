@@ -1032,7 +1032,11 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
       }
       else
 #endif
-        {
+      {
+        // Set out-of-bounds pixel to defined value. This is not really required since
+        // it is always multiplied by zero, but valgrind complains about this.
+        ref[2*nT+1] = 0;
+
         for (int y=0;y<nT;y++) {
           int iIdx = ((y+1)*intraPredAngle)>>5;
           int iFact= ((y+1)*intraPredAngle)&31;
@@ -1040,10 +1044,7 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
           for (int x=0;x<nT;x++)
             {
               dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
-
-              //printf("%02x %02x %02x | ",dst[x+y*dstStride],ref[x+iIdx+1],ref[x+iIdx+2]);
             }
-          //printf("\n");
         }
       }
     }
@@ -1084,6 +1085,9 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
           ref[x] = border[-x]; // DIFF (neg)
         }
       }
+
+      // see above
+      ref[2*nT+1] = 0;
 
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++)
