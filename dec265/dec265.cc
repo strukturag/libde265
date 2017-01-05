@@ -24,6 +24,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits>
@@ -689,7 +690,7 @@ int main(int argc, char** argv)
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
-    fprintf(stderr,"cannot open file %s!\n", argv[1]);
+    fprintf(stderr,"cannot open file %s (%s)\n", argv[optind], strerror(errno));
     exit(10);
   }
 
