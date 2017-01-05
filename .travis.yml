@@ -1,6 +1,8 @@
 # stats available at
 # https://travis-ci.org/strukturag/libde265/
 language: cpp
+cache:
+  - ccache
 compiler:
   - gcc
 env:
