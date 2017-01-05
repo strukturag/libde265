@@ -54,6 +54,17 @@
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
 
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#define LIBDE265_RESTRICT __restrict
+#define LIBDE265_RESTRICT_PTR(name) * LIBDE265_RESTRICT name
+#elif !defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict__
+#define LIBDE265_RESTRICT_PTR(name) LIBDE265_RESTRICT *name
+#else
+#define LIBDE265_RESTRICT
+#define LIBDE265_RESTRICT_PTR(name) *name
+#endif
+
 #if defined(__GNUC__) && (__GNUC__ >= 4)
 #define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
 #elif defined(_MSC_VER) && (_MSC_VER >= 1700)

@@ -58,8 +58,8 @@ inline void store_2_4_6(uint8_t* dst, __m128i& result, int width)
 }
 
 
-void put_pred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                     const int16_t __restrict__ *src, ptrdiff_t srcstride,
+void put_pred_8_sse2(uint8_t LIBDE265_RESTRICT_PTR(dst), ptrdiff_t dststride,
+                     const int16_t LIBDE265_RESTRICT_PTR(src), ptrdiff_t srcstride,
                      int width, int height)
 {
   __m128i round_offset = _mm_set1_epi16(32);
@@ -109,9 +109,9 @@ void put_pred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 }
 
 
-void put_bipred_8_sse2(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                       const int16_t __restrict__ *src1,
-                       const int16_t __restrict__ *src2, ptrdiff_t srcstride,
+void put_bipred_8_sse2(uint8_t LIBDE265_RESTRICT_PTR(dst), ptrdiff_t dststride,
+                       const int16_t LIBDE265_RESTRICT_PTR(src1),
+                       const int16_t LIBDE265_RESTRICT_PTR(src2), ptrdiff_t srcstride,
                        int width, int height)
 {
   __m128i round_offset = _mm_set1_epi16(64);
