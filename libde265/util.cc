@@ -260,7 +260,7 @@ double de265_get_time()
 }
 
 #else
-#  ifdef _MSC_VER
+#  if defined(_MSC_VER) || defined(__MINGW32__)
 double de265_get_time()
 {
   return 0;

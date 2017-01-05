@@ -38,7 +38,7 @@
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define IS_LITTLE_ENDIAN 1
 #else
 #define IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
@@ -52,6 +52,17 @@
 #define LIBDE265_DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#define LIBDE265_RESTRICT __restrict
+#define LIBDE265_RESTRICT_PTR(name) * LIBDE265_RESTRICT name
+#elif !defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict__
+#define LIBDE265_RESTRICT_PTR(name) LIBDE265_RESTRICT *name
+#else
+#define LIBDE265_RESTRICT
+#define LIBDE265_RESTRICT_PTR(name) *name
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ >= 4)
