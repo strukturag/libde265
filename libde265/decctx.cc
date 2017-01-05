@@ -719,6 +719,7 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
       // TODO
+      return;
     }
   }
 
@@ -1008,20 +1009,22 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 
 
-  for (int entryPt=0;entryPt<nRows;entryPt++) {
-    auto tctx = sliceunit->get_thread_context(entryPt);
+  if (err == DE265_OK) {
+    for (int entryPt=0;entryPt<nRows;entryPt++) {
+      auto tctx = sliceunit->get_thread_context(entryPt);
 
-    if (entryPt < nRows-1) {
-      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      if (entryPt < nRows-1) {
+        tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      }
+      else {
+        tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+      }
     }
-    else {
-      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+
+
+    for (int entryPt=0;entryPt<nRows;entryPt++) {
+      m_thread_pool.add_task(tasks[entryPt]);
     }
-  }
-
-
-  for (int entryPt=0;entryPt<nRows;entryPt++) {
-    m_thread_pool.add_task(tasks[entryPt]);
   }
 
 
