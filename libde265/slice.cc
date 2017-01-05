@@ -5025,7 +5025,7 @@ void thread_task_ctb_row::work()
   int ctby = tctx->get_CTB_y();
   int myCtbRow = ctby;
 
-  printf("sliceunit: %p start CTB-row decoding at row %d\n", tctx->sliceunit, ctby);
+  //printf("sliceunit: %p start CTB-row decoding at row %d\n", tctx->sliceunit, ctby);
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
