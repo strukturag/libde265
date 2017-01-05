@@ -251,9 +251,9 @@ if [[ $enable_arm == yes ]] ; then
 fi
 
 
-AM_CONDITIONAL([ENABLE_ARM_OPT], [ [[ $enable_neon == "yes" ]] ])
-AM_CONDITIONAL([ENABLE_NEON_OPT], [ [[ $enable_neon == "yes" ]] ])
-AM_CONDITIONAL([ENABLE_AARCH64_OPT], [ [[ $enable_aarch64 == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_ARM_OPT], [ [[ "$enable_neon" == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_NEON_OPT], [ [[ "$enable_neon" == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_AARCH64_OPT], [ [[ "$enable_aarch64" == "yes" ]] ])
 
 
 if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
