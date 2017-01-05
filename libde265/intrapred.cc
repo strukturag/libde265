@@ -1270,7 +1270,7 @@ void decode_intra_prediction_internal(image* img,
                                       pixel_t* dst, int dstStride,
                                       int nT, int cIdx)
 {
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t) border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
@@ -1372,7 +1372,7 @@ void decode_intra_prediction_from_tree_internal(const image* img,
   pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
   int dstStride = tb->intra_prediction[cIdx]->getStride();
 
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t)  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
