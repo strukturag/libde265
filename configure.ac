@@ -352,9 +352,9 @@ if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" &&
 fi
 
 if eval "test $enable_sherlock265 = yes" ; then
-  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5], [found_qt=no])
+  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5 qtchooser_ver=5], [found_qt=no])
   if eval "test $found_qt = no" ; then
-    PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
+    PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4 qtchooser_ver=qt4])
   fi
   AC_PATH_PROGS([QTCHOOSER],[qtchooser])
   if eval "test x$QTCHOOSER = x" ; then
@@ -363,11 +363,15 @@ if eval "test $enable_sherlock265 = yes" ; then
       AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
     fi
   else
-    QTMOC="$QTCHOOSER -run-tool=moc -qt=$found_qt"
+    QTMOC="$QTCHOOSER -run-tool=moc -qt=$qtchooser_ver"
   fi
   AC_MSG_CHECKING([for version of $QTMOC])
-  QTMOC_VERSION=`$QTMOC -v 2>&1 | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
+  QTMOC_VERSION_ALL=`$QTMOC -v 2>&1`
+  QTMOC_VERSION=`echo $QTMOC_VERSION_ALL | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
   AC_MSG_RESULT([$QTMOC_VERSION])
+  if eval "test x$QTMOC_VERSION = x" ; then
+    AC_MSG_ERROR([The "moc" commandline tool didn't return a version ($QTMOC_VERSION_ALL).])
+  fi
   AX_COMPARE_VERSION([$QTMOC_VERSION], [lt], [$found_qt],
       [AC_MSG_ERROR([Please install "moc" for Qt$found_qt (found $QTMOC_VERSION).])])
   AC_SUBST(QTMOC)
