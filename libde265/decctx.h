@@ -436,6 +436,8 @@ class decoder_context : public base_context,
 
   void compute_framedrop_table();
 
+  static bool is_image_unit_decodable(image_unit_ptr imgunit);
+
  public:
   void calc_tid_and_framerate_ratio();
 };

@@ -4987,6 +4987,7 @@ void thread_task_slice_segment::work()
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
+      tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
       tctx->sliceunit->finished_threads.increase_progress(1);
       //img->thread_finishes(this);
       return;

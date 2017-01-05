@@ -567,6 +567,10 @@ void decoder_context::run_main_loop()
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
         to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
       }
+      else if (!is_image_unit_decodable(to_be_decoded)) {
+        to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
+        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+      }
       else if (!to_be_decoded->slice_units.empty() &&
                to_be_decoded->slice_units[0]->shdr->first_slice_segment_in_pic_flag == false) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
@@ -664,6 +668,21 @@ public:
 private:
   image_unit_ptr m_imgunit;
 };
+
+
+bool decoder_context::is_image_unit_decodable(image_unit_ptr imgunit)
+{
+  int lastCTB_TS = -1;
+  for (slice_unit* sliceunit : imgunit->slice_units) {
+    if (sliceunit->first_CTB_TS <= lastCTB_TS) {
+      return false;
+    }
+
+    lastCTB_TS = sliceunit->first_CTB_TS;
+  }
+
+  return true;
+}
 
 
 void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
