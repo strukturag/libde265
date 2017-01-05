@@ -15,7 +15,8 @@ libde265_x86_sse_la_CXXFLAGS = $(SSE_COMPILER_OPTION) -I.. $(CFLAG_VISIBILITY)
 libde265_x86_sse_la_SOURCES = \
   sse-motion.cc sse-motion.h \
   sse-motion-new.cc sse-motion-new.h \
-  sse-dct.h sse-dct.cc sse-sao.cc \
+  sse-dct.h sse-dct.cc \
+  sse-sao.cc sse-sao.h \
   sse-intra-dc.h sse-intra-dc.cc
 
 if HAVE_VISIBILITY
