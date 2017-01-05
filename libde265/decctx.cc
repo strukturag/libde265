@@ -882,6 +882,11 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     return err;
   }
+  else if (use_WPP && use_tiles) {
+    // TODO: this is not allowed ... output some warning or error
+
+    return DE265_WARNING_PPS_HEADER_INVALID;
+  }
   else if (use_WPP) {
     err = decode_slice_unit_WPP(imgunit, sliceunit);
     return err;
@@ -892,11 +897,6 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     //sliceunit->state = slice_unit::Decoded;
     //sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
     return err;
-  }
-  else if (use_WPP && use_tiles) {
-    // TODO: this is not allowed ... output some warning or error
-
-    return DE265_WARNING_PPS_HEADER_INVALID;
   }
 
   assert(false);
@@ -1043,7 +1043,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   //imgunit->tasks.clear();
 
-  return DE265_OK;
+  return err;
 }
 
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
