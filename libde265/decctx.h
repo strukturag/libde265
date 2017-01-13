@@ -291,6 +291,13 @@ class decoder_context : public base_context,
 
   void set_max_latency(int n) { m_output_queue.set_max_latency(n); }
 
+  void set_max_images_processed_in_parallel(int parallel_frames) {
+    m_main_loop_mutex.lock();
+    param_max_images_processed_in_parallel = parallel_frames;
+    m_main_loop_mutex.unlock();
+  }
+
+
 
   void debug_imageunit_state();
 
@@ -335,8 +342,6 @@ class decoder_context : public base_context,
   bool param_disable_deblocking;
   bool param_disable_sao;
 
-  int  param_max_images_processed_in_parallel;
-
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
@@ -350,6 +355,7 @@ class decoder_context : public base_context,
  private:
   int num_worker_threads;  // input parameter: the number of desired worker threads
 
+  int  param_max_images_processed_in_parallel;
 
   // --- main loop ---
 

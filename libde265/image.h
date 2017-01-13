@@ -363,7 +363,7 @@ class image {
 
 private:
   uint32_t ID;
-  static uint32_t s_next_image_ID;
+  static de265_sync_int s_next_image_ID;
 
   uint8_t* pixels[3];
 

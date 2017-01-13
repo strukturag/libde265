@@ -54,7 +54,10 @@ public:
   /* Remove all pictures from DPB and queues. Decoding should be stopped while calling this. */
   void clear();
 
-  int size() const { return dpb.size(); }
+  int size() const {
+    lock_guard lock(m_mutex);
+    return dpb.size();
+  }
 
   /* Raw access to the images. */
 

@@ -215,7 +215,7 @@ void image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
 }
 
 
-uint32_t image::s_next_image_ID = 1; // start with ID 1, as 0 means 'no ID'
+de265_sync_int image::s_next_image_ID = 1; // start with ID 1, as 0 means 'no ID'
 
 image::image()
 {
@@ -269,7 +269,7 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
                 allocated to the requested size. Without the release, the old image-data
                 will not be freed. */
 
-  ID = s_next_image_ID++;
+  ID = de265_sync_add_and_fetch(&s_next_image_ID, 1);
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
   // --- allocate image buffer ---

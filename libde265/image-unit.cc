@@ -86,7 +86,7 @@ image_unit::~image_unit()
 
 bool image_unit::did_finish_decoding() const
 {
-  for (const auto& task : tasks) {
+  for (thread_task_ptr task : tasks) {
 
     if (!task->finished()) {
       return false;
@@ -99,7 +99,7 @@ bool image_unit::did_finish_decoding() const
 
 void image_unit::wait_to_finish_decoding()
 {
-  for (const auto& task : tasks) {
+  for (thread_task_ptr task : tasks) {
     task->wait_until_finished();
   }
 }
