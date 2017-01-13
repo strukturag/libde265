@@ -11,8 +11,8 @@ env:
   - HOST=x86_64-w64-mingw32 WINE=wine64 DECODESTREAMS=
   - HOST=arm-linux-gnueabihf WINE= DECODESTREAMS=
   - HOST=cmake WINE= DECODESTREAMS=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
+  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--job-timeout
+  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--job-timeout --single-threaded
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=--single-threaded
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=
@@ -31,8 +31,8 @@ matrix:
     - compiler: clang
       env: HOST= WINE= DECODESTREAMS=
   allow_failures:
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--job-timeout
+    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--job-timeout --single-threaded
     - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
     - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=--single-threaded
     - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 """
 H.265 video codec.
 Copyright (c) 2014 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -41,8 +41,8 @@ PROCESS_COUNT = min(8, CPU_COUNT * 2)
 # print a status every 10 seconds while waiting for pending tasks
 STATUS_INTERVAL = 10
 
-# cancel hung jobs after 60 seconds
-JOB_TIMEOUT = 60
+# cancel hung jobs after 30 seconds
+JOB_TIMEOUT = 30
 
 # cancel waiting if no more tasks completed for 120 seconds
 CANCEL_TIMEOUT = 120
@@ -80,21 +80,24 @@ class TimeoutThread(threading.Thread):
 
             time.sleep(0.1)
 
-def decode_file(filename, threads=None):
+def decode_file(filename, threads=None, job_timeout=None):
     cmd = ['./dec265/dec265', '-q', '-c']
     if threads and threads > 0:
         cmd.append('-t')
         cmd.append(str(threads))
     cmd.append(filename)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    timer = TimeoutThread(p, JOB_TIMEOUT)
+    if job_timeout:
+        timer = TimeoutThread(p, job_timeout)
+    else:
+        timer = None
     try:
         (stdoutdata, stderrdata) = p.communicate()
     except KeyboardInterrupt:
         return (True, filename)
 
-    if timer.got_timeout:
-        print '\rERROR: %s failed with timeout after %d seconds (%r)' % (filename, JOB_TIMEOUT, stdoutdata)
+    if timer is not None and timer.got_timeout:
+        print '\rERROR: %s failed with timeout after %d seconds (%r)' % (filename, job_timeout, stdoutdata)
         return (False, filename)
     elif p.returncode < 0:
         print '\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata)
@@ -114,13 +117,14 @@ def decode_file(filename, threads=None):
 
 class BaseProcessor(object):
 
-    def __init__(self, filenames, threads=None):
+    def __init__(self, filenames, threads=None, job_timeout=None):
         self.filenames = filenames
         self.threads = threads
+        self.job_timeout = job_timeout
         self.errors = []
 
     def process(self, filename):
-        ok = decode_file(filename, threads=self.threads)
+        ok = decode_file(filename, threads=self.threads, job_timeout=self.job_timeout)
         return (ok, filename)
 
     def run(self):
@@ -146,6 +150,7 @@ if multiprocessing is not None:
 
         def process(self, *args, **kw):
             kw.setdefault('threads', self.threads)
+            kw.setdefault('job_timeout', self.job_timeout)
             with self.lock:
                 job = self.pool.apply_async(decode_file, args, kw, self._callback)
                 self.pending_jobs.append(job)
@@ -226,6 +231,13 @@ def main():
     else:
         threads = None
 
+    try:
+        argv.remove('--job-timeout')
+    except ValueError:
+        job_timeout = None
+    else:
+        job_timeout = JOB_TIMEOUT
+
     if len(argv) > 1:
         root = argv[1]
         if not os.path.isdir(root):
@@ -240,7 +252,7 @@ def main():
     else:
         print 'Using %d processes' % (PROCESS_COUNT)
     
-    processor = ProcessorClass(filenames, threads)
+    processor = ProcessorClass(filenames, threads, job_timeout=job_timeout)
     try:
         processor.run()
     except KeyboardInterrupt:
