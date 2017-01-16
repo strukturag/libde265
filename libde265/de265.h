@@ -67,13 +67,21 @@ extern "C" {
 
 /* === version numbers === */
 
-// version of linked libde265 library
+// Version string of linked libde265 library.
 LIBDE265_API const char *de265_get_version(void);
-LIBDE265_API uint32_t de265_get_version_number(void); // 0xHHMMLL00 = HH.MM.LL
+// Numeric version of linked libde265 library, encoded as 0xHHMMLL00 = HH.MM.LL.
+LIBDE265_API uint32_t de265_get_version_number(void);
 
-LIBDE265_API int de265_get_version_number_major(void); // HH
-LIBDE265_API int de265_get_version_number_minor(void); // MM
-LIBDE265_API int de265_get_version_number_maintenance(void); // LL
+// Numeric part "HH" from above.
+LIBDE265_API int de265_get_version_number_major(void);
+// Numeric part "MM" from above.
+LIBDE265_API int de265_get_version_number_minor(void);
+// Numeric part "LL" from above.
+LIBDE265_API int de265_get_version_number_maintenance(void);
+
+// Helper macros to check for given versions of libde265 at compile time.
+#define LIBDE265_ENCODED_VERSION(h, m, l) ((h) << 24 | (m) << 16 | (l) << 8)
+#define LIBDE265_CHECK_VERSION(h, m, l) (LIBDE265_NUMERIC_VERSION >= LIBDE265_ENCODED_VERSION(h, m, l))
 
 
 /* === error codes === */
