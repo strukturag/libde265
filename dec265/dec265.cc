@@ -44,7 +44,7 @@
 
 #define WITH_FPS 0
 
-#ifdef WITH_FPS
+#if WITH_FPS
 #include "libde265/frame-dropper.h"
 #endif
 
@@ -718,7 +718,7 @@ int main(int argc, char** argv)
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
 
-#ifdef WITH_FPS
+#if WITH_FPS
   fps_estimator fps_estim;
   fps_estim.set_fps_estimator_timespan(5.0f);
 
