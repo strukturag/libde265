@@ -398,7 +398,11 @@ LIBDE265_API int  de265_get_highest_TID(de265_decoder_context*); // highest temp
 LIBDE265_API void de265_set_limit_TID(de265_decoder_context*,int max_tid); // highest temporal substream to decode
 #define de265_limit_TID_unlimited -1
 
-LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent); // percentage of frames to decode (approx)
+LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,float ratio);
+
+LIBDE265_API void de265_set_target_framerate(de265_decoder_context*,float fps);
+
+LIBDE265_API float de265_get_current_fps_estimate(de265_decoder_context*);
 
 // not exported into API yet
 // LIBDE265_API int  de265_get_current_TID(de265_decoder_context*); // currently decoded temporal substream

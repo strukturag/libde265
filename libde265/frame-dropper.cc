@@ -316,11 +316,11 @@ float frame_drop_ratio_calculator::update_decoding_ratio(float measured_fps)
 {
   // effective fps (how fast the video plays, if we ignore the fact that some frames are skipped)
   float fps_eff = measured_fps / m_current_decoding_ratio;
-  printf("fps_eff=%f\n",fps_eff);
+  //printf("fps_eff=%f\n",fps_eff);
 
   // estimated decoder speed at 100% decoding ratio
   float fps_100 = measured_fps / (m_model_param + (1-m_model_param)*m_current_decoding_ratio);
-  printf("fps_100=%f\n",fps_100);
+  //printf("fps_100=%f\n",fps_100);
 
   // new decoding ratio
   float ratio = m_model_param / (m_target_fps/fps_100 - (1-m_model_param));

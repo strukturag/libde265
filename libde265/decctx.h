@@ -305,6 +305,11 @@ class decoder_context : public base_context,
   frame_dropper_IRAP_only  m_frame_dropper_IRAP_only;
   frame_dropper_ratio      m_frame_dropper_ratio;
 
+  fps_estimator               m_fps_estimator;
+  frame_drop_ratio_calculator m_frame_drop_ratio_calculator;
+
+  bool    m_use_frame_drop_ratio_calculator;
+
 
   // -------------------------------------------------- decoding main loop
 
@@ -341,6 +346,9 @@ class decoder_context : public base_context,
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
   void set_frame_dropping_ratio(float ratio);
+
+  void set_auto_frame_dropper_fps(float fps);
+  float get_current_fps_estimate() const;
 
 
   de265_image_allocation param_image_allocation_functions;
@@ -415,7 +423,9 @@ class decoder_context : public base_context,
   void set_limit_TID(int tid);
   int  get_current_TID() const { return current_HighestTid; }
   int  change_framerate(int more_vs_less); // 1: more, -1: less
-  void set_framerate_ratio(int percent);
+  void set_framerate_ratio(float ratio);
+  void disable_auto_frame_dropper();
+  void enable_auto_frame_dropper(float fps);
 
  private:
   // input parameters

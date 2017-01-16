@@ -42,6 +42,8 @@
 #include "libde265/quality.h"
 #include "libde265/util.h"
 
+#define WITH_FPS 0
+
 #ifdef WITH_FPS
 #include "libde265/frame-dropper.h"
 #endif
@@ -81,7 +83,8 @@ bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
 int highestTID = 100;
-int decode_rate_percent = 100;
+float target_fps = 0.0f;
+float decode_rate_ratio = 1.0f;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
@@ -109,6 +112,7 @@ static struct option long_options[] = {
   {"errmap",      no_argument,       0, 'e' },
   {"highest-TID", required_argument, 0, 'T' },
   {"decoding-framerate-percent", required_argument, 0, 'D' },
+  {"target-fps", required_argument, 0, 'F' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
@@ -572,7 +576,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:I"
+    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:IF:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -598,7 +602,8 @@ int main(int argc, char** argv)
     case 's': show_ssim_map=true; break;
     case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
-    case 'D': decode_rate_percent=atoi(optarg); break;
+    case 'D': decode_rate_ratio=atoi(optarg)/100.0f; break;
+    case 'F': target_fps=atof(optarg); break;
     case 'v': verbosity++; break;
     case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_numeric; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
@@ -680,7 +685,12 @@ int main(int argc, char** argv)
   err = de265_start_worker_threads(ctx, nThreads);
 
   de265_set_limit_TID(ctx, highestTID);
-  de265_set_framerate_ratio(ctx, decode_rate_percent);
+  if (target_fps > 0.0) {
+    de265_set_target_framerate(ctx, target_fps);
+  }
+  else {
+    de265_set_framerate_ratio(ctx, decode_rate_ratio);
+  }
   de265_set_max_reorder_buffer_latency(ctx, max_latency);
 
   if (measure_quality) {
@@ -810,25 +820,22 @@ int main(int argc, char** argv)
 #endif
 
           framecnt++;
-          if ((framecnt%100)==0) {
-            fprintf(stderr,"frame %d  fps=%.2f\r",framecnt,
-#if WITH_FPS
-                    fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0
-#else
-                    0.0
-#endif
+          if ((framecnt%10)==0) {
+            fprintf(stderr,"frame %d  fps=%.2f\r",
+                    framecnt,
+                    de265_get_current_fps_estimate(ctx)
                     );
 
 #if WITH_FPS
-            if (false && fps_estim.fps_measurement_available()) {
+            if (fps_estim.fps_measurement_available()) {
               printf("\n");
               float ratio = drop_ratio.update_decoding_ratio(fps_estim.get_fps_measurement());
               printf("ratio = %f\n",ratio);
 
               //drop_ratio.set_decoding_ratio(ratio);
-              de265_set_framerate_ratio(ctx, ratio*100);
+              de265_set_framerate_ratio(ctx, ratio);
 
-              fps_estim.reset_fps_estimator();
+              //fps_estim.reset_fps_estimator();
             }
 #endif
           }

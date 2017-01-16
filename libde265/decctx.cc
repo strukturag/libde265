@@ -227,6 +227,9 @@ decoder_context::decoder_context()
 
   m_frame_dropper_ratio.set_decoder_context(*this);
 
+  m_fps_estimator.set_fps_estimator_timespan(5.0f); // estimate over 5 secs by default
+  m_use_frame_drop_ratio_calculator = false;
+
 
   //memset(ctx, 0, sizeof(decoder_context));
 
@@ -1303,6 +1306,20 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit_ptr outimgu
 
   m_output_queue.log_dpb_queues();
 
+
+
+  m_fps_estimator.on_frame_decoded( de265_get_time() );
+
+  if (m_use_frame_drop_ratio_calculator &&
+      m_fps_estimator.fps_measurement_available()) {
+    float fps = m_fps_estimator.get_fps_measurement();
+    float ratio = m_frame_drop_ratio_calculator.update_decoding_ratio(fps);
+
+    // printf("-----------------> ratio: %f\n", ratio);
+
+    set_framerate_ratio(ratio);
+  }
+
   return DE265_OK;
 }
 
@@ -1346,16 +1363,50 @@ int decoder_context::change_framerate(int more)
   return framerate_ratio;
 }
 
-void decoder_context::set_framerate_ratio(int percent)
+void decoder_context::set_framerate_ratio(float ratio)
 {
-  framerate_ratio = percent;
+  framerate_ratio = ratio * 100;
 
   // TODO: ideally, we should combine this with dropping temporal layers
   // (maybe in another frame_dropper implementation, pipelined)
   // calc_tid_and_framerate_ratio();
 
-  set_frame_dropping_ratio((100-percent)/100.0);
+  set_frame_dropping_ratio(1.0 - ratio);
 }
+
+void decoder_context::disable_auto_frame_dropper()
+{
+  m_use_frame_drop_ratio_calculator = false;
+}
+
+void decoder_context::enable_auto_frame_dropper(float fps)
+{
+  m_use_frame_drop_ratio_calculator = true;
+  m_frame_drop_ratio_calculator.set_target_fps(fps);
+}
+
+float decoder_context::get_current_fps_estimate() const
+{
+  if (m_fps_estimator.fps_measurement_available()) {
+    return m_fps_estimator.get_fps_measurement();
+  }
+  else {
+    return 0.0f;
+  }
+}
+
+
+void decoder_context::set_auto_frame_dropper_fps(float fps)
+{
+  if (fps > 0.0f) {
+    m_frame_drop_ratio_calculator.set_target_fps(fps);
+    m_use_frame_drop_ratio_calculator = true;
+  }
+  else {
+    m_use_frame_drop_ratio_calculator = false;
+  }
+}
+
 
 void decoder_context::compute_framedrop_table()
 {
