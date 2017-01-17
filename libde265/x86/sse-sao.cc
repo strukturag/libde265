@@ -36,6 +36,8 @@
 #include <inttypes.h>
 #endif
 
+#include "fallback-sao.h"
+
 #define D 0
 
 static void print128(__m128i m)
@@ -127,9 +129,7 @@ void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcst
       if (D) { printf("\n"); }
     }
 
-    if (x<width) {
-      assert(x+8==width);
-
+    if (x+8<=width) {
       const __m128i* in = (const __m128i*)(src+x+srcstride*y);
 
       __m128i masked_input = _mm_loadl_epi64(in);
@@ -185,5 +185,12 @@ void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcst
       _mm_storel_epi64 ((__m128i*)(dst+x+y*dststride), output);
       if (D) { printf("\n"); }
     }
+  }
+
+  if (x<width) {
+    assert(x+4==width);
+
+    sao_band_fallback_8bit(dst,dststride, src,srcstride, width,height,
+                           baseBand, offset0,offset1,offset2,offset3);
   }
 }
