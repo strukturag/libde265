@@ -1026,7 +1026,9 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       m_thread_pool.add_task(tasks[entryPt]);
     }
   }
-
+  else {
+    imgunit->tasks.clear();
+  }
 
 #if 0
   for (;;) {
@@ -1160,6 +1162,9 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     for (int entryPt=0;entryPt<nTiles;entryPt++) {
       m_thread_pool.add_task(tasks[entryPt]);
     }
+  }
+  else {
+    imgunit->tasks.clear();
   }
 
   //img->wait_for_completion();
