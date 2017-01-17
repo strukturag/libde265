@@ -534,7 +534,8 @@ void decoder_context::run_main_loop()
 {
   m_main_loop_mutex.lock();
 
-  for (;;) {
+  while (!m_main_loop_thread.should_stop()) {
+
     bool did_something = false;
 
 
@@ -633,9 +634,6 @@ void decoder_context::run_main_loop()
 
     if (did_something) {
       m_cond_api_action.signal();
-    }
-    else if (m_main_loop_thread.should_stop()) {
-      break;
     }
     else {
       m_main_loop_block_cond.wait(m_main_loop_mutex);
