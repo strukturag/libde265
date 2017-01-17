@@ -50,9 +50,7 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
-dnl gl_VISIBILITY
-dnl : In encoder branch, we still export all library symbols :
-HAVE_VISIBILITY=0
+AC_ARG_ENABLE([visibility], AS_HELP_STRING([--enable-visibility], [Enable visibility definitions.]), [gl_VISIBILITY], [HAVE_VISIBILITY=0])
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
@@ -304,9 +302,15 @@ fi
 
 AC_ARG_ENABLE([dec265], AS_HELP_STRING([--disable-dec265], [Do not build dec265 decoder program.]))
 AC_ARG_ENABLE([sherlock265], AS_HELP_STRING([--disable-sherlock265], [Do not build sherlock265 visual inspection program.]))
+AC_ARG_ENABLE([hdrcopy], AS_HELP_STRING([--disable-hdrcopy], [Do not build hdrcopy decoder program.]))
+AC_ARG_ENABLE([enc265], AS_HELP_STRING([--disable-enc265], [Do not build enc265 encoder program.]))
+AC_ARG_ENABLE([acceleration_speed], AS_HELP_STRING([--disable-acceleration_speed], [Do not build acceleration_speed test program.]))
 
 if eval "test x$enable_dec265 = x"      ; then enable_dec265=yes ; fi
 if eval "test x$enable_sherlock265 = x" ; then enable_sherlock265=yes ; fi
+if eval "test x$enable_hdrcopy = x"     ; then enable_hdrcopy=yes ; fi
+if eval "test x$enable_enc265 = x"      ; then enable_enc265=yes ; fi
+if eval "test x$enable_acceleration_speed = x" ; then enable_acceleration_speed=yes ; fi
 
 if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes" ; then
    PKG_CHECK_MODULES([VIDEOGFX], [libvideogfx],
@@ -379,6 +383,9 @@ fi
 
 AM_CONDITIONAL([ENABLE_DEC265], [test "x$enable_dec265" != "xno"])
 AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
+AM_CONDITIONAL([ENABLE_HDRCOPY], [test "x$enable_hdrcopy" != "xno"])
+AM_CONDITIONAL([ENABLE_ENC265], [test "x$enable_enc265" != "xno"])
+AM_CONDITIONAL([ENABLE_ACCELERATION_SPEED], [test "x$enable_acceleration_speed" != "xno"])
 
 
 # --- output configuration results ---
@@ -387,6 +394,9 @@ AC_MSG_NOTICE([---------------------------------------])
 AC_MSG_NOTICE([Processor acceleration: $MSG_ACCELERATION_OPTION])
 AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
 AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
+AC_MSG_NOTICE([Building hdrcopy example: $enable_hdrcopy])
+AC_MSG_NOTICE([Building enc265 example: $enable_enc265])
+AC_MSG_NOTICE([Building acceleration_speed example: $enable_acceleration_speed])
 AC_MSG_NOTICE([---------------------------------------])
 
 AC_CONFIG_FILES([Makefile])
