@@ -443,17 +443,14 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 
 
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
+#define LOG2(t,d1,d2) log2sstr(sstr, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2sstr(sstr, t,d1,d2,d3)
 
-void video_parameter_set::dump(int fd) const
+std::string video_parameter_set::dump() const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
   LOG0("----------------- VPS -----------------\n");
   LOG1("video_parameter_set_id                : %d\n", video_parameter_set_id);
@@ -461,7 +458,7 @@ void video_parameter_set::dump(int fd) const
   LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
   LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
 
-  profile_tier_level_.dump(vps_max_sub_layers, fh);
+  sstr << profile_tier_level_.dump(vps_max_sub_layers);
   //dump_bit_rate_pic_rate_info(&bit_rate_pic_rate_info, 0, vps_max_sub_layers-1);
 
   LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
@@ -512,12 +509,14 @@ void video_parameter_set::dump(int fd) const
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
 
-        return; // TODO: decode hrd_parameters()
+        // return; // TODO: decode hrd_parameters()
       }
     }
   }
 
   LOG1("vps_extension_flag = %d\n", vps_extension_flag);
+
+  return sstr.str();
 }
 
 
@@ -534,8 +533,10 @@ static const char* profile_name(profile_idc p)
 }
 
 
-void profile_data::dump(bool general, FILE* fh) const
+std::string profile_data::dump(bool general) const
 {
+  std::stringstream sstr;
+
   const char* prefix = (general ? "general" : "sub_layer");
 
   if (profile_present_flag) {
@@ -558,18 +559,24 @@ void profile_data::dump(bool general, FILE* fh) const
   if (level_present_flag) {
     LOG3("  %s_level_idc         : %d (%4.2f)\n", prefix,level_idc, level_idc/30.0f);
   }
+
+  return sstr.str();
 }
 
 
-void profile_tier_level::dump(int max_sub_layers, FILE* fh) const
+std::string profile_tier_level::dump(int max_sub_layers) const
 {
-  general.dump(true, fh);
+  std::stringstream sstr;
+
+  sstr << general.dump(true);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
       LOG1("  Profile/Tier/Level [Layer %d]\n",i);
-      sub_layer[i].dump(false, fh);
+      sstr << sub_layer[i].dump(false);
     }
+
+  return sstr.str();
 }
 
 #undef LOG0

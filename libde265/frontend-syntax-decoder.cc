@@ -47,11 +47,6 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
 
 
   param_header_callback = nullptr;
-  param_sps_headers_fd = -1;
-  param_vps_headers_fd = -1;
-  param_pps_headers_fd = -1;
-  param_slice_headers_fd = -1;
-
 
   nal_parser.set_on_NAL_inserted_listener(this);
 }
@@ -94,8 +89,9 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
     return err;
   }
 
-  if (param_vps_headers_fd>=0) {
-    new_vps->dump(param_vps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string hdr = new_vps->dump();
+    param_header_callback(NAL_UNIT_VPS_NUT, hdr.c_str());
   }
 
   vps[ new_vps->video_parameter_set_id ] = new_vps;
@@ -115,8 +111,9 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
     return err;
   }
 
-  if (param_sps_headers_fd>=0) {
-    new_sps->dump(param_sps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string str = new_sps->dump();
+    param_header_callback(NAL_UNIT_SPS_NUT, str.c_str());
   }
 
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
@@ -133,8 +130,9 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
 
   bool success = new_pps->read(&reader,m_decctx);
 
-  if (param_pps_headers_fd>=0) {
-    new_pps->dump(param_pps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string dump = new_pps->dump();
+    param_header_callback(NAL_UNIT_PPS_NUT, dump.c_str());
   }
 
   //printf("read PPS (success=%d)\n",success);
@@ -193,8 +191,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     return err;
   }
 
-  if (param_slice_headers_fd>=0) {
-    shdr->dump_slice_segment_header(m_decctx, nal_unit_type, param_slice_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string dump = shdr->dump_slice_segment_header(m_decctx, nal_unit_type);
+    param_header_callback(nal_unit_type, dump.c_str());
   }
 
 

@@ -567,6 +567,12 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+void dump_headers_callback(int nal_unit, const char* text)
+{
+  fputs(text, stderr);
+}
+
+
 int main(int argc, char** argv)
 {
   while (1) {
@@ -658,12 +664,7 @@ int main(int argc, char** argv)
   de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
-    /* TODO
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
-    */
+    de265_dump_headers(ctx, dump_headers_callback);
   }
 
   de265_set_CPU_capabilities(ctx, no_acceleration ? 0 : de265_cpu_capability_all);

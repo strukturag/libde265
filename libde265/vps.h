@@ -52,7 +52,7 @@ class profile_data {
 public:
   void read(bitreader* reader);
   void write(CABAC_encoder& writer) const;
-  void dump(bool general, FILE* fh) const;
+  std::string dump(bool general) const;
 
   void set_defaults(enum profile_idc, int level_major, int level_minor);
 
@@ -84,7 +84,7 @@ class profile_tier_level
 public:
   void read(bitreader* reader, int max_sub_layers);
   void write(CABAC_encoder& writer, int max_sub_layers) const;
-  void dump(int max_sub_layers, FILE* fh) const;
+  std::string dump(int max_sub_layers) const;
 
   profile_data general;
 
@@ -131,7 +131,7 @@ class video_parameter_set
 public:
   de265_error read(error_queue* errqueue, bitreader* reader);
   de265_error write(error_queue* errqueue, CABAC_encoder& out) const;
-  void dump(int fd) const;
+  std::string dump() const;
 
   void set_defaults(enum profile_idc profile, int level_major, int level_minor);
 

@@ -29,6 +29,7 @@
 #include "libde265/cabac.h"
 
 #include <vector>
+#include <sstream>
 
 class error_queue;
 
@@ -79,7 +80,7 @@ class sps_range_extension
   uint8_t cabac_bypass_alignment_enabled_flag;
 
   de265_error read(error_queue*, bitreader*);
-  void dump(int fd) const;
+  std::string dump() const;
 };
 
 
@@ -91,7 +92,7 @@ public:
   de265_error read(error_queue*, bitreader*);
   de265_error write(error_queue*, CABAC_encoder&);
 
-  void dump(int fd) const;
+  std::string dump() const;
 
   void set_defaults(enum PresetSet = Preset_Default);
   void set_CB_log2size_range(int mini,int maxi);

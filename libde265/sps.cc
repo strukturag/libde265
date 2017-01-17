@@ -602,152 +602,136 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
 
 
 
-void seq_parameter_set::dump(int fd) const
+std::string seq_parameter_set::dump() const
 {
-  //#if (_MSC_VER >= 1500)
-  //#define LOG0(t) loginfo(LogHeaders, t)
-  //#define LOG1(t,d) loginfo(LogHeaders, t,d)
-  //#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
-  //#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+  std::stringstream sstr;
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  LOG("----------------- SPS -----------------\n");
+  LOG("video_parameter_set_id  : %d\n", video_parameter_set_id);
+  LOG("sps_max_sub_layers      : %d\n", sps_max_sub_layers);
+  LOG("sps_temporal_id_nesting_flag : %d\n", sps_temporal_id_nesting_flag);
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+  sstr << profile_tier_level_.dump(sps_max_sub_layers);
 
-
-  LOG0("----------------- SPS -----------------\n");
-  LOG1("video_parameter_set_id  : %d\n", video_parameter_set_id);
-  LOG1("sps_max_sub_layers      : %d\n", sps_max_sub_layers);
-  LOG1("sps_temporal_id_nesting_flag : %d\n", sps_temporal_id_nesting_flag);
-
-  profile_tier_level_.dump(sps_max_sub_layers, fh);
-
-  LOG1("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
-  LOG2("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
-       chroma_format_idc == 0 ? "monochrome" :
-       chroma_format_idc == 1 ? "4:2:0" :
-       chroma_format_idc == 2 ? "4:2:2" :
-       chroma_format_idc == 3 ? "4:4:4" : "unknown");
+  LOG("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
+  LOG("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
+      chroma_format_idc == 0 ? "monochrome" :
+      chroma_format_idc == 1 ? "4:2:0" :
+      chroma_format_idc == 2 ? "4:2:2" :
+      chroma_format_idc == 3 ? "4:4:4" : "unknown");
 
   if (chroma_format_idc == 3) {
-    LOG1("separate_colour_plane_flag : %d\n", separate_colour_plane_flag);
+    LOG("separate_colour_plane_flag : %d\n", separate_colour_plane_flag);
   }
 
-  LOG1("pic_width_in_luma_samples  : %d\n", pic_width_in_luma_samples);
-  LOG1("pic_height_in_luma_samples : %d\n", pic_height_in_luma_samples);
-  LOG1("conformance_window_flag    : %d\n", conformance_window_flag);
+  LOG("pic_width_in_luma_samples  : %d\n", pic_width_in_luma_samples);
+  LOG("pic_height_in_luma_samples : %d\n", pic_height_in_luma_samples);
+  LOG("conformance_window_flag    : %d\n", conformance_window_flag);
 
   if (conformance_window_flag) {
-    LOG1("conf_win_left_offset  : %d\n", conf_win_left_offset);
-    LOG1("conf_win_right_offset : %d\n", conf_win_right_offset);
-    LOG1("conf_win_top_offset   : %d\n", conf_win_top_offset);
-    LOG1("conf_win_bottom_offset: %d\n", conf_win_bottom_offset);
+    LOG("conf_win_left_offset  : %d\n", conf_win_left_offset);
+    LOG("conf_win_right_offset : %d\n", conf_win_right_offset);
+    LOG("conf_win_top_offset   : %d\n", conf_win_top_offset);
+    LOG("conf_win_bottom_offset: %d\n", conf_win_bottom_offset);
   }
 
-  LOG1("bit_depth_luma   : %d\n", bit_depth_luma);
-  LOG1("bit_depth_chroma : %d\n", bit_depth_chroma);
+  LOG("bit_depth_luma   : %d\n", bit_depth_luma);
+  LOG("bit_depth_chroma : %d\n", bit_depth_chroma);
 
-  LOG1("log2_max_pic_order_cnt_lsb : %d\n", log2_max_pic_order_cnt_lsb);
-  LOG1("sps_sub_layer_ordering_info_present_flag : %d\n", sps_sub_layer_ordering_info_present_flag);
+  LOG("log2_max_pic_order_cnt_lsb : %d\n", log2_max_pic_order_cnt_lsb);
+  LOG("sps_sub_layer_ordering_info_present_flag : %d\n", sps_sub_layer_ordering_info_present_flag);
 
   int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
                     0 : sps_max_sub_layers-1 );
 
   for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
-    LOG1("Layer %d\n",i);
-    LOG1("  sps_max_dec_pic_buffering      : %d\n", sps_max_dec_pic_buffering[i]);
-    LOG1("  sps_max_num_reorder_pics       : %d\n", sps_max_num_reorder_pics[i]);
-    LOG1("  sps_max_latency_increase_plus1 : %d\n", sps_max_latency_increase_plus1[i]);
+    LOG("Layer %d\n",i);
+    LOG("  sps_max_dec_pic_buffering      : %d\n", sps_max_dec_pic_buffering[i]);
+    LOG("  sps_max_num_reorder_pics       : %d\n", sps_max_num_reorder_pics[i]);
+    LOG("  sps_max_latency_increase_plus1 : %d\n", sps_max_latency_increase_plus1[i]);
   }
 
-  LOG1("log2_min_luma_coding_block_size : %d\n", log2_min_luma_coding_block_size);
-  LOG1("log2_diff_max_min_luma_coding_block_size : %d\n",log2_diff_max_min_luma_coding_block_size);
-  LOG1("log2_min_transform_block_size   : %d\n", log2_min_transform_block_size);
-  LOG1("log2_diff_max_min_transform_block_size : %d\n", log2_diff_max_min_transform_block_size);
-  LOG1("max_transform_hierarchy_depth_inter : %d\n", max_transform_hierarchy_depth_inter);
-  LOG1("max_transform_hierarchy_depth_intra : %d\n", max_transform_hierarchy_depth_intra);
-  LOG1("scaling_list_enable_flag : %d\n", scaling_list_enable_flag);
+  LOG("log2_min_luma_coding_block_size : %d\n", log2_min_luma_coding_block_size);
+  LOG("log2_diff_max_min_luma_coding_block_size : %d\n",log2_diff_max_min_luma_coding_block_size);
+  LOG("log2_min_transform_block_size   : %d\n", log2_min_transform_block_size);
+  LOG("log2_diff_max_min_transform_block_size : %d\n", log2_diff_max_min_transform_block_size);
+  LOG("max_transform_hierarchy_depth_inter : %d\n", max_transform_hierarchy_depth_inter);
+  LOG("max_transform_hierarchy_depth_intra : %d\n", max_transform_hierarchy_depth_intra);
+  LOG("scaling_list_enable_flag : %d\n", scaling_list_enable_flag);
 
   if (scaling_list_enable_flag) {
 
-    LOG1("sps_scaling_list_data_present_flag : %d\n", sps_scaling_list_data_present_flag);
+    LOG("sps_scaling_list_data_present_flag : %d\n", sps_scaling_list_data_present_flag);
     if (sps_scaling_list_data_present_flag) {
 
-      LOG0("scaling list logging output not implemented");
+      LOG("scaling list logging output not implemented");
       //assert(0);
       //scaling_list_data()
     }
   }
 
-  LOG1("amp_enabled_flag                    : %d\n", amp_enabled_flag);
-  LOG1("sample_adaptive_offset_enabled_flag : %d\n", sample_adaptive_offset_enabled_flag);
-  LOG1("pcm_enabled_flag                    : %d\n", pcm_enabled_flag);
+  LOG("amp_enabled_flag                    : %d\n", amp_enabled_flag);
+  LOG("sample_adaptive_offset_enabled_flag : %d\n", sample_adaptive_offset_enabled_flag);
+  LOG("pcm_enabled_flag                    : %d\n", pcm_enabled_flag);
 
   if (pcm_enabled_flag) {
-    LOG1("pcm_sample_bit_depth_luma     : %d\n", pcm_sample_bit_depth_luma);
-    LOG1("pcm_sample_bit_depth_chroma   : %d\n", pcm_sample_bit_depth_chroma);
-    LOG1("log2_min_pcm_luma_coding_block_size : %d\n", log2_min_pcm_luma_coding_block_size);
-    LOG1("log2_diff_max_min_pcm_luma_coding_block_size : %d\n", log2_diff_max_min_pcm_luma_coding_block_size);
-    LOG1("pcm_loop_filter_disable_flag  : %d\n", pcm_loop_filter_disable_flag);
+    LOG("pcm_sample_bit_depth_luma     : %d\n", pcm_sample_bit_depth_luma);
+    LOG("pcm_sample_bit_depth_chroma   : %d\n", pcm_sample_bit_depth_chroma);
+    LOG("log2_min_pcm_luma_coding_block_size : %d\n", log2_min_pcm_luma_coding_block_size);
+    LOG("log2_diff_max_min_pcm_luma_coding_block_size : %d\n", log2_diff_max_min_pcm_luma_coding_block_size);
+    LOG("pcm_loop_filter_disable_flag  : %d\n", pcm_loop_filter_disable_flag);
   }
 
-  LOG1("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
+  LOG("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
 
   for (int i = 0; i < ref_pic_sets.size(); i++) {
-    LOG1("ref_pic_set[ %2d ]: ",i);
-    dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16, fh);
+    LOG("ref_pic_set[ %2d ]: ",i);
+    sstr << dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16);
   }
 
-  LOG1("long_term_ref_pics_present_flag : %d\n", long_term_ref_pics_present_flag);
+  LOG("long_term_ref_pics_present_flag : %d\n", long_term_ref_pics_present_flag);
 
   if (long_term_ref_pics_present_flag) {
 
-    LOG1("num_long_term_ref_pics_sps : %d\n", num_long_term_ref_pics_sps);
+    LOG("num_long_term_ref_pics_sps : %d\n", num_long_term_ref_pics_sps);
 
     for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
-      LOG3("lt_ref_pic_poc_lsb_sps[%d] : %d   (used_by_curr_pic_lt_sps_flag=%d)\n",
-           i, lt_ref_pic_poc_lsb_sps[i], used_by_curr_pic_lt_sps_flag[i]);
+      LOG("lt_ref_pic_poc_lsb_sps[%d] : %d   (used_by_curr_pic_lt_sps_flag=%d)\n",
+          i, lt_ref_pic_poc_lsb_sps[i], used_by_curr_pic_lt_sps_flag[i]);
     }
   }
 
-  LOG1("sps_temporal_mvp_enabled_flag      : %d\n", sps_temporal_mvp_enabled_flag);
-  LOG1("strong_intra_smoothing_enable_flag : %d\n", strong_intra_smoothing_enable_flag);
-  LOG1("vui_parameters_present_flag        : %d\n", vui_parameters_present_flag);
+  LOG("sps_temporal_mvp_enabled_flag      : %d\n", sps_temporal_mvp_enabled_flag);
+  LOG("strong_intra_smoothing_enable_flag : %d\n", strong_intra_smoothing_enable_flag);
+  LOG("vui_parameters_present_flag        : %d\n", vui_parameters_present_flag);
 
-  LOG1("sps_extension_present_flag    : %d\n", sps_extension_present_flag);
-  LOG1("sps_range_extension_flag      : %d\n", sps_range_extension_flag);
-  LOG1("sps_multilayer_extension_flag : %d\n", sps_multilayer_extension_flag);
-  LOG1("sps_extension_6bits           : %d\n", sps_extension_6bits);
+  LOG("sps_extension_present_flag    : %d\n", sps_extension_present_flag);
+  LOG("sps_range_extension_flag      : %d\n", sps_range_extension_flag);
+  LOG("sps_multilayer_extension_flag : %d\n", sps_multilayer_extension_flag);
+  LOG("sps_extension_6bits           : %d\n", sps_extension_6bits);
 
-  LOG1("CtbSizeY     : %d\n", CtbSizeY);
-  LOG1("MinCbSizeY   : %d\n", MinCbSizeY);
-  LOG1("MaxCbSizeY   : %d\n", 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size));
-  LOG1("MinTBSizeY   : %d\n", 1<<log2_min_transform_block_size);
-  LOG1("MaxTBSizeY   : %d\n", 1<<(log2_min_transform_block_size + log2_diff_max_min_transform_block_size));
+  LOG("CtbSizeY     : %d\n", CtbSizeY);
+  LOG("MinCbSizeY   : %d\n", MinCbSizeY);
+  LOG("MaxCbSizeY   : %d\n", 1<<(log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size));
+  LOG("MinTBSizeY   : %d\n", 1<<log2_min_transform_block_size);
+  LOG("MaxTBSizeY   : %d\n", 1<<(log2_min_transform_block_size + log2_diff_max_min_transform_block_size));
 
-  LOG1("PicWidthInCtbsY         : %d\n", PicWidthInCtbsY);
-  LOG1("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
-  LOG1("SubWidthC               : %d\n", SubWidthC);
-  LOG1("SubHeightC              : %d\n", SubHeightC);
+  LOG("PicWidthInCtbsY         : %d\n", PicWidthInCtbsY);
+  LOG("PicHeightInCtbsY        : %d\n", PicHeightInCtbsY);
+  LOG("SubWidthC               : %d\n", SubWidthC);
+  LOG("SubHeightC              : %d\n", SubHeightC);
 
   if (sps_range_extension_flag) {
-    range_extension.dump(fd);
+    sstr << range_extension.dump();
   }
 
   if (vui_parameters_present_flag) {
-    vui.dump(fd);
+    sstr << vui.dump();
   }
-#undef LOG0
-#undef LOG1
-#undef LOG2
-#undef LOG3
-  //#endif
+#undef LOG
+
+  return sstr.str();
 }
 
 
@@ -1264,14 +1248,11 @@ de265_error sps_range_extension::read(error_queue* errqueue, bitreader* br)
 }
 
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-void sps_range_extension::dump(int fd) const
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
+std::string sps_range_extension::dump() const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
   LOG0("----------------- SPS-range-extension -----------------\n");
   LOG1("transform_skip_rotation_enabled_flag    : %d\n", transform_skip_rotation_enabled_flag);
@@ -1283,6 +1264,8 @@ void sps_range_extension::dump(int fd) const
   LOG1("high_precision_offsets_enabled_flag     : %d\n", high_precision_offsets_enabled_flag);
   LOG1("persistent_rice_adaptation_enabled_flag : %d\n", persistent_rice_adaptation_enabled_flag);
   LOG1("cabac_bypass_alignment_enabled_flag     : %d\n", cabac_bypass_alignment_enabled_flag);
+
+  return sstr.str();
 }
 #undef LOG1
 #undef LOG0

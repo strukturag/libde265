@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sstream>
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
@@ -339,23 +340,14 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 }
 
 
-void video_usability_information::dump(int fd) const
+std::string video_usability_information::dump() const
 {
-  //#if (_MSC_VER >= 1500)
-  //#define LOG0(t) loginfo(LogHeaders, t)
-  //#define LOG1(t,d) loginfo(LogHeaders, t,d)
-  //#define LOG2(t,d1,d2) loginfo(LogHeaders, t,d1,d2)
-  //#define LOG3(t,d1,d2,d3) loginfo(LogHeaders, t,d1,d2,d3)
+  std::stringstream sstr;
 
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
-
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
+#define LOG2(t,d1,d2) log2sstr(sstr, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2sstr(sstr, t,d1,d2,d3)
 
   LOG0("----------------- VUI -----------------\n");
   LOG2("sample aspect ratio        : %d:%d\n", sar_width,sar_height);
@@ -422,4 +414,6 @@ void video_usability_information::dump(int fd) const
 #undef LOG2
 #undef LOG3
   //#endif
+
+  return sstr.str();
 }

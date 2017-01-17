@@ -157,18 +157,21 @@ void logtrace(enum LogModule module, const char* string, ...)
 }
 #endif
 
-void log2fh(FILE* fh, const char* string, ...)
+void log2sstr(std::stringstream& sstr, const char* string, ...)
 {
+  const int bufsize = 200;
+  char buf[bufsize];
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stdout, "INFO: ");
+  if (!noPrefix) sstr << "INFO: ";
   va_start(va, string);
-  vfprintf(fh, string + (noPrefix ? 1 : 0), va);
+  vsnprintf(buf,bufsize, string + (noPrefix ? 1 : 0), va);
   va_end(va);
-  fflush(stdout);
-}
 
+  sstr << buf;
+}
 
 
 void printBlk(const char* title, const int16_t* data, int blksize, int stride,

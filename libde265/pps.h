@@ -43,7 +43,7 @@ class pps_range_extension
   void reset();
 
   bool read(bitreader*, decoder_context*, const pic_parameter_set*);
-  void dump(int fd) const;
+  std::string dump() const;
 
   uint8_t log2_max_transform_skip_block_size;
   bool    cross_component_prediction_enabled_flag;
@@ -68,7 +68,7 @@ public:
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;
-  void dump(int fd) const;
+  std::string dump() const;
 
 
   void set_defaults(enum PresetSet = Preset_Default);

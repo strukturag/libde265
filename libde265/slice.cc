@@ -1294,20 +1294,16 @@ void slice_segment_header::compute_derived_values(const pic_parameter_set* pps)
 //-----------------------------------------------------------------------
 
 
-void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
-                                                     uint8_t nal_unit_type,
-                                                     int fd) const
+std::string slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
+                                                            uint8_t nal_unit_type) const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
-#define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
+#define LOG2(t,d1,d2) log2sstr(sstr, t,d1,d2)
+#define LOG3(t,d1,d2,d3) log2sstr(sstr, t,d1,d2,d3)
+#define LOG4(t,d1,d2,d3,d4) log2sstr(sstr, t,d1,d2,d3,d4)
 
   const frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
 
@@ -1359,11 +1355,11 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 
       if (!short_term_ref_pic_set_sps_flag) {
         LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets());
-        dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16, fh);
+        std::string TODO = dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16);
       }
       else if (sps->num_short_term_ref_pic_sets() > 1) {
         LOG1("short_term_ref_pic_set_idx           : %d\n", short_term_ref_pic_set_idx);
-        dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16, fh);
+        std::string TODO = dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16);
       }
 
       if (sps->long_term_ref_pics_present_flag) {
@@ -1534,6 +1530,8 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 #undef LOG3
 #undef LOG4
   //#endif
+
+  return sstr.str();
 }
 
 

@@ -22,6 +22,7 @@
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include <assert.h>
+#include <iostream>
 
 error_queue errqueue;
 
@@ -56,14 +57,14 @@ void process_nal(NAL_unit_ptr nal)
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
       vps.read(&errqueue, &reader);
-      vps.dump(1);
+      std::cout << vps.dump();
       vps.write(&errqueue, writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
       sps.read(&errqueue, &reader);
-      sps.dump(1);
+      std::cout << sps.dump();
       sps.write(&errqueue, writer);
       writer.flush_VLC();
       break;

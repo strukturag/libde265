@@ -142,16 +142,13 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 }
 
 
-void pps_range_extension::dump(int fd) const
+std::string pps_range_extension::dump() const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d,e) log2fh(fh, t,d,e)
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
+#define LOG2(t,d,e) log2sstr(sstr, t,d,e)
 
   LOG0("---------- PPS range-extension ----------\n");
   LOG1("log2_max_transform_skip_block_size      : %d\n", log2_max_transform_skip_block_size);
@@ -171,6 +168,8 @@ void pps_range_extension::dump(int fd) const
 #undef LOG2
 #undef LOG1
 #undef LOG0
+
+  return sstr.str();
 }
 
 
@@ -859,15 +858,12 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
 }
 
 
-void pic_parameter_set::dump(int fd) const
+std::string pic_parameter_set::dump() const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
+#define LOG0(t) log2sstr(sstr, t)
+#define LOG1(t,d) log2sstr(sstr, t,d)
 
   LOG0("----------------- PPS -----------------\n");
   LOG1("pic_parameter_set_id       : %d\n", pic_parameter_set_id);
@@ -964,8 +960,10 @@ void pic_parameter_set::dump(int fd) const
 
 
   if (pps_range_extension_flag) {
-    range_extension.dump(fd);
+    sstr << range_extension.dump();
   }
+
+  return sstr.str();
 }
 
 

@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <sstream>
 
 #include "libde265/de265.h"
 
@@ -240,7 +241,7 @@ void logtrace(enum LogModule module, const char* string, ...);
 #define logtrace(a,b, ...) do { } while(0)
 #endif
 
-void log2fh(FILE* fh, const char* string, ...);
+void log2sstr(std::stringstream& sstr, const char* string, ...);
 
 
 void printBlk(const char* title,const int32_t* data, int blksize, int stride, const std::string& prefix="  ");
