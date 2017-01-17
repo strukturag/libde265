@@ -379,7 +379,7 @@ class decoder_context : public base_context,
   }
 
 
-  void decode_image_frame_parallel(image_unit_ptr imgunit);
+  bool decode_image_frame_parallel(image_unit_ptr imgunit);
 
  public:
   // --- decoded picture buffer ---

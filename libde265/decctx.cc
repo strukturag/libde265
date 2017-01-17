@@ -582,7 +582,11 @@ void decoder_context::run_main_loop()
         // We could release the main-loop mutex while generating the image decoding tasks,
         // however, this seems to be _slower_ than holding the mutex.
         //m_main_loop_mutex.unlock();
-        decode_image_frame_parallel(to_be_decoded);
+
+        bool success = decode_image_frame_parallel(to_be_decoded);
+        if (!success) {
+          m_image_units_in_progress.pop_back();
+        }
         //m_main_loop_mutex.lock();
       }
 
@@ -685,7 +689,7 @@ bool decoder_context::is_image_unit_decodable(image_unit_ptr imgunit)
 }
 
 
-void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
+bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
   // std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
 
@@ -719,7 +723,8 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
       // TODO
-      return;
+      // printf("ERROR\n"); // FUZZY
+      return false;
     }
   }
 
@@ -758,6 +763,8 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
     on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
+
+  return true;
 }
 
 
