@@ -629,15 +629,16 @@ void decoder_context::run_main_loop()
     }
 
 
+    //printf("should stop: %d\n", m_main_loop_thread.should_stop());
+
     if (did_something) {
       m_cond_api_action.signal();
     }
+    else if (m_main_loop_thread.should_stop()) {
+      break;
+    }
     else {
       m_main_loop_block_cond.wait(m_main_loop_mutex);
-    }
-
-    if (m_main_loop_thread.should_stop()) {
-      break;
     }
   }
 
