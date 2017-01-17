@@ -444,14 +444,14 @@ LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_ti
   ctx->set_limit_TID(max_tid);
 }
 
-LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context* de265ctx,float ratio)
+LIBDE265_API void de265_set_framedrop_fixed_ratio(de265_decoder_context* de265ctx,float ratio)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->set_framerate_ratio(ratio);
   ctx->disable_auto_frame_dropper();
 }
 
-LIBDE265_API void de265_set_target_framerate(de265_decoder_context* de265ctx,float fps)
+LIBDE265_API void de265_set_framedrop_dynamic_framerate_control(de265_decoder_context* de265ctx,float fps)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->enable_auto_frame_dropper(fps);

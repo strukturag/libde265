@@ -42,12 +42,6 @@
 #include "libde265/quality.h"
 #include "libde265/util.h"
 
-#define WITH_FPS 0
-
-#if WITH_FPS
-#include "libde265/frame-dropper.h"
-#endif
-
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 using namespace videogfx;
@@ -686,10 +680,10 @@ int main(int argc, char** argv)
 
   de265_set_limit_TID(ctx, highestTID);
   if (target_fps > 0.0) {
-    de265_set_target_framerate(ctx, target_fps);
+    de265_set_framedrop_dynamic_framerate_control(ctx, target_fps);
   }
   else {
-    de265_set_framerate_ratio(ctx, decode_rate_ratio);
+    de265_set_framedrop_fixed_ratio(ctx, decode_rate_ratio);
   }
   de265_set_max_reorder_buffer_latency(ctx, max_latency);
 
@@ -717,14 +711,6 @@ int main(int argc, char** argv)
 
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
-
-#if WITH_FPS
-  fps_estimator fps_estim;
-  fps_estim.set_fps_estimator_timespan(5.0f);
-
-  frame_drop_ratio_calculator drop_ratio;
-  drop_ratio.set_target_fps(50.0);
-#endif
 
   uint32_t framecnt=0;
 
@@ -815,29 +801,12 @@ int main(int argc, char** argv)
             measure(img, framecnt);
           }
 
-#if WITH_FPS
-          fps_estim.on_frame_decoded( de265_get_time() );
-#endif
-
           framecnt++;
           if ((framecnt%10)==0) {
             fprintf(stderr,"frame %d  fps=%.2f\r",
                     framecnt,
                     de265_get_current_fps_estimate(ctx)
                     );
-
-#if WITH_FPS
-            if (fps_estim.fps_measurement_available()) {
-              printf("\n");
-              float ratio = drop_ratio.update_decoding_ratio(fps_estim.get_fps_measurement());
-              printf("ratio = %f\n",ratio);
-
-              //drop_ratio.set_decoding_ratio(ratio);
-              de265_set_framerate_ratio(ctx, ratio);
-
-              //fps_estim.reset_fps_estimator();
-            }
-#endif
           }
 
           stop = output_image(img);
