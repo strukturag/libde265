@@ -156,8 +156,8 @@ void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcst
       if (D) { print128(offset);  printf(" offset\n"); }
 
       __m128i zero = _mm_setzero_si128();
-      __m128i input_low  = _mm_unpacklo_epi8(*in,zero);
-      //__m128i input_high = _mm_unpackhi_epi8(*in,zero);
+      __m128i input= _mm_loadl_epi64(in);
+      __m128i input_low  = _mm_unpacklo_epi8(input,zero);
 
       if (D) { print128(input_low);  printf(" input_low\n"); }
       //print128(input_high); printf(" input_high\n");
@@ -184,13 +184,13 @@ void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcst
 
       _mm_storel_epi64 ((__m128i*)(dst+x+y*dststride), output);
       if (D) { printf("\n"); }
+
+      x+=8;
     }
   }
 
-  if (x<width) {
-    assert(x+4==width);
-
-    sao_band_fallback_8bit(dst,dststride, src,srcstride, width,height,
+  if (width & 0x04) {
+    sao_band_fallback_8bit(dst+width-4,dststride, src+width-4,srcstride, 4,height,
                            baseBand, offset0,offset1,offset2,offset3);
   }
 }
