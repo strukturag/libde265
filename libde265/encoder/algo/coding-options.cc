@@ -20,6 +20,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <utility>
+
 #include "libde265/encoder/algo/coding-options.h"
 #include "libde265/encoder/encoder-context.h"
 

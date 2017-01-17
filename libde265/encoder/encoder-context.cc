@@ -25,6 +25,7 @@
 #include "libde265/util.h"
 #include "libde265/image.h"
 
+#include <limits>
 #include <math.h>
 
 #define ENCODER_DEVELOPMENT 0

@@ -36,6 +36,7 @@
 #include "libde265/nal-parser.h"
 
 #include <memory>
+#include <vector>
 
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard

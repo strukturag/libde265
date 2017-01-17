@@ -32,6 +32,7 @@
 #include "contextmodel.h"
 
 #include <vector>
+#include <string>
 #include <string.h>
 #include <memory>
 

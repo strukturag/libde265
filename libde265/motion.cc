@@ -27,7 +27,7 @@
 #include "funcs.h"
 
 #include <assert.h>
-
+#include <memory>
 
 #include <sys/types.h>
 #include <signal.h>

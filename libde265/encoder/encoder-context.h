@@ -32,6 +32,7 @@
 #include "libde265/en265.h"
 #include "libde265/util.h"
 
+#include <deque>
 #include <memory>
 
 

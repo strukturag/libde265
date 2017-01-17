@@ -30,8 +30,10 @@
 #endif
 
 #include <stdio.h>
+#include <memory>
 #include <string>
 #include <sstream>
+#include <utility>
 
 #include "libde265/de265.h"
 

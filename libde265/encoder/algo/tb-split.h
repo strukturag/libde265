@@ -23,6 +23,8 @@
 #ifndef TB_SPLIT_H
 #define TB_SPLIT_H
 
+#include <memory>
+
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include "libde265/encoder/encoder-types.h"

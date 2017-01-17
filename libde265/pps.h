@@ -26,6 +26,7 @@
 #include "libde265/sps.h" // for scaling list only
 
 #include <vector>
+#include <string>
 #include <memory>
 
 #define DE265_MAX_TILE_COLUMNS 10

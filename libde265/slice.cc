@@ -35,7 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <iostream>
+#include <utility>
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)

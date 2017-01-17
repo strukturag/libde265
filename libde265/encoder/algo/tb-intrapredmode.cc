@@ -28,7 +28,6 @@
 #include <limits>
 #include <math.h>
 #include <algorithm>
-#include <iostream>
 
 
 float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],

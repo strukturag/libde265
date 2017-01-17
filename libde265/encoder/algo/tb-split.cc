@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
-#include <iostream>
 
 
 struct Logging_TB_Split : public Logging

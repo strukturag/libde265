@@ -26,6 +26,9 @@
 
 #include <assert.h>
 
+#include <algorithm>
+#include <memory>
+#include <string>
 
 
 // 8.7.2.1 for both EDGE_HOR and EDGE_VER at the same time

@@ -23,6 +23,8 @@
 #ifndef CODING_OPTIONS_H
 #define CODING_OPTIONS_H
 
+#include <vector>
+
 #include "libde265/encoder/encoder-types.h"
 
 

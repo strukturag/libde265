@@ -51,7 +51,8 @@
 #include "visualize.h"
 #endif
 
-#include <iostream> // TODO TMP
+#include <algorithm>
+#include <string>
 
 extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);

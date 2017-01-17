@@ -38,7 +38,9 @@
 #include "libde265/frame-dropper.h"
 #include "libde265/frontend-syntax-decoder.h"
 
+#include <deque>
 #include <memory>
+#include <vector>
 
 #define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard

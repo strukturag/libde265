@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
+#include <memory>
 
 
 

@@ -27,7 +27,6 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
-#include <iostream>
 
 
 #define ENCODER_DEVELOPMENT 1

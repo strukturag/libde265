@@ -29,7 +29,7 @@
 #elif defined(HAVE_ALLOCA_H)
 # include <alloca.h>
 #endif
-
+#include <vector>
 
 void ref_pic_set::reset()
 {

@@ -22,6 +22,8 @@
 #include "util.h"
 #include "image-unit.h"
 
+#include <memory>
+#include <string>
 #include <stdlib.h>
 #include <string.h>
 

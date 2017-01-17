@@ -27,7 +27,8 @@
 #include "intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
-#include <iostream>
+#include <algorithm>
+#include <utility>
 
 
 #ifdef DE265_LOG_DEBUG

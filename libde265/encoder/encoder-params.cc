@@ -20,6 +20,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <vector>
+
 #include "encoder-params.h"
 
 

@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
-#include <iostream>
 
 
 // DEPRECATED IN THIS FILE
