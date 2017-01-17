@@ -232,7 +232,7 @@ decoder_context::decoder_context()
 
   // --- parameters ---
 
-  param_cpu_capabilities = 0;
+  param_cpu_capabilities = de265_cpu_capability_all_autodetected;
 
   param_sei_check_hash = false;
   param_conceal_stream_errors = true;

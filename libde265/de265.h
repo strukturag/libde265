@@ -432,6 +432,8 @@ LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context*, int capabil
 #define de265_cpu_capability_ARM_NEON    (1<<10)
 #define de265_cpu_capability_ARM_AARCH64 (1<<11)
 #define de265_cpu_capability_all         (0xFFFF)
+#define de265_cpu_capability_all_autodetected (de265_cpu_capability_X86_all | \
+                                               de265_cpu_capability_ARM_AARCH64)
 
 
 LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context*, int flags);
