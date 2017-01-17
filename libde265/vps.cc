@@ -24,6 +24,8 @@
 
 #include <assert.h>
 
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
+
 
 void profile_data::set_defaults(enum profile_idc profile, int level_major, int level_minor)
 {
@@ -443,68 +445,63 @@ void read_bit_rate_pic_rate_info(bitreader* reader,
 
 
 
-#define LOG0(t) log2sstr(sstr, t)
-#define LOG1(t,d) log2sstr(sstr, t,d)
-#define LOG2(t,d1,d2) log2sstr(sstr, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2sstr(sstr, t,d1,d2,d3)
-
 std::string video_parameter_set::dump() const
 {
   std::stringstream sstr;
 
-  LOG0("----------------- VPS -----------------\n");
-  LOG1("video_parameter_set_id                : %d\n", video_parameter_set_id);
-  LOG1("vps_max_layers                        : %d\n", vps_max_layers);
-  LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
-  LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
+  LOG("----------------- VPS -----------------\n");
+  LOG("video_parameter_set_id                : %d\n", video_parameter_set_id);
+  LOG("vps_max_layers                        : %d\n", vps_max_layers);
+  LOG("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
+  LOG("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
 
   sstr << profile_tier_level_.dump(vps_max_sub_layers);
   //dump_bit_rate_pic_rate_info(&bit_rate_pic_rate_info, 0, vps_max_sub_layers-1);
 
-  LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
-       vps_sub_layer_ordering_info_present_flag);
+  LOG("vps_sub_layer_ordering_info_present_flag : %d\n",
+      vps_sub_layer_ordering_info_present_flag);
 
   if (vps_sub_layer_ordering_info_present_flag) {
     for (int i=0;i<vps_max_sub_layers;i++) {
-      LOG2("layer %d: vps_max_dec_pic_buffering = %d\n",i,layer[i].vps_max_dec_pic_buffering);
-      LOG1("         vps_max_num_reorder_pics  = %d\n",layer[i].vps_max_num_reorder_pics);
-      LOG1("         vps_max_latency_increase  = %d\n",layer[i].vps_max_latency_increase);
+      LOG("layer %d: vps_max_dec_pic_buffering = %d\n",i,layer[i].vps_max_dec_pic_buffering);
+      LOG("         vps_max_num_reorder_pics  = %d\n",layer[i].vps_max_num_reorder_pics);
+      LOG("         vps_max_latency_increase  = %d\n",layer[i].vps_max_latency_increase);
     }
   }
   else {
-    LOG1("layer (all): vps_max_dec_pic_buffering = %d\n",layer[0].vps_max_dec_pic_buffering);
-    LOG1("             vps_max_num_reorder_pics  = %d\n",layer[0].vps_max_num_reorder_pics);
-    LOG1("             vps_max_latency_increase  = %d\n",layer[0].vps_max_latency_increase);
+    LOG("layer (all): vps_max_dec_pic_buffering = %d\n",layer[0].vps_max_dec_pic_buffering);
+    LOG("             vps_max_num_reorder_pics  = %d\n",layer[0].vps_max_num_reorder_pics);
+    LOG("             vps_max_latency_increase  = %d\n",layer[0].vps_max_latency_increase);
   }
 
 
-  LOG1("vps_max_layer_id   = %d\n", vps_max_layer_id);
-  LOG1("vps_num_layer_sets = %d\n", vps_num_layer_sets);
+  LOG("vps_max_layer_id   = %d\n", vps_max_layer_id);
+  LOG("vps_num_layer_sets = %d\n", vps_num_layer_sets);
 
   for (int i=1; i <= vps_num_layer_sets-1; i++)
     for (int j=0; j <= vps_max_layer_id; j++)
       {
-        LOG3("layer_id_included_flag[%d][%d] = %d\n",i,j,
-             layer_id_included_flag[i][j]);
+        LOG("layer_id_included_flag[%d][%d] = %d\n",i,j,
+            layer_id_included_flag[i][j]);
       }
 
-  LOG1("vps_timing_info_present_flag = %d\n",
-       vps_timing_info_present_flag);
+  LOG("vps_timing_info_present_flag = %d\n",
+      vps_timing_info_present_flag);
 
   if (vps_timing_info_present_flag) {
-    LOG1("vps_num_units_in_tick = %d\n", vps_num_units_in_tick);
-    LOG1("vps_time_scale        = %d\n", vps_time_scale);
-    LOG1("vps_poc_proportional_to_timing_flag = %d\n", vps_poc_proportional_to_timing_flag);
+    LOG("vps_num_units_in_tick = %d\n", vps_num_units_in_tick);
+    LOG("vps_time_scale        = %d\n", vps_time_scale);
+    LOG("vps_poc_proportional_to_timing_flag = %d\n", vps_poc_proportional_to_timing_flag);
 
     if (vps_poc_proportional_to_timing_flag) {
-      LOG1("vps_num_ticks_poc_diff_one = %d\n", vps_num_ticks_poc_diff_one);
-      LOG1("vps_num_hrd_parameters     = %d\n", vps_num_hrd_parameters);
+      LOG("vps_num_ticks_poc_diff_one = %d\n", vps_num_ticks_poc_diff_one);
+      LOG("vps_num_hrd_parameters     = %d\n", vps_num_hrd_parameters);
 
       for (int i=0; i<vps_num_hrd_parameters; i++) {
-        LOG2("hrd_layer_set_idx[%d] = %d\n", i, hrd_layer_set_idx[i]);
+        LOG("hrd_layer_set_idx[%d] = %d\n", i, hrd_layer_set_idx[i]);
 
         if (i > 0) {
-          LOG2("cprms_present_flag[%d] = %d\n", i, cprms_present_flag[i]);
+          LOG("cprms_present_flag[%d] = %d\n", i, cprms_present_flag[i]);
         }
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
@@ -514,7 +511,7 @@ std::string video_parameter_set::dump() const
     }
   }
 
-  LOG1("vps_extension_flag = %d\n", vps_extension_flag);
+  LOG("vps_extension_flag = %d\n", vps_extension_flag);
 
   return sstr.str();
 }
@@ -540,24 +537,24 @@ std::string profile_data::dump(bool general) const
   const char* prefix = (general ? "general" : "sub_layer");
 
   if (profile_present_flag) {
-    LOG2("  %s_profile_space     : %d\n", prefix,profile_space);
-    LOG2("  %s_tier_flag         : %d\n", prefix,tier_flag);
-    LOG2("  %s_profile_idc       : %s\n", prefix, profile_name(profile_idc));
+    LOG("  %s_profile_space     : %d\n", prefix,profile_space);
+    LOG("  %s_tier_flag         : %d\n", prefix,tier_flag);
+    LOG("  %s_profile_idc       : %s\n", prefix, profile_name(profile_idc));
 
-    LOG1("  %s_profile_compatibility_flags: ", prefix);
+    LOG("  %s_profile_compatibility_flags: ", prefix);
     for (int i=0; i<32; i++) {
-      if (i) LOG0("*,");
-      LOG1("*%d",profile_compatibility_flag[i]);
+      if (i) LOG("*,");
+      LOG("*%d",profile_compatibility_flag[i]);
     }
-    LOG0("*\n");
-    LOG2("    %s_progressive_source_flag : %d\n",prefix,progressive_source_flag);
-    LOG2("    %s_interlaced_source_flag : %d\n",prefix,interlaced_source_flag);
-    LOG2("    %s_non_packed_constraint_flag : %d\n",prefix,non_packed_constraint_flag);
-    LOG2("    %s_frame_only_constraint_flag : %d\n",prefix,frame_only_constraint_flag);
+    LOG("*\n");
+    LOG("    %s_progressive_source_flag : %d\n",prefix,progressive_source_flag);
+    LOG("    %s_interlaced_source_flag : %d\n",prefix,interlaced_source_flag);
+    LOG("    %s_non_packed_constraint_flag : %d\n",prefix,non_packed_constraint_flag);
+    LOG("    %s_frame_only_constraint_flag : %d\n",prefix,frame_only_constraint_flag);
   }
 
   if (level_present_flag) {
-    LOG3("  %s_level_idc         : %d (%4.2f)\n", prefix,level_idc, level_idc/30.0f);
+    LOG("  %s_level_idc         : %d (%4.2f)\n", prefix,level_idc, level_idc/30.0f);
   }
 
   return sstr.str();
@@ -572,17 +569,12 @@ std::string profile_tier_level::dump(int max_sub_layers) const
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      LOG1("  Profile/Tier/Level [Layer %d]\n",i);
+      LOG("  Profile/Tier/Level [Layer %d]\n",i);
       sstr << sub_layer[i].dump(false);
     }
 
   return sstr.str();
 }
-
-#undef LOG0
-#undef LOG1
-#undef LOG2
-#undef LOG3
 
 
 /*

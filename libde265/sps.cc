@@ -36,6 +36,8 @@
 
 #define READ_VLC(variable, vlctype)  READ_VLC_OFFSET(variable,vlctype,0)
 
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
+
 
 static int SubWidthC_tab[]  = { -1,2,2,1 };
 static int SubHeightC_tab[] = { -1,2,1,1 };
@@ -605,7 +607,6 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
 std::string seq_parameter_set::dump() const
 {
   std::stringstream sstr;
-#define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
   LOG("----------------- SPS -----------------\n");
   LOG("video_parameter_set_id  : %d\n", video_parameter_set_id);
@@ -729,7 +730,6 @@ std::string seq_parameter_set::dump() const
   if (vui_parameters_present_flag) {
     sstr << vui.dump();
   }
-#undef LOG
 
   return sstr.str();
 }
@@ -1248,27 +1248,23 @@ de265_error sps_range_extension::read(error_queue* errqueue, bitreader* br)
 }
 
 
-#define LOG0(t) log2sstr(sstr, t)
-#define LOG1(t,d) log2sstr(sstr, t,d)
 std::string sps_range_extension::dump() const
 {
   std::stringstream sstr;
 
-  LOG0("----------------- SPS-range-extension -----------------\n");
-  LOG1("transform_skip_rotation_enabled_flag    : %d\n", transform_skip_rotation_enabled_flag);
-  LOG1("transform_skip_context_enabled_flag     : %d\n", transform_skip_context_enabled_flag);
-  LOG1("implicit_rdpcm_enabled_flag             : %d\n", implicit_rdpcm_enabled_flag);
-  LOG1("explicit_rdpcm_enabled_flag             : %d\n", explicit_rdpcm_enabled_flag);
-  LOG1("extended_precision_processing_flag      : %d\n", extended_precision_processing_flag);
-  LOG1("intra_smoothing_disabled_flag           : %d\n", intra_smoothing_disabled_flag);
-  LOG1("high_precision_offsets_enabled_flag     : %d\n", high_precision_offsets_enabled_flag);
-  LOG1("persistent_rice_adaptation_enabled_flag : %d\n", persistent_rice_adaptation_enabled_flag);
-  LOG1("cabac_bypass_alignment_enabled_flag     : %d\n", cabac_bypass_alignment_enabled_flag);
+  LOG("----------------- SPS-range-extension -----------------\n");
+  LOG("transform_skip_rotation_enabled_flag    : %d\n", transform_skip_rotation_enabled_flag);
+  LOG("transform_skip_context_enabled_flag     : %d\n", transform_skip_context_enabled_flag);
+  LOG("implicit_rdpcm_enabled_flag             : %d\n", implicit_rdpcm_enabled_flag);
+  LOG("explicit_rdpcm_enabled_flag             : %d\n", explicit_rdpcm_enabled_flag);
+  LOG("extended_precision_processing_flag      : %d\n", extended_precision_processing_flag);
+  LOG("intra_smoothing_disabled_flag           : %d\n", intra_smoothing_disabled_flag);
+  LOG("high_precision_offsets_enabled_flag     : %d\n", high_precision_offsets_enabled_flag);
+  LOG("persistent_rice_adaptation_enabled_flag : %d\n", persistent_rice_adaptation_enabled_flag);
+  LOG("cabac_bypass_alignment_enabled_flag     : %d\n", cabac_bypass_alignment_enabled_flag);
 
   return sstr.str();
 }
-#undef LOG1
-#undef LOG0
 
 
 enum de265_chroma seq_parameter_set::get_chroma() const

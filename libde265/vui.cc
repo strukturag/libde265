@@ -35,6 +35,8 @@
 
 #define READ_VLC(variable, vlctype)  READ_VLC_OFFSET(variable,vlctype,0)
 
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
+
 
 #define NUM_SAR_PRESETS 17
 
@@ -344,52 +346,47 @@ std::string video_usability_information::dump() const
 {
   std::stringstream sstr;
 
-#define LOG0(t) log2sstr(sstr, t)
-#define LOG1(t,d) log2sstr(sstr, t,d)
-#define LOG2(t,d1,d2) log2sstr(sstr, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2sstr(sstr, t,d1,d2,d3)
+  LOG("----------------- VUI -----------------\n");
+  LOG("sample aspect ratio        : %d:%d\n", sar_width,sar_height);
+  LOG("overscan_info_present_flag : %d\n", overscan_info_present_flag);
+  LOG("overscan_appropriate_flag  : %d\n", overscan_appropriate_flag);
 
-  LOG0("----------------- VUI -----------------\n");
-  LOG2("sample aspect ratio        : %d:%d\n", sar_width,sar_height);
-  LOG1("overscan_info_present_flag : %d\n", overscan_info_present_flag);
-  LOG1("overscan_appropriate_flag  : %d\n", overscan_appropriate_flag);
-
-  LOG1("video_signal_type_present_flag: %d\n", video_signal_type_present_flag);
+  LOG("video_signal_type_present_flag: %d\n", video_signal_type_present_flag);
   if (video_signal_type_present_flag) {
-    LOG1("  video_format                : %s\n", get_video_format_name(video_format));
-    LOG1("  video_full_range_flag       : %d\n", video_full_range_flag);
-    LOG1("  colour_description_present_flag : %d\n", colour_description_present_flag);
-    LOG1("  colour_primaries            : %d\n", colour_primaries);
-    LOG1("  transfer_characteristics    : %d\n", transfer_characteristics);
-    LOG1("  matrix_coeffs               : %d\n", matrix_coeffs);
+    LOG("  video_format                : %s\n", get_video_format_name(video_format));
+    LOG("  video_full_range_flag       : %d\n", video_full_range_flag);
+    LOG("  colour_description_present_flag : %d\n", colour_description_present_flag);
+    LOG("  colour_primaries            : %d\n", colour_primaries);
+    LOG("  transfer_characteristics    : %d\n", transfer_characteristics);
+    LOG("  matrix_coeffs               : %d\n", matrix_coeffs);
   }
 
-  LOG1("chroma_loc_info_present_flag: %d\n", chroma_loc_info_present_flag);
+  LOG("chroma_loc_info_present_flag: %d\n", chroma_loc_info_present_flag);
   if (chroma_loc_info_present_flag) {
-    LOG1("  chroma_sample_loc_type_top_field   : %d\n", chroma_sample_loc_type_top_field);
-    LOG1("  chroma_sample_loc_type_bottom_field: %d\n", chroma_sample_loc_type_bottom_field);
+    LOG("  chroma_sample_loc_type_top_field   : %d\n", chroma_sample_loc_type_top_field);
+    LOG("  chroma_sample_loc_type_bottom_field: %d\n", chroma_sample_loc_type_bottom_field);
   }
 
-  LOG1("neutral_chroma_indication_flag: %d\n", neutral_chroma_indication_flag);
-  LOG1("field_seq_flag                : %d\n", field_seq_flag);
-  LOG1("frame_field_info_present_flag : %d\n", frame_field_info_present_flag);
+  LOG("neutral_chroma_indication_flag: %d\n", neutral_chroma_indication_flag);
+  LOG("field_seq_flag                : %d\n", field_seq_flag);
+  LOG("frame_field_info_present_flag : %d\n", frame_field_info_present_flag);
 
-  LOG1("default_display_window_flag   : %d\n", default_display_window_flag);
-  LOG1("  def_disp_win_left_offset    : %d\n", def_disp_win_left_offset);
-  LOG1("  def_disp_win_right_offset   : %d\n", def_disp_win_right_offset);
-  LOG1("  def_disp_win_top_offset     : %d\n", def_disp_win_top_offset);
-  LOG1("  def_disp_win_bottom_offset  : %d\n", def_disp_win_bottom_offset);
+  LOG("default_display_window_flag   : %d\n", default_display_window_flag);
+  LOG("  def_disp_win_left_offset    : %d\n", def_disp_win_left_offset);
+  LOG("  def_disp_win_right_offset   : %d\n", def_disp_win_right_offset);
+  LOG("  def_disp_win_top_offset     : %d\n", def_disp_win_top_offset);
+  LOG("  def_disp_win_bottom_offset  : %d\n", def_disp_win_bottom_offset);
 
-  LOG1("vui_timing_info_present_flag  : %d\n", vui_timing_info_present_flag);
+  LOG("vui_timing_info_present_flag  : %d\n", vui_timing_info_present_flag);
   if (vui_timing_info_present_flag) {
-    LOG1("  vui_num_units_in_tick       : %d\n", vui_num_units_in_tick);
-    LOG1("  vui_time_scale              : %d\n", vui_time_scale);
+    LOG("  vui_num_units_in_tick       : %d\n", vui_num_units_in_tick);
+    LOG("  vui_time_scale              : %d\n", vui_time_scale);
   }
 
-  LOG1("vui_poc_proportional_to_timing_flag : %d\n", vui_poc_proportional_to_timing_flag);
-  LOG1("vui_num_ticks_poc_diff_one          : %d\n", vui_num_ticks_poc_diff_one);
+  LOG("vui_poc_proportional_to_timing_flag : %d\n", vui_poc_proportional_to_timing_flag);
+  LOG("vui_num_ticks_poc_diff_one          : %d\n", vui_num_ticks_poc_diff_one);
 
-  LOG1("vui_hrd_parameters_present_flag : %d\n", vui_hrd_parameters_present_flag);
+  LOG("vui_hrd_parameters_present_flag : %d\n", vui_hrd_parameters_present_flag);
   if (vui_hrd_parameters_present_flag) {
     //hrd_parameters vui_hrd_parameters;
   }
@@ -397,23 +394,17 @@ std::string video_usability_information::dump() const
 
   // --- bitstream restriction ---
 
-  LOG1("bitstream_restriction_flag         : %d\n", bitstream_restriction_flag);
+  LOG("bitstream_restriction_flag         : %d\n", bitstream_restriction_flag);
   if (bitstream_restriction_flag) {
-    LOG1("  tiles_fixed_structure_flag       : %d\n", tiles_fixed_structure_flag);
-    LOG1("  motion_vectors_over_pic_boundaries_flag : %d\n", motion_vectors_over_pic_boundaries_flag);
-    LOG1("  restricted_ref_pic_lists_flag    : %d\n", restricted_ref_pic_lists_flag);
-    LOG1("  min_spatial_segmentation_idc     : %d\n", min_spatial_segmentation_idc);
-    LOG1("  max_bytes_per_pic_denom          : %d\n", max_bytes_per_pic_denom);
-    LOG1("  max_bits_per_min_cu_denom        : %d\n", max_bits_per_min_cu_denom);
-    LOG1("  log2_max_mv_length_horizontal    : %d\n", log2_max_mv_length_horizontal);
-    LOG1("  log2_max_mv_length_vertical      : %d\n", log2_max_mv_length_vertical);
+    LOG("  tiles_fixed_structure_flag       : %d\n", tiles_fixed_structure_flag);
+    LOG("  motion_vectors_over_pic_boundaries_flag : %d\n", motion_vectors_over_pic_boundaries_flag);
+    LOG("  restricted_ref_pic_lists_flag    : %d\n", restricted_ref_pic_lists_flag);
+    LOG("  min_spatial_segmentation_idc     : %d\n", min_spatial_segmentation_idc);
+    LOG("  max_bytes_per_pic_denom          : %d\n", max_bytes_per_pic_denom);
+    LOG("  max_bits_per_min_cu_denom        : %d\n", max_bits_per_min_cu_denom);
+    LOG("  log2_max_mv_length_horizontal    : %d\n", log2_max_mv_length_horizontal);
+    LOG("  log2_max_mv_length_vertical      : %d\n", log2_max_mv_length_vertical);
   }
-
-#undef LOG0
-#undef LOG1
-#undef LOG2
-#undef LOG3
-  //#endif
 
   return sstr.str();
 }

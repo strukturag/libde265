@@ -31,6 +31,8 @@
 # include <alloca.h>
 #endif
 
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
+
 
 void pps_range_extension::reset()
 {
@@ -146,28 +148,21 @@ std::string pps_range_extension::dump() const
 {
   std::stringstream sstr;
 
-#define LOG0(t) log2sstr(sstr, t)
-#define LOG1(t,d) log2sstr(sstr, t,d)
-#define LOG2(t,d,e) log2sstr(sstr, t,d,e)
-
-  LOG0("---------- PPS range-extension ----------\n");
-  LOG1("log2_max_transform_skip_block_size      : %d\n", log2_max_transform_skip_block_size);
-  LOG1("cross_component_prediction_enabled_flag : %d\n", cross_component_prediction_enabled_flag);
-  LOG1("chroma_qp_offset_list_enabled_flag      : %d\n", chroma_qp_offset_list_enabled_flag);
+  LOG("---------- PPS range-extension ----------\n");
+  LOG("log2_max_transform_skip_block_size      : %d\n", log2_max_transform_skip_block_size);
+  LOG("cross_component_prediction_enabled_flag : %d\n", cross_component_prediction_enabled_flag);
+  LOG("chroma_qp_offset_list_enabled_flag      : %d\n", chroma_qp_offset_list_enabled_flag);
   if (chroma_qp_offset_list_enabled_flag) {
-    LOG1("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
-    LOG1("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
+    LOG("diff_cu_chroma_qp_offset_depth          : %d\n", diff_cu_chroma_qp_offset_depth);
+    LOG("chroma_qp_offset_list_len               : %d\n", chroma_qp_offset_list_len);
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
-      LOG2("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list[i]);
-      LOG2("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list[i]);
+      LOG("cb_qp_offset_list[%d]                    : %d\n", i,cb_qp_offset_list[i]);
+      LOG("cr_qp_offset_list[%d]                    : %d\n", i,cr_qp_offset_list[i]);
     }
   }
 
-  LOG1("log2_sao_offset_scale_luma              : %d\n", log2_sao_offset_scale_luma);
-  LOG1("log2_sao_offset_scale_chroma            : %d\n", log2_sao_offset_scale_chroma);
-#undef LOG2
-#undef LOG1
-#undef LOG0
+  LOG("log2_sao_offset_scale_luma              : %d\n", log2_sao_offset_scale_luma);
+  LOG("log2_sao_offset_scale_chroma            : %d\n", log2_sao_offset_scale_chroma);
 
   return sstr.str();
 }
@@ -862,53 +857,50 @@ std::string pic_parameter_set::dump() const
 {
   std::stringstream sstr;
 
-#define LOG0(t) log2sstr(sstr, t)
-#define LOG1(t,d) log2sstr(sstr, t,d)
+  LOG("----------------- PPS -----------------\n");
+  LOG("pic_parameter_set_id       : %d\n", pic_parameter_set_id);
+  LOG("seq_parameter_set_id       : %d\n", seq_parameter_set_id);
+  LOG("dependent_slice_segments_enabled_flag : %d\n", dependent_slice_segments_enabled_flag);
+  LOG("sign_data_hiding_flag      : %d\n", sign_data_hiding_flag);
+  LOG("cabac_init_present_flag    : %d\n", cabac_init_present_flag);
+  LOG("num_ref_idx_l0_default_active : %d\n", num_ref_idx_l0_default_active);
+  LOG("num_ref_idx_l1_default_active : %d\n", num_ref_idx_l1_default_active);
 
-  LOG0("----------------- PPS -----------------\n");
-  LOG1("pic_parameter_set_id       : %d\n", pic_parameter_set_id);
-  LOG1("seq_parameter_set_id       : %d\n", seq_parameter_set_id);
-  LOG1("dependent_slice_segments_enabled_flag : %d\n", dependent_slice_segments_enabled_flag);
-  LOG1("sign_data_hiding_flag      : %d\n", sign_data_hiding_flag);
-  LOG1("cabac_init_present_flag    : %d\n", cabac_init_present_flag);
-  LOG1("num_ref_idx_l0_default_active : %d\n", num_ref_idx_l0_default_active);
-  LOG1("num_ref_idx_l1_default_active : %d\n", num_ref_idx_l1_default_active);
-
-  LOG1("pic_init_qp                : %d\n", pic_init_qp);
-  LOG1("constrained_intra_pred_flag: %d\n", constrained_intra_pred_flag);
-  LOG1("transform_skip_enabled_flag: %d\n", transform_skip_enabled_flag);
-  LOG1("cu_qp_delta_enabled_flag   : %d\n", cu_qp_delta_enabled_flag);
+  LOG("pic_init_qp                : %d\n", pic_init_qp);
+  LOG("constrained_intra_pred_flag: %d\n", constrained_intra_pred_flag);
+  LOG("transform_skip_enabled_flag: %d\n", transform_skip_enabled_flag);
+  LOG("cu_qp_delta_enabled_flag   : %d\n", cu_qp_delta_enabled_flag);
 
   if (cu_qp_delta_enabled_flag) {
-    LOG1("diff_cu_qp_delta_depth     : %d\n", diff_cu_qp_delta_depth);
+    LOG("diff_cu_qp_delta_depth     : %d\n", diff_cu_qp_delta_depth);
   }
 
-  LOG1("pic_cb_qp_offset             : %d\n", pic_cb_qp_offset);
-  LOG1("pic_cr_qp_offset             : %d\n", pic_cr_qp_offset);
-  LOG1("pps_slice_chroma_qp_offsets_present_flag : %d\n", pps_slice_chroma_qp_offsets_present_flag);
-  LOG1("weighted_pred_flag           : %d\n", weighted_pred_flag);
-  LOG1("weighted_bipred_flag         : %d\n", weighted_bipred_flag);
-  LOG1("output_flag_present_flag     : %d\n", output_flag_present_flag);
-  LOG1("transquant_bypass_enable_flag: %d\n", transquant_bypass_enable_flag);
-  LOG1("tiles_enabled_flag           : %d\n", tiles_enabled_flag);
-  LOG1("entropy_coding_sync_enabled_flag: %d\n", entropy_coding_sync_enabled_flag);
+  LOG("pic_cb_qp_offset             : %d\n", pic_cb_qp_offset);
+  LOG("pic_cr_qp_offset             : %d\n", pic_cr_qp_offset);
+  LOG("pps_slice_chroma_qp_offsets_present_flag : %d\n", pps_slice_chroma_qp_offsets_present_flag);
+  LOG("weighted_pred_flag           : %d\n", weighted_pred_flag);
+  LOG("weighted_bipred_flag         : %d\n", weighted_bipred_flag);
+  LOG("output_flag_present_flag     : %d\n", output_flag_present_flag);
+  LOG("transquant_bypass_enable_flag: %d\n", transquant_bypass_enable_flag);
+  LOG("tiles_enabled_flag           : %d\n", tiles_enabled_flag);
+  LOG("entropy_coding_sync_enabled_flag: %d\n", entropy_coding_sync_enabled_flag);
 
   if (tiles_enabled_flag) {
-    LOG1("num_tile_columns    : %d\n", num_tile_columns);
-    LOG1("num_tile_rows       : %d\n", num_tile_rows);
-    LOG1("uniform_spacing_flag: %d\n", uniform_spacing_flag);
+    LOG("num_tile_columns    : %d\n", num_tile_columns);
+    LOG("num_tile_rows       : %d\n", num_tile_rows);
+    LOG("uniform_spacing_flag: %d\n", uniform_spacing_flag);
 
-    LOG0("tile column boundaries: ");
+    LOG("tile column boundaries: ");
     for (int i=0;i<=num_tile_columns;i++) {
-      LOG1("*%d ",colBd[i]);
+      LOG("*%d ",colBd[i]);
     }
-    LOG0("*\n");
+    LOG("*\n");
 
-    LOG0("tile row boundaries: ");
+    LOG("tile row boundaries: ");
     for (int i=0;i<=num_tile_rows;i++) {
-      LOG1("*%d ",rowBd[i]);
+      LOG("*%d ",rowBd[i]);
     }
-    LOG0("*\n");
+    LOG("*\n");
 
   //if( !uniform_spacing_flag ) {
   /*
@@ -923,40 +915,37 @@ std::string pic_parameter_set::dump() const
                     }
   */
 
-    LOG1("loop_filter_across_tiles_enabled_flag : %d\n", loop_filter_across_tiles_enabled_flag);
+    LOG("loop_filter_across_tiles_enabled_flag : %d\n", loop_filter_across_tiles_enabled_flag);
   }
 
-  LOG1("pps_loop_filter_across_slices_enabled_flag: %d\n", pps_loop_filter_across_slices_enabled_flag);
-  LOG1("deblocking_filter_control_present_flag: %d\n", deblocking_filter_control_present_flag);
+  LOG("pps_loop_filter_across_slices_enabled_flag: %d\n", pps_loop_filter_across_slices_enabled_flag);
+  LOG("deblocking_filter_control_present_flag: %d\n", deblocking_filter_control_present_flag);
 
   if (deblocking_filter_control_present_flag) {
-    LOG1("deblocking_filter_override_enabled_flag: %d\n", deblocking_filter_override_enabled_flag);
-    LOG1("pic_disable_deblocking_filter_flag: %d\n", pic_disable_deblocking_filter_flag);
+    LOG("deblocking_filter_override_enabled_flag: %d\n", deblocking_filter_override_enabled_flag);
+    LOG("pic_disable_deblocking_filter_flag: %d\n", pic_disable_deblocking_filter_flag);
 
-    LOG1("beta_offset:  %d\n", beta_offset);
-    LOG1("tc_offset:    %d\n", tc_offset);
+    LOG("beta_offset:  %d\n", beta_offset);
+    LOG("tc_offset:    %d\n", tc_offset);
   }
 
-  LOG1("pic_scaling_list_data_present_flag: %d\n", pic_scaling_list_data_present_flag);
+  LOG("pic_scaling_list_data_present_flag: %d\n", pic_scaling_list_data_present_flag);
   if (pic_scaling_list_data_present_flag) {
     //scaling_list_data()
   }
 
-  LOG1("lists_modification_present_flag: %d\n", lists_modification_present_flag);
-  LOG1("log2_parallel_merge_level      : %d\n", log2_parallel_merge_level);
-  LOG1("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
-  LOG1("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
-  LOG1("pps_extension_flag            : %d\n", pps_extension_flag);
-  LOG1("pps_range_extension_flag      : %d\n", pps_range_extension_flag);
-  LOG1("pps_multilayer_extension_flag : %d\n", pps_multilayer_extension_flag);
-  LOG1("pps_extension_6bits           : %d\n", pps_extension_6bits);
+  LOG("lists_modification_present_flag: %d\n", lists_modification_present_flag);
+  LOG("log2_parallel_merge_level      : %d\n", log2_parallel_merge_level);
+  LOG("num_extra_slice_header_bits    : %d\n", num_extra_slice_header_bits);
+  LOG("slice_segment_header_extension_present_flag : %d\n", slice_segment_header_extension_present_flag);
+  LOG("pps_extension_flag            : %d\n", pps_extension_flag);
+  LOG("pps_range_extension_flag      : %d\n", pps_range_extension_flag);
+  LOG("pps_multilayer_extension_flag : %d\n", pps_multilayer_extension_flag);
+  LOG("pps_extension_6bits           : %d\n", pps_extension_6bits);
 
-  LOG1("Log2MinCuQpDeltaSize          : %d\n", Log2MinCuQpDeltaSize);
-  LOG1("Log2MinCuChromaQpOffsetSize (RExt) : %d\n", Log2MinCuChromaQpOffsetSize);
-  LOG1("Log2MaxTransformSkipSize    (RExt) : %d\n", Log2MaxTransformSkipSize);
-
-#undef LOG0
-#undef LOG1
+  LOG("Log2MinCuQpDeltaSize          : %d\n", Log2MinCuQpDeltaSize);
+  LOG("Log2MinCuChromaQpOffsetSize (RExt) : %d\n", Log2MinCuChromaQpOffsetSize);
+  LOG("Log2MaxTransformSkipSize    (RExt) : %d\n", Log2MaxTransformSkipSize);
 
 
   if (pps_range_extension_flag) {
