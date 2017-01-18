@@ -341,12 +341,12 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
-      if ((err=read_scaling_list(br,this, &scaling_list, false)) != DE265_OK) {
+      if ((err=scaling_list.read(br,this, false)) != DE265_OK) {
         return err;
       }
     }
     else {
-      set_default_scaling_lists(&scaling_list);
+      scaling_list.set_default_scaling_lists();
     }
   }
 
@@ -765,7 +765,7 @@ static uint8_t default_ScalingList_8x8_inter[64] = {
 };
 
 
-void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int sizeId)
+static void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int sizeId)
 {
   const position* scan;
   int width;
@@ -843,8 +843,7 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
 }
 
 
-de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
-                              scaling_list_data* sclist, bool inPPS)
+de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps, bool inPPS)
 {
   int dc_coeff[4][6];
 
@@ -936,22 +935,22 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       switch (sizeId) {
       case 0:
-        fill_scaling_factor(&sclist->ScalingFactor_Size0[matrixId][0][0], curr_scaling_list, 0);
+        fill_scaling_factor(&ScalingFactor_Size0[matrixId][0][0], curr_scaling_list, 0);
         break;
 
       case 1:
-        fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId][0][0], curr_scaling_list, 1);
+        fill_scaling_factor(&ScalingFactor_Size1[matrixId][0][0], curr_scaling_list, 1);
         break;
 
       case 2:
-        fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId][0][0], curr_scaling_list, 2);
-        sclist->ScalingFactor_Size2[matrixId][0][0] = scaling_list_dc_coef;
+        fill_scaling_factor(&ScalingFactor_Size2[matrixId][0][0], curr_scaling_list, 2);
+        ScalingFactor_Size2[matrixId][0][0] = scaling_list_dc_coef;
         //printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
 
       case 3:
-        fill_scaling_factor(&sclist->ScalingFactor_Size3[matrixId][0][0], curr_scaling_list, 3);
-        sclist->ScalingFactor_Size3[matrixId][0][0] = scaling_list_dc_coef;
+        fill_scaling_factor(&ScalingFactor_Size3[matrixId][0][0], curr_scaling_list, 3);
+        ScalingFactor_Size3[matrixId][0][0] = scaling_list_dc_coef;
         //printf("DC coeff: %d\n", scaling_list_dc_coef);
         break;
       }
@@ -962,8 +961,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 }
 
 
-de265_error write_scaling_list(CABAC_encoder& out, const seq_parameter_set* sps,
-                              scaling_list_data* sclist, bool inPPS)
+de265_error scaling_list_data::write(CABAC_encoder& out, const seq_parameter_set* sps, bool inPPS)
 {
   assert(false);
   // TODO
@@ -972,38 +970,38 @@ de265_error write_scaling_list(CABAC_encoder& out, const seq_parameter_set* sps,
 }
 
 
-void set_default_scaling_lists(scaling_list_data* sclist)
+void scaling_list_data::set_default_scaling_lists()
 {
   // 4x4
 
   for (int matrixId=0;matrixId<6;matrixId++) {
-    fill_scaling_factor(&sclist->ScalingFactor_Size0[matrixId][0][0],
+    fill_scaling_factor(&ScalingFactor_Size0[matrixId][0][0],
                         default_ScalingList_4x4, 0);
   }
 
   // 8x8
 
   for (int matrixId=0;matrixId<3;matrixId++) {
-    fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId+0][0][0],
+    fill_scaling_factor(&ScalingFactor_Size1[matrixId+0][0][0],
                         default_ScalingList_8x8_intra, 1);
-    fill_scaling_factor(&sclist->ScalingFactor_Size1[matrixId+3][0][0],
+    fill_scaling_factor(&ScalingFactor_Size1[matrixId+3][0][0],
                         default_ScalingList_8x8_inter, 1);
   }
 
   // 16x16
 
   for (int matrixId=0;matrixId<3;matrixId++) {
-    fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId+0][0][0],
+    fill_scaling_factor(&ScalingFactor_Size2[matrixId+0][0][0],
                         default_ScalingList_8x8_intra, 2);
-    fill_scaling_factor(&sclist->ScalingFactor_Size2[matrixId+3][0][0],
+    fill_scaling_factor(&ScalingFactor_Size2[matrixId+3][0][0],
                         default_ScalingList_8x8_inter, 2);
   }
 
   // 32x32
 
-  fill_scaling_factor(&sclist->ScalingFactor_Size3[0][0][0],
+  fill_scaling_factor(&ScalingFactor_Size3[0][0][0],
                       default_ScalingList_8x8_intra, 3);
-  fill_scaling_factor(&sclist->ScalingFactor_Size3[1][0][0],
+  fill_scaling_factor(&ScalingFactor_Size3[1][0][0],
                       default_ScalingList_8x8_inter, 3);
 }
 
@@ -1102,7 +1100,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
-      if ((err=write_scaling_list(out,this, &scaling_list, false)) != DE265_OK) {
+      if ((err=scaling_list.write(out,this, false)) != DE265_OK) {
         return err;
       }
     }

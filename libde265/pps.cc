@@ -465,14 +465,14 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   if (pic_scaling_list_data_present_flag) {
-    de265_error err = read_scaling_list(br, sps.get(), &scaling_list, true);
+    de265_error err = scaling_list.read(br, sps.get(), true);
     if (err != DE265_OK) {
       ctx->add_warning(err, false);
       return false;
     }
   }
   else {
-    memcpy(&scaling_list, &sps->scaling_list, sizeof(scaling_list_data));
+    scaling_list = sps->scaling_list;
   }
 
 
@@ -818,7 +818,7 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   }
 
   if (pic_scaling_list_data_present_flag) {
-    de265_error err = write_scaling_list(out, sps, &scaling_list, true);
+    de265_error err = scaling_list.write(out, sps, true);
     if (err != DE265_OK) {
       errqueue->add_warning(err, false);
       return false;

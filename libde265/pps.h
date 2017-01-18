@@ -127,7 +127,7 @@ public:
   int tc_offset;
 
   char pic_scaling_list_data_present_flag;
-  struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
+  scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
 
   char lists_modification_present_flag;
   int log2_parallel_merge_level; // [2 ; log2(max CB size)]
