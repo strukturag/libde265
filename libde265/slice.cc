@@ -21,21 +21,21 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "slice.h"
-#include "motion.h"
-#include "util.h"
-#include "scan.h"
-#include "intrapred.h"
-#include "transform.h"
-#include "threads.h"
-#include "image.h"
-#include "image-unit.h"
-
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include <utility>
+
+#include "libde265/image.h"
+#include "libde265/image-unit.h"
+#include "libde265/intrapred.h"
+#include "libde265/motion.h"
+#include "libde265/scan.h"
+#include "libde265/slice.h"
+#include "libde265/threads.h"
+#include "libde265/transform.h"
+#include "libde265/util.h"
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)

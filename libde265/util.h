@@ -22,7 +22,7 @@
 #define DE265_UTIL_H
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
 
 #ifndef _MSC_VER

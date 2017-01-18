@@ -23,9 +23,9 @@
 
 #include <stdint.h>
 
-#include "codingdata.h"
-#include "image.h"
-#include "encoder/encoder-context.h"
+#include "libde265/codingdata.h"
+#include "libde265/image.h"
+#include "libde265/encoder/encoder-context.h"
 
 
 template <> class CodingDataAccess<image>

@@ -19,10 +19,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
-
-#include "x86/sse-sao.h"
 
 #include <emmintrin.h>
 #if HAVE_SSE4_1
@@ -36,7 +34,8 @@
 #include <inttypes.h>
 #endif
 
-#include "fallback-sao.h"
+#include "libde265/fallback-sao.h"
+#include "libde265/x86/sse-sao.h"
 
 #define D 0
 

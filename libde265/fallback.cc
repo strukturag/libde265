@@ -18,11 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback.h"
-#include "fallback-intra-dc.h"
-#include "fallback-motion.h"
-#include "fallback-dct.h"
-#include "fallback-sao.h"
+#include "libde265/fallback.h"
+#include "libde265/fallback-dct.h"
+#include "libde265/fallback-intra-dc.h"
+#include "libde265/fallback-motion.h"
+#include "libde265/fallback-sao.h"
 
 
 void init_acceleration_functions_fallback(struct acceleration_functions* accel)

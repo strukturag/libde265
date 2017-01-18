@@ -21,7 +21,7 @@
 #ifndef DE265_SSE_H
 #define DE265_SSE_H
 
-#include "acceleration.h"
+#include "libde265/acceleration.h"
 
 void init_acceleration_functions_sse(struct acceleration_functions* accel,
                                      uint32_t inexact_computation_flags);

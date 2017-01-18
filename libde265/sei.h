@@ -21,11 +21,11 @@
 #ifndef DE265_SEI_H
 #define DE265_SEI_H
 
-#include "util.h"
+#include <memory>
+
 #include "libde265/bitstream.h"
 #include "libde265/de265.h"
-
-#include <memory>
+#include "libde265/util.h"
 
 class image;
 

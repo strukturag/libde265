@@ -20,13 +20,13 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/encoder-context.h"
-#include "libde265/encoder/encoder-syntax.h"
-#include "libde265/util.h"
-#include "libde265/image.h"
-
 #include <limits>
 #include <math.h>
+
+#include "libde265/util.h"
+#include "libde265/image.h"
+#include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/encoder-syntax.h"
 
 #define ENCODER_DEVELOPMENT 0
 #define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0

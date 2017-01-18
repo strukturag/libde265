@@ -20,16 +20,20 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder-syntax.h"
-#include "encoder-context.h"
-#include "slice.h"
-#include "scan.h"
-#include "intrapred.h"
-#include "libde265/transform.h"
-#include "libde265/fallback-dct.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
+
 #include <algorithm>
 #include <utility>
 
+#include "libde265/slice.h"
+#include "libde265/scan.h"
+#include "libde265/intrapred.h"
+#include "libde265/transform.h"
+#include "libde265/fallback-dct.h"
+#include "libde265/encoder/encoder-syntax.h"
+#include "libde265/encoder/encoder-context.h"
 
 #ifdef DE265_LOG_DEBUG
 #define ESTIM_BITS_BEGIN \

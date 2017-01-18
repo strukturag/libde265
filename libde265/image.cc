@@ -18,9 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "image.h"
-#include "decctx.h"
-#include "encoder/encoder-context.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +32,10 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+
+#include "libde265/image.h"
+#include "libde265/decctx.h"
+#include "libde265/encoder/encoder-context.h"
 
 #ifdef HAVE_SSE4_1
 #define MEMORY_PADDING  8

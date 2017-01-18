@@ -20,15 +20,17 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "libde265/encoder/encoder-context.h"
-#include "libde265/encoder/algo/tb-split.h"
-#include "libde265/encoder/algo/coding-options.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>
 #include <algorithm>
+#include <utility>
+#include <vector>
 
+#include "libde265/encoder/encoder-context.h"
+#include "libde265/encoder/algo/tb-split.h"
+#include "libde265/encoder/algo/coding-options.h"
+#include "libde265/encoder/algo/tb-intrapredmode.h"
 
 float get_intra_pred_mode_bits(const enum IntraPredMode candidates[3],
                                enum IntraPredMode intraMode,

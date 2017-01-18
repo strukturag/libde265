@@ -22,8 +22,8 @@
 #define DE265_CABAC_H
 
 #include <stdint.h>
-#include "contextmodel.h"
 
+#include "libde265/contextmodel.h"
 
 typedef struct {
   uint8_t* bitstream_start;

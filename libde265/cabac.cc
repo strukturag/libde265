@@ -18,13 +18,13 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "cabac.h"
-#include "util.h"
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#include "libde265/cabac.h"
+#include "libde265/util.h"
 
 #define INITIAL_CABAC_BUFFER_CAPACITY 4096
 

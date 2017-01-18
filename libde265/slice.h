@@ -24,17 +24,17 @@
 #ifndef DE265_SLICE_H
 #define DE265_SLICE_H
 
-#include "libde265/cabac.h"
-#include "libde265/de265.h"
-#include "libde265/util.h"
-#include "libde265/refpic.h"
-#include "libde265/threads.h"
-#include "contextmodel.h"
-
 #include <vector>
 #include <string>
 #include <string.h>
 #include <memory>
+
+#include "libde265/cabac.h"
+#include "libde265/contextmodel.h"
+#include "libde265/de265.h"
+#include "libde265/refpic.h"
+#include "libde265/threads.h"
+#include "libde265/util.h"
 
 #define MAX_NUM_REF_PICS    16
 

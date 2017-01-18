@@ -18,11 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "dpb.h"
-#include "decctx.h"
 #include <string.h>
 #include <assert.h>
 
+#include "libde265/dpb.h"
+#include "libde265/decctx.h"
 
 #define DPB_DEFAULT_MAX_IMAGES  30
 

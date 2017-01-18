@@ -19,8 +19,8 @@
  */
 
 
-#include "image-unit.h"
-#include "decctx.h"
+#include "libde265/decctx.h"
+#include "libde265/image-unit.h"
 
 
 slice_unit::slice_unit(decoder_context* decctx)

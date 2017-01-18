@@ -18,20 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef _MSC_VER
-#include <intrin.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
 #endif
 
-#include "x86/sse.h"
-#include "x86/sse-motion.h"
-#include "x86/sse-motion-new.h"
-#include "x86/sse-dct.h"
-#include "x86/sse-sao.h"
-#include "x86/sse-intra-dc.h"
-#include "de265.h"
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifdef _MSC_VER
+#include <intrin.h>
 #endif
 
 #ifdef __GNUC__
@@ -40,6 +32,13 @@
 
 #include <stdio.h>
 
+#include "libde265/de265.h"
+#include "libde265/x86/sse.h"
+#include "libde265/x86/sse-motion.h"
+#include "libde265/x86/sse-motion-new.h"
+#include "libde265/x86/sse-dct.h"
+#include "libde265/x86/sse-sao.h"
+#include "libde265/x86/sse-intra-dc.h"
 
 static void cpuid(uint32_t in_eax,
                   uint32_t& out_eax, uint32_t& out_ebx,

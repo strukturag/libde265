@@ -19,12 +19,12 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
 
-#include "arm.h"
-
 #include <stdio.h>
+
+#include "libde265/arm/arm.h"
 
 // TODO: on linux, use getauxval(AT_HWCAP);
 static bool detect_neon()

@@ -18,16 +18,16 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "nal-parser.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "libde265/nal-parser.h"
 
 
 NAL_unit::NAL_unit()

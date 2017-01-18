@@ -18,11 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "vps.h"
-#include "util.h"
-#include "decctx.h"
-
 #include <assert.h>
+
+#include "libde265/decctx.h"
+#include "libde265/util.h"
+#include "libde265/vps.h"
 
 #define LOG(...) log2sstr(sstr, __VA_ARGS__)
 

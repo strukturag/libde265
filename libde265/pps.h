@@ -21,13 +21,13 @@
 #ifndef DE265_PPS_H
 #define DE265_PPS_H
 
-#include "util.h"
-#include "libde265/bitstream.h"
-#include "libde265/sps.h" // for scaling list only
-
 #include <vector>
 #include <string>
 #include <memory>
+
+#include "libde265/bitstream.h"
+#include "libde265/sps.h" // for scaling list only
+#include "libde265/util.h"
 
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10

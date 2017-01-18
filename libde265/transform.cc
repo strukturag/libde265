@@ -18,13 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "transform.h"
-#include "util.h"
-#include "funcs.h"
-#include "codingdata-impl.h"
-
 #include <assert.h>
 
+#include "libde265/codingdata-impl.h"
+#include "libde265/funcs.h"
+#include "libde265/transform.h"
+#include "libde265/util.h"
 
 const int tab8_22[] = { 29,30,31,32,33,33,34,34,35,35,36,36,37 /*,37*/ };
 

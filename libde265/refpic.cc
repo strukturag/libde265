@@ -18,9 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "refpic.h"
-#include "decctx.h"
-#include "util.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <assert.h>
 #include <stdlib.h>
@@ -30,6 +30,10 @@
 # include <alloca.h>
 #endif
 #include <vector>
+
+#include "libde265/decctx.h"
+#include "libde265/refpic.h"
+#include "libde265/util.h"
 
 void ref_pic_set::reset()
 {

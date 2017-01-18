@@ -18,10 +18,10 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "nal.h"
-#include "cabac.h"
 #include <assert.h>
 
+#include "libde265/cabac.h"
+#include "libde265/nal.h"
 
 void nal_header::read(bitreader* reader)
 {

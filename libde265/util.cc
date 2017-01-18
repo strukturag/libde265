@@ -18,12 +18,16 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "util.h"
-#include "de265.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "libde265/de265.h"
+#include "libde265/util.h"
 
 
 void copy_subimage(uint8_t* dst,int dststride,

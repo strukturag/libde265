@@ -22,8 +22,7 @@
 
 #include <vector>
 
-#include "encoder-params.h"
-
+#include "libde265/encoder/encoder-params.h"
 
 
 static std::vector<int> power2range(int low,int high)

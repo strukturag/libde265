@@ -19,11 +19,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
-
-#include "fallback-intra-dc.h"
-#include "util.h"
 
 #include <assert.h>
 #include <string.h>
@@ -33,6 +30,10 @@
 #include <tmmintrin.h>
 #include <smmintrin.h>
 #endif
+
+#include "libde265/fallback-intra-dc.h"
+#include "libde265/util.h"
+#include "libde265/x86/sse-intra-dc.h"
 
 //#include "iacaMarks.h"
 

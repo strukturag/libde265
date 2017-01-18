@@ -18,10 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "visualize.h"
-#include "decctx.h"
-
 #include <math.h>
+
+#include "libde265/decctx.h"
+#include "libde265/intrapred.h"
+#include "libde265/visualize.h"
 
 #if 0
 void writeFrame_Y(image* img,const char* filename)
@@ -107,8 +108,6 @@ void draw_block_boundary(const image* srcimg,
     }
 }
 
-
-#include "intrapred.h"
 
 void draw_intra_pred_mode(const image* srcimg,
                           uint8_t* img,int stride,
