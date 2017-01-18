@@ -963,6 +963,22 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     }
 
 
+    // check for WPP rows starting out of image
+
+    if (ctbAddrRS >= pps.sps->PicSizeInCtbsY) {
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
+
+    int ctbAddrTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    assert(ctbAddrTS == ctbAddrRS);
+
+    if (ctbAddrTS > sliceunit->last_CTB_TS) {
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
+
+
     // prepare thread context
 
     thread_context* tctx = sliceunit->get_thread_context(entryPt);
