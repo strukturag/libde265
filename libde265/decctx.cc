@@ -1028,14 +1028,17 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->task = task;
 
     tasks[entryPt] = task;
-
-    tctx->imgunit->tasks.push_back(task);
   }
 
 
   if (err == DE265_OK) {
+    // all tasks could be created successfully, so let's add them to the imageunit
+    // and start them
+
     for (int entryPt=0;entryPt<nRows;entryPt++) {
       auto tctx = sliceunit->get_thread_context(entryPt);
+
+      tctx->imgunit->tasks.push_back(tasks[entryPt]);
 
       if (entryPt < nRows-1) {
         tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
@@ -1049,9 +1052,6 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     for (int entryPt=0;entryPt<nRows;entryPt++) {
       m_thread_pool.add_task(tasks[entryPt]);
     }
-  }
-  else {
-    imgunit->tasks.clear();
   }
 
 #if 0
@@ -1151,8 +1151,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
-    //printf("add tiles thread\n");
-    //img->thread_start(1);
     sliceunit->nThreads++;
 
     auto task = std::make_shared<thread_task_slice_segment>();
@@ -1163,16 +1161,14 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->task = task;
 
     tasks[entryPt] = task;
-
-    //m_thread_pool.add_task(task);
-
-    tctx->imgunit->tasks.push_back(task);
   }
 
 
   if (err == DE265_OK) {
     for (int entryPt=0;entryPt<nTiles;entryPt++) {
       auto tctx = sliceunit->get_thread_context(entryPt);
+
+      tctx->imgunit->tasks.push_back(tasks[entryPt]);
 
       if (entryPt < nTiles-1) {
         tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
@@ -1186,9 +1182,6 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     for (int entryPt=0;entryPt<nTiles;entryPt++) {
       m_thread_pool.add_task(tasks[entryPt]);
     }
-  }
-  else {
-    imgunit->tasks.clear();
   }
 
   //img->wait_for_completion();
