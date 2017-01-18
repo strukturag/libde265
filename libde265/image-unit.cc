@@ -61,6 +61,25 @@ thread_context* slice_unit::get_thread_context(int n)
 }
 
 
+void slice_unit::mark_covered_CTBs_as_processed(int progress) const
+{
+  // mark all CTBs assigned to this slice as processed
+
+  printf("mark covered range: %d - %d\n", first_CTB_TS, last_CTB_TS);
+
+  for (int ctb=first_CTB_TS; ctb <= last_CTB_TS; ctb++)
+    {
+      if (ctb >= imgunit->img->number_of_ctbs())
+        break;
+
+      int ctb_rs = shdr->get_pps()->CtbAddrTStoRS[ctb];
+
+      printf("mark progress RS:%d (TS:%d) = %d\n",ctb_rs,ctb, progress);
+      imgunit->img->ctb_progress[ctb_rs].set_progress(progress);
+    }
+}
+
+
 
 
 

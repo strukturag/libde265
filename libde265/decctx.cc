@@ -586,7 +586,7 @@ void decoder_context::run_main_loop()
 
         bool success = decode_image_frame_parallel(to_be_decoded);
         if (!success) {
-          m_image_units_in_progress.pop_back();
+          //m_image_units_in_progress.pop_back();
         }
         //m_main_loop_mutex.lock();
       }
@@ -721,8 +721,10 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
     de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
-      // TODO
       // printf("ERROR\n"); // FUZZY
+
+      sliceunit->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+
       return false;
     }
   }
