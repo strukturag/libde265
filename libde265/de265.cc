@@ -509,7 +509,7 @@ LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de
                                                        int parallel_frames)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->param_max_images_processed_in_parallel = parallel_frames;
+  ctx->set_max_decode_frames_parallel(parallel_frames);
 }
 
 

@@ -267,7 +267,11 @@ class decoder_context : public base_context,
 
   void on_image_decoding_finished(); // internal use only (by decoding tasks)
 
-
+  void set_max_decode_frames_parallel(int parallel_frames) {
+    m_main_loop_mutex.lock();
+    param_max_images_processed_in_parallel = parallel_frames;
+    m_main_loop_mutex.unlock();
+  }
 
   // -------------------------------------------------- output
 
@@ -335,8 +339,10 @@ class decoder_context : public base_context,
   bool param_disable_deblocking;
   bool param_disable_sao;
 
+ private:
   int  param_max_images_processed_in_parallel;
 
+ public:
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
