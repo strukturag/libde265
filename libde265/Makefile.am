@@ -124,6 +124,7 @@ endif
 
 EXTRA_DIST = Makefile.vc7 \
   CMakeLists.txt \
+  CPPLINT.cfg \
   ../extra/stdbool.h \
   ../extra/stdint.h
 
