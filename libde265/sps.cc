@@ -86,6 +86,8 @@ seq_parameter_set::seq_parameter_set()
 
   sps_read = false;
   //ref_pic_sets = NULL;
+
+  set_defaults();
 }
 
 
