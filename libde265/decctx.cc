@@ -958,6 +958,25 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   std::vector<thread_task_ptr> tasks(nRows);
 
+  int slice_first_CTB_TS = sliceunit->first_CTB_TS;
+  int slice_last_CTB_TS  = sliceunit->last_CTB_TS;
+
+  if (slice_first_CTB_TS >= pps.sps->PicSizeInCtbsY ||
+      slice_last_CTB_TS  >= pps.sps->PicSizeInCtbsY) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
+  int slice_first_CTB_RS = pps.CtbAddrTStoRS[slice_first_CTB_TS];
+  int slice_last_CTB_RS  = pps.CtbAddrTStoRS[slice_last_CTB_TS];
+
+  int slice_first_row = slice_first_CTB_RS / ctbsWidth;
+  int slice_last_row  = slice_first_CTB_RS / ctbsWidth;
+
+  if (slice_last_row - slice_first_row +1 != nRows) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
+
   for (int entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
     if (entryPt>0) {
