@@ -738,10 +738,6 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     }
   }
 
-  if (err != DE265_OK) {
-      return false;
-  }
-
 
   if (!imgunit->tasks.empty()) {
     int final_ctb_progress = CTB_PROGRESS_PREFILTER;
@@ -777,7 +773,8 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
 
-  return true;
+  return (err == DE265_OK);
+  //return true;
 }
 
 
