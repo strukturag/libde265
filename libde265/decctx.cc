@@ -723,20 +723,24 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
   // --- generate decoding thread tasks for each slice ---
 
+
+  de265_error err = DE265_OK;
+
   for (slice_unit* sliceunit : imgunit->slice_units) {
 
     //printf("decoding slice CTBs: %d - %d\n",sliceunit->first_CTB_TS, sliceunit->last_CTB_TS);
 
-    de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
+    err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
       // printf("ERROR\n"); // FUZZY
 
       sliceunit->mark_covered_CTBs_as_processed(CTB_PROGRESS_SAO);
-
-      return false;
     }
   }
 
+  if (err != DE265_OK) {
+      return false;
+  }
 
 
   if (!imgunit->tasks.empty()) {
