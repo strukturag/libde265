@@ -707,6 +707,14 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
       int xCtb = ctb_rs % sps.PicWidthInCtbsY;
       int yCtb = ctb_rs / sps.PicWidthInCtbsY;
 
+      if (xCtb >= sps.PicWidthInCtbsY ||
+          yCtb >= sps.PicHeightInCtbsY) {
+        imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+        imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        on_image_decoding_finished();
+        return false;
+      }
+
       imgunit->img->set_SliceAddrRS          (xCtb,yCtb, sliceunit->shdr->SliceAddrRS);
       imgunit->img->set_SliceHeaderIndex_ctbs(xCtb,yCtb, sliceunit->shdr->slice_index);
     }
@@ -723,7 +731,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     if (err) {
       // printf("ERROR\n"); // FUZZY
 
-      sliceunit->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+      sliceunit->mark_covered_CTBs_as_processed(CTB_PROGRESS_SAO);
 
       return false;
     }
