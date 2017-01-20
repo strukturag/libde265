@@ -606,7 +606,7 @@ int main(int argc, char** argv)
     case 'T': highestTID=atoi(optarg); break;
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
-    case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_numeric; break;
+    case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_all; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
@@ -667,7 +667,9 @@ int main(int argc, char** argv)
     de265_dump_headers(ctx, dump_headers_callback);
   }
 
-  de265_set_CPU_capabilities(ctx, no_acceleration ? 0 : de265_cpu_capability_all);
+  if (no_acceleration) {
+    de265_set_CPU_capabilities(ctx, 0);
+  }
 
   if (nThreads==0) {
     nThreads = 1;

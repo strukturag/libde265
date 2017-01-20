@@ -228,7 +228,7 @@ decoder_context::decoder_context()
   // --- parameters ---
 
   // activate all capabilities that can be autodetected
-  param_cpu_capabilities = de265_get_CPU_capabilites_all_autodetected();
+  param_CPU_capabilities = de265_get_CPU_capabilites_all_autodetected();
 
   param_sei_check_hash = false;
   param_conceal_stream_errors = true;
@@ -371,19 +371,19 @@ void base_context::set_acceleration_functions()
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
-  if (param_cpu_capabilities & (de265_cpu_capability_X86_SSE2 | de265_cpu_capability_X86_SSE41)) {
+  if (param_CPU_capabilities & (de265_CPU_capability_X86_SSE2 | de265_CPU_capability_X86_SSE41)) {
     init_acceleration_functions_sse(&acceleration, param_inexact_decoding_flags);
   }
 #endif
 
 #ifdef HAVE_NEON
-  if (param_cpu_capabilities & de265_cpu_capability_ARM_NEON) {
+  if (param_CPU_capabilities & de265_CPU_capability_ARM_NEON) {
     init_acceleration_functions_neon(&acceleration);
   }
 #endif
 
 #ifdef HAVE_AARCH64
-  if (param_cpu_capabilities & de265_cpu_capability_ARM_AARCH64) {
+  if (param_CPU_capabilities & de265_CPU_capability_ARM_AARCH64) {
     init_acceleration_functions_aarch64(&acceleration);
   }
 #endif

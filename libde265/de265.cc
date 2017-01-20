@@ -469,16 +469,16 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context* de265ctx, int capabilities)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->param_cpu_capabilities = capabilities;
+  ctx->param_CPU_capabilities = capabilities;
 }
 
 
 LIBDE265_API int de265_get_CPU_capabilites_all_autodetected()
 {
-  return = (de265_CPU_capability_X86_SSE2  |
-            de265_CPU_capability_X86_SSE41 |
-            de265_CPU_capability_X86_AVX2  |
-            de265_CPU_capability_ARM_AARCH64);
+  return (de265_CPU_capability_X86_SSE2  |
+          de265_CPU_capability_X86_SSE41 |
+          de265_CPU_capability_X86_AVX2  |
+          de265_CPU_capability_ARM_AARCH64);
 }
 
 
