@@ -232,7 +232,8 @@ decoder_context::decoder_context()
 
   // --- parameters ---
 
-  param_cpu_capabilities = de265_cpu_capability_all_autodetected;
+  // activate all capabilities that can be autodetected
+  param_cpu_capabilities = de265_get_CPU_capabilites_all_autodetected();
 
   param_sei_check_hash = false;
   param_conceal_stream_errors = true;

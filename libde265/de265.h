@@ -421,19 +421,25 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent);
    For x86, the decoder will itself check existing CPU features and does not use non-existing features.
    Hence, you can always enable all of them to get maximum acceleration.
    For ARM, you have to specify the capabilities correctly as they are not checked.
+
+   AArch64 needs not be checked, because it enables instructions that are mandatory for
+   every AArch64 processor.
+
+   Options that are not referring to the target architecture are ignored (i.e. you can
+   specify them even if you do not need them).
  */
 LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context*, int capabilities);
-#define de265_cpu_capability_X86_SSE2    (1<<0)
-#define de265_cpu_capability_X86_SSE41   (1<<1)
-#define de265_cpu_capability_X86_AVX2    (1<<2)
-#define de265_cpu_capability_X86_all     (de265_cpu_capability_X86_SSE2  | \
-                                          de265_cpu_capability_X86_SSE41 | \
-                                          de265_cpu_capability_X86_AVX2)
-#define de265_cpu_capability_ARM_NEON    (1<<10)
-#define de265_cpu_capability_ARM_AARCH64 (1<<11)
-#define de265_cpu_capability_all         (0xFFFF)
-#define de265_cpu_capability_all_autodetected (de265_cpu_capability_X86_all | \
-                                               de265_cpu_capability_ARM_AARCH64)
+#define de265_CPU_capability_X86_SSE2    (1<<0)
+#define de265_CPU_capability_X86_SSE41   (1<<1)
+#define de265_CPU_capability_X86_AVX2    (1<<2)
+#define de265_CPU_capability_ARM_NEON    (1<<10)
+#define de265_CPU_capability_ARM_AARCH64 (1<<11)
+#define de265_CPU_capability_all         (0xFFFF)
+
+/* Return all CPU capabilities that can be auto-detected by the decoder.
+   These are also the default CPU capabilities set in a de265_decoder_context object).
+ */
+LIBDE265_API int de265_get_CPU_capabilites_all_autodetected();
 
 
 LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context*, int flags);
@@ -441,7 +447,6 @@ LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context*, int flags
 #define de265_inexact_decoding_no_deblocking       2
 #define de265_inexact_decoding_idct                4   // not used yet
 #define de265_inexact_decoding_mask_none           0
-#define de265_inexact_decoding_mask_numeric        (de265_inexact_decoding_idct)
 #define de265_inexact_decoding_mask_all            0xFFFF
 
 

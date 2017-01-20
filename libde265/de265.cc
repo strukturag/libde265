@@ -473,6 +473,15 @@ LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context* de265ctx, in
 }
 
 
+LIBDE265_API int de265_get_CPU_capabilites_all_autodetected()
+{
+  return = (de265_CPU_capability_X86_SSE2  |
+            de265_CPU_capability_X86_SSE41 |
+            de265_CPU_capability_X86_AVX2  |
+            de265_CPU_capability_ARM_AARCH64);
+}
+
+
 LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context* de265ctx, int flags)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
