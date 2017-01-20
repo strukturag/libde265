@@ -116,6 +116,22 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
     param_header_callback(NAL_UNIT_SPS_NUT, str.c_str());
   }
 
+
+  // If SPS changes, invalidate all PPS that accessed this SPS, as e.g. their TS->RS tables
+  // are not valid anymore.
+  // TODO: check whether it is a bitstream requirement that a changed SPS is also followed by
+  // another PPS header. If not, we should recompute the PPS TS/RS/tile arrays.
+
+  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
+    if (pps[i] && pps[i]->seq_parameter_set_id == new_sps->seq_parameter_set_id) {
+      pps[i].reset();
+    }
+  }
+
+  if (current_pps && current_pps->seq_parameter_set_id == new_sps->seq_parameter_set_id) {
+    current_pps.reset();
+  }
+
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
 
   return DE265_OK;
