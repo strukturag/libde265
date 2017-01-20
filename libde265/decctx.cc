@@ -195,10 +195,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
 base_context::base_context()
 {
-  //deprecated_set_acceleration_type( de265_acceleration_AUTO );
   param_inexact_decoding_flags = de265_inexact_decoding_mask_none;
-
-  //set_acceleration_functions(de265_acceleration_AUTO);
 }
 
 
@@ -227,8 +224,6 @@ decoder_context::decoder_context()
 
   m_frame_dropper_ratio.set_decoder_context(*this);
 
-
-  //memset(ctx, 0, sizeof(decoder_context));
 
   // --- parameters ---
 
@@ -361,7 +356,6 @@ de265_error decoder_context::start_thread_pool(int nThreads)
 void decoder_context::stop_thread_pool()
 {
   if (get_num_worker_threads()>0) {
-    //flush_thread_pool(&ctx->thread_pool);
     m_thread_pool.stop();
   }
 }
@@ -394,43 +388,6 @@ void base_context::set_acceleration_functions()
   }
 #endif
 }
-
-
-/*
-void base_context::deprecated_set_acceleration_type(enum de265_acceleration acc)
-{
-  param_cpu_capabilities = 0;
-
-  switch (acc) {
-  case de265_acceleration_SCALAR:
-  case de265_acceleration_MMX: // unused
-  case de265_acceleration_SSE: // unused
-    break;
-
-  case de265_acceleration_SSE2:
-    param_cpu_capabilities |= de265_cpu_capability_X86_SSE2;
-    break;
-
-  case de265_acceleration_SSE4:
-  case de265_acceleration_AVX:  // unused
-  case de265_acceleration_AVX2: // unused
-    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
-			       de265_cpu_capability_X86_SSE41);
-
-  case de265_acceleration_ARM:  // unused
-  case de265_acceleration_NEON: // unused
-    break;
-
-  case de265_acceleration_AUTO:
-    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
-			       de265_cpu_capability_X86_SSE41 |
-			       de265_cpu_capability_ARM_NEON    |
-			       de265_cpu_capability_ARM_AARCH64
-			       );
-    break;
-  }
-}
-*/
 
 
 void decoder_context::start_decoding_thread()
