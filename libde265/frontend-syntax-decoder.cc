@@ -306,7 +306,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
     // --- assign CTB-range that is covered by this slice-unit ---
 
-    sliceunit->first_CTB_TS = shdr->get_pps()->CtbAddrTStoRS[shdr->slice_segment_address];
+    sliceunit->first_CTB_TS = shdr->get_pps()->CtbAddrRStoTS[shdr->slice_segment_address];
     sliceunit->last_CTB_TS  = shdr->get_pps()->sps->PicSizeInCtbsY -1;
 
     bool first_observed_slice_unit = (m_curr_image_unit->slice_units.empty());
