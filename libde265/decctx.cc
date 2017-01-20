@@ -582,9 +582,12 @@ void decoder_context::run_main_loop()
 
 
     if (m_end_of_stream &&
-        m_image_units_in_progress.empty()) {
+        m_image_units_in_progress.empty() &&
+        m_output_queue.num_pictures_in_reorder_buffer()>0) {
 
       m_output_queue.flush_reorder_buffer();
+
+      did_something = true;
     }
 
 
