@@ -18,12 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback-intra-dc.h"
-#include "util.h"
-
 #include <assert.h>
 #include <string.h>
 //#include "iacaMarks.h"
+
+#include "libde265/fallback-intra-dc.h"
+#include "libde265/util.h"
 
 
 // 4x4, avg=0, SNB : 11+imul cyc

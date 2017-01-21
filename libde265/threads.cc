@@ -18,7 +18,10 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "threads.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
+
 #include <assert.h>
 #include <string.h>
 
@@ -30,6 +33,7 @@
 
 #include <stdio.h>
 
+#include "libde265/threads.h"
 
 #ifndef _WIN32
 // #include <intrin.h>

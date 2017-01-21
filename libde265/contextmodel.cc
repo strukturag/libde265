@@ -18,10 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "slice.h"
 #include <assert.h>
 #include <iomanip>
 #include <sstream>
+
+#include "libde265/contextmodel.h"
+#include "libde265/slice.h"
 
 bool D = false;
 

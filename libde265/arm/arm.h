@@ -21,7 +21,7 @@
 #ifndef LIBDE265_ARM_H
 #define LIBDE265_ARM_H
 
-#include "acceleration.h"
+#include "libde265/acceleration.h"
 
 void init_acceleration_functions_neon(struct acceleration_functions* accel);
 void init_acceleration_functions_aarch64(struct acceleration_functions* accel);

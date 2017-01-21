@@ -18,15 +18,14 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sei.h"
-#include "util.h"
-#include "md5.h"
-
-#include "libde265/sps.h"
-#include "libde265/image.h"
-#include "libde265/decctx.h"
-
 #include <assert.h>
+
+#include "libde265/decctx.h"
+#include "libde265/image.h"
+#include "libde265/md5.h"
+#include "libde265/sei.h"
+#include "libde265/sps.h"
+#include "libde265/util.h"
 
 
 static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message* sei,

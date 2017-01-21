@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <memory>
+#include <vector>
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif

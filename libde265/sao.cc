@@ -18,12 +18,14 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sao.h"
-#include "util.h"
-#include "image-unit.h"
-
+#include <memory>
+#include <string>
 #include <stdlib.h>
 #include <string.h>
+
+#include "libde265/image-unit.h"
+#include "libde265/sao.h"
+#include "libde265/util.h"
 
 
 /* Maximum SAO offsets:

@@ -18,9 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "quality.h"
 #include <math.h>
 
+#include "libde265/quality.h"
 
 uint32_t SSD(const uint8_t* img, int imgStride,
              const uint8_t* ref, int refStride,

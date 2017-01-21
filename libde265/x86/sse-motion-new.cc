@@ -19,7 +19,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
 
 #include <stdio.h>
@@ -31,10 +31,9 @@
 
 #include <assert.h>
 
-#include "sse-motion-new.h"
 #include "libde265/util.h"
-
-#include "sse-motion.h"
+#include "libde265/x86/sse-motion.h"
+#include "libde265/x86/sse-motion-new.h"
 
 
 inline void store_2_4_6(uint8_t* dst, __m128i& result, int width)

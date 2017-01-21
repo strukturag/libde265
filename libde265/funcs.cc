@@ -21,8 +21,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "funcs.h"
-#include "codingdata-impl.h"
+#include "libde265/codingdata-impl.h"
+#include "libde265/funcs.h"
 
 
 template <class T>

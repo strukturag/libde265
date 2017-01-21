@@ -21,13 +21,12 @@
 #ifndef DE265_THREADS_H
 #define DE265_THREADS_H
 
-#include "libde265/de265.h"
-
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
 
-#include "util.h"
+#include "libde265/de265.h"
+#include "libde265/util.h"
 
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>

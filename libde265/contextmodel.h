@@ -24,7 +24,6 @@
 #ifndef DE265_CONTEXTMODEL_H
 #define DE265_CONTEXTMODEL_H
 
-#include "libde265/cabac.h"
 #include "libde265/de265.h"
 
 #include <string.h>

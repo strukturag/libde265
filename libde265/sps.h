@@ -30,6 +30,7 @@
 
 #include <vector>
 #include <sstream>
+#include <string>
 
 class error_queue;
 

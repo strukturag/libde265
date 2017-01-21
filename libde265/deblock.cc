@@ -18,15 +18,17 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "deblock.h"
-#include "util.h"
-#include "transform.h"
-#include "de265.h"
-#include "image-unit.h"
-
 #include <assert.h>
 
+#include <algorithm>
+#include <memory>
+#include <string>
 
+#include "libde265/de265.h"
+#include "libde265/deblock.h"
+#include "libde265/image-unit.h"
+#include "libde265/transform.h"
+#include "libde265/util.h"
 
 // 8.7.2.1 for both EDGE_HOR and EDGE_VER at the same time
 void markTransformBlockBoundary(image* img, int x0,int y0,

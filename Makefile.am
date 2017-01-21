@@ -22,6 +22,7 @@ EXTRA_DIST = .travis.yml \
   m4/m4_ax_check_compile_flag.m4 \
   Makefile.vc7 \
   CMakeLists.txt \
+  CPPLINT.cfg \
   README.md \
   libde265.png \
   */COPYING

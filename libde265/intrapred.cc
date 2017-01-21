@@ -18,15 +18,20 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "intrapred.h"
-#include "transform.h"
-#include "util.h"
-#include "encoder/encoder-types.h"
-#include <assert.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
+#include <assert.h>
+#include <utility>
 
 #include <sys/types.h>
 #include <string.h>
+
+#include "libde265/intrapred.h"
+#include "libde265/transform.h"
+#include "libde265/util.h"
+#include "libde265/encoder/encoder-types.h"
 
 // Actually, the largest TB block can only be 32, but in some intra-pred-mode algorithms
 // (e.g. min-residual), we may call intra prediction on the maximum CTB size (64).

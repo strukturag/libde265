@@ -20,8 +20,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder-params.h"
+#include <vector>
 
+#include "libde265/encoder/encoder-params.h"
 
 
 static std::vector<int> power2range(int low,int high)

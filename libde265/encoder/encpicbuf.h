@@ -25,6 +25,7 @@
 #include "libde265/sps.h"
 
 #include <deque>
+#include <memory>
 #include <vector>
 
 

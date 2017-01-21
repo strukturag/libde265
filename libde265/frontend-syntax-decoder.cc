@@ -18,12 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "decctx.h"
-#include "util.h"
-#include "sao.h"
-#include "sei.h"
-#include "deblock.h"
-#include "image-unit.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <string.h>
 #include <assert.h>
@@ -31,11 +28,13 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "fallback.h"
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "libde265/deblock.h"
+#include "libde265/decctx.h"
+#include "libde265/fallback.h"
+#include "libde265/image-unit.h"
+#include "libde265/sao.h"
+#include "libde265/sei.h"
+#include "libde265/util.h"
 
 
 frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)

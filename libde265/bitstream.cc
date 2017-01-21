@@ -18,13 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bitstream.h"
-#include "de265.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
+#include "libde265/bitstream.h"
+#include "libde265/de265.h"
 
 
 void bitreader_init(bitreader* br, unsigned char* buffer, int len)

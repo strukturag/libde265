@@ -20,18 +20,16 @@
 
 #define DEBUG_INSERT_STREAM_ERRORS 0
 
-
-#include "de265.h"
-#include "decctx.h"
-#include "util.h"
-#include "scan.h"
-#include "image.h"
-#include "sei.h"
-
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include "libde265/de265.h"
+#include "libde265/decctx.h"
+#include "libde265/util.h"
+#include "libde265/scan.h"
+#include "libde265/image.h"
+#include "libde265/sei.h"
 
 // TODO: should be in some vps.c related header
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);

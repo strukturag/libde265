@@ -18,11 +18,10 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "frame-dropper.h"
-#include "decctx.h"
-
 #include <algorithm>
+
+#include "libde265/decctx.h"
+#include "libde265/frame-dropper.h"
 
 
 void frame_dropper_IRAP_only::send_image_unit(image_unit_ptr imgunit)

@@ -20,7 +20,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "config.h"  // NOLINT(build/include)
 #endif
 
 #include <stdio.h>
@@ -30,8 +30,8 @@
 #include <smmintrin.h>
 #endif
 
-#include "sse-motion.h"
 #include "libde265/util.h"
+#include "libde265/x86/sse-motion.h"
 
 
 ALIGNED_16(const int8_t) epel_filters[7][16] = {

@@ -26,6 +26,7 @@
 #include "libde265/nal.h"
 #include "libde265/util.h"
 
+#include <memory>
 #include <vector>
 #include <queue>
 

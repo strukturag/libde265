@@ -24,7 +24,6 @@
 #include "libde265/encoder/algo/tb-rateestim.h"
 #include "libde265/encoder/encoder-syntax.h"
 #include <assert.h>
-#include <iostream>
 
 
 float Algo_TB_RateEstimation_Exact::encode_transform_unit(encoder_context* ectx,

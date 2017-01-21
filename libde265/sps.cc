@@ -18,14 +18,14 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sps.h"
-#include "util.h"
-#include "scan.h"
-#include "decctx.h"
-
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "libde265/decctx.h"
+#include "libde265/scan.h"
+#include "libde265/sps.h"
+#include "libde265/util.h"
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \

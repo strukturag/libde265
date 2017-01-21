@@ -29,6 +29,7 @@
 #include "libde265/alloc_pool.h"
 
 #include <memory>
+#include <vector>
 
 class encoder_context;
 class enc_cb;

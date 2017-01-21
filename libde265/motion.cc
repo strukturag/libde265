@@ -18,16 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "motion.h"
-#include "decctx.h"
-#include "util.h"
-#include "dpb.h"
-#include "encoder/encoder-context.h"
-#include "codingdata-impl.h"
-#include "funcs.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <assert.h>
-
+#include <memory>
 
 #include <sys/types.h>
 #include <signal.h>
@@ -38,6 +34,14 @@
 #elif defined(HAVE_ALLOCA_H)
 # include <alloca.h>
 #endif
+
+#include "libde265/codingdata-impl.h"
+#include "libde265/decctx.h"
+#include "libde265/dpb.h"
+#include "libde265/funcs.h"
+#include "libde265/motion.h"
+#include "libde265/util.h"
+#include "libde265/encoder/encoder-context.h"
 
 
 #define MAX_CU_SIZE 64

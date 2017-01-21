@@ -18,13 +18,13 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "vui.h"
-#include "decctx.h"
-
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sstream>
+
+#include "libde265/decctx.h"
+#include "libde265/vui.h"
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \

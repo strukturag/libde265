@@ -23,14 +23,15 @@
 #ifndef CONFIG_PARAM_H
 #define CONFIG_PARAM_H
 
-#include "en265.h"
-#include "util.h"
-
 #include <climits>
+#include <utility>
 #include <vector>
 #include <string>
 #include <stddef.h>
 #include <assert.h>
+
+#include "libde265/en265.h"
+#include "libde265/util.h"
 
 
 /* Notes: probably best to keep cmd-line-options here. So it will be:

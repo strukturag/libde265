@@ -18,8 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback-motion.h"
-#include "util.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
@@ -28,6 +29,9 @@
 #endif
 
 #include <assert.h>
+
+#include "libde265/fallback-motion.h"
+#include "libde265/util.h"
 
 
 void put_unweighted_pred_8_fallback(uint8_t *dst, ptrdiff_t dststride,

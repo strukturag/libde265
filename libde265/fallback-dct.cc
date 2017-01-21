@@ -18,7 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback-dct.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 # include <malloc.h>
@@ -28,7 +30,9 @@
 
 #include <assert.h>
 #include <algorithm>
+#include <utility>
 
+#include "libde265/fallback-dct.h"
 
 #define D 0
 

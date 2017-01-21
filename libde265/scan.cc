@@ -18,7 +18,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "scan.h"
+#include "libde265/scan.h"
 
 static position scan0 = { 0,0 };
 static position scan_h_1[ 2* 2], scan_v_1[ 2* 2], scan_d_1[ 2* 2];

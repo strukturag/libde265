@@ -18,12 +18,9 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "decctx.h"
-#include "util.h"
-#include "sao.h"
-#include "sei.h"
-#include "deblock.h"
-#include "image-unit.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"  // NOLINT(build/include)
+#endif
 
 #include <string.h>
 #include <assert.h>
@@ -31,27 +28,31 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "fallback.h"
+#include <algorithm>
+#include <string>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "libde265/decctx.h"
+#include "libde265/util.h"
+#include "libde265/sao.h"
+#include "libde265/sei.h"
+#include "libde265/deblock.h"
+#include "libde265/image-unit.h"
+
+#include "libde265/fallback.h"
 
 #ifdef HAVE_SSE4_1
-#include "x86/sse.h"
+#include "libde265/x86/sse.h"
 #endif
 
 #ifdef HAVE_NEON
-#include "arm/arm.h"
+#include "libde265/arm/arm.h"
 #endif
 
 #define SAVE_INTERMEDIATE_IMAGES 0
 
 #if SAVE_INTERMEDIATE_IMAGES
-#include "visualize.h"
+#include "libde265/visualize.h"
 #endif
-
-#include <iostream> // TODO TMP
 
 extern void thread_decode_CTB_row(void* d);
 extern void thread_decode_slice_segment(void* d);

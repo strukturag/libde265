@@ -20,15 +20,16 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder-types.h"
-#include "encoder-context.h"
-#include "slice.h"
-#include "scan.h"
-#include "intrapred.h"
+#include <iostream>
+#include <string>
+
+#include "libde265/slice.h"
+#include "libde265/scan.h"
+#include "libde265/intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
-#include <iostream>
-
+#include "libde265/encoder/encoder-types.h"
+#include "libde265/encoder/encoder-context.h"
 
 int allocTB = 0;
 int allocCB = 0;

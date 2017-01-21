@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <limits>
 #include <math.h>
-#include <iostream>
 
 
 // Utility function to encode all four children in a splitted CB.

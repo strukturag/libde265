@@ -18,11 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fallback-sao.h"
-#include "util.h"
-
 #include <assert.h>
 #include <string.h>
+
+#include "libde265/fallback-sao.h"
+#include "libde265/util.h"
 
 
 template <class pixel_t>

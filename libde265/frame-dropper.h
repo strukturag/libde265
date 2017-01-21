@@ -35,6 +35,7 @@
 #include "libde265/image-unit.h"
 
 #include <memory>
+#include <vector>
 #include <deque>
 
 

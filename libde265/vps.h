@@ -33,6 +33,7 @@
 #include "libde265/de265.h"
 #include "libde265/cabac.h"
 
+#include <string>
 #include <vector>
 
 class error_queue;
