@@ -3144,7 +3144,7 @@ int residual_coding(thread_context* tctx,
         int ctxInc;
         if (sps.range_extension.transform_skip_context_enabled_flag &&
             (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
-          ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+          ctxInc = ( cIdx == 0 ) ? 42 : (16+27); // +27 because it is chroma channel
         }
         else {
           ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
