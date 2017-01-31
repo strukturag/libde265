@@ -443,11 +443,12 @@ LIBDE265_API int de265_get_CPU_capabilites_all_autodetected();
 
 
 LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context*, int flags);
-#define de265_inexact_decoding_no_SAO              1
-#define de265_inexact_decoding_no_deblocking       2
-#define de265_inexact_decoding_idct                4   // not used yet
-#define de265_inexact_decoding_mask_none           0
-#define de265_inexact_decoding_mask_all            0xFFFF
+#define de265_inexact_decoding_no_SAO                1
+#define de265_inexact_decoding_no_deblocking         2
+#define de265_inexact_decoding_idct                  4   // not used yet
+#define de265_inexact_decoding_only_full_pel_motion  8
+#define de265_inexact_decoding_mask_none             0
+#define de265_inexact_decoding_mask_all              0xFFFF
 
 
 LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context*, int suppress_enable);
