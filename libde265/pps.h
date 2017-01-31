@@ -147,10 +147,10 @@ public:
   int Log2MinCuChromaQpOffsetSize;
   int Log2MaxTransformSkipSize;
 
-  int colWidth [ DE265_MAX_TILE_COLUMNS ];
-  int rowHeight[ DE265_MAX_TILE_ROWS ];
-  int colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
-  int rowBd    [ DE265_MAX_TILE_ROWS+1 ];
+  std::vector<int> colWidth;  // [ num_tile_columns ];
+  std::vector<int> rowHeight; // [ num_tile_rows ];
+  std::vector<int> colBd;     // [ num_tile_columns + 1 ];
+  std::vector<int> rowBd;     // [ num_tile_rows + 1 ];
 
   std::vector<int> CtbAddrRStoTS; // #CTBs
   std::vector<int> CtbAddrTStoRS; // #CTBs

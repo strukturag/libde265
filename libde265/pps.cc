@@ -224,10 +224,10 @@ void pic_parameter_set::set_defaults(enum PresetSet)
   loop_filter_across_tiles_enabled_flag = 1;
   pps_loop_filter_across_slices_enabled_flag = 1;
 
-  for (int i=0;i<DE265_MAX_TILE_COLUMNS;i++) { colWidth[i]=0; }
-  for (int i=0;i<DE265_MAX_TILE_ROWS;i++)    { rowHeight[i]=0; }
-  for (int i=0;i<=DE265_MAX_TILE_COLUMNS;i++) { colBd[i]=0; }
-  for (int i=0;i<=DE265_MAX_TILE_ROWS;i++)    { rowBd[i]=0; }
+  colWidth.resize(DE265_MAX_TILE_COLUMNS,0);
+  rowHeight.resize(DE265_MAX_TILE_ROWS,0);
+  colBd.clear();
+  rowBd.clear();
 
   CtbAddrRStoTS.clear();
   CtbAddrTStoRS.clear();
@@ -540,7 +540,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
     // set columns widths
 
-    int *const colPos = (int *)alloca((num_tile_columns+1) * sizeof(int));
+    std::vector<int> colPos(num_tile_columns+1);
 
     for (int i=0;i<=num_tile_columns;i++) {
       colPos[i] = i*sps->PicWidthInCtbsY / num_tile_columns;
@@ -551,7 +551,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
     // set row heights
 
-    int *const rowPos = (int *)alloca((num_tile_rows+1) * sizeof(int));
+    std::vector<int> rowPos(num_tile_rows+1);
 
     for (int i=0;i<=num_tile_rows;i++) {
       rowPos[i] = i*sps->PicHeightInCtbsY / num_tile_rows;
@@ -563,6 +563,9 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
 
   // set tile boundaries
+
+  colBd.resize(num_tile_columns+1);
+  rowBd.resize(num_tile_rows+1);
 
   colBd[0]=0;
   for (int i=0;i<num_tile_columns;i++) {
