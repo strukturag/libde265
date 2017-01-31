@@ -282,9 +282,9 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
 
 
 template <bool chroma>
-void mc_get_noshift_8_neon(int16_t *dst, ptrdiff_t dststride,
-                           const uint8_t *src, ptrdiff_t srcstride,
-                           int width, int height)
+void mc_noshift_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height)
 {
   while (width >= 16) {
     for (int y=0;y<height;y++) {
@@ -350,21 +350,21 @@ void mc_get_noshift_8_neon(int16_t *dst, ptrdiff_t dststride,
 }
 
 
-void mc_get_noshift_8_luma_neon(int16_t *dst, ptrdiff_t dststride,
+void mc_noshift_8_luma_neon(int16_t *dst, ptrdiff_t dststride,
                                 const uint8_t *src, ptrdiff_t srcstride,
                                 int width, int height,
                                 int16_t* mcbuffer)
 {
-  mc_get_noshift_8_neon<false>(dst,dststride, src,srcstride, width,height);
+  mc_noshift_8_neon<false>(dst,dststride, src,srcstride, width,height);
 }
 
 
-void mc_get_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
+void mc_noshift_8_chroma_neon(int16_t *dst, ptrdiff_t dststride,
                                   const uint8_t *src, ptrdiff_t srcstride,
                                   int width, int height, int mx,
                                   int my, int16_t* mcbuffer)
 {
-  mc_get_noshift_8_neon<true>(dst,dststride, src,srcstride, width,height);
+  mc_noshift_8_neon<true>(dst,dststride, src,srcstride, width,height);
 }
 
 
@@ -381,10 +381,10 @@ static uint8_t qpel_filter[3][16] = {
 };
 
 template<int filterIdx>
-void mc_get_qpel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
-                          const uint8_t *src, ptrdiff_t srcstride,
-                          int width, int height,
-                          int16_t* mcbuffer)
+void mc_qpel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
+                      const uint8_t *src, ptrdiff_t srcstride,
+                      int width, int height,
+                      int16_t* mcbuffer)
 {
   while (width>=4) {
     uint8x8_t filter_plus  = vld1_u8(qpel_filter[filterIdx-1]);
@@ -433,26 +433,26 @@ void mc_get_qpel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
 }
 
 
-void mc_get_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
-                          const uint8_t *src, ptrdiff_t srcstride,
-                          int width, int height,
-                          int16_t* mcbuffer)
+void mc_qpel_h1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
 {
-  mc_get_qpel_h_8_neon<1>(dst,dststride, src,srcstride, width,height,mcbuffer);
+  mc_qpel_h_8_neon<1>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
 
-void mc_get_qpel_h2_8_neon(int16_t *dst, ptrdiff_t dststride,
-                          const uint8_t *src, ptrdiff_t srcstride,
-                          int width, int height,
-                          int16_t* mcbuffer)
+void mc_qpel_h2_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
 {
-  mc_get_qpel_h_8_neon<2>(dst,dststride, src,srcstride, width,height,mcbuffer);
+  mc_qpel_h_8_neon<2>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
 
-void mc_get_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
-                          const uint8_t *src, ptrdiff_t srcstride,
-                          int width, int height,
-                          int16_t* mcbuffer)
+void mc_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
 {
-  mc_get_qpel_h_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
+  mc_qpel_h_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
