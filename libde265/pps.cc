@@ -350,7 +350,8 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   if (tiles_enabled_flag) {
     num_tile_columns = get_uvlc(br);
     if (num_tile_columns == UVLC_ERROR ||
-	num_tile_columns+1 > DE265_MAX_TILE_COLUMNS) {
+	num_tile_columns+1 > DE265_MAX_TILE_COLUMNS ||
+        num_tile_columns+1 > sps->PicWidthInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -358,7 +359,8 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
     num_tile_rows = get_uvlc(br);
     if (num_tile_rows == UVLC_ERROR ||
-	num_tile_rows+1 > DE265_MAX_TILE_ROWS) {
+	num_tile_rows+1 > DE265_MAX_TILE_ROWS ||
+        num_tile_rows+1 > sps->PicHeightInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
