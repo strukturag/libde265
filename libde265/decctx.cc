@@ -384,7 +384,7 @@ void base_context::set_acceleration_functions()
 
 #ifdef HAVE_AARCH64
   if (param_CPU_capabilities & de265_CPU_capability_ARM_AARCH64) {
-    init_acceleration_functions_aarch64(&acceleration);
+    init_acceleration_functions_aarch64(&acceleration, param_inexact_decoding_flags);
   }
 #endif
 }

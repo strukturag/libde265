@@ -24,6 +24,7 @@
 
 #include "arm.h"
 #include "arm-motion.h"
+#include "libde265/de265.h"
 
 #include <stdio.h>
 
@@ -41,7 +42,8 @@ void init_acceleration_functions_neon(struct acceleration_functions* accel)
 #endif
 }
 
-void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
+void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
+                                         int inexact_decoding_flags)
 {
 #ifdef HAVE_AARCH64
   //printf("aarch64\n");
@@ -56,4 +58,14 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
 
   accel->put_hevc_epel_8       = mc_noshift_8_chroma_neon;
   accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
+
+
+  // only use full-pel motion
+
+  if (inexact_decoding_flags & de265_inexact_decoding_only_full_pel_motion) {
+    for (int x=0;x<4;x++)
+      for (int y=0;y<4;y++) {
+        accel->put_hevc_qpel_8[x][y] = mc_noshift_8_luma_neon;
+      }
+  }
 }
