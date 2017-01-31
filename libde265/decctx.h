@@ -205,9 +205,9 @@ class base_context : public error_queue,
 
   //enum de265_acceleration param_acceleration_type = de265_acceleration_SCALAR;
   uint32_t param_inexact_decoding_flags;
-  int param_cpu_capabilities = 0;
+  int param_CPU_capabilities;
 
-  void deprecated_set_acceleration_type(enum de265_acceleration acc);
+  //void deprecated_set_acceleration_type(enum de265_acceleration acc);
 
   // --- accelerated DSP functions ---
 
@@ -267,7 +267,11 @@ class decoder_context : public base_context,
 
   void on_image_decoding_finished(); // internal use only (by decoding tasks)
 
-
+  void set_max_decode_frames_parallel(int parallel_frames) {
+    m_main_loop_mutex.lock();
+    param_max_images_processed_in_parallel = parallel_frames;
+    m_main_loop_mutex.unlock();
+  }
 
   // -------------------------------------------------- output
 
@@ -335,8 +339,10 @@ class decoder_context : public base_context,
   bool param_disable_deblocking;
   bool param_disable_sao;
 
+ private:
   int  param_max_images_processed_in_parallel;
 
+ public:
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
@@ -379,7 +385,7 @@ class decoder_context : public base_context,
   }
 
 
-  void decode_image_frame_parallel(image_unit_ptr imgunit);
+  bool decode_image_frame_parallel(image_unit_ptr imgunit);
 
  public:
   // --- decoded picture buffer ---
@@ -435,6 +441,8 @@ class decoder_context : public base_context,
   int framedrop_tid_index[6+1];
 
   void compute_framedrop_table();
+
+  static bool is_image_unit_decodable(image_unit_ptr imgunit);
 
  public:
   void calc_tid_and_framerate_ratio();

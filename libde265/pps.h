@@ -28,9 +28,6 @@
 #include <vector>
 #include <memory>
 
-#define DE265_MAX_TILE_COLUMNS 10
-#define DE265_MAX_TILE_ROWS    10
-
 class decoder_context;
 class pic_parameter_set;
 
@@ -43,7 +40,7 @@ class pps_range_extension
   void reset();
 
   bool read(bitreader*, decoder_context*, const pic_parameter_set*);
-  void dump(int fd) const;
+  std::string dump() const;
 
   uint8_t log2_max_transform_skip_block_size;
   bool    cross_component_prediction_enabled_flag;
@@ -68,7 +65,7 @@ public:
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;
-  void dump(int fd) const;
+  std::string dump() const;
 
 
   void set_defaults(enum PresetSet = Preset_Default);
@@ -127,7 +124,7 @@ public:
   int tc_offset;
 
   char pic_scaling_list_data_present_flag;
-  struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
+  scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
 
   char lists_modification_present_flag;
   int log2_parallel_merge_level; // [2 ; log2(max CB size)]
@@ -147,10 +144,10 @@ public:
   int Log2MinCuChromaQpOffsetSize;
   int Log2MaxTransformSkipSize;
 
-  int colWidth [ DE265_MAX_TILE_COLUMNS ];
-  int rowHeight[ DE265_MAX_TILE_ROWS ];
-  int colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
-  int rowBd    [ DE265_MAX_TILE_ROWS+1 ];
+  std::vector<int> colWidth;  // [ num_tile_columns ];
+  std::vector<int> rowHeight; // [ num_tile_rows ];
+  std::vector<int> colBd;     // [ num_tile_columns + 1 ];
+  std::vector<int> rowBd;     // [ num_tile_rows + 1 ];
 
   std::vector<int> CtbAddrRStoTS; // #CTBs
   std::vector<int> CtbAddrTStoRS; // #CTBs

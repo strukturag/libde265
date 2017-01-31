@@ -24,6 +24,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits>
@@ -69,7 +70,6 @@ bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
 bool output_as_rgb=false;
-bool logging=true;
 bool no_acceleration=false;
 const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
@@ -85,7 +85,7 @@ int decode_rate_percent = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
-int enable_inexact_decoding=0;
+int inexact_decoding_flags=0;
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -101,7 +101,6 @@ static struct option long_options[] = {
   {"nal",        no_argument,       0, 'n' },
   {"videogfx",   no_argument,       0, 'V' },
   {"rgb",        no_argument,       0, 'R' },
-  {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
@@ -351,16 +350,6 @@ bool output_image(const de265_image* img)
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
 
 
-  if (0) {
-    const char* nal_unit_name;
-    int nuh_layer_id;
-    int nuh_temporal_id;
-    de265_get_image_NAL_header(img, NULL, &nal_unit_name, &nuh_layer_id, &nuh_temporal_id);
-
-    printf("NAL: %s layer:%d temporal:%d\n",nal_unit_name, nuh_layer_id, nuh_temporal_id);
-  }
-
-
   if (!quiet) {
 #if HAVE_SDL && HAVE_VIDEOGFX
     if (output_with_videogfx) {
@@ -578,12 +567,18 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+void dump_headers_callback(int nal_unit, const char* text)
+{
+  fputs(text, stderr);
+}
+
+
 int main(int argc, char** argv)
 {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:D:m:seRP:I"
+    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:I"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -603,7 +598,6 @@ int main(int argc, char** argv)
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
     case 'R': output_as_rgb=true; break;
-    case 'L': logging=false; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
     case 'm': measure_quality=true; reference_filename=optarg; break;
@@ -612,7 +606,7 @@ int main(int argc, char** argv)
     case 'T': highestTID=atoi(optarg); break;
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
-    case 'I': enable_inexact_decoding=0xFFFF; break;
+    case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_all; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
@@ -638,7 +632,6 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -R, --rgb         show h.265 files coded in RGB colorspace\n");
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
-    fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");
 #if HAVE_VIDEOGFX
@@ -663,28 +656,20 @@ int main(int argc, char** argv)
 
   de265_decoder_context* ctx = de265_new_decoder();
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+  // TODO de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+  de265_suppress_faulty_pictures(ctx, false);
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
-  de265_set_parameter_inexact_decoding(ctx, enable_inexact_decoding);
+  if (disable_deblocking) inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
+  if (disable_sao)        inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
+  de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+    de265_dump_headers(ctx, dump_headers_callback);
   }
 
   if (no_acceleration) {
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
+    de265_set_CPU_capabilities(ctx, 0);
   }
-
-  if (!logging) {
-    de265_disable_logging();
-  }
-
 
   if (nThreads==0) {
     nThreads = 1;
@@ -708,7 +693,7 @@ int main(int argc, char** argv)
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
-    fprintf(stderr,"cannot open file %s!\n", argv[1]);
+    fprintf(stderr,"cannot open file %s (%s)\n", argv[optind], strerror(errno));
     exit(10);
   }
 
@@ -805,7 +790,7 @@ int main(int argc, char** argv)
           // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
 
           if (feof(fh)) {
-            err = de265_flush_data(ctx); // indicate end of stream
+            err = de265_push_end_of_stream(ctx); // indicate end of stream
           }
         }
       }

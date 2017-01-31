@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <sstream>
 
 #include "libde265/de265.h"
 
@@ -38,7 +39,7 @@
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define IS_LITTLE_ENDIAN 1
 #else
 #define IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
@@ -53,6 +54,15 @@
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
+
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#define LIBDE265_RESTRICT __restrict
+#elif !defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict__
+#else
+#define LIBDE265_RESTRICT
+#endif
+#define LIBDE265_RESTRICT_PTR(name) * LIBDE265_RESTRICT name
 
 #if defined(__GNUC__) && (__GNUC__ >= 4)
 #define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
@@ -231,7 +241,7 @@ void logtrace(enum LogModule module, const char* string, ...);
 #define logtrace(a,b, ...) do { } while(0)
 #endif
 
-void log2fh(FILE* fh, const char* string, ...);
+void log2sstr(std::stringstream& sstr, const char* string, ...);
 
 
 void printBlk(const char* title,const int32_t* data, int blksize, int stride, const std::string& prefix="  ");

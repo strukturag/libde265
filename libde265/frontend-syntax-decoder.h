@@ -112,10 +112,7 @@ class frontend_syntax_decoder : private on_NAL_inserted_listener
 
   // --- debugging ---
 
-  int  param_sps_headers_fd;
-  int  param_vps_headers_fd;
-  int  param_pps_headers_fd;
-  int  param_slice_headers_fd;
+  void (*param_header_callback)(int nal_unit, const char* text);
 
 
   void debug_imageunit_state();

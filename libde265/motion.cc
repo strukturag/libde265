@@ -49,8 +49,10 @@ static int extra_after [4] = { 0,3,4,4 };
 
 #define LOCK 0
 
+// NOTE: Not declared "static" as on 32bit MinGW in that case "ctx" sometimes
+// contains garbage data.
 template <class pixel_t>
-static void mc_luma(const base_context* ctx,
+void mc_luma(const base_context* ctx,
              const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
@@ -174,8 +176,10 @@ static void mc_luma(const base_context* ctx,
 
 
 
+// NOTE: Not declared "static" as on 32bit MinGW in that case "ctx" sometimes
+// contains garbage data.
 template <class pixel_t>
-static void mc_chroma(const base_context* ctx,
+void mc_chroma(const base_context* ctx,
                const seq_parameter_set* sps,
                int mv_x, int mv_y,
                int xP,int yP,

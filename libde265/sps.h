@@ -29,6 +29,7 @@
 #include "libde265/cabac.h"
 
 #include <vector>
+#include <sstream>
 
 class error_queue;
 
@@ -48,14 +49,22 @@ enum {
 };
 
 
-typedef struct scaling_list_data {
+class scaling_list_data
+{
+ public:
+  de265_error read(bitreader*, const seq_parameter_set*, bool inPPS);
+  de265_error write(CABAC_encoder& out, const seq_parameter_set* sps, bool inPPS);
+
+  void set_default_scaling_lists();
+
+
   // structure size: approx. 4 kB
 
   uint8_t ScalingFactor_Size0[6][4][4];
   uint8_t ScalingFactor_Size1[6][8][8];
   uint8_t ScalingFactor_Size2[6][16][16];
   uint8_t ScalingFactor_Size3[2][32][32];
-} scaling_list_data;
+};
 
 
 enum PresetSet {
@@ -79,7 +88,7 @@ class sps_range_extension
   uint8_t cabac_bypass_alignment_enabled_flag;
 
   de265_error read(error_queue*, bitreader*);
-  void dump(int fd) const;
+  std::string dump() const;
 };
 
 
@@ -91,7 +100,7 @@ public:
   de265_error read(error_queue*, bitreader*);
   de265_error write(error_queue*, CABAC_encoder&);
 
-  void dump(int fd) const;
+  std::string dump() const;
 
   void set_defaults(enum PresetSet = Preset_Default);
   void set_CB_log2size_range(int mini,int maxi);
@@ -141,7 +150,7 @@ public:
   char sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
                                               in scaling_list */
 
-  struct scaling_list_data scaling_list;
+  scaling_list_data scaling_list;
 
   char amp_enabled_flag;
   char sample_adaptive_offset_enabled_flag;
@@ -258,10 +267,5 @@ public:
   int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
   int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
 };
-
-de265_error read_scaling_list(bitreader*, const seq_parameter_set*, scaling_list_data*, bool inPPS);
-de265_error write_scaling_list(CABAC_encoder& out, const seq_parameter_set* sps,
-                               scaling_list_data* sclist, bool inPPS);
-void set_default_scaling_lists(scaling_list_data*);
 
 #endif

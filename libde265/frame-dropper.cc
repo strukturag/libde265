@@ -135,14 +135,12 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   }
 
 
-  while (m_image_queue.front().in_dpb == false ||
-         m_image_queue.front().used_for_reference == true ||
-         m_image_queue.size() > m_max_queue_length
-         ) {
+  while (!m_image_queue.empty() &&
 
-    if (m_image_queue.empty()) {
-      break;
-    }
+         (m_image_queue.front().in_dpb == false ||
+          m_image_queue.front().used_for_reference == true ||
+          m_image_queue.size() > m_max_queue_length)
+         ) {
 
     /*
     printf("%d REF: %s\n",

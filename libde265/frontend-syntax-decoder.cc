@@ -46,11 +46,7 @@ frontend_syntax_decoder::frontend_syntax_decoder(decoder_context* ctx)
   reset();
 
 
-  param_sps_headers_fd = -1;
-  param_vps_headers_fd = -1;
-  param_pps_headers_fd = -1;
-  param_slice_headers_fd = -1;
-
+  param_header_callback = nullptr;
 
   nal_parser.set_on_NAL_inserted_listener(this);
 }
@@ -93,8 +89,9 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
     return err;
   }
 
-  if (param_vps_headers_fd>=0) {
-    new_vps->dump(param_vps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string hdr = new_vps->dump();
+    param_header_callback(NAL_UNIT_VPS_NUT, hdr.c_str());
   }
 
   vps[ new_vps->video_parameter_set_id ] = new_vps;
@@ -114,8 +111,25 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
     return err;
   }
 
-  if (param_sps_headers_fd>=0) {
-    new_sps->dump(param_sps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string str = new_sps->dump();
+    param_header_callback(NAL_UNIT_SPS_NUT, str.c_str());
+  }
+
+
+  // If SPS changes, invalidate all PPS that accessed this SPS, as e.g. their TS->RS tables
+  // are not valid anymore.
+  // TODO: check whether it is a bitstream requirement that a changed SPS is also followed by
+  // another PPS header. If not, we should recompute the PPS TS/RS/tile arrays.
+
+  for (int i=0;i<DE265_MAX_PPS_SETS;i++) {
+    if (pps[i] && pps[i]->seq_parameter_set_id == new_sps->seq_parameter_set_id) {
+      pps[i].reset();
+    }
+  }
+
+  if (current_pps && current_pps->seq_parameter_set_id == new_sps->seq_parameter_set_id) {
+    current_pps.reset();
   }
 
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
@@ -132,8 +146,9 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
 
   bool success = new_pps->read(&reader,m_decctx);
 
-  if (param_pps_headers_fd>=0) {
-    new_pps->dump(param_pps_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string dump = new_pps->dump();
+    param_header_callback(NAL_UNIT_PPS_NUT, dump.c_str());
   }
 
   //printf("read PPS (success=%d)\n",success);
@@ -192,8 +207,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     return err;
   }
 
-  if (param_slice_headers_fd>=0) {
-    shdr->dump_slice_segment_header(m_decctx, nal_unit_type, param_slice_headers_fd);
+  if (param_header_callback != nullptr) {
+    std::string dump = shdr->dump_slice_segment_header(m_decctx, nal_unit_type);
+    param_header_callback(nal_unit_type, dump.c_str());
   }
 
 
@@ -306,7 +322,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
     // --- assign CTB-range that is covered by this slice-unit ---
 
-    sliceunit->first_CTB_TS = shdr->get_pps()->CtbAddrTStoRS[shdr->slice_segment_address];
+    sliceunit->first_CTB_TS = shdr->get_pps()->CtbAddrRStoTS[shdr->slice_segment_address];
     sliceunit->last_CTB_TS  = shdr->get_pps()->sps->PicSizeInCtbsY -1;
 
     bool first_observed_slice_unit = (m_curr_image_unit->slice_units.empty());

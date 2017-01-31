@@ -195,10 +195,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
 
 base_context::base_context()
 {
-  deprecated_set_acceleration_type( de265_acceleration_AUTO );
   param_inexact_decoding_flags = de265_inexact_decoding_mask_none;
-
-  //set_acceleration_functions(de265_acceleration_AUTO);
 }
 
 
@@ -228,9 +225,10 @@ decoder_context::decoder_context()
   m_frame_dropper_ratio.set_decoder_context(*this);
 
 
-  //memset(ctx, 0, sizeof(decoder_context));
-
   // --- parameters ---
+
+  // activate all capabilities that can be autodetected
+  param_CPU_capabilities = de265_get_CPU_capabilites_all_autodetected();
 
   param_sei_check_hash = false;
   param_conceal_stream_errors = true;
@@ -358,7 +356,6 @@ de265_error decoder_context::start_thread_pool(int nThreads)
 void decoder_context::stop_thread_pool()
 {
   if (get_num_worker_threads()>0) {
-    //flush_thread_pool(&ctx->thread_pool);
     m_thread_pool.stop();
   }
 }
@@ -374,59 +371,23 @@ void base_context::set_acceleration_functions()
   // override functions with optimized variants
 
 #ifdef HAVE_SSE4_1
-  if (param_cpu_capabilities & (de265_cpu_capability_X86_SSE2 | de265_cpu_capability_X86_SSE41)) {
+  if (param_CPU_capabilities & (de265_CPU_capability_X86_SSE2 | de265_CPU_capability_X86_SSE41)) {
     init_acceleration_functions_sse(&acceleration, param_inexact_decoding_flags);
   }
 #endif
 
 #ifdef HAVE_NEON
-  if (param_cpu_capabilities & de265_cpu_capability_ARM_NEON) {
+  if (param_CPU_capabilities & de265_CPU_capability_ARM_NEON) {
     init_acceleration_functions_neon(&acceleration);
   }
 #endif
 
 #ifdef HAVE_AARCH64
-  if (param_cpu_capabilities & de265_cpu_capability_ARM_AARCH64) {
+  if (param_CPU_capabilities & de265_CPU_capability_ARM_AARCH64) {
     init_acceleration_functions_aarch64(&acceleration);
   }
 #endif
 }
-
-
-void base_context::deprecated_set_acceleration_type(enum de265_acceleration acc)
-{
-  param_cpu_capabilities = 0;
-
-  switch (acc) {
-  case de265_acceleration_SCALAR:
-  case de265_acceleration_MMX: // unused
-  case de265_acceleration_SSE: // unused
-    break;
-
-  case de265_acceleration_SSE2:
-    param_cpu_capabilities |= de265_cpu_capability_X86_SSE2;
-    break;
-
-  case de265_acceleration_SSE4:
-  case de265_acceleration_AVX:  // unused
-  case de265_acceleration_AVX2: // unused
-    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
-			       de265_cpu_capability_X86_SSE41);
-
-  case de265_acceleration_ARM:  // unused
-  case de265_acceleration_NEON: // unused
-    break;
-    
-  case de265_acceleration_AUTO:
-    param_cpu_capabilities |= (de265_cpu_capability_X86_SSE2 |
-			       de265_cpu_capability_X86_SSE41 |
-			       de265_cpu_capability_ARM_NEON    |
-			       de265_cpu_capability_ARM_AARCH64 
-			       );
-    break;
-  }
-}
-
 
 
 void decoder_context::start_decoding_thread()
@@ -531,7 +492,8 @@ void decoder_context::run_main_loop()
 {
   m_main_loop_mutex.lock();
 
-  for (;;) {
+  while (!m_main_loop_thread.should_stop()) {
+
     bool did_something = false;
 
 
@@ -564,6 +526,10 @@ void decoder_context::run_main_loop()
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
         to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
       }
+      else if (!is_image_unit_decodable(to_be_decoded)) {
+        to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
+        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+      }
       else if (!to_be_decoded->slice_units.empty() &&
                to_be_decoded->slice_units[0]->shdr->first_slice_segment_in_pic_flag == false) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
@@ -575,7 +541,11 @@ void decoder_context::run_main_loop()
         // We could release the main-loop mutex while generating the image decoding tasks,
         // however, this seems to be _slower_ than holding the mutex.
         //m_main_loop_mutex.unlock();
-        decode_image_frame_parallel(to_be_decoded);
+
+        bool success = decode_image_frame_parallel(to_be_decoded);
+        if (!success) {
+          //m_image_units_in_progress.pop_back();
+        }
         //m_main_loop_mutex.lock();
       }
 
@@ -612,21 +582,22 @@ void decoder_context::run_main_loop()
 
 
     if (m_end_of_stream &&
-        m_image_units_in_progress.empty()) {
+        m_image_units_in_progress.empty() &&
+        m_output_queue.num_pictures_in_reorder_buffer()>0) {
 
       m_output_queue.flush_reorder_buffer();
+
+      did_something = true;
     }
 
+
+    //printf("should stop: %d\n", m_main_loop_thread.should_stop());
 
     if (did_something) {
       m_cond_api_action.signal();
     }
     else {
       m_main_loop_block_cond.wait(m_main_loop_mutex);
-    }
-
-    if (m_main_loop_thread.should_stop()) {
-      break;
     }
   }
 
@@ -663,7 +634,22 @@ private:
 };
 
 
-void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
+bool decoder_context::is_image_unit_decodable(image_unit_ptr imgunit)
+{
+  int lastCTB_TS = -1;
+  for (slice_unit* sliceunit : imgunit->slice_units) {
+    if (sliceunit->first_CTB_TS <= lastCTB_TS) {
+      return false;
+    }
+
+    lastCTB_TS = sliceunit->first_CTB_TS;
+  }
+
+  return true;
+}
+
+
+bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 {
   // std::cout << "create tasks for decoding of image " << imgunit->img->PicOrderCntVal << "\n";
 
@@ -682,6 +668,14 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
       int xCtb = ctb_rs % sps.PicWidthInCtbsY;
       int yCtb = ctb_rs / sps.PicWidthInCtbsY;
 
+      if (xCtb >= sps.PicWidthInCtbsY ||
+          yCtb >= sps.PicHeightInCtbsY) {
+        imgunit->img->integrity = INTEGRITY_NOT_DECODED;
+        imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        on_image_decoding_finished();
+        return false;
+      }
+
       imgunit->img->set_SliceAddrRS          (xCtb,yCtb, sliceunit->shdr->SliceAddrRS);
       imgunit->img->set_SliceHeaderIndex_ctbs(xCtb,yCtb, sliceunit->shdr->slice_index);
     }
@@ -690,16 +684,20 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 
   // --- generate decoding thread tasks for each slice ---
 
+
+  de265_error err = DE265_OK;
+
   for (slice_unit* sliceunit : imgunit->slice_units) {
 
     //printf("decoding slice CTBs: %d - %d\n",sliceunit->first_CTB_TS, sliceunit->last_CTB_TS);
 
-    de265_error err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
+    err = decode_slice_unit_frame_parallel(imgunit.get(), sliceunit);
     if (err) {
-      // TODO
+      // printf("ERROR\n"); // FUZZY
+
+      sliceunit->mark_covered_CTBs_as_processed(CTB_PROGRESS_SAO);
     }
   }
-
 
 
   if (!imgunit->tasks.empty()) {
@@ -735,6 +733,9 @@ void decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
     on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
+
+  return (err == DE265_OK);
+  //return true;
 }
 
 
@@ -860,6 +861,11 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     err = decode_slice_unit_sequential(imgunit, sliceunit);
     return err;
   }
+  else if (use_WPP && use_tiles) {
+    // TODO: this is not allowed ... output some warning or error
+
+    return DE265_WARNING_PPS_HEADER_INVALID;
+  }
   else if (use_WPP) {
     err = decode_slice_unit_WPP(imgunit, sliceunit);
     return err;
@@ -870,11 +876,6 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
     //sliceunit->state = slice_unit::Decoded;
     //sliceunit->mark_whole_slice_as_processed(CTB_PROGRESS_PREFILTER);
     return err;
-  }
-  else if (use_WPP && use_tiles) {
-    // TODO: this is not allowed ... output some warning or error
-
-    return DE265_WARNING_PPS_HEADER_INVALID;
   }
 
   assert(false);
@@ -915,6 +916,25 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   std::vector<thread_task_ptr> tasks(nRows);
 
+  int slice_first_CTB_TS = sliceunit->first_CTB_TS;
+  int slice_last_CTB_TS  = sliceunit->last_CTB_TS;
+
+  if (slice_first_CTB_TS >= pps.sps->PicSizeInCtbsY ||
+      slice_last_CTB_TS  >= pps.sps->PicSizeInCtbsY) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
+  int slice_first_CTB_RS = pps.CtbAddrTStoRS[slice_first_CTB_TS];
+  int slice_last_CTB_RS  = pps.CtbAddrTStoRS[slice_last_CTB_TS];
+
+  int slice_first_row = slice_first_CTB_RS / ctbsWidth;
+  int slice_last_row  = slice_last_CTB_RS  / ctbsWidth;
+
+  if (slice_last_row - slice_first_row +1 != nRows) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
+
   for (int entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
     if (entryPt>0) {
@@ -927,6 +947,22 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
       //printf("does not start at start\n");
 
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
+
+
+    // check for WPP rows starting out of image
+
+    if (ctbAddrRS >= pps.sps->PicSizeInCtbsY) {
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
+
+    int ctbAddrTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    assert(ctbAddrTS == ctbAddrRS);
+
+    if (ctbAddrTS > sliceunit->last_CTB_TS) {
       err = DE265_WARNING_SLICEHEADER_INVALID;
       break;
     }
@@ -981,27 +1017,31 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->task = task;
 
     tasks[entryPt] = task;
-
-    tctx->imgunit->tasks.push_back(task);
   }
 
 
-  for (int entryPt=0;entryPt<nRows;entryPt++) {
-    auto tctx = sliceunit->get_thread_context(entryPt);
+  if (err == DE265_OK) {
+    // all tasks could be created successfully, so let's add them to the imageunit
+    // and start them
 
-    if (entryPt < nRows-1) {
-      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+    for (int entryPt=0;entryPt<nRows;entryPt++) {
+      auto tctx = sliceunit->get_thread_context(entryPt);
+
+      tctx->imgunit->tasks.push_back(tasks[entryPt]);
+
+      if (entryPt < nRows-1) {
+        tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      }
+      else {
+        tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+      }
     }
-    else {
-      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+
+
+    for (int entryPt=0;entryPt<nRows;entryPt++) {
+      m_thread_pool.add_task(tasks[entryPt]);
     }
   }
-
-
-  for (int entryPt=0;entryPt<nRows;entryPt++) {
-    m_thread_pool.add_task(tasks[entryPt]);
-  }
-
 
 #if 0
   for (;;) {
@@ -1021,7 +1061,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   //imgunit->tasks.clear();
 
-  return DE265_OK;
+  return err;
 }
 
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
@@ -1100,41 +1140,38 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     // add task
 
-    //printf("add tiles thread\n");
-    //img->thread_start(1);
     sliceunit->nThreads++;
 
     auto task = std::make_shared<thread_task_slice_segment>();
     task->firstSliceSubstream = (entryPt==0);
     task->tctx = tctx;
-    task->debug_startCtbX = ctbAddrRS % ctbsWidth,
+    task->debug_startCtbX = ctbAddrRS % ctbsWidth;
     task->debug_startCtbY = ctbAddrRS / ctbsWidth;
     tctx->task = task;
 
     tasks[entryPt] = task;
-
-    //m_thread_pool.add_task(task);
-
-    tctx->imgunit->tasks.push_back(task);
   }
 
 
-  for (int entryPt=0;entryPt<nTiles;entryPt++) {
-    auto tctx = sliceunit->get_thread_context(entryPt);
+  if (err == DE265_OK) {
+    for (int entryPt=0;entryPt<nTiles;entryPt++) {
+      auto tctx = sliceunit->get_thread_context(entryPt);
 
-    if (entryPt < nTiles-1) {
-      tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      tctx->imgunit->tasks.push_back(tasks[entryPt]);
+
+      if (entryPt < nTiles-1) {
+        tctx->last_CTB_TS = sliceunit->get_thread_context(entryPt+1)->first_CTB_TS-1;
+      }
+      else {
+        tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+      }
+
     }
-    else {
-      tctx->last_CTB_TS = sliceunit->last_CTB_TS;
+
+    for (int entryPt=0;entryPt<nTiles;entryPt++) {
+      m_thread_pool.add_task(tasks[entryPt]);
     }
   }
-
-
-  for (int entryPt=0;entryPt<nTiles;entryPt++) {
-    m_thread_pool.add_task(tasks[entryPt]);
-  }
-
 
   //img->wait_for_completion();
 

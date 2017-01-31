@@ -142,9 +142,8 @@ public:
                     const pic_parameter_set* pps,
                     uint8_t nal_unit_type);
 
-  void dump_slice_segment_header(const decoder_context*,
-                                 uint8_t nal_unit_type,
-                                 int fd) const;
+  std::string dump_slice_segment_header(const decoder_context*,
+                                        uint8_t nal_unit_type) const;
 
   void set_defaults();
   void reset();

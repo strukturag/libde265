@@ -10,6 +10,18 @@ libde265_encoder_la_SOURCES = \
   encpicbuf.h encpicbuf.cc \
   sop.h sop.cc
 
+libde265_encoder_la_CFLAGS = \
+  $(CFLAG_VISIBILITY) \
+  -DLIBDE265_EXPORTS
+libde265_encoder_la_CXXFLAGS += \
+  $(CFLAG_VISIBILITY) \
+  -DLIBDE265_EXPORTS
+
+if HAVE_VISIBILITY
+ libde265_encoder_la_CFLAGS += -DHAVE_VISIBILITY
+ libde265_encoder_la_CXXFLAGS += -DHAVE_VISIBILITY
+endif
+
 SUBDIRS=algo
 libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la
 

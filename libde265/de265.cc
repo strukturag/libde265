@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
+ * Copyright (c) 2013-2017 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -320,7 +320,7 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
 }
 
 
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+LIBDE265_API de265_error de265_push_end_of_stream(de265_decoder_context* de265ctx)
 {
   de265_push_end_of_NAL(de265ctx);
 
@@ -372,7 +372,7 @@ LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_cont
 }
 
 
-LIBDE265_API int de265_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
+LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->number_of_frames_pending_at_input();
@@ -426,14 +426,20 @@ LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
   return ctx->get_frontend_syntax_decoder().get_highest_TID();
 }
 
+/*
 LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->get_current_TID();
 }
+*/
 
 LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
 {
+  if (max_tid == de265_limit_TID_unlimited) {
+    max_tid = 6;
+  }
+
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->set_limit_TID(max_tid);
 }
@@ -444,12 +450,13 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context* de265ctx,int 
   ctx->set_framerate_ratio(percent);
 }
 
+  /*
 LIBDE265_API int  de265_change_framerate(de265_decoder_context* de265ctx,int more)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->change_framerate(more);
 }
-
+  */
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
@@ -458,129 +465,60 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
   return ctx->get_warning();
 }
 
-LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
+
+LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context* de265ctx, int capabilities)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_CPU_capabilities = capabilities;
+}
 
-  switch (param)
-    {
+
+LIBDE265_API int de265_get_CPU_capabilites_all_autodetected()
+{
+  return (de265_CPU_capability_X86_SSE2  |
+          de265_CPU_capability_X86_SSE41 |
+          de265_CPU_capability_X86_AVX2  |
+          de265_CPU_capability_ARM_AARCH64);
+}
+
+
+LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context* de265ctx, int flags)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_inexact_decoding_flags = flags;
+
+  ctx->param_disable_deblocking = !!(flags & de265_inexact_decoding_no_deblocking);
+  ctx->param_disable_sao        = !!(flags & de265_inexact_decoding_no_SAO);
+}
+
+
+LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context* de265ctx, int suppress)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_suppress_faulty_pictures = !!suppress;
+}
+
+
+LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
+                                     void (*callback)(int nal_unit, const char* text))
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->get_frontend_syntax_decoder().param_header_callback = callback;
+}
+
+
+  /*
     case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
       ctx->param_sei_check_hash = !!value;
       break;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      ctx->param_suppress_faulty_pictures = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      ctx->param_disable_deblocking = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      ctx->param_disable_sao = !!value;
-      break;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      ctx->param_disable_mc_residual_idct = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      ctx->param_disable_intra_residual_idct = !!value;
-      break;
-      */
-
-    default:
-      assert(false);
-      break;
-    }
-}
-
-
-LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum de265_param param, int value)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_sps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_vps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_pps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
-      ctx->get_frontend_syntax_decoder().param_slice_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_ACCELERATION_CODE:
-      ctx->deprecated_set_acceleration_type( (enum de265_acceleration)value );
-      break;
-
-    case DE265_DECODER_PARAM_CPU_CAPABILITIES:
-      ctx->param_cpu_capabilities = value;
-      break;
-
-    default:
-      assert(false);
-      break;
-    }
-}
+  */
 
 
 LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
                                                        int parallel_frames)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->param_max_images_processed_in_parallel = parallel_frames;
-}
-
-
-
-
-LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
-      return ctx->param_sei_check_hash;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      return ctx->param_suppress_faulty_pictures;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      return ctx->param_disable_deblocking;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      return ctx->param_disable_sao;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      return ctx->param_disable_mc_residual_idct;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      return ctx->param_disable_intra_residual_idct;
-      */
-
-    default:
-      assert(false);
-      return false;
-    }
-}
-
-
-LIBDE265_API void de265_set_parameter_inexact_decoding(de265_decoder_context* de265ctx, int flags)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->param_inexact_decoding_flags = flags;
+  ctx->set_max_decode_frames_parallel(parallel_frames);
 }
 
 
@@ -634,20 +572,20 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
   }
 }
 
-LIBDE265_API int de265_get_bits_per_pixel_intern(const struct de265_image_intern* img,int channel)
-{
-  image* iimg = (image*)img;
 
+LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spec* spec,int channel)
+{
   switch (channel) {
   case 0:
-    return iimg->BitDepth_Y;
+    return spec->luma_bits_per_pixel;
   case 1:
   case 2:
-    return iimg->BitDepth_C;
+    return spec->chroma_bits_per_pixel;
   default:
     return 0;
   }
 }
+
 
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
 {
@@ -696,10 +634,11 @@ LIBDE265_API void *de265_get_image_plane_user_data_intern(const struct de265_ima
 
 LIBDE265_API void de265_set_image_plane_intern(de265_image_intern* img, int cIdx, void* mem, int stride, void *userdata)
 {
-  // The internal "stride" is the number of pixels per line.
-  stride = stride / ((de265_get_bits_per_pixel_intern(img, cIdx)+7) / 8);
-
   image* iimg = (image*)img;
+
+  // The internal "stride" is the number of pixels per line.
+  stride = stride / iimg->get_bytes_per_pixel(cIdx);
+
   iimg->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 
@@ -726,11 +665,19 @@ LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
   return img->m_image->user_data;
 }
 
-LIBDE265_API void de265_set_image_user_data(struct de265_image* img, void *user_data)
+LIBDE265_API void de265_set_image_user_data_intern(struct de265_image_intern* img, void *user_data)
 {
-  img->m_image->user_data = user_data;
+  image* iimg = (image*)img;
+  iimg->user_data = user_data;
 }
 
+LIBDE265_API void* de265_get_image_user_data_intern(const struct de265_image_intern* img)
+{
+  const image* iimg = (const image*)img;
+  return iimg->user_data;
+}
+
+  /*
 LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265,
                                              int* nal_unit_type,
                                              const char** nal_unit_name,
@@ -744,5 +691,6 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265
   if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
+  */
 
 }

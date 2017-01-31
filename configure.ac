@@ -2,15 +2,15 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [1.0.2], [farin@struktur.de])
+AC_INIT([libde265], [2.0.0], [farin@struktur.de])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x01000200 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
+NUMERIC_VERSION=0x02000000 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
 AC_SUBST(NUMERIC_VERSION)
 
-LIBDE265_CURRENT=0
-LIBDE265_REVISION=10
+LIBDE265_CURRENT=1
+LIBDE265_REVISION=0
 LIBDE265_AGE=0
 
 # ---------------------------------------------------------------------------
@@ -50,9 +50,7 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
-dnl gl_VISIBILITY
-dnl : In encoder branch, we still export all library symbols :
-HAVE_VISIBILITY=0
+AC_ARG_ENABLE([visibility], AS_HELP_STRING([--enable-visibility], [Enable visibility definitions.]), [gl_VISIBILITY], [HAVE_VISIBILITY=0])
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
@@ -85,6 +83,7 @@ AC_CHECK_FUNCS([malloc memmove memset __malloc_hook memalign posix_memalign __mi
 AC_SEARCH_LIBS([pow], [m])
 AC_SEARCH_LIBS([sqrt], [m])
 AC_SEARCH_LIBS([pthread_create], [pthread])
+AC_SEARCH_LIBS([clock_gettime], [rt])
 
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([pow sqrt])
@@ -250,9 +249,9 @@ if [[ $enable_arm == yes ]] ; then
 fi
 
 
-AM_CONDITIONAL([ENABLE_ARM_OPT], [ [[ $enable_neon == "yes" ]] ])
-AM_CONDITIONAL([ENABLE_NEON_OPT], [ [[ $enable_neon == "yes" ]] ])
-AM_CONDITIONAL([ENABLE_AARCH64_OPT], [ [[ $enable_aarch64 == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_ARM_OPT], [ [[ "$enable_neon" == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_NEON_OPT], [ [[ "$enable_neon" == "yes" ]] ])
+AM_CONDITIONAL([ENABLE_AARCH64_OPT], [ [[ "$enable_aarch64" == "yes" ]] ])
 
 
 if [[ x$MSG_ACCELERATION_OPTION == x ]] ; then
@@ -303,9 +302,15 @@ fi
 
 AC_ARG_ENABLE([dec265], AS_HELP_STRING([--disable-dec265], [Do not build dec265 decoder program.]))
 AC_ARG_ENABLE([sherlock265], AS_HELP_STRING([--disable-sherlock265], [Do not build sherlock265 visual inspection program.]))
+AC_ARG_ENABLE([hdrcopy], AS_HELP_STRING([--disable-hdrcopy], [Do not build hdrcopy decoder program.]))
+AC_ARG_ENABLE([enc265], AS_HELP_STRING([--disable-enc265], [Do not build enc265 encoder program.]))
+AC_ARG_ENABLE([acceleration_speed], AS_HELP_STRING([--disable-acceleration_speed], [Do not build acceleration_speed test program.]))
 
 if eval "test x$enable_dec265 = x"      ; then enable_dec265=yes ; fi
 if eval "test x$enable_sherlock265 = x" ; then enable_sherlock265=yes ; fi
+if eval "test x$enable_hdrcopy = x"     ; then enable_hdrcopy=yes ; fi
+if eval "test x$enable_enc265 = x"      ; then enable_enc265=yes ; fi
+if eval "test x$enable_acceleration_speed = x" ; then enable_acceleration_speed=yes ; fi
 
 if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes" ; then
    PKG_CHECK_MODULES([VIDEOGFX], [libvideogfx],
@@ -351,9 +356,9 @@ if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" &&
 fi
 
 if eval "test $enable_sherlock265 = yes" ; then
-  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5], [found_qt=no])
+  PKG_CHECK_MODULES([QT], [Qt5Core Qt5Gui Qt5Widgets], [found_qt=5 qtchooser_ver=5], [found_qt=no])
   if eval "test $found_qt = no" ; then
-    PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4])
+    PKG_CHECK_MODULES([QT], [QtCore QtGui], [found_qt=4 qtchooser_ver=qt4])
   fi
   AC_PATH_PROGS([QTCHOOSER],[qtchooser])
   if eval "test x$QTCHOOSER = x" ; then
@@ -362,11 +367,15 @@ if eval "test $enable_sherlock265 = yes" ; then
       AC_MSG_ERROR([Need the "moc" commandline tool which is required to generate the Qt files required for sherlock265.])
     fi
   else
-    QTMOC="$QTCHOOSER -run-tool=moc -qt=$found_qt"
+    QTMOC="$QTCHOOSER -run-tool=moc -qt=$qtchooser_ver"
   fi
   AC_MSG_CHECKING([for version of $QTMOC])
-  QTMOC_VERSION=`$QTMOC -v 2>&1 | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
+  QTMOC_VERSION_ALL=`$QTMOC -v 2>&1`
+  QTMOC_VERSION=`echo $QTMOC_VERSION_ALL | $GREP -o '[[0-9]]\+.[[0-9]]\+.[[0-9]]\+'`
   AC_MSG_RESULT([$QTMOC_VERSION])
+  if eval "test x$QTMOC_VERSION = x" ; then
+    AC_MSG_ERROR([The "moc" commandline tool didn't return a version ($QTMOC_VERSION_ALL).])
+  fi
   AX_COMPARE_VERSION([$QTMOC_VERSION], [lt], [$found_qt],
       [AC_MSG_ERROR([Please install "moc" for Qt$found_qt (found $QTMOC_VERSION).])])
   AC_SUBST(QTMOC)
@@ -374,6 +383,9 @@ fi
 
 AM_CONDITIONAL([ENABLE_DEC265], [test "x$enable_dec265" != "xno"])
 AM_CONDITIONAL([ENABLE_SHERLOCK265], [test "x$enable_sherlock265" != "xno"])
+AM_CONDITIONAL([ENABLE_HDRCOPY], [test "x$enable_hdrcopy" != "xno"])
+AM_CONDITIONAL([ENABLE_ENC265], [test "x$enable_enc265" != "xno"])
+AM_CONDITIONAL([ENABLE_ACCELERATION_SPEED], [test "x$enable_acceleration_speed" != "xno"])
 
 
 # --- output configuration results ---
@@ -382,6 +394,9 @@ AC_MSG_NOTICE([---------------------------------------])
 AC_MSG_NOTICE([Processor acceleration: $MSG_ACCELERATION_OPTION])
 AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
 AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
+AC_MSG_NOTICE([Building hdrcopy example: $enable_hdrcopy])
+AC_MSG_NOTICE([Building enc265 example: $enable_enc265])
+AC_MSG_NOTICE([Building acceleration_speed example: $enable_acceleration_speed])
 AC_MSG_NOTICE([---------------------------------------])
 
 AC_CONFIG_FILES([Makefile])

@@ -971,80 +971,19 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
           ref[x] = border[x];
         }
       }
-#if 0
-      if (nT==8) {
-        __m128i round16 = _mm_set1_epi16(16);
 
-        for (int y=0;y<nT;y++) {
-          int iIdx = ((y+1)*intraPredAngle)>>5;
-          int iFact= ((y+1)*intraPredAngle)&31;
+      // Set out-of-bounds pixel to defined value. This is not really required since
+      // it is always multiplied by zero, but valgrind complains about this.
+      ref[2*nT+1] = 0;
 
-          __m128i fact1 = _mm_set1_epi16(32-iFact);
-          __m128i fact2 = _mm_set1_epi16(iFact);
-          Deb(fact1);
-          Deb(fact2);
+      for (int y=0;y<nT;y++) {
+        int iIdx = ((y+1)*intraPredAngle)>>5;
+        int iFact= ((y+1)*intraPredAngle)&31;
 
-          __m128i data1 = _mm_loadl_epi64((const __m128i*)(&ref[1+iIdx]));
-          __m128i data2 = _mm_loadl_epi64((const __m128i*)(&ref[2+iIdx]));
-          __m128i zero = _mm_setzero_si128();
-          Deb(data1);
-          Deb(data2);
-
-          data1 = _mm_unpacklo_epi8(data1,zero);
-          data2 = _mm_unpacklo_epi8(data2,zero);
-
-          data1 = _mm_mullo_epi16(data1, fact1);
-          data2 = _mm_mullo_epi16(data2, fact2);
-          Deb(data1);
-          Deb(data2);
-
-          __m128i sum = _mm_add_epi16(data1,data2);
-          Deb(sum);
-          sum = _mm_add_epi16(sum,round16);
-          Deb(sum);
-          sum = _mm_srai_epi16(sum, 5);
-          Deb(sum);
-
-          __m128i packed = _mm_packus_epi16(sum,sum);
-          Deb(packed);
-          _mm_storel_epi64((__m128i*)(dst+y*dstStride), packed);
-        }
-      }
-      else
-#endif
-#if 0
-      if (nT==8) {
-        for (int y=0;y<nT;y++) {
-          int iIdx = ((y+1)*intraPredAngle)>>5;
-          int iFact= ((y+1)*intraPredAngle)&31;
-
-          __m128i r0,r1,r3;
-
-          r3 = _mm_set1_epi16((iFact << 8) + (32 - iFact));
-          r1 = _mm_loadu_si128((__m128i*)(&ref[iIdx+1]));
-          r0 = _mm_srli_si128(r1, 1);
-          r1 = _mm_unpacklo_epi8(r1, r0);
-          r1 = _mm_maddubs_epi16(r1, r3);
-          r1 = _mm_mulhrs_epi16(r1, _mm_set1_epi16(1024));
-          r1 = _mm_packus_epi16(r1, r1);
-          _mm_storel_epi64((__m128i *)(dst+y*dstStride), r1);
-        }
-      }
-      else
-#endif
-        {
-        for (int y=0;y<nT;y++) {
-          int iIdx = ((y+1)*intraPredAngle)>>5;
-          int iFact= ((y+1)*intraPredAngle)&31;
-
-          for (int x=0;x<nT;x++)
-            {
-              dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
-
-              //printf("%02x %02x %02x | ",dst[x+y*dstStride],ref[x+iIdx+1],ref[x+iIdx+2]);
-            }
-          //printf("\n");
-        }
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+          }
       }
     }
   }
@@ -1084,6 +1023,9 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
           ref[x] = border[-x]; // DIFF (neg)
         }
       }
+
+      // see above
+      ref[2*nT+1] = 0;
 
       for (int y=0;y<nT;y++)
         for (int x=0;x<nT;x++)
@@ -1328,7 +1270,7 @@ void decode_intra_prediction_internal(image* img,
                                       pixel_t* dst, int dstStride,
                                       int nT, int cIdx)
 {
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t) border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
@@ -1430,7 +1372,7 @@ void decode_intra_prediction_from_tree_internal(const image* img,
   pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
   int dstStride = tb->intra_prediction[cIdx]->getStride();
 
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t)  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);

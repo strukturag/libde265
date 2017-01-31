@@ -47,14 +47,7 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
 
-static int disable_logging_OLD=0;
 static int verbosity = 0;
-
-
-LIBDE265_API void de265_disable_logging() // DEPRECATED
-{
-  disable_logging_OLD=1;
-}
 
 
 LIBDE265_API void de265_set_verbosity(int level)
@@ -164,18 +157,21 @@ void logtrace(enum LogModule module, const char* string, ...)
 }
 #endif
 
-void log2fh(FILE* fh, const char* string, ...)
+void log2sstr(std::stringstream& sstr, const char* string, ...)
 {
+  const int bufsize = 200;
+  char buf[bufsize];
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stdout, "INFO: ");
+  if (!noPrefix) sstr << "INFO: ";
   va_start(va, string);
-  vfprintf(fh, string + (noPrefix ? 1 : 0), va);
+  vsnprintf(buf,bufsize, string + (noPrefix ? 1 : 0), va);
   va_end(va);
-  fflush(stdout);
-}
 
+  sstr << buf;
+}
 
 
 void printBlk(const char* title, const int16_t* data, int blksize, int stride,
@@ -267,7 +263,7 @@ double de265_get_time()
 }
 
 #else
-#  ifdef _MSC_VER
+#  if defined(_MSC_VER) || defined(__MINGW32__)
 double de265_get_time()
 {
   return 0;
