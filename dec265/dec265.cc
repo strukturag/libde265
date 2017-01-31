@@ -86,6 +86,7 @@ int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
 int inexact_decoding_flags=0;
+int fullpel_motion_only=0;
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -112,6 +113,7 @@ static struct option long_options[] = {
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
+  {"fullpel-motion-only",     no_argument, &fullpel_motion_only, 1 },
   {"enable-inexact-decoding", no_argument, 0, 'I' },
   {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
   {0,         0,                 0,  0 }
@@ -642,6 +644,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -D, --decoding-framerate-percent    percentage of frames to decode (others will be dropped)\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
+    fprintf(stderr,"      --fullpel-motion-only  disable sub-pel MC\n");
     fprintf(stderr,"  -I, --enable-inexact-decoding  enable optimizations that may lead to slightly wrong output\n");
     fprintf(stderr,"      --max-latency          maximum picture latency in reorder buffer\n");
     fprintf(stderr,"  -h, --help        show help\n");
@@ -659,8 +662,9 @@ int main(int argc, char** argv)
   // TODO de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
   de265_suppress_faulty_pictures(ctx, false);
 
-  if (disable_deblocking) inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
-  if (disable_sao)        inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
+  if (disable_deblocking)  inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
+  if (disable_sao)         inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
+  if (fullpel_motion_only) inexact_decoding_flags |= de265_inexact_decoding_only_full_pel_motion;
   de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
