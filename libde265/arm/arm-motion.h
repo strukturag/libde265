@@ -57,4 +57,17 @@ void mc_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
                        int width, int height,
                        int16_t* mcbuffer);
 
+void mc_qpel_v1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer);
+void mc_qpel_v2_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer);
+void mc_qpel_v3_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer);
+
 #endif

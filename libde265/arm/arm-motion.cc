@@ -456,3 +456,138 @@ void mc_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
 {
   mc_qpel_h_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
+
+
+
+
+#include "fallback-motion.h"
+
+static int8_t qpel_v_filter[3][8] = {
+  // 1/4 pel shift
+  { -1,4,-10,58,17,-5,1,0 },
+
+  // 2/4 pel shift
+  { -1,4,-11,40,40,-11,4,-1 },
+
+  // 3/4 pel shift
+  { 0,1,-5,17,58,-10,4,-1 }
+};
+
+template<int filterIdx>
+void mc_qpel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
+                      const uint8_t *src, ptrdiff_t srcstride,
+                      int width, int height,
+                      int16_t* mcbuffer)
+{
+  //printf("%d x %d [Vshift=%d]\n",width,height,filterIdx);
+
+  if (width & 7) {
+    switch (filterIdx) {
+    case 1: put_qpel_0_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    case 2: put_qpel_0_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    case 3: put_qpel_0_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    }
+
+    if (width & 7) return;
+  }
+
+  while (width>=8) {
+
+    for (int y=0;y<height;y++) {
+      uint8x8_t  row_m3     = vld1_u8(src+(y-3)*srcstride);
+      uint16x8_t row_m3_16  = vmovl_u8(row_m3);
+      int16x8_t  row_m3_s16 = vreinterpretq_s16_u16(row_m3_16);
+
+      row_m3_s16 = vmulq_n_s16(row_m3_s16, qpel_v_filter[filterIdx-1][0]);
+
+      uint8x8_t  row_m2     = vld1_u8(src+(y-2)*srcstride);
+      uint16x8_t row_m2_16  = vmovl_u8(row_m2);
+      int16x8_t  row_m2_s16 = vreinterpretq_s16_u16(row_m2_16);
+
+      row_m2_s16 = vmulq_n_s16(row_m2_s16, qpel_v_filter[filterIdx-1][1]);
+
+      uint8x8_t  row_m1     = vld1_u8(src+(y-1)*srcstride);
+      uint16x8_t row_m1_16  = vmovl_u8(row_m1);
+      int16x8_t  row_m1_s16 = vreinterpretq_s16_u16(row_m1_16);
+
+      row_m1_s16 = vmulq_n_s16(row_m1_s16, qpel_v_filter[filterIdx-1][2]);
+
+      uint8x8_t  row_p0     = vld1_u8(src+(y-0)*srcstride);
+      uint16x8_t row_p0_16  = vmovl_u8(row_p0);
+      int16x8_t  row_p0_s16 = vreinterpretq_s16_u16(row_p0_16);
+
+      row_p0_s16 = vmulq_n_s16(row_p0_s16, qpel_v_filter[filterIdx-1][3]);
+
+      uint8x8_t  row_p1     = vld1_u8(src+(y+1)*srcstride);
+      uint16x8_t row_p1_16  = vmovl_u8(row_p1);
+      int16x8_t  row_p1_s16 = vreinterpretq_s16_u16(row_p1_16);
+
+      row_p1_s16 = vmulq_n_s16(row_p1_s16, qpel_v_filter[filterIdx-1][4]);
+
+      uint8x8_t  row_p2     = vld1_u8(src+(y+2)*srcstride);
+      uint16x8_t row_p2_16  = vmovl_u8(row_p2);
+      int16x8_t  row_p2_s16 = vreinterpretq_s16_u16(row_p2_16);
+
+      row_p2_s16 = vmulq_n_s16(row_p2_s16, qpel_v_filter[filterIdx-1][5]);
+
+      uint8x8_t  row_p3     = vld1_u8(src+(y+3)*srcstride);
+      uint16x8_t row_p3_16  = vmovl_u8(row_p3);
+      int16x8_t  row_p3_s16 = vreinterpretq_s16_u16(row_p3_16);
+
+      row_p3_s16 = vmulq_n_s16(row_p3_s16, qpel_v_filter[filterIdx-1][6]);
+
+      uint8x8_t  row_p4     = vld1_u8(src+(y+4)*srcstride);
+      uint16x8_t row_p4_16  = vmovl_u8(row_p4);
+      int16x8_t  row_p4_s16 = vreinterpretq_s16_u16(row_p4_16);
+
+      row_p4_s16 = vmulq_n_s16(row_p4_s16, qpel_v_filter[filterIdx-1][7]);
+
+      int16x8_t rowsum = vaddq_s16(row_m3_s16, row_m2_s16);
+      rowsum = vaddq_s16(rowsum, row_m1_s16);
+      rowsum = vaddq_s16(rowsum, row_p0_s16);
+      rowsum = vaddq_s16(rowsum, row_p1_s16);
+      rowsum = vaddq_s16(rowsum, row_p2_s16);
+      rowsum = vaddq_s16(rowsum, row_p3_s16);
+      rowsum = vaddq_s16(rowsum, row_p4_s16);
+
+      /*
+      Deb(rowsum);
+      int16x8_t ref = vld1q_s16(dst+y*dststride);
+      Deb(ref);
+      */
+
+      vst1q_s16(dst+y*dststride, rowsum);
+    }
+
+    width-=8;
+    src+=8;
+    dst+=8;
+  }
+
+  //assert(width==0);
+}
+
+
+void mc_qpel_v1_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
+{
+  mc_qpel_v_8_neon<1>(dst,dststride, src,srcstride, width,height,mcbuffer);
+}
+
+void mc_qpel_v2_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
+{
+  mc_qpel_v_8_neon<2>(dst,dststride, src,srcstride, width,height,mcbuffer);
+}
+
+void mc_qpel_v3_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int16_t* mcbuffer)
+{
+  mc_qpel_v_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
+}

@@ -42,6 +42,7 @@ void init_acceleration_functions_neon(struct acceleration_functions* accel)
 #endif
 }
 
+#include "fallback-motion.h"
 void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
                                          int inexact_decoding_flags)
 {
@@ -55,6 +56,10 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->put_hevc_qpel_8[1][0] = mc_qpel_h1_8_neon;
   accel->put_hevc_qpel_8[2][0] = mc_qpel_h2_8_neon;
   accel->put_hevc_qpel_8[3][0] = mc_qpel_h3_8_neon;
+
+  accel->put_hevc_qpel_8[0][1] = mc_qpel_v1_8_neon;
+  accel->put_hevc_qpel_8[0][2] = mc_qpel_v2_8_neon;
+  accel->put_hevc_qpel_8[0][3] = mc_qpel_v3_8_neon;
 
   accel->put_hevc_epel_8       = mc_noshift_8_chroma_neon;
   accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
