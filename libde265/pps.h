@@ -28,9 +28,6 @@
 #include <vector>
 #include <memory>
 
-#define DE265_MAX_TILE_COLUMNS 10
-#define DE265_MAX_TILE_ROWS    10
-
 class decoder_context;
 class pic_parameter_set;
 

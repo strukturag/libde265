@@ -224,8 +224,8 @@ void pic_parameter_set::set_defaults(enum PresetSet)
   loop_filter_across_tiles_enabled_flag = 1;
   pps_loop_filter_across_slices_enabled_flag = 1;
 
-  colWidth.resize(DE265_MAX_TILE_COLUMNS,0);
-  rowHeight.resize(DE265_MAX_TILE_ROWS,0);
+  colWidth.clear();
+  rowHeight.clear();
   colBd.clear();
   rowBd.clear();
 
@@ -350,7 +350,6 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   if (tiles_enabled_flag) {
     num_tile_columns = get_uvlc(br);
     if (num_tile_columns == UVLC_ERROR ||
-	num_tile_columns+1 > DE265_MAX_TILE_COLUMNS ||
         num_tile_columns+1 > sps->PicWidthInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
@@ -359,12 +358,14 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
     num_tile_rows = get_uvlc(br);
     if (num_tile_rows == UVLC_ERROR ||
-	num_tile_rows+1 > DE265_MAX_TILE_ROWS ||
         num_tile_rows+1 > sps->PicHeightInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     num_tile_rows++;
+
+    colWidth.resize(num_tile_columns);
+    rowHeight.resize(num_tile_rows);
 
     uniform_spacing_flag = get_bits(br,1);
 
@@ -414,6 +415,10 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   } else {
     num_tile_columns = 1;
     num_tile_rows    = 1;
+
+    colWidth.resize(1);
+    rowHeight.resize(1);
+
     uniform_spacing_flag = 1;
     loop_filter_across_tiles_enabled_flag = 0;
   }
@@ -766,13 +771,15 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   // --- tiles ---
 
   if (tiles_enabled_flag) {
-    if (num_tile_columns > DE265_MAX_TILE_COLUMNS) {
+    if (num_tile_columns > sps->PicWidthInCtbsY ||
+        num_tile_columns < 1) {
       errqueue->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     out.write_uvlc(num_tile_columns-1);
 
-    if (num_tile_rows > DE265_MAX_TILE_ROWS) {
+    if (num_tile_rows > sps->PicHeightInCtbsY ||
+        num_tile_rows < 1) {
       errqueue->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
