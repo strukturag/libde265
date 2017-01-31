@@ -3832,8 +3832,8 @@ void read_transform_tree(thread_context* tctx,
 
   int split_transform_flag;
 
-  enum PredMode PredMode = img->get_pred_mode(x0,y0);
-  assert(PredMode == cuPredMode);
+  //enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  //assert(PredMode == cuPredMode);
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
@@ -3854,7 +3854,7 @@ void read_transform_tree(thread_context* tctx,
 
       int interSplitFlag= (sps.max_transform_hierarchy_depth_inter==0 &&
                            trafoDepth == 0 &&
-                           PredMode == MODE_INTER &&
+                           cuPredMode == MODE_INTER &&
                            PartMode != PART_2Nx2N);
 
       split_transform_flag = (log2TrafoSize > sps.Log2MaxTrafoSize ||
@@ -3938,7 +3938,7 @@ void read_transform_tree(thread_context* tctx,
   else {
     int cbf_luma;
 
-    if (PredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
+    if (cuPredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
       cbf_luma = decode_cbf_luma(tctx,trafoDepth);
     }
     else {
