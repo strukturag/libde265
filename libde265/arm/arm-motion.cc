@@ -382,48 +382,116 @@ static uint8_t qpel_filter[3][16] = {
     0,0,5, 0, 0,10,0,1 }  // minus
 };
 
+// applies the filter to the input and returns a 16x4, all 4 values should still be added
+inline int16x4_t hfilter_qpel_sum(uint8x8_t filter_plus,
+                                  uint8x8_t filter_minus,
+                                  uint8x8_t input)
+{
+  uint16x8_t acc0p = vmull_u8(       input, filter_plus);
+  uint16x8_t acc0_ = vmlsl_u8(acc0p, input, filter_minus);
+  int16x8_t  acc0  = vreinterpretq_s16_u16(acc0_);
+  return vpadd_s16(vget_low_s16(acc0), vget_high_s16(acc0));
+}
+
+inline int16x4_t hfilter_qpel_4x(uint8x8_t filter_plus,
+                                 uint8x8_t filter_minus,
+                                 uint8x8_t input_left,
+                                 uint8x8_t input_right)
+{
+  int16x4_t  sum0 = hfilter_qpel_sum(filter_plus,filter_minus,  input_left);
+
+  uint8x8_t input1 = vext_u8(input_left, input_right, 1);
+  int16x4_t  sum1 = hfilter_qpel_sum(filter_plus,filter_minus,  input1);
+
+  uint8x8_t input2 = vext_u8(input_left, input_right, 2);
+  int16x4_t  sum2 = hfilter_qpel_sum(filter_plus,filter_minus,  input2);
+
+  uint8x8_t input3 = vext_u8(input_left, input_right, 3);
+  int16x4_t  sum3 = hfilter_qpel_sum(filter_plus,filter_minus,  input3);
+
+  int16x4_t  sum01 = vpadd_s16(sum0,sum1);
+  int16x4_t  sum23 = vpadd_s16(sum2,sum3);
+  int16x4_t  sum0123 = vpadd_s16(sum01,sum23);
+
+  return sum0123;
+}
+
+
+inline int16x8_t hfilter_qpel_8x(uint8x8_t filter_plus,
+                                 uint8x8_t filter_minus,
+                                 uint8x8_t input_left,
+                                 uint8x8_t input_right)
+{
+  int16x4_t  sum0 = hfilter_qpel_sum(filter_plus,filter_minus,  input_left);
+
+  uint8x8_t input1 = vext_u8(input_left, input_right, 1);
+  int16x4_t  sum1 = hfilter_qpel_sum(filter_plus,filter_minus,  input1);
+
+  uint8x8_t input2 = vext_u8(input_left, input_right, 2);
+  int16x4_t  sum2 = hfilter_qpel_sum(filter_plus,filter_minus,  input2);
+
+  uint8x8_t input3 = vext_u8(input_left, input_right, 3);
+  int16x4_t  sum3 = hfilter_qpel_sum(filter_plus,filter_minus,  input3);
+
+  uint8x8_t input4 = vext_u8(input_left, input_right, 4);
+  int16x4_t  sum4 = hfilter_qpel_sum(filter_plus,filter_minus,  input4);
+
+  uint8x8_t input5 = vext_u8(input_left, input_right, 5);
+  int16x4_t  sum5 = hfilter_qpel_sum(filter_plus,filter_minus,  input5);
+
+  uint8x8_t input6 = vext_u8(input_left, input_right, 6);
+  int16x4_t  sum6 = hfilter_qpel_sum(filter_plus,filter_minus,  input6);
+
+  uint8x8_t input7 = vext_u8(input_left, input_right, 7);
+  int16x4_t  sum7 = hfilter_qpel_sum(filter_plus,filter_minus,  input7);
+
+  int16x4_t  sum01 = vpadd_s16(sum0,sum1);
+  int16x4_t  sum23 = vpadd_s16(sum2,sum3);
+  int16x4_t  sum0123 = vpadd_s16(sum01,sum23);
+
+  int16x4_t  sum45 = vpadd_s16(sum4,sum5);
+  int16x4_t  sum67 = vpadd_s16(sum6,sum7);
+  int16x4_t  sum4567 = vpadd_s16(sum45,sum67);
+
+  int16x8_t  sum01234567 = vcombine_s16(sum0123, sum4567);
+
+  return sum01234567;
+}
+
+
 template<int filterIdx>
 void mc_qpel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
                       const uint8_t *src, ptrdiff_t srcstride,
                       int width, int height,
                       int16_t* mcbuffer)
 {
-  while (width>=4) {
-    uint8x8_t filter_plus  = vld1_u8(qpel_filter[filterIdx-1]);
-    uint8x8_t filter_minus = vld1_u8(qpel_filter[filterIdx-1]+8);
+  uint8x8_t filter_plus  = vld1_u8(qpel_filter[filterIdx-1]);
+  uint8x8_t filter_minus = vld1_u8(qpel_filter[filterIdx-1]+8);
 
+  while (width>=8) {
     for (int y=0;y<height;y++) {
       uint8x8_t input_left  = vld1_u8(src+y*srcstride -3);
       uint8x8_t input_right = vld1_u8(src+y*srcstride -3+8);
 
-      uint16x8_t acc0p = vmull_u8(       input_left, filter_plus);
-      uint16x8_t acc0_ = vmlsl_u8(acc0p, input_left, filter_minus);
-      int16x8_t  acc0  = vreinterpretq_s16_u16(acc0_);
-      int16x4_t  sum0 = vpadd_s16(vget_low_s16(acc0), vget_high_s16(acc0));
+      int16x8_t result = hfilter_qpel_8x(filter_plus,filter_minus, input_left,input_right);
 
-      uint8x8_t input1 = vext_u8(input_left, input_right, 1);
-      uint16x8_t acc1p = vmull_u8(       input1, filter_plus);
-      uint16x8_t acc1_ = vmlsl_u8(acc1p, input1, filter_minus);
-      int16x8_t  acc1  = vreinterpretq_s16_u16(acc1_);
-      int16x4_t  sum1 = vpadd_s16(vget_low_s16(acc1), vget_high_s16(acc1));
+      vst1q_s16((dst+dststride*y), result);
+    }
 
-      uint8x8_t input2 = vext_u8(input_left, input_right, 2);
-      uint16x8_t acc2p = vmull_u8(       input2, filter_plus);
-      uint16x8_t acc2_ = vmlsl_u8(acc2p, input2, filter_minus);
-      int16x8_t  acc2  = vreinterpretq_s16_u16(acc2_);
-      int16x4_t  sum2 = vpadd_s16(vget_low_s16(acc2), vget_high_s16(acc2));
+    width-=8;
+    src+=8;
+    dst+=8;
+  }
 
-      uint8x8_t input3 = vext_u8(input_left, input_right, 3);
-      uint16x8_t acc3p = vmull_u8(       input3, filter_plus);
-      uint16x8_t acc3_ = vmlsl_u8(acc3p, input3, filter_minus);
-      int16x8_t  acc3  = vreinterpretq_s16_u16(acc3_);
-      int16x4_t  sum3 = vpadd_s16(vget_low_s16(acc3), vget_high_s16(acc3));
 
-      int16x4_t  sum01 = vpadd_s16(sum0,sum1);
-      int16x4_t  sum23 = vpadd_s16(sum2,sum3);
-      int16x4_t  sum0123 = vpadd_s16(sum01,sum23);
+  if (width>=4) {
+    for (int y=0;y<height;y++) {
+      uint8x8_t input_left  = vld1_u8(src+y*srcstride -3);
+      uint8x8_t input_right = vld1_u8(src+y*srcstride -3+8);
 
-      vst1_s16((dst+dststride*y), sum0123);
+      int16x4_t result = hfilter_qpel_4x(filter_plus,filter_minus, input_left,input_right);
+
+      vst1_s16((dst+dststride*y), result);
     }
 
     width-=4;
