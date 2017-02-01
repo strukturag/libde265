@@ -30,6 +30,8 @@
 #include "arm-motion.h"
 #include "util.h"
 
+#include "fallback-motion.h"
+
 
 #define D 1
 
@@ -460,103 +462,105 @@ void mc_qpel_h3_8_neon(int16_t *dst, ptrdiff_t dststride,
 
 
 
-#include "fallback-motion.h"
+inline int16x8_t load_u8_to_s16(const uint8_t* src)
+{
+  uint8x8_t  in8 = vld1_u8(src);
+  uint16x8_t in16= vmovl_u8(in8);
+  return vreinterpretq_s16_u16(in16);
+}
 
-static int8_t qpel_v_filter[3][8] = {
-  // 1/4 pel shift
-  { -1,4,-10,58,17,-5,1,0 },
 
-  // 2/4 pel shift
-  { -1,4,-11,40,40,-11,4,-1 },
+// { -1,4,-10,58,17,-5,1,0 }
+inline int16x8_t vfilter_1qpel_8x(int16x8_t row0, int16x8_t row1, int16x8_t row2, int16x8_t row3,
+                                  int16x8_t row4, int16x8_t row5, int16x8_t row6, int16x8_t row7)
+{
+  int16x8_t m1,m2,m3,m4,m5;
 
-  // 3/4 pel shift
-  { 0,1,-5,17,58,-10,4,-1 }
-};
+  m1 = vshlq_n_s16(row1, 2); // *4
+  m2 = vmulq_n_s16(row2, -10);
+  m3 = vmulq_n_s16(row3, 58);
+  m4 = vmulq_n_s16(row4, 17);
+  m5 = vmulq_n_s16(row5, -5);
+
+  int16x8_t t1 = vsubq_s16(m1,row0);
+  int16x8_t t2 = vaddq_s16(m2,m3);
+  int16x8_t t3 = vaddq_s16(m4,m5);
+  int16x8_t t4 = row6;
+
+  int16x8_t u1 = vaddq_s16(t1,t2);
+  int16x8_t u2 = vaddq_s16(t3,t4);
+
+  return vaddq_s16(u1,u2);
+}
+
+
+//  { -1,4,-11,40,40,-11,4,-1 }
+inline int16x8_t vfilter_2qpel_8x(int16x8_t row0, int16x8_t row1, int16x8_t row2, int16x8_t row3,
+                                  int16x8_t row4, int16x8_t row5, int16x8_t row6, int16x8_t row7)
+{
+  int16x8_t m0,m1,m2,m3;
+
+  m0 = vaddq_s16(row0,row7);
+  m1 = vaddq_s16(row1,row6);
+  m2 = vaddq_s16(row2,row5);
+  m3 = vaddq_s16(row3,row4);
+
+  m1 = vshlq_n_s16(m1, 2); // *4
+  m2 = vmulq_n_s16(m2, 11);
+  m3 = vmulq_n_s16(m3, 40);
+
+  m0 = vaddq_s16(m0,m2);
+  m1 = vaddq_s16(m1,m3);
+  return vsubq_s16(m1,m0);
+}
+
 
 template<int filterIdx>
-void mc_qpel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
-                      const uint8_t *src, ptrdiff_t srcstride,
-                      int width, int height,
-                      int16_t* mcbuffer)
+inline void mc_qpel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
+                             const uint8_t *src, ptrdiff_t srcstride,
+                             int width, int height,
+                             int16_t* mcbuffer)
 {
   //printf("%d x %d [Vshift=%d]\n",width,height,filterIdx);
 
-  if (width & 7) {
-    switch (filterIdx) {
-    case 1: put_qpel_0_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
-    case 2: put_qpel_0_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
-    case 3: put_qpel_0_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
-    }
-
-    if (width & 7) return;
-  }
-
   while (width>=8) {
 
+    int16x8_t  row0, row1, row2, row3, row4, row5, row6, row7;
+
+    if (filterIdx!=3) {
+      row0= load_u8_to_s16(src+(-3)*srcstride);
+    }
+    row1= load_u8_to_s16(src+(-2)*srcstride);
+    row2= load_u8_to_s16(src+(-1)*srcstride);
+    row3= load_u8_to_s16(src+( 0)*srcstride);
+    row4= load_u8_to_s16(src+(+1)*srcstride);
+    row5= load_u8_to_s16(src+(+2)*srcstride);
+    if (filterIdx!=1) {
+      row6= load_u8_to_s16(src+(+3)*srcstride);
+    }
+
     for (int y=0;y<height;y++) {
-      uint8x8_t  row_m3     = vld1_u8(src+(y-3)*srcstride);
-      uint16x8_t row_m3_16  = vmovl_u8(row_m3);
-      int16x8_t  row_m3_s16 = vreinterpretq_s16_u16(row_m3_16);
+      if (filterIdx==1) { row6= load_u8_to_s16(src+(y+3)*srcstride); }
+      else              { row7= load_u8_to_s16(src+(y+4)*srcstride); }
 
-      row_m3_s16 = vmulq_n_s16(row_m3_s16, qpel_v_filter[filterIdx-1][0]);
-
-      uint8x8_t  row_m2     = vld1_u8(src+(y-2)*srcstride);
-      uint16x8_t row_m2_16  = vmovl_u8(row_m2);
-      int16x8_t  row_m2_s16 = vreinterpretq_s16_u16(row_m2_16);
-
-      row_m2_s16 = vmulq_n_s16(row_m2_s16, qpel_v_filter[filterIdx-1][1]);
-
-      uint8x8_t  row_m1     = vld1_u8(src+(y-1)*srcstride);
-      uint16x8_t row_m1_16  = vmovl_u8(row_m1);
-      int16x8_t  row_m1_s16 = vreinterpretq_s16_u16(row_m1_16);
-
-      row_m1_s16 = vmulq_n_s16(row_m1_s16, qpel_v_filter[filterIdx-1][2]);
-
-      uint8x8_t  row_p0     = vld1_u8(src+(y-0)*srcstride);
-      uint16x8_t row_p0_16  = vmovl_u8(row_p0);
-      int16x8_t  row_p0_s16 = vreinterpretq_s16_u16(row_p0_16);
-
-      row_p0_s16 = vmulq_n_s16(row_p0_s16, qpel_v_filter[filterIdx-1][3]);
-
-      uint8x8_t  row_p1     = vld1_u8(src+(y+1)*srcstride);
-      uint16x8_t row_p1_16  = vmovl_u8(row_p1);
-      int16x8_t  row_p1_s16 = vreinterpretq_s16_u16(row_p1_16);
-
-      row_p1_s16 = vmulq_n_s16(row_p1_s16, qpel_v_filter[filterIdx-1][4]);
-
-      uint8x8_t  row_p2     = vld1_u8(src+(y+2)*srcstride);
-      uint16x8_t row_p2_16  = vmovl_u8(row_p2);
-      int16x8_t  row_p2_s16 = vreinterpretq_s16_u16(row_p2_16);
-
-      row_p2_s16 = vmulq_n_s16(row_p2_s16, qpel_v_filter[filterIdx-1][5]);
-
-      uint8x8_t  row_p3     = vld1_u8(src+(y+3)*srcstride);
-      uint16x8_t row_p3_16  = vmovl_u8(row_p3);
-      int16x8_t  row_p3_s16 = vreinterpretq_s16_u16(row_p3_16);
-
-      row_p3_s16 = vmulq_n_s16(row_p3_s16, qpel_v_filter[filterIdx-1][6]);
-
-      uint8x8_t  row_p4     = vld1_u8(src+(y+4)*srcstride);
-      uint16x8_t row_p4_16  = vmovl_u8(row_p4);
-      int16x8_t  row_p4_s16 = vreinterpretq_s16_u16(row_p4_16);
-
-      row_p4_s16 = vmulq_n_s16(row_p4_s16, qpel_v_filter[filterIdx-1][7]);
-
-      int16x8_t rowsum = vaddq_s16(row_m3_s16, row_m2_s16);
-      rowsum = vaddq_s16(rowsum, row_m1_s16);
-      rowsum = vaddq_s16(rowsum, row_p0_s16);
-      rowsum = vaddq_s16(rowsum, row_p1_s16);
-      rowsum = vaddq_s16(rowsum, row_p2_s16);
-      rowsum = vaddq_s16(rowsum, row_p3_s16);
-      rowsum = vaddq_s16(rowsum, row_p4_s16);
-
-      /*
-      Deb(rowsum);
-      int16x8_t ref = vld1q_s16(dst+y*dststride);
-      Deb(ref);
-      */
+      int16x8_t rowsum;
+      if (filterIdx==1) rowsum = vfilter_1qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (filterIdx==2) rowsum = vfilter_2qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (filterIdx==3) rowsum = vfilter_1qpel_8x(row7,row6,row5,row4,row3,row2,row1,row0);
 
       vst1q_s16(dst+y*dststride, rowsum);
+
+      if (filterIdx!=3) {
+        row0=row1;
+      }
+      row1=row2;
+      row2=row3;
+      row3=row4;
+      row4=row5;
+      row5=row6;
+      if (filterIdx!=1) {
+        row6=row7;
+      }
     }
 
     width-=8;
@@ -564,7 +568,13 @@ void mc_qpel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
     dst+=8;
   }
 
-  //assert(width==0);
+  if (width > 0) {
+    switch (filterIdx) {
+    case 1: put_qpel_0_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    case 2: put_qpel_0_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    case 3: put_qpel_0_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer); break;
+    }
+  }
 }
 
 
