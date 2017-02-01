@@ -669,3 +669,129 @@ void mc_qpel_v3_8_neon(int16_t *dst, ptrdiff_t dststride,
 {
   mc_qpel_v_8_neon<3>(dst,dststride, src,srcstride, width,height,mcbuffer);
 }
+
+
+
+
+template<int dh,int dv>
+inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
+                              const uint8_t *src, ptrdiff_t srcstride,
+                              int width, int height,
+                              int16_t* mcbuffer)
+{
+  //printf("%d x %d [Vshift=%d]\n",width,height,filterIdx);
+
+  uint8x8_t hfilter_plus  = vld1_u8(qpel_filter[dh-1]);
+  uint8x8_t hfilter_minus = vld1_u8(qpel_filter[dh-1]+8);
+
+  while (width>=8) {
+    uint8x8_t input_left;
+    uint8x8_t input_right;
+
+    int16x8_t  row0, row1, row2, row3, row4, row5, row6, row7;
+
+    input_left  = vld1_u8(src+(-3)*srcstride -3);
+    input_right = vld1_u8(src+(-3)*srcstride -3+8);
+    row0 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(-2)*srcstride -3);
+    input_right = vld1_u8(src+(-2)*srcstride -3+8);
+    row1 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(-1)*srcstride -3);
+    input_right = vld1_u8(src+(-1)*srcstride -3+8);
+    row2 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(0  )*srcstride -3);
+    input_right = vld1_u8(src+(0  )*srcstride -3+8);
+    row3 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(+1)*srcstride -3);
+    input_right = vld1_u8(src+(+1)*srcstride -3+8);
+    row4 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(+2)*srcstride -3);
+    input_right = vld1_u8(src+(+2)*srcstride -3+8);
+    row5 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    input_left  = vld1_u8(src+(+3)*srcstride -3);
+    input_right = vld1_u8(src+(+3)*srcstride -3+8);
+    row6 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+    row0 = vshrq_n_s16(row0, 6);
+    row1 = vshrq_n_s16(row1, 6);
+    row2 = vshrq_n_s16(row2, 6);
+    row3 = vshrq_n_s16(row3, 6);
+    row4 = vshrq_n_s16(row4, 6);
+    row5 = vshrq_n_s16(row5, 6);
+    row6 = vshrq_n_s16(row6, 6);
+
+    for (int y=0;y<height;y++) {
+      input_left  = vld1_u8(src+(y+4)*srcstride -3);
+      input_right = vld1_u8(src+(y+4)*srcstride -3+8);
+      row7 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+
+      row7 = vshrq_n_s16(row7, 6);
+
+      int16x8_t rowsum;
+      if (dv==1) rowsum = vfilter_1qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (dv==2) rowsum = vfilter_2qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (dv==3) rowsum = vfilter_1qpel_8x(row7,row6,row5,row4,row3,row2,row1,row0);
+
+      vst1q_s16(dst+y*dststride, rowsum);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+      row3=row4;
+      row4=row5;
+      row5=row6;
+      row6=row7;
+    }
+
+    width-=8;
+    src+=8;
+    dst+=8;
+  }
+
+  if (width > 0) {
+    if (dh==1 && dv==1) put_qpel_1_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==2 && dv==1) put_qpel_2_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==3 && dv==1) put_qpel_3_1_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==1 && dv==2) put_qpel_1_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==2 && dv==2) put_qpel_2_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==3 && dv==2) put_qpel_3_2_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==1 && dv==3) put_qpel_1_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==2 && dv==3) put_qpel_2_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+    if (dh==3 && dv==3) put_qpel_3_3_fallback(dst,dststride, src,srcstride, width,height, mcbuffer);
+  }
+}
+
+
+void mc_qpel_h1v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<1,1>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h2v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<2,1>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h3v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<3,1>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h1v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<1,2>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h2v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<2,2>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h3v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<3,2>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h1v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<1,3>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h2v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<2,3>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+void mc_qpel_h3v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer)
+{ mc_qpel_hv_8_neon<3,3>(dst,dststride, src,srcstride, width,height,mcbuffer); }
