@@ -89,4 +89,19 @@ void mc_qpel_h2v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, 
 void mc_qpel_h3v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
                          int width, int height, int16_t* mcbuffer);
 
+
+
+void put_epel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *_src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth);
+void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *_src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth);
+void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
+                        const uint8_t *_src, ptrdiff_t srcstride,
+                        int width, int height,
+                        int mx, int my, int16_t* mcbuffer, int bitdepth);
+
 #endif
