@@ -749,8 +749,6 @@ void mc_qpel_v3_8_neon(int16_t *dst, ptrdiff_t dststride,
 }
 
 
-
-
 template<int dh,int dv>
 inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
                               const uint8_t *src, ptrdiff_t srcstride,
@@ -768,9 +766,11 @@ inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
 
     int16x8_t  row0, row1, row2, row3, row4, row5, row6, row7;
 
-    input_left  = vld1_u8(src+(-3)*srcstride -3);
-    input_right = vld1_u8(src+(-3)*srcstride -3+8);
-    row0 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+    if (dv != 3) {
+      input_left  = vld1_u8(src+(-3)*srcstride -3);
+      input_right = vld1_u8(src+(-3)*srcstride -3+8);
+      row0 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+    }
 
     input_left  = vld1_u8(src+(-2)*srcstride -3);
     input_right = vld1_u8(src+(-2)*srcstride -3+8);
@@ -792,15 +792,23 @@ inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
     input_right = vld1_u8(src+(+2)*srcstride -3+8);
     row5 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
 
-    input_left  = vld1_u8(src+(+3)*srcstride -3);
-    input_right = vld1_u8(src+(+3)*srcstride -3+8);
-    row6 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
-
+    if (dv != 1) {
+      input_left  = vld1_u8(src+(+3)*srcstride -3);
+      input_right = vld1_u8(src+(+3)*srcstride -3+8);
+      row6 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+    }
 
     for (int y=0;y<height;y++) {
-      input_left  = vld1_u8(src+(y+4)*srcstride -3);
-      input_right = vld1_u8(src+(y+4)*srcstride -3+8);
-      row7 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+      if (dv==1) {
+        input_left  = vld1_u8(src+(y+3)*srcstride -3);
+        input_right = vld1_u8(src+(y+3)*srcstride -3+8);
+        row6 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+      }
+      else {
+        input_left  = vld1_u8(src+(y+4)*srcstride -3);
+        input_right = vld1_u8(src+(y+4)*srcstride -3+8);
+        row7 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
+      }
 
       int16x8_t rowsum;
       if (dv==1) rowsum = vfilter_1qpel_8x_32bit(row0,row1,row2,row3,row4,row5,row6,row7);
@@ -809,13 +817,13 @@ inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
 
       vst1q_s16(dst+y*dststride, rowsum);
 
-      row0=row1;
+      if (dv!=3) row0=row1;
       row1=row2;
       row2=row3;
       row3=row4;
       row4=row5;
       row5=row6;
-      row6=row7;
+      if (dv!=1) row6=row7;
     }
 
     width-=8;
