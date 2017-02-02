@@ -70,4 +70,23 @@ void mc_qpel_v3_8_neon(int16_t *dst, ptrdiff_t dststride,
                        int width, int height,
                        int16_t* mcbuffer);
 
+void mc_qpel_h1v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h2v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h3v1_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h1v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h2v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h3v2_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h1v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h2v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+void mc_qpel_h3v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
+                         int width, int height, int16_t* mcbuffer);
+
 #endif

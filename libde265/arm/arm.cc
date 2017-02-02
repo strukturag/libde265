@@ -61,6 +61,16 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->put_hevc_qpel_8[0][2] = mc_qpel_v2_8_neon;
   accel->put_hevc_qpel_8[0][3] = mc_qpel_v3_8_neon;
 
+  accel->put_hevc_qpel_8[1][1] = mc_qpel_h1v1_8_neon;
+  accel->put_hevc_qpel_8[1][2] = mc_qpel_h1v2_8_neon;
+  accel->put_hevc_qpel_8[1][3] = mc_qpel_h1v3_8_neon;
+  accel->put_hevc_qpel_8[2][1] = mc_qpel_h2v1_8_neon;
+  accel->put_hevc_qpel_8[2][2] = mc_qpel_h2v2_8_neon;
+  accel->put_hevc_qpel_8[2][3] = mc_qpel_h2v3_8_neon;
+  accel->put_hevc_qpel_8[3][1] = mc_qpel_h3v1_8_neon;
+  accel->put_hevc_qpel_8[3][2] = mc_qpel_h3v2_8_neon;
+  accel->put_hevc_qpel_8[3][3] = mc_qpel_h3v3_8_neon;
+
   accel->put_hevc_epel_8       = mc_noshift_8_chroma_neon;
   accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
 
