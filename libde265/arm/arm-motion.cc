@@ -538,6 +538,15 @@ inline int16x8_t load_u8_to_s16(const uint8_t* src)
 }
 
 
+inline int16x4_t load_u8_to_s16x4(const uint8_t* src)
+{
+  // TODO: can we do this faster by loading only a single 32bit lane from memory ?
+  uint8x8_t  in8 = vld1_u8(src);
+  uint16x8_t in16= vmovl_u8(in8);
+  return vget_low_s16(vreinterpretq_s16_u16(in16));
+}
+
+
 // { -1,4,-10,58,17,-5,1,0 }
 inline int16x8_t vfilter_1qpel_8x(int16x8_t row0, int16x8_t row1, int16x8_t row2, int16x8_t row3,
                                   int16x8_t row4, int16x8_t row5, int16x8_t row6, int16x8_t row7)
@@ -965,6 +974,18 @@ inline int16x8_t vfilter_epel_8x(int16x8_t row0, int16x8_t row1,
 }
 
 
+inline int16x4_t vfilter_epel_4x(int16x4_t row0, int16x4_t row1,
+                                 int16x4_t row2, int16x4_t row3,
+                                 const int16_t* filter)
+{
+  int16x4_t sum = vmul_n_s16(row0, filter[0]);
+  sum = vmla_n_s16(sum, row1, filter[1]);
+  sum = vmla_n_s16(sum, row2, filter[2]);
+  sum = vmla_n_s16(sum, row3, filter[3]);
+  return sum;
+}
+
+
 void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
                        const uint8_t *src, ptrdiff_t srcstride,
                        int width, int height,
@@ -992,6 +1013,28 @@ void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
     width-=8;
     src+=8;
     dst+=8;
+  }
+
+  if (width>=4) {
+    int16x4_t row0 = load_u8_to_s16x4(src+(-1)*srcstride);
+    int16x4_t row1 = load_u8_to_s16x4(src+( 0)*srcstride);
+    int16x4_t row2 = load_u8_to_s16x4(src+(+1)*srcstride);
+
+    for (int y=0;y<height;y++) {
+      int16x4_t row3 = load_u8_to_s16x4(src+(y+2)*srcstride);
+
+      int16x4_t result = vfilter_epel_4x(row0,row1,row2,row3, vfilter);
+
+      vst1_s16((dst+dststride*y), result);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+    }
+
+    width-=4;
+    src+=4;
+    dst+=4;
   }
 
   if (width>0) {
