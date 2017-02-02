@@ -53,6 +53,8 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->put_unweighted_pred_8   = put_pred_8_neon;
   accel->put_weighted_pred_avg_8 = put_bipred_8_neon;
 
+  accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
+
   accel->put_hevc_qpel_8[1][0] = mc_qpel_h1_8_neon;
   accel->put_hevc_qpel_8[2][0] = mc_qpel_h2_8_neon;
   accel->put_hevc_qpel_8[3][0] = mc_qpel_h3_8_neon;
@@ -72,7 +74,12 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->put_hevc_qpel_8[3][3] = mc_qpel_h3v3_8_neon;
 
   accel->put_hevc_epel_8       = mc_noshift_8_chroma_neon;
-  accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
+
+  //accel->put_hevc_epel_h_8  = put_epel_hv_fallback<uint8_t>;
+  accel->put_hevc_epel_h_8  = put_epel_h_8_neon;
+  accel->put_hevc_epel_v_8  = put_epel_v_8_neon;
+
+  //accel->put_hevc_epel_hv_16 = put_epel_hv_fallback<uint16_t>;
 
 
   // only use full-pel motion

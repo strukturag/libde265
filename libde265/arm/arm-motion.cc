@@ -872,3 +872,130 @@ void mc_qpel_h2v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, 
 void mc_qpel_h3v3_8_neon(int16_t *dst, ptrdiff_t dststride, const uint8_t *src, ptrdiff_t srcstride,
                          int width, int height, int16_t* mcbuffer)
 { mc_qpel_hv_8_neon<3,3>(dst,dststride, src,srcstride, width,height,mcbuffer); }
+
+
+
+static const int16_t epel_filter[8][4] = {
+  {  0,64, 0, 0 }, // not actually used
+  { -2,58,10,-2 },
+  { -4,54,16,-2 },
+  { -6,46,28,-4 },
+  { -4,36,36,-4 },
+  { -4,28,46,-6 },
+  { -2,16,54,-4 },
+  { -2,10,58,-2 }
+};
+
+
+inline int16x4_t hfilter_epel_4x(uint8x8_t input, int16x4_t filter, uint8x8_t reorder)
+{
+  int16x4_t input0 = vreinterpret_s16_u8(vtbl1_u8(input, reorder));
+  int16x4_t pixel0 = vmul_s16(input0, filter);
+  int16x4_t input4 = vreinterpret_s16_u8(vtbl1_u8(vext_u8(input,input, 4),reorder));
+  int16x4_t input1 = vext_s16(input0,input4,1);
+  int16x4_t pixel1 = vmul_s16(input1, filter);
+
+  int16x4_t input2 = vext_s16(input0,input4,2);
+  int16x4_t pixel2 = vmul_s16(input2, filter);
+
+  int16x4_t input3 = vext_s16(input0,input4,3);
+  int16x4_t pixel3 = vmul_s16(input3, filter);
+
+  int16x4_t p01 = vpadd_s16(pixel0, pixel1);
+  int16x4_t p23 = vpadd_s16(pixel2, pixel3);
+  int16x4_t p0123 = vpadd_s16(p01,p23);
+
+#if 0
+  Deb(input);
+  Deb(input0);
+  Deb(input1);
+  Deb(input2);
+  Deb(input3);
+
+  Deb(pixel0);
+  Deb(pixel1);
+  Deb(pixel2);
+  Deb(pixel3);
+
+  Deb(p0123);
+#endif
+
+  return p0123;
+}
+
+
+void put_epel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth)
+{
+  int16x4_t hfilter  = vld1_s16(epel_filter[mx]);
+  uint8x8_t reorder = vcreate_u8(0xff03ff02ff01ff00LL);
+
+  while (width>=4) {
+    for (int y=0;y<height;y++) {
+      uint8x8_t input = vld1_u8(src+y*srcstride -1);
+
+      int16x4_t result = hfilter_epel_4x(input, hfilter, reorder);
+
+      vst1_s16((dst+dststride*y), result);
+    }
+
+    width-=4;
+    src+=4;
+    dst+=4;
+  }
+
+  if (width>0) {
+    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
+                                  bitdepth);
+  }
+}
+
+
+inline int16x8_t vfilter_epel_8x(int16x8_t row0, int16x8_t row1,
+                                 int16x8_t row2, int16x8_t row3,
+                                 const int16_t* filter)
+{
+  int16x8_t sum = vmulq_n_s16(row0, filter[0]);
+  sum = vmlaq_n_s16(sum, row1, filter[1]);
+  sum = vmlaq_n_s16(sum, row2, filter[2]);
+  sum = vmlaq_n_s16(sum, row3, filter[3]);
+  return sum;
+}
+
+
+void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth)
+{
+  const int16_t* vfilter  = epel_filter[my];
+
+  while (width>=8) {
+    int16x8_t row0 = load_u8_to_s16(src+(-1)*srcstride);
+    int16x8_t row1 = load_u8_to_s16(src+( 0)*srcstride);
+    int16x8_t row2 = load_u8_to_s16(src+(+1)*srcstride);
+
+    for (int y=0;y<height;y++) {
+      int16x8_t row3 = load_u8_to_s16(src+(y+2)*srcstride);
+
+      int16x8_t result = vfilter_epel_8x(row0,row1,row2,row3, vfilter);
+
+      vst1q_s16((dst+dststride*y), result);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+    }
+
+    width-=8;
+    src+=8;
+    dst+=8;
+  }
+
+  if (width>0) {
+    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
+                                  bitdepth);
+  }
+}
