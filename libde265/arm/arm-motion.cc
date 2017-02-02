@@ -583,6 +583,84 @@ inline int16x8_t vfilter_2qpel_8x(int16x8_t row0, int16x8_t row1, int16x8_t row2
 }
 
 
+
+// { -1,4,-10,58,17,-5,1,0 }
+inline int16x8_t vfilter_1qpel_8x_32bit(int16x8_t row0,int16x8_t row1,int16x8_t row2,int16x8_t row3,
+                                        int16x8_t row4,int16x8_t row5,int16x8_t row6,int16x8_t row7)
+{
+  int16x8_t m1,m2,m3,m4,m5;
+
+  int32x4_t sumlow, sumhigh;
+
+  sumlow  = vmovl_s16(vget_low_s16(row6));
+  sumhigh = vmovl_s16(vget_high_s16(row6));
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row0), -1);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row0), -1);
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row1), 4);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row1), 4);
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row2), -10);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row2), -10);
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row3), 58);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row3), 58);
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row4), 17);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row4), 17);
+
+  sumlow  = vmlal_n_s16(sumlow,  vget_low_s16 (row5), -5);
+  sumhigh = vmlal_n_s16(sumhigh, vget_high_s16(row5), -5);
+
+  int16x4_t sum16low  = vshrn_n_s32(sumlow,  6);
+  int16x4_t sum16high = vshrn_n_s32(sumhigh, 6);
+
+  return vcombine_s16(sum16low, sum16high);
+}
+
+
+//  { -1,4,-11,40,40,-11,4,-1 }
+inline int16x8_t vfilter_2qpel_8x_32bit(int16x8_t row0,int16x8_t row1,int16x8_t row2,int16x8_t row3,
+                                        int16x8_t row4,int16x8_t row5,int16x8_t row6,int16x8_t row7)
+{
+  // we have to add inputs with the same coefficients in 32bit because it may not fit into s16
+
+  int32x4_t m0low  = vaddl_s16(vget_low_s16(row0),  vget_low_s16(row7));
+  int32x4_t m0high = vaddl_s16(vget_high_s16(row0), vget_high_s16(row7));
+
+  int32x4_t m1low  = vaddl_s16(vget_low_s16(row1),  vget_low_s16(row6));
+  int32x4_t m1high = vaddl_s16(vget_high_s16(row1), vget_high_s16(row6));
+
+  int32x4_t m2low  = vaddl_s16(vget_low_s16(row2),  vget_low_s16(row5));
+  int32x4_t m2high = vaddl_s16(vget_high_s16(row2), vget_high_s16(row5));
+
+  int32x4_t m3low  = vaddl_s16(vget_low_s16(row3),  vget_low_s16(row4));
+  int32x4_t m3high = vaddl_s16(vget_high_s16(row3), vget_high_s16(row4));
+
+
+  int32x4_t sumlow, sumhigh;
+
+  sumlow  = vshlq_n_s32(m1low,  2);
+  sumhigh = vshlq_n_s32(m1high, 2);
+
+  sumlow  = vsubq_s32(sumlow,  m0low);
+  sumhigh = vsubq_s32(sumhigh, m0high);
+
+  sumlow  = vmlaq_n_s32(sumlow,  m2low,  -11);
+  sumhigh = vmlaq_n_s32(sumhigh, m2high, -11);
+
+  sumlow  = vmlaq_n_s32(sumlow,  m3low,  40);
+  sumhigh = vmlaq_n_s32(sumhigh, m3high, 40);
+
+
+  int16x4_t sum16low  = vshrn_n_s32(sumlow,  6);
+  int16x4_t sum16high = vshrn_n_s32(sumhigh, 6);
+
+  return vcombine_s16(sum16low, sum16high);
+}
+
+
 template<int filterIdx>
 inline void mc_qpel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
                              const uint8_t *src, ptrdiff_t srcstride,
@@ -702,8 +780,8 @@ inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
     input_right = vld1_u8(src+(-1)*srcstride -3+8);
     row2 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
 
-    input_left  = vld1_u8(src+(0  )*srcstride -3);
-    input_right = vld1_u8(src+(0  )*srcstride -3+8);
+    input_left  = vld1_u8(src+(0 )*srcstride -3);
+    input_right = vld1_u8(src+(0 )*srcstride -3+8);
     row3 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
 
     input_left  = vld1_u8(src+(+1)*srcstride -3);
@@ -718,25 +796,16 @@ inline void mc_qpel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
     input_right = vld1_u8(src+(+3)*srcstride -3+8);
     row6 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
 
-    row0 = vshrq_n_s16(row0, 6);
-    row1 = vshrq_n_s16(row1, 6);
-    row2 = vshrq_n_s16(row2, 6);
-    row3 = vshrq_n_s16(row3, 6);
-    row4 = vshrq_n_s16(row4, 6);
-    row5 = vshrq_n_s16(row5, 6);
-    row6 = vshrq_n_s16(row6, 6);
 
     for (int y=0;y<height;y++) {
       input_left  = vld1_u8(src+(y+4)*srcstride -3);
       input_right = vld1_u8(src+(y+4)*srcstride -3+8);
       row7 = hfilter_qpel_8x(hfilter_plus,hfilter_minus, input_left,input_right);
 
-      row7 = vshrq_n_s16(row7, 6);
-
       int16x8_t rowsum;
-      if (dv==1) rowsum = vfilter_1qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
-      if (dv==2) rowsum = vfilter_2qpel_8x(row0,row1,row2,row3,row4,row5,row6,row7);
-      if (dv==3) rowsum = vfilter_1qpel_8x(row7,row6,row5,row4,row3,row2,row1,row0);
+      if (dv==1) rowsum = vfilter_1qpel_8x_32bit(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (dv==2) rowsum = vfilter_2qpel_8x_32bit(row0,row1,row2,row3,row4,row5,row6,row7);
+      if (dv==3) rowsum = vfilter_1qpel_8x_32bit(row7,row6,row5,row4,row3,row2,row1,row0);
 
       vst1q_s16(dst+y*dststride, rowsum);
 
