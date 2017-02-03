@@ -351,6 +351,168 @@ void generate_inter_prediction_samples(base_context* ctx,
   }
 
 
+  // === Handle special case of all zero vectors and no weighting.
+  //     In this case, we can do a simple copy (or simple averaging for BI prediction).
+  //
+  // TODO: Note that we do not relax this case to any integer shift as there may be vectors
+  // pointing outside the image area and we do not want to do border handling here.
+
+  bool allVectorsZero = ((!predFlag[0] || (vi->mv[0].x==0 && vi->mv[0].y==0)) &&
+                         (!predFlag[1] || (vi->mv[1].x==0 && vi->mv[1].y==0)));
+
+  if (allVectorsZero && !img->high_bit_depth(0) && !img->high_bit_depth(1)) {
+    if (predFlag[0] && predFlag[1]) {
+      int refIdx0 = vi->refIdx[0];
+      int refIdx1 = vi->refIdx[1];
+
+      bool weighting=false;
+
+      if (pps->weighted_pred_flag) {
+        if (shdr->luma_weight_flag[0][refIdx0]) {
+          int luma_w0 = shdr->LumaWeight[0][refIdx0];
+          int luma_o0 = shdr->luma_offset[0][refIdx0];
+
+          if (luma_o0 != 0 && luma_w0 != (1<<shdr->luma_log2_weight_denom)) {
+            weighting=true;
+          }
+        }
+        else if (shdr->luma_weight_flag[1][refIdx1]) {
+          int luma_w0 = shdr->LumaWeight[1][refIdx1];
+          int luma_o0 = shdr->luma_offset[1][refIdx1];
+
+          if (luma_o0 != 0 && luma_w0 != (1<<shdr->luma_log2_weight_denom)) {
+            weighting=true;
+          }
+        }
+        else if (shdr->chroma_weight_flag[0][refIdx0]) {
+          if (shdr->ChromaWeight[0][refIdx0][0] != 0 ||
+              shdr->ChromaOffset[0][refIdx0][0] != shdr->ChromaLog2WeightDenom ||
+              shdr->ChromaWeight[0][refIdx0][1] != 0 ||
+              shdr->ChromaOffset[0][refIdx0][1] != shdr->ChromaLog2WeightDenom) {
+            weighting=true;
+          }
+        }
+        else if (shdr->chroma_weight_flag[1][refIdx1]) {
+          if (shdr->ChromaWeight[1][refIdx1][0] != 0 ||
+              shdr->ChromaOffset[1][refIdx1][0] != shdr->ChromaLog2WeightDenom ||
+              shdr->ChromaWeight[1][refIdx1][1] != 0 ||
+              shdr->ChromaOffset[1][refIdx1][1] != shdr->ChromaLog2WeightDenom) {
+            weighting=true;
+          }
+        }
+      }
+
+
+      if (!weighting) {
+        std::shared_ptr<const image> refPic0, refPic1;
+        refPic0 = imgbuffers->get_image(shdr->RefPicList[0][vi->refIdx[0]]);
+        refPic1 = imgbuffers->get_image(shdr->RefPicList[1][vi->refIdx[1]]);
+
+        assert(refPic0);
+        if (refPic0.get() != img) {
+          refPic0->wait_for_progress_at_pixel(xP+1+nPbW+5,
+                                              yP+1+nPbH+5,
+                                              refPic0->mFinalCTBProgress); // LOCK
+        }
+        assert(refPic1);
+        if (refPic1.get() != img) {
+          refPic1->wait_for_progress_at_pixel(xP+1+nPbW+5,
+                                              yP+1+nPbH+5,
+                                              refPic1->mFinalCTBProgress); // LOCK
+        }
+
+
+        int lumastride   = refPic0->get_luma_stride();
+        int chromastride = refPic0->get_chroma_stride();
+
+        //static int cnt=1;
+        //printf("cnt-bi: %d\n",cnt++);
+
+        ctx->acceleration.mc_copy_bi_8((uint8_t*)pixels[0], stride[0],
+                                    ((const uint8_t*)refPic0->get_image_plane(0))
+                                    +xP +yP*lumastride,
+                                    ((const uint8_t*)refPic1->get_image_plane(0))
+                                    +xP +yP*lumastride,
+                                    lumastride, nPbW,nPbH);
+        ctx->acceleration.mc_copy_bi_8((uint8_t*)pixels[1], stride[1],
+                                    ((const uint8_t*)refPic0->get_image_plane(1))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    ((const uint8_t*)refPic1->get_image_plane(1))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    chromastride, nPbW/SubWidthC,nPbH/SubHeightC);
+        ctx->acceleration.mc_copy_bi_8((uint8_t*)pixels[2], stride[2],
+                                    ((const uint8_t*)refPic0->get_image_plane(2))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    ((const uint8_t*)refPic1->get_image_plane(2))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    chromastride, nPbW/SubWidthC,nPbH/SubHeightC);
+        return;
+      }
+    }
+    else {
+      int l = predFlag[1]; // tricky way to set l to the index of the picture we are predicting from
+      int refIdx = vi->refIdx[l];
+
+      bool weighting=false;
+
+      if (pps->weighted_pred_flag) {
+        if (shdr->luma_weight_flag[l][refIdx]) {
+          int luma_w0 = shdr->LumaWeight[l][refIdx];
+          int luma_o0 = shdr->luma_offset[l][refIdx];
+
+          if (luma_o0 != 0 && luma_w0 != (1<<shdr->luma_log2_weight_denom)) {
+            weighting=true;
+          }
+        }
+        else if (shdr->chroma_weight_flag[l][refIdx]) {
+          if (shdr->ChromaWeight[l][refIdx][0] != 0 ||
+              shdr->ChromaOffset[l][refIdx][0] != shdr->ChromaLog2WeightDenom ||
+              shdr->ChromaWeight[l][refIdx][1] != 0 ||
+              shdr->ChromaOffset[l][refIdx][1] != shdr->ChromaLog2WeightDenom) {
+            weighting=true;
+          }
+        }
+      }
+
+
+      if (!weighting) {
+        std::shared_ptr<const image> refPic;
+        refPic = imgbuffers->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
+
+        assert(refPic);
+        if (refPic.get() != img) {
+          refPic->wait_for_progress_at_pixel(xP+1+nPbW+5,
+                                             yP+1+nPbH+5,
+                                             refPic->mFinalCTBProgress); // LOCK
+        }
+
+
+        int lumastride   = refPic->get_luma_stride();
+        int chromastride = refPic->get_chroma_stride();
+
+        //static int cnt=1;
+        //printf("cnt: %d\n",cnt++);
+
+        ctx->acceleration.mc_copy_8((uint8_t*)pixels[0], stride[0],
+                                    ((const uint8_t*)refPic->get_image_plane(0))
+                                    +xP +yP*lumastride,
+                                    lumastride, nPbW,nPbH);
+        ctx->acceleration.mc_copy_8((uint8_t*)pixels[1], stride[1],
+                                    ((const uint8_t*)refPic->get_image_plane(1))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    chromastride, nPbW/SubWidthC,nPbH/SubHeightC);
+        ctx->acceleration.mc_copy_8((uint8_t*)pixels[2], stride[2],
+                                    ((const uint8_t*)refPic->get_image_plane(2))
+                                    +xP/SubWidthC +yP/SubHeightC*chromastride,
+                                    chromastride, nPbW/SubWidthC,nPbH/SubHeightC);
+        return;
+      }
+    }
+  }
+
+
+  // === standard processing ===
+
   for (int l=0;l<2;l++) {
     if (predFlag[l]) {
       // 8.5.3.2.1

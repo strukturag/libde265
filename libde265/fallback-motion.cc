@@ -646,3 +646,70 @@ QPEL(3,0) QPEL(3,1) QPEL(3,2) QPEL(3,3)
 QPEL16(1,0) QPEL16(1,1) QPEL16(1,2) QPEL16(1,3)
 QPEL16(2,0) QPEL16(2,1) QPEL16(2,2) QPEL16(2,3)
 QPEL16(3,0) QPEL16(3,1) QPEL16(3,2) QPEL16(3,3)
+
+
+
+void mc_copy_8_fallback(uint8_t* dst, ptrdiff_t dststride,
+                        const void* srcptr, ptrdiff_t srcstride, int width, int height)
+{
+  const uint8_t* src = (const uint8_t*)srcptr;
+
+  while (width>=16) {
+    for (int y=0;y<height;y++) {
+      *(uint64_t*)(dst+y*dststride  ) = *(uint64_t*)(src+y*srcstride  );
+      *(uint64_t*)(dst+y*dststride+8) = *(uint64_t*)(src+y*srcstride+8);
+    }
+
+    dst += 16;
+    src += 16;
+    width -= 16;
+  }
+
+  if (width>=8) {
+    for (int y=0;y<height;y++) {
+      *(uint64_t*)(dst+y*dststride) = *(uint64_t*)(src+y*srcstride);
+    }
+
+    dst += 8;
+    src += 8;
+    width -= 8;
+  }
+
+  if (width>=4) {
+    for (int y=0;y<height;y++) {
+      *(uint32_t*)(dst+y*dststride) = *(uint32_t*)(src+y*srcstride);
+    }
+
+    dst += 4;
+    src += 4;
+    width -= 4;
+  }
+
+  if (width>0) {
+    for (int y=0;y<height;y++) {
+      *(uint16_t*)(dst+y*dststride) = *(uint16_t*)(src+y*srcstride);
+    }
+  }
+}
+
+
+
+void mc_copy_bi_8_fallback(uint8_t* dst, ptrdiff_t dststride,
+                           const void* srcptr1,
+                           const void* srcptr2,
+                           ptrdiff_t srcstride, int width, int height)
+{
+  const uint8_t* src1 = (const uint8_t*)srcptr1;
+  const uint8_t* src2 = (const uint8_t*)srcptr2;
+
+  for (int y=0;y<height;y++) {
+    for (int x=0;x<width;x+=2) {
+      dst[x  ] = (src1[x  ] + src2[x  ] +1) /2;
+      dst[x+1] = (src1[x+1] + src2[x+1] +1) /2;
+    }
+
+    dst  += dststride;
+    src1 += srcstride;
+    src2 += srcstride;
+  }
+}

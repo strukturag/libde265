@@ -82,6 +82,8 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->put_hevc_qpel_16[3][2] = put_qpel_3_2_fallback_16;
   accel->put_hevc_qpel_16[3][3] = put_qpel_3_3_fallback_16;
 
+  accel->mc_copy_8    = mc_copy_8_fallback;
+  accel->mc_copy_bi_8 = mc_copy_bi_8_fallback;
 
 
   accel->transform_skip_8 = transform_skip_8_fallback;
