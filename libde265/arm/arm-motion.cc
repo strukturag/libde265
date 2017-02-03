@@ -986,6 +986,19 @@ inline int16x4_t vfilter_epel_4x(int16x4_t row0, int16x4_t row1,
 }
 
 
+inline int16x4_t vfilter_epel_4x_32bit(int16x4_t row0, int16x4_t row1,
+                                       int16x4_t row2, int16x4_t row3,
+                                       const int16_t* filter)
+{
+  int32x4_t sum = vmull_n_s16(row0, filter[0]);
+  sum = vmlal_n_s16(sum, row1, filter[1]);
+  sum = vmlal_n_s16(sum, row2, filter[2]);
+  sum = vmlal_n_s16(sum, row3, filter[3]);
+
+  return vshrn_n_s32(sum, 6);
+}
+
+
 void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
                        const uint8_t *src, ptrdiff_t srcstride,
                        int width, int height,
@@ -1024,6 +1037,51 @@ void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
       int16x4_t row3 = load_u8_to_s16x4(src+(y+2)*srcstride);
 
       int16x4_t result = vfilter_epel_4x(row0,row1,row2,row3, vfilter);
+
+      vst1_s16((dst+dststride*y), result);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+    }
+
+    width-=4;
+    src+=4;
+    dst+=4;
+  }
+
+  if (width>0) {
+    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
+                                  bitdepth);
+  }
+}
+
+
+
+void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
+                        const uint8_t *src, ptrdiff_t srcstride,
+                        int width, int height,
+                        int mx, int my, int16_t* mcbuffer, int bitdepth)
+{
+  const int16_t* vfilter  = epel_filter[my];
+  int16x4_t hfilter  = vld1_s16(epel_filter[mx]);
+  uint8x8_t reorder = vcreate_u8(0xff03ff02ff01ff00LL);
+
+  if (width>=4) {
+    uint8x8_t input0 = vld1_u8(src+(-1)*srcstride -1);
+    int16x4_t row0   = hfilter_epel_4x(input0, hfilter, reorder);
+
+    uint8x8_t input1 = vld1_u8(src+( 0)*srcstride -1);
+    int16x4_t row1   = hfilter_epel_4x(input1, hfilter, reorder);
+
+    uint8x8_t input2 = vld1_u8(src+(+1)*srcstride -1);
+    int16x4_t row2   = hfilter_epel_4x(input2, hfilter, reorder);
+
+    for (int y=0;y<height;y++) {
+      uint8x8_t input3 = vld1_u8(src+(y+2)*srcstride -1);
+      int16x4_t row3   = hfilter_epel_4x(input3, hfilter, reorder);
+
+      int16x4_t result = vfilter_epel_4x_32bit(row0,row1,row2,row3, vfilter);
 
       vst1_s16((dst+dststride*y), result);
 
