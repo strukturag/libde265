@@ -86,5 +86,9 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
       for (int y=0;y<4;y++) {
         accel->put_hevc_qpel_8[x][y] = mc_noshift_8_luma_neon;
       }
+
+    accel->put_hevc_epel_h_8  = mc_epel_hv_8_neon_fake;
+    accel->put_hevc_epel_v_8  = mc_epel_hv_8_neon_fake;
+    accel->put_hevc_epel_hv_8 = mc_epel_hv_8_neon_fake;
   }
 }

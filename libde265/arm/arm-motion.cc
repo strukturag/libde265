@@ -1067,7 +1067,7 @@ void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
   int16x4_t hfilter  = vld1_s16(epel_filter[mx]);
   uint8x8_t reorder = vcreate_u8(0xff03ff02ff01ff00LL);
 
-  if (width>=4) {
+  while (width>=4) {
     uint8x8_t input0 = vld1_u8(src+(-1)*srcstride -1);
     int16x4_t row0   = hfilter_epel_4x(input0, hfilter, reorder);
 
@@ -1095,8 +1095,37 @@ void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
     dst+=4;
   }
 
-  if (width>0) {
-    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
-                                  bitdepth);
+  if (width>=2) {
+    uint8x8_t input0 = vld1_u8(src+(-1)*srcstride -1);
+    int16x4_t row0   = hfilter_epel_4x(input0, hfilter, reorder);
+
+    uint8x8_t input1 = vld1_u8(src+( 0)*srcstride -1);
+    int16x4_t row1   = hfilter_epel_4x(input1, hfilter, reorder);
+
+    uint8x8_t input2 = vld1_u8(src+(+1)*srcstride -1);
+    int16x4_t row2   = hfilter_epel_4x(input2, hfilter, reorder);
+
+    for (int y=0;y<height;y++) {
+      uint8x8_t input3 = vld1_u8(src+(y+2)*srcstride -1);
+      int16x4_t row3   = hfilter_epel_4x(input3, hfilter, reorder);
+
+      int16x4_t result = vfilter_epel_4x_32bit(row0,row1,row2,row3, vfilter);
+
+      vst1_lane_u32((uint32_t*)(dst+dststride*y), vreinterpret_u32_s16(result), 0);
+      //vst1_s16((dst+dststride*y), result);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+    }
   }
+}
+
+
+void mc_epel_hv_8_neon_fake(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth)
+{
+  mc_noshift_8_neon<true>(dst,dststride, src,srcstride, width,height);
 }
