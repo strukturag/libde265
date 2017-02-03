@@ -1138,3 +1138,54 @@ void mc_epel_hv_8_neon_fake(int16_t *dst, ptrdiff_t dststride,
 {
   mc_noshift_8_neon<true>(dst,dststride, src,srcstride, width,height);
 }
+
+
+
+void mc_copy_bi_8_neon(uint8_t* dst, ptrdiff_t dststride,
+                       const void* srcptr1,
+                       const void* srcptr2,
+                       ptrdiff_t srcstride, int width, int height)
+{
+  const uint8_t* src1 = (const uint8_t*)srcptr1;
+  const uint8_t* src2 = (const uint8_t*)srcptr2;
+
+  while (width>=16) {
+    for (int y=0;y<height;y++) {
+      uint8x16_t a = vld1q_u8(src1+srcstride*y);
+      uint8x16_t b = vld1q_u8(src2+srcstride*y);
+      uint8x16_t s = vrhaddq_u8(a,b);
+      vst1q_u8(dst+dststride*y, s);
+    }
+
+    src1+=16;
+    src2+=16;
+    dst+=16;
+    width-=16;
+  }
+
+  if (width>=8) {
+    for (int y=0;y<height;y++) {
+      uint8x8_t a = vld1_u8(src1+srcstride*y);
+      uint8x8_t b = vld1_u8(src2+srcstride*y);
+      uint8x8_t s = vrhadd_u8(a,b);
+      vst1_u8(dst+dststride*y, s);
+    }
+
+    src1+=8;
+    src2+=8;
+    dst +=8;
+    width-=8;
+  }
+
+  if (width>0) {
+    for (int y=0;y<height;y++) {
+      for (int x=0;x<width;x++) {
+        dst[x] = (src1[x] + src2[x] +1) /2;
+      }
+
+      dst  += dststride;
+      src1 += srcstride;
+      src2 += srcstride;
+    }
+  }
+}

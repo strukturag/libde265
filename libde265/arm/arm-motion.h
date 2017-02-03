@@ -110,4 +110,8 @@ void mc_epel_hv_8_neon_fake(int16_t *dst, ptrdiff_t dststride,
                        int width, int height,
                        int mx, int my, int16_t* mcbuffer, int bitdepth);
 
+void mc_copy_bi_8_neon(uint8_t* dst, ptrdiff_t dststride,
+                       const void* src1, const void* src2, ptrdiff_t srcstride,
+                       int width, int height);
+
 #endif

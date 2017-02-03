@@ -78,6 +78,8 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->put_hevc_epel_v_8  = put_epel_v_8_neon;
   accel->put_hevc_epel_hv_8 = put_epel_hv_8_neon;
 
+  accel->mc_copy_bi_8 = mc_copy_bi_8_neon;
+
 
   // only use full-pel motion
 
