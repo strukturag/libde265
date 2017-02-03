@@ -193,9 +193,12 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
   const bool exact = true;
   //printf("PUT-BI-PRED %d %d\n",width,height);
 
-  int16x8_t  zero16 = vdupq_n_s16(0);
+  int16x8_t  zero16;
+  if (exact) {
+    zero16 = vdupq_n_s16(0);
+  }
 
-#if 1
+
   while (width >= 16) {
     for (int y=0;y<height;y++) {
       int16x8_t input1a = vld1q_s16(src1+y*srcstride);
@@ -222,9 +225,8 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
     src2 += 16;
     dst += 16;
   }
-#endif
 
-#if 1
+
   if (width >= 8) {
     for (int y=0;y<height;y++) {
       int16x8_t input1 = vld1q_s16(src1+y*srcstride);
@@ -240,9 +242,8 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
     src2 += 8;
     dst += 8;
   }
-#endif
 
-#if 1
+
   if (width >= 4) {
     for (int y=0;y<height;y++) {
       int16x4_t input1 = vld1_s16(src1+y*srcstride);
@@ -262,7 +263,7 @@ void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
     src2 += 4;
     dst += 4;
   }
-#endif
+
 
   if (width>0) {
     int offset8bit = 64;
@@ -914,21 +915,6 @@ inline int16x4_t hfilter_epel_4x(uint8x8_t input, int16x4_t filter, uint8x8_t re
   int16x4_t p23 = vpadd_s16(pixel2, pixel3);
   int16x4_t p0123 = vpadd_s16(p01,p23);
 
-#if 0
-  Deb(input);
-  Deb(input0);
-  Deb(input1);
-  Deb(input2);
-  Deb(input3);
-
-  Deb(pixel0);
-  Deb(pixel1);
-  Deb(pixel2);
-  Deb(pixel3);
-
-  Deb(p0123);
-#endif
-
   return p0123;
 }
 
@@ -956,8 +942,15 @@ void put_epel_h_8_neon(int16_t *dst, ptrdiff_t dststride,
   }
 
   if (width>0) {
-    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
-                                  bitdepth);
+    // TODO: check whether it is a problem to read 4 pixels when we actually only need 2
+    for (int y=0;y<height;y++) {
+      uint8x8_t input = vld1_u8(src+y*srcstride -1);
+
+      int16x4_t result = hfilter_epel_4x(input, hfilter, reorder);
+
+      vst1_lane_u32((uint32_t*)(dst+dststride*y), vreinterpret_u32_s16(result), 0);
+      //vst1_s16((dst+dststride*y), result);
+    }
   }
 }
 
@@ -1051,8 +1044,23 @@ void put_epel_v_8_neon(int16_t *dst, ptrdiff_t dststride,
   }
 
   if (width>0) {
-    put_epel_hv_fallback<uint8_t>(dst,dststride, src,srcstride, width,height, mx,my, mcbuffer,
-                                  bitdepth);
+    // TODO: check whether it is a problem to read 4 pixels when we actually only need 2
+    int16x4_t row0 = load_u8_to_s16x4(src+(-1)*srcstride);
+    int16x4_t row1 = load_u8_to_s16x4(src+( 0)*srcstride);
+    int16x4_t row2 = load_u8_to_s16x4(src+(+1)*srcstride);
+
+    for (int y=0;y<height;y++) {
+      int16x4_t row3 = load_u8_to_s16x4(src+(y+2)*srcstride);
+
+      int16x4_t result = vfilter_epel_4x(row0,row1,row2,row3, vfilter);
+
+      vst1_lane_u32((uint32_t*)(dst+dststride*y), vreinterpret_u32_s16(result), 0);
+      vst1_s16((dst+dststride*y), result);
+
+      row0=row1;
+      row1=row2;
+      row2=row3;
+    }
   }
 }
 
@@ -1095,7 +1103,8 @@ void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
     dst+=4;
   }
 
-  if (width>=2) {
+  if (width>0) {
+    // TODO: check whether it is a problem to read 4 pixels when we actually only need 2
     uint8x8_t input0 = vld1_u8(src+(-1)*srcstride -1);
     int16x4_t row0   = hfilter_epel_4x(input0, hfilter, reorder);
 

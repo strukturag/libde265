@@ -104,4 +104,10 @@ void put_epel_hv_8_neon(int16_t *dst, ptrdiff_t dststride,
                         int width, int height,
                         int mx, int my, int16_t* mcbuffer, int bitdepth);
 
+// This fake function in fact does no interpolation (direct copy)
+void mc_epel_hv_8_neon_fake(int16_t *dst, ptrdiff_t dststride,
+                       const uint8_t *_src, ptrdiff_t srcstride,
+                       int width, int height,
+                       int mx, int my, int16_t* mcbuffer, int bitdepth);
+
 #endif
