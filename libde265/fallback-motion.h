@@ -101,4 +101,12 @@ QPEL(3,0); QPEL(3,1); QPEL(3,2); QPEL(3,3);
 
 #undef QPEL
 
+void mc_copy_8_fallback(uint8_t* dst, ptrdiff_t dststride,
+                        const void* srcptr,
+                        ptrdiff_t srcstride, int width, int height);
+
+void mc_copy_bi_8_fallback(uint8_t* dst, ptrdiff_t dststride,
+                           const void* srcptr1,
+                           const void* srcptr2,
+                           ptrdiff_t srcstride, int width, int height);
 #endif

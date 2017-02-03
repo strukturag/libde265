@@ -139,6 +139,14 @@ struct acceleration_functions
                      const void *src, ptrdiff_t srcstride, int width, int height,
                      int16_t* mcbuffer, int dX,int dY, int bit_depth) const;
 
+  void (*mc_copy_8)(uint8_t* dst, ptrdiff_t dststride,
+                    const void* src, ptrdiff_t srcstride, int width, int height);
+
+  void (*mc_copy_bi_8)(uint8_t* dst, ptrdiff_t dststride,
+                       const void* src1, const void* src2, ptrdiff_t srcstride,
+                       int width, int height);
+
+
 
   // --- inverse transforms ---
 
