@@ -622,12 +622,20 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     */
 
 
-    // find last non-zero coefficient to reduce computations carried out in DCT
+    // Find last non-zero coefficient to reduce computations carried out in DCT.
+    // We cannot simply set this to 'maxRow', since the coefficients may be very sparse
+    // and there are some columns which have no or almost no coefficients. Since all columns
+    // are computed independently, we want to skip as much of the computations as possible
+    // for each column separately.
 
     int lastCol = nT-1;
     for (;lastCol>=0;lastCol--) {
       if (coeffs[c+lastCol*nT]) { break; }
     }
+
+    //printf("row: %d %d\n",lastCol, maxRow);
+    //int lastCol = maxRow;
+
 
     for (int i=0;i<nT;i++) {
       int sum=0;
@@ -684,10 +692,13 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
     // find last non-zero coefficient to reduce computations carried out in DCT
 
+#if 0
     int lastCol = nT-1;
     for (;lastCol>=0;lastCol--) {
       if (g[y*nT+lastCol]) { break; }
     }
+#endif
+    int lastCol = maxColumn;
 
 
     for (int i=0;i<nT;i++) {
