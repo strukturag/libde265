@@ -24,6 +24,7 @@
 
 #include "arm.h"
 #include "arm-motion.h"
+#include "arm-dct.h"
 #include "libde265/de265.h"
 
 #include <stdio.h>
@@ -93,4 +94,12 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
     accel->put_hevc_epel_v_8  = mc_epel_hv_8_neon_fake;
     accel->put_hevc_epel_hv_8 = mc_epel_hv_8_neon_fake;
   }
+
+
+  // transforms
+
+  accel->transform_add_8[0] = idct_4x4_add_8_neon;
+  accel->transform_add_8[1] = idct_8x8_add_8_neon;
+  accel->transform_add_8[2] = idct_16x16_add_8_neon;
+  accel->transform_add_8[3] = idct_32x32_add_8_neon;
 }
