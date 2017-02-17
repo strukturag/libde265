@@ -104,6 +104,11 @@ inline void print(uint32x2_t& v)
 #endif
 
 
+int tcnt4[4][4];
+int tcnt8[8][8];
+int tcnt16[16][16];
+int tcnt32[32][32];
+
 
 /*
   64  83  64  36
@@ -169,11 +174,6 @@ inline void transpose_4x4(int16x4_t& out1, int16x4_t& out2, int16x4_t& out3, int
   int32x2x2_t out13 = vtrn_s32(tmp1_32,tmp3_32);
   int32x2x2_t out24 = vtrn_s32(tmp2_32,tmp4_32);
 
-  Deb(out13.val[0]);
-  Deb(out24.val[0]);
-  Deb(out13.val[1]);
-  Deb(out24.val[1]);
-
   out1 = vreinterpret_s16_s32( out13.val[0] );
   out2 = vreinterpret_s16_s32( out24.val[0] );
   out3 = vreinterpret_s16_s32( out13.val[1] );
@@ -184,6 +184,8 @@ inline void transpose_4x4(int16x4_t& out1, int16x4_t& out2, int16x4_t& out3, int
 void idct_4x4_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
                          int maxColumn,int maxRow)
 {
+  tcnt4[maxColumn][maxRow]++;
+
   //printf("%d %d\n",maxColumn,maxRow);
 
   if (maxColumn==0 && maxRow==0) {
@@ -370,6 +372,8 @@ void idct_4x4_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
 void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
                          int maxColumn,int maxRow)
 {
+  tcnt8[maxColumn][maxRow]++;
+
   //printf("%d %d\n",maxColumn,maxRow);
 
   if (maxColumn==0 && maxRow==0) {
@@ -602,9 +606,137 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
 
 
 
+void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
+                                      int32x4_t row1, int32x4_t row2, int32x4_t row3, int32x4_t row4)
+{
+  int32x4_t coeff1,coeff2,coeff3,coeff4;
+  transpose_4x4(coeff1,coeff2,coeff3,coeff4, row1,row2,row3,row4);
+
+  int32x4_t  v1_A  = vshlq_n_s32(coeff1, 6); // * 64
+  int32x4_t  v2_90 = vmulq_n_s32(coeff2, 90);
+  int32x4_t  v2_87 = vmulq_n_s32(coeff2, 87);
+  int32x4_t  v2_80 = vmulq_n_s32(coeff2, 80);
+  int32x4_t  v2_70 = vmulq_n_s32(coeff2, 70);
+  int32x4_t  v2_57 = vmulq_n_s32(coeff2, 57);
+  int32x4_t  v2_43 = vmulq_n_s32(coeff2, 43);
+  int32x4_t  v2_25 = vmulq_n_s32(coeff2, 25);
+  int32x4_t  v2_09 = vmulq_n_s32(coeff2,  9);
+  int32x4_t  v3_89 = vmulq_n_s32(coeff3, 89);
+  int32x4_t  v3_75 = vmulq_n_s32(coeff3, 75);
+  int32x4_t  v3_50 = vmulq_n_s32(coeff3, 50);
+  int32x4_t  v3_18 = vmulq_n_s32(coeff3, 18);
+  int32x4_t  v4_87 = vmulq_n_s32(coeff4, 87);
+  int32x4_t  v4_57 = vmulq_n_s32(coeff4, 57);
+  int32x4_t  v4_09 = vmulq_n_s32(coeff4,  9);
+  int32x4_t  v4m43 = vmulq_n_s32(coeff4,-43);
+  int32x4_t  v4m80 = vmulq_n_s32(coeff4,-80);
+  int32x4_t  v4m90 = vmulq_n_s32(coeff4,-90);
+  int32x4_t  v4m70 = vmulq_n_s32(coeff4,-70);
+  int32x4_t  v4m25 = vmulq_n_s32(coeff4,-25);
+
+  int32x4_t  v_pAp89 = vaddq_s32(v1_A, v3_89);
+  int32x4_t  v_pAp75 = vaddq_s32(v1_A, v3_75);
+  int32x4_t  v_pAp50 = vaddq_s32(v1_A, v3_50);
+  int32x4_t  v_pAp18 = vaddq_s32(v1_A, v3_18);
+  int32x4_t  v_pAm89 = vsubq_s32(v1_A, v3_89);
+  int32x4_t  v_pAm75 = vsubq_s32(v1_A, v3_75);
+  int32x4_t  v_pAm50 = vsubq_s32(v1_A, v3_50);
+  int32x4_t  v_pAm18 = vsubq_s32(v1_A, v3_18);
+
+  int32x4_t  v_p90p87 = vaddq_s32(v2_90, v4_87);
+  int32x4_t  v_p87p57 = vaddq_s32(v2_87, v4_57);
+  int32x4_t  v_p80p09 = vaddq_s32(v2_80, v4_09);
+  int32x4_t  v_p70m43 = vaddq_s32(v2_70, v4m43);
+  int32x4_t  v_p57m80 = vaddq_s32(v2_57, v4m80);
+  int32x4_t  v_p43m90 = vaddq_s32(v2_43, v4m90);
+  int32x4_t  v_p25m70 = vaddq_s32(v2_25, v4m70);
+  int32x4_t  v_p09m25 = vaddq_s32(v2_09, v4m25);
+
+  int32x4_t  v_row01 = vaddq_s32(v_pAp89, v_p90p87);
+  int32x4_t  v_row02 = vaddq_s32(v_pAp75, v_p87p57);
+  int32x4_t  v_row03 = vaddq_s32(v_pAp50, v_p80p09);
+  int32x4_t  v_row04 = vaddq_s32(v_pAp18, v_p70m43);
+  int32x4_t  v_row05 = vaddq_s32(v_pAm18, v_p57m80);
+  int32x4_t  v_row06 = vaddq_s32(v_pAm50, v_p43m90);
+  int32x4_t  v_row07 = vaddq_s32(v_pAm75, v_p25m70);
+  int32x4_t  v_row08 = vaddq_s32(v_pAm89, v_p09m25);
+
+  int32x4_t  v_row09 = vsubq_s32(v_pAm89, v_p09m25);
+  int32x4_t  v_row10 = vsubq_s32(v_pAm75, v_p25m70);
+  int32x4_t  v_row11 = vsubq_s32(v_pAm50, v_p43m90);
+  int32x4_t  v_row12 = vsubq_s32(v_pAm18, v_p57m80);
+  int32x4_t  v_row13 = vsubq_s32(v_pAp18, v_p70m43);
+  int32x4_t  v_row14 = vsubq_s32(v_pAp50, v_p80p09);
+  int32x4_t  v_row15 = vsubq_s32(v_pAp75, v_p87p57);
+  int32x4_t  v_row16 = vsubq_s32(v_pAp89, v_p90p87);
+
+  int16x4_t v_row01_16 = vqrshrn_n_s32( v_row01, 12 );
+  int16x4_t v_row02_16 = vqrshrn_n_s32( v_row02, 12 );
+  int16x4_t v_row03_16 = vqrshrn_n_s32( v_row03, 12 );
+  int16x4_t v_row04_16 = vqrshrn_n_s32( v_row04, 12 );
+  int16x4_t v_row05_16 = vqrshrn_n_s32( v_row05, 12 );
+  int16x4_t v_row06_16 = vqrshrn_n_s32( v_row06, 12 );
+  int16x4_t v_row07_16 = vqrshrn_n_s32( v_row07, 12 );
+  int16x4_t v_row08_16 = vqrshrn_n_s32( v_row08, 12 );
+  int16x4_t v_row09_16 = vqrshrn_n_s32( v_row09, 12 );
+  int16x4_t v_row10_16 = vqrshrn_n_s32( v_row10, 12 );
+  int16x4_t v_row11_16 = vqrshrn_n_s32( v_row11, 12 );
+  int16x4_t v_row12_16 = vqrshrn_n_s32( v_row12, 12 );
+  int16x4_t v_row13_16 = vqrshrn_n_s32( v_row13, 12 );
+  int16x4_t v_row14_16 = vqrshrn_n_s32( v_row14, 12 );
+  int16x4_t v_row15_16 = vqrshrn_n_s32( v_row15, 12 );
+  int16x4_t v_row16_16 = vqrshrn_n_s32( v_row16, 12 );
+
+  int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8, t9,t10,t11,t12,t13,t14,t15,t16;
+  transpose_4x4(t1, t2, t3, t4,  v_row01_16, v_row02_16, v_row03_16, v_row04_16);
+  transpose_4x4(t5, t6, t7, t8,  v_row05_16, v_row06_16, v_row07_16, v_row08_16);
+  transpose_4x4(t9, t10,t11,t12, v_row09_16, v_row10_16, v_row11_16, v_row12_16);
+  transpose_4x4(t13,t14,t15,t16, v_row13_16, v_row14_16, v_row15_16, v_row16_16);
+
+  int16x8_t  out1L = vcombine_s16(t1, t5);
+  int16x8_t  out2L = vcombine_s16(t2, t6);
+  int16x8_t  out3L = vcombine_s16(t3, t7);
+  int16x8_t  out4L = vcombine_s16(t4, t8);
+  int16x8_t  out1R = vcombine_s16(t9, t13);
+  int16x8_t  out2R = vcombine_s16(t10,t14);
+  int16x8_t  out3R = vcombine_s16(t11,t15);
+  int16x8_t  out4R = vcombine_s16(t12,t16);
+
+  uint8x8_t input1L,input2L,input3L,input4L;
+  uint8x8_t input1R,input2R,input3R,input4R;
+  input1L = vld1_u8(dst + 0*stride);
+  input1R = vld1_u8(dst + 0*stride +8);
+  input2L = vld1_u8(dst + 1*stride);
+  input2R = vld1_u8(dst + 1*stride +8);
+  input3L = vld1_u8(dst + 2*stride);
+  input3R = vld1_u8(dst + 2*stride +8);
+  input4L = vld1_u8(dst + 3*stride);
+  input4R = vld1_u8(dst + 3*stride +8);
+
+  int16x8_t  result1_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1L)), out1L);
+  vst1_u8(dst + 0*stride,   vqmovun_s16(result1_s16L));
+  int16x8_t  result1_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1R)), out1R);
+  vst1_u8(dst + 0*stride+8, vqmovun_s16(result1_s16R));
+  int16x8_t  result2_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2L)), out2L);
+  vst1_u8(dst + 1*stride,   vqmovun_s16(result2_s16L));
+  int16x8_t  result2_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2R)), out2R);
+  vst1_u8(dst + 1*stride+8, vqmovun_s16(result2_s16R));
+  int16x8_t  result3_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3L)), out3L);
+  vst1_u8(dst + 2*stride,   vqmovun_s16(result3_s16L));
+  int16x8_t  result3_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3R)), out3R);
+  vst1_u8(dst + 2*stride+8, vqmovun_s16(result3_s16R));
+  int16x8_t  result4_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4L)), out4L);
+  vst1_u8(dst + 3*stride,   vqmovun_s16(result4_s16L));
+  int16x8_t  result4_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4R)), out4R);
+  vst1_u8(dst + 3*stride+8, vqmovun_s16(result4_s16R));
+}
+
+
 void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
                            int maxColumn,int maxRow)
 {
+  tcnt16[maxColumn][maxRow]++;
+
   //printf("%d %d\n",maxColumn,maxRow);
 
   if (maxColumn==0 && maxRow==0) {
@@ -630,6 +762,109 @@ void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
       }
     }
   }
+  else if (maxColumn<=3 && maxRow<=3) {
+    int16x4_t  coeff1 = vld1_s16(coeffs);
+    int16x4_t  coeff2 = vld1_s16(coeffs+16);
+    int16x4_t  coeff3 = vld1_s16(coeffs+32);
+    int16x4_t  coeff4 = vld1_s16(coeffs+48);
+
+    int32x4_t  v1_A = vshll_n_s16(coeff1, 6); // * 64
+    int32x4_t  v2_90 = vmull_n_s16(coeff2, 90);
+    int32x4_t  v2_87 = vmull_n_s16(coeff2, 87);
+    int32x4_t  v2_80 = vmull_n_s16(coeff2, 80);
+    int32x4_t  v2_70 = vmull_n_s16(coeff2, 70);
+    int32x4_t  v2_57 = vmull_n_s16(coeff2, 57);
+    int32x4_t  v2_43 = vmull_n_s16(coeff2, 43);
+    int32x4_t  v2_25 = vmull_n_s16(coeff2, 25);
+    int32x4_t  v2_09 = vmull_n_s16(coeff2,  9);
+    int32x4_t  v3_89 = vmull_n_s16(coeff3, 89);
+    int32x4_t  v3_75 = vmull_n_s16(coeff3, 75);
+    int32x4_t  v3_50 = vmull_n_s16(coeff3, 50);
+    int32x4_t  v3_18 = vmull_n_s16(coeff3, 18);
+    int32x4_t  v4_87 = vmull_n_s16(coeff4, 87);
+    int32x4_t  v4_57 = vmull_n_s16(coeff4, 57);
+    int32x4_t  v4_09 = vmull_n_s16(coeff4,  9);
+    int32x4_t  v4m43 = vmull_n_s16(coeff4,-43);
+    int32x4_t  v4m80 = vmull_n_s16(coeff4,-80);
+    int32x4_t  v4m90 = vmull_n_s16(coeff4,-90);
+    int32x4_t  v4m70 = vmull_n_s16(coeff4,-70);
+    int32x4_t  v4m25 = vmull_n_s16(coeff4,-25);
+
+    int32x4_t  v_pAp89 = vaddq_s32(v1_A, v3_89);
+    int32x4_t  v_pAp75 = vaddq_s32(v1_A, v3_75);
+    int32x4_t  v_pAp50 = vaddq_s32(v1_A, v3_50);
+    int32x4_t  v_pAp18 = vaddq_s32(v1_A, v3_18);
+    int32x4_t  v_pAm89 = vsubq_s32(v1_A, v3_89);
+    int32x4_t  v_pAm75 = vsubq_s32(v1_A, v3_75);
+    int32x4_t  v_pAm50 = vsubq_s32(v1_A, v3_50);
+    int32x4_t  v_pAm18 = vsubq_s32(v1_A, v3_18);
+
+    int32x4_t  v_p90p87 = vaddq_s32(v2_90, v4_87);
+    int32x4_t  v_p87p57 = vaddq_s32(v2_87, v4_57);
+    int32x4_t  v_p80p09 = vaddq_s32(v2_80, v4_09);
+    int32x4_t  v_p70m43 = vaddq_s32(v2_70, v4m43);
+    int32x4_t  v_p57m80 = vaddq_s32(v2_57, v4m80);
+    int32x4_t  v_p43m90 = vaddq_s32(v2_43, v4m90);
+    int32x4_t  v_p25m70 = vaddq_s32(v2_25, v4m70);
+    int32x4_t  v_p09m25 = vaddq_s32(v2_09, v4m25);
+
+    int32x4_t  v_row01 = vaddq_s32(v_pAp89, v_p90p87);
+    int32x4_t  v_row02 = vaddq_s32(v_pAp75, v_p87p57);
+    int32x4_t  v_row03 = vaddq_s32(v_pAp50, v_p80p09);
+    int32x4_t  v_row04 = vaddq_s32(v_pAp18, v_p70m43);
+    int32x4_t  v_row05 = vaddq_s32(v_pAm18, v_p57m80);
+    int32x4_t  v_row06 = vaddq_s32(v_pAm50, v_p43m90);
+    int32x4_t  v_row07 = vaddq_s32(v_pAm75, v_p25m70);
+    int32x4_t  v_row08 = vaddq_s32(v_pAm89, v_p09m25);
+
+    int32x4_t  v_row09 = vsubq_s32(v_pAm89, v_p09m25);
+    int32x4_t  v_row10 = vsubq_s32(v_pAm75, v_p25m70);
+    int32x4_t  v_row11 = vsubq_s32(v_pAm50, v_p43m90);
+    int32x4_t  v_row12 = vsubq_s32(v_pAm18, v_p57m80);
+    int32x4_t  v_row13 = vsubq_s32(v_pAp18, v_p70m43);
+    int32x4_t  v_row14 = vsubq_s32(v_pAp50, v_p80p09);
+    int32x4_t  v_row15 = vsubq_s32(v_pAp75, v_p87p57);
+    int32x4_t  v_row16 = vsubq_s32(v_pAp89, v_p90p87);
+
+    v_row01 = vrshrq_n_s32( v_row01, 7 );
+    v_row02 = vrshrq_n_s32( v_row02, 7 );
+    v_row03 = vrshrq_n_s32( v_row03, 7 );
+    v_row04 = vrshrq_n_s32( v_row04, 7 );
+    v_row05 = vrshrq_n_s32( v_row05, 7 );
+    v_row06 = vrshrq_n_s32( v_row06, 7 );
+    v_row07 = vrshrq_n_s32( v_row07, 7 );
+    v_row08 = vrshrq_n_s32( v_row08, 7 );
+    v_row09 = vrshrq_n_s32( v_row09, 7 );
+    v_row10 = vrshrq_n_s32( v_row10, 7 );
+    v_row11 = vrshrq_n_s32( v_row11, 7 );
+    v_row12 = vrshrq_n_s32( v_row12, 7 );
+    v_row13 = vrshrq_n_s32( v_row13, 7 );
+    v_row14 = vrshrq_n_s32( v_row14, 7 );
+    v_row15 = vrshrq_n_s32( v_row15, 7 );
+    v_row16 = vrshrq_n_s32( v_row16, 7 );
+
+    Deb(v_row01);
+    Deb(v_row02);
+    Deb(v_row03);
+    Deb(v_row04);
+    Deb(v_row05);
+    Deb(v_row06);
+    Deb(v_row07);
+    Deb(v_row08);
+    Deb(v_row09);
+    Deb(v_row10);
+    Deb(v_row11);
+    Deb(v_row12);
+    Deb(v_row13);
+    Deb(v_row14);
+    Deb(v_row15);
+    Deb(v_row16);
+
+    transform_16x16_add_4coeff_horiz(dst,           stride, v_row01,v_row02,v_row03,v_row04);
+    transform_16x16_add_4coeff_horiz(dst+ 4*stride, stride, v_row05,v_row06,v_row07,v_row08);
+    transform_16x16_add_4coeff_horiz(dst+ 8*stride, stride, v_row09,v_row10,v_row11,v_row12);
+    transform_16x16_add_4coeff_horiz(dst+12*stride, stride, v_row13,v_row14,v_row15,v_row16);
+  }
   else {
     transform_16x16_add_8_fallback(dst,coeffs,stride,maxColumn,maxRow);
   }
@@ -639,6 +874,8 @@ void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
 void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
                            int maxColumn,int maxRow)
 {
+  tcnt32[maxColumn][maxRow]++;
+
   //printf("%d %d\n",maxColumn,maxRow);
 
   if (maxColumn==0 && maxRow==0) {
@@ -670,7 +907,32 @@ void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
       }
     }
   }
+  //else if (maxColumn<=7 && maxRow<=7) {
+  //}
   else {
     transform_32x32_add_8_fallback(dst,coeffs,stride,maxColumn,maxRow);
   }
+}
+
+
+#include <iostream>
+template <int n> void dump_matrix(int m[n][n])
+{
+  for (int y=0;y<n;y++) {
+    for(int x=0;x<n;x++) {
+      std::cout << x << " " << y << " " << m[x][y] << "   #s" << n << "\n";
+    }
+    std::cout << "#s" << n << "\n";
+  }
+}
+
+
+void debug_dump_dct_sizes()
+{
+#if 0
+  dump_matrix<4>(tcnt4);
+  dump_matrix<8>(tcnt8);
+  dump_matrix<16>(tcnt16);
+  dump_matrix<32>(tcnt32);
+#endif
 }
