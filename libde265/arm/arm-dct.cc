@@ -161,22 +161,23 @@ inline void transpose_4x4(int16x4_t& out1, int16x4_t& out2, int16x4_t& out3, int
   Deb(tmp34.val[0]);
   Deb(tmp34.val[1]);
 
-  int16x8_t t12 = vcombine_s16(tmp12.val[0],tmp12.val[1]);
-  int16x8_t t34 = vcombine_s16(tmp34.val[0],tmp34.val[1]);
+  int32x2_t tmp1_32 = vreinterpret_s32_s16(tmp12.val[0]);
+  int32x2_t tmp2_32 = vreinterpret_s32_s16(tmp12.val[1]);
+  int32x2_t tmp3_32 = vreinterpret_s32_s16(tmp34.val[0]);
+  int32x2_t tmp4_32 = vreinterpret_s32_s16(tmp34.val[1]);
 
-  Deb(t12);
-  Deb(t34);
+  int32x2x2_t out13 = vtrn_s32(tmp1_32,tmp3_32);
+  int32x2x2_t out24 = vtrn_s32(tmp2_32,tmp4_32);
 
-  int32x4x2_t out = vtrnq_s32( vreinterpretq_s32_s16(t12),
-                               vreinterpretq_s32_s16(t34) );
+  Deb(out13.val[0]);
+  Deb(out24.val[0]);
+  Deb(out13.val[1]);
+  Deb(out24.val[1]);
 
-  Deb(out.val[0]);
-  Deb(out.val[1]);
-
-  out1 = vreinterpret_s16_s32( vget_low_s32 (out.val[0]) );
-  out2 = vreinterpret_s16_s32( vget_high_s32(out.val[0]) );
-  out3 = vreinterpret_s16_s32( vget_low_s32 (out.val[1]) );
-  out4 = vreinterpret_s16_s32( vget_high_s32(out.val[1]) );
+  out1 = vreinterpret_s16_s32( out13.val[0] );
+  out2 = vreinterpret_s16_s32( out24.val[0] );
+  out3 = vreinterpret_s16_s32( out13.val[1] );
+  out4 = vreinterpret_s16_s32( out24.val[1] );
 }
 
 
