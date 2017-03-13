@@ -413,7 +413,7 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
     }
 #endif
   }
-  else if (maxColumn<=3 && maxRow<=3) {
+  else if (maxColumn<=3 && maxRow<=7) {
     int16x4_t  coeff1 = vld1_s16(coeffs);
     int16x4_t  coeff2 = vld1_s16(coeffs+8);
     int16x4_t  coeff3 = vld1_s16(coeffs+16);
@@ -450,6 +450,44 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
     int32x4_t  v_row6 = vsubq_s32(v_pAmG, v_pDmJ);
     int32x4_t  v_row7 = vsubq_s32(v_pApG, v_pCmI);
     int32x4_t  v_row8 = vsubq_s32(v_pApF, v_pBpH);
+
+    if (maxRow >= 4) {
+      int16x4_t  coeff1b = vld1_s16(coeffs    + 4*8);
+      int16x4_t  coeff2b = vld1_s16(coeffs+8  + 4*8);
+      int16x4_t  coeff3b = vld1_s16(coeffs+16 + 4*8);
+      int16x4_t  coeff4b = vld1_s16(coeffs+24 + 4*8);
+
+      int32x4_t  v5_p64 = vshll_n_s16(coeff1b, 6); // * 64
+      int32x4_t  v7_p36 = vmull_n_s16(coeff3b, 36);
+      int32x4_t  v7_p83 = vmull_n_s16(coeff3b, 83);
+      int32x4_t  v_p64p36 = vaddq_s32(v5_p64, v7_p36);
+      int32x4_t  v_p64m36 = vsubq_s32(v5_p64, v7_p36);
+      int32x4_t  v_p64p83 = vaddq_s32(v5_p64, v7_p83);
+      int32x4_t  v_p64m83 = vsubq_s32(v5_p64, v7_p83);
+
+      v_row1 = vaddq_s32(v_row1,v_p64p36);
+      v_row2 = vsubq_s32(v_row2,v_p64p83);
+      v_row3 = vsubq_s32(v_row3,v_p64m83);
+      v_row4 = vaddq_s32(v_row4,v_p64m36);
+      v_row5 = vaddq_s32(v_row5,v_p64m36);
+      v_row6 = vsubq_s32(v_row6,v_p64m83);
+      v_row7 = vsubq_s32(v_row7,v_p64p83);
+      v_row8 = vaddq_s32(v_row8,v_p64p36);
+
+      int32x4_t  v_p50p18 = vaddq_s32( vmull_n_s16(coeff2b, 50), vmull_n_s16(coeff4b, 18) );
+      int32x4_t  v_m89m50 = vaddq_s32( vmull_n_s16(coeff2b,-89), vmull_n_s16(coeff4b,-50) );
+      int32x4_t  v_p18p75 = vaddq_s32( vmull_n_s16(coeff2b, 18), vmull_n_s16(coeff4b, 75) );
+      int32x4_t  v_p75m89 = vaddq_s32( vmull_n_s16(coeff2b, 75), vmull_n_s16(coeff4b,-89) );
+
+      v_row1 = vaddq_s32(v_row1,v_p50p18);
+      v_row2 = vaddq_s32(v_row2,v_m89m50);
+      v_row3 = vaddq_s32(v_row3,v_p18p75);
+      v_row4 = vaddq_s32(v_row4,v_p75m89);
+      v_row5 = vsubq_s32(v_row5,v_p75m89);
+      v_row6 = vsubq_s32(v_row6,v_p18p75);
+      v_row7 = vsubq_s32(v_row7,v_m89m50);
+      v_row8 = vsubq_s32(v_row8,v_p50p18);
+    }
 
     v_row1 = vrshrq_n_s32( v_row1, 7 );
     v_row2 = vrshrq_n_s32( v_row2, 7 );
