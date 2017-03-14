@@ -91,8 +91,8 @@ inline void print(int16x4_t& v)
 
 
 template <bool chroma, bool exact>
-inline void put_pred_8_neon_intern(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                                   const int16_t __restrict__ *src, ptrdiff_t srcstride,
+inline void put_pred_8_neon_intern(uint8_t* __restrict__ dst, ptrdiff_t dststride,
+                                   const int16_t* __restrict__ src, ptrdiff_t srcstride,
                                    int width, int height)
 {
   //printf("PUT-PRED %d %d\n",width,height);
@@ -177,17 +177,17 @@ inline void put_pred_8_neon_intern(uint8_t __restrict__ *dst, ptrdiff_t dststrid
 }
 
 
-void put_pred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                     const int16_t __restrict__ *src, ptrdiff_t srcstride,
+void put_pred_8_neon(uint8_t* __restrict__ dst, ptrdiff_t dststride,
+                     const int16_t* __restrict__ src, ptrdiff_t srcstride,
                      int width, int height)
 {
   put_pred_8_neon_intern<true,true>(dst,dststride, src,srcstride, width,height);
 }
 
 
-void put_bipred_8_neon(uint8_t __restrict__ *dst, ptrdiff_t dststride,
-                       const int16_t __restrict__ *src1,
-                       const int16_t __restrict__ *src2, ptrdiff_t srcstride,
+void put_bipred_8_neon(uint8_t* __restrict__ dst, ptrdiff_t dststride,
+                       const int16_t* __restrict__ src1,
+                       const int16_t* __restrict__ src2, ptrdiff_t srcstride,
                        int width, int height)
 {
   const bool exact = true;
