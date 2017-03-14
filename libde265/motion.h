@@ -71,7 +71,7 @@ class PBMotionCoding
 
 void get_merge_candidate_list(base_context* ctx,
                               const slice_segment_header* shdr,
-                              struct image* img,
+                              class image* img,
                               int xC,int yC, int xP,int yP,
                               int nCS, int nPbW,int nPbH, int partIdx,
                               PBMotion* mergeCandList);
@@ -95,7 +95,7 @@ int derive_spatial_merging_candidates(const struct image* img,
 void generate_inter_prediction_samples(base_context* ctx,
                                        const image_history* imgbuffers,
                                        const slice_segment_header* shdr,
-                                       struct image* img,
+                                       class image* img,
                                        int xP,int yP,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi);
