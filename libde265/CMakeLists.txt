@@ -83,7 +83,9 @@ endif()
 add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
 target_link_libraries(${LIBDE265_LIBRARY_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
-if(NOT MSVC)
+
+check_library_exists(rt clock_gettime "time.h" NEED_LIBRT)
+if(NEED_LIBRT)
   target_link_libraries(${LIBDE265_LIBRARY_NAME} rt)
 endif()
 
