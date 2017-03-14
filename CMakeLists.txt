@@ -64,5 +64,9 @@ else()
 endif()
 
 add_subdirectory (libde265)
-add_subdirectory (dec265)
-add_subdirectory (enc265)
+
+option(DISABLE_EXECUTABLES "Disable compilation of executables (compile only library)" OFF)
+if(NOT ${DISABLE_EXECUTABLES})
+  add_subdirectory (dec265)
+  add_subdirectory (enc265)
+endif()
