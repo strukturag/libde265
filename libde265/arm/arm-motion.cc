@@ -139,7 +139,7 @@ inline void put_pred_8_neon_intern(uint8_t* __restrict__ dst, ptrdiff_t dststrid
     dst += 8;
   }
 
-#if HAVE_AARCH64
+#if 0 // HAVE_AARCH64
   // this only works on AArch64, since we have unaligned memory accesses in vst1_lane_u32()
   // probably, these are 6-pixel wide blocks (asymmetric MC partition: 2+6, hence, when we
   // would do the 2 pixels first, we would be at an aligned address again for the 4 pixel processing
@@ -248,7 +248,7 @@ void put_bipred_8_neon(uint8_t* __restrict__ dst, ptrdiff_t dststride,
   }
 
 
-#if HAVE_AARCH64
+#if 0 // HAVE_AARCH64
   // this only works on AArch64, since we have unaligned memory accesses in vst1_lane_u32()
 
   if (width >= 4) {
