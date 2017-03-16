@@ -468,14 +468,14 @@ static inline void idct_h8_x4_32bit_neon(int32x4_t in1,
                                          int32x4_t in2,
                                          int32x4_t in3,
                                          int32x4_t in4,
-                                         int16x4_t& out_row1,
-                                         int16x4_t& out_row2,
-                                         int16x4_t& out_row3,
-                                         int16x4_t& out_row4,
-                                         int16x4_t& out_row5,
-                                         int16x4_t& out_row6,
-                                         int16x4_t& out_row7,
-                                         int16x4_t& out_row8)
+                                         int32x4_t& out_row1,
+                                         int32x4_t& out_row2,
+                                         int32x4_t& out_row3,
+                                         int32x4_t& out_row4,
+                                         int32x4_t& out_row5,
+                                         int32x4_t& out_row6,
+                                         int32x4_t& out_row7,
+                                         int32x4_t& out_row8)
 {
   int32x4_t  h1L_A = vshlq_n_s32(in1, 6); // * 64
   int32x4_t  h2L_B = vmulq_n_s32(in2, 89);
@@ -499,24 +499,70 @@ static inline void idct_h8_x4_32bit_neon(int32x4_t in1,
   int32x4_t  hL_pDmJ = vsubq_s32(h2L_D, h4L_J);
   int32x4_t  hL_pEmK = vsubq_s32(h2L_E, h4L_K);
 
-  int32x4_t  hL_row1 = vaddq_s32(hL_pApF, hL_pBpH);
-  int32x4_t  hL_row2 = vaddq_s32(hL_pApG, hL_pCmI);
-  int32x4_t  hL_row3 = vaddq_s32(hL_pAmG, hL_pDmJ);
-  int32x4_t  hL_row4 = vaddq_s32(hL_pAmF, hL_pEmK);
+  out_row1 = vaddq_s32(hL_pApF, hL_pBpH);
+  out_row2 = vaddq_s32(hL_pApG, hL_pCmI);
+  out_row3 = vaddq_s32(hL_pAmG, hL_pDmJ);
+  out_row4 = vaddq_s32(hL_pAmF, hL_pEmK);
 
-  int32x4_t  hL_row5 = vsubq_s32(hL_pAmF, hL_pEmK);
-  int32x4_t  hL_row6 = vsubq_s32(hL_pAmG, hL_pDmJ);
-  int32x4_t  hL_row7 = vsubq_s32(hL_pApG, hL_pCmI);
-  int32x4_t  hL_row8 = vsubq_s32(hL_pApF, hL_pBpH);
+  out_row5 = vsubq_s32(hL_pAmF, hL_pEmK);
+  out_row6 = vsubq_s32(hL_pAmG, hL_pDmJ);
+  out_row7 = vsubq_s32(hL_pApG, hL_pCmI);
+  out_row8 = vsubq_s32(hL_pApF, hL_pBpH);
+}
 
-  out_row1 = vqrshrn_n_s32( hL_row1,12 );
-  out_row2 = vqrshrn_n_s32( hL_row2,12 );
-  out_row3 = vqrshrn_n_s32( hL_row3,12 );
-  out_row4 = vqrshrn_n_s32( hL_row4,12 );
-  out_row5 = vqrshrn_n_s32( hL_row5,12 );
-  out_row6 = vqrshrn_n_s32( hL_row6,12 );
-  out_row7 = vqrshrn_n_s32( hL_row7,12 );
-  out_row8 = vqrshrn_n_s32( hL_row8,12 );
+
+static inline void idct_h8_x4_32bit_neon(int32x4_t in1,
+                                         int32x4_t in2,
+                                         int32x4_t in3,
+                                         int32x4_t in4,
+                                         int32x4_t in5,
+                                         int32x4_t in6,
+                                         int32x4_t in7,
+                                         int32x4_t in8,
+                                         int32x4_t& out_row1,
+                                         int32x4_t& out_row2,
+                                         int32x4_t& out_row3,
+                                         int32x4_t& out_row4,
+                                         int32x4_t& out_row5,
+                                         int32x4_t& out_row6,
+                                         int32x4_t& out_row7,
+                                         int32x4_t& out_row8)
+{
+  idct_h8_x4_32bit_neon(in1, in2, in3, in4,
+                        out_row1, out_row2, out_row3, out_row4,
+                        out_row5, out_row6, out_row7, out_row8);
+
+  int32x4_t  h5_p64 = vshlq_n_s32(in5, 6); // * 64
+  int32x4_t  h7_p36 = vmulq_n_s32(in7, 36);
+  int32x4_t  h7_p83 = vmulq_n_s32(in7, 83);
+
+  int32x4_t  h_p64p36 = vaddq_s32(h5_p64, h7_p36);
+  int32x4_t  h_p64m36 = vsubq_s32(h5_p64, h7_p36);
+  int32x4_t  h_p64p83 = vaddq_s32(h5_p64, h7_p83);
+  int32x4_t  h_p64m83 = vsubq_s32(h5_p64, h7_p83);
+
+  out_row1 = vaddq_s32(out_row1,h_p64p36);
+  out_row2 = vsubq_s32(out_row2,h_p64p83);
+  out_row3 = vsubq_s32(out_row3,h_p64m83);
+  out_row4 = vaddq_s32(out_row4,h_p64m36);
+  out_row5 = vaddq_s32(out_row5,h_p64m36);
+  out_row6 = vsubq_s32(out_row6,h_p64m83);
+  out_row7 = vsubq_s32(out_row7,h_p64p83);
+  out_row8 = vaddq_s32(out_row8,h_p64p36);
+
+  int32x4_t  h_p50p18 = vaddq_s32( vmulq_n_s32(in6, 50), vmulq_n_s32(in8, 18) );
+  int32x4_t  h_m89m50 = vaddq_s32( vmulq_n_s32(in6,-89), vmulq_n_s32(in8,-50) );
+  int32x4_t  h_p18p75 = vaddq_s32( vmulq_n_s32(in6, 18), vmulq_n_s32(in8, 75) );
+  int32x4_t  h_p75m89 = vaddq_s32( vmulq_n_s32(in6, 75), vmulq_n_s32(in8,-89) );
+
+  out_row1 = vaddq_s32(out_row1,h_p50p18);
+  out_row2 = vaddq_s32(out_row2,h_m89m50);
+  out_row3 = vaddq_s32(out_row3,h_p18p75);
+  out_row4 = vaddq_s32(out_row4,h_p75m89);
+  out_row5 = vsubq_s32(out_row5,h_p75m89);
+  out_row6 = vsubq_s32(out_row6,h_p18p75);
+  out_row7 = vsubq_s32(out_row7,h_m89m50);
+  out_row8 = vsubq_s32(out_row8,h_p50p18);
 }
 
 
@@ -548,17 +594,67 @@ static inline void idct_h8_x4_add_neon(int32x4_t in1,
                                        int32x4_t in4,
                                        uint8_t* dst, ptrdiff_t stride)
 {
-  int16x4_t  h_row1,h_row2,h_row3,h_row4;
-  int16x4_t  h_row5,h_row6,h_row7,h_row8;
+  int32x4_t  h_row1,h_row2,h_row3,h_row4;
+  int32x4_t  h_row5,h_row6,h_row7,h_row8;
 
   idct_h8_x4_32bit_neon(in1, in2, in3, in4,
                         h_row1, h_row2, h_row3, h_row4,
                         h_row5, h_row6, h_row7, h_row8);
 
 
+  int16x4_t row1 = vqrshrn_n_s32( h_row1,12 );
+  int16x4_t row2 = vqrshrn_n_s32( h_row2,12 );
+  int16x4_t row3 = vqrshrn_n_s32( h_row3,12 );
+  int16x4_t row4 = vqrshrn_n_s32( h_row4,12 );
+  int16x4_t row5 = vqrshrn_n_s32( h_row5,12 );
+  int16x4_t row6 = vqrshrn_n_s32( h_row6,12 );
+  int16x4_t row7 = vqrshrn_n_s32( h_row7,12 );
+  int16x4_t row8 = vqrshrn_n_s32( h_row8,12 );
+
+
   int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8;
-  transpose_4x4(t1,t2,t3,t4, h_row1, h_row2, h_row3, h_row4);
-  transpose_4x4(t5,t6,t7,t8, h_row5, h_row6, h_row7, h_row8);
+  transpose_4x4(t1,t2,t3,t4, row1, row2, row3, row4);
+  transpose_4x4(t5,t6,t7,t8, row5, row6, row7, row8);
+
+  int16x8_t  out1 = vcombine_s16(t1,t5);
+  int16x8_t  out2 = vcombine_s16(t2,t6);
+  int16x8_t  out3 = vcombine_s16(t3,t7);
+  int16x8_t  out4 = vcombine_s16(t4,t8);
+
+  add_16x8_to_8x8_4rows_neon(out1,out2,out3,out4, dst, stride);
+}
+
+
+static inline void idct_h8_x4_add_neon(int32x4_t in1,
+                                       int32x4_t in2,
+                                       int32x4_t in3,
+                                       int32x4_t in4,
+                                       int32x4_t in5,
+                                       int32x4_t in6,
+                                       int32x4_t in7,
+                                       int32x4_t in8,
+                                       uint8_t* dst, ptrdiff_t stride)
+{
+  int32x4_t  h_row1,h_row2,h_row3,h_row4;
+  int32x4_t  h_row5,h_row6,h_row7,h_row8;
+
+  idct_h8_x4_32bit_neon(in1, in2, in3, in4, in5, in6, in7, in8,
+                        h_row1, h_row2, h_row3, h_row4,
+                        h_row5, h_row6, h_row7, h_row8);
+
+  int16x4_t row1 = vqrshrn_n_s32( h_row1,12 );
+  int16x4_t row2 = vqrshrn_n_s32( h_row2,12 );
+  int16x4_t row3 = vqrshrn_n_s32( h_row3,12 );
+  int16x4_t row4 = vqrshrn_n_s32( h_row4,12 );
+  int16x4_t row5 = vqrshrn_n_s32( h_row5,12 );
+  int16x4_t row6 = vqrshrn_n_s32( h_row6,12 );
+  int16x4_t row7 = vqrshrn_n_s32( h_row7,12 );
+  int16x4_t row8 = vqrshrn_n_s32( h_row8,12 );
+
+
+  int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8;
+  transpose_4x4(t1,t2,t3,t4, row1, row2, row3, row4);
+  transpose_4x4(t5,t6,t7,t8, row5, row6, row7, row8);
 
   int16x8_t  out1 = vcombine_s16(t1,t5);
   int16x8_t  out2 = vcombine_s16(t2,t6);
@@ -637,6 +733,48 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
     // right half
 
     idct_h8_x4_add_neon(h_in1R, h_in2R, h_in3R, h_in4R, dst + 4*stride, stride);
+  }
+  else if (true) {
+    // Note: full 8x8 DCT in NEON does not give significant improvements.
+    // It is not clear whether we should enable this.
+
+    // coefficients on left matrix half
+
+    int32x4_t  v_row1L,v_row2L,v_row3L,v_row4L;
+    int32x4_t  v_row5L,v_row6L,v_row7L,v_row8L;
+
+    idct_v8_x4_16bit_neon(coeffs, maxRow,
+                          v_row1L, v_row2L, v_row3L, v_row4L,
+                          v_row5L, v_row6L, v_row7L, v_row8L);
+
+    // coefficients on right matrix half
+
+    int32x4_t  v_row1R,v_row2R,v_row3R,v_row4R;
+    int32x4_t  v_row5R,v_row6R,v_row7R,v_row8R;
+
+    idct_v8_x4_16bit_neon(coeffs+4, maxRow,
+                          v_row1R, v_row2R, v_row3R, v_row4R,
+                          v_row5R, v_row6R, v_row7R, v_row8R);
+
+    int32x4_t  h_in1L,h_in2L,h_in3L,h_in4L; // top left 4x4 submatrix
+    int32x4_t  h_in1R,h_in2R,h_in3R,h_in4R; // top right 4x4 submatrix
+    transpose_4x4(h_in1L,h_in2L,h_in3L,h_in4L, v_row1L,v_row2L,v_row3L,v_row4L);
+    transpose_4x4(h_in1R,h_in2R,h_in3R,h_in4R, v_row5L,v_row6L,v_row7L,v_row8L);
+
+    int32x4_t  h_in5L,h_in6L,h_in7L,h_in8L; // bottom left 4x4 submatrix
+    int32x4_t  h_in5R,h_in6R,h_in7R,h_in8R; // bottom right 4x4 submatrix
+    transpose_4x4(h_in5L,h_in6L,h_in7L,h_in8L, v_row1R,v_row2R,v_row3R,v_row4R);
+    transpose_4x4(h_in5R,h_in6R,h_in7R,h_in8R, v_row5R,v_row6R,v_row7R,v_row8R);
+
+    // left half
+
+    idct_h8_x4_add_neon(h_in1L, h_in2L, h_in3L, h_in4L, h_in5L, h_in6L, h_in7L, h_in8L,
+                        dst, stride);
+
+    // right half
+
+    idct_h8_x4_add_neon(h_in1R, h_in2R, h_in3R, h_in4R, h_in5R, h_in6R, h_in7R, h_in8R,
+                        dst + 4*stride, stride);
   }
   else {
     transform_8x8_add_8_fallback(dst,coeffs,stride,maxColumn,maxRow);
