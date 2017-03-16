@@ -413,7 +413,7 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
     }
 #endif
   }
-  else if (maxColumn<=3 && maxRow<=7) {
+  else if (maxColumn<=3) {
     int16x4_t  coeff1 = vld1_s16(coeffs);
     int16x4_t  coeff2 = vld1_s16(coeffs+8);
     int16x4_t  coeff3 = vld1_s16(coeffs+16);
