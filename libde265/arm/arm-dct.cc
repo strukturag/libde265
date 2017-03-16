@@ -879,33 +879,8 @@ void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
   int16x8_t  out3R = vcombine_s16(t11,t15);
   int16x8_t  out4R = vcombine_s16(t12,t16);
 
-  uint8x8_t input1L,input2L,input3L,input4L;
-  uint8x8_t input1R,input2R,input3R,input4R;
-  input1L = vld1_u8(dst + 0*stride);
-  input1R = vld1_u8(dst + 0*stride +8);
-  input2L = vld1_u8(dst + 1*stride);
-  input2R = vld1_u8(dst + 1*stride +8);
-  input3L = vld1_u8(dst + 2*stride);
-  input3R = vld1_u8(dst + 2*stride +8);
-  input4L = vld1_u8(dst + 3*stride);
-  input4R = vld1_u8(dst + 3*stride +8);
-
-  int16x8_t  result1_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1L)), out1L);
-  vst1_u8(dst + 0*stride,   vqmovun_s16(result1_s16L));
-  int16x8_t  result1_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1R)), out1R);
-  vst1_u8(dst + 0*stride+8, vqmovun_s16(result1_s16R));
-  int16x8_t  result2_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2L)), out2L);
-  vst1_u8(dst + 1*stride,   vqmovun_s16(result2_s16L));
-  int16x8_t  result2_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2R)), out2R);
-  vst1_u8(dst + 1*stride+8, vqmovun_s16(result2_s16R));
-  int16x8_t  result3_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3L)), out3L);
-  vst1_u8(dst + 2*stride,   vqmovun_s16(result3_s16L));
-  int16x8_t  result3_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3R)), out3R);
-  vst1_u8(dst + 2*stride+8, vqmovun_s16(result3_s16R));
-  int16x8_t  result4_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4L)), out4L);
-  vst1_u8(dst + 3*stride,   vqmovun_s16(result4_s16L));
-  int16x8_t  result4_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4R)), out4R);
-  vst1_u8(dst + 3*stride+8, vqmovun_s16(result4_s16R));
+  add_16x8_to_8x8_4rows_neon(out1L,out2L,out3L,out4L, dst,  stride);
+  add_16x8_to_8x8_4rows_neon(out1R,out2R,out3R,out4R, dst+8,stride);
 }
 
 
@@ -1217,33 +1192,8 @@ void transform_32x32_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
     int16x8_t  out3R = vcombine_s16(t11,t15);
     int16x8_t  out4R = vcombine_s16(t12,t16);
 
-    uint8x8_t input1L,input2L,input3L,input4L;
-    uint8x8_t input1R,input2R,input3R,input4R;
-    input1L = vld1_u8(dst + 0*stride);
-    input1R = vld1_u8(dst + 0*stride +8);
-    input2L = vld1_u8(dst + 1*stride);
-    input2R = vld1_u8(dst + 1*stride +8);
-    input3L = vld1_u8(dst + 2*stride);
-    input3R = vld1_u8(dst + 2*stride +8);
-    input4L = vld1_u8(dst + 3*stride);
-    input4R = vld1_u8(dst + 3*stride +8);
-
-    int16x8_t  result1_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1L)), out1L);
-    vst1_u8(dst + 0*stride,   vqmovun_s16(result1_s16L));
-    int16x8_t  result1_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1R)), out1R);
-    vst1_u8(dst + 0*stride+8, vqmovun_s16(result1_s16R));
-    int16x8_t  result2_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2L)), out2L);
-    vst1_u8(dst + 1*stride,   vqmovun_s16(result2_s16L));
-    int16x8_t  result2_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2R)), out2R);
-    vst1_u8(dst + 1*stride+8, vqmovun_s16(result2_s16R));
-    int16x8_t  result3_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3L)), out3L);
-    vst1_u8(dst + 2*stride,   vqmovun_s16(result3_s16L));
-    int16x8_t  result3_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3R)), out3R);
-    vst1_u8(dst + 2*stride+8, vqmovun_s16(result3_s16R));
-    int16x8_t  result4_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4L)), out4L);
-    vst1_u8(dst + 3*stride,   vqmovun_s16(result4_s16L));
-    int16x8_t  result4_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4R)), out4R);
-    vst1_u8(dst + 3*stride+8, vqmovun_s16(result4_s16R));
+    add_16x8_to_8x8_4rows_neon(out1L,out2L,out3L,out4L, dst,  stride);
+    add_16x8_to_8x8_4rows_neon(out1R,out2R,out3R,out4R, dst+8,stride);
   }
 
   {
@@ -1262,33 +1212,8 @@ void transform_32x32_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
     int16x8_t  out3R = vcombine_s16(t11,t15);
     int16x8_t  out4R = vcombine_s16(t12,t16);
 
-    uint8x8_t input1L,input2L,input3L,input4L;
-    uint8x8_t input1R,input2R,input3R,input4R;
-    input1L = vld1_u8(dst + 0*stride +16);
-    input1R = vld1_u8(dst + 0*stride +24);
-    input2L = vld1_u8(dst + 1*stride +16);
-    input2R = vld1_u8(dst + 1*stride +24);
-    input3L = vld1_u8(dst + 2*stride +16);
-    input3R = vld1_u8(dst + 2*stride +24);
-    input4L = vld1_u8(dst + 3*stride +16);
-    input4R = vld1_u8(dst + 3*stride +24);
-
-    int16x8_t  result1_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1L)), out1L);
-    vst1_u8(dst + 0*stride+16, vqmovun_s16(result1_s16L));
-    int16x8_t  result1_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input1R)), out1R);
-    vst1_u8(dst + 0*stride+24, vqmovun_s16(result1_s16R));
-    int16x8_t  result2_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2L)), out2L);
-    vst1_u8(dst + 1*stride+16, vqmovun_s16(result2_s16L));
-    int16x8_t  result2_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input2R)), out2R);
-    vst1_u8(dst + 1*stride+24, vqmovun_s16(result2_s16R));
-    int16x8_t  result3_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3L)), out3L);
-    vst1_u8(dst + 2*stride+16, vqmovun_s16(result3_s16L));
-    int16x8_t  result3_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input3R)), out3R);
-    vst1_u8(dst + 2*stride+24, vqmovun_s16(result3_s16R));
-    int16x8_t  result4_s16L = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4L)), out4L);
-    vst1_u8(dst + 3*stride+16, vqmovun_s16(result4_s16L));
-    int16x8_t  result4_s16R = vaddq_s16(vreinterpretq_s16_u16( vmovl_u8(input4R)), out4R);
-    vst1_u8(dst + 3*stride+24, vqmovun_s16(result4_s16R));
+    add_16x8_to_8x8_4rows_neon(out1L,out2L,out3L,out4L, dst+16,stride);
+    add_16x8_to_8x8_4rows_neon(out1R,out2R,out3R,out4R, dst+24,stride);
   }
 }
 
@@ -1655,40 +1580,6 @@ void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
     v_row30 = vrshrq_n_s32( v_row30, 7 );
     v_row31 = vrshrq_n_s32( v_row31, 7 );
     v_row32 = vrshrq_n_s32( v_row32, 7 );
-
-    Deb(v_row01);
-    Deb(v_row02);
-    Deb(v_row03);
-    Deb(v_row04);
-    Deb(v_row05);
-    Deb(v_row06);
-    Deb(v_row07);
-    Deb(v_row08);
-    Deb(v_row09);
-    Deb(v_row10);
-    Deb(v_row11);
-    Deb(v_row12);
-    Deb(v_row13);
-    Deb(v_row14);
-    Deb(v_row15);
-    Deb(v_row16);
-
-    Deb(v_row17);
-    Deb(v_row18);
-    Deb(v_row19);
-    Deb(v_row20);
-    Deb(v_row21);
-    Deb(v_row22);
-    Deb(v_row23);
-    Deb(v_row24);
-    Deb(v_row25);
-    Deb(v_row26);
-    Deb(v_row27);
-    Deb(v_row28);
-    Deb(v_row29);
-    Deb(v_row30);
-    Deb(v_row31);
-    Deb(v_row32);
 
     transform_32x32_add_4coeff_horiz(dst,           stride, v_row01,v_row02,v_row03,v_row04);
     transform_32x32_add_4coeff_horiz(dst+ 4*stride, stride, v_row05,v_row06,v_row07,v_row08);
