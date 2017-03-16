@@ -783,12 +783,14 @@ void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
 
 
 
-void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
-                                      int32x4_t row1, int32x4_t row2, int32x4_t row3, int32x4_t row4)
+static inline
+void idct16_4A_neon(int32x4_t coeff1, int32x4_t coeff2,
+                    int32x4_t coeff3, int32x4_t coeff4,
+                    int32x4_t& row01,int32x4_t& row02,int32x4_t& row03,int32x4_t& row04,
+                    int32x4_t& row05,int32x4_t& row06,int32x4_t& row07,int32x4_t& row08,
+                    int32x4_t& row09,int32x4_t& row10,int32x4_t& row11,int32x4_t& row12,
+                    int32x4_t& row13,int32x4_t& row14,int32x4_t& row15,int32x4_t& row16)
 {
-  int32x4_t coeff1,coeff2,coeff3,coeff4;
-  transpose_4x4(coeff1,coeff2,coeff3,coeff4, row1,row2,row3,row4);
-
   int32x4_t  v1_A  = vshlq_n_s32(coeff1, 6); // * 64
   int32x4_t  v2_90 = vmulq_n_s32(coeff2, 90);
   int32x4_t  v2_87 = vmulq_n_s32(coeff2, 87);
@@ -829,40 +831,334 @@ void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
   int32x4_t  v_p25m70 = vaddq_s32(v2_25, v4m70);
   int32x4_t  v_p09m25 = vaddq_s32(v2_09, v4m25);
 
-  int32x4_t  v_row01 = vaddq_s32(v_pAp89, v_p90p87);
-  int32x4_t  v_row02 = vaddq_s32(v_pAp75, v_p87p57);
-  int32x4_t  v_row03 = vaddq_s32(v_pAp50, v_p80p09);
-  int32x4_t  v_row04 = vaddq_s32(v_pAp18, v_p70m43);
-  int32x4_t  v_row05 = vaddq_s32(v_pAm18, v_p57m80);
-  int32x4_t  v_row06 = vaddq_s32(v_pAm50, v_p43m90);
-  int32x4_t  v_row07 = vaddq_s32(v_pAm75, v_p25m70);
-  int32x4_t  v_row08 = vaddq_s32(v_pAm89, v_p09m25);
+  row01 = vaddq_s32(v_pAp89, v_p90p87);
+  row02 = vaddq_s32(v_pAp75, v_p87p57);
+  row03 = vaddq_s32(v_pAp50, v_p80p09);
+  row04 = vaddq_s32(v_pAp18, v_p70m43);
+  row05 = vaddq_s32(v_pAm18, v_p57m80);
+  row06 = vaddq_s32(v_pAm50, v_p43m90);
+  row07 = vaddq_s32(v_pAm75, v_p25m70);
+  row08 = vaddq_s32(v_pAm89, v_p09m25);
 
-  int32x4_t  v_row09 = vsubq_s32(v_pAm89, v_p09m25);
-  int32x4_t  v_row10 = vsubq_s32(v_pAm75, v_p25m70);
-  int32x4_t  v_row11 = vsubq_s32(v_pAm50, v_p43m90);
-  int32x4_t  v_row12 = vsubq_s32(v_pAm18, v_p57m80);
-  int32x4_t  v_row13 = vsubq_s32(v_pAp18, v_p70m43);
-  int32x4_t  v_row14 = vsubq_s32(v_pAp50, v_p80p09);
-  int32x4_t  v_row15 = vsubq_s32(v_pAp75, v_p87p57);
-  int32x4_t  v_row16 = vsubq_s32(v_pAp89, v_p90p87);
+  row09 = vsubq_s32(v_pAm89, v_p09m25);
+  row10 = vsubq_s32(v_pAm75, v_p25m70);
+  row11 = vsubq_s32(v_pAm50, v_p43m90);
+  row12 = vsubq_s32(v_pAm18, v_p57m80);
+  row13 = vsubq_s32(v_pAp18, v_p70m43);
+  row14 = vsubq_s32(v_pAp50, v_p80p09);
+  row15 = vsubq_s32(v_pAp75, v_p87p57);
+  row16 = vsubq_s32(v_pAp89, v_p90p87);
+}
 
-  int16x4_t v_row01_16 = vqrshrn_n_s32( v_row01, 12 );
-  int16x4_t v_row02_16 = vqrshrn_n_s32( v_row02, 12 );
-  int16x4_t v_row03_16 = vqrshrn_n_s32( v_row03, 12 );
-  int16x4_t v_row04_16 = vqrshrn_n_s32( v_row04, 12 );
-  int16x4_t v_row05_16 = vqrshrn_n_s32( v_row05, 12 );
-  int16x4_t v_row06_16 = vqrshrn_n_s32( v_row06, 12 );
-  int16x4_t v_row07_16 = vqrshrn_n_s32( v_row07, 12 );
-  int16x4_t v_row08_16 = vqrshrn_n_s32( v_row08, 12 );
-  int16x4_t v_row09_16 = vqrshrn_n_s32( v_row09, 12 );
-  int16x4_t v_row10_16 = vqrshrn_n_s32( v_row10, 12 );
-  int16x4_t v_row11_16 = vqrshrn_n_s32( v_row11, 12 );
-  int16x4_t v_row12_16 = vqrshrn_n_s32( v_row12, 12 );
-  int16x4_t v_row13_16 = vqrshrn_n_s32( v_row13, 12 );
-  int16x4_t v_row14_16 = vqrshrn_n_s32( v_row14, 12 );
-  int16x4_t v_row15_16 = vqrshrn_n_s32( v_row15, 12 );
-  int16x4_t v_row16_16 = vqrshrn_n_s32( v_row16, 12 );
+
+static inline
+void idct16_4B_neon(int32x4_t coeff5, int32x4_t coeff6,
+                    int32x4_t coeff7, int32x4_t coeff8,
+                    int32x4_t& row01,int32x4_t& row02,int32x4_t& row03,int32x4_t& row04,
+                    int32x4_t& row05,int32x4_t& row06,int32x4_t& row07,int32x4_t& row08,
+                    int32x4_t& row09,int32x4_t& row10,int32x4_t& row11,int32x4_t& row12,
+                    int32x4_t& row13,int32x4_t& row14,int32x4_t& row15,int32x4_t& row16)
+{
+  int32x4_t  v5_83 = vmulq_n_s32(coeff5, 83);
+  int32x4_t  v5_36 = vmulq_n_s32(coeff5, 36);
+
+  int32x4_t  v7_75 = vmulq_n_s32(coeff7, 75);
+  int32x4_t  v7m18 = vmulq_n_s32(coeff7,-18);
+  int32x4_t  v7m89 = vmulq_n_s32(coeff7,-89);
+  int32x4_t  v7m50 = vmulq_n_s32(coeff7,-50);
+
+  int32x4_t  v_p83p75  = vaddq_s32(v5_83, v7_75);
+  int32x4_t  v_p36m18  = vaddq_s32(v5_36, v7m18);
+  int32x4_t  v_m36m89  = vsubq_s32(v7m89, v5_36);
+  int32x4_t  v_m83m50  = vsubq_s32(v7m50, v5_83);
+  int32x4_t  v_m83p50m = vaddq_s32(v5_83, v7m50);
+  int32x4_t  v_m36p89m = vaddq_s32(v5_36, v7m89);
+  int32x4_t  v_p36p18  = vsubq_s32( v5_36, v7m18 );
+  int32x4_t  v_p83m75  = vsubq_s32( v5_83, v7_75 );
+
+  row01 = vaddq_s32(row01, v_p83p75);
+  row02 = vaddq_s32(row02, v_p36m18);
+  row03 = vaddq_s32(row03, v_m36m89);
+  row04 = vaddq_s32(row04, v_m83m50);
+  row05 = vsubq_s32(row05, v_m83p50m);
+  row06 = vsubq_s32(row06, v_m36p89m);
+  row07 = vaddq_s32(row07, v_p36p18);
+  row08 = vaddq_s32(row08, v_p83m75);
+  row09 = vaddq_s32(row09, v_p83m75);
+  row10 = vaddq_s32(row10, v_p36p18);
+  row11 = vsubq_s32(row11, v_m36p89m);
+  row12 = vsubq_s32(row12, v_m83p50m);
+  row13 = vaddq_s32(row13, v_m83m50);
+  row14 = vaddq_s32(row14, v_m36m89);
+  row15 = vaddq_s32(row15, v_p36m18);
+  row16 = vaddq_s32(row16, v_p83p75);
+
+  int32x4_t v68_A = vaddq_s32( vmulq_n_s32(coeff6, 80), vmulq_n_s32(coeff8, 70) );
+  int32x4_t v68_B = vaddq_s32( vmulq_n_s32(coeff6,  9), vmulq_n_s32(coeff8,-43) );
+  int32x4_t v68_C = vaddq_s32( vmulq_n_s32(coeff6,-70), vmulq_n_s32(coeff8,-87) );
+  int32x4_t v68_D = vaddq_s32( vmulq_n_s32(coeff6,-87), vmulq_n_s32(coeff8,  9) );
+  int32x4_t v68_E = vaddq_s32( vmulq_n_s32(coeff6,-25), vmulq_n_s32(coeff8, 90) );
+  int32x4_t v68_F = vaddq_s32( vmulq_n_s32(coeff6, 57), vmulq_n_s32(coeff8, 25) );
+  int32x4_t v68_G = vaddq_s32( vmulq_n_s32(coeff6, 90), vmulq_n_s32(coeff8,-80) );
+  int32x4_t v68_H = vaddq_s32( vmulq_n_s32(coeff6, 43), vmulq_n_s32(coeff8,-57) );
+
+  row01 = vaddq_s32(row01, v68_A);
+  row02 = vaddq_s32(row02, v68_B);
+  row03 = vaddq_s32(row03, v68_C);
+  row04 = vaddq_s32(row04, v68_D);
+  row05 = vaddq_s32(row05, v68_E);
+  row06 = vaddq_s32(row06, v68_F);
+  row07 = vaddq_s32(row07, v68_G);
+  row08 = vaddq_s32(row08, v68_H);
+  row09 = vsubq_s32(row09, v68_H);
+  row10 = vsubq_s32(row10, v68_G);
+  row11 = vsubq_s32(row11, v68_F);
+  row12 = vsubq_s32(row12, v68_E);
+  row13 = vsubq_s32(row13, v68_D);
+  row14 = vsubq_s32(row14, v68_C);
+  row15 = vsubq_s32(row15, v68_B);
+  row16 = vsubq_s32(row16, v68_A);
+}
+
+
+static inline
+void idct16_4C_neon(int32x4_t coeff09, int32x4_t coeff10,
+                    int32x4_t coeff11, int32x4_t coeff12,
+                    int32x4_t& row01,int32x4_t& row02,int32x4_t& row03,int32x4_t& row04,
+                    int32x4_t& row05,int32x4_t& row06,int32x4_t& row07,int32x4_t& row08,
+                    int32x4_t& row09,int32x4_t& row10,int32x4_t& row11,int32x4_t& row12,
+                    int32x4_t& row13,int32x4_t& row14,int32x4_t& row15,int32x4_t& row16)
+{
+  int32x4_t  v09_p64 = vshlq_n_s32(coeff09, 6); // * 64
+
+  int32x4_t  v11_p50 = vmulq_n_s32(coeff11, 50);
+  int32x4_t  v11_m89 = vmulq_n_s32(coeff11,-89);
+  int32x4_t  v11_p18 = vmulq_n_s32(coeff11, 18);
+  int32x4_t  v11_p75 = vmulq_n_s32(coeff11, 75);
+
+  int32x4_t  v_p64p50  = vaddq_s32(v11_p50, v09_p64);
+  int32x4_t  v_m64m89  = vsubq_s32(v11_m89, v09_p64);
+  int32x4_t  v_m64p18  = vsubq_s32(v11_p18, v09_p64);
+  int32x4_t  v_p64p75  = vaddq_s32(v11_p75, v09_p64);
+  int32x4_t  v_p64m75m = vsubq_s32(v11_p75, v09_p64);
+  int32x4_t  v_m64m18m = vaddq_s32(v11_p18, v09_p64);
+  int32x4_t  v_m64p89m = vaddq_s32(v11_m89, v09_p64);
+  int32x4_t  v_p64m50m = vsubq_s32(v11_p50, v09_p64);
+
+  row01 = vaddq_s32(row01, v_p64p50);
+  row02 = vaddq_s32(row02, v_m64m89);
+  row03 = vaddq_s32(row03, v_m64p18);
+  row04 = vaddq_s32(row04, v_p64p75);
+  row05 = vsubq_s32(row05, v_p64m75m);
+  row06 = vsubq_s32(row06, v_m64m18m);
+  row07 = vsubq_s32(row07, v_m64p89m);
+  row08 = vsubq_s32(row08, v_p64m50m);
+  row09 = vsubq_s32(row09, v_p64m50m);
+  row10 = vsubq_s32(row10, v_m64p89m);
+  row11 = vsubq_s32(row11, v_m64m18m);
+  row12 = vsubq_s32(row12, v_p64m75m);
+  row13 = vaddq_s32(row13, v_p64p75);
+  row14 = vaddq_s32(row14, v_m64p18);
+  row15 = vaddq_s32(row15, v_m64m89);
+  row16 = vaddq_s32(row16, v_p64p50);
+
+  int32x4_t v1012_1 = vaddq_s32( vmulq_n_s32(coeff10, 57), vmulq_n_s32(coeff12, 43) );
+  int32x4_t v1012_2 = vaddq_s32( vmulq_n_s32(coeff10,-80), vmulq_n_s32(coeff12,-90) );
+  int32x4_t v1012_3 = vaddq_s32( vmulq_n_s32(coeff10,-25), vmulq_n_s32(coeff12, 57) );
+  int32x4_t v1012_4 = vaddq_s32( vmulq_n_s32(coeff10, 90), vmulq_n_s32(coeff12, 25) );
+  int32x4_t v1012_5 = vaddq_s32( vmulq_n_s32(coeff10, -9), vmulq_n_s32(coeff12,-87) );
+  int32x4_t v1012_6 = vaddq_s32( vmulq_n_s32(coeff10,-87), vmulq_n_s32(coeff12, 70) );
+  int32x4_t v1012_7 = vaddq_s32( vmulq_n_s32(coeff10, 43), vmulq_n_s32(coeff12,  9) );
+  int32x4_t v1012_8 = vaddq_s32( vmulq_n_s32(coeff10, 70), vmulq_n_s32(coeff12,-80) );
+
+  row01 = vaddq_s32(row01, v1012_1);
+  row02 = vaddq_s32(row02, v1012_2);
+  row03 = vaddq_s32(row03, v1012_3);
+  row04 = vaddq_s32(row04, v1012_4);
+  row05 = vaddq_s32(row05, v1012_5);
+  row06 = vaddq_s32(row06, v1012_6);
+  row07 = vaddq_s32(row07, v1012_7);
+  row08 = vaddq_s32(row08, v1012_8);
+  row09 = vsubq_s32(row09, v1012_8);
+  row10 = vsubq_s32(row10, v1012_7);
+  row11 = vsubq_s32(row11, v1012_6);
+  row12 = vsubq_s32(row12, v1012_5);
+  row13 = vsubq_s32(row13, v1012_4);
+  row14 = vsubq_s32(row14, v1012_3);
+  row15 = vsubq_s32(row15, v1012_2);
+  row16 = vsubq_s32(row16, v1012_1);
+}
+
+
+void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
+                                      int32x4_t row1, int32x4_t row2,
+                                      int32x4_t row3, int32x4_t row4)
+{
+  int32x4_t coeff1,coeff2,coeff3,coeff4;
+  transpose_4x4(coeff1,coeff2,coeff3,coeff4, row1,row2,row3,row4);
+
+  int32x4_t row01,row02,row03,row04;
+  int32x4_t row05,row06,row07,row08;
+  int32x4_t row09,row10,row11,row12;
+  int32x4_t row13,row14,row15,row16;
+
+  idct16_4A_neon(coeff1, coeff2, coeff3, coeff4,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  int16x4_t v_row01_16 = vqrshrn_n_s32( row01, 12 );
+  int16x4_t v_row02_16 = vqrshrn_n_s32( row02, 12 );
+  int16x4_t v_row03_16 = vqrshrn_n_s32( row03, 12 );
+  int16x4_t v_row04_16 = vqrshrn_n_s32( row04, 12 );
+  int16x4_t v_row05_16 = vqrshrn_n_s32( row05, 12 );
+  int16x4_t v_row06_16 = vqrshrn_n_s32( row06, 12 );
+  int16x4_t v_row07_16 = vqrshrn_n_s32( row07, 12 );
+  int16x4_t v_row08_16 = vqrshrn_n_s32( row08, 12 );
+  int16x4_t v_row09_16 = vqrshrn_n_s32( row09, 12 );
+  int16x4_t v_row10_16 = vqrshrn_n_s32( row10, 12 );
+  int16x4_t v_row11_16 = vqrshrn_n_s32( row11, 12 );
+  int16x4_t v_row12_16 = vqrshrn_n_s32( row12, 12 );
+  int16x4_t v_row13_16 = vqrshrn_n_s32( row13, 12 );
+  int16x4_t v_row14_16 = vqrshrn_n_s32( row14, 12 );
+  int16x4_t v_row15_16 = vqrshrn_n_s32( row15, 12 );
+  int16x4_t v_row16_16 = vqrshrn_n_s32( row16, 12 );
+
+  int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8, t9,t10,t11,t12,t13,t14,t15,t16;
+  transpose_4x4(t1, t2, t3, t4,  v_row01_16, v_row02_16, v_row03_16, v_row04_16);
+  transpose_4x4(t5, t6, t7, t8,  v_row05_16, v_row06_16, v_row07_16, v_row08_16);
+  transpose_4x4(t9, t10,t11,t12, v_row09_16, v_row10_16, v_row11_16, v_row12_16);
+  transpose_4x4(t13,t14,t15,t16, v_row13_16, v_row14_16, v_row15_16, v_row16_16);
+
+  int16x8_t  out1L = vcombine_s16(t1, t5);
+  int16x8_t  out2L = vcombine_s16(t2, t6);
+  int16x8_t  out3L = vcombine_s16(t3, t7);
+  int16x8_t  out4L = vcombine_s16(t4, t8);
+  int16x8_t  out1R = vcombine_s16(t9, t13);
+  int16x8_t  out2R = vcombine_s16(t10,t14);
+  int16x8_t  out3R = vcombine_s16(t11,t15);
+  int16x8_t  out4R = vcombine_s16(t12,t16);
+
+  add_16x8_to_8x8_4rows_neon(out1L,out2L,out3L,out4L, dst,  stride);
+  add_16x8_to_8x8_4rows_neon(out1R,out2R,out3R,out4R, dst+8,stride);
+}
+
+
+void transform_16x16_add_8coeff_horiz(uint8_t* dst, ptrdiff_t stride,
+                                      int32x4_t row1,int32x4_t row2,int32x4_t row3,int32x4_t row4,
+                                      int32x4_t row5,int32x4_t row6,int32x4_t row7,int32x4_t row8)
+{
+  int32x4_t coeff1,coeff2,coeff3,coeff4;
+  transpose_4x4(coeff1,coeff2,coeff3,coeff4, row1,row2,row3,row4);
+  int32x4_t coeff5,coeff6,coeff7,coeff8;
+  transpose_4x4(coeff5,coeff6,coeff7,coeff8, row5,row6,row7,row8);
+
+  int32x4_t row01,row02,row03,row04;
+  int32x4_t row05,row06,row07,row08;
+  int32x4_t row09,row10,row11,row12;
+  int32x4_t row13,row14,row15,row16;
+
+  idct16_4A_neon(coeff1, coeff2, coeff3, coeff4,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  idct16_4B_neon(coeff5, coeff6, coeff7, coeff8,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  int16x4_t v_row01_16 = vqrshrn_n_s32( row01, 12 );
+  int16x4_t v_row02_16 = vqrshrn_n_s32( row02, 12 );
+  int16x4_t v_row03_16 = vqrshrn_n_s32( row03, 12 );
+  int16x4_t v_row04_16 = vqrshrn_n_s32( row04, 12 );
+  int16x4_t v_row05_16 = vqrshrn_n_s32( row05, 12 );
+  int16x4_t v_row06_16 = vqrshrn_n_s32( row06, 12 );
+  int16x4_t v_row07_16 = vqrshrn_n_s32( row07, 12 );
+  int16x4_t v_row08_16 = vqrshrn_n_s32( row08, 12 );
+  int16x4_t v_row09_16 = vqrshrn_n_s32( row09, 12 );
+  int16x4_t v_row10_16 = vqrshrn_n_s32( row10, 12 );
+  int16x4_t v_row11_16 = vqrshrn_n_s32( row11, 12 );
+  int16x4_t v_row12_16 = vqrshrn_n_s32( row12, 12 );
+  int16x4_t v_row13_16 = vqrshrn_n_s32( row13, 12 );
+  int16x4_t v_row14_16 = vqrshrn_n_s32( row14, 12 );
+  int16x4_t v_row15_16 = vqrshrn_n_s32( row15, 12 );
+  int16x4_t v_row16_16 = vqrshrn_n_s32( row16, 12 );
+
+  int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8, t9,t10,t11,t12,t13,t14,t15,t16;
+  transpose_4x4(t1, t2, t3, t4,  v_row01_16, v_row02_16, v_row03_16, v_row04_16);
+  transpose_4x4(t5, t6, t7, t8,  v_row05_16, v_row06_16, v_row07_16, v_row08_16);
+  transpose_4x4(t9, t10,t11,t12, v_row09_16, v_row10_16, v_row11_16, v_row12_16);
+  transpose_4x4(t13,t14,t15,t16, v_row13_16, v_row14_16, v_row15_16, v_row16_16);
+
+  int16x8_t  out1L = vcombine_s16(t1, t5);
+  int16x8_t  out2L = vcombine_s16(t2, t6);
+  int16x8_t  out3L = vcombine_s16(t3, t7);
+  int16x8_t  out4L = vcombine_s16(t4, t8);
+  int16x8_t  out1R = vcombine_s16(t9, t13);
+  int16x8_t  out2R = vcombine_s16(t10,t14);
+  int16x8_t  out3R = vcombine_s16(t11,t15);
+  int16x8_t  out4R = vcombine_s16(t12,t16);
+
+  add_16x8_to_8x8_4rows_neon(out1L,out2L,out3L,out4L, dst,  stride);
+  add_16x8_to_8x8_4rows_neon(out1R,out2R,out3R,out4R, dst+8,stride);
+}
+
+
+void transform_16x16_add_12coeff_horiz(uint8_t* dst, ptrdiff_t stride,
+                                       int32x4_t in1,int32x4_t in2, int32x4_t in3, int32x4_t in4,
+                                       int32x4_t in5,int32x4_t in6, int32x4_t in7, int32x4_t in8,
+                                       int32x4_t in9,int32x4_t in10,int32x4_t in11,int32x4_t in12)
+{
+  int32x4_t coeff1,coeff2,coeff3,coeff4;
+  transpose_4x4(coeff1,coeff2,coeff3,coeff4, in1,in2,in3,in4);
+  int32x4_t coeff5,coeff6,coeff7,coeff8;
+  transpose_4x4(coeff5,coeff6,coeff7,coeff8, in5,in6,in7,in8);
+  int32x4_t coeff9,coeff10,coeff11,coeff12;
+  transpose_4x4(coeff9,coeff10,coeff11,coeff12, in9,in10,in11,in12);
+
+  int32x4_t row01,row02,row03,row04;
+  int32x4_t row05,row06,row07,row08;
+  int32x4_t row09,row10,row11,row12;
+  int32x4_t row13,row14,row15,row16;
+
+  idct16_4A_neon(coeff1, coeff2, coeff3, coeff4,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  idct16_4B_neon(coeff5, coeff6, coeff7, coeff8,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  idct16_4C_neon(coeff9, coeff10, coeff11, coeff12,
+                 row01, row02, row03, row04,
+                 row05, row06, row07, row08,
+                 row09, row10, row11, row12,
+                 row13, row14, row15, row16);
+
+  int16x4_t v_row01_16 = vqrshrn_n_s32( row01, 12 );
+  int16x4_t v_row02_16 = vqrshrn_n_s32( row02, 12 );
+  int16x4_t v_row03_16 = vqrshrn_n_s32( row03, 12 );
+  int16x4_t v_row04_16 = vqrshrn_n_s32( row04, 12 );
+  int16x4_t v_row05_16 = vqrshrn_n_s32( row05, 12 );
+  int16x4_t v_row06_16 = vqrshrn_n_s32( row06, 12 );
+  int16x4_t v_row07_16 = vqrshrn_n_s32( row07, 12 );
+  int16x4_t v_row08_16 = vqrshrn_n_s32( row08, 12 );
+  int16x4_t v_row09_16 = vqrshrn_n_s32( row09, 12 );
+  int16x4_t v_row10_16 = vqrshrn_n_s32( row10, 12 );
+  int16x4_t v_row11_16 = vqrshrn_n_s32( row11, 12 );
+  int16x4_t v_row12_16 = vqrshrn_n_s32( row12, 12 );
+  int16x4_t v_row13_16 = vqrshrn_n_s32( row13, 12 );
+  int16x4_t v_row14_16 = vqrshrn_n_s32( row14, 12 );
+  int16x4_t v_row15_16 = vqrshrn_n_s32( row15, 12 );
+  int16x4_t v_row16_16 = vqrshrn_n_s32( row16, 12 );
 
   int16x4_t  t1,t2,t3,t4,t5,t6,t7,t8, t9,t10,t11,t12,t13,t14,t15,t16;
   transpose_4x4(t1, t2, t3, t4,  v_row01_16, v_row02_16, v_row03_16, v_row04_16);
@@ -1022,6 +1318,73 @@ static inline void idct16_horiz_neon(const int16_t* coeffs, int maxRow,
       v_row14 = vsubq_s32(v_row14, v68_C);
       v_row15 = vsubq_s32(v_row15, v68_B);
       v_row16 = vsubq_s32(v_row16, v68_A);
+
+
+      if (maxRow >= 8) {
+        int16x4_t  coeff09 = vld1_s16(coeffs+ 8*16);
+        int16x4_t  coeff10 = vld1_s16(coeffs+ 9*16);
+        int16x4_t  coeff11 = vld1_s16(coeffs+10*16);
+        int16x4_t  coeff12 = vld1_s16(coeffs+11*16);
+
+        int32x4_t  v09_p64 = vshll_n_s16(coeff09, 6); // * 64
+
+        int32x4_t  v11_p50 = vmull_n_s16(coeff11, 50);
+        int32x4_t  v11_m89 = vmull_n_s16(coeff11,-89);
+        int32x4_t  v11_p18 = vmull_n_s16(coeff11, 18);
+        int32x4_t  v11_p75 = vmull_n_s16(coeff11, 75);
+
+        int32x4_t  v_p64p50  = vaddq_s32(v11_p50, v09_p64);
+        int32x4_t  v_m64m89  = vsubq_s32(v11_m89, v09_p64);
+        int32x4_t  v_m64p18  = vsubq_s32(v11_p18, v09_p64);
+        int32x4_t  v_p64p75  = vaddq_s32(v11_p75, v09_p64);
+        int32x4_t  v_p64m75m = vsubq_s32(v11_p75, v09_p64);
+        int32x4_t  v_m64m18m = vaddq_s32(v11_p18, v09_p64);
+        int32x4_t  v_m64p89m = vaddq_s32(v11_m89, v09_p64);
+        int32x4_t  v_p64m50m = vsubq_s32(v11_p50, v09_p64);
+
+        v_row01 = vaddq_s32(v_row01, v_p64p50);
+        v_row02 = vaddq_s32(v_row02, v_m64m89);
+        v_row03 = vaddq_s32(v_row03, v_m64p18);
+        v_row04 = vaddq_s32(v_row04, v_p64p75);
+        v_row05 = vsubq_s32(v_row05, v_p64m75m);
+        v_row06 = vsubq_s32(v_row06, v_m64m18m);
+        v_row07 = vsubq_s32(v_row07, v_m64p89m);
+        v_row08 = vsubq_s32(v_row08, v_p64m50m);
+        v_row09 = vsubq_s32(v_row09, v_p64m50m);
+        v_row10 = vsubq_s32(v_row10, v_m64p89m);
+        v_row11 = vsubq_s32(v_row11, v_m64m18m);
+        v_row12 = vsubq_s32(v_row12, v_p64m75m);
+        v_row13 = vaddq_s32(v_row13, v_p64p75);
+        v_row14 = vaddq_s32(v_row14, v_m64p18);
+        v_row15 = vaddq_s32(v_row15, v_m64m89);
+        v_row16 = vaddq_s32(v_row16, v_p64p50);
+
+        int32x4_t v1012_1 = vaddq_s32( vmull_n_s16(coeff10, 57), vmull_n_s16(coeff12, 43) );
+        int32x4_t v1012_2 = vaddq_s32( vmull_n_s16(coeff10,-80), vmull_n_s16(coeff12,-90) );
+        int32x4_t v1012_3 = vaddq_s32( vmull_n_s16(coeff10,-25), vmull_n_s16(coeff12, 57) );
+        int32x4_t v1012_4 = vaddq_s32( vmull_n_s16(coeff10, 90), vmull_n_s16(coeff12, 25) );
+        int32x4_t v1012_5 = vaddq_s32( vmull_n_s16(coeff10, -9), vmull_n_s16(coeff12,-87) );
+        int32x4_t v1012_6 = vaddq_s32( vmull_n_s16(coeff10,-87), vmull_n_s16(coeff12, 70) );
+        int32x4_t v1012_7 = vaddq_s32( vmull_n_s16(coeff10, 43), vmull_n_s16(coeff12,  9) );
+        int32x4_t v1012_8 = vaddq_s32( vmull_n_s16(coeff10, 70), vmull_n_s16(coeff12,-80) );
+
+        v_row01 = vaddq_s32(v_row01, v1012_1);
+        v_row02 = vaddq_s32(v_row02, v1012_2);
+        v_row03 = vaddq_s32(v_row03, v1012_3);
+        v_row04 = vaddq_s32(v_row04, v1012_4);
+        v_row05 = vaddq_s32(v_row05, v1012_5);
+        v_row06 = vaddq_s32(v_row06, v1012_6);
+        v_row07 = vaddq_s32(v_row07, v1012_7);
+        v_row08 = vaddq_s32(v_row08, v1012_8);
+        v_row09 = vsubq_s32(v_row09, v1012_8);
+        v_row10 = vsubq_s32(v_row10, v1012_7);
+        v_row11 = vsubq_s32(v_row11, v1012_6);
+        v_row12 = vsubq_s32(v_row12, v1012_5);
+        v_row13 = vsubq_s32(v_row13, v1012_4);
+        v_row14 = vsubq_s32(v_row14, v1012_3);
+        v_row15 = vsubq_s32(v_row15, v1012_2);
+        v_row16 = vsubq_s32(v_row16, v1012_1);
+      }
     }
 
 
@@ -1074,7 +1437,7 @@ void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
       }
     }
   }
-  else if (maxColumn<=3 && maxRow<=7) {
+  else if (maxColumn<=3 && maxRow<12) {
     int32x4_t  v_row01, v_row02, v_row03, v_row04, v_row05, v_row06, v_row07, v_row08;
     int32x4_t  v_row09, v_row10, v_row11, v_row12, v_row13, v_row14, v_row15, v_row16;
 
@@ -1082,27 +1445,77 @@ void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
                       v_row01, v_row02, v_row03, v_row04, v_row05, v_row06, v_row07, v_row08,
                       v_row09, v_row10, v_row11, v_row12, v_row13, v_row14, v_row15, v_row16);
 
-    Deb(v_row01);
-    Deb(v_row02);
-    Deb(v_row03);
-    Deb(v_row04);
-    Deb(v_row05);
-    Deb(v_row06);
-    Deb(v_row07);
-    Deb(v_row08);
-    Deb(v_row09);
-    Deb(v_row10);
-    Deb(v_row11);
-    Deb(v_row12);
-    Deb(v_row13);
-    Deb(v_row14);
-    Deb(v_row15);
-    Deb(v_row16);
-
     transform_16x16_add_4coeff_horiz(dst,           stride, v_row01,v_row02,v_row03,v_row04);
     transform_16x16_add_4coeff_horiz(dst+ 4*stride, stride, v_row05,v_row06,v_row07,v_row08);
     transform_16x16_add_4coeff_horiz(dst+ 8*stride, stride, v_row09,v_row10,v_row11,v_row12);
     transform_16x16_add_4coeff_horiz(dst+12*stride, stride, v_row13,v_row14,v_row15,v_row16);
+  }
+  else if (maxColumn<=7 && maxRow<12) {
+    int32x4_t  v_row01A, v_row02A, v_row03A, v_row04A, v_row05A, v_row06A, v_row07A, v_row08A;
+    int32x4_t  v_row09A, v_row10A, v_row11A, v_row12A, v_row13A, v_row14A, v_row15A, v_row16A;
+
+    idct16_horiz_neon(coeffs, maxRow,
+                      v_row01A,v_row02A,v_row03A,v_row04A,v_row05A,v_row06A,v_row07A,v_row08A,
+                      v_row09A,v_row10A,v_row11A,v_row12A,v_row13A,v_row14A,v_row15A,v_row16A);
+
+    int32x4_t  v_row01B, v_row02B, v_row03B, v_row04B, v_row05B, v_row06B, v_row07B, v_row08B;
+    int32x4_t  v_row09B, v_row10B, v_row11B, v_row12B, v_row13B, v_row14B, v_row15B, v_row16B;
+
+    idct16_horiz_neon(coeffs+4, maxRow,
+                      v_row01B,v_row02B,v_row03B,v_row04B,v_row05B,v_row06B,v_row07B,v_row08B,
+                      v_row09B,v_row10B,v_row11B,v_row12B,v_row13B,v_row14B,v_row15B,v_row16B);
+
+    transform_16x16_add_8coeff_horiz(dst,           stride,
+                                     v_row01A,v_row02A,v_row03A,v_row04A,
+                                     v_row01B,v_row02B,v_row03B,v_row04B);
+    transform_16x16_add_8coeff_horiz(dst+ 4*stride, stride,
+                                     v_row05A,v_row06A,v_row07A,v_row08A,
+                                     v_row05B,v_row06B,v_row07B,v_row08B);
+    transform_16x16_add_8coeff_horiz(dst+ 8*stride, stride,
+                                     v_row09A,v_row10A,v_row11A,v_row12A,
+                                     v_row09B,v_row10B,v_row11B,v_row12B);
+    transform_16x16_add_8coeff_horiz(dst+12*stride, stride,
+                                     v_row13A,v_row14A,v_row15A,v_row16A,
+                                     v_row13B,v_row14B,v_row15B,v_row16B);
+  }
+  else if (maxColumn<12 && maxRow<12) {
+    int32x4_t  v_row01A, v_row02A, v_row03A, v_row04A, v_row05A, v_row06A, v_row07A, v_row08A;
+    int32x4_t  v_row09A, v_row10A, v_row11A, v_row12A, v_row13A, v_row14A, v_row15A, v_row16A;
+
+    idct16_horiz_neon(coeffs, maxRow,
+                      v_row01A,v_row02A,v_row03A,v_row04A,v_row05A,v_row06A,v_row07A,v_row08A,
+                      v_row09A,v_row10A,v_row11A,v_row12A,v_row13A,v_row14A,v_row15A,v_row16A);
+
+    int32x4_t  v_row01B, v_row02B, v_row03B, v_row04B, v_row05B, v_row06B, v_row07B, v_row08B;
+    int32x4_t  v_row09B, v_row10B, v_row11B, v_row12B, v_row13B, v_row14B, v_row15B, v_row16B;
+
+    idct16_horiz_neon(coeffs+4, maxRow,
+                      v_row01B,v_row02B,v_row03B,v_row04B,v_row05B,v_row06B,v_row07B,v_row08B,
+                      v_row09B,v_row10B,v_row11B,v_row12B,v_row13B,v_row14B,v_row15B,v_row16B);
+
+    int32x4_t  v_row01C, v_row02C, v_row03C, v_row04C, v_row05C, v_row06C, v_row07C, v_row08C;
+    int32x4_t  v_row09C, v_row10C, v_row11C, v_row12C, v_row13C, v_row14C, v_row15C, v_row16C;
+
+    idct16_horiz_neon(coeffs+8, maxRow,
+                      v_row01C,v_row02C,v_row03C,v_row04C,v_row05C,v_row06C,v_row07C,v_row08C,
+                      v_row09C,v_row10C,v_row11C,v_row12C,v_row13C,v_row14C,v_row15C,v_row16C);
+
+    transform_16x16_add_12coeff_horiz(dst,           stride,
+                                      v_row01A,v_row02A,v_row03A,v_row04A,
+                                      v_row01B,v_row02B,v_row03B,v_row04B,
+                                      v_row01C,v_row02C,v_row03C,v_row04C);
+    transform_16x16_add_12coeff_horiz(dst+ 4*stride, stride,
+                                      v_row05A,v_row06A,v_row07A,v_row08A,
+                                      v_row05B,v_row06B,v_row07B,v_row08B,
+                                      v_row05C,v_row06C,v_row07C,v_row08C);
+    transform_16x16_add_12coeff_horiz(dst+ 8*stride, stride,
+                                      v_row09A,v_row10A,v_row11A,v_row12A,
+                                      v_row09B,v_row10B,v_row11B,v_row12B,
+                                      v_row09C,v_row10C,v_row11C,v_row12C);
+    transform_16x16_add_12coeff_horiz(dst+12*stride, stride,
+                                      v_row13A,v_row14A,v_row15A,v_row16A,
+                                      v_row13B,v_row14B,v_row15B,v_row16B,
+                                      v_row13C,v_row14C,v_row15C,v_row16C);
   }
   else {
     transform_16x16_add_8_fallback(dst,coeffs,stride,maxColumn,maxRow);
