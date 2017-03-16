@@ -884,41 +884,20 @@ void transform_16x16_add_4coeff_horiz(uint8_t* dst, ptrdiff_t stride,
 }
 
 
-void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                           int maxColumn,int maxRow)
+static inline void idct16_horiz_neon(const int16_t* coeffs, int maxRow,
+                                     int32x4_t& out_row01, int32x4_t& out_row02,
+                                     int32x4_t& out_row03, int32x4_t& out_row04,
+                                     int32x4_t& out_row05, int32x4_t& out_row06,
+                                     int32x4_t& out_row07, int32x4_t& out_row08,
+                                     int32x4_t& out_row09, int32x4_t& out_row10,
+                                     int32x4_t& out_row11, int32x4_t& out_row12,
+                                     int32x4_t& out_row13, int32x4_t& out_row14,
+                                     int32x4_t& out_row15, int32x4_t& out_row16)
 {
-  tcnt16[maxColumn][maxRow]++;
-
-  //printf("%d %d\n",maxColumn,maxRow);
-
-  if (maxColumn==0 && maxRow==0) {
-    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
-    int r = (g+32)>>(12-6);   // 9 bit (8 bit + sign)
-
-    if (r>0) {
-      uint8x16_t dc = vdupq_n_u8(r);
-
-      for (int y=0;y<16;y++) {
-        uint8x16_t  input_u8  = vld1q_u8(dst + y*stride);
-        uint8x16_t  result_u8 = vqaddq_u8(input_u8, dc);
-        vst1q_u8(dst + y*stride, result_u8);
-      }
-    }
-    else {
-      uint8x16_t dc = vdupq_n_u8(-r);
-
-      for (int y=0;y<16;y++) {
-        uint8x16_t  input_u8  = vld1q_u8(dst + y*stride);
-        uint8x16_t  result_u8 = vqsubq_u8(input_u8, dc);
-        vst1q_u8(dst + y*stride, result_u8);
-      }
-    }
-  }
-  else if (maxColumn<=3 && maxRow<=3) {
-    int16x4_t  coeff1 = vld1_s16(coeffs);
-    int16x4_t  coeff2 = vld1_s16(coeffs+16);
-    int16x4_t  coeff3 = vld1_s16(coeffs+32);
-    int16x4_t  coeff4 = vld1_s16(coeffs+48);
+    int16x4_t  coeff1 = vld1_s16(coeffs+0*16);
+    int16x4_t  coeff2 = vld1_s16(coeffs+1*16);
+    int16x4_t  coeff3 = vld1_s16(coeffs+2*16);
+    int16x4_t  coeff4 = vld1_s16(coeffs+3*16);
 
     int32x4_t  v1_A = vshll_n_s16(coeff1, 6); // * 64
     int32x4_t  v2_90 = vmull_n_s16(coeff2, 90);
@@ -978,22 +957,130 @@ void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
     int32x4_t  v_row15 = vsubq_s32(v_pAp75, v_p87p57);
     int32x4_t  v_row16 = vsubq_s32(v_pAp89, v_p90p87);
 
-    v_row01 = vrshrq_n_s32( v_row01, 7 );
-    v_row02 = vrshrq_n_s32( v_row02, 7 );
-    v_row03 = vrshrq_n_s32( v_row03, 7 );
-    v_row04 = vrshrq_n_s32( v_row04, 7 );
-    v_row05 = vrshrq_n_s32( v_row05, 7 );
-    v_row06 = vrshrq_n_s32( v_row06, 7 );
-    v_row07 = vrshrq_n_s32( v_row07, 7 );
-    v_row08 = vrshrq_n_s32( v_row08, 7 );
-    v_row09 = vrshrq_n_s32( v_row09, 7 );
-    v_row10 = vrshrq_n_s32( v_row10, 7 );
-    v_row11 = vrshrq_n_s32( v_row11, 7 );
-    v_row12 = vrshrq_n_s32( v_row12, 7 );
-    v_row13 = vrshrq_n_s32( v_row13, 7 );
-    v_row14 = vrshrq_n_s32( v_row14, 7 );
-    v_row15 = vrshrq_n_s32( v_row15, 7 );
-    v_row16 = vrshrq_n_s32( v_row16, 7 );
+    if (maxRow >= 4) {
+      int16x4_t  coeff5 = vld1_s16(coeffs+4*16);
+      int16x4_t  coeff6 = vld1_s16(coeffs+5*16);
+      int16x4_t  coeff7 = vld1_s16(coeffs+6*16);
+      int16x4_t  coeff8 = vld1_s16(coeffs+7*16);
+
+      int32x4_t  v5_83 = vmull_n_s16(coeff5, 83);
+      int32x4_t  v5_36 = vmull_n_s16(coeff5, 36);
+
+      int32x4_t  v7_75 = vmull_n_s16(coeff7, 75);
+      int32x4_t  v7m18 = vmull_n_s16(coeff7,-18);
+      int32x4_t  v7m89 = vmull_n_s16(coeff7,-89);
+      int32x4_t  v7m50 = vmull_n_s16(coeff7,-50);
+
+      int32x4_t  v_p83p75  = vaddq_s32(v5_83, v7_75);
+      int32x4_t  v_p36m18  = vaddq_s32(v5_36, v7m18);
+      int32x4_t  v_m36m89  = vsubq_s32(v7m89, v5_36);
+      int32x4_t  v_m83m50  = vsubq_s32(v7m50, v5_83);
+      int32x4_t  v_m83p50m = vaddq_s32(v5_83, v7m50);
+      int32x4_t  v_m36p89m = vaddq_s32(v5_36, v7m89);
+      int32x4_t  v_p36p18  = vsubq_s32( v5_36, v7m18 );
+      int32x4_t  v_p83m75  = vsubq_s32( v5_83, v7_75 );
+
+      v_row01 = vaddq_s32(v_row01, v_p83p75);
+      v_row02 = vaddq_s32(v_row02, v_p36m18);
+      v_row03 = vaddq_s32(v_row03, v_m36m89);
+      v_row04 = vaddq_s32(v_row04, v_m83m50);
+      v_row05 = vsubq_s32(v_row05, v_m83p50m);
+      v_row06 = vsubq_s32(v_row06, v_m36p89m);
+      v_row07 = vaddq_s32(v_row07, v_p36p18);
+      v_row08 = vaddq_s32(v_row08, v_p83m75);
+      v_row09 = vaddq_s32(v_row09, v_p83m75);
+      v_row10 = vaddq_s32(v_row10, v_p36p18);
+      v_row11 = vsubq_s32(v_row11, v_m36p89m);
+      v_row12 = vsubq_s32(v_row12, v_m83p50m);
+      v_row13 = vaddq_s32(v_row13, v_m83m50);
+      v_row14 = vaddq_s32(v_row14, v_m36m89);
+      v_row15 = vaddq_s32(v_row15, v_p36m18);
+      v_row16 = vaddq_s32(v_row16, v_p83p75);
+
+      int32x4_t v68_A = vaddq_s32( vmull_n_s16(coeff6, 80), vmull_n_s16(coeff8, 70) );
+      int32x4_t v68_B = vaddq_s32( vmull_n_s16(coeff6,  9), vmull_n_s16(coeff8,-43) );
+      int32x4_t v68_C = vaddq_s32( vmull_n_s16(coeff6,-70), vmull_n_s16(coeff8,-87) );
+      int32x4_t v68_D = vaddq_s32( vmull_n_s16(coeff6,-87), vmull_n_s16(coeff8,  9) );
+      int32x4_t v68_E = vaddq_s32( vmull_n_s16(coeff6,-25), vmull_n_s16(coeff8, 90) );
+      int32x4_t v68_F = vaddq_s32( vmull_n_s16(coeff6, 57), vmull_n_s16(coeff8, 25) );
+      int32x4_t v68_G = vaddq_s32( vmull_n_s16(coeff6, 90), vmull_n_s16(coeff8,-80) );
+      int32x4_t v68_H = vaddq_s32( vmull_n_s16(coeff6, 43), vmull_n_s16(coeff8,-57) );
+
+      v_row01 = vaddq_s32(v_row01, v68_A);
+      v_row02 = vaddq_s32(v_row02, v68_B);
+      v_row03 = vaddq_s32(v_row03, v68_C);
+      v_row04 = vaddq_s32(v_row04, v68_D);
+      v_row05 = vaddq_s32(v_row05, v68_E);
+      v_row06 = vaddq_s32(v_row06, v68_F);
+      v_row07 = vaddq_s32(v_row07, v68_G);
+      v_row08 = vaddq_s32(v_row08, v68_H);
+      v_row09 = vsubq_s32(v_row09, v68_H);
+      v_row10 = vsubq_s32(v_row10, v68_G);
+      v_row11 = vsubq_s32(v_row11, v68_F);
+      v_row12 = vsubq_s32(v_row12, v68_E);
+      v_row13 = vsubq_s32(v_row13, v68_D);
+      v_row14 = vsubq_s32(v_row14, v68_C);
+      v_row15 = vsubq_s32(v_row15, v68_B);
+      v_row16 = vsubq_s32(v_row16, v68_A);
+    }
+
+
+    out_row01 = vrshrq_n_s32( v_row01, 7 );
+    out_row02 = vrshrq_n_s32( v_row02, 7 );
+    out_row03 = vrshrq_n_s32( v_row03, 7 );
+    out_row04 = vrshrq_n_s32( v_row04, 7 );
+    out_row05 = vrshrq_n_s32( v_row05, 7 );
+    out_row06 = vrshrq_n_s32( v_row06, 7 );
+    out_row07 = vrshrq_n_s32( v_row07, 7 );
+    out_row08 = vrshrq_n_s32( v_row08, 7 );
+    out_row09 = vrshrq_n_s32( v_row09, 7 );
+    out_row10 = vrshrq_n_s32( v_row10, 7 );
+    out_row11 = vrshrq_n_s32( v_row11, 7 );
+    out_row12 = vrshrq_n_s32( v_row12, 7 );
+    out_row13 = vrshrq_n_s32( v_row13, 7 );
+    out_row14 = vrshrq_n_s32( v_row14, 7 );
+    out_row15 = vrshrq_n_s32( v_row15, 7 );
+    out_row16 = vrshrq_n_s32( v_row16, 7 );
+}
+
+
+void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                           int maxColumn,int maxRow)
+{
+  tcnt16[maxColumn][maxRow]++;
+
+  //printf("%d %d\n",maxColumn,maxRow);
+
+  if (maxColumn==0 && maxRow==0) {
+    int g = (coeffs[0]+1)>>1; // 15 bit (14 bit + sign)
+    int r = (g+32)>>(12-6);   // 9 bit (8 bit + sign)
+
+    if (r>0) {
+      uint8x16_t dc = vdupq_n_u8(r);
+
+      for (int y=0;y<16;y++) {
+        uint8x16_t  input_u8  = vld1q_u8(dst + y*stride);
+        uint8x16_t  result_u8 = vqaddq_u8(input_u8, dc);
+        vst1q_u8(dst + y*stride, result_u8);
+      }
+    }
+    else {
+      uint8x16_t dc = vdupq_n_u8(-r);
+
+      for (int y=0;y<16;y++) {
+        uint8x16_t  input_u8  = vld1q_u8(dst + y*stride);
+        uint8x16_t  result_u8 = vqsubq_u8(input_u8, dc);
+        vst1q_u8(dst + y*stride, result_u8);
+      }
+    }
+  }
+  else if (maxColumn<=3 && maxRow<=7) {
+    int32x4_t  v_row01, v_row02, v_row03, v_row04, v_row05, v_row06, v_row07, v_row08;
+    int32x4_t  v_row09, v_row10, v_row11, v_row12, v_row13, v_row14, v_row15, v_row16;
+
+    idct16_horiz_neon(coeffs, maxRow,
+                      v_row01, v_row02, v_row03, v_row04, v_row05, v_row06, v_row07, v_row08,
+                      v_row09, v_row10, v_row11, v_row12, v_row13, v_row14, v_row15, v_row16);
 
     Deb(v_row01);
     Deb(v_row02);
