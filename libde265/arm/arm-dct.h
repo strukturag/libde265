@@ -30,13 +30,13 @@
 // --- decoding ---
 
 void idct_4x4_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                         int maxColumn,int maxRow);
+                         int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                         int maxColumn,int maxRow);
+                         int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                           int maxColumn,int maxRow);
+                           int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                           int maxColumn,int maxRow);
+                           int maxColumn,int maxRow, const uint8_t* subblock_coded);
 
 
 #if 0  // TODO
