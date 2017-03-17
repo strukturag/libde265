@@ -1655,23 +1655,6 @@ void idct32_v(const int16_t* coeffs, int32x4_t* outrow, int maxRow)
     int32x4_t  v1b_50 = vmull_n_s16(coeff1b, 50);
     int32x4_t  v1b_18 = vmull_n_s16(coeff1b, 18);
 
-    int32x4_t  v2b_88 = vmull_n_s16(coeff2b, 88);
-    int32x4_t  v2b_67 = vmull_n_s16(coeff2b, 67);
-    int32x4_t  v2b_31 = vmull_n_s16(coeff2b, 31);
-    int32x4_t  v2bm13 = vmull_n_s16(coeff2b,-13);
-    int32x4_t  v2bm54 = vmull_n_s16(coeff2b,-54);
-    int32x4_t  v2bm82 = vmull_n_s16(coeff2b,-82);
-    //int32x4_t  v2bm90 = vmull_n_s16(coeff2b, -90);   can reuse v2b_90
-    int32x4_t  v2bm78 = vmull_n_s16(coeff2b,-78);
-    int32x4_t  v2bm46 = vmull_n_s16(coeff2b,-46);
-    int32x4_t  v2bm04 = vmull_n_s16(coeff2b, -4);
-    int32x4_t  v2b_38 = vmull_n_s16(coeff2b, 38);
-    int32x4_t  v2b_73 = vmull_n_s16(coeff2b, 73);
-    int32x4_t  v2b_90 = vmull_n_s16(coeff2b, 90);
-    int32x4_t  v2b_85 = vmull_n_s16(coeff2b, 85);
-    int32x4_t  v2b_61 = vmull_n_s16(coeff2b, 61);
-    int32x4_t  v2b_22 = vmull_n_s16(coeff2b, 22);
-
     int32x4_t  v3b_87 = vmull_n_s16(coeff3b, 87);
     int32x4_t  v3b_57 = vmull_n_s16(coeff3b, 57);
     int32x4_t  v3b_09 = vmull_n_s16(coeff3b,  9);
@@ -1680,24 +1663,6 @@ void idct32_v(const int16_t* coeffs, int32x4_t* outrow, int maxRow)
     int32x4_t  v3bm90 = vmull_n_s16(coeff3b,-90);
     int32x4_t  v3bm70 = vmull_n_s16(coeff3b,-70);
     int32x4_t  v3bm25 = vmull_n_s16(coeff3b,-25);
-
-    int32x4_t  v4b_85 = vmull_n_s16(coeff4b, 85);
-    int32x4_t  v4b_46 = vmull_n_s16(coeff4b, 46);
-    int32x4_t  v4bm13 = vmull_n_s16(coeff4b,-13);
-    int32x4_t  v4bm67 = vmull_n_s16(coeff4b,-67);
-    int32x4_t  v4bm90 = vmull_n_s16(coeff4b,-90);
-    int32x4_t  v4bm73 = vmull_n_s16(coeff4b,-73);
-    int32x4_t  v4bm22 = vmull_n_s16(coeff4b,-22);
-    int32x4_t  v4b_38 = vmull_n_s16(coeff4b, 38);
-    int32x4_t  v4b_82 = vmull_n_s16(coeff4b, 82);
-    int32x4_t  v4b_88 = vmull_n_s16(coeff4b, 88);
-    int32x4_t  v4b_54 = vmull_n_s16(coeff4b, 54);
-    int32x4_t  v4bm04 = vmull_n_s16(coeff4b, -4);
-    int32x4_t  v4bm61 = vmull_n_s16(coeff4b,-61);
-    //int32x4_t  v4bm90 = vmull_n_s16(coeff4b, 85);  duplicate
-    int32x4_t  v4bm78 = vmull_n_s16(coeff4b,-78);
-    int32x4_t  v4bm31 = vmull_n_s16(coeff4b,-31);
-
 
     int32x4_t  vb_p89p87 = vaddq_s32(v3b_87, v1b_89);
     int32x4_t  vb_p75p57 = vaddq_s32(v3b_57, v1b_75);
@@ -1750,68 +1715,242 @@ void idct32_v(const int16_t* coeffs, int32x4_t* outrow, int maxRow)
     outrow[30] = vaddq_s32(outrow[30], vb_p75p57);
     outrow[31] = vaddq_s32(outrow[31], vb_p89p87);
 
+
     int32x4_t tmp;
+
+    int32x4_t  v2b_88 = vmull_n_s16(coeff2b, 88);
+    int32x4_t  v4b_85 = vmull_n_s16(coeff4b, 85);
     tmp = vaddq_s32(v2b_88, v4b_85);
     outrow[ 0] = vaddq_s32(outrow[ 0], tmp);
     outrow[31] = vsubq_s32(outrow[31], tmp);
 
+    int32x4_t  v2b_67 = vmull_n_s16(coeff2b, 67);
+    int32x4_t  v4b_46 = vmull_n_s16(coeff4b, 46);
     tmp = vaddq_s32(v2b_67, v4b_46);
     outrow[ 1] = vaddq_s32(outrow[ 1], tmp);
     outrow[30] = vsubq_s32(outrow[30], tmp);
 
+    int32x4_t  v2b_31 = vmull_n_s16(coeff2b, 31);
+    int32x4_t  v4bm13 = vmull_n_s16(coeff4b,-13);
     tmp = vaddq_s32(v2b_31, v4bm13);
     outrow[ 2] = vaddq_s32(outrow[ 2], tmp);
     outrow[29] = vsubq_s32(outrow[29], tmp);
 
+    int32x4_t  v2bm13 = vmull_n_s16(coeff2b,-13);
+    int32x4_t  v4bm67 = vmull_n_s16(coeff4b,-67);
     tmp = vaddq_s32(v2bm13, v4bm67);
     outrow[ 3] = vaddq_s32(outrow[ 3], tmp);
     outrow[28] = vsubq_s32(outrow[28], tmp);
 
+    int32x4_t  v2bm54 = vmull_n_s16(coeff2b,-54);
+    int32x4_t  v4bm90 = vmull_n_s16(coeff4b,-90);
     tmp = vaddq_s32(v2bm54, v4bm90);
     outrow[ 4] = vaddq_s32(outrow[ 4], tmp);
     outrow[27] = vsubq_s32(outrow[27], tmp);
 
+    int32x4_t  v2bm82 = vmull_n_s16(coeff2b,-82);
+    int32x4_t  v4bm73 = vmull_n_s16(coeff4b,-73);
     tmp = vaddq_s32(v2bm82, v4bm73);
     outrow[ 5] = vaddq_s32(outrow[ 5], tmp);
     outrow[26] = vsubq_s32(outrow[26], tmp);
 
+    int32x4_t  v2b_90 = vmull_n_s16(coeff2b, 90);
+    //int32x4_t  v2bm90 = vmull_n_s16(coeff2b, -90);   can reuse v2b_90
+    int32x4_t  v4bm22 = vmull_n_s16(coeff4b,-22);
     tmp = vsubq_s32(v4bm22, v2b_90);
     outrow[ 6] = vaddq_s32(outrow[ 6], tmp);
     outrow[25] = vsubq_s32(outrow[25], tmp);
 
+    int32x4_t  v2bm78 = vmull_n_s16(coeff2b,-78);
+    int32x4_t  v4b_38 = vmull_n_s16(coeff4b, 38);
     tmp = vaddq_s32(v2bm78, v4b_38);
     outrow[ 7] = vaddq_s32(outrow[ 7], tmp);
     outrow[24] = vsubq_s32(outrow[24], tmp);
 
+    int32x4_t  v2bm46 = vmull_n_s16(coeff2b,-46);
+    int32x4_t  v4b_82 = vmull_n_s16(coeff4b, 82);
     tmp = vaddq_s32(v2bm46, v4b_82);
     outrow[ 8] = vaddq_s32(outrow[ 8], tmp);
     outrow[23] = vsubq_s32(outrow[23], tmp);
 
+    int32x4_t  v2bm04 = vmull_n_s16(coeff2b, -4);
+    int32x4_t  v4b_88 = vmull_n_s16(coeff4b, 88);
     tmp = vaddq_s32(v2bm04, v4b_88);
     outrow[ 9] = vaddq_s32(outrow[ 9], tmp);
     outrow[22] = vsubq_s32(outrow[22], tmp);
 
+    int32x4_t  v2b_38 = vmull_n_s16(coeff2b, 38);
+    int32x4_t  v4b_54 = vmull_n_s16(coeff4b, 54);
     tmp = vaddq_s32(v2b_38, v4b_54);
     outrow[10] = vaddq_s32(outrow[10], tmp);
     outrow[21] = vsubq_s32(outrow[21], tmp);
 
+    int32x4_t  v2b_73 = vmull_n_s16(coeff2b, 73);
+    int32x4_t  v4bm04 = vmull_n_s16(coeff4b, -4);
     tmp = vaddq_s32(v2b_73, v4bm04);
     outrow[11] = vaddq_s32(outrow[11], tmp);
     outrow[20] = vsubq_s32(outrow[20], tmp);
 
+    int32x4_t  v4bm61 = vmull_n_s16(coeff4b,-61);
     tmp = vaddq_s32(v2b_90, v4bm61);
     outrow[12] = vaddq_s32(outrow[12], tmp);
     outrow[19] = vsubq_s32(outrow[19], tmp);
 
+    int32x4_t  v2b_85 = vmull_n_s16(coeff2b, 85);
+    //int32x4_t  v4bm90 = vmull_n_s16(coeff4b, 85);  duplicate
     tmp = vaddq_s32(v2b_85, v4bm90);
     outrow[13] = vaddq_s32(outrow[13], tmp);
     outrow[18] = vsubq_s32(outrow[18], tmp);
 
+    int32x4_t  v2b_61 = vmull_n_s16(coeff2b, 61);
+    int32x4_t  v4bm78 = vmull_n_s16(coeff4b,-78);
     tmp = vaddq_s32(v2b_61, v4bm78);
     outrow[14] = vaddq_s32(outrow[14], tmp);
     outrow[17] = vsubq_s32(outrow[17], tmp);
 
+    int32x4_t  v2b_22 = vmull_n_s16(coeff2b, 22);
+    int32x4_t  v4bm31 = vmull_n_s16(coeff4b,-31);
     tmp = vaddq_s32(v2b_22, v4bm31);
+    outrow[15] = vaddq_s32(outrow[15], tmp);
+    outrow[16] = vsubq_s32(outrow[16], tmp);
+  }
+
+  if (maxRow >= 8) {
+    int16x4_t  coeff09 = vld1_s16(coeffs   +8*32);
+    int16x4_t  coeff10 = vld1_s16(coeffs+32+8*32);
+    int16x4_t  coeff11 = vld1_s16(coeffs+64+8*32);
+    int16x4_t  coeff12 = vld1_s16(coeffs+96+8*32);
+
+    int32x4_t  v09_83 = vmull_n_s16(coeff09, 83);
+    int32x4_t  v09_36 = vmull_n_s16(coeff09, 36);
+
+    int32x4_t  v11_80 = vmull_n_s16(coeff11, 80);
+    int32x4_t  v11_09 = vmull_n_s16(coeff11,  9);
+    int32x4_t  v11m70 = vmull_n_s16(coeff11,-70);
+    int32x4_t  v11m87 = vmull_n_s16(coeff11,-87);
+    int32x4_t  v11m25 = vmull_n_s16(coeff11,-25);
+    int32x4_t  v11_57 = vmull_n_s16(coeff11, 57);
+    int32x4_t  v11_90 = vmull_n_s16(coeff11, 90);
+    int32x4_t  v11_43 = vmull_n_s16(coeff11, 43);
+
+    int32x4_t  v_p83p80 = vaddq_s32(v11_80, v09_83);
+    int32x4_t  v_p36p09 = vaddq_s32(v11_09, v09_36);
+    int32x4_t  v_m36m70 = vsubq_s32(v11m70, v09_36);
+    int32x4_t  v_m83m87 = vsubq_s32(v11m87, v09_83);
+    int32x4_t  v_m83m25 = vsubq_s32(v11m25, v09_83);
+    int32x4_t  v_m36p57 = vsubq_s32(v11_57, v09_36);
+    int32x4_t  v_p36p90 = vaddq_s32(v11_90, v09_36);
+    int32x4_t  v_p83p43 = vaddq_s32(v11_43, v09_83);
+
+    int32x4_t  v_m83p80 = vsubq_s32(v11_80, v09_83);
+    int32x4_t  v_m36p09 = vsubq_s32(v11_09, v09_36);
+    int32x4_t  v_p36m70 = vaddq_s32(v11m70, v09_36);
+    int32x4_t  v_p83m87 = vaddq_s32(v11m87, v09_83);
+    int32x4_t  v_p83m25 = vaddq_s32(v11m25, v09_83);
+    int32x4_t  v_p36p57 = vaddq_s32(v11_57, v09_36);
+    int32x4_t  v_m36p90 = vsubq_s32(v11_90, v09_36);
+    int32x4_t  v_m83p43 = vsubq_s32(v11_43, v09_83);
+
+    outrow[ 0] = vaddq_s32( outrow[ 0], v_p83p80 );
+    outrow[ 1] = vaddq_s32( outrow[ 1], v_p36p09 );
+    outrow[ 2] = vaddq_s32( outrow[ 2], v_m36m70 );
+    outrow[ 3] = vaddq_s32( outrow[ 3], v_m83m87 );
+    outrow[ 4] = vaddq_s32( outrow[ 4], v_m83m25 );
+    outrow[ 5] = vaddq_s32( outrow[ 5], v_m36p57 );
+    outrow[ 6] = vaddq_s32( outrow[ 6], v_p36p90 );
+    outrow[ 7] = vaddq_s32( outrow[ 7], v_p83p43 );
+
+    outrow[ 8] = vsubq_s32( outrow[ 8], v_m83p43 );
+    outrow[ 9] = vsubq_s32( outrow[ 9], v_m36p90 );
+    outrow[10] = vsubq_s32( outrow[10], v_p36p57 );
+    outrow[11] = vsubq_s32( outrow[11], v_p83m25 );
+    outrow[12] = vsubq_s32( outrow[12], v_p83m87 );
+    outrow[13] = vsubq_s32( outrow[13], v_p36m70 );
+    outrow[14] = vsubq_s32( outrow[14], v_m36p09 );
+    outrow[15] = vsubq_s32( outrow[15], v_m83p80 );
+
+    outrow[16] = vsubq_s32( outrow[16], v_m83p80 );
+    outrow[17] = vsubq_s32( outrow[17], v_m36p09 );
+    outrow[18] = vsubq_s32( outrow[18], v_p36m70 );
+    outrow[19] = vsubq_s32( outrow[19], v_p83m87 );
+    outrow[20] = vsubq_s32( outrow[20], v_p83m25 );
+    outrow[21] = vsubq_s32( outrow[21], v_p36p57 );
+    outrow[22] = vsubq_s32( outrow[22], v_m36p90 );
+    outrow[23] = vsubq_s32( outrow[23], v_m83p43 );
+
+    outrow[24] = vaddq_s32( outrow[24], v_p83p43 );
+    outrow[25] = vaddq_s32( outrow[25], v_p36p90 );
+    outrow[26] = vaddq_s32( outrow[26], v_m36p57 );
+    outrow[27] = vaddq_s32( outrow[27], v_m83m25 );
+    outrow[28] = vaddq_s32( outrow[28], v_m83m87 );
+    outrow[29] = vaddq_s32( outrow[29], v_m36m70 );
+    outrow[30] = vaddq_s32( outrow[30], v_p36p09 );
+    outrow[31] = vaddq_s32( outrow[31], v_p83p80 );
+
+    int32x4_t tmp;
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 82), vmull_n_s16(coeff12, 78) );
+    outrow[ 0] = vaddq_s32(outrow[ 0], tmp);
+    outrow[31] = vsubq_s32(outrow[31], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 22), vmull_n_s16(coeff12, -4) );
+    outrow[ 1] = vaddq_s32(outrow[ 1], tmp);
+    outrow[30] = vsubq_s32(outrow[30], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10,-54), vmull_n_s16(coeff12,-82) );
+    outrow[ 2] = vaddq_s32(outrow[ 2], tmp);
+    outrow[29] = vsubq_s32(outrow[29], tmp);
+
+    int32x4_t v10_m90 = vmull_n_s16(coeff10,-90);
+    tmp = vaddq_s32( v10_m90,                  vmull_n_s16(coeff12,-73) );
+    outrow[ 3] = vaddq_s32(outrow[ 3], tmp);
+    outrow[28] = vsubq_s32(outrow[28], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10,-61), vmull_n_s16(coeff12, 13) );
+    outrow[ 4] = vaddq_s32(outrow[ 4], tmp);
+    outrow[27] = vsubq_s32(outrow[27], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 13), vmull_n_s16(coeff12, 85) );
+    outrow[ 5] = vaddq_s32(outrow[ 5], tmp);
+    outrow[26] = vsubq_s32(outrow[26], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 78), vmull_n_s16(coeff12, 67) );
+    outrow[ 6] = vaddq_s32(outrow[ 6], tmp);
+    outrow[25] = vsubq_s32(outrow[25], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 85), vmull_n_s16(coeff12,-22) );
+    outrow[ 7] = vaddq_s32(outrow[ 7], tmp);
+    outrow[24] = vsubq_s32(outrow[24], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 31), vmull_n_s16(coeff12,-88) );
+    outrow[ 8] = vaddq_s32(outrow[ 8], tmp);
+    outrow[23] = vsubq_s32(outrow[23], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10,-46), vmull_n_s16(coeff12,-61) );
+    outrow[ 9] = vaddq_s32(outrow[ 9], tmp);
+    outrow[22] = vsubq_s32(outrow[22], tmp);
+
+    tmp = vaddq_s32( v10_m90,                  vmull_n_s16(coeff12, 31) );
+    outrow[10] = vaddq_s32(outrow[10], tmp);
+    outrow[21] = vsubq_s32(outrow[21], tmp);
+
+    int32x4_t v12_90 = vmull_n_s16(coeff12,90);
+    tmp = vaddq_s32( vmull_n_s16(coeff10,-67), v12_90 );
+    outrow[11] = vaddq_s32(outrow[11], tmp);
+    outrow[20] = vsubq_s32(outrow[20], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10,  4), vmull_n_s16(coeff12, 54) );
+    outrow[12] = vaddq_s32(outrow[12], tmp);
+    outrow[19] = vsubq_s32(outrow[19], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 73), vmull_n_s16(coeff12,-38) );
+    outrow[13] = vaddq_s32(outrow[13], tmp);
+    outrow[18] = vsubq_s32(outrow[18], tmp);
+
+    tmp = vsubq_s32( vmull_n_s16(coeff10, 88), v12_90 );
+    outrow[14] = vaddq_s32(outrow[14], tmp);
+    outrow[17] = vsubq_s32(outrow[17], tmp);
+
+    tmp = vaddq_s32( vmull_n_s16(coeff10, 38), vmull_n_s16(coeff12,-46) );
     outrow[15] = vaddq_s32(outrow[15], tmp);
     outrow[16] = vsubq_s32(outrow[16], tmp);
   }
@@ -2259,7 +2398,7 @@ void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride
       }
     }
   }
-  else if (maxColumn<8 && maxRow<8) {
+  else if (maxColumn<8 && maxRow<12) {
     int32x4_t row[2][32];
 
     idct32_v(coeffs, row[0], maxRow);
