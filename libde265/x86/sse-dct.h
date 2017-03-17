@@ -29,12 +29,12 @@ void ff_hevc_transform_skip_8_sse(uint8_t *_dst, const int16_t *coeffs, ptrdiff_
 void ff_hevc_transform_4x4_luma_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 
 void idct_4x4_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                         int maxColumn,int maxRow);
+                         int maxColumn,int maxRow, const uint8_t* subblocks_coded);
 void ff_hevc_transform_8x8_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                      int maxColumn,int maxRow);
+                                      int maxColumn,int maxRow, const uint8_t* subblocks_coded);
 void ff_hevc_transform_16x16_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                        int maxColumn,int maxRow);
+                                        int maxColumn,int maxRow, const uint8_t* subblocks_coded);
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                        int maxColumn,int maxRow);
+                                        int maxColumn,int maxRow, const uint8_t* subblocks_coded);
 
 #endif
