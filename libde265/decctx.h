@@ -114,6 +114,8 @@ public:
   int8_t  maxCoeffRow[3];
   int8_t  maxCoeffColumn[3];
 
+  uint8_t subblock_coded[3][8];
+
   int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
 
 

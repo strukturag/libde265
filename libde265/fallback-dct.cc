@@ -602,7 +602,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
   */
 
 #if D
-  if (nT==8) {
+  if (nT==32) {
   printf("--- input\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
@@ -628,7 +628,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     // are computed independently, we want to skip as much of the computations as possible
     // for each column separately.
 
-    int lastCol = nT-1;
+  int lastCol = maxRow;
     for (;lastCol>=0;lastCol--) {
       if (coeffs[c+lastCol*nT]) { break; }
     }
@@ -640,7 +640,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     for (int i=0;i<nT;i++) {
       int sum=0;
 #if D
-      if (nT==8) {
+      if (nT==32) {
       printf("input: ");
       for (int j=0;j<nT;j++) {
         printf("%04x ",coeffs[c+j*nT]);
@@ -660,7 +660,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
 #if D
-      if (nT==8) {
+      if (nT==16) {
         printf("out[%d] : %04x + %04x -> %04x\n",i,sum,rnd1,g[c+i*nT]);
       }
 #endif
@@ -670,7 +670,7 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
   }
 
 #if D
-  if (nT==8) {
+  if (nT==32) {
   printf("--- temp\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
@@ -707,13 +707,14 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * g[y*nT+j];
 
-        if (D) printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
+        //if (D) printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
       }
-
-      if (D) printf("-> %04x\n",sum);
 
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
+
+      if (D && nT==32) printf("[%d][%d] -> %04x -> %04x\n",y,i, sum, out);
+
 
       /*
       if (nT==8 && maxColumn==0 && maxRow==0) {
@@ -725,6 +726,11 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
       //fprintf(stderr,"%d*%d+%d = %d\n",y,stride,i,y*stride+i);
       //fprintf(stderr,"[%p]=%d\n",&dst[y*stride+i], Clip1_8bit(dst[y*stride+i]));
+
+      if (D && nT==32) printf("%02x + %04x -> %02x\n",
+    dst[y*stride+i], out,
+    Clip_BitDepth(dst[y*stride+i] + out, bit_depth) );
+
       dst[y*stride+i] = Clip_BitDepth(dst[y*stride+i] + out, bit_depth);
 
       logtrace(LogTransform,"*%d ",out);
@@ -903,46 +909,46 @@ void transform_idct_32x32_fallback(int32_t *dst, const int16_t *coeffs,
 
 
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow)
+                                  int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8, maxColumn,maxRow);
 }
 
 void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow)
+                                  int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8, maxColumn,maxRow);
 }
 
 void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow)
+                                    int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8, maxColumn,maxRow);
 }
 
 void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow)
+                                    int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8, maxColumn,maxRow);
 }
 
 
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow, const uint8_t* subblock_coded)
 {
   transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth, maxColumn,maxRow);
 }

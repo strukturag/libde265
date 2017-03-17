@@ -208,7 +208,8 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 template <class pixel_t>
 void transform_coefficients(acceleration_functions* acceleration,
                             int16_t* coeff, int coeffStride, int nT, int trType,
-                            pixel_t* dst, int dstStride, int bit_depth, int maxColumn,int maxRow)
+                            pixel_t* dst, int dstStride, int bit_depth, int maxColumn,int maxRow,
+                            const uint8_t* subblock_coded)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
@@ -223,13 +224,13 @@ void transform_coefficients(acceleration_functions* acceleration,
     }
 
     /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth,
-                                                            maxColumn,maxRow); }
+                                                            maxColumn,maxRow,subblock_coded); }
     else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth,
-                                                            maxColumn,maxRow); }
+                                                            maxColumn,maxRow,subblock_coded); }
     else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth,
-                                                            maxColumn,maxRow); }
+                                                            maxColumn,maxRow,subblock_coded); }
     else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth,
-                                                            maxColumn,maxRow); }
+                                                            maxColumn,maxRow,subblock_coded); }
   }
 
 #if 0
@@ -312,6 +313,9 @@ void transform_coefficients_explicit(thread_context* tctx,
 }
 
 
+// TODO: do not need this for now...
+static const uint8_t subblock_coded[8] = { 0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff };
+
 void inv_transform(acceleration_functions* acceleration,
                    uint8_t* dst, int dstStride, int16_t* coeff,
                    int log2TbSize, int trType, int maxColumn, int maxRow)
@@ -322,7 +326,7 @@ void inv_transform(acceleration_functions* acceleration,
     acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
 
   } else {
-    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride, maxColumn,maxRow);
+    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride, maxColumn,maxRow, subblock_coded);
   }
 
 
@@ -614,7 +618,8 @@ void scale_coefficients_internal(thread_context* tctx,
         transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
                                pred, stride, bit_depth,
                                tctx->maxCoeffColumn[cIdx],
-                               tctx->maxCoeffRow[cIdx]);
+                               tctx->maxCoeffRow[cIdx],
+                               tctx->subblock_coded[cIdx]);
       }
     }
   }

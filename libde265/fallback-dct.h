@@ -39,23 +39,23 @@ void transform_bypass_rdpcm_h_fallback(int32_t *r, const int16_t *coeffs,int nT)
 
 void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow);
+                                  int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow);
+                                  int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow);
+                                    int maxColumn,int maxRow, const uint8_t* subblock_coded);
 void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow);
+                                    int maxColumn,int maxRow, const uint8_t* subblock_coded);
 
 
 void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
 
 void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
 
 void rotate_coefficients_fallback(int16_t *coeff, int nT);
 
