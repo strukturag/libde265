@@ -26,15 +26,6 @@
 #include <stdint.h>
 
 
-void ff_hevc_put_unweighted_pred_8_sse(uint8_t *_dst, ptrdiff_t dststride,
-                                       const int16_t *src, ptrdiff_t srcstride,
-                                       int width, int height);
-
-void ff_hevc_put_weighted_pred_avg_8_sse(uint8_t *_dst, ptrdiff_t dststride,
-                                         const int16_t *src1, const int16_t *src2,
-                                         ptrdiff_t srcstride, int width,
-                                         int height);
-
 void ff_hevc_put_hevc_epel_pixels_8_sse(int16_t *dst, ptrdiff_t dststride,
                                         const uint8_t *_src, ptrdiff_t srcstride,
                                         int width, int height,

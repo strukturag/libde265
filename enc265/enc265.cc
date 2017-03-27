@@ -41,7 +41,7 @@
 #include <libvideogfx.hh>
 using namespace videogfx;
 
-void debug_show_image_libvideogfx(const de265_image* input, int slot)
+void debug_show_image_libvideogfx(const image* input, int slot)
 {
     static X11Win debugwin;
     static bool opened=false;
@@ -56,11 +56,11 @@ void debug_show_image_libvideogfx(const de265_image* input, int slot)
     img.Create(w,h,Colorspace_YUV, Chroma_420);
 
     for (int y=0;y<h;y++)
-      memcpy(img.AskFrameY()[y], input->get_image_plane_at_pos(0,0,y), w);
+      memcpy(img.AskFrameY()[y], input->get_image_plane_at_pos<uint8_t>(0,0,y), w);
 
     for (int y=0;y<h/2;y++) {
-      memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos(1,0,y), w/2);
-      memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos(2,0,y), w/2);
+      memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos<uint8_t>(1,0,y), w/2);
+      memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos<uint8_t>(2,0,y), w/2);
     }
 
     debugwin.Display(img);
@@ -337,13 +337,13 @@ int main(int argc, char** argv)
     {
       // push one image into the encoder
 
-      de265_image* input_image = image_source->get_image();
+      image* input_image = image_source->get_image();
       if (input_image==NULL) {
         en265_push_eof(ectx);
         eof=true;
       }
       else {
-        en265_push_image(ectx, input_image);
+        en265_push_image(ectx, (de265_image*)input_image);
       }
 
 

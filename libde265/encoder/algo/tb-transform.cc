@@ -56,7 +56,7 @@ static bool has_nonzero_value(const int16_t* data, int n)
 
 void compute_transform_coeffs(encoder_context* ectx,
                               enc_tb* tb,
-                              const de265_image* input, // TODO: probably pass pixels/stride directly
+                              const image* input, // TODO: probably pass pixels/stride directly
                               //int16_t* residual, int stride,
                               int x0,int y0, // luma position
                               int log2TbSize, // chroma adapted
@@ -138,7 +138,7 @@ void compute_transform_coeffs(encoder_context* ectx,
 
 enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    context_model_table& ctxModel,
-                                   const de265_image* input,
+                                   const image* input,
                                    enc_tb* tb,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
@@ -148,7 +148,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   const enc_cb* cb = tb->cb;
   *tb->downPtr = tb; // TODO: should be obsolet
 
-  de265_image* img = ectx->img;
+  image* img = ectx->img.get();
 
   int stride = ectx->img->get_image_stride(0);
 
@@ -192,7 +192,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   /* We could compute the reconstruction lazy on first access. However, we currently
      use it right away for computing the distortion.
   */
-  tb->reconstruct(ectx, ectx->img);
+  tb->reconstruct(ectx, ectx->img.get());
 
 
   // measure rate
@@ -245,7 +245,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
   // measure distortion
 
   int tbSize = 1<<log2TbSize;
-  tb->distortion = SSD(input->get_image_plane_at_pos(0, x0,y0), input->get_image_stride(0),
+  tb->distortion = SSD(input->get_image_plane_at_pos<uint8_t>(0, x0,y0), input->get_image_stride(0),
                        tb->reconstruction[0]->get_buffer_u8(),
                        tb->reconstruction[0]->getStride(),
                        tbSize, tbSize);

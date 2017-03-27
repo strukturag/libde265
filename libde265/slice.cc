@@ -29,14 +29,18 @@
 #include "transform.h"
 #include "threads.h"
 #include "image.h"
+#include "image-unit.h"
 
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include <iostream>
 
 #define LOCK de265_mutex_lock(&ctx->thread_pool.mutex)
 #define UNLOCK de265_mutex_unlock(&ctx->thread_pool.mutex)
+
+#define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
 extern bool read_short_term_ref_pic_set(error_queue* errqueue,
                                         const seq_parameter_set* sps,
@@ -148,9 +152,11 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 {
   int vlc;
 
-  pic_parameter_set* pps = ctx->get_pps((int)shdr->slice_pic_parameter_set_id);
+  frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
+
+  pic_parameter_set* pps = frontend.get_pps((int)shdr->slice_pic_parameter_set_id);
   assert(pps);
-  seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  seq_parameter_set* sps = frontend.get_sps((int)pps->seq_parameter_set_id);
   assert(sps);
 
   shdr->luma_log2_weight_denom = vlc = get_uvlc(br);
@@ -187,23 +193,28 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
             // delta_luma_weight
 
-            vlc = get_svlc(br);
-            if (vlc < -128 || vlc > 127) return false;
+            int weight_diff = get_svlc(br);
+            if (weight_diff < -128 || weight_diff > 127) return false;
 
-            shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + vlc;
+            shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + weight_diff;
 
             // luma_offset
 
-            vlc = get_svlc(br);
-            if (vlc < -sps->WpOffsetHalfRangeY || vlc > sps->WpOffsetHalfRangeY-1) return false;
-            shdr->luma_offset[l][i] = vlc;
+            int offset = get_svlc(br);
+            if (offset < -sps->WpOffsetHalfRangeY || offset > sps->WpOffsetHalfRangeY-1) return false;
+            shdr->luma_offset[l][i] = offset;
+
+            // optimization: if the weighting is actually ineffective, switch it off
+            if (weight_diff==0 && offset==0) {
+              shdr->luma_weight_flag[l][i] = 0;
+            }
           }
           else {
             shdr->LumaWeight[l][i] = 1<<shdr->luma_log2_weight_denom;
             shdr->luma_offset[l][i] = 0;
           }
 
-          if (shdr->chroma_weight_flag[l][i])
+          if (shdr->chroma_weight_flag[l][i]) {
             for (int j=0;j<2;j++) {
               // delta_chroma_weight
 
@@ -227,6 +238,16 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
               shdr->ChromaOffset[l][i][j] = vlc;
             }
+
+            // optimization: if the weighting is actually ineffective, switch it off
+            if (shdr->ChromaWeight[l][i][0] == (1<<shdr->ChromaLog2WeightDenom) &&
+                shdr->ChromaWeight[l][i][1] == (1<<shdr->ChromaLog2WeightDenom) &&
+                shdr->ChromaOffset[l][i][0] == 0 &&
+                shdr->ChromaOffset[l][i][1] == 0)
+              {
+                shdr->chroma_weight_flag[l][i] = 0;
+              }
+          }
           else {
             for (int j=0;j<2;j++) {
               shdr->ChromaWeight[l][i][j] = 1<<shdr->ChromaLog2WeightDenom;
@@ -244,7 +265,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
 void slice_segment_header::reset()
 {
-  pps = NULL;
+  pps.reset();
 
   slice_index = 0;
 
@@ -354,8 +375,11 @@ void slice_segment_header::reset()
 
 
 de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
+                                       uint8_t nal_unit_type,
                                        bool* continueDecoding)
 {
+  frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
+
   *continueDecoding = false;
   reset();
 
@@ -368,25 +392,25 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   first_slice_segment_in_pic_flag = get_bits(br,1);
 
-  if (ctx->get_RapPicFlag()) { // TODO: is this still correct ? Should we drop RapPicFlag ?
+  if (isRapPic(nal_unit_type)) { // TODO: is this still correct ? Should we drop RapPicFlag ?
     no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
   slice_pic_parameter_set_id = get_uvlc(br);
-  if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
+  if (slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
       slice_pic_parameter_set_id == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  if (!ctx->has_pps(slice_pic_parameter_set_id)) {
+  if (!frontend.has_pps(slice_pic_parameter_set_id)) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
 
-  pps = ctx->get_pps(slice_pic_parameter_set_id);
+  pps = frontend.get_pps_ptr(slice_pic_parameter_set_id);
 
-  const seq_parameter_set* sps = pps->sps;
+  std::shared_ptr<const seq_parameter_set> sps = pps->sps;
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
@@ -409,11 +433,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      if (ctx->previous_slice_header == NULL) {
+      if (frontend.has_previous_slice_header()) {
+
+        if (slice_pic_parameter_set_id !=
+            frontend.get_previous_slice_header().slice_pic_parameter_set_id) {
+          ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+          return DE265_OK;
+        }
+
+        *this = frontend.get_previous_slice_header();
+      }
+      else {
         return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
       }
-
-      *this = *ctx->previous_slice_header;
 
       first_slice_segment_in_pic_flag = 0;
       dependent_slice_segment_flag = 1;
@@ -465,13 +497,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     int NumLtPics = 0;
 
-    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
+    if (nal_unit_type != NAL_UNIT_IDR_W_RADL &&
+        nal_unit_type != NAL_UNIT_IDR_N_LP) {
       slice_pic_order_cnt_lsb = get_bits(br, sps->log2_max_pic_order_cnt_lsb);
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        read_short_term_ref_pic_set(ctx, sps,
+        read_short_term_ref_pic_set(ctx, sps.get(),
                                     br, &slice_ref_pic_set,
                                     sps->num_short_term_ref_pic_sets(),
                                     sps->ref_pic_sets,
@@ -541,19 +573,19 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
             // delta_poc_msb_present_flag[i] = 0; // TODO ?
 
-            ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
-            ctx->UsedByCurrPicLt[i] = sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ];
+            frontend.set_PocLsbLt(i, sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ]);
+            frontend.set_UsedByCurrPicLt(i, sps->used_by_curr_pic_lt_sps_flag[ lt_idx_sps[i] ]);
           }
           else {
             int nBits = sps->log2_max_pic_order_cnt_lsb;
             poc_lsb_lt[i] = get_bits(br, nBits);
             used_by_curr_pic_lt_flag[i] = get_bits(br,1);
 
-            ctx->PocLsbLt[i] = poc_lsb_lt[i];
-            ctx->UsedByCurrPicLt[i] = used_by_curr_pic_lt_flag[i];
+            frontend.set_PocLsbLt(i, poc_lsb_lt[i]);
+            frontend.set_UsedByCurrPicLt(i, used_by_curr_pic_lt_flag[i]);
           }
 
-          if (ctx->UsedByCurrPicLt[i]) {
+          if (frontend.is_UsedByCurrPicLt(i)) {
             NumLtPics++;
           }
 
@@ -569,11 +601,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           }
 
           if (i==0 || i==num_long_term_sps) {
-            ctx->DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
+            frontend.set_DeltaPocMsbCycleLt(i, delta_poc_msb_cycle_lt[i]);
           }
           else {
-            ctx->DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
-                                          ctx->DeltaPocMsbCycleLt[i-1]);
+            frontend.set_DeltaPocMsbCycleLt(i, (delta_poc_msb_cycle_lt[i] +
+                                                frontend.get_DeltaPocMsbCycleLt(i-1)) );
           }
         }
       }
@@ -872,7 +904,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
 
-  compute_derived_values(pps);
+  compute_derived_values(pps.get());
 
   *continueDecoding = true;
   return DE265_OK;
@@ -1264,40 +1296,34 @@ void slice_segment_header::compute_derived_values(const pic_parameter_set* pps)
 //-----------------------------------------------------------------------
 
 
-void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx, int fd) const
+std::string slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
+                                                            uint8_t nal_unit_type) const
 {
-  FILE* fh;
-  if (fd==1) fh=stdout;
-  else if (fd==2) fh=stderr;
-  else { return; }
+  std::stringstream sstr;
 
-#define LOG0(t) log2fh(fh, t)
-#define LOG1(t,d) log2fh(fh, t,d)
-#define LOG2(t,d1,d2) log2fh(fh, t,d1,d2)
-#define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
-#define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
+  const frontend_syntax_decoder& frontend = ctx->get_frontend_syntax_decoder();
 
-  const pic_parameter_set* pps = ctx->get_pps(slice_pic_parameter_set_id);
+  const pic_parameter_set* pps = frontend.get_pps(slice_pic_parameter_set_id);
   assert(pps->pps_read); // TODO: error handling
 
-  const seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  const seq_parameter_set* sps = frontend.get_sps((int)pps->seq_parameter_set_id);
   assert(sps->sps_read); // TODO: error handling
 
 
-  LOG0("----------------- SLICE -----------------\n");
-  LOG1("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
-  if (ctx->get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
-      ctx->get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
-    LOG1("no_output_of_prior_pics_flag         : %d\n", no_output_of_prior_pics_flag);
+  LOG("----------------- SLICE -----------------\n");
+  LOG("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
+  if (nal_unit_type >= NAL_UNIT_BLA_W_LP &&
+      nal_unit_type <= NAL_UNIT_RESERVED_IRAP_VCL23) {
+    LOG("no_output_of_prior_pics_flag         : %d\n", no_output_of_prior_pics_flag);
   }
 
-  LOG1("slice_pic_parameter_set_id           : %d\n", slice_pic_parameter_set_id);
+  LOG("slice_pic_parameter_set_id           : %d\n", slice_pic_parameter_set_id);
 
   if (!first_slice_segment_in_pic_flag) {
     //if (pps->dependent_slice_segments_enabled_flag) {
-      LOG1("dependent_slice_segment_flag         : %d\n", dependent_slice_segment_flag);
+      LOG("dependent_slice_segment_flag         : %d\n", dependent_slice_segment_flag);
       //}
-    LOG1("slice_segment_address                : %d\n", slice_segment_address);
+    LOG("slice_segment_address                : %d\n", slice_segment_address);
   }
 
   //if (!dependent_slice_segment_flag)
@@ -1305,106 +1331,106 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
     //for (int i=0; i<pps->num_extra_slice_header_bits; i++) {
     //slice_reserved_flag[i]
 
-    LOG1("slice_type                           : %c\n",
-         slice_type == 0 ? 'B' :
-         slice_type == 1 ? 'P' : 'I');
+    LOG("slice_type                           : %c\n",
+        slice_type == 0 ? 'B' :
+        slice_type == 1 ? 'P' : 'I');
 
     if (pps->output_flag_present_flag) {
-      LOG1("pic_output_flag                      : %d\n", pic_output_flag);
+      LOG("pic_output_flag                      : %d\n", pic_output_flag);
     }
 
     if (sps->separate_colour_plane_flag == 1) {
-      LOG1("colour_plane_id                      : %d\n", colour_plane_id);
+      LOG("colour_plane_id                      : %d\n", colour_plane_id);
     }
 
-    LOG1("slice_pic_order_cnt_lsb              : %d\n", slice_pic_order_cnt_lsb);
+    LOG("slice_pic_order_cnt_lsb              : %d\n", slice_pic_order_cnt_lsb);
 
-    if (ctx->get_nal_unit_type() != NAL_UNIT_IDR_W_RADL &&
-        ctx->get_nal_unit_type() != NAL_UNIT_IDR_N_LP) {
-      LOG1("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
+    if (nal_unit_type != NAL_UNIT_IDR_W_RADL &&
+        nal_unit_type != NAL_UNIT_IDR_N_LP) {
+      LOG("short_term_ref_pic_set_sps_flag      : %d\n", short_term_ref_pic_set_sps_flag);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        LOG1("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets());
-        dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16, fh);
+        LOG("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets());
+        std::string TODO = dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16);
       }
       else if (sps->num_short_term_ref_pic_sets() > 1) {
-        LOG1("short_term_ref_pic_set_idx           : %d\n", short_term_ref_pic_set_idx);
-        dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16, fh);
+        LOG("short_term_ref_pic_set_idx           : %d\n", short_term_ref_pic_set_idx);
+        std::string TODO = dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16);
       }
 
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
-          LOG1("num_long_term_sps                        : %d\n", num_long_term_sps);
+          LOG("num_long_term_sps                        : %d\n", num_long_term_sps);
         }
 
-        LOG1("num_long_term_pics                       : %d\n", num_long_term_pics);
+        LOG("num_long_term_pics                       : %d\n", num_long_term_pics);
 
 #if 0
         for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
-          LOG2("PocLsbLt[%d]            : %d\n", i, ctx->PocLsbLt[i]);
-          LOG2("UsedByCurrPicLt[%d]     : %d\n", i, ctx->UsedByCurrPicLt[i]);
-          LOG2("DeltaPocMsbCycleLt[%d]  : %d\n", i, ctx->DeltaPocMsbCycleLt[i]);
+          LOG("PocLsbLt[%d]            : %d\n", i, ctx->PocLsbLt[i]);
+          LOG("UsedByCurrPicLt[%d]     : %d\n", i, ctx->UsedByCurrPicLt[i]);
+          LOG("DeltaPocMsbCycleLt[%d]  : %d\n", i, ctx->DeltaPocMsbCycleLt[i]);
         }
 #endif
       }
 
       if (sps->sps_temporal_mvp_enabled_flag) {
-        LOG1("slice_temporal_mvp_enabled_flag : %d\n", slice_temporal_mvp_enabled_flag);
+        LOG("slice_temporal_mvp_enabled_flag : %d\n", slice_temporal_mvp_enabled_flag);
       }
     }
 
 
     if (sps->sample_adaptive_offset_enabled_flag) {
-      LOG1("slice_sao_luma_flag             : %d\n", slice_sao_luma_flag);
-      LOG1("slice_sao_chroma_flag           : %d\n", slice_sao_chroma_flag);
+      LOG("slice_sao_luma_flag             : %d\n", slice_sao_luma_flag);
+      LOG("slice_sao_chroma_flag           : %d\n", slice_sao_chroma_flag);
     }
 
 
     if (slice_type == SLICE_TYPE_P || slice_type == SLICE_TYPE_B) {
-      LOG1("num_ref_idx_active_override_flag : %d\n", num_ref_idx_active_override_flag);
+      LOG("num_ref_idx_active_override_flag : %d\n", num_ref_idx_active_override_flag);
 
-      LOG2("num_ref_idx_l0_active          : %d %s\n", num_ref_idx_l0_active,
-           num_ref_idx_active_override_flag ? "" : "(from PPS)");
+      LOG("num_ref_idx_l0_active          : %d %s\n", num_ref_idx_l0_active,
+          num_ref_idx_active_override_flag ? "" : "(from PPS)");
 
       if (slice_type == SLICE_TYPE_B) {
-        LOG2("num_ref_idx_l1_active          : %d %s\n", num_ref_idx_l1_active,
-             num_ref_idx_active_override_flag ? "" : "(from PPS)");
+        LOG("num_ref_idx_l1_active          : %d %s\n", num_ref_idx_l1_active,
+            num_ref_idx_active_override_flag ? "" : "(from PPS)");
       }
 
       if (pps->lists_modification_present_flag && NumPocTotalCurr > 1)
         {
-          LOG1("ref_pic_list_modification_flag_l0 : %d\n", ref_pic_list_modification_flag_l0);
+          LOG("ref_pic_list_modification_flag_l0 : %d\n", ref_pic_list_modification_flag_l0);
           if (ref_pic_list_modification_flag_l0) {
             for (int i=0;i<num_ref_idx_l0_active;i++) {
-              LOG2("  %d: %d\n",i,list_entry_l0[i]);
+              LOG("  %d: %d\n",i,list_entry_l0[i]);
             }
           }
 
-          LOG1("ref_pic_list_modification_flag_l1 : %d\n", ref_pic_list_modification_flag_l1);
+          LOG("ref_pic_list_modification_flag_l1 : %d\n", ref_pic_list_modification_flag_l1);
           if (ref_pic_list_modification_flag_l1) {
             for (int i=0;i<num_ref_idx_l1_active;i++) {
-              LOG2("  %d: %d\n",i,list_entry_l1[i]);
+              LOG("  %d: %d\n",i,list_entry_l1[i]);
             }
           }
         }
 
       if (slice_type == SLICE_TYPE_B) {
-        LOG1("mvd_l1_zero_flag               : %d\n", mvd_l1_zero_flag);
+        LOG("mvd_l1_zero_flag               : %d\n", mvd_l1_zero_flag);
       }
 
-      LOG1("cabac_init_flag                : %d\n", cabac_init_flag);
+      LOG("cabac_init_flag                : %d\n", cabac_init_flag);
 
       if (slice_temporal_mvp_enabled_flag) {
-        LOG1("collocated_from_l0_flag        : %d\n", collocated_from_l0_flag);
-        LOG1("collocated_ref_idx             : %d\n", collocated_ref_idx);
+        LOG("collocated_from_l0_flag        : %d\n", collocated_from_l0_flag);
+        LOG("collocated_ref_idx             : %d\n", collocated_ref_idx);
       }
 
       if ((pps->weighted_pred_flag   && slice_type == SLICE_TYPE_P) ||
           (pps->weighted_bipred_flag && slice_type == SLICE_TYPE_B))
         {
-          LOG1("luma_log2_weight_denom         : %d\n", luma_log2_weight_denom);
+          LOG("luma_log2_weight_denom         : %d\n", luma_log2_weight_denom);
           if (sps->chroma_format_idc != 0) {
-            LOG1("ChromaLog2WeightDenom          : %d\n", ChromaLog2WeightDenom);
+            LOG("ChromaLog2WeightDenom          : %d\n", ChromaLog2WeightDenom);
           }
 
           for (int l=0;l<=1;l++)
@@ -1414,72 +1440,72 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
                                num_ref_idx_l0_active-1 :
                                num_ref_idx_l1_active-1);
 
-                if (false) { // do not show these flags
+                if (true) { // do not show these flags
                   for (int i=0;i<=num_ref;i++) {
-                    LOG3("luma_weight_flag_l%d[%d]        : %d\n",l,i,luma_weight_flag[l][i]);
+                    LOG("luma_weight_flag_l%d[%d]        : %d\n",l,i,luma_weight_flag[l][i]);
                   }
 
                   if (sps->chroma_format_idc != 0) {
                     for (int i=0;i<=num_ref;i++) {
-                      LOG3("chroma_weight_flag_l%d[%d]      : %d\n",l,i,chroma_weight_flag[l][i]);
+                      LOG("chroma_weight_flag_l%d[%d]      : %d\n",l,i,chroma_weight_flag[l][i]);
                     }
                   }
                 }
 
                 for (int i=0;i<=num_ref;i++) {
-                  LOG3("LumaWeight_L%d[%d]             : %d\n",l,i,LumaWeight[l][i]);
-                  LOG3("luma_offset_l%d[%d]            : %d\n",l,i,luma_offset[l][i]);
+                  LOG("LumaWeight_L%d[%d]             : %d\n",l,i,LumaWeight[l][i]);
+                  LOG("luma_offset_l%d[%d]            : %d\n",l,i,luma_offset[l][i]);
 
                   for (int j=0;j<2;j++) {
-                    LOG4("ChromaWeight_L%d[%d][%d]        : %d\n",l,i,j,ChromaWeight[l][i][j]);
-                    LOG4("ChromaOffset_L%d[%d][%d]        : %d\n",l,i,j,ChromaOffset[l][i][j]);
+                    LOG("ChromaWeight_L%d[%d][%d]        : %d\n",l,i,j,ChromaWeight[l][i][j]);
+                    LOG("ChromaOffset_L%d[%d][%d]        : %d\n",l,i,j,ChromaOffset[l][i][j]);
                   }
                 }
               }
         }
 
-      LOG1("five_minus_max_num_merge_cand  : %d\n", five_minus_max_num_merge_cand);
+      LOG("five_minus_max_num_merge_cand  : %d\n", five_minus_max_num_merge_cand);
     }
 
 
-    LOG1("slice_qp_delta         : %d\n", slice_qp_delta);
+    LOG("slice_qp_delta         : %d\n", slice_qp_delta);
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
-      LOG1("slice_cb_qp_offset     : %d\n", slice_cb_qp_offset);
-      LOG1("slice_cr_qp_offset     : %d\n", slice_cr_qp_offset);
+      LOG("slice_cb_qp_offset     : %d\n", slice_cb_qp_offset);
+      LOG("slice_cr_qp_offset     : %d\n", slice_cr_qp_offset);
     }
 
     if (pps->deblocking_filter_override_enabled_flag) {
-      LOG1("deblocking_filter_override_flag : %d\n", deblocking_filter_override_flag);
+      LOG("deblocking_filter_override_flag : %d\n", deblocking_filter_override_flag);
     }
 
-    LOG2("slice_deblocking_filter_disabled_flag : %d %s\n",
-         slice_deblocking_filter_disabled_flag,
-         (deblocking_filter_override_flag ? "(override)" : "(from pps)"));
+    LOG("slice_deblocking_filter_disabled_flag : %d %s\n",
+        slice_deblocking_filter_disabled_flag,
+        (deblocking_filter_override_flag ? "(override)" : "(from pps)"));
 
     if (deblocking_filter_override_flag) {
 
       if (!slice_deblocking_filter_disabled_flag) {
-        LOG1("slice_beta_offset  : %d\n", slice_beta_offset);
-        LOG1("slice_tc_offset    : %d\n", slice_tc_offset);
+        LOG("slice_beta_offset  : %d\n", slice_beta_offset);
+        LOG("slice_tc_offset    : %d\n", slice_tc_offset);
       }
     }
 
     if (pps->pps_loop_filter_across_slices_enabled_flag  &&
         (slice_sao_luma_flag || slice_sao_chroma_flag ||
          !slice_deblocking_filter_disabled_flag)) {
-      LOG1("slice_loop_filter_across_slices_enabled_flag : %d\n",
-           slice_loop_filter_across_slices_enabled_flag);
+      LOG("slice_loop_filter_across_slices_enabled_flag : %d\n",
+          slice_loop_filter_across_slices_enabled_flag);
     }
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag) {
-    LOG1("num_entry_point_offsets    : %d\n", num_entry_point_offsets);
+    LOG("num_entry_point_offsets    : %d\n", num_entry_point_offsets);
 
     if (num_entry_point_offsets > 0) {
-      LOG1("offset_len                 : %d\n", offset_len);
+      LOG("offset_len                 : %d\n", offset_len);
 
       for (int i=0; i<num_entry_point_offsets; i++) {
-        LOG2("entry point [%i] : %d\n", i, entry_point_offset[i]);
+        LOG("entry point [%i] : %d\n", i, entry_point_offset[i]);
       }
     }
   }
@@ -1494,12 +1520,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
     }
   */
 
-#undef LOG0
-#undef LOG1
-#undef LOG2
-#undef LOG3
-#undef LOG4
-  //#endif
+  return sstr.str();
 }
 
 
@@ -1627,8 +1648,8 @@ static int decode_split_cu_flag(thread_context* tctx,
 {
   // check if neighbors are available
 
-  int availableL = check_CTB_available(tctx->img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(tctx->img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img.get(), x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img.get(), x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1660,8 +1681,8 @@ static int decode_cu_skip_flag(thread_context* tctx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(tctx->img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(tctx->img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(tctx->img.get(), x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(tctx->img.get(), x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -1689,7 +1710,7 @@ static int decode_cu_skip_flag(thread_context* tctx,
 static enum PartMode decode_part_mode(thread_context* tctx,
 				      enum PredMode pred_mode, int cLog2CbSize)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
 
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice,"# part_mode (INTRA)\n");
@@ -2660,43 +2681,11 @@ static int  decode_explicit_rdpcm_dir(thread_context* tctx,int cIdx)
 
 
 
-/* Take CtbAddrInTS and compute
-   -> CtbAddrInRS, CtbX, CtbY
- */
-bool setCtbAddrFromTS(thread_context* tctx)
-{
-  const seq_parameter_set& sps = tctx->img->get_sps();
-
-  if (tctx->CtbAddrInTS < sps.PicSizeInCtbsY) {
-    tctx->CtbAddrInRS = tctx->img->get_pps().CtbAddrTStoRS[tctx->CtbAddrInTS];
-
-    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
-    return false;
-  }
-  else {
-    tctx->CtbAddrInRS = sps.PicSizeInCtbsY;
-
-    tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
-    tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
-    return true;
-  }
-}
-
-// returns true when we reached the end of the image (ctbAddr==picSizeInCtbsY)
-bool advanceCtbAddr(thread_context* tctx)
-{
-    tctx->CtbAddrInTS++;
-
-    return setCtbAddrFromTS(tctx);
-}
-
-
 void read_sao(thread_context* tctx, int xCtb,int yCtb,
               int CtbAddrInSliceSeg)
 {
   slice_segment_header* shdr = tctx->shdr;
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -2712,7 +2701,7 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 
   if (xCtb>0) {
     //char leftCtbInSliceSeg = (CtbAddrInSliceSeg>0);
-    char leftCtbInSliceSeg = (tctx->CtbAddrInRS > shdr->SliceAddrRS);
+    char leftCtbInSliceSeg = (tctx->get_CTB_address_RS() > shdr->SliceAddrRS);
     char leftCtbInTile = (pps.TileIdRS[xCtb   + yCtb * sps.PicWidthInCtbsY] ==
                           pps.TileIdRS[xCtb-1 + yCtb * sps.PicWidthInCtbsY]);
 
@@ -2724,10 +2713,10 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 
   if (yCtb>0 && sao_merge_left_flag==0) {
     logtrace(LogSlice,"CtbAddrInRS:%d PicWidthInCtbsY:%d slice_segment_address:%d\n",
-             tctx->CtbAddrInRS,
+             tctx->get_CTB_address_RS(),
              sps.PicWidthInCtbsY,
              shdr->slice_segment_address);
-    char upCtbInSliceSeg = (tctx->CtbAddrInRS - sps.PicWidthInCtbsY) >= shdr->SliceAddrRS;
+    char upCtbInSliceSeg = (tctx->get_CTB_address_RS() - sps.PicWidthInCtbsY) >= shdr->SliceAddrRS;
     char upCtbInTile = (pps.TileIdRS[xCtb +  yCtb    * sps.PicWidthInCtbsY] ==
                         pps.TileIdRS[xCtb + (yCtb-1) * sps.PicWidthInCtbsY]);
 
@@ -2835,11 +2824,11 @@ void read_sao(thread_context* tctx, int xCtb,int yCtb,
 void read_coding_tree_unit(thread_context* tctx)
 {
   slice_segment_header* shdr = tctx->shdr;
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
 
-  int xCtb = (tctx->CtbAddrInRS % sps.PicWidthInCtbsY);
-  int yCtb = (tctx->CtbAddrInRS / sps.PicWidthInCtbsY);
+  int xCtb = tctx->get_CTB_x();
+  int yCtb = tctx->get_CTB_y();
   int xCtbPixels = xCtb << sps.Log2CtbSizeY;
   int yCtbPixels = yCtb << sps.Log2CtbSizeY;
 
@@ -2847,11 +2836,10 @@ void read_coding_tree_unit(thread_context* tctx)
            xCtbPixels,yCtbPixels, xCtb,yCtb,
            tctx->img->PicOrderCntVal, tctx->shdr->SliceAddrRS);
 
-  img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
+  //img->set_SliceAddrRS(xCtb, yCtb, tctx->shdr->SliceAddrRS);
+  //img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
 
-  img->set_SliceHeaderIndex(xCtbPixels,yCtbPixels, shdr->slice_index);
-
-  int CtbAddrInSliceSeg = tctx->CtbAddrInRS - shdr->slice_segment_address;
+  int CtbAddrInSliceSeg = tctx->get_CTB_address_RS() - shdr->slice_segment_address;
 
   if (shdr->slice_sao_luma_flag || shdr->slice_sao_chroma_flag)
     {
@@ -2871,7 +2859,7 @@ LIBDE265_INLINE static int luma_pos_to_ctbAddrRS(const seq_parameter_set* sps, i
 }
 
 
-int check_CTB_available(const de265_image* img,
+int check_CTB_available(const image* img,
                         int xC,int yC, int xN,int yN)
 {
   // check whether neighbor is outside of frame
@@ -2911,7 +2899,7 @@ int residual_coding(thread_context* tctx,
 
   //slice_segment_header* shdr = tctx->shdr;
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -3072,6 +3060,8 @@ int residual_coding(thread_context* tctx,
   // ----- decode coefficients -----
 
   tctx->nCoeff[cIdx] = 0;
+  tctx->maxCoeffColumn[cIdx] = 0;
+  tctx->maxCoeffRow[cIdx] = 0;
 
 
   // i - subblock index
@@ -3154,7 +3144,7 @@ int residual_coding(thread_context* tctx,
         int ctxInc;
         if (sps.range_extension.transform_skip_context_enabled_flag &&
             (tctx->cu_transquant_bypass_flag || tctx->transform_skip_flag[cIdx])) {
-          ctxInc = ( cIdx == 0 ) ? 42 : (16+27);
+          ctxInc = ( cIdx == 0 ) ? 42 : (16+27); // +27 because it is chroma channel
         }
         else {
           ctxInc = ctxIdxMap[xC+(yC<<log2TrafoSize)];
@@ -3405,6 +3395,9 @@ int residual_coding(thread_context* tctx,
         xC = (S.x<<2) + ScanOrderPos[p].x;
         yC = (S.y<<2) + ScanOrderPos[p].y;
 
+        if (xC > tctx->maxCoeffColumn[cIdx]) { tctx->maxCoeffColumn[cIdx]=xC; }
+        if (yC > tctx->maxCoeffRow[cIdx])    { tctx->maxCoeffRow[cIdx]   =yC; }
+
         tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
@@ -3426,7 +3419,7 @@ static void decode_TU(thread_context* tctx,
                       int xCUBase,int yCUBase,
                       int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
 
   int residualDpcm = 0;
@@ -3804,7 +3797,7 @@ int read_transform_unit(thread_context* tctx,
 }
 
 
-static void dump_cbsize(de265_image* img)
+static void dump_cbsize(image* img)
 {
   int w = img->get_width(0);
   int h = img->get_height(0);
@@ -3834,13 +3827,13 @@ void read_transform_tree(thread_context* tctx,
            "log2TrafoSize:%d trafoDepth:%d MaxTrafoDepth:%d parent-cbf-cb:%d parent-cbf-cr:%d\n",
            x0,y0,xBase,yBase,log2TrafoSize,trafoDepth,MaxTrafoDepth,parent_cbf_cb,parent_cbf_cr);
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
 
   int split_transform_flag;
 
-  enum PredMode PredMode = img->get_pred_mode(x0,y0);
-  assert(PredMode == cuPredMode);
+  //enum PredMode PredMode = img->get_pred_mode(x0,y0);
+  //assert(PredMode == cuPredMode);
 
   /*  If TrafoSize is larger than maximum size   -> split automatically
       If TrafoSize is at minimum size            -> do not split
@@ -3861,7 +3854,7 @@ void read_transform_tree(thread_context* tctx,
 
       int interSplitFlag= (sps.max_transform_hierarchy_depth_inter==0 &&
                            trafoDepth == 0 &&
-                           PredMode == MODE_INTER &&
+                           cuPredMode == MODE_INTER &&
                            PartMode != PART_2Nx2N);
 
       split_transform_flag = (log2TrafoSize > sps.Log2MaxTrafoSize ||
@@ -3869,10 +3862,8 @@ void read_transform_tree(thread_context* tctx,
                               interSplitFlag==1) ? 1:0;
     }
 
-  if (split_transform_flag) {
-    logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
-    img->set_split_transform_flag(x0,y0,trafoDepth);
-  }
+  logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
+  img->set_split_transform_flag(x0,y0,trafoDepth, split_transform_flag);
 
   int cbf_cb=-1;
   int cbf_cr=-1;
@@ -3947,7 +3938,7 @@ void read_transform_tree(thread_context* tctx,
   else {
     int cbf_luma;
 
-    if (PredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
+    if (cuPredMode==MODE_INTRA || trafoDepth!=0 || cbf_cb || cbf_cr) {
       cbf_luma = decode_cbf_luma(tctx,trafoDepth);
     }
     else {
@@ -4133,7 +4124,7 @@ void read_prediction_unit(thread_context* tctx,
 
 
 
-  decode_prediction_unit(tctx->decctx, tctx->shdr, tctx->img, tctx->motion,
+  decode_prediction_unit(tctx->decctx, tctx->shdr, tctx->img.get(), tctx->motion,
                          xC,yC,xB,yB, nCS, nPbW,nPbH, partIdx);
 }
 
@@ -4169,7 +4160,7 @@ void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbS
 
   pixel_t* ptr;
   int stride;
-  ptr    = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx,x0,y0);
+  ptr    = tctx->img->get_image_plane_at_pos<pixel_t>(cIdx,x0,y0);
   stride = tctx->img->get_image_stride(cIdx);
 
   int shift = bitDepth - nPcmBits;
@@ -4247,7 +4238,7 @@ void read_coding_unit(thread_context* tctx,
                       int log2CbSize,
                       int ctDepth)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
   slice_segment_header* shdr = tctx->shdr;
@@ -4306,7 +4297,7 @@ void read_coding_unit(thread_context* tctx,
     // DECODE
 
     int nCS_L = 1<<log2CbSize;
-    decode_prediction_unit(tctx->decctx,tctx->shdr,tctx->img,tctx->motion,
+    decode_prediction_unit(tctx->decctx,tctx->shdr,tctx->img.get(),tctx->motion,
                            x0,y0, 0,0, nCS_L, nCS_L,nCS_L, 0);
   }
   else /* not skipped */ {
@@ -4373,8 +4364,8 @@ void read_coding_unit(thread_context* tctx,
         int mpm_idx[4], rem_intra_luma_pred_mode[4];
         idx=0;
 
-        int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
-        int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
+        int availableA0 = check_CTB_available(tctx->img.get(), x0,y0, x0-1,y0);
+        int availableB0 = check_CTB_available(tctx->img.get(), x0,y0, x0,y0-1);
 
         for (int j=0;j<nCbS;j+=pbOffset)
           for (int i=0;i<nCbS;i+=pbOffset)
@@ -4586,7 +4577,7 @@ void read_coding_quadtree(thread_context* tctx,
 {
   logtrace(LogSlice,"- read_coding_quadtree %d;%d cbsize:%d depth:%d POC:%d\n",x0,y0,1<<log2CbSize,ctDepth,tctx->img->PicOrderCntVal);
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -4671,48 +4662,65 @@ enum DecodeResult decode_substream(thread_context* tctx,
   const int ctbW = sps.PicWidthInCtbsY;
 
 
-  const int startCtbY = tctx->CtbY;
+  const int startCtbY = tctx->get_CTB_y();
 
   //printf("start decoding substream at %d;%d\n",tctx->CtbX,tctx->CtbY);
 
   // in WPP mode: initialize CABAC model with stored model from row above
 
-  if ((!first_independent_substream || tctx->CtbY != startCtbY) &&
-      pps.entropy_coding_sync_enabled_flag &&
-      tctx->CtbY>=1 && tctx->CtbX==0)
-    {
-      if (sps.PicWidthInCtbsY>1) {
-        if ((tctx->CtbY-1) >= tctx->imgunit->ctx_models.size()) {
-          return Decode_Error;
+  {
+    const int ctbx = tctx->get_CTB_x();
+    const int ctby = tctx->get_CTB_y();
+
+    if ((!first_independent_substream || ctby != startCtbY) &&
+        pps.entropy_coding_sync_enabled_flag &&
+        ctby>=1 && ctbx==0)
+      {
+        if (sps.PicWidthInCtbsY>1) {
+          if (ctby-1 >= tctx->imgunit->ctx_models.size()) {
+            return Decode_Error;
+          }
+
+          //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
+
+          if (block_wpp) {
+            // we have to wait until the context model data is there
+            tctx->img->wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
+          }
+
+          // copy CABAC model from previous CTB row
+          tctx->ctx_model = tctx->imgunit->ctx_models[ctby-1];
+
+          tctx->imgunit->ctx_models[ctby-1].release(); // not used anymore
         }
+        else {
+          if (block_wpp) {
+            tctx->img->wait_for_progress(0,ctby-1,CTB_PROGRESS_PREFILTER);
+          }
 
-        //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
-
-        // we have to wait until the context model data is there
-        tctx->img->wait_for_progress(tctx->task, 1,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
-
-        // copy CABAC model from previous CTB row
-        tctx->ctx_model = tctx->imgunit->ctx_models[(tctx->CtbY-1)];
-        tctx->imgunit->ctx_models[(tctx->CtbY-1)].release(); // not used anymore
+          initialize_CABAC_models(tctx);
+        }
       }
-      else {
-        tctx->img->wait_for_progress(tctx->task, 0,tctx->CtbY-1,CTB_PROGRESS_PREFILTER);
-        initialize_CABAC_models(tctx);
-      }
-    }
+  }
 
 
   do {
-    const int ctbx = tctx->CtbX;
-    const int ctby = tctx->CtbY;
+    const int ctbx = tctx->get_CTB_x();
+    const int ctby = tctx->get_CTB_y();
+
+#if D_MT
+    if (ctbx==0) {
+      printf("------------------------------ decode POC %d, y=%d\n",tctx->img->PicOrderCntVal,ctby);
+    }
+#endif
 
     if (ctbx+ctby*ctbW >= pps.CtbAddrRStoTS.size()) {
-        return Decode_Error;
+      return Decode_Error;
     }
 
     if (ctbx >= sps.PicWidthInCtbsY ||
         ctby >= sps.PicHeightInCtbsY) {
-        return Decode_Error;
+      return Decode_Error;
     }
 
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
@@ -4721,7 +4729,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
       //printf("wait on %d/%d (%d)\n",ctbx+1,ctby-1, ctbx+1+(ctby-1)*sps->PicWidthInCtbsY);
 
-      tctx->img->wait_for_progress(tctx->task, ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
+      tctx->img->wait_for_progress(ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d;%d\n", tctx, tctx->CtbX,tctx->CtbY);
@@ -4747,6 +4755,8 @@ enum DecodeResult decode_substream(thread_context* tctx,
           return Decode_Error;
         }
 
+        //printf("store ctx model of row %d\n",ctby);
+
         tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
         tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
       }
@@ -4770,16 +4780,21 @@ enum DecodeResult decode_substream(thread_context* tctx,
     }
 
     tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+#if D_MT
+    printf("set progress %d;%d TS=%d\n",ctbx,ctby, tctx->get_CTB_address_TS());
+#endif
 
     //printf("%p: decoded %d|%d\n",tctx, ctby,ctbx);
 
 
-    logtrace(LogSlice,"read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
+    logtrace(LogSlice,"read CTB %d -> end=%d\n",
+             tctx->get_CTB_address_RS(),
+             end_of_slice_segment_flag);
     //printf("read CTB %d -> end=%d\n", tctx->CtbAddrInRS, end_of_slice_segment_flag);
 
-    const int lastCtbY = tctx->CtbY;
+    const int lastCtbY = tctx->get_CTB_y();
 
-    bool endOfPicture = advanceCtbAddr(tctx); // true if we read past the end of the image
+    bool endOfPicture = tctx->advance_CTB_TS(); // true if we read past the end of the image
 
     if (endOfPicture &&
         end_of_slice_segment_flag == false)
@@ -4793,13 +4808,13 @@ enum DecodeResult decode_substream(thread_context* tctx,
     if (end_of_slice_segment_flag) {
       /* corrupted inputs may send the end_of_slice_segment_flag even if not all
          CTBs in a row have been coded. Hence, we mark all of them as finished.
-       */
+      */
 
       /*
-      for (int x = ctbx+1 ; x<sps->PicWidthInCtbsY; x++) {
+        for (int x = ctbx+1 ; x<sps->PicWidthInCtbsY; x++) {
         printf("mark skipped %d;%d\n",ctbx,ctby);
         tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
-      }
+        }
       */
 
       return Decode_EndOfSliceSegment;
@@ -4808,10 +4823,13 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     if (!end_of_slice_segment_flag) {
       bool end_of_sub_stream = false;
+
+      const int ctbAddrTS = tctx->get_CTB_address_TS();
+
       end_of_sub_stream |= (pps.tiles_enabled_flag &&
-                            pps.TileId[tctx->CtbAddrInTS] != pps.TileId[tctx->CtbAddrInTS-1]);
+                            pps.TileId[ctbAddrTS] != pps.TileId[ctbAddrTS-1]);
       end_of_sub_stream |= (pps.entropy_coding_sync_enabled_flag &&
-                            lastCtbY != tctx->CtbY);
+                            lastCtbY != tctx->get_CTB_y());
 
       if (end_of_sub_stream) {
         int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
@@ -4833,7 +4851,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
 bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 {
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const pic_parameter_set& pps = img->get_pps();
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
@@ -4890,6 +4908,22 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 }
 
 
+
+void thread_task_slice::debug_dump() const {
+  printf("CTB range: %d %d\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
+void thread_task_ctb_row::debug_dump() const {
+  printf("CTB range: %d %d [row]\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
+void thread_task_slice_segment::debug_dump() const {
+  printf("CTB range: %d %d [segment]\n",tctx->first_CTB_TS,tctx->last_CTB_TS);
+}
+
+
 std::string thread_task_ctb_row::name() const {
   char buf[100];
   sprintf(buf,"ctb-row-%d",debug_startCtbRow);
@@ -4904,25 +4938,45 @@ std::string thread_task_slice_segment::name() const {
 }
 
 
+void thread_task_slice::work()
+{
+#if D_TIMER
+  debug_timer timer;
+  timer.start();
+#endif
+  de265_error err=read_slice_segment_data(tctx);
+#if D_TIMER
+  timer.stop();
+  printf("slice: %f\n",timer.get_usecs());
+#endif
+
+  tctx->sliceunit->state = slice_unit::Decoded;
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+
+  tctx->sliceunit->finished_threads.set_progress(1);
+
+  return; // DE265_OK;
+}
+
+
 void thread_task_slice_segment::work()
 {
   thread_task_slice_segment* data = this;
   thread_context* tctx = data->tctx;
-  de265_image* img = tctx->img;
+  image_ptr img = tctx->img;
 
-  state = Running;
-  img->thread_run(this);
+  //img->thread_run(this);
 
-  setCtbAddrFromTS(tctx);
+  //tctx->setCtbAddrFromTS();
 
-  //printf("%p: A start decoding at %d/%d\n", tctx, tctx->CtbX,tctx->CtbY);
+  //printf("%p: A start decoding at %d;%d\n", tctx, tctx->get_CTB_x(),tctx->get_CTB_y());
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
-      state = Finished;
+      tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
       tctx->sliceunit->finished_threads.increase_progress(1);
-      img->thread_finishes(this);
+      //img->thread_finishes(this);
       return;
     }
   }
@@ -4934,9 +4988,10 @@ void thread_task_slice_segment::work()
 
   /*enum DecodeResult result =*/ decode_substream(tctx, false, data->firstSliceSubstream);
 
-  state = Finished;
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
+
   tctx->sliceunit->finished_threads.increase_progress(1);
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
 
   return; // DE265_OK;
 }
@@ -4946,35 +5001,27 @@ void thread_task_ctb_row::work()
 {
   thread_task_ctb_row* data = this;
   thread_context* tctx = data->tctx;
-  de265_image* img = tctx->img;
+  image_ptr img = tctx->img;
 
   const seq_parameter_set& sps = img->get_sps();
   int ctbW = sps.PicWidthInCtbsY;
 
-  state = Running;
-  img->thread_run(this);
+  //img->thread_run(this);
 
-  setCtbAddrFromTS(tctx);
+  //tctx->setCtbAddrFromTS();
 
-  int ctby = tctx->CtbAddrInRS / ctbW;
+  int ctby = tctx->get_CTB_y();
   int myCtbRow = ctby;
 
-  //printf("start CTB-row decoding at row %d\n", ctby);
+  //printf("sliceunit: %p start CTB-row decoding at row %d\n", tctx->sliceunit, ctby);
 
   if (data->firstSliceSubstream) {
     bool success = initialize_CABAC_at_slice_segment_start(tctx);
     if (!success) {
-      // could not decode this row, mark whole row as finished
-      for (int x=0;x<ctbW;x++) {
-        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
-      }
-
-      state = Finished;
+      tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
       tctx->sliceunit->finished_threads.increase_progress(1);
-      img->thread_finishes(this);
       return;
     }
-    //initialize_CABAC(tctx);
   }
 
   init_CABAC_decoder_2(&tctx->cabac_decoder);
@@ -4985,32 +5032,19 @@ void thread_task_ctb_row::work()
   /*enum DecodeResult result =*/
   decode_substream(tctx, true, firstIndependentSubstream);
 
-  // mark progress on remaining CTBs in row (in case of decoder error and early termination)
 
-  // TODO: what about slices that end properly in the middle of a CTB row?
-
-  if (tctx->CtbY == myCtbRow) {
-    int lastCtbX = sps.PicWidthInCtbsY; // assume no tiles when WPP is on
-    for (int x = tctx->CtbX; x<lastCtbX ; x++) {
-
-      if (x        < sps.PicWidthInCtbsY &&
-          myCtbRow < sps.PicHeightInCtbsY) {
-        img->ctb_progress[myCtbRow*ctbW + x].set_progress(CTB_PROGRESS_PREFILTER);
-      }
-    }
-  }
-
-  state = Finished;
   tctx->sliceunit->finished_threads.increase_progress(1);
-  img->thread_finishes(this);
+  //img->thread_finishes(this);
+
+  tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
 }
 
 
 de265_error read_slice_segment_data(thread_context* tctx)
 {
-  setCtbAddrFromTS(tctx);
+  //tctx->setCtbAddrFromTS();
 
-  de265_image* img = tctx->img;
+  image* img = tctx->img.get();
   const pic_parameter_set& pps = img->get_pps();
   const seq_parameter_set& sps = img->get_sps();
   slice_segment_header* shdr = tctx->shdr;
@@ -5030,8 +5064,9 @@ de265_error read_slice_segment_data(thread_context* tctx)
 
   enum DecodeResult result;
   do {
-    int ctby = tctx->CtbY;
+    //printf("decoding CTB %d;%d\n",tctx->get_CTB_x(),tctx->get_CTB_y());
 
+    int ctby = tctx->get_CTB_y();
 
     // check whether entry_points[] are correct in the bitstream
 
@@ -5049,9 +5084,14 @@ de265_error read_slice_segment_data(thread_context* tctx)
     result = decode_substream(tctx, false, first_slice_substream);
 
 
-    if (result == Decode_EndOfSliceSegment ||
-        result == Decode_Error) {
+    if (result == Decode_EndOfSliceSegment)
       break;
+
+    if (result == Decode_Error) {
+#if D_MT
+      printf("err\n");
+#endif
+      return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
     }
 
     first_slice_substream = false;

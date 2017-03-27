@@ -46,11 +46,11 @@ public:
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
   bool compareToReferenceImplementation();
-  virtual bool prepareNextImage(std::shared_ptr<const de265_image> img);
+  virtual bool prepareNextImage(std::shared_ptr<const image> img);
 
 private:
-  std::shared_ptr<const de265_image> prev_image;
-  std::shared_ptr<const de265_image> curr_image;
+  std::shared_ptr<const image> prev_image;
+  std::shared_ptr<const image> curr_image;
 
 protected:
   int blkSize;
@@ -68,7 +68,7 @@ class DSPFunc_IDCT_Base : public DSPFunc
 {
 public:
   DSPFunc_IDCT_Base(int size) {
-    prev_image=NULL; curr_image=NULL; coeffs=NULL; blkSize=size;
+    prev_image.reset(); curr_image.reset(); coeffs=NULL; blkSize=size;
     out = new uint8_t[size*size]; // allocate it to ensure alignment
   }
 
@@ -82,7 +82,7 @@ public:
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
   virtual bool compareToReferenceImplementation();
-  virtual bool prepareNextImage(std::shared_ptr<const de265_image> img);
+  virtual bool prepareNextImage(std::shared_ptr<const image> img);
 
   inline int16_t* xy2coeff(int x,int y) const {
     // note: x+y*width does not make any sense, but gives us some random data
@@ -95,8 +95,8 @@ public:
   }
 
 private:
-  std::shared_ptr<const de265_image> prev_image;
-  std::shared_ptr<const de265_image> curr_image;
+  std::shared_ptr<const image> prev_image;
+  std::shared_ptr<const image> curr_image;
 
 protected:
   int blkSize;

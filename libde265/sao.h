@@ -23,10 +23,10 @@
 
 #include "libde265/decctx.h"
 
-void apply_sample_adaptive_offset(de265_image* img);
+void apply_sample_adaptive_offset(image* img);
 
 /* requires less memory than the function above */
-void apply_sample_adaptive_offset_sequential(de265_image* img);
+void apply_sample_adaptive_offset_sequential(image* img);
 
 /* saoInputProgress - the CTB progress that SAO will wait for before beginning processing.
    Returns 'true' if any tasks have been added.

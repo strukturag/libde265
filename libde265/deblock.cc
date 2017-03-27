@@ -22,13 +22,14 @@
 #include "util.h"
 #include "transform.h"
 #include "de265.h"
+#include "image-unit.h"
 
 #include <assert.h>
 
 
 
 // 8.7.2.1 for both EDGE_HOR and EDGE_VER at the same time
-void markTransformBlockBoundary(de265_image* img, int x0,int y0,
+void markTransformBlockBoundary(image* img, int x0,int y0,
                                 int log2TrafoSize,int trafoDepth,
                                 int filterLeftCbEdge, int filterTopCbEdge)
 {
@@ -63,7 +64,7 @@ void markTransformBlockBoundary(de265_image* img, int x0,int y0,
 
 
 // 8.7.2.2 for both EDGE_HOR and EDGE_VER at the same time
-void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
+void markPredictionBlockBoundary(image* img, int x0,int y0,
                                  int log2CbSize,
                                  int filterLeftCbEdge, int filterTopCbEdge)
 {
@@ -127,7 +128,7 @@ void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
 }
 
 
-bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
+bool derive_edgeFlags_CTBRow(image* img, int ctby)
 {
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
@@ -225,7 +226,7 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
 }
 
 
-bool derive_edgeFlags(de265_image* img)
+bool derive_edgeFlags(image* img)
 {
   bool deblocking_enabled=false;
 
@@ -238,7 +239,7 @@ bool derive_edgeFlags(de265_image* img)
 
 
 // 8.7.2.3 (both, EDGE_VER and EDGE_HOR)
-void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEnd,
+void derive_boundaryStrength(image* img, bool vertical, int yStart,int yEnd,
                              int xStart,int xEnd)
 {
   int xIncr = vertical ? 2 : 1;
@@ -375,7 +376,7 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 }
 
 
-void derive_boundaryStrength_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void derive_boundaryStrength_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -402,7 +403,7 @@ static uint8_t table_8_23_tc[54] = {
 
 // 8.7.2.4
 template <class pixel_t>
-void edge_filtering_luma_internal(de265_image* img, bool vertical,
+void edge_filtering_luma_internal(image* img, bool vertical,
                                   int yStart,int yEnd, int xStart,int xEnd)
 {
   //printf("luma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
@@ -467,7 +468,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 
         // 8.7.2.4.3
 
-        pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(0, xDi,yDi);
+        pixel_t* ptr = img->get_image_plane_at_pos<pixel_t>(0, xDi,yDi);
 
         pixel_t q[4][4], p[4][4];
         for (int k=0;k<4;k++)
@@ -699,7 +700,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 }
 
 
-void edge_filtering_luma(de265_image* img, bool vertical,
+void edge_filtering_luma(image* img, bool vertical,
                          int yStart,int yEnd, int xStart,int xEnd)
 {
   if (img->high_bit_depth(0)) {
@@ -710,7 +711,7 @@ void edge_filtering_luma(de265_image* img, bool vertical,
   }
 }
 
-void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void edge_filtering_luma_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -727,7 +728,7 @@ void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 /** ?Start and ?End values in 4-luma pixels resolution.
  */
 template <class pixel_t>
-void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+void edge_filtering_chroma_internal(image* img, bool vertical,
                                     int yStart,int yEnd,
                                     int xStart,int xEnd)
 {
@@ -768,7 +769,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
                               img->get_pps().pic_cb_qp_offset :
                               img->get_pps().pic_cr_qp_offset);
 
-          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
+          pixel_t* ptr = img->get_image_plane_at_pos<pixel_t>(cplane+1, xDi,yDi);
 
           pixel_t p[2][4];
           pixel_t q[2][4];
@@ -871,7 +872,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 }
 
 
-void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
+void edge_filtering_chroma(image* img, bool vertical, int yStart,int yEnd,
                            int xStart,int xEnd)
 {
   if (img->high_bit_depth(1)) {
@@ -883,7 +884,7 @@ void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
 }
 
 
-void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
+void edge_filtering_chroma_CTB(image* img, bool vertical, int xCtb,int yCtb)
 {
   int ctbSize = img->get_sps().CtbSizeY;
   int deblkSize = ctbSize/4;
@@ -898,7 +899,7 @@ void edge_filtering_chroma_CTB(de265_image* img, bool vertical, int xCtb,int yCt
 class thread_task_deblock_CTBRow : public thread_task
 {
 public:
-  struct de265_image* img;
+  image_ptr img;
   int  ctb_y;
   bool vertical;
 
@@ -913,8 +914,7 @@ public:
 
 void thread_task_deblock_CTBRow::work()
 {
-  state = Running;
-  img->thread_run(this);
+  //img->thread_run(this);
 
   int xStart=0;
   int xEnd = img->get_deblk_width();
@@ -937,19 +937,22 @@ void thread_task_deblock_CTBRow::work()
     // pass 1: vertical
 
     int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
-    img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
+    img->wait_for_progress_ctb_row(CtbRow, CTB_PROGRESS_PREFILTER);
   }
   else {
     // pass 2: horizontal
 
+    // wait for CTB-row above this task's row
     if (ctb_y>0) {
-      img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
+      img->wait_for_progress_ctb_row(ctb_y-1, CTB_PROGRESS_DEBLK_V);
     }
 
-    img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
+    // wait for CTB-row of this task's row
+    img->wait_for_progress_ctb_row(ctb_y,  CTB_PROGRESS_DEBLK_V);
 
+    // wait for CTB-row below this task's row
     if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
-      img->wait_for_progress(this, rightCtb,ctb_y+1, CTB_PROGRESS_DEBLK_V);
+      img->wait_for_progress_ctb_row(ctb_y+1, CTB_PROGRESS_DEBLK_V);
     }
   }
 
@@ -959,7 +962,7 @@ void thread_task_deblock_CTBRow::work()
 
   // first pass: check edge flags and whether we have to deblock
   if (vertical) {
-    deblocking_enabled = derive_edgeFlags_CTBRow(img, ctb_y);
+    deblocking_enabled = derive_edgeFlags_CTBRow(img.get(), ctb_y);
 
     //for (int x=0;x<=rightCtb;x++) {
     int x=0; img->set_CtbDeblockFlag(x,ctb_y, deblocking_enabled);
@@ -970,12 +973,12 @@ void thread_task_deblock_CTBRow::work()
   }
 
   if (deblocking_enabled) {
-    derive_boundaryStrength(img, vertical, first,last, xStart,xEnd);
+    derive_boundaryStrength(img.get(), vertical, first,last, xStart,xEnd);
 
-    edge_filtering_luma(img, vertical, first,last, xStart,xEnd);
+    edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
 
     if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
-      edge_filtering_chroma(img, vertical, first,last, xStart,xEnd);
+      edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
     }
   }
 
@@ -984,40 +987,175 @@ void thread_task_deblock_CTBRow::work()
     img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
   }
 
-  state = Finished;
-  img->thread_finishes(this);
+#if D_MT
+  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk %c %d\n",
+         vertical ? 'V' : 'H',
+         ctb_y);
+#endif
+
+  //img->thread_finishes(this);
 }
+
+
+class thread_task_deblock_image : public thread_task
+{
+public:
+  image_ptr img;
+  bool vertical;
+
+  virtual void work();
+  virtual std::string name() const {
+    char buf[100];
+    sprintf(buf,"deblock-%c",vertical ? 'V' : 'H');
+    return buf;
+  }
+};
+
+
+void thread_task_deblock_image::work()
+{
+#if D_TIMER
+  debug_timer timer;
+  timer.start();
+#endif
+
+  int xStart=0;
+  int xEnd = img->get_deblk_width();
+
+  int ctbSize = img->get_sps().CtbSizeY;
+  int deblkSize = ctbSize/4;
+
+  int nRows = img->get_sps().PicHeightInCtbsY;
+
+  // wait for top CTB row
+  const int rightCtb = img->get_sps().PicWidthInCtbsY-1;
+  img->wait_for_progress_ctb_row(0, CTB_PROGRESS_PREFILTER);
+
+
+  for (int ctb_y=0; ctb_y<nRows; ctb_y++) {
+
+    int first =  ctb_y    * deblkSize;
+    int last  = (ctb_y+1) * deblkSize;
+    if (last > img->get_deblk_height()) {
+      last = img->get_deblk_height();
+    }
+
+    int finalProgress = CTB_PROGRESS_DEBLK_V;
+    if (!vertical) finalProgress = CTB_PROGRESS_DEBLK_H;
+
+  img->debug_show_ctb_progress();
+
+    if (vertical) {
+      // pass 1: vertical
+
+      int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
+      img->wait_for_progress_ctb_row(CtbRow, CTB_PROGRESS_PREFILTER);
+    }
+    else {
+      // pass 2: horizontal
+
+      // wait for CTB-row below this task's row
+      if (ctb_y+1<img->get_sps().PicHeightInCtbsY) {
+        img->wait_for_progress_ctb_row(ctb_y+1, CTB_PROGRESS_DEBLK_V);
+      }
+
+      /*
+      // wait for CTB-row of this task's row
+      img->wait_for_progress(this, rightCtb,ctb_y,  CTB_PROGRESS_DEBLK_V);
+
+      // wait for CTB-row above this task's row
+      if (ctb_y>0) {
+      img->wait_for_progress(this, rightCtb,ctb_y-1, CTB_PROGRESS_DEBLK_V);
+      }
+      */
+    }
+
+    //printf("deblock %d to %d orientation: %d\n",first,last,vertical);
+
+    bool deblocking_enabled;
+
+    // first pass: check edge flags and whether we have to deblock
+    if (vertical) {
+      deblocking_enabled = derive_edgeFlags_CTBRow(img.get(), ctb_y);
+
+      //for (int x=0;x<=rightCtb;x++) {
+      int x=0; img->set_CtbDeblockFlag(x,ctb_y, deblocking_enabled);
+      //}
+    }
+    else {
+      int x=0; deblocking_enabled=img->get_CtbDeblockFlag(x,ctb_y);
+    }
+
+    if (deblocking_enabled) {
+      derive_boundaryStrength(img.get(), vertical, first,last, xStart,xEnd);
+
+      edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
+
+      if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+        edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
+      }
+    }
+
+    for (int x=0;x<=rightCtb;x++) {
+      const int CtbWidth = img->get_sps().PicWidthInCtbsY;
+      img->ctb_progress[x+ctb_y*CtbWidth].set_progress(finalProgress);
+    }
+
+#if D_MT
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dblk POC=%d %c %d\n",
+           img->PicOrderCntVal,
+           vertical ? 'V' : 'H',
+           ctb_y);
+#endif
+  }
+
+#if D_TIMER
+  timer.stop();
+  printf("deblock %c: %f\n",vertical ? 'V':'H', timer.get_usecs());
+#endif
+}
+
+
 
 
 void add_deblocking_tasks(image_unit* imgunit)
 {
-  de265_image* img = imgunit->img;
+  image_ptr img = imgunit->img;
   decoder_context* ctx = img->decctx;
 
   int nRows = img->get_sps().PicHeightInCtbsY;
 
-  int n=0;
-  img->thread_start(nRows*2);
+  bool row_parallel = false;
 
   for (int pass=0;pass<2;pass++)
     {
-      for (int y=0;y<img->get_sps().PicHeightInCtbsY;y++)
-        {
-          thread_task_deblock_CTBRow* task = new thread_task_deblock_CTBRow;
+      if (row_parallel) {
+        for (int y=0;y<img->get_sps().PicHeightInCtbsY;y++)
+          {
+            auto task = std::make_shared<thread_task_deblock_CTBRow>();
 
-          task->img   = img;
-          task->ctb_y = y;
-          task->vertical = (pass==0);
+            task->img   = img;
+            task->ctb_y = y;
+            task->vertical = (pass==0);
 
-          imgunit->tasks.push_back(task);
-          add_task(&ctx->thread_pool_, task);
-          n++;
-        }
+            imgunit->tasks.push_back(task);
+            ctx->get_thread_pool().add_task(task);
+          }
+      }
+      else {
+        auto task = std::make_shared<thread_task_deblock_image>();
+
+        task->img = img;
+        task->vertical = (pass==0);
+
+        imgunit->tasks.push_back(task);
+        ctx->get_thread_pool().add_task(task);
+      }
     }
 }
 
 
-void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
+void apply_deblocking_filter(image* img) // decoder_context* ctx)
 {
   decoder_context* ctx = img->decctx;
 

@@ -101,8 +101,8 @@ void encode_split_cu_flag(encoder_context* ectx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ectx->img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ectx->img, x0,y0, x0,y0-1);
+  int availableL = check_CTB_available(ectx->img.get(), x0,y0, x0-1,y0);
+  int availableA = check_CTB_available(ectx->img.get(), x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
@@ -735,7 +735,7 @@ void encode_residual(encoder_context* ectx,
 {
   logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
 
-  const de265_image* img = ectx->img;
+  const image* img = ectx->img.get();
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
 
@@ -1201,7 +1201,7 @@ void encode_transform_tree(encoder_context* ectx,
 {
   ESTIM_BITS_BEGIN;
 
-  //de265_image* img = ectx->img;
+  //image* img = ectx->img;
   const seq_parameter_set& sps = ectx->img->get_sps();
 
   if (log2TrafoSize <= sps.Log2MaxTrafoSize &&
@@ -1286,7 +1286,7 @@ void encode_cu_skip_flag(encoder_context* ectx,
 {
   logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",skip);
 
-  const de265_image* img = ectx->img;
+  const image* img = ectx->img.get();
 
   int x0 = cb->x;
   int y0 = cb->y;
@@ -1444,7 +1444,7 @@ void encode_coding_unit(encoder_context* ectx,
 {
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
-  de265_image* img = ectx->img;
+  image* img = ectx->img.get();
   const slice_segment_header* shdr = &ectx->imgdata->shdr;
   const seq_parameter_set& sps = ectx->img->get_sps();
 
@@ -1663,7 +1663,7 @@ void encode_quadtree(encoder_context* ectx,
                      const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
                      bool recurse)
 {
-  //de265_image* img = ectx->img;
+  //image* img = ectx->img;
   const seq_parameter_set& sps = ectx->img->get_sps();
 
   int split_flag = get_split_type(&sps,x0,y0,log2CbSize);
@@ -1719,7 +1719,7 @@ void encode_ctb(encoder_context* ectx,
   printf("\n");
 #endif
 
-  de265_image* img = ectx->img;
+  image* img = ectx->img.get();
   int log2ctbSize = img->get_sps().Log2CtbSizeY;
 
   encode_quadtree(ectx,cabac, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);

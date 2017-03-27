@@ -31,11 +31,18 @@
 
 #include <stdio.h>
 #include <string>
+#include <sstream>
 
 #include "libde265/de265.h"
 
 #ifdef __GNUC__
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#endif
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#define IS_LITTLE_ENDIAN 1
+#else
+#define IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
 #endif
 
 #ifdef _MSC_VER
@@ -47,6 +54,15 @@
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
+
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#define LIBDE265_RESTRICT __restrict
+#elif !defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict__
+#else
+#define LIBDE265_RESTRICT
+#endif
+#define LIBDE265_RESTRICT_PTR(name) * LIBDE265_RESTRICT name
 
 #if defined(__GNUC__) && (__GNUC__ >= 4)
 #define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
@@ -72,7 +88,15 @@
 
 #ifdef USE_STD_TR1_NAMESPACE
 #include <tr1/memory>
-namespace std { using namespace std::tr1; }
+namespace std {
+  using namespace std::tr1;
+
+  // TODO: put a separate IFDEF around this one
+
+  template <class T, typename... Args> shared_ptr<T> make_shared(Args&& ... args) {
+    return shared_ptr<T>( new T(args...) );
+  }
+}
 #endif
 
 #ifdef NEED_STD_MOVE_FALLBACK
@@ -103,6 +127,9 @@ inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
   #define RTTI_ENABLED
   #endif
 #endif
+
+
+class image;
 
 //inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
 #define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
@@ -154,6 +181,7 @@ void copy_subimage(uint8_t* dst,int dststride,
 
 enum LogModule {
   LogHighlevel,
+  LogThreading,
   LogHeaders,
   LogSlice,
   LogDPB,
@@ -190,37 +218,55 @@ void log_set_current_POC(int poc);
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...);
 #else
-#define logerror(a,b, ...) { }
+#define logerror(a,b, ...) do { } while(0)
 #endif
 
 #ifdef DE265_LOG_INFO
 void loginfo (enum LogModule module, const char* string, ...);
 #else
-#define loginfo(a,b, ...) { }
+#define loginfo(a,b, ...) do { } while(0)
 #endif
 
 #ifdef DE265_LOG_DEBUG
 void logdebug(enum LogModule module, const char* string, ...);
 bool logdebug_enabled(enum LogModule module);
 #else
-#define logdebug(a,b, ...) { }
+#define logdebug(a,b, ...) do { } while(0)
 inline bool logdebug_enabled(enum LogModule module) { return false; }
 #endif
 
 #ifdef DE265_LOG_TRACE
 void logtrace(enum LogModule module, const char* string, ...);
 #else
-#define logtrace(a,b, ...) { }
+#define logtrace(a,b, ...) do { } while(0)
 #endif
 
-void log2fh(FILE* fh, const char* string, ...);
+void log2sstr(std::stringstream& sstr, const char* string, ...);
 
 
 void printBlk(const char* title,const int32_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const int16_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const uint8_t* data, int blksize, int stride, const std::string& prefix="  ");
 
-void debug_set_image_output(void (*)(const struct de265_image*, int slot));
-void debug_show_image(const struct de265_image*, int slot);
+void debug_set_image_output(void (*)(const image*, int slot));
+void debug_show_image(const class image*, int slot);
+
+double de265_get_time();
+
+#if D_TIMER
+class debug_timer
+{
+ public:
+  void start() { mStart = de265_get_time(); }
+  void stop()  { mEnd   = de265_get_time(); }
+  double get() const { return mEnd - mStart; }
+  double get_usecs() const {
+    return (mEnd - mStart) * 1.0E6;
+  }
+
+ private:
+  double mStart,mEnd;
+};
+#endif
 
 #endif

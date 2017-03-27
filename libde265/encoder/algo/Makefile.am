@@ -20,5 +20,13 @@ libde265_encoder_algo_la_SOURCES = \
   tb-rateestim.h tb-rateestim.cc \
   pb-mv.h pb-mv.cc
 
+libde265_encoder_algo_la_CXXFLAGS += \
+  $(CFLAG_VISIBILITY) \
+  -DLIBDE265_EXPORTS
+
+if HAVE_VISIBILITY
+ libde265_encoder_algo_la_CXXFLAGS += -DHAVE_VISIBILITY
+endif
+
 EXTRA_DIST = \
   CMakeLists.txt

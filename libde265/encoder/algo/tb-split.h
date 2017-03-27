@@ -51,7 +51,7 @@ class Algo_TB_Split : public Algo
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          std::shared_ptr<const image> input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
@@ -61,7 +61,7 @@ class Algo_TB_Split : public Algo
  protected:
   enc_tb* encode_transform_tree_split(encoder_context* ectx,
                                       context_model_table& ctxModel,
-                                      const de265_image* input,
+                                      std::shared_ptr<const image> input,
                                       enc_tb* tb,
                                       enc_cb* cb,
                                       int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
@@ -113,7 +113,7 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
 
   virtual enc_tb* analyze(encoder_context*,
                           context_model_table&,
-                          const de265_image* input,
+                          std::shared_ptr<const image> input,
                           enc_tb* tb,
                           int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 

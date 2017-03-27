@@ -61,7 +61,7 @@ bool available_zscan(const CodingDataAccess<T>& data,int xCurr,int yCurr, int xN
 }
 
 
-template bool available_zscan<de265_image>(const CodingDataAccess<de265_image>& data,int xCurr,int yCurr, int xN,int yN);
+template bool available_zscan<image>(const CodingDataAccess<image>& data,int xCurr,int yCurr, int xN,int yN);
 template bool available_zscan<encoder_context>(const CodingDataAccess<encoder_context>& data,int xCurr,int yCurr, int xN,int yN);
 
 
@@ -95,10 +95,10 @@ bool available_pred_blk(const CodingDataAccess<T>& access,
 }
 
 
-template bool available_pred_blk<de265_image>(const CodingDataAccess<de265_image>& access,
-                                              int xC,int yC, int nCbS,
-                                              int xP, int yP, int nPbW, int nPbH, int partIdx,
-                                              int xN,int yN);
+template bool available_pred_blk<image>(const CodingDataAccess<image>& access,
+                                        int xC,int yC, int nCbS,
+                                        int xP, int yP, int nPbW, int nPbH, int partIdx,
+                                        int xN,int yN);
 template bool available_pred_blk<encoder_context>(const CodingDataAccess<encoder_context>& access,
                                                   int xC,int yC, int nCbS,
                                                   int xP, int yP, int nPbW, int nPbH, int partIdx,

@@ -102,10 +102,10 @@ double PSNR(double mse)
   return 10*log10(255.0*255.0/mse);
 }
 
-uint32_t compute_distortion_ssd(const de265_image* img1, const de265_image* img2,
+uint32_t compute_distortion_ssd(const image* img1, const image* img2,
                                 int x0, int y0, int log2size, int cIdx)
 {
-  return SSD(img1->get_image_plane_at_pos(cIdx,x0,y0), img1->get_image_stride(cIdx),
-             img2->get_image_plane_at_pos(cIdx,x0,y0), img2->get_image_stride(cIdx),
+  return SSD(img1->get_image_plane_at_pos<uint8_t>(cIdx,x0,y0), img1->get_image_stride(cIdx),
+             img2->get_image_plane_at_pos<uint8_t>(cIdx,x0,y0), img2->get_image_stride(cIdx),
              1<<log2size, 1<<log2size);
 }

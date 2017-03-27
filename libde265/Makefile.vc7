@@ -43,6 +43,7 @@ OBJS=\
 	fallback-dct.obj \
 	fallback-motion.obj \
 	fallback.obj \
+	fallback-sao.obj \
 	image.obj \
 	image-io.obj \
 	intrapred.obj \
@@ -64,6 +65,10 @@ OBJS=\
 	visualize.obj \
 	vps.obj \
         vui.obj \
+        frame-dropper.obj \
+        frontend-syntax-decoder.obj \
+        image-unit.obj \
+        funcs.obj \
 	encoder\encoder-core.obj \
 	encoder\encoder-types.obj \
 	encoder\encoder-context.obj \
@@ -88,6 +93,9 @@ OBJS=\
 	x86\sse.obj \
 	x86\sse-dct.obj \
 	x86\sse-motion.obj \
+	x86\sse-motion-new.obj \
+	x86\sse-sao.obj \
+	x86\sse-intra-dc.obj \
 	..\extra\win32cond.obj
 
 all: libde265.dll

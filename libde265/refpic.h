@@ -22,6 +22,7 @@
 #define DE265_REFPIC_H
 
 #include "libde265/bitstream.h"
+#include <string>
 
 #define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
 
@@ -55,7 +56,7 @@ class ref_pic_set
 };
 
 
-void dump_short_term_ref_pic_set(const ref_pic_set*, FILE* fh);
-void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE* fh);
+std::string dump_short_term_ref_pic_set(const ref_pic_set*);
+std::string dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range);
 
 #endif

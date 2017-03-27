@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
+ * Copyright (c) 2013-2017 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -258,41 +258,6 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 }
 
 
-#ifndef LIBDE265_DISABLE_DEPRECATED
-LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
-                                           const void* data8, int len)
-{
-  //decoder_context* ctx = (decoder_context*)de265ctx;
-  de265_error err;
-  if (len > 0) {
-    err = de265_push_data(de265ctx, data8, len, 0, NULL);
-  } else {
-    err = de265_flush_data(de265ctx);
-  }
-  if (err != DE265_OK) {
-    return err;
-  }
-
-  int more = 0;
-  do {
-    err = de265_decode(de265ctx, &more);
-    if (err != DE265_OK) {
-        more = 0;
-    }
-
-    switch (err) {
-    case DE265_ERROR_WAITING_FOR_INPUT_DATA:
-      // ignore error (didn't exist in 0.4 and before)
-      err = DE265_OK;
-      break;
-    default:
-      break;
-    }
-  } while (more);
-  return err;
-}
-#endif
-
 static void dumpdata(const void* data, int len)
 {
   for (int i=0;i<len;i++) {
@@ -312,7 +277,7 @@ LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
   //printf("push data (size %d)\n",len);
   //dumpdata(data8,16);
 
-  return ctx->nal_parser.push_data(data,len,pts,user_data);
+  return ctx->get_NAL_parser().push_data(data,len,pts,user_data);
 }
 
 
@@ -326,15 +291,15 @@ LIBDE265_API de265_error de265_push_NAL(de265_decoder_context* de265ctx,
   //printf("push NAL (size %d)\n",len);
   //dumpdata(data8,16);
 
-  return ctx->nal_parser.push_NAL(data,len,pts,user_data);
+  return ctx->get_NAL_parser().push_NAL(data,len,pts,user_data);
 }
 
 
-LIBDE265_API de265_error de265_decode(de265_decoder_context* de265ctx, int* more)
+LIBDE265_API int de265_get_action(de265_decoder_context* de265ctx, int blocking)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->decode(more);
+  return ctx->get_action(blocking);
 }
 
 
@@ -342,7 +307,7 @@ LIBDE265_API void        de265_push_end_of_NAL(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->nal_parser.flush_data();
+  ctx->get_NAL_parser().flush_data();
 }
 
 
@@ -351,18 +316,18 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context* de265ctx
   de265_push_end_of_NAL(de265ctx);
 
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->nal_parser.mark_end_of_frame();
+  ctx->get_NAL_parser().mark_end_of_frame();
 }
 
 
-LIBDE265_API de265_error de265_flush_data(de265_decoder_context* de265ctx)
+LIBDE265_API de265_error de265_push_end_of_stream(de265_decoder_context* de265ctx)
 {
   de265_push_end_of_NAL(de265ctx);
 
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->nal_parser.flush_data();
-  ctx->nal_parser.mark_end_of_stream();
+  ctx->get_NAL_parser().flush_data();
+  ctx->get_NAL_parser().mark_end_of_stream();
 
   return DE265_OK;
 }
@@ -380,12 +345,51 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
-  const struct de265_image* img = de265_peek_next_picture(de265ctx);
-  if (img) {
-    de265_release_next_picture(de265ctx);
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  while (ctx->num_pictures_in_output_queue()>0) {
+    image_ptr i = ctx->get_next_picture_in_output_queue();
+
+    if (0) {
+      printf("output POC %d %d integr:%d\n",i->PicOrderCntVal,
+             (i->integrity != INTEGRITY_NOT_DECODED), i->integrity);
+    }
+
+    // pop output queue
+
+    ctx->pop_next_picture_in_output_queue();
+
+    if (i->integrity != INTEGRITY_NOT_DECODED) {
+
+      de265_image* img = new de265_image;
+      img->m_image = i;
+
+      return img;
+    }
   }
 
-  return img;
+  return NULL;
+}
+
+
+LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->number_of_frames_pending_at_input();
+}
+
+
+LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img)
+{
+  return img->m_image->integrity == INTEGRITY_CORRECT;
+}
+
+
+LIBDE265_API void de265_skip_next_picture(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->pop_next_picture_in_output_queue();
 }
 
 
@@ -393,56 +397,49 @@ LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_con
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (ctx->num_pictures_in_output_queue()>0) {
-    de265_image* img = ctx->get_next_picture_in_output_queue();
-    return img;
+  while (ctx->num_pictures_in_output_queue()>0) {
+    image_ptr i = ctx->get_next_picture_in_output_queue();
+
+    if (i->integrity != INTEGRITY_NOT_DECODED) {
+      de265_image* img = new de265_image;
+      img->m_image = i;
+      return img;
+    }
+    else {
+      ctx->pop_next_picture_in_output_queue();
+    }
   }
-  else {
-    return NULL;
-  }
+
+  return NULL;
 }
 
 
-LIBDE265_API void de265_release_next_picture(de265_decoder_context* de265ctx)
+LIBDE265_API void de265_release_picture(const de265_image* de265img)
 {
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  // no active output picture -> ignore release request
-
-  if (ctx->num_pictures_in_output_queue()==0) { return; }
-
-  de265_image* next_image = ctx->get_next_picture_in_output_queue();
-
-  loginfo(LogDPB, "release DPB with POC=%d\n",next_image->PicOrderCntVal);
-
-  next_image->PicOutputFlag = false;
-
-  // TODO: actually, we want to release it here, but we cannot without breaking API
-  // compatibility, because get_next_picture calls this immediately. Hence, we release
-  // images while scanning for available slots in the DPB.
-  // if (next_image->can_be_released()) { next_image->release(); }
-
-  // pop output queue
-
-  ctx->pop_next_picture_in_output_queue();
+  assert(de265img);
+  delete de265img;
 }
-
-
 
 LIBDE265_API int  de265_get_highest_TID(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  return ctx->get_highest_TID();
+  return ctx->get_frontend_syntax_decoder().get_highest_TID();
 }
 
+/*
 LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->get_current_TID();
 }
+*/
 
 LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
 {
+  if (max_tid == de265_limit_TID_unlimited) {
+    max_tid = 6;
+  }
+
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->set_limit_TID(max_tid);
 }
@@ -453,12 +450,13 @@ LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context* de265ctx,int 
   ctx->set_framerate_ratio(percent);
 }
 
+  /*
 LIBDE265_API int  de265_change_framerate(de265_decoder_context* de265ctx,int more)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->change_framerate(more);
 }
-
+  */
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
@@ -467,110 +465,60 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
   return ctx->get_warning();
 }
 
-LIBDE265_API void de265_set_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param, int value)
+
+LIBDE265_API void de265_set_CPU_capabilities(de265_decoder_context* de265ctx, int capabilities)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_CPU_capabilities = capabilities;
+}
 
-  switch (param)
-    {
+
+LIBDE265_API int de265_get_CPU_capabilites_all_autodetected()
+{
+  return (de265_CPU_capability_X86_SSE2  |
+          de265_CPU_capability_X86_SSE41 |
+          de265_CPU_capability_X86_AVX2  |
+          de265_CPU_capability_ARM_AARCH64);
+}
+
+
+LIBDE265_API void de265_allow_inexact_decoding(de265_decoder_context* de265ctx, int flags)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_inexact_decoding_flags = flags;
+
+  ctx->param_disable_deblocking = !!(flags & de265_inexact_decoding_no_deblocking);
+  ctx->param_disable_sao        = !!(flags & de265_inexact_decoding_no_SAO);
+}
+
+
+LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context* de265ctx, int suppress)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->param_suppress_faulty_pictures = !!suppress;
+}
+
+
+LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
+                                     void (*callback)(int nal_unit, const char* text))
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->get_frontend_syntax_decoder().param_header_callback = callback;
+}
+
+
+  /*
     case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
       ctx->param_sei_check_hash = !!value;
       break;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      ctx->param_suppress_faulty_pictures = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      ctx->param_disable_deblocking = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      ctx->param_disable_sao = !!value;
-      break;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      ctx->param_disable_mc_residual_idct = !!value;
-      break;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      ctx->param_disable_intra_residual_idct = !!value;
-      break;
-      */
-
-    default:
-      assert(false);
-      break;
-    }
-}
+  */
 
 
-LIBDE265_API void de265_set_parameter_int(de265_decoder_context* de265ctx, enum de265_param param, int value)
+LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
+                                                       int parallel_frames)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_DUMP_SPS_HEADERS:
-      ctx->param_sps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_VPS_HEADERS:
-      ctx->param_vps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_PPS_HEADERS:
-      ctx->param_pps_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_DUMP_SLICE_HEADERS:
-      ctx->param_slice_headers_fd = value;
-      break;
-
-    case DE265_DECODER_PARAM_ACCELERATION_CODE:
-      ctx->set_acceleration_functions((enum de265_acceleration)value);
-      break;
-
-    default:
-      assert(false);
-      break;
-    }
-}
-
-
-
-
-LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum de265_param param)
-{
-  decoder_context* ctx = (decoder_context*)de265ctx;
-
-  switch (param)
-    {
-    case DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH:
-      return ctx->param_sei_check_hash;
-
-    case DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES:
-      return ctx->param_suppress_faulty_pictures;
-
-    case DE265_DECODER_PARAM_DISABLE_DEBLOCKING:
-      return ctx->param_disable_deblocking;
-
-    case DE265_DECODER_PARAM_DISABLE_SAO:
-      return ctx->param_disable_sao;
-
-      /*
-    case DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT:
-      return ctx->param_disable_mc_residual_idct;
-
-    case DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT:
-      return ctx->param_disable_intra_residual_idct;
-      */
-
-    default:
-      assert(false);
-      return false;
-    }
+  ctx->set_max_decode_frames_parallel(parallel_frames);
 }
 
 
@@ -578,7 +526,7 @@ LIBDE265_API int de265_get_number_of_input_bytes_pending(de265_decoder_context* 
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->nal_parser.bytes_in_input_queue();
+  return ctx->get_NAL_parser().bytes_in_input_queue();
 }
 
 
@@ -586,7 +534,15 @@ LIBDE265_API int de265_get_number_of_NAL_units_pending(de265_decoder_context* de
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->nal_parser.number_of_NAL_units_pending();
+  return ctx->get_NAL_parser().number_of_NAL_units_pending();
+}
+
+
+LIBDE265_API void de265_set_max_reorder_buffer_latency(de265_decoder_context* de265ctx, int n)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+
+  ctx->set_max_latency(n);
 }
 
 
@@ -594,10 +550,10 @@ LIBDE265_API int de265_get_image_width(const struct de265_image* img,int channel
 {
   switch (channel) {
   case 0:
-    return img->width_confwin;
+    return img->m_image->width_confwin;
   case 1:
   case 2:
-    return img->chroma_width_confwin;
+    return img->m_image->chroma_width_confwin;
   default:
     return 0;
   }
@@ -607,23 +563,38 @@ LIBDE265_API int de265_get_image_height(const struct de265_image* img,int channe
 {
   switch (channel) {
   case 0:
-    return img->height_confwin;
+    return img->m_image->height_confwin;
   case 1:
   case 2:
-    return img->chroma_height_confwin;
+    return img->m_image->chroma_height_confwin;
   default:
     return 0;
   }
 }
 
+
+LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spec* spec,int channel)
+{
+  switch (channel) {
+  case 0:
+    return spec->luma_bits_per_pixel;
+  case 1:
+  case 2:
+    return spec->chroma_bits_per_pixel;
+  default:
+    return 0;
+  }
+}
+
+
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
 {
   switch (channel) {
   case 0:
-    return img->get_sps().BitDepth_Y;
+    return img->m_image->get_sps().BitDepth_Y;
   case 1:
   case 2:
-    return img->get_sps().BitDepth_C;
+    return img->m_image->get_sps().BitDepth_C;
   default:
     return 0;
   }
@@ -631,16 +602,17 @@ LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int chan
 
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
 {
-  return img->get_chroma_format();
+  return img->m_image->get_chroma_format();
 }
 
 LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image* img, int channel, int* stride)
 {
   assert(channel>=0 && channel <= 2);
 
-  uint8_t* data = img->pixels_confwin[channel];
+  uint8_t* data = img->m_image->pixels_confwin[channel];
 
-  if (stride) *stride = img->get_image_stride(channel) * ((de265_get_bits_per_pixel(img, channel)+7) / 8);
+  if (stride) *stride = img->m_image->get_image_stride(channel) *
+                ((de265_get_bits_per_pixel(img, channel)+7) / 8);
 
   return data;
 }
@@ -649,54 +621,76 @@ LIBDE265_API void *de265_get_image_plane_user_data(const struct de265_image* img
 {
   assert(channel>=0 && channel <= 2);
 
-  return img->plane_user_data[channel];
+  return img->m_image->plane_user_data[channel];
 }
 
-LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride, void *userdata)
+LIBDE265_API void *de265_get_image_plane_user_data_intern(const struct de265_image_intern* img, int channel)
 {
+  assert(channel>=0 && channel <= 2);
+
+  image* iimg = (image*)img;
+  return iimg->plane_user_data[channel];
+}
+
+LIBDE265_API void de265_set_image_plane_intern(de265_image_intern* img, int cIdx, void* mem, int stride, void *userdata)
+{
+  image* iimg = (image*)img;
+
   // The internal "stride" is the number of pixels per line.
-  stride = stride / ((de265_get_bits_per_pixel(img, cIdx)+7) / 8);
-  img->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
+  stride = stride / iimg->get_bytes_per_pixel(cIdx);
+
+  iimg->set_image_plane(cIdx, (uint8_t*)mem, stride, userdata);
 }
 
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context* de265ctx,
-                                                       de265_image_allocation* allocfunc,
-                                                       void* userdata)
+                                                       de265_image_allocation* allocfunc)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  ctx->set_image_allocation_functions(allocfunc, userdata);
+  ctx->set_image_allocation_functions(allocfunc);
 }
 
 LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void)
 {
-  return &de265_image::default_image_allocation;
+  return &image::default_image_allocation;
 }
 
 LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image* img)
 {
-  return img->pts;
+  return img->m_image->pts;
 }
 
 LIBDE265_API void* de265_get_image_user_data(const struct de265_image* img)
 {
-  return img->user_data;
+  return img->m_image->user_data;
 }
 
-LIBDE265_API void de265_set_image_user_data(struct de265_image* img, void *user_data)
+LIBDE265_API void de265_set_image_user_data_intern(struct de265_image_intern* img, void *user_data)
 {
-  img->user_data = user_data;
+  image* iimg = (image*)img;
+  iimg->user_data = user_data;
 }
 
-LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
+LIBDE265_API void* de265_get_image_user_data_intern(const struct de265_image_intern* img)
+{
+  const image* iimg = (const image*)img;
+  return iimg->user_data;
+}
+
+  /*
+LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img_de265,
                                              int* nal_unit_type,
                                              const char** nal_unit_name,
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id)
 {
+  const image_ptr& img = img_de265->m_image;
+
   if (nal_unit_type)   *nal_unit_type   = img->nal_hdr.nal_unit_type;
   if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_hdr.nal_unit_type);
   if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
+  */
+
 }

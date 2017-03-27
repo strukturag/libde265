@@ -34,6 +34,9 @@
 #include "libde265/threads.h"
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
+#include "libde265/image-unit.h"
+#include "libde265/frame-dropper.h"
+#include "libde265/frontend-syntax-decoder.h"
 
 #include <memory>
 
@@ -49,19 +52,41 @@ class image_unit;
 class slice_unit;
 class decoder_context;
 
+//typedef std::shared_ptr<image_unit> image_unit_ptr;
+
 
 class thread_context
 {
 public:
   thread_context();
 
-  int CtbAddrInRS;
-  int CtbAddrInTS;
-
-  int CtbX, CtbY;
+  void init_quantization();
 
 
-  // motion vectors
+  // --- current CTB address --
+
+  int  get_CTB_address_TS() const { return CtbAddrInTS; }
+  int  get_CTB_address_RS() const { return CtbAddrInRS; }
+
+  int  get_CTB_x() const { return CtbX; }
+  int  get_CTB_y() const { return CtbY; }
+
+  void set_CTB_address_RS(int addr);
+
+  // returns 'true' when we left the image area
+  bool advance_CTB_TS();
+
+  bool current_CTB_outside_image() const { return m_CTB_out_of_image; }
+
+
+  // range of CTBs covered by this thread_context
+  int first_CTB_TS;
+  int last_CTB_TS;
+
+  void mark_covered_CTBs_as_processed(int progress);
+
+
+  // --- motion vectors ---
 
   PBMotionCoding motion;
 
@@ -86,6 +111,9 @@ public:
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
 
+  int8_t  maxCoeffRow[3];
+  int8_t  maxCoeffColumn[3];
+
   int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
 
 
@@ -107,15 +135,30 @@ public:
   context_model_table ctx_model;
   uint8_t StatCoeff[4];
 
+
+  // --- decoder pointers ---
+
   decoder_context* decctx;
-  struct de265_image *img;
+  image_ptr img;
   slice_segment_header* shdr;
 
   image_unit* imgunit;
   slice_unit* sliceunit;
-  thread_task* task; // executing thread_task or NULL if not multi-threaded
+  thread_task_ptr task; // executing thread_task or NULL if not multi-threaded
 
 private:
+  bool m_CTB_out_of_image;
+  int CtbAddrInTS;  // primary CTB address, this is incremented during decoding
+  int CtbAddrInRS;  // derived CTB address in raster scan
+
+  int CtbX, CtbY;
+
+  // Take CtbAddrInTS and compute: CtbAddrInRS, CtbX, CtbY, out-of-image flag.
+  void setCtbAddrFromTS();
+
+
+
+
   thread_context(const thread_context&); // not allowed
   const thread_context& operator=(const thread_context&); // not allowed
 };
@@ -139,144 +182,18 @@ class error_queue
 
 
 
-class slice_unit
-{
-public:
-  slice_unit(decoder_context* decctx);
-  ~slice_unit();
-
-  NAL_unit* nal;   // we are the owner
-  slice_segment_header* shdr;  // not the owner (de265_image is owner)
-  bitreader reader;
-
-  image_unit* imgunit;
-
-  bool flush_reorder_buffer;
-
-
-  // decoding status
-
-  enum SliceDecodingProgress { Unprocessed,
-                               InProgress,
-                               Decoded
-  } state;
-
-  de265_progress_lock finished_threads;
-  int nThreads;
-
-  int first_decoded_CTB_RS; // TODO
-  int last_decoded_CTB_RS;  // TODO
-
-  void allocate_thread_contexts(int n);
-  thread_context* get_thread_context(int n) {
-    assert(n < nThreadContexts);
-    return &thread_contexts[n];
-  }
-  int num_thread_contexts() const { return nThreadContexts; }
-
-private:
-  thread_context* thread_contexts; /* NOTE: cannot use std::vector, because thread_context has
-                                      no copy constructor. */
-  int nThreadContexts;
-
-public:
-  decoder_context* ctx;
-
-private:
-  slice_unit(const slice_unit&); // not allowed
-  const slice_unit& operator=(const slice_unit&); // not allowed
-};
-
-
-class image_unit
-{
-public:
-  image_unit();
-  ~image_unit();
-
-  de265_image* img;
-  de265_image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
-
-  std::vector<slice_unit*> slice_units;
-  std::vector<sei_message> suffix_SEIs;
-
-  slice_unit* get_next_unprocessed_slice_segment() const {
-    for (int i=0;i<slice_units.size();i++) {
-      if (slice_units[i]->state == slice_unit::Unprocessed) {
-        return slice_units[i];
-      }
-    }
-
-    return NULL;
-  }
-
-  slice_unit* get_prev_slice_segment(slice_unit* s) const {
-    for (int i=1; i<slice_units.size(); i++) {
-      if (slice_units[i]==s) {
-        return slice_units[i-1];
-      }
-    }
-
-    return NULL;
-  }
-
-  slice_unit* get_next_slice_segment(slice_unit* s) const {
-    for (int i=0; i<slice_units.size()-1; i++) {
-      if (slice_units[i]==s) {
-        return slice_units[i+1];
-      }
-    }
-
-    return NULL;
-  }
-
-  void dump_slices() const {
-    for (int i=0; i<slice_units.size(); i++) {
-      printf("[%d] = %p\n",i,slice_units[i]);
-    }
-  }
-
-  bool all_slice_segments_processed() const {
-    if (slice_units.size()==0) return true;
-    if (slice_units.back()->state != slice_unit::Unprocessed) return true;
-    return false;
-  }
-
-  bool is_first_slice_segment(const slice_unit* s) const {
-    if (slice_units.size()==0) return false;
-    return (slice_units[0] == s);
-  }
-
-  enum { Invalid, // headers not read yet
-         Unknown, // SPS/PPS available
-         Reference, // will be used as reference
-         Leaf       // not a reference picture
-  } role;
-
-  enum { Unprocessed,
-         InProgress,
-         Decoded,
-         Dropped         // will not be decoded
-  } state;
-
-  std::vector<thread_task*> tasks; // we are the owner
-
-  /* Saved context models for WPP.
-     There is one saved model for the initialization of each CTB row.
-     The array is unused for non-WPP streams. */
-  std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
-};
-
-
 class image_history
 {
  public:
   virtual ~image_history() { }
 
   //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const de265_image* get_image(int frame_id) const = 0;
+  virtual std::shared_ptr<const image> get_image(int frame_id) const = 0;
   virtual bool has_image(int frame_id) const = 0;
+
+  virtual void debug_dump() const { }
 };
+
 
 
 class base_context : public error_queue,
@@ -286,15 +203,29 @@ class base_context : public error_queue,
   base_context();
   virtual ~base_context() { }
 
+  //enum de265_acceleration param_acceleration_type = de265_acceleration_SCALAR;
+  uint32_t param_inexact_decoding_flags;
+  int param_CPU_capabilities;
+
+  //void deprecated_set_acceleration_type(enum de265_acceleration acc);
+
   // --- accelerated DSP functions ---
 
-  void set_acceleration_functions(enum de265_acceleration);
+  void set_acceleration_functions();
 
   struct acceleration_functions acceleration; // CPU optimized functions
 };
 
 
-class decoder_context : public base_context {
+
+class image_unit_sink;
+
+
+
+
+class decoder_context : public base_context,
+                        public image_unit_sink
+{
  public:
   decoder_context();
   ~decoder_context();
@@ -302,115 +233,192 @@ class decoder_context : public base_context {
   de265_error start_thread_pool(int nThreads);
   void        stop_thread_pool();
 
+  thread_pool& get_thread_pool() { return m_thread_pool; }
+
+  int get_num_worker_threads() const { return num_worker_threads; }
+
+
   void reset();
 
-  bool has_sps(int id) const { return (bool)sps[id]; }
-  bool has_pps(int id) const { return (bool)pps[id]; }
+  void set_image_allocation_functions(de265_image_allocation* allocfunc);
 
-  /* */ seq_parameter_set* get_sps(int id)       { return sps[id].get(); }
-  const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }
-  /* */ pic_parameter_set* get_pps(int id)       { return pps[id].get(); }
-  const pic_parameter_set* get_pps(int id) const { return pps[id].get(); }
 
-  /*
-  const slice_segment_header* get_SliceHeader_atCtb(int ctb) {
-    return img->slices[img->get_SliceHeaderIndex_atIndex(ctb)];
+
+  // -------------------------------------------------- frontend_syntax_decoder
+
+  NAL_Parser& get_NAL_parser() { return m_frontend_syntax_decoder.get_NAL_parser(); }
+
+  /* */ frontend_syntax_decoder& get_frontend_syntax_decoder()       { return m_frontend_syntax_decoder; }
+  const frontend_syntax_decoder& get_frontend_syntax_decoder() const { return m_frontend_syntax_decoder; }
+
+
+
+  // -------------------------------------------------- decoding loop ---
+
+  int number_of_frames_pending_at_input() const { return m_undecoded_image_units.size(); }
+
+
+  // --- frame-parallel decoding ---
+
+  void start_decoding_thread();
+  void stop_decoding_thread();
+
+  int  get_action(bool blocking);
+
+  void on_image_decoding_finished(); // internal use only (by decoding tasks)
+
+  void set_max_decode_frames_parallel(int parallel_frames) {
+    m_main_loop_mutex.lock();
+    param_max_images_processed_in_parallel = parallel_frames;
+    m_main_loop_mutex.unlock();
   }
-  */
 
-  uint8_t get_nal_unit_type() const { return nal_unit_type; }
-  bool    get_RapPicFlag() const { return RapPicFlag; }
+  // -------------------------------------------------- output
 
-  de265_error decode_NAL(NAL_unit* nal);
+  std::shared_ptr</* */ image> get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
+  std::shared_ptr<const image> get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
 
-  de265_error decode(int* more);
-  de265_error decode_some(bool* did_work);
+  void debug_dump() const { dpb.log_dpb_content(); }
+
+
+  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
+
+  image_ptr get_next_picture_in_output_queue() { return m_output_queue.get_next_picture_in_output_queue(); }
+  int    num_pictures_in_output_queue() const { return m_output_queue.num_pictures_in_output_queue(); }
+  void   pop_next_picture_in_output_queue() {
+    m_main_loop_mutex.lock();
+    m_output_queue.pop_next_picture_in_output_queue();
+
+    m_cond_api_action.signal();
+    m_main_loop_mutex.unlock();
+  }
+
+  void set_max_latency(int n) { m_output_queue.set_max_latency(n); }
+
+
+  void debug_imageunit_state();
+
+
+ private:
+
+  frontend_syntax_decoder m_frontend_syntax_decoder;
+
+  // -------------------------------------------------- image_unit classifier
+
+  frame_dropper_nop        m_frame_dropper_nop;
+  frame_dropper_IRAP_only  m_frame_dropper_IRAP_only;
+  frame_dropper_ratio      m_frame_dropper_ratio;
+
+
+  // -------------------------------------------------- decoding main loop
+
+  // --- image_unit input queue ---
+
+  virtual void send_image_unit(image_unit_ptr imgunit);
+  virtual void send_end_of_stream();
+
+
+  thread_pool m_thread_pool;
 
   de265_error decode_slice_unit_sequential(image_unit* imgunit, slice_unit* sliceunit);
-  de265_error decode_slice_unit_parallel(image_unit* imgunit, slice_unit* sliceunit);
+  de265_error decode_slice_unit_frame_parallel(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_WPP(image_unit* imgunit, slice_unit* sliceunit);
   de265_error decode_slice_unit_tiles(image_unit* imgunit, slice_unit* sliceunit);
 
 
-  void process_nal_hdr(nal_header*);
-
-  bool process_slice_segment_header(slice_segment_header*,
-                                    de265_error*, de265_PTS pts,
-                                    nal_header* nal_hdr, void* user_data);
-
-  //void push_current_picture_to_output_queue();
-  de265_error push_picture_to_output_queue(image_unit*);
+  de265_error push_picture_to_output_queue(image_unit_ptr);
 
 
+ public:
   // --- parameters ---
 
   bool param_sei_check_hash;
   bool param_conceal_stream_errors;
   bool param_suppress_faulty_pictures;
 
-  int  param_sps_headers_fd;
-  int  param_vps_headers_fd;
-  int  param_pps_headers_fd;
-  int  param_slice_headers_fd;
-
   bool param_disable_deblocking;
   bool param_disable_sao;
+
+ private:
+  int  param_max_images_processed_in_parallel;
+
+ public:
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
-  void set_image_allocation_functions(de265_image_allocation* allocfunc, void* userdata);
+  void set_frame_dropping_ratio(float ratio);
+
 
   de265_image_allocation param_image_allocation_functions;
-  void*                  param_image_allocation_userdata;
 
 
-  // --- input stream data ---
-
-  NAL_Parser nal_parser;
-
-
-  int get_num_worker_threads() const { return num_worker_threads; }
-
-  /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
-
-  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
-
-  de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
-  int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }
-  void         pop_next_picture_in_output_queue() { dpb.pop_next_picture_in_output_queue(); }
 
  private:
-  de265_error read_vps_NAL(bitreader&);
-  de265_error read_sps_NAL(bitreader&);
-  de265_error read_pps_NAL(bitreader&);
-  de265_error read_sei_NAL(bitreader& reader, bool suffix);
-  de265_error read_eos_NAL(bitreader& reader);
-  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
+  int num_worker_threads;  // input parameter: the number of desired worker threads
 
- private:
-  // --- internal data ---
 
-  std::shared_ptr<video_parameter_set>  vps[ DE265_MAX_VPS_SETS ];
-  std::shared_ptr<seq_parameter_set>    sps[ DE265_MAX_SPS_SETS ];
-  std::shared_ptr<pic_parameter_set>    pps[ DE265_MAX_PPS_SETS ];
+  // --- main loop ---
 
-  std::shared_ptr<video_parameter_set>  current_vps;
-  std::shared_ptr<seq_parameter_set>    current_sps;
-  std::shared_ptr<pic_parameter_set>    current_pps;
+  class thread_main_loop : public de265_thread {
+  public:
+    thread_main_loop(decoder_context* dctx) : m_decctx(dctx) { }
+    void run() { m_decctx->run_main_loop(); }
+
+  private:
+    decoder_context* m_decctx;
+  };
+
+  thread_main_loop m_main_loop_thread;
+  de265_mutex m_main_loop_mutex;
+  //de265_cond  m_decoding_loop_has_space_cond;
+  //de265_cond  m_input_available_cond;
+  de265_cond m_main_loop_block_cond;
+
+  void run_main_loop();
+
+  void send_main_loop_stop_signals() {
+    m_main_loop_mutex.lock();
+    //m_decoding_loop_has_space_cond.signal();
+    //m_input_available_cond.signal();
+    m_main_loop_block_cond.signal();
+    m_main_loop_mutex.unlock();
+  }
+
+
+  bool decode_image_frame_parallel(image_unit_ptr imgunit);
 
  public:
-  thread_pool thread_pool_;
+  // --- decoded picture buffer ---
+  decoded_picture_buffer dpb;
 
  private:
-  int num_worker_threads;
+  // --- image unit queue ---
 
+  //public:
+  std::deque<image_unit_ptr> m_undecoded_image_units;
+  bool m_end_of_stream;
+
+  std::deque<image_unit_ptr> m_image_units_in_progress;
+
+  picture_output_queue   m_output_queue;
+
+
+  // condition variable that signals when api-user action might change
+  de265_cond  m_cond_api_action;
+
+
+
+ private:
+  void mark_whole_slice_as_processed(slice_unit* sliceunit, int progress);
+
+  void remove_images_from_dpb(const std::vector<int>& removeImageList);
+  void run_postprocessing_filters_sequential(image_ptr img);
+  void run_postprocessing_filters_parallel(image_unit* img);
 
  public:
   // --- frame dropping ---
 
   void set_limit_TID(int tid);
-  int  get_highest_TID() const;
   int  get_current_TID() const { return current_HighestTid; }
   int  change_framerate(int more_vs_less); // 1: more, -1: less
   void set_framerate_ratio(int percent);
@@ -433,98 +441,11 @@ class decoder_context : public base_context {
   int framedrop_tid_index[6+1];
 
   void compute_framedrop_table();
+
+  static bool is_image_unit_decodable(image_unit_ptr imgunit);
+
+ public:
   void calc_tid_and_framerate_ratio();
-
- private:
-  // --- decoded picture buffer ---
-
-  decoded_picture_buffer dpb;
-
-  int current_image_poc_lsb;
-  bool first_decoded_picture;
-  bool NoRaslOutputFlag;
-  bool HandleCraAsBlaFlag;
-  bool FirstAfterEndOfSequenceNAL;
-
-  int  PicOrderCntMsb;
-  int prevPicOrderCntLsb;  // at precTid0Pic
-  int prevPicOrderCntMsb;  // at precTid0Pic
-
-  de265_image* img;
-
- public:
-  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
-                                                        dependent slice. */
-
-
-  // --- motion compensation ---
-
- public:
-  int PocLsbLt[MAX_NUM_REF_PICS];
-  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
-  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
- private:
-  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-
-  // The number of entries in the lists below.
-  int NumPocStCurrBefore;
-  int NumPocStCurrAfter;
-  int NumPocStFoll;
-  int NumPocLtCurr;
-  int NumPocLtFoll;
-
-  // These lists contain absolute POC values.
-  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
-  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
-  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
-  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
-  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
-
-  // These lists contain indices into the DPB.
-  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS];
-  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS];
-  int RefPicSetStFoll[MAX_NUM_REF_PICS];
-  int RefPicSetLtCurr[MAX_NUM_REF_PICS];
-  int RefPicSetLtFoll[MAX_NUM_REF_PICS];
-
-
-  // --- parameters derived from parameter sets ---
-
-  // NAL
-
-  uint8_t nal_unit_type;
-
-  char IdrPicFlag;
-  char RapPicFlag;
-
-
-  // --- image unit queue ---
-
-  std::vector<image_unit*> image_units;
-
-  bool flush_reorder_buffer_at_this_frame;
-
- private:
-  void init_thread_context(thread_context* tctx);
-  void add_task_decode_CTB_row(thread_context* tctx, bool firstSliceSubstream, int ctbRow);
-  void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
-                                     int ctbX,int ctbY);
-
-  void mark_whole_slice_as_processed(image_unit* imgunit,
-                                     slice_unit* sliceunit,
-                                     int progress);
-
-  void process_picture_order_count(slice_segment_header* hdr);
-  int generate_unavailable_reference_picture(const seq_parameter_set* sps,
-                                             int POC, bool longTerm);
-  void process_reference_picture_set(slice_segment_header* hdr);
-  bool construct_reference_picture_lists(slice_segment_header* hdr);
-
-
-  void remove_images_from_dpb(const std::vector<int>& removeImageList);
-  void run_postprocessing_filters_sequential(struct de265_image* img);
-  void run_postprocessing_filters_parallel(image_unit* img);
 };
 
 

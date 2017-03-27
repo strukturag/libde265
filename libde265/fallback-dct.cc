@@ -30,6 +30,8 @@
 #include <algorithm>
 
 
+#define D 0
+
 static void printMatrix(const char* name, const int16_t* v, int n)
 {
   printf("--- %s ---\n",name);
@@ -550,7 +552,7 @@ static int8_t mat_dct[32][32] = {
 
 template <class pixel_t>
 void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
-                        int nT, const int16_t *coeffs, int bit_depth)
+                        int nT, const int16_t *coeffs, int bit_depth, int maxColumn,int maxRow)
 {
   /*
     The effective shift is
@@ -599,6 +601,16 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
     }
   */
 
+#if D
+  if (nT==8) {
+  printf("--- input\n");
+  for (int r=0;r<nT;r++, printf("\n"))
+    for (int c=0;c<nT;c++) {
+      printf("%04x ",coeffs[c+r*nT]);
+    }
+  }
+#endif
+
   for (int c=0;c<nT;c++) {
 
     /*
@@ -619,40 +631,47 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
     for (int i=0;i<nT;i++) {
       int sum=0;
-
-      /*
+#if D
+      if (nT==8) {
       printf("input: ");
       for (int j=0;j<nT;j++) {
-        printf("%3d ",coeffs[c+j*nT]);
+        printf("%04x ",coeffs[c+j*nT]);
       }
       printf("\n");
 
-      printf("mat: ");
+      printf("mat[%d]: ",i);
       for (int j=0;j<nT;j++) {
-        printf("%3d ",mat_dct[fact*j][i]);
+        printf("%04x ",mat_dct[fact*j][i]);
       }
       printf("\n");
-      */
-
+      }
+#endif
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * coeffs[c+j*nT];
       }
 
       g[c+i*nT] = Clip3(-32768,32767, (sum+rnd1)>>7);
-
+#if D
+      if (nT==8) {
+        printf("out[%d] : %04x + %04x -> %04x\n",i,sum,rnd1,g[c+i*nT]);
+      }
+#endif
       logtrace(LogTransform,"*%d ",g[c+i*nT]);
     }
     logtrace(LogTransform,"*\n");
   }
 
-  /*
+#if D
+  if (nT==8) {
   printf("--- temp\n");
   for (int r=0;r<nT;r++, printf("\n"))
     for (int c=0;c<nT;c++) {
-      printf("%3d ",g[c+r*nT]);
+      printf("%04x ",g[c+r*nT]);
     }
-  */
+  }
 
+  printf("------------------------ H\n");
+#endif
   for (int y=0;y<nT;y++) {
     /*
     logtrace(LogTransform,"DCT-H: ");
@@ -676,10 +695,22 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
       for (int j=0;j<=lastCol /*nT*/;j++) {
         sum += mat_dct[fact*j][i] * g[y*nT+j];
+
+        if (D) printf("%04x * %04x = %04x\n",mat_dct[fact*j][i], g[y*nT+j], mat_dct[fact*j][i] * g[y*nT+j]);
       }
+
+      if (D) printf("-> %04x\n",sum);
 
       //int out = Clip3(-32768,32767, (sum+rnd2)>>postShift);
       int out = (sum+rnd2)>>postShift;
+
+      /*
+      if (nT==8 && maxColumn==0 && maxRow==0) {
+        printf("%d -> g[0]=%d sum=%d bdShift=%d add=%d\n",coeffs[0],g[0],sum,postShift,out);
+      }
+      */
+
+      //      printf("------------------------------------> out = %04x\n",out);
 
       //fprintf(stderr,"%d*%d+%d = %d\n",y,stride,i,y*stride+i);
       //fprintf(stderr,"[%p]=%d\n",&dst[y*stride+i], Clip1_8bit(dst[y*stride+i]));
@@ -712,8 +743,6 @@ void transform_idct_fallback(int32_t *dst, int nT, const int16_t *coeffs, int bd
 
     Effective shift 's' means: residual value 1 gives DC-coeff (1<<s).
    */
-
-
   int rnd1 = 1<<(7-1);
   int fact = (1<<(5-Log2(nT)));
 
@@ -862,45 +891,49 @@ void transform_idct_32x32_fallback(int32_t *dst, const int16_t *coeffs,
 
 
 
-void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                  int maxColumn,int maxRow)
 {
-  transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8);
+  transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8, maxColumn,maxRow);
 }
 
-void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                  int maxColumn,int maxRow)
 {
-  transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8);
+  transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8, maxColumn,maxRow);
 }
 
-void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                    int maxColumn,int maxRow)
 {
-  transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8);
+  transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8, maxColumn,maxRow);
 }
 
-void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                                    int maxColumn,int maxRow)
 {
-  transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8);
+  transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8, maxColumn,maxRow);
 }
 
 
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
-  transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth);
+  transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
-  transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth);
+  transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
-  transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth);
+  transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth, maxColumn,maxRow);
 }
 
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow)
 {
-  transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth);
+  transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth, maxColumn,maxRow);
 }
 
 

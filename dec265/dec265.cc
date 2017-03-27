@@ -24,6 +24,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits>
@@ -39,6 +40,11 @@
 #endif
 
 #include "libde265/quality.h"
+#include "libde265/util.h"
+
+#ifdef WITH_FPS
+#include "libde265/frame-dropper.h"
+#endif
 
 #if HAVE_VIDEOGFX
 #include <libvideogfx.hh>
@@ -54,6 +60,8 @@ using namespace videogfx;
 #define NUM_THREADS 4
 
 int nThreads=0;
+int nParallelFrames=10;
+int max_latency=0; // off
 bool nal_input=false;
 int quiet=0;
 bool check_hash=false;
@@ -61,7 +69,7 @@ bool show_help=false;
 bool dump_headers=false;
 bool write_yuv=false;
 bool output_with_videogfx=false;
-bool logging=true;
+bool output_as_rgb=false;
 bool no_acceleration=false;
 const char *output_filename = "out.yuv";
 uint32_t max_frames=UINT32_MAX;
@@ -73,13 +81,19 @@ bool show_psnr_map=false;
 const char* reference_filename;
 FILE* reference_file;
 int highestTID = 100;
+int decode_rate_percent = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
+int inexact_decoding_flags=0;
+int fullpel_motion_only=0;
+
+#define OPTION_MAX_LATENCY 1000
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
   {"threads",    required_argument, 0, 't' },
+  {"parallel-frames", required_argument, 0, 'P' },
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
   {"frames",     required_argument, 0, 'f' },
@@ -87,7 +101,7 @@ static struct option long_options[] = {
   {"dump",       no_argument,       0, 'd' },
   {"nal",        no_argument,       0, 'n' },
   {"videogfx",   no_argument,       0, 'V' },
-  {"no-logging", no_argument,       0, 'L' },
+  {"rgb",        no_argument,       0, 'R' },
   {"help",       no_argument,       0, 'h' },
   {"noaccel",    no_argument,       0, '0' },
   {"write-bytestream", required_argument,0, 'B' },
@@ -95,9 +109,13 @@ static struct option long_options[] = {
   {"ssim",        no_argument,       0, 's' },
   {"errmap",      no_argument,       0, 'e' },
   {"highest-TID", required_argument, 0, 'T' },
+  {"decoding-framerate-percent", required_argument, 0, 'D' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
+  {"fullpel-motion-only",     no_argument, &fullpel_motion_only, 1 },
+  {"enable-inexact-decoding", no_argument, 0, 'I' },
+  {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
   {0,         0,                 0,  0 }
 };
 
@@ -152,6 +170,7 @@ static void write_picture(const de265_image* img)
 
 
 #if HAVE_VIDEOGFX
+//#include "libde265/image.h"
 void display_image(const struct de265_image* img)
 {
   static X11Win win;
@@ -174,7 +193,12 @@ void display_image(const struct de265_image* img)
   de265_chroma chroma = de265_get_chroma_format(img);
 
   ChromaFormat vgfx_chroma;
-  Colorspace   vgfx_cs = Colorspace_YUV;
+  Colorspace   vgfx_cs;
+
+  if (output_as_rgb)
+    vgfx_cs = Colorspace_RGB;
+  else
+    vgfx_cs = Colorspace_YUV;
 
   switch (chroma) {
   case de265_chroma_420:  vgfx_chroma = Chroma_420; break;
@@ -191,13 +215,24 @@ void display_image(const struct de265_image* img)
     nChannels = 1;
   }
 
+  const int channel_map_yuv[] = { 0,1,2 };
+  const int channel_map_rgb[] = { 2,0,1 };
+  const int* channel_map;
+
+  if (output_as_rgb) {
+    channel_map = channel_map_rgb;
+  }
+  else {
+    channel_map = channel_map_yuv;
+  }
+
   for (int ch=0;ch<nChannels;ch++) {
     const uint8_t* data;
     int stride;
 
-    data   = de265_get_image_plane(img,ch,&stride);
-    width  = de265_get_image_width(img,ch);
-    height = de265_get_image_height(img,ch);
+    data   = de265_get_image_plane(img,channel_map[ch],&stride);
+    width  = de265_get_image_width(img,channel_map[ch]);
+    height = de265_get_image_height(img,channel_map[ch]);
 
     int bit_depth = de265_get_bits_per_pixel(img,ch);
 
@@ -215,6 +250,8 @@ void display_image(const struct de265_image* img)
       }
     }
   }
+
+  //printf("displaying frame: %d\n", img->m_image->PicOrderCntVal);
 
   win.Display(visu);
   win.WaitForKeypress();
@@ -304,7 +341,6 @@ bool display_sdl(const struct de265_image* img)
 
 
 static int width,height;
-static uint32_t framecnt=0;
 
 bool output_image(const de265_image* img)
 {
@@ -313,18 +349,7 @@ bool output_image(const de265_image* img)
   width  = de265_get_image_width(img,0);
   height = de265_get_image_height(img,0);
 
-  framecnt++;
   //printf("SHOW POC: %d / PTS: %ld / integrity: %d\n",img->PicOrderCntVal, img->pts, img->integrity);
-
-
-  if (0) {
-    const char* nal_unit_name;
-    int nuh_layer_id;
-    int nuh_temporal_id;
-    de265_get_image_NAL_header(img, NULL, &nal_unit_name, &nuh_layer_id, &nuh_temporal_id);
-
-    printf("NAL: %s layer:%d temporal:%d\n",nal_unit_name, nuh_layer_id, nuh_temporal_id);
-  }
 
 
   if (!quiet) {
@@ -332,6 +357,10 @@ bool output_image(const de265_image* img)
     if (output_with_videogfx) {
       display_image(img);
     } else {
+      if (output_as_rgb) {
+        fprintf(stderr,"RGB output requires libvideogfx output method\n");
+        exit(10);
+      }
       stop = display_sdl(img);
     }
 #elif HAVE_SDL
@@ -344,14 +373,6 @@ bool output_image(const de265_image* img)
     write_picture(img);
   }
 
-  if ((framecnt%100)==0) {
-    fprintf(stderr,"frame %d\r",framecnt);
-  }
-
-  if (framecnt>=max_frames) {
-    stop=true;
-  }
-
   return stop;
 }
 
@@ -362,7 +383,7 @@ static int    mse_frames=0;
 static double ssim_y=0.0;
 static int    ssim_frames=0;
 
-void measure(const de265_image* img)
+void measure(const de265_image* img, int framecnt)
 {
   // --- compute PSNR ---
 
@@ -548,12 +569,18 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+void dump_headers_callback(int nal_unit, const char* text)
+{
+  fputs(text, stderr);
+}
+
+
 int main(int argc, char** argv)
 {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:se"
+    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:I"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -564,6 +591,7 @@ int main(int argc, char** argv)
     switch (c) {
     case 'q': quiet++; break;
     case 't': nThreads=atoi(optarg); break;
+    case 'P': nParallelFrames=atoi(optarg); break;
     case 'c': check_hash=true; break;
     case 'f': max_frames=atoi(optarg); break;
     case 'o': write_yuv=true; output_filename=optarg; break;
@@ -571,14 +599,17 @@ int main(int argc, char** argv)
     case 'd': dump_headers=true; break;
     case 'n': nal_input=true; break;
     case 'V': output_with_videogfx=true; break;
-    case 'L': logging=false; break;
+    case 'R': output_as_rgb=true; break;
     case '0': no_acceleration=true; break;
     case 'B': write_bytestream=true; bytestream_filename=optarg; break;
     case 'm': measure_quality=true; reference_filename=optarg; break;
     case 's': show_ssim_map=true; break;
     case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
+    case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
+    case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_all; break;
+    case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
 
@@ -591,6 +622,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"options:\n");
     fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
     fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
+    fprintf(stderr,"  -P, --parallel-frames N   number of frames to decode in parallel (default=%d)\n", nParallelFrames);
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
@@ -599,9 +631,9 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
+    fprintf(stderr,"  -R, --rgb         show h.265 files coded in RGB colorspace\n");
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
-    fprintf(stderr,"  -L, --no-logging  disable logging\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");
 #if HAVE_VIDEOGFX
@@ -609,50 +641,54 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -e, --errmap      show error-map (only when -m active)\n");
 #endif
     fprintf(stderr,"  -T, --highest-TID select highest temporal sublayer to decode\n");
+    fprintf(stderr,"  -D, --decoding-framerate-percent    percentage of frames to decode (others will be dropped)\n");
     fprintf(stderr,"      --disable-deblocking   disable deblocking filter\n");
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
+    fprintf(stderr,"      --fullpel-motion-only  disable sub-pel MC\n");
+    fprintf(stderr,"  -I, --enable-inexact-decoding  enable optimizations that may lead to slightly wrong output\n");
+    fprintf(stderr,"      --max-latency          maximum picture latency in reorder buffer\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
   }
 
 
+  de265_set_verbosity(verbosity);
+
   de265_error err =DE265_OK;
 
   de265_decoder_context* ctx = de265_new_decoder();
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_SUPPRESS_FAULTY_PICTURES, false);
+  // TODO de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
+  de265_suppress_faulty_pictures(ctx, false);
 
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_DEBLOCKING, disable_deblocking);
-  de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_DISABLE_SAO, disable_sao);
+  if (disable_deblocking)  inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
+  if (disable_sao)         inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
+  if (fullpel_motion_only) inexact_decoding_flags |= de265_inexact_decoding_only_full_pel_motion;
+  de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_VPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_PPS_HEADERS, 1);
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_DUMP_SLICE_HEADERS, 1);
+    de265_dump_headers(ctx, dump_headers_callback);
   }
 
   if (no_acceleration) {
-    de265_set_parameter_int(ctx, DE265_DECODER_PARAM_ACCELERATION_CODE, de265_acceleration_SCALAR);
+    de265_set_CPU_capabilities(ctx, 0);
   }
 
-  if (!logging) {
-    de265_disable_logging();
+  if (nThreads==0) {
+    nThreads = 1;
   }
 
-  de265_set_verbosity(verbosity);
-
-
-  if (argc>=3) {
-    if (nThreads>0) {
-      err = de265_start_worker_threads(ctx, nThreads);
-    }
+  if (nParallelFrames <= 0) {
+    nParallelFrames = 1;
   }
+
+  de265_set_max_decode_frames_parallel(ctx, nParallelFrames);
+  err = de265_start_worker_threads(ctx, nThreads);
 
   de265_set_limit_TID(ctx, highestTID);
-
+  de265_set_framerate_ratio(ctx, decode_rate_percent);
+  de265_set_max_reorder_buffer_latency(ctx, max_latency);
 
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
@@ -661,9 +697,12 @@ int main(int argc, char** argv)
 
   FILE* fh = fopen(argv[optind], "rb");
   if (fh==NULL) {
-    fprintf(stderr,"cannot open file %s!\n", argv[1]);
+    fprintf(stderr,"cannot open file %s (%s)\n", argv[optind], strerror(errno));
     exit(10);
   }
+
+  //fseek(fh, 15500000,SEEK_CUR);
+
 
   FILE* bytestream_fh = NULL;
 
@@ -676,6 +715,16 @@ int main(int argc, char** argv)
   struct timeval tv_start;
   gettimeofday(&tv_start, NULL);
 
+#ifdef WITH_FPS
+  fps_estimator fps_estim;
+  fps_estim.set_fps_estimator_timespan(5.0f);
+
+  frame_drop_ratio_calculator drop_ratio;
+  drop_ratio.set_target_fps(50.0);
+#endif
+
+  uint32_t framecnt=0;
+
   int pos=0;
 
   while (!stop)
@@ -683,101 +732,139 @@ int main(int argc, char** argv)
       //tid = (framecnt/1000) & 1;
       //de265_set_limit_TID(ctx, tid);
 
-      if (nal_input) {
-        uint8_t len[4];
-        int n = fread(len,1,4,fh);
-        int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
 
-        uint8_t* buf = (uint8_t*)malloc(length);
-        n = fread(buf,1,length,fh);
-        err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+      int actions = de265_get_action(ctx, true);
 
-        if (write_bytestream) {
-          uint8_t sc[3] = { 0,0,1 };
-          fwrite(sc ,1,3,bytestream_fh);
-          fwrite(buf,1,n,bytestream_fh);
+
+      loginfo(LogThreading,"actions: push-input:%d get-image:%d eos:%d\n",
+              !!(actions & de265_action_push_more_input),
+              !!(actions & de265_action_get_image),
+              !!(actions & de265_action_end_of_stream));
+
+
+      // --- push more input ---
+
+      if (actions & de265_action_push_more_input) {
+
+        if (nal_input) {
+          uint8_t len[4];
+          int n = fread(len,1,4,fh);
+          int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
+
+          uint8_t* buf = (uint8_t*)malloc(length);
+          n = fread(buf,1,length,fh);
+          err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+
+          if (write_bytestream) {
+            uint8_t sc[3] = { 0,0,1 };
+            fwrite(sc ,1,3,bytestream_fh);
+            fwrite(buf,1,n,bytestream_fh);
+          }
+
+          free(buf);
+          pos+=n;
         }
+        else {
+          // read a chunk of input data
+          uint8_t buf[BUFFER_SIZE];
+          int n = fread(buf,1,BUFFER_SIZE,fh);
 
-        free(buf);
-        pos+=n;
-      }
-      else {
-        // read a chunk of input data
-        uint8_t buf[BUFFER_SIZE];
-        int n = fread(buf,1,BUFFER_SIZE,fh);
-
-        // decode input data
-        if (n) {
-          err = de265_push_data(ctx, buf, n, pos, (void*)2);
-          if (err != DE265_OK) {
-            break;
-          }
-        }
-
-        pos+=n;
-
-        if (0) { // fake skipping
-          if (pos>1000000) {
-            printf("RESET\n");
-            de265_reset(ctx);
-            pos=0;
-
-            fseek(fh,-200000,SEEK_CUR);
-          }
-        }
-      }
-
-      // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
-
-      if (feof(fh)) {
-        err = de265_flush_data(ctx); // indicate end of stream
-        stop = true;
-      }
-
-
-      // decoding / display loop
-
-      int more=1;
-      while (more)
-        {
-          more = 0;
-
-          // decode some more
-
-          err = de265_decode(ctx, &more);
-          if (err != DE265_OK) {
-            // if (quiet<=1) fprintf(stderr,"ERROR: %s\n", de265_get_error_text(err));
-
-            if (check_hash && err == DE265_ERROR_CHECKSUM_MISMATCH)
-              stop = 1;
-            more = 0;
-            break;
-          }
-
-          // show available images
-
-          const de265_image* img = de265_get_next_picture(ctx);
-          if (img) {
-            if (measure_quality) {
-              measure(img);
-            }
-
-            stop = output_image(img);
-            if (stop) more=0;
-            else      more=1;
-          }
-
-          // show warnings
-
-          for (;;) {
-            de265_error warning = de265_get_warning(ctx);
-            if (warning==DE265_OK) {
+          // decode input data
+          if (n) {
+            err = de265_push_data(ctx, buf, n, pos, (void*)2);
+            if (err != DE265_OK) {
               break;
             }
+          }
 
-            if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+          pos+=n;
+
+          static int skippos=0;
+          if (false && pos>skippos+1000000) { // fake skipping
+            de265_reset(ctx);
+
+            int skip = 4000000;
+
+            pos += skip;
+            skippos=pos;
+
+            fseek(fh, skip,SEEK_CUR);
+          }
+
+          // printf("pending data: %d\n", de265_get_number_of_input_bytes_pending(ctx));
+
+          if (feof(fh)) {
+            err = de265_push_end_of_stream(ctx); // indicate end of stream
           }
         }
+      }
+
+      // --- get images ---
+
+      if (actions & de265_action_get_image) {
+
+        // show available images
+
+        const de265_image* img = de265_get_next_picture(ctx);
+        if (img) {
+
+          if (measure_quality) {
+            measure(img, framecnt);
+          }
+
+#if WITH_FPS
+          fps_estim.on_frame_decoded( de265_get_time() );
+#endif
+
+          framecnt++;
+          if ((framecnt%100)==0) {
+            fprintf(stderr,"frame %d  fps=%.2f\r",framecnt,
+#if WITH_FPS
+                    fps_estim.fps_measurement_available() ? fps_estim.get_fps_measurement() : 0.0
+#else
+                    0.0
+#endif
+                    );
+
+#if WITH_FPS
+            if (false && fps_estim.fps_measurement_available()) {
+              printf("\n");
+              float ratio = drop_ratio.update_decoding_ratio(fps_estim.get_fps_measurement());
+              printf("ratio = %f\n",ratio);
+
+              //drop_ratio.set_decoding_ratio(ratio);
+              de265_set_framerate_ratio(ctx, ratio*100);
+
+              fps_estim.reset_fps_estimator();
+            }
+#endif
+          }
+
+          stop = output_image(img);
+
+          if (framecnt>=max_frames) {
+            stop=true;
+          }
+
+
+          de265_release_picture(img);
+        }
+
+        // show warnings
+
+        for (;;) {
+          de265_error warning = de265_get_warning(ctx);
+          if (warning==DE265_OK) {
+            break;
+          }
+
+          if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+        }
+      }
+
+      else if (actions & de265_action_end_of_stream) {
+        stop = true;
+      }
     }
 
   fclose(fh);

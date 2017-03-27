@@ -28,10 +28,12 @@
 
 struct acceleration_functions
 {
+  // better name: put_bipred_8 ?
   void (*put_weighted_pred_avg_8)(uint8_t *_dst, ptrdiff_t dststride,
                                   const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
                                   int width, int height);
 
+  // better name: put_pred_8 ?
   void (*put_unweighted_pred_8)(uint8_t *_dst, ptrdiff_t dststride,
                                 const int16_t *src, ptrdiff_t srcstride,
                                 int width, int height);
@@ -137,6 +139,14 @@ struct acceleration_functions
                      const void *src, ptrdiff_t srcstride, int width, int height,
                      int16_t* mcbuffer, int dX,int dY, int bit_depth) const;
 
+  void (*mc_copy_8)(uint8_t* dst, ptrdiff_t dststride,
+                    const void* src, ptrdiff_t srcstride, int width, int height);
+
+  void (*mc_copy_bi_8)(uint8_t* dst, ptrdiff_t dststride,
+                       const void* src1, const void* src2, ptrdiff_t srcstride,
+                       int width, int height);
+
+
 
   // --- inverse transforms ---
 
@@ -150,13 +160,15 @@ struct acceleration_functions
   void (*transform_skip_rdpcm_v_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
   void (*transform_skip_rdpcm_h_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
   void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
-  void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                             int maxColumn,int maxRow); // iDCT
 
   // 9-16 bit
 
   void (*transform_skip_16)(uint16_t *_dst, const int16_t *coeffs, ptrdiff_t _stride, int bit_depth); // no transform
   void (*transform_4x4_dst_add_16)(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDST
-  void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDCT
+  void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth,
+                              int maxColumn,int maxRow); // iDCT
 
 
   void (*rotate_coefficients)(int16_t *coeff, int nT);
@@ -183,7 +195,7 @@ struct acceleration_functions
   template <class pixel_t> void transform_skip_rdpcm_v(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_skip_rdpcm_h(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
-  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
+  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth,int maxColumn,int maxRow) const;
 
 
 
@@ -198,6 +210,24 @@ struct acceleration_functions
   // forward Hadamard transform (without scaling factor)
   // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
+
+
+
+  // --- intra prediction ---
+
+  void (*intra_dc_noavg_8[4])(uint8_t* dst,int dstStride, uint8_t* border);
+  void (*intra_dc_avg_8[4])(uint8_t* dst,int dstStride, uint8_t* border);
+
+
+
+  // --- SAO ---
+
+  void (*sao_band_8)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
+                     int width, int height,
+                     int baseBand, int offset0, int offset1, int offset2, int offset3);
+  void (*sao_band)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride, int bitDepth,
+                   int width, int height,
+                   int baseBand, int offset0, int offset1, int offset2, int offset3);
 };
 
 
@@ -350,8 +380,8 @@ template <> inline void acceleration_functions::transform_skip_rdpcm_h<uint16_t>
 template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_8(dst,coeffs,stride); }
 template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }
 
-template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_8[sizeIdx](dst,coeffs,stride); }
-template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth); }
+template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow) const { transform_add_8[sizeIdx](dst,coeffs,stride,maxColumn,maxRow); }
+template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn,int maxRow) const { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth,maxColumn,maxRow); }
 
 template <> inline void acceleration_functions::add_residual(uint8_t *dst,  ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const { add_residual_8(dst,stride,r,nT,bit_depth); }
 template <> inline void acceleration_functions::add_residual(uint16_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const { add_residual_16(dst,stride,r,nT,bit_depth); }

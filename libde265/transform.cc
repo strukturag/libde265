@@ -109,14 +109,14 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   int qPYA,qPYB;
 
-  CodingDataAccess<de265_image> dataaccess(tctx->img);
+  CodingDataAccess<image> dataaccess(tctx->img.get());
 
   if (available_zscan(dataaccess, xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps.Log2MinTrafoSize;
     int minTbAddrA = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
     int ctbAddrA = minTbAddrA >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
-    if (ctbAddrA == tctx->CtbAddrInTS) {
+    if (ctbAddrA == tctx->get_CTB_address_TS()) {
       qPYA = tctx->img->get_QPY(xQG-1,yQG);
     }
     else {
@@ -132,7 +132,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
     int yTmp = (yQG-1) >> sps.Log2MinTrafoSize;
     int minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
     int ctbAddrB = minTbAddrB >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
-    if (ctbAddrB == tctx->CtbAddrInTS) {
+    if (ctbAddrB == tctx->get_CTB_address_TS()) {
       qPYB = tctx->img->get_QPY(xQG,yQG-1);
     }
     else {
@@ -208,7 +208,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 template <class pixel_t>
 void transform_coefficients(acceleration_functions* acceleration,
                             int16_t* coeff, int coeffStride, int nT, int trType,
-                            pixel_t* dst, int dstStride, int bit_depth)
+                            pixel_t* dst, int dstStride, int bit_depth, int maxColumn,int maxRow)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
@@ -218,11 +218,18 @@ void transform_coefficients(acceleration_functions* acceleration,
     acceleration->transform_4x4_dst_add<pixel_t>(dst, coeff, dstStride, bit_depth);
 
   } else {
+    if (nT==32) {
+      //printf("region: %dx%d\n",maxColumn,maxRow);
+    }
 
-    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth); }
-    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth); }
-    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth); }
-    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth); }
+    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
+    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth,
+                                                            maxColumn,maxRow); }
   }
 
 #if 0
@@ -283,7 +290,6 @@ void transform_coefficients_explicit(thread_context* tctx,
     acceleration->transform_idst_4x4(residual, coeff, bdShift, max_coeff_bits);
 
   } else {
-
     /**/ if (nT==4)  { acceleration->transform_idct_4x4(residual,coeff,bdShift,max_coeff_bits); }
     else if (nT==8)  { acceleration->transform_idct_8x8(residual,coeff,bdShift,max_coeff_bits); }
     else if (nT==16) { acceleration->transform_idct_16x16(residual,coeff,bdShift,max_coeff_bits); }
@@ -308,7 +314,7 @@ void transform_coefficients_explicit(thread_context* tctx,
 
 void inv_transform(acceleration_functions* acceleration,
                    uint8_t* dst, int dstStride, int16_t* coeff,
-                   int log2TbSize, int trType)
+                   int log2TbSize, int trType, int maxColumn, int maxRow)
 {
   if (trType==1) {
     assert(log2TbSize==2);
@@ -316,7 +322,7 @@ void inv_transform(acceleration_functions* acceleration,
     acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
 
   } else {
-    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride);
+    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride, maxColumn,maxRow);
   }
 
 
@@ -386,7 +392,7 @@ void scale_coefficients_internal(thread_context* tctx,
 
   pixel_t* pred;
   int      stride;
-  pred = tctx->img->get_image_plane_at_pos_NEW<pixel_t>(cIdx, xT,yT);
+  pred = tctx->img->get_image_plane_at_pos<pixel_t>(cIdx, xT,yT);
   stride = tctx->img->get_image_stride(cIdx);
 
   // We explicitly include the case for sizeof(pixel_t)==1 so that the compiler
@@ -394,7 +400,10 @@ void scale_coefficients_internal(thread_context* tctx,
   const int bit_depth = ((sizeof(pixel_t)==1) ? 8 : sps.get_bit_depth(cIdx));
 
   //assert(intra == (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA));
-  int cuPredModeIntra = (tctx->img->get_pred_mode(xT,yT)==MODE_INTRA);
+
+  const int xLuma = xT << sps.get_chroma_shift_W(cIdx);
+  const int yLuma = yT << sps.get_chroma_shift_H(cIdx);
+  int cuPredModeIntra = (tctx->img->get_pred_mode(xLuma,yLuma)==MODE_INTRA);
 
   bool rotateCoeffs = (sps.range_extension.transform_skip_rotation_enabled_flag &&
                        nT == 4 &&
@@ -603,7 +612,9 @@ void scale_coefficients_internal(thread_context* tctx,
       }
       else {
         transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                               pred, stride, bit_depth);
+                               pred, stride, bit_depth,
+                               tctx->maxCoeffColumn[cIdx],
+                               tctx->maxCoeffRow[cIdx]);
       }
     }
   }

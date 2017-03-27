@@ -23,7 +23,7 @@
 #include "dct.h"
 #include "dct-scalar.h"
 
-
+#if HAVE_SSE4_1
 class DSPFunc_IDCT_SSE_4x4 : public DSPFunc_IDCT_Base
 {
 public:
@@ -35,7 +35,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,4*4);
-    ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4);
+    //ff_hevc_transform_4x4_add_8_sse4(out, xy2coeff(x,y), 4, 3,3);
   }
 };
 
@@ -50,7 +50,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,8*8);
-    ff_hevc_transform_8x8_add_8_sse4(out, xy2coeff(x,y), 8);
+    ff_hevc_transform_8x8_add_8_sse4(out, xy2coeff(x,y), 8, 7,7);
   }
 };
 
@@ -65,7 +65,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,16*16);
-    ff_hevc_transform_16x16_add_8_sse4(out, xy2coeff(x,y), 16);
+    ff_hevc_transform_16x16_add_8_sse4(out, xy2coeff(x,y), 16, 15,15);
   }
 };
 
@@ -80,7 +80,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,32*32);
-    ff_hevc_transform_32x32_add_8_sse4(out, xy2coeff(x,y), 32);
+    ff_hevc_transform_32x32_add_8_sse4(out, xy2coeff(x,y), 32, 31,31);
   }
 };
 
@@ -88,7 +88,7 @@ DSPFunc_IDCT_SSE_4x4   idct_sse_4x4;
 DSPFunc_IDCT_SSE_8x8   idct_sse_8x8;
 DSPFunc_IDCT_SSE_16x16 idct_sse_16x16;
 DSPFunc_IDCT_SSE_32x32 idct_sse_32x32;
-
+#endif
 
 
 

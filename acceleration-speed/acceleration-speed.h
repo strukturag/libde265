@@ -52,9 +52,9 @@ public:
   virtual void runOnBlock(int x,int y) = 0;
   virtual DSPFunc* referenceImplementation() const { return NULL; }
 
-  virtual bool prepareNextImage(std::shared_ptr<const de265_image>) = 0;
+  virtual bool prepareNextImage(std::shared_ptr<const image>) = 0;
 
-  bool runOnImage(std::shared_ptr<const de265_image> img, bool compareToReference);
+  bool runOnImage(std::shared_ptr<const image> img, bool compareToReference);
   virtual bool compareToReferenceImplementation() { return false; }
 
   static DSPFunc* first;

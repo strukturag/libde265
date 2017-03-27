@@ -25,6 +25,7 @@
 #include "libde265/bitstream.h"
 
 #include <vector>
+#include <string>
 
 class error_queue;
 class seq_parameter_set;
@@ -48,7 +49,7 @@ class video_usability_information
   video_usability_information();
 
   de265_error read(error_queue*, bitreader*, const seq_parameter_set*);
-  void dump(int fd) const;
+  std::string dump() const;
 
 
   // --- sample aspect ratio (SAR) ---

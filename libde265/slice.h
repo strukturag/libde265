@@ -33,6 +33,7 @@
 
 #include <vector>
 #include <string.h>
+#include <memory>
 
 #define MAX_NUM_REF_PICS    16
 
@@ -41,6 +42,7 @@ class thread_context;
 class error_queue;
 class seq_parameter_set;
 class pic_parameter_set;
+class image;
 
 enum SliceType
   {
@@ -132,27 +134,36 @@ public:
     reset();
   }
 
-  de265_error read(bitreader* br, decoder_context*, bool* continueDecoding);
+  de265_error read(bitreader* br, decoder_context*,
+                   uint8_t nal_unit_type,
+                   bool* continueDecoding);
   de265_error write(error_queue*, CABAC_encoder&,
                     const seq_parameter_set* sps,
                     const pic_parameter_set* pps,
                     uint8_t nal_unit_type);
 
-  void dump_slice_segment_header(const decoder_context*, int fd) const;
+  std::string dump_slice_segment_header(const decoder_context*,
+                                        uint8_t nal_unit_type) const;
 
   void set_defaults();
   void reset();
 
 
   int  slice_index; // index through all slices in a picture  (internal only)
-  const pic_parameter_set* pps;
+
+  const std::shared_ptr<const pic_parameter_set>& get_pps() const { return pps; }
+  void set_pps(std::shared_ptr<const pic_parameter_set> p) { pps=p; }
+
+ private:
+  std::shared_ptr<const pic_parameter_set> pps;
 
 
+ public:
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
   int  slice_pic_parameter_set_id;
   char dependent_slice_segment_flag;
-  int  slice_segment_address;
+  int  slice_segment_address; // in raster-scan
 
   int  slice_type;
   char pic_output_flag;
@@ -244,7 +255,7 @@ public:
   int NumPocTotalCurr;
 
   // number of entries: num_ref_idx_l0_active / num_ref_idx_l1_active
-  int RefPicList[2][MAX_NUM_REF_PICS]; // contains buffer IDs (D:indices into DPB/E:frame number)
+  int RefPicList[2][MAX_NUM_REF_PICS]; // contains buffer ID (Dec:indices into DPB/Enc:frame number)
   int RefPicList_POC[2][MAX_NUM_REF_PICS];
   int RefPicList_PicState[2][MAX_NUM_REF_PICS]; /* We have to save the PicState because the decoding
                                                    of an image may be delayed and the PicState can
@@ -283,6 +294,17 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
 
 
+class thread_task_slice : public thread_task
+{
+public:
+  thread_context* tctx;
+
+  virtual void work();
+  virtual std::string name() const { return "slice"; }
+
+  virtual void debug_dump() const;
+};
+
 class thread_task_ctb_row : public thread_task
 {
 public:
@@ -292,6 +314,8 @@ public:
 
   virtual void work();
   virtual std::string name() const;
+
+  virtual void debug_dump() const;
 };
 
 class thread_task_slice_segment : public thread_task
@@ -303,10 +327,12 @@ public:
 
   virtual void work();
   virtual std::string name() const;
+
+  virtual void debug_dump() const;
 };
 
 
-int check_CTB_available(const de265_image* img,
+int check_CTB_available(const image* img,
                         int xC,int yC, int xN,int yN);
 
 #endif

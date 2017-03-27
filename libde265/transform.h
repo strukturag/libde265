@@ -47,7 +47,7 @@ void scale_coefficients(thread_context* tctx,
 
 void inv_transform(acceleration_functions* acceleration,
                    uint8_t* dst, int dstStride, int16_t* coeff,
-                   int log2TbSize, int trType);
+                   int log2TbSize, int trType, int maxColumn, int maxRow);
 
 void fwd_transform(acceleration_functions* acceleration,
                    int16_t* coeff, int coeffStride, int log2TbSize, int trType,

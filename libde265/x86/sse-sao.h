@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013-2015 struktur AG, Joachim Bauch <bauch@struktur.de>
+ * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
  *
  * This file is part of libde265.
  *
@@ -18,12 +18,16 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "asm.S"
-#include "neon.S"
+#ifndef SSE_SAO_H
+#define SSE_SAO_H
 
-// we execute a simple NEON instruction and check if SIGILL is triggered to
-// detect if the CPU support NEON code
-function libde265_detect_neon, export=1
-    vand q0, q0, q0
-    bx lr
-endfunc
+#include <stddef.h>
+#include <stdint.h>
+
+// --- SAO ---
+
+void sao_band_8bit_sse2(uint8_t* dst,int dststride, const uint8_t* src,int srcstride,
+                        int width, int height,
+                        int baseBand, int offset0, int offset1, int offset2, int offset3);
+
+#endif

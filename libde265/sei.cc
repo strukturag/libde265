@@ -270,7 +270,7 @@ static void compute_MD5(uint8_t* data,int w,int h,int stride, uint8_t* result, i
 }
 
 
-static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de265_image* img)
+static de265_error process_sei_decoded_picture_hash(const sei_message* sei, image* img)
 {
   const sei_decoded_picture_hash* seihash = &sei->data.decoded_picture_hash;
 
@@ -411,14 +411,14 @@ void dump_sei(const sei_message* sei, const seq_parameter_set* sps)
 }
 
 
-de265_error process_sei(const sei_message* sei, de265_image* img)
+de265_error process_sei(const sei_message* sei, image_ptr img)
 {
   de265_error err = DE265_OK;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
     if (img->decctx->param_sei_check_hash) {
-      err = process_sei_decoded_picture_hash(sei, img);
+      err = process_sei_decoded_picture_hash(sei, img.get());
       if (err==DE265_OK) {
         //printf("SEI check ok\n");
       }

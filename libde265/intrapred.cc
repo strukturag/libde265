@@ -107,7 +107,7 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
 void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y, int PUidx,
                                  bool availableA, // left
                                  bool availableB, // top
-                                 const de265_image* img)
+                                 const image* img)
 {
   const seq_parameter_set* sps = &img->get_sps();
 
@@ -346,7 +346,7 @@ struct intra_border_computer
 {
   pixel_t* out_border;
 
-  const de265_image* img;
+  const image* img;
   int nT;
   int cIdx;
 
@@ -372,7 +372,7 @@ struct intra_border_computer
   pixel_t firstValue;
 
   void init(pixel_t* _out_border,
-            const de265_image* _img, int _nT, int _cIdx, int _xB, int _yB) {
+            const image* _img, int _nT, int _cIdx, int _xB, int _yB) {
     img=_img; nT=_nT; cIdx=_cIdx;
     out_border=_out_border; xB=_xB; yB=_yB;
 
@@ -529,7 +529,7 @@ void intra_border_computer<pixel_t>::preproc()
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples(de265_image* img,
+void fill_border_samples(image* img,
                          int xB,int yB,  // in component specific resolution
                          int nT, int cIdx,
                          pixel_t* out_border)
@@ -544,7 +544,7 @@ void fill_border_samples(de265_image* img,
 
 // (8.4.4.2.2)
 template <class pixel_t>
-void fill_border_samples_from_tree(const de265_image* img,
+void fill_border_samples_from_tree(const image* img,
                                    const enc_tb* tb,
                                    const CTBTreeMatrix& ctbs,
                                    int cIdx,
@@ -897,6 +897,28 @@ static const int invAngle_table[25-10] =
   { -4096,-1638,-910,-630,-482,-390,-315,-256,
     -315,-390,-482,-630,-910,-1638,-4096 };
 
+#if 0
+#include <emmintrin.h>
+#include <tmmintrin.h>
+#include <smmintrin.h>
+
+
+void print128(__m128i m)
+{
+  for (int i=0;i<16;i++) {
+    uint8_t v = ((uint8_t*)&m)[15-i];
+    printf("%02x",v);
+  }
+}
+#endif
+
+#define D 0
+
+#if D
+#define Deb(x) if (D) { print128(x); printf(" " #x "\n"); }
+#else
+#define Deb(x)
+#endif
 
 // (8.4.4.2.6)
 template <class pixel_t>
@@ -907,8 +929,10 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
                               int nT,int cIdx,
                               pixel_t* border)
 {
-  pixel_t  ref_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1]; // TODO: what is the required range here ?
-  pixel_t* ref=&ref_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
+  // +1 for corner pixel
+  // +2 for safety on both sides (since we do not test for iFact==0 (TODO: is this required?)
+  pixel_t  ref_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1 +2]; // TODO: what is the required range here ?
+  pixel_t* ref=&ref_mem[2*MAX_INTRA_PRED_BLOCK_SIZE +1];
 
   assert(intraPredMode<35);
   assert(intraPredMode>=2);
@@ -917,78 +941,100 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
 
   if (intraPredMode >= 18) {
 
-    for (int x=0;x<=nT;x++)
-      { ref[x] = border[x]; }
-
-    if (intraPredAngle<0) {
-      int invAngle = invAngle_table[intraPredMode-11];
-
-      if ((nT*intraPredAngle)>>5 < -1) {
-        for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
-          ref[x] = border[0-((x*invAngle+128)>>8)];
-        }
+    // special case: vertical prediction
+    if (intraPredMode==26) {
+      for (int y=0;y<nT;y++) {
+        memcpy(&dst[y*dstStride], &border[1], nT);
       }
-    } else {
-      for (int x=nT+1; x<=2*nT;x++) {
-        ref[x] = border[x];
+
+      if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
+        for (int y=0;y<nT;y++) {
+          dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1),
+                                             bit_depth);
+        }
       }
     }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[x]; }
 
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          int iIdx = ((y+1)*intraPredAngle)>>5;
-          int iFact= ((y+1)*intraPredAngle)&31;
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
 
-          if (iFact != 0) {
-            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
-          } else {
-            dst[x+y*dstStride] = ref[x+iIdx+1];
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[0-((x*invAngle+128)>>8)];
           }
         }
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[x];
+        }
+      }
 
-    if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
+      // Set out-of-bounds pixel to defined value. This is not really required since
+      // it is always multiplied by zero, but valgrind complains about this.
+      ref[2*nT+1] = 0;
+
       for (int y=0;y<nT;y++) {
-        dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1), bit_depth);
+        int iIdx = ((y+1)*intraPredAngle)>>5;
+        int iFact= ((y+1)*intraPredAngle)&31;
+
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+          }
       }
     }
   }
   else { // intraPredAngle < 18
 
-    for (int x=0;x<=nT;x++)
-      { ref[x] = border[-x]; }  // DIFF (neg)
+    // special case: vertical prediction
+    if (intraPredMode==10) {
+      for (int y=0;y<nT;y++) {
+        pixel_t val = border[-y-1];
 
-    if (intraPredAngle<0) {
-      int invAngle = invAngle_table[intraPredMode-11];
-
-      if ((nT*intraPredAngle)>>5 < -1) {
-        for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
-          ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
+        for (int x=0;x<nT;x++) {
+          dst[x+y*dstStride] = val;
         }
       }
-    } else {
-      for (int x=nT+1; x<=2*nT;x++) {
-        ref[x] = border[-x]; // DIFF (neg)
+
+
+      if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
+        for (int x=0;x<nT;x++) { // DIFF (x<->y)
+          dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+        }
       }
     }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[-x]; }  // DIFF (neg)
 
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
-          int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
 
-          if (iFact != 0) {
-            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5; // DIFF (x<->y)
-          } else {
-            dst[x+y*dstStride] = ref[y+iIdx+1]; // DIFF (x<->y)
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
           }
         }
-
-    if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
-      for (int x=0;x<nT;x++) { // DIFF (x<->y)
-        dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[-x]; // DIFF (neg)
+        }
       }
+
+      // see above
+      ref[2*nT+1] = 0;
+
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
+            int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+
+            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5;
+          }
     }
   }
 
@@ -1003,6 +1049,133 @@ void intra_prediction_angular(pixel_t* dst, int dstStride,
       logtrace(LogIntraPred,"\n");
     }
 }
+
+
+
+// (8.4.4.2.6)
+template <class pixel_t>
+void intra_prediction_angular_fallback(pixel_t* dst, int dstStride,
+                              int bit_depth, bool disableIntraBoundaryFilter,
+                              int xB0,int yB0,
+                              enum IntraPredMode intraPredMode,
+                              int nT,int cIdx,
+                              pixel_t* border)
+{
+  // +1 for corner pixel
+  // +2 for safety on both sides (since we do not test for iFact==0 (TODO: is this required?)
+  pixel_t  ref_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1 +2]; // TODO: what is the required range here ?
+  pixel_t* ref=&ref_mem[2*MAX_INTRA_PRED_BLOCK_SIZE +1];
+
+  assert(intraPredMode<35);
+  assert(intraPredMode>=2);
+
+  int intraPredAngle = intraPredAngle_table[intraPredMode];
+
+  if (intraPredMode >= 18) {
+
+    // special case: vertical prediction
+    if (intraPredMode==26) {
+      for (int y=0;y<nT;y++) {
+        memcpy(&dst[y*dstStride], &border[1], nT);
+      }
+
+      if (intraPredMode==26 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {
+        for (int y=0;y<nT;y++) {
+          dst[0+y*dstStride] = Clip_BitDepth(border[1] + ((border[-1-y] - border[0])>>1),
+                                             bit_depth);
+        }
+      }
+    }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[x]; }
+
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
+
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[0-((x*invAngle+128)>>8)];
+          }
+        }
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[x];
+        }
+      }
+
+      for (int y=0;y<nT;y++) {
+        int iIdx = ((y+1)*intraPredAngle)>>5;
+        int iFact= ((y+1)*intraPredAngle)&31;
+
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = ((32-iFact)*ref[x+iIdx+1] + iFact*ref[x+iIdx+2] + 16)>>5;
+          }
+      }
+    }
+  }
+  else { // intraPredAngle < 18
+
+    // special case: vertical prediction
+    if (intraPredMode==10) {
+      for (int y=0;y<nT;y++) {
+        pixel_t val = border[-y-1];
+
+        for (int x=0;x<nT;x++) {
+          dst[x+y*dstStride] = val;
+        }
+      }
+
+
+      if (intraPredMode==10 && cIdx==0 && nT<32 && !disableIntraBoundaryFilter) {  // DIFF 26->10
+        for (int x=0;x<nT;x++) { // DIFF (x<->y)
+          dst[x] = Clip_BitDepth(border[-1] + ((border[1+x] - border[0])>>1), bit_depth); // DIFF (x<->y && neg)
+        }
+      }
+    }
+    else {
+      for (int x=0;x<=nT;x++)
+        { ref[x] = border[-x]; }  // DIFF (neg)
+
+      if (intraPredAngle<0) {
+        int invAngle = invAngle_table[intraPredMode-11];
+
+        if ((nT*intraPredAngle)>>5 < -1) {
+          for (int x=(nT*intraPredAngle)>>5; x<=-1; x++) {
+            ref[x] = border[((x*invAngle+128)>>8)]; // DIFF (neg)
+          }
+        }
+      } else {
+        for (int x=nT+1; x<=2*nT;x++) {
+          ref[x] = border[-x]; // DIFF (neg)
+        }
+      }
+
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            int iIdx = ((x+1)*intraPredAngle)>>5;  // DIFF (x<->y)
+            int iFact= ((x+1)*intraPredAngle)&31;  // DIFF (x<->y)
+
+            dst[x+y*dstStride] = ((32-iFact)*ref[y+iIdx+1] + iFact*ref[y+iIdx+2] + 16)>>5;
+          }
+    }
+  }
+
+
+  logtrace(LogIntraPred,"result of angular intra prediction (mode=%d):\n",intraPredMode);
+
+  for (int y=0;y<nT;y++)
+    {
+      for (int x=0;x<nT;x++)
+        logtrace(LogIntraPred,"%02x ", dst[x+y*dstStride]);
+
+      logtrace(LogIntraPred,"\n");
+    }
+}
+
+
 
 
 template <class pixel_t>
@@ -1033,51 +1206,71 @@ void intra_prediction_planar(pixel_t* dst, int dstStride,
 
 
 template <class pixel_t>
-void intra_prediction_DC(pixel_t* dst, int dstStride,
+void intra_prediction_DC(const acceleration_functions& acceleration,
+                         pixel_t* dst, int dstStride,
                          int nT,int cIdx,
                          pixel_t* border)
 {
   int Log2_nT = Log2(nT);
+#if 1
+  if (sizeof(pixel_t)==1) {
+    bool avg = (cIdx==0 && nT<32);
 
-  int dcVal = 0;
-  for (int i=0;i<nT;i++)
-    {
-      dcVal += border[ i+1];
-      dcVal += border[-i-1];
+    if (avg) {
+      acceleration.intra_dc_avg_8[Log2_nT-2]((uint8_t*)dst,dstStride,(uint8_t*)border);
     }
+    else {
+      acceleration.intra_dc_noavg_8[Log2_nT-2]((uint8_t*)dst,dstStride,(uint8_t*)border);
+    }
+  }
+  else
+#endif
+{
+    int dcVal = 0;
+    for (int i=0;i<nT;i++)
+      {
+        dcVal += border[ i+1];
+        dcVal += border[-i-1];
+      }
 
-  dcVal += nT;
-  dcVal >>= Log2_nT+1;
+    dcVal += nT;
+    dcVal >>= Log2_nT+1;
 
-  if (cIdx==0 && nT<32) {
-    dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
+    if (cIdx==0 && nT<32) {
+      dst[0] = (border[-1] + 2*dcVal + border[1] +2) >> 2;
 
-    for (int x=1;x<nT;x++) { dst[x]           = (border[ x+1] + 3*dcVal+2)>>2; }
-    for (int y=1;y<nT;y++) { dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2; }
-    for (int y=1;y<nT;y++)
-      for (int x=1;x<nT;x++)
-        {
-          dst[x+y*dstStride] = dcVal;
-        }
-  } else {
-    for (int y=0;y<nT;y++)
-      for (int x=0;x<nT;x++)
-        {
-          dst[x+y*dstStride] = dcVal;
-        }
+      for (int x=1;x<nT;x++) {
+        dst[x] = (border[ x+1] + 3*dcVal+2)>>2;
+      }
+
+      for (int y=1;y<nT;y++) {
+        dst[y*dstStride] = (border[-y-1] + 3*dcVal+2)>>2;
+
+        for (int x=1;x<nT;x++)
+          {
+            dst[x+y*dstStride] = dcVal;
+          }
+      }
+    } else {
+      for (int y=0;y<nT;y++)
+        for (int x=0;x<nT;x++)
+          {
+            dst[x+y*dstStride] = dcVal;
+          }
+    }
   }
 }
 
 
 
 template <class pixel_t>
-void decode_intra_prediction_internal(de265_image* img,
+void decode_intra_prediction_internal(image* img,
                                       int xB0,int yB0,
                                       enum IntraPredMode intraPredMode,
                                       pixel_t* dst, int dstStride,
                                       int nT, int cIdx)
 {
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t) border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
@@ -1089,12 +1282,14 @@ void decode_intra_prediction_internal(de265_image* img,
     }
 
 
+  const acceleration_functions& acceleration = img->decctx->acceleration;
+
   switch (intraPredMode) {
   case INTRA_PLANAR:
     intra_prediction_planar(dst,dstStride, nT,cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, nT,cIdx, border_pixels);
+    intra_prediction_DC(acceleration, dst,dstStride, nT,cIdx, border_pixels);
     break;
   default:
     {
@@ -1112,7 +1307,7 @@ void decode_intra_prediction_internal(de265_image* img,
 
 
 // (8.4.4.2.1)
-void decode_intra_prediction(de265_image* img,
+void decode_intra_prediction(image* img,
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx)
@@ -1126,13 +1321,13 @@ void decode_intra_prediction(de265_image* img,
 
   if (img->high_bit_depth(cIdx)) {
     decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
-                                               img->get_image_plane_at_pos_NEW<uint16_t>(cIdx,xB0,yB0),
+                                               img->get_image_plane_at_pos<uint16_t>(cIdx,xB0,yB0),
                                                img->get_image_stride(cIdx),
                                                nT,cIdx);
   }
   else {
     decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
-                                              img->get_image_plane_at_pos_NEW<uint8_t>(cIdx,xB0,yB0),
+                                              img->get_image_plane_at_pos<uint8_t>(cIdx,xB0,yB0),
                                               img->get_image_stride(cIdx),
                                               nT,cIdx);
   }
@@ -1140,7 +1335,7 @@ void decode_intra_prediction(de265_image* img,
 
 
 // TODO: remove this
-template <> void decode_intra_prediction<uint8_t>(de265_image* img,
+template <> void decode_intra_prediction<uint8_t>(image* img,
                                                   int xB0,int yB0,
                                                   enum IntraPredMode intraPredMode,
                                                   uint8_t* dst, int nT, int cIdx)
@@ -1152,7 +1347,7 @@ template <> void decode_intra_prediction<uint8_t>(de265_image* img,
 
 
 // TODO: remove this
-template <> void decode_intra_prediction<uint16_t>(de265_image* img,
+template <> void decode_intra_prediction<uint16_t>(image* img,
                                                    int xB0,int yB0,
                                                    enum IntraPredMode intraPredMode,
                                                    uint16_t* dst, int nT, int cIdx)
@@ -1164,7 +1359,7 @@ template <> void decode_intra_prediction<uint16_t>(de265_image* img,
 
 
 template <class pixel_t>
-void decode_intra_prediction_from_tree_internal(const de265_image* img,
+void decode_intra_prediction_from_tree_internal(const image* img,
                                                 const enc_tb* tb,
                                                 const CTBTreeMatrix& ctbs,
                                                 const seq_parameter_set& sps,
@@ -1177,7 +1372,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
   pixel_t* dst = tb->intra_prediction[cIdx]->get_buffer<pixel_t>();
   int dstStride = tb->intra_prediction[cIdx]->getStride();
 
-  pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
+  ALIGNED_16(pixel_t)  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
 
   fill_border_samples_from_tree(img, tb, ctbs, cIdx, border_pixels);
@@ -1204,7 +1399,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
     intra_prediction_planar(dst,dstStride, nT, cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, nT, cIdx, border_pixels);
+    intra_prediction_DC(img->decctx->acceleration, dst,dstStride, nT, cIdx, border_pixels);
     break;
   default:
     {
@@ -1223,7 +1418,7 @@ void decode_intra_prediction_from_tree_internal(const de265_image* img,
 }
 
 
-void decode_intra_prediction_from_tree(const de265_image* img,
+void decode_intra_prediction_from_tree(const image* img,
                                        const enc_tb* tb,
                                        const CTBTreeMatrix& ctbs,
                                        const seq_parameter_set& sps,

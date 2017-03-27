@@ -31,7 +31,7 @@
 
 
 NAL_unit::NAL_unit()
-  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
+//  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
 {
   pts=0;
   user_data = NULL;
@@ -45,6 +45,21 @@ NAL_unit::~NAL_unit()
 {
   free(nal_data);
 }
+
+
+std::shared_ptr<NAL_unit> NAL_unit::alloc(int size)
+{
+  std::shared_ptr<NAL_unit> nal = std::make_shared<NAL_unit>();
+  if (nal) {
+    bool success = nal->resize(size);
+    if (!success) {
+      nal.reset();
+    }
+  }
+
+  return nal;
+}
+
 
 void NAL_unit::clear()
 {
@@ -104,10 +119,11 @@ void NAL_unit::insert_skipped_byte(int pos)
 
 int NAL_unit::num_skipped_bytes_before(int byte_position, int headerLength) const
 {
-  for (int k=skipped_bytes.size()-1;k>=0;k--)
+  for (int k=skipped_bytes.size()-1;k>=0;k--) {
     if (skipped_bytes[k]-headerLength <= byte_position) {
       return k+1;
     }
+  }
 
   return 0;
 }
@@ -119,7 +135,7 @@ void NAL_unit::remove_stuffing_bytes()
   for (int i=0;i<size()-2;i++)
     {
 #if 0
-        for (int k=i;k<i+64;k++) 
+        for (int k=i;k<i+64;k++)
           if (i*0+k<size()) {
             printf("%c%02x", (k==i) ? '[':' ', data()[k]);
           }
@@ -133,7 +149,7 @@ void NAL_unit::remove_stuffing_bytes()
       }
       else {
         if (p[0]==0 && p[1]==0 && p[2]==3) {
-          //printf("SKIP NAL @ %d\n",i+2+num_skipped_bytes);
+          //printf("SKIP NAL @ %d\n",i+2+num_skipped_bytes());
           insert_skipped_byte(i+2 + num_skipped_bytes());
 
           memmove(p+2, p+3, size()-i-3);
@@ -157,80 +173,24 @@ NAL_Parser::NAL_Parser()
   end_of_stream = false;
   end_of_frame = false;
   input_push_state = 0;
-  pending_input_NAL = NULL;
   nBytes_in_NAL_queue = 0;
+
+  m_on_NAL_inserted_listener = nullptr;
 }
 
 
 NAL_Parser::~NAL_Parser()
 {
-  // --- free NAL queues ---
-
-  // empty NAL queue
-
-  NAL_unit* nal;
-  while ( (nal = pop_from_NAL_queue()) ) {
-    free_NAL_unit(nal);
-  }
-
-  // free the pending input NAL
-
-  if (pending_input_NAL != NULL) {
-    free_NAL_unit(pending_input_NAL);
-  }
-
-  // free all NALs in free-list
-
-  for (int i=0;i<NAL_free_list.size();i++) {
-    delete NAL_free_list[i];
-  }
 }
 
 
-LIBDE265_CHECK_RESULT NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
-{
-  NAL_unit* nal;
-
-  // --- get NAL-unit object ---
-
-  if (NAL_free_list.size() > 0) {
-    nal = NAL_free_list.back();
-    NAL_free_list.pop_back();
-  }
-  else {
-    nal = new NAL_unit;
-  }
-
-  nal->clear();
-  if (!nal->resize(size)) {
-    free_NAL_unit(nal);
-    return NULL;
-  }
-
-  return nal;
-}
-
-void NAL_Parser::free_NAL_unit(NAL_unit* nal)
-{
-  if (nal == NULL) {
-    // Allow calling with NULL just like regular "free()"
-    return;
-  }
-  if (NAL_free_list.size() < DE265_NAL_FREE_LIST_SIZE) {
-    NAL_free_list.push_back(nal);
-  }
-  else {
-    delete nal;
-  }
-}
-
-NAL_unit* NAL_Parser::pop_from_NAL_queue()
+NAL_unit_ptr NAL_Parser::pop_from_NAL_queue()
 {
   if (NAL_queue.empty()) {
-    return NULL;
+    return NAL_unit_ptr();
   }
   else {
-    NAL_unit* nal = NAL_queue.front();
+    NAL_unit_ptr nal = NAL_queue.front();
     NAL_queue.pop();
 
     nBytes_in_NAL_queue -= nal->size();
@@ -239,10 +199,15 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
   }
 }
 
-void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
+void NAL_Parser::push_to_NAL_queue(NAL_unit_ptr nal)
 {
   NAL_queue.push(nal);
   nBytes_in_NAL_queue += nal->size();
+
+  if (m_on_NAL_inserted_listener) {
+    de265_error err = m_on_NAL_inserted_listener->on_NAL_inserted();
+    // TODO: handle error
+  }
 }
 
 de265_error NAL_Parser::push_data(const unsigned char* data, int len,
@@ -251,7 +216,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   end_of_frame = false;
 
   if (pending_input_NAL == NULL) {
-    pending_input_NAL = alloc_NAL_unit(len+3);
+    pending_input_NAL = NAL_unit::alloc(len+3);
     if (pending_input_NAL == NULL) {
       return DE265_ERROR_OUT_OF_MEMORY;
     }
@@ -259,7 +224,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
     pending_input_NAL->user_data = user_data;
   }
 
-  NAL_unit* nal = pending_input_NAL; // shortcut
+  NAL_unit_ptr& nal = pending_input_NAL; // shortcut
 
   // Resize output buffer so that complete input would fit.
   // We add 3, because in the worst case 3 extra bytes are created for an input byte.
@@ -337,7 +302,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
         // initialize new, empty NAL unit
 
-        pending_input_NAL = alloc_NAL_unit(len+3);
+        pending_input_NAL = NAL_unit::alloc(len+3);
         if (pending_input_NAL == NULL) {
           return DE265_ERROR_OUT_OF_MEMORY;
         }
@@ -376,9 +341,8 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   end_of_frame = false;
 
-  NAL_unit* nal = alloc_NAL_unit(len);
-  if (nal == NULL || !nal->set_data(data, len)) {
-    free_NAL_unit(nal);
+  NAL_unit_ptr nal = NAL_unit::alloc(len);
+  if (!nal || !nal->set_data(data, len)) {
     return DE265_ERROR_OUT_OF_MEMORY;
   }
   nal->pts = pts;
@@ -395,7 +359,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 de265_error NAL_Parser::flush_data()
 {
   if (pending_input_NAL) {
-    NAL_unit* nal = pending_input_NAL;
+    NAL_unit_ptr& nal = pending_input_NAL;
     uint8_t null[2] = { 0,0 };
 
     // append bytes that are implied by the push state
@@ -416,7 +380,7 @@ de265_error NAL_Parser::flush_data()
 
     if (input_push_state>=5) {
       push_to_NAL_queue(nal);
-      pending_input_NAL = NULL;
+      pending_input_NAL.reset();
     }
 
     input_push_state = 0;
@@ -431,14 +395,15 @@ void NAL_Parser::remove_pending_input_data()
   // --- remove pending input data ---
 
   if (pending_input_NAL) {
-    free_NAL_unit(pending_input_NAL);
-    pending_input_NAL = NULL;
+    pending_input_NAL.reset();
   }
 
   for (;;) {
-    NAL_unit* nal = pop_from_NAL_queue();
-    if (nal) { free_NAL_unit(nal); }
-    else break;
+    NAL_unit_ptr nal = pop_from_NAL_queue();
+    if (nal)
+      { }
+    else
+      break;
   }
 
   input_push_state = 0;

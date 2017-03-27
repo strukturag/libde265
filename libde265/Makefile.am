@@ -45,8 +45,16 @@ libde265_la_SOURCES = \
   fallback.h \
   fallback-dct.h \
   fallback-dct.cc \
+  fallback-intra-dc.h \
+  fallback-intra-dc.cc \
   fallback-motion.cc \
   fallback-motion.h \
+  fallback-sao.h \
+  fallback-sao.cc \
+  frame-dropper.h \
+  frame-dropper.cc \
+  frontend-syntax-decoder.h \
+  frontend-syntax-decoder.cc \
   funcs.cc \
   funcs.h \
   dpb.cc \
@@ -55,6 +63,8 @@ libde265_la_SOURCES = \
   image.h \
   image-io.h \
   image-io.cc \
+  image-unit.h \
+  image-unit.cc \
   intrapred.cc \
   intrapred.h \
   md5.cc \

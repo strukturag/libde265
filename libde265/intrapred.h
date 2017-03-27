@@ -35,13 +35,13 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
                                  int x,int y, int PUidx,
                                  bool availableA, // left
                                  bool availableB, // top
-                                 const de265_image* img);
+                                 const image* img);
 
 
 inline void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y,
                                  bool availableA, // left
                                  bool availableB, // top
-                                 const de265_image* img)
+                                 const image* img)
 {
   int PUidx = img->get_sps().getPUIndexRS(x,y);
   fillIntraPredModeCandidates(candModeList, x,y, PUidx, availableA,availableB, img);
@@ -91,19 +91,19 @@ void decode_intra_block(decoder_context* ctx,
 //void fill_border_samples(decoder_context* ctx, int xB,int yB,
 //                         int nT, int cIdx, uint8_t* out_border);
 
-void decode_intra_prediction(de265_image* img,
+void decode_intra_prediction(image* img,
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
                              int nT, int cIdx);
 
-void decode_intra_prediction_from_tree(const de265_image* img,
+void decode_intra_prediction_from_tree(const image* img,
                                        const class enc_tb* tb,
                                        const class CTBTreeMatrix& ctbs,
                                        const class seq_parameter_set& sps,
                                        int cIdx);
 
 // TODO: remove this
-template <class pixel_t> void decode_intra_prediction(de265_image* img,
+template <class pixel_t> void decode_intra_prediction(image* img,
                                                       int xB0,int yB0,
                                                       enum IntraPredMode intraPredMode,
                                                       pixel_t* dst, int nT, int cIdx);

@@ -44,7 +44,7 @@ class encoder_context : public base_context
 
   // --- image_history (decoded images) ---
 
-  virtual const de265_image* get_image(int frame_id) const {
+  virtual std::shared_ptr<const image> get_image(int frame_id) const {
     return picbuf.get_picture(frame_id)->reconstruction;
   }
 
@@ -67,13 +67,17 @@ class encoder_context : public base_context
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size
 
-  void* param_image_allocation_userdata;
+  de265_image_allocation image_allocation_functions;
+
+  /*
+  void* param_image_allocation_userdata; // TODO: clean up allocation API
   void (*release_func)(en265_encoder_context*,
-                       de265_image*,
+                       image*,
                        void* userdata);
+  */
 
   // quick links
-  de265_image* img; // reconstruction
+  image_ptr img; // reconstruction
   image_data* imgdata; // input image
   slice_segment_header* shdr;
 
@@ -87,6 +91,7 @@ class encoder_context : public base_context
   const video_parameter_set& get_vps() const { return *vps; }
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
+  std::shared_ptr<const pic_parameter_set> get_pps_ptr() const { return pps; }
 
   video_parameter_set& get_vps() { return *vps; }
   seq_parameter_set& get_sps() { return *sps; }
@@ -115,7 +120,7 @@ class encoder_context : public base_context
   public:
     image_history_input(const encoder_context* ectx) { m_ectx=ectx; }
 
-    virtual const de265_image* get_image(int frame_id) const {
+    virtual std::shared_ptr<const image> get_image(int frame_id) const {
       return m_ectx->picbuf.get_picture(frame_id)->input;
     }
 

@@ -47,14 +47,7 @@ void log_set_current_POC(int poc) { current_poc=poc; }
 #endif
 
 
-static int disable_logging_OLD=0;
 static int verbosity = 0;
-
-
-LIBDE265_API void de265_disable_logging() // DEPRECATED
-{
-  disable_logging_OLD=1;
-}
 
 
 LIBDE265_API void de265_set_verbosity(int level)
@@ -164,18 +157,21 @@ void logtrace(enum LogModule module, const char* string, ...)
 }
 #endif
 
-void log2fh(FILE* fh, const char* string, ...)
+void log2sstr(std::stringstream& sstr, const char* string, ...)
 {
+  const int bufsize = 200;
+  char buf[bufsize];
+
   va_list va;
 
   int noPrefix = (string[0]=='*');
-  if (!noPrefix) fprintf(stdout, "INFO: ");
+  if (!noPrefix) sstr << "INFO: ";
   va_start(va, string);
-  vfprintf(fh, string + (noPrefix ? 1 : 0), va);
+  vsnprintf(buf,bufsize, string + (noPrefix ? 1 : 0), va);
   va_end(va);
-  fflush(stdout);
-}
 
+  sstr << buf;
+}
 
 
 void printBlk(const char* title, const int16_t* data, int blksize, int stride,
@@ -232,16 +228,55 @@ void printBlk(const char* title, const uint8_t* data, int blksize, int stride,
 }
 
 
-static void (*debug_image_output_func)(const struct de265_image*, int slot) = NULL;
+static void (*debug_image_output_func)(const image*, int slot) = NULL;
 
-void debug_set_image_output(void (*func)(const struct de265_image*, int slot))
+void debug_set_image_output(void (*func)(const image*, int slot))
 {
   debug_image_output_func = func;
 }
 
-void debug_show_image(const struct de265_image* img, int slot)
+void debug_show_image(const image* img, int slot)
 {
   if (debug_image_output_func) {
     debug_image_output_func(img,slot);
   }
 }
+
+
+#if __APPLE__
+#  include <mach/mach_time.h>
+#  define ORWL_NANO (+1.0E-9)
+
+double de265_get_time()
+{
+  static double timebase = 0.0;
+  static uint64_t timestart = 0;
+
+  if (timebase==0.0) {
+    mach_timebase_info_data_t tb = { 0 };
+    mach_timebase_info(&tb);
+    timebase = tb.numer;
+    timebase /= tb.denom;
+  }
+
+  return mach_absolute_time() * ORWL_NANO;
+}
+
+#else
+#  if defined(_MSC_VER) || defined(__MINGW32__)
+double de265_get_time()
+{
+  return 0;
+}
+#  else
+#    include <time.h>
+double de265_get_time()
+{
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+
+  return t.tv_sec + t.tv_nsec * 1.0E-9;
+}
+
+#  endif
+#endif

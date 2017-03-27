@@ -23,6 +23,7 @@
 #include "encoder/encoder-context.h"
 #include "libde265/encoder/encoder-syntax.h"
 #include "libde265/util.h"
+#include "libde265/image.h"
 
 #include <math.h>
 
@@ -30,7 +31,7 @@
 #define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
 
 
-double encode_image(encoder_context*, const de265_image* input, EncoderCore&);
+double encode_image(encoder_context*, std::shared_ptr<const image> input, EncoderCore&);
 
 
 encoder_context::encoder_context()
@@ -50,8 +51,7 @@ encoder_context::encoder_context()
   parameters_have_been_set = false;
   headers_have_been_sent = false;
 
-  param_image_allocation_userdata = NULL;
-  release_func = NULL;
+  image_allocation_functions = image::default_image_allocation;
 
   use_adaptive_context = true; //false;
 
@@ -164,7 +164,7 @@ de265_error encoder_context::encode_headers()
   // PPS
 
   pps->set_defaults();
-  pps->sps = sps.get();
+  pps->sps = sps;
   pps->pic_init_qp = algo.getPPS_QP();
 
   // turn off deblocking filter
@@ -275,7 +275,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
   imgdata->shdr.compute_derived_values(pps.get());
 
-  imgdata->shdr.pps = &get_pps();
+  imgdata->shdr.set_pps(pps); //get_pps_ptr() );
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
@@ -299,7 +299,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   picbuf.set_reconstruction_image(imgdata->frame_number, img);
   //picbuf.set_prediction_image(imgdata->frame_number, prediction);
-  img=NULL;
+  img.reset();
   this->imgdata = NULL;
   this->shdr = NULL;
 
@@ -324,7 +324,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 // /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
 
 double encode_image(encoder_context* ectx,
-                    const de265_image* input,
+                    std::shared_ptr<const image> input,
                     EncoderCore& algo)
 {
   int stride=input->get_image_stride(0);
@@ -333,18 +333,23 @@ double encode_image(encoder_context* ectx,
   int h = ectx->get_sps().pic_height_in_luma_samples;
 
   // --- create reconstruction image ---
-  ectx->img = new de265_image;
+  ectx->img = std::make_shared<image>();
   ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
-  ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
-                         NULL /* no decctx */, ectx, 0,NULL,false);
-  //ectx->img->alloc_encoder_data(&ectx->sps);
+  ectx->img->alloc_image(w,h, input->get_chroma_format(), 8,8,
+                         0, // PTS
+                         image::supplementary_data(),
+                         NULL, // user data
+                         nullptr); // alloc_funcs
+  ectx->img->set_encoder_context(ectx);
+
+  ectx->img->alloc_metadata(ectx->get_shared_sps());
   ectx->img->clear_metadata();
 
 #if 0
   if (1) {
-    ectx->prediction = new de265_image;
+    ectx->prediction = new image;
     ectx->prediction->alloc_image(w,h, input->get_chroma_format(), &ectx->sps, false /* no metadata */,
                                   NULL /* no decctx */, NULL /* no encctx */, 0,NULL,false);
     ectx->prediction->vps = ectx->vps;
@@ -462,7 +467,7 @@ double encode_image(encoder_context* ectx,
 
         encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
 
-        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img, &ectx->get_sps());
+        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), &ectx->get_sps());
 
         //printf("================================================== WRITE\n");
 

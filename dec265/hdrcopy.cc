@@ -22,6 +22,7 @@
 #include "libde265/nal-parser.h"
 #include "libde265/decctx.h"
 #include <assert.h>
+#include <iostream>
 
 error_queue errqueue;
 
@@ -32,7 +33,7 @@ pic_parameter_set   pps;
 CABAC_encoder_bitstream writer;
 
 
-void process_nal(NAL_unit* nal)
+void process_nal(NAL_unit_ptr nal)
 {
   de265_error err = DE265_OK;
 
@@ -56,14 +57,14 @@ void process_nal(NAL_unit* nal)
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
       vps.read(&errqueue, &reader);
-      vps.dump(1);
+      std::cout << vps.dump();
       vps.write(&errqueue, writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
       sps.read(&errqueue, &reader);
-      sps.dump(1);
+      std::cout << sps.dump();
       sps.write(&errqueue, writer);
       writer.flush_VLC();
       break;
@@ -101,10 +102,8 @@ int main(int argc, char** argv)
       }
 
       if (nal_parser.get_NAL_queue_length()>0) {
-        NAL_unit* nal = nal_parser.pop_from_NAL_queue();
-        assert(nal);
+        NAL_unit_ptr nal = nal_parser.pop_from_NAL_queue();
         process_nal(nal);
-        nal_parser.free_NAL_unit(nal);
       }
     }
 

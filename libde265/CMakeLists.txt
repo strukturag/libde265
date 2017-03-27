@@ -8,6 +8,10 @@ set (libde265_sources
   nal-parser.h
   dpb.cc
   dpb.h
+  frame-dropper.h
+  frame-dropper.cc
+  frontend-syntax-decoder.h
+  frontend-syntax-decoder.cc
   funcs.cc
   image.cc
   intrapred.cc
@@ -28,6 +32,8 @@ set (libde265_sources
   deblock.h
   decctx.h
   image.h
+  image-unit.h
+  image-unit.cc
   intrapred.h
   md5.h
   nal.h
@@ -47,7 +53,8 @@ set (libde265_sources
   visualize.cc visualize.h
   acceleration.h
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h
-  fallback-dct.h fallback-dct.cc
+  fallback-dct.h fallback-dct.cc fallback-sao.h fallback-sao.cc
+  fallback-intra-dc.cc
   quality.cc quality.h
   configparam.cc configparam.h
   image-io.h image-io.cc
@@ -75,6 +82,10 @@ endif()
 
 add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
 target_link_libraries(${LIBDE265_LIBRARY_NAME} ${CMAKE_THREAD_LIBS_INIT})
+
+if(NOT MSVC)
+  target_link_libraries(${LIBDE265_LIBRARY_NAME} rt)
+endif()
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   SET_TARGET_PROPERTIES(${LIBDE265_LIBRARY_NAME} PROPERTIES COMPILE_FLAGS "-fPIC")

@@ -78,7 +78,8 @@ enum PictureState {
 #define CTB_PROGRESS_PREFILTER 1
 #define CTB_PROGRESS_DEBLK_V   2
 #define CTB_PROGRESS_DEBLK_H   3
-#define CTB_PROGRESS_SAO       4
+#define CTB_PROGRESS_SAO_INTERNAL 4
+#define CTB_PROGRESS_SAO       5
 
 class decoder_context;
 
@@ -218,18 +219,45 @@ typedef struct {
 
 
 
-struct de265_image {
-  de265_image();
-  ~de265_image();
+typedef std::shared_ptr<image> image_ptr;
+
+
+class image {
+ public:
+  image();
+  ~image();
+
+
+  class supplementary_data
+  {
+  public:
+    supplementary_data();
+
+    void set_from_SPS(std::shared_ptr<const seq_parameter_set> sps);
+
+    // visible area
+
+    int crop_left;
+    int crop_right;
+    int crop_top;
+    int crop_bottom;
+  };
+
+  supplementary_data get_supplementary_data() const { return m_supplementary_data; }
 
 
   de265_error alloc_image(int w,int h, enum de265_chroma c,
-                          std::shared_ptr<const seq_parameter_set> sps,
-                          bool allocMetadata,
-                          decoder_context* dctx,
-                          class encoder_context* ectx,
-                          de265_PTS pts, void* user_data,
-                          bool useCustomAllocFunctions);
+                          int bitDepth_luma, int bitDepth_chroma,
+                          de265_PTS pts,
+                          const supplementary_data& supp_data,
+                          void* user_data,
+                          const de265_image_allocation* alloc_functions = nullptr);
+
+  void set_decoder_context(decoder_context* ctx) { decctx = ctx; }
+  void set_encoder_context(class encoder_context* ctx) { encctx = ctx; }
+
+  de265_error alloc_metadata(std::shared_ptr<const seq_parameter_set> sps);
+
 
   //de265_error alloc_encoder_data(const seq_parameter_set* sps);
 
@@ -246,9 +274,9 @@ struct de265_image {
   }
 
   void fill_image(int y,int u,int v);
-  de265_error copy_image(const de265_image* src);
-  void copy_lines_from(const de265_image* src, int first, int end);
-  void exchange_pixel_data_with(de265_image&);
+  de265_error copy_image(const image* src);
+  void copy_lines_from(const image* src, int first, int end);
+  void exchange_pixel_data_with(image&);
 
   uint32_t get_ID() const { return ID; }
 
@@ -270,29 +298,19 @@ struct de265_image {
 
   /// xpos;ypos in actual plane resolution
   template <class pixel_t>
-  pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
+  pixel_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
     int stride = get_image_stride(cIdx);
     return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
   }
 
-  const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
+  template <class pixel_t>
+  const pixel_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
   {
     int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + xpos + ypos*stride;
+    return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
   }
 
-  void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos)
-  {
-    int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
-  }
-
-  const void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos) const
-  {
-    int stride = get_image_stride(cIdx);
-    return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
-  }
 
   /* Number of pixels in one row (not number of bytes).
    */
@@ -323,8 +341,6 @@ struct de265_image {
     return get_bit_depth(cIdx)>8;
   }
 
-  bool can_be_released() const { return PicOutputFlag==false && PicState==UnusedForReference; }
-
 
   void add_slice_segment_header(slice_segment_header* shdr) {
     shdr->slice_index = slices.size();
@@ -332,10 +348,16 @@ struct de265_image {
   }
 
 
+  // simple image allocation on the heap
   static de265_image_allocation default_image_allocation;
 
+  // dummy image allocation function that does nothing
+  static int image_allocation_get_buffer_NOP(struct de265_image_intern*,
+                                             const struct de265_image_spec*,
+                                             void* userdata);
+
   void printBlk(const char* title, int x0,int y0,int blkSize,int cIdx) const {
-    ::printBlk(title, get_image_plane_at_pos(cIdx,x0,y0),
+    ::printBlk(title, get_image_plane_at_pos<uint8_t>(cIdx,x0,y0),
                blkSize, get_image_stride(cIdx));
   }
 
@@ -344,7 +366,6 @@ private:
   static uint32_t s_next_image_ID;
 
   uint8_t* pixels[3];
-  uint8_t  bpp_shift[3];  // 0 for 8 bit, 1 for 16 bit
 
   enum de265_chroma chroma_format;
 
@@ -359,6 +380,7 @@ public:
   std::vector<slice_segment_header*> slices;
 
 public:
+  supplementary_data m_supplementary_data;
 
   // --- conformance cropping window ---
 
@@ -369,12 +391,11 @@ public:
 
   // --- decoding info ---
 
-  // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
-
   int  picture_order_cnt_lsb;
   int  PicOrderCntVal;
+  int  PicLatencyCount;
   enum PictureState PicState;
-  bool PicOutputFlag;
+  bool PicOutputFlag; // picture will be sent to output
 
   int32_t removed_at_picture_id;
 
@@ -419,9 +440,6 @@ public:
   void*     user_data;
   void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
   de265_image_allocation image_allocation_functions; // the functions used for memory allocation
-  void (*encoder_image_release_func)(en265_encoder_context*,
-                                     de265_image*,
-                                     void* userdata);
 
   uint8_t integrity; /* Whether an error occured while the image was decoded.
                         When generated, this is initialized to INTEGRITY_CORRECT,
@@ -441,32 +459,48 @@ public:
     }
   }
 
+  void debug_show_ctb_progress() const;
 
-  void thread_start(int nThreads);
-  void thread_run(const thread_task*);
-  void thread_blocks();
-  void thread_unblocks();
+  int mFinalCTBProgress; // the progress value when a CTB is completely decoded incl. postfilters
+
+  //void thread_start(int nThreads);
+  //void thread_run(const thread_task*);
   /* NOTE: you should not access any data in the thread_task after
      calling this, as this function may unlock other threads that
      will push this image to the output queue and free all decoder data. */
-  void thread_finishes(const thread_task*);
+  //void thread_finishes(const thread_task*);
 
-  void wait_for_progress(thread_task* task, int ctbx,int ctby, int progress);
-  void wait_for_progress(thread_task* task, int ctbAddrRS, int progress);
+  void wait_for_progress(int ctbx,int ctby, int progress) const;
+  void wait_for_progress_ctb_row(int ctby, int progress) const;
+  void wait_for_progress_at_pixel(int x,int y, int progress) const;
+  void wait_for_progress(int ctbAddrRS, int progress) const;
 
+  /*
   void wait_for_completion();  // block until image is decoded by background threads
   bool debug_is_completed() const;
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
+  */
+
+  bool do_all_CTBs_have_progress(int progress) const;
+  void wait_until_all_CTBs_have_progress(int progress) const;
+
+ private:
+  /*
+  void thread_blocks();
+  void thread_unblocks();
+  */
 
   //private:
+  /*
   int   nThreadsQueued;
   int   nThreadsRunning;
   int   nThreadsBlocked;
   int   nThreadsFinished;
   int   nThreadsTotal;
+  */
 
   // ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
-  de265_mutex mutex;
+  mutable de265_mutex mutex;
   de265_cond  finished_cond;
 
 public:
@@ -581,9 +615,10 @@ public:
 
   // --- TU metadata access ---
 
-  void set_split_transform_flag(int x0,int y0,int trafoDepth)
+  // If 'flag'==0, it is not set, but it is not cleared !
+  void set_split_transform_flag(int x0,int y0,int trafoDepth,int flag)
   {
-    tu_info.get(x0,y0) |= (1<<trafoDepth);
+    tu_info.get(x0,y0) |= (flag<<trafoDepth);
   }
 
   void clear_split_transform_flags(int x0,int y0,int log2CbSize)
@@ -719,8 +754,15 @@ public:
   }
 
 
+  void set_SliceHeaderIndex_ctbs(int ctbX, int ctbY, int SliceHeaderIndex)
+  {
+    int idx = ctbX + ctbY*ctb_info.width_in_units;
+    ctb_info[idx].SliceHeaderIndex = SliceHeaderIndex;
+  }
+
   void set_SliceHeaderIndex(int x, int y, int SliceHeaderIndex)
   {
+    assert(false);
     ctb_info.get(x,y).SliceHeaderIndex = SliceHeaderIndex;
   }
 
@@ -850,6 +892,12 @@ public:
   // --- value logging ---
 
   void printBlk(int x0,int y0, int cIdx, int log2BlkSize);
+};
+
+
+// WARNING: duplicate definition. Also defined in en265.cc
+struct de265_image {
+  std::shared_ptr<image> m_image;
 };
 
 

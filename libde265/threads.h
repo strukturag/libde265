@@ -27,55 +27,65 @@
 #include "config.h"
 #endif
 
+#include "util.h"
+
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
 
 #include <deque>
 #include <string>
+#include <memory>
 
 #ifndef _WIN32
-#include <pthread.h>
+#  include <pthread.h>
 
-typedef pthread_t        de265_thread;
-typedef pthread_mutex_t  de265_mutex;
-typedef pthread_cond_t   de265_cond;
+#define THREAD_RESULT       void*
+#define THREAD_PARAM        void*
+
+typedef pthread_t        de265_thread_primitive;
+typedef pthread_mutex_t  de265_mutex_primitive;
+typedef pthread_cond_t   de265_cond_primitive;
 
 #else // _WIN32
-#include <windows.h>
-#include "../extra/win32cond.h"
-#if _MSC_VER > 1310
-#include <intrin.h>
-#else
+#  include <windows.h>
+#  include "../extra/win32cond.h"
+#  if _MSC_VER > 1310
+#    include <intrin.h>
+#  else
 extern "C"
 {
    LONG  __cdecl _InterlockedExchangeAdd(long volatile *Addend, LONG Value);
 }
-#pragma intrinsic (_InterlockedExchangeAdd)
-#define InterlockedExchangeAdd _InterlockedExchangeAdd
-#endif
+#    pragma intrinsic (_InterlockedExchangeAdd)
+#    define InterlockedExchangeAdd _InterlockedExchangeAdd
+#  endif
 
-typedef HANDLE              de265_thread;
-typedef HANDLE              de265_mutex;
-typedef win32_cond_t        de265_cond;
+#define THREAD_RESULT       DWORD WINAPI
+#define THREAD_PARAM        LPVOID
+
+typedef HANDLE              de265_thread_primitive;
+typedef HANDLE              de265_mutex_primitive;
+typedef win32_cond_t        de265_cond_primitive;
 #endif  // _WIN32
 
 #ifndef _WIN32
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg);
+int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void *), void *arg);
 #else
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg);
+int  de265_thread_create(de265_thread_primitive* t,LPTHREAD_START_ROUTINE start_routine, void *arg);
 #endif
-void de265_thread_join(de265_thread t);
-void de265_thread_destroy(de265_thread* t);
-void de265_mutex_init(de265_mutex* m);
-void de265_mutex_destroy(de265_mutex* m);
-void de265_mutex_lock(de265_mutex* m);
-void de265_mutex_unlock(de265_mutex* m);
-void de265_cond_init(de265_cond* c);
-void de265_cond_destroy(de265_cond* c);
-void de265_cond_broadcast(de265_cond* c, de265_mutex* m);
-void de265_cond_wait(de265_cond* c,de265_mutex* m);
-void de265_cond_signal(de265_cond* c);
+void de265_thread_join(de265_thread_primitive t);
+void de265_thread_destroy(de265_thread_primitive* t);
+void de265_mutex_init(de265_mutex_primitive* m);
+void de265_mutex_destroy(de265_mutex_primitive* m);
+void de265_mutex_lock(de265_mutex_primitive* m);
+void de265_mutex_unlock(de265_mutex_primitive* m);
+void de265_cond_init(de265_cond_primitive* c);
+void de265_cond_destroy(de265_cond_primitive* c);
+void de265_cond_broadcast(de265_cond_primitive* c, de265_mutex_primitive* m);
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m);
+//bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs);
+void de265_cond_signal(de265_cond_primitive* c);
 
 typedef volatile long de265_sync_int;
 
@@ -102,6 +112,65 @@ inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
 }
 
 
+class de265_mutex
+{
+ public:
+  de265_mutex() { de265_mutex_init(&m_mutex); }
+  ~de265_mutex() { de265_mutex_destroy(&m_mutex); }
+
+  void lock() { de265_mutex_lock(&m_mutex); }
+  void unlock() { de265_mutex_unlock(&m_mutex); }
+
+ private:
+  de265_mutex_primitive m_mutex;
+
+  friend class de265_cond;
+};
+
+
+class lock_guard
+{
+ public:
+ lock_guard(de265_mutex& m) : m_mutex(m) { m_mutex.lock(); }
+  ~lock_guard() { m_mutex.unlock(); }
+
+ private:
+  de265_mutex& m_mutex;
+};
+
+
+class de265_cond
+{
+ public:
+  de265_cond() { de265_cond_init(&m_cond); }
+  ~de265_cond() { de265_cond_destroy(&m_cond); }
+
+  void broadcast(de265_mutex& mutex) { de265_cond_broadcast(&m_cond, &mutex.m_mutex); }
+  void wait(de265_mutex& mutex) { de265_cond_wait(&m_cond, &mutex.m_mutex); }
+  //bool timedwait(de265_mutex& mutex, int msecs) { return de265_cond_timedwait(&m_cond, &mutex.m_mutex, msecs); }
+  void signal() { de265_cond_signal(&m_cond); }
+
+ private:
+  de265_cond_primitive m_cond;
+};
+
+
+class de265_easy_cond_class
+{
+ public:
+  void lock_mutex() { m_mutex.lock(); }
+  void unlock_mutex() { m_mutex.unlock(); }
+
+  void wait() { m_cond.wait(m_mutex); }
+  void signal() { m_cond.signal(); }
+  void broadcast() { m_cond.broadcast(m_mutex); }
+
+ private:
+  de265_mutex m_mutex;
+  de265_cond  m_cond;
+};
+
+
 class de265_progress_lock
 {
 public:
@@ -114,29 +183,90 @@ public:
   int  get_progress() const;
   void reset(int value=0) { mProgress=value; }
 
+  void set_name(const std::string& n) { name=n; }
+  const char* get_name() const { return name.c_str(); }
+
 private:
+  bool initialized; // debug only
+  bool destroyed; // debug only
+
   int mProgress;
+
+  std::string name;
 
   // private data
 
-  de265_mutex mutex;
-  de265_cond  cond;
+  mutable de265_mutex mutex;
+  mutable de265_cond  cond;
 };
 
+
+
+class de265_thread
+{
+ public:
+  de265_thread();
+  virtual ~de265_thread();
+
+  void start();
+  void stop();
+  void join();
+  bool running() const;
+
+  virtual void run() = 0;
+
+  bool should_stop() const;
+
+ private:
+  de265_thread_primitive m_thread;
+  bool m_running;
+  bool m_stop_request;
+
+  mutable de265_mutex m_mutex;
+
+  static THREAD_RESULT start_thread_main(THREAD_PARAM me);
+};
+
+typedef std::shared_ptr<de265_thread> de265_thread_ptr;
 
 
 class thread_task
 {
 public:
-  thread_task() : state(Queued) { }
+ thread_task() : m_finished(false) {
+    //printf("-------------------- %p %p\n", &m_mutex, this);
+  }
   virtual ~thread_task() { }
-
-  enum { Queued, Running, Blocked, Finished } state;
 
   virtual void work() = 0;
 
+  bool finished() const {
+    //printf("finished / lock\n");
+    m_mutex.lock();
+    bool finished = m_finished;
+    m_mutex.unlock();
+    //printf("finished / unlock\n");
+
+    return finished;
+  }
+  void wait_until_finished() const;
+
   virtual std::string name() const { return "noname"; }
+  virtual void debug_dump() const { }
+
+ private:
+  mutable de265_mutex m_mutex;
+  mutable de265_cond  m_cond_finished;
+
+  bool m_finished;
+
+  void mark_finished(); // only called by thread_pool
+
+  friend class thread_pool;
 };
+
+
+typedef std::shared_ptr<thread_task> thread_task_ptr;
 
 
 #define MAX_THREADS 32
@@ -147,29 +277,39 @@ public:
    of the just unblocked task.
  */
 
+/* TODO: blocked threads should not count towards the max thread limit
+ */
 class thread_pool
 {
  public:
-  bool stopped;
+  thread_pool() { m_stopped=true; }
 
-  std::deque<thread_task*> tasks;  // we are not the owner
+  de265_error start(int num_threads);
+  void stop();
 
-  de265_thread thread[MAX_THREADS];
-  int num_threads;
+  void reset(); // remove all pending tasks
 
-  int num_threads_working;
+  void add_task(thread_task_ptr task);
 
-  int ctbx[MAX_THREADS]; // the CTB the thread is working on
-  int ctby[MAX_THREADS];
+  void debug_list_tasks() const;
 
-  de265_mutex  mutex;
-  de265_cond   cond_var;
+ private:
+  bool m_stopped;
+
+  std::deque<thread_task_ptr> m_tasks;
+
+  de265_thread_primitive m_thread[MAX_THREADS];
+  int m_num_threads;
+
+  int m_num_threads_working;
+
+  de265_mutex  m_mutex;
+  de265_cond   m_cond_var;
+
+  static THREAD_RESULT main_loop_thread(THREAD_PARAM pool_ptr);
+
+  // main loop for each worker thread
+  void worker_thread_main_loop();
 };
-
-
-de265_error start_thread_pool(thread_pool* pool, int num_threads);
-void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
-
-void        add_task(thread_pool* pool, thread_task* task); // TOCO: can make thread_task const
 
 #endif

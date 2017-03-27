@@ -28,33 +28,59 @@
 # include <alloca.h>
 #endif
 
+#include <stdio.h>
+
 
 #ifndef _WIN32
 // #include <intrin.h>
 
-#define THREAD_RESULT       void*
-#define THREAD_PARAM        void*
+int  de265_thread_create(de265_thread_primitive* t, void *(*start_routine) (void *), void *arg)
+{ return pthread_create(t,NULL,start_routine,arg); }
+void de265_thread_join(de265_thread_primitive t) { pthread_join(t,NULL); }
+void de265_thread_destroy(de265_thread_primitive* t) { }
+void de265_mutex_init(de265_mutex_primitive* m) {
+  pthread_mutexattr_t attr;
 
-#include <stdio.h>
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(m,&attr);
+}
+void de265_mutex_destroy(de265_mutex_primitive* m) { pthread_mutex_destroy(m); }
+void de265_mutex_lock(de265_mutex_primitive* m) { pthread_mutex_lock(m); }
+void de265_mutex_unlock(de265_mutex_primitive* m) { pthread_mutex_unlock(m); }
+void de265_cond_init(de265_cond_primitive* c) { pthread_cond_init(c,NULL); }
+void de265_cond_destroy(de265_cond_primitive* c) { pthread_cond_destroy(c); }
+void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
+{ pthread_cond_broadcast(c); }
+#include <sys/time.h>
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m)
+{
+  pthread_cond_wait(c,m);
+}
 
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
-void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
-void de265_thread_destroy(de265_thread* t) { }
-void de265_mutex_init(de265_mutex* m) { pthread_mutex_init(m,NULL); }
-void de265_mutex_destroy(de265_mutex* m) { pthread_mutex_destroy(m); }
-void de265_mutex_lock(de265_mutex* m) { pthread_mutex_lock(m); }
-void de265_mutex_unlock(de265_mutex* m) { pthread_mutex_unlock(m); }
-void de265_cond_init(de265_cond* c) { pthread_cond_init(c,NULL); }
-void de265_cond_destroy(de265_cond* c) { pthread_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c,de265_mutex* m) { pthread_cond_broadcast(c); }
-void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
-void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
+#if 0
+bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs)
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  struct timespec abstime;
+  abstime.tv_sec = tv.tv_sec+msecs/1000;
+  abstime.tv_nsec= tv.tv_usec*1000 + (msecs%1000)*1000*1000;
+
+  abstime.tv_sec  += abstime.tv_nsec / 1000000000;
+  abstime.tv_nsec  = abstime.tv_nsec % 1000000000;
+
+  int error = pthread_cond_timedwait(c,m,&abstime);
+
+  return error == ETIMEDOUT;
+}
+#endif
+
+void de265_cond_signal(de265_cond_primitive* c) { pthread_cond_signal(c); }
 #else  // _WIN32
 
-#define THREAD_RESULT       DWORD WINAPI
-#define THREAD_PARAM        LPVOID
-
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
+int  de265_thread_create(de265_thread_primitive* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
     HANDLE handle = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
     if (handle == NULL) {
         return -1;
@@ -62,39 +88,109 @@ int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, 
     *t = handle;
     return 0;
 }
-void de265_thread_join(de265_thread t) { WaitForSingleObject(t, INFINITE); }
-void de265_thread_destroy(de265_thread* t) { CloseHandle(*t); *t = NULL; }
-void de265_mutex_init(de265_mutex* m) { *m = CreateMutex(NULL, FALSE, NULL); }
-void de265_mutex_destroy(de265_mutex* m) { CloseHandle(*m); }
-void de265_mutex_lock(de265_mutex* m) { WaitForSingleObject(*m, INFINITE); }
-void de265_mutex_unlock(de265_mutex* m) { ReleaseMutex(*m); }
-void de265_cond_init(de265_cond* c) { win32_cond_init(c); }
-void de265_cond_destroy(de265_cond* c) { win32_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond* c,de265_mutex* m)
+void de265_thread_join(de265_thread_primitive t) { WaitForSingleObject(t, INFINITE); }
+void de265_thread_destroy(de265_thread_primitive* t) { CloseHandle(*t); *t = NULL; }
+void de265_mutex_init(de265_mutex_primitive* m) { *m = CreateMutex(NULL, FALSE, NULL); }
+void de265_mutex_destroy(de265_mutex_primitive* m) { CloseHandle(*m); }
+void de265_mutex_lock(de265_mutex_primitive* m) { WaitForSingleObject(*m, INFINITE); }
+void de265_mutex_unlock(de265_mutex_primitive* m) { ReleaseMutex(*m); }
+void de265_cond_init(de265_cond_primitive* c) { win32_cond_init(c); }
+void de265_cond_destroy(de265_cond_primitive* c) { win32_cond_destroy(c); }
+void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
 {
+  // TODO: why do we lock the mutex here? The mutex should already be locked outside...
   de265_mutex_lock(m);
   win32_cond_broadcast(c);
   de265_mutex_unlock(m);
 }
-void de265_cond_wait(de265_cond* c,de265_mutex* m) { win32_cond_wait(c,m); }
-void de265_cond_signal(de265_cond* c) { win32_cond_signal(c); }
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_cond_wait(c,m); }
+#if 0
+bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs) {
+  // TODO: we have no cond_timedwait for windows yet. Fall back to the non-timeout version.
+  win32_cond_wait(c,m);
+  return false;
+}
+#endif
+void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
 #endif // _WIN32
 
 
 
 
+de265_thread::de265_thread()
+{
+  m_running = false;
+}
+
+
+de265_thread::~de265_thread()
+{
+}
+
+void de265_thread::start()
+{
+  assert(!m_running);
+
+  m_stop_request = false;
+  de265_thread_create(&m_thread, start_thread_main, this);
+  m_running = true;
+}
+
+void de265_thread::stop()
+{
+  m_mutex.lock();
+  m_stop_request = true;
+  m_mutex.unlock();
+}
+
+void de265_thread::join()
+{
+  assert(m_running);
+  de265_thread_join(m_thread);
+  de265_thread_destroy(&m_thread);
+  m_running = false;
+}
+
+bool de265_thread::should_stop() const
+{
+  bool req;
+
+  {
+    //printf("thread LOCK\n");
+    lock_guard lock(m_mutex);
+    req = m_stop_request;
+    //printf("thread UNLOCK\n");
+  }
+
+  return req;
+}
+
+bool de265_thread::running() const
+{
+  return m_running;
+}
+
+THREAD_RESULT de265_thread::start_thread_main(THREAD_PARAM me)
+{
+  de265_thread* thread = (de265_thread*)me;
+  thread->run();
+  return 0;
+}
+
+//virtual void run() = 0;
+
+
 de265_progress_lock::de265_progress_lock()
 {
+  initialized = true;
+  destroyed = false;
   mProgress = 0;
-
-  de265_mutex_init(&mutex);
-  de265_cond_init(&cond);
 }
 
 de265_progress_lock::~de265_progress_lock()
 {
-  de265_mutex_destroy(&mutex);
-  de265_cond_destroy(&cond);
+  initialized = false;
+  destroyed = true;
 }
 
 void de265_progress_lock::wait_for_progress(int progress)
@@ -103,41 +199,83 @@ void de265_progress_lock::wait_for_progress(int progress)
     return;
   }
 
-  de265_mutex_lock(&mutex);
+  mutex.lock();
   while (mProgress < progress) {
-    de265_cond_wait(&cond, &mutex);
+#if D_MT
+    printf("waiting for %s, progress %d<%d\n",
+           get_name(), mProgress, progress);
+#endif
+    cond.wait(mutex);
+    //if (cond.timedwait(mutex, 2000)) { break; }
   }
-  de265_mutex_unlock(&mutex);
+
+#if D_MT
+  printf("continuing for %s, progress %d>=%d\n",
+         get_name(), mProgress, progress);
+#endif
+
+  mutex.unlock();
 }
 
 void de265_progress_lock::set_progress(int progress)
 {
-  de265_mutex_lock(&mutex);
+  assert(initialized);
+
+  mutex.lock();
 
   if (progress>mProgress) {
+    //printf("set progress %d\n",progress);
+
     mProgress = progress;
 
-    de265_cond_broadcast(&cond, &mutex);
+    cond.broadcast(mutex);
   }
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 void de265_progress_lock::increase_progress(int progress)
 {
-  de265_mutex_lock(&mutex);
+  assert(initialized);
+
+  mutex.lock();
 
   mProgress += progress;
-  de265_cond_broadcast(&cond, &mutex);
+  cond.broadcast(mutex);
 
-  de265_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 int  de265_progress_lock::get_progress() const
 {
-  return mProgress;
+  assert(initialized);
+
+  mutex.lock(); // need lock, otherwise helgrind complains
+  int progress = mProgress;
+  mutex.unlock();
+
+  return progress;
 }
 
+
+
+void thread_task::wait_until_finished() const
+{
+  m_mutex.lock();
+  while (!m_finished) {
+    m_cond_finished.wait(m_mutex);
+  }
+  m_mutex.unlock();
+}
+
+
+void thread_task::mark_finished()
+{
+  m_mutex.lock();
+  m_finished = true;
+  m_cond_finished.broadcast(m_mutex);
+  m_mutex.unlock();
+}
 
 
 
@@ -184,12 +322,20 @@ void printblks(const thread_pool* pool)
 #endif
 
 
-static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
+THREAD_RESULT thread_pool::main_loop_thread(THREAD_PARAM pool_ptr)
 {
   thread_pool* pool = (thread_pool*)pool_ptr;
 
+  pool->worker_thread_main_loop();
 
-  de265_mutex_lock(&pool->mutex);
+  return (THREAD_RESULT)NULL;
+}
+
+
+
+void thread_pool::worker_thread_main_loop()
+{
+  m_mutex.lock();
 
   while(true) {
 
@@ -198,51 +344,53 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     for (;;) {
       // end waiting if thread-pool has been stopped or we have a task to execute
 
-      if (pool->stopped || pool->tasks.size()>0) {
+      if (m_stopped || m_tasks.size()>0) {
         break;
       }
 
       //printf("going idle\n");
-      de265_cond_wait(&pool->cond_var, &pool->mutex);
+      m_cond_var.wait(m_mutex);
     }
 
     // if the pool was shut down, end the execution
 
-    if (pool->stopped) {
-      de265_mutex_unlock(&pool->mutex);
-      return NULL;
+    if (m_stopped) {
+      m_mutex.unlock();
+      return;
     }
 
 
     // get a task
 
-    thread_task* task = pool->tasks.front();
-    pool->tasks.pop_front();
+    thread_task_ptr task = m_tasks.front();
+    m_tasks.pop_front();
 
-    pool->num_threads_working++;
+    m_num_threads_working++;
 
     //printblks(pool);
 
-    de265_mutex_unlock(&pool->mutex);
+    m_mutex.unlock();
 
 
     // execute the task
 
+    //printf("start task: %s %p\n",task->name().c_str(),task.get());
     task->work();
+    task->mark_finished();
+    //printf("end task: %s %p\n",task->name().c_str(),task.get());
 
     // end processing and check if this was the last task to be processed
 
-    de265_mutex_lock(&pool->mutex);
+    m_mutex.lock();
 
-    pool->num_threads_working--;
+    m_num_threads_working--;
   }
-  de265_mutex_unlock(&pool->mutex);
 
-  return NULL;
+  m_mutex.unlock();
 }
 
 
-de265_error start_thread_pool(thread_pool* pool, int num_threads)
+de265_error thread_pool::start(int num_threads)
 {
   de265_error err = DE265_OK;
 
@@ -253,63 +401,87 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
     err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
   }
 
-  pool->num_threads = 0; // will be increased below
+  m_num_threads = 0; // will be increased below
 
-  de265_mutex_init(&pool->mutex);
-  de265_cond_init(&pool->cond_var);
-
-  de265_mutex_lock(&pool->mutex);
-  pool->num_threads_working = 0;
-  pool->stopped = false;
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.lock();
+  m_num_threads_working = 0;
+  m_stopped = false;
+  m_mutex.unlock();
 
   // start worker threads
 
   for (int i=0; i<num_threads; i++) {
-    int ret = de265_thread_create(&pool->thread[i], worker_thread, pool);
+    int ret = de265_thread_create(&m_thread[i],
+                                  main_loop_thread,
+                                  this);
     if (ret != 0) {
       // cerr << "pthread_create() failed: " << ret << endl;
       return DE265_ERROR_CANNOT_START_THREADPOOL;
     }
 
-    pool->num_threads++;
+    m_num_threads++;
   }
 
   return err;
 }
 
 
-void stop_thread_pool(thread_pool* pool)
+void thread_pool::stop()
 {
-  de265_mutex_lock(&pool->mutex);
-  pool->stopped = true;
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.lock();
+  m_stopped = true;
 
-  de265_cond_broadcast(&pool->cond_var, &pool->mutex);
+  m_cond_var.broadcast(m_mutex);
+  m_mutex.unlock();
 
-  for (int i=0;i<pool->num_threads;i++) {
-    de265_thread_join(pool->thread[i]);
-    de265_thread_destroy(&pool->thread[i]);
+  for (int i=0;i<m_num_threads;i++) {
+    de265_thread_join(m_thread[i]);
+    de265_thread_destroy(&m_thread[i]);
   }
-
-  de265_mutex_destroy(&pool->mutex);
-  de265_cond_destroy(&pool->cond_var);
 }
 
 
-void   add_task(thread_pool* pool, thread_task* task)
+void thread_pool::reset()
 {
-  de265_mutex_lock(&pool->mutex);
-  if (!pool->stopped) {
+  assert(m_stopped);
+  m_tasks.clear();
+}
 
-    pool->tasks.push_back(task);
+
+void thread_pool::add_task(thread_task_ptr task)
+{
+  m_mutex.lock();
+
+#if D_MT
+  printf("adding task %s %p\n",task->name().c_str(), task.get());
+  task->debug_dump();
+#endif
+
+  //assert(!m_stopped);
+
+  if (true) { // !m_stopped) {
+
+    m_tasks.push_back(task);
 
     // wake up one thread
 
-    de265_cond_signal(&pool->cond_var);
+    m_cond_var.signal();
   }
-  de265_mutex_unlock(&pool->mutex);
+  m_mutex.unlock();
 }
+
+
+void thread_pool::debug_list_tasks() const
+{
+#if D_MT
+  printf("thread pool tasks:\n");
+  for (const auto& task : m_tasks) {
+    printf("pool task: %s\n",task->name().c_str());
+  }
+  printf("thread pool task list end\n");
+#endif
+}
+
 
 extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);
 extern inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n);

@@ -28,10 +28,10 @@
 #include "encoder/encoder-context.h"
 
 
-template <> class CodingDataAccess<de265_image>
+template <> class CodingDataAccess<image>
 {
 public:
-  CodingDataAccess(const de265_image* i) : img(i) { }
+  CodingDataAccess(const image* i) : img(i) { }
 
   const video_parameter_set& get_vps() const { return img->get_vps(); }
   const seq_parameter_set& get_sps() const { return img->get_sps(); }
@@ -45,7 +45,7 @@ public:
   const PBMotion& get_mv_info(int x,int y) const { return img->get_mv_info(x,y); }
 
 private:
-  const de265_image* img;
+  const image* img;
 };
 
 

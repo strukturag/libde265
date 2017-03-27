@@ -23,6 +23,7 @@
 
 #include "acceleration.h"
 
-void init_acceleration_functions_arm(struct acceleration_functions* accel);
+void init_acceleration_functions_neon(struct acceleration_functions* accel);
+void init_acceleration_functions_aarch64(struct acceleration_functions* accel);
 
 #endif  // LIBDE265_ARM_H

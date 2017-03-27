@@ -23,6 +23,9 @@
 #include <libvideogfx.hh>
 #endif
 
+extern "C" {
+#include <libavutil/avutil.h>
+}
 
 #ifdef HAVE_VIDEOGFX
 using namespace videogfx;
@@ -30,6 +33,12 @@ using namespace videogfx;
 
 //#include "decctx.h"
 #include "visualize.h"
+
+// Support compiling against old versions of FFmpeg/libav.
+#if (LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51, 42, 0))
+#define AV_PIX_FMT_BGRA PIX_FMT_BGRA
+#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+#endif
 
 
 VideoDecoder::VideoDecoder()
@@ -114,36 +123,32 @@ void VideoDecoder::decoder_loop()
         mutex.lock();
 
         if (img) {
+          de265_release_picture(img);
+          de265_skip_next_picture(ctx);
+
           img = NULL;
-          de265_release_next_picture(ctx);
         }
 
-        img = de265_peek_next_picture(ctx);
-        while (img==NULL)
-          {
-            mutex.unlock();
-            int more=1;
-            de265_error err = de265_decode(ctx, &more);
-            mutex.lock();
-
-            if (more && err == DE265_OK) {
-              // try again to get picture
-
-              img = de265_peek_next_picture(ctx);
-            }
-            else if (more && err == DE265_ERROR_WAITING_FOR_INPUT_DATA) {
+        for (;;) {
+          int action = de265_get_action(ctx, true);
+          if (action & de265_action_push_more_input) {
               uint8_t buf[4096];
               int buf_size = fread(buf,1,sizeof(buf),mFH);
               int err = de265_push_data(ctx,buf,buf_size ,0,0);
-            }
-            else if (!more)
-              {
-                mVideoEnded=true;
-                mPlayingVideo=false; // TODO: send signal back
-                break;
-              }
           }
 
+          if (action & de265_action_end_of_stream) {
+            mVideoEnded=true;
+            mPlayingVideo=false; // TODO: send signal back
+          }
+
+          if (action & de265_action_get_image) {
+            img = de265_peek_next_picture(ctx);
+            if (img) {
+              break;
+            }
+          }
+        }
 
         // show one decoded picture
 
@@ -169,11 +174,13 @@ void VideoDecoder::decoder_loop()
 }
 
 #ifdef HAVE_VIDEOGFX
-void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qimg)
+void VideoDecoder::convert_frame_libvideogfx(const de265_image* de265_img, QImage & qimg)
 {
+  const image* img = de265_img->m_image.get();
+
   // --- convert to RGB ---
 
-  de265_chroma chroma = de265_get_chroma_format(img);
+  de265_chroma chroma = de265_get_chroma_format(de265_img);
 
   int map[3];
 
@@ -193,17 +200,17 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
 
   for (int y=0;y<img->get_height(0);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[0]))[y],
-           img->get_image_plane_at_pos(0, 0,y), img->get_width(0));
+           img->get_image_plane_at_pos<uint8_t>(0, 0,y), img->get_width(0));
   }
 
   for (int y=0;y<img->get_height(1);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[1]))[y],
-           img->get_image_plane_at_pos(1, 0,y), img->get_width(1));
+           img->get_image_plane_at_pos<uint8_t>(1, 0,y), img->get_width(1));
   }
 
   for (int y=0;y<img->get_height(2);y++) {
     memcpy(visu.AskFrame(BitmapChannel(map[2]))[y],
-           img->get_image_plane_at_pos(2, 0,y), img->get_width(2));
+           img->get_image_plane_at_pos<uint8_t>(2, 0,y), img->get_width(2));
   }
 
   Image<Pixel> debugvisu;
@@ -229,15 +236,17 @@ void VideoDecoder::convert_frame_libvideogfx(const de265_image* img, QImage & qi
 #endif
 
 #ifdef HAVE_SWSCALE
-void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
+void VideoDecoder::convert_frame_swscale(const de265_image* de265_img, QImage & qimg)
 {
+  const image* img = de265_img->m_image.get();
+
   if (sws == NULL || img->get_width() != width || img->get_height() != height) {
     if (sws != NULL) {
       sws_freeContext(sws);
     }
     width = img->get_width();
     height = img->get_height();
-    sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    sws = sws_getContext(width, height, AV_PIX_FMT_YUV420P, width, height, AV_PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
   }
 
   int stride[3];
@@ -253,8 +262,10 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
 }
 #endif
 
-void VideoDecoder::show_frame(const de265_image* img)
+void VideoDecoder::show_frame(const de265_image* de265_img)
 {
+  const image* img = de265_img->m_image.get();
+
   if (mFrameCount==0) {
     mImgBuffers[0] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
     mImgBuffers[1] = QImage(QSize(img->get_width(),img->get_height()), QImage::Format_RGB32);
@@ -268,9 +279,9 @@ void VideoDecoder::show_frame(const de265_image* img)
 
   if (mShowDecodedImage) {
 #ifdef HAVE_VIDEOGFX
-    convert_frame_libvideogfx(img, *qimg);
+    convert_frame_libvideogfx(de265_img, *qimg);
 #elif HAVE_SWSCALE
-    convert_frame_swscale(img, *qimg);
+    convert_frame_swscale(de265_img, *qimg);
 #else
     qimg->fill(QColor(0, 0, 0));
 #endif

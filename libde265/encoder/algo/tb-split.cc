@@ -91,7 +91,7 @@ void diff_blk(int16_t* out,int out_stride,
 
 
 template <class pixel_t>
-void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_image* input,
+void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const image* input,
                               int cIdx, int x,int y,int log2Size)
 {
   int blkSize = (1<<log2Size);
@@ -109,14 +109,14 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
 
-  decode_intra_prediction_from_tree(ectx->img, tb, ectx->ctbs, ectx->get_sps(), cIdx);
+  decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, ectx->get_sps(), cIdx);
 
   // create residual buffer and compute differences
 
   tb->residual[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(int16_t));
 
   diff_blk<pixel_t>(tb->residual[cIdx]->get_buffer_s16(), blkSize,
-                    input->get_image_plane_at_pos(cIdx,x,y),
+                    input->get_image_plane_at_pos<pixel_t>(cIdx,x,y),
                     input->get_image_stride(cIdx),
                     tb->intra_prediction[cIdx]->get_buffer<pixel_t>(), blkSize,
                     blkSize);
@@ -124,7 +124,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const de265_ima
 
 
 template <class pixel_t>
-void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* input, int blkIdx)
+void compute_residual(encoder_context* ectx, enc_tb* tb, const image* input, int blkIdx)
 {
   int tbSize = 1<<tb->log2Size;
 
@@ -162,7 +162,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const de265_image* inpu
 enc_tb*
 Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
                                   context_model_table& ctxModel,
-                                  const de265_image* input,
+                                  std::shared_ptr<const image> input,
                                   enc_tb* tb,
                                   int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
 {
@@ -204,11 +204,12 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
     *tb->downPtr = tb_no_split;
 
     if (cb->PredMode == MODE_INTRA) {
-      compute_residual<uint8_t>(ectx, tb_no_split, input, tb->blkIdx);
+      compute_residual<uint8_t>(ectx, tb_no_split, input.get(), tb->blkIdx);
     }
 
     tb_no_split = mAlgo_TB_Residual->analyze(ectx, option_no_split.get_context(),
-                                             input, tb_no_split, TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+                                             input.get(), tb_no_split,
+                                             TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend(tb_no_split,"bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
 
@@ -275,13 +276,13 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                    context_model_table& ctxModel,
-                                                   const de265_image* input,
+                                                   std::shared_ptr<const image> input,
                                                    enc_tb* tb,
                                                    enc_cb* cb,
                                                    int TrafoDepth, int MaxTrafoDepth,
                                                    int IntraSplitFlag)
 {
-  const de265_image* img = ectx->img;
+  const image* img = ectx->img.get();
 
   int log2TbSize = tb->log2Size;
   int x0 = tb->x;

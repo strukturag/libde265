@@ -38,9 +38,9 @@ struct image_data
 
   int frame_number;
 
-  const de265_image* input; // owner
-  de265_image* prediction;  // owner
-  de265_image* reconstruction; // owner
+  std::shared_ptr<const image> input; // owner
+  std::shared_ptr<image> prediction;  // owner
+  std::shared_ptr<image> reconstruction; // owner
 
   // SOP metadata
 
@@ -99,7 +99,7 @@ class encoder_picture_buffer
 
   void reset();
 
-  image_data* insert_next_image_in_encoding_order(const de265_image*, int frame_number);
+  image_data* insert_next_image_in_encoding_order(std::shared_ptr<const image>, int frame_number);
   void insert_end_of_stream();
 
 
@@ -111,8 +111,8 @@ class encoder_picture_buffer
   // --- infos pushed by encoder ---
 
   void mark_encoding_started(int frame_number);
-  void set_prediction_image(int frame_number, de265_image*); // store it just for debugging fun
-  void set_reconstruction_image(int frame_number, de265_image*);
+  void set_prediction_image(int frame_number, image_ptr); // store it just for debugging fun
+  void set_reconstruction_image(int frame_number, image_ptr);
   void mark_encoding_finished(int frame_number);
 
 
