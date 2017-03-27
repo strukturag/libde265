@@ -112,7 +112,7 @@ bool ImageSource_X11Grab::init()
 }
 
 
-de265_image* ImageSource_X11Grab::get_image(bool block)
+image* ImageSource_X11Grab::get_image(bool block)
 {
   if (!mInitialized) { init(); }
 
@@ -125,9 +125,14 @@ de265_image* ImageSource_X11Grab::get_image(bool block)
   }
 
 
-  de265_image* img = new de265_image;
-  img->alloc_image(mWidth,mHeight,de265_chroma_444, NULL, false,
-                   NULL, NULL, 0, NULL, false);
+  image* img = new image;
+  img->alloc_image(mWidth,mHeight,de265_chroma_444,
+                   8,8, // bitdepth luma/chroma
+                   0, // PTS
+                   image::supplementary_data(),
+                   nullptr, // user data
+                   nullptr); // alloc functions
+
   assert(img); // TODO: error handling
 
 

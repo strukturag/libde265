@@ -36,15 +36,15 @@ Algo_CB_MV_Screen::Algo_CB_MV_Screen()
 }
 
 
-static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
-                                        const de265_image* imgB, int xB,int yB,
+static bool compare_blocks_for_equality(const image* imgA, int xA,int yA, int size,
+                                        const image* imgB, int xB,int yB,
                                         int maxPixelDifference)
 {
   for (int c=0;c<3;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
 
-    const uint8_t* pA = imgA->get_image_plane_at_pos(c, xA, yA);
-    const uint8_t* pB = imgB->get_image_plane_at_pos(c, xB, yB);
+    const uint8_t* pA = imgA->get_image_plane_at_pos<const uint8_t>(c, xA, yA);
+    const uint8_t* pB = imgB->get_image_plane_at_pos<const uint8_t>(c, xB, yB);
 
     int strideA = imgA->get_image_stride(c);
     int strideB = imgB->get_image_stride(c);
@@ -101,7 +101,7 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
     PBMotionCoding spec;
 
     const int refIdx = 0; // get first reference frame
-    const de265_image* refPic = ectx->get_image(ectx->shdr->RefPicList[0][refIdx]);
+    const image* refPic = ectx->get_image(ectx->shdr->RefPicList[0][refIdx]).get();
 
     int range = 30;
     int dx = 0;
@@ -122,7 +122,7 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
 
 
           isMatch = compare_blocks_for_equality(refPic, x+dx,y+dy, cbSize,
-                                                ectx->imgdata->input, x,y,
+                                                ectx->imgdata->input.get(), x,y,
                                                 maxPixelDifference);
 
           //isMatch = (dx==1) && (dy==0);
@@ -155,7 +155,7 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
       // generate prediction. Luma and chroma because we will check the error in all channels.
 
       generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
-                                        ectx->shdr, ectx->img,
+                                        ectx->shdr, ectx->img.get(),
                                         cb->x,cb->y, // xP,yP
                                         1<<cb->log2Size, // int nCS,
                                         1<<cb->log2Size,
@@ -178,8 +178,8 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
 
       // compute distortion
 
-      const uint8_t* pA = ectx->img           ->get_image_plane_at_pos(0, cb->x, cb->y);
-      const uint8_t* pB = ectx->imgdata->input->get_image_plane_at_pos(0, cb->x, cb->y);
+      const uint8_t* pA = ectx->img           ->get_image_plane_at_pos<const uint8_t>(0, cb->x, cb->y);
+      const uint8_t* pB = ectx->imgdata->input->get_image_plane_at_pos<const uint8_t>(0, cb->x, cb->y);
       int strideA = ectx->img           ->get_image_stride(0);
       int strideB = ectx->imgdata->input->get_image_stride(0);
 
@@ -203,7 +203,7 @@ enc_cb* Algo_CB_MV_Screen::analyze(encoder_context* ectx,
       tb->downPtr = &cb->transform_tree;
       cb->transform_tree = tb;
 
-      tb->copy_reconstruction_from_image(ectx, ectx->img);
+      tb->copy_reconstruction_from_image(ectx, ectx->img.get());
     }
   }
 

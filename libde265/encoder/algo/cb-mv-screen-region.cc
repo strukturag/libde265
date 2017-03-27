@@ -42,8 +42,8 @@ Algo_CB_MV_ScreenRegion::Algo_CB_MV_ScreenRegion()
 }
 
 
-static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
-                                        const de265_image* imgB, int xB,int yB,
+static bool compare_blocks_for_equality(const image* imgA, int xA,int yA, int size,
+                                        const image* imgB, int xB,int yB,
                                         int maxPixelDifference, int maxSADDifference)
 {
   int nChannelsToCheck = 3;
@@ -52,8 +52,8 @@ static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, 
   for (int c=0;c<nChannelsToCheck;c++) {
     //printf("COMPARE %d/%d\n",c+1,3);
 
-    const uint8_t* pA = imgA->get_image_plane_at_pos(c, xA, yA);
-    const uint8_t* pB = imgB->get_image_plane_at_pos(c, xB, yB);
+    const uint8_t* pA = imgA->get_image_plane_at_pos<const uint8_t>(c, xA, yA);
+    const uint8_t* pB = imgB->get_image_plane_at_pos<const uint8_t>(c, xB, yB);
 
     int strideA = imgA->get_image_stride(c);
     int strideB = imgB->get_image_stride(c);
@@ -126,8 +126,8 @@ static uint16_t block_hash_DJB2a(const uint8_t* p, int stride, int blkSize = has
 #define block_hash block_hash_DJB2a
 
 
-void Algo_CB_MV_ScreenRegion::build_feature_image(de265_image* feature_img,
-                                                  const de265_image* img,
+void Algo_CB_MV_ScreenRegion::build_feature_image(image* feature_img,
+                                                  const image* img,
                                                   int blkSize)
 {
   int stride = img->get_image_stride(0);
@@ -145,7 +145,7 @@ void Algo_CB_MV_ScreenRegion::build_feature_image(de265_image* feature_img,
   for (int y=1;y<h-1;y++)
     for (int x=1;x<w-1;x++)
       {
-        const uint8_t* p = img->get_image_plane_at_pos(0, x, y);
+        const uint8_t* p = img->get_image_plane_at_pos<const uint8_t>(0, x, y);
 
         if (*p > *(p-1) &&
             *p > *(p-stride) &&
@@ -196,11 +196,11 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
                                               const enc_cb* cb)
 {
   const int blkSize = 1 << cb->log2Size;
-  const de265_image* inputPic = ectx->imgdata->input;
+  const image* inputPic = ectx->imgdata->input.get();
 
   const int refIdx = 0; // get first reference frame
   const int refPicId = ectx->shdr->RefPicList[0][refIdx];
-  const de265_image* refPic = ectx->get_input_image_history().get_image(refPicId);
+  const image* refPic = ectx->get_input_image_history().get_image(refPicId).get();
 
 
   int stride = inputPic->get_image_stride(0);
@@ -215,7 +215,7 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
 
 
 #if DEBUG_OUTPUT
-  de265_image feature_img;
+  image feature_img;
   feature_img.copy_image(inputPic);
 #endif
 
@@ -253,7 +253,7 @@ void Algo_CB_MV_ScreenRegion::process_picture(const encoder_context* ectx,
             int x = x0+dx;
             int y = y0+dy;
 
-            const uint8_t* p = inputPic->get_image_plane_at_pos(0, x, y);
+            const uint8_t* p = inputPic->get_image_plane_at_pos<const uint8_t>(0, x, y);
 
             if (*p > *(p-1) &&
                 *p > *(p-stride) &&
@@ -343,7 +343,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
   bool try_nonskip = true;
 
 
-  const de265_image* inputPic = ectx->imgdata->input;
+  const image* inputPic = ectx->imgdata->input.get();
 
 
   // We try to find a good merge candidate for skipping.
@@ -352,7 +352,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
     const int refIdx = 0; // get first reference frame
     const int refPicId = ectx->shdr->RefPicList[0][refIdx];
-    const de265_image* refPic = ectx->get_input_image_history().get_image(refPicId);
+    const image* refPic = ectx->get_input_image_history().get_image(refPicId).get();
 
 #if 0
     bool isNextImage = (inputPic->PicOrderCntVal != mCurrentPicturePOC);
@@ -361,7 +361,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
       //assert(refPic->PicOrderCntVal != feature_poc);
 
-      de265_image feature_img;
+      image feature_img;
 #if DEBUG_OUTPUT
       feature_img.copy_image(refPic);
 #endif
@@ -419,7 +419,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       // generate prediction. Luma and chroma because we will check the error in all channels.
 
       generate_inter_prediction_samples(ectx, &ectx->get_input_image_history(),
-                                        ectx->shdr, ectx->img,
+                                        ectx->shdr, ectx->img.get(),
                                         cb->x,cb->y, // xP,yP
                                         1<<cb->log2Size, // int nCS,
                                         1<<cb->log2Size,
@@ -429,8 +429,8 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       // check error
 
       //printf("check merge: %d %d\n",cb->x,cb->y);
-      bool equal = compare_blocks_for_equality(ectx->img,            cb->x, cb->y, cbSize,
-                                               ectx->imgdata->input, cb->x, cb->y,
+      bool equal = compare_blocks_for_equality(ectx->img.get(),            cb->x, cb->y, cbSize,
+                                               ectx->imgdata->input.get(), cb->x, cb->y,
                                                0, //mMaxMergePixelDifference,
                                                mMaxMergePixelDifference*cbSize*cbSize);
 
@@ -462,8 +462,8 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
       // compute distortion
 
-      const uint8_t* pA = ectx->img           ->get_image_plane_at_pos(0, cb->x, cb->y);
-      const uint8_t* pB = ectx->imgdata->input->get_image_plane_at_pos(0, cb->x, cb->y);
+      const uint8_t* pA = ectx->img           ->get_image_plane_at_pos<const uint8_t>(0, cb->x, cb->y);
+      const uint8_t* pB = ectx->imgdata->input->get_image_plane_at_pos<const uint8_t>(0, cb->x, cb->y);
       int strideA = ectx->img           ->get_image_stride(0);
       int strideB = ectx->imgdata->input->get_image_stride(0);
 
@@ -487,7 +487,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
       tb->downPtr = &cb->transform_tree;
       cb->transform_tree = tb;
 
-      tb->copy_reconstruction_from_image(ectx, ectx->img);
+      tb->copy_reconstruction_from_image(ectx, ectx->img.get());
     }
     else {
 
@@ -496,7 +496,7 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
 
         //assert(refPic->PicOrderCntVal != feature_poc);
 
-        de265_image feature_img;
+        image feature_img;
 #if DEBUG_OUTPUT
         feature_img.copy_image(refPic);
 #endif
@@ -576,14 +576,14 @@ enc_cb* Algo_CB_MV_ScreenRegion::analyze(encoder_context* ectx,
         cb->transform_tree = tb;
 
         generate_inter_prediction_samples(ectx, ectx, //&ectx->get_input_image_history(),
-                                          ectx->shdr, ectx->img,
+                                          ectx->shdr, ectx->img.get(),
                                           cb->x,cb->y, // xP,yP
                                           1<<cb->log2Size, // int nCS,
                                           1<<cb->log2Size,
                                           1<<cb->log2Size, // int nPbW,int nPbH,
                                           &motion);
 
-        tb->copy_reconstruction_from_image(ectx, ectx->img);
+        tb->copy_reconstruction_from_image(ectx, ectx->img.get());
       }
     }
   }

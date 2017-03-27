@@ -57,7 +57,7 @@ uint16_t crc_for_blk(const uint8_t* p, int stride, int blkSize)
 }
 
 
-void build_crc_image(const de265_image* img, int blkSize)
+void build_crc_image(const image* img, int blkSize)
 {
   int stride = img->get_image_stride(0);
 
@@ -86,8 +86,8 @@ Algo_CB_MV_ScreenHash::Algo_CB_MV_ScreenHas()
 }
 
 
-static bool compare_blocks_for_equality(const de265_image* imgA, int xA,int yA, int size,
-                                        const de265_image* imgB, int xB,int yB,
+static bool compare_blocks_for_equality(const image* imgA, int xA,int yA, int size,
+                                        const image* imgB, int xB,int yB,
                                         int maxPixelDifference)
 {
   for (int c=0;c<3;c++) {
@@ -151,7 +151,7 @@ enc_cb* Algo_CB_MV_ScreenHash::analyze(encoder_context* ectx,
     PBMotionCoding spec;
 
     const int refIdx = 0; // get first reference frame
-    const de265_image* refPic = ectx->get_input_image_history().get_image(ectx->shdr->RefPicList[0][refIdx]);
+    const image* refPic = ectx->get_input_image_history().get_image(ectx->shdr->RefPicList[0][refIdx]);
 
     if (refPic->PicOrderCntVal != crcpoc) {
       printf("building CRC image\n");

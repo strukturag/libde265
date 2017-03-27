@@ -78,7 +78,7 @@ class Algo_CB_MV_ScreenRegion : public Algo_CB
   // been computed, because the list will eventually get empty
 
 
-  void build_feature_image(de265_image* feature_img, const de265_image* img, int blkSize);
+  void build_feature_image(image* feature_img, const image* img, int blkSize);
 
   void process_picture(const encoder_context* ectx,
                        const enc_cb* cb);
