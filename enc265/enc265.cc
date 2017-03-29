@@ -43,16 +43,21 @@ using namespace videogfx;
 
 void debug_show_image_libvideogfx(const image* input, int slot)
 {
-    static X11Win debugwin;
-    static bool opened=false;
-    int w = input->get_width();
-    int h = input->get_height();
-    if (!opened) {
-      opened=true;
-      debugwin.Create(w,h, "debug");
-    }
+  static X11Win debugwin;
+  static bool opened=false;
+  int w = input->get_width();
+  int h = input->get_height();
+  if (!opened) {
+    opened=true;
+    debugwin.Create(w,h, "debug");
+  }
 
-    Image<Pixel> img;
+
+  bool yuv420 = false;
+
+  Image<Pixel> img;
+
+  if (yuv420) {
     img.Create(w,h,Colorspace_YUV, Chroma_420);
 
     for (int y=0;y<h;y++)
@@ -62,9 +67,19 @@ void debug_show_image_libvideogfx(const image* input, int slot)
       memcpy(img.AskFrameU()[y], input->get_image_plane_at_pos<uint8_t>(1,0,y), w/2);
       memcpy(img.AskFrameV()[y], input->get_image_plane_at_pos<uint8_t>(2,0,y), w/2);
     }
+  }
+  else {
+    img.Create(w,h,Colorspace_RGB);
 
-    debugwin.Display(img);
-    //debugwin.WaitForKeypress();
+    for (int y=0;y<h;y++) {
+      memcpy(img.AskFrameR()[y], input->get_image_plane_at_pos<uint8_t>(2,0,y), w);
+      memcpy(img.AskFrameG()[y], input->get_image_plane_at_pos<uint8_t>(0,0,y), w);
+      memcpy(img.AskFrameB()[y], input->get_image_plane_at_pos<uint8_t>(1,0,y), w);
+    }
+  }
+
+  debugwin.Display(img);
+  //debugwin.WaitForKeypress();
 }
 #endif
 
@@ -283,6 +298,11 @@ int main(int argc, char** argv)
     //ectx.reconstruction_sink = &reconstruction_sink;
   }
 
+  acceleration_functions accel;
+  accel.init( de265_get_CPU_capabilites_all_autodetected(),
+              0 );
+
+
   ImageSource* image_source;
   ImageSource_YUV image_source_yuv;
 
@@ -292,6 +312,7 @@ int main(int argc, char** argv)
 
 #if DE265_ENABLE_X11_SCREEN_GRABBING
   ImageSource_X11Grab image_source_x11grab;
+  image_source_x11grab.setAccelerationFunctions(accel);
 #endif
 
 #if DE265_ENABLE_X11_SCREEN_GRABBING
@@ -332,6 +353,9 @@ int main(int argc, char** argv)
     maxPoc = inout_params.max_number_of_frames;
   }
 
+
+  fps_estimator fpsEstimator;
+
   bool eof = false;
   for (int poc=0; poc<maxPoc && !eof ;poc++)
     {
@@ -343,9 +367,18 @@ int main(int argc, char** argv)
         eof=true;
       }
       else {
-        en265_push_image(ectx, (de265_image*)input_image);
-      }
+        fpsEstimator.on_frame_decoded( de265_get_time() );
+        //debug_show_image_libvideogfx(input_image, 0);
 
+        if (fpsEstimator.fps_measurement_available() && (poc%100)==0) {
+          std::cout << "FPS: " << fpsEstimator.get_fps_measurement() << "\n";
+        }
+
+        //en265_push_image(ectx, (de265_image*)input_image);
+
+        delete input_image;
+      }
+#if 0
 
 
       // encode images while more are available
@@ -364,6 +397,7 @@ int main(int argc, char** argv)
 
         en265_free_packet(ectx,pck);
       }
+#endif
     }
 
 

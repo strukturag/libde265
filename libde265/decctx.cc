@@ -31,18 +31,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "fallback.h"
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef HAVE_SSE4_1
-#include "x86/sse.h"
-#endif
-
-#ifdef HAVE_NEON
-#include "arm/arm.h"
 #endif
 
 #define SAVE_INTERMEDIATE_IMAGES 0
@@ -363,30 +353,8 @@ void decoder_context::stop_thread_pool()
 
 void base_context::set_acceleration_functions()
 {
-  // fill scalar functions first (so that function table is completely filled)
-
-  init_acceleration_functions_fallback(&acceleration);
-
-
-  // override functions with optimized variants
-
-#ifdef HAVE_SSE4_1
-  if (param_CPU_capabilities & (de265_CPU_capability_X86_SSE2 | de265_CPU_capability_X86_SSE41)) {
-    init_acceleration_functions_sse(&acceleration, param_inexact_decoding_flags);
-  }
-#endif
-
-#ifdef HAVE_NEON
-  if (param_CPU_capabilities & de265_CPU_capability_ARM_NEON) {
-    init_acceleration_functions_neon(&acceleration);
-  }
-#endif
-
-#ifdef HAVE_AARCH64
-  if (param_CPU_capabilities & de265_CPU_capability_ARM_AARCH64) {
-    init_acceleration_functions_aarch64(&acceleration);
-  }
-#endif
+  acceleration.init(param_CPU_capabilities,
+                    param_inexact_decoding_flags);
 }
 
 

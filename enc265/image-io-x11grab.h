@@ -24,6 +24,7 @@
 #define IMAGE_IO_X11GRAB_H
 
 #include "libde265/image-io.h"
+#include "libde265/acceleration.h"
 
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
@@ -34,6 +35,8 @@ class ImageSource_X11Grab : public ImageSource
  public:
   LIBDE265_API ImageSource_X11Grab();
   virtual LIBDE265_API ~ImageSource_X11Grab();
+
+  void setAccelerationFunctions(const acceleration_functions& func) { mAcceleration = func; }
 
   void LIBDE265_API set_position(int x,int y) { mX=x; mY=y; }
   void LIBDE265_API set_size(int w,int h) { mWidth=w; mHeight=h; }
@@ -54,6 +57,8 @@ class ImageSource_X11Grab : public ImageSource
   Display* mDisplay;
   XImage* mImage;
   XShmSegmentInfo mShminfo;
+
+  acceleration_functions mAcceleration;
 
   bool init();
 };

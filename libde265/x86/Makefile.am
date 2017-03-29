@@ -17,7 +17,8 @@ libde265_x86_sse_la_SOURCES = \
   sse-motion-new.cc sse-motion-new.h \
   sse-dct.h sse-dct.cc \
   sse-sao.cc sse-sao.h \
-  sse-intra-dc.h sse-intra-dc.cc
+  sse-intra-dc.h sse-intra-dc.cc \
+  sse-pixelformat.h sse-pixelformat.cc
 
 if HAVE_VISIBILITY
  libde265_x86_sse_la_CXXFLAGS += -DHAVE_VISIBILITY

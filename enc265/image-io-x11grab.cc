@@ -144,13 +144,14 @@ image* ImageSource_X11Grab::get_image(bool block)
     stride[c] = img->get_image_stride(c);
   }
 
-  for (int y=0;y<mHeight;y++) {
-    for (int x=0;x<mWidth;x++) {
-      p[2][x+y*stride[2]] = mImage->data[y*mImage->bytes_per_line+4*x+2]; // R
-      p[0][x+y*stride[0]] = mImage->data[y*mImage->bytes_per_line+4*x+1]; // G
-      p[1][x+y*stride[1]] = mImage->data[y*mImage->bytes_per_line+4*x+0]; // B
-    }
-  }
+  mAcceleration.pixel_format_interleaved_to_planes_32bit((uint8_t*)mImage->data,
+                                                         mImage->bytes_per_line,
+                                                         p[1], stride[1],
+                                                         p[0], stride[0],
+                                                         p[2], stride[0],
+                                                         nullptr, 0,
+                                                         mWidth,
+                                                         mHeight);
 
   return img;
 }

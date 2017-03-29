@@ -23,6 +23,7 @@
 #include "fallback-motion.h"
 #include "fallback-dct.h"
 #include "fallback-sao.h"
+#include "fallback-pixelformat.h"
 
 
 void init_acceleration_functions_fallback(struct acceleration_functions* accel)
@@ -140,4 +141,6 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
 
   accel->sao_band_8 = sao_band_fallback_8bit;
   accel->sao_band   = sao_band_fallback_hibit;
+
+  accel->pixel_format_interleaved_to_planes_32bit = pixel_format_interleaved_to_planes_32bit_fallback;
 }

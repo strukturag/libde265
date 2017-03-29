@@ -28,6 +28,8 @@
 #include "x86/sse-dct.h"
 #include "x86/sse-sao.h"
 #include "x86/sse-intra-dc.h"
+#include "x86/sse-pixelformat.h"
+
 #include "de265.h"
 
 #ifdef HAVE_CONFIG_H
@@ -154,4 +156,9 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel,
 
   if (have_SSE2) { accel->sao_band_8 = sao_band_8bit_sse2; }
 #endif
+
+
+  if (have_SSE4_1) {
+    accel->pixel_format_interleaved_to_planes_32bit = pixel_format_interleaved_to_planes_32bit_sse;
+  }
 }

@@ -22,6 +22,7 @@ libde265_la_LDFLAGS = -version-info $(LIBDE265_CURRENT):$(LIBDE265_REVISION):$(L
 
 libde265_la_SOURCES = \
   acceleration.h \
+  acceleration.cc \
   alloc_pool.h \
   alloc_pool.cc \
   bitstream.cc \
@@ -49,6 +50,8 @@ libde265_la_SOURCES = \
   fallback-intra-dc.cc \
   fallback-motion.cc \
   fallback-motion.h \
+  fallback-pixelformat.cc \
+  fallback-pixelformat.h \
   fallback-sao.h \
   fallback-sao.cc \
   frame-dropper.h \

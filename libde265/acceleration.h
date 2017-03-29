@@ -28,6 +28,10 @@
 
 struct acceleration_functions
 {
+  acceleration_functions();
+  void init(int cpu_capabilities, int inexact_decoding_flags);
+
+
   // better name: put_bipred_8 ?
   void (*put_weighted_pred_avg_8)(uint8_t *_dst, ptrdiff_t dststride,
                                   const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
@@ -228,6 +232,16 @@ struct acceleration_functions
   void (*sao_band)(uint8_t* dst,int dststride, const uint8_t* src,int srcstride, int bitDepth,
                    int width, int height,
                    int baseBand, int offset0, int offset1, int offset2, int offset3);
+
+
+  // --- pixel format conversion ---
+
+  void (*pixel_format_interleaved_to_planes_32bit)(const uint8_t* input, int bytes_per_lines,
+                                                   uint8_t* plane0, int stride0,
+                                                   uint8_t* plane1, int stride1,
+                                                   uint8_t* plane2, int stride2,
+                                                   uint8_t* plane3, int stride3,
+                                                   int width, int height);
 };
 
 
