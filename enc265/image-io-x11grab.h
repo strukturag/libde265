@@ -38,6 +38,13 @@ class ImageSource_X11Grab : public ImageSource
 
   void setAccelerationFunctions(const acceleration_functions& func) { mAcceleration = func; }
 
+  void setTargetColorspace(enum de265_chroma chroma,
+                           enum de265_colorspace colorspace)
+  {
+    mTargetChroma = chroma;
+    mTargetColorspace = colorspace;
+  }
+
   void LIBDE265_API set_position(int x,int y) { mX=x; mY=y; }
   void LIBDE265_API set_size(int w,int h) { mWidth=w; mHeight=h; }
 
@@ -59,6 +66,9 @@ class ImageSource_X11Grab : public ImageSource
   XShmSegmentInfo mShminfo;
 
   acceleration_functions mAcceleration;
+
+  enum de265_chroma     mTargetChroma     = de265_chroma_420;
+  enum de265_colorspace mTargetColorspace = de265_colorspace_YCbCr;
 
   bool init();
 };

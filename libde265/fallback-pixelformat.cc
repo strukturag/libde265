@@ -21,6 +21,7 @@
 #include "libde265/fallback-pixelformat.h"
 
 #include <assert.h>
+#include <stdio.h>
 
 
 void pixel_format_interleaved_to_planes_32bit_fallback(const uint8_t* __restrict__ input,
@@ -42,5 +43,52 @@ void pixel_format_interleaved_to_planes_32bit_fallback(const uint8_t* __restrict
   }
   else {
     assert(false);
+  }
+}
+
+
+inline uint8_t calcY(uint8_t r,uint8_t g,uint8_t b)
+{
+  return ((66*r+129*g+25*g) + (16*256 + 128)>>8);
+}
+
+
+void pixel_format_interleaved_32bit_to_YUV_planes_fallback(const uint8_t* input, int bytes_per_line,
+                                                           uint8_t* planeY, int strideY,
+                                                           uint8_t* planeU, int strideU,
+                                                           uint8_t* planeV, int strideV,
+                                                           int width, int height)
+{
+  for (int y=0;y<height-1;y+=2) {
+    const uint8_t* p0 = &input[y*bytes_per_line];
+    const uint8_t* p1 = p0 + bytes_per_line;
+
+    //printf("y:%d\n",y);
+
+#define R 2
+#define G 1
+#define B 0
+
+    for (int x=0;x<width-1;x+=2) {
+      uint8_t yA = calcY(p0[0+R],p0[0+G],p0[0+B]);
+      uint8_t yB = calcY(p0[4+R],p0[4+G],p0[4+B]);
+      uint8_t yC = calcY(p1[0+R],p1[0+G],p1[0+B]);
+      uint8_t yD = calcY(p1[4+R],p1[4+G],p1[4+B]);
+
+      uint8_t avgR = (p0[R]+p0[4+R]+p1[R]+p1[4+R])/4;
+      uint8_t avgG = (p0[G]+p0[4+G]+p1[G]+p1[4+G])/4;
+      uint8_t avgB = (p0[B]+p0[4+B]+p1[B]+p1[4+B])/4;
+
+      planeY[x+  y*strideY] = yA;
+      planeY[x+1+y*strideY] = yB;
+      planeY[x+  (y+1)*strideY] = yC;
+      planeY[x+1+(y+1)*strideY] = yD;
+
+      planeU[x/2+y/2*strideU] = ((-38*avgR - 74*avgG + 112*avgB)>>8) + 128;
+      planeV[x/2+y/2*strideV] = ((112*avgR - 94*avgG -  18*avgB)>>8) + 128;
+
+      p0 += 8;
+      p1 += 8;
+    }
   }
 }

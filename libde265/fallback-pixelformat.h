@@ -30,4 +30,10 @@ void pixel_format_interleaved_to_planes_32bit_fallback(const uint8_t* input, int
                                                        uint8_t* plane3, int stride3,
                                                        int width, int height);
 
+void pixel_format_interleaved_32bit_to_YUV_planes_fallback(const uint8_t* input, int bytes_per_line,
+                                                           uint8_t* planeY, int strideY,
+                                                           uint8_t* planeU, int strideU,
+                                                           uint8_t* planeV, int strideV,
+                                                           int width, int height);
+
 #endif

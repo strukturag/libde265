@@ -242,6 +242,12 @@ struct acceleration_functions
                                                    uint8_t* plane2, int stride2,
                                                    uint8_t* plane3, int stride3,
                                                    int width, int height);
+
+  void (*pixel_format_interleaved_32bit_to_YUV_planes)(const uint8_t* input, int bytes_per_lines,
+                                                       uint8_t* planeY, int strideY,
+                                                       uint8_t* planeU, int strideU,
+                                                       uint8_t* planeV, int strideV,
+                                                       int width, int height);
 };
 
 

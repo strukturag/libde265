@@ -241,6 +241,10 @@ class image {
     int crop_right;
     int crop_top;
     int crop_bottom;
+
+    // colorspace
+
+    enum de265_colorspace colorspace = de265_colorspace_YCbCr; // cannot be set from SPS
   };
 
   supplementary_data get_supplementary_data() const { return m_supplementary_data; }

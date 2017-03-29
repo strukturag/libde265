@@ -125,11 +125,14 @@ image* ImageSource_X11Grab::get_image(bool block)
   }
 
 
+  image::supplementary_data supp;
+  supp.colorspace = mTargetColorspace;
+
   image* img = new image;
-  img->alloc_image(mWidth,mHeight,de265_chroma_444,
+  img->alloc_image(mWidth,mHeight,mTargetChroma,
                    8,8, // bitdepth luma/chroma
                    0, // PTS
-                   image::supplementary_data(),
+                   supp,
                    nullptr, // user data
                    nullptr); // alloc functions
 
@@ -144,14 +147,26 @@ image* ImageSource_X11Grab::get_image(bool block)
     stride[c] = img->get_image_stride(c);
   }
 
-  mAcceleration.pixel_format_interleaved_to_planes_32bit((uint8_t*)mImage->data,
-                                                         mImage->bytes_per_line,
-                                                         p[1], stride[1],
-                                                         p[0], stride[0],
-                                                         p[2], stride[0],
-                                                         nullptr, 0,
-                                                         mWidth,
-                                                         mHeight);
+  if (mTargetColorspace == de265_colorspace_GBR) {
+    mAcceleration.pixel_format_interleaved_to_planes_32bit((uint8_t*)mImage->data,
+                                                           mImage->bytes_per_line,
+                                                           p[1], stride[1], // B
+                                                           p[0], stride[0], // G
+                                                           p[2], stride[2], // R
+                                                           nullptr, 0,      // A
+                                                           mWidth,
+                                                           mHeight);
+  }
+
+  if (mTargetColorspace == de265_colorspace_YCbCr) {
+    mAcceleration.pixel_format_interleaved_32bit_to_YUV_planes((uint8_t*)mImage->data,
+                                                               mImage->bytes_per_line,
+                                                               p[0], stride[0], // Y
+                                                               p[1], stride[1], // Cb
+                                                               p[2], stride[2], // Cr
+                                                               mWidth,
+                                                               mHeight);
+  }
 
   return img;
 }

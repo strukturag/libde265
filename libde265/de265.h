@@ -166,6 +166,10 @@ enum de265_chroma {
   de265_chroma_444=3
 };
 
+enum de265_colorspace {
+  de265_colorspace_YCbCr=0,
+  de265_colorspace_GBR  =1
+};
 
 LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
 LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);

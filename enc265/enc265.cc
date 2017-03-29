@@ -53,7 +53,7 @@ void debug_show_image_libvideogfx(const image* input, int slot)
   }
 
 
-  bool yuv420 = false;
+  bool yuv420 = (input->get_supplementary_data().colorspace == de265_colorspace_YCbCr);
 
   Image<Pixel> img;
 
@@ -319,6 +319,7 @@ int main(int argc, char** argv)
   if (inout_params.input_is_screengrabbing) {
     image_source_x11grab.set_size(0,0);
     image_source_x11grab.set_size(1920,1072);
+    image_source_x11grab.setTargetColorspace(de265_chroma_444, de265_colorspace_GBR);
     image_source = &image_source_x11grab;
   }
   else
@@ -368,7 +369,7 @@ int main(int argc, char** argv)
       }
       else {
         fpsEstimator.on_frame_decoded( de265_get_time() );
-        //debug_show_image_libvideogfx(input_image, 0);
+        debug_show_image_libvideogfx(input_image, 0);
 
         if (fpsEstimator.fps_measurement_available() && (poc%100)==0) {
           std::cout << "FPS: " << fpsEstimator.get_fps_measurement() << "\n";

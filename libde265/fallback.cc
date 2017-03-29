@@ -143,4 +143,5 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->sao_band   = sao_band_fallback_hibit;
 
   accel->pixel_format_interleaved_to_planes_32bit = pixel_format_interleaved_to_planes_32bit_fallback;
+  accel->pixel_format_interleaved_32bit_to_YUV_planes = pixel_format_interleaved_32bit_to_YUV_planes_fallback;
 }
