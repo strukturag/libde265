@@ -236,7 +236,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
   shdr->set_pps( current_pps );
 
 
-  m_decctx->calc_tid_and_framerate_ratio();
+  // Comment out using temporal layers for frame dropping because this conflicts with
+  // our own frame dropping algorithm.
+  //m_decctx->calc_tid_and_framerate_ratio();
 
 
   // --- start a new image if this is the first slice ---
