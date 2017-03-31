@@ -24,6 +24,9 @@
 
 #include <algorithm>
 
+#define DEBUG_FRAME_DROPPER 0
+#define Log   if (DEBUG_FRAME_DROPPER) printf
+
 
 void frame_dropper_IRAP_only::send_image_unit(image_unit_ptr imgunit)
 {
@@ -84,6 +87,9 @@ void frame_dropper_ratio::mark_used(int dpb_idx)
   for (int i=0;i<m_image_queue.size();i++) {
     if (m_image_queue[i].imgunit->img->get_ID() == id) {
       m_image_queue[i].used_for_reference = true;
+
+      Log("mark used POC=%d\n",m_image_queue[i].imgunit->img->PicOrderCntVal);
+
       break;
     }
   }
@@ -98,7 +104,7 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   item.in_dpb = true;
 
   m_image_queue.push_back(item);
-  //printf("-------------------- %d\n",m_image_queue.size());
+  Log("-------------------- %d\n",m_image_queue.size());
 
   slice_unit* sunit = imgunit->get_next_unprocessed_slice_segment();
   if (sunit) {
@@ -106,11 +112,9 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
 
     // mark images that are used as reference by this image
 
-    /*
-    printf("FRD processing POC %d (ID=%d):\n",
-           item.imgunit->img->PicOrderCntVal,
-           item.imgunit->img->get_ID());
-    */
+    Log("FRD processing POC %d (ID=%d):\n",
+        item.imgunit->img->PicOrderCntVal,
+        item.imgunit->img->get_ID());
 
     for (int i=0;i<shdr->num_ref_idx_l0_active;i++) {
       mark_used(shdr->RefPicList[0][i]);
@@ -127,6 +131,7 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
 
       for (int i=0;i<m_image_queue.size();i++) {
         if (m_image_queue[i].imgunit->img->get_ID() == id) {
+          Log("remove from dpb: POC=%d\n",m_image_queue[i].imgunit->img->PicOrderCntVal);
           m_image_queue[i].in_dpb = false;
           break;
         }
@@ -135,18 +140,26 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   }
 
 
+  Log("current image queue:\n");
+  for (int i=0;i<m_image_queue.size();i++) {
+    Log("  POC=%d usedForRef=%d inDPB=%d\n",
+        m_image_queue[i].imgunit->img->PicOrderCntVal,
+        m_image_queue[i].used_for_reference,
+        m_image_queue[i].in_dpb);
+  }
+
+
   while (!m_image_queue.empty() &&
 
-         (m_image_queue.front().in_dpb == false ||
-          m_image_queue.front().used_for_reference == true ||
+         (m_image_queue.front().in_dpb == false || // frame will not be referenced in the future
+          m_image_queue.front().used_for_reference == true || // reference, cannot drop
           m_image_queue.size() > m_max_queue_length)
          ) {
 
-    /*
-    printf("%d REF: %s\n",
-           m_image_queue.front().imgunit->img->get_ID(),
-           m_image_queue.front().used_for_reference ? "YES" : "no");
-    */
+    Log("%d (POC=%d) REF: %s\n",
+        m_image_queue.front().imgunit->img->get_ID(),
+        m_image_queue.front().imgunit->img->PicOrderCntVal,
+        m_image_queue.front().used_for_reference ? "YES" : "no");
 
     const frame_item& item = m_image_queue.front();
 
@@ -157,13 +170,11 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
       drop=false;
     }
 
-    /*
-    printf("FRD POC %d can be dropped %d  -> drop %d/%d (%f) -> %d\n",
-           item.imgunit->img->PicOrderCntVal,
-           !item.used_for_reference,
-           m_n_dropped,m_n_total, m_dropping_ratio,
-           drop);
-    */
+    Log("FRD POC %d can be dropped %d  -> drop %d/%d (%f) -> %d\n",
+        item.imgunit->img->PicOrderCntVal,
+        !item.used_for_reference,
+        m_n_dropped,m_n_total, m_dropping_ratio,
+        drop);
 
     if (drop) {
       item.imgunit->state = image_unit::Dropped;
@@ -180,6 +191,9 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
       m_n_total--;
       if (old_drop) m_n_dropped--;
     }
+
+    Log("sending image POC=%d (drop=%d)\n",item.imgunit->img->PicOrderCntVal,
+        item.imgunit->state == image_unit::Dropped);
 
     m_image_unit_sink->send_image_unit( item.imgunit );
     m_image_queue.pop_front();
@@ -314,11 +328,11 @@ float frame_drop_ratio_calculator::update_decoding_ratio(float measured_fps)
 {
   // effective fps (how fast the video plays, if we ignore the fact that some frames are skipped)
   float fps_eff = measured_fps / m_current_decoding_ratio;
-  printf("fps_eff=%f\n",fps_eff);
+  Log("fps_eff=%f\n",fps_eff);
 
   // estimated decoder speed at 100% decoding ratio
   float fps_100 = measured_fps / (m_model_param + (1-m_model_param)*m_current_decoding_ratio);
-  printf("fps_100=%f\n",fps_100);
+  Log("fps_100=%f\n",fps_100);
 
   // new decoding ratio
   float ratio = m_model_param / (m_target_fps/fps_100 - (1-m_model_param));
