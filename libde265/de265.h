@@ -243,6 +243,11 @@ struct de265_image_allocation
 };
 
 
+LIBDE265_API struct de265_image* de265_alloc_image(int w,int h,enum de265_chroma chroma,
+                                                   int bitDepth_luma, int bitDepth_chroma,
+                                                   de265_PTS pts,
+                                                   const de265_image_allocation* alloc_functions);
+
 /* Assign self-allocated memory to an image plane. Stride is number of bytes per line.
  */
 LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,

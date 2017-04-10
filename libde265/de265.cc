@@ -267,6 +267,19 @@ static void dumpdata(const void* data, int len)
 }
 
 
+LIBDE265_API struct de265_image* de265_alloc_image(int w,int h,enum de265_chroma chroma,
+                                                   int bitDepth_luma, int bitDepth_chroma,
+                                                   de265_PTS pts,
+                                                   const de265_image_allocation* alloc_functions)
+{
+  de265_image* img = new de265_image();
+  img->m_image = std::shared_ptr<image>(new image());
+  img->m_image->alloc_image(w,h,chroma,bitDepth_luma,bitDepth_chroma,pts,
+                            image::supplementary_data(),nullptr,alloc_functions);
+  return img;
+}
+
+
 LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
                                          const void* data8, int len,
                                          de265_PTS pts, void* user_data)
