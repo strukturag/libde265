@@ -356,6 +356,13 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 }
 
 
+LIBDE265_API int de265_get_num_pictures_in_output_queue(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->num_pictures_in_output_queue();
+}
+
+
 LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
