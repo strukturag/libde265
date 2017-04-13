@@ -59,8 +59,11 @@ using namespace videogfx;
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
-int nThreads=0;
-int nParallelFrames=10;
+#define DEFAULT_NUM_THREADS 4
+#define DEFAULT_NUM_PARALLEL_FRAMES 10
+
+int nThreads=DEFAULT_NUM_THREADS;
+int nParallelFrames=DEFAULT_NUM_PARALLEL_FRAMES;
 int max_latency=0; // off
 bool nal_input=false;
 int quiet=0;
@@ -623,8 +626,8 @@ int main(int argc, char** argv)
     fprintf(stderr,"\n");
     fprintf(stderr,"options:\n");
     fprintf(stderr,"  -q, --quiet       do not show decoded image\n");
-    fprintf(stderr,"  -t, --threads N   set number of worker threads (0 - no threading)\n");
-    fprintf(stderr,"  -P, --parallel-frames N   number of frames to decode in parallel (default=%d)\n", nParallelFrames);
+    fprintf(stderr,"  -t, --threads N   set number of worker threads (default: %d)\n", DEFAULT_NUM_THREADS);
+    fprintf(stderr,"  -P, --parallel-frames N   number of frames to decode in parallel (default=%d)\n", DEFAULT_NUM_PARALLEL_FRAMES);
     fprintf(stderr,"  -c, --check-hash  perform hash check\n");
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
