@@ -87,6 +87,7 @@ int disable_deblocking=0;
 int disable_sao=0;
 int inexact_decoding_flags=0;
 int fullpel_motion_only=0;
+int fast_mode=0; // shortcut for disable_deblocking | disable_sao
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -116,6 +117,7 @@ static struct option long_options[] = {
   {"fullpel-motion-only",     no_argument, &fullpel_motion_only, 1 },
   {"enable-inexact-decoding", no_argument, 0, 'I' },
   {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
+  {"fast", no_argument, &fast_mode, 1 },
   {0,         0,                 0,  0 }
 };
 
@@ -646,6 +648,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"      --disable-sao          disable sample-adaptive offset filter\n");
     fprintf(stderr,"      --fullpel-motion-only  disable sub-pel MC\n");
     fprintf(stderr,"  -I, --enable-inexact-decoding  enable optimizations that may lead to slightly wrong output\n");
+    fprintf(stderr,"      --fast                 shortcut for enabling options that increase decoding speed with little quality degradation\n");
     fprintf(stderr,"      --max-latency          maximum picture latency in reorder buffer\n");
     fprintf(stderr,"  -h, --help        show help\n");
 
@@ -661,6 +664,11 @@ int main(int argc, char** argv)
 
   // TODO de265_set_parameter_bool(ctx, DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH, check_hash);
   de265_suppress_faulty_pictures(ctx, false);
+
+  if (fast_mode) {
+    disable_deblocking = true;
+    disable_sao = true;
+  }
 
   if (disable_deblocking)  inexact_decoding_flags |= de265_inexact_decoding_no_deblocking;
   if (disable_sao)         inexact_decoding_flags |= de265_inexact_decoding_no_SAO;
