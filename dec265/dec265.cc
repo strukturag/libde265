@@ -620,7 +620,7 @@ int main(int argc, char** argv)
 
   if (optind != argc-1 || show_help) {
     fprintf(stderr," dec265  v%s\n", de265_get_version());
-    fprintf(stderr,"--------------\n");
+    fprintf(stderr,"----------------\n");
     fprintf(stderr,"usage: dec265 [options] videofile.bin\n");
     fprintf(stderr,"The video file must be a raw bitstream, or a stream with NAL units (option -n).\n");
     fprintf(stderr,"\n");
