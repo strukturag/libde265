@@ -267,6 +267,19 @@ static void dumpdata(const void* data, int len)
 }
 
 
+LIBDE265_API struct de265_image* de265_alloc_image(int w,int h,enum de265_chroma chroma,
+                                                   int bitDepth_luma, int bitDepth_chroma,
+                                                   de265_PTS pts,
+                                                   const de265_image_allocation* alloc_functions)
+{
+  de265_image* img = new de265_image();
+  img->m_image = std::shared_ptr<image>(new image());
+  img->m_image->alloc_image(w,h,chroma,bitDepth_luma,bitDepth_chroma,pts,
+                            image::supplementary_data(),nullptr,alloc_functions);
+  return img;
+}
+
+
 LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,
                                          const void* data8, int len,
                                          de265_PTS pts, void* user_data)
@@ -340,6 +353,13 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
   //printf("--- reset ---\n");
 
   ctx->reset();
+}
+
+
+LIBDE265_API int de265_get_num_pictures_in_output_queue(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  return ctx->num_pictures_in_output_queue();
 }
 
 
@@ -589,15 +609,7 @@ LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spe
 
 LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image* img,int channel)
 {
-  switch (channel) {
-  case 0:
-    return img->m_image->get_sps().BitDepth_Y;
-  case 1:
-  case 2:
-    return img->m_image->get_sps().BitDepth_C;
-  default:
-    return 0;
-  }
+  return img->m_image->get_bit_depth(channel);
 }
 
 LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image* img)
