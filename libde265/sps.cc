@@ -29,8 +29,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);  \
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; \
+    return DE265_WARNING_INVALID_SPS_PARAMETER; \
   } \
   variable = vlc + offset;
 
@@ -48,13 +47,13 @@ static int SubHeightC_tab[] = { -1,2,1,1 };
 
 
 // TODO: should be in some header-file of refpic.c
-extern bool read_short_term_ref_pic_set(error_queue* errqueue,
-                                        const seq_parameter_set* sps,
-                                        bitreader* br,
-                                        ref_pic_set* out_set,
-                                        int idxRps,  // index of the set to be read
-                                        const std::vector<ref_pic_set>& sets,
-                                        bool sliceRefPicSet);
+extern de265_error read_short_term_ref_pic_set(error_queue* errqueue,
+                                               const seq_parameter_set* sps,
+                                               bitreader* br,
+                                               ref_pic_set* out_set,
+                                               int idxRps,  // index of the set to be read
+                                               const std::vector<ref_pic_set>& sets,
+                                               bool sliceRefPicSet);
 
 extern bool write_short_term_ref_pic_set(error_queue* errqueue,
                                          const seq_parameter_set* sps,
@@ -206,7 +205,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   video_parameter_set_id = get_bits(br,4);
   sps_max_sub_layers     = get_bits(br,3) +1;
   if (sps_max_sub_layers>7) {
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   sps_temporal_id_nesting_flag = get_bits(br,1);
@@ -215,7 +214,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   READ_VLC(seq_parameter_set_id, uvlc);
   if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
 
@@ -233,7 +232,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
     errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
 
@@ -244,12 +243,12 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   if (pic_width_in_luma_samples  == 0 ||
       pic_height_in_luma_samples == 0) {
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
       pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   conformance_window_flag = get_bits(br,1);
@@ -288,8 +287,8 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     vlc=get_uvlc(br);
     if (vlc == UVLC_ERROR ||
         vlc+1 > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      errqueue->add_warning(DE265_WARNING_INVALID_SPS_PARAMETER, false);
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
 
     sps_max_dec_pic_buffering[i] = vlc+1;
@@ -328,10 +327,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   READ_VLC(max_transform_hierarchy_depth_inter, uvlc);
   READ_VLC(max_transform_hierarchy_depth_intra, uvlc);
 
-  if (log2_min_luma_coding_block_size > 6) { return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; }
-  if (log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size > 6) { return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; }
-  if (log2_min_transform_block_size > 5) { return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; }
-  if (log2_min_transform_block_size + log2_diff_max_min_transform_block_size > 5) { return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; }
+  if (log2_min_luma_coding_block_size > 6) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
+  if (log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size > 6) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
+  if (log2_min_transform_block_size > 5) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
+  if (log2_min_transform_block_size + log2_diff_max_min_transform_block_size > 5) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
 
   scaling_list_enable_flag = get_bits(br,1);
 
@@ -373,7 +372,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
     errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   // --- allocate reference pic set ---
@@ -384,13 +383,13 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
 
-    bool success = read_short_term_ref_pic_set(errqueue,this,br,
-                                               &ref_pic_sets[i], i,
-                                               ref_pic_sets,
-                                               false);
+    de265_error err = read_short_term_ref_pic_set(errqueue,this,br,
+                                                  &ref_pic_sets[i], i,
+                                                  ref_pic_sets,
+                                                  false);
 
-    if (!success) {
-      return DE265_WARNING_SPS_HEADER_INVALID;
+    if (err) {
+      return err;
     }
 
     // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
@@ -402,7 +401,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
     READ_VLC(num_long_term_ref_pics_sps, uvlc);
     if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
 
     for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
@@ -419,7 +418,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   vui_parameters_present_flag = get_bits(br,1);
   if (vui_parameters_present_flag) {
-    vui.read(errqueue, br, this);
+    de265_error err = vui.read(errqueue, br, this);
+    if (err) {
+      return err;
+    }
   }
 
 
@@ -515,7 +517,7 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
       max_transform_hierarchy_depth_inter = Log2CtbSizeY - Log2MinTrafoSize;
     } else {
       fprintf(stderr,"SPS error: transform hierarchy depth (inter) > CTB size - min TB size\n");
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
   }
 
@@ -524,7 +526,7 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
       max_transform_hierarchy_depth_intra = Log2CtbSizeY - Log2MinTrafoSize;
     } else {
       fprintf(stderr,"SPS error: transform hierarchy depth (intra) > CTB size - min TB size\n");
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
   }
 
@@ -574,28 +576,28 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
       pic_height_in_luma_samples % MinCbSizeY != 0) {
     // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
     fprintf(stderr,"SPS error: CB alignment\n");
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   if (Log2MinTrafoSize > Log2MinCbSizeY) {
     fprintf(stderr,"SPS error: TB > CB\n");
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   if (Log2MaxTrafoSize > libde265_min(Log2CtbSizeY,5)) {
     fprintf(stderr,"SPS error: TB_max > 32 or CTB\n");
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
 
   if (BitDepth_Y < 8 || BitDepth_Y > 16) {
     fprintf(stderr,"SPS error: bitdepth Y not in [8;16]\n");
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   if (BitDepth_C < 8 || BitDepth_C > 16) {
     fprintf(stderr,"SPS error: bitdepth C not in [8;16]\n");
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
 
@@ -866,7 +868,7 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
         if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
             scaling_list_pred_matrix_id_delta > matrixId) {
-          return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+          return DE265_WARNING_INVALID_SPS_PARAMETER;
         }
 
         //printf("scaling_list_pred_matrix_id_delta=%d\n", scaling_list_pred_matrix_id_delta);
@@ -905,7 +907,7 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
           scaling_list_dc_coef = get_svlc(br);
           if (scaling_list_dc_coef < -7 ||
               scaling_list_dc_coef > 247) {
-            return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+            return DE265_WARNING_INVALID_SPS_PARAMETER;
           }
 
           scaling_list_dc_coef += 8;
@@ -921,7 +923,7 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
           int scaling_list_delta_coef = get_svlc(br);
           if (scaling_list_delta_coef < -128 ||
               scaling_list_delta_coef >  127) {
-            return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+            return DE265_WARNING_INVALID_SPS_PARAMETER;
           }
 
           nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
@@ -1010,7 +1012,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 {
   out.write_bits(video_parameter_set_id, 4);
   if (sps_max_sub_layers>7) {
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
   out.write_bits(sps_max_sub_layers-1, 3);
 
@@ -1028,7 +1030,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
     errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   if (chroma_format_idc == 3) {
@@ -1069,8 +1071,8 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
     // sps_max_dec_pic_buffering[i]
 
     if (sps_max_dec_pic_buffering[i] > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      errqueue->add_warning(DE265_WARNING_INVALID_SPS_PARAMETER, false);
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
 
     out.write_uvlc(sps_max_dec_pic_buffering[i]-1);
@@ -1121,7 +1123,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
     errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
   out.write_uvlc(num_short_term_ref_pic_sets);
 
@@ -1148,7 +1150,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   if (long_term_ref_pics_present_flag) {
 
     if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
-      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
     out.write_uvlc(num_long_term_ref_pics_sps);
 

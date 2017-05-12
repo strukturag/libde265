@@ -39,7 +39,7 @@ class pps_range_extension
 
   void reset();
 
-  bool read(bitreader*, decoder_context*, const pic_parameter_set*);
+  de265_error read(bitreader*, decoder_context*, const pic_parameter_set*);
   std::string dump() const;
 
   uint8_t log2_max_transform_skip_block_size;
@@ -60,7 +60,7 @@ public:
   ~pic_parameter_set();
 
   void reset() { set_defaults(); }
-  bool read(bitreader*, decoder_context*);
+  de265_error read(bitreader*, decoder_context*);
   bool write(error_queue*, CABAC_encoder&,
              const seq_parameter_set* sps);
 

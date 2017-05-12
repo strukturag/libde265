@@ -36,6 +36,7 @@
 #include <deque>
 #include <string>
 #include <memory>
+#include <vector>
 
 #ifndef _WIN32
 #  include <pthread.h>
@@ -269,8 +270,6 @@ public:
 typedef std::shared_ptr<thread_task> thread_task_ptr;
 
 
-#define MAX_THREADS 32
-
 /* TODO NOTE: When unblocking a task, we have to check first
    if there are threads waiting because of the run-count limit.
    If there are higher-priority tasks, those should be run instead
@@ -298,7 +297,7 @@ class thread_pool
 
   std::deque<thread_task_ptr> m_tasks;
 
-  de265_thread_primitive m_thread[MAX_THREADS];
+  std::vector<de265_thread_primitive> m_thread;
   int m_num_threads;
 
   int m_num_threads_working;

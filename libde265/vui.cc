@@ -28,8 +28,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);  \
-    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; \
+    return DE265_WARNING_INVALID_VUI_PARAMETER;      \
   } \
   variable = vlc + offset;
 
@@ -299,31 +298,31 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
     READ_VLC(min_spatial_segmentation_idc, uvlc);
     if (min_spatial_segmentation_idc > 4095) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       min_spatial_segmentation_idc = 0;
     }
 
     READ_VLC(max_bytes_per_pic_denom, uvlc);
     if (max_bytes_per_pic_denom > 16) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       max_bytes_per_pic_denom = 2;
     }
 
     READ_VLC(max_bits_per_min_cu_denom, uvlc);
     if (max_bits_per_min_cu_denom > 16) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       max_bits_per_min_cu_denom = 1;
     }
 
     READ_VLC(log2_max_mv_length_horizontal, uvlc);
     if (log2_max_mv_length_horizontal > 15) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       log2_max_mv_length_horizontal = 15;
     }
 
     READ_VLC(log2_max_mv_length_vertical, uvlc);
     if (log2_max_mv_length_vertical > 15) {
-      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       log2_max_mv_length_vertical = 15;
     }
   }

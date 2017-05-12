@@ -37,7 +37,7 @@ static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message*
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
 
   if (sps==NULL) {
-    return DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI;
+    return DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING;
   }
 
   int nHashes = sps->chroma_format_idc==0 ? 1 : 3;

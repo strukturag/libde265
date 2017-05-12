@@ -72,7 +72,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_WARNING_SEI_CHECKSUM_MISMATCH: return "SEI image checksum mismatch";
   case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
   case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
-  case DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
+    //case DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   case DE265_ERROR_CANNOT_START_THREADS: return "cannot start decoding threads";
   case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "library is not initialized";
 
@@ -98,10 +98,16 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Too many warnings queued";
   case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
     return "Incorrect entry-point offsets";
-  case DE265_WARNING_SPS_HEADER_INVALID:
-    return "sps header invalid";
-  case DE265_WARNING_PPS_HEADER_INVALID:
-    return "pps header invalid";
+  case DE265_WARNING_INVALID_SPS_PARAMETER:
+    return "SPS header parameter invalid";
+  case DE265_WARNING_INVALID_PPS_PARAMETER:
+    return "PPS header parameter invalid";
+  case DE265_WARNING_INVALID_VUI_PARAMETER:
+    return "VUI header parameter invalid";
+  case DE265_WARNING_INVALID_VPS_PARAMETER:
+    return "VPS header parameter invalid";
+  case DE265_WARNING_INVALID_SLICE_PARAMETER:
+    return "slice header parameter invalid";
   case DE265_WARNING_SLICEHEADER_INVALID:
     return "slice header invalid";
   case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
@@ -120,37 +126,38 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "number of short-term ref-pic-sets out of range";
   case DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE:
     return "short-term ref-pic-set index out of range";
+  case DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE:
+    return "parameter in short-term ref-pic-set is out of range";
   case DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST:
     return "faulty reference picture list";
-  case DE265_WARNING_EOSS_BIT_NOT_SET:
+  case DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET:
     return "end_of_sub_stream_one_bit not set to 1 when it should be";
-  case DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED:
-    return "maximum number of reference pictures exceeded";
   case DE265_WARNING_INVALID_CHROMA_FORMAT:
     return "invalid chroma format in SPS header";
   case DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID:
     return "slice segment address invalid";
   case DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO:
     return "dependent slice with address 0";
-  case DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM:
-    return "number of threads limited to maximum amount";
-  case DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER:
-    return "non-existing long-term reference candidate specified in slice header";
+  case DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE:
+    return "invalid long-term reference candidate specified in slice header";
   case DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY:
     return "cannot apply SAO because we ran out of memory";
-  case DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI:
-    return "SPS header missing, cannot decode SEI";
+  case DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING:
+    return "cannot decode SEI because SPS header is missing";
   case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
     return "collocated motion-vector is outside image area";
+  case DE265_WARNING_DECODING_ERROR:
+    return "noncritical error occurred during decoding";
 
   default: return "unknown error";
   }
 }
 
-LIBDE265_API int de265_isOK(de265_error err)
-{
-  return err == DE265_OK || err >= 1000;
-}
+
+//LIBDE265_API int de265_isOK(de265_error err)
+//{
+//  return err == DE265_OK || err < 1000;
+//}
 
 
 
@@ -230,15 +237,8 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (number_of_threads > MAX_THREADS) {
-    number_of_threads = MAX_THREADS;
-  }
-
   if (number_of_threads>0) {
     de265_error err = ctx->start_thread_pool(number_of_threads);
-    if (de265_isOK(err)) {
-      err = DE265_OK;
-    }
     return err;
   }
   else {

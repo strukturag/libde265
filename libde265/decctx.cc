@@ -864,7 +864,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   else if (use_WPP && use_tiles) {
     // TODO: this is not allowed ... output some warning or error
 
-    return DE265_WARNING_PPS_HEADER_INVALID;
+    return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
   else if (use_WPP) {
     err = decode_slice_unit_WPP(imgunit, sliceunit);

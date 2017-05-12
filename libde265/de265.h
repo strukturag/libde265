@@ -91,61 +91,147 @@ typedef enum {
 
   // --- Severe decoding errors because of software or system limitations ---
 
-  DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 502,
-  DE265_ERROR_OUT_OF_MEMORY=7,
-  DE265_ERROR_CANNOT_START_THREADS=10,
-  DE265_ERROR_LIBRARY_NOT_INITIALIZED=12,
-  DE265_ERROR_INTERNAL_ERROR=19,
+  // Cannot decode the stream, because an essential feature is not implemented.
+  DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 1000,
 
+  // Out of memory, cannot continue decoding.
+  DE265_ERROR_OUT_OF_MEMORY = 1001,
+
+  // Cannot start the threads for background decoding.
+  DE265_ERROR_CANNOT_START_THREADS = 1002,
+
+  // Library has not been initialized with de265_init() yet.
+  DE265_ERROR_LIBRARY_NOT_INITIALIZED = 1003,
+
+
+  // =================================================================================
   // --- Errors in the video stream that lead to decoding errors, but that are not
   // --- critical for decoder operation.
+  // =================================================================================
 
-  DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 1027,
-  DE265_WARNING_SEI_CHECKSUM_MISMATCH=5,
+  // A part of the video stream cannot be decoded, because the feature is not yet
+  // implemented. However, decoding will continue, since it is an optional feature.
+  DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 1,
 
-  DE265_WARNING_PREMATURE_END_OF_SLICE=1002,
-  DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET=1003,
-  DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA=1004,
-  DE265_WARNING_SPS_HEADER_INVALID=1005,
-  DE265_WARNING_PPS_HEADER_INVALID=1006,
-  DE265_WARNING_SLICEHEADER_INVALID=1007,
-  DE265_WARNING_NONEXISTING_PPS_REFERENCED=1009,
-  DE265_WARNING_NONEXISTING_SPS_REFERENCED=1010,
-  DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE=8,
+  // A PPS was accessed that was not decoded yet.
+  DE265_WARNING_NONEXISTING_PPS_REFERENCED = 2,
 
-  DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO=1021,
-  DE265_WARNING_DEPENDENT_SLICE_WITHOUT_INITIAL_SLICE_HEADER=16,
+  // An SPS was accessed that was not decoded yet.
+  DE265_WARNING_NONEXISTING_SPS_REFERENCED = 3,
+
+  // A parameter in a header is outside its valid range or a combination of parameters
+  // is not allowed.
+  DE265_WARNING_INVALID_VUI_PARAMETER = 4,
+  DE265_WARNING_INVALID_SPS_PARAMETER = 5,
+  DE265_WARNING_INVALID_PPS_PARAMETER = 6,
+  DE265_WARNING_INVALID_VPS_PARAMETER = 7,
+  DE265_WARNING_INVALID_SLICE_PARAMETER = 8,
+
+  DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE = 9,
+
+  DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA = 10,
+
+
+  // --- errors in SPS header ---
+
+  // The SPS's 'chroma_format_idc' is not valid.
+  DE265_WARNING_INVALID_CHROMA_FORMAT = 11,
+
+  // Header defines short-term ref-pic-sets than allowed.
+  DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE = 12,
+
+  // --- errors in PPS header ---
+
+  // --- errors in SEI header ---
+
+  // SEI header cannot be decoded because no SPS is active.
+  DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING = 13,
+
+  // --- errors in Slice header ---
+
+  // The slice's 'slice_segment_address' references a CTB not within the valid image area.
+  DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID = 14,
+
+  // A dependent slice may not be the first slice in an image (starting in top-left corner).
+  DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO = 15,
+
+  // A dependent slice was found, but no regular slice preceeded it.
+  DE265_WARNING_DEPENDENT_SLICE_WITHOUT_INITIAL_SLICE_HEADER = 16,
+
+  // lt_idx_sps[] is invalid (> num_long_term_ref_pics_sps)
+  DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE = 17,
+
+  // The ref-pic-set index is out of range.
+  DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE = 18,
+
+  // The slice header has incorrect entry point offsets (pointing to a wrong position).
+  DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET = 19,
+
+
+  // --- error in compressed image data ---
+
+  // Slice data ended prematurely.
+  DE265_WARNING_PREMATURE_END_OF_SLICE = 20,
+
+  // The mandatory end_of_substream_one_bit was not set at the end of the substream.
+  DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET = 21,
+
+
+  // --- errors during decompression ---
+
+  // Decoded image hash does not match the SEI image hash.
+  DE265_WARNING_SEI_CHECKSUM_MISMATCH = 22,
+
+  // Out of memory when trying to apply SAO. However, this is not fatal and SAO was skipped.
+  DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY = 23,
+
+  // Too many warnings have been queued. Cannot queue any more warnings until the
+  // queue is emptied.
+  DE265_WARNING_WARNING_BUFFER_FULL = 24,
+
+
+  // Next free error ID: 25
 
   // ================================================================
 
-  DE265_ERROR_PARAMETER_PARSING=15,
+  // --- encoder errors ---
 
-  // --- warnings ---
+  DE265_ERROR_PARAMETER_PARSING = 2000,
 
-  DE265_WARNING_WARNING_BUFFER_FULL=1001,
-  DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING=1008,
-  DE265_WARNING_BOTH_PREDFLAGS_ZERO=1011,
-  DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED=1012,
-  DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ=1013,
-  DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE=1014,
-  DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE=1015,
-  DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST=1016,
-  DE265_WARNING_EOSS_BIT_NOT_SET=1017,
-  DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED=1018,
-  DE265_WARNING_INVALID_CHROMA_FORMAT=1019,
-  DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID=1020,
-  DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM=1022,
-  DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER=1023,
-  DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY=1024,
-  DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI=1025,
-  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA=1026
+  DE265_WARNING_SPS_HEADER_INVALID = 2001,
+
+
+  // ================================================================
+
+  // --- Decoding errors that I think should never happen. Maybe we are missing
+  // --- some data sanitize some data on corrupted input streams.
+  // --- TODO: it should be checked in which cases these problems can occur in corrupted streams.
+  // ---       Until it has been confirmed that this can occur and is no internal decoder problem,
+  // --- -> -> LIBRARY USERS SHOULD NOT USE THEM.
+
+  DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING = 5000,
+  DE265_WARNING_BOTH_PREDFLAGS_ZERO = 5001,
+  DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED = 5002,
+  DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ = 5003, // deblocking
+  DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST = 5004,
+  DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED = 5005,
+  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA = 5006,
+  DE265_WARNING_SLICEHEADER_INVALID = 5007,
+
+  // An internal error happened during decoding.
+  // This can be caused by an invalid input stream (in which case we should replace this
+  // warning with a better one in the future, or a decoder bug).
+  DE265_WARNING_DECODING_ERROR = 6000
+
 } de265_error;
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);
 
-/* Returns true, if 'err' is DE265_OK or a warning.
- */
-LIBDE265_API int  de265_isOK(de265_error err);
+// Returns true if 'err' is DE265_OK or a warning.
+// This function has been removed because it is not required.
+// Every error value returned is either OK or a fatal error.
+// All warnings are accessed through the warnings queue.
+//LIBDE265_API int  de265_isOK(de265_error err);
 
 LIBDE265_API void de265_set_verbosity(int level);
 

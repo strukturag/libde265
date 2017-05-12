@@ -86,6 +86,7 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
   std::shared_ptr<video_parameter_set> new_vps = std::make_shared<video_parameter_set>();
   de265_error err = new_vps->read(m_decctx,&reader);
   if (err != DE265_OK) {
+    m_decctx->add_warning(err, false);
     return err;
   }
 
@@ -108,6 +109,7 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
   de265_error err;
 
   if ((err=new_sps->read(m_decctx, &reader)) != DE265_OK) {
+    m_decctx->add_warning(err, false);
     return err;
   }
 
@@ -144,7 +146,10 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
 
   std::shared_ptr<pic_parameter_set> new_pps = std::make_shared<pic_parameter_set>();
 
-  bool success = new_pps->read(&reader,m_decctx);
+  de265_error err = new_pps->read(&reader,m_decctx);
+  if (err) {
+    m_decctx->add_warning(err, false);
+  }
 
   if (param_header_callback != nullptr) {
     std::string dump = new_pps->dump();
@@ -152,11 +157,11 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
   }
 
   //printf("read PPS (success=%d)\n",success);
-  if (success) {
+  if (!err) {
     pps[ (int)new_pps->pic_parameter_set_id ] = new_pps;
   }
 
-  return success ? DE265_OK : DE265_WARNING_PPS_HEADER_INVALID;
+  return err;
 }
 
 
@@ -199,9 +204,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
   slice_segment_header* shdr = new slice_segment_header;
 
-  bool continueDecoding;
-  de265_error err = shdr->read(&reader,m_decctx, nal_unit_type, &continueDecoding);
-  if (!continueDecoding) {
+  de265_error err = shdr->read(&reader,m_decctx, nal_unit_type);
+  if (err) {
+    m_decctx->add_warning(err, false);
     if (m_curr_img) { m_curr_img->integrity = INTEGRITY_NOT_DECODED; }
     delete shdr;
     return err;

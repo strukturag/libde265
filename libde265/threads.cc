@@ -396,11 +396,6 @@ de265_error thread_pool::start(int num_threads)
 
   // limit number of threads to maximum
 
-  if (num_threads > MAX_THREADS) {
-    num_threads = MAX_THREADS;
-    err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
-  }
-
   m_num_threads = 0; // will be increased below
 
   m_mutex.lock();
@@ -409,6 +404,9 @@ de265_error thread_pool::start(int num_threads)
   m_mutex.unlock();
 
   // start worker threads
+
+  m_thread.clear();
+  m_thread.resize(num_threads);
 
   for (int i=0; i<num_threads; i++) {
     int ret = de265_thread_create(&m_thread[i],
