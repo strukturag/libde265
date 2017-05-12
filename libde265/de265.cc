@@ -345,7 +345,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 }
 
 
-LIBDE265_API int de265_get_num_pictures_in_output_queue(de265_decoder_context* de265ctx)
+LIBDE265_API int de265_get_number_of_pictures_in_output_queue(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->num_pictures_in_output_queue();
@@ -388,7 +388,7 @@ LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_conte
 }
 
 
-LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img)
+LIBDE265_API int de265_is_decoded_image_correct(const struct de265_image* img)
 {
   return img->m_image->integrity == INTEGRITY_CORRECT;
 }
@@ -443,7 +443,7 @@ LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
 }
 */
 
-LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
+LIBDE265_API void de265_set_highest_TID_to_decode(de265_decoder_context* de265ctx,int max_tid)
 {
   if (max_tid == de265_limit_TID_unlimited) {
     max_tid = 6;
@@ -508,8 +508,8 @@ LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context* de265ctx
 }
 
 
-LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
-                                     void (*callback)(int nal_unit, const char* text))
+LIBDE265_API void de265_set_dump_headers_callback(de265_decoder_context* de265ctx,
+                                                  void (*callback)(int nal_unit, const char* text))
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->get_frontend_syntax_decoder().param_header_callback = callback;
@@ -523,11 +523,11 @@ LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
   */
 
 
-LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
-                                                       int parallel_frames)
+LIBDE265_API void de265_set_max_frames_to_decode_in_parallel(de265_decoder_context* de265ctx,
+                                                             int parallel_frames)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->set_max_decode_frames_parallel(parallel_frames);
+  ctx->set_max_frames_to_decode_in_parallel(parallel_frames);
 }
 
 

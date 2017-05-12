@@ -679,7 +679,7 @@ int main(int argc, char** argv)
   de265_allow_inexact_decoding(ctx, inexact_decoding_flags);
 
   if (dump_headers) {
-    de265_dump_headers(ctx, dump_headers_callback);
+    de265_set_dump_headers_callback(ctx, dump_headers_callback);
   }
 
   if (no_acceleration) {
@@ -694,10 +694,10 @@ int main(int argc, char** argv)
     nParallelFrames = 1;
   }
 
-  de265_set_max_decode_frames_parallel(ctx, nParallelFrames);
+  de265_set_max_frames_to_decode_in_parallel(ctx, nParallelFrames);
   err = de265_start_worker_threads(ctx, nThreads);
 
-  de265_set_limit_TID(ctx, highestTID);
+  de265_set_highest_TID_to_decode(ctx, highestTID);
   de265_set_framerate_ratio(ctx, decode_rate_percent);
   de265_set_max_reorder_buffer_latency(ctx, max_latency);
 

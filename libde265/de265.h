@@ -87,7 +87,9 @@ LIBDE265_API int de265_get_version_number_maintenance(void);
 /* === error codes === */
 
 typedef enum {
+  // No error, everything went ok.
   DE265_OK = 0,
+
 
   // --- Severe decoding errors because of software or system limitations ---
 
@@ -127,8 +129,10 @@ typedef enum {
   DE265_WARNING_INVALID_VPS_PARAMETER = 7,
   DE265_WARNING_INVALID_SLICE_PARAMETER = 8,
 
+  // An invalid parameter was used in defining the ref-pic-set.
   DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE = 9,
 
+  // The referenced CTB is outside the image area.
   DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA = 10,
 
 
@@ -228,9 +232,11 @@ typedef enum {
 LIBDE265_API const char* de265_get_error_text(de265_error err);
 
 // Returns true if 'err' is DE265_OK or a warning.
+//
 // This function has been removed because it is not required.
-// Every error value returned is either OK or a fatal error.
-// All warnings are accessed through the warnings queue.
+// Every de265_error value returned is either OK or a fatal error.
+// All warnings messages are returned through the warnings queue.
+//
 //LIBDE265_API int  de265_isOK(de265_error err);
 
 LIBDE265_API void de265_set_verbosity(int level);
@@ -270,20 +276,8 @@ LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
    unavailable references. The image may still contain non-standard content when
    e.g. SAO or deblocking has been deliberately turned off.
 */
-LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img);
+LIBDE265_API int de265_is_decoded_image_correct(const struct de265_image* img);
 
-/* Get NAL-header information for this frame. You can pass in NULL pointers if you
-   do not need this piece of information.
- */
-/*
-This function is currently not exposed to API.
-
-LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
-                                             int* nal_unit_type,
-                                             const char** nal_unit_name, // textual description of 'nal_unit_type'
-                                             int* nuh_layer_id,
-                                             int* nuh_temporal_id);
-*/
 
 
 // === image allocation API ===
@@ -293,8 +287,8 @@ struct de265_image_intern;
 
 struct de265_image_spec
 {
-  int width;
-  int height;
+  int width;  // width including an invisible border (also see visible_width below)
+  int height; // height including an invisible border (also see visible_height below)
   int alignment;
 
   enum de265_chroma chroma;
@@ -319,6 +313,7 @@ LIBDE265_API int de265_get_bits_per_pixel_from_spec(const struct de265_image_spe
 
 struct de265_image_allocation
 {
+  //! @returns 1 on success, 0 on failure (out of memory)
   int  (*get_buffer)(struct de265_image_intern* img,
                      const struct de265_image_spec* spec,
                      void* allocation_userdata);
@@ -330,13 +325,9 @@ struct de265_image_allocation
 };
 
 
-LIBDE265_API struct de265_image* de265_alloc_image(int w,int h,enum de265_chroma chroma,
-                                                   int bitDepth_luma, int bitDepth_chroma,
-                                                   de265_PTS pts,
-                                                   const struct de265_image_allocation* alloc_functions);
+// --- Functions to be used within get_buffer() / release_buffer() callbacks ---
 
-/* Assign self-allocated memory to an image plane. Stride is number of bytes per line.
- */
+// Assign self-allocated memory to an image plane. Stride is number of bytes per line.
 LIBDE265_API void de265_set_image_plane_intern(struct de265_image_intern* img,
                                                int cIdx,
                                                void* mem, int stride,
@@ -354,6 +345,14 @@ LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
 LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
 
 
+// For normal decoder operation, you will not need to use this function.
+// 'alloc_functions' may be NULL, in which case the default allocators are used
+LIBDE265_API struct de265_image* de265_alloc_image(int w,int h,enum de265_chroma chroma,
+                                                   int bitDepth_luma, int bitDepth_chroma,
+                                                   de265_PTS pts,
+                                                   const struct de265_image_allocation* alloc_functions);
+
+
 /* === decoder === */
 
 
@@ -367,13 +366,15 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context*);
    all decoding is done in the main thread (no multi-threading). */
 LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context*, int number_of_threads);
 
-LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context*, int parallel_frames);
+LIBDE265_API void de265_set_max_frames_to_decode_in_parallel(de265_decoder_context*, int parallel_frames);
 
 
 /* Push more data into the decoder, must be a raw h265 bytestream with startcodes.
    The PTS is assigned to all NALs whose start-code 0x000001 is contained in the data.
    The bytestream must contain all stuffing-bytes.
    This function only pushes data into the decoder, nothing will be decoded.
+
+   @returns DE265_OK or DE265_ERROR_OUT_OF_MEMORY
 */
 LIBDE265_API de265_error de265_push_data(de265_decoder_context*, const void* data, int length,
                                          de265_PTS pts, void* user_data);
@@ -391,6 +392,8 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context*);
 
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
+
+   @returns DE265_OK or DE265_ERROR_OUT_OF_MEMORY
 */
 LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data, int length,
                                         de265_PTS pts, void* user_data);
@@ -456,7 +459,7 @@ LIBDE265_API void de265_reset(de265_decoder_context*);
 
 /* Get number of pictures that are ready for display.
  */
-LIBDE265_API int de265_get_num_pictures_in_output_queue(de265_decoder_context*);
+LIBDE265_API int de265_get_number_of_pictures_in_output_queue(de265_decoder_context*);
 
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_skip_next_picture() to
@@ -480,7 +483,9 @@ LIBDE265_API void de265_skip_next_picture(de265_decoder_context*);
  */
 LIBDE265_API void de265_release_picture(const struct de265_image*);
 
-
+/* Get the next warning from the warning queue.
+   When there are no more warnings, DE265_OK is returned.
+ */
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 
@@ -499,7 +504,7 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 LIBDE265_API int  de265_get_highest_TID(de265_decoder_context*); // highest temporal substream to decode
 #define de265_highest_TID_unknown -1
 
-LIBDE265_API void de265_set_limit_TID(de265_decoder_context*,int max_tid); // highest temporal substream to decode
+LIBDE265_API void de265_set_highest_TID_to_decode(de265_decoder_context*,int max_tid); // highest temporal substream to decode
 #define de265_limit_TID_unlimited -1
 
 LIBDE265_API void de265_set_framerate_ratio(de265_decoder_context*,int percent); // percentage of frames to decode (approx)
@@ -551,7 +556,7 @@ LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context*, int sup
 
 
 // set callback to NULL to disable
-LIBDE265_API void de265_dump_headers(de265_decoder_context*, void (*callback)(int nal_unit, const char* text));
+LIBDE265_API void de265_set_dump_headers_callback(de265_decoder_context*, void (*callback)(int nal_unit, const char* text));
 
 
 // TODO:  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
