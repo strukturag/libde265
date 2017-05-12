@@ -559,9 +559,15 @@ LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context*, int sup
 LIBDE265_API void de265_set_dump_headers_callback(de265_decoder_context*, void (*callback)(int nal_unit, const char* text));
 
 
-// TODO:  DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
+  /* TODO
+enum de265_SEI_hash_check {
+  de265_SEI_hash_check_disabled,
+  de265_SEI_hash_check_warn_only,
+  de265_SEI_hash_check_suppress_faulty_images
+};
 
-
+LIBDE265_API void de265_set_SEI_hash_check(de265_decoder_context*, enum de265_SEI_hash_check mode);
+  */
 
 
 /* === optional library initialization === */
