@@ -231,8 +231,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
-    errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return DE265_WARNING_INVALID_CHROMA_FORMAT;
   }
 
 
@@ -287,7 +286,6 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     vlc=get_uvlc(br);
     if (vlc == UVLC_ERROR ||
         vlc+1 > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_WARNING_INVALID_SPS_PARAMETER, false);
       return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
 
@@ -371,8 +369,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   READ_VLC(num_short_term_ref_pic_sets, uvlc);
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
-    errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE;
   }
 
   // --- allocate reference pic set ---
@@ -1029,8 +1026,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
-    errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return DE265_WARNING_INVALID_CHROMA_FORMAT;
   }
 
   if (chroma_format_idc == 3) {
@@ -1071,7 +1067,6 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
     // sps_max_dec_pic_buffering[i]
 
     if (sps_max_dec_pic_buffering[i] > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_WARNING_INVALID_SPS_PARAMETER, false);
       return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
 
@@ -1122,8 +1117,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   int num_short_term_ref_pic_sets = ref_pic_sets.size();
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
-    errqueue->add_warning(DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE, false);
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE;
   }
   out.write_uvlc(num_short_term_ref_pic_sets);
 
