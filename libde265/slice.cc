@@ -42,13 +42,13 @@
 
 #define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
-extern bool read_short_term_ref_pic_set(error_queue* errqueue,
-                                        const seq_parameter_set* sps,
-                                        bitreader* br,
-                                        ref_pic_set* out_set,
-                                        int idxRps,  // index of the set to be read
-                                        const std::vector<ref_pic_set>& sets,
-                                        bool sliceRefPicSet);
+extern de265_error read_short_term_ref_pic_set(error_queue* errqueue,
+                                               const seq_parameter_set* sps,
+                                               bitreader* br,
+                                               ref_pic_set* out_set,
+                                               int idxRps,  // index of the set to be read
+                                               const std::vector<ref_pic_set>& sets,
+                                               bool sliceRefPicSet);
 
 
 void read_coding_tree_unit(thread_context* tctx);
@@ -491,11 +491,14 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        read_short_term_ref_pic_set(ctx, sps.get(),
-                                    br, &slice_ref_pic_set,
-                                    sps->num_short_term_ref_pic_sets(),
-                                    sps->ref_pic_sets,
-                                    true);
+        de265_error err = read_short_term_ref_pic_set(ctx, sps.get(),
+                                                      br, &slice_ref_pic_set,
+                                                      sps->num_short_term_ref_pic_sets(),
+                                                      sps->ref_pic_sets,
+                                                      true);
+        if (err) {
+          return err;
+        }
 
         CurrRpsIdx = sps->num_short_term_ref_pic_sets();
         CurrRps    = slice_ref_pic_set;
