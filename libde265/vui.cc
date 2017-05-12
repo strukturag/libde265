@@ -28,8 +28,8 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
+    errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);  \
+    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; \
   } \
   variable = vlc + offset;
 
@@ -284,7 +284,7 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
   vui_hrd_parameters_present_flag = get_bits(br,1);
   if (vui_hrd_parameters_present_flag) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
+    return DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET;
     //hrd_parameters vui_hrd_parameters;
   }
 
@@ -299,31 +299,31 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
     READ_VLC(min_spatial_segmentation_idc, uvlc);
     if (min_spatial_segmentation_idc > 4095) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
       min_spatial_segmentation_idc = 0;
     }
 
     READ_VLC(max_bytes_per_pic_denom, uvlc);
     if (max_bytes_per_pic_denom > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
       max_bytes_per_pic_denom = 2;
     }
 
     READ_VLC(max_bits_per_min_cu_denom, uvlc);
     if (max_bits_per_min_cu_denom > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
       max_bits_per_min_cu_denom = 1;
     }
 
     READ_VLC(log2_max_mv_length_horizontal, uvlc);
     if (log2_max_mv_length_horizontal > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
       log2_max_mv_length_horizontal = 15;
     }
 
     READ_VLC(log2_max_mv_length_vertical, uvlc);
     if (log2_max_mv_length_vertical > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
       log2_max_mv_length_vertical = 15;
     }
   }

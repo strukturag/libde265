@@ -106,14 +106,14 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   int vlc;
 
   video_parameter_set_id = vlc = get_bits(reader, 4);
-  if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  if (vlc >= DE265_MAX_VPS_SETS) return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
 
   skip_bits(reader, 2);
   vps_max_layers = vlc = get_bits(reader,6) +1;
-  if (vlc > 63) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // vps_max_layers_minus1 (range 0...63)
+  if (vlc > 63) return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE; // vps_max_layers_minus1 (range 0...63)
 
   vps_max_sub_layers = vlc = get_bits(reader,3) +1;
-  if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
 
   vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
@@ -138,7 +138,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
     layer[i].vps_max_num_reorder_pics  == UVLC_ERROR ||
     layer[i].vps_max_latency_increase  == UVLC_ERROR) {
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
     }
   }
 
@@ -159,8 +159,8 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
   if (vps_num_layer_sets+1<0 ||
       vps_num_layer_sets+1>=1024 ||
       vps_num_layer_sets == UVLC_ERROR) {
-    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
   }
   vps_num_layer_sets += 1;
 
@@ -224,13 +224,13 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
 
 de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out) const
 {
-  if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  if (video_parameter_set_id >= DE265_MAX_VPS_SETS) return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
   out.write_bits(video_parameter_set_id,4);
 
   out.write_bits(0x3,2);
   out.write_bits(vps_max_layers-1,6);
 
-  if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
   out.write_bits(vps_max_sub_layers-1,3);
 
   out.write_bit(vps_temporal_id_nesting_flag);
@@ -256,8 +256,8 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out
 
   if (vps_num_layer_sets<0 ||
       vps_num_layer_sets>=1024) {
-    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    errqueue->add_warning(DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
   out.write_bits(vps_max_layer_id,6);

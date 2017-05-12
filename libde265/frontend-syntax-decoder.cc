@@ -263,7 +263,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
                                      &m_decctx->param_image_allocation_functions);
     if (image_buffer_idx == -1) {
-      return DE265_ERROR_IMAGE_BUFFER_FULL;
+      return DE265_ERROR_OUT_OF_MEMORY;
     }
 
     m_curr_img = dpb.get_image(image_buffer_idx);

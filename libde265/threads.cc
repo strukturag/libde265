@@ -416,7 +416,7 @@ de265_error thread_pool::start(int num_threads)
                                   this);
     if (ret != 0) {
       // cerr << "pthread_create() failed: " << ret << endl;
-      return DE265_ERROR_CANNOT_START_THREADPOOL;
+      return DE265_ERROR_CANNOT_START_THREADS;
     }
 
     m_num_threads++;
