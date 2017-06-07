@@ -5027,8 +5027,8 @@ void thread_task_ctb_row::work()
   //printf("sliceunit: %p start CTB-row decoding at row %d\n", tctx->sliceunit, ctby);
 
   if (data->firstSliceSubstream) {
-    bool success = initialize_CABAC_at_slice_segment_start(tctx);
-    if (!success) {
+    de265_error err = initialize_CABAC_at_slice_segment_start(tctx);
+    if (err) {
       tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
       tctx->sliceunit->finished_threads.increase_progress(1);
       return;
