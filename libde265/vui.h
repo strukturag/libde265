@@ -43,6 +43,67 @@ enum VideoFormat {
 const char* get_video_format_name(enum VideoFormat);
 
 
+class sub_layer_hrd_parameters
+{
+ public:
+  int bit_rate_value;
+  int cpb_size_value;
+  int cpb_size_du_value;
+  int bit_rate_du_value;
+  bool cbr_flag;
+};
+
+
+class hrd_sub_layer_parameters
+{
+ public:
+  hrd_sub_layer_parameters() { }
+
+  bool fixed_pic_rate_general_flag;
+  bool fixed_pic_rate_within_cvs_flag;
+  int  element_duration_in_tc;
+  bool low_delay_hrd_flag;
+  int  cpb_cnt;
+
+  std::vector<sub_layer_hrd_parameters> nal_hrd;
+  std::vector<sub_layer_hrd_parameters> vcl_hrd;
+};
+
+
+class hrd_parameters
+{
+ public:
+  hrd_parameters();
+
+  de265_error read(error_queue*, bitreader*, const seq_parameter_set*,
+                   bool commonInfPresentFlag, int maxNumSubLayers);
+
+  bool nal_hrd_parameters_present_flag;
+  bool vcl_hrd_parameters_present_flag;
+
+
+  bool timing_info_present_flag;
+  uint32_t num_units_in_tick;
+  uint32_t time_scale;
+
+  bool sub_pic_hrd_params_present_flag;
+  int  tick_divisor;
+  int  du_cpb_removal_delay_increment_length;
+  bool sub_pic_cpb_params_in_pic_timing_sei_flag;
+  int  dpb_output_delay_du_length;
+
+  int  bit_rate_scale;
+  int  cpb_size_scale;
+  int  cpb_size_du_scale;
+
+  int  initial_cpb_removal_delay_length;
+  int  au_cpb_removal_delay_length;
+  int  dpb_output_delay_length;
+
+  std::vector<hrd_sub_layer_parameters> sublayer_parameters;
+};
+
+
 class video_usability_information
 {
  public:
@@ -107,7 +168,7 @@ class video_usability_information
   // --- hrd parameters ---
 
   bool     vui_hrd_parameters_present_flag;
-  //hrd_parameters vui_hrd_parameters;
+  hrd_parameters vui_hrd_parameters;
 
 
   // --- bitstream restriction ---
