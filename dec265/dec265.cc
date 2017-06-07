@@ -760,19 +760,25 @@ int main(int argc, char** argv)
         if (nal_input) {
           uint8_t len[4];
           int n = fread(len,1,4,fh);
-          int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
+          if (n<4) {
+            err = de265_push_end_of_stream(ctx); // indicate end of stream
+          }
+          else {
+            int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
 
-          uint8_t* buf = (uint8_t*)malloc(length);
-          n = fread(buf,1,length,fh);
-          err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+            uint8_t* buf = (uint8_t*)malloc(length);
+            n = fread(buf,1,length,fh);
+            err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
 
-          if (write_bytestream) {
-            uint8_t sc[3] = { 0,0,1 };
-            fwrite(sc ,1,3,bytestream_fh);
-            fwrite(buf,1,n,bytestream_fh);
+            if (write_bytestream) {
+              uint8_t sc[3] = { 0,0,1 };
+              fwrite(sc ,1,3,bytestream_fh);
+              fwrite(buf,1,n,bytestream_fh);
+            }
+
+            free(buf);
           }
 
-          free(buf);
           pos+=n;
         }
         else {
