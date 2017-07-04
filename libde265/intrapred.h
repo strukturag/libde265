@@ -27,8 +27,9 @@ extern const int intraPredAngle_table[1+34];
 
 
 /* Fill the three intra-pred-mode candidates into candModeList.
-   Block position is (x,y) and you also have to give the PUidx for this
-   block (which is (x>>Log2MinPUSize) + (y>>Log2MinPUSize)*PicWidthInMinPUs).
+   This is computed for the intra block at position (x,y).
+   If we happen to know also the PUidx for this position (sps.getPUIndexRS()), it can be
+   given to the function. If it is not known, you can use the next function below.
    availableA/B is the output of check_CTB_available().
  */
 void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
@@ -48,12 +49,12 @@ inline void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int 
 }
 
 
-void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
-                                 int x,int y,
-                                 bool availableA, // left
-                                 bool availableB, // top
-                                 const class CTBTreeMatrix& ctbs,
-                                 const seq_parameter_set* sps);
+void fill_intraPredMode_candidates_from_tree(enum IntraPredMode candModeList[3],
+                                             int x,int y,
+                                             bool availableA, // left
+                                             bool availableB, // top
+                                             const class CTBTreeMatrix& ctbs,
+                                             const seq_parameter_set* sps);
 
 
 
@@ -71,25 +72,8 @@ void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
 int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int cIdx,
                        const seq_parameter_set* sps);
 
-int get_intra_scan_idx_luma  (int log2TrafoSize, enum IntraPredMode intraPredMode); // DEPRECATED
-int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMode); // DEPRECATED
-
 enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
                                                   enum IntraChromaPredMode chroma);
-
-/*
-void decode_intra_block(decoder_context* ctx,
-                        thread_context* tctx,
-                        int cIdx,
-                        int xB0,int yB0, // position of TU in frame (chroma adapted)
-                        int x0,int y0,   // position of CU in frame (chroma adapted)
-                        int log2TrafoSize, int trafoDepth,
-                        enum IntraPredMode intraPredMode,
-                        bool transform_skip_flag);
-*/
-
-//void fill_border_samples(decoder_context* ctx, int xB,int yB,
-//                         int nT, int cIdx, uint8_t* out_border);
 
 void decode_intra_prediction(image* img,
                              int xB0,int yB0,

@@ -1490,8 +1490,8 @@ void encode_coding_unit(encoder_context* ectx,
         int PUidx = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 
         enum IntraPredMode candModeList[3];
-        fillIntraPredModeCandidates(candModeList,x0,y0,
-                                    availableA0,availableB0, ectx->ctbs, &sps);
+        fill_intraPredMode_candidates_from_tree(candModeList,x0,y0,
+                                                availableA0,availableB0, ectx->ctbs, &sps);
 
         for (int i=0;i<3;i++)
           logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
@@ -1532,8 +1532,8 @@ void encode_coding_unit(encoder_context* ectx,
               PUidx = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 
               enum IntraPredMode candModeList[3];
-              fillIntraPredModeCandidates(candModeList,x,y,
-                                          availableA,availableB, ectx->ctbs, &sps);
+              fill_intraPredMode_candidates_from_tree(candModeList,x,y,
+                                                      availableA,availableB, ectx->ctbs, &sps);
 
               for (int i=0;i<3;i++)
                 logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);

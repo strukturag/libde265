@@ -201,8 +201,8 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     const seq_parameter_set* sps = &ectx->get_sps();
     enum IntraPredMode candidates[3];
-    fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->get_sps());
+    fill_intraPredMode_candidates_from_tree(candidates, tb->x,tb->y,
+                                            tb->x > 0, tb->y > 0, ectx->ctbs, &ectx->get_sps());
 
 
     for (int i = 0; i<35; i++) {
@@ -365,8 +365,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
 
     enum IntraPredMode candidates[3];
-    fillIntraPredModeCandidates(candidates, x0,y0,
-                                x0>0, y0>0, ectx->ctbs, &ectx->get_sps());
+    fill_intraPredMode_candidates_from_tree(candidates, x0,y0,
+                                            x0>0, y0>0, ectx->ctbs, &ectx->get_sps());
 
     float intraPredModeBits = get_intra_pred_mode_bits(candidates,
                                                        intraMode,
@@ -419,8 +419,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     const seq_parameter_set* sps = &ectx->get_sps();
     enum IntraPredMode candidates[3];
-    fillIntraPredModeCandidates(candidates, tb->x,tb->y,
-                                tb->x>0, tb->y>0, ectx->ctbs, &ectx->get_sps());
+    fill_intraPredMode_candidates_from_tree(candidates, tb->x,tb->y,
+                                            tb->x>0, tb->y>0, ectx->ctbs, &ectx->get_sps());
 
 
 

@@ -4360,7 +4360,7 @@ void read_coding_unit(thread_context* tctx,
 
 
 
-              int PUidx = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+              int PUidx = sps.getPUIndexRS(x,y);
 
               enum IntraPredMode candModeList[3];
 
