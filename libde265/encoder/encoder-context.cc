@@ -532,3 +532,52 @@ double encode_image(encoder_context* ectx,
 
   return psnr;
 }
+
+
+void encoder_context_scc::push_image(image_ptr img)
+{
+  printf("%d %d\n",img->get_width(), img->get_height());
+}
+
+
+en265_packet* encoder_context_scc::get_next_packet()
+{
+  if (output_packets.empty()) {
+    return nullptr;
+  }
+  else {
+    en265_packet* pck = output_packets.front();
+    output_packets.pop_front();
+    return pck;
+  }
+}
+
+
+void encoder_context_scc::copy_encoded_data_into_packet(en265_packet_content_type type)
+{
+  en265_packet* pck = new en265_packet;
+
+  pck->version = 1;
+  pck->content_type = type;
+
+  pck->length = cabac_encoder.size();
+  pck->data = cabac_encoder.detach_data();
+  cabac_encoder.reset();
+
+
+  pck->frame_number = -1;
+  pck->complete_picture = 0;
+  pck->final_slice = 0;
+  pck->dependent_slice = 0;
+  pck->nuh_layer_id = 0;
+  pck->nuh_temporal_id = 0;
+
+  //pck->encoder_context = this;
+
+  //pck->pts = 0;
+  //pck->user_data = NULL;
+//pck->input_image = NULL;
+//  pck->reconstruction = NULL;
+
+  output_packets.push_back(pck);
+}

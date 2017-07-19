@@ -198,4 +198,40 @@ class encoder_context : public base_context
 };
 
 
+// ================================================================================
+
+class encoder_context_scc
+{
+ public:
+  encoder_context_scc() { }
+
+
+  void push_image(image_ptr);
+  void push_end_of_video() { }
+
+  std::shared_ptr<video_parameter_set> get_shared_vps() { return vps; }
+  std::shared_ptr<seq_parameter_set> get_shared_sps() { return sps; }
+  std::shared_ptr<pic_parameter_set> get_shared_pps() { return pps; }
+
+  // Get encoder packet and remove from queue.
+  // Returns NULL if there is no packet available.
+  en265_packet* get_next_packet();
+
+ private:
+  std::shared_ptr<video_parameter_set>  vps;
+  std::shared_ptr<seq_parameter_set>    sps;
+  std::shared_ptr<pic_parameter_set>    pps;
+
+
+  // --- CABAC output and rate estimation ---
+
+  CABAC_encoder_bitstream cabac_encoder;
+  context_model_table     cabac_ctx_models;
+
+  void copy_encoded_data_into_packet(en265_packet_content_type);
+
+  std::deque<en265_packet*> output_packets;
+};
+
+
 #endif

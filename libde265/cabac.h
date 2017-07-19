@@ -110,6 +110,17 @@ public:
   virtual int size() const { return data_size; }
   uint8_t* data() const { return data_mem; }
 
+  uint8_t* detach_data() {
+    uint8_t* data = data_mem;
+    data_mem = nullptr;
+    data_capacity = 0;
+    data_size = 0;
+
+    reset();
+
+    return data;
+  }
+
   // --- VLC ---
 
   virtual void write_bits(uint32_t bits,int n);
