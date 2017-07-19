@@ -232,6 +232,10 @@ class encoder_context_scc
   void send_headers();
 
 
+
+  CTBTreeMatrix ctbs;
+
+
   // --- CABAC output and rate estimation ---
 
   CABAC_encoder_bitstream cabac_encoder;

@@ -553,6 +553,59 @@ void encoder_context_scc::push_image(image_ptr img)
     send_headers();
     state=Encoding;
   }
+
+
+  // encode slice header
+
+  slice_segment_header shdr; // TODO: multi-slice pictures
+  shdr.slice_type = SLICE_TYPE_I;
+  shdr.slice_pic_order_cnt_lsb = 0; // TODO get_pic_order_count_lsb();
+  shdr.slice_deblocking_filter_disabled_flag = true;
+  shdr.slice_loop_filter_across_slices_enabled_flag = false;
+  shdr.compute_derived_values(pps.get());
+
+  shdr.set_pps(pps); //get_pps_ptr() );
+
+  nal_header nal;
+  nal.nal_unit_type = NAL_UNIT_IDR_N_LP;
+  nal.write(cabac_encoder);
+  shdr.write(nullptr, cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+
+  en265_packet* pck = copy_encoded_data_into_packet(EN265_PACKET_SLICE);
+  pck->nal_unit_type = EN265_NUT_IDR_N_LP;
+  output_packets.push_back(pck);
+
+
+
+  // initialize CABAC models
+
+  cabac_ctx_models.init(shdr.initType, shdr.SliceQPY);
+  cabac_encoder.set_context_models(&cabac_ctx_models);
+
+
+  // encoder image
+
+  ctbs.alloc(img->get_width(), img->get_height(), Log2(sps->Log2CtbSizeY));
+
+  for (int y=0;y<sps->PicHeightInCtbsY;y++)
+    for (int x=0;x<sps->PicWidthInCtbsY;x++) {
+      //ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
+
+      int Log2CtbSize = sps->Log2CtbSizeY;
+      int x0 = x<<Log2CtbSize;
+      int y0 = y<<Log2CtbSize;
+
+      enc_cb* cb = new enc_cb();
+      cb->log2Size = sps->Log2CtbSizeY;
+      cb->ctDepth = 0;
+      cb->x = x0;
+      cb->y = y0;
+      cb->qp = 0; // TODO ectx->active_qp;
+      cb->cu_transquant_bypass_flag = false;
+      cb->pcm_flag = true;
+    }
 }
 
 
@@ -581,6 +634,13 @@ void encoder_context_scc::set_image_parameters(image_ptr img)
 
   sps->pic_width_in_luma_samples = img->get_width();
   sps->pic_height_in_luma_samples = img->get_height();
+
+  de265_error err = sps->compute_derived_values(false);
+  if (err != DE265_OK) {
+    // TODO: handle error
+    printf("ERR: %d\n",err);
+    exit(10);
+  }
 }
 
 
