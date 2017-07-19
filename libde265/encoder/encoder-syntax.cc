@@ -1485,7 +1485,17 @@ void encode_coding_unit(encoder_context* ectx,
       int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
       int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
 
-      if (PartMode==PART_2Nx2N) {
+      if (PartMode==PART_2Nx2N &&
+          sps.pcm_enabled_flag &&
+          log2CbSize >= sps.Log2MinIpcmCbSizeY &&
+          log2CbSize <= sps.Log2MaxIpcmCbSizeY) {
+        cabac->write_CABAC_term_bit(cb->pcm_flag);
+
+        if (cb->pcm_flag) {
+          // TODO
+        }
+      }
+      else if (PartMode==PART_2Nx2N) {
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
         int PUidx = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
 

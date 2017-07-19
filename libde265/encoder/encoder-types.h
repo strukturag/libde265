@@ -284,6 +284,7 @@ public:
         struct {
           //enum IntraPredMode pred_mode[4];
           //enum IntraPredMode chroma_mode;
+          uint8_t* pcm_data_ptr[3]; // pointer to the raw PCM data in the source image
         } intra;
 
         struct {
