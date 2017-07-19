@@ -267,7 +267,7 @@ class decoder_context : public base_context,
 
   void on_image_decoding_finished(); // internal use only (by decoding tasks)
 
-  void set_max_decode_frames_parallel(int parallel_frames) {
+  void set_max_frames_to_decode_in_parallel(int parallel_frames) {
     m_main_loop_mutex.lock();
     param_max_images_processed_in_parallel = parallel_frames;
     m_main_loop_mutex.unlock();

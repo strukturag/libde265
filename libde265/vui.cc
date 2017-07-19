@@ -28,8 +28,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
-    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
+    return DE265_WARNING_INVALID_VUI_PARAMETER;      \
   } \
   variable = vlc + offset;
 
@@ -284,8 +283,8 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
   vui_hrd_parameters_present_flag = get_bits(br,1);
   if (vui_hrd_parameters_present_flag) {
-    return DE265_ERROR_NOT_IMPLEMENTED_YET;
-    //hrd_parameters vui_hrd_parameters;
+    de265_error err = vui_hrd_parameters.read(errqueue, br, sps,
+                                              true, sps->sps_max_sub_layers);
   }
 
 
@@ -299,31 +298,31 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
     READ_VLC(min_spatial_segmentation_idc, uvlc);
     if (min_spatial_segmentation_idc > 4095) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       min_spatial_segmentation_idc = 0;
     }
 
     READ_VLC(max_bytes_per_pic_denom, uvlc);
     if (max_bytes_per_pic_denom > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       max_bytes_per_pic_denom = 2;
     }
 
     READ_VLC(max_bits_per_min_cu_denom, uvlc);
     if (max_bits_per_min_cu_denom > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       max_bits_per_min_cu_denom = 1;
     }
 
     READ_VLC(log2_max_mv_length_horizontal, uvlc);
     if (log2_max_mv_length_horizontal > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       log2_max_mv_length_horizontal = 15;
     }
 
     READ_VLC(log2_max_mv_length_vertical, uvlc);
     if (log2_max_mv_length_vertical > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
       log2_max_mv_length_vertical = 15;
     }
   }
@@ -410,4 +409,117 @@ std::string video_usability_information::dump() const
   }
 
   return sstr.str();
+}
+
+
+de265_error read_sub_layer_hrd_parameters(std::vector<sub_layer_hrd_parameters>& output,
+                                          bitreader* br, int CpbCnt,
+                                          bool sub_pic_hrd_params_present_flag)
+{
+  output.clear();
+
+  int vlc;
+
+  for (int i=0; i<=CpbCnt; i++) {
+    sub_layer_hrd_parameters p;
+
+    READ_VLC_OFFSET(p.bit_rate_value, uvlc, 1);
+    READ_VLC_OFFSET(p.cpb_size_value, uvlc, 1);
+
+    if (sub_pic_hrd_params_present_flag) {
+      READ_VLC_OFFSET(p.cpb_size_du_value, uvlc, 1);
+      READ_VLC_OFFSET(p.bit_rate_du_value, uvlc, 1);
+    }
+
+    p.cbr_flag = get_bits(br,1);
+
+    output.push_back(p);
+  }
+
+  return DE265_OK;
+}
+
+
+hrd_parameters::hrd_parameters()
+{
+}
+
+
+de265_error hrd_parameters::read(error_queue* errqueue, bitreader* br, const seq_parameter_set* sps,
+                                 bool commonInfPresentFlag, int maxNumSubLayers)
+{
+  int vlc;
+
+  if (commonInfPresentFlag) {
+    nal_hrd_parameters_present_flag = get_bits(br,1);
+    vcl_hrd_parameters_present_flag = get_bits(br,1);
+
+    if (nal_hrd_parameters_present_flag ||
+        vcl_hrd_parameters_present_flag) {
+
+      sub_pic_hrd_params_present_flag = get_bits(br,1);
+
+      if (sub_pic_hrd_params_present_flag) {
+        tick_divisor = get_bits(br,8) + 2;
+        du_cpb_removal_delay_increment_length = get_bits(br,5) + 1;
+        sub_pic_cpb_params_in_pic_timing_sei_flag = get_bits(br,1);
+        dpb_output_delay_du_length = get_bits(br,5) + 1;
+      }
+
+      bit_rate_scale = get_bits(br,4);
+      cpb_size_scale = get_bits(br,4);
+
+      if (sub_pic_hrd_params_present_flag) {
+        cpb_size_du_scale = get_bits(br,4);
+      }
+
+      initial_cpb_removal_delay_length = get_bits(br,5) + 1;
+      au_cpb_removal_delay_length = get_bits(br,5) + 1;
+      dpb_output_delay_length = get_bits(br,5) + 1;
+    }
+  }
+
+  for (int i=0; i<=maxNumSubLayers-1; i++) {
+    hrd_sub_layer_parameters param;
+    param.fixed_pic_rate_general_flag = get_bits(br,1);
+    if (!param.fixed_pic_rate_general_flag) {
+      param.fixed_pic_rate_within_cvs_flag = get_bits(br,1);
+    }
+    else {
+      param.fixed_pic_rate_within_cvs_flag = false;
+    }
+
+    if (param.fixed_pic_rate_within_cvs_flag) {
+      READ_VLC_OFFSET(param.element_duration_in_tc, uvlc, 1);
+      param.low_delay_hrd_flag = false;
+    }
+    else {
+      param.low_delay_hrd_flag = get_bits(br,1);
+    }
+
+    if (!param.low_delay_hrd_flag) {
+      READ_VLC_OFFSET(param.cpb_cnt, uvlc, 1);
+    }
+
+    if (nal_hrd_parameters_present_flag) {
+      de265_error err = read_sub_layer_hrd_parameters(param.nal_hrd, br, param.cpb_cnt,
+                                                      sub_pic_hrd_params_present_flag);
+      if (err) {
+        return err;
+      }
+    }
+
+    if (vcl_hrd_parameters_present_flag) {
+      de265_error err = read_sub_layer_hrd_parameters(param.vcl_hrd, br, param.cpb_cnt,
+                                                      sub_pic_hrd_params_present_flag);
+      if (err) {
+        return err;
+      }
+    }
+
+
+    sublayer_parameters.push_back(param);
+  }
+
+  return DE265_OK;
 }

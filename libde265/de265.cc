@@ -67,55 +67,47 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 {
   switch (err) {
   case DE265_OK: return "no error";
-  case DE265_ERROR_NO_SUCH_FILE: return "no such file";
     //case DE265_ERROR_NO_STARTCODE: return "no startcode found";
     //case DE265_ERROR_EOF: return "end of file";
-  case DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS: return "coefficient out of image bounds";
-  case DE265_ERROR_CHECKSUM_MISMATCH: return "image checksum mismatch";
-  case DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
+  case DE265_WARNING_SEI_CHECKSUM_MISMATCH: return "SEI image checksum mismatch";
+  case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
   case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
-  case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
-  case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
-  case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
-  case DE265_ERROR_LIBRARY_INITIALIZATION_FAILED: return "global library initialization failed";
-  case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "cannot free library data (not initialized";
+    //case DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
+  case DE265_ERROR_CANNOT_START_THREADS: return "cannot start decoding threads";
+  case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "library is not initialized";
 
   //case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
   //  return "internal error: maximum number of thread contexts exceeded";
   //case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
   //  return "internal error: maximum number of slices exceeded";
-  case DE265_ERROR_NOT_IMPLEMENTED_YET:
-    return "unimplemented decoder feature";
+  case DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET:
+    return "unimplemented mandatory decoder feature";
+  case DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET:
+    return "unimplemented optional decoder feature";
     //case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
     //return "scaling list not implemented";
 
-  case DE265_ERROR_WAITING_FOR_INPUT_DATA:
-    return "no more input data, decoder stalled";
-  case DE265_ERROR_CANNOT_PROCESS_SEI:
-    return "SEI data cannot be processed";
   case DE265_ERROR_PARAMETER_PARSING:
     return "command-line parameter error";
-  case DE265_ERROR_NO_INITIAL_SLICE_HEADER:
-    return "first slice missing, cannot decode dependent slice";
-  case DE265_ERROR_PREMATURE_END_OF_SLICE:
+  case DE265_WARNING_DEPENDENT_SLICE_WITHOUT_INITIAL_SLICE_HEADER:
+    return "initial slice header missing, cannot decode dependent slice";
+  case DE265_WARNING_PREMATURE_END_OF_SLICE:
     return "premature end of slice data";
-  case DE265_ERROR_UNSPECIFIED_DECODING_ERROR:
-    return "unspecified decoding error";
 
-  case DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING:
-    return "Cannot run decoder multi-threaded because stream does not support WPP";
   case DE265_WARNING_WARNING_BUFFER_FULL:
     return "Too many warnings queued";
-  case DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT:
-    return "Premature end of slice segment";
   case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
     return "Incorrect entry-point offsets";
-  case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA:
-    return "CTB outside of image area (concealing stream error...)";
-  case DE265_WARNING_SPS_HEADER_INVALID:
-    return "sps header invalid";
-  case DE265_WARNING_PPS_HEADER_INVALID:
-    return "pps header invalid";
+  case DE265_WARNING_INVALID_SPS_PARAMETER:
+    return "SPS header parameter invalid";
+  case DE265_WARNING_INVALID_PPS_PARAMETER:
+    return "PPS header parameter invalid";
+  case DE265_WARNING_INVALID_VUI_PARAMETER:
+    return "VUI header parameter invalid";
+  case DE265_WARNING_INVALID_VPS_PARAMETER:
+    return "VPS header parameter invalid";
+  case DE265_WARNING_INVALID_SLICE_PARAMETER:
+    return "slice header parameter invalid";
   case DE265_WARNING_SLICEHEADER_INVALID:
     return "slice header invalid";
   case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
@@ -134,37 +126,38 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "number of short-term ref-pic-sets out of range";
   case DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE:
     return "short-term ref-pic-set index out of range";
+  case DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE:
+    return "parameter in short-term ref-pic-set is out of range";
   case DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST:
     return "faulty reference picture list";
-  case DE265_WARNING_EOSS_BIT_NOT_SET:
+  case DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET:
     return "end_of_sub_stream_one_bit not set to 1 when it should be";
-  case DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED:
-    return "maximum number of reference pictures exceeded";
   case DE265_WARNING_INVALID_CHROMA_FORMAT:
     return "invalid chroma format in SPS header";
   case DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID:
     return "slice segment address invalid";
   case DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO:
     return "dependent slice with address 0";
-  case DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM:
-    return "number of threads limited to maximum amount";
-  case DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER:
-    return "non-existing long-term reference candidate specified in slice header";
+  case DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE:
+    return "invalid long-term reference candidate specified in slice header";
   case DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY:
     return "cannot apply SAO because we ran out of memory";
-  case DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI:
-    return "SPS header missing, cannot decode SEI";
+  case DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING:
+    return "cannot decode SEI because SPS header is missing";
   case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
     return "collocated motion-vector is outside image area";
+  case DE265_WARNING_DECODING_ERROR:
+    return "noncritical error occurred during decoding";
 
   default: return "unknown error";
   }
 }
 
-LIBDE265_API int de265_isOK(de265_error err)
-{
-  return err == DE265_OK || err >= 1000;
-}
+
+//LIBDE265_API int de265_isOK(de265_error err)
+//{
+//  return err == DE265_OK || err < 1000;
+//}
 
 
 
@@ -184,9 +177,12 @@ LIBDE265_API de265_error de265_init()
 
   init_scan_orders();
 
-  if (!alloc_and_init_significant_coeff_ctxIdx_lookupTable()) {
+  de265_error err;
+
+  err = alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+  if (err) {
     de265_sync_sub_and_fetch(&de265_init_count,1);
-    return DE265_ERROR_LIBRARY_INITIALIZATION_FAILED;
+    return err;
   }
 
   return DE265_OK;
@@ -241,15 +237,8 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  if (number_of_threads > MAX_THREADS) {
-    number_of_threads = MAX_THREADS;
-  }
-
   if (number_of_threads>0) {
     de265_error err = ctx->start_thread_pool(number_of_threads);
-    if (de265_isOK(err)) {
-      err = DE265_OK;
-    }
     return err;
   }
   else {
@@ -356,7 +345,7 @@ LIBDE265_API void de265_reset(de265_decoder_context* de265ctx)
 }
 
 
-LIBDE265_API int de265_get_num_pictures_in_output_queue(de265_decoder_context* de265ctx)
+LIBDE265_API int de265_get_number_of_pictures_in_output_queue(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   return ctx->num_pictures_in_output_queue();
@@ -399,7 +388,7 @@ LIBDE265_API int de265_get_number_of_frames_pending_at_input(de265_decoder_conte
 }
 
 
-LIBDE265_API int de265_decoded_image_correct(const struct de265_image* img)
+LIBDE265_API int de265_is_decoded_image_correct(const struct de265_image* img)
 {
   return img->m_image->integrity == INTEGRITY_CORRECT;
 }
@@ -454,7 +443,7 @@ LIBDE265_API int  de265_get_current_TID(de265_decoder_context* de265ctx)
 }
 */
 
-LIBDE265_API void de265_set_limit_TID(de265_decoder_context* de265ctx,int max_tid)
+LIBDE265_API void de265_set_highest_TID_to_decode(de265_decoder_context* de265ctx,int max_tid)
 {
   if (max_tid == de265_limit_TID_unlimited) {
     max_tid = 6;
@@ -519,8 +508,8 @@ LIBDE265_API void de265_suppress_faulty_pictures(de265_decoder_context* de265ctx
 }
 
 
-LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
-                                     void (*callback)(int nal_unit, const char* text))
+LIBDE265_API void de265_set_dump_headers_callback(de265_decoder_context* de265ctx,
+                                                  void (*callback)(int nal_unit, const char* text))
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
   ctx->get_frontend_syntax_decoder().param_header_callback = callback;
@@ -534,11 +523,11 @@ LIBDE265_API void de265_dump_headers(de265_decoder_context* de265ctx,
   */
 
 
-LIBDE265_API void de265_set_max_decode_frames_parallel(de265_decoder_context* de265ctx,
-                                                       int parallel_frames)
+LIBDE265_API void de265_set_max_frames_to_decode_in_parallel(de265_decoder_context* de265ctx,
+                                                             int parallel_frames)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
-  ctx->set_max_decode_frames_parallel(parallel_frames);
+  ctx->set_max_frames_to_decode_in_parallel(parallel_frames);
 }
 
 

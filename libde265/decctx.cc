@@ -744,7 +744,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
     tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
-    return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
+    return DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA;
   }
 
   tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
@@ -753,7 +753,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   if (sliceunit->reader.bytes_remaining <= 0) {
     tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
-    return DE265_ERROR_PREMATURE_END_OF_SLICE;
+    return DE265_WARNING_PREMATURE_END_OF_SLICE;
   }
 
   init_CABAC_decoder(&tctx->cabac_decoder,
@@ -832,7 +832,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   else if (use_WPP && use_tiles) {
     // TODO: this is not allowed ... output some warning or error
 
-    return DE265_WARNING_PPS_HEADER_INVALID;
+    return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
   else if (use_WPP) {
     err = decode_slice_unit_WPP(imgunit, sliceunit);
@@ -964,7 +964,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
         dataEnd <= dataStartIndex) {
       //printf("WPP premature end\n");
-      err = DE265_ERROR_PREMATURE_END_OF_SLICE;
+      err = DE265_WARNING_PREMATURE_END_OF_SLICE;
       break;
     }
 
@@ -1098,7 +1098,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
         dataEnd <= dataStartIndex) {
-      err = DE265_ERROR_PREMATURE_END_OF_SLICE;
+      err = DE265_WARNING_PREMATURE_END_OF_SLICE;
       break;
     }
 

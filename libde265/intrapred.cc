@@ -59,48 +59,57 @@ void print_border(pixel_t* data, uint8_t* available, int nT)
 
 
 
-void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
-                                 enum IntraPredMode candIntraPredModeA,
-                                 enum IntraPredMode candIntraPredModeB)
+// Compute three candidate intra prediction modes from the two neighboring modes A,B.
+// If:
+// - both A,B are PLANAR or DC:  use candidates PLANAR, DC, ANGULAR_26
+// - both A,B use the same angular mode (angle a): use candidates a, a-1, a+1
+// - A,B are different: use A,B, and the first of [PLANAR, DC, ANGULAR_26] that is not used yet
+static void intraPredMode_candidates_from_predictors(enum IntraPredMode candModeList[3],
+                                                     enum IntraPredMode candIntraPredModeA,
+                                                     enum IntraPredMode candIntraPredModeB)
 {
   // build candidate list
 
   if (candIntraPredModeA == candIntraPredModeB) {
     if (candIntraPredModeA < 2) {
+      // if both candidates are both PLANAR or both DC
+
       candModeList[0] = INTRA_PLANAR;
       candModeList[1] = INTRA_DC;
       candModeList[2] = INTRA_ANGULAR_26;
     }
     else {
+      // if both candidates are ANGULAR, use this angle and the two neighboring angles
+
       candModeList[0] = candIntraPredModeA;
-      candModeList[1] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 -1 +32) % 32));
-      candModeList[2] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 +1    ) % 32));
+      candModeList[1] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 -1 +32) & 31));
+      candModeList[2] = (enum IntraPredMode)(2 + ((candIntraPredModeA-2 +1    ) & 31));
     }
   }
   else {
+    // if both candidates are different, use these two candidates, and ...
+
     candModeList[0] = candIntraPredModeA;
     candModeList[1] = candIntraPredModeB;
 
     if (candIntraPredModeA != INTRA_PLANAR &&
         candIntraPredModeB != INTRA_PLANAR) {
+      // ... PLANAR, if not used yet
+
       candModeList[2] = INTRA_PLANAR;
     }
     else if (candIntraPredModeA != INTRA_DC &&
              candIntraPredModeB != INTRA_DC) {
+      // ... DC, if not used yet
+
       candModeList[2] = INTRA_DC;
     }
     else {
+      // ... ANGULAR_26, if not used yet
+
       candModeList[2] = INTRA_ANGULAR_26;
     }
   }
-
-  /*
-    printf("candModeList: %d %d %d\n",
-    candModeList[0],
-    candModeList[1],
-    candModeList[2]
-    );
-  */
 }
 
 
@@ -110,6 +119,10 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y
                                  const image* img)
 {
   const seq_parameter_set* sps = &img->get_sps();
+
+
+  // --- Get predictor modes from neighboring blocks to the left and top.
+  // --- If any of these blocks does not exist, use DC mode for this predictor.
 
   // block on left side
 
@@ -147,18 +160,20 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3], int x,int y
            availableB ? candIntraPredModeB : -999);
 
 
-  fillIntraPredModeCandidates(candModeList,
-                              candIntraPredModeA,
-                              candIntraPredModeB);
+  // --- Find the three candidate intra modes for the two predictors A, B.
+
+  intraPredMode_candidates_from_predictors(candModeList,
+                                           candIntraPredModeA,
+                                           candIntraPredModeB);
 }
 
 
-void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
-                                 int x,int y,
-                                 bool availableA, // left
-                                 bool availableB, // top
-                                 const CTBTreeMatrix& ctbs,
-                                 const seq_parameter_set* sps)
+void fill_intraPredMode_candidates_from_tree(enum IntraPredMode candModeList[3],
+                                             int x,int y,
+                                             bool availableA, // left
+                                             bool availableB, // top
+                                             const CTBTreeMatrix& ctbs,
+                                             const seq_parameter_set* sps)
 {
 
   // block on left side
@@ -213,9 +228,9 @@ void fillIntraPredModeCandidates(enum IntraPredMode candModeList[3],
            availableB ? candIntraPredModeB : -999);
 
 
-  fillIntraPredModeCandidates(candModeList,
-                              candIntraPredModeA,
-                              candIntraPredModeB);
+  intraPredMode_candidates_from_predictors(candModeList,
+                                           candIntraPredModeA,
+                                           candIntraPredModeB);
 }
 
 
@@ -290,27 +305,6 @@ int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int 
 }
 
 
-int get_intra_scan_idx_luma(int log2TrafoSize, enum IntraPredMode intraPredMode)
-{
-  if (log2TrafoSize==2 || log2TrafoSize==3) {
-    /**/ if (intraPredMode >=  6 && intraPredMode <= 14) return 2;
-    else if (intraPredMode >= 22 && intraPredMode <= 30) return 1;
-    else return 0;
-  }
-  else { return 0; }
-}
-
-int get_intra_scan_idx_chroma(int log2TrafoSize, enum IntraPredMode intraPredMode)
-{
-  if (log2TrafoSize==1 || log2TrafoSize==2) {
-    /**/ if (intraPredMode >=  6 && intraPredMode <= 14) return 2;
-    else if (intraPredMode >= 22 && intraPredMode <= 30) return 1;
-    else return 0;
-  }
-  else { return 0; }
-}
-
-
 enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
                                                   enum IntraChromaPredMode chroma)
 {
@@ -322,15 +316,15 @@ enum IntraPredMode lumaPredMode_to_chromaPredMode(enum IntraPredMode luma,
     if (luma==INTRA_PLANAR) return INTRA_ANGULAR_34;
     else                    return INTRA_PLANAR;
 
-  case INTRA_CHROMA_ANGULAR_26_OR_34:
+  case INTRA_CHROMA_ANGULAR_26_OR_34: // vertical
     if (luma==INTRA_ANGULAR_26) return INTRA_ANGULAR_34;
     else                        return INTRA_ANGULAR_26;
 
-  case INTRA_CHROMA_ANGULAR_10_OR_34:
+  case INTRA_CHROMA_ANGULAR_10_OR_34: // horizontal
     if (luma==INTRA_ANGULAR_10) return INTRA_ANGULAR_34;
     else                        return INTRA_ANGULAR_10;
 
-  case INTRA_CHROMA_DC_OR_34:
+  case INTRA_CHROMA_DC_OR_34: // diagonal (down, left)
     if (luma==INTRA_DC)         return INTRA_ANGULAR_34;
     else                        return INTRA_DC;
   }

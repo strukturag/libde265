@@ -82,13 +82,13 @@ void ref_pic_set::compute_derived_values()
    When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
-bool read_short_term_ref_pic_set(error_queue* errqueue,
-                                 const seq_parameter_set* sps,
-                                 bitreader* br,
-                                 ref_pic_set* out_set, // where to store the read set
-                                 int idxRps,  // index of the set to be read
-                                 const std::vector<ref_pic_set>& sets, // previously read sets
-                                 bool sliceRefPicSet) // is this in the slice header?
+de265_error read_short_term_ref_pic_set(error_queue* errqueue,
+                                        const seq_parameter_set* sps,
+                                        bitreader* br,
+                                        ref_pic_set* out_set, // where to store the read set
+                                        int idxRps,  // index of the set to be read
+                                        const std::vector<ref_pic_set>& sets, // previously read sets
+                                        bool sliceRefPicSet) // is this in the slice header?
 {
   // --- is this set coded in prediction mode (not possible for the first set)
 
@@ -113,11 +113,11 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       delta_idx = vlc = get_uvlc(br);
       if (delta_idx==UVLC_ERROR) {
-        return false;
+        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
       }
 
       if (delta_idx>=idxRps) {
-        return false;
+        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
       }
 
       delta_idx++;
@@ -130,7 +130,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     int delta_rps_sign = get_bits(br,1);
     int abs_delta_rps  = vlc = get_uvlc(br);
-    if (vlc==UVLC_ERROR) { return false; }
+    if (vlc==UVLC_ERROR) {
+      return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+    }
     abs_delta_rps++;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
 
@@ -176,7 +178,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
-        if (i>= MAX_NUM_REF_PICS) { return false; }
+        if (i>= MAX_NUM_REF_PICS) {
+          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        }
 
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
@@ -186,7 +190,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // frame 0
     if (DeltaRPS<0 && use_delta_flag[nDeltaPocsRIdx]) {
-      if (i>= MAX_NUM_REF_PICS) { return false; }
+      if (i>= MAX_NUM_REF_PICS) {
+        return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+      }
 
       out_set->DeltaPocS0[i] = DeltaRPS;
       out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
@@ -197,7 +203,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=0;j<nNegativeRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc<0 && use_delta_flag[j]) {
-        if (i>= MAX_NUM_REF_PICS) { return false; }
+        if (i>= MAX_NUM_REF_PICS) {
+          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        }
 
         out_set->DeltaPocS0[i] = dPoc;
         out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[j];
@@ -217,7 +225,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=nNegativeRIdx-1;j>=0;j--) {
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[j]) {
-        if (i>= MAX_NUM_REF_PICS) { return false; }
+        if (i>= MAX_NUM_REF_PICS) {
+          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        }
 
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[j];
@@ -227,7 +237,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // frame 0
     if (DeltaRPS>0 && use_delta_flag[nDeltaPocsRIdx]) {
-      if (i>= MAX_NUM_REF_PICS) { return false; }
+      if (i>= MAX_NUM_REF_PICS) {
+        return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+      }
 
       out_set->DeltaPocS1[i] = DeltaRPS;
       out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
@@ -238,7 +250,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     for (int j=0;j<nPositiveRIdx;j++) {
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[nNegativeRIdx+j]) {
-        if (i>= MAX_NUM_REF_PICS) { return false; }
+        if (i>= MAX_NUM_REF_PICS) {
+          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        }
 
         out_set->DeltaPocS1[i] = dPoc;
         out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
@@ -265,13 +279,13 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       out_set->NumPocTotalCurr_shortterm_only = 0;
 
       errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-      return false;
+      return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
     }
 
     if (num_negative_pics > MAX_NUM_REF_PICS ||
         num_positive_pics > MAX_NUM_REF_PICS) {
       errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-      return false;
+      return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
     }
 
     out_set->NumNegativePics = num_negative_pics;
@@ -284,7 +298,10 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     int lastPocS=0;
     for (int i=0;i<num_negative_pics;i++) {
       int  delta_poc_s0 = get_uvlc(br);
-      if (delta_poc_s0==UVLC_ERROR) { return false; }
+      if (delta_poc_s0==UVLC_ERROR) {
+          return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+      }
+
       delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
@@ -298,7 +315,10 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     lastPocS=0;
     for (int i=0;i<num_positive_pics;i++) {
       int  delta_poc_s1 = get_uvlc(br);
-      if (delta_poc_s1==UVLC_ERROR) { return false; }
+      if (delta_poc_s1==UVLC_ERROR) {
+        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+      }
+
       delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
@@ -311,7 +331,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
   out_set->compute_derived_values();
 
-  return true;
+  return DE265_OK;
 }
 
 

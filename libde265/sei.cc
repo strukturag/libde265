@@ -37,7 +37,7 @@ static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message*
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
 
   if (sps==NULL) {
-    return DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI;
+    return DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING;
   }
 
   int nHashes = sps->chroma_format_idc==0 ? 1 : 3;
@@ -312,7 +312,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
         for (int b=0;b<16;b++) {
           if (md5[b] != seihash->md5[i][b]) {
             fprintf(stderr,"SEI decoded picture MD5 mismatch (POC=%d)\n", img->PicOrderCntVal);
-            return DE265_ERROR_CHECKSUM_MISMATCH;
+            return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
           }
         }
       }
@@ -328,7 +328,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
         if (crc != seihash->crc[i]) {
           fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
                   seihash->crc[i], crc, img->PicOrderCntVal);
-          return DE265_ERROR_CHECKSUM_MISMATCH;
+          return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
         }
       }
       break;
@@ -340,7 +340,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
         if (chksum != seihash->checksum[i]) {
           fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
                   seihash->checksum[i], chksum, img->PicOrderCntVal);
-          return DE265_ERROR_CHECKSUM_MISMATCH;
+          return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
         }
       }
       break;

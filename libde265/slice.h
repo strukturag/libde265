@@ -135,8 +135,7 @@ public:
   }
 
   de265_error read(bitreader* br, decoder_context*,
-                   uint8_t nal_unit_type,
-                   bool* continueDecoding);
+                   uint8_t nal_unit_type);
   de265_error write(error_queue*, CABAC_encoder&,
                     const seq_parameter_set* sps,
                     const pic_parameter_set* pps,
@@ -290,7 +289,7 @@ typedef struct {
 
 de265_error read_slice_segment_data(thread_context* tctx);
 
-bool alloc_and_init_significant_coeff_ctxIdx_lookupTable();
+de265_error alloc_and_init_significant_coeff_ctxIdx_lookupTable();
 void free_significant_coeff_ctxIdx_lookupTable();
 
 
