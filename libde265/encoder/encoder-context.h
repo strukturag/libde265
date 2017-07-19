@@ -203,7 +203,7 @@ class encoder_context : public base_context
 class encoder_context_scc
 {
  public:
-  encoder_context_scc() { }
+  encoder_context_scc();
 
 
   void push_image(image_ptr);
@@ -222,13 +222,22 @@ class encoder_context_scc
   std::shared_ptr<seq_parameter_set>    sps;
   std::shared_ptr<pic_parameter_set>    pps;
 
+  enum {
+    Uninitialized,
+    Encoding,
+    Finished
+  } state = Uninitialized;
+
+  void set_image_parameters(image_ptr);
+  void send_headers();
+
 
   // --- CABAC output and rate estimation ---
 
   CABAC_encoder_bitstream cabac_encoder;
   context_model_table     cabac_ctx_models;
 
-  void copy_encoded_data_into_packet(en265_packet_content_type);
+  en265_packet* copy_encoded_data_into_packet(en265_packet_content_type);
 
   std::deque<en265_packet*> output_packets;
 };

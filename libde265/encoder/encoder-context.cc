@@ -534,9 +534,25 @@ double encode_image(encoder_context* ectx,
 }
 
 
+encoder_context_scc::encoder_context_scc()
+{
+  vps = std::make_shared<video_parameter_set>();
+  sps = std::make_shared<seq_parameter_set>();
+  pps = std::make_shared<pic_parameter_set>();
+
+  vps->set_defaults(Profile_Main, 6,2);
+}
+
+
 void encoder_context_scc::push_image(image_ptr img)
 {
   printf("%d %d\n",img->get_width(), img->get_height());
+
+  if (state == Uninitialized) {
+    set_image_parameters(img);
+    send_headers();
+    state=Encoding;
+  }
 }
 
 
@@ -553,7 +569,59 @@ en265_packet* encoder_context_scc::get_next_packet()
 }
 
 
-void encoder_context_scc::copy_encoded_data_into_packet(en265_packet_content_type type)
+void encoder_context_scc::set_image_parameters(image_ptr img)
+{
+  switch (img->get_chroma_format()) {
+  case de265_chroma_mono: sps->chroma_format_idc = CHROMA_MONO; break;
+  case de265_chroma_420:  sps->chroma_format_idc = CHROMA_420;  break;
+  case de265_chroma_422:  sps->chroma_format_idc = CHROMA_422;  break;
+  case de265_chroma_444:  sps->chroma_format_idc = CHROMA_444;  break;
+    // TODO: CHROMA_444_SEPARATE
+  }
+
+  sps->pic_width_in_luma_samples = img->get_width();
+  sps->pic_height_in_luma_samples = img->get_height();
+}
+
+
+void encoder_context_scc::send_headers()
+{
+  nal_header nal;
+
+  // write headers
+
+  en265_packet* pck;
+
+  nal.set(NAL_UNIT_VPS_NUT);
+  nal.write(cabac_encoder);
+  vps->write(nullptr, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = copy_encoded_data_into_packet(EN265_PACKET_VPS);
+  pck->nal_unit_type = EN265_NUT_VPS;
+  output_packets.push_back(pck);
+
+  nal.set(NAL_UNIT_SPS_NUT);
+  nal.write(cabac_encoder);
+  sps->write(nullptr, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = copy_encoded_data_into_packet(EN265_PACKET_SPS);
+  pck->nal_unit_type = EN265_NUT_SPS;
+  output_packets.push_back(pck);
+
+  nal.set(NAL_UNIT_PPS_NUT);
+  nal.write(cabac_encoder);
+  pps->write(nullptr, cabac_encoder, sps.get());
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = copy_encoded_data_into_packet(EN265_PACKET_PPS);
+  pck->nal_unit_type = EN265_NUT_PPS;
+  output_packets.push_back(pck);
+}
+
+
+en265_packet* encoder_context_scc::copy_encoded_data_into_packet(en265_packet_content_type type)
 {
   en265_packet* pck = new en265_packet;
 
@@ -579,5 +647,5 @@ void encoder_context_scc::copy_encoded_data_into_packet(en265_packet_content_typ
 //pck->input_image = NULL;
 //  pck->reconstruction = NULL;
 
-  output_packets.push_back(pck);
+  return pck;
 }

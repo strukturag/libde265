@@ -179,6 +179,7 @@ void seq_parameter_set::set_defaults(enum PresetSet)
 
 void seq_parameter_set::set_CB_log2size_range(int mini,int maxi)
 {
+  assert(maxi >= mini);
   log2_min_luma_coding_block_size = mini;
   log2_diff_max_min_luma_coding_block_size = maxi-mini;
 }
@@ -186,6 +187,7 @@ void seq_parameter_set::set_CB_log2size_range(int mini,int maxi)
 
 void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
 {
+  assert(maxi >= mini);
   log2_min_transform_block_size = mini;
   log2_diff_max_min_transform_block_size = maxi-mini;
 }
@@ -193,6 +195,8 @@ void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
 
 void seq_parameter_set::set_resolution(int w,int h)
 {
+  assert(w>0);
+  assert(h>0);
   pic_width_in_luma_samples  = w;
   pic_height_in_luma_samples = h;
 }
