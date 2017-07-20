@@ -211,7 +211,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
       trafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && trafoDepth==0))
     {
-      encode_split_transform_flag(ectx, &estim, log2TbSize, 0);
+      encode_split_transform_flag(&estim, log2TbSize, 0);
       tb->rate_withoutCbfChroma += estim.getRDBits();
       estim.reset();
     }

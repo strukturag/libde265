@@ -141,7 +141,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
     // add rate for split flag
     if (split_type == OptionalSplit) {
-      encode_split_cu_flag(ectx,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
+      encode_split_cu_flag(&ectx->ctbs,opt.get_cabac(), cb->x,cb->y, cb->ctDepth, 0);
       cb->rate += opt.get_cabac_rate();
     }
 
@@ -161,7 +161,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
     // add rate for split flag
     if (split_type == OptionalSplit) {
-      encode_split_cu_flag(ectx,option_split.get_cabac(), cb->x,cb->y, cb->ctDepth, 1);
+      encode_split_cu_flag(&ectx->ctbs,option_split.get_cabac(), cb->x,cb->y, cb->ctDepth, 1);
       cb->rate += option_split.get_cabac_rate();
     }
 

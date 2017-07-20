@@ -327,6 +327,7 @@ double encode_image(encoder_context* ectx,
                     std::shared_ptr<const image> input,
                     EncoderCore& algo)
 {
+#if 0
   int stride=input->get_image_stride(0);
 
   int w = ectx->get_sps().pic_width_in_luma_samples;
@@ -531,6 +532,8 @@ double encode_image(encoder_context* ectx,
 #endif
 
   return psnr;
+#endif
+  return 0.0; // TMP
 }
 
 
@@ -544,16 +547,17 @@ encoder_context_scc::encoder_context_scc()
 
   sps->set_CB_size_range(16,16);
   sps->set_PCM_size_range(16,16);
+  sps->pcm_enabled_flag = true;
 
+  pps->set_defaults();
   pps->pic_disable_deblocking_filter_flag = 1;
   pps->pps_loop_filter_across_slices_enabled_flag = false;
+  pps->sps = sps;
 }
 
 
 void encoder_context_scc::push_image(image_ptr img)
 {
-  printf("%d %d\n",img->get_width(), img->get_height());
-
   if (state == Uninitialized) {
     set_image_parameters(img);
     send_headers();
@@ -563,36 +567,37 @@ void encoder_context_scc::push_image(image_ptr img)
 
   // encode slice header
 
-  slice_segment_header shdr; // TODO: multi-slice pictures
-  shdr.slice_type = SLICE_TYPE_I;
-  shdr.slice_pic_order_cnt_lsb = 0; // TODO get_pic_order_count_lsb();
-  shdr.slice_deblocking_filter_disabled_flag = true;
-  shdr.slice_loop_filter_across_slices_enabled_flag = false;
-  shdr.compute_derived_values(pps.get());
+  // TODO: multi-slice pictures
+  std::shared_ptr<slice_segment_header> shdr = std::make_shared<slice_segment_header>();
+  shdr->slice_type = SLICE_TYPE_I;
+  shdr->slice_pic_order_cnt_lsb = 0; // TODO get_pic_order_count_lsb();
+  shdr->slice_deblocking_filter_disabled_flag = true;
+  shdr->slice_loop_filter_across_slices_enabled_flag = false;
+  shdr->first_slice_segment_in_pic_flag = true;
+  shdr->set_pps(pps); //get_pps_ptr() );
 
-  shdr.set_pps(pps); //get_pps_ptr() );
+  shdr->compute_derived_values(pps.get());
+
 
   nal_header nal(NAL_UNIT_IDR_N_LP);
   nal.write(cabac_encoder);
-  shdr.write(nullptr, cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
+  shdr->write(nullptr, cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
-
-  en265_packet* pck = copy_encoded_data_into_packet(EN265_PACKET_SLICE);
-  pck->nal_unit_type = EN265_NUT_IDR_N_LP;
-  output_packets.push_back(pck);
-
 
 
   // initialize CABAC models
 
-  cabac_ctx_models.init(shdr.initType, shdr.SliceQPY);
+  cabac_ctx_models.init(shdr->initType, shdr->SliceQPY);
   cabac_encoder.set_context_models(&cabac_ctx_models);
 
 
-  // encoder image
+  // encode image
 
-  ctbs.alloc(img->get_width(), img->get_height(), Log2(sps->Log2CtbSizeY));
+  ctbs.alloc(img->get_width(), img->get_height(), sps->Log2CtbSizeY);
+  uint16_t sliceHeaderID = ctbs.add_slice_header(shdr);
+  ctbs.set_pps(pps);
+  ctbs.set_input_image(img);
 
   for (int y=0;y<sps->PicHeightInCtbsY;y++)
     for (int x=0;x<sps->PicWidthInCtbsY;x++) {
@@ -604,13 +609,33 @@ void encoder_context_scc::push_image(image_ptr img)
 
       enc_cb* cb = new enc_cb();
       cb->log2Size = sps->Log2CtbSizeY;
-      cb->ctDepth = 0;
       cb->x = x0;
       cb->y = y0;
+
+      cb->split_cu_flag = 0;
+      cb->ctDepth = 0;
+
       cb->qp = 0; // TODO ectx->active_qp;
       cb->cu_transquant_bypass_flag = false;
       cb->pcm_flag = true;
+
+      cb->PredMode = MODE_INTRA;
+      cb->PartMode = PART_2Nx2N;
+
+      cb->intra.pcm_data_ptr[0] = img->get_image_plane_at_pos(0, x0,y0);
+      cb->intra.pcm_data_ptr[1] = img->get_image_plane_at_pos(1, x0,y0);
+      cb->intra.pcm_data_ptr[2] = img->get_image_plane_at_pos(2, x0,y0);
+
+      ctbs.setCTB(x,y, cb);
+      ctbs.set_slice_header_id(x,y, sliceHeaderID);
+
+      ctbs.encode_ctb(&cabac_encoder, x,y);
     }
+
+
+  en265_packet* pck = copy_encoded_data_into_packet(EN265_PACKET_SLICE);
+  pck->nal_unit_type = EN265_NUT_IDR_N_LP;
+  output_packets.push_back(pck);
 }
 
 
@@ -646,6 +671,8 @@ void encoder_context_scc::set_image_parameters(image_ptr img)
     printf("ERR: %d\n",err);
     exit(10);
   }
+
+  pps->set_derived_values(sps.get());
 }
 
 

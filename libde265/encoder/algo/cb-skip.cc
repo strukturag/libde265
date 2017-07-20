@@ -59,7 +59,7 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     // calc rate for skip flag (=true)
 
     CABAC_encoder_estim* cabac = opt.get_cabac();
-    encode_cu_skip_flag(ectx, cabac, cb, true);
+    encode_cu_skip_flag(&ectx->ctbs, cabac, cb, true);
     float rate_pred_mode = cabac->getRDBits();
     cabac->reset();
 
@@ -93,7 +93,7 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
 
     if (try_skip) {
       CABAC_encoder_estim* cabac = opt.get_cabac();
-      encode_cu_skip_flag(ectx, cabac, cb, false);
+      encode_cu_skip_flag(&ectx->ctbs, cabac, cb, false);
       rate_pred_mode = cabac->getRDBits();
       cabac->reset();
     }

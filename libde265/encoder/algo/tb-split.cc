@@ -360,7 +360,7 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
       TrafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && TrafoDepth==0))
     {
-      encode_split_transform_flag(ectx, &estim, log2TbSize, 1);
+      encode_split_transform_flag(&estim, log2TbSize, 1);
       tb->rate_withoutCbfChroma += estim.getRDBits();
       estim.reset();
     }

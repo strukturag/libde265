@@ -139,7 +139,7 @@ enc_cb* Algo_CB_MergeIndex_Fixed::analyze(encoder_context* ectx,
 
     CABAC_encoder_estim cabac;
     cabac.set_context_models(&ctxModel);
-    encode_merge_idx(ectx, &cabac, spec.merge_idx);
+    encode_merge_idx(ectx->shdr, &cabac, spec.merge_idx);
 
     leaf(cb,"no residual");
 

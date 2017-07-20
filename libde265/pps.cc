@@ -522,6 +522,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
     // set columns widths
 
     std::vector<int> colPos(num_tile_columns+1);
+    colWidth.resize(num_tile_columns);
 
     for (int i=0;i<=num_tile_columns;i++) {
       colPos[i] = i*sps->PicWidthInCtbsY / num_tile_columns;
@@ -533,6 +534,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
     // set row heights
 
     std::vector<int> rowPos(num_tile_rows+1);
+    rowHeight.resize(num_tile_rows);
 
     for (int i=0;i<=num_tile_rows;i++) {
       rowPos[i] = i*sps->PicHeightInCtbsY / num_tile_rows;

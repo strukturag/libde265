@@ -27,6 +27,7 @@
 #include "intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
+#include "libde265/encoder/encoder-syntax.h"
 #include <iostream>
 
 
@@ -640,6 +641,7 @@ void CTBTreeMatrix::alloc(int w,int h, int log2CtbSize)
   mLog2CtbSize = log2CtbSize;
 
   mCTBs.resize(mWidthCtbs * mHeightCtbs, NULL);
+  mSliceIndex.resize(mWidthCtbs * mHeightCtbs, 0);
 }
 
 
@@ -704,6 +706,39 @@ const enc_pb_inter* CTBTreeMatrix::getPB(int x,int y) const
 }
 
 
+bool CTBTreeMatrix::check_CTB_available(int xC,int yC, int xN, int yN) const
+{
+  // check whether neighbor is outside of frame
+
+  if (xN < 0 || yN < 0) { return false; }
+  if (xN >= mPPS->sps->pic_width_in_luma_samples)  { return false; }
+  if (yN >= mPPS->sps->pic_height_in_luma_samples) { return false; }
+
+
+  int xC_ctb = xC >> mLog2CtbSize;
+
+
+  int current_ctbAddrRS  = (xC>>mLog2CtbSize) + mWidthCtbs*(yC>>mLog2CtbSize);
+  int neighbor_ctbAddrRS = (xN>>mLog2CtbSize) + mWidthCtbs*(yN>>mLog2CtbSize);
+
+  // TODO: check if this is correct (6.4.1)
+
+  if (mSliceIndex[current_ctbAddrRS] !=
+      mSliceIndex[neighbor_ctbAddrRS]) {
+    return false;
+  }
+
+  // check if both CTBs are in the same tile.
+
+  if (mPPS->TileIdRS[current_ctbAddrRS] !=
+      mPPS->TileIdRS[neighbor_ctbAddrRS]) {
+    return false;
+  }
+
+  return true;
+}
+
+
 void CTBTreeMatrix::writeReconstructionToImage(image* img,
                                                const seq_parameter_set* sps) const
 {
@@ -712,6 +747,13 @@ void CTBTreeMatrix::writeReconstructionToImage(image* img,
     cb->writeReconstructionToImage(img, sps);
   }
 }
+
+
+void CTBTreeMatrix::encode_ctb(CABAC_encoder* cabac, int ctbX,int ctbY)
+{
+  ::encode_ctb(this, cabac, mCTBs[ctbX + ctbY*mWidthCtbs], ctbX, ctbY);
+}
+
 
 void enc_cb::writeReconstructionToImage(image* img,
                                         const seq_parameter_set* sps) const

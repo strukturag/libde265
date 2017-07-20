@@ -656,7 +656,7 @@ void CABAC_encoder_bitstream::flush_CABAC()
 
 void CABAC_encoder_bitstream::write_out()
 {
-  //logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
+  logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;
   low &= 0xffffffffu >> bits_left;

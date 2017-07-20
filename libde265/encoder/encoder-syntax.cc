@@ -93,7 +93,7 @@ float recursive_cbfChroma_rate(CABAC_encoder_estim* cabac,
 
 
 
-void encode_split_cu_flag(encoder_context* ectx,
+void encode_split_cu_flag(const CTBTreeMatrix* ctbs,
                           CABAC_encoder* cabac,
                           int x0, int y0, int ctDepth, int split_flag)
 {
@@ -101,14 +101,14 @@ void encode_split_cu_flag(encoder_context* ectx,
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(ectx->img.get(), x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(ectx->img.get(), x0,y0, x0,y0-1);
+  int availableL = ctbs->check_CTB_available(x0,y0, x0-1,y0);
+  int availableA = ctbs->check_CTB_available(x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ectx->ctbs.getCB(x0-1,y0)->ctDepth > ctDepth) condL=1;
-  if (availableA && ectx->ctbs.getCB(x0,y0-1)->ctDepth > ctDepth) condA=1;
+  if (availableL && ctbs->getCB(x0-1,y0)->ctDepth > ctDepth) condL=1;
+  if (availableA && ctbs->getCB(x0,y0-1)->ctDepth > ctDepth) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
@@ -121,7 +121,7 @@ void encode_split_cu_flag(encoder_context* ectx,
 }
 
 
-void encode_part_mode(encoder_context* ectx,
+void encode_part_mode(const seq_parameter_set* sps,
                       CABAC_encoder* cabac,
                       enum PredMode PredMode, enum PartMode PartMode, int cLog2CbSize)
 {
@@ -141,8 +141,8 @@ void encode_part_mode(encoder_context* ectx,
       cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, 0);
     }
 
-    if (cLog2CbSize > ectx->get_sps().Log2MinCbSizeY) {
-      if (ectx->get_sps().amp_enabled_flag) {
+    if (cLog2CbSize > sps->Log2MinCbSizeY) {
+      if (sps->amp_enabled_flag) {
         switch (PartMode) {
         case PART_2NxN:
           cabac->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+1, 1);
@@ -213,8 +213,7 @@ void encode_part_mode(encoder_context* ectx,
 }
 
 
-static void encode_pred_mode_flag(encoder_context* ectx,
-                                  CABAC_encoder* cabac,
+static void encode_pred_mode_flag(CABAC_encoder* cabac,
                                   enum PredMode PredMode)
 {
   logtrace(LogSlice,"> pred_mode = %d\n",PredMode);
@@ -227,8 +226,7 @@ static void encode_pred_mode_flag(encoder_context* ectx,
 }
 
 
-static void encode_prev_intra_luma_pred_flag(encoder_context* ectx,
-                                             CABAC_encoder* cabac,
+static void encode_prev_intra_luma_pred_flag(CABAC_encoder* cabac,
                                              int intraPred)
 {
   logtrace(LogSymbols,"$1 prev_intra_luma_pred_flag=%d\n",intraPred>=0);
@@ -239,8 +237,7 @@ static void encode_prev_intra_luma_pred_flag(encoder_context* ectx,
   cabac->write_CABAC_bit(CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG, bin);
 }
 
-static void encode_intra_mpm_or_rem(encoder_context* ectx,
-                                    CABAC_encoder* cabac,
+static void encode_intra_mpm_or_rem(CABAC_encoder* cabac,
                                     int intraPred)
 {
   if (intraPred>=0) {
@@ -257,8 +254,7 @@ static void encode_intra_mpm_or_rem(encoder_context* ectx,
 }
 
 
-static void encode_intra_chroma_pred_mode(encoder_context* ectx,
-                                          CABAC_encoder* cabac,
+static void encode_intra_chroma_pred_mode(CABAC_encoder* cabac,
                                           int mode)
 {
   logtrace(LogSymbols,"$1 intra_chroma_pred_mode=%d\n",mode);
@@ -310,8 +306,7 @@ enum IntraChromaPredMode find_chroma_pred_mode(enum IntraPredMode chroma_mode,
 
 
 
-void encode_split_transform_flag(encoder_context* ectx,
-                                 CABAC_encoder* cabac,
+void encode_split_transform_flag(CABAC_encoder* cabac,
                                  int log2TrafoSize, int split_flag)
 {
   logtrace(LogSymbols,"$1 split_transform_flag=%d\n",split_flag);
@@ -348,8 +343,7 @@ void encode_cbf_chroma(CABAC_encoder* cabac,
   cabac->write_CABAC_bit(CONTEXT_MODEL_CBF_CHROMA + context, cbf_chroma);
 }
 
-static inline void encode_coded_sub_block_flag(encoder_context* ectx,
-                                               CABAC_encoder* cabac,
+static inline void encode_coded_sub_block_flag(CABAC_encoder* cabac,
                                                int cIdx,
                                                uint8_t coded_sub_block_neighbors,
                                                int flag)
@@ -369,8 +363,7 @@ static inline void encode_coded_sub_block_flag(encoder_context* ectx,
   cabac->write_CABAC_bit(CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc, flag);
 }
 
-static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
-                                                        CABAC_encoder* cabac,
+static inline void encode_significant_coeff_flag_lookup(CABAC_encoder* cabac,
                                                         uint8_t ctxIdxInc,
                                                         int significantFlag)
 {
@@ -381,8 +374,7 @@ static inline void encode_significant_coeff_flag_lookup(encoder_context* ectx,
   cabac->write_CABAC_bit(CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc, significantFlag);
 }
 
-static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
-                                                   CABAC_encoder* cabac,
+static inline void encode_coeff_abs_level_greater1(CABAC_encoder* cabac,
                                                    int cIdx, int i,
                                                    bool firstCoeffInSubblock,
                                                    bool firstSubblock,
@@ -445,8 +437,7 @@ static inline void encode_coeff_abs_level_greater1(encoder_context* ectx,
   *lastInvocation_ctxSet = ctxSet;
 }
 
-static void encode_coeff_abs_level_greater2(encoder_context* ectx,
-                                            CABAC_encoder* cabac,
+static void encode_coeff_abs_level_greater2(CABAC_encoder* cabac,
                                             int cIdx, // int i,int n,
                                             int ctxSet,
                                             int value)
@@ -534,8 +525,7 @@ int blamain()
 }
 
 
-static void encode_coeff_abs_level_remaining(encoder_context* ectx,
-                                             CABAC_encoder* cabac,
+static void encode_coeff_abs_level_remaining(CABAC_encoder* cabac,
                                              int cRiceParam,
                                              int level)
 {
@@ -653,8 +643,7 @@ bool subblock_has_nonzero_coefficient(const int16_t* coeff, int coeffStride,
   6   0    2   |   8, 9,10,11
   7   1    2   |  12,13,14,15
 */
-void encode_last_signficiant_coeff_prefix(encoder_context* ectx,
-                                          CABAC_encoder* cabac,
+void encode_last_signficiant_coeff_prefix(CABAC_encoder* cabac,
                                           int log2TrafoSize,
                                           int cIdx, int lastSignificant,
                                           int context_model_index)
@@ -728,20 +717,19 @@ extern uint8_t* ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx *
 /* These values are read from the image metadata:
    - intra prediction mode (x0;y0)
  */
-void encode_residual(encoder_context* ectx,
+void encode_residual(const CTBTreeMatrix* ctbs,
                      CABAC_encoder* cabac,
                      const enc_tb* tb, const enc_cb* cb,
                      int x0,int y0,int log2TrafoSize,int cIdx)
 {
   logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
 
-  const image* img = ectx->img.get();
-  const seq_parameter_set& sps = img->get_sps();
-  const pic_parameter_set& pps = img->get_pps();
+  const seq_parameter_set* sps = ctbs->get_sps().get();
+  const pic_parameter_set* pps = ctbs->get_pps().get();
 
   int16_t* coeff = tb->coeff[cIdx];
 
-  if (pps.transform_skip_enabled_flag && true /* TODO */) {
+  if (pps->transform_skip_enabled_flag && true /* TODO */) {
   }
 
 
@@ -765,11 +753,11 @@ void encode_residual(encoder_context* ectx,
 
   if (PredMode == MODE_INTRA) {
     if (cIdx==0) {
-      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode,  cIdx, &sps);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode,  cIdx, sps);
       //printf("luma scan idx=%d <- intra mode=%d\n",scanIdx, tb->intra_mode);
     }
     else {
-      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode_chroma,  cIdx, &sps);
+      scanIdx = get_intra_scan_idx(log2TrafoSize, tb->intra_mode_chroma,  cIdx, sps);
       //printf("chroma scan idx=%d <- intra mode=%d chroma:%d trsize:%d\n",scanIdx,
       //       tb->intra_mode_chroma, sps.chroma_format_idc, 1<<log2TrafoSize);
     }
@@ -805,10 +793,10 @@ void encode_residual(encoder_context* ectx,
   split_last_significant_position(codedSignificantX, &prefixX,&suffixX,&suffixBitsX);
   split_last_significant_position(codedSignificantY, &prefixY,&suffixY,&suffixBitsY);
 
-  encode_last_signficiant_coeff_prefix(ectx, cabac, log2TrafoSize, cIdx, prefixX,
+  encode_last_signficiant_coeff_prefix(cabac, log2TrafoSize, cIdx, prefixX,
                                        CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_X_PREFIX);
 
-  encode_last_signficiant_coeff_prefix(ectx, cabac, log2TrafoSize, cIdx, prefixY,
+  encode_last_signficiant_coeff_prefix(cabac, log2TrafoSize, cIdx, prefixY,
                                        CONTEXT_MODEL_LAST_SIGNIFICANT_COEFFICIENT_Y_PREFIX);
 
 
@@ -860,7 +848,7 @@ void encode_residual(encoder_context* ectx,
 
     if ((i<lastSubBlock) && (i>0)) {
       sub_block_is_coded = subblock_has_nonzero_coefficient(coeff, CoeffStride, S);
-      encode_coded_sub_block_flag(ectx, cabac, cIdx,
+      encode_coded_sub_block_flag(cabac, cIdx,
                                   coded_sub_block_neighbors[S.x+S.y*sbWidth],
                                   sub_block_is_coded);
       inferSbDcSigCoeffFlag=1;
@@ -933,7 +921,7 @@ void encode_residual(encoder_context* ectx,
         logtrace(LogSlice,"trafoSize: %d\n",1<<log2TrafoSize);
         logtrace(LogSlice,"context idx: %d;%d\n",xC,yC);
 
-        encode_significant_coeff_flag_lookup(ectx, cabac,
+        encode_significant_coeff_flag_lookup(cabac,
                                              ctxIdxMap[xC+(yC<<log2TrafoSize)],
                                              isSignificant);
         //ctxIdxMap[(i<<4)+n]);
@@ -961,7 +949,7 @@ void encode_residual(encoder_context* ectx,
 
             logtrace(LogSlice,"DC coeff is significant: %d\n", isSignificant);
 
-            encode_significant_coeff_flag_lookup(ectx, cabac,
+            encode_significant_coeff_flag_lookup(cabac,
                                                  ctxIdxMap[x0+(y0<<log2TrafoSize)],
                                                  isSignificant);
 
@@ -1027,7 +1015,7 @@ void encode_residual(encoder_context* ectx,
       for (int c=0;c<lastGreater1Coefficient;c++) {
         int greater1_flag = (coeff_value[c]>1);
 
-        encode_coeff_abs_level_greater1(ectx, cabac, cIdx,i,
+        encode_coeff_abs_level_greater1(cabac, cIdx,i,
                                         c==0,
                                         firstSubblock,
                                         lastSubblock_greater1Ctx,
@@ -1062,7 +1050,7 @@ void encode_residual(encoder_context* ectx,
 
       if (newLastGreater1ScanPos != -1) {
         int greater2_flag = (coeff_value[newLastGreater1ScanPos]>2);
-        encode_coeff_abs_level_greater2(ectx,cabac, cIdx, lastInvocation_ctxSet, greater2_flag);
+        encode_coeff_abs_level_greater2(cabac, cIdx, lastInvocation_ctxSet, greater2_flag);
         coeff_baseLevel[newLastGreater1ScanPos] += greater2_flag;
         coeff_has_max_base_level[newLastGreater1ScanPos] = greater2_flag;
       }
@@ -1079,7 +1067,7 @@ void encode_residual(encoder_context* ectx,
       }
 
       // n==nCoefficients-1
-      if (!pps.sign_data_hiding_flag || !signHidden) {
+      if (!pps->sign_data_hiding_flag || !signHidden) {
         cabac->write_CABAC_bypass(coeff_sign[nCoefficients-1]);
         //logtrace(LogSlice,"b) sign[%d] = %d\n", nCoefficients-1, coeff_sign[nCoefficients-1]);
       }
@@ -1102,7 +1090,7 @@ void encode_residual(encoder_context* ectx,
 
           coeff_abs_level_remaining = coeff_value[n] - coeff_baseLevel[n];
 
-          encode_coeff_abs_level_remaining(ectx, cabac, uiGoRiceParam,
+          encode_coeff_abs_level_remaining(cabac, uiGoRiceParam,
                                            coeff_abs_level_remaining);
 
           // (9-462)
@@ -1141,7 +1129,7 @@ void encode_residual(encoder_context* ectx,
 }
 
 
-void encode_transform_unit(encoder_context* ectx,
+void encode_transform_unit(const CTBTreeMatrix* ctbs,
                            CABAC_encoder* cabac,
                            const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
@@ -1150,40 +1138,40 @@ void encode_transform_unit(encoder_context* ectx,
   ESTIM_BITS_BEGIN;
 
   if (tb->cbf[0] || tb->cbf[1] || tb->cbf[2]) {
-    if (ectx->img->get_pps().cu_qp_delta_enabled_flag &&
+    if (ctbs->get_pps()->cu_qp_delta_enabled_flag &&
         true /*!ectx->IsCuQpDeltaCoded*/) {
       assert(0);
     }
 
     if (tb->cbf[0]) {
-      encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,0);
+      encode_residual(ctbs,cabac, tb,cb,x0,y0,log2TrafoSize,0);
     }
 
-    if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+    if (ctbs->get_sps()->chroma_format_idc == CHROMA_444) {
       if (tb->cbf[1]) {
-        encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,1);
+        encode_residual(ctbs,cabac, tb,cb,x0,y0,log2TrafoSize,1);
       }
       if (tb->cbf[2]) {
-        encode_residual(ectx,cabac, tb,cb,x0,y0,log2TrafoSize,2);
+        encode_residual(ctbs,cabac, tb,cb,x0,y0,log2TrafoSize,2);
       }
     }
     else if (log2TrafoSize>2) {
       // larger than 4x4
 
       if (tb->cbf[1]) {
-        encode_residual(ectx,cabac,tb,cb,x0,y0,log2TrafoSize-1,1);
+        encode_residual(ctbs,cabac,tb,cb,x0,y0,log2TrafoSize-1,1);
       }
       if (tb->cbf[2]) {
-        encode_residual(ectx,cabac,tb,cb,x0,y0,log2TrafoSize-1,2);
+        encode_residual(ctbs,cabac,tb,cb,x0,y0,log2TrafoSize-1,2);
       }
     }
     else if (blkIdx==3) {
       // cannot check for tb->parent->cbf[], because this may not yet be set
       if (tb->cbf[1]) {
-        encode_residual(ectx,cabac,tb,cb,xBase,yBase,log2TrafoSize,1);
+        encode_residual(ctbs,cabac,tb,cb,xBase,yBase,log2TrafoSize,1);
       }
       if (tb->cbf[2]) {
-        encode_residual(ectx,cabac,tb,cb,xBase,yBase,log2TrafoSize,2);
+        encode_residual(ctbs,cabac,tb,cb,xBase,yBase,log2TrafoSize,2);
       }
     }
   }
@@ -1192,7 +1180,7 @@ void encode_transform_unit(encoder_context* ectx,
 }
 
 
-void encode_transform_tree(encoder_context* ectx,
+void encode_transform_tree(const CTBTreeMatrix* ctbs,
                            CABAC_encoder* cabac,
                            const enc_tb* tb, const enc_cb* cb,
                            int x0,int y0, int xBase,int yBase,
@@ -1202,21 +1190,21 @@ void encode_transform_tree(encoder_context* ectx,
   ESTIM_BITS_BEGIN;
 
   //image* img = ectx->img;
-  const seq_parameter_set& sps = ectx->img->get_sps();
+  const seq_parameter_set* sps = ctbs->get_sps().get();
 
-  if (log2TrafoSize <= sps.Log2MaxTrafoSize &&
-      log2TrafoSize >  sps.Log2MinTrafoSize &&
+  if (log2TrafoSize <= sps->Log2MaxTrafoSize &&
+      log2TrafoSize >  sps->Log2MinTrafoSize &&
       trafoDepth < MaxTrafoDepth &&
       !(IntraSplitFlag && trafoDepth==0))
     {
       int split_transform_flag = tb->split_transform_flag;
-      encode_split_transform_flag(ectx, cabac, log2TrafoSize, split_transform_flag);
+      encode_split_transform_flag(cabac, log2TrafoSize, split_transform_flag);
     }
   else
     {
       int interSplitFlag=0; // TODO
 
-      bool split_transform_flag = (log2TrafoSize > sps.Log2MaxTrafoSize ||
+      bool split_transform_flag = (log2TrafoSize > sps->Log2MaxTrafoSize ||
                                    (IntraSplitFlag==1 && trafoDepth==0) ||
                                    interSplitFlag==1) ? 1:0;
 
@@ -1235,7 +1223,7 @@ void encode_transform_tree(encoder_context* ectx,
 
   // For 4x4 luma, there is no signaling of chroma CBF, because only the
   // chroma CBF for 8x8 is relevant.
-  if (log2TrafoSize>2 || sps.ChromaArrayType == CHROMA_444) {
+  if (log2TrafoSize>2 || sps->ChromaArrayType == CHROMA_444) {
     if (trafoDepth==0 || tb->parent->cbf[1]) {
       encode_cbf_chroma(cabac, trafoDepth, tb->cbf[1]);
     }
@@ -1249,13 +1237,13 @@ void encode_transform_tree(encoder_context* ectx,
       int x1 = x0 + (1<<(log2TrafoSize-1));
       int y1 = y0 + (1<<(log2TrafoSize-1));
 
-      encode_transform_tree(ectx, cabac, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
+      encode_transform_tree(ctbs, cabac, tb->children[0], cb, x0,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 0, MaxTrafoDepth, IntraSplitFlag, true);
-      encode_transform_tree(ectx, cabac, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
+      encode_transform_tree(ctbs, cabac, tb->children[1], cb, x1,y0,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 1, MaxTrafoDepth, IntraSplitFlag, true);
-      encode_transform_tree(ectx, cabac, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
+      encode_transform_tree(ctbs, cabac, tb->children[2], cb, x0,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 2, MaxTrafoDepth, IntraSplitFlag, true);
-      encode_transform_tree(ectx, cabac, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
+      encode_transform_tree(ctbs, cabac, tb->children[3], cb, x1,y1,x0,y0,log2TrafoSize-1,
                             trafoDepth+1, 3, MaxTrafoDepth, IntraSplitFlag, true);
     }
   }
@@ -1272,35 +1260,33 @@ void encode_transform_tree(encoder_context* ectx,
       // assert(tb->cbf[0]==true);
     }
 
-    encode_transform_unit(ectx,cabac, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
+    encode_transform_unit(ctbs,cabac, tb,cb, x0,y0, xBase,yBase, log2TrafoSize, trafoDepth, blkIdx);
   }
 
   ESTIM_BITS_END("encode_transform_tree");
 }
 
 
-void encode_cu_skip_flag(encoder_context* ectx,
+void encode_cu_skip_flag(const CTBTreeMatrix* ctbs,
                          CABAC_encoder* cabac,
                          const enc_cb* cb,
                          bool skip)
 {
   logtrace(LogSymbols,"$1 cu_skip_flag=%d\n",skip);
 
-  const image* img = ectx->img.get();
-
   int x0 = cb->x;
   int y0 = cb->y;
 
   // check if neighbors are available
 
-  int availableL = check_CTB_available(img, x0,y0, x0-1,y0);
-  int availableA = check_CTB_available(img, x0,y0, x0,y0-1);
+  int availableL = ctbs->check_CTB_available(x0,y0, x0-1,y0);
+  int availableA = ctbs->check_CTB_available(x0,y0, x0,y0-1);
 
   int condL = 0;
   int condA = 0;
 
-  if (availableL && ectx->ctbs.getCB(x0-1,y0)->PredMode == MODE_SKIP) condL=1;
-  if (availableA && ectx->ctbs.getCB(x0,y0-1)->PredMode == MODE_SKIP) condA=1;
+  if (availableL && ctbs->getCB(x0-1,y0)->PredMode == MODE_SKIP) condL=1;
+  if (availableA && ctbs->getCB(x0,y0-1)->PredMode == MODE_SKIP) condA=1;
 
   int contextOffset = condL + condA;
   int context = contextOffset;
@@ -1315,14 +1301,14 @@ void encode_cu_skip_flag(encoder_context* ectx,
 }
 
 
-void encode_merge_idx(encoder_context* ectx,
+void encode_merge_idx(const slice_segment_header* shdr,
                       CABAC_encoder* cabac,
                       int mergeIdx)
 {
   logtrace(LogSymbols,"$1 merge_idx=%d\n",mergeIdx);
   logtrace(LogSlice,"# merge_idx %d\n", mergeIdx);
 
-  if (ectx->shdr->MaxNumMergeCand <= 1) {
+  if (shdr->MaxNumMergeCand <= 1) {
     return; // code nothing, we use only a single merge candidate
   }
 
@@ -1334,7 +1320,7 @@ void encode_merge_idx(encoder_context* ectx,
   if (mergeIdx>0) {
     int idx=1;
 
-    while (idx<ectx->shdr->MaxNumMergeCand-1) {
+    while (idx<shdr->MaxNumMergeCand-1) {
       int increase = (idx < mergeIdx);
 
       cabac->write_CABAC_bypass(increase);
@@ -1349,8 +1335,7 @@ void encode_merge_idx(encoder_context* ectx,
 }
 
 
-static inline void encode_rqt_root_cbf(encoder_context* ectx,
-                                       CABAC_encoder* cabac,
+static inline void encode_rqt_root_cbf(CABAC_encoder* cabac,
                                        int rqt_root_cbf)
 {
   logtrace(LogSymbols,"$1 rqt_root_cbf=%d\n",rqt_root_cbf);
@@ -1358,8 +1343,7 @@ static inline void encode_rqt_root_cbf(encoder_context* ectx,
 }
 
 
-void encode_mvd(encoder_context* ectx,
-                CABAC_encoder* cabac,
+void encode_mvd(CABAC_encoder* cabac,
                 const int16_t mvd[2])
 {
   int mvd0abs = abs_value(mvd[0]);
@@ -1394,7 +1378,7 @@ void encode_mvd(encoder_context* ectx,
 }
 
 
-void encode_prediction_unit(encoder_context* ectx,
+void encode_prediction_unit(const CTBTreeMatrix* ctbs,
                             CABAC_encoder* cabac,
                             const enc_cb* cb, int pbIdx,
                             int x0,int y0, int w, int h)
@@ -1408,17 +1392,19 @@ void encode_prediction_unit(encoder_context* ectx,
     assert(false); // TODO
   }
   else {
-    if (ectx->shdr->slice_type == SLICE_TYPE_B) {
+    const slice_segment_header* shdr = ctbs->get_slice_header(x0,y0).get();
+
+    if (shdr->slice_type == SLICE_TYPE_B) {
       assert(false); // TODO
     }
 
     if (pb.spec.inter_pred_idc != PRED_L1) {
-      if (ectx->shdr->num_ref_idx_l0_active > 1) {
+      if (shdr->num_ref_idx_l0_active > 1) {
         assert(false); // TODO
       //cabac->write_CABAC_bit(CONTEXT_MODEL_REF_IDX_LX, pb.spec.mvp_l0_flag);
       }
 
-      encode_mvd(ectx,cabac, pb.spec.mvd[0]);
+      encode_mvd(cabac, pb.spec.mvd[0]);
 
       logtrace(LogSymbols,"$1 mvp_lx_flag=%d\n",pb.spec.mvp_l0_flag);
       cabac->write_CABAC_bit(CONTEXT_MODEL_MVP_LX_FLAG, pb.spec.mvp_l0_flag);
@@ -1438,15 +1424,43 @@ enum InterPredIdc
 }
 
 
-void encode_coding_unit(encoder_context* ectx,
+void encode_pcm_block(const CTBTreeMatrix* ctbs, CABAC_encoder* cabac, const enc_cb* cb)
+{
+  auto sps = ctbs->get_sps().get();
+  auto img = ctbs->get_input_image();
+
+  int blockSize = (1 << cb->log2Size);
+
+  for (int c=0;c<3;c++) {
+    int stride = img->get_image_stride(c);
+
+    const int shift = 8 - (c==0 ?
+                           sps->pcm_sample_bit_depth_luma :
+                           sps->pcm_sample_bit_depth_chroma);
+
+    for (int y=0;y<blockSize;y++)
+      for (int x=0;x<blockSize;x++) {
+        uint8_t pixel = cb->intra.pcm_data_ptr[c][x + y*stride];
+        pixel >>= shift;
+
+        if (c==0) pixel = 0x12;
+        if (c==1) pixel = 0x23;
+        if (c==2) pixel = 0x34;
+
+        cabac->write_bits(pixel, 8-shift);
+      }
+  }
+}
+
+
+void encode_coding_unit(const CTBTreeMatrix* ctbs,
                         CABAC_encoder* cabac,
                         const enc_cb* cb, int x0,int y0, int log2CbSize, bool recurse)
 {
   logtrace(LogSlice,"--- encode CU (%d;%d) ---\n",x0,y0);
 
-  image* img = ectx->img.get();
-  const slice_segment_header* shdr = &ectx->imgdata->shdr;
-  const seq_parameter_set& sps = ectx->img->get_sps();
+  const slice_segment_header* shdr = ctbs->get_slice_header(x0,y0).get();
+  const seq_parameter_set* sps = ctbs->get_sps().get();
 
 
   int nCbS = 1<<log2CbSize;
@@ -1455,12 +1469,12 @@ void encode_coding_unit(encoder_context* ectx,
   // write skip_flag
 
   if (shdr->slice_type != SLICE_TYPE_I) {
-    encode_cu_skip_flag(ectx,cabac, cb, cb->PredMode==MODE_SKIP);
+    encode_cu_skip_flag(ctbs,cabac, cb, cb->PredMode==MODE_SKIP);
   }
 
   if (cb->PredMode==MODE_SKIP) {
     assert(cb->inter.pb[0].spec.merge_flag);
-    encode_merge_idx(ectx,cabac, cb->inter.pb[0].spec.merge_idx);
+    encode_merge_idx(ctbs->get_slice_header(x0,y0).get(),cabac, cb->inter.pb[0].spec.merge_idx);
   }
   else {
 
@@ -1469,39 +1483,42 @@ void encode_coding_unit(encoder_context* ectx,
     int IntraSplitFlag=0;
 
     if (shdr->slice_type != SLICE_TYPE_I) {
-      encode_pred_mode_flag(ectx,cabac, PredMode);
+      encode_pred_mode_flag(cabac, PredMode);
     }
 
     if (PredMode != MODE_INTRA ||
-        log2CbSize == sps.Log2MinCbSizeY) {
+        log2CbSize == sps->Log2MinCbSizeY) {
       PartMode = cb->PartMode;
-      encode_part_mode(ectx,cabac, PredMode, PartMode, log2CbSize);
+      encode_part_mode(sps,cabac, PredMode, PartMode, log2CbSize);
     }
 
     if (PredMode == MODE_INTRA) {
 
       assert(cb->split_cu_flag == 0);
 
-      int availableA0 = check_CTB_available(img, x0,y0, x0-1,y0);
-      int availableB0 = check_CTB_available(img, x0,y0, x0,y0-1);
+      int availableA0 = ctbs->check_CTB_available(x0,y0, x0-1,y0);
+      int availableB0 = ctbs->check_CTB_available(x0,y0, x0,y0-1);
 
       if (PartMode==PART_2Nx2N &&
-          sps.pcm_enabled_flag &&
-          log2CbSize >= sps.Log2MinIpcmCbSizeY &&
-          log2CbSize <= sps.Log2MaxIpcmCbSizeY) {
+          sps->pcm_enabled_flag &&
+          log2CbSize >= sps->Log2MinIpcmCbSizeY &&
+          log2CbSize <= sps->Log2MaxIpcmCbSizeY) {
         cabac->write_CABAC_term_bit(cb->pcm_flag);
+        cabac->flush_CABAC();
 
         if (cb->pcm_flag) {
-          // TODO
+          encode_pcm_block(ctbs, cabac, cb);
         }
+
+        cabac->flush_VLC();
       }
       else if (PartMode==PART_2Nx2N) {
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
-        int PUidx = (x0>>sps.Log2MinPUSize) + (y0>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+        int PUidx = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
         enum IntraPredMode candModeList[3];
         fill_intraPredMode_candidates_from_tree(candModeList,x0,y0,
-                                                availableA0,availableB0, ectx->ctbs, &sps);
+                                                availableA0,availableB0, *ctbs, sps);
 
         for (int i=0;i<3;i++)
           logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
@@ -1509,8 +1526,8 @@ void encode_coding_unit(encoder_context* ectx,
         enum IntraPredMode mode = cb->transform_tree->intra_mode;
 
         int intraPred = find_intra_pred_mode(mode, candModeList);
-        encode_prev_intra_luma_pred_flag(ectx,cabac, intraPred);
-        encode_intra_mpm_or_rem(ectx,cabac, intraPred);
+        encode_prev_intra_luma_pred_flag(cabac, intraPred);
+        encode_intra_mpm_or_rem(cabac, intraPred);
 
         logtrace(LogSlice,"IntraPredMode: %d (candidates: %d %d %d)\n", mode,
                  candModeList[0], candModeList[1], candModeList[2]);
@@ -1520,7 +1537,7 @@ void encode_coding_unit(encoder_context* ectx,
         IntraChromaPredMode chromaPredMode;
         chromaPredMode = find_chroma_pred_mode(cb->transform_tree->intra_mode_chroma,
                                                cb->transform_tree->intra_mode);
-        encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+        encode_intra_chroma_pred_mode(cabac, chromaPredMode);
       }
       else {
         IntraSplitFlag=1;
@@ -1539,11 +1556,11 @@ void encode_coding_unit(encoder_context* ectx,
               int availableA = availableA0 || (i>0); // left candidate always available for right blk
               int availableB = availableB0 || (j>0); // top candidate always available for bottom blk
 
-              PUidx = (x>>sps.Log2MinPUSize) + (y>>sps.Log2MinPUSize)*sps.PicWidthInMinPUs;
+              PUidx = (x>>sps->Log2MinPUSize) + (y>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
 
               enum IntraPredMode candModeList[3];
               fill_intraPredMode_candidates_from_tree(candModeList,x,y,
-                                                      availableA,availableB, ectx->ctbs, &sps);
+                                                      availableA,availableB, *ctbs, sps);
 
               for (int i=0;i<3;i++)
                 logtrace(LogSlice,"candModeList[%d] = %d\n", i, candModeList[i]);
@@ -1558,28 +1575,28 @@ void encode_coding_unit(encoder_context* ectx,
             }
 
         for (int i=0;i<4;i++)
-          encode_prev_intra_luma_pred_flag(ectx,cabac, intraPred[i]);
+          encode_prev_intra_luma_pred_flag(cabac, intraPred[i]);
 
         for (int i=0;i<4;i++) {
-          encode_intra_mpm_or_rem(ectx,cabac, intraPred[i]);
+          encode_intra_mpm_or_rem(cabac, intraPred[i]);
         }
 
 
         // send chroma mode
 
-        if (sps.ChromaArrayType == CHROMA_444) {
+        if (sps->ChromaArrayType == CHROMA_444) {
           for (int i=0;i<4;i++) {
             IntraChromaPredMode chromaPredMode;
             chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[i]->intra_mode_chroma,
                                                    cb->transform_tree->children[i]->intra_mode);
-            encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+            encode_intra_chroma_pred_mode(cabac, chromaPredMode);
           }
         }
         else {
           IntraChromaPredMode chromaPredMode;
           chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[0]->intra_mode_chroma,
                                                  cb->transform_tree->children[0]->intra_mode);
-          encode_intra_chroma_pred_mode(ectx,cabac, chromaPredMode);
+          encode_intra_chroma_pred_mode(cabac, chromaPredMode);
         }
       }
 
@@ -1592,7 +1609,7 @@ void encode_coding_unit(encoder_context* ectx,
     else {
       switch (cb->PartMode) {
       case PART_2Nx2N:
-        encode_prediction_unit(ectx,cabac,cb, 0, cb->x,cb->y,1<<cb->log2Size,1<<cb->log2Size);
+        encode_prediction_unit(ctbs,cabac,cb, 0, cb->x,cb->y,1<<cb->log2Size,1<<cb->log2Size);
         break;
       case PART_2NxN:
       case PART_Nx2N:
@@ -1606,14 +1623,14 @@ void encode_coding_unit(encoder_context* ectx,
     }
 
 
-    if (true) { // !pcm
+    if (!cb->pcm_flag) { // !pcm
 
       if (cb->PredMode != MODE_INTRA &&
           !(cb->PartMode == PART_2Nx2N && cb->inter.pb[0].spec.merge_flag)) {
 
         //printf("%d %d %d\n",cb->PredMode,cb->PartMode,cb->inter.pb[0].merge_flag);
 
-        encode_rqt_root_cbf(ectx,cabac, cb->inter.rqt_root_cbf);
+        encode_rqt_root_cbf(cabac, cb->inter.rqt_root_cbf);
       }
 
       //printf("%d;%d encode rqt_root_cbf=%d\n",x0,y0,cb->inter.rqt_root_cbf);
@@ -1621,15 +1638,15 @@ void encode_coding_unit(encoder_context* ectx,
       if (cb->PredMode == MODE_INTRA || cb->inter.rqt_root_cbf) {
         int MaxTrafoDepth;
         if (PredMode == MODE_INTRA)
-          { MaxTrafoDepth = sps.max_transform_hierarchy_depth_intra + IntraSplitFlag; }
+          { MaxTrafoDepth = sps->max_transform_hierarchy_depth_intra + IntraSplitFlag; }
         else
-          { MaxTrafoDepth = sps.max_transform_hierarchy_depth_inter; }
+          { MaxTrafoDepth = sps->max_transform_hierarchy_depth_inter; }
 
 
         if (recurse) {
           //printf("%d;%d store transform tree\n",x0,y0);
 
-          encode_transform_tree(ectx,cabac, cb->transform_tree, cb,
+          encode_transform_tree(ctbs,cabac, cb->transform_tree, cb,
                                 x0,y0, x0,y0, log2CbSize, 0, 0, MaxTrafoDepth, IntraSplitFlag, true);
         }
       }
@@ -1668,21 +1685,21 @@ SplitType get_split_type(const seq_parameter_set* sps,
 }
 
 
-void encode_quadtree(encoder_context* ectx,
+void encode_quadtree(const CTBTreeMatrix* ctbs,
                      CABAC_encoder* cabac,
                      const enc_cb* cb, int x0,int y0, int log2CbSize, int ctDepth,
                      bool recurse)
 {
   //image* img = ectx->img;
-  const seq_parameter_set& sps = ectx->img->get_sps();
+  const seq_parameter_set* sps = ctbs->get_sps().get();
 
-  int split_flag = get_split_type(&sps,x0,y0,log2CbSize);
+  int split_flag = get_split_type(sps,x0,y0,log2CbSize);
 
   // if it is an optional split, take the decision from the CU flag
   if (split_flag == OptionalSplit) {
     split_flag = cb->split_cu_flag;
 
-    encode_split_cu_flag(ectx,cabac, x0,y0, ctDepth, split_flag);
+    encode_split_cu_flag(ctbs,cabac, x0,y0, ctDepth, split_flag);
   }
 
 
@@ -1691,28 +1708,28 @@ void encode_quadtree(encoder_context* ectx,
       int x1 = x0 + (1<<(log2CbSize-1));
       int y1 = y0 + (1<<(log2CbSize-1));
 
-      encode_quadtree(ectx,cabac, cb->children[0], x0,y0, log2CbSize-1, ctDepth+1, true);
+      encode_quadtree(ctbs,cabac, cb->children[0], x0,y0, log2CbSize-1, ctDepth+1, true);
 
-      if (x1<sps.pic_width_in_luma_samples)
-        encode_quadtree(ectx,cabac, cb->children[1], x1,y0, log2CbSize-1, ctDepth+1, true);
+      if (x1<sps->pic_width_in_luma_samples)
+        encode_quadtree(ctbs,cabac, cb->children[1], x1,y0, log2CbSize-1, ctDepth+1, true);
 
-      if (y1<sps.pic_height_in_luma_samples)
-        encode_quadtree(ectx,cabac, cb->children[2], x0,y1, log2CbSize-1, ctDepth+1, true);
+      if (y1<sps->pic_height_in_luma_samples)
+        encode_quadtree(ctbs,cabac, cb->children[2], x0,y1, log2CbSize-1, ctDepth+1, true);
 
-      if (x1<sps.pic_width_in_luma_samples &&
-          y1<sps.pic_height_in_luma_samples)
-        encode_quadtree(ectx,cabac, cb->children[3], x1,y1, log2CbSize-1, ctDepth+1, true);
+      if (x1<sps->pic_width_in_luma_samples &&
+          y1<sps->pic_height_in_luma_samples)
+        encode_quadtree(ctbs,cabac, cb->children[3], x1,y1, log2CbSize-1, ctDepth+1, true);
     }
   }
   else {
-    encode_coding_unit(ectx,cabac, cb,x0,y0, log2CbSize, true);
+    encode_coding_unit(ctbs,cabac, cb,x0,y0, log2CbSize, true);
   }
 }
 
 
-void encode_ctb(encoder_context* ectx,
+void encode_ctb(const CTBTreeMatrix* ctbs,
                 CABAC_encoder* cabac,
-                enc_cb* cb, int ctbX,int ctbY)
+                const enc_cb* cb, int ctbX,int ctbY)
 {
   logtrace(LogSlice,"----- encode CTB (%d;%d) -----\n",ctbX,ctbY);
 
@@ -1729,10 +1746,9 @@ void encode_ctb(encoder_context* ectx,
   printf("\n");
 #endif
 
-  image* img = ectx->img.get();
-  int log2ctbSize = img->get_sps().Log2CtbSizeY;
+  int log2ctbSize = ctbs->getLog2CtbSize();
 
-  encode_quadtree(ectx,cabac, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);
+  encode_quadtree(ctbs,cabac, cb, ctbX<<log2ctbSize, ctbY<<log2ctbSize, log2ctbSize, 0, true);
 }
 
 

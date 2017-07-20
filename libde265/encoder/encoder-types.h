@@ -345,7 +345,6 @@ public:
 };
 
 
-
 class CTBTreeMatrix
 {
  public:
@@ -354,6 +353,27 @@ class CTBTreeMatrix
 
   void alloc(int w,int h, int log2CtbSize);
   void clear() { free(); }
+
+  void set_pps(std::shared_ptr<pic_parameter_set> pps) { mPPS = pps; }
+
+  void set_input_image(std::shared_ptr<image> img) { mInputImage = img; }
+
+  std::shared_ptr<const image> get_input_image() const { return mInputImage; }
+
+  uint16_t add_slice_header(std::shared_ptr<slice_segment_header> shdr) {
+    mSliceHeaders.push_back(shdr);
+    return mSliceHeaders.size()-1;
+  }
+
+  void set_slice_header_id(int xCTB, int yCTB, uint16_t sliceID) {
+    mSliceIndex[xCTB + yCTB*mWidthCtbs] = sliceID;
+  }
+
+  std::shared_ptr<const slice_segment_header> get_slice_header(int x,int y) const {
+    int index = mSliceIndex[(x>>mLog2CtbSize) + mWidthCtbs*(y>>mLog2CtbSize)];
+    assert(index>=0 && index<mSliceHeaders.size());
+    return mSliceHeaders[index];
+  }
 
   void setCTB(int xCTB, int yCTB, enc_cb* ctb) {
     int idx = xCTB + yCTB*mWidthCtbs;
@@ -377,18 +397,37 @@ class CTBTreeMatrix
     return &mCTBs[idx];
   }
 
+  int getLog2CtbSize() const { return mLog2CtbSize; }
+
+  std::shared_ptr<const seq_parameter_set> get_sps() const { return mPPS->sps; }
+  std::shared_ptr<const pic_parameter_set> get_pps() const { return mPPS; }
+
   const enc_cb* getCB(int x,int y) const;
   const enc_tb* getTB(int x,int y) const;
   const enc_pb_inter* getPB(int x,int y) const;
 
+  bool check_CTB_available(int xC,int yC, int xN, int yN) const;
+
   void writeReconstructionToImage(image* img,
                                   const seq_parameter_set*) const;
 
+
+
+  void encode_ctb(CABAC_encoder* cabac, int ctbX,int ctbY);
+
  private:
+  std::shared_ptr<pic_parameter_set> mPPS;
+
   std::vector<enc_cb*> mCTBs;
+  std::vector<uint16_t> mSliceIndex;
+  std::vector<std::shared_ptr<slice_segment_header> > mSliceHeaders;
   int mWidthCtbs;
   int mHeightCtbs;
   int mLog2CtbSize;
+
+  // The input image is only used to directly access PCM samples without copying them.
+  // We might remove or replace this in the future.
+  std::shared_ptr<image> mInputImage;
 
   void free() {
     for (int i=0 ; i<mWidthCtbs*mHeightCtbs ; i++) {
@@ -397,6 +436,9 @@ class CTBTreeMatrix
         mCTBs[i]=NULL;
       }
     }
+
+    mSliceHeaders.clear();
+    mPPS.reset();
   }
 };
 
