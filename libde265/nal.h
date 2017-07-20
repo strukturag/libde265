@@ -40,6 +40,12 @@ struct nal_header {
     nuh_temporal_id = 0;
   }
 
+  nal_header(int unit_type, int layer_id=0, int temporal_id=0) {
+    nal_unit_type  =unit_type;
+    nuh_layer_id   =layer_id;
+    nuh_temporal_id=temporal_id;
+  }
+
   void read(bitreader* reader);
   void write(CABAC_encoder& writer) const;
 

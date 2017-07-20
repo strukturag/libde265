@@ -167,6 +167,11 @@ LIBDE265_INLINE static int Log2(int v)
   return n;
 }
 
+LIBDE265_INLINE static bool isPowerOf2(int v)
+{
+  return v>0 && !(v & (v - 1));
+}
+
 LIBDE265_INLINE static int Log2SizeToArea(int v)
 {
   return (1<<(v<<1));

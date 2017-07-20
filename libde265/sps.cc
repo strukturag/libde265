@@ -1232,6 +1232,38 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 }
 
 
+void seq_parameter_set::set_CB_size_range(int minSize, int maxSize)
+{
+  assert(isPowerOf2(minSize));
+  assert(isPowerOf2(maxSize));
+  assert(maxSize >= minSize);
+
+  int minSize_log2 = Log2(minSize);
+  int maxSize_log2 = Log2(maxSize);
+
+  log2_min_luma_coding_block_size = minSize_log2;
+  log2_diff_max_min_luma_coding_block_size = maxSize_log2 - minSize_log2;
+
+  de265_error err = compute_derived_values();
+}
+
+
+void seq_parameter_set::set_PCM_size_range(int minSize, int maxSize)
+{
+  assert(isPowerOf2(minSize));
+  assert(isPowerOf2(maxSize));
+  assert(maxSize >= minSize);
+
+  int minSize_log2 = Log2(minSize);
+  int maxSize_log2 = Log2(maxSize);
+
+  log2_min_pcm_luma_coding_block_size = minSize_log2;
+  log2_diff_max_min_pcm_luma_coding_block_size = maxSize_log2 - minSize_log2;
+
+  de265_error err = compute_derived_values();
+}
+
+
 de265_error sps_range_extension::read(error_queue* errqueue, bitreader* br)
 {
   transform_skip_rotation_enabled_flag    = get_bits(br,1);

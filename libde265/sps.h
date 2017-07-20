@@ -266,6 +266,12 @@ public:
 
   int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
   int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
+
+
+  // ------------------ setters ------------------
+
+  void set_CB_size_range(int minSize, int maxSize);
+  void set_PCM_size_range(int minSize, int maxSize);
 };
 
 #endif

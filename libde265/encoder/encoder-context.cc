@@ -541,6 +541,12 @@ encoder_context_scc::encoder_context_scc()
   pps = std::make_shared<pic_parameter_set>();
 
   vps->set_defaults(Profile_Main, 6,2);
+
+  sps->set_CB_size_range(16,16);
+  sps->set_PCM_size_range(16,16);
+
+  pps->pic_disable_deblocking_filter_flag = 1;
+  pps->pps_loop_filter_across_slices_enabled_flag = false;
 }
 
 
@@ -566,8 +572,7 @@ void encoder_context_scc::push_image(image_ptr img)
 
   shdr.set_pps(pps); //get_pps_ptr() );
 
-  nal_header nal;
-  nal.nal_unit_type = NAL_UNIT_IDR_N_LP;
+  nal_header nal(NAL_UNIT_IDR_N_LP);
   nal.write(cabac_encoder);
   shdr.write(nullptr, cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
