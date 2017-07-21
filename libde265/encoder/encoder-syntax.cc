@@ -1442,11 +1442,11 @@ void encode_pcm_block(const CTBTreeMatrix* ctbs, CABAC_encoder* cabac, const enc
       for (int x=0;x<blockSize;x++) {
         uint8_t pixel = cb->intra.pcm_data_ptr[c][x + y*stride];
         pixel >>= shift;
-
+        /*
         if (c==0) pixel = 0x12;
         if (c==1) pixel = 0x23;
         if (c==2) pixel = 0x34;
-
+        */
         cabac->write_bits(pixel, 8-shift);
       }
   }
@@ -1504,13 +1504,18 @@ void encode_coding_unit(const CTBTreeMatrix* ctbs,
           log2CbSize >= sps->Log2MinIpcmCbSizeY &&
           log2CbSize <= sps->Log2MaxIpcmCbSizeY) {
         cabac->write_CABAC_term_bit(cb->pcm_flag);
-        cabac->flush_CABAC();
+      }
 
-        if (cb->pcm_flag) {
-          encode_pcm_block(ctbs, cabac, cb);
+      if (cb->pcm_flag) {
+        //cabac->flush_CABAC();
+        if (cabac->number_free_bits_in_byte() > 0) {
+          cabac->write_bits(0, cabac->number_free_bits_in_byte());
         }
 
+        encode_pcm_block(ctbs, cabac, cb);
+
         cabac->flush_VLC();
+        cabac->init_CABAC();
       }
       else if (PartMode==PART_2Nx2N) {
         logtrace(LogSlice,"x0,y0: %d,%d\n",x0,y0);
@@ -1601,9 +1606,9 @@ void encode_coding_unit(const CTBTreeMatrix* ctbs,
       }
 
       /*
-      printf("write intra modes. Luma=%d Chroma=%d\n",
-             cb->intra.pred_mode[0],
-             cb->intra.chroma_mode);
+        printf("write intra modes. Luma=%d Chroma=%d\n",
+        cb->intra.pred_mode[0],
+        cb->intra.chroma_mode);
       */
     }
     else {

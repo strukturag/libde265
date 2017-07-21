@@ -31,6 +31,12 @@
 
 static const uint8_t LPS_table[64][4] =
   {
+    //  size of 'Range'
+    //------------------
+    //256  320  384  448
+    // ->   ->   ->   ->
+    //319  383  337  511
+
     { 128, 176, 208, 240},
     { 128, 167, 197, 227},
     { 128, 158, 187, 216},
@@ -247,6 +253,7 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
 
   if (decoder->value >= scaledRange)
     {
+      logtrace(LogCABAC,"term bit: 1\n");
       return 1;
     }
   else
@@ -269,6 +276,7 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
             }
         }
 
+      logtrace(LogCABAC,"term bit: 0\n");
       return 0;
     }
 }
@@ -619,6 +627,8 @@ void CABAC_encoder_bitstream::init_CABAC()
   bits_left = 23;
   buffered_byte = 0xFF;
   num_buffered_bytes = 0;
+
+  logtrace(LogCABAC,"init_CABAC, r:%x l:%x\n",range,low);
 }
 
 void CABAC_encoder_bitstream::flush_CABAC()
@@ -738,11 +748,16 @@ void CABAC_encoder_bitstream::write_CABAC_bit(int modelIdx, int bin)
       low = (low + range) << num_bits;
       range   = LPS << num_bits;
 
-      if (model->state==0) { model->MPSbit = 1-model->MPSbit; }
-
-      model->state = next_state_LPS[model->state];
+      if (model->state==0) {
+        model->MPSbit = 1-model->MPSbit;
+      }
+      else {
+        model->state = next_state_LPS[model->state];
+      }
 
       bits_left -= num_bits;
+
+      testAndWriteOut();
     }
   else
     {
@@ -751,16 +766,16 @@ void CABAC_encoder_bitstream::write_CABAC_bit(int modelIdx, int bin)
       model->state = next_state_MPS[model->state];
 
 
-      // renorm
+      // renorm (max. 1x)
 
-      if (range >= 256) { return; }
+      if (range < 256) {
+        low <<= 1;
+        range <<= 1;
+        bits_left--;
 
-      low <<= 1;
-      range <<= 1;
-      bits_left--;
+        testAndWriteOut();
+      }
     }
-
-  testAndWriteOut();
 }
 
 void CABAC_encoder_bitstream::write_CABAC_bypass(int bin)
@@ -808,7 +823,7 @@ void CABAC_encoder::write_CABAC_FL_bypass(int value, int n)
 
 void CABAC_encoder_bitstream::write_CABAC_term_bit(int bit)
 {
-  logtrace(LogCABAC,"CABAC term: range=%x\n", range);
+  logtrace(LogCABAC,"CABAC-term: range=%x low=%x bit=%d\n", range,low, bit);
 
   range -= 2;
 
@@ -818,19 +833,20 @@ void CABAC_encoder_bitstream::write_CABAC_term_bit(int bit)
     low <<= 7;
     range = 2 << 7;
     bits_left -= 7;
+
+    testAndWriteOut();
   }
-  else if (range >= 256)
-    {
-      return;
-    }
-  else
-    {
+  else {
+    // renorm
+
+    if (range < 256) {
       low   <<= 1;
       range <<= 1;
       bits_left--;
-    }
 
-  testAndWriteOut();
+      testAndWriteOut();
+    }
+  }
 }
 
 
@@ -1031,3 +1047,288 @@ void plot_tables()
   }
 }
 #endif
+
+
+
+// ================================================================================
+
+CABAC_encoder_ref::CABAC_encoder_ref()
+{
+  data_mem = NULL;
+  data_capacity = 0;
+  data_size = 0;
+  state = 0;
+
+  vlc_buffer_len = 0;
+
+  init_CABAC();
+}
+
+CABAC_encoder_ref::~CABAC_encoder_ref()
+{
+  free(data_mem);
+}
+
+void CABAC_encoder_ref::reset()
+{
+  data_size = 0;
+  state = 0;
+
+  vlc_buffer_len = 0;
+
+  init_CABAC();
+}
+
+void CABAC_encoder_ref::flush_VLC()
+{
+  while (vlc_buffer_len>=8) {
+    append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
+    vlc_buffer_len -= 8;
+  }
+
+  if (vlc_buffer_len>0) {
+    append_byte(vlc_buffer << (8-vlc_buffer_len));
+    vlc_buffer_len = 0;
+  }
+
+  vlc_buffer = 0;
+}
+
+void CABAC_encoder_ref::skip_bits(int nBits)
+{
+  while (nBits>=8) {
+    write_bits(0,8);
+    nBits-=8;
+  }
+
+  if (nBits>0) {
+    write_bits(0,nBits);
+  }
+}
+
+
+int  CABAC_encoder_ref::number_free_bits_in_byte() const
+{
+  if ((vlc_buffer_len % 8)==0) return 0;
+  return 8- (vlc_buffer_len % 8);
+}
+
+
+void CABAC_encoder_ref::check_size_and_resize(int nBytes)
+{
+  if (data_size+nBytes > data_capacity) { // 1 extra byte for stuffing
+    if (data_capacity==0) {
+      data_capacity = INITIAL_CABAC_BUFFER_CAPACITY;
+    } else {
+      data_capacity *= 2;
+    }
+
+    data_mem = (uint8_t*)realloc(data_mem,data_capacity);
+  }
+}
+
+
+void CABAC_encoder_ref::append_byte(int byte)
+{
+  check_size_and_resize(2);
+
+  // --- emulation prevention ---
+
+  /* These byte sequences may never occur in the bitstream:
+     0x000000 / 0x000001 / 0x000002
+
+     Hence, we have to add a 0x03 before the third byte.
+     We also have to add a 0x03 for this sequence: 0x000003, because
+     the escape byte itself also has to be escaped.
+  */
+
+  // S0 --(0)--> S1 --(0)--> S2 --(0,1,2,3)--> add stuffing
+
+  if (byte<=3) {
+    /**/ if (state< 2 && byte==0) { state++; }
+    else if (state==2 && byte<=3) {
+      data_mem[ data_size++ ] = 3;
+
+      if (byte==0) state=1;
+      else         state=0;
+    }
+    else { state=0; }
+  }
+  else { state=0; }
+
+
+  // write actual data byte
+
+  data_mem[ data_size++ ] = byte;
+}
+
+
+void CABAC_encoder_ref::write_startcode()
+{
+  check_size_and_resize(3);
+
+  data_mem[ data_size+0 ] = 0;
+  data_mem[ data_size+1 ] = 0;
+  data_mem[ data_size+2 ] = 1;
+  data_size+=3;
+}
+
+void CABAC_encoder_ref::init_CABAC()
+{
+  range = 510;
+  low = 0;
+  bitsOutstanding=0;
+  firstBitFlag=true;
+
+  logtrace(LogCABAC,"init_CABAC, r:%x l:%x\n",range,low);
+}
+
+
+void CABAC_encoder_ref::write_bits(uint32_t bits,int n)
+{
+  vlc_buffer <<= n;
+  vlc_buffer |= bits;
+  vlc_buffer_len += n;
+
+  while (vlc_buffer_len>=8) {
+    append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
+    vlc_buffer_len -= 8;
+  }
+}
+
+void CABAC_encoder_ref::write_CABAC_bit(int modelIdx, int bin)
+{
+  context_model* model = &(*mCtxModels)[modelIdx];
+  //m_uiBinsCoded += m_binCountIncrement;
+  //rcCtxModel.setBinsCoded( 1 );
+
+  logtrace(LogCABAC,"[%d] range=%x low=%x state=%d, bin=%d\n",
+           encBinCnt, range,low, model->state,bin);
+
+  /*
+  printf("[%d] range=%x low=%x state=%d, bin=%d\n",
+         encBinCnt, range,low, model->state,bin);
+
+  printf("%d %d X\n",model->state,bin != model->MPSbit);
+  */
+
+#ifdef DE265_LOG_TRACE
+  encBinCnt++;
+#endif
+
+  uint32_t LPS = LPS_table[model->state][ ( range >> 6 ) - 4 ];
+  range -= LPS;
+
+  if (bin != model->MPSbit)
+    {
+      //logtrace(LogCABAC,"LPS\n");
+
+      low = low + range;
+      range = LPS;
+
+      if (model->state==0) {
+        model->MPSbit = 1-model->MPSbit;
+      }
+      else {
+        model->state = next_state_LPS[model->state];
+      }
+
+      renormalize();
+    }
+  else
+    {
+      //logtrace(LogCABAC,"MPS\n");
+
+      model->state = next_state_MPS[model->state];
+
+      renormalize();
+    }
+}
+
+void CABAC_encoder_ref::renormalize()
+{
+  while (range<256) {
+    if (low < 256) {
+      put_cabac_bit(0);
+    }
+    else if (low >= 512) {
+      low -= 512;
+      put_cabac_bit(1);
+    }
+    else {
+      low -= 256;
+      bitsOutstanding++;
+    }
+
+    range <<= 1;
+    low <<= 1;
+  }
+}
+
+void CABAC_encoder_ref::put_cabac_bit(int bit)
+{
+  if (firstBitFlag) {
+    firstBitFlag=0;
+  }
+  else {
+    write_bits(bit,1);
+  }
+
+  while (bitsOutstanding>0) {
+    bitsOutstanding--;
+    write_bits(1-bit, 1);
+  }
+}
+
+void CABAC_encoder_ref::write_CABAC_bypass(int bin)
+{
+  logtrace(LogCABAC,"[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
+  /*
+  printf("[%d] bypass = %d, range=%x\n",encBinCnt,bin,range);
+  printf("%d %d X\n",64, -1);
+  */
+
+#ifdef DE265_LOG_TRACE
+  encBinCnt++;
+#endif
+
+  // BinsCoded += m_binCountIncrement;
+  low <<= 1;
+
+  if (bin) {
+    low += range;
+  }
+
+  if (low >= 1024) {
+    put_cabac_bit(1);
+    low -= 1024;
+  }
+  else if (low<512) {
+    put_cabac_bit(0);
+  }
+  else {
+    low -= 512;
+    bitsOutstanding++;
+  }
+}
+
+void CABAC_encoder_ref::write_CABAC_term_bit(int bit)
+{
+  logtrace(LogCABAC,"CABAC-term: range=%x low=%x bit=%d\n", range,low, bit);
+
+  range -= 2;
+
+  if (bit) {
+    low += range;
+
+    // EncodeFlush
+
+    range = 2;
+    renormalize();
+    put_cabac_bit( (low>>9) & 1);
+    write_bits( ((low>>7)&3) |1, 2);
+  }
+  else {
+    renormalize();
+  }
+}

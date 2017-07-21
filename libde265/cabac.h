@@ -173,6 +173,78 @@ private:
 };
 
 
+class CABAC_encoder_ref : public CABAC_encoder
+{
+public:
+  CABAC_encoder_ref();
+  ~CABAC_encoder_ref();
+
+  virtual void reset();
+
+  virtual int size() const { return data_size; }
+  uint8_t* data() const { return data_mem; }
+
+  uint8_t* detach_data() {
+    uint8_t* data = data_mem;
+    data_mem = nullptr;
+    data_capacity = 0;
+    data_size = 0;
+
+    reset();
+
+    return data;
+  }
+
+  // --- VLC ---
+
+  virtual void write_bits(uint32_t bits,int n);
+  virtual void write_startcode();
+  virtual void skip_bits(int nBits);
+
+  virtual int  number_free_bits_in_byte() const;
+
+  // output all remaining bits and fill with zeros to next byte boundary
+  virtual void flush_VLC();
+
+
+  // --- CABAC ---
+
+  virtual void init_CABAC();
+  virtual void write_CABAC_bit(int modelIdx, int bit);
+  virtual void write_CABAC_bypass(int bit);
+  virtual void write_CABAC_term_bit(int bit);
+  virtual void flush_CABAC() { }
+
+  virtual bool modifies_context() const { return true; }
+
+private:
+  // data buffer
+
+  uint8_t* data_mem;
+  uint32_t data_capacity;
+  uint32_t data_size;
+  char     state; // for inserting emulation-prevention bytes
+
+  // VLC
+
+  uint32_t vlc_buffer;
+  uint32_t vlc_buffer_len;
+
+
+  // CABAC
+
+  uint16_t range;
+  uint16_t low;
+  uint32_t bitsOutstanding;
+  bool firstBitFlag;
+
+  void renormalize();
+  void put_cabac_bit(int bit);
+  void append_byte(int byte);
+  void check_size_and_resize(int nBytes);
+};
+
+
 class CABAC_encoder_estim : public CABAC_encoder
 {
 public:

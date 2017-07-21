@@ -630,6 +630,11 @@ void encoder_context_scc::push_image(image_ptr img)
       ctbs.set_slice_header_id(x,y, sliceHeaderID);
 
       ctbs.encode_ctb(&cabac_encoder, x,y);
+
+
+      int last = (y==sps->PicHeightInCtbsY-1 &&
+                  x==sps->PicWidthInCtbsY-1);
+      cabac_encoder.write_CABAC_term_bit(last);
     }
 
 

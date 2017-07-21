@@ -238,7 +238,7 @@ class encoder_context_scc
 
   // --- CABAC output and rate estimation ---
 
-  CABAC_encoder_bitstream cabac_encoder;
+  CABAC_encoder_ref       cabac_encoder;
   context_model_table     cabac_ctx_models;
 
   en265_packet* copy_encoded_data_into_packet(en265_packet_content_type);

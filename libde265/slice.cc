@@ -4139,6 +4139,7 @@ void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbS
     for (int x=0;x<w;x++)
       {
         int value = get_bits(&br, nPcmBits);
+        logtrace(LogSlice,"%d;%d: get %d PCM bits: %02x\n",x,y, nPcmBits, value);
         ptr[y*stride+x] = value << shift;
       }
 }
