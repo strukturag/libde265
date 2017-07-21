@@ -548,6 +548,8 @@ encoder_context_scc::encoder_context_scc()
   sps->set_CB_size_range(16,16);
   sps->set_PCM_size_range(16,16);
   sps->pcm_enabled_flag = true;
+  sps->pcm_sample_bit_depth_luma = 6;
+  sps->pcm_sample_bit_depth_chroma = 5;
 
   pps->set_defaults();
   pps->pic_disable_deblocking_filter_flag = 1;
