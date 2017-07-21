@@ -271,6 +271,7 @@ public:
   // ------------------ setters ------------------
 
   void set_CB_size_range(int minSize, int maxSize);
+  void set_TB_size_range(int minSize, int maxSize);
   void set_PCM_size_range(int minSize, int maxSize);
 };
 
