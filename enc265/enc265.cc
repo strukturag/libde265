@@ -379,7 +379,7 @@ int main(int argc, char** argv)
       }
       else {
         fpsEstimator.on_frame_decoded( de265_get_time() );
-        debug_show_image_libvideogfx(input_image, 0);
+        //debug_show_image_libvideogfx(input_image, 0);
 
         if (fpsEstimator.fps_measurement_available() && (poc%100)==0) {
           std::cout << "FPS: " << fpsEstimator.get_fps_measurement() << "\n";
