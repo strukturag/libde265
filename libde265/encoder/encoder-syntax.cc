@@ -1438,17 +1438,21 @@ void encode_pcm_block(const CTBTreeMatrix* ctbs, CABAC_encoder* cabac, const enc
                            sps->pcm_sample_bit_depth_luma :
                            sps->pcm_sample_bit_depth_chroma);
 
-    for (int y=0;y<blockSize;y++)
-      for (int x=0;x<blockSize;x++) {
-        uint8_t pixel = cb->intra.pcm_data_ptr[c][x + y*stride];
-        pixel >>= shift;
-        /*
-        if (c==0) pixel = 0x12;
-        if (c==1) pixel = 0x23;
-        if (c==2) pixel = 0x34;
-        */
-        cabac->write_bits(pixel, 8-shift);
-      }
+    if (shift==0) {
+      for (int y=0;y<blockSize;y++)
+        for (int x=0;x<blockSize;x++) {
+          uint8_t pixel = cb->intra.pcm_data_ptr[c][x + y*stride];
+          cabac->write_bits(pixel, 8);
+        }
+    }
+    else {
+      for (int y=0;y<blockSize;y++)
+        for (int x=0;x<blockSize;x++) {
+          int16_t pixel = cb->intra.pcm_data_ptr[c][x + y*stride];
+          pixel = Clip3(0,255, pixel + (1<<(shift-1))); // rounding
+          cabac->write_bits(pixel >> shift, 8-shift);
+        }
+    }
   }
 }
 
