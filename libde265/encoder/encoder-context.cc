@@ -545,11 +545,15 @@ encoder_context_scc::encoder_context_scc()
 
   vps->set_defaults(Profile_Main, 6,2);
 
-  sps->set_CB_size_range(16,16);
-  sps->set_PCM_size_range(16,16);
+  sps->set_CB_size_range(8,8);
+  sps->set_PCM_size_range(8,8);
   sps->pcm_enabled_flag = true;
   sps->pcm_sample_bit_depth_luma = 6;
   sps->pcm_sample_bit_depth_chroma = 5;
+  sps->max_transform_hierarchy_depth_inter = 0;
+  sps->max_transform_hierarchy_depth_intra = 0;
+  sps->log2_min_transform_block_size = 3;
+  sps->log2_diff_max_min_transform_block_size = 0;
 
   pps->set_defaults();
   pps->pic_disable_deblocking_filter_flag = 1;
