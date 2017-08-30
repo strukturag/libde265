@@ -54,7 +54,7 @@
 
 // ========== choose a qscale at CTB level ==========
 
-class Algo_CTB_QScale : public Algo
+class Algo_CTB_QScale : public Algo_CTB
 {
  public:
  Algo_CTB_QScale() : mChildAlgo(NULL) { }

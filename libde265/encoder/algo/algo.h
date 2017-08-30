@@ -49,6 +49,9 @@ class Algo
 
   virtual const char* name() const { return "noname"; }
 
+
+  // --- debugging ---
+
 #ifdef DE265_LOG_DEBUG
   void enter();
   void descend(const enc_node* node,const char* option_description, ...);
@@ -60,6 +63,15 @@ class Algo
   inline void ascend(const enc_node* resultNode=NULL,const char* fmt=NULL, ...) { }
   inline void leaf(const enc_node*,const char*, ...) { }
 #endif
+};
+
+
+class Algo_CTB : public Algo
+{
+ public:
+  virtual enc_cb* analyze(encoder_context*,
+                          context_model_table&,
+                          int ctb_x,int ctb_y) = 0;
 };
 
 

@@ -75,7 +75,7 @@ class EncoderCore
  public:
   virtual ~EncoderCore() { }
 
-  virtual Algo_CTB_QScale* getAlgoCTBQScale() = 0;
+  virtual Algo_CTB* getCTBAlgo() = 0;
 
   virtual int getPPS_QP() const = 0;
   virtual int getSlice_QPDelta() const { return 0; }
@@ -99,7 +99,7 @@ class EncoderCore_Custom : public EncoderCore
     mAlgo_TB_Split_BruteForce.registerParams(config);
   }
 
-  virtual Algo_CTB_QScale* getAlgoCTBQScale() { return &mAlgo_CTB_QScale_Constant; }
+  virtual Algo_CTB* getCTBAlgo() { return &mAlgo_CTB_QScale_Constant; }
 
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
 
