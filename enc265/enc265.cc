@@ -227,8 +227,8 @@ int main(int argc, char** argv)
 {
   de265_init();
 
-  //en265_encoder_context* ectx = en265_new_encoder();
-  encoder_context_scc* ectx = new encoder_context_scc();
+  en265_encoder_context* ectx = en265_new_encoder();
+  //encoder_context_scc* ectx = new encoder_context_scc();
 
 
   bool cmdline_errors = false;
@@ -247,11 +247,9 @@ int main(int argc, char** argv)
 
   // --- read encoder parameters ---
 
-  /*
   if (en265_parse_command_line_parameters(ectx, &argc, argv) != DE265_OK) {
     cmdline_errors = true;
   }
-  */
 
 
   while (1) {
@@ -282,8 +280,8 @@ int main(int argc, char** argv)
 
     inout_param_config.print_params();
     fprintf(stderr,"\n");
-    /* en265_show_parameters(ectx);
-     */
+    en265_show_parameters(ectx);
+
 
     exit(show_help ? 0 : 5);
   }
@@ -353,9 +351,7 @@ int main(int argc, char** argv)
 
   image_source->skip_frames( inout_params.first_frame );
 
-  /*
   en265_start_encoder(ectx, 0);
-  */
 
   int maxPoc = INT_MAX;
   if (inout_params.max_number_of_frames.is_defined()) {
@@ -370,11 +366,10 @@ int main(int argc, char** argv)
     {
       // push one image into the encoder
 
-      image* input_image = image_source->get_image();
-      if (input_image==NULL) {
-        /* en265_push_eof(ectx);
-         */
-        ectx->push_end_of_video();
+      image* input_image_raw = image_source->get_image();
+      if (input_image_raw==NULL) {
+        en265_push_eof(ectx);
+        //ectx->push_end_of_video();
         eof=true;
       }
       else {
@@ -385,8 +380,10 @@ int main(int argc, char** argv)
           std::cout << "FPS: " << fpsEstimator.get_fps_measurement() << "\n";
         }
 
-        //en265_push_image(ectx, (de265_image*)input_image);
-        ectx->push_image(std::shared_ptr<image>(input_image));
+        de265_image* input_image = new de265_image();
+        input_image->m_image = std::shared_ptr<image>(input_image_raw);
+        en265_push_image(ectx, input_image);
+        //ectx->push_image(std::shared_ptr<image>(input_image));
 
         //delete input_image;
       }
@@ -394,15 +391,13 @@ int main(int argc, char** argv)
 
       // encode images while more are available
 
-      /* en265_encode(ectx);
-       */
+      en265_encode(ectx);
 
       // write all pending packets
 
       for (;;) {
-        /*en265_packet* pck = en265_get_packet(ectx,0);
-         */
-        en265_packet* pck = ectx->get_next_packet();
+        en265_packet* pck = en265_get_packet(ectx,0);
+        //en265_packet* pck = ectx->get_next_packet();
         if (pck==NULL)
           break;
 
@@ -415,14 +410,12 @@ int main(int argc, char** argv)
 
   // --- print statistics ---
 
-  /*
   en265_print_logging((encoder_context*)ectx, "tb-split", NULL);
 
 
   en265_free_encoder(ectx);
-  */
 
-  delete ectx;
+  //delete ectx;
 
   de265_free();
 
