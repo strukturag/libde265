@@ -274,7 +274,7 @@ public:
     // non-split
     struct {
       uint8_t qp : 6;
-      uint8_t cu_transquant_bypass_flag : 1; // currently unused
+      uint8_t cu_transquant_bypass_flag : 1;
       uint8_t pcm_flag : 1;
 
       enum PredMode PredMode; // : 6;
