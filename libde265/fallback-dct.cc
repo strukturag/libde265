@@ -250,7 +250,7 @@ void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, 
 }
 
 
-void rotate_coefficients_fallback(int16_t *coeff, int nT)
+void rotate180_coefficients_fallback(int16_t *coeff, int nT)
 {
   for (int y=0;y<nT/2;y++)
     for (int x=0;x<nT;x++) {

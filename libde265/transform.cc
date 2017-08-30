@@ -425,7 +425,7 @@ void scale_coefficients_internal(thread_context* tctx,
     }
 
     if (rotateCoeffs) {
-      tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
+      tctx->decctx->acceleration.rotate180_coefficients(coeff, nT);
     }
 
     if (rdpcmMode) {
@@ -550,7 +550,7 @@ void scale_coefficients_internal(thread_context* tctx,
         + Log2nTbS;
 
       if (rotateCoeffs) {
-        tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
+        tctx->decctx->acceleration.rotate180_coefficients(coeff, nT);
       }
 
       int32_t residual_buffer[32*32];

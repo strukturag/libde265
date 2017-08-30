@@ -175,7 +175,7 @@ struct acceleration_functions
                               int maxColumn,int maxRow); // iDCT
 
 
-  void (*rotate_coefficients)(int16_t *coeff, int nT);
+  void (*rotate180_coefficients)(int16_t *coeff, int nT);
 
   void (*transform_idst_4x4)(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits);
   void (*transform_idct_4x4)(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits);

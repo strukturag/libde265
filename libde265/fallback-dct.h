@@ -57,7 +57,7 @@ void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff
 void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
 void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
 
-void rotate_coefficients_fallback(int16_t *coeff, int nT);
+void rotate180_coefficients_fallback(int16_t *coeff, int nT);
 
 
 void transform_idst_4x4_fallback(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits);
