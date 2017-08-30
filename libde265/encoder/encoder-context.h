@@ -218,6 +218,7 @@ class encoder_context_scc
   en265_packet* get_next_packet();
 
  private:
+  // the currently active parameter sets
   std::shared_ptr<video_parameter_set>  vps;
   std::shared_ptr<seq_parameter_set>    sps;
   std::shared_ptr<pic_parameter_set>    pps;
@@ -242,6 +243,9 @@ class encoder_context_scc
   context_model_table     cabac_ctx_models;
 
   en265_packet* copy_encoded_data_into_packet(en265_packet_content_type);
+
+
+  // --- the encoded packets ---
 
   std::deque<en265_packet*> output_packets;
 };
