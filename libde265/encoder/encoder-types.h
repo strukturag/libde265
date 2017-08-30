@@ -70,29 +70,13 @@ class small_image_buffer
 };
 
 
-class enc_node
-{
-public:
-  enc_node() { }
-  enc_node(int _x,int _y, int _log2Size) : x(_x), y(_y), log2Size(_log2Size) { }
-  virtual ~enc_node() { }
-
-  uint16_t x,y;
-  uint8_t  log2Size : 3;
-
-
-  static const int DUMPTREE_INTRA_PREDICTION = (1<<0);
-  static const int DUMPTREE_RESIDUAL         = (1<<1);
-  static const int DUMPTREE_RECONSTRUCTION   = (1<<2);
-  static const int DUMPTREE_ALL              = 0xFFFF;
-
-  virtual void debug_dumpTree(int flags, int indent=0) const = 0;
-};
-
-
+// A small image patch which is located at some chosen position in a larger image.
+// This behaves like a being a large image, but only a small patch of it is backed
+// by actual memory.
 class LocalizedSubImage
 {
  public:
+  // Localized patch image, with patch image memory buffer 'buf', located at position x0,y0.
   LocalizedSubImage(small_image_buffer& buf, int x0,int y0) {
     mBase = buf.get_buffer_u8();
     mStride = buf.getStride();
@@ -129,6 +113,32 @@ class LocalizedSubImage
     mStride = mXMin = mYMin = mWidth = mHeight = 0;
   }
 };
+
+
+
+// ==========================================================================================
+// enc_node - a node in the CTB tree. This can either be a CB or, further down, a TB node
+//
+// This base class only defines the _position_ and _size_ of the node.
+class enc_node
+{
+public:
+  enc_node() { }
+  enc_node(int _x,int _y, int _log2Size) : x(_x), y(_y), log2Size(_log2Size) { }
+  virtual ~enc_node() { }
+
+  uint16_t x,y;
+  uint8_t  log2Size : 3;
+
+
+  static const int DUMPTREE_INTRA_PREDICTION = (1<<0);
+  static const int DUMPTREE_RESIDUAL         = (1<<1);
+  static const int DUMPTREE_RECONSTRUCTION   = (1<<2);
+  static const int DUMPTREE_ALL              = 0xFFFF;
+
+  virtual void debug_dumpTree(int flags, int indent=0) const = 0;
+};
+
 
 
 class enc_tb : public enc_node
