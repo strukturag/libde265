@@ -119,6 +119,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
 {
  public:
  Algo_CB_IntraPartMode_Fixed() { }
+ Algo_CB_IntraPartMode_Fixed(enum PartMode mode) { setIntraPartMode(mode); }
 
   struct params
   {
@@ -134,6 +135,7 @@ class Algo_CB_IntraPartMode_Fixed : public Algo_CB_IntraPartMode
   }
 
   void setParams(const params& p) { mParams=p; }
+  void setIntraPartMode(enum PartMode mode) { mParams.partMode.setID(mode); }
 
   virtual enc_cb* analyze(encoder_context* ectx,
                           context_model_table& ctxModel,
