@@ -1465,9 +1465,17 @@ void encode_coding_unit(const CTBTreeMatrix* ctbs,
 
   const slice_segment_header* shdr = ctbs->get_slice_header(x0,y0).get();
   const seq_parameter_set* sps = ctbs->get_sps().get();
+  const pic_parameter_set* pps = ctbs->get_pps().get();
 
 
   int nCbS = 1<<log2CbSize;
+
+
+  // write transquant_bypass flag
+
+  if (pps->transquant_bypass_enable_flag) {
+    cabac->write_CABAC_bit(CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG, cb->cu_transquant_bypass_flag);
+  }
 
 
   // write skip_flag

@@ -558,6 +558,7 @@ encoder_context_scc::encoder_context_scc()
   pps->set_defaults();
   pps->pic_disable_deblocking_filter_flag = 1;
   pps->pps_loop_filter_across_slices_enabled_flag = false;
+  pps->transquant_bypass_enable_flag = true;
   pps->sps = sps;
 }
 
