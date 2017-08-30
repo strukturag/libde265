@@ -327,7 +327,7 @@ double encode_image(encoder_context* ectx,
                     std::shared_ptr<const image> input,
                     EncoderCore& algo)
 {
-#if 0
+#if 1
   int stride=input->get_image_stride(0);
 
   int w = ectx->get_sps().pic_width_in_luma_samples;
@@ -385,6 +385,7 @@ double encode_image(encoder_context* ectx,
   // encode CTB by CTB
 
   ectx->ctbs.clear();
+  ectx->ctbs.set_pps(ectx->get_pps_ptr());
 
   for (int y=0;y<ectx->get_sps().PicHeightInCtbsY;y++)
     for (int x=0;x<ectx->get_sps().PicWidthInCtbsY;x++)
@@ -414,7 +415,7 @@ double encode_image(encoder_context* ectx,
           input, x0,y0, Log2CtbSize, 0, qp);
         */
 
-        enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel, x0,y0);
+        enc_cb* cb = algo.getCTBAlgo()->analyze(ectx,ctxModel, x0,y0);
 #else
         float minCost = std::numeric_limits<float>::max();
         int bestQ = 0;
@@ -466,7 +467,7 @@ double encode_image(encoder_context* ectx,
         cb->debug_assertTreeConsistency(ectx->img);
         */
 
-        encode_ctb(ectx, &ectx->cabac_encoder, cb, x,y);
+        ectx->ctbs.encode_ctb(&ectx->cabac_encoder, x,y);
 
         ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), &ectx->get_sps());
 
@@ -475,7 +476,7 @@ double encode_image(encoder_context* ectx,
 
         if (COMPARE_ESTIMATED_RATE_TO_REAL_RATE) {
           float realPre = cabacEstim.getRDBits();
-          encode_ctb(ectx, &cabacEstim, cb, x,y);
+          ectx->ctbs.encode_ctb(&cabacEstim, x,y);
           float realPost = cabacEstim.getRDBits();
 
           printf("estim: %f  real: %f  diff: %f\n",
@@ -606,6 +607,22 @@ void encoder_context_scc::push_image(image_ptr img)
   ctbs.set_pps(pps);
   ctbs.set_input_image(img);
 
+
+
+  Algo_CB_IntraPartMode_Fixed algo_intra_part_mode(PART_2Nx2N);
+  Algo_TB_IntraPredMode_MinResidual algo_intra_pred_mode;
+  Algo_TB_Split_BruteForce algo_tb_split;
+  Algo_TB_Transform algo_tb_transform;
+
+  algo_intra_part_mode.setChildAlgo(&algo_intra_pred_mode);
+
+  algo_intra_pred_mode.setChildAlgo(&algo_tb_split);
+  algo_intra_pred_mode.enableIntraPredModeSubset(ALGO_TB_IntraPredMode_Subset_HVPlus);
+
+  algo_tb_split.setAlgo_TB_IntraPredMode(&algo_intra_pred_mode);
+  algo_tb_split.setAlgo_TB_Residual(&algo_tb_transform);
+
+
   for (int y=0;y<sps->PicHeightInCtbsY;y++)
     for (int x=0;x<sps->PicWidthInCtbsY;x++) {
       //ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
@@ -623,15 +640,27 @@ void encoder_context_scc::push_image(image_ptr img)
       cb->ctDepth = 0;
 
       cb->qp = 0; // TODO ectx->active_qp;
-      cb->cu_transquant_bypass_flag = false;
-      cb->pcm_flag = true;
-
       cb->PredMode = MODE_INTRA;
       cb->PartMode = PART_2Nx2N;
 
-      cb->intra.pcm_data_ptr[0] = img->get_image_plane_at_pos(0, x0,y0);
-      cb->intra.pcm_data_ptr[1] = img->get_image_plane_at_pos(1, x0,y0);
-      cb->intra.pcm_data_ptr[2] = img->get_image_plane_at_pos(2, x0,y0);
+      if (false) {
+        // PCM
+
+        cb->cu_transquant_bypass_flag = false;
+        cb->pcm_flag = true;
+
+        cb->intra.pcm_data_ptr[0] = img->get_image_plane_at_pos(0, x0,y0);
+        cb->intra.pcm_data_ptr[1] = img->get_image_plane_at_pos(1, x0,y0);
+        cb->intra.pcm_data_ptr[2] = img->get_image_plane_at_pos(2, x0,y0);
+      }
+      else {
+        // Transquant
+
+        cb->cu_transquant_bypass_flag = false;
+        cb->pcm_flag = false;
+
+        //cb = algo_intra_part_mode.analyze(ectx,ctxModel, x0,y0);
+      }
 
       ctbs.setCTB(x,y, cb);
       ctbs.set_slice_header_id(x,y, sliceHeaderID);
