@@ -354,7 +354,7 @@ class CTBTreeMatrix
   void alloc(int w,int h, int log2CtbSize);
   void clear() { free(); }
 
-  void set_pps(std::shared_ptr<pic_parameter_set> pps) { mPPS = pps; }
+  void set_pps(std::shared_ptr<const pic_parameter_set> pps) { mPPS = pps; }
 
   void set_input_image(std::shared_ptr<image> img) { mInputImage = img; }
 
@@ -416,7 +416,7 @@ class CTBTreeMatrix
   void encode_ctb(CABAC_encoder* cabac, int ctbX,int ctbY);
 
  private:
-  std::shared_ptr<pic_parameter_set> mPPS;
+  std::shared_ptr<const pic_parameter_set> mPPS;
 
   std::vector<enc_cb*> mCTBs;
   std::vector<uint16_t> mSliceIndex;
