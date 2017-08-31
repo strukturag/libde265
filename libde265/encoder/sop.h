@@ -85,7 +85,7 @@ class sop_creator : public pic_order_counter
      - IMGDATA.references
    */
   virtual void insert_new_input_image(image_ptr) = 0;
-  virtual void insert_end_of_stream() { mEncPicBuf->insert_end_of_stream(); }
+  virtual void insert_end_of_input() { mEncPicBuf->insert_end_of_input(); }
 
   virtual int  get_number_of_temporal_layers() const { return 1; }
 

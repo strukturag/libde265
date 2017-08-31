@@ -41,14 +41,14 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
   int poc = get_pic_order_count();
 
   assert(mEncPicBuf);
-  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
+  auto imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
   imgdata->set_intra();
   imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
   imgdata->shdr.slice_type = SLICE_TYPE_I;
   imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
 
-  mEncPicBuf->sop_metadata_commit(get_frame_number());
+  imgdata->mark_sop_metadata_set();
 
   advance_frame();
 }
@@ -90,7 +90,7 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
   }
 
   assert(mEncPicBuf);
-  image_data* imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
+  auto imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
   if (isIntra(frame)) {
     reset_poc();
@@ -103,7 +103,7 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
     imgdata->shdr.slice_type = SLICE_TYPE_P;
   }
   imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
-  mEncPicBuf->sop_metadata_commit(get_frame_number());
+  imgdata->mark_sop_metadata_set();
 
   advance_frame();
 }

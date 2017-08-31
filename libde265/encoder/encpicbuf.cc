@@ -22,94 +22,88 @@
 #include "libde265/util.h"
 
 
-encoder_picture_buffer::encoder_picture_buffer()
-{
-}
-
-encoder_picture_buffer::~encoder_picture_buffer()
-{
-  flush_images();
-}
-
-
-image_data::image_data()
+picture_encoding_data::picture_encoding_data(encoder_picture_buffer* encpicbuf)
 {
   //printf("new %p\n",this);
 
   frame_number = 0;
 
   input.reset();
-  prediction.reset();
+  //prediction.reset();
   reconstruction.reset();
 
   // SOP metadata
 
   sps_index = -1;
   skip_priority = 0;
-  is_intra = true;
+  //is_intra = true;
 
   state = state_unprocessed;
 
-  is_in_output_queue = true;
+  mEncPicBuf = encpicbuf;
 }
 
-image_data::~image_data()
+
+picture_encoding_data::~picture_encoding_data()
 {
   //printf("delete %p\n",this);
 }
 
 
-// --- input pushed by the input process ---
 
-void encoder_picture_buffer::reset()
+void picture_encoding_data::mark_sop_metadata_set()
 {
-  flush_images();
-
-  mEndOfStream = false;
+  state = picture_encoding_data::state_sop_metadata_available;
 }
 
 
-void encoder_picture_buffer::flush_images()
+
+// --- infos pushed by encoder ---
+
+void picture_encoding_data::mark_encoding_started()
 {
-  while (!mImages.empty()) {
-    delete mImages.front();
-    mImages.pop_front();
-  }
+  state = picture_encoding_data::state_encoding;
 }
 
-
-image_data* encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<const image> img,
-                                                                        int frame_number)
+void picture_encoding_data::mark_encoding_finished()
 {
-  image_data* data = new image_data();
-  data->frame_number = frame_number;
-  data->input = img;
-  data->shdr.set_defaults();
+  state = picture_encoding_data::state_keep_for_reference;
 
-  mImages.push_back(data);
-
-  return data;
+  mEncPicBuf->purge_unused_images_from_queue();
 }
 
-void encoder_picture_buffer::insert_end_of_stream()
+/*
+void encoder_picture_buffer::set_prediction_image(int frame_number, image_ptr pred)
 {
-  mEndOfStream = true;
+  picture_encoding_data* data = get_picture(frame_number);
+
+  data->prediction = pred;
 }
+*/
+
+void picture_encoding_data::set_reconstruction_image(image_ptr reco)
+{
+  reconstruction = reco;
+}
+
 
 
 // --- SOP structure ---
 
-void image_data::set_intra()
+void picture_encoding_data::set_intra()
 {
-  is_intra = true;
+  shdr.slice_type = SLICE_TYPE_I;
+  //is_intra = true;
 }
 
-void image_data::set_NAL_type(uint8_t nalType)
+
+void picture_encoding_data::set_NAL_type(uint8_t nalType)
 {
   nal.nal_unit_type = nalType;
 }
 
-void image_data::set_references(int sps_index, // -1 -> custom
+
+void picture_encoding_data::set_references(int sps_index, // -1 -> custom
                                 const std::vector<int>& l0,
                                 const std::vector<int>& l1,
                                 const std::vector<int>& lt,
@@ -140,93 +134,91 @@ void image_data::set_references(int sps_index, // -1 -> custom
   */
 }
 
-void image_data::set_NAL_temporal_id(int temporal_id)
+
+void picture_encoding_data::set_NAL_temporal_id(int temporal_id)
 {
   this->nal.nuh_temporal_id = temporal_id;
 }
 
-void image_data::set_skip_priority(int skip_priority)
+
+void picture_encoding_data::set_skip_priority(int skip_priority)
 {
   this->skip_priority = skip_priority;
 }
 
-void encoder_picture_buffer::sop_metadata_commit(int frame_number)
-{
-  image_data* data = mImages.back();
-  assert(data->frame_number == frame_number);
 
-  data->state = image_data::state_sop_metadata_available;
+
+
+encoder_picture_buffer::encoder_picture_buffer()
+{
+  mEndOfInput = false;
 }
 
 
-
-// --- infos pushed by encoder ---
-
-void encoder_picture_buffer::mark_encoding_started(int frame_number)
+encoder_picture_buffer::~encoder_picture_buffer()
 {
-  image_data* data = get_picture(frame_number);
-
-  data->state = image_data::state_encoding;
 }
 
-void encoder_picture_buffer::set_prediction_image(int frame_number, image_ptr pred)
-{
-  image_data* data = get_picture(frame_number);
 
-  data->prediction = pred;
+void encoder_picture_buffer::clear()
+{
+  mImages.clear();
+  mEndOfInput = false;
 }
 
-void encoder_picture_buffer::set_reconstruction_image(int frame_number, image_ptr reco)
-{
-  image_data* data = get_picture(frame_number);
 
-  data->reconstruction = reco;
+// --- input pushed by the input process ---
+
+
+std::shared_ptr<picture_encoding_data>
+encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<const image> img,
+                                                            int frame_number)
+{
+  auto picdata = std::make_shared<picture_encoding_data>(this);
+  picdata->frame_number = frame_number;
+  picdata->input = img;
+  picdata->shdr.set_defaults();
+
+  mImages.push_back(picdata);
+
+  return picdata;
 }
 
-void encoder_picture_buffer::mark_encoding_finished(int frame_number)
+
+void encoder_picture_buffer::insert_end_of_input()
 {
-  image_data* data = get_picture(frame_number);
+  mEndOfInput = true;
+}
 
-  data->state = image_data::state_keep_for_reference;
 
-
+/* TODO: This probably does not work anymore after my code refactorization */
+void encoder_picture_buffer::purge_unused_images_from_queue()
+{
   // --- delete images that are not required anymore ---
 
   // first, mark all images unused
 
-#ifdef FOR_LOOP_AUTO_SUPPORT
-  FOR_LOOP(auto, imgdata, mImages) {
-#else
-  FOR_LOOP(image_data *, imgdata, mImages) {
-#endif
-    imgdata->mark_used = false;
+  FOR_LOOP(std::shared_ptr<picture_encoding_data>, picdata, mImages) {
+    picdata->in_use = false;
   }
 
   // mark all images that will be used later
 
-  FOR_LOOP(int, f, data->ref0)     { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->ref1)     { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->longterm) { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->keep)     { get_picture(f)->mark_used=true; }
-  data->mark_used=true;
+  FOR_LOOP(std::shared_ptr<picture_encoding_data>, picdata, mImages) {
+    FOR_LOOP(int, f, picdata->ref0)     { get_picture(f)->in_use=true; }
+    FOR_LOOP(int, f, picdata->ref1)     { get_picture(f)->in_use=true; }
+    FOR_LOOP(int, f, picdata->longterm) { get_picture(f)->in_use=true; }
+    FOR_LOOP(int, f, picdata->keep)     { get_picture(f)->in_use=true; }
+  }
 
   // copy over all images that we still keep
 
-  std::deque<image_data*> newImageSet;
-#ifdef FOR_LOOP_AUTO_SUPPORT
-  FOR_LOOP(auto, imgdata, mImages) {
-#else
-  FOR_LOOP(image_data *, imgdata, mImages) {
-#endif
-    if (imgdata->mark_used || imgdata->is_in_output_queue) {
-      imgdata->reconstruction->PicState = UsedForShortTermReference; // TODO: this is only a hack
+  std::deque< std::shared_ptr<picture_encoding_data> > newImageSet;
+  FOR_LOOP(std::shared_ptr<picture_encoding_data>, picdata, mImages) {
+    if (picdata->in_use) {
+      picdata->reconstruction->PicState = UsedForShortTermReference; // TODO: this is only a hack
 
-      newImageSet.push_back(imgdata);
-    }
-    else {
-      // image is not needed anymore for reference, remove it from EncPicBuf
-
-      delete imgdata;
+      newImageSet.push_back(picdata);
     }
   }
 
@@ -240,7 +232,7 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
 bool encoder_picture_buffer::have_more_frames_to_encode() const
 {
   for (int i=0;i<mImages.size();i++) {
-    if (mImages[i]->state < image_data::state_encoding) {
+    if (mImages[i]->state < picture_encoding_data::state_encoding) {
       return true;
     }
   }
@@ -249,10 +241,10 @@ bool encoder_picture_buffer::have_more_frames_to_encode() const
 }
 
 
-image_data* encoder_picture_buffer::get_next_picture_to_encode()
+std::shared_ptr<picture_encoding_data> encoder_picture_buffer::get_next_picture_to_encode()
 {
   for (int i=0;i<mImages.size();i++) {
-    if (mImages[i]->state < image_data::state_encoding) {
+    if (mImages[i]->state < picture_encoding_data::state_encoding) {
       return mImages[i];
     }
   }
@@ -261,7 +253,7 @@ image_data* encoder_picture_buffer::get_next_picture_to_encode()
 }
 
 
-const image_data* encoder_picture_buffer::get_picture(int frame_number) const
+std::shared_ptr<const picture_encoding_data> encoder_picture_buffer::get_picture(int frame_number) const
 {
   for (int i=0;i<mImages.size();i++) {
     if (mImages[i]->frame_number == frame_number)
@@ -273,7 +265,7 @@ const image_data* encoder_picture_buffer::get_picture(int frame_number) const
 }
 
 
-image_data* encoder_picture_buffer::get_picture(int frame_number)
+std::shared_ptr<picture_encoding_data> encoder_picture_buffer::get_picture(int frame_number)
 {
   for (int i=0;i<mImages.size();i++) {
     if (mImages[i]->frame_number == frame_number)
@@ -293,22 +285,4 @@ bool encoder_picture_buffer::has_picture(int frame_number) const
   }
 
   return false;
-}
-
-
-void encoder_picture_buffer::mark_image_is_outputted(int frame_number)
-{
-  image_data* idata = get_picture(frame_number);
-  assert(idata);
-
-  idata->is_in_output_queue = false;
-}
-
-
-void encoder_picture_buffer::release_input_image(int frame_number)
-{
-  image_data* idata = get_picture(frame_number);
-  assert(idata);
-
-  idata->input.reset();
 }

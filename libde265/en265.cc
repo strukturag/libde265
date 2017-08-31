@@ -265,7 +265,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  ectx->sop->insert_end_of_stream();
+  ectx->sop->insert_end_of_input();
   return DE265_OK;
 }
 
@@ -333,15 +333,8 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  // Do not delete images here. They are owned by the EncPicBuf.
-  //delete   pck->input_image;
-  //delete   pck->reconstruction;
-
-  if (pck->frame_number >= 0) {
-    ectx->mark_image_is_outputted(pck->frame_number);
-
-    //ectx->release_input_image(pck->frame_number);
-  }
+  if (pck->input_image)    delete pck->input_image;
+  if (pck->reconstruction) delete pck->reconstruction;
 
   delete[] pck->data;
   delete   pck;

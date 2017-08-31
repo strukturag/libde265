@@ -224,7 +224,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
   if (!image_spec_is_defined) {
-    const image_data* id = picbuf.peek_next_picture_to_encode();
+    auto id = picbuf.get_next_picture_to_encode();
     image_width  = id->input->get_width();
     image_height = id->input->get_height();
     image_spec_is_defined = true;
@@ -250,10 +250,9 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 
 
-  image_data* imgdata;
-  imgdata = picbuf.get_next_picture_to_encode();
+  auto imgdata = picbuf.get_next_picture_to_encode();
   assert(imgdata);
-  picbuf.mark_encoding_started(imgdata->frame_number);
+  imgdata->mark_encoding_started();
 
   this->imgdata = imgdata;
   this->shdr    = &imgdata->shdr;
@@ -297,7 +296,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   // set reconstruction image
 
-  picbuf.set_reconstruction_image(imgdata->frame_number, img);
+  imgdata->set_reconstruction_image(img);
   //picbuf.set_prediction_image(imgdata->frame_number, prediction);
   img.reset();
   this->imgdata = NULL;
@@ -315,7 +314,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   output_packets.push_back(pck);
 
 
-  picbuf.mark_encoding_finished(imgdata->frame_number);
+  imgdata->mark_encoding_finished();
 
   return DE265_OK;
 }

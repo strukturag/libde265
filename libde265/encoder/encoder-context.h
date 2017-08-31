@@ -78,7 +78,7 @@ class encoder_context : public base_context
 
   // quick links
   image_ptr img; // reconstruction
-  image_data* imgdata; // input image
+  std::shared_ptr<picture_encoding_data> imgdata; // input image
   slice_segment_header* shdr;
 
   CTBTreeMatrix ctbs;
@@ -186,15 +186,6 @@ class encoder_context : public base_context
   void start_encoder();
   de265_error encode_headers();
   de265_error encode_picture_from_input_buffer();
-
-
-  // Input images can be released after encoding and when the output packet is released.
-  // This is important to do as soon as possible, as the image might actually wrap
-  // scarce resources like camera picture buffers.
-  // This function does release (only) the raw input data.
-  void release_input_image(int frame_number) { picbuf.release_input_image(frame_number); }
-
-  void mark_image_is_outputted(int frame_number) { picbuf.mark_image_is_outputted(frame_number); }
 };
 
 
