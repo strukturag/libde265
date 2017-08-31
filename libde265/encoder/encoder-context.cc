@@ -58,9 +58,6 @@ encoder_context::encoder_context()
   //enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
   //switch_CABAC_to_bitstream();
-
-
-  //algocore.registerParams(params_config); TODO
 }
 
 
@@ -70,6 +67,14 @@ encoder_context::~encoder_context()
     en265_free_packet(this, output_packets.front());
     output_packets.pop_front();
   }
+}
+
+
+void encoder_context::set_encoder_core(std::shared_ptr<EncoderCore> core)
+{
+  algocore=core;
+
+  algocore->registerParams(params_config);
 }
 
 

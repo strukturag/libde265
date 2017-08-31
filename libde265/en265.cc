@@ -40,6 +40,9 @@ struct de265_image {
   }
 
   encoder_context* ectx = new encoder_context();
+
+  ectx->set_encoder_core( std::make_shared<EncoderCore_Custom>() );
+
   return (en265_encoder_context*)ectx;
 }
 

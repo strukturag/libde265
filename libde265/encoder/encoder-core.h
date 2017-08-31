@@ -102,6 +102,8 @@ class EncoderCore
  public:
   virtual ~EncoderCore() { }
 
+  virtual void registerParams(config_parameters& config) { }
+
   virtual void encode_picture(image_ptr img) = 0;
 
   // call me from derived method
@@ -199,7 +201,7 @@ class EncoderCore_Custom : public EncoderCore
   };
 
 
-  void registerParams(config_parameters& config) {
+  void registerParams(config_parameters& config) override {
     mAlgo_CTB_QScale_Constant.registerParams(config);
     mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
     mAlgo_CB_InterPartMode_Fixed.registerParams(config);

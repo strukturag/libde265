@@ -42,7 +42,7 @@ class encoder_context : public base_context
   encoder_context();
   ~encoder_context();
 
-  void set_encoder_core(std::shared_ptr<EncoderCore> core) { algocore=core; }
+  void set_encoder_core(std::shared_ptr<EncoderCore> core);
 
   void encode_picture(image_ptr img);
 

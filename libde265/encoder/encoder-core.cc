@@ -403,6 +403,8 @@ void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
 
 void EncoderCore_Custom::encode_picture(image_ptr img)
 {
+  // --- send the headers if they have not been sent before ---
+
   if (!mFixedHeadersHelper.have_headers_been_sent()) {
     mFixedHeadersHelper.set_image_size(img);
 
@@ -418,6 +420,9 @@ void EncoderCore_Custom::encode_picture(image_ptr img)
 
     mFixedHeadersHelper.encode_headers(mECtx);
   }
+
+
+  // --- put image into encoding queue ---
 
   mSOPCreator->insert_new_input_image(img);
 }
