@@ -519,6 +519,8 @@ void enc_cb::debug_dumpTree(int flags, int indent) const
   }
   else {
     std::cout << indentStr << "| qp: " << int(qp) << "\n";
+    std::cout << indentStr << "| cu_transquant_bypass_flag: " << cu_transquant_bypass_flag << "\n";
+    std::cout << indentStr << "| pcm_flag: " << pcm_flag << "\n";
     std::cout << indentStr << "| PredMode: " << PredMode << "\n";
     std::cout << indentStr << "| PartMode: " << part_mode_name(PartMode) << "\n";
     std::cout << indentStr << "| transform_tree:\n";
