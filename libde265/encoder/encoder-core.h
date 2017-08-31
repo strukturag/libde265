@@ -70,6 +70,31 @@
  */
 
 
+class FixedHeadersHelper
+{
+ public:
+  FixedHeadersHelper();
+
+  std::shared_ptr<video_parameter_set> get_vps() { return vps; }
+  std::shared_ptr<seq_parameter_set>   get_sps() { return sps; }
+  std::shared_ptr<pic_parameter_set>   get_pps() { return pps; }
+
+  void set_image_size(image_ptr);
+
+  // encode the headers into output packets and queue those in the encoder-context
+  void encode_headers(encoder_context* ectx);
+
+  bool have_headers_been_sent() const { return mHeadersHaveBeenSent; }
+
+ private:
+  std::shared_ptr<video_parameter_set> vps;
+  std::shared_ptr<seq_parameter_set>   sps;
+  std::shared_ptr<pic_parameter_set>   pps;
+
+  bool mHeadersHaveBeenSent = false;
+};
+
+
 // ========== an encoding algorithm combines a set of algorithm modules ==========
 
 class EncoderCore
@@ -77,15 +102,27 @@ class EncoderCore
  public:
   virtual ~EncoderCore() { }
 
-  virtual Algo_CTB* getCTBAlgo() = 0;
+  virtual void encode_picture(image_ptr img) = 0;
 
-  virtual std::shared_ptr<sop_creator> get_SOP_creator() const = 0;
+  // call me from derived method
+  virtual void initialize(encoder_picture_buffer*,
+                          encoder_context*);
+
+
+  virtual Algo_CTB* getCTBAlgo() = 0;
 
   virtual int get_CTB_size_log2() const = 0;
   virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const = 0;
 
   virtual int getPPS_QP() const = 0;
   virtual int getSlice_QPDelta() const { return 0; }
+
+
+ protected:
+  encoder_context* mECtx;
+  encoder_picture_buffer* mEncPicBuf;
+
+  //void send_encoded_picture_packet(std::shared_ptr<encoded_picture_data>);
 };
 
 
@@ -176,18 +213,25 @@ class EncoderCore_Custom : public EncoderCore
   }
 
   // Build algorithm graph and set algorithm module parameters
-  void initialize();
+  void initialize(encoder_picture_buffer*,
+                  encoder_context*) override;
+
+  void encode_picture(image_ptr img);
+
 
   virtual Algo_CTB* getCTBAlgo() { return &mAlgo_CTB_QScale_Constant; }
   virtual int get_CTB_size_log2() const;
 
-  virtual std::shared_ptr<sop_creator> get_SOP_creator() const;
   virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const;
 
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
 
  private:
   encoder_params params;
+
+  std::shared_ptr<sop_creator> mSOPCreator;
+
+  FixedHeadersHelper mFixedHeadersHelper;
 
   Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
 

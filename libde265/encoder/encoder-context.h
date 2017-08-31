@@ -44,6 +44,8 @@ class encoder_context : public base_context
 
   void set_encoder_core(std::shared_ptr<EncoderCore> core) { algocore=core; }
 
+  void encode_picture(image_ptr img);
+
 
   // --- image_history (decoded images) ---
 
@@ -180,7 +182,8 @@ class encoder_context : public base_context
     }
   */
 
-  en265_packet* create_packet(en265_packet_content_type t);
+  en265_packet* create_packet(en265_packet_content_type t, CABAC_encoder_bitstream&);
+  void push_output_packet(en265_packet* pck) { output_packets.push_back(pck); }
 
 
   // --- encoding control ---

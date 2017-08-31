@@ -89,11 +89,16 @@ struct picture_encoding_data
   //std::shared_ptr<image> prediction;  // this is only used for debugging
 
 
-  // SOP metadata
+  // --- headers ---
+
+  std::shared_ptr<pic_parameter_set> pps;
 
   nal_header nal; // TODO: image split into several NALs (always same NAL header?)
 
   slice_segment_header shdr; // TODO: multi-slice pictures -> move shdr to image object
+
+
+  // --- SOP metadata ---
 
   /* TODO */
   std::vector<int> ref0;
@@ -122,6 +127,9 @@ struct picture_encoding_data
   // scarce resources like camera picture buffers.
   // This function does release (only) the raw input data.
   void release_input_image() { input.reset(); }
+
+
+  std::deque<en265_packet*> output_packets;
 
 private:
   class encoder_picture_buffer* mEncPicBuf;

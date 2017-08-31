@@ -27,9 +27,9 @@ sop_creator_intra_only::sop_creator_intra_only()
 }
 
 
-void sop_creator_intra_only::set_SPS_header_values()
+void sop_creator_intra_only::fill_sps(std::shared_ptr<seq_parameter_set> sps)
 {
-  mEncCtx->get_sps().log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
+  sps->log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 
@@ -62,7 +62,7 @@ sop_creator_trivial_low_delay::sop_creator_trivial_low_delay()
 }
 
 
-void sop_creator_trivial_low_delay::set_SPS_header_values()
+void sop_creator_trivial_low_delay::fill_sps(std::shared_ptr<seq_parameter_set> sps)
 {
   ref_pic_set rps;
   rps.DeltaPocS0[0] = -1;
@@ -70,8 +70,8 @@ void sop_creator_trivial_low_delay::set_SPS_header_values()
   rps.NumNegativePics = 1;
   rps.NumPositivePics = 0;
   rps.compute_derived_values();
-  mEncCtx->get_sps().ref_pic_sets.push_back(rps);
-  mEncCtx->get_sps().log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
+  sps->ref_pic_sets.push_back(rps);
+  sps->log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 }
 
 

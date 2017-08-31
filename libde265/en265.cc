@@ -253,7 +253,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
 
   assert(img);
 
-  ectx->sop->insert_new_input_image(img->m_image);
+  ectx->encode_picture(img->m_image);
   delete img;
 
   return DE265_OK;

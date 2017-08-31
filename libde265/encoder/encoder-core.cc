@@ -31,6 +31,81 @@
 
 
 
+FixedHeadersHelper::FixedHeadersHelper()
+{
+  vps = std::make_shared<video_parameter_set>();
+  sps = std::make_shared<seq_parameter_set>();
+  pps = std::make_shared<pic_parameter_set>();
+
+  vps->set_defaults(Profile_Main, 6,2);
+
+  sps->set_defaults();
+
+  pps->set_defaults();
+  pps->sps = sps;
+
+
+  // --- set some more default values ---
+
+  // turn off deblocking filter
+  pps->deblocking_filter_control_present_flag = true;
+  pps->deblocking_filter_override_enabled_flag = false;
+  pps->pic_disable_deblocking_filter_flag = true;
+  pps->pps_loop_filter_across_slices_enabled_flag = false;
+
+  pps->set_derived_values(sps.get());
+}
+
+
+void FixedHeadersHelper::set_image_size(image_ptr img)
+{
+  sps->set_resolution(img->get_width(), img->get_height());
+}
+
+
+void FixedHeadersHelper::encode_headers(encoder_context* ectx)
+{
+  // write headers
+
+  en265_packet* pck;
+
+  nal_header nal;
+
+  CABAC_encoder_bitstream cabac_encoder;
+
+  nal.set(NAL_UNIT_VPS_NUT);
+  nal.write(cabac_encoder);
+  vps->write(ectx, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = ectx->create_packet(EN265_PACKET_VPS, cabac_encoder);
+  pck->nal_unit_type = EN265_NUT_VPS;
+  ectx->push_output_packet(pck);
+
+  nal.set(NAL_UNIT_SPS_NUT);
+  nal.write(cabac_encoder);
+  sps->write(ectx, cabac_encoder);
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = ectx->create_packet(EN265_PACKET_SPS, cabac_encoder);
+  pck->nal_unit_type = EN265_NUT_SPS;
+  ectx->push_output_packet(pck);
+
+  nal.set(NAL_UNIT_PPS_NUT);
+  nal.write(cabac_encoder);
+  pps->write(ectx, cabac_encoder, sps.get());
+  cabac_encoder.add_trailing_bits();
+  cabac_encoder.flush_VLC();
+  pck = ectx->create_packet(EN265_PACKET_PPS, cabac_encoder);
+  pck->nal_unit_type = EN265_NUT_PPS;
+  ectx->push_output_packet(pck);
+
+
+  mHeadersHaveBeenSent = true;
+}
+
+
+
 static int IntraPredModeCnt[7][35];
 static int MPM_used[7][35];
 
@@ -119,6 +194,20 @@ void print_cb_tree_rates(const enc_cb* cb, int level)
 
 
 
+/*
+void EncoderCore::send_encoded_picture_packet(std::shared_ptr<encoded_picture_data> encpic)
+{
+}
+*/
+
+void EncoderCore::initialize(encoder_picture_buffer* encpicbuf,
+                             encoder_context* ectx)
+{
+  mECtx = ectx;
+  mEncPicBuf = encpicbuf;
+}
+
+
 
 EncoderCore_Custom::encoder_params::encoder_params()
 {
@@ -175,19 +264,6 @@ void EncoderCore_Custom::encoder_params::registerParams(config_parameters& confi
 
 
 
-std::shared_ptr<sop_creator> EncoderCore_Custom::get_SOP_creator() const
-{
-  if (params.sop_structure() == SOP_Intra) {
-    return std::shared_ptr<sop_creator_intra_only>(new sop_creator_intra_only());
-  }
-  else {
-    auto sop = std::shared_ptr<sop_creator_trivial_low_delay>(new sop_creator_trivial_low_delay());
-    sop->setParams(params.mSOP_LowDelay);
-    return sop;
-  }
-}
-
-
 int EncoderCore_Custom::get_CTB_size_log2() const
 {
   return Log2(params.max_cb_size);
@@ -203,8 +279,27 @@ void EncoderCore_Custom::fill_sps(std::shared_ptr<seq_parameter_set> sps) const
 }
 
 
-void EncoderCore_Custom::initialize()
+void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
+                                    encoder_context* ectx)
 {
+  EncoderCore::initialize(encpicbuf,ectx);
+
+
+  // alloc SOP-creator
+
+  if (params.sop_structure() == SOP_Intra) {
+    mSOPCreator = std::make_shared<sop_creator_intra_only>();
+  }
+  else {
+    auto sop = std::make_shared<sop_creator_trivial_low_delay>();
+    sop->setParams(params.mSOP_LowDelay);
+    mSOPCreator = sop;
+  }
+
+  mSOPCreator->set_encoder_context(ectx);
+  mSOPCreator->set_encoder_picture_buffer(encpicbuf);
+
+
   // build algorithm tree
 
   mAlgo_CTB_QScale_Constant.setChildAlgo(&mAlgo_CB_Split_BruteForce);
@@ -304,6 +399,29 @@ void EncoderCore_Custom::initialize()
 
   algo_TB_IntraPredMode->enableIntraPredModeSubset( params.mAlgo_TB_IntraPredMode_Subset() );
 }
+
+
+void EncoderCore_Custom::encode_picture(image_ptr img)
+{
+  if (!mFixedHeadersHelper.have_headers_been_sent()) {
+    mFixedHeadersHelper.set_image_size(img);
+
+    mSOPCreator->fill_sps(mFixedHeadersHelper.get_sps());
+    mSOPCreator->fill_pps(mFixedHeadersHelper.get_pps());
+
+    // compute derived values (TODO: is this the right place?)
+    de265_error err = mFixedHeadersHelper.get_sps()->compute_derived_values(true);
+    if (err != DE265_OK) {
+      fprintf(stderr,"invalid SPS parameters\n");
+      exit(10);
+    }
+
+    mFixedHeadersHelper.encode_headers(mECtx);
+  }
+
+  mSOPCreator->insert_new_input_image(img);
+}
+
 
 
 void Logging::print_logging(const encoder_context* ectx, const char* id, const char* filename)
