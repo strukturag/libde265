@@ -50,6 +50,8 @@
 #include "libde265/encoder/algo/cb-mv-screen-region.h"
 #include "libde265/encoder/algo/cb-mv-screen.h"
 #include "libde265/encoder/algo/cb-intra-inter.h"
+#include "libde265/encoder/encoder-params.h"
+#include "libde265/encoder/sop.h"
 
 
 /*  Encoder search tree, bottom up:
@@ -77,6 +79,11 @@ class EncoderCore
 
   virtual Algo_CTB* getCTBAlgo() = 0;
 
+  virtual std::shared_ptr<sop_creator> get_SOP_creator() const = 0;
+
+  virtual int get_CTB_size_log2() const = 0;
+  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const = 0;
+
   virtual int getPPS_QP() const = 0;
   virtual int getSlice_QPDelta() const { return 0; }
 };
@@ -86,7 +93,74 @@ class EncoderCore_Custom : public EncoderCore
 {
  public:
 
-  void setParams(struct encoder_params& params);
+  struct encoder_params
+  {
+    encoder_params();
+
+    void registerParams(config_parameters& config);
+
+
+    // CB quad-tree
+
+    option_int min_cb_size;
+    option_int max_cb_size;
+
+    option_int min_tb_size;
+    option_int max_tb_size;
+
+    option_int max_transform_hierarchy_depth_intra;
+    option_int max_transform_hierarchy_depth_inter;
+
+
+    option_SOP_Structure sop_structure;
+
+    sop_creator_trivial_low_delay::params mSOP_LowDelay;
+
+
+    // --- Algo_TB_IntraPredMode
+
+    option_ALGO_TB_IntraPredMode        mAlgo_TB_IntraPredMode;
+    option_ALGO_TB_IntraPredMode_Subset mAlgo_TB_IntraPredMode_Subset;
+
+    //Algo_TB_IntraPredMode_FastBrute::params TB_IntraPredMode_FastBrute;
+    //Algo_TB_IntraPredMode_MinResidual::params TB_IntraPredMode_MinResidual;
+
+
+    // --- Algo_TB_Split_BruteForce
+
+    //Algo_TB_Split_BruteForce::params  TB_Split_BruteForce;
+
+
+    // --- Algo_CB_IntraPartMode
+
+    option_ALGO_CB_IntraPartMode mAlgo_CB_IntraPartMode;
+
+    option_ALGO_CB_Skip mAlgo_CB_Skip;
+
+
+    // --- Algo_CB_Split
+
+    // --- Algo_CTB_QScale
+
+    //Algo_CTB_QScale_Constant::params    CTB_QScale_Constant;
+
+    option_MEMode mAlgo_MEMode;
+
+
+    // intra-prediction
+
+    enum IntraPredSearch intraPredSearch;
+
+
+    // rate-control
+
+    enum RateControlMethod rateControlMethod;
+    option_ALGO_TB_RateEstimation mAlgo_TB_RateEstimation;
+
+    //int constant_QP;
+    //int lambda;
+  };
+
 
   void registerParams(config_parameters& config) {
     mAlgo_CTB_QScale_Constant.registerParams(config);
@@ -97,13 +171,24 @@ class EncoderCore_Custom : public EncoderCore
     mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
     mAlgo_TB_IntraPredMode_MinResidual.registerParams(config);
     mAlgo_TB_Split_BruteForce.registerParams(config);
+
+    params.registerParams(config);
   }
 
+  // Build algorithm graph and set algorithm module parameters
+  void initialize();
+
   virtual Algo_CTB* getCTBAlgo() { return &mAlgo_CTB_QScale_Constant; }
+  virtual int get_CTB_size_log2() const;
+
+  virtual std::shared_ptr<sop_creator> get_SOP_creator() const;
+  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const;
 
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
 
  private:
+  encoder_params params;
+
   Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
 
   Algo_CB_Split_BruteForce         mAlgo_CB_Split_BruteForce;

@@ -27,6 +27,7 @@
 #include "libde265/decctx.h"
 #include "libde265/image-io.h"
 #include "libde265/encoder/encoder-params.h"
+#include "libde265/encoder/encoder-core.h"
 #include "libde265/encoder/encpicbuf.h"
 #include "libde265/encoder/sop.h"
 #include "libde265/en265.h"
@@ -40,6 +41,8 @@ class encoder_context : public base_context
  public:
   encoder_context();
   ~encoder_context();
+
+  void set_encoder_core(std::shared_ptr<EncoderCore> core) { algocore=core; }
 
 
   // --- image_history (decoded images) ---
@@ -59,10 +62,9 @@ class encoder_context : public base_context
 
   bool encoder_started;
 
-  encoder_params params;
   config_parameters params_config;
 
-  EncoderCore_Custom algo;
+  std::shared_ptr<EncoderCore> algocore;
 
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size
@@ -93,9 +95,9 @@ class encoder_context : public base_context
   const pic_parameter_set& get_pps() const { return *pps; }
   std::shared_ptr<const pic_parameter_set> get_pps_ptr() const { return pps; }
 
-  video_parameter_set& get_vps() { return *vps; }
+  //video_parameter_set& get_vps() { return *vps; }
   seq_parameter_set& get_sps() { return *sps; }
-  pic_parameter_set& get_pps() { return *pps; }
+  //pic_parameter_set& get_pps() { return *pps; }
 
   std::shared_ptr<video_parameter_set>& get_shared_vps() { return vps; }
   std::shared_ptr<seq_parameter_set>& get_shared_sps() { return sps; }

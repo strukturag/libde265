@@ -120,7 +120,90 @@ void print_cb_tree_rates(const enc_cb* cb, int level)
 
 
 
-void EncoderCore_Custom::setParams(encoder_params& params)
+EncoderCore_Custom::encoder_params::encoder_params()
+{
+  //rateControlMethod = RateControlMethod_ConstantQP;
+
+  min_cb_size.set_ID("min-cb-size"); min_cb_size.set_valid_values(power2_range_list(8,64)); min_cb_size.set_default(8);
+  max_cb_size.set_ID("max-cb-size"); max_cb_size.set_valid_values(power2_range_list(8,64)); max_cb_size.set_default(32);
+  min_tb_size.set_ID("min-tb-size"); min_tb_size.set_valid_values(power2_range_list(4,32)); min_tb_size.set_default(4);
+  max_tb_size.set_ID("max-tb-size"); max_tb_size.set_valid_values(power2_range_list(8,32)); max_tb_size.set_default(32);
+
+  max_transform_hierarchy_depth_intra.set_ID("max-transform-hierarchy-depth-intra");
+  max_transform_hierarchy_depth_intra.set_range(0,4);
+  max_transform_hierarchy_depth_intra.set_default(3);
+
+  max_transform_hierarchy_depth_inter.set_ID("max-transform-hierarchy-depth-inter");
+  max_transform_hierarchy_depth_inter.set_range(0,4);
+  max_transform_hierarchy_depth_inter.set_default(3);
+
+  sop_structure.set_ID("sop-structure");
+
+  mAlgo_TB_IntraPredMode.set_ID("TB-IntraPredMode");
+  mAlgo_CB_Skip.set_ID("CB-Skip");
+
+  mAlgo_TB_IntraPredMode_Subset.set_ID("TB-IntraPredMode-subset");
+  mAlgo_CB_IntraPartMode.set_ID("CB-IntraPartMode");
+
+  mAlgo_TB_RateEstimation.set_ID("TB-RateEstimation");
+
+  mAlgo_MEMode.set_ID("MEMode");
+}
+
+
+void EncoderCore_Custom::encoder_params::registerParams(config_parameters& config)
+{
+  config.add_option(&min_cb_size);
+  config.add_option(&max_cb_size);
+  config.add_option(&min_tb_size);
+  config.add_option(&max_tb_size);
+  config.add_option(&max_transform_hierarchy_depth_intra);
+  config.add_option(&max_transform_hierarchy_depth_inter);
+
+  config.add_option(&sop_structure);
+
+  config.add_option(&mAlgo_TB_IntraPredMode);
+  config.add_option(&mAlgo_CB_Skip);
+  config.add_option(&mAlgo_TB_IntraPredMode_Subset);
+  config.add_option(&mAlgo_CB_IntraPartMode);
+
+  config.add_option(&mAlgo_MEMode);
+  config.add_option(&mAlgo_TB_RateEstimation);
+
+  mSOP_LowDelay.registerParams(config);
+}
+
+
+
+std::shared_ptr<sop_creator> EncoderCore_Custom::get_SOP_creator() const
+{
+  if (params.sop_structure() == SOP_Intra) {
+    return std::shared_ptr<sop_creator_intra_only>(new sop_creator_intra_only());
+  }
+  else {
+    auto sop = std::shared_ptr<sop_creator_trivial_low_delay>(new sop_creator_trivial_low_delay());
+    sop->setParams(params.mSOP_LowDelay);
+    return sop;
+  }
+}
+
+
+int EncoderCore_Custom::get_CTB_size_log2() const
+{
+  return Log2(params.max_cb_size);
+}
+
+
+void EncoderCore_Custom::fill_sps(std::shared_ptr<seq_parameter_set> sps) const
+{
+  sps->set_CB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
+  sps->set_TB_log2size_range( Log2(params.min_tb_size), Log2(params.max_tb_size));
+  sps->max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
+  sps->max_transform_hierarchy_depth_inter = params.max_transform_hierarchy_depth_inter;
+}
+
+
+void EncoderCore_Custom::initialize()
 {
   // build algorithm tree
 

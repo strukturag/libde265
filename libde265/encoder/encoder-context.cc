@@ -60,8 +60,7 @@ encoder_context::encoder_context()
   //switch_CABAC_to_bitstream();
 
 
-  params.registerParams(params_config);
-  algo.registerParams(params_config);
+  //algocore.registerParams(params_config); TODO
 }
 
 
@@ -81,14 +80,7 @@ void encoder_context::start_encoder()
   }
 
 
-  if (params.sop_structure() == SOP_Intra) {
-    sop = std::shared_ptr<sop_creator_intra_only>(new sop_creator_intra_only());
-  }
-  else {
-    auto s = std::shared_ptr<sop_creator_trivial_low_delay>(new sop_creator_trivial_low_delay());
-    s->setParams(params.mSOP_LowDelay);
-    sop = s;
-  }
+  sop = algocore->get_SOP_creator();
 
   sop->set_encoder_context(this);
   sop->set_encoder_picture_buffer(&picbuf);
@@ -143,10 +135,7 @@ de265_error encoder_context::encode_headers()
   // SPS
 
   sps->set_defaults();
-  sps->set_CB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
-  sps->set_TB_log2size_range( Log2(params.min_tb_size), Log2(params.max_tb_size));
-  sps->max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
-  sps->max_transform_hierarchy_depth_inter = params.max_transform_hierarchy_depth_inter;
+  algocore->fill_sps(sps);
 
   if (imgdata->input->get_chroma_format() == de265_chroma_444) {
     sps->chroma_format_idc = CHROMA_444;
@@ -165,7 +154,7 @@ de265_error encoder_context::encode_headers()
 
   pps->set_defaults();
   pps->sps = sps;
-  pps->pic_init_qp = algo.getPPS_QP();
+  pps->pic_init_qp = algocore->getPPS_QP();
 
   // turn off deblocking filter
   pps->deblocking_filter_control_present_flag = true;
@@ -229,16 +218,14 @@ de265_error encoder_context::encode_picture_from_input_buffer()
     image_height = id->input->get_height();
     image_spec_is_defined = true;
 
-    ctbs.alloc(image_width, image_height, Log2(params.max_cb_size));
+    ctbs.alloc(image_width, image_height, algocore->get_CTB_size_log2());
   }
 
 
   if (!parameters_have_been_set) {
-    algo.setParams(params);
-
 
     // TODO: must be <30, because Y->C mapping (tab8_22) is not implemented yet
-    int qp = algo.getPPS_QP();
+    int qp = algocore->getPPS_QP();
 
     //lambda = ectx->params.lambda;
     lambda = 0.0242 * pow(1.27245, qp);
@@ -287,7 +274,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   // encode image
 
   cabac_encoder.init_CABAC();
-  double psnr = encode_image(this,imgdata->input, algo);
+  double psnr = encode_image(this,imgdata->input, *algocore);
   loginfo(LogEncoder,"  PSNR-Y: %f\n", psnr);
   cabac_encoder.flush_CABAC();
   cabac_encoder.add_trailing_bits();
