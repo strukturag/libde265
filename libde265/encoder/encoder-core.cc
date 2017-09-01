@@ -401,18 +401,30 @@ void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
 }
 
 
-void EncoderCore_Custom::encode_picture(image_ptr img)
+void EncoderCore_Custom::push_picture(image_ptr img)
 {
   // --- send the headers if they have not been sent before ---
 
   if (!mFixedHeadersHelper.have_headers_been_sent()) {
     mFixedHeadersHelper.set_image_size(img);
 
-    mSOPCreator->fill_sps(mFixedHeadersHelper.get_sps());
-    mSOPCreator->fill_pps(mFixedHeadersHelper.get_pps());
+    auto sps = mFixedHeadersHelper.get_sps();
+    auto pps = mFixedHeadersHelper.get_pps();
+
+    mSOPCreator->fill_sps(sps);
+    mSOPCreator->fill_pps(pps);
+
+    fill_sps(sps);
+
+    if (img->get_chroma_format() == de265_chroma_444) {
+      sps->chroma_format_idc = CHROMA_444;
+    }
+
+    pps->pic_init_qp = getPPS_QP();
+
 
     // compute derived values (TODO: is this the right place?)
-    de265_error err = mFixedHeadersHelper.get_sps()->compute_derived_values(true);
+    de265_error err = sps->compute_derived_values(true);
     if (err != DE265_OK) {
       fprintf(stderr,"invalid SPS parameters\n");
       exit(10);

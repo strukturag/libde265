@@ -256,7 +256,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
 
   assert(img);
 
-  ectx->encode_picture(img->m_image);
+  ectx->push_picture(img->m_image);
   delete img;
 
   return DE265_OK;
@@ -268,7 +268,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  ectx->sop->insert_end_of_input();
+  ectx->push_end_of_input();
   return DE265_OK;
 }
 

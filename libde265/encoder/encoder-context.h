@@ -44,7 +44,21 @@ class encoder_context : public base_context
 
   void set_encoder_core(std::shared_ptr<EncoderCore> core);
 
-  void encode_picture(image_ptr img);
+  void push_picture(image_ptr img);
+  void push_end_of_input();
+
+
+  en265_packet* create_packet(en265_packet_content_type t, CABAC_encoder_bitstream&);
+  void push_output_packet(en265_packet* pck) { output_packets.push_back(pck); }
+
+
+  // --- encoding control ---
+
+  void start_encoder();
+  de265_error encode_picture_from_input_buffer();
+
+
+
 
 
   // --- image_history (decoded images) ---
@@ -113,7 +127,6 @@ class encoder_context : public base_context
 
  public:
   bool parameters_have_been_set;
-  bool headers_have_been_sent;
 
   encoder_picture_buffer picbuf;
 
@@ -181,16 +194,6 @@ class encoder_context : public base_context
     ctx_model = &ctx_model_bitstream;
     }
   */
-
-  en265_packet* create_packet(en265_packet_content_type t, CABAC_encoder_bitstream&);
-  void push_output_packet(en265_packet* pck) { output_packets.push_back(pck); }
-
-
-  // --- encoding control ---
-
-  void start_encoder();
-  de265_error encode_headers();
-  de265_error encode_picture_from_input_buffer();
 };
 
 

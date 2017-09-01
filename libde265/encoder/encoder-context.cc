@@ -49,7 +49,6 @@ encoder_context::encoder_context()
 
   image_spec_is_defined = false;
   parameters_have_been_set = false;
-  headers_have_been_sent = false;
 
   image_allocation_functions = image::default_image_allocation;
 
@@ -78,9 +77,15 @@ void encoder_context::set_encoder_core(std::shared_ptr<EncoderCore> core)
 }
 
 
-void encoder_context::encode_picture(image_ptr img)
+void encoder_context::push_picture(image_ptr img)
 {
-  algocore->encode_picture(img);
+  algocore->push_picture(img);
+}
+
+
+void encoder_context::push_end_of_input()
+{
+  algocore->push_end_of_input();
 }
 
 
@@ -89,6 +94,8 @@ void encoder_context::start_encoder()
   if (encoder_started) {
     return;
   }
+
+  algocore->initialize(&picbuf, this);
 
   encoder_started=true;
 }
@@ -125,30 +132,6 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t,
   cabac_encoder.reset();
 
   return pck;
-}
-
-
-de265_error encoder_context::encode_headers()
-{
-  // SPS
-
-  algocore->fill_sps(sps);
-
-  if (imgdata->input->get_chroma_format() == de265_chroma_444) {
-    sps->chroma_format_idc = CHROMA_444;
-  }
-
-
-  // PPS
-
-  pps->pic_init_qp = algocore->getPPS_QP();
-
-
-
-
-  headers_have_been_sent = true;
-
-  return DE265_OK;
 }
 
 
@@ -191,13 +174,6 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   this->imgdata = imgdata;
   this->shdr    = &imgdata->shdr;
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
-
-
-  // write headers if not written yet
-
-  if (!headers_have_been_sent) {
-    encode_headers();
-  }
 
 
   // write slice header

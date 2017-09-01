@@ -104,7 +104,8 @@ class EncoderCore
 
   virtual void registerParams(config_parameters& config) { }
 
-  virtual void encode_picture(image_ptr img) = 0;
+  virtual void push_picture(image_ptr img) = 0;
+  virtual void push_end_of_input() = 0;
 
   // call me from derived method
   virtual void initialize(encoder_picture_buffer*,
@@ -218,7 +219,8 @@ class EncoderCore_Custom : public EncoderCore
   void initialize(encoder_picture_buffer*,
                   encoder_context*) override;
 
-  void encode_picture(image_ptr img);
+  void push_picture(image_ptr img) override;
+  void push_end_of_input() override { mSOPCreator->insert_end_of_input(); }
 
 
   virtual Algo_CTB* getCTBAlgo() { return &mAlgo_CTB_QScale_Constant; }
