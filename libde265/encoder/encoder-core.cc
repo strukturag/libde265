@@ -60,6 +60,9 @@ FixedHeadersHelper::FixedHeadersHelper()
 void FixedHeadersHelper::set_image_size(image_ptr img)
 {
   sps->set_resolution(img->get_width(), img->get_height());
+
+  sps->compute_derived_values();
+  pps->set_derived_values(sps.get());
 }
 
 
