@@ -370,6 +370,16 @@ class CTBTreeMatrix
 
   std::shared_ptr<const image> get_input_image() const { return mInputImage; }
 
+
+  // TODO: do we need the slice_headers here? It's probably simpler to use it from
+  // the (reconstruction) image metadata.
+  // -> not really, because all encoding is done from the CTBTree
+  // We either have to:
+  // - separate image/metadata and add the metadata to CTBTree, or
+  // - use slice headers only in the CTBTree (but check deblocking filters, ... they
+  //   might be using the slice headers from the image metadata)
+
+
   uint16_t add_slice_header(std::shared_ptr<slice_segment_header> shdr) {
     mSliceHeaders.push_back(shdr);
     return mSliceHeaders.size()-1;

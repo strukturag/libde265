@@ -29,6 +29,8 @@
 #include <vector>
 
 
+class encoder_picture_buffer;
+
 /* TODO: we need a way to quickly access pictures with a stable ID, like in the DPB.
  */
 
@@ -39,9 +41,19 @@
 // - ...
 struct picture_encoding_data
 {
-  picture_encoding_data(class encoder_picture_buffer* encpicbuf);
+  picture_encoding_data(class encoder_picture_buffer* encpicbuf); // DEPRECATED
+
+  picture_encoding_data(image_ptr img,
+                        int frame_number,
+                        std::shared_ptr<video_parameter_set>& vps,
+                        std::shared_ptr<seq_parameter_set>& sps,
+                        std::shared_ptr<pic_parameter_set>& pps,
+                        int ctb_size_log2);
+
   ~picture_encoding_data();
 
+
+  void setEncPicBuf(encoder_picture_buffer* encpicbuf) { mEncPicBuf = encpicbuf; }
 
   // --- picture encoding state ---
 
@@ -98,7 +110,14 @@ struct picture_encoding_data
 
   nal_header nal; // TODO: image split into several NALs (always same NAL header?)
 
-  //slice_segment_header shdr; // TODO: multi-slice pictures -> move shdr to image object
+  // The vps/sps/pps headers will be set by the SOPCreator. When encoding a picture,
+  // the encoder_context will check whether this header has to be coded in the bitstream or
+  // whether it is already active. It will also ask the EncoderCore to set additional fields.
+  // Finally, it will choose an ID for the header, code it in the bitstream and store it in
+  // its encoder_context header arrays.
+  std::shared_ptr<video_parameter_set> vps;
+  std::shared_ptr<seq_parameter_set>   sps;
+  std::shared_ptr<pic_parameter_set>   pps;
 
 
   // --- SOP metadata ---
@@ -159,9 +178,7 @@ class encoder_picture_buffer
 
   // --- input pushed by the input process ---
 
-  std::shared_ptr<picture_encoding_data>
-    insert_next_image_in_encoding_order(std::shared_ptr<const image>,
-                                        int frame_number);
+  void insert_next_image_in_encoding_order(std::shared_ptr<picture_encoding_data> picdata);
 
   void insert_end_of_input();
 

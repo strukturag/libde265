@@ -86,6 +86,7 @@ class encoder_context : public base_context
 
   const image_history& get_input_image_history() const { return m_input_image_history; }
 
+  int get_CTB_size_log2() const { return algocore->get_CTB_size_log2(); }
 
 
   bool encoder_started;
@@ -94,8 +95,8 @@ class encoder_context : public base_context
 
   std::shared_ptr<EncoderCore> algocore;
 
-  int image_width, image_height;
-  bool image_spec_is_defined;  // whether we know the input image size
+  //int image_width, image_height;
+  //bool image_spec_is_defined;  // whether we know the input image size
 
   de265_image_allocation image_allocation_functions;
 
@@ -137,10 +138,13 @@ class encoder_context : public base_context
   std::shared_ptr<const pic_parameter_set> get_pps() const { return algocore->get_pps(); }
 
  private:
-  //std::shared_ptr<video_parameter_set>  vps;
-  //std::shared_ptr<seq_parameter_set>    sps;
-  //std::shared_ptr<pic_parameter_set>    pps;
-  //slice_segment_header shdr;
+
+  // These are the headers that are currently active (have been sent in the bitstream)
+  // Inactive headers are NULL.
+  std::array<std::shared_ptr<video_parameter_set>, DE265_MAX_VPS_SETS> m_vps;
+  std::array<std::shared_ptr<seq_parameter_set>,   DE265_MAX_SPS_SETS> m_sps;
+  std::array<std::shared_ptr<pic_parameter_set>,   DE265_MAX_PPS_SETS> m_pps;
+
 
  public:
   bool parameters_have_been_set;

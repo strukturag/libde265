@@ -76,9 +76,9 @@ class sop_creator : public pic_order_counter
      - SPS.ref_pic_sets
      - SPS.log2_max_pic_order_cnt_lsb
    */
-  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) { }
+  //virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) { }
 
-  virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
+  //virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
 
   /* Fills in the following fields:
      - NAL.nal_type
@@ -105,10 +105,15 @@ class sop_creator_intra_only : public sop_creator
  public:
   sop_creator_intra_only();
 
-  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps);
-  virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
+  //virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps);
+  //virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
 
   virtual void insert_new_input_image(image_ptr img);
+
+ private:
+  std::shared_ptr<video_parameter_set> vps;
+  std::shared_ptr<seq_parameter_set>   sps;
+  std::shared_ptr<pic_parameter_set>   pps;
 };
 
 
@@ -134,12 +139,16 @@ class sop_creator_trivial_low_delay : public sop_creator
 
   void setParams(const params& p) { mParams=p; }
 
-  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps);
-  virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
+  //virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps);
+  //virtual void fill_pps(std::shared_ptr<pic_parameter_set> pps) { }
 
   virtual void insert_new_input_image(image_ptr img);
 
  private:
+  std::shared_ptr<video_parameter_set> vps;
+  std::shared_ptr<seq_parameter_set>   sps;
+  std::shared_ptr<pic_parameter_set>   pps;
+
   params mParams;
 
   bool isIntra(int frame) const { return (frame % mParams.intraPeriod)==0; }

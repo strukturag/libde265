@@ -44,6 +44,59 @@ picture_encoding_data::picture_encoding_data(encoder_picture_buffer* encpicbuf)
 }
 
 
+picture_encoding_data::picture_encoding_data(image_ptr in_img,
+                                             int in_frame_number,
+                                             std::shared_ptr<video_parameter_set>& in_vps,
+                                             std::shared_ptr<seq_parameter_set>& in_sps,
+                                             std::shared_ptr<pic_parameter_set>& in_pps,
+                                             int ctb_size_log2)
+{
+  frame_number = in_frame_number;
+
+  input = in_img;
+
+
+  // SOP metadata
+
+  sps_index = -1;
+  skip_priority = 0;
+
+  state = state_unprocessed;
+
+  mEncPicBuf = nullptr;
+
+
+  vps = in_vps;
+  sps = in_sps;
+  pps = in_pps;
+
+  ctbs.alloc(in_img->get_width(),
+             in_img->get_height(),
+             ctb_size_log2);
+
+
+  // --- reconstruction image and coding metadata
+
+  reconstruction = std::make_shared<image>();
+  reconstruction->set_headers(in_vps, in_sps, in_pps);
+  reconstruction->PicOrderCntVal = in_img->PicOrderCntVal;
+
+  reconstruction->alloc_image(in_img->get_width(),
+                              in_img->get_height(),
+                              in_img->get_chroma_format(), 8,8,
+                              0, // PTS
+                              image::supplementary_data(),
+                              NULL, // user data
+                              nullptr); // alloc_funcs
+  /*
+  ectx->img->set_encoder_context(ectx);
+  */
+
+  reconstruction->alloc_metadata(in_sps);
+  reconstruction->clear_metadata();
+}
+
+
 picture_encoding_data::~picture_encoding_data()
 {
   //printf("delete %p\n",this);
@@ -157,17 +210,11 @@ void encoder_picture_buffer::clear()
 // --- input pushed by the input process ---
 
 
-std::shared_ptr<picture_encoding_data>
-encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<const image> img,
-                                                            int frame_number)
+void encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<picture_encoding_data> picdata)
 {
-  auto picdata = std::make_shared<picture_encoding_data>(this);
-  picdata->frame_number = frame_number;
-  picdata->input = img;
+  picdata->setEncPicBuf(this);
 
   mImages.push_back(picdata);
-
-  return picdata;
 }
 
 

@@ -68,42 +68,6 @@ void FixedHeadersHelper::set_image_size(image_ptr img)
 
 void FixedHeadersHelper::encode_headers(encoder_context* ectx)
 {
-  // write headers
-
-  en265_packet* pck;
-
-  nal_header nal;
-
-  CABAC_encoder_bitstream cabac_encoder;
-
-  nal.set(NAL_UNIT_VPS_NUT);
-  nal.write(cabac_encoder);
-  vps->write(ectx, cabac_encoder);
-  cabac_encoder.add_trailing_bits();
-  cabac_encoder.flush_VLC();
-  pck = ectx->create_packet(EN265_PACKET_VPS, cabac_encoder);
-  pck->nal_unit_type = EN265_NUT_VPS;
-  ectx->push_output_packet(pck);
-
-  nal.set(NAL_UNIT_SPS_NUT);
-  nal.write(cabac_encoder);
-  sps->write(ectx, cabac_encoder);
-  cabac_encoder.add_trailing_bits();
-  cabac_encoder.flush_VLC();
-  pck = ectx->create_packet(EN265_PACKET_SPS, cabac_encoder);
-  pck->nal_unit_type = EN265_NUT_SPS;
-  ectx->push_output_packet(pck);
-
-  nal.set(NAL_UNIT_PPS_NUT);
-  nal.write(cabac_encoder);
-  pps->write(ectx, cabac_encoder, sps.get());
-  cabac_encoder.add_trailing_bits();
-  cabac_encoder.flush_VLC();
-  pck = ectx->create_packet(EN265_PACKET_PPS, cabac_encoder);
-  pck->nal_unit_type = EN265_NUT_PPS;
-  ectx->push_output_packet(pck);
-
-
   mHeadersHaveBeenSent = true;
 }
 
@@ -414,8 +378,8 @@ void EncoderCore_Custom::push_picture(image_ptr img)
     auto sps = mFixedHeadersHelper.get_sps();
     auto pps = mFixedHeadersHelper.get_pps();
 
-    mSOPCreator->fill_sps(sps);
-    mSOPCreator->fill_pps(pps);
+    //mSOPCreator->fill_sps(sps);
+    //mSOPCreator->fill_pps(pps);
 
     fill_sps(sps);
 

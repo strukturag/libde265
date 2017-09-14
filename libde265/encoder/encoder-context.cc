@@ -26,6 +26,7 @@
 #include "libde265/image.h"
 
 #include <math.h>
+#include <algorithm>
 
 #define ENCODER_DEVELOPMENT 0
 #define COMPARE_ESTIMATED_RATE_TO_REAL_RATE 0
@@ -43,7 +44,6 @@ encoder_context::encoder_context()
   //reconstruction_sink = NULL;
   //packet_sink = NULL;
 
-  image_spec_is_defined = false;
   parameters_have_been_set = false;
 
   image_allocation_functions = image::default_image_allocation;
@@ -138,14 +138,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   }
 
 
-  if (!image_spec_is_defined) {
-    auto id = picbuf.get_next_picture_to_encode();
-    image_width  = id->input->get_width();
-    image_height = id->input->get_height();
-    image_spec_is_defined = true;
-
-    imgdata->ctbs.alloc(image_width, image_height, algocore->get_CTB_size_log2());
-  }
+  imgdata = picbuf.get_next_picture_to_encode();
 
 
   if (!parameters_have_been_set) {
@@ -160,17 +153,72 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   }
 
 
-
-
-
-  auto imgdata = picbuf.get_next_picture_to_encode();
-  assert(imgdata);
   imgdata->mark_encoding_started();
 
-  this->imgdata = imgdata;
   this->shdr    = imgdata->reconstruction->get_SliceHeader(0,0); // TODO: HACK
 
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
+
+
+
+  // --- send the image headers if not sent already
+
+  if (m_vps[ imgdata->vps->video_parameter_set_id ] != imgdata->vps) {
+    m_vps[ imgdata->vps->video_parameter_set_id ] = imgdata->vps;
+
+    // send VPS
+
+    en265_packet* pck;
+    nal_header nal;
+    CABAC_encoder_bitstream cabac_encoder;
+
+    nal.set(NAL_UNIT_VPS_NUT);
+    nal.write(cabac_encoder);
+    imgdata->vps->write(this, cabac_encoder);
+    cabac_encoder.add_trailing_bits();
+    cabac_encoder.flush_VLC();
+    pck = create_packet(EN265_PACKET_VPS, cabac_encoder);
+    pck->nal_unit_type = EN265_NUT_VPS;
+    push_output_packet(pck);
+  }
+
+  if (m_sps[ imgdata->sps->seq_parameter_set_id ] != imgdata->sps) {
+    m_sps[ imgdata->sps->seq_parameter_set_id ] = imgdata->sps;
+
+    // send SPS
+
+    en265_packet* pck;
+    nal_header nal;
+    CABAC_encoder_bitstream cabac_encoder;
+
+    nal.set(NAL_UNIT_SPS_NUT);
+    nal.write(cabac_encoder);
+    imgdata->sps->write(this, cabac_encoder);
+    cabac_encoder.add_trailing_bits();
+    cabac_encoder.flush_VLC();
+    pck = create_packet(EN265_PACKET_SPS, cabac_encoder);
+    pck->nal_unit_type = EN265_NUT_SPS;
+    push_output_packet(pck);
+  }
+
+  if (m_pps[ imgdata->pps->pic_parameter_set_id ] != imgdata->pps) {
+    m_pps[ imgdata->pps->pic_parameter_set_id ] = imgdata->pps;
+
+    // send PPS
+
+    en265_packet* pck;
+    nal_header nal;
+    CABAC_encoder_bitstream cabac_encoder;
+
+    nal.set(NAL_UNIT_PPS_NUT);
+    nal.write(cabac_encoder);
+    imgdata->pps->write(this, cabac_encoder, imgdata->sps.get());
+    cabac_encoder.add_trailing_bits();
+    cabac_encoder.flush_VLC();
+    pck = create_packet(EN265_PACKET_PPS, cabac_encoder);
+    pck->nal_unit_type = EN265_NUT_PPS;
+    push_output_packet(pck);
+  }
 
 
   // write slice header
