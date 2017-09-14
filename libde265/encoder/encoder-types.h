@@ -377,8 +377,9 @@ class CTBTreeMatrix
   // We either have to:
   // - separate image/metadata and add the metadata to CTBTree, or
   // - use slice headers only in the CTBTree (but check deblocking filters, ... they
-  //   might be using the slice headers from the image metadata)
-
+  //   might be using the slice headers from the image metadata) --> yes, is used in deblock and SAO
+  // - third option: copy over slice-headers from CTBTree to image after encoding
+  // ---> use first or third method
 
   uint16_t add_slice_header(std::shared_ptr<slice_segment_header> shdr) {
     mSliceHeaders.push_back(shdr);
