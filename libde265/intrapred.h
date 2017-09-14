@@ -84,7 +84,8 @@ void decode_intra_prediction_from_tree(const image* img,
                                        const class enc_tb* tb,
                                        const class CTBTreeMatrix& ctbs,
                                        const class seq_parameter_set& sps,
-                                       int cIdx);
+                                       int cIdx,
+                                       const acceleration_functions& accel);
 
 // TODO: remove this
 template <class pixel_t> void decode_intra_prediction(image* img,

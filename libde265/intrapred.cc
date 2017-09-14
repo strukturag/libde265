@@ -1357,7 +1357,8 @@ void decode_intra_prediction_from_tree_internal(const image* img,
                                                 const enc_tb* tb,
                                                 const CTBTreeMatrix& ctbs,
                                                 const seq_parameter_set& sps,
-                                                int cIdx)
+                                                int cIdx,
+                                                const acceleration_functions& accel)
 {
   enum IntraPredMode intraPredMode;
   if (cIdx==0) intraPredMode = tb->intra_mode;
@@ -1393,7 +1394,7 @@ void decode_intra_prediction_from_tree_internal(const image* img,
     intra_prediction_planar(dst,dstStride, nT, cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(img->decctx->acceleration, dst,dstStride, nT, cIdx, border_pixels);
+    intra_prediction_DC(accel, dst,dstStride, nT, cIdx, border_pixels);
     break;
   default:
     {
@@ -1416,9 +1417,10 @@ void decode_intra_prediction_from_tree(const image* img,
                                        const enc_tb* tb,
                                        const CTBTreeMatrix& ctbs,
                                        const seq_parameter_set& sps,
-                                       int cIdx)
+                                       int cIdx,
+                                       const acceleration_functions& accel)
 {
   // TODO: high bit depths
 
-  decode_intra_prediction_from_tree_internal<uint8_t>(img ,tb, ctbs, sps, cIdx);
+  decode_intra_prediction_from_tree_internal<uint8_t>(img ,tb, ctbs, sps, cIdx, accel);
 }

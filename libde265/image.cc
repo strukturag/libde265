@@ -503,9 +503,6 @@ void image::release()
 
   // free slices
 
-  for (int i=0;i<slices.size();i++) {
-    delete slices[i];
-  }
   slices.clear();
 }
 

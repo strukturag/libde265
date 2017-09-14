@@ -1419,7 +1419,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
 
 
 
-  const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
+  const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ].get();
 
   if (shdr->LongTermRefPic[X][refIdxLX] !=
       colShdr->LongTermRefPic[listCol][refIdxCol]) {

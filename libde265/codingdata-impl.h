@@ -61,10 +61,10 @@ public:
   const pic_parameter_set& get_pps() const { return *ectx->get_pps(); }
 
   int  get_SliceAddrRS(int ctbX, int ctbY) const { return ectx->img->get_SliceAddrRS(ctbX,ctbY); }
-  enum PartMode get_PartMode(int x,int y) const { return ectx->ctbs.getCB(x,y)->PartMode; }
-  enum PredMode get_pred_mode(int x,int y) const { return ectx->ctbs.getCB(x,y)->PredMode; }
+  enum PartMode get_PartMode(int x,int y) const { return ectx->imgdata->ctbs.getCB(x,y)->PartMode; }
+  enum PredMode get_pred_mode(int x,int y) const { return ectx->imgdata->ctbs.getCB(x,y)->PredMode; }
   const PBMotion& get_mv_info(int x,int y) const {
-    return ectx->ctbs.getPB(x,y)->motion;
+    return ectx->imgdata->ctbs.getPB(x,y)->motion;
   }
 
 private:

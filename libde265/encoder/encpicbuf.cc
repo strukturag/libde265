@@ -90,11 +90,13 @@ void picture_encoding_data::set_reconstruction_image(image_ptr reco)
 
 // --- SOP structure ---
 
+/*
 void picture_encoding_data::set_intra()
 {
-  shdr.slice_type = SLICE_TYPE_I;
+  //shdr.slice_type = SLICE_TYPE_I;
   //is_intra = true;
 }
+*/
 
 
 void picture_encoding_data::set_NAL_type(uint8_t nalType)
@@ -117,21 +119,6 @@ void picture_encoding_data::set_references(int sps_index, // -1 -> custom
 
 
   // TODO: pps.num_ref_idx_l0_default_active
-
-  shdr.num_ref_idx_l0_active = l0.size();
-  //shdr.num_ref_idx_l1_active = l1.size();
-
-  assert(l0.size() < MAX_NUM_REF_PICS);
-  for (int i=0;i<l0.size();i++) {
-    shdr.RefPicList[0][i] = l0[i];
-  }
-
-  /*
-  assert(l1.size() < MAX_NUM_REF_PICS);
-  for (int i=0;i<l1.size();i++) {
-    shdr.RefPicList[1][i] = l1[i];
-  }
-  */
 }
 
 
@@ -177,7 +164,6 @@ encoder_picture_buffer::insert_next_image_in_encoding_order(std::shared_ptr<cons
   auto picdata = std::make_shared<picture_encoding_data>(this);
   picdata->frame_number = frame_number;
   picdata->input = img;
-  picdata->shdr.set_defaults();
 
   mImages.push_back(picdata);
 

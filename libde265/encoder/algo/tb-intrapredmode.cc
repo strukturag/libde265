@@ -202,7 +202,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     std::shared_ptr<const seq_parameter_set> sps = ectx->get_sps();
     enum IntraPredMode candidates[3];
     fill_intraPredMode_candidates_from_tree(candidates, tb->x,tb->y,
-                                            tb->x > 0, tb->y > 0, ectx->ctbs, sps.get());
+                                            tb->x > 0, tb->y > 0, ectx->imgdata->ctbs, sps.get());
 
 
     for (int i = 0; i<35; i++) {
@@ -317,7 +317,8 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
         enum IntraPredMode mode = getPredMode(idx);
 
         tb->intra_mode = mode;
-        decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, *ectx->get_sps(), 0);
+        decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->imgdata->ctbs, *ectx->get_sps(), 0,
+                                          ectx->acceleration);
 
         float distortion;
         distortion = estim_TB_bitrate(ectx, input.get(), tb,
@@ -366,7 +367,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
 
     enum IntraPredMode candidates[3];
     fill_intraPredMode_candidates_from_tree(candidates, x0,y0,
-                                            x0>0, y0>0, ectx->ctbs, ectx->get_sps().get());
+                                            x0>0, y0>0, ectx->imgdata->ctbs, ectx->get_sps().get());
 
     float intraPredModeBits = get_intra_pred_mode_bits(candidates,
                                                        intraMode,
@@ -420,7 +421,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     std::shared_ptr<const seq_parameter_set> sps = ectx->get_sps();
     enum IntraPredMode candidates[3];
     fill_intraPredMode_candidates_from_tree(candidates, tb->x,tb->y,
-                                            tb->x>0, tb->y>0, ectx->ctbs, sps.get());
+                                            tb->x>0, tb->y>0, ectx->imgdata->ctbs, sps.get());
 
 
 
@@ -436,7 +437,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
           enum IntraPredMode mode = (enum IntraPredMode)idx;
 
           tb->intra_mode = mode;
-          decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, *sps, 0);
+          decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->imgdata->ctbs, *sps, 0,
+                                            ectx->acceleration);
 
           float distortion;
           distortion = estim_TB_bitrate(ectx, input.get(), tb,

@@ -109,7 +109,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const image* in
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
 
-  decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, *ectx->get_sps(), cIdx);
+  decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->imgdata->ctbs, *ectx->get_sps(), cIdx, ectx->acceleration);
 
   // create residual buffer and compute differences
 

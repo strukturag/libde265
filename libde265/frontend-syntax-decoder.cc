@@ -202,13 +202,12 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
   // --- read slice header ---
 
-  slice_segment_header* shdr = new slice_segment_header;
+  auto shdr = std::make_shared<slice_segment_header>();
 
   de265_error err = shdr->read(&reader,m_decctx, nal_unit_type);
   if (err) {
     m_decctx->add_warning(err, false);
     if (m_curr_img) { m_curr_img->integrity = INTEGRITY_NOT_DECODED; }
-    delete shdr;
     return err;
   }
 
@@ -290,10 +289,9 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
   }
 
 
-  if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
+  if (process_slice_segment_header(shdr.get(), &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (m_curr_img!=NULL) m_curr_img->integrity = INTEGRITY_NOT_DECODED;
-      delete shdr;
       return err;
     }
 
@@ -320,7 +318,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
 
     slice_unit* sliceunit = new slice_unit(m_decctx);
     sliceunit->nal = nal;
-    sliceunit->shdr = shdr;
+    sliceunit->shdr = shdr.get();
     sliceunit->reader = reader;
     sliceunit->imgunit = m_curr_image_unit.get();
 

@@ -40,7 +40,7 @@ float Algo_TB_RateEstimation_Exact::encode_transform_unit(encoder_context* ectx,
 
   leaf(cb, NULL);
 
-  ::encode_transform_unit(&ectx->ctbs, &estim, tb,cb, x0,y0, xBase,yBase,
+  ::encode_transform_unit(&ectx->imgdata->ctbs, &estim, tb,cb, x0,y0, xBase,yBase,
                           log2TrafoSize, trafoDepth, blkIdx);
 
   return estim.getRDBits();

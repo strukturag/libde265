@@ -144,7 +144,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
     image_height = id->input->get_height();
     image_spec_is_defined = true;
 
-    ctbs.alloc(image_width, image_height, algocore->get_CTB_size_log2());
+    imgdata->ctbs.alloc(image_width, image_height, algocore->get_CTB_size_log2());
   }
 
 
@@ -168,7 +168,8 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   imgdata->mark_encoding_started();
 
   this->imgdata = imgdata;
-  this->shdr    = &imgdata->shdr;
+  this->shdr    = imgdata->reconstruction->get_SliceHeader(0,0); // TODO: HACK
+
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
 
 
@@ -176,16 +177,16 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   // slice
 
-  imgdata->shdr.slice_deblocking_filter_disabled_flag = true;
-  imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
-  imgdata->shdr.compute_derived_values(get_pps().get());
+  shdr->slice_deblocking_filter_disabled_flag = true;
+  shdr->slice_loop_filter_across_slices_enabled_flag = false;
+  shdr->compute_derived_values(get_pps().get());
 
-  imgdata->shdr.set_pps(get_pps()); //get_pps_ptr() );
+  shdr->set_pps(get_pps()); //get_pps_ptr() );
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
   imgdata->nal.write(cabac_encoder);
-  imgdata->shdr.write(this, cabac_encoder, get_sps().get(), get_pps().get(), imgdata->nal.nal_unit_type);
+  shdr->write(this, cabac_encoder, get_sps().get(), get_pps().get(), imgdata->nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
 
@@ -289,8 +290,8 @@ double encode_image(encoder_context* ectx,
 
   // encode CTB by CTB
 
-  ectx->ctbs.clear();
-  ectx->ctbs.set_pps(ectx->get_pps());
+  ectx->imgdata->ctbs.clear();
+  ectx->imgdata->ctbs.set_pps(ectx->get_pps());
 
   for (int y=0;y<ectx->get_sps()->PicHeightInCtbsY;y++)
     for (int x=0;x<ectx->get_sps()->PicWidthInCtbsY;x++)
@@ -372,16 +373,16 @@ double encode_image(encoder_context* ectx,
         cb->debug_assertTreeConsistency(ectx->img);
         */
 
-        ectx->ctbs.encode_ctb(&ectx->cabac_encoder, x,y);
+        ectx->imgdata->ctbs.encode_ctb(&ectx->cabac_encoder, x,y);
 
-        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), ectx->get_sps().get());
+        ectx->imgdata->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), ectx->get_sps().get());
 
         //printf("================================================== WRITE\n");
 
 
         if (COMPARE_ESTIMATED_RATE_TO_REAL_RATE) {
           float realPre = cabacEstim.getRDBits();
-          ectx->ctbs.encode_ctb(&cabacEstim, x,y);
+          ectx->imgdata->ctbs.encode_ctb(&cabacEstim, x,y);
           float realPost = cabacEstim.getRDBits();
 
           printf("estim: %f  real: %f  diff: %f\n",

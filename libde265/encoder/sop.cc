@@ -43,10 +43,14 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
   assert(mEncPicBuf);
   auto imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
-  imgdata->set_intra();
+  auto shdr = std::make_shared<slice_segment_header>();
+  shdr->set_defaults();
+  shdr->slice_type = SLICE_TYPE_I;
+  shdr->slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
+
+  imgdata->reconstruction->add_slice_segment_header(shdr);
+
   imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
-  imgdata->shdr.slice_type = SLICE_TYPE_I;
-  imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
 
   imgdata->mark_sop_metadata_set();
 
@@ -92,17 +96,38 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
   assert(mEncPicBuf);
   auto imgdata = mEncPicBuf->insert_next_image_in_encoding_order(img, get_frame_number());
 
+  auto shdr = std::make_shared<slice_segment_header>();
+  shdr->set_defaults();
+  shdr->slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
+
+  imgdata->reconstruction->add_slice_segment_header(shdr);
+
   if (isIntra(frame)) {
     reset_poc();
-    imgdata->set_intra();
     imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
-    imgdata->shdr.slice_type = SLICE_TYPE_I;
+    shdr->slice_type = SLICE_TYPE_I;
   } else {
+    shdr->num_ref_idx_l0_active = l0.size();
+    //shdr.num_ref_idx_l1_active = l1.size();
+
+    assert(l0.size() < MAX_NUM_REF_PICS);
+    for (int i=0;i<l0.size();i++) {
+      shdr->RefPicList[0][i] = l0[i];
+    }
+
+    /*
+      assert(l1.size() < MAX_NUM_REF_PICS);
+      for (int i=0;i<l1.size();i++) {
+      shdr.RefPicList[1][i] = l1[i];
+      }
+    */
+
+
     imgdata->set_references(0, l0,l1, empty,empty);
     imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
-    imgdata->shdr.slice_type = SLICE_TYPE_P;
+    shdr->slice_type = SLICE_TYPE_P;
   }
-  imgdata->shdr.slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
+
   imgdata->mark_sop_metadata_set();
 
   advance_frame();

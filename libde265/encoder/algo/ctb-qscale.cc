@@ -41,7 +41,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   cb->ctDepth = 0;
   cb->x = x;
   cb->y = y;
-  cb->downPtr = ectx->ctbs.getCTBRootPointer(x,y);
+  cb->downPtr = ectx->imgdata->ctbs.getCTBRootPointer(x,y);
   *cb->downPtr = cb;
 
   cb->qp = ectx->active_qp;

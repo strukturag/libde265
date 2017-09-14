@@ -23,6 +23,7 @@
 
 #include "libde265/image.h"
 #include "libde265/sps.h"
+#include "libde265/encoder/encoder-types.h"
 
 #include <deque>
 #include <vector>
@@ -88,14 +89,16 @@ struct picture_encoding_data
 
   //std::shared_ptr<image> prediction;  // this is only used for debugging
 
+  CTBTreeMatrix ctbs;
+
 
   // --- headers ---
 
-  std::shared_ptr<pic_parameter_set> pps;
+  //std::shared_ptr<pic_parameter_set> pps;
 
   nal_header nal; // TODO: image split into several NALs (always same NAL header?)
 
-  slice_segment_header shdr; // TODO: multi-slice pictures -> move shdr to image object
+  //slice_segment_header shdr; // TODO: multi-slice pictures -> move shdr to image object
 
 
   // --- SOP metadata ---
@@ -112,7 +115,7 @@ struct picture_encoding_data
   // --- SOP structure ---
 
   /* TODO */
-  void set_intra();
+  //void set_intra();
   void set_NAL_type(uint8_t nalType);
   void set_NAL_temporal_id(int temporal_id);
   void set_references(int sps_index, // -1 -> custom

@@ -4843,7 +4843,7 @@ de265_error initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     if (sliceIdx >= img->slices.size()) {
       return DE265_WARNING_DECODING_ERROR; // TODO: not sure whether this can happen with bad input data
     }
-    slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ];
+    slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ].get();
 
     if (pps.is_tile_start_CTB(shdr->slice_segment_address % sps.PicWidthInCtbsY,
                               shdr->slice_segment_address / sps.PicWidthInCtbsY

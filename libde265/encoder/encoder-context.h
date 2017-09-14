@@ -36,6 +36,18 @@
 #include <memory>
 
 
+class encoder_context;
+
+
+class encoding_thread_context
+{
+ public:
+  encoder_context* ectx;
+  std::shared_ptr<slice_segment_header> shdr;  // current slice header
+  context_model_table ctxModel;
+};
+
+
 class encoder_context : public base_context
 {
  public:
@@ -97,9 +109,9 @@ class encoder_context : public base_context
   // quick links
   image_ptr img; // reconstruction
   std::shared_ptr<picture_encoding_data> imgdata; // input image
-  slice_segment_header* shdr;
+  slice_segment_header* shdr; // TODO: remove me when we are doing multi-threading
 
-  CTBTreeMatrix ctbs;
+  //CTBTreeMatrix ctbs;
 
 
   int active_qp; // currently active QP

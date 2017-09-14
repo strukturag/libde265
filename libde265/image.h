@@ -346,9 +346,12 @@ class image {
   }
 
 
-  void add_slice_segment_header(slice_segment_header* shdr) {
+  // returns Index of added slice
+  int add_slice_segment_header(std::shared_ptr<slice_segment_header> shdr) {
     shdr->slice_index = slices.size();
     slices.push_back(shdr);
+
+    return shdr->slice_index;
   }
 
 
@@ -381,7 +384,7 @@ private:
 public:
   uint8_t BitDepth_Y, BitDepth_C;
   uint8_t SubWidthC, SubHeightC;
-  std::vector<slice_segment_header*> slices;
+  std::vector< std::shared_ptr<slice_segment_header> > slices;
 
 public:
   supplementary_data m_supplementary_data;
@@ -795,21 +798,21 @@ public:
   {
     int idx = get_SliceHeaderIndex(x,y);
     if (idx >= slices.size()) { return NULL; }
-    return slices[idx];
+    return slices[idx].get();
   }
 
   slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY)
   {
     int idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
     if (idx >= slices.size()) { return NULL; }
-    return slices[idx];
+    return slices[idx].get();
   }
 
   const slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY) const
   {
     int idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
     if (idx >= slices.size()) { return NULL; }
-    return slices[idx];
+    return slices[idx].get();
   }
 
   void set_sao_info(int ctbX,int ctbY,const sao_info* saoinfo)
