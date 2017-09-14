@@ -39,10 +39,6 @@ encoder_context::encoder_context()
 {
   encoder_started=false;
 
-  vps = std::make_shared<video_parameter_set>();
-  sps = std::make_shared<seq_parameter_set>();
-  pps = std::make_shared<pic_parameter_set>();
-
   //img_source = NULL;
   //reconstruction_sink = NULL;
   //packet_sink = NULL;
@@ -182,14 +178,14 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   imgdata->shdr.slice_deblocking_filter_disabled_flag = true;
   imgdata->shdr.slice_loop_filter_across_slices_enabled_flag = false;
-  imgdata->shdr.compute_derived_values(pps.get());
+  imgdata->shdr.compute_derived_values(get_pps().get());
 
-  imgdata->shdr.set_pps(pps); //get_pps_ptr() );
+  imgdata->shdr.set_pps(get_pps()); //get_pps_ptr() );
 
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
   imgdata->nal.write(cabac_encoder);
-  imgdata->shdr.write(this, cabac_encoder, sps.get(), pps.get(), imgdata->nal.nal_unit_type);
+  imgdata->shdr.write(this, cabac_encoder, get_sps().get(), get_pps().get(), imgdata->nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
 
@@ -239,12 +235,12 @@ double encode_image(encoder_context* ectx,
 #if 1
   int stride=input->get_image_stride(0);
 
-  int w = ectx->get_sps().pic_width_in_luma_samples;
-  int h = ectx->get_sps().pic_height_in_luma_samples;
+  int w = ectx->get_sps()->pic_width_in_luma_samples;
+  int h = ectx->get_sps()->pic_height_in_luma_samples;
 
   // --- create reconstruction image ---
   ectx->img = std::make_shared<image>();
-  ectx->img->set_headers(ectx->get_shared_vps(), ectx->get_shared_sps(), ectx->get_shared_pps());
+  ectx->img->set_headers(ectx->get_vps(), ectx->get_sps(), ectx->get_pps());
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
   ectx->img->alloc_image(w,h, input->get_chroma_format(), 8,8,
@@ -254,7 +250,7 @@ double encode_image(encoder_context* ectx,
                          nullptr); // alloc_funcs
   ectx->img->set_encoder_context(ectx);
 
-  ectx->img->alloc_metadata(ectx->get_shared_sps());
+  ectx->img->alloc_metadata(ectx->get_sps());
   ectx->img->clear_metadata();
 
 #if 0
@@ -268,7 +264,7 @@ double encode_image(encoder_context* ectx,
   }
 #endif
 
-  ectx->active_qp = ectx->get_pps().pic_init_qp; // TODO take current qp from slice
+  ectx->active_qp = ectx->get_pps()->pic_init_qp; // TODO take current qp from slice
 
 
   ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
@@ -282,7 +278,7 @@ double encode_image(encoder_context* ectx,
   cabacEstim.set_context_models(&modelEstim);
 
 
-  int Log2CtbSize = ectx->get_sps().Log2CtbSizeY;
+  int Log2CtbSize = ectx->get_sps()->Log2CtbSizeY;
 
   uint8_t* luma_plane = ectx->img->get_image_plane(0);
   uint8_t* cb_plane   = ectx->img->get_image_plane(1);
@@ -294,10 +290,10 @@ double encode_image(encoder_context* ectx,
   // encode CTB by CTB
 
   ectx->ctbs.clear();
-  ectx->ctbs.set_pps(ectx->get_pps_ptr());
+  ectx->ctbs.set_pps(ectx->get_pps());
 
-  for (int y=0;y<ectx->get_sps().PicHeightInCtbsY;y++)
-    for (int x=0;x<ectx->get_sps().PicWidthInCtbsY;x++)
+  for (int y=0;y<ectx->get_sps()->PicHeightInCtbsY;y++)
+    for (int x=0;x<ectx->get_sps()->PicWidthInCtbsY;x++)
       {
         ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
 
@@ -378,7 +374,7 @@ double encode_image(encoder_context* ectx,
 
         ectx->ctbs.encode_ctb(&ectx->cabac_encoder, x,y);
 
-        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), &ectx->get_sps());
+        ectx->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), ectx->get_sps().get());
 
         //printf("================================================== WRITE\n");
 
@@ -395,8 +391,8 @@ double encode_image(encoder_context* ectx,
         }
 
 
-        int last = (y==ectx->get_sps().PicHeightInCtbsY-1 &&
-                    x==ectx->get_sps().PicWidthInCtbsY-1);
+        int last = (y==ectx->get_sps()->PicHeightInCtbsY-1 &&
+                    x==ectx->get_sps()->PicWidthInCtbsY-1);
         ectx->cabac_encoder.write_CABAC_term_bit(last);
 
         //delete cb;

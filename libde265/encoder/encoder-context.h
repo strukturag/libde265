@@ -106,23 +106,28 @@ class encoder_context : public base_context
   /*int target_qp;*/ /* QP we want to code at.
     (Not actually the real QP. Check image.get_QPY() for that.) */
 
-  const video_parameter_set& get_vps() const { return *vps; }
-  const seq_parameter_set& get_sps() const { return *sps; }
-  const pic_parameter_set& get_pps() const { return *pps; }
-  std::shared_ptr<const pic_parameter_set> get_pps_ptr() const { return pps; }
+  //const video_parameter_set& get_vps() const { return *vps; }
+  //const seq_parameter_set& get_sps() const { return *sps; }
+  //const pic_parameter_set& get_pps() const { return *pps; }
+  //std::shared_ptr<const pic_parameter_set> get_pps_ptr() const { return pps; }
 
   //video_parameter_set& get_vps() { return *vps; }
-  seq_parameter_set& get_sps() { return *sps; }
+  //seq_parameter_set& get_sps() { return *sps; }
   //pic_parameter_set& get_pps() { return *pps; }
 
-  std::shared_ptr<video_parameter_set>& get_shared_vps() { return vps; }
-  std::shared_ptr<seq_parameter_set>& get_shared_sps() { return sps; }
-  std::shared_ptr<pic_parameter_set>& get_shared_pps() { return pps; }
+  //std::shared_ptr<video_parameter_set>& get_shared_vps() { return vps; }
+  //std::shared_ptr<seq_parameter_set>& get_shared_sps() { return sps; }
+  //std::shared_ptr<pic_parameter_set>& get_shared_pps() { return pps; }
+
+
+  std::shared_ptr<const video_parameter_set> get_vps() const { return algocore->get_vps(); }
+  std::shared_ptr<const seq_parameter_set> get_sps() const { return algocore->get_sps(); }
+  std::shared_ptr<const pic_parameter_set> get_pps() const { return algocore->get_pps(); }
 
  private:
-  std::shared_ptr<video_parameter_set>  vps;
-  std::shared_ptr<seq_parameter_set>    sps;
-  std::shared_ptr<pic_parameter_set>    pps;
+  //std::shared_ptr<video_parameter_set>  vps;
+  //std::shared_ptr<seq_parameter_set>    sps;
+  //std::shared_ptr<pic_parameter_set>    pps;
   //slice_segment_header shdr;
 
  public:

@@ -79,6 +79,10 @@ class FixedHeadersHelper
   std::shared_ptr<seq_parameter_set>   get_sps() { return sps; }
   std::shared_ptr<pic_parameter_set>   get_pps() { return pps; }
 
+  std::shared_ptr<const video_parameter_set> get_vps() const { return vps; }
+  std::shared_ptr<const seq_parameter_set>   get_sps() const { return sps; }
+  std::shared_ptr<const pic_parameter_set>   get_pps() const { return pps; }
+
   void set_image_size(image_ptr);
 
   // encode the headers into output packets and queue those in the encoder-context
@@ -120,6 +124,9 @@ class EncoderCore
   virtual int getPPS_QP() const = 0;
   virtual int getSlice_QPDelta() const { return 0; }
 
+  virtual std::shared_ptr<const video_parameter_set> get_vps() const = 0;
+  virtual std::shared_ptr<const seq_parameter_set> get_sps() const = 0;
+  virtual std::shared_ptr<const pic_parameter_set> get_pps() const = 0;
 
  protected:
   encoder_context* mECtx;
@@ -229,6 +236,10 @@ class EncoderCore_Custom : public EncoderCore
   virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const;
 
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
+
+  std::shared_ptr<const video_parameter_set> get_vps() const override { return mFixedHeadersHelper.get_vps(); }
+  std::shared_ptr<const seq_parameter_set> get_sps() const override { return mFixedHeadersHelper.get_sps(); }
+  std::shared_ptr<const pic_parameter_set> get_pps() const override { return mFixedHeadersHelper.get_pps(); }
 
  private:
   encoder_params params;

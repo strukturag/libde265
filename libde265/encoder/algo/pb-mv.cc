@@ -106,7 +106,7 @@ enc_cb* Algo_PB_MV_Test::analyze(encoder_context* ectx,
   // TODO estimate rate for sending MV
 
   int IntraSplitFlag = 0;
-  int MaxTrafoDepth = ectx->get_sps().max_transform_hierarchy_depth_inter;
+  int MaxTrafoDepth = ectx->get_sps()->max_transform_hierarchy_depth_inter;
 
   mCodeResidual=true;
   if (mCodeResidual) {
@@ -282,7 +282,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
   // TODO estimate rate for sending MV
 
   int IntraSplitFlag = 0;
-  int MaxTrafoDepth = ectx->get_sps().max_transform_hierarchy_depth_inter;
+  int MaxTrafoDepth = ectx->get_sps()->max_transform_hierarchy_depth_inter;
 
   mCodeResidual=true;
   if (mCodeResidual) {

@@ -42,8 +42,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
   const int x = cb_in->x;
   const int y = cb_in->y;
 
-  const bool can_use_NxN = ((log2CbSize == ectx->get_sps().Log2MinCbSizeY) &&
-                            (log2CbSize >  ectx->get_sps().Log2MinTrafoSize));
+  const bool can_use_NxN = ((log2CbSize == ectx->get_sps()->Log2MinCbSizeY) &&
+                            (log2CbSize >  ectx->get_sps()->Log2MinTrafoSize));
 
 
   // test all modes
@@ -79,7 +79,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       // encode transform tree
 
       int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
-      int MaxTrafoDepth = ectx->get_sps().max_transform_hierarchy_depth_intra + IntraSplitFlag;
+      int MaxTrafoDepth = ectx->get_sps()->max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
       descend(cb,p==0 ? "2Nx2N" : "NxN");
 
@@ -99,7 +99,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
       // rate for cu syntax
 
       logtrace(LogSymbols,"$1 part_mode=%d\n",cb->PartMode);
-      if (log2CbSize == ectx->get_sps().Log2MinCbSizeY) {
+      if (log2CbSize == ectx->get_sps()->Log2MinCbSizeY) {
         int bin = (cb->PartMode==PART_2Nx2N);
         option[p].get_cabac()->reset();
         option[p].get_cabac()->write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, bin);
@@ -131,7 +131,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   // NxN can only be applied at minimum CB size.
   // If we are not at the minimum size, we have to use 2Nx2N.
 
-  if (PartMode==PART_NxN && log2CbSize != ectx->get_sps().Log2MinCbSizeY) {
+  if (PartMode==PART_NxN && log2CbSize != ectx->get_sps()->Log2MinCbSizeY) {
     PartMode = PART_2Nx2N;
   }
 
@@ -145,7 +145,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   // encode transform tree
 
   int IntraSplitFlag= (cb->PredMode == MODE_INTRA && cb->PartMode == PART_NxN);
-  int MaxTrafoDepth = ectx->get_sps().max_transform_hierarchy_depth_intra + IntraSplitFlag;
+  int MaxTrafoDepth = ectx->get_sps()->max_transform_hierarchy_depth_intra + IntraSplitFlag;
 
   enc_tb* tb = new enc_tb(x,y,log2CbSize,cb);
   tb->blkIdx = 0;
@@ -174,7 +174,7 @@ enc_cb* Algo_CB_IntraPartMode_Fixed::analyze(encoder_context* ectx,
   //encode_part_mode(ectx,&estim, MODE_INTRA, PartMode, 0);
 
   logtrace(LogSymbols,"$1 part_mode=%d\n",PartMode);
-  if (log2CbSize == ectx->get_sps().Log2MinCbSizeY) {
+  if (log2CbSize == ectx->get_sps()->Log2MinCbSizeY) {
     int bin = (PartMode==PART_2Nx2N);
     estim.write_CABAC_bit(CONTEXT_MODEL_PART_MODE+0, bin);
   }

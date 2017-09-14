@@ -269,9 +269,9 @@ class image {
 
   void release();
 
-  void set_headers(std::shared_ptr<video_parameter_set> _vps,
-                   std::shared_ptr<seq_parameter_set>   _sps,
-                   std::shared_ptr<pic_parameter_set>   _pps) {
+  void set_headers(std::shared_ptr<const video_parameter_set> _vps,
+                   std::shared_ptr<const seq_parameter_set>   _sps,
+                   std::shared_ptr<const pic_parameter_set>   _pps) {
     vps = _vps;
     sps = _sps;
     pps = _pps;

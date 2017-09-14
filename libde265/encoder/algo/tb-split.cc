@@ -109,7 +109,7 @@ void compute_residual_channel(encoder_context* ectx, enc_tb* tb, const image* in
 
   tb->intra_prediction[cIdx] = std::make_shared<small_image_buffer>(log2Size, sizeof(pixel_t));
 
-  decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, ectx->get_sps(), cIdx);
+  decode_intra_prediction_from_tree(ectx->img.get(), tb, ectx->ctbs, *ectx->get_sps(), cIdx);
 
   // create residual buffer and compute differences
 
@@ -136,7 +136,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const image* input, int
 
   compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
 
-  if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+  if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
     compute_residual_channel<pixel_t>(ectx,tb,input, 1,tb->x,tb->y,tb->log2Size);
     compute_residual_channel<pixel_t>(ectx,tb,input, 2,tb->x,tb->y,tb->log2Size);
   }
@@ -174,11 +174,11 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   bool test_split = (log2TbSize > 2 &&
                      TrafoDepth < MaxTrafoDepth &&
-                     log2TbSize > ectx->get_sps().Log2MinTrafoSize);
+                     log2TbSize > ectx->get_sps()->Log2MinTrafoSize);
 
   bool test_no_split = true;
   if (IntraSplitFlag && TrafoDepth==0) test_no_split=false; // we have to split
-  if (log2TbSize > ectx->get_sps().Log2MaxTrafoSize) test_no_split=false;
+  if (log2TbSize > ectx->get_sps()->Log2MaxTrafoSize) test_no_split=false;
 
   assert(test_no_split || test_split);
 

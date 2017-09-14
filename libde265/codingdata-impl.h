@@ -56,9 +56,9 @@ public:
 
   int  get_POC() const { return ectx->img->PicOrderCntVal; }
 
-  const video_parameter_set& get_vps() const { return ectx->get_vps(); }
-  const seq_parameter_set& get_sps() const { return ectx->get_sps(); }
-  const pic_parameter_set& get_pps() const { return ectx->get_pps(); }
+  const video_parameter_set& get_vps() const { return *ectx->get_vps(); }
+  const seq_parameter_set& get_sps() const { return *ectx->get_sps(); }
+  const pic_parameter_set& get_pps() const { return *ectx->get_pps(); }
 
   int  get_SliceAddrRS(int ctbX, int ctbY) const { return ectx->img->get_SliceAddrRS(ctbX,ctbY); }
   enum PartMode get_PartMode(int x,int y) const { return ectx->ctbs.getCB(x,y)->PartMode; }

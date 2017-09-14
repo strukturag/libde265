@@ -171,7 +171,7 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   // chroma blocks
 
-  if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+  if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
     compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 1 /* Cb */);
     compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 2 /* Cr */);
   }

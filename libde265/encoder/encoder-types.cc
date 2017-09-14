@@ -127,7 +127,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   int xC=x0;
   int yC=y0;
 
-  if (cIdx>0 && ectx->get_sps().chroma_format_idc == CHROMA_420) {
+  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == CHROMA_420) {
     xC>>=1;
     yC>>=1;
   }
@@ -274,7 +274,7 @@ void enc_tb::reconstruct(encoder_context* ectx, image* img) const
   else {
     reconstruct_tb(ectx, img, x,y, log2Size, 0);
 
-    if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+    if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
       reconstruct_tb(ectx, img, x,y, log2Size, 1);
       reconstruct_tb(ectx, img, x,y, log2Size, 2);
     }
@@ -311,7 +311,7 @@ void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
   int xC=x0;
   int yC=y0;
 
-  if (cIdx>0 && ectx->get_sps().chroma_format_idc == CHROMA_420) {
+  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == CHROMA_420) {
     xC>>=1;
     yC>>=1;
   }
@@ -334,7 +334,7 @@ void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const image* 
   else {
     copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 0);
 
-    if (ectx->get_sps().chroma_format_idc == CHROMA_444) {
+    if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
       copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 1);
       copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 2);
     }
