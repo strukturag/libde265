@@ -119,14 +119,14 @@ class EncoderCore
   virtual Algo_CTB* getCTBAlgo() = 0;
 
   virtual int get_CTB_size_log2() const = 0;
-  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const = 0;
+
+  virtual void fill_headers(std::shared_ptr<video_parameter_set> vps,
+                            std::shared_ptr<seq_parameter_set> sps,
+                            std::shared_ptr<pic_parameter_set> pps,
+                            image_ptr img) const = 0;
 
   virtual int getPPS_QP() const = 0;
   virtual int getSlice_QPDelta() const { return 0; }
-
-  virtual std::shared_ptr<const video_parameter_set> get_vps() const = 0;
-  virtual std::shared_ptr<const seq_parameter_set> get_sps() const = 0;
-  virtual std::shared_ptr<const pic_parameter_set> get_pps() const = 0;
 
  protected:
   encoder_context* mECtx;
@@ -233,20 +233,17 @@ class EncoderCore_Custom : public EncoderCore
   virtual Algo_CTB* getCTBAlgo() { return &mAlgo_CTB_QScale_Constant; }
   virtual int get_CTB_size_log2() const;
 
-  virtual void fill_sps(std::shared_ptr<seq_parameter_set> sps) const;
+  void fill_headers(std::shared_ptr<video_parameter_set> vps,
+                    std::shared_ptr<seq_parameter_set> sps,
+                    std::shared_ptr<pic_parameter_set> pps,
+                    image_ptr img) const;
 
   virtual int getPPS_QP() const { return mAlgo_CTB_QScale_Constant.getQP(); }
-
-  std::shared_ptr<const video_parameter_set> get_vps() const override { return mFixedHeadersHelper.get_vps(); }
-  std::shared_ptr<const seq_parameter_set> get_sps() const override { return mFixedHeadersHelper.get_sps(); }
-  std::shared_ptr<const pic_parameter_set> get_pps() const override { return mFixedHeadersHelper.get_pps(); }
 
  private:
   encoder_params params;
 
   std::shared_ptr<sop_creator> mSOPCreator;
-
-  FixedHeadersHelper mFixedHeadersHelper;
 
   Algo_CTB_QScale_Constant         mAlgo_CTB_QScale_Constant;
 

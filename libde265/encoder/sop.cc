@@ -68,6 +68,9 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
     pps->pps_loop_filter_across_slices_enabled_flag = false;
 
     pps->set_derived_values(sps.get());
+
+
+    mEncCtx->fill_headers(vps,sps,pps, img);
   }
 
 

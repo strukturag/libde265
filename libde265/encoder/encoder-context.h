@@ -88,6 +88,10 @@ class encoder_context : public base_context
 
   int get_CTB_size_log2() const { return algocore->get_CTB_size_log2(); }
 
+  void fill_headers(std::shared_ptr<video_parameter_set> vps,
+                    std::shared_ptr<seq_parameter_set> sps,
+                    std::shared_ptr<pic_parameter_set> pps,
+                    image_ptr img) const;
 
   bool encoder_started;
 
@@ -132,10 +136,9 @@ class encoder_context : public base_context
   //std::shared_ptr<seq_parameter_set>& get_shared_sps() { return sps; }
   //std::shared_ptr<pic_parameter_set>& get_shared_pps() { return pps; }
 
-
-  std::shared_ptr<const video_parameter_set> get_vps() const { return algocore->get_vps(); }
-  std::shared_ptr<const seq_parameter_set> get_sps() const { return algocore->get_sps(); }
-  std::shared_ptr<const pic_parameter_set> get_pps() const { return algocore->get_pps(); }
+  std::shared_ptr<const video_parameter_set> get_vps() const { return imgdata->vps; }
+  std::shared_ptr<const seq_parameter_set> get_sps() const { return imgdata->sps; }
+  std::shared_ptr<const pic_parameter_set> get_pps() const { return imgdata->pps; }
 
  private:
 

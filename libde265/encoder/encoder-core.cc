@@ -237,12 +237,30 @@ int EncoderCore_Custom::get_CTB_size_log2() const
 }
 
 
-void EncoderCore_Custom::fill_sps(std::shared_ptr<seq_parameter_set> sps) const
+void EncoderCore_Custom::fill_headers(std::shared_ptr<video_parameter_set> vps,
+                                      std::shared_ptr<seq_parameter_set> sps,
+                                      std::shared_ptr<pic_parameter_set> pps,
+                                      image_ptr img) const
 {
-  sps->set_CB_log2size_range( Log2(params.min_cb_size), Log2(params.max_cb_size));
-  sps->set_TB_log2size_range( Log2(params.min_tb_size), Log2(params.max_tb_size));
+  sps->set_CB_size_range(params.min_cb_size, params.max_cb_size);
+  sps->set_TB_size_range(params.min_tb_size, params.max_tb_size);
   sps->max_transform_hierarchy_depth_intra = params.max_transform_hierarchy_depth_intra;
   sps->max_transform_hierarchy_depth_inter = params.max_transform_hierarchy_depth_inter;
+  sps->set_PCM_size_range(8,8); // TODO
+
+  if (img->get_chroma_format() == de265_chroma_444) {
+    sps->chroma_format_idc = CHROMA_444;
+  }
+
+  pps->pic_init_qp = getPPS_QP();
+
+  de265_error err = sps->compute_derived_values(true);
+  if (err != DE265_OK) {
+    fprintf(stderr,"invalid SPS parameters\n");
+    exit(10);
+  }
+
+  pps->set_derived_values(sps.get());
 }
 
 
@@ -370,37 +388,6 @@ void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
 
 void EncoderCore_Custom::push_picture(image_ptr img)
 {
-  // --- send the headers if they have not been sent before ---
-
-  if (!mFixedHeadersHelper.have_headers_been_sent()) {
-    mFixedHeadersHelper.set_image_size(img);
-
-    auto sps = mFixedHeadersHelper.get_sps();
-    auto pps = mFixedHeadersHelper.get_pps();
-
-    //mSOPCreator->fill_sps(sps);
-    //mSOPCreator->fill_pps(pps);
-
-    fill_sps(sps);
-
-    if (img->get_chroma_format() == de265_chroma_444) {
-      sps->chroma_format_idc = CHROMA_444;
-    }
-
-    pps->pic_init_qp = getPPS_QP();
-
-
-    // compute derived values (TODO: is this the right place?)
-    de265_error err = sps->compute_derived_values(true);
-    if (err != DE265_OK) {
-      fprintf(stderr,"invalid SPS parameters\n");
-      exit(10);
-    }
-
-    mFixedHeadersHelper.encode_headers(mECtx);
-  }
-
-
   // --- put image into encoding queue ---
 
   mSOPCreator->insert_new_input_image(img);

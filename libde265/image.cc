@@ -447,6 +447,7 @@ de265_error image::alloc_metadata(std::shared_ptr<const seq_parameter_set> sps)
                                           sps->Log2CtbSizeY);
 
       ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+      printf("alloc ctb_progress %p\n", ctb_progress);
 
 #if D_MT
       for (int i=0;i<sps->PicSizeInCtbsY;i++) {
@@ -480,6 +481,7 @@ image::~image()
   // free progress locks
 
   if (ctb_progress) {
+    printf("free ctb_progress %p\n", ctb_progress);
     delete[] ctb_progress;
   }
 }

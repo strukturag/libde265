@@ -97,6 +97,15 @@ void encoder_context::start_encoder()
 }
 
 
+void encoder_context::fill_headers(std::shared_ptr<video_parameter_set> vps,
+                                   std::shared_ptr<seq_parameter_set> sps,
+                                   std::shared_ptr<pic_parameter_set> pps,
+                                   image_ptr img) const
+{
+  algocore->fill_headers(vps,sps,pps, img);
+}
+
+
 en265_packet* encoder_context::create_packet(en265_packet_content_type t,
                                              CABAC_encoder_bitstream& cabac)
 {
@@ -122,8 +131,8 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t,
 
   pck->encoder_context = this;
 
-//pck->input_image = NULL;
-//  pck->reconstruction = NULL;
+  pck->input_image    = NULL;
+  pck->reconstruction = NULL;
 
   cabac_encoder.reset();
 
@@ -158,6 +167,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   this->shdr    = imgdata->ctbs.get_slice_header(0,0).get(); // TODO: HACK
 
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
+
 
 
 
