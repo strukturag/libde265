@@ -1,4 +1,5 @@
 set (libde265_sources
+  acceleration.h acceleration.cc
   bitstream.cc
   cabac.cc
   de265.cc
@@ -51,8 +52,8 @@ set (libde265_sources
   motion.cc motion.h
   threads.cc threads.h
   visualize.cc visualize.h
-  acceleration.h
   fallback.cc fallback.h fallback-motion.cc fallback-motion.h
+  fallback-pixelformat.cc fallback-pixelformat.h
   fallback-dct.h fallback-dct.cc fallback-sao.h fallback-sao.cc
   fallback-intra-dc.cc
   quality.cc quality.h
