@@ -91,6 +91,7 @@ int disable_sao=0;
 int inexact_decoding_flags=0;
 int fullpel_motion_only=0;
 int fast_mode=0; // shortcut for disable_deblocking | disable_sao
+bool advance_with_keypress=false;
 
 #define OPTION_MAX_LATENCY 1000
 
@@ -121,6 +122,7 @@ static struct option long_options[] = {
   {"enable-inexact-decoding", no_argument, 0, 'I' },
   {"max-latency",        required_argument, 0, OPTION_MAX_LATENCY },
   {"fast", no_argument, &fast_mode, 1 },
+  {"keypress", no_argument, 0, 'K' },
   {0,         0,                 0,  0 }
 };
 
@@ -259,7 +261,10 @@ void display_image(const struct de265_image* img)
   //printf("displaying frame: %d\n", img->m_image->PicOrderCntVal);
 
   win.Display(visu);
-  //win.WaitForKeypress();
+
+  if (advance_with_keypress) {
+    win.WaitForKeypress();
+  }
 }
 #endif
 
@@ -585,7 +590,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:I"
+    int c = getopt_long(argc, argv, "qt:chf:o:dB:n0vT:D:m:seRP:IK"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -614,6 +619,7 @@ int main(int argc, char** argv)
     case 'D': decode_rate_percent=atoi(optarg); break;
     case 'v': verbosity++; break;
     case 'I': inexact_decoding_flags=de265_inexact_decoding_mask_all; break;
+    case 'K': advance_with_keypress=true; break;
     case OPTION_MAX_LATENCY: max_latency=atoi(optarg); break;
     }
   }
@@ -635,6 +641,7 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -d, --dump        dump headers\n");
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
+    fprintf(stderr,"  -K, --keypress    advance to next picture by pressing a key\n");
 #endif
     fprintf(stderr,"  -R, --rgb         show h.265 files coded in RGB colorspace\n");
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
