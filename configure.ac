@@ -305,7 +305,7 @@ AC_ARG_ENABLE(x11-screen-grabbing,
               [AS_HELP_STRING([--enable-x11-screen-grabbing],
                               [turn on screen-grabbing input in enc265 (default=yes)])],
   [enable_x11_screen_grabbing=$enableval],
-  [enable_x11_screen_grabbing=yes])
+  [enable_x11_screen_grabbing=no])
 
 if eval "test $enable_x11_screen_grabbing = yes"; then
   need_libx11=yes
