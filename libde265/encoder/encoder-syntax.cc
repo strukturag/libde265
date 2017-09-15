@@ -1519,7 +1519,7 @@ void encode_coding_unit(const CTBTreeMatrix* ctbs,
       }
 
       if (cb->pcm_flag) {
-        //cabac->flush_CABAC();
+        //cabac->flush_CABAC();  // TODO: when do we need this? something seems to be not quite right...
         if (cabac->number_free_bits_in_byte() > 0) {
           cabac->write_bits(0, cabac->number_free_bits_in_byte());
         }

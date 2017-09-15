@@ -14,6 +14,7 @@ libde265_encoder_algo_la_SOURCES = \
   cb-mv-screen-region.h cb-mv-screen-region.cc \
   cb-intra-inter.h cb-intra-inter.cc \
   cb-mergeindex.h cb-mergeindex.cc \
+  cb-pcm.h cb-pcm.cc \
   tb-split.h tb-split.cc \
   tb-transform.h tb-transform.cc \
   tb-intrapredmode.h tb-intrapredmode.cc \

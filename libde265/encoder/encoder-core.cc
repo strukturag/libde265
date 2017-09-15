@@ -281,8 +281,10 @@ void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
   mAlgo_CB_MV_Screen.setIntraChildAlgo(algo_CB_IntraPartMode);
   mAlgo_CB_MV_ScreenRegion.setIntraAlgo(algo_CB_IntraPartMode);
 
-  mAlgo_CB_IntraInter_BruteForce.setIntraChildAlgo(algo_CB_IntraPartMode);
+  mAlgo_CB_IntraInter_BruteForce.setIntraChildAlgo(&mAlgo_CB_PCM);
   mAlgo_CB_IntraInter_BruteForce.setInterChildAlgo(&mAlgo_CB_InterPartMode_Fixed);
+
+  mAlgo_CB_PCM.setChildAlgo(algo_CB_IntraPartMode);
 
   mAlgo_CB_MergeIndex_Fixed.setChildAlgo(&mAlgo_TB_Split_BruteForce);
 

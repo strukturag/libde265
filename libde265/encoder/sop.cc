@@ -60,6 +60,8 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
 
     sps->log2_max_pic_order_cnt_lsb = get_num_poc_lsb_bits();
 
+    sps->pcm_enabled_flag = true;
+
 
     // turn off deblocking filter
     pps->deblocking_filter_control_present_flag = true;

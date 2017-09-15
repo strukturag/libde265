@@ -294,7 +294,7 @@ public:
         struct {
           //enum IntraPredMode pred_mode[4];
           //enum IntraPredMode chroma_mode;
-          uint8_t* pcm_data_ptr[3]; // pointer to the raw PCM data in the source image
+          const uint8_t* pcm_data_ptr[3]; // pointer to the raw PCM data in the source image
         } intra;
 
         struct {
@@ -365,6 +365,12 @@ class CTBTreeMatrix
   void clear() { free(); }
 
   void set_pps(std::shared_ptr<const pic_parameter_set> pps) { mPPS = pps; }
+
+
+
+  // TODO: having the input image here does not look right.
+  // Maybe instead of passing around CTBTreeMatrix, we should instead pass around
+  // the 'picture_encoding_data'.
 
   void set_input_image(std::shared_ptr<image> img) { mInputImage = img; }
 

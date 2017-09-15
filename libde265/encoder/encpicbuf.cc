@@ -74,6 +74,8 @@ picture_encoding_data::picture_encoding_data(image_ptr in_img,
              in_img->get_height(),
              ctb_size_log2);
 
+  ctbs.set_input_image(in_img);
+
 
   // --- reconstruction image and coding metadata
 

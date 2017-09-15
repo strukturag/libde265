@@ -50,6 +50,7 @@
 #include "libde265/encoder/algo/cb-mv-screen-region.h"
 #include "libde265/encoder/algo/cb-mv-screen.h"
 #include "libde265/encoder/algo/cb-intra-inter.h"
+#include "libde265/encoder/algo/cb-pcm.h"
 #include "libde265/encoder/encoder-params.h"
 #include "libde265/encoder/sop.h"
 
@@ -184,6 +185,7 @@ class EncoderCore_Custom : public EncoderCore
     mAlgo_CTB_QScale_Constant.registerParams(config);
     mAlgo_CB_IntraPartMode_Fixed.registerParams(config);
     mAlgo_CB_InterPartMode_Fixed.registerParams(config);
+    mAlgo_CB_PCM.registerParams(config);
     mAlgo_PB_MV_Test.registerParams(config);
     mAlgo_PB_MV_Search.registerParams(config);
     mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
@@ -227,6 +229,7 @@ class EncoderCore_Custom : public EncoderCore
 
   Algo_CB_IntraPartMode_BruteForce mAlgo_CB_IntraPartMode_BruteForce;
   Algo_CB_IntraPartMode_Fixed      mAlgo_CB_IntraPartMode_Fixed;
+  Algo_CB_PCM                      mAlgo_CB_PCM;
 
   Algo_CB_InterPartMode_Fixed      mAlgo_CB_InterPartMode_Fixed;
   Algo_CB_MergeIndex_Fixed         mAlgo_CB_MergeIndex_Fixed;

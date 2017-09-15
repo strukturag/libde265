@@ -771,7 +771,11 @@ void enc_cb::writeReconstructionToImage(image* img,
     img->set_cu_transquant_bypass(x,y,log2Size, cu_transquant_bypass_flag);
     img->set_pred_mode(x,y,log2Size, PredMode);
 
-    transform_tree->writeReconstructionToImage(img,sps);
+    if (pcm_flag) {
+    }
+    else {
+      transform_tree->writeReconstructionToImage(img,sps);
+    }
   }
 }
 

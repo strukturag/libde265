@@ -299,6 +299,12 @@ class image {
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
+  const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
+  {
+    int stride = get_image_stride(cIdx);
+    return pixels[cIdx] + xpos + ypos*stride;
+  }
+
 
   /// xpos;ypos in actual plane resolution
   template <class pixel_t>
