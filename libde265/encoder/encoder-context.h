@@ -145,6 +145,9 @@ class encoder_context : public base_context
   std::array<std::shared_ptr<seq_parameter_set>,   DE265_MAX_SPS_SETS> m_sps;
   std::array<std::shared_ptr<pic_parameter_set>,   DE265_MAX_PPS_SETS> m_pps;
 
+  // returns PSNR
+  double encode_image();
+
 
  public:
   bool parameters_have_been_set;

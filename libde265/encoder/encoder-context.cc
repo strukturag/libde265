@@ -242,7 +242,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   // encode image
 
   cabac_encoder.init_CABAC();
-  double psnr = encode_image(this,imgdata->input, *algocore);
+  double psnr = encode_image();
   loginfo(LogEncoder,"  PSNR-Y: %f\n", psnr);
   cabac_encoder.flush_CABAC();
   cabac_encoder.add_trailing_bits();
@@ -251,11 +251,13 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   // set reconstruction image
 
+  /*
   imgdata->set_reconstruction_image(img);
   //picbuf.set_prediction_image(imgdata->frame_number, prediction);
   img.reset();
   this->imgdata = NULL;
   this->shdr = NULL;
+  */
 
   // build output packet
 
@@ -277,11 +279,10 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
 // /*LIBDE265_API*/ ImageSink_YUV reconstruction_sink;
 
-double encode_image(encoder_context* ectx,
-                    std::shared_ptr<const image> input,
-                    EncoderCore& algo)
+double encoder_context::encode_image()
 {
 #if 1
+  /*
   int stride=input->get_image_stride(0);
 
   int w = ectx->get_sps()->pic_width_in_luma_samples;
@@ -301,6 +302,9 @@ double encode_image(encoder_context* ectx,
 
   ectx->img->alloc_metadata(ectx->get_sps());
   ectx->img->clear_metadata();
+  */
+
+  img = imgdata->reconstruction;
 
 #if 0
   if (1) {
@@ -313,38 +317,38 @@ double encode_image(encoder_context* ectx,
   }
 #endif
 
-  ectx->active_qp = ectx->get_pps()->pic_init_qp; // TODO take current qp from slice
+  active_qp = get_pps()->pic_init_qp; // TODO take current qp from slice
 
 
-  ectx->cabac_ctx_models.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
-  ectx->cabac_encoder.set_context_models(&ectx->cabac_ctx_models);
+  cabac_ctx_models.init(shdr->initType, shdr->SliceQPY);
+  cabac_encoder.set_context_models(&cabac_ctx_models);
 
 
   context_model_table modelEstim;
   CABAC_encoder_estim cabacEstim;
 
-  modelEstim.init(ectx->shdr->initType, ectx->shdr->SliceQPY);
+  modelEstim.init(shdr->initType, shdr->SliceQPY);
   cabacEstim.set_context_models(&modelEstim);
 
 
-  int Log2CtbSize = ectx->get_sps()->Log2CtbSizeY;
+  int Log2CtbSize = get_sps()->Log2CtbSizeY;
 
-  uint8_t* luma_plane = ectx->img->get_image_plane(0);
-  uint8_t* cb_plane   = ectx->img->get_image_plane(1);
-  uint8_t* cr_plane   = ectx->img->get_image_plane(2);
+  uint8_t* luma_plane = img->get_image_plane(0);
+  uint8_t* cb_plane   = img->get_image_plane(1);
+  uint8_t* cr_plane   = img->get_image_plane(2);
 
   double mse=0;
 
 
   // encode CTB by CTB
 
-  ectx->imgdata->ctbs.clear();
-  ectx->imgdata->ctbs.set_pps(ectx->get_pps());
+  //imgdata->ctbs.clear();
+  imgdata->ctbs.set_pps(get_pps());
 
-  for (int y=0;y<ectx->get_sps()->PicHeightInCtbsY;y++)
-    for (int x=0;x<ectx->get_sps()->PicWidthInCtbsY;x++)
+  for (int y=0;y<get_sps()->PicHeightInCtbsY;y++)
+    for (int x=0;x<get_sps()->PicWidthInCtbsY;x++)
       {
-        ectx->img->set_SliceAddrRS(x, y, ectx->shdr->SliceAddrRS);
+        img->set_SliceAddrRS(x, y, shdr->SliceAddrRS);
 
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
@@ -355,7 +359,7 @@ double encode_image(encoder_context* ectx,
 
         context_model_table ctxModel;
         //copy_context_model_table(ctxModel, ectx->ctx_model_bitstream);
-        ctxModel = ectx->cabac_ctx_models.copy();
+        ctxModel = cabac_ctx_models.copy();
         ctxModel = modelEstim.copy(); // TODO TMP
 
         disable_logging(LogSymbols);
@@ -369,7 +373,7 @@ double encode_image(encoder_context* ectx,
           input, x0,y0, Log2CtbSize, 0, qp);
         */
 
-        enc_cb* cb = algo.getCTBAlgo()->analyze(ectx,ctxModel, x0,y0);
+        enc_cb* cb = algocore->getCTBAlgo()->analyze(this,ctxModel, x0,y0);
 #else
         float minCost = std::numeric_limits<float>::max();
         int bestQ = 0;
@@ -421,16 +425,16 @@ double encode_image(encoder_context* ectx,
         cb->debug_assertTreeConsistency(ectx->img);
         */
 
-        ectx->imgdata->ctbs.encode_ctb(&ectx->cabac_encoder, x,y);
+        imgdata->ctbs.encode_ctb(&cabac_encoder, x,y);
 
-        ectx->imgdata->ctbs.getCTB(x,y)->writeReconstructionToImage(ectx->img.get(), ectx->get_sps().get());
+        imgdata->ctbs.getCTB(x,y)->writeReconstructionToImage(img.get(), get_sps().get());
 
         //printf("================================================== WRITE\n");
 
 
         if (COMPARE_ESTIMATED_RATE_TO_REAL_RATE) {
           float realPre = cabacEstim.getRDBits();
-          ectx->imgdata->ctbs.encode_ctb(&cabacEstim, x,y);
+          imgdata->ctbs.encode_ctb(&cabacEstim, x,y);
           float realPost = cabacEstim.getRDBits();
 
           printf("estim: %f  real: %f  diff: %f\n",
@@ -440,9 +444,9 @@ double encode_image(encoder_context* ectx,
         }
 
 
-        int last = (y==ectx->get_sps()->PicHeightInCtbsY-1 &&
-                    x==ectx->get_sps()->PicWidthInCtbsY-1);
-        ectx->cabac_encoder.write_CABAC_term_bit(last);
+        int last = (y==get_sps()->PicHeightInCtbsY-1 &&
+                    x==get_sps()->PicWidthInCtbsY-1);
+        cabac_encoder.write_CABAC_term_bit(last);
 
         //delete cb;
 
@@ -451,7 +455,7 @@ double encode_image(encoder_context* ectx,
         mse += cb->distortion;
       }
 
-  mse /= ectx->img->get_width() * ectx->img->get_height();
+  mse /= img->get_width() * img->get_height();
 
 
   //reconstruction_sink.send_image(ectx->img);
