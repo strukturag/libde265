@@ -31,48 +31,6 @@
 
 
 
-FixedHeadersHelper::FixedHeadersHelper()
-{
-  vps = std::make_shared<video_parameter_set>();
-  sps = std::make_shared<seq_parameter_set>();
-  pps = std::make_shared<pic_parameter_set>();
-
-  vps->set_defaults(Profile_Main, 6,2);
-
-  sps->set_defaults();
-
-  pps->set_defaults();
-  pps->sps = sps;
-
-
-  // --- set some more default values ---
-
-  // turn off deblocking filter
-  pps->deblocking_filter_control_present_flag = true;
-  pps->deblocking_filter_override_enabled_flag = false;
-  pps->pic_disable_deblocking_filter_flag = true;
-  pps->pps_loop_filter_across_slices_enabled_flag = false;
-
-  pps->set_derived_values(sps.get());
-}
-
-
-void FixedHeadersHelper::set_image_size(image_ptr img)
-{
-  sps->set_resolution(img->get_width(), img->get_height());
-
-  sps->compute_derived_values();
-  pps->set_derived_values(sps.get());
-}
-
-
-void FixedHeadersHelper::encode_headers(encoder_context* ectx)
-{
-  mHeadersHaveBeenSent = true;
-}
-
-
-
 static int IntraPredModeCnt[7][35];
 static int MPM_used[7][35];
 

@@ -70,35 +70,6 @@
  */
 
 
-class FixedHeadersHelper
-{
- public:
-  FixedHeadersHelper();
-
-  std::shared_ptr<video_parameter_set> get_vps() { return vps; }
-  std::shared_ptr<seq_parameter_set>   get_sps() { return sps; }
-  std::shared_ptr<pic_parameter_set>   get_pps() { return pps; }
-
-  std::shared_ptr<const video_parameter_set> get_vps() const { return vps; }
-  std::shared_ptr<const seq_parameter_set>   get_sps() const { return sps; }
-  std::shared_ptr<const pic_parameter_set>   get_pps() const { return pps; }
-
-  void set_image_size(image_ptr);
-
-  // encode the headers into output packets and queue those in the encoder-context
-  void encode_headers(encoder_context* ectx);
-
-  bool have_headers_been_sent() const { return mHeadersHaveBeenSent; }
-
- private:
-  std::shared_ptr<video_parameter_set> vps;
-  std::shared_ptr<seq_parameter_set>   sps;
-  std::shared_ptr<pic_parameter_set>   pps;
-
-  bool mHeadersHaveBeenSent = false;
-};
-
-
 // ========== an encoding algorithm combines a set of algorithm modules ==========
 
 class EncoderCore
