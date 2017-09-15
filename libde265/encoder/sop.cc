@@ -100,7 +100,7 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
   imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
   imgdata->mark_sop_metadata_set();
 
-  imgdata->reconstruction->add_slice_segment_header(shdr);
+  imgdata->ctbs.add_slice_header(shdr);
 
 
   advance_frame();

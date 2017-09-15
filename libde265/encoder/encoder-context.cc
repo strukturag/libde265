@@ -155,7 +155,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   imgdata->mark_encoding_started();
 
-  this->shdr    = imgdata->reconstruction->get_SliceHeader(0,0); // TODO: HACK
+  this->shdr    = imgdata->ctbs.get_slice_header(0,0).get(); // TODO: HACK
 
   loginfo(LogEncoder,"encoding frame %d\n",imgdata->frame_number);
 

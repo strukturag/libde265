@@ -375,10 +375,11 @@ class CTBTreeMatrix
   // the (reconstruction) image metadata.
   // -> not really, because all encoding is done from the CTBTree
   // We either have to:
-  // - separate image/metadata and add the metadata to CTBTree, or
-  // - use slice headers only in the CTBTree (but check deblocking filters, ... they
-  //   might be using the slice headers from the image metadata) --> yes, is used in deblock and SAO
-  // - third option: copy over slice-headers from CTBTree to image after encoding
+  // 1) separate image/metadata and add the metadata to CTBTree, or
+  //    DISADV: for intra-only sequences, we do not really need the image, only the slice-headers
+  // 2) use slice headers only in the CTBTree (but check deblocking filters, ... they
+  //    might be using the slice headers from the image metadata) --> yes, is used in deblock and SAO
+  // 3) third option: copy over slice-headers from CTBTree to image after encoding
   // ---> use first or third method
 
   uint16_t add_slice_header(std::shared_ptr<slice_segment_header> shdr) {
@@ -390,7 +391,7 @@ class CTBTreeMatrix
     mSliceIndex[xCTB + yCTB*mWidthCtbs] = sliceID;
   }
 
-  std::shared_ptr<const slice_segment_header> get_slice_header(int x,int y) const {
+  std::shared_ptr<slice_segment_header> get_slice_header(int x,int y) const {
     int index = mSliceIndex[(x>>mLog2CtbSize) + mWidthCtbs*(y>>mLog2CtbSize)];
     assert(index>=0 && index<mSliceHeaders.size());
     return mSliceHeaders[index];
