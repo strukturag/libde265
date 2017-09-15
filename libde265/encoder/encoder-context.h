@@ -34,6 +34,7 @@
 #include "libde265/util.h"
 
 #include <memory>
+#include <array>
 
 
 class encoder_context;
