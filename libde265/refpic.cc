@@ -127,20 +127,19 @@ void ref_pic_set::compute_derived_values()
 }
 
 
-/* A ref-pic-set is coded either coded
+/* A ref-pic-set is coded either
    - as a list of the relative POC deltas themselves, or
    - by shifting an existing ref-pic-set by some number of frames
    When shifting an existing set, the frame 0 is also shifted as an additional reference frame.
    When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
-de265_error read_short_term_ref_pic_set(error_queue* errqueue,
-                                        const seq_parameter_set* sps,
-                                        bitreader* br,
-                                        ref_pic_set* out_set, // where to store the read set
-                                        int idxRps,  // index of the set to be read
-                                        const std::vector<ref_pic_set>& sets, // previously read sets
-                                        bool sliceRefPicSet) // is this in the slice header?
+de265_error ref_pic_set::read(error_queue* errqueue,
+                              const seq_parameter_set* sps,
+                              bitreader* br,
+                              int idxRps,  // index of the set to be read
+                              const std::vector<ref_pic_set>& sets, // previously read sets
+                              bool sliceRefPicSet) // is this in the slice header?
 {
   // --- is this set coded in prediction mode (not possible for the first set)
 
@@ -150,6 +149,7 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
     inter_ref_pic_set_prediction_flag = get_bits(br,1);
   }
   else {
+    // first set cannot use prediction
     inter_ref_pic_set_prediction_flag = 0;
   }
 
@@ -234,8 +234,8 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
           return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
         }
 
-        out_set->DeltaPocS0[i] = dPoc;
-        out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
+        DeltaPocS0[i] = dPoc;
+        UsedByCurrPicS0[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
       }
     }
@@ -246,8 +246,8 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
         return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
       }
 
-      out_set->DeltaPocS0[i] = DeltaRPS;
-      out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
+      DeltaPocS0[i] = DeltaRPS;
+      UsedByCurrPicS0[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
     }
 
@@ -259,13 +259,13 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
           return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
         }
 
-        out_set->DeltaPocS0[i] = dPoc;
-        out_set->UsedByCurrPicS0[i] = used_by_curr_pic_flag[j];
+        DeltaPocS0[i] = dPoc;
+        UsedByCurrPicS0[i] = used_by_curr_pic_flag[j];
         i++;
       }
     }
 
-    out_set->NumNegativePics = i;
+    NumNegativePics = i;
 
 
     // --- update list 1 (positive Poc) ---
@@ -281,8 +281,8 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
           return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
         }
 
-        out_set->DeltaPocS1[i] = dPoc;
-        out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[j];
+        DeltaPocS1[i] = dPoc;
+        UsedByCurrPicS1[i] = used_by_curr_pic_flag[j];
         i++;
       }
     }
@@ -293,8 +293,8 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
         return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
       }
 
-      out_set->DeltaPocS1[i] = DeltaRPS;
-      out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
+      DeltaPocS1[i] = DeltaRPS;
+      UsedByCurrPicS1[i] = used_by_curr_pic_flag[nDeltaPocsRIdx];
       i++;
     }
 
@@ -306,13 +306,13 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
           return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
         }
 
-        out_set->DeltaPocS1[i] = dPoc;
-        out_set->UsedByCurrPicS1[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
+        DeltaPocS1[i] = dPoc;
+        UsedByCurrPicS1[i] = used_by_curr_pic_flag[nNegativeRIdx+j];
         i++;
       }
     }
 
-    out_set->NumPositivePics = i;
+    NumPositivePics = i;
 
   } else {
 
@@ -325,10 +325,10 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
     if (num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
 
-      out_set->NumNegativePics = 0;
-      out_set->NumPositivePics = 0;
-      out_set->NumDeltaPocs = 0;
-      out_set->NumPocTotalCurr_shortterm_only = 0;
+      NumNegativePics = 0;
+      NumPositivePics = 0;
+      NumDeltaPocs = 0;
+      NumPocTotalCurr_shortterm_only = 0;
 
       errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
@@ -340,8 +340,8 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
       return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
     }
 
-    out_set->NumNegativePics = num_negative_pics;
-    out_set->NumPositivePics = num_positive_pics;
+    NumNegativePics = num_negative_pics;
+    NumPositivePics = num_positive_pics;
 
     // --- now, read the deltas between the reference frames to fill the lists ---
 
@@ -357,9 +357,9 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
       delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
-      out_set->DeltaPocS0[i]      = lastPocS - delta_poc_s0;
-      out_set->UsedByCurrPicS0[i] = used_by_curr_pic_s0_flag;
-      lastPocS = out_set->DeltaPocS0[i];
+      DeltaPocS0[i]      = lastPocS - delta_poc_s0;
+      UsedByCurrPicS0[i] = used_by_curr_pic_s0_flag;
+      lastPocS = DeltaPocS0[i];
     }
 
     // future frames
@@ -374,26 +374,25 @@ de265_error read_short_term_ref_pic_set(error_queue* errqueue,
       delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
-      out_set->DeltaPocS1[i]      = lastPocS + delta_poc_s1;
-      out_set->UsedByCurrPicS1[i] = used_by_curr_pic_s1_flag;
-      lastPocS = out_set->DeltaPocS1[i];
+      DeltaPocS1[i]      = lastPocS + delta_poc_s1;
+      UsedByCurrPicS1[i] = used_by_curr_pic_s1_flag;
+      lastPocS = DeltaPocS1[i];
     }
   }
 
 
-  out_set->compute_derived_values();
+  compute_derived_values();
 
   return DE265_OK;
 }
 
 
-bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
-                                         const seq_parameter_set* sps,
-                                         CABAC_encoder& out,
-                                         const ref_pic_set* in_set, // which set to write
-                                         int idxRps,  // index of the set to be written
-                                         const std::vector<ref_pic_set>& sets, // previously read sets
-                                         bool sliceRefPicSet) // is this in the slice header?
+bool ref_pic_set::write_nopred(error_queue* errqueue,
+                               const seq_parameter_set* sps,
+                               CABAC_encoder& out,
+                               int idxRps,  // index of the set to be written
+                               const std::vector<ref_pic_set>& sets, // previously read sets
+                               bool sliceRefPicSet) const // is this in the slice header?
 {
   if (idxRps != 0) {
     // inter_ref_pic_set_prediction_flag
@@ -403,51 +402,50 @@ bool write_short_term_ref_pic_set_nopred(error_queue* errqueue,
 
   // --- first, write the number of past and future frames in this set ---
 
-  out.write_uvlc(in_set->NumNegativePics);
-  out.write_uvlc(in_set->NumPositivePics);
+  out.write_uvlc(NumNegativePics);
+  out.write_uvlc(NumPositivePics);
 
   // --- now, write the deltas between the reference frames to fill the lists ---
 
   // past frames
 
   int lastPocS=0;
-  for (int i=0;i<in_set->NumNegativePics;i++) {
-    int  delta_poc_s0 = lastPocS - in_set->DeltaPocS0[i];
-    char used_by_curr_pic_s0_flag = in_set->UsedByCurrPicS0[i];
+  for (int i=0;i<NumNegativePics;i++) {
+    int  delta_poc_s0 = lastPocS - DeltaPocS0[i];
+    char used_by_curr_pic_s0_flag = UsedByCurrPicS0[i];
 
     assert(delta_poc_s0 >= 1);
     out.write_uvlc(delta_poc_s0-1);
     out.write_bit(used_by_curr_pic_s0_flag);
-    lastPocS = in_set->DeltaPocS0[i];
+    lastPocS = DeltaPocS0[i];
   }
 
   // future frames
 
   lastPocS=0;
-  for (int i=0;i<in_set->NumPositivePics;i++) {
-    int  delta_poc_s1 = in_set->DeltaPocS1[i] - lastPocS;
-    char used_by_curr_pic_s1_flag = in_set->UsedByCurrPicS1[i];
+  for (int i=0;i<NumPositivePics;i++) {
+    int  delta_poc_s1 = DeltaPocS1[i] - lastPocS;
+    char used_by_curr_pic_s1_flag = UsedByCurrPicS1[i];
 
     assert(delta_poc_s1 >= 1);
     out.write_uvlc(delta_poc_s1-1);
     out.write_bit(used_by_curr_pic_s1_flag);
-    lastPocS = in_set->DeltaPocS1[i];
+    lastPocS = DeltaPocS1[i];
   }
 
   return true;
 }
 
 
-bool write_short_term_ref_pic_set(error_queue* errqueue,
-                                  const seq_parameter_set* sps,
-                                  CABAC_encoder& out,
-                                  const ref_pic_set* in_set, // which set to write
-                                  int idxRps,  // index of the set to be read
-                                  const std::vector<ref_pic_set>& sets, // previously read sets
-                                  bool sliceRefPicSet) // is this in the slice header?
+bool ref_pic_set::write(error_queue* errqueue,
+                        const seq_parameter_set* sps,
+                        CABAC_encoder& out,
+                        int idxRps,  // index of the set to be read
+                        const std::vector<ref_pic_set>& sets, // previously read sets
+                        bool sliceRefPicSet) const // is this in the slice header?
 {
-  return write_short_term_ref_pic_set_nopred(errqueue, sps, out, in_set, idxRps, sets,
-                                             sliceRefPicSet);
+  // TODO: currently, we never use prediction
+  return write_nopred(errqueue, sps, out, idxRps, sets, sliceRefPicSet);
 }
 
 

@@ -22,7 +22,9 @@
 #define DE265_REFPIC_H
 
 #include "libde265/bitstream.h"
+#include "libde265/de265.h"
 #include <string>
+#include <vector>
 
 #define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
 
@@ -43,6 +45,20 @@ class ref_pic_set
   // negative offsets will be added to L0, positive offsets to L1
   void addRef(int temporal_offset, image_mode mode);
 
+
+  de265_error read(class error_queue* errqueue,
+                   const class seq_parameter_set* sps,
+                   bitreader* br,
+                   int idxRps,  // index of the set to be read
+                   const std::vector<ref_pic_set>& sets, // previously read sets
+                   bool sliceRefPicSet); // is this in the slice header?
+
+  bool write(class error_queue* errqueue,
+             const class seq_parameter_set* sps,
+             class CABAC_encoder& out,
+             int idxRps,  // index of the set to be read
+             const std::vector<ref_pic_set>& sets, // previously read sets
+             bool sliceRefPicSet) const; // is this in the slice header?
 
   std::string dump() const;
   std::string dump_compact(int max_offset) const;
@@ -73,6 +89,14 @@ class ref_pic_set
                                              be used for prediction in the current frame. */
 
   void reset();
+
+ private:
+  bool write_nopred(error_queue* errqueue,
+                    const seq_parameter_set* sps,
+                    CABAC_encoder& out,
+                    int idxRps,  // index of the set to be read
+                    const std::vector<ref_pic_set>& sets, // previously read sets
+                    bool sliceRefPicSet) const; // is this in the slice header?
 };
 
 

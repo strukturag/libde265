@@ -42,14 +42,6 @@
 
 #define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
-extern de265_error read_short_term_ref_pic_set(error_queue* errqueue,
-                                               const seq_parameter_set* sps,
-                                               bitreader* br,
-                                               ref_pic_set* out_set,
-                                               int idxRps,  // index of the set to be read
-                                               const std::vector<ref_pic_set>& sets,
-                                               bool sliceRefPicSet);
-
 
 void read_coding_tree_unit(thread_context* tctx);
 void read_coding_quadtree(thread_context* tctx,
@@ -491,11 +483,11 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       short_term_ref_pic_set_sps_flag = get_bits(br,1);
 
       if (!short_term_ref_pic_set_sps_flag) {
-        de265_error err = read_short_term_ref_pic_set(ctx, sps.get(),
-                                                      br, &slice_ref_pic_set,
-                                                      sps->num_short_term_ref_pic_sets(),
-                                                      sps->ref_pic_sets,
-                                                      true);
+        de265_error err = slice_ref_pic_set.read(ctx, sps.get(),
+                                                 br,
+                                                 sps->num_short_term_ref_pic_sets(),
+                                                 sps->ref_pic_sets,
+                                                 true);
         if (err) {
           return err;
         }

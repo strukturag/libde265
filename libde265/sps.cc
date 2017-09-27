@@ -46,24 +46,6 @@ static int SubHeightC_tab[] = { -1,2,1,1 };
 // TODO if (!check_ulvc(ctx, vlc)) return false;
 
 
-// TODO: should be in some header-file of refpic.c
-extern de265_error read_short_term_ref_pic_set(error_queue* errqueue,
-                                               const seq_parameter_set* sps,
-                                               bitreader* br,
-                                               ref_pic_set* out_set,
-                                               int idxRps,  // index of the set to be read
-                                               const std::vector<ref_pic_set>& sets,
-                                               bool sliceRefPicSet);
-
-extern bool write_short_term_ref_pic_set(error_queue* errqueue,
-                                         const seq_parameter_set* sps,
-                                         CABAC_encoder& out,
-                                         const ref_pic_set* in_set, // which set to write
-                                         int idxRps,  // index of the set to be read
-                                         const std::vector<ref_pic_set>& sets, // previously read sets
-                                         bool sliceRefPicSet); // is this in the slice header?
-
-
 sps_range_extension::sps_range_extension()
 {
   transform_skip_rotation_enabled_flag = 0;
@@ -384,10 +366,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
 
-    de265_error err = read_short_term_ref_pic_set(errqueue,this,br,
-                                                  &ref_pic_sets[i], i,
-                                                  ref_pic_sets,
-                                                  false);
+    de265_error err = ref_pic_sets[i].read(errqueue,this,br,
+                                           i,
+                                           ref_pic_sets,
+                                           false);
 
     if (err) {
       return err;
@@ -1131,10 +1113,10 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
 
-    bool success = write_short_term_ref_pic_set(errqueue,this,out,
-                                                &ref_pic_sets[i], i,
-                                                ref_pic_sets,
-                                                false);
+    bool success = ref_pic_sets[i].write(errqueue,this,out,
+                                         i,
+                                         ref_pic_sets,
+                                         false);
 
     if (!success) {
       return DE265_WARNING_SPS_HEADER_INVALID;
