@@ -53,10 +53,18 @@ class Algo
   // --- debugging ---
 
 #ifdef DE265_LOG_DEBUG
+  // :
   void enter();
+
+  // >
   void descend(const enc_node* node,const char* option_description, ...);
+
+  // <
   void ascend(const enc_node* resultNode=NULL, const char* fmt=NULL, ...);
+
+  // !
   void leaf(const enc_node* node,const char* option_description, ...);
+
 #else
   inline void enter() { }
   inline void descend(const enc_node*,const char*, ...) { }
@@ -64,6 +72,13 @@ class Algo
   inline void leaf(const enc_node*,const char*, ...) { }
 #endif
 };
+
+
+#ifdef DE265_LOG_DEBUG
+  void logprefix(const char*, ...);
+#else
+  inline void logprefix(const char*, ...) { }
+#endif
 
 
 class Algo_CTB : public Algo

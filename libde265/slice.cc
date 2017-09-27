@@ -3936,6 +3936,18 @@ const char* part_mode_name(enum PartMode pm)
 }
 
 
+const char* pred_mode_name(enum PredMode pm)
+{
+  switch (pm) {
+  case MODE_INTRA: return "intra";
+  case MODE_INTER: return "inter";
+  case MODE_SKIP:  return "skip";
+  }
+
+  return "undefined pred mode";
+}
+
+
 void read_mvd_coding(thread_context* tctx,
                      int x0,int y0, int refList)
 {

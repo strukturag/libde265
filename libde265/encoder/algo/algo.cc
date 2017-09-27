@@ -86,9 +86,24 @@ void Algo::leaf(const enc_node* node, const char* option, ...)
     va_start(va, option);
     va_end(va);
 
-    fprintf(stdout, "%s(", name());
+    fprintf(stdout, "!%s(", name());
     vfprintf(stdout, option, va);
     fprintf(stdout, ") %d;%d %dx%d\n",node->x,node->y,1<<node->log2Size,1<<node->log2Size);
+  }
+}
+
+void logprefix(const char* text, ...)
+{
+  if (logdebug_enabled(LogEncoder)) {
+    printf("%d ",descendLevel+1);
+    for (int i=0;i<descendLevel+1;i++) { printf(" "); }
+
+    va_list va;
+    va_start(va, text);
+    va_end(va);
+
+    vfprintf(stdout, text, va);
+    fprintf(stdout,"\n");
   }
 }
 

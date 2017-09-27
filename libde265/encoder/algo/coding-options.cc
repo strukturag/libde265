@@ -42,7 +42,7 @@ CodingOptions<node>::~CodingOptions()
 }
 
 template <class node>
-CodingOption<node> CodingOptions<node>::new_option(bool active)
+CodingOption<node> CodingOptions<node>::new_option(const char* name, bool active)
 {
   if (!active) {
     return CodingOption<node>();
@@ -61,12 +61,19 @@ CodingOption<node> CodingOptions<node>::new_option(bool active)
 
   opt.context  = *mContextModelInput;
   opt.computed = false;
+  opt.mName = name;
 
   CodingOption<node> option(this, mOptions.size());
 
   mOptions.push_back( std::move(opt) );
 
   return option;
+}
+
+template <class node>
+CodingOption<node> CodingOptions<node>::new_option(bool active)
+{
+  return new_option("noname", active);
 }
 
 
@@ -148,6 +155,22 @@ int CodingOptions<node>::find_best_rdo_index()
 
 
 template <class node>
+void CodingOptions<node>::log_rdo_costs(const Algo* algo)
+{
+  for (int i=0;i<mOptions.size();i++) {
+    if (mOptions[i].computed) {
+      logprefix("%s, option %s : %f (d=%f r=%f)",
+                algo->name(),
+                mOptions[i].mName,
+                mOptions[i].rdoCost,
+                mOptions[i].mNode ? mOptions[i].mNode->distortion : -1,
+                mOptions[i].mNode ? mOptions[i].mNode->rate : -1);
+    }
+  }
+}
+
+
+template <class node>
 node* CodingOptions<node>::return_best_rdo_node()
 {
   int bestRDO = find_best_rdo_index();
@@ -168,6 +191,15 @@ node* CodingOptions<node>::return_best_rdo_node()
   }
 
   return mOptions[bestRDO].mNode;
+}
+
+
+template <class node>
+node* CodingOptions<node>::return_best_rdo_node(const Algo* algo)
+{
+  log_rdo_costs(algo);
+  node* n = return_best_rdo_node();
+  return n;
 }
 
 

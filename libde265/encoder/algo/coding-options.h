@@ -41,6 +41,7 @@ class CodingOptions
   // --- init --- call before object use
 
   CodingOption<node> new_option(bool active=true);
+  CodingOption<node> new_option(const char* name, bool active=true);
 
   enum RateEstimationMethod
   {
@@ -66,6 +67,12 @@ class CodingOptions
    */
   node* return_best_rdo_node();
 
+  // same as above, but also logs decision
+  node* return_best_rdo_node(const class Algo* algo);
+
+
+  void log_rdo_costs(const class Algo*);
+
  private:
   struct CodingOptionData
   {
@@ -75,6 +82,8 @@ class CodingOptions
     bool  mOptionActive;
     bool  computed;
     float rdoCost;
+
+    const char* mName;
   };
 
 

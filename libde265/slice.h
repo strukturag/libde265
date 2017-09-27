@@ -92,6 +92,9 @@ enum PredMode
     MODE_INTRA, MODE_INTER, MODE_SKIP
   };
 
+const char* pred_mode_name(enum PredMode);
+
+
 enum IntraPredMode
   {
     INTRA_PLANAR = 0,

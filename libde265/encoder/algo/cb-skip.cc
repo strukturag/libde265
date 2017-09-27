@@ -42,8 +42,8 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   //try_nonskip = !try_skip;
 
   CodingOptions<enc_cb> options(ectx,cb,ctxModel);
-  CodingOption<enc_cb> option_skip    = options.new_option(try_skip);
-  CodingOption<enc_cb> option_nonskip = options.new_option(try_nonskip);
+  CodingOption<enc_cb> option_skip    = options.new_option("skip",   try_skip);
+  CodingOption<enc_cb> option_nonskip = options.new_option("no-skip",try_nonskip);
   options.start();
 
   for (int i=0;i<CONTEXT_MODEL_TABLE_LENGTH;i++) {
@@ -110,5 +110,5 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
   }
 
   options.compute_rdo_costs();
-  return options.return_best_rdo_node();
+  return options.return_best_rdo_node(this);
 }

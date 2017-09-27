@@ -363,7 +363,7 @@ double encoder_context::encode_image()
         int x0 = x<<Log2CtbSize;
         int y0 = y<<Log2CtbSize;
 
-        logtrace(LogSlice,"encode CTB at %d %d\n",x0,y0);
+        loginfo(LogSlice,"encode CTB at %d %d\n",x0,y0);
 
         // make a copy of the context model that we can modify for testing alternatives
 
