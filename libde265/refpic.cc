@@ -451,24 +451,24 @@ bool write_short_term_ref_pic_set(error_queue* errqueue,
 }
 
 
-std::string dump_short_term_ref_pic_set(const ref_pic_set* set)
+std::string ref_pic_set::dump() const
 {
   std::stringstream sstr;
 
-  log2sstr(sstr,"NumDeltaPocs: %d [-:%d +:%d]\n", set->NumDeltaPocs,
-           set->NumNegativePics, set->NumPositivePics);
+  log2sstr(sstr,"NumDeltaPocs: %d [-:%d +:%d]\n", NumDeltaPocs,
+           NumNegativePics, NumPositivePics);
 
   log2sstr(sstr,"DeltaPocS0:");
-  for (int i=0;i<set->NumNegativePics;i++) {
+  for (int i=0;i<NumNegativePics;i++) {
     if (i) { sstr << ','; }
-    log2sstr(sstr," %d/%d",set->DeltaPocS0[i],set->UsedByCurrPicS0[i]);
+    log2sstr(sstr," %d/%d",DeltaPocS0[i],UsedByCurrPicS0[i]);
   }
   sstr << '\n';
 
   sstr << "DeltaPocS1:";
-  for (int i=0;i<set->NumPositivePics;i++) {
+  for (int i=0;i<NumPositivePics;i++) {
     if (i) { sstr << ','; }
-    log2sstr(sstr," %d/%d",set->DeltaPocS1[i],set->UsedByCurrPicS1[i]);
+    log2sstr(sstr," %d/%d",DeltaPocS1[i],UsedByCurrPicS1[i]);
   }
   log2sstr(sstr,"\n");
 
@@ -476,7 +476,7 @@ std::string dump_short_term_ref_pic_set(const ref_pic_set* set)
 }
 
 
-std::string dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range)
+std::string ref_pic_set::dump_compact(int range) const
 {
   std::stringstream sstr;
 
@@ -485,20 +485,20 @@ std::string dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int rang
   for (int i=0;i<2*range+1;i++) log[i]='.';
   log[range]='|';
 
-  for (int i=set->NumNegativePics-1;i>=0;i--) {
-    int n = set->DeltaPocS0[i];
+  for (int i=NumNegativePics-1;i>=0;i--) {
+    int n = DeltaPocS0[i];
     if (n>=-range) {
-      if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
+      if (UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { log2sstr(sstr,"*%d%c ",n, set->UsedByCurrPicS0[i] ? 'X':'o'); }
+    } else { log2sstr(sstr,"*%d%c ",n, UsedByCurrPicS0[i] ? 'X':'o'); }
   }
 
-  for (int i=set->NumPositivePics-1;i>=0;i--) {
-    int n = set->DeltaPocS1[i];
+  for (int i=NumPositivePics-1;i>=0;i--) {
+    int n = DeltaPocS1[i];
     if (n<=range) {
-      if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
+      if (UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
-    } else { log2sstr(sstr,"*%d%c ",n, set->UsedByCurrPicS1[i] ? 'X':'o'); }
+    } else { log2sstr(sstr,"*%d%c ",n, UsedByCurrPicS1[i] ? 'X':'o'); }
   }
 
   log2sstr(sstr,"*%s\n",log);

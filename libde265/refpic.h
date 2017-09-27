@@ -43,6 +43,12 @@ class ref_pic_set
   // negative offsets will be added to L0, positive offsets to L1
   void addRef(int temporal_offset, image_mode mode);
 
+
+  std::string dump() const;
+  std::string dump_compact(int max_offset) const;
+
+
+
   // Lists of pictures that have to be kept in the decoded picture buffer for future
   // reference and that may optionally be used for prediction in the current frame.
   // Lists contain the relative POC positions.
@@ -69,8 +75,5 @@ class ref_pic_set
   void reset();
 };
 
-
-std::string dump_short_term_ref_pic_set(const ref_pic_set*);
-std::string dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range);
 
 #endif

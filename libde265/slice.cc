@@ -1319,11 +1319,11 @@ std::string slice_segment_header::dump_slice_segment_header(const decoder_contex
 
       if (!short_term_ref_pic_set_sps_flag) {
         LOG("ref_pic_set[ %2d ]: ",sps->num_short_term_ref_pic_sets());
-        std::string TODO = dump_compact_short_term_ref_pic_set(&slice_ref_pic_set, 16);
+        std::string TODO = slice_ref_pic_set.dump_compact(16);
       }
       else if (sps->num_short_term_ref_pic_sets() > 1) {
         LOG("short_term_ref_pic_set_idx           : %d\n", short_term_ref_pic_set_idx);
-        std::string TODO = dump_compact_short_term_ref_pic_set(&sps->ref_pic_sets[short_term_ref_pic_set_idx], 16);
+        std::string TODO = sps->ref_pic_sets[short_term_ref_pic_set_idx].dump_compact(16);
       }
 
       if (sps->long_term_ref_pics_present_flag) {

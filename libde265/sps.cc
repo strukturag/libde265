@@ -693,7 +693,7 @@ std::string seq_parameter_set::dump() const
 
   for (int i = 0; i < ref_pic_sets.size(); i++) {
     LOG("ref_pic_set[ %2d ]: ",i);
-    sstr << dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16);
+    sstr << ref_pic_sets[i].dump_compact(16);
   }
 
   LOG("long_term_ref_pics_present_flag : %d\n", long_term_ref_pics_present_flag);
