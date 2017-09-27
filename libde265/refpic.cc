@@ -30,6 +30,58 @@
 # include <alloca.h>
 #endif
 
+ref_pic_set::ref_pic_set()
+{
+  reset();
+}
+
+
+void ref_pic_set::addRefL0(int temporal_offset, image_mode mode)
+{
+  assert(NumNegativePics < MAX_NUM_REF_PICS);
+  assert(temporal_offset < 0);
+
+  DeltaPocS0[NumNegativePics] = temporal_offset;
+  bool used = (mode == image_mode::used);
+  UsedByCurrPicS0[NumNegativePics] = used;
+
+  NumNegativePics++;
+  NumDeltaPocs++;
+
+  if (used) {
+    NumPocTotalCurr_shortterm_only++;
+  }
+}
+
+
+void ref_pic_set::addRefL1(int temporal_offset, image_mode mode)
+{
+  assert(NumPositivePics < MAX_NUM_REF_PICS);
+  assert(temporal_offset > 0);
+
+  DeltaPocS1[NumPositivePics] = temporal_offset;
+  bool used = (mode == image_mode::used);
+  UsedByCurrPicS1[NumPositivePics] = used;
+
+  NumPositivePics++;
+  NumDeltaPocs++;
+
+  if (used) {
+    NumPocTotalCurr_shortterm_only++;
+  }
+}
+
+
+void ref_pic_set::addRef(int temporal_offset, image_mode mode)
+{
+  if (temporal_offset < 0) {
+    addRefL0(temporal_offset, mode);
+  }
+  else {
+    addRefL1(temporal_offset, mode);
+  }
+}
+
 
 void ref_pic_set::reset()
 {

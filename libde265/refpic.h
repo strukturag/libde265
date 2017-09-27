@@ -30,6 +30,19 @@
 class ref_pic_set
 {
  public:
+  ref_pic_set();
+
+  enum class image_mode {
+    used, // image is used for reference in current image
+    kept  // image is NOT used for reference in the current image, but stored for future images
+  };
+
+  void addRefL0(int temporal_offset, image_mode mode);
+  void addRefL1(int temporal_offset, image_mode mode);
+
+  // negative offsets will be added to L0, positive offsets to L1
+  void addRef(int temporal_offset, image_mode mode);
+
   // Lists of pictures that have to be kept in the decoded picture buffer for future
   // reference and that may optionally be used for prediction in the current frame.
   // Lists contain the relative POC positions.
@@ -42,6 +55,7 @@ class ref_pic_set
 
   uint8_t NumNegativePics;  // number of past reference pictures
   uint8_t NumPositivePics;  // number of future reference pictures
+
 
   // --- derived values ---
 
