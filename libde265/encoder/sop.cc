@@ -100,13 +100,13 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
                                                          mEncCtx->get_CTB_size_log2());
 
   assert(mEncPicBuf);
-  mEncPicBuf->insert_next_image_in_encoding_order(imgdata);
 
   imgdata->set_NAL_type(NAL_UNIT_IDR_N_LP);
   imgdata->mark_sop_metadata_set();
 
   imgdata->ctbs.add_slice_header(shdr);
 
+  mEncPicBuf->insert_next_image_in_encoding_order(imgdata);
 
   advance_frame();
 }
@@ -202,7 +202,6 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
                                                          get_frame_number(),
                                                          vps, sps, pps,
                                                          mEncCtx->get_CTB_size_log2());
-  mEncPicBuf->insert_next_image_in_encoding_order(imgdata);
 
   auto shdr = std::make_shared<slice_segment_header>();
   shdr->set_defaults();
@@ -238,6 +237,9 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
   }
 
   imgdata->mark_sop_metadata_set();
+  imgdata->ctbs.add_slice_header(shdr);
+
+  mEncPicBuf->insert_next_image_in_encoding_order(imgdata);
 
   advance_frame();
 }
