@@ -244,6 +244,11 @@ void encoder_picture_buffer::purge_unused_images_from_queue()
     FOR_LOOP(int, f, picdata->ref1)     { get_picture(f)->in_use=true; }
     FOR_LOOP(int, f, picdata->longterm) { get_picture(f)->in_use=true; }
     FOR_LOOP(int, f, picdata->keep)     { get_picture(f)->in_use=true; }
+
+    // do not purge the last image because it may be used by the next image
+    if (picdata == mImages.back()) {
+      picdata->in_use = true;
+    }
   }
 
   // copy over all images that we still keep
