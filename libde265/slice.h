@@ -168,10 +168,11 @@ public:
   char pic_output_flag;
   char colour_plane_id;
   int  slice_pic_order_cnt_lsb;
-  char short_term_ref_pic_set_sps_flag;
-  ref_pic_set slice_ref_pic_set;
+  char short_term_ref_pic_set_sps_flag; // =1 -> short term RefPicSet is taken from SPS header
 
-  int  short_term_ref_pic_set_idx;
+  ref_pic_set slice_ref_pic_set;   // if RefPicSet not taken from SPS
+  int  short_term_ref_pic_set_idx; // if RefPicSet taken from SPS
+
   int  num_long_term_sps;
   int  num_long_term_pics;
 
