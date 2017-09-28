@@ -59,14 +59,35 @@ class Algo_CB_Skip : public Algo_CB
   Algo_CB*            mNonSkipAlgo;
 };
 
+
 class Algo_CB_Skip_BruteForce : public Algo_CB_Skip
 {
  public:
+  struct params
+  {
+    params() {
+      threshold.set_ID("CB-Skip-Direct-Threshold");
+      threshold.set_default(7.8*7.8);
+    }
+
+    option_float threshold;
+  };
+
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.threshold);
+  }
+
+  void setParams(const params& p) { mParams=p; }
+
+
   virtual enc_cb* analyze(encoder_context*,
                           context_model_table&,
                           enc_cb* cb);
 
   const char* name() const { return "cb-skip-bruteforce"; }
+
+ private:
+  params mParams;
 };
 
 #endif

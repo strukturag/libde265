@@ -191,6 +191,7 @@ class EncoderCore_Custom : public EncoderCore
     mAlgo_TB_IntraPredMode_FastBrute.registerParams(config);
     mAlgo_TB_IntraPredMode_MinResidual.registerParams(config);
     mAlgo_TB_Split_BruteForce.registerParams(config);
+    mAlgo_CB_Skip_BruteForce.registerParams(config);
 
     params.registerParams(config);
   }

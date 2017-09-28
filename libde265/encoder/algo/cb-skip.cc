@@ -50,6 +50,10 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     //printf("%i: %d/%d\n",i, ctxModel[i].state, ctxModel[i].MPSbit);
   }
 
+  // if coding with skip mode worked well, we will set this to true,
+  // and, consequently, we will not try coding in non-skip mode
+  bool omit_non_skip = false;
+
   if (option_skip) {
     CodingOption<enc_cb>& opt = option_skip;
     opt.begin();
@@ -74,6 +78,16 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     cb = mSkipAlgo->analyze(ectx, opt.get_context(), cb);
     ascend();
 
+
+    // if the distortion of the skipped CB is below the threshold, do not
+    // even try coding as non-skipped
+
+    const int nPixelsInCB = (1<<(2*cb->log2Size));
+
+    if (cb->distortion < mParams.threshold() * nPixelsInCB) {
+      omit_non_skip = true;
+    }
+
     // add rate for PredMode
 
     cb->rate += rate_pred_mode;
@@ -81,7 +95,7 @@ enc_cb* Algo_CB_Skip_BruteForce::analyze(encoder_context* ectx,
     opt.end();
   }
 
-  if (option_nonskip) {
+  if (!omit_non_skip && option_nonskip) {
     CodingOption<enc_cb>& opt = option_nonskip;
     enc_cb* cb = opt.get_node();
 
