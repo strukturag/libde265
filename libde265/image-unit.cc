@@ -72,7 +72,7 @@ void slice_unit::mark_covered_CTBs_as_processed(int progress) const
 
       int ctb_rs = shdr->get_pps()->CtbAddrTStoRS[ctb];
 
-      imgunit->img->ctb_progress[ctb_rs].set_progress(progress);
+      imgunit->img->progress().set_CTB_progress(ctb_rs, progress);
     }
 }
 

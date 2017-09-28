@@ -595,9 +595,9 @@ int frontend_syntax_decoder::generate_unavailable_reference_picture(const seq_pa
   img->PicOutputFlag = false;
   img->PicState = (longTerm ? UsedForLongTermReference : UsedForShortTermReference);
   img->integrity = INTEGRITY_UNAVAILABLE_REFERENCE;
-  img->mFinalCTBProgress = CTB_PROGRESS_SAO;
 
-  img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+  img->progress().set_final_progress_value(CTB_PROGRESS_SAO);
+  img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
 
   return idx;
 }

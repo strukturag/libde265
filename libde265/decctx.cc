@@ -175,7 +175,7 @@ void thread_context::mark_covered_CTBs_as_processed(int progress)
       int ctb_rs = shdr->get_pps()->CtbAddrTStoRS[ctb];
 
       //printf("mark progress RS:%d (TS:%d) = %d\n",ctb_rs,ctb, progress);
-      img->ctb_progress[ctb_rs].set_progress(progress);
+      img->progress().set_CTB_progress(ctb_rs,progress);
     }
 }
 
@@ -492,16 +492,16 @@ void decoder_context::run_main_loop()
 
       if (to_be_decoded->state == image_unit::Dropped) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
-        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        to_be_decoded->img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
       }
       else if (!is_image_unit_decodable(to_be_decoded)) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
-        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        to_be_decoded->img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
       }
       else if (!to_be_decoded->slice_units.empty() &&
                to_be_decoded->slice_units[0]->shdr->first_slice_segment_in_pic_flag == false) {
         to_be_decoded->img->integrity = INTEGRITY_NOT_DECODED;
-        to_be_decoded->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        to_be_decoded->img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
       }
       else {
         // --- create threads to decode this image ---
@@ -639,7 +639,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
       if (xCtb >= sps.PicWidthInCtbsY ||
           yCtb >= sps.PicHeightInCtbsY) {
         imgunit->img->integrity = INTEGRITY_NOT_DECODED;
-        imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+        imgunit->img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
         on_image_decoding_finished();
         return false;
       }
@@ -688,7 +688,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     }
 
 
-    imgunit->img->mFinalCTBProgress = final_ctb_progress;
+    imgunit->img->progress().set_final_progress_value(final_ctb_progress);
 
 
     // Add finalize-task that moves the image into the output queue.
@@ -698,7 +698,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   }
   else {
     imgunit->img->integrity = INTEGRITY_NOT_DECODED;
-    imgunit->img->mark_all_CTB_progress(CTB_PROGRESS_SAO);
+    imgunit->img->progress().set_all_CTB_progress(CTB_PROGRESS_SAO);
     on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
 

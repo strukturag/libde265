@@ -410,15 +410,15 @@ void generate_inter_prediction_samples(base_context* ctx,
 
         assert(refPic0);
         if (refPic0.get() != img) {
-          refPic0->wait_for_progress_at_pixel(xP+1+nPbW+5,
-                                              yP+1+nPbH+5,
-                                              refPic0->mFinalCTBProgress); // LOCK
+          refPic0->progress().wait_for_progress(sps->x_pixel_to_x_ctb(xP+1+nPbW+5),
+                                                sps->y_pixel_to_y_ctb(yP+1+nPbH+5),
+                                                refPic0->progress().get_final_progress_value());
         }
         assert(refPic1);
         if (refPic1.get() != img) {
-          refPic1->wait_for_progress_at_pixel(xP+1+nPbW+5,
-                                              yP+1+nPbH+5,
-                                              refPic1->mFinalCTBProgress); // LOCK
+          refPic1->progress().wait_for_progress(sps->x_pixel_to_x_ctb(xP+1+nPbW+5),
+                                                sps->y_pixel_to_y_ctb(yP+1+nPbH+5),
+                                                refPic1->progress().get_final_progress_value());
         }
 
 
@@ -481,9 +481,9 @@ void generate_inter_prediction_samples(base_context* ctx,
 
         assert(refPic);
         if (refPic.get() != img) {
-          refPic->wait_for_progress_at_pixel(xP+1+nPbW+5,
-                                             yP+1+nPbH+5,
-                                             refPic->mFinalCTBProgress); // LOCK
+          refPic->progress().wait_for_progress(sps->x_pixel_to_x_ctb(xP+1+nPbW+5),
+                                               sps->y_pixel_to_y_ctb(yP+1+nPbH+5),
+                                               refPic->progress().get_final_progress_value());
         }
 
 
@@ -538,9 +538,9 @@ void generate_inter_prediction_samples(base_context* ctx,
       // do not want to block.
       // TODO: actually, it would be better to check whether the RefPicList is valid.
       if (refPic.get() != img) {
-        refPic->wait_for_progress_at_pixel(xP+(vi->mv[l].x>>2)+1+nPbW+5,
-                                           yP+(vi->mv[l].y>>2)+1+nPbH+5,
-                                           refPic->mFinalCTBProgress); // LOCK
+        refPic->progress().wait_for_progress(sps->x_pixel_to_x_ctb(xP+(vi->mv[l].x>>2)+1+nPbW+5),
+                                             sps->y_pixel_to_y_ctb(yP+(vi->mv[l].y>>2)+1+nPbH+5),
+                                             refPic->progress().get_final_progress_value());
 
         //refPic->wait_until_all_CTBs_have_progress(refPic->mFinalCTBProgress); // LOCK
       }
@@ -1293,7 +1293,11 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
   //if (LOCK) colImg->wait_for_progress(19,11, CTB_PROGRESS_SAO); // LOCK
 
   if (colImg != current_image) {
-    colImg->wait_for_progress_at_pixel(xColPb,yColPb, CTB_PROGRESS_PREFILTER); // LOCK
+    const seq_parameter_set& sps = dataaccess.get_sps();
+
+    colImg->progress().wait_for_progress(sps.x_pixel_to_x_ctb(xColPb),
+                                         sps.y_pixel_to_y_ctb(yColPb),
+                                         CTB_PROGRESS_PREFILTER); // LOCK
 
     //colImg->wait_until_all_CTBs_have_progress(CTB_PROGRESS_PREFILTER); // LOCK
   }

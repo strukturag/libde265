@@ -426,25 +426,25 @@ void thread_task_sao::work()
 
   // copy input image to output for this CTB-row
 
-  img->wait_for_progress(rightCtb,ctb_y,  inputProgress);
+  img->progress().wait_for_progress(rightCtb,ctb_y,  inputProgress);
   tmpImg->copy_lines_from(inputImg, ctb_y * ctbSize, (ctb_y+1) * ctbSize);
 
   // mark SAO progress
 
   for (int x=0;x<=rightCtb;x++) {
     const int CtbWidth = sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO_INTERNAL);
+    img->progress().set_CTB_progress(x,ctb_y,CTB_PROGRESS_SAO_INTERNAL);
   }
 
 
   // wait until also the CTB-rows below and above are ready
 
   if (ctb_y>0) {
-    img->wait_for_progress(rightCtb,ctb_y-1, CTB_PROGRESS_SAO_INTERNAL);
+    img->progress().wait_for_progress(rightCtb,ctb_y-1, CTB_PROGRESS_SAO_INTERNAL);
   }
 
   if (ctb_y+1<sps.PicHeightInCtbsY) {
-    img->wait_for_progress(rightCtb,ctb_y+1, CTB_PROGRESS_SAO_INTERNAL);
+    img->progress().wait_for_progress(rightCtb,ctb_y+1, CTB_PROGRESS_SAO_INTERNAL);
   }
 
 
@@ -482,8 +482,7 @@ void thread_task_sao::work()
   // mark SAO progress
 
   for (int x=0;x<=rightCtb;x++) {
-    const int CtbWidth = sps.PicWidthInCtbsY;
-    img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO); //_INTERNAL);
+    img->progress().set_CTB_progress(x,ctb_y,CTB_PROGRESS_SAO);
   }
 }
 
@@ -524,13 +523,13 @@ void thread_task_sao_image::work()
 
   // wait until also the CTB-rows below and above are ready
 
-  img->wait_for_progress(rightCtb,0,  inputProgress);
+  img->progress().wait_for_progress(rightCtb,0,  inputProgress);
   tmpImg->copy_lines_from(inputImg, 0 * ctbSize, (0+1) * ctbSize);
 
   for (int ctb_y=0; ctb_y < sps.PicHeightInCtbsY; ctb_y++)
     {
       if (ctb_y+1<sps.PicHeightInCtbsY) {
-        img->wait_for_progress(rightCtb,ctb_y+1, inputProgress);
+        img->progress().wait_for_progress(rightCtb,ctb_y+1, inputProgress);
         tmpImg->copy_lines_from(inputImg, (ctb_y+1) * ctbSize, (ctb_y+1+1) * ctbSize);
       }
 
@@ -578,7 +577,7 @@ void thread_task_sao_image::work()
 
       for (int x=0;x<=rightCtb;x++) {
         const int CtbWidth = sps.PicWidthInCtbsY;
-        img->ctb_progress[x+ctb_y*CtbWidth].set_progress(CTB_PROGRESS_SAO);
+        img->progress().set_CTB_progress(x,ctb_y,CTB_PROGRESS_SAO);
       }
     }
 

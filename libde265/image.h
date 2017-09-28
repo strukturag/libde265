@@ -81,6 +81,65 @@ enum PictureState {
 #define CTB_PROGRESS_SAO_INTERNAL 4
 #define CTB_PROGRESS_SAO       5
 
+class ImageProgress
+{
+ public:
+  virtual ~ImageProgress() { }
+
+  virtual void reset(int progress) = 0;
+
+  virtual void set_final_progress_value(int f) = 0;
+  virtual int  get_final_progress_value() const = 0;
+
+  virtual void set_CTB_progress(int ctbx,int ctby, int progress) = 0;
+  virtual void set_CTB_progress(int ctbAddrRS, int progress) = 0;
+  virtual void set_all_CTB_progress(int progress) = 0;
+
+  virtual void wait_for_progress(int ctbx,int ctby, int progress) const = 0;
+  virtual void wait_for_progress(int ctbAddrRS, int progress) const = 0;
+  virtual void wait_for_progress_ctb_row(int ctby, int progress) const = 0;
+
+  virtual bool do_all_CTBs_have_progress(int progress) const = 0;
+  virtual void wait_until_all_CTBs_have_progress(int progress) const = 0;
+
+  virtual void debug_show_ctb_progress() const = 0;
+};
+
+
+class ImageProgress_Locks : public ImageProgress
+{
+ public:
+  ImageProgress_Locks(int width_ctbs, int height_ctbs);
+  ~ImageProgress_Locks();
+
+  void reset(int progress) override;
+
+  void set_final_progress_value(int f) override { mFinalCTBProgress=f; }
+  int  get_final_progress_value() const override { return mFinalCTBProgress; }
+
+  void set_CTB_progress(int ctbx,int ctby, int progress) override;
+  void set_CTB_progress(int ctbAddrRS, int progress) override;
+  void set_all_CTB_progress(int progress) override;
+
+  void wait_for_progress(int ctbx,int ctby, int progress) const override;
+  void wait_for_progress(int ctbAddrRS, int progress) const override;
+  void wait_for_progress_ctb_row(int ctby, int progress) const override;
+
+  bool do_all_CTBs_have_progress(int progress) const override;
+  void wait_until_all_CTBs_have_progress(int progress) const override;
+
+  void debug_show_ctb_progress() const override;
+
+ private:
+  de265_progress_lock* ctb_progress = nullptr; // ctb_info_size
+  int mWidthCTBs = 0; // image width in CTBs
+  int mHeightCTBs = 0;
+  int mFinalCTBProgress = 0; // the progress value when a CTB is completely decoded incl. postfilters
+};
+
+
+
+
 class decoder_context;
 
 template <class DataUnit> class MetaDataArray
@@ -464,40 +523,19 @@ public:
 
   // --- multi core ---
 
-  de265_progress_lock* ctb_progress; // ctb_info_size
-
-  void mark_all_CTB_progress(int progress) {
-    for (int i=0;i<ctb_info.data_size;i++) {
-      ctb_progress[i].set_progress(progress);
-    }
+  ImageProgress& progress() {
+    assert(mProgress);
+    return *mProgress;
   }
 
-  void debug_show_ctb_progress() const;
-
-  int mFinalCTBProgress; // the progress value when a CTB is completely decoded incl. postfilters
-
-  //void thread_start(int nThreads);
-  //void thread_run(const thread_task*);
-  /* NOTE: you should not access any data in the thread_task after
-     calling this, as this function may unlock other threads that
-     will push this image to the output queue and free all decoder data. */
-  //void thread_finishes(const thread_task*);
-
-  void wait_for_progress(int ctbx,int ctby, int progress) const;
-  void wait_for_progress_ctb_row(int ctby, int progress) const;
-  void wait_for_progress_at_pixel(int x,int y, int progress) const;
-  void wait_for_progress(int ctbAddrRS, int progress) const;
-
-  /*
-  void wait_for_completion();  // block until image is decoded by background threads
-  bool debug_is_completed() const;
-  int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
-  */
-
-  bool do_all_CTBs_have_progress(int progress) const;
-  void wait_until_all_CTBs_have_progress(int progress) const;
+  const ImageProgress& progress() const {
+    assert(mProgress);
+    return *mProgress;
+  }
 
  private:
+  ImageProgress* mProgress = nullptr;
+
   /*
   void thread_blocks();
   void thread_unblocks();

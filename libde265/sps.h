@@ -268,6 +268,11 @@ public:
   int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
 
 
+  // Convert pixel position to CTB index
+  // Pixel positions outside the image are clipped to valid CTB positions in the image.
+  int x_pixel_to_x_ctb(int x) const;
+  int y_pixel_to_y_ctb(int y) const;
+
   // ------------------ setters ------------------
 
   void set_CB_size_range(int minSize, int maxSize);

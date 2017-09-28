@@ -4711,7 +4711,7 @@ DecodeResult decode_substream(thread_context* tctx,
 
           if (block_wpp) {
             // we have to wait until the context model data is there
-            tctx->img->wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
+            tctx->img->progress().wait_for_progress(1,ctby-1,CTB_PROGRESS_PREFILTER);
           }
 
           // copy CABAC model from previous CTB row
@@ -4721,7 +4721,7 @@ DecodeResult decode_substream(thread_context* tctx,
         }
         else {
           if (block_wpp) {
-            tctx->img->wait_for_progress(0,ctby-1,CTB_PROGRESS_PREFILTER);
+            tctx->img->progress().wait_for_progress(0,ctby-1,CTB_PROGRESS_PREFILTER);
           }
 
           initialize_CABAC_models(tctx);
@@ -4755,7 +4755,7 @@ DecodeResult decode_substream(thread_context* tctx,
 
       //printf("wait on %d/%d (%d)\n",ctbx+1,ctby-1, ctbx+1+(ctby-1)*sps->PicWidthInCtbsY);
 
-      tctx->img->wait_for_progress(ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
+      tctx->img->progress().wait_for_progress(ctbx+1,ctby-1, CTB_PROGRESS_PREFILTER);
     }
 
     //printf("%p: decode %d;%d\n", tctx, tctx->CtbX,tctx->CtbY);
@@ -4805,7 +4805,7 @@ DecodeResult decode_substream(thread_context* tctx,
       }
     }
 
-    tctx->img->ctb_progress[ctbx+ctby*ctbW].set_progress(CTB_PROGRESS_PREFILTER);
+    tctx->img->progress().set_CTB_progress(ctbx,ctby,CTB_PROGRESS_PREFILTER);
 #if D_MT
     printf("set progress %d;%d TS=%d\n",ctbx,ctby, tctx->get_CTB_address_TS());
 #endif

@@ -236,8 +236,6 @@ image::image()
   pts = 0;
   user_data = NULL;
 
-  ctb_progress = NULL;
-
   integrity = INTEGRITY_NOT_DECODED;
 
   picture_order_cnt_lsb = -1; // undefined
@@ -441,12 +439,15 @@ de265_error image::alloc_metadata(std::shared_ptr<const seq_parameter_set> sps)
 
   if (ctb_info.data_size != sps->PicSizeInCtbsY)
     {
-      delete[] ctb_progress;
+      //delete[] ctb_progress;
+      delete mProgress;
 
       mem_alloc_success &= ctb_info.alloc(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY,
                                           sps->Log2CtbSizeY);
 
-      ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+      //ctb_progress = new de265_progress_lock[ ctb_info.data_size ];
+
+      mProgress = new ImageProgress_Locks(sps->PicWidthInCtbsY, sps->PicHeightInCtbsY);
 
 #if D_MT
       for (int i=0;i<sps->PicSizeInCtbsY;i++) {
@@ -479,9 +480,7 @@ image::~image()
 
   // free progress locks
 
-  if (ctb_progress) {
-    delete[] ctb_progress;
-  }
+  delete mProgress;
 }
 
 
@@ -676,7 +675,16 @@ void image::thread_finishes(const thread_task* task)
 */
 
 
-void image::debug_show_ctb_progress() const
+
+void ImageProgress_Locks::reset(int progress)
+{
+  for (int i=0;i<mWidthCTBs * mHeightCTBs;i++) {
+    ctb_progress[i].reset(progress);
+  }
+}
+
+
+void ImageProgress_Locks::debug_show_ctb_progress() const
 {
 #if 0
   for (int i=0;i<ctb_info.data_size;i++) {
@@ -690,36 +698,52 @@ void image::debug_show_ctb_progress() const
 }
 
 
-void image::wait_for_progress(int ctbx,int ctby, int progress) const
+ImageProgress_Locks::ImageProgress_Locks(int width_ctbs, int height_ctbs)
 {
-  const int ctbW = sps->PicWidthInCtbsY;
-
-  wait_for_progress(ctbx + ctbW*ctby, progress);
+  ctb_progress = new de265_progress_lock[ width_ctbs * height_ctbs ];
+  mWidthCTBs = width_ctbs;
+  mHeightCTBs= height_ctbs;
 }
 
-void image::wait_for_progress_ctb_row(int ctby, int progress) const
+ImageProgress_Locks::~ImageProgress_Locks()
+{
+  if (ctb_progress) {
+    delete[] ctb_progress;
+  }
+}
+
+void ImageProgress_Locks::set_CTB_progress(int ctbAddrRS, int progress)
+{
+  ctb_progress[ctbAddrRS].set_progress(progress);
+}
+
+void ImageProgress_Locks::set_CTB_progress(int ctbX, int ctbY, int progress)
+{
+  ctb_progress[ctbX + ctbY * mWidthCTBs].set_progress(progress);
+}
+
+void ImageProgress_Locks::set_all_CTB_progress(int progress)
+{
+  for (int i=0;i<mWidthCTBs*mHeightCTBs;i++) {
+    ctb_progress[i].set_progress(progress);
+  }
+}
+
+void ImageProgress_Locks::wait_for_progress(int ctbx,int ctby, int progress) const
+{
+  wait_for_progress(ctbx + mWidthCTBs*ctby, progress);
+}
+
+void ImageProgress_Locks::wait_for_progress_ctb_row(int ctby, int progress) const
 {
   // Wait from right CTB to left CTB. This should reduce the number of cond.variable locks.
 
-  for (int x=sps->PicWidthInCtbsY-1; x>=0; x--) {
+  for (int x=mWidthCTBs-1; x>=0; x--) {
     wait_for_progress(x,ctby,progress);
   }
 }
 
-void image::wait_for_progress_at_pixel(int x,int y, int progress) const
-{
-  int ctbx = x/sps->CtbSizeY;
-  int ctby = y/sps->CtbSizeY;
-
-  if (ctbx >= sps->PicWidthInCtbsY)  ctbx = sps->PicWidthInCtbsY-1;
-  if (ctby >= sps->PicHeightInCtbsY) ctby = sps->PicHeightInCtbsY-1;
-  if (ctbx < 0) ctbx=0;
-  if (ctby < 0) ctby=0;
-
-  wait_for_progress(ctbx,ctby,progress);
-}
-
-void image::wait_for_progress(int ctbAddrRS, int progress) const
+void ImageProgress_Locks::wait_for_progress(int ctbAddrRS, int progress) const
 {
   //if (task==NULL) { return; }
 
@@ -741,18 +765,18 @@ void image::wait_for_progress(int ctbAddrRS, int progress) const
 }
 
 
-void image::wait_until_all_CTBs_have_progress(int progress) const
+void ImageProgress_Locks::wait_until_all_CTBs_have_progress(int progress) const
 {
-  for (int i=0;i<ctb_info.data_size;i++) {
+  for (int i=0;i<mWidthCTBs*mHeightCTBs;i++) {
     //printf("wait for CTB %i   %p\n",i,task);
     wait_for_progress(i,progress);
   }
 }
 
 
-bool image::do_all_CTBs_have_progress(int progress) const
+bool ImageProgress_Locks::do_all_CTBs_have_progress(int progress) const
 {
-  for (int i=0;i<ctb_info.data_size;i++) {
+  for (int i=0;i<mWidthCTBs*mHeightCTBs;i++) {
     if (ctb_progress[i].get_progress() < progress) {
       return false;
     }
@@ -762,27 +786,6 @@ bool image::do_all_CTBs_have_progress(int progress) const
 }
 
 
-/*
-void image::wait_for_completion()
-{
-  mutex.lock();
-  while (nThreadsFinished!=nThreadsTotal) {
-    finished_cond.wait(mutex);
-  }
-  mutex.unlock();
-}
-
-bool image::debug_is_completed() const
-{
-  bool completed;
-
-  mutex.lock();
-  completed = (nThreadsFinished==nThreadsTotal);
-  mutex.unlock();
-
-  return completed;
-}
-*/
 
 
 
@@ -798,9 +801,7 @@ void image::clear_metadata()
 
   // --- reset CTB progresses ---
 
-  for (int i=0;i<ctb_info.data_size;i++) {
-    ctb_progress[i].reset(CTB_PROGRESS_NONE);
-  }
+  mProgress->reset(CTB_PROGRESS_NONE);
 }
 
 
