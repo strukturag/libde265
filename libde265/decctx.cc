@@ -331,7 +331,7 @@ void decoder_context::set_image_allocation_functions(de265_image_allocation* all
 
 de265_error decoder_context::start_thread_pool(int nThreads)
 {
-  set_acceleration_functions();
+  set_acceleration_functions(); // TODO: why is this here ???
 
   m_thread_pool.debug_list_tasks();
 
