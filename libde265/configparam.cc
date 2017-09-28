@@ -126,6 +126,59 @@ std::string option_int::get_default_string() const
 }
 
 
+void option_float::set_range(float mini,float maxi)
+{
+  have_low_limit =true;
+  have_high_limit=true;
+  low_limit =mini;
+  high_limit=maxi;
+}
+
+std::string option_float::getTypeDescr() const
+{
+  std::stringstream sstr;
+  sstr << "(float)";
+
+  if (have_low_limit || have_high_limit) { sstr << " "; }
+  if (have_low_limit) { sstr << low_limit << " <= "; }
+  if (have_low_limit || have_high_limit) { sstr << "x"; }
+  if (have_high_limit) { sstr << " <= " << high_limit; }
+
+  return sstr.str();
+}
+
+bool option_float::processCmdLineArguments(char** argv, int* argc, int idx)
+{
+  if (argv==NULL)   { return false; }
+  if (idx >= *argc) { return false; }
+
+  float v = atof(argv[idx]);
+  if (!is_valid(v)) { return false; }
+
+  value = v;
+  value_set = true;
+
+  remove_option(argc,argv,idx,1);
+
+  return true;
+}
+
+bool option_float::is_valid(float v) const
+{
+  if (have_low_limit  && v<low_limit)  { return false; }
+  if (have_high_limit && v>high_limit) { return false; }
+
+  return true;
+}
+
+std::string option_float::get_default_string() const
+{
+  std::stringstream sstr;
+  sstr << default_value;
+  return sstr.str();
+}
+
+
 std::string choice_option_base::getTypeDescr() const
 {
   std::vector<std::string> choices = get_choice_names();
@@ -389,6 +442,7 @@ enum en265_parameter_type config_parameters::get_parameter_type(const char* para
   assert(option);
 
   if (dynamic_cast<option_int*>   (option)) { return en265_parameter_int; }
+  if (dynamic_cast<option_float*> (option)) { return en265_parameter_float; }
   if (dynamic_cast<option_bool*>  (option)) { return en265_parameter_bool; }
   if (dynamic_cast<option_string*>(option)) { return en265_parameter_string; }
   if (dynamic_cast<choice_option_base*>(option)) { return en265_parameter_choice; }
@@ -441,6 +495,17 @@ bool config_parameters::set_int(const char* param, int value)
   assert(option);
 
   option_int* o = dynamic_cast<option_int*>(option);
+  assert(o);
+
+  return o->set(value);
+}
+
+bool config_parameters::set_float(const char* param, float value)
+{
+  option_base* option = find_option(param);
+  assert(option);
+
+  option_float* o = dynamic_cast<option_float*>(option);
   assert(o);
 
   return o->set(value);

@@ -228,6 +228,53 @@ public:
 
 
 
+class option_float : public option_base
+{
+public:
+  option_float() : value_set(false), default_set(false),
+    have_low_limit(false), have_high_limit(false) { }
+
+  void set_minimum(float mini) { have_low_limit =true; low_limit =mini; }
+  void set_maximum(float maxi) { have_high_limit=true; high_limit=maxi; }
+  void set_range(float mini,float maxi);
+
+  const option_float& operator=(float v) { value=v; value_set=true; return *this; }
+
+  float operator() () const {
+    assert(value_set || default_set);
+    return value_set ? value : default_value;
+  }
+  operator float() const { return operator()(); }
+
+  virtual bool is_defined() const { return value_set || default_set; }
+  virtual bool has_default() const { return default_set; }
+
+  void set_default(float v) { default_value=v; default_set=true; }
+  virtual LIBDE265_API std::string get_default_string() const;
+
+  virtual LIBDE265_API std::string getTypeDescr() const;
+  virtual LIBDE265_API bool processCmdLineArguments(char** argv, int* argc, int idx);
+
+  bool set(float v) {
+    if (is_valid(v)) { value_set=true; value=v; return true; }
+    else { return false; }
+  }
+
+ private:
+  bool value_set;
+  float value;
+
+  bool default_set;
+  float default_value;
+
+  bool have_low_limit, have_high_limit;
+  float low_limit, high_limit;
+
+  bool is_valid(float v) const;
+};
+
+
+
 class choice_option_base : public option_base
 {
 public:
@@ -384,6 +431,7 @@ class config_parameters
 
   bool set_bool(const char* param, bool value);
   bool set_int(const char* param, int value);
+  bool set_float(const char* param, float value);
   bool set_string(const char* param, const char* value);
   bool set_choice(const char* param, const char* value);
 

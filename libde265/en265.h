@@ -75,6 +75,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context*,
 enum en265_parameter_type {
   en265_parameter_bool,
   en265_parameter_int,
+  en265_parameter_float,
   en265_parameter_string,
   en265_parameter_choice
 };
