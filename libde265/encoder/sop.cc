@@ -205,7 +205,6 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
 
   auto shdr = std::make_shared<slice_segment_header>();
   shdr->set_defaults();
-  shdr->slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
 
   imgdata->reconstruction->add_slice_segment_header(shdr);
 
@@ -235,6 +234,8 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
     imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
     shdr->slice_type = SLICE_TYPE_P;
   }
+
+  shdr->slice_pic_order_cnt_lsb = get_pic_order_count_lsb();
 
   imgdata->mark_sop_metadata_set();
   imgdata->ctbs.add_slice_header(shdr);
