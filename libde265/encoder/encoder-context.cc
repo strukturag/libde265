@@ -53,6 +53,12 @@ encoder_context::encoder_context()
   //enc_coeff_pool.set_blk_size(64*64*20); // TODO: this a guess
 
   //switch_CABAC_to_bitstream();
+
+
+  param_CPU_capabilities = de265_get_CPU_capabilites_all_autodetected();
+
+  acceleration.init(param_CPU_capabilities,
+                    param_inexact_decoding_flags);
 }
 
 
