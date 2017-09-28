@@ -110,6 +110,8 @@ enum IntraPredMode
     INTRA_ANGULAR_34 = 34
   };
 
+const char* intra_pred_mode_name(enum IntraPredMode);
+
 
 enum IntraChromaPredMode
   {

@@ -3076,8 +3076,7 @@ int residual_coding(thread_context* tctx,
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
-      logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n",
-               log2w,cIdx,scanIdx,prevCsbf);
+      // logtrace(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n", log2w,cIdx,scanIdx,prevCsbf);
 
 
       // set the last coded coefficient in the last subblock
@@ -3945,6 +3944,49 @@ const char* pred_mode_name(enum PredMode pm)
   }
 
   return "undefined pred mode";
+}
+
+
+const char* intra_pred_mode_name(enum IntraPredMode mode)
+{
+  switch (mode) {
+  case INTRA_PLANAR: return "planar";
+  case INTRA_DC:     return "DC";
+  case INTRA_ANGULAR_2:  return "Ang2=45°-top-right";
+  case INTRA_ANGULAR_3:  return "Ang3";
+  case INTRA_ANGULAR_4:  return "Ang4";
+  case INTRA_ANGULAR_5:  return "Ang5";
+  case INTRA_ANGULAR_6:  return "Ang6";
+  case INTRA_ANGULAR_7:  return "Ang7";
+  case INTRA_ANGULAR_8:  return "Ang8";
+  case INTRA_ANGULAR_9:  return "Ang9";
+  case INTRA_ANGULAR_10: return "Ang10=right";
+  case INTRA_ANGULAR_11: return "Ang11";
+  case INTRA_ANGULAR_12: return "Ang12";
+  case INTRA_ANGULAR_13: return "Ang13";
+  case INTRA_ANGULAR_14: return "Ang14";
+  case INTRA_ANGULAR_15: return "Ang15";
+  case INTRA_ANGULAR_16: return "Ang16";
+  case INTRA_ANGULAR_17: return "Ang17";
+  case INTRA_ANGULAR_18: return "Ang18=45°-bottom-right";
+  case INTRA_ANGULAR_19: return "Ang19";
+  case INTRA_ANGULAR_20: return "Ang20";
+  case INTRA_ANGULAR_21: return "Ang21";
+  case INTRA_ANGULAR_22: return "Ang22";
+  case INTRA_ANGULAR_23: return "Ang23";
+  case INTRA_ANGULAR_24: return "Ang24";
+  case INTRA_ANGULAR_25: return "Ang25";
+  case INTRA_ANGULAR_26: return "Ang26=down";
+  case INTRA_ANGULAR_27: return "Ang27";
+  case INTRA_ANGULAR_28: return "Ang28";
+  case INTRA_ANGULAR_29: return "Ang29";
+  case INTRA_ANGULAR_30: return "Ang30";
+  case INTRA_ANGULAR_31: return "Ang31";
+  case INTRA_ANGULAR_32: return "Ang32";
+  case INTRA_ANGULAR_33: return "Ang33";
+  case INTRA_ANGULAR_34: return "Ang34=45°-bottom-left";
+  default: return "illegal";
+  }
 }
 
 

@@ -496,7 +496,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
       option[i].begin();
 
-      descend(opt_tb,"%d",opt_tb->intra_mode);
+      descend(opt_tb,"%s",intra_pred_mode_name(opt_tb->intra_mode));
       opt_tb = mTBSplitAlgo->analyze(ectx,option[i].get_context(),input,opt_tb,
                                      TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
       option[i].set_node(opt_tb);

@@ -30,7 +30,7 @@
 #include <iostream>
 
 
-#ifdef DE265_LOG_DEBUG
+#ifdef DE265_LOG_TRACE
 #define ESTIM_BITS_BEGIN \
   CABAC_encoder_estim* log_estim; \
   float log_bits_pre = 0; \
@@ -45,7 +45,7 @@
   if (logdebug_enabled(LogEncoder)) { \
   if (log_estim) { \
     float bits_post = log_estim->getRDBits(); \
-    printf("%s=%f\n",name,bits_post - log_bits_pre);  \
+    logtrace(LogEncoder,"%s=%f\n",name,bits_post - log_bits_pre);       \
   } \
   }
 #else
@@ -722,7 +722,7 @@ void encode_residual(const CTBTreeMatrix* ctbs,
                      const enc_tb* tb, const enc_cb* cb,
                      int x0,int y0,int log2TrafoSize,int cIdx)
 {
-  logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
+  //logdebug(LogEncoder,"encode_residual %s\n",typeid(*cabac).name());
 
   const seq_parameter_set* sps = ctbs->get_sps().get();
   const pic_parameter_set* pps = ctbs->get_pps().get();
@@ -733,7 +733,7 @@ void encode_residual(const CTBTreeMatrix* ctbs,
   }
 
 
-#if 1
+#if 0
   logdebug(LogEncoder,"write coefficients\n");
   for (int y=0;y<(1<<log2TrafoSize);y++)
     {
@@ -887,8 +887,7 @@ void encode_residual(const CTBTreeMatrix* ctbs,
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
       uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
-      logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n",
-               log2w,cIdx,scanIdx,prevCsbf);
+      //logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n", log2w,cIdx,scanIdx,prevCsbf);
 
 
       // set the last coded coefficient in the last subblock
