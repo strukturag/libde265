@@ -240,10 +240,14 @@ void encoder_picture_buffer::purge_unused_images_from_queue()
   // mark all images that will be used later
 
   FOR_LOOP(std::shared_ptr<picture_encoding_data>, picdata, mImages) {
-    FOR_LOOP(int, f, picdata->ref0)     { get_picture(f)->in_use=true; }
-    FOR_LOOP(int, f, picdata->ref1)     { get_picture(f)->in_use=true; }
-    FOR_LOOP(int, f, picdata->longterm) { get_picture(f)->in_use=true; }
-    FOR_LOOP(int, f, picdata->keep)     { get_picture(f)->in_use=true; }
+    if (picdata->state == picture_encoding_data::state_unprocessed ||
+        picdata->state == picture_encoding_data::state_sop_metadata_available ||
+        picdata->state == picture_encoding_data::state_encoding) {
+      FOR_LOOP(int, f, picdata->ref0)     { get_picture(f)->in_use=true; }
+      FOR_LOOP(int, f, picdata->ref1)     { get_picture(f)->in_use=true; }
+      FOR_LOOP(int, f, picdata->longterm) { get_picture(f)->in_use=true; }
+      FOR_LOOP(int, f, picdata->keep)     { get_picture(f)->in_use=true; }
+    }
 
     // do not purge the last image because it may be used by the next image
     if (picdata == mImages.back()) {

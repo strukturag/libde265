@@ -458,7 +458,7 @@ double encoder_context::encode_image()
                     x==get_sps()->PicWidthInCtbsY-1);
         cabac_encoder.write_CABAC_term_bit(last);
 
-        //delete cb;
+        //imgdata->ctbs.set_slice_header_id(x,y, sliceHeaderID);
 
         //ectx->free_all_pools();
 
