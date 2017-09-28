@@ -25,7 +25,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define DEBUG_MEMORY 1
+#define DEBUG_MEMORY 0
 
 
 alloc_pool::alloc_pool(size_t objSize, int poolSize, bool grow)
