@@ -184,8 +184,8 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   CodingOptions<enc_tb> options(ectx, tb, ctxModel);
 
-  CodingOption<enc_tb> option_no_split = options.new_option(test_no_split);
-  CodingOption<enc_tb> option_split    = options.new_option(test_split);
+  CodingOption<enc_tb> option_no_split = options.new_option("no-split", test_no_split);
+  CodingOption<enc_tb> option_split    = options.new_option("split", test_split);
 
   //if (test_no_split) test_split = false;
   //if (test_split) test_no_split = false;   // HACK for debugging
@@ -268,7 +268,7 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
   options.compute_rdo_costs();
 
-  enc_tb* bestTB = options.return_best_rdo_node();
+  enc_tb* bestTB = options.return_best_rdo_node(this);
   return bestTB;
 }
 

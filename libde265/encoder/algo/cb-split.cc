@@ -67,7 +67,7 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
       childCB->parent  = cb;
       childCB->downPtr = &cb->children[i];
 
-      descend(cb,"yes %d/4",i+1);
+      descend(cb,"yes child:%d/4",i+1);
       cb->children[i] = analyze(ectx, ctxModel, childCB);
       ascend();
 
@@ -103,8 +103,8 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
 
   CodingOptions<enc_cb> options(ectx, cb_input, ctxModel);
 
-  CodingOption<enc_cb> option_no_split = options.new_option(can_nosplit_CB);
-  CodingOption<enc_cb> option_split    = options.new_option(can_split_CB);
+  CodingOption<enc_cb> option_no_split = options.new_option("no-split",can_nosplit_CB);
+  CodingOption<enc_cb> option_split    = options.new_option("split",   can_split_CB);
 
   options.start();
 
@@ -170,7 +170,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
   }
 
   options.compute_rdo_costs();
-  enc_cb* bestCB = options.return_best_rdo_node();
+  enc_cb* bestCB = options.return_best_rdo_node(this);
 
   //bestCB->debug_assertTreeConsistency(ectx->img);
 
