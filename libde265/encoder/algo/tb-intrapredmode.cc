@@ -192,8 +192,9 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
     CodingOption<enc_tb>  option[35];
 
     for (int i=0;i<35;i++) {
-      bool computeIntraMode = isPredModeEnabled((enum IntraPredMode)i);
-      option[i] = options.new_option(computeIntraMode);
+      enum IntraPredMode predMode = (enum IntraPredMode)i;
+      bool computeIntraMode = isPredModeEnabled(predMode);
+      option[i] = options.new_option(intra_pred_mode_name(predMode), computeIntraMode);
     }
 
     options.start();
@@ -256,7 +257,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
 
     options.compute_rdo_costs();
 
-    enc_tb* bestTB = options.return_best_rdo_node();
+    enc_tb* bestTB = options.return_best_rdo_node(this);
 
     return bestTB;
   }
@@ -469,7 +470,8 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
       enum IntraPredMode intraMode  = (IntraPredMode)distortions[i].first;
       if (!isPredModeEnabled(intraMode)) { continue; }
 
-      CodingOption<enc_tb> opt = options.new_option(isPredModeEnabled(intraMode));
+      CodingOption<enc_tb> opt = options.new_option(intra_pred_mode_name(intraMode),
+                                                    isPredModeEnabled(intraMode));
       opt.get_node()->intra_mode = intraMode;
       option.push_back(opt);
     }
@@ -518,7 +520,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
 
     options.compute_rdo_costs();
 
-    return options.return_best_rdo_node();
+    return options.return_best_rdo_node(this);
   }
   else {
     descend(tb,"NOP");

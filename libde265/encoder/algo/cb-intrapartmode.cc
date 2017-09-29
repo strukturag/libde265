@@ -56,8 +56,8 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
 
   CodingOptions<enc_cb> options(ectx,cb_in,ctxModel);
   CodingOption<enc_cb> option[2];
-  option[0] = options.new_option(true);
-  option[1] = options.new_option(can_use_NxN);
+  option[0] = options.new_option("2Nx2N", true);
+  option[1] = options.new_option("NxN",   can_use_NxN);
 
   options.start();
 
@@ -110,7 +110,7 @@ enc_cb* Algo_CB_IntraPartMode_BruteForce::analyze(encoder_context* ectx,
     }
 
   options.compute_rdo_costs();
-  enc_cb* bestCB = options.return_best_rdo_node();
+  enc_cb* bestCB = options.return_best_rdo_node(this);
 
   return bestCB;
 }

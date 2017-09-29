@@ -75,9 +75,9 @@ class Algo
 
 
 #ifdef DE265_LOG_DEBUG
-  void logprefix(const char*, ...);
+void logprefix(const char*, bool mark, ...);
 #else
-  inline void logprefix(const char*, ...) { }
+inline void logprefix(const char*, bool mark, ...) { }
 #endif
 
 

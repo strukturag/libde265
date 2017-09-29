@@ -104,7 +104,7 @@ class CodingOptions
 
   friend class CodingOption<node>;
 
-  int find_best_rdo_index();
+  int find_best_rdo_index() const;
 };
 
 

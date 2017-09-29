@@ -33,7 +33,7 @@ static int descendLevel = 0;
 void Algo::enter()
 {
   if (logdebug_enabled(LogEncoder)) {
-    printf("%d",descendLevel+1);
+    printf("%2d   ",descendLevel+1);
     for (int i=0;i<descendLevel+1;i++) { printf(" "); }
     printf(":%s\n",name());
   }
@@ -43,7 +43,7 @@ void Algo::descend(const enc_node* node, const char* option, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
     descendLevel++;
-    printf("%d ",descendLevel);
+    printf("%2d > ",descendLevel);
     for (int i=0;i<descendLevel;i++) { printf(" "); }
 
     va_list va;
@@ -60,7 +60,7 @@ void Algo::ascend(const enc_node* resultNode, const char* fmt, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
     if (fmt != NULL) {
-      printf("%d ",descendLevel);
+      printf("%2d < ",descendLevel);
       for (int i=0;i<descendLevel;i++) { printf(" "); }
 
       va_list va;
@@ -79,7 +79,7 @@ void Algo::ascend(const enc_node* resultNode, const char* fmt, ...)
 void Algo::leaf(const enc_node* node, const char* option, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
-    printf("%d ",descendLevel+1);
+    printf("%2d ! ",descendLevel+1);
     for (int i=0;i<descendLevel+1;i++) { printf(" "); }
 
     va_list va;
@@ -92,14 +92,14 @@ void Algo::leaf(const enc_node* node, const char* option, ...)
   }
 }
 
-void logprefix(const char* text, ...)
+void logprefix(const char* text, bool mark, ...)
 {
   if (logdebug_enabled(LogEncoder)) {
-    printf("%d ",descendLevel+1);
+    printf("%2d *%c ",descendLevel+1, mark ? '*' : ' ');
     for (int i=0;i<descendLevel+1;i++) { printf(" "); }
 
     va_list va;
-    va_start(va, text);
+    va_start(va, mark);
     va_end(va);
 
     vfprintf(stdout, text, va);

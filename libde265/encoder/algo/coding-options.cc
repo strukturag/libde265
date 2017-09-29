@@ -127,7 +127,7 @@ void CodingOptions<node>::compute_rdo_costs()
 
 
 template <class node>
-int CodingOptions<node>::find_best_rdo_index()
+int CodingOptions<node>::find_best_rdo_index() const
 {
   assert(mOptions.size()>0);
 
@@ -157,9 +157,12 @@ int CodingOptions<node>::find_best_rdo_index()
 template <class node>
 void CodingOptions<node>::log_rdo_costs(const Algo* algo)
 {
+  int bestRDO = find_best_rdo_index();
+
   for (int i=0;i<mOptions.size();i++) {
     if (mOptions[i].computed) {
-      logprefix("%s, option %s : %f (d=%f r=%f)",
+      bool best = (i==bestRDO);
+      logprefix("%s, option %s : %f (d=%f r=%f)",best,
                 algo->name(),
                 mOptions[i].mName,
                 mOptions[i].rdoCost,
