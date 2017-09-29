@@ -262,39 +262,15 @@ fi
 
 # --- additional logging ---
 
-AC_ARG_ENABLE(log-error,
-              [AS_HELP_STRING([--enable-log-error],
-                              [turn on logging at error level (default=yes)])],
+AC_ARG_ENABLE(logging,
+              [AS_HELP_STRING([--enable-logging],
+                              [turn on logging (default=no)])],
   [enable_log_error=$enableval],
-  [enable_log_error=yes])
-if eval "test $enable_log_error = yes"; then
+  [enable_log_error=no])
+if eval "test $enable_logging = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_ERROR"
-fi
-
-AC_ARG_ENABLE(log-info,
-              [AS_HELP_STRING([--enable-log-info],
-                              [turn on logging at info level (default=no)])],
-  [enable_log_info=$enableval],
-  [enable_log_info=no])
-if eval "test $enable_log_info = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_INFO"
-fi
-
-AC_ARG_ENABLE(log-debug,
-              [AS_HELP_STRING([--enable-log-debug],
-                              [turn on logging at debug level (default=no)])],
-  [enable_log_debug=$enableval],
-  [enable_log_debug=no])
-if eval "test $enable_log_debug = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_DEBUG"
-fi
-
-AC_ARG_ENABLE(log-trace,
-              [AS_HELP_STRING([--enable-log-trace],
-                              [turn on logging at trace level (default=no)])],
-  [enable_log_trace=$enableval],
-  [enable_log_trace=no])
-if eval "test $enable_log_trace = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_TRACE"
 fi
 
