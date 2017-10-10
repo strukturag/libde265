@@ -22,8 +22,8 @@ if HAVE_VISIBILITY
  libde265_encoder_la_CXXFLAGS += -DHAVE_VISIBILITY
 endif
 
-SUBDIRS=algo
-libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la
+SUBDIRS=algo screensharing
+libde265_encoder_la_LIBADD = algo/libde265_encoder_algo.la screensharing/libde265_encoder_screensharing.la
 
 EXTRA_DIST = \
   CMakeLists.txt

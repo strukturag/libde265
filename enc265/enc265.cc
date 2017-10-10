@@ -228,7 +228,8 @@ int main(int argc, char** argv)
 {
   de265_init();
 
-  en265_encoder_context* ectx = en265_new_encoder();
+  int encoderClass = EncoderClass_Generic;
+  en265_encoder_context* ectx = en265_new_encoder(encoderClass);
   //encoder_context_scc* ectx = new encoder_context_scc();
 
 

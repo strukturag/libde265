@@ -35,7 +35,9 @@ extern "C" {
 typedef void en265_encoder_context; // private structure
 
 /* Get a new encoder context. Must be freed with en265_free_encoder(). */
-/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder(void);
+#define EncoderClass_Generic 0
+#define EncoderClass_Screensharing 1
+/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder(int encoderClass);
 
 /* Free encoder context. May only be called once on a context. */
 /*LIBDE265_API*/ de265_error en265_free_encoder(en265_encoder_context*);

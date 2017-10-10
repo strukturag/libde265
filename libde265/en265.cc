@@ -23,6 +23,10 @@
 #include "libde265/en265.h"
 #include "libde265/encoder/encoder-context.h"
 
+#if DE265_ENABLE_X11_SCREEN_GRABBING
+#  include "libde265/encoder/screensharing/screensharing-core.h"
+#endif
+
 
 // WARNING: duplicate definition. Also defined in de265.cc
 /*
@@ -32,7 +36,7 @@ struct de265_image {
 */
 
 
-/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder(void)
+/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder(int encoderClass)
 {
   de265_error init_err = de265_init();
   if (init_err != DE265_OK) {
@@ -41,7 +45,21 @@ struct de265_image {
 
   encoder_context* ectx = new encoder_context();
 
-  ectx->set_encoder_core( std::make_shared<EncoderCore_Custom>() );
+
+  switch (encoderClass) {
+  case EncoderClass_Generic:
+    ectx->set_encoder_core( std::make_shared<EncoderCore_Custom>() );
+    break;
+
+#if DE265_ENABLE_X11_SCREEN_GRABBING
+  case EncoderClass_Screensharing:
+    ectx->set_encoder_core( std::make_shared<EncoderCore_Screensharing>() );
+    break;
+#endif
+
+  default:
+    return NULL;
+  }
 
   return (en265_encoder_context*)ectx;
 }
