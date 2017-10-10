@@ -22,7 +22,7 @@
 #define DE265_MOTION_H
 
 #include <stdint.h>
-#include <slice.h>
+#include "libde265/slice.h"
 
 class base_context;
 class image_history;
