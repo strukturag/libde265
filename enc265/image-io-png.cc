@@ -30,7 +30,6 @@ using namespace videogfx;
 
 ImageSource_PNG::ImageSource_PNG()
 {
-  mFilenameTemplate = NULL;
   mNextImageNumber = 1;
 
   mReachedEndOfStream = false;
@@ -56,7 +55,7 @@ image* ImageSource_PNG::get_image(bool block)
   // --- construct image filename ---
 
   char filename[1000];
-  sprintf(filename,mFilenameTemplate,mNextImageNumber);
+  sprintf(filename,mFilenameTemplate.c_str(),mNextImageNumber);
   mNextImageNumber++;
 
 

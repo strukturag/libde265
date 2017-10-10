@@ -44,7 +44,7 @@ class ImageSource_PNG : public ImageSource
   virtual LIBDE265_API int get_height() const { return mHeight; }
 
  private:
-  const char* mFilenameTemplate;
+  std::string mFilenameTemplate;
   int mNextImageNumber;
 
   bool mReachedEndOfStream;
