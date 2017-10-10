@@ -55,6 +55,7 @@ enc_cb* Algo_CTB_QScale_Constant::analyze(encoder_context* ectx,
   enc_cb* result_cb = mChildAlgo->analyze(ectx,ctxModel,cb);
   ascend();
 
+  cb->downPtr = ectx->imgdata->ctbs.getCTBRootPointer(x,y);
   *cb->downPtr = result_cb;
 
   return result_cb;
