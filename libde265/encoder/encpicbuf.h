@@ -122,6 +122,10 @@ struct picture_encoding_data
 
   // --- SOP metadata ---
 
+  // Whether this image will ever be used as reference.
+  // If false, the image does not have to be reconstructed in the encoding process.
+  bool used_as_reference = true;
+
   /* TODO */
   std::vector<int> ref0;
   std::vector<int> ref1;
