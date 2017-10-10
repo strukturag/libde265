@@ -51,7 +51,9 @@ ImageSource_X11Grab::~ImageSource_X11Grab()
     shmctl(mShminfo.shmid, IPC_RMID, NULL);
   }
 
-  XCloseDisplay(mDisplay);
+  if (mDisplay) {
+    XCloseDisplay(mDisplay);
+  }
 }
 
 
