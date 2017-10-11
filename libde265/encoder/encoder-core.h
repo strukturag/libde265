@@ -87,6 +87,7 @@ class EncoderCore
   virtual void initialize(encoder_picture_buffer*,
                           encoder_context*);
 
+  virtual void preprocess_image(std::shared_ptr<picture_encoding_data>) { }
 
   virtual Algo_CTB* getCTBAlgo() = 0;
 

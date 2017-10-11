@@ -36,7 +36,7 @@ struct de265_image {
 */
 
 
-/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder(int encoderClass)
+/*LIBDE265_API*/ en265_encoder_context* en265_new_encoder()
 {
   de265_error init_err = de265_init();
   if (init_err != DE265_OK) {
@@ -44,7 +44,16 @@ struct de265_image {
   }
 
   encoder_context* ectx = new encoder_context();
+  ectx->set_encoder_core( std::make_shared<EncoderCore_Custom>() );
 
+  return (en265_encoder_context*)ectx;
+}
+
+
+/*LIBDE265_API*/ void en265_set_encoder_class(en265_encoder_context* e, int encoderClass)
+{
+  assert(e);
+  encoder_context* ectx = (encoder_context*)e;
 
   switch (encoderClass) {
   case EncoderClass_Generic:
@@ -58,10 +67,8 @@ struct de265_image {
 #endif
 
   default:
-    return NULL;
+    assert(false);
   }
-
-  return (en265_encoder_context*)ectx;
 }
 
 

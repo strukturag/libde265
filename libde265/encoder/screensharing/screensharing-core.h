@@ -130,6 +130,8 @@ class EncoderCore_Screensharing : public EncoderCore
   void initialize(encoder_picture_buffer*,
                   encoder_context*) override;
 
+  void preprocess_image(std::shared_ptr<picture_encoding_data>) { }
+
   void push_picture(image_ptr img) override;
   void push_end_of_input() override { mSOPCreator->insert_end_of_input(); }
 

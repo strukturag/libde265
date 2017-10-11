@@ -99,6 +99,21 @@ static struct option long_options[] = {
 };
 
 
+enum EncoderClass {
+  EClass_Generic = EncoderClass_Generic,
+  EClass_Screensharing = EncoderClass_Screensharing
+};
+
+class option_encoderClass : public choice_option<EncoderClass>
+{
+public:
+  option_encoderClass() {
+    add_choice("generic", EClass_Generic, true);
+    add_choice("screensharing", EClass_Screensharing);
+  }
+};
+
+
 struct inout_params
 {
   inout_params();
@@ -114,6 +129,10 @@ struct inout_params
 
   option_bool input_is_rgb;
   option_bool input_is_screengrabbing;
+
+  // encoder
+
+  option_encoderClass encoderClass;
 
   // output
 
@@ -132,6 +151,9 @@ inout_params::inout_params()
 {
   input_yuv.set_ID("input"); input_yuv.set_short_option('i');
   input_yuv.set_default("paris_cif.yuv");
+
+  encoderClass.set_ID("encoder");
+  encoderClass.set_short_option('e');
 
   output_filename.set_ID("output"); output_filename.set_short_option('o');
   output_filename.set_default("out.bin");
@@ -168,6 +190,7 @@ void inout_params::register_params(config_parameters& config)
 {
   config.add_option(&input_yuv);
   config.add_option(&output_filename);
+  config.add_option(&encoderClass);
   config.add_option(&first_frame);
   config.add_option(&max_number_of_frames);
   config.add_option(&input_width);
@@ -228,10 +251,7 @@ int main(int argc, char** argv)
 {
   de265_init();
 
-  int encoderClass = EncoderClass_Generic;
-  en265_encoder_context* ectx = en265_new_encoder(encoderClass);
-  //encoder_context_scc* ectx = new encoder_context_scc();
-
+  en265_encoder_context* ectx = en265_new_encoder();
 
   bool cmdline_errors = false;
 
@@ -245,6 +265,10 @@ int main(int argc, char** argv)
   if (!inout_param_config.parse_command_line_params(&argc,argv, &first_idx, true)) {
     cmdline_errors = true;
   }
+
+  // have to set encoder class here, because the command line parameters depend on encoder class
+  en265_set_encoder_class(ectx, inout_params.encoderClass());
+
 
 
   // --- read encoder parameters ---
@@ -287,6 +311,7 @@ int main(int argc, char** argv)
 
     exit(show_help ? 0 : 5);
   }
+
 
 
 

@@ -75,6 +75,7 @@ void encoder_context::set_encoder_core(std::shared_ptr<EncoderCore> core)
 {
   algocore=core;
 
+  params_config.reset();
   algocore->registerParams(params_config);
 }
 

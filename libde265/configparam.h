@@ -415,6 +415,12 @@ class config_parameters
  config_parameters() : param_string_table(NULL) { }
   ~config_parameters() { delete[] param_string_table; }
 
+  void reset() {
+    mOptions.clear();
+    delete[] param_string_table;
+    param_string_table = nullptr;
+  }
+
   void LIBDE265_API add_option(option_base* o);
 
   void LIBDE265_API print_params() const;
