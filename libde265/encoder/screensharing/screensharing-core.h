@@ -27,6 +27,7 @@
 #include "libde265/decctx.h"
 #include "libde265/encoder/encoder-types.h"
 #include "libde265/slice.h"
+#include "libde265/image.h"
 #include "libde265/scan.h"
 #include "libde265/intrapred.h"
 #include "libde265/transform.h"
@@ -56,6 +57,14 @@ struct BlockInfo_Screensharing
 class Screensharing_ImageMetadata : public AlgoCoreImageMetadata
 {
 public:
+  struct HashInfo
+  {
+    uint32_t cnt;
+    uint16_t x,y;
+  };
+
+  HashInfo hash[65536];
+  //int mProcessedHashesPOC;
 
   MetaDataArray<BlockInfo_Screensharing> blockInfo;
 };
@@ -203,6 +212,19 @@ class EncoderCore_Screensharing : public EncoderCore
   Algo_TB_Transform                 mAlgo_TB_Transform;
   Algo_TB_RateEstimation_None       mAlgo_TB_RateEstimation_None;
   Algo_TB_RateEstimation_Exact      mAlgo_TB_RateEstimation_Exact;
+
+  static const int BLK_SIZE = 8;
+  static const int HASH_BLK_RADIUS = 9; //7;
+
+  void findStaticBlocks(std::shared_ptr<const image> reference,
+                        std::shared_ptr<const image> current,
+                        MetaDataArray<BlockInfo_Screensharing>& blockInfo) const;
+
+  void computeAndMatchFeaturePoints(std::shared_ptr<const image> currimage,
+                                    Screensharing_ImageMetadata& currMetadata,
+                                    std::shared_ptr<const image> previmage,
+                                    std::shared_ptr<const Screensharing_ImageMetadata> prevMetadata,
+                                    int frame_number) const;
 };
 
 

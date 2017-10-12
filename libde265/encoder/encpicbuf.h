@@ -205,6 +205,7 @@ class encoder_picture_buffer
   std::shared_ptr<picture_encoding_data> get_next_picture_to_encode();
 
   std::shared_ptr<const picture_encoding_data> get_picture(int frame_number) const;
+  std::shared_ptr<picture_encoding_data> get_picture(int frame_number);
 
   bool has_picture(int frame_number) const;
 
@@ -217,8 +218,6 @@ class encoder_picture_buffer
  private:
   bool mEndOfInput;
   std::deque< std::shared_ptr<picture_encoding_data> > mImages;
-
-  std::shared_ptr<picture_encoding_data> get_picture(int frame_number);
 };
 
 

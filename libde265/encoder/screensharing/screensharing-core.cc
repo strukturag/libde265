@@ -251,6 +251,166 @@ void EncoderCore_Screensharing::push_picture(image_ptr img)
 }
 
 
+
+void EncoderCore_Screensharing::findStaticBlocks(std::shared_ptr<const image> reference,
+                                                 std::shared_ptr<const image> current,
+                                                 MetaDataArray<BlockInfo_Screensharing>& blockInfo) const
+{
+  int w = current->get_width();
+  int h = current->get_height();
+
+  int width_blocks  = ceil_div(w,BLK_SIZE);
+  int height_blocks = ceil_div(h,BLK_SIZE);
+
+  int strideA = reference->get_image_stride(0);
+  int strideB = current  ->get_image_stride(0);
+
+
+  int threshold = 10*10 * BLK_SIZE*BLK_SIZE;
+  int LOG2_BLK_SIZE = Log2(BLK_SIZE);
+
+  for (int yb=0;yb<height_blocks;yb++) {
+    for (int xb=0;xb<width_blocks;xb++) {
+      const uint8_t* pA = reference->get_image_plane_at_pos<const uint8_t>(0, xb*BLK_SIZE, yb*BLK_SIZE);
+      const uint8_t* pB = current  ->get_image_plane_at_pos<const uint8_t>(0, xb*BLK_SIZE, yb*BLK_SIZE);
+
+      uint32_t ssd = SSD(pA,strideA, pB,strideB, BLK_SIZE, BLK_SIZE);
+
+      blockInfo.get(xb,yb).blkSize_log2 = LOG2_BLK_SIZE; // TODO: should not be set here
+
+      if (ssd < threshold) {
+        blockInfo.get(xb,yb).isStatic = true;
+        printf(".");
+      }
+      else {
+        printf("X");
+      }
+    }
+
+    printf("\n");
+  }
+}
+
+
+#if ENABLE_TEST_MODE
+#include <libvideogfx.hh>
+using namespace videogfx;
+
+Image<Pixel> videogfxImage_from_Libde265Image(std::shared_ptr<const image> image)
+{
+  int w = image->get_width();
+  int h = image->get_height();
+
+  Image<Pixel> img;
+
+  if (image->get_supplementary_data().colorspace == de265_colorspace_GBR) {
+    img.Create(w,h, Colorspace_RGB);
+
+    for (int y=0;y<h;y++) {
+      memcpy( img.AskFrameG()[y], image->get_image_plane_at_pos(0,0,y), w);
+      memcpy( img.AskFrameB()[y], image->get_image_plane_at_pos(1,0,y), w);
+      memcpy( img.AskFrameR()[y], image->get_image_plane_at_pos(2,0,y), w);
+    }
+  }
+  else {
+    assert(false);
+  }
+
+  return img;
+}
+#endif
+
+
+//inline bool same_sign(int a,int b) { return (a^b)>=0; }
+
+static uint16_t block_hash_DJB2a(const uint8_t* p, int stride, int blkSize)
+{
+  uint16_t hash = 0;
+
+  for (int yy=0;yy<blkSize;yy++)
+    for (int xx=0;xx<blkSize;xx++) {
+      hash = ((hash << 5) + hash) ^ *(p+xx+yy*stride); /* (hash * 33) ^ c */
+    }
+
+  return hash;
+}
+
+
+#define block_hash block_hash_DJB2a
+
+
+void EncoderCore_Screensharing::computeAndMatchFeaturePoints(std::shared_ptr<const image> currImage,
+                                                             Screensharing_ImageMetadata& currMetadata,
+                                                             std::shared_ptr<const image> prevImage,
+                                                             std::shared_ptr<const Screensharing_ImageMetadata> prevmMtadata,
+                                                             int frame_number) const
+{
+  int w = currImage->get_width();
+  int h = currImage->get_height();
+
+  const uint8_t* pimg = currImage->get_image_plane(0);
+  const int stride    = currImage->get_image_stride(0);
+
+#if ENABLE_TEST_MODE
+  Image<Pixel> visu;
+  visu = videogfxImage_from_Libde265Image(currImage);
+#endif
+
+  memset(currMetadata.hash, 0, 65536*sizeof(Screensharing_ImageMetadata::HashInfo));
+
+
+  int nFeatures = 0;
+  int nCollisions = 0;
+
+  for (int y=HASH_BLK_RADIUS; y<h-HASH_BLK_RADIUS; y++)
+    for (int x=HASH_BLK_RADIUS; x<w-HASH_BLK_RADIUS; x++) {
+      const uint8_t* p = pimg + x + y*stride;
+
+      const bool isFeaturePoint = (*p > *(p-1) &&
+                                   *p > *(p-stride) &&
+                                   *p < *(p-stride-1) && // opposite sign to reduce number of features
+                                   *p > *(p-stride+1) &&
+                                   *p > *(p+stride-1));
+
+      if (isFeaturePoint) {
+#if ENABLE_TEST_MODE
+        int r = 1;
+
+        DrawLine(visu,
+                 x-r,y-r,
+                 x+r,y+r,
+                 Color<Pixel>(255,50,50));
+        DrawLine(visu,
+                 x-r,y+r,
+                 x+r,y-r,
+                 Color<Pixel>(255,50,50));
+#endif
+
+        uint16_t hash_value = block_hash_DJB2a(p,stride, 2*HASH_BLK_RADIUS+1);
+        currMetadata.hash[hash_value].cnt++;
+
+        if (currMetadata.hash[hash_value].cnt > 1) {
+          nCollisions++;
+        }
+
+        nFeatures++;
+
+
+        // --- find a corresponding feature point in the previous image
+      }
+    }
+
+
+#if ENABLE_TEST_MODE
+  char buf[100];
+  sprintf(buf,"features%05d.png", frame_number);
+  WriteImage_PNG(buf, visu);
+#endif
+
+  printf("nFeatures=%d nCollisions=%d\n",nFeatures,nCollisions);
+}
+
+
 void EncoderCore_Screensharing::preprocess_image(encoder_context* ectx,
                                                  std::shared_ptr<picture_encoding_data> imgdata)
 {
@@ -260,7 +420,7 @@ void EncoderCore_Screensharing::preprocess_image(encoder_context* ectx,
   auto metadata = std::make_shared<Screensharing_ImageMetadata>();
   imgdata->algoCoreImageMetadata = metadata;
 
-  bool success = metadata->blockInfo.alloc( ceil_div(w,8), ceil_div(h,8), Log2(8) );
+  bool success = metadata->blockInfo.alloc( ceil_div(w,BLK_SIZE), ceil_div(h,BLK_SIZE), Log2(BLK_SIZE) );
   assert(success); // TODO
   metadata->blockInfo.clear();
 
@@ -269,4 +429,35 @@ void EncoderCore_Screensharing::preprocess_image(encoder_context* ectx,
     printf("%d ",f);
   }
   printf("\n");
+
+
+  // --- find static blocks
+
+  if (imgdata->ctbs.get_slice_header(0,0)->slice_type != SLICE_TYPE_I) {
+    assert(imgdata->ref0.size()>0);
+    int refImageNumber = imgdata->ref0[0];
+    auto prevImage = ectx->get_input_image_history().get_image(refImageNumber);
+
+    findStaticBlocks(prevImage, imgdata->input, metadata->blockInfo);
+  }
+
+
+  // --- compute feature points
+
+  if (imgdata->ctbs.get_slice_header(0,0)->slice_type == SLICE_TYPE_I) {
+    computeAndMatchFeaturePoints(imgdata->input, *metadata,
+                                 nullptr, nullptr,
+                                 imgdata->frame_number);
+  }
+  else {
+    int refImageNumber = imgdata->ref0[0];
+    auto prevImage = ectx->get_input_image_history().get_image(refImageNumber);
+
+    auto prev_metadata_base = ectx->picbuf.get_picture(refImageNumber)->algoCoreImageMetadata;
+    auto prev_metadata = std::dynamic_pointer_cast<Screensharing_ImageMetadata>(prev_metadata_base);
+
+    computeAndMatchFeaturePoints(imgdata->input, *metadata,
+                                 prevImage, prev_metadata,
+                                 imgdata->frame_number);
+  }
 }

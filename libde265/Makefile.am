@@ -125,6 +125,11 @@ if MINGW
   libde265_la_LDFLAGS += -no-undefined -static-libgcc -static-libstdc++
 endif
 
+if HAVE_VIDEOGFX
+  libde265_la_CXXFLAGS += $(VIDEOGFX_CFLAGS)
+  libde265_la_LDFLAGS += $(VIDEOGFX_LIBS)
+endif
+
 EXTRA_DIST = Makefile.vc7 \
   CMakeLists.txt \
   ../extra/stdbool.h \

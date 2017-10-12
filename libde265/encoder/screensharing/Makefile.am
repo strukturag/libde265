@@ -19,5 +19,10 @@ endif
 # SUBDIRS=algo screensharing
 # libde265_encoder_screensharing_la_LIBADD = algo/libde265_encoder_algo.la
 
+if HAVE_VIDEOGFX
+  libde265_encoder_screensharing_la_CXXFLAGS += $(VIDEOGFX_CFLAGS)
+#  enc265_LDFLAGS += $(VIDEOGFX_LIBS)
+endif
+
 EXTRA_DIST = \
   CMakeLists.txt
