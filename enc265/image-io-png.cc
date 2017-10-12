@@ -72,10 +72,13 @@ image* ImageSource_PNG::get_image(bool block)
   mWidth = input.AskWidth();
   mHeight= input.AskHeight();
 
+  image::supplementary_data supp;
+  supp.colorspace = de265_colorspace_GBR;
+
   image* img = new image;
   img->alloc_image(mWidth,mHeight,de265_chroma_444, 8,8,
                    0, // PTS
-                   image::supplementary_data(),
+                   supp,
                    NULL);
   assert(img); // TODO: error handling
 
