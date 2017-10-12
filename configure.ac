@@ -274,6 +274,15 @@ if eval "test $enable_logging = yes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_TRACE"
 fi
 
+AC_ARG_ENABLE(testmode,
+              [AS_HELP_STRING([--enable-testmode],
+                         [turn on encoder self check, this will slow down the encoder (default=no)])],
+  [enable_testmode=$enableval],
+  [enable_testmode=no])
+
+if eval "test $enable_testmode = yes"; then
+  CXXFLAGS="$CXXFLAGS -DENABLE_TEST_MODE"
+fi
 
 need_libx11=no
 

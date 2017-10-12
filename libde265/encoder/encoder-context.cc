@@ -499,10 +499,13 @@ double encoder_context::encode_image()
 
   double psnr = 10*log10(255.0*255.0 / mse);
 
-#if 0
-  double psnr2 = PSNR(MSE(input->get_image_plane(0), input->get_image_stride(0),
-                          luma_plane, ectx->img->get_image_stride(0),
-                          input->get_width(), input->get_height()));
+#if ENABLE_TEST_MODE
+  double psnr2 = PSNR(MSE(imgdata->input->get_image_plane(0),
+                          imgdata->input->get_image_stride(0),
+                          luma_plane,
+                          img->get_image_stride(0),
+                          imgdata->input->get_width(),
+                          imgdata->input->get_height()));
 
   printf("rate-estim PSNR: %f vs %f\n",psnr,psnr2);
 #endif
