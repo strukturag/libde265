@@ -35,6 +35,14 @@ class encoder_picture_buffer;
  */
 
 
+// AlgoCore specific image metadata
+class AlgoCoreImageMetadata
+{
+public:
+  virtual ~AlgoCoreImageMetadata() { }
+};
+
+
 // This data record collects all encoding related data for a picture:
 // - the input image
 // - the reconstructed (decoded) image, used for motion compensation
@@ -102,6 +110,8 @@ struct picture_encoding_data
   //std::shared_ptr<image> prediction;  // this is only used for debugging
 
   CTBTreeMatrix ctbs;
+
+  std::shared_ptr<AlgoCoreImageMetadata> algoCoreImageMetadata;
 
 
   // --- headers ---

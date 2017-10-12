@@ -249,3 +249,24 @@ void EncoderCore_Screensharing::push_picture(image_ptr img)
 
   mSOPCreator->insert_new_input_image(img);
 }
+
+
+void EncoderCore_Screensharing::preprocess_image(encoder_context* ectx,
+                                                 std::shared_ptr<picture_encoding_data> imgdata)
+{
+  int w = imgdata->input->get_width();
+  int h = imgdata->input->get_height();
+
+  auto metadata = std::make_shared<Screensharing_ImageMetadata>();
+  imgdata->algoCoreImageMetadata = metadata;
+
+  bool success = metadata->blockInfo.alloc( ceil_div(w,8), ceil_div(h,8), Log2(8) );
+  assert(success); // TODO
+  metadata->blockInfo.clear();
+
+  printf("preprocess image %d. ref0 list: ", imgdata->frame_number);
+  for (int f : imgdata->ref0) {
+    printf("%d ",f);
+  }
+  printf("\n");
+}

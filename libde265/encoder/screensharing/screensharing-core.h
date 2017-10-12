@@ -38,6 +38,29 @@
 #include "libde265/encoder/encoder-core.h"
 
 
+
+struct BlockInfo_Screensharing
+{
+  uint8_t blkSize_log2; // this BlockInfo entry (at the top left) represents a block area of this size
+
+  // Note that a block can have both flags (isStatic, isMotion) set to true at the same time
+  // if both are possible. The encoder can then choose what is simpler to code in the bitstream.
+
+  bool isStatic;  // Block can be coded as static, unchanged block
+
+  bool isMotion;  // Block can be coded as moving block
+  int  mvDx, mvDy; // motion vector
+};
+
+
+class Screensharing_ImageMetadata : public AlgoCoreImageMetadata
+{
+public:
+
+  MetaDataArray<BlockInfo_Screensharing> blockInfo;
+};
+
+
 class EncoderCore_Screensharing : public EncoderCore
 {
  public:
@@ -130,7 +153,8 @@ class EncoderCore_Screensharing : public EncoderCore
   void initialize(encoder_picture_buffer*,
                   encoder_context*) override;
 
-  void preprocess_image(std::shared_ptr<picture_encoding_data>) { }
+  void preprocess_image(encoder_context* ectx,
+                        std::shared_ptr<picture_encoding_data> img);
 
   void push_picture(image_ptr img) override;
   void push_end_of_input() override { mSOPCreator->insert_end_of_input(); }

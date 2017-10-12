@@ -357,6 +357,11 @@ double encoder_context::encode_image()
   double mse=0;
 
 
+  // --- run image preprocessing algorithms
+
+  algocore->preprocess_image(this, imgdata);
+
+
   // encode CTB by CTB
 
   //imgdata->ctbs.clear();
@@ -484,8 +489,6 @@ double encoder_context::encode_image()
   //delete ectx->prediction;
 
 
-  // frame PSNR
-
   // we write the reconstruction after each CTB
   //ectx->ctbs.writeReconstructionToImage(ectx->img, &ectx->get_sps());
 
@@ -496,6 +499,8 @@ double encoder_context::encode_image()
     ostr.write( (char*)ectx->img->get_image_plane_at_pos(0,0,y), ectx->img->get_width() );
   }
 #endif
+
+  // --- frame PSNR
 
   double psnr = 10*log10(255.0*255.0 / mse);
 
