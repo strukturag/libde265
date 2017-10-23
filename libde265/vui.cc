@@ -270,21 +270,21 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
   if (vui_timing_info_present_flag) {
     vui_num_units_in_tick = get_bits(br,32);
     vui_time_scale        = get_bits(br,32);
-  }
 
 
-  vui_poc_proportional_to_timing_flag = get_bits(br,1);
-  if (vui_poc_proportional_to_timing_flag) {
-    READ_VLC_OFFSET(vui_num_ticks_poc_diff_one, uvlc, 1);
-  }
+    vui_poc_proportional_to_timing_flag = get_bits(br,1);
+    if (vui_poc_proportional_to_timing_flag) {
+      READ_VLC_OFFSET(vui_num_ticks_poc_diff_one, uvlc, 1);
+    }
 
 
-  // --- hrd parameters ---
+    // --- hrd parameters ---
 
-  vui_hrd_parameters_present_flag = get_bits(br,1);
-  if (vui_hrd_parameters_present_flag) {
-    de265_error err = vui_hrd_parameters.read(errqueue, br, sps,
-                                              true, sps->sps_max_sub_layers);
+    vui_hrd_parameters_present_flag = get_bits(br,1);
+    if (vui_hrd_parameters_present_flag) {
+      de265_error err = vui_hrd_parameters.read(errqueue, br, sps,
+                                                true, sps->sps_max_sub_layers);
+    }
   }
 
 
