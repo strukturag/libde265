@@ -64,10 +64,10 @@ class Algo_CTB_QScale : public Algo_CTB
                           context_model_table&,
                           int ctb_x,int ctb_y) = 0;
 
-  void setChildAlgo(Algo_CB_Split* algo) { mChildAlgo = algo; }
+  void setChildAlgo(Algo_CB* algo) { mChildAlgo = algo; }
 
  protected:
-  Algo_CB_Split* mChildAlgo;
+  Algo_CB* mChildAlgo;
 };
 
 

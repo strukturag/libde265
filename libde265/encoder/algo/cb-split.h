@@ -53,6 +53,16 @@
  */
 
 
+// Utility function to encode all four children in a splitted CB.
+// Children are coded with the specified algo_cb_split.
+void encode_cb_split(encoder_context* ectx,
+                     context_model_table& ctxModel,
+                     enc_cb* cb,
+                     Algo_CB* childAlgo,
+                     Algo* myself  // just for logging
+                     );
+
+
 // ========== CB split decision ==========
 
 class Algo_CB_Split : public Algo_CB
@@ -69,9 +79,9 @@ class Algo_CB_Split : public Algo_CB
  protected:
   Algo_CB* mChildAlgo;
 
-  enc_cb* encode_cb_split(encoder_context* ectx,
-                          context_model_table& ctxModel,
-                          enc_cb* cb);
+  void encode_cb_split(encoder_context* ectx,
+                       context_model_table& ctxModel,
+                       enc_cb* cb);
 };
 
 

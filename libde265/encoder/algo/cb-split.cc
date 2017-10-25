@@ -33,9 +33,11 @@
 
 // Utility function to encode all four children in a splitted CB.
 // Children are coded with the specified algo_cb_split.
-enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
-                                       context_model_table& ctxModel,
-                                       enc_cb* cb)
+void encode_cb_split(encoder_context* ectx,
+                     context_model_table& ctxModel,
+                     enc_cb* cb,
+                     Algo_CB* childAlgo,
+                     Algo* myself)
 {
   int w = ectx->imgdata->input->get_width();
   int h = ectx->imgdata->input->get_height();
@@ -67,16 +69,22 @@ enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
       childCB->parent  = cb;
       childCB->downPtr = &cb->children[i];
 
-      descend(cb,"yes child:%d/4",i+1);
-      cb->children[i] = analyze(ectx, ctxModel, childCB);
-      ascend();
+      myself->descend(cb,"yes child:%d/4",i+1);
+      cb->children[i] = childAlgo->analyze(ectx, ctxModel, childCB);
+      myself->ascend();
 
       cb->distortion += cb->children[i]->distortion;
       cb->rate       += cb->children[i]->rate;
     }
   }
+}
 
-  return cb;
+
+void Algo_CB_Split::encode_cb_split(encoder_context* ectx,
+                                    context_model_table& ctxModel,
+                                    enc_cb* cb)
+{
+  ::encode_cb_split(ectx,ctxModel,cb,this,this);
 }
 
 
@@ -157,7 +165,7 @@ enc_cb* Algo_CB_Split_BruteForce::analyze(encoder_context* ectx,
     enc_cb* cb = option_split.get_node();
     *cb_input->downPtr = cb;
 
-    cb = encode_cb_split(ectx, option_split.get_context(), cb);
+    encode_cb_split(ectx, option_split.get_context(), cb);
 
     // add rate for split flag
     if (split_type == OptionalSplit) {
