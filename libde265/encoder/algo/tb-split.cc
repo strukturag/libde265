@@ -207,9 +207,9 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
       compute_residual<uint8_t>(ectx, tb_no_split, input.get(), tb->blkIdx);
     }
 
-    tb_no_split = mAlgo_TB_Residual->analyze(ectx, option_no_split.get_context(),
-                                             input.get(), tb_no_split,
-                                             TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+    tb_no_split = mAlgo_TB_NoSplit->analyze(ectx, option_no_split.get_context(),
+                                            input, tb_no_split,
+                                            TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend(tb_no_split,"bits:%f/%f",tb_no_split->rate,tb_no_split->rate_withoutCbfChroma);
 
 
@@ -300,9 +300,9 @@ Algo_TB_Split_FixedSize::analyze(encoder_context* ectx,
   if (!split) {
     descend(tb,"no split");
 
-    tb = mAlgo_TB_Residual->analyze(ectx, ctxModel,
-                                    input.get(), tb,
-                                    TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+    tb = mAlgo_TB_NoSplit->analyze(ectx, ctxModel,
+                                   input, tb,
+                                   TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
     ascend(tb,"bits:%f/%f",tb->rate,tb->rate_withoutCbfChroma);
   }
   else {
@@ -366,10 +366,10 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
     if (cb->PredMode == MODE_INTRA) {
       //descend(tb,"intra");
-      tb->children[i] = mAlgo_TB_IntraPredMode->analyze(ectx, ctxModel, input,
-                                                        child_tb,
-                                                        TrafoDepth+1, MaxTrafoDepth,
-                                                        IntraSplitFlag);
+      tb->children[i] = mAlgo_TB_Split->analyze(ectx, ctxModel, input,
+                                                child_tb,
+                                                TrafoDepth+1, MaxTrafoDepth,
+                                                IntraSplitFlag);
       //ascend("bits:%f",tb->rate);
     }
     else {

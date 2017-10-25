@@ -602,8 +602,8 @@ void encoder_context_scc::push_image(image_ptr img)
   algo_intra_pred_mode.setChildAlgo(&algo_tb_split);
   algo_intra_pred_mode.enableIntraPredModeSubset(ALGO_TB_IntraPredMode_Subset_HVPlus);
 
-  algo_tb_split.setAlgo_TB_IntraPredMode(&algo_intra_pred_mode);
-  algo_tb_split.setAlgo_TB_Residual(&algo_tb_transform);
+  algo_tb_split.setAlgo_TB_Split(&algo_intra_pred_mode);
+  algo_tb_split.setAlgo_TB_NoSplit(&algo_tb_transform);
 
 
   for (int y=0;y<sps->PicHeightInCtbsY;y++)

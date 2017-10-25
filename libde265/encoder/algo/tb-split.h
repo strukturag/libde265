@@ -43,20 +43,14 @@
 
 // ========== TB split decision ==========
 
-class Algo_TB_Split : public Algo
+class Algo_TB_Split : public Algo_TB
 {
  public:
- Algo_TB_Split() : mAlgo_TB_IntraPredMode(NULL) { }
+ Algo_TB_Split() { }
   virtual ~Algo_TB_Split() { }
 
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          std::shared_ptr<const image> input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
-
-  void setAlgo_TB_IntraPredMode(Algo_TB_IntraPredMode* algo) { mAlgo_TB_IntraPredMode=algo; }
-  void setAlgo_TB_Residual(Algo_TB_Residual* algo) { mAlgo_TB_Residual=algo; }
+  void setAlgo_TB_Split(Algo_TB* algo) { mAlgo_TB_Split=algo; }
+  void setAlgo_TB_NoSplit(Algo_TB* algo) { mAlgo_TB_NoSplit=algo; }
 
  protected:
   enc_tb* encode_transform_tree_split(encoder_context* ectx,
@@ -66,8 +60,8 @@ class Algo_TB_Split : public Algo
                                       enc_cb* cb,
                                       int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
 
-  Algo_TB_IntraPredMode* mAlgo_TB_IntraPredMode;
-  Algo_TB_Residual*      mAlgo_TB_Residual;
+  Algo_TB* mAlgo_TB_Split = nullptr;
+  Algo_TB* mAlgo_TB_NoSplit = nullptr;
 };
 
 
@@ -115,11 +109,11 @@ class Algo_TB_Split_FixedSize : public Algo_TB_Split
 
   void setTargetTBSize(int size) { mParams.targetTBSize.set(size); }
 
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          std::shared_ptr<const image> input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  enc_tb* analyze(encoder_context*,
+                  context_model_table&,
+                  std::shared_ptr<const image> input,
+                  enc_tb* tb,
+                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) override;
 
   const char* name() const { return "tb-split-fixed-size"; }
 
@@ -147,11 +141,11 @@ class Algo_TB_Split_BruteForce : public Algo_TB_Split
     config.add_option(&mParams.zeroBlockPrune);
   }
 
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          std::shared_ptr<const image> input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  enc_tb* analyze(encoder_context*,
+                  context_model_table&,
+                  std::shared_ptr<const image> input,
+                  enc_tb* tb,
+                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) override;
 
   const char* name() const { return "tb-split-bruteforce"; }
 

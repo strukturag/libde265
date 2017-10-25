@@ -48,16 +48,10 @@ void diff_blk(int16_t* out,int out_stride,
 
 // ========== TB split decision ==========
 
-class Algo_TB_Residual : public Algo
+class Algo_TB_Residual : public Algo_TB
 {
 public:
   Algo_TB_Residual() { }
-
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          const image* input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   const char* name() const { return "residual-unknown"; }
 };
@@ -68,11 +62,11 @@ class Algo_TB_Transform : public Algo_TB_Residual
 public:
   Algo_TB_Transform() : mAlgo_TB_RateEstimation(NULL) { }
 
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          const image* input,
-                          enc_tb* parent,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  enc_tb* analyze(encoder_context*,
+                  context_model_table&,
+                  std::shared_ptr<const image> input,
+                  enc_tb* parent,
+                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) override;
 
   void setAlgo_TB_RateEstimation(Algo_TB_RateEstimation* algo) { mAlgo_TB_RateEstimation=algo; }
 

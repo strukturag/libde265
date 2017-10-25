@@ -138,7 +138,7 @@ void compute_transform_coeffs(encoder_context* ectx,
 
 enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
                                    context_model_table& ctxModel,
-                                   const image* input,
+                                   std::shared_ptr<const image> input,
                                    enc_tb* tb,
                                    int trafoDepth, int MaxTrafoDepth,
                                    int IntraSplitFlag)
@@ -166,24 +166,24 @@ enc_tb* Algo_TB_Transform::analyze(encoder_context* ectx,
 
   // luma block
 
-  compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 0 /* Y */);
+  compute_transform_coeffs(ectx, tb, input.get(), x0,y0, log2TbSize, cb, 0 /* Y */);
 
 
   // chroma blocks
 
   if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
-    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 1 /* Cb */);
-    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize, cb, 2 /* Cr */);
+    compute_transform_coeffs(ectx, tb, input.get(), x0,y0, log2TbSize, cb, 1 /* Cb */);
+    compute_transform_coeffs(ectx, tb, input.get(), x0,y0, log2TbSize, cb, 2 /* Cr */);
   }
   else if (log2TbSize > 2) {
     // if TB is > 4x4, do chroma transform of half size
-    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 1 /* Cb */);
-    compute_transform_coeffs(ectx, tb, input, x0,y0, log2TbSize-1, cb, 2 /* Cr */);
+    compute_transform_coeffs(ectx, tb, input.get(), x0,y0, log2TbSize-1, cb, 1 /* Cb */);
+    compute_transform_coeffs(ectx, tb, input.get(), x0,y0, log2TbSize-1, cb, 2 /* Cr */);
   }
   else if (tb->blkIdx==3) {
     // if TB size is 4x4, do chroma transform for last sub-block
-    compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 1 /* Cb */);
-    compute_transform_coeffs(ectx, tb, input, xBase,yBase, log2TbSize, cb, 2 /* Cr */);
+    compute_transform_coeffs(ectx, tb, input.get(), xBase,yBase, log2TbSize, cb, 1 /* Cb */);
+    compute_transform_coeffs(ectx, tb, input.get(), xBase,yBase, log2TbSize, cb, 2 /* Cr */);
   }
 
 

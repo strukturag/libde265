@@ -317,8 +317,8 @@ void EncoderCore_Custom::initialize(encoder_picture_buffer* encpicbuf,
 
   algo_CB_IntraPartMode->setChildAlgo(algo_TB_IntraPredMode);
 
-  mAlgo_TB_Split_BruteForce.setAlgo_TB_IntraPredMode(algo_TB_IntraPredMode);
-  mAlgo_TB_Split_BruteForce.setAlgo_TB_Residual(&mAlgo_TB_Transform);
+  mAlgo_TB_Split_BruteForce.setAlgo_TB_Split(algo_TB_IntraPredMode);
+  mAlgo_TB_Split_BruteForce.setAlgo_TB_NoSplit(&mAlgo_TB_Transform);
 
   Algo_TB_RateEstimation* algo_TB_RateEstimation = NULL;
   switch (params.mAlgo_TB_RateEstimation()) {
