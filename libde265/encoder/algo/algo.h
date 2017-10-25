@@ -119,4 +119,16 @@ class Algo_PB : public Algo
 };
 
 
+class Algo_TB : public Algo
+{
+ public:
+  virtual ~Algo_TB() { }
+
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          std::shared_ptr<const image> input,
+                          enc_tb* tb,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
+};
+
 #endif

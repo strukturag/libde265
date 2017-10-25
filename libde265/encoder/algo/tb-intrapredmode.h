@@ -81,17 +81,11 @@ class Algo_TB_Split;
 /** Base class for intra prediction-mode algorithms.
     Selects one of the 35 prediction modes.
  */
-class Algo_TB_IntraPredMode : public Algo
+class Algo_TB_IntraPredMode : public Algo_TB
 {
  public:
   Algo_TB_IntraPredMode() : mTBSplitAlgo(NULL) { }
   virtual ~Algo_TB_IntraPredMode() { }
-
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          std::shared_ptr<const image> input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) = 0;
 
   void setChildAlgo(Algo_TB_Split* algo) { mTBSplitAlgo = algo; }
 
@@ -247,11 +241,11 @@ class Algo_TB_IntraPredMode_FastBrute : public Algo_TB_IntraPredMode_ModeSubset
   void setParams(const params& p) { mParams=p; }
 
 
-  virtual enc_tb* analyze(encoder_context*,
-                          context_model_table&,
-                          std::shared_ptr<const image> input,
-                          enc_tb* tb,
-                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+  enc_tb* analyze(encoder_context*,
+                  context_model_table&,
+                  std::shared_ptr<const image> input,
+                  enc_tb* tb,
+                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) override;
 
 
   const char* name() const { return "tb-intrapredmode_FastBrute"; }
@@ -286,7 +280,7 @@ class Algo_TB_IntraPredMode_MinResidual : public Algo_TB_IntraPredMode_ModeSubse
                   context_model_table&,
                   std::shared_ptr<const image> input,
                   enc_tb* tb,
-                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+                  int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag) override;
 
   const char* name() const { return "tb-intrapredmode_MinResidual"; }
 
