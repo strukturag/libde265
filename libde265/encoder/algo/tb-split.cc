@@ -300,6 +300,10 @@ Algo_TB_Split_FixedSize::analyze(encoder_context* ectx,
   if (!split) {
     descend(tb,"no split");
 
+    if (cb->PredMode == MODE_INTRA) {
+      compute_residual<uint8_t>(ectx, tb, input.get(), tb->blkIdx);
+    }
+
     tb = mAlgo_TB_NoSplit->analyze(ectx, ctxModel,
                                    input, tb,
                                    TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
