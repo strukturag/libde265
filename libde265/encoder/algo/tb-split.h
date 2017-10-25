@@ -93,6 +93,42 @@ class option_ALGO_TB_Split_BruteForce_ZeroBlockPrune
 };
 
 
+class Algo_TB_Split_FixedSize : public Algo_TB_Split
+{
+ public:
+  struct params
+  {
+    params() {
+      targetTBSize.set_ID("TB-Split-FixedSize-TBSize");
+      targetTBSize.set_valid_values({ 4,8,16,32 });
+      targetTBSize.set_default(8);
+    }
+
+    option_int targetTBSize;
+  };
+
+  void setParams(const params& p) { mParams=p; }
+
+  void registerParams(config_parameters& config) {
+    config.add_option(&mParams.targetTBSize);
+  }
+
+  void setTargetTBSize(int size) { mParams.targetTBSize.set(size); }
+
+  virtual enc_tb* analyze(encoder_context*,
+                          context_model_table&,
+                          std::shared_ptr<const image> input,
+                          enc_tb* tb,
+                          int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag);
+
+  const char* name() const { return "tb-split-fixed-size"; }
+
+ private:
+  params mParams;
+};
+
+
+
 class Algo_TB_Split_BruteForce : public Algo_TB_Split
 {
  public:

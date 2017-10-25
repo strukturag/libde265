@@ -274,6 +274,49 @@ Algo_TB_Split_BruteForce::analyze(encoder_context* ectx,
 
 
 
+enc_tb*
+Algo_TB_Split_FixedSize::analyze(encoder_context* ectx,
+                                 context_model_table& ctxModel,
+                                 std::shared_ptr<const image> input,
+                                 enc_tb* tb,
+                                 int TrafoDepth, int MaxTrafoDepth, int IntraSplitFlag)
+{
+  enter();
+
+  enc_cb* cb = tb->cb;
+
+  int log2TbSize = tb->log2Size;
+
+
+  bool split = (1<<log2TbSize > mParams.targetTBSize());
+
+  if (split) {
+    assert(log2TbSize > 2 &&
+           TrafoDepth < MaxTrafoDepth &&
+           log2TbSize > ectx->get_sps()->Log2MinTrafoSize);
+  }
+
+
+  if (!split) {
+    descend(tb,"no split");
+
+    tb = mAlgo_TB_Residual->analyze(ectx, ctxModel,
+                                    input.get(), tb,
+                                    TrafoDepth,MaxTrafoDepth,IntraSplitFlag);
+    ascend(tb,"bits:%f/%f",tb->rate,tb->rate_withoutCbfChroma);
+  }
+  else {
+    // split
+
+    tb = encode_transform_tree_split(ectx, ctxModel, input, tb, cb,
+                                     TrafoDepth, MaxTrafoDepth, IntraSplitFlag);
+  }
+
+  return tb;
+}
+
+
+
 enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
                                                    context_model_table& ctxModel,
                                                    std::shared_ptr<const image> input,
