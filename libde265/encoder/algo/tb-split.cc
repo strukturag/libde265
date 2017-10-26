@@ -359,6 +359,8 @@ enc_tb* Algo_TB_Split::encode_transform_tree_split(encoder_context* ectx,
 
     enc_tb* child_tb = new enc_tb(x0+dx,y0+dy, log2TbSize-1,cb);
 
+    tb->children[i] = child_tb;
+
     child_tb->intra_mode        = tb->intra_mode;
     child_tb->intra_mode_chroma = tb->intra_mode_chroma;
     child_tb->TrafoDepth = tb->TrafoDepth + 1;
