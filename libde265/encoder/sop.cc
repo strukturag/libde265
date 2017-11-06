@@ -233,6 +233,7 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
     imgdata->set_references(0, l0,l1, empty,empty);
     imgdata->set_NAL_type(NAL_UNIT_TRAIL_R);
     shdr->slice_type = SLICE_TYPE_P;
+    shdr->five_minus_max_num_merge_cand = 5-1;
   }
 
   shdr->slice_pic_order_cnt_lsb = get_pic_order_count_lsb();

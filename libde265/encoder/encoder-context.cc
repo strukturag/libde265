@@ -565,6 +565,7 @@ void encoder_context_scc::push_image(image_ptr img)
   shdr->slice_deblocking_filter_disabled_flag = true;
   shdr->slice_loop_filter_across_slices_enabled_flag = false;
   shdr->first_slice_segment_in_pic_flag = true;
+  shdr->five_minus_max_num_merge_cand = 5-1;
   shdr->set_pps(pps); //get_pps_ptr() );
 
   shdr->compute_derived_values(pps.get());

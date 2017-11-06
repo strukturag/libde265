@@ -3990,6 +3990,18 @@ const char* intra_pred_mode_name(enum IntraPredMode mode)
 }
 
 
+const char* inter_pred_idc_name(InterPredIdc idc)
+{
+  switch (idc) {
+  case PRED_L0: return "L0";
+  case PRED_L1: return "L1";
+  case PRED_BI: return "BI";
+  default: return "illegal";
+  }
+}
+
+
+
 void read_mvd_coding(thread_context* tctx,
                      int x0,int y0, int refList)
 {

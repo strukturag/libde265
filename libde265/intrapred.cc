@@ -1253,6 +1253,14 @@ void intra_prediction_DC(const acceleration_functions& acceleration,
           }
     }
   }
+
+
+#if DE265_LOG_DEBUG
+  if (logdebug_enabled(LogIntraPred)) {
+    printBlk("dc intra prediction:",
+             dst, nT, dstStride, "  ");
+  }
+#endif
 }
 
 

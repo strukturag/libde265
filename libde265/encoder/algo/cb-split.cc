@@ -69,6 +69,8 @@ void encode_cb_split(encoder_context* ectx,
       childCB->parent  = cb;
       childCB->downPtr = &cb->children[i];
 
+      cb->children[i] = childCB;
+
       myself->descend(cb,"yes child:%d/4",i+1);
       cb->children[i] = childAlgo->analyze(ectx, ctxModel, childCB);
       myself->ascend();

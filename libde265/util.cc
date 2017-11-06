@@ -174,6 +174,24 @@ void log2sstr(std::stringstream& sstr, const char* string, ...)
 }
 
 
+void printBlk(const char* title, const uint16_t* data, int blksize, int stride,
+              const std::string& prefix)
+{
+  if (title) printf("%s%s:\n",prefix.c_str(),title);
+
+  for (int y=0;y<blksize;y++) {
+    //logtrace(LogTransform,"  ");
+    printf("%s",prefix.c_str());
+    for (int x=0;x<blksize;x++) {
+      //logtrace(LogTransform,"*%3d ", data[x+y*stride]);
+      printf("%4d ", data[x+y*stride]);
+    }
+    //logtrace(LogTransform,"*\n");
+    printf("\n");
+  }
+}
+
+
 void printBlk(const char* title, const int16_t* data, int blksize, int stride,
               const std::string& prefix)
 {

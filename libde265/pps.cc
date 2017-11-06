@@ -652,6 +652,9 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
   // 6.5.2 Z-scan order array initialization process
 
+  printf("PicWidthInTbsY: %d\n",sps->PicWidthInTbsY);
+  printf("CtbSize: %d MinTrafoSize: %d\n",sps->Log2CtbSizeY,sps->Log2MinTrafoSize);
+
   for (int y=0;y<sps->PicHeightInTbsY;y++)
     for (int x=0;x<sps->PicWidthInTbsY;x++)
       {
@@ -674,18 +677,18 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
   // --- debug logging ---
 
-  /*
     logtrace(LogHeaders,"6.5.2 Z-scan order array\n");
     for (int y=0;y<sps->PicHeightInTbsY;y++)
     {
     for (int x=0;x<sps->PicWidthInTbsY;x++)
     {
-    logtrace(LogHeaders,"%4d ", pps->MinTbAddrZS[x + y*sps->PicWidthInTbsY]);
+    logtrace(LogHeaders,"%4d ", MinTbAddrZS[x + y*sps->PicWidthInTbsY]);
     }
 
     logtrace(LogHeaders,"\n");
     }
 
+  /*
     for (int i=0;i<sps->PicSizeInTbsY;i++)
     {
     for (int y=0;y<sps->PicHeightInTbsY;y++)

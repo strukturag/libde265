@@ -251,6 +251,7 @@ void log2sstr(std::stringstream& sstr, const char* string, ...);
 
 void printBlk(const char* title,const int32_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const int16_t* data, int blksize, int stride, const std::string& prefix="  ");
+void printBlk(const char* title,const uint16_t* data, int blksize, int stride, const std::string& prefix="  ");
 void printBlk(const char* title,const uint8_t* data, int blksize, int stride, const std::string& prefix="  ");
 
 void debug_set_image_output(void (*)(const image*, int slot));

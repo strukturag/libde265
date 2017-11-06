@@ -122,7 +122,6 @@ enum IntraChromaPredMode
     INTRA_CHROMA_LIKE_LUMA  = 4
   };
 
-
 enum InterPredIdc
   {
     // note: values have to match the decoding function decode_inter_pred_idc()
@@ -131,6 +130,7 @@ enum InterPredIdc
     PRED_BI=3
   };
 
+const char* inter_pred_idc_name(InterPredIdc);
 
 
 class slice_segment_header {

@@ -22,6 +22,7 @@
 #define DE265_MOTION_H
 
 #include <stdint.h>
+#include <ostream>
 #include "libde265/slice.h"
 
 class base_context;
@@ -34,6 +35,8 @@ class MotionVector
   int16_t x,y;
 };
 
+inline std::ostream& operator<<(std::ostream& str, MotionVector v) { return str << v.x << ';' << v.y; }
+
 
 class PBMotion
 {
@@ -44,6 +47,8 @@ class PBMotion
 
   bool operator==(const PBMotion&) const;
 };
+
+std::ostream& operator<<(std::ostream& str, const PBMotion&);
 
 
 class PBMotionCoding

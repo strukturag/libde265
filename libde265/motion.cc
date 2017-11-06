@@ -40,6 +40,24 @@
 #endif
 
 
+std::ostream& operator<<(std::ostream& str, const PBMotion& pb)
+{
+  for (int i=0;i<2;i++) {
+    str << "MV" << i << ": ";
+    if (pb.predFlag[i]) {
+      str << "ref=" << ((int)pb.refIdx[i]) << ' ' << pb.mv[i];
+    }
+    else {
+      str << "-----";
+    }
+
+    if (i==0) str << ' ';
+  }
+
+  return str;
+}
+
+
 #define MAX_CU_SIZE 64
 
 

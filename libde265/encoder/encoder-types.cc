@@ -198,7 +198,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
         printf("--- quantized coeffs ---\n");
         printBlk("qcoeffs",coeff[0],1<<log2TbSize,1<<log2TbSize);
 
-        printf("--- dequantized coeffs ---\n");
+        printf("--- dequantized coeffs (qp=%d) ---\n", cb->qp);
         printBlk("dequant",dequant_coeff,1<<log2TbSize,1<<log2TbSize);
       }
 
@@ -523,9 +523,63 @@ void enc_cb::debug_dumpTree(int flags, int indent) const
     std::cout << indentStr << "| pcm_flag: " << int(pcm_flag) << "\n";
     std::cout << indentStr << "| PredMode: " << pred_mode_name(PredMode) << "\n";
     std::cout << indentStr << "| PartMode: " << part_mode_name(PartMode) << "\n";
+
+    if (PredMode==MODE_INTER || PredMode==MODE_SKIP) {
+      int nPredBlocks=1; // TODO
+      for (int i=0;i<nPredBlocks;i++) {
+        std::cout << indentStr << "| Motion:\n";
+
+        std::cout << indentStr << "|   L0: ";
+        if (inter.pb[i].motion.predFlag[0]) {
+          std::cout << inter.pb[i].motion.mv[0].x << ";"
+                    << inter.pb[i].motion.mv[0].y << " @ "
+                    << ((int)inter.pb[i].motion.refIdx[0]) << "\n";
+        }
+        else {
+          std::cout << "---\n";
+        }
+
+        std::cout << indentStr << "|   L1: ";
+        if (inter.pb[i].motion.predFlag[1]) {
+          std::cout << inter.pb[i].motion.mv[1].x << ";"
+                    << inter.pb[i].motion.mv[1].y << " @ "
+                    << ((int)inter.pb[i].motion.refIdx[1]) << "\n";
+        }
+        else {
+          std::cout << "---\n";
+        }
+
+        std::cout << indentStr << "| Motion Spec\n";
+        std::cout << indentStr << "|   merge_flag: " << ((int)inter.pb[i].spec.merge_flag) << "\n";
+        if (inter.pb[i].spec.merge_flag) {
+          std::cout << indentStr << "|   merge_idx: " << ((int)inter.pb[i].spec.merge_idx) << "\n";
+        }
+        else {
+          std::cout << indentStr << "|   inter_pred_idc: "
+                    << inter_pred_idc_name((InterPredIdc)inter.pb[i].spec.inter_pred_idc) << "\n";
+
+          if (inter.pb[i].motion.predFlag[0]) {
+            std::cout << indentStr << "|   MVD(L0): "
+                      << inter.pb[i].spec.mvd[0][0] << ";" << inter.pb[i].spec.mvd[0][1]
+                      << " @ " << ((int)inter.pb[i].spec.refIdx[0])
+                      << " mvp_flag: " << ((int)inter.pb[i].spec.mvp_l0_flag)
+                      << "\n";
+          }
+        }
+      }
+
+
+      std::cout << indentStr << "| qrt_root_cbf: " << ((int)inter.rqt_root_cbf) << "\n";
+    }
+
     std::cout << indentStr << "| transform_tree:\n";
 
-    transform_tree->debug_dumpTree(flags, indent+2);
+    if (transform_tree) {
+      transform_tree->debug_dumpTree(flags, indent+2);
+    }
+    else {
+      std::cout << indentStr << "|   NONE (invalid)\n";
+    }
   }
 }
 
@@ -576,6 +630,13 @@ void enc_tb::debug_dumpTree(int flags, int indent) const
                  indentStr + "| ");
       }
   }
+
+  for (int i=0;i<3;i++)
+    if (!split_transform_flag && cbf[i]) {
+      std::cout << indentStr << "| Quantized coeffs, channel " << i << ":\n";
+      printBlk(NULL,coeff[i],1<<log2Size,1<<log2Size, indentStr + "| ");
+    }
+
 
   if (split_transform_flag) {
     for (int i=0;i<4;i++)
