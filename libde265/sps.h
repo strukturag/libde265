@@ -33,20 +33,13 @@
 
 class error_queue;
 
-// #define MAX_REF_PIC_SETS 64  // maximum according to standard
-#define MAX_NUM_LT_REF_PICS_SPS 32
 
-// this is just a safety range
-#define MAX_PICTURE_WIDTH  70000
-#define MAX_PICTURE_HEIGHT 70000
+constexpr int MAX_NUM_LT_REF_PICS_SPS = 32;
 
-enum {
-  CHROMA_MONO = 0,
-  CHROMA_420 = 1,
-  CHROMA_422 = 2,
-  CHROMA_444 = 3,
-  CHROMA_444_SEPARATE
-};
+// Maximum supported picture size.
+// This is just a safety limit to prevent malicious streams from allocating excessive amounts of memory.
+constexpr int MAX_PICTURE_WIDTH = 70000;
+constexpr int MAX_PICTURE_HEIGHT = 70000;
 
 
 class scaling_list_data
@@ -102,11 +95,46 @@ public:
 
   std::string dump() const;
 
+  // Check whether header parameters are consistent.
+  bool check_parameters_for_consistency() const;
+
   void set_defaults(enum PresetSet = Preset_Default);
   void set_CB_log2size_range(int mini,int maxi);
   void set_TB_log2size_range(int mini,int maxi);
   void set_resolution(int w,int h);
 
+
+  // --- chroma
+
+  // This is the user relevant chroma type. Usually, this is equivalent to
+  // the internal ChromaArrayType, except that ChromaArrayType is set to 'mono'
+  // when separate_coulor_plane is activated.
+  de265_chroma get_chroma() const { return chroma_format_idc; }
+
+  int get_chroma_horizontal_subsampling() const {
+    return (chroma_format_idc==de265_chroma_420 ||
+            chroma_format_idc==de265_chroma_422) ? 2 : 1;
+  }
+  int get_chroma_vertical_subsampling() const {
+    return (chroma_format_idc==de265_chroma_420) ? 2 : 1;
+  }
+
+  // Shift value to convert between luma and chroma coordinates.
+  int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
+  int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
+
+
+  void set_chroma(de265_chroma);
+
+  // Flag for coding images with separate colour planes (only allowed in conjunction with chroma 4:4:4)
+  void set_separate_colour_planes(bool flag);
+
+
+
+
+  // -----------------------------------
+
+  // TODO: replace with 'sps_valid'
   bool sps_read; // whether the sps has been read from the bitstream
 
 
@@ -117,9 +145,25 @@ public:
   profile_tier_level profile_tier_level_;
 
   int seq_parameter_set_id;
-  int chroma_format_idc;
 
-  char separate_colour_plane_flag;
+
+  // --- chroma
+
+  // Logical chroma format from bitstream. Differs from ChromaArrayType only for
+  // separate_colour_plane_flag=true.
+  de265_chroma chroma_format_idc;
+
+  // If set, 4:4:4 images are coded as 3 separate colour planes. May not be used
+  // for other chroma formats.
+  bool separate_colour_plane_flag;
+
+  // The internal chroma type. Should not be used by users of the library.
+  de265_chroma ChromaArrayType;
+
+  // Pixel subsampling factors
+  int SubWidthC, SubHeightC;
+
+
   int  pic_width_in_luma_samples;
   int  pic_height_in_luma_samples;
   char conformance_window_flag;
@@ -203,10 +247,6 @@ public:
   int BitDepth_C;
   int QpBdOffset_C;
 
-  int ChromaArrayType;
-  int SubWidthC, SubHeightC;
-  int WinUnitX, WinUnitY;
-
   int MaxPicOrderCntLsb;
 
   int Log2MinCbSizeY;
@@ -254,19 +294,6 @@ public:
     else         return BitDepth_C;
   }
 
-  enum de265_chroma get_chroma() const;
-
-  int get_chroma_horizontal_subsampling() const {
-    return (chroma_format_idc==CHROMA_420 ||
-            chroma_format_idc==CHROMA_422) ? 2 : 1;
-  }
-  int get_chroma_vertical_subsampling() const {
-    return (chroma_format_idc==CHROMA_420) ? 2 : 1;
-  }
-
-  int get_chroma_shift_W(int cIdx) const { return cIdx ? SubWidthC -1 : 0; }
-  int get_chroma_shift_H(int cIdx) const { return cIdx ? SubHeightC-1 : 0; }
-
 
   // Convert pixel position to CTB index
   // Pixel positions outside the image are clipped to valid CTB positions in the image.
@@ -278,6 +305,12 @@ public:
   void set_CB_size_range(int minSize, int maxSize);
   void set_TB_size_range(int minSize, int maxSize);
   void set_PCM_size_range(int minSize, int maxSize);
+
+ private:
+
+  // Compute ChromaArrayType and SubWidthC/SubHeightC.
+  // Returns error when combination of chroma format and separate_colour_plane is invalid.
+  de265_error derive_chroma_parameters();
 };
 
 #endif

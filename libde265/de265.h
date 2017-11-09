@@ -252,6 +252,7 @@ typedef int64_t de265_PTS;
 struct de265_image;
 
 
+// the numeric values map directly to the values of chroma_format_idc in the h.265 bitstream
 enum de265_chroma {
   de265_chroma_mono=0,
   de265_chroma_420=1,

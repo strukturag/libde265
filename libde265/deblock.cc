@@ -813,7 +813,7 @@ void edge_filtering_chroma_internal(image* img, bool vertical,
                       img->get_QPY(SubWidthC*xDi,SubHeightC*yDi-1));
           int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
           int QP_C;
-          if (sps.ChromaArrayType == CHROMA_420) {
+          if (sps.ChromaArrayType == de265_chroma_420) {
             QP_C = table8_22(qP_i);
           } else {
             QP_C = libde265_min(qP_i, 51);
@@ -977,7 +977,7 @@ void thread_task_deblock_CTBRow::work()
 
     edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
 
-    if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+    if (img->get_sps().ChromaArrayType != de265_chroma_mono) {
       edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
     }
   }
@@ -1091,7 +1091,7 @@ void thread_task_deblock_image::work()
 
       edge_filtering_luma(img.get(), vertical, first,last, xStart,xEnd);
 
-      if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+      if (img->get_sps().ChromaArrayType != de265_chroma_mono) {
         edge_filtering_chroma(img.get(), vertical, first,last, xStart,xEnd);
       }
     }
@@ -1168,7 +1168,7 @@ void apply_deblocking_filter(image* img) // decoder_context* ctx)
       derive_boundaryStrength(img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
-      if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+      if (img->get_sps().ChromaArrayType != de265_chroma_mono) {
         edge_filtering_chroma  (img, true ,0,img->get_deblk_height(),0,img->get_deblk_width());
       }
 #if 0
@@ -1183,7 +1183,7 @@ void apply_deblocking_filter(image* img) // decoder_context* ctx)
       derive_boundaryStrength(img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
       edge_filtering_luma    (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
 
-      if (img->get_sps().ChromaArrayType != CHROMA_MONO) {
+      if (img->get_sps().ChromaArrayType != de265_chroma_mono) {
         edge_filtering_chroma  (img, false ,0,img->get_deblk_height(),0,img->get_deblk_width());
       }
 

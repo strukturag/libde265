@@ -1146,7 +1146,7 @@ void encode_transform_unit(const CTBTreeMatrix* ctbs,
       encode_residual(ctbs,cabac, tb,cb,x0,y0,log2TrafoSize,0);
     }
 
-    if (ctbs->get_sps()->chroma_format_idc == CHROMA_444) {
+    if (ctbs->get_sps()->chroma_format_idc == de265_chroma_444) {
       if (tb->cbf[1]) {
         encode_residual(ctbs,cabac, tb,cb,x0,y0,log2TrafoSize,1);
       }
@@ -1222,7 +1222,7 @@ void encode_transform_tree(const CTBTreeMatrix* ctbs,
 
   // For 4x4 luma, there is no signaling of chroma CBF, because only the
   // chroma CBF for 8x8 is relevant.
-  if (log2TrafoSize>2 || sps->ChromaArrayType == CHROMA_444) {
+  if (log2TrafoSize>2 || sps->ChromaArrayType == de265_chroma_444) {
     if (trafoDepth==0 || tb->parent->cbf[1]) {
       encode_cbf_chroma(cabac, trafoDepth, tb->cbf[1]);
     }
@@ -1600,7 +1600,7 @@ void encode_coding_unit(const CTBTreeMatrix* ctbs,
 
         // send chroma mode
 
-        if (sps->ChromaArrayType == CHROMA_444) {
+        if (sps->ChromaArrayType == de265_chroma_444) {
           for (int i=0;i<4;i++) {
             IntraChromaPredMode chromaPredMode;
             chromaPredMode = find_chroma_pred_mode(cb->transform_tree->children[i]->intra_mode_chroma,

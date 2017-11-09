@@ -207,7 +207,7 @@ void EncoderCore_Custom::fill_headers(std::shared_ptr<video_parameter_set> vps,
   sps->set_PCM_size_range(8,8); // TODO
 
   if (img->get_chroma_format() == de265_chroma_444) {
-    sps->chroma_format_idc = CHROMA_444;
+    sps->chroma_format_idc = de265_chroma_444;
   }
 
   pps->pic_init_qp = getPPS_QP();

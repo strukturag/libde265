@@ -38,8 +38,8 @@
 #define LOG(...) log2sstr(sstr, __VA_ARGS__)
 
 
-static int SubWidthC_tab[]  = { -1,2,2,1 };
-static int SubHeightC_tab[] = { -1,2,1,1 };
+static int SubWidthC_tab[]  = { 1,2,2,1 };
+static int SubHeightC_tab[] = { 1,2,1,1 };
 
 
 // TODO if (!check_high(ctx, vlc, 15)) return false;
@@ -87,8 +87,8 @@ void seq_parameter_set::set_defaults(enum PresetSet)
   profile_tier_level_.general.set_defaults(Profile_Main, 6,2); // TODO
 
   seq_parameter_set_id = 0;
-  chroma_format_idc = 1;
-  ChromaArrayType = chroma_format_idc;
+  chroma_format_idc = de265_chroma_420;
+  ChromaArrayType = (de265_chroma)chroma_format_idc;
 
   separate_colour_plane_flag = 0;
   pic_width_in_luma_samples = 0;
@@ -206,13 +206,14 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   // --- decode chroma type ---
 
-  READ_VLC(chroma_format_idc, uvlc);
+  READ_VLC(vlc, uvlc);
+  chroma_format_idc = (de265_chroma)vlc;
 
   if (chroma_format_idc == 3) {
     separate_colour_plane_flag = get_bits(br,1);
   }
   else {
-    separate_colour_plane_flag = 0;
+    separate_colour_plane_flag = false;
   }
 
   if (chroma_format_idc<0 ||
@@ -440,30 +441,59 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 }
 
 
-de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
+void seq_parameter_set::set_chroma(de265_chroma chroma)
 {
-  // --- compute derived values ---
+  chroma_format_idc = chroma;
 
-  SubWidthC  = SubWidthC_tab [chroma_format_idc];
-  SubHeightC = SubHeightC_tab[chroma_format_idc];
+  derive_chroma_parameters();
+}
+
+void seq_parameter_set::set_separate_colour_planes(bool flag)
+{
+  separate_colour_plane_flag = flag;
+
+  derive_chroma_parameters();
+}
+
+
+de265_error seq_parameter_set::derive_chroma_parameters()
+{
+  if (separate_colour_plane_flag &&
+      chroma_format_idc != de265_chroma_444) {
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
+  }
+
 
   if (separate_colour_plane_flag) {
-    ChromaArrayType = 0;
+    ChromaArrayType = de265_chroma_mono;
   }
   else {
     ChromaArrayType = chroma_format_idc;
   }
 
-  if (ChromaArrayType==0) {
-    WinUnitX = 1;
-    WinUnitY = 1;
-  }
-  else {
-    WinUnitX = SubWidthC_tab [chroma_format_idc];
-    WinUnitY = SubHeightC_tab[chroma_format_idc];
-  }
+  SubWidthC  = SubWidthC_tab [ChromaArrayType];
+  SubHeightC = SubHeightC_tab[ChromaArrayType];
+
+  return DE265_OK;
+}
 
 
+bool seq_parameter_set::check_parameters_for_consistency() const
+{
+  // separate_colour_plane_flag may only be true for chroma 4:4:4
+
+  if (separate_colour_plane_flag == true &&
+      chroma_format_idc != de265_chroma_444) {
+    return false;
+  }
+
+  return true;
+}
+
+
+de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
+{
+  derive_chroma_parameters();
 
   BitDepth_Y   = bit_depth_luma;
   QpBdOffset_Y = 6*(bit_depth_luma-8);
@@ -1312,19 +1342,4 @@ std::string sps_range_extension::dump() const
   LOG("cabac_bypass_alignment_enabled_flag     : %d\n", cabac_bypass_alignment_enabled_flag);
 
   return sstr.str();
-}
-
-
-enum de265_chroma seq_parameter_set::get_chroma() const
-{
-  switch (chroma_format_idc) {
-  case CHROMA_MONO: return de265_chroma_mono; break;
-  case CHROMA_420: return de265_chroma_420;  break;
-  case CHROMA_422: return de265_chroma_422;  break;
-  case CHROMA_444: return de265_chroma_444;  break;
-  default: assert(false); break;
-  }
-
-  // should never happen
-  return de265_chroma_420;
 }

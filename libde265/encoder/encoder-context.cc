@@ -679,13 +679,7 @@ en265_packet* encoder_context_scc::get_next_packet()
 
 void encoder_context_scc::set_image_parameters(image_ptr img)
 {
-  switch (img->get_chroma_format()) {
-  case de265_chroma_mono: sps->chroma_format_idc = CHROMA_MONO; break;
-  case de265_chroma_420:  sps->chroma_format_idc = CHROMA_420;  break;
-  case de265_chroma_422:  sps->chroma_format_idc = CHROMA_422;  break;
-  case de265_chroma_444:  sps->chroma_format_idc = CHROMA_444;  break;
-    // TODO: CHROMA_444_SEPARATE
-  }
+  sps->chroma_format_idc = img->get_chroma_format();
 
   sps->pic_width_in_luma_samples = img->get_width();
   sps->pic_height_in_luma_samples = img->get_height();

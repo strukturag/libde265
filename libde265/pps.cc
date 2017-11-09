@@ -68,13 +68,13 @@ de265_error pps_range_extension::read(bitreader* br, decoder_context* ctx, const
   }
 
   cross_component_prediction_enabled_flag = get_bits(br,1);
-  if (sps->ChromaArrayType != CHROMA_444 &&
+  if (sps->ChromaArrayType != de265_chroma_444 &&
       cross_component_prediction_enabled_flag) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
 
   chroma_qp_offset_list_enabled_flag = get_bits(br,1);
-  if (sps->ChromaArrayType == CHROMA_MONO &&
+  if (sps->ChromaArrayType == de265_chroma_mono &&
       chroma_qp_offset_list_enabled_flag) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }

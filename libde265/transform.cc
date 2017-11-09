@@ -161,7 +161,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 
   int qPCb,qPCr;
 
-  if (sps.ChromaArrayType == CHROMA_420) {
+  if (sps.ChromaArrayType == de265_chroma_420) {
     qPCb = table8_22(qPiCb);
     qPCr = table8_22(qPiCr);
   }

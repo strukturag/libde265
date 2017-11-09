@@ -127,7 +127,7 @@ void enc_tb::reconstruct_tb(encoder_context* ectx,
   int xC=x0;
   int yC=y0;
 
-  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == CHROMA_420) {
+  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == de265_chroma_420) {
     xC>>=1;
     yC>>=1;
   }
@@ -274,7 +274,7 @@ void enc_tb::reconstruct(encoder_context* ectx, image* img) const
   else {
     reconstruct_tb(ectx, img, x,y, log2Size, 0);
 
-    if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
+    if (ectx->get_sps()->chroma_format_idc == de265_chroma_444) {
       reconstruct_tb(ectx, img, x,y, log2Size, 1);
       reconstruct_tb(ectx, img, x,y, log2Size, 2);
     }
@@ -311,7 +311,7 @@ void enc_tb::copy_reconstruction_from_image_plane(encoder_context* ectx,
   int xC=x0;
   int yC=y0;
 
-  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == CHROMA_420) {
+  if (cIdx>0 && ectx->get_sps()->chroma_format_idc == de265_chroma_420) {
     xC>>=1;
     yC>>=1;
   }
@@ -334,7 +334,7 @@ void enc_tb::copy_reconstruction_from_image(encoder_context* ectx, const image* 
   else {
     copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 0);
 
-    if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
+    if (ectx->get_sps()->chroma_format_idc == de265_chroma_444) {
       copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 1);
       copy_reconstruction_from_image_plane(ectx, img, x,y, log2Size, 2);
     }
@@ -858,7 +858,7 @@ void enc_tb::writeReconstructionToImage(image* img,
 
     // chroma pixels
 
-    if (sps->chroma_format_idc == CHROMA_444) {
+    if (sps->chroma_format_idc == de265_chroma_444) {
       LocalizedSubImage chroma1Pixels(*reconstruction[1], x,y);
       chroma1Pixels.copyToImage(img, 1);
       LocalizedSubImage chroma2Pixels(*reconstruction[2], x,y);
@@ -896,10 +896,10 @@ LocalizedSubImage enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_s
 
   const enc_tb* tb = getTB(xL,yL);
 
-  if (cIdx==0 || sps.chroma_format_idc == CHROMA_444) {
+  if (cIdx==0 || sps.chroma_format_idc == de265_chroma_444) {
     return LocalizedSubImage(*tb->reconstruction[cIdx], tb->x, tb->y);
   }
-  else if (sps.chroma_format_idc == CHROMA_420) {
+  else if (sps.chroma_format_idc == de265_chroma_420) {
     if (tb->log2Size > 2) {
       return LocalizedSubImage(*tb->reconstruction[cIdx],
                            tb->x >> 1,
@@ -915,7 +915,7 @@ LocalizedSubImage enc_tb::getPixels(int x,int y, int cIdx, const seq_parameter_s
     }
   }
   else {
-    assert(sps.chroma_format_idc == CHROMA_422);
+    assert(sps.chroma_format_idc == de265_chroma_422);
 
     assert(false); // not supported yet
 

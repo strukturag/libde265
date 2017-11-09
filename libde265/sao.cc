@@ -351,7 +351,7 @@ void apply_sample_adaptive_offset_sequential(image* img)
 
 
   int nChannels = 3;
-  if (sps.ChromaArrayType == CHROMA_MONO) { nChannels=1; }
+  if (sps.ChromaArrayType == de265_chroma_mono) { nChannels=1; }
 
   for (int cIdx=0;cIdx<nChannels;cIdx++) {
 

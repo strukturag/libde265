@@ -296,7 +296,7 @@ int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int 
 {
   if (log2TrafoSize==2 ||
       (log2TrafoSize==3 && (cIdx==0 ||
-                            sps->ChromaArrayType==CHROMA_444))) {
+                            sps->ChromaArrayType==de265_chroma_444))) {
     /**/ if (intraPredMode >=  6 && intraPredMode <= 14) return 2;
     else if (intraPredMode >= 22 && intraPredMode <= 30) return 1;
     else return 0;
@@ -553,7 +553,7 @@ void fill_border_samples_from_tree(const image* img,
   xB = tb->x;
   yB = tb->y;
 
-  if (img->get_sps().chroma_format_idc == CHROMA_444) {
+  if (img->get_sps().chroma_format_idc == de265_chroma_444) {
   }
   else if (cIdx > 0) {
     // TODO: proper chroma handling
@@ -1278,7 +1278,7 @@ void decode_intra_prediction_internal(image* img,
   fill_border_samples(img, xB0,yB0, nT, cIdx, border_pixels);
 
   if (img->get_sps().range_extension.intra_smoothing_disabled_flag == 0 &&
-      (cIdx==0 || img->get_sps().ChromaArrayType==CHROMA_444))
+      (cIdx==0 || img->get_sps().ChromaArrayType==de265_chroma_444))
     {
       intra_prediction_sample_filtering(img->get_sps(), border_pixels, nT, cIdx, intraPredMode);
     }
@@ -1385,13 +1385,13 @@ void decode_intra_prediction_from_tree_internal(const image* img,
   }
 
   int nT = 1<<tb->log2Size;
-  if (cIdx>0 && tb->log2Size>2 && sps.chroma_format_idc == CHROMA_420) {
+  if (cIdx>0 && tb->log2Size>2 && sps.chroma_format_idc == de265_chroma_420) {
     nT >>= 1; // TODO: 4:2:2
   }
 
 
   if (sps.range_extension.intra_smoothing_disabled_flag == 0 &&
-      (cIdx==0 || sps.ChromaArrayType==CHROMA_444))
+      (cIdx==0 || sps.ChromaArrayType==de265_chroma_444))
     {
       intra_prediction_sample_filtering(sps, border_pixels, nT, cIdx, intraPredMode);
     }

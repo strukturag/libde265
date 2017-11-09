@@ -136,7 +136,7 @@ void compute_residual(encoder_context* ectx, enc_tb* tb, const image* input, int
 
   compute_residual_channel<pixel_t>(ectx,tb,input, 0,tb->x,tb->y,tb->log2Size);
 
-  if (ectx->get_sps()->chroma_format_idc == CHROMA_444) {
+  if (ectx->get_sps()->chroma_format_idc == de265_chroma_444) {
     compute_residual_channel<pixel_t>(ectx,tb,input, 1,tb->x,tb->y,tb->log2Size);
     compute_residual_channel<pixel_t>(ectx,tb,input, 2,tb->x,tb->y,tb->log2Size);
   }
