@@ -46,9 +46,9 @@ void pps_range_extension::reset()
 }
 
 
-de265_error pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_parameter_set* pps)
+de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, const pic_parameter_set* pps)
 {
-  const seq_parameter_set* sps = ctx->get_frontend_syntax_decoder().get_sps(pps->seq_parameter_set_id);
+  auto sps = sps_storage->get_sps_ptr(pps->seq_parameter_set_id);
 
   int uvlc;
 
@@ -255,7 +255,7 @@ void pic_parameter_set::set_defaults()
 }
 
 
-de265_error pic_parameter_set::read(bitreader* br, decoder_context* ctx)
+de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 {
   reset();
 
@@ -273,11 +273,11 @@ de265_error pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
   }
 
-  if (!ctx->get_frontend_syntax_decoder().has_sps(seq_parameter_set_id)) {
+  if (!sps_storage->has_sps(seq_parameter_set_id)) {
     return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
   }
 
-  sps = ctx->get_frontend_syntax_decoder().get_sps_ptr(seq_parameter_set_id);
+  sps = sps_storage->get_sps_ptr(seq_parameter_set_id);
 
   dependent_slice_segments_enabled_flag = get_bits(br,1);
   output_flag_present_flag = get_bits(br,1);
@@ -483,7 +483,7 @@ de265_error pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     pps_extension_6bits = get_bits(br,6);
 
     if (pps_range_extension_flag) {
-      de265_error err = range_extension.read(br, ctx, this);
+      de265_error err = range_extension.read(br, sps_storage, this);
       if (err) {
         return err;
       }

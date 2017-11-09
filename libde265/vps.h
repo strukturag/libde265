@@ -129,7 +129,7 @@ typedef struct {
 class video_parameter_set
 {
 public:
-  de265_error read(error_queue* errqueue, bitreader* reader);
+  de265_error read(bitreader* reader, error_queue* errqueue = nullptr);
   de265_error write(CABAC_encoder& out) const;
   std::string dump() const;
 

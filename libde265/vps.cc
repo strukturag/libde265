@@ -101,7 +101,7 @@ void video_parameter_set::set_defaults(enum profile_idc profile, int level_major
 }
 
 
-de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
+de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
 {
   int vlc;
 

@@ -32,6 +32,17 @@ class decoder_context;
 class pic_parameter_set;
 
 
+class sps_storage
+{
+ public:
+  virtual ~sps_storage() { }
+
+  virtual bool has_sps(int id) const = 0;
+
+  virtual std::shared_ptr<const seq_parameter_set> get_sps_ptr(int id) const = 0;
+};
+
+
 class pps_range_extension
 {
  public:
@@ -39,7 +50,7 @@ class pps_range_extension
 
   void reset();
 
-  de265_error read(bitreader*, decoder_context*, const pic_parameter_set*);
+  de265_error read(bitreader*, sps_storage*, const pic_parameter_set*);
   std::string dump() const;
 
   uint8_t log2_max_transform_skip_block_size;
@@ -54,13 +65,14 @@ class pps_range_extension
 };
 
 
+
 class pic_parameter_set {
 public:
   pic_parameter_set();
   ~pic_parameter_set();
 
   void reset() { set_defaults(); }
-  de265_error read(bitreader*, decoder_context*);
+  de265_error read(bitreader*, sps_storage*);
   bool write(CABAC_encoder&,
              const seq_parameter_set* sps);
 

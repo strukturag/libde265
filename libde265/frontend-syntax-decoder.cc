@@ -84,7 +84,7 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
   logdebug(LogHeaders,"---> read VPS\n");
 
   std::shared_ptr<video_parameter_set> new_vps = std::make_shared<video_parameter_set>();
-  de265_error err = new_vps->read(m_decctx,&reader);
+  de265_error err = new_vps->read(&reader, m_decctx);
   if (err != DE265_OK) {
     m_decctx->add_warning(err, false);
     return err;
@@ -108,7 +108,7 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
   std::shared_ptr<seq_parameter_set> new_sps = std::make_shared<seq_parameter_set>();
   de265_error err;
 
-  if ((err=new_sps->read(m_decctx, &reader)) != DE265_OK) {
+  if ((err=new_sps->read(&reader, m_decctx)) != DE265_OK) {
     m_decctx->add_warning(err, false);
     return err;
   }
@@ -146,7 +146,7 @@ de265_error frontend_syntax_decoder::read_pps_NAL(bitreader& reader)
 
   std::shared_ptr<pic_parameter_set> new_pps = std::make_shared<pic_parameter_set>();
 
-  de265_error err = new_pps->read(&reader,m_decctx);
+  de265_error err = new_pps->read(&reader, this);
   if (err) {
     m_decctx->add_warning(err, false);
   }

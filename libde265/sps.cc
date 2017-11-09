@@ -184,7 +184,7 @@ void seq_parameter_set::set_resolution(int w,int h)
 }
 
 
-de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
+de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 {
   int vlc;
 

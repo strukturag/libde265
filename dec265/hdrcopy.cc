@@ -56,14 +56,14 @@ void process_nal(NAL_unit_ptr nal)
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
-      vps.read(&errqueue, &reader);
+      vps.read(&reader, &errqueue);
       std::cout << vps.dump();
       vps.write(writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
-      sps.read(&errqueue, &reader);
+      sps.read(&reader, &errqueue);
       std::cout << sps.dump();
       sps.write(writer);
       writer.flush_VLC();

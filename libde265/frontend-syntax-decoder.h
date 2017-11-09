@@ -55,7 +55,8 @@ class decoder_context;
 class image_unit_sink;
 
 
-class frontend_syntax_decoder : private on_NAL_inserted_listener
+class frontend_syntax_decoder : private on_NAL_inserted_listener,
+  public sps_storage
 {
  public:
   frontend_syntax_decoder(decoder_context* ctx);
