@@ -175,13 +175,68 @@ void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
 }
 
 
-void seq_parameter_set::set_resolution(int w,int h)
+void seq_parameter_set::set_coded_resolution(int w,int h)
 {
   assert(w>0);
   assert(h>0);
-  pic_width_in_luma_samples  = w;
-  pic_height_in_luma_samples = h;
+
+  pic_width_in_luma_samples  = align_up_power_of_two(w, MinCbSizeY);
+  pic_height_in_luma_samples = align_up_power_of_two(h, MinCbSizeY);
 }
+
+
+void seq_parameter_set::set_conformance_window_offsets(int left, int right, int top, int bottom)
+{
+  conf_win_left_offset = left;
+  conf_win_right_offset = right;
+  conf_win_top_offset = top;
+  conf_win_bottom_offset = bottom;
+
+  conformance_window_flag = (left != 0 || right != 0 || top != 0 || bottom != 0);
+}
+
+
+bool seq_parameter_set::set_video_resolution(int w,int h)
+{
+  assert(w>0);
+  assert(h>0);
+
+  pic_width_in_luma_samples  = align_up_power_of_two(w, MinCbSizeY);
+  pic_height_in_luma_samples = align_up_power_of_two(h, MinCbSizeY);
+
+
+  int right  = pic_width_in_luma_samples  - w;
+  int bottom = pic_height_in_luma_samples - h;
+
+  set_conformance_window_offsets(0, right>>SubWidthC, 0, bottom>>SubHeightC);
+
+  if (SubWidthC ==2 && (right & 1) ||
+      SubHeightC==2 && (bottom & 1)) {
+    return false;
+  }
+  else {
+    return true;
+  }
+}
+
+
+void seq_parameter_set::set_bit_depths(int luma, int chroma)
+{
+  bit_depth_luma = luma;
+  bit_depth_chroma = chroma;
+
+  derive_bitdepth_parameters();
+}
+
+
+void seq_parameter_set::set_nBits_for_POC(int nBits)
+{
+  assert(nBits >= 4 && nBits <= 16);
+
+  log2_max_pic_order_cnt_lsb = nBits;
+  MaxPicOrderCntLsb = 1<<nBits;
+}
+
 
 
 de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
@@ -478,6 +533,15 @@ de265_error seq_parameter_set::derive_chroma_parameters()
 }
 
 
+void seq_parameter_set::derive_bitdepth_parameters()
+{
+  BitDepth_Y   = bit_depth_luma;
+  QpBdOffset_Y = 6*(bit_depth_luma-8);
+  BitDepth_C   = bit_depth_chroma;
+  QpBdOffset_C = 6*(bit_depth_chroma-8);
+}
+
+
 bool seq_parameter_set::check_parameters_for_consistency() const
 {
   // separate_colour_plane_flag may only be true for chroma 4:4:4
@@ -487,18 +551,28 @@ bool seq_parameter_set::check_parameters_for_consistency() const
     return false;
   }
 
+
+
+  // conformance window must be at least one pixel in size
+
+  if (conf_win_left_offset + conf_win_right_offset >= pic_width_in_luma_samples) {
+    return false;
+  }
+
+  if (conf_win_top_offset + conf_win_bottom_offset >= pic_height_in_luma_samples) {
+    return false;
+  }
+
+
   return true;
 }
+
+
 
 
 de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
 {
   derive_chroma_parameters();
-
-  BitDepth_Y   = bit_depth_luma;
-  QpBdOffset_Y = 6*(bit_depth_luma-8);
-  BitDepth_C   = bit_depth_chroma;
-  QpBdOffset_C = 6*(bit_depth_chroma-8);
 
   Log2MinCbSizeY = log2_min_luma_coding_block_size;
   Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;

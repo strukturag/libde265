@@ -34,6 +34,7 @@
 #include <sstream>
 #include <deque>
 #include <vector>
+#include <assert.h>
 
 #include "libde265/de265.h"
 
@@ -178,6 +179,15 @@ LIBDE265_INLINE static int Log2SizeToArea(int v)
 {
   return (1<<(v<<1));
 }
+
+// round 'val' up to the next integer multiple. The factor 'multiple' has to be a power of 2.
+LIBDE265_INLINE static int align_up_power_of_two(int val, int multiple)
+{
+  assert(isPowerOf2(multiple));
+
+  return (val + multiple-1) & ~(multiple-1);
+}
+
 
 void copy_subimage(uint8_t* dst,int dststride,
                    const uint8_t* src,int srcstride,

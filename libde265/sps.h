@@ -94,9 +94,6 @@ public:
   bool check_parameters_for_consistency() const;
 
   void set_defaults();
-  void set_CB_log2size_range(int mini,int maxi);
-  void set_TB_log2size_range(int mini,int maxi);
-  void set_resolution(int w,int h);
 
 
   // --- chroma
@@ -125,6 +122,33 @@ public:
   void set_separate_colour_planes(bool flag);
 
 
+  // --- picture geometry
+
+  // Set video resolution, which must be an integer multiple of MinCbSizeY.
+  // If other non-multiple sizes are required, use set_conformance_window_offsets().
+  void set_coded_resolution(int w,int h);
+
+  // Conformance window offsets in chroma resolution.
+  void set_conformance_window_offsets(int left, int right, int top, int bottom);
+
+  // Helper function to set coded video resolution and the conformance window borders.
+  // This has to be set after the MinCbSize and chroma format.
+  // Conformance window will be aligned top left in the frame.
+  bool set_video_resolution(int w,int h);
+
+
+  // --- bit depths
+
+  void set_bit_depths(int luma, int chroma);
+
+
+  // --- frame numbering
+
+  void set_nBits_for_POC(int nBits);
+
+
+  void set_CB_log2size_range(int mini,int maxi);
+  void set_TB_log2size_range(int mini,int maxi);
 
 
   // -----------------------------------
@@ -159,21 +183,36 @@ public:
   int SubWidthC, SubHeightC;
 
 
+  // --- video frame size
+
   int  pic_width_in_luma_samples;
   int  pic_height_in_luma_samples;
-  char conformance_window_flag;
 
+  // conformance window offsets are in chroma resolution
+  bool conformance_window_flag;
   int conf_win_left_offset;
   int conf_win_right_offset;
   int conf_win_top_offset;
   int conf_win_bottom_offset;
 
+
+  // --- bit depths
+
   int bit_depth_luma;
   int bit_depth_chroma;
 
-  int  log2_max_pic_order_cnt_lsb;
-  char sps_sub_layer_ordering_info_present_flag;
+  int BitDepth_Y;
+  int QpBdOffset_Y;
+  int BitDepth_C;
+  int QpBdOffset_C;
 
+
+  // --- frame numbering
+
+  int log2_max_pic_order_cnt_lsb;
+  int MaxPicOrderCntLsb;
+
+  char sps_sub_layer_ordering_info_present_flag;
   int sps_max_dec_pic_buffering[7]; // for each temporal layer
   int sps_max_num_reorder_pics[7];
   int sps_max_latency_increase_plus1[7];
@@ -237,13 +276,6 @@ public:
 
   de265_error compute_derived_values(bool sanitize_values = false);
 
-  int BitDepth_Y;
-  int QpBdOffset_Y;
-  int BitDepth_C;
-  int QpBdOffset_C;
-
-  int MaxPicOrderCntLsb;
-
   int Log2MinCbSizeY;
   int Log2CtbSizeY;
   int MinCbSizeY;
@@ -306,6 +338,9 @@ public:
   // Compute ChromaArrayType and SubWidthC/SubHeightC.
   // Returns error when combination of chroma format and separate_colour_plane is invalid.
   de265_error derive_chroma_parameters();
+
+  // Compute BitDepth_* and QpBdOffset_*
+  void derive_bitdepth_parameters();
 };
 
 #endif
