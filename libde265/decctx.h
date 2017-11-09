@@ -44,8 +44,6 @@
 #define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
 #define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
 
-#define MAX_WARNINGS 20
-
 
 class slice_segment_header;
 class image_unit;
@@ -161,23 +159,6 @@ private:
 
   thread_context(const thread_context&); // not allowed
   const thread_context& operator=(const thread_context&); // not allowed
-};
-
-
-
-class error_queue
-{
- public:
-  error_queue();
-
-  void add_warning(de265_error warning, bool once);
-  de265_error get_warning();
-
- private:
-  de265_error warnings[MAX_WARNINGS];
-  int nWarnings;
-  de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
-  int nWarningsShown;
 };
 
 

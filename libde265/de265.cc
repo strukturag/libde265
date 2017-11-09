@@ -471,7 +471,7 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->get_warning();
+  return ctx->get_next_warning().code;
 }
 
 

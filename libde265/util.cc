@@ -39,6 +39,60 @@ void copy_subimage(uint8_t* dst,int dststride,
 
 
 
+
+error_queue::error_queue()
+{
+}
+
+
+void error_queue::add_warning(de265_error code, const char* message, bool once)
+{
+  // check if warning was already shown
+
+  if (once) {
+    for (const error& w : warnings) {
+      if (w.code == code &&
+          w.message == message) {
+        return;
+      }
+    }
+  }
+
+
+  // if this is a one-time warning, remember that it was shown
+
+  if (once) {
+    warnings_shown.push_back(error { code, message });
+  }
+
+
+  // add warning to output queue
+
+  if (warnings.size() == MAX_WARNING_QUEUE_SIZE-1) {
+    warnings.push_back(error { DE265_WARNING_WARNING_BUFFER_FULL });
+  }
+  else {
+    warnings.push_back(error { code, message });
+  }
+}
+
+
+error error_queue::get_next_warning()
+{
+  if (warnings.empty()) {
+    return error(DE265_OK);
+  }
+
+  error warn = warnings[0];
+  warnings.pop_front();
+
+  return warn;
+}
+
+
+
+
+
 #ifdef DE265_LOGGING
 static int current_poc=0;
 static int log_poc_start=-9999; // frame-numbers can be negative

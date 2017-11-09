@@ -86,7 +86,7 @@ LIBDE265_API int de265_get_version_number_maintenance(void);
 
 /* === error codes === */
 
-typedef enum {
+typedef enum de265_error {
   // No error, everything went ok.
   DE265_OK = 0,
 
