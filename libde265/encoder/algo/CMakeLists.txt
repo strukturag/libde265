@@ -5,6 +5,7 @@ set (algo_sources
   cb-split.h cb-split.cc
   cb-intrapartmode.h cb-intrapartmode.cc
   cb-interpartmode.h cb-interpartmode.cc
+  cb-pcm.h cb-pcm.cc
   cb-skip.h cb-skip.cc
   cb-skip-screen-fast.h cb-skip-screen-fast.cc
   cb-mv-screen.h cb-mv-screen.cc
