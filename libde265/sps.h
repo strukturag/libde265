@@ -60,11 +60,6 @@ class scaling_list_data
 };
 
 
-enum PresetSet {
-  Preset_Default
-};
-
-
 class sps_range_extension
 {
  public:
@@ -98,7 +93,7 @@ public:
   // Check whether header parameters are consistent.
   bool check_parameters_for_consistency() const;
 
-  void set_defaults(enum PresetSet = Preset_Default);
+  void set_defaults();
   void set_CB_log2size_range(int mini,int maxi);
   void set_TB_log2size_range(int mini,int maxi);
   void set_resolution(int w,int h);

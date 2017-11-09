@@ -78,7 +78,7 @@ seq_parameter_set::~seq_parameter_set()
 }
 
 
-void seq_parameter_set::set_defaults(enum PresetSet)
+void seq_parameter_set::set_defaults()
 {
   video_parameter_set_id = 0;
   sps_max_sub_layers = 1;

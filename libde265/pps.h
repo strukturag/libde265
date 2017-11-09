@@ -68,7 +68,7 @@ public:
   std::string dump() const;
 
 
-  void set_defaults(enum PresetSet = Preset_Default);
+  void set_defaults();
 
   bool pps_read; // whether this pps has been read from bitstream
 

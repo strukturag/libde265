@@ -176,7 +176,7 @@ pic_parameter_set::~pic_parameter_set()
 }
 
 
-void pic_parameter_set::set_defaults(enum PresetSet)
+void pic_parameter_set::set_defaults()
 {
   pps_read = false;
   sps.reset();
