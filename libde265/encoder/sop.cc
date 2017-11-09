@@ -53,7 +53,7 @@ void sop_creator_intra_only::insert_new_input_image(image_ptr img)
 
     sps->pic_width_in_luma_samples  = img->get_width();
     sps->pic_height_in_luma_samples = img->get_height();
-    sps->compute_derived_values();
+    //sps->compute_derived_values();
 
 
     // --- set some more default values ---
@@ -146,7 +146,7 @@ void sop_creator_trivial_low_delay::insert_new_input_image(image_ptr img)
 
     sps->pic_width_in_luma_samples  = img->get_width();
     sps->pic_height_in_luma_samples = img->get_height();
-    sps->compute_derived_values();
+    //sps->compute_derived_values();
 
 
     // --- set SPS RefPicSets

@@ -681,15 +681,17 @@ void encoder_context_scc::set_image_parameters(image_ptr img)
 {
   sps->chroma_format_idc = img->get_chroma_format();
 
-  sps->pic_width_in_luma_samples = img->get_width();
-  sps->pic_height_in_luma_samples = img->get_height();
+  sps->set_coded_resolution(img->get_width(),
+                            img->get_height());
 
+  /*
   de265_error err = sps->compute_derived_values(false);
   if (err != DE265_OK) {
     // TODO: handle error
     printf("ERR: %d\n",err);
     exit(10);
   }
+  */
 
   pps->set_derived_values(sps.get());
 }

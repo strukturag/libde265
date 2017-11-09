@@ -65,15 +65,15 @@ class sps_range_extension
  public:
   sps_range_extension();
 
-  uint8_t transform_skip_rotation_enabled_flag;
-  uint8_t transform_skip_context_enabled_flag;
-  uint8_t implicit_rdpcm_enabled_flag;
-  uint8_t explicit_rdpcm_enabled_flag;
-  uint8_t extended_precision_processing_flag;
-  uint8_t intra_smoothing_disabled_flag;
-  uint8_t high_precision_offsets_enabled_flag;
-  uint8_t persistent_rice_adaptation_enabled_flag;
-  uint8_t cabac_bypass_alignment_enabled_flag;
+  uint8_t transform_skip_rotation_enabled_flag = false;
+  uint8_t transform_skip_context_enabled_flag = false;
+  uint8_t implicit_rdpcm_enabled_flag = false;
+  uint8_t explicit_rdpcm_enabled_flag = false;
+  uint8_t extended_precision_processing_flag = false;
+  uint8_t intra_smoothing_disabled_flag = false;
+  uint8_t high_precision_offsets_enabled_flag = false;
+  uint8_t persistent_rice_adaptation_enabled_flag = false;
+  uint8_t cabac_bypass_alignment_enabled_flag = false;
 
   de265_error read(error_queue*, bitreader*);
   std::string dump() const;
@@ -147,11 +147,29 @@ public:
   void set_nBits_for_POC(int nBits);
 
 
-  void set_CB_log2size_range(int mini,int maxi);
-  void set_TB_log2size_range(int mini,int maxi);
+  // --- block size ranges
+
+  void set_CB_size_range(int minSize, int maxSize);
+  void set_TB_size_range(int minSize, int maxSize);
+  void set_PCM_size_range(int minSize, int maxSize);
+
+  void set_CB_size_range_log2(int minSize,int maxSize);
+  void set_TB_size_range_log2(int minSize,int maxSize);
 
 
-  // -----------------------------------
+
+  // --- range extension
+
+  void enable_range_extension(bool flag);
+
+
+
+  // --------------------------------------------------------------------------------
+  //    header parameters
+  //
+  //    Do not set directly; always use the setter methods because they will take
+  //    care of the derived values.
+  // --------------------------------------------------------------------------------
 
   // TODO: replace with 'sps_valid'
   bool sps_read; // whether the sps has been read from the bitstream
@@ -206,6 +224,12 @@ public:
   int BitDepth_C;
   int QpBdOffset_C;
 
+  uint8_t WpOffsetBdShiftY;
+  uint8_t WpOffsetBdShiftC;
+  int32_t WpOffsetHalfRangeY;
+  int32_t WpOffsetHalfRangeC;
+
+
 
   // --- frame numbering
 
@@ -217,12 +241,52 @@ public:
   int sps_max_num_reorder_pics[7];
   int sps_max_latency_increase_plus1[7];
 
+
+  // --- block size ranges
+
   int  log2_min_luma_coding_block_size;             // smallest CB size [3;6]
   int  log2_diff_max_min_luma_coding_block_size;    // largest  CB size
+
   int  log2_min_transform_block_size;               // smallest TB size [2;5]
   int  log2_diff_max_min_transform_block_size;      // largest  TB size
+
+  int CtbSizeY;                  // CTB size (luma)
+  int CtbWidthC, CtbHeightC;     // CTB size (chroma)
+  int Log2CtbSizeY;              // log2(CTB size) luma
+
+  int MinCbSizeY;             // min CB size
+  int Log2MinCbSizeY;         // log2(min CB size)
+
+  int Log2MinTrafoSize;       // minimum TB size
+  int Log2MaxTrafoSize;       // maximum TB size
+
+  int Log2MinPUSize;          // minimum PB size (not in standard)
+
+
+  // --- picture size in block units
+
+  int PicWidthInMinCbsY;
+  int PicWidthInCtbsY;
+  int PicHeightInMinCbsY;
+  int PicHeightInCtbsY;
+  int PicSizeInMinCbsY;
+  int PicSizeInCtbsY;
+  int PicSizeInSamplesY;
+
+  int PicWidthInTbsY; // not in standard
+  int PicHeightInTbsY; // not in standard
+  int PicSizeInTbsY; // not in standard
+
+  int PicWidthInMinPUs;  // might be rounded up
+  int PicHeightInMinPUs; // might be rounded up
+
+
+  // --- transform tree depth
+
   int  max_transform_hierarchy_depth_inter;
   int  max_transform_hierarchy_depth_intra;
+
+
 
   char scaling_list_enable_flag;
   char sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
@@ -274,42 +338,10 @@ public:
 
   // --- derived values ---
 
-  de265_error compute_derived_values(bool sanitize_values = false);
-
-  int Log2MinCbSizeY;
-  int Log2CtbSizeY;
-  int MinCbSizeY;
-  int CtbSizeY;
-  int PicWidthInMinCbsY;
-  int PicWidthInCtbsY;
-  int PicHeightInMinCbsY;
-  int PicHeightInCtbsY;
-  int PicSizeInMinCbsY;
-  int PicSizeInCtbsY;
-  int PicSizeInSamplesY;
-
-  int CtbWidthC, CtbHeightC;
-
-  int PicWidthInTbsY; // not in standard
-  int PicHeightInTbsY; // not in standard
-  int PicSizeInTbsY; // not in standard
-
-  int Log2MinTrafoSize;
-  int Log2MaxTrafoSize;
-
-  int Log2MinPUSize;
-  int PicWidthInMinPUs;  // might be rounded up
-  int PicHeightInMinPUs; // might be rounded up
-
   int Log2MinIpcmCbSizeY;
   int Log2MaxIpcmCbSizeY;
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
-
-  uint8_t WpOffsetBdShiftY;
-  uint8_t WpOffsetBdShiftC;
-  int32_t WpOffsetHalfRangeY;
-  int32_t WpOffsetHalfRangeC;
 
 
   int getPUIndexRS(int pixelX,int pixelY) const {
@@ -329,10 +361,6 @@ public:
 
   // ------------------ setters ------------------
 
-  void set_CB_size_range(int minSize, int maxSize);
-  void set_TB_size_range(int minSize, int maxSize);
-  void set_PCM_size_range(int minSize, int maxSize);
-
  private:
 
   // Compute ChromaArrayType and SubWidthC/SubHeightC.
@@ -341,6 +369,11 @@ public:
 
   // Compute BitDepth_* and QpBdOffset_*
   void derive_bitdepth_parameters();
+  void derive_block_sizes();
+  void derive_picture_sizes_in_blocks();
+  void derive_pcm_block_sizes();
+
+  de265_error compute_all_derived_values();
 };
 
 #endif

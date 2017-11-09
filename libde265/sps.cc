@@ -48,15 +48,6 @@ static int SubHeightC_tab[] = { 1,2,1,1 };
 
 sps_range_extension::sps_range_extension()
 {
-  transform_skip_rotation_enabled_flag = 0;
-  transform_skip_context_enabled_flag  = 0;
-  implicit_rdpcm_enabled_flag = 0;
-  explicit_rdpcm_enabled_flag = 0;
-  extended_precision_processing_flag = 0;
-  intra_smoothing_disabled_flag = 0;
-  high_precision_offsets_enabled_flag = 0;
-  persistent_rice_adaptation_enabled_flag = 0;
-  cabac_bypass_alignment_enabled_flag = 0;
 }
 
 
@@ -110,8 +101,8 @@ void seq_parameter_set::set_defaults()
   sps_max_num_reorder_pics[0]  = 0;
   sps_max_latency_increase_plus1[0] = 0;
 
-  set_CB_log2size_range(4,4);
-  set_TB_log2size_range(3,4);
+  set_CB_size_range(16,64);
+  set_TB_size_range(8,16);
   max_transform_hierarchy_depth_inter = 1;
   max_transform_hierarchy_depth_intra = 1;
 
@@ -159,22 +150,6 @@ void seq_parameter_set::set_defaults()
 }
 
 
-void seq_parameter_set::set_CB_log2size_range(int mini,int maxi)
-{
-  assert(maxi >= mini);
-  log2_min_luma_coding_block_size = mini;
-  log2_diff_max_min_luma_coding_block_size = maxi-mini;
-}
-
-
-void seq_parameter_set::set_TB_log2size_range(int mini,int maxi)
-{
-  assert(maxi >= mini);
-  log2_min_transform_block_size = mini;
-  log2_diff_max_min_transform_block_size = maxi-mini;
-}
-
-
 void seq_parameter_set::set_coded_resolution(int w,int h)
 {
   assert(w>0);
@@ -182,6 +157,8 @@ void seq_parameter_set::set_coded_resolution(int w,int h)
 
   pic_width_in_luma_samples  = align_up_power_of_two(w, MinCbSizeY);
   pic_height_in_luma_samples = align_up_power_of_two(h, MinCbSizeY);
+
+  derive_picture_sizes_in_blocks();
 }
 
 
@@ -198,20 +175,18 @@ void seq_parameter_set::set_conformance_window_offsets(int left, int right, int 
 
 bool seq_parameter_set::set_video_resolution(int w,int h)
 {
-  assert(w>0);
-  assert(h>0);
-
-  pic_width_in_luma_samples  = align_up_power_of_two(w, MinCbSizeY);
-  pic_height_in_luma_samples = align_up_power_of_two(h, MinCbSizeY);
+  set_coded_resolution(align_up_power_of_two(w, MinCbSizeY),
+                       align_up_power_of_two(h, MinCbSizeY) );
 
 
-  int right  = pic_width_in_luma_samples  - w;
-  int bottom = pic_height_in_luma_samples - h;
+  int right_offset  = pic_width_in_luma_samples  - w;
+  int bottom_offset = pic_height_in_luma_samples - h;
 
-  set_conformance_window_offsets(0, right>>SubWidthC, 0, bottom>>SubHeightC);
+  set_conformance_window_offsets(0, right_offset >> SubWidthC,
+                                 0, bottom_offset >> SubHeightC);
 
-  if (SubWidthC ==2 && (right & 1) ||
-      SubHeightC==2 && (bottom & 1)) {
+  if (SubWidthC ==2 && (right_offset & 1) ||
+      SubHeightC==2 && (bottom_offset & 1)) {
     return false;
   }
   else {
@@ -222,6 +197,9 @@ bool seq_parameter_set::set_video_resolution(int w,int h)
 
 void seq_parameter_set::set_bit_depths(int luma, int chroma)
 {
+  assert(luma   >= 8 && luma   <= 16);
+  assert(chroma >= 8 && chroma <= 16);
+
   bit_depth_luma = luma;
   bit_depth_chroma = chroma;
 
@@ -236,6 +214,75 @@ void seq_parameter_set::set_nBits_for_POC(int nBits)
   log2_max_pic_order_cnt_lsb = nBits;
   MaxPicOrderCntLsb = 1<<nBits;
 }
+
+
+void seq_parameter_set::set_CB_size_range_log2(int mini,int maxi)
+{
+  assert(maxi >= mini);
+  assert(mini >= 3); // minimum: 8x8
+  assert(maxi <= 6); // maximum: 64x64
+
+  log2_min_luma_coding_block_size = mini;
+  log2_diff_max_min_luma_coding_block_size = maxi-mini;
+
+  derive_block_sizes();
+  derive_picture_sizes_in_blocks();
+}
+
+
+void seq_parameter_set::set_TB_size_range_log2(int mini,int maxi)
+{
+  assert(maxi >= mini);
+  assert(mini >= 2); // minimum: 4x4
+  assert(maxi <= 5); // maximum: 32x32
+
+  log2_min_transform_block_size = mini;
+  log2_diff_max_min_transform_block_size = maxi-mini;
+
+  derive_block_sizes();
+  derive_picture_sizes_in_blocks();
+}
+
+
+void seq_parameter_set::set_CB_size_range(int minSize, int maxSize)
+{
+  assert(isPowerOf2(minSize));
+  assert(isPowerOf2(maxSize));
+  assert(maxSize >= minSize);
+
+  set_CB_size_range_log2(Log2(minSize),
+                         Log2(maxSize));
+}
+
+
+void seq_parameter_set::set_TB_size_range(int minSize, int maxSize)
+{
+  assert(isPowerOf2(minSize));
+  assert(isPowerOf2(maxSize));
+
+  set_TB_size_range_log2(Log2(minSize),
+                         Log2(maxSize));
+}
+
+
+void seq_parameter_set::set_PCM_size_range(int minSize, int maxSize)
+{
+  assert(isPowerOf2(minSize));
+  assert(isPowerOf2(maxSize));
+  assert(maxSize >= minSize);
+
+  int minSize_log2 = Log2(minSize);
+  int maxSize_log2 = Log2(maxSize);
+
+  log2_min_pcm_luma_coding_block_size = minSize_log2;
+  log2_diff_max_min_pcm_luma_coding_block_size = maxSize_log2 - minSize_log2;
+
+  derive_pcm_block_sizes();
+}
+
+
+
+
 
 
 
@@ -487,7 +534,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   */
 
 
-  de265_error err = compute_derived_values();
+  de265_error err = compute_all_derived_values();
   if (err != DE265_OK) { return err; }
 
   sps_read = true;
@@ -508,6 +555,19 @@ void seq_parameter_set::set_separate_colour_planes(bool flag)
   separate_colour_plane_flag = flag;
 
   derive_chroma_parameters();
+}
+
+
+void seq_parameter_set::enable_range_extension(bool flag)
+{
+  sps_range_extension_flag = flag;
+
+  // if we disable the range extension, reset all its values
+  if (flag==false) {
+    range_extension = sps_range_extension();
+  }
+
+  derive_bitdepth_parameters();
 }
 
 
@@ -539,6 +599,80 @@ void seq_parameter_set::derive_bitdepth_parameters()
   QpBdOffset_Y = 6*(bit_depth_luma-8);
   BitDepth_C   = bit_depth_chroma;
   QpBdOffset_C = 6*(bit_depth_chroma-8);
+
+
+  // --- weighted prediction offsets
+
+  if (range_extension.high_precision_offsets_enabled_flag) {
+    WpOffsetBdShiftY = 0;
+    WpOffsetBdShiftC = 0;
+    WpOffsetHalfRangeY = 1 << (BitDepth_Y - 1);
+    WpOffsetHalfRangeC = 1 << (BitDepth_C - 1);
+  }
+  else {
+    WpOffsetBdShiftY = ( BitDepth_Y - 8 );
+    WpOffsetBdShiftC = ( BitDepth_C - 8 );
+    WpOffsetHalfRangeY = 1 << 7;
+    WpOffsetHalfRangeC = 1 << 7;
+  }
+}
+
+
+void seq_parameter_set::derive_block_sizes()
+{
+  Log2MinCbSizeY = log2_min_luma_coding_block_size;
+  Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
+  MinCbSizeY = 1 << Log2MinCbSizeY;
+  CtbSizeY = 1 << Log2CtbSizeY;
+
+  if (chroma_format_idc==0 || separate_colour_plane_flag) {
+    // chroma CTB size is undefined for monochrome content
+    CtbWidthC  = 0;
+    CtbHeightC = 0;
+  }
+  else {
+    CtbWidthC  = CtbSizeY / SubWidthC;
+    CtbHeightC = CtbSizeY / SubHeightC;
+  }
+
+  Log2MinTrafoSize = log2_min_transform_block_size;
+  Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
+
+  Log2MinPUSize = Log2MinCbSizeY-1;
+}
+
+
+void seq_parameter_set::derive_picture_sizes_in_blocks()
+{
+  if (MinCbSizeY != 0) {
+    PicWidthInMinCbsY = ceil_div(pic_width_in_luma_samples, MinCbSizeY);
+    PicHeightInMinCbsY = ceil_div(pic_height_in_luma_samples, MinCbSizeY);
+  }
+
+  if (CtbSizeY != 0) {
+    PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
+    PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
+  }
+
+  PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
+  PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
+  PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
+
+  PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);
+  PicHeightInMinPUs = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinPUSize);
+
+  // the following are not in the standard
+  PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
+  PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
+  PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
+}
+
+
+void seq_parameter_set::derive_pcm_block_sizes()
+{
+  Log2MinIpcmCbSizeY = log2_min_pcm_luma_coding_block_size;
+  Log2MaxIpcmCbSizeY = (log2_min_pcm_luma_coding_block_size +
+                        log2_diff_max_min_pcm_luma_coding_block_size);
 }
 
 
@@ -564,131 +698,71 @@ bool seq_parameter_set::check_parameters_for_consistency() const
   }
 
 
-  return true;
-}
+  // check block sizes
 
-
-
-
-de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
-{
-  derive_chroma_parameters();
-
-  Log2MinCbSizeY = log2_min_luma_coding_block_size;
-  Log2CtbSizeY = Log2MinCbSizeY + log2_diff_max_min_luma_coding_block_size;
-  MinCbSizeY = 1 << Log2MinCbSizeY;
-  CtbSizeY = 1 << Log2CtbSizeY;
-
-  PicWidthInMinCbsY = ceil_div(pic_width_in_luma_samples, MinCbSizeY);
-  PicWidthInCtbsY   = ceil_div(pic_width_in_luma_samples, CtbSizeY);
-  PicHeightInMinCbsY = ceil_div(pic_height_in_luma_samples, MinCbSizeY);
-  PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
-  PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
-  PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
-  PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
-
-  if (chroma_format_idc==0 || separate_colour_plane_flag) {
-    CtbWidthC  = 0;
-    CtbHeightC = 0;
-  }
-  else {
-    CtbWidthC  = CtbSizeY / SubWidthC;
-    CtbHeightC = CtbSizeY / SubHeightC;
+  if (Log2MaxTrafoSize > CtbSizeY) {
+    return false;
   }
 
-  Log2MinTrafoSize = log2_min_transform_block_size;
-  Log2MaxTrafoSize = log2_min_transform_block_size + log2_diff_max_min_transform_block_size;
+  if (Log2MinCbSizeY < Log2MinTrafoSize) {
+    return false;
+  }
+
+
+  // --- check max transform depths
+
+  // depths larger than the full span (CTB size -> min trafo size) are invalid
 
   if (max_transform_hierarchy_depth_inter > Log2CtbSizeY - Log2MinTrafoSize) {
-    if (sanitize_values) {
-      max_transform_hierarchy_depth_inter = Log2CtbSizeY - Log2MinTrafoSize;
-    } else {
-      fprintf(stderr,"SPS error: transform hierarchy depth (inter) > CTB size - min TB size\n");
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
-    }
+    return false;
   }
 
   if (max_transform_hierarchy_depth_intra > Log2CtbSizeY - Log2MinTrafoSize) {
-    if (sanitize_values) {
-      max_transform_hierarchy_depth_intra = Log2CtbSizeY - Log2MinTrafoSize;
-    } else {
-      fprintf(stderr,"SPS error: transform hierarchy depth (intra) > CTB size - min TB size\n");
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
-    }
+    return false;
   }
 
-
-  if (sanitize_values) {
-    if (max_transform_hierarchy_depth_inter < Log2CtbSizeY - Log2MaxTrafoSize) {
-      max_transform_hierarchy_depth_inter = Log2CtbSizeY - Log2MaxTrafoSize;
-    }
-
-    if (max_transform_hierarchy_depth_intra < Log2CtbSizeY - Log2MaxTrafoSize) {
-      max_transform_hierarchy_depth_intra = Log2CtbSizeY - Log2MaxTrafoSize;
-    }
-  }
-
-
-  Log2MinPUSize = Log2MinCbSizeY-1;
-  PicWidthInMinPUs  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinPUSize);
-  PicHeightInMinPUs = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinPUSize);
-
-  Log2MinIpcmCbSizeY = log2_min_pcm_luma_coding_block_size;
-  Log2MaxIpcmCbSizeY = (log2_min_pcm_luma_coding_block_size +
-                        log2_diff_max_min_pcm_luma_coding_block_size);
-
-  // the following are not in the standard
-  PicWidthInTbsY  = PicWidthInCtbsY  << (Log2CtbSizeY - Log2MinTrafoSize);
-  PicHeightInTbsY = PicHeightInCtbsY << (Log2CtbSizeY - Log2MinTrafoSize);
-  PicSizeInTbsY = PicWidthInTbsY * PicHeightInTbsY;
-
-
-  if (range_extension.high_precision_offsets_enabled_flag) {
-    WpOffsetBdShiftY = 0;
-    WpOffsetBdShiftC = 0;
-    WpOffsetHalfRangeY = 1 << (BitDepth_Y - 1);
-    WpOffsetHalfRangeC = 1 << (BitDepth_C - 1);
-  }
-  else {
-    WpOffsetBdShiftY = ( BitDepth_Y - 8 );
-    WpOffsetBdShiftC = ( BitDepth_C - 8 );
-    WpOffsetHalfRangeY = 1 << 7;
-    WpOffsetHalfRangeC = 1 << 7;
-  }
 
 
   // --- check SPS sanity ---
 
   if (pic_width_in_luma_samples  % MinCbSizeY != 0 ||
       pic_height_in_luma_samples % MinCbSizeY != 0) {
-    // TODO: warn that image size is coded wrong in bitstream (must be multiple of MinCbSizeY)
-    fprintf(stderr,"SPS error: CB alignment\n");
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return false;
   }
 
   if (Log2MinTrafoSize > Log2MinCbSizeY) {
-    fprintf(stderr,"SPS error: TB > CB\n");
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return false;
   }
 
   if (Log2MaxTrafoSize > libde265_min(Log2CtbSizeY,5)) {
-    fprintf(stderr,"SPS error: TB_max > 32 or CTB\n");
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return false;
   }
 
 
   if (BitDepth_Y < 8 || BitDepth_Y > 16) {
-    fprintf(stderr,"SPS error: bitdepth Y not in [8;16]\n");
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return false;
   }
 
   if (BitDepth_C < 8 || BitDepth_C > 16) {
-    fprintf(stderr,"SPS error: bitdepth C not in [8;16]\n");
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return false;
   }
 
+  return true;
+}
 
-  sps_read = true;
+
+de265_error seq_parameter_set::compute_all_derived_values()
+{
+  de265_error err;
+
+  if ( (err=derive_chroma_parameters()) ) {
+    return err;
+  }
+
+  derive_bitdepth_parameters();
+  derive_block_sizes();
+  derive_picture_sizes_in_blocks();
+  derive_pcm_block_sizes();
 
   return DE265_OK;
 }
@@ -1315,54 +1389,6 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
 #endif
 
   return DE265_OK;
-}
-
-
-void seq_parameter_set::set_CB_size_range(int minSize, int maxSize)
-{
-  assert(isPowerOf2(minSize));
-  assert(isPowerOf2(maxSize));
-  assert(maxSize >= minSize);
-
-  int minSize_log2 = Log2(minSize);
-  int maxSize_log2 = Log2(maxSize);
-
-  log2_min_luma_coding_block_size = minSize_log2;
-  log2_diff_max_min_luma_coding_block_size = maxSize_log2 - minSize_log2;
-
-  de265_error err = compute_derived_values();
-}
-
-
-void seq_parameter_set::set_TB_size_range(int minSize, int maxSize)
-{
-  assert(isPowerOf2(minSize));
-  assert(isPowerOf2(maxSize));
-  assert(maxSize >= minSize);
-
-  int minSize_log2 = Log2(minSize);
-  int maxSize_log2 = Log2(maxSize);
-
-  log2_min_transform_block_size = minSize_log2;
-  log2_diff_max_min_transform_block_size = maxSize_log2 - minSize_log2;
-
-  de265_error err = compute_derived_values();
-}
-
-
-void seq_parameter_set::set_PCM_size_range(int minSize, int maxSize)
-{
-  assert(isPowerOf2(minSize));
-  assert(isPowerOf2(maxSize));
-  assert(maxSize >= minSize);
-
-  int minSize_log2 = Log2(minSize);
-  int maxSize_log2 = Log2(maxSize);
-
-  log2_min_pcm_luma_coding_block_size = minSize_log2;
-  log2_diff_max_min_pcm_luma_coding_block_size = maxSize_log2 - minSize_log2;
-
-  de265_error err = compute_derived_values();
 }
 
 

@@ -109,11 +109,13 @@ void EncoderCore_Screensharing::fill_headers(std::shared_ptr<video_parameter_set
 
   pps->pic_init_qp = getPPS_QP();
 
+  /*
   de265_error err = sps->compute_derived_values(true);
   if (err != DE265_OK) {
     fprintf(stderr,"invalid SPS parameters\n");
     exit(10);
   }
+  */
 
   pps->set_derived_values(sps.get());
 }
