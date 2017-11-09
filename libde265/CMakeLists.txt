@@ -84,6 +84,9 @@ endif()
 add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
 target_link_libraries(${LIBDE265_LIBRARY_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
+#find_package(Threads REQUIRED)
+#target_link_libraries(${LIBDE265_LIBRARY_NAME} Threads::Threads)
+
 if(NOT MSVC)
   target_link_libraries(${LIBDE265_LIBRARY_NAME} rt)
 endif()

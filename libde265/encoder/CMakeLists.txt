@@ -9,6 +9,8 @@ set (encoder_sources
 )
 
 add_subdirectory (algo)
+add_subdirectory (screensharing)
+
 add_library(encoder OBJECT ${encoder_sources})
 set(ENCODER_OBJECTS $<TARGET_OBJECTS:encoder> ${ALGO_OBJECTS} PARENT_SCOPE)
 
