@@ -387,8 +387,7 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 }
 
 
-bool ref_pic_set::write_nopred(error_queue* errqueue,
-                               const seq_parameter_set* sps,
+bool ref_pic_set::write_nopred(const seq_parameter_set* sps,
                                CABAC_encoder& out,
                                int idxRps,  // index of the set to be written
                                const std::vector<ref_pic_set>& sets, // previously read sets
@@ -437,15 +436,14 @@ bool ref_pic_set::write_nopred(error_queue* errqueue,
 }
 
 
-bool ref_pic_set::write(error_queue* errqueue,
-                        const seq_parameter_set* sps,
+bool ref_pic_set::write(const seq_parameter_set* sps,
                         CABAC_encoder& out,
                         int idxRps,  // index of the set to be read
                         const std::vector<ref_pic_set>& sets, // previously read sets
                         bool sliceRefPicSet) const // is this in the slice header?
 {
   // TODO: currently, we never use prediction
-  return write_nopred(errqueue, sps, out, idxRps, sets, sliceRefPicSet);
+  return write_nopred(sps, out, idxRps, sets, sliceRefPicSet);
 }
 
 

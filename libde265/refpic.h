@@ -53,8 +53,7 @@ class ref_pic_set
                    const std::vector<ref_pic_set>& sets, // previously read sets
                    bool sliceRefPicSet); // is this in the slice header?
 
-  bool write(class error_queue* errqueue,
-             const class seq_parameter_set* sps,
+  bool write(const class seq_parameter_set* sps,
              class CABAC_encoder& out,
              int idxRps,  // index of the set to be read
              const std::vector<ref_pic_set>& sets, // previously read sets
@@ -91,8 +90,7 @@ class ref_pic_set
   void reset();
 
  private:
-  bool write_nopred(error_queue* errqueue,
-                    const seq_parameter_set* sps,
+  bool write_nopred(const seq_parameter_set* sps,
                     CABAC_encoder& out,
                     int idxRps,  // index of the set to be read
                     const std::vector<ref_pic_set>& sets, // previously read sets

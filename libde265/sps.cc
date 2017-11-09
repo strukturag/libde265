@@ -1021,7 +1021,7 @@ void scaling_list_data::set_default_scaling_lists()
 }
 
 
-de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
+de265_error seq_parameter_set::write(CABAC_encoder& out)
 {
   out.write_bits(video_parameter_set_id, 4);
   if (sps_max_sub_layers>7) {
@@ -1143,7 +1143,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   for (int i = 0; i < num_short_term_ref_pic_sets; i++) {
 
-    bool success = ref_pic_sets[i].write(errqueue,this,out,
+    bool success = ref_pic_sets[i].write(this,out,
                                          i,
                                          ref_pic_sets,
                                          false);

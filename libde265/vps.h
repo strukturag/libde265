@@ -130,7 +130,7 @@ class video_parameter_set
 {
 public:
   de265_error read(error_queue* errqueue, bitreader* reader);
-  de265_error write(error_queue* errqueue, CABAC_encoder& out) const;
+  de265_error write(CABAC_encoder& out) const;
   std::string dump() const;
 
   void set_defaults(enum profile_idc profile, int level_major, int level_minor);

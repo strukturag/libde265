@@ -705,19 +705,13 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 }
 
 
-bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
+bool pic_parameter_set::write(CABAC_encoder& out,
                               const seq_parameter_set* sps)
 {
-  if (pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
-    errqueue->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
-    return false;
-  }
+  assert(pic_parameter_set_id < DE265_MAX_PPS_SETS);
   out.write_uvlc(pic_parameter_set_id);
 
-  if (seq_parameter_set_id >= DE265_MAX_PPS_SETS) {
-    errqueue->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
-    return false;
-  }
+  assert(seq_parameter_set_id < DE265_MAX_PPS_SETS);
   out.write_uvlc(seq_parameter_set_id);
 
   out.write_bit(dependent_slice_segments_enabled_flag);
@@ -754,14 +748,14 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   if (tiles_enabled_flag) {
     if (num_tile_columns > sps->PicWidthInCtbsY ||
         num_tile_columns < 1) {
-      errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
+      assert(false); // errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
       return false;
     }
     out.write_uvlc(num_tile_columns-1);
 
     if (num_tile_rows > sps->PicHeightInCtbsY ||
         num_tile_rows < 1) {
-      errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
+      assert(false); // errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
       return false;
     }
     out.write_uvlc(num_tile_rows-1);
@@ -806,14 +800,14 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   // must be FALSE
   if (sps->scaling_list_enable_flag==0 &&
       pic_scaling_list_data_present_flag != 0) {
-    errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
+    assert(false); // errqueue->add_warning(DE265_WARNING_INVALID_PPS_PARAMETER, false);
     return false;
   }
 
   if (pic_scaling_list_data_present_flag) {
     de265_error err = scaling_list.write(out, sps, true);
     if (err != DE265_OK) {
-      errqueue->add_warning(err, false);
+      assert(false); // errqueue->add_warning(err, false);
       return false;
     }
   }

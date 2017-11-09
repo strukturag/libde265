@@ -191,7 +191,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
     nal.set(NAL_UNIT_VPS_NUT);
     nal.write(cabac_encoder);
-    imgdata->vps->write(this, cabac_encoder);
+    imgdata->vps->write(cabac_encoder);
     cabac_encoder.add_trailing_bits();
     cabac_encoder.flush_VLC();
     pck = create_packet(EN265_PACKET_VPS, cabac_encoder);
@@ -210,7 +210,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
     nal.set(NAL_UNIT_SPS_NUT);
     nal.write(cabac_encoder);
-    imgdata->sps->write(this, cabac_encoder);
+    imgdata->sps->write(cabac_encoder);
     cabac_encoder.add_trailing_bits();
     cabac_encoder.flush_VLC();
     pck = create_packet(EN265_PACKET_SPS, cabac_encoder);
@@ -229,7 +229,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
     nal.set(NAL_UNIT_PPS_NUT);
     nal.write(cabac_encoder);
-    imgdata->pps->write(this, cabac_encoder, imgdata->sps.get());
+    imgdata->pps->write(cabac_encoder, imgdata->sps.get());
     cabac_encoder.add_trailing_bits();
     cabac_encoder.flush_VLC();
     pck = create_packet(EN265_PACKET_PPS, cabac_encoder);
@@ -251,7 +251,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
   //shdr.slice_pic_order_cnt_lsb = poc & 0xFF;
 
   imgdata->nal.write(cabac_encoder);
-  shdr->write(this, cabac_encoder, get_sps().get(), get_pps().get(), imgdata->nal.nal_unit_type);
+  shdr->write(cabac_encoder, get_sps().get(), get_pps().get(), imgdata->nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
 
@@ -573,7 +573,7 @@ void encoder_context_scc::push_image(image_ptr img)
 
   nal_header nal(NAL_UNIT_IDR_N_LP);
   nal.write(cabac_encoder);
-  shdr->write(nullptr, cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
+  shdr->write(cabac_encoder, sps.get(), pps.get(), nal.nal_unit_type);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
 
@@ -705,7 +705,7 @@ void encoder_context_scc::send_headers()
 
   nal.set(NAL_UNIT_VPS_NUT);
   nal.write(cabac_encoder);
-  vps->write(nullptr, cabac_encoder);
+  vps->write(cabac_encoder);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = copy_encoded_data_into_packet(EN265_PACKET_VPS);
@@ -714,7 +714,7 @@ void encoder_context_scc::send_headers()
 
   nal.set(NAL_UNIT_SPS_NUT);
   nal.write(cabac_encoder);
-  sps->write(nullptr, cabac_encoder);
+  sps->write(cabac_encoder);
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = copy_encoded_data_into_packet(EN265_PACKET_SPS);
@@ -723,7 +723,7 @@ void encoder_context_scc::send_headers()
 
   nal.set(NAL_UNIT_PPS_NUT);
   nal.write(cabac_encoder);
-  pps->write(nullptr, cabac_encoder, sps.get());
+  pps->write(cabac_encoder, sps.get());
   cabac_encoder.add_trailing_bits();
   cabac_encoder.flush_VLC();
   pck = copy_encoded_data_into_packet(EN265_PACKET_PPS);

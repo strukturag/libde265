@@ -61,7 +61,7 @@ public:
 
   void reset() { set_defaults(); }
   de265_error read(bitreader*, decoder_context*);
-  bool write(error_queue*, CABAC_encoder&,
+  bool write(CABAC_encoder&,
              const seq_parameter_set* sps);
 
   bool is_tile_start_CTB(int ctbX,int ctbY) const;

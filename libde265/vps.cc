@@ -221,7 +221,7 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
 }
 
 
-de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out) const
+de265_error video_parameter_set::write(CABAC_encoder& out) const
 {
   if (video_parameter_set_id >= DE265_MAX_VPS_SETS) {
     return DE265_WARNING_INVALID_VPS_PARAMETER;

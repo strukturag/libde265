@@ -86,7 +86,7 @@ public:
   ~seq_parameter_set();
 
   de265_error read(error_queue*, bitreader*);
-  de265_error write(error_queue*, CABAC_encoder&);
+  de265_error write(CABAC_encoder&);
 
   std::string dump() const;
 

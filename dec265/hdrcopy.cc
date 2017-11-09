@@ -58,14 +58,14 @@ void process_nal(NAL_unit_ptr nal)
     case NAL_UNIT_VPS_NUT:
       vps.read(&errqueue, &reader);
       std::cout << vps.dump();
-      vps.write(&errqueue, writer);
+      vps.write(writer);
       writer.flush_VLC();
       break;
 
     case NAL_UNIT_SPS_NUT:
       sps.read(&errqueue, &reader);
       std::cout << sps.dump();
-      sps.write(&errqueue, writer);
+      sps.write(writer);
       writer.flush_VLC();
       break;
 

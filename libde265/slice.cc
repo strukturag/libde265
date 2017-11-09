@@ -871,7 +871,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 }
 
 
-de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& out,
+de265_error slice_segment_header::write(CABAC_encoder& out,
                                         const seq_parameter_set* sps,
                                         const pic_parameter_set* pps,
                                         uint8_t nal_unit_type)
@@ -883,7 +883,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
   }
 
   if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS) {
-    errqueue->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    assert(false); // errqueue->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
   }
   out.write_uvlc(slice_pic_parameter_set_id);
@@ -897,7 +897,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
 
     if (dependent_slice_segment_flag) {
       if (slice_segment_address == 0) {
-        errqueue->add_warning(DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
+        assert(false); // errqueue->add_warning(DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
         return DE265_OK;
       }
     }
@@ -905,7 +905,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
 
   if (slice_segment_address < 0 ||
       slice_segment_address > sps->PicSizeInCtbsY) {
-    errqueue->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
+    assert(false); // errqueue->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
     return DE265_WARNING_INVALID_SLICE_PARAMETER;
   }
 
@@ -918,7 +918,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
     }
 
     if (slice_type > 2) {
-      errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+      assert(false); // errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_OK;
     }
     out.write_uvlc(slice_type);
@@ -956,7 +956,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
         else         { assert(short_term_ref_pic_set_idx==0); }
 
         if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets()) {
-          errqueue->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
+          assert(false); // errqueue->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
           return DE265_WARNING_INVALID_SLICE_PARAMETER;
         }
 
@@ -986,7 +986,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
             CurrRps.NumPositivePics
             > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
           {
-            errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+            assert(false); //errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
             return DE265_OK;
           }
 
@@ -998,7 +998,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
             // check that the referenced lt-reference really exists
 
             if (lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
-              errqueue->add_warning(DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE, false);
+              assert(false); //errqueue->add_warning(DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE, false);
               return DE265_OK;
             }
 
@@ -1223,7 +1223,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
   if (pps->slice_segment_header_extension_present_flag) {
     out.write_uvlc(slice_segment_header_extension_length);
     if (slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
-      errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+      assert(false); // errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_WARNING_INVALID_SLICE_PARAMETER;
     }
 
