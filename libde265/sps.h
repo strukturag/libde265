@@ -223,10 +223,10 @@ public:
   bool separate_colour_plane_flag;
 
   // The internal chroma type. Should not be used by users of the library.
-  de265_chroma ChromaArrayType;
+  de265_chroma ChromaArrayType = de265_chroma_420;
 
   // Pixel subsampling factors
-  int SubWidthC, SubHeightC;
+  int SubWidthC=2, SubHeightC=2;
 
 
   // --- video frame size
