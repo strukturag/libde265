@@ -88,18 +88,33 @@ public:
 
   char pic_parameter_set_id;
   char seq_parameter_set_id;
+
+  // enables dependent slices (otherwise all slices are independent)
   char dependent_slice_segments_enabled_flag;
+
   char sign_data_hiding_flag;
+
+  // enables a flag in the slice header to switch CABAC init types for P/B pictures
   char cabac_init_present_flag;
+
+  // default number of reference indices when not overridden in slice header
   char num_ref_idx_l0_default_active; // [1;16]
   char num_ref_idx_l1_default_active; // [1;16]
 
+  // start value of SliceQP_Y (default=26)
   int pic_init_qp;
+
+  // if constrained_intra_pred is enabled, intra prediction samples may only come from other intra
+  // blocks, not inter blocks (useful for rolling intra-wave updates?)
   char constrained_intra_pred_flag;
+
+  // enabled the transform_skip flag in the residual data
   char transform_skip_enabled_flag;
+
 
   // --- QP ---
 
+  // enable QP changes in CU blocks
   char cu_qp_delta_enabled_flag;
   int  diff_cu_qp_delta_depth;   // [ 0 ; log2_diff_max_min_luma_coding_block_size ]
 
