@@ -679,7 +679,7 @@ en265_packet* encoder_context_scc::get_next_packet()
 
 void encoder_context_scc::set_image_parameters(image_ptr img)
 {
-  sps->chroma_format_idc = img->get_chroma_format();
+  sps->set_chroma(img->get_chroma_format());
 
   sps->set_coded_resolution(img->get_width(),
                             img->get_height());
