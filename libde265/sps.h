@@ -141,6 +141,11 @@ public:
 
   void set_bit_depths(int luma, int chroma);
 
+  int get_bit_depth(int cIdx) const {
+    if (cIdx==0) return BitDepth_Y;
+    else         return BitDepth_C;
+  }
+
 
   // --- frame numbering
 
@@ -161,6 +166,20 @@ public:
   // --- range extension
 
   void enable_range_extension(bool flag);
+
+
+
+
+  // --- coordinate conversion helpers
+
+  int get_PU_index_RS(int pixelX,int pixelY) const {
+    return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;
+  }
+
+  // Convert pixel position to the coordinate of the CTB that includes this pixel.
+  // Pixel positions outside the image are clipped to valid CTB positions in the image.
+  int x_pixel_to_x_ctb(int x) const;
+  int y_pixel_to_y_ctb(int y) const;
 
 
 
@@ -343,21 +362,6 @@ public:
 
   int SpsMaxLatencyPictures[7]; // [temporal layer]
 
-
-  int getPUIndexRS(int pixelX,int pixelY) const {
-    return (pixelX>>Log2MinPUSize) + (pixelY>>Log2MinPUSize)*PicWidthInMinPUs;
-  }
-
-  int get_bit_depth(int cIdx) const {
-    if (cIdx==0) return BitDepth_Y;
-    else         return BitDepth_C;
-  }
-
-
-  // Convert pixel position to CTB index
-  // Pixel positions outside the image are clipped to valid CTB positions in the image.
-  int x_pixel_to_x_ctb(int x) const;
-  int y_pixel_to_y_ctb(int y) const;
 
   // ------------------ setters ------------------
 

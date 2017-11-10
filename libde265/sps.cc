@@ -1394,7 +1394,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
 
 int seq_parameter_set::x_pixel_to_x_ctb(int x) const
 {
-  int ctbx = x/CtbSizeY;
+  int ctbx = x >> Log2CtbSizeY;
   if (ctbx >= PicWidthInCtbsY)  ctbx = PicWidthInCtbsY-1;
   if (ctbx < 0) ctbx=0;
   return ctbx;
@@ -1403,7 +1403,7 @@ int seq_parameter_set::x_pixel_to_x_ctb(int x) const
 
 int seq_parameter_set::y_pixel_to_y_ctb(int y) const
 {
-  int ctby = y/CtbSizeY;
+  int ctby = y >> Log2CtbSizeY;
   if (ctby >= PicHeightInCtbsY) ctby = PicHeightInCtbsY-1;
   if (ctby < 0) ctby=0;
   return ctby;

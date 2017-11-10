@@ -4419,7 +4419,7 @@ void read_coding_unit(thread_context* tctx,
 
 
 
-              int PUidx = sps.getPUIndexRS(x,y);
+              int PUidx = sps.get_PU_index_RS(x,y);
 
               enum IntraPredMode candModeList[3];
 
