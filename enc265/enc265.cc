@@ -358,6 +358,7 @@ int main(int argc, char** argv)
 #if HAVE_VIDEOGFX
   if (inout_params.input_is_rgb) {
     image_source_png.set_input_file(inout_params.input_yuv.get().c_str());
+    image_source_png.setTargetColorspace(de265_chroma_420, de265_colorspace_YCbCr);
     image_source = &image_source_png;
   }
   else

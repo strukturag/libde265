@@ -36,6 +36,13 @@ class ImageSource_PNG : public ImageSource
 
   bool LIBDE265_API set_input_file(const char* filename);
 
+  void setTargetColorspace(enum de265_chroma chroma,
+                           enum de265_colorspace colorspace)
+  {
+    mTargetChroma = chroma;
+    mTargetColorspace = colorspace;
+  }
+
   //virtual ImageStatus  get_status();
   virtual LIBDE265_API image* get_image(bool block=true);
   virtual LIBDE265_API void skip_frames(int n);
@@ -50,6 +57,9 @@ class ImageSource_PNG : public ImageSource
   bool mReachedEndOfStream;
 
   int mWidth,mHeight;
+
+  enum de265_chroma     mTargetChroma     = de265_chroma_420;
+  enum de265_colorspace mTargetColorspace = de265_colorspace_GBR;
 };
 #endif
 

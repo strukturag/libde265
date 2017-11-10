@@ -73,37 +73,80 @@ image* ImageSource_PNG::get_image(bool block)
   mHeight= input.AskHeight();
 
   image::supplementary_data supp;
-  supp.colorspace = de265_colorspace_GBR;
 
-  image* img = new image;
-  img->alloc_image(mWidth,mHeight,de265_chroma_444, 8,8,
-                   0, // PTS
-                   supp,
-                   NULL);
-  assert(img); // TODO: error handling
+  if (mTargetColorspace == de265_colorspace_GBR) {
+    supp.colorspace = de265_colorspace_GBR;
+
+    image* img = new image;
+    img->alloc_image(mWidth,mHeight,de265_chroma_444, 8,8,
+                     0, // PTS
+                     supp,
+                     NULL);
+    assert(img); // TODO: error handling
 
 
-  uint8_t* p;
-  int stride;
+    uint8_t* p;
+    int stride;
 
-  for (int c=0;c<3;c++) {
-    int h265channel;
-    switch (c) {
-    case 0: h265channel=2; break; // R
-    case 1: h265channel=0; break; // G
-    case 2: h265channel=1; break; // B
+    for (int c=0;c<3;c++) {
+      int h265channel;
+      switch (c) {
+      case 0: h265channel=2; break; // R
+      case 1: h265channel=0; break; // G
+      case 2: h265channel=1; break; // B
+      }
+
+      p = img->get_image_plane(h265channel);
+      stride = img->get_image_stride(h265channel);
+
+      for (int y=0;y<mHeight;y++) {
+        memcpy(p, input.AskFrame((BitmapChannel(c)))[y], mWidth);
+        p += stride;
+      }
     }
 
-    p = img->get_image_plane(h265channel);
-    stride = img->get_image_stride(h265channel);
+    return img;
+  }
+  else {
+    supp.colorspace = de265_colorspace_YCbCr;
+
+    image* img = new image;
+    img->alloc_image(mWidth,mHeight,de265_chroma_420, 8,8,
+                     0, // PTS
+                     supp,
+                     NULL);
+    assert(img); // TODO: error handling
+
+
+    uint8_t* dst_y    = img->get_image_plane(0);
+    int dst_y_stride  = img->get_image_stride(0);
+    uint8_t* dst_cb   = img->get_image_plane(1);
+    int dst_cb_stride = img->get_image_stride(1);
+    uint8_t* dst_cr   = img->get_image_plane(2);
+    int dst_cr_stride = img->get_image_stride(2);
+
+    const Pixel*const* src_r = input.AskFrameR();
+    const Pixel*const* src_g = input.AskFrameG();
+    const Pixel*const* src_b = input.AskFrameB();
 
     for (int y=0;y<mHeight;y++) {
-      memcpy(p, input.AskFrame((BitmapChannel(c)))[y], mWidth);
-      p += stride;
-    }
-  }
+      for (int x=0;x<mWidth;x++) {
+        int col_y  = 16  +  65.738*src_r[y][x]/256 + 129.057*src_g[y][x]/256 +  25.064*src_b[y][x]/256;
 
-  return img;
+        dst_y[y*dst_y_stride + x] = Clip1_8bit(col_y);
+
+        if ((x&1)==0 && (y&1)==0) {
+          int col_cb = 128 -  37.945*src_r[y][x]/256 - 74.494*src_g[y][x]/256 + 112.439*src_b[y][x]/256;
+          int col_cr = 128 + 112.439*src_r[y][x]/256 - 94.154*src_g[y][x]/256 -  18.285*src_b[y][x]/256;
+
+          dst_cb[y/2 * dst_cb_stride + x/2] = Clip1_8bit(col_cb);
+          dst_cr[y/2 * dst_cr_stride + x/2] = Clip1_8bit(col_cr);
+        }
+      }
+    }
+
+    return img;
+  }
 }
 
 void ImageSource_PNG::skip_frames(int n)
