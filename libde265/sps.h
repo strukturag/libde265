@@ -80,6 +80,14 @@ class sps_range_extension
 };
 
 
+/*
+  When manually setting parameters, the setter functions should be used since they take
+  care about computing all the derived values.
+
+  These are the dependencies when settings values:
+  chroma      -> | picture size
+  block sizes -> |
+ */
 class seq_parameter_set {
 public:
   seq_parameter_set();
@@ -122,7 +130,7 @@ public:
   void set_separate_colour_planes(bool flag);
 
 
-  // --- picture geometry
+  // --- picture size
 
   // Set video resolution, which must be an integer multiple of MinCbSizeY.
   // If other non-multiple sizes are required, use set_conformance_window_offsets().
@@ -165,6 +173,7 @@ public:
 
   // --- range extension
 
+  // range extension parameters will be reset when the extension is disabled
   void enable_range_extension(bool flag);
 
 
