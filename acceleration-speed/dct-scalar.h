@@ -23,6 +23,8 @@
 
 #include "dct.h"
 
+#if 0
+
 class DSPFunc_FDCT_Scalar_4x4 : public DSPFunc_FDCT_Base
 {
 public:
@@ -154,5 +156,7 @@ extern DSPFunc_IDCT_Scalar_4x4   idct_scalar_4x4;
 extern DSPFunc_IDCT_Scalar_8x8   idct_scalar_8x8;
 extern DSPFunc_IDCT_Scalar_16x16 idct_scalar_16x16;
 extern DSPFunc_IDCT_Scalar_32x32 idct_scalar_32x32;
+
+#endif
 
 #endif

@@ -20,6 +20,7 @@
 
 #include "dct-scalar.h"
 
+#if 0
 
 DSPFunc_FDCT_Scalar_4x4   fdct_scalar_4x4;
 DSPFunc_FDCT_Scalar_8x8   fdct_scalar_8x8;
@@ -31,3 +32,5 @@ DSPFunc_IDCT_Scalar_4x4   idct_scalar_4x4;
 DSPFunc_IDCT_Scalar_8x8   idct_scalar_8x8;
 DSPFunc_IDCT_Scalar_16x16 idct_scalar_16x16;
 DSPFunc_IDCT_Scalar_32x32 idct_scalar_32x32;
+
+#endif
