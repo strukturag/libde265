@@ -649,8 +649,8 @@ QPEL16(3,0) QPEL16(3,1) QPEL16(3,2) QPEL16(3,3)
 
 
 
-void mc_copy_8_fallback(uint8_t* dst, ptrdiff_t dststride,
-                        const void* srcptr, ptrdiff_t srcstride, int width, int height)
+void mc_copy_8_fallback(uint8_t* __restrict__ dst, ptrdiff_t dststride,
+                        const void* __restrict__ srcptr, ptrdiff_t srcstride, int width, int height)
 {
   const uint8_t* src = (const uint8_t*)srcptr;
 

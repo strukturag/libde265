@@ -23,6 +23,9 @@
 #endif
 
 #include "arm.h"
+#include "arm-motion.h"
+#include "arm-dct.h"
+#include "libde265/de265.h"
 
 #include <stdio.h>
 
@@ -40,9 +43,63 @@ void init_acceleration_functions_neon(struct acceleration_functions* accel)
 #endif
 }
 
-void init_acceleration_functions_aarch64(struct acceleration_functions* accel)
+#include "fallback-motion.h"
+void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
+                                         int inexact_decoding_flags)
 {
 #ifdef HAVE_AARCH64
   //printf("aarch64\n");
 #endif
+
+  accel->put_unweighted_pred_8   = put_pred_8_neon;
+  accel->put_weighted_pred_avg_8 = put_bipred_8_neon;
+
+  accel->put_hevc_qpel_8[0][0] = mc_noshift_8_luma_neon;
+
+  accel->put_hevc_qpel_8[1][0] = mc_qpel_h1_8_neon;
+  accel->put_hevc_qpel_8[2][0] = mc_qpel_h2_8_neon;
+  accel->put_hevc_qpel_8[3][0] = mc_qpel_h3_8_neon;
+
+  accel->put_hevc_qpel_8[0][1] = mc_qpel_v1_8_neon;
+  accel->put_hevc_qpel_8[0][2] = mc_qpel_v2_8_neon;
+  accel->put_hevc_qpel_8[0][3] = mc_qpel_v3_8_neon;
+
+  accel->put_hevc_qpel_8[1][1] = mc_qpel_h1v1_8_neon;
+  accel->put_hevc_qpel_8[1][2] = mc_qpel_h1v2_8_neon;
+  accel->put_hevc_qpel_8[1][3] = mc_qpel_h1v3_8_neon;
+  accel->put_hevc_qpel_8[2][1] = mc_qpel_h2v1_8_neon;
+  accel->put_hevc_qpel_8[2][2] = mc_qpel_h2v2_8_neon;
+  accel->put_hevc_qpel_8[2][3] = mc_qpel_h2v3_8_neon;
+  accel->put_hevc_qpel_8[3][1] = mc_qpel_h3v1_8_neon;
+  accel->put_hevc_qpel_8[3][2] = mc_qpel_h3v2_8_neon;
+  accel->put_hevc_qpel_8[3][3] = mc_qpel_h3v3_8_neon;
+
+  accel->put_hevc_epel_8    = mc_noshift_8_chroma_neon;
+  accel->put_hevc_epel_h_8  = put_epel_h_8_neon;
+  accel->put_hevc_epel_v_8  = put_epel_v_8_neon;
+  accel->put_hevc_epel_hv_8 = put_epel_hv_8_neon;
+
+  accel->mc_copy_bi_8 = mc_copy_bi_8_neon;
+
+
+  // only use full-pel motion
+
+  if (inexact_decoding_flags & de265_inexact_decoding_only_full_pel_motion) {
+    for (int x=0;x<4;x++)
+      for (int y=0;y<4;y++) {
+        accel->put_hevc_qpel_8[x][y] = mc_noshift_8_luma_neon;
+      }
+
+    accel->put_hevc_epel_h_8  = mc_epel_hv_8_neon_fake;
+    accel->put_hevc_epel_v_8  = mc_epel_hv_8_neon_fake;
+    accel->put_hevc_epel_hv_8 = mc_epel_hv_8_neon_fake;
+  }
+
+
+  // transforms
+
+  accel->transform_add_8[0] = idct_4x4_add_8_neon;
+  accel->transform_add_8[1] = idct_8x8_add_8_neon;
+  accel->transform_add_8[2] = idct_16x16_add_8_neon;
+  accel->transform_add_8[3] = idct_32x32_add_8_neon;
 }

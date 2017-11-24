@@ -84,7 +84,7 @@ void image::supplementary_data::set_from_SPS(std::shared_ptr<const seq_parameter
 }
 
 
-LIBDE265_API void* de265_alloc_image_plane(struct image* img, int cIdx,
+LIBDE265_API void* de265_alloc_image_plane(class image* img, int cIdx,
                                            void* inputdata, int inputstride, void *userdata)
 {
   int alignment = STANDARD_ALIGNMENT;
@@ -114,7 +114,7 @@ LIBDE265_API void* de265_alloc_image_plane(struct image* img, int cIdx,
 }
 
 
-LIBDE265_API void de265_free_image_plane(struct image* img, int cIdx)
+LIBDE265_API void de265_free_image_plane(class image* img, int cIdx)
 {
   uint8_t* p = (uint8_t*)img->get_image_plane(cIdx);
   assert(p);

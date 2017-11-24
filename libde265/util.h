@@ -45,6 +45,7 @@
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define IS_LITTLE_ENDIAN 1
 #else
+#include <endian.h>
 #define IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
 #endif
 

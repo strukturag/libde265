@@ -668,7 +668,7 @@ void ff_hevc_transform_4x4_luma_add_10_sse4(uint8_t *_dst, const int16_t *coeffs
 
 #if HAVE_SSE4_1
 void idct_4x4_add_8_sse4(uint8_t *dst, const int16_t *coeffs,
-                         ptrdiff_t stride,int maxColumn,int maxRow)
+                         ptrdiff_t stride,int maxColumn,int maxRow, const uint8_t* subblocks_coded)
 {
   if (enable_fast)
   if (maxColumn==0 && maxRow==0) {
@@ -731,7 +731,8 @@ void idct_4x4_add_8_sse4(uint8_t *dst, const int16_t *coeffs,
   Deb(input16_a); // d2 c2 b2 a2 d1 c1 b1 a1
   Deb(input16_b); // d4 c4 b4 a4 d3 c3 b3 a3
 
-  __m128i coeff1_a = _mm_load_si128((const __m128i*)(transform4x4[0]));
+  //__m128i coeff1_a = _mm_load_si128((const __m128i*)(transform4x4[0]));
+  __m128i coeff1_a = _mm_set1_epi16(64); // constant 64
   __m128i coeff1_b = _mm_load_si128((const __m128i*)(transform4x4[1]));
   Deb(coeff1_a); // A3 A1 A3 A1 A3 A1 A3 A1
   Deb(coeff1_b); // A4 A2 A4 A2 A4 A2 A4 A2
@@ -1008,7 +1009,8 @@ void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                      ptrdiff_t _stride,int maxColumn,int maxRow)
+                                      ptrdiff_t _stride,int maxColumn,int maxRow,
+                                      const uint8_t* subblocks_coded)
 {
   if (enable_fast)
   if (maxColumn==0 && maxRow==0) {
@@ -1691,7 +1693,8 @@ void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                        ptrdiff_t _stride,int maxColumn,int maxRow)
+                                        ptrdiff_t _stride,int maxColumn,int maxRow,
+                                        const uint8_t* subblocks_coded)
 {
   //static int total=0;
   //total++;
@@ -3154,7 +3157,8 @@ void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-                                        ptrdiff_t _stride,int maxColumn,int maxRow)
+                                        ptrdiff_t _stride,int maxColumn,int maxRow,
+                                        const uint8_t* subblocks_coded)
 {
   //static int total=0;
   //total++;

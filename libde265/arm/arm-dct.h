@@ -18,14 +18,28 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FALLBACK_DCT_H
-#define FALLBACK_DCT_H
+#ifndef ARM_DCT_H
+#define ARM_DCT_H
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "util.h"
 
+
+// --- decoding ---
+
+void idct_4x4_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                         int maxColumn,int maxRow, const uint8_t* subblock_coded);
+void idct_8x8_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                         int maxColumn,int maxRow, const uint8_t* subblock_coded);
+void idct_16x16_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                           int maxColumn,int maxRow, const uint8_t* subblock_coded);
+void idct_32x32_add_8_neon(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
+                           int maxColumn,int maxRow, const uint8_t* subblock_coded);
+
+
+#if 0  // TODO
 
 // --- decoding ---
 
@@ -38,26 +52,18 @@ void transform_bypass_rdpcm_v_fallback(int32_t *r, const int16_t *coeffs,int nT)
 void transform_bypass_rdpcm_h_fallback(int32_t *r, const int16_t *coeffs,int nT);
 
 void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
-void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow, const uint8_t* subblock_coded);
-void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                  int maxColumn,int maxRow, const uint8_t* subblock_coded);
-void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow, const uint8_t* subblock_coded);
-void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,
-                                    int maxColumn,int maxRow, const uint8_t* subblock_coded);
 
 
 void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
 
 void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow, const uint8_t* subblock_coded);
+void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
+void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
+void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
+void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth, int maxColumn, int maxRow);
 
-void rotate180_coefficients_fallback(int16_t *coeff, int nT);
+void rotate_coefficients_fallback(int16_t *coeff, int nT);
 
 
 void transform_idst_4x4_fallback(int32_t *dst, const int16_t *coeffs, int bdShift, int max_coeff_bits);
@@ -96,5 +102,6 @@ void hadamard_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t st
 void hadamard_8x8_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
 void hadamard_16x16_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
 void hadamard_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
+#endif
 
 #endif

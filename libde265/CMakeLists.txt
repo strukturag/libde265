@@ -64,6 +64,8 @@ set (libde265_sources
   contextmodel.cc
 )
 
+# set(CMAKE_VERBOSE_MAKEFILE on)
+
 if(MSVC)
   set (libde265_sources
     ${libde265_sources}
@@ -76,18 +78,27 @@ add_definitions(-DLIBDE265_EXPORTS)
 
 add_subdirectory (encoder)
 
-if(SUPPORTS_SSE4_1)
-  add_definitions(-DHAVE_SSE4_1)
-  add_subdirectory (x86)
+# message(WARNING " CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+
+if (# (CMAKE_SYSTEM_PROCESSOR STREQUAL "i686") OR ## when compiling for i686 for Android, compiler says that there is no SSE4.1 support
+    (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+    if(SUPPORTS_SSE4_1)
+      add_definitions(-DHAVE_SSE4_1)
+      add_subdirectory (x86)
+    endif()
 endif()
 
-add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+if ((CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a") OR
+    (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64"))
+  add_definitions(-DHAVE_AARCH64 -DHAVE_NEON)
+  add_subdirectory (arm)
+endif()
+
+add_library(${LIBDE265_LIBRARY_NAME} SHARED ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS} ${ARM_OBJECTS})
 target_link_libraries(${LIBDE265_LIBRARY_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
-#find_package(Threads REQUIRED)
-#target_link_libraries(${LIBDE265_LIBRARY_NAME} Threads::Threads)
-
-if(NOT MSVC)
+check_library_exists(rt clock_gettime "time.h" NEED_LIBRT)
+if(NEED_LIBRT)
   target_link_libraries(${LIBDE265_LIBRARY_NAME} rt)
 endif()
 

@@ -3000,6 +3000,8 @@ int residual_coding(thread_context* tctx,
   uint8_t coded_sub_block_neighbors[32/4*32/4];
   memset(coded_sub_block_neighbors,0,sbWidth*sbWidth);
 
+  memset(tctx->subblock_coded[cIdx],0,8);
+
   int  c1 = 1;
   bool firstSubblock = true;           // for coeff_abs_level_greater1_flag context model
   int  lastSubblock_greater1Ctx=false; /* for coeff_abs_level_greater1_flag context model
@@ -3056,6 +3058,8 @@ int residual_coding(thread_context* tctx,
     if (sub_block_is_coded) {
       if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
+
+      tctx->subblock_coded[cIdx][S.x] |= (1<<S.y);
     }
 
 
@@ -3370,6 +3374,22 @@ int residual_coding(thread_context* tctx,
 
     }  // if nonZero
   }  // next sub-block
+
+
+#if 0
+  if (tctx->maxCoeffColumn[cIdx] >= 19 ||
+      tctx->maxCoeffRow[cIdx] >= 19) {
+    if (sbWidth == 32/4) {
+      printf("---\n");
+      for (int y=0;y<sbWidth;y++) {
+        for (int x=0;x<sbWidth;x++) {
+          printf("%d ", coded_sub_block[x+y*sbWidth]);
+        }
+        printf("\n");
+      }
+    }
+  }
+#endif
 
   return DE265_OK;
 }
