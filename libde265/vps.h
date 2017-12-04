@@ -147,7 +147,7 @@ public:
   uint8_t vps_max_layer_id;   // max value for nuh_layer_id in NALs
   int     vps_num_layer_sets; // [1;1024], currently always 1
 
-  std::vector<std::vector<bool> > layer_id_included_flag; // max size = [1024][64]
+  std::vector<std::vector<char> > layer_id_included_flag; // max size = [1024][64]
 
 
   // --- timing info ---
