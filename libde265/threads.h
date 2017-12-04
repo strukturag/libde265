@@ -37,6 +37,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <atomic>
 
 #ifndef _WIN32
 #  include <pthread.h>
@@ -88,12 +89,13 @@ void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m);
 //bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs);
 void de265_cond_signal(de265_cond_primitive* c);
 
-typedef volatile long de265_sync_int;
+typedef std::atomic<int> de265_sync_int;
 
-inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n)
+inline int de265_sync_sub_and_fetch(std::atomic<int>* cnt, int n)
 {
 #ifdef _WIN64
-  return _InterlockedAdd(cnt, -n);
+//  return _InterlockedAdd(cnt, -n);
+  return std::atomic_fetch_sub(cnt,n)-n;
 #elif _WIN32
   return _InterlockedExchangeAdd(cnt, -n) - n;
 #else
@@ -101,10 +103,11 @@ inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n)
 #endif
 }
 
-inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n)
+inline int de265_sync_add_and_fetch(std::atomic<int>* cnt, int n)
 {
 #ifdef _WIN64
-  return _InterlockedAdd(cnt, n);
+//  return _InterlockedAdd(cnt, n);
+  return std::atomic_fetch_add(cnt,n)+n;
 #elif _WIN32
   return _InterlockedExchangeAdd(cnt, n) + n;
 #else
