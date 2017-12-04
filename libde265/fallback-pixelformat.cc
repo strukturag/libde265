@@ -24,12 +24,12 @@
 #include <stdio.h>
 
 
-void pixel_format_interleaved_to_planes_32bit_fallback(const uint8_t* __restrict__ input,
+void pixel_format_interleaved_to_planes_32bit_fallback(const uint8_t* __restrict input,
                                                        int bytes_per_line,
-                                                       uint8_t* __restrict__ plane0, int stride0,
-                                                       uint8_t* __restrict__ plane1, int stride1,
-                                                       uint8_t* __restrict__ plane2, int stride2,
-                                                       uint8_t* __restrict__ plane3, int stride3,
+                                                       uint8_t* __restrict plane0, int stride0,
+                                                       uint8_t* __restrict plane1, int stride1,
+                                                       uint8_t* __restrict plane2, int stride2,
+                                                       uint8_t* __restrict plane3, int stride3,
                                                        int width, int height)
 {
   if (plane3 == nullptr) {
