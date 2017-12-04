@@ -652,9 +652,6 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
   // 6.5.2 Z-scan order array initialization process
 
-  printf("PicWidthInTbsY: %d\n",sps->PicWidthInTbsY);
-  printf("CtbSize: %d MinTrafoSize: %d\n",sps->Log2CtbSizeY,sps->Log2MinTrafoSize);
-
   for (int y=0;y<sps->PicHeightInTbsY;y++)
     for (int x=0;x<sps->PicWidthInTbsY;x++)
       {
