@@ -310,6 +310,3 @@ void   add_task(thread_pool* pool, thread_task* task)
   }
   de265_mutex_unlock(&pool->mutex);
 }
-
-extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);
-extern inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n);
