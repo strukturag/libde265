@@ -479,7 +479,3 @@ void thread_pool::debug_list_tasks() const
   printf("thread pool task list end\n");
 #endif
 }
-
-
-extern inline int de265_sync_sub_and_fetch(de265_sync_int* cnt, int n);
-extern inline int de265_sync_add_and_fetch(de265_sync_int* cnt, int n);

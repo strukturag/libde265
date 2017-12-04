@@ -161,12 +161,12 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 
 
 
-ALIGNED_8(static de265_sync_int de265_init_count) = 0;
+static std::atomic<int> de265_init_count;
 
 LIBDE265_API de265_error de265_init()
 {
-  int cnt = de265_sync_add_and_fetch(&de265_init_count,1);
-  if (cnt>1) {
+  int cnt = std::atomic_fetch_add(&de265_init_count,1);
+  if (cnt>0) {
     // we are not the first -> already initialized
 
     return DE265_OK;
@@ -181,8 +181,8 @@ LIBDE265_API de265_error de265_init()
 
   err = alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   if (err) {
-    de265_sync_sub_and_fetch(&de265_init_count,1);
-    return err;
+    std::atomic_fetch_sub(&de265_init_count,1);
+    return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
   }
 
   return DE265_OK;
@@ -190,13 +190,13 @@ LIBDE265_API de265_error de265_init()
 
 LIBDE265_API de265_error de265_free()
 {
-  int cnt = de265_sync_sub_and_fetch(&de265_init_count,1);
-  if (cnt<0) {
-    de265_sync_add_and_fetch(&de265_init_count,1);
+  int cnt = std::atomic_fetch_sub(&de265_init_count,1);
+  if (cnt<=0) {
+    std::atomic_fetch_add(&de265_init_count,1);
     return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
   }
 
-  if (cnt==0) {
+  if (cnt==1) {
     free_significant_coeff_ctxIdx_lookupTable();
   }
 

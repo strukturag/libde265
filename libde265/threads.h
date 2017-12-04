@@ -50,18 +50,11 @@ typedef pthread_mutex_t  de265_mutex_primitive;
 typedef pthread_cond_t   de265_cond_primitive;
 
 #else // _WIN32
-#  include <windows.h>
-#  include "../extra/win32cond.h"
-#  if _MSC_VER > 1310
-#    include <intrin.h>
-#  else
-extern "C"
-{
-   LONG  __cdecl _InterlockedExchangeAdd(long volatile *Addend, LONG Value);
-}
-#    pragma intrinsic (_InterlockedExchangeAdd)
-#    define InterlockedExchangeAdd _InterlockedExchangeAdd
-#  endif
+#include <windows.h>
+#include "../extra/win32cond.h"
+#if _MSC_VER > 1310
+#include <intrin.h>
+#endif
 
 #define THREAD_RESULT       DWORD WINAPI
 #define THREAD_PARAM        LPVOID
@@ -88,32 +81,6 @@ void de265_cond_broadcast(de265_cond_primitive* c, de265_mutex_primitive* m);
 void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m);
 //bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs);
 void de265_cond_signal(de265_cond_primitive* c);
-
-typedef std::atomic<int> de265_sync_int;
-
-inline int de265_sync_sub_and_fetch(std::atomic<int>* cnt, int n)
-{
-#ifdef _WIN64
-//  return _InterlockedAdd(cnt, -n);
-  return std::atomic_fetch_sub(cnt,n)-n;
-#elif _WIN32
-  return _InterlockedExchangeAdd(cnt, -n) - n;
-#else
-  return __sync_sub_and_fetch(cnt, n);
-#endif
-}
-
-inline int de265_sync_add_and_fetch(std::atomic<int>* cnt, int n)
-{
-#ifdef _WIN64
-//  return _InterlockedAdd(cnt, n);
-  return std::atomic_fetch_add(cnt,n)+n;
-#elif _WIN32
-  return _InterlockedExchangeAdd(cnt, n) + n;
-#else
-  return __sync_add_and_fetch(cnt, n);
-#endif
-}
 
 
 class de265_mutex
