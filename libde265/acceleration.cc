@@ -59,13 +59,13 @@ void acceleration_functions::init(int cpu_capabilities, int inexact_decoding_fla
 
 #ifdef HAVE_NEON
   if (cpu_capabilities & de265_CPU_capability_ARM_NEON) {
-    init_acceleration_functions_neon(this);
+    init_acceleration_functions_neon(this, inexact_decoding_flags);
   }
 #endif
 
 #ifdef HAVE_AARCH64
   if (cpu_capabilities & de265_CPU_capability_ARM_AARCH64) {
-    init_acceleration_functions_aarch64(this);
+    init_acceleration_functions_aarch64(this, inexact_decoding_flags);
   }
 #endif
 }
