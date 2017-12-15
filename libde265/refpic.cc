@@ -322,7 +322,9 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     int num_positive_pics = get_uvlc(br);
 
     // total number of reference pictures may not exceed buffer capacity
-    if (num_negative_pics + num_positive_pics >
+    if (num_negative_pics < 0 ||
+        num_positive_pics < 0 ||
+        num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
 
       NumNegativePics = 0;
