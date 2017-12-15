@@ -186,8 +186,8 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
       vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
       vps_num_hrd_parameters     = get_uvlc(reader);
 
-      if (vps_num_hrd_parameters >= 1024) {
-        assert(false); // TODO: return bitstream error
+      if (vps_num_hrd_parameters < 0 || vps_num_hrd_parameters >= 1024) {
+        return DE265_WARNING_INVALID_VPS_PARAMETER;
       }
 
       hrd_layer_set_idx .resize(vps_num_hrd_parameters);
