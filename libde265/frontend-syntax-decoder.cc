@@ -465,7 +465,7 @@ de265_error frontend_syntax_decoder::on_NAL_inserted()
 
   de265_error err = DE265_OK;
 
-  while (nal_parser.get_NAL_queue_length() > 0) {
+  while (nal_parser.get_NAL_queue_length() > 0 && err == DE265_OK) {
     NAL_unit_ptr nal = nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = decode_NAL(nal);
