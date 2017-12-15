@@ -104,7 +104,7 @@ void frame_dropper_ratio::send_image_unit(image_unit_ptr imgunit)
   item.in_dpb = true;
 
   m_image_queue.push_back(item);
-  Log("-------------------- %d\n",m_image_queue.size());
+  Log("-------------------- %zu\n",m_image_queue.size());
 
   slice_unit* sunit = imgunit->get_next_unprocessed_slice_segment();
   if (sunit) {
