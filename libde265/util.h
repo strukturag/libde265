@@ -214,7 +214,9 @@ class error_queue
  public:
   error_queue();
 
-  void add_warning(de265_error warning, bool once=false) { add_warning(warning, once); }
+  void add_warning(de265_error warning, bool once=false) {
+    add_warning(warning, de265_get_error_text(warning), once);
+  }
   void add_warning(de265_error warning, const char* message, bool once=false);
 
   bool empty() const { return warnings.empty(); }
