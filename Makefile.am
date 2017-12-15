@@ -4,17 +4,20 @@ SUBDIRS = libde265
 
 ACLOCAL_AMFLAGS = -I m4
 
+if !ENABLE_LIBFUZZER
 if ENABLE_DEC265
 SUBDIRS+=dec265
 endif
 
 SUBDIRS+=enc265
-SUBDIRS+=tools
 SUBDIRS+=acceleration-speed
 
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
 endif
+endif
+
+SUBDIRS+=tools
 
 EXTRA_DIST = .travis.yml \
   autogen.sh \
