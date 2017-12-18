@@ -14,7 +14,7 @@ if ENABLE_NEON_OPT
 
 noinst_LTLIBRARIES += libde265_arm_neon.la
 libde265_arm_la_LIBADD += libde265_arm_neon.la
-libde265_arm_neon_la_CXXFLAGS = -I.. $(CFLAG_VISIBILITY)
+libde265_arm_neon_la_CXXFLAGS = -I.. $(CFLAG_VISIBILITY) $(NEON_COMPILER_OPTION)
 
 #if ENABLE_ARM_THUMB
 #	libde265_arm_neon_la_CCASFLAGS += -DCONFIG_THUMB
