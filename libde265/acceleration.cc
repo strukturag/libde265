@@ -59,7 +59,7 @@ void acceleration_functions::init(int cpu_capabilities, int inexact_decoding_fla
 
 #ifdef HAVE_NEON
   if (cpu_capabilities & de265_CPU_capability_ARM_NEON) {
-    init_acceleration_functions_neon(this, inexact_decoding_flags);
+    init_acceleration_functions_neon(this);
   }
 #endif
 
