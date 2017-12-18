@@ -244,6 +244,8 @@ if [[ $enable_arm == yes ]] ; then
       enable_aarch64=yes
     ;;
   esac
+
+  AC_SUBST(NEON_COMPILER_OPTION)
 fi
 
 
