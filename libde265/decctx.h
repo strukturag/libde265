@@ -252,6 +252,9 @@ class decoder_context : public base_context,
 
   void set_max_frames_to_decode_in_parallel(int parallel_frames) {
     m_main_loop_mutex.lock();
+    if (parallel_frames <= 0) {
+      parallel_frames = 10;
+    }
     param_max_images_processed_in_parallel = parallel_frames;
     m_main_loop_mutex.unlock();
   }

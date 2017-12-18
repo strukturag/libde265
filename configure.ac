@@ -405,6 +405,16 @@ AM_CONDITIONAL([ENABLE_HDRCOPY], [test "x$enable_hdrcopy" != "xno"])
 AM_CONDITIONAL([ENABLE_ENC265], [test "x$enable_enc265" != "xno"])
 AM_CONDITIONAL([ENABLE_ACCELERATION_SPEED], [test "x$enable_acceleration_speed" != "xno"])
 
+AC_ARG_ENABLE([libfuzzer], AS_HELP_STRING([--enable-libfuzzer],
+    [Enable fuzzing with libFuzzer.]))
+if eval "test x$enable_libfuzzer = xyes"; then
+    AC_MSG_NOTICE([Enable libFuzzer])
+    LIBFUZZER_FLAGS="-fsanitize=fuzzer-no-link,address"
+    CFLAGS="$CFLAGS $LIBFUZZER_FLAGS"
+    CXXFLAGS="$CXXFLAGS $LIBFUZZER_FLAGS"
+fi
+AM_CONDITIONAL([ENABLE_LIBFUZZER], [test "x$enable_libfuzzer" = "xyes"])
+AC_SUBST(ENABLE_LIBFUZZER)
 
 # --- output configuration results ---
 

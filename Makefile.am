@@ -9,12 +9,13 @@ SUBDIRS+=dec265
 endif
 
 SUBDIRS+=enc265
-SUBDIRS+=tools
 SUBDIRS+=acceleration-speed
 
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
 endif
+
+SUBDIRS+=tools
 
 EXTRA_DIST = .travis.yml \
   autogen.sh \

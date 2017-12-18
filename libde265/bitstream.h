@@ -33,7 +33,6 @@
 
 
 #define MAX_UVLC_LEADING_ZEROS 20
-#define UVLC_ERROR -99999
 
 
 typedef struct {
@@ -55,8 +54,8 @@ void skip_bits(bitreader*, int n);
 void skip_bits_fast(bitreader*, int n);
 void skip_to_byte_boundary(bitreader*);
 void prepare_for_CABAC(bitreader*);
-int  get_uvlc(bitreader*);  // may return UVLC_ERROR
-int  get_svlc(bitreader*);  // may return UVLC_ERROR
+bool get_uvlc(bitreader*, int* value);
+bool get_svlc(bitreader*, int* value);
 
 bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 

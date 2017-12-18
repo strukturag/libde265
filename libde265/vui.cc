@@ -27,7 +27,7 @@
 #include <sstream>
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
-  if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
+  if (!get_ ## vlctype(br, &vlc)) {                  \
     return DE265_WARNING_INVALID_VUI_PARAMETER;      \
   } \
   variable = vlc + offset;
