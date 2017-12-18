@@ -215,8 +215,6 @@ AM_CONDITIONAL([ENABLE_SSE_OPT], [ [[ $enable_sse == yes ]] ])
 # CFLAGS+=$SIMD_FLAGS
 # CFLAGS+=" -march=x86-64"
 
-echo CPU $target_cpu
-
 AC_ARG_ENABLE(arm,
               [AS_HELP_STRING([--enable-arm],
                               [enable ARM optimizations (default=yes)])],[],[enable_arm=yes])
@@ -267,7 +265,7 @@ AC_ARG_ENABLE(logging,
                               [turn on logging (default=no)])],
   [enable_log_error=$enableval],
   [enable_log_error=no])
-if eval "test $enable_logging = yes"; then
+if eval "test x$enable_logging = xyes"; then
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_ERROR"
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_INFO"
   CXXFLAGS="$CXXFLAGS -DDE265_LOG_DEBUG"
@@ -419,6 +417,7 @@ AC_SUBST(ENABLE_LIBFUZZER)
 # --- output configuration results ---
 
 AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([Target CPU: $target_cpu])
 AC_MSG_NOTICE([Processor acceleration: $MSG_ACCELERATION_OPTION])
 AC_MSG_NOTICE([Building dec265 example: $enable_dec265])
 AC_MSG_NOTICE([Building sherlock265 example: $enable_sherlock265])
