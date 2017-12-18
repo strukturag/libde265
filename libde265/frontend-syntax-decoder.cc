@@ -263,6 +263,13 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     seq_parameter_set* sps = current_sps.get();
     decoded_picture_buffer& dpb = m_decctx->dpb;
 
+    int bit_depth_y = current_sps->get_bit_depth(0);
+    int bit_depth_c = current_sps->get_bit_depth(1);
+    if (bit_depth_y < 8 || bit_depth_y > 16 || bit_depth_c < 8 || bit_depth_c > 16) {
+      // TODO: Should we use a dedicated error code here?
+      return DE265_WARNING_INVALID_SPS_PARAMETER;
+    }
+
     int image_buffer_idx;
     image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
                                      &m_decctx->param_image_allocation_functions);
