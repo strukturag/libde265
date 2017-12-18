@@ -28,7 +28,7 @@
 #include <string.h>
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
-  if ((vlc = get_ ## vlctype(br)) == UVLC_ERROR) {   \
+  if (!get_ ## vlctype(br, &vlc)) {   \
     return DE265_WARNING_INVALID_SPS_PARAMETER; \
   } \
   variable = vlc + offset;
@@ -372,8 +372,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
     // sps_max_dec_pic_buffering[i]
 
-    vlc=get_uvlc(br);
-    if (vlc == UVLC_ERROR ||
+    if (!get_uvlc(br, &vlc) ||
         vlc+1 > MAX_NUM_REF_PICS) {
       return DE265_WARNING_INVALID_SPS_PARAMETER;
     }
@@ -1026,8 +1025,8 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
 
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
-        int scaling_list_pred_matrix_id_delta = get_uvlc(br);
-        if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
+        int scaling_list_pred_matrix_id_delta;
+        if (!get_uvlc(br, &scaling_list_pred_matrix_id_delta) ||
             scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_WARNING_INVALID_SPS_PARAMETER;
         }
@@ -1065,8 +1064,8 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
         int nextCoef=8;
         int coefNum = (sizeId==0 ? 16 : 64);
         if (sizeId>1) {
-          scaling_list_dc_coef = get_svlc(br);
-          if (scaling_list_dc_coef < -7 ||
+          if (!get_svlc(br, &scaling_list_dc_coef) ||
+              scaling_list_dc_coef < -7 ||
               scaling_list_dc_coef > 247) {
             return DE265_WARNING_INVALID_SPS_PARAMETER;
           }
@@ -1081,8 +1080,9 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
         //printf("DC = %d\n",scaling_list_dc_coef);
 
         for (int i=0;i<coefNum;i++) {
-          int scaling_list_delta_coef = get_svlc(br);
-          if (scaling_list_delta_coef < -128 ||
+          int scaling_list_delta_coef;
+          if (!get_svlc(br, &scaling_list_delta_coef) ||
+              scaling_list_delta_coef < -128 ||
               scaling_list_delta_coef >  127) {
             return DE265_WARNING_INVALID_SPS_PARAMETER;
           }

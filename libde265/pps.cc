@@ -53,8 +53,7 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
   int uvlc;
 
   if (pps->transform_skip_enabled_flag) {
-    uvlc = get_uvlc(br);
-    if (uvlc == UVLC_ERROR ||
+    if (!get_uvlc(br, &uvlc) ||
         uvlc+2 > sps->Log2MaxTrafoSize) {
 
       // Note: this is out of spec, but the conformance stream
@@ -80,17 +79,14 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
   }
 
   if (chroma_qp_offset_list_enabled_flag) {
-    uvlc = get_uvlc(br);
-    if (uvlc == UVLC_ERROR ||
+    if (!get_uvlc(br, &uvlc) ||
         uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
       return DE265_WARNING_INVALID_PPS_PARAMETER;
     }
 
     diff_cu_chroma_qp_offset_depth = uvlc;
 
-
-    uvlc = get_uvlc(br);
-    if (uvlc == UVLC_ERROR ||
+    if (!get_uvlc(br, &uvlc) ||
         uvlc > 5) {
       return DE265_WARNING_INVALID_PPS_PARAMETER;
     }
@@ -99,16 +95,14 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
 
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
       int svlc;
-      svlc = get_svlc(br);
-      if (svlc == UVLC_ERROR ||
+      if (!get_svlc(br, &svlc) ||
           svlc < -12 || svlc > 12) {
         return DE265_WARNING_INVALID_PPS_PARAMETER;
       }
 
       cb_qp_offset_list[i] = svlc;
 
-      svlc = get_svlc(br);
-      if (svlc == UVLC_ERROR ||
+      if (!get_svlc(br, &svlc) ||
           svlc < -12 || svlc > 12) {
         return DE265_WARNING_INVALID_PPS_PARAMETER;
       }
@@ -117,17 +111,14 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
     }
   }
 
-
-  uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR ||
+  if (!get_uvlc(br, &uvlc) ||
       uvlc > libde265_max(0, sps->BitDepth_Y-10)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
 
   log2_sao_offset_scale_luma = uvlc;
 
-  uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR ||
+  if (!get_uvlc(br, &uvlc) ||
       uvlc > libde265_max(0, sps->BitDepth_C-10)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
@@ -261,15 +252,20 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
 
   int uvlc;
-  pic_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_PPS_SETS ||
-      uvlc == UVLC_ERROR) {
+  if (!get_uvlc(br, &uvlc)) {
     return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
   }
 
-  seq_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_SPS_SETS ||
-      uvlc == UVLC_ERROR) {
+  pic_parameter_set_id = uvlc;
+  if (uvlc >= DE265_MAX_PPS_SETS) {
+    return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
+  }
+
+  if (!get_uvlc(br, &uvlc)) {
+    return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
+  }
+  seq_parameter_set_id = uvlc;
+  if (uvlc >= DE265_MAX_SPS_SETS) {
     return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
   }
 
@@ -284,20 +280,20 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
   num_extra_slice_header_bits = get_bits(br,3);
   sign_data_hiding_flag = get_bits(br,1);
   cabac_init_present_flag = get_bits(br,1);
-  num_ref_idx_l0_default_active = uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR) {
+  if (!get_uvlc(br, &uvlc)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
+  num_ref_idx_l0_default_active = uvlc;
   num_ref_idx_l0_default_active++;
 
-  num_ref_idx_l1_default_active = uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR) {
+  if (!get_uvlc(br, &uvlc)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
+  num_ref_idx_l1_default_active = uvlc;
   num_ref_idx_l1_default_active++;
 
 
-  if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
+  if (!get_svlc(br, &pic_init_qp)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
   pic_init_qp += 26;
@@ -307,18 +303,18 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
   cu_qp_delta_enabled_flag = get_bits(br,1);
 
   if (cu_qp_delta_enabled_flag) {
-    if ((diff_cu_qp_delta_depth = get_uvlc(br)) == UVLC_ERROR) {
+    if (!get_uvlc(br, &diff_cu_qp_delta_depth)) {
       return DE265_WARNING_INVALID_PPS_PARAMETER;
     }
   } else {
     diff_cu_qp_delta_depth = 0;
   }
 
-  if ((pic_cb_qp_offset = get_svlc(br)) == UVLC_ERROR) {
+  if (!get_svlc(br, &pic_cb_qp_offset)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
 
-  if ((pic_cr_qp_offset = get_svlc(br)) == UVLC_ERROR) {
+  if (!get_svlc(br, &pic_cr_qp_offset)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
 
@@ -333,15 +329,13 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
   // --- tiles ---
 
   if (tiles_enabled_flag) {
-    num_tile_columns = get_uvlc(br);
-    if (num_tile_columns == UVLC_ERROR ||
+    if (!get_uvlc(br, &num_tile_columns) ||
         num_tile_columns+1 > sps->PicWidthInCtbsY) {
       return DE265_WARNING_INVALID_PPS_PARAMETER;
     }
     num_tile_columns++;
 
-    num_tile_rows = get_uvlc(br);
-    if (num_tile_rows == UVLC_ERROR ||
+    if (!get_uvlc(br, &num_tile_rows) ||
         num_tile_rows+1 > sps->PicHeightInCtbsY) {
       return DE265_WARNING_INVALID_PPS_PARAMETER;
     }
@@ -358,8 +352,7 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
       for (int i=0; i<num_tile_columns-1; i++)
         {
-          colWidth[i] = get_uvlc(br);
-          if (colWidth[i] == UVLC_ERROR) {
+          if (!get_uvlc(br, &colWidth[i])) {
 	    return DE265_WARNING_INVALID_PPS_PARAMETER;
 	  }
           colWidth[i]++;
@@ -375,8 +368,7 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
       for (int i=0; i<num_tile_rows-1; i++)
         {
-          rowHeight[i] = get_uvlc(br);
-          if (rowHeight[i] == UVLC_ERROR) {
+          if (!get_uvlc(br, &rowHeight[i])) {
 	    return DE265_WARNING_INVALID_PPS_PARAMETER;
 	  }
           rowHeight[i]++;
@@ -419,14 +411,12 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
     deblocking_filter_override_enabled_flag = get_bits(br,1);
     pic_disable_deblocking_filter_flag = get_bits(br,1);
     if (!pic_disable_deblocking_filter_flag) {
-      beta_offset = get_svlc(br);
-      if (beta_offset == UVLC_ERROR) {
+      if (!get_svlc(br, &beta_offset)) {
 	return DE265_WARNING_INVALID_PPS_PARAMETER;
       }
       beta_offset *= 2;
 
-      tc_offset   = get_svlc(br);
-      if (tc_offset == UVLC_ERROR) {
+      if (!!get_svlc(br, &tc_offset)) {
 	return DE265_WARNING_INVALID_PPS_PARAMETER;
       }
       tc_offset   *= 2;
@@ -463,8 +453,7 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
 
   lists_modification_present_flag = get_bits(br,1);
-  log2_parallel_merge_level = get_uvlc(br);
-  if (log2_parallel_merge_level == UVLC_ERROR) {
+  if (!get_uvlc(br, &log2_parallel_merge_level)) {
     return DE265_WARNING_INVALID_PPS_PARAMETER;
   }
   log2_parallel_merge_level += 2;

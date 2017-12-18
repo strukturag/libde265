@@ -131,13 +131,9 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
   int firstLayerRead = vps_sub_layer_ordering_info_present_flag ? 0 : (vps_max_sub_layers-1);
 
   for (int i=firstLayerRead;i<vps_max_sub_layers;i++) {
-    layer[i].vps_max_dec_pic_buffering = get_uvlc(reader);
-    layer[i].vps_max_num_reorder_pics  = get_uvlc(reader);
-    layer[i].vps_max_latency_increase  = get_uvlc(reader);
-
-if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
-    layer[i].vps_max_num_reorder_pics  == UVLC_ERROR ||
-    layer[i].vps_max_latency_increase  == UVLC_ERROR) {
+    if (!get_uvlc(reader, &layer[i].vps_max_dec_pic_buffering) ||
+        !get_uvlc(reader, &layer[i].vps_max_num_reorder_pics) ||
+        !get_uvlc(reader, &layer[i].vps_max_latency_increase)) {
       return DE265_WARNING_INVALID_VPS_PARAMETER;
     }
   }
@@ -154,11 +150,9 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
 
 
   vps_max_layer_id = get_bits(reader,6);
-  vps_num_layer_sets = get_uvlc(reader);
-
-  if (vps_num_layer_sets+1<0 ||
-      vps_num_layer_sets+1>=1024 ||
-      vps_num_layer_sets == UVLC_ERROR) {
+  if (!get_uvlc(reader, &vps_num_layer_sets) ||
+      vps_num_layer_sets+1<0 ||
+      vps_num_layer_sets+1>=1024) {
     return DE265_WARNING_INVALID_VPS_PARAMETER;
   }
   vps_num_layer_sets += 1;
@@ -183,9 +177,13 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
     vps_poc_proportional_to_timing_flag = get_bits(reader,1);
 
     if (vps_poc_proportional_to_timing_flag) {
-      vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
-      vps_num_hrd_parameters     = get_uvlc(reader);
+      int vps_num_ticks_poc_diff;
+      if (!get_uvlc(reader, &vps_num_ticks_poc_diff) ||
+          !get_uvlc(reader, &vps_num_hrd_parameters)) {
+        return DE265_WARNING_INVALID_VPS_PARAMETER;
+      }
 
+      vps_num_ticks_poc_diff_one = vps_num_ticks_poc_diff + 1;
       if (vps_num_hrd_parameters < 0 || vps_num_hrd_parameters >= 1024) {
         return DE265_WARNING_INVALID_VPS_PARAMETER;
       }
@@ -194,8 +192,12 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
       cprms_present_flag.resize(vps_num_hrd_parameters);
 
       for (int i=0; i<vps_num_hrd_parameters; i++) {
-        hrd_layer_set_idx[i] = get_uvlc(reader);
+        int value;
+        if (!get_uvlc(reader, &value)) {
+          return DE265_WARNING_INVALID_VPS_PARAMETER;
+        }
 
+        hrd_layer_set_idx[i] = value;
         if (i > 0) {
           cprms_present_flag[i] = get_bits(reader,1);
         }

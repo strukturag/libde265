@@ -151,11 +151,15 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
   seq_parameter_set* sps = frontend.get_sps((int)pps->seq_parameter_set_id);
   assert(sps);
 
-  shdr->luma_log2_weight_denom = vlc = get_uvlc(br);
-  if (vlc<0 || vlc>7) return false;
+  if (!get_uvlc(br, &vlc) || vlc<0 || vlc>7) {
+    return false;
+  }
+  shdr->luma_log2_weight_denom = vlc;
 
   if (sps->chroma_format_idc != 0) {
-    vlc = get_svlc(br);
+    if (!get_svlc(br, &vlc)) {
+      return false;
+    }
     vlc += shdr->luma_log2_weight_denom;
     if (vlc<0 || vlc>7) return false;
     shdr->ChromaLog2WeightDenom = vlc;
@@ -185,15 +189,15 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
             // delta_luma_weight
 
-            int weight_diff = get_svlc(br);
-            if (weight_diff < -128 || weight_diff > 127) return false;
+            int weight_diff;
+            if (!get_svlc(br, &weight_diff) || weight_diff < -128 || weight_diff > 127) return false;
 
             shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + weight_diff;
 
             // luma_offset
 
-            int offset = get_svlc(br);
-            if (offset < -sps->WpOffsetHalfRangeY || offset > sps->WpOffsetHalfRangeY-1) return false;
+            int offset;
+            if (!get_svlc(br, &offset) || offset < -sps->WpOffsetHalfRangeY || offset > sps->WpOffsetHalfRangeY-1) return false;
             shdr->luma_offset[l][i] = offset;
 
             // optimization: if the weighting is actually ineffective, switch it off
@@ -210,15 +214,14 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             for (int j=0;j<2;j++) {
               // delta_chroma_weight
 
-              vlc = get_svlc(br);
-              if (vlc < -128 || vlc >  127) return false;
+              if (!get_svlc(br, &vlc) || vlc < -128 || vlc >  127) return false;
 
               shdr->ChromaWeight[l][i][j] = (1<<shdr->ChromaLog2WeightDenom) + vlc;
 
               // delta_chroma_offset
 
-              vlc = get_svlc(br);
-              if (vlc < -4*sps->WpOffsetHalfRangeC ||
+              if (!get_svlc(br, &vlc) ||
+                  vlc < -4*sps->WpOffsetHalfRangeC ||
                   vlc >  4*sps->WpOffsetHalfRangeC-1) return false;
 
               vlc = Clip3(-sps->WpOffsetHalfRangeC,
@@ -386,9 +389,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     no_output_of_prior_pics_flag = get_bits(br,1);
   }
 
-  slice_pic_parameter_set_id = get_uvlc(br);
-  if (slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
-      slice_pic_parameter_set_id == UVLC_ERROR) {
+  if (!get_uvlc(br, &slice_pic_parameter_set_id) ||
+      slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
     return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
   }
 
@@ -454,9 +456,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       skip_bits(br,1);
     }
 
-    slice_type = get_uvlc(br);
-    if (slice_type > 2 ||
-	slice_type == UVLC_ERROR) {
+    if (!get_uvlc(br, &slice_type) ||
+        slice_type > 2) {
       return DE265_WARNING_SLICEHEADER_INVALID;
     }
 
@@ -513,8 +514,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
-          num_long_term_sps = get_uvlc(br);
-          if (num_long_term_sps == UVLC_ERROR) {
+          if (!get_uvlc(br, &num_long_term_sps)) {
             return DE265_WARNING_INVALID_SLICE_PARAMETER;
           }
         }
@@ -522,8 +522,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           num_long_term_sps = 0;
         }
 
-        num_long_term_pics= get_uvlc(br);
-        if (num_long_term_pics == UVLC_ERROR) {
+        if (!get_uvlc(br, &num_long_term_pics)) {
           return DE265_WARNING_INVALID_SLICE_PARAMETER;
         }
 
@@ -569,8 +568,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
           delta_poc_msb_present_flag[i] = get_bits(br,1);
           if (delta_poc_msb_present_flag[i]) {
-            delta_poc_msb_cycle_lt[i] = get_uvlc(br);
-            if (delta_poc_msb_cycle_lt[i]==UVLC_ERROR) {
+            if (!get_uvlc(br, &delta_poc_msb_cycle_lt[i])) {
               return DE265_WARNING_INVALID_SLICE_PARAMETER;
             }
           }
@@ -630,15 +628,13 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         slice_type == SLICE_TYPE_B) {
       num_ref_idx_active_override_flag = get_bits(br,1);
       if (num_ref_idx_active_override_flag) {
-        num_ref_idx_l0_active = get_uvlc(br);
-        if (num_ref_idx_l0_active == UVLC_ERROR) {
+        if (!get_uvlc(br, &num_ref_idx_l0_active)) {
 	  return DE265_WARNING_INVALID_SLICE_PARAMETER;
 	}
         num_ref_idx_l0_active++;;
 
         if (slice_type == SLICE_TYPE_B) {
-          num_ref_idx_l1_active = get_uvlc(br);
-          if (num_ref_idx_l1_active == UVLC_ERROR) {
+          if (!get_uvlc(br, &num_ref_idx_l1_active)) {
 	    return DE265_WARNING_INVALID_SLICE_PARAMETER;
 	  }
           num_ref_idx_l1_active++;
@@ -701,8 +697,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
         if (( collocated_from_l0_flag && num_ref_idx_l0_active > 1) ||
             (!collocated_from_l0_flag && num_ref_idx_l1_active > 1)) {
-          collocated_ref_idx = get_uvlc(br);
-          if (collocated_ref_idx == UVLC_ERROR) {
+          if (!get_uvlc(br, &collocated_ref_idx)) {
 	    return DE265_WARNING_INVALID_SLICE_PARAMETER;
 	  }
         }
@@ -727,27 +722,23 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         }
       }
 
-      five_minus_max_num_merge_cand = get_uvlc(br);
-      if (five_minus_max_num_merge_cand == UVLC_ERROR) {
+      if (!get_uvlc(br, &five_minus_max_num_merge_cand)) {
         return DE265_WARNING_INVALID_SLICE_PARAMETER;
       }
       MaxNumMergeCand = 5-five_minus_max_num_merge_cand;
     }
 
-    slice_qp_delta = get_svlc(br);
-    if (slice_qp_delta == UVLC_ERROR) {
+    if (!get_svlc(br, &slice_qp_delta)) {
       return DE265_WARNING_INVALID_SLICE_PARAMETER;
     }
     //logtrace(LogSlice,"slice_qp_delta: %d\n",shdr->slice_qp_delta);
 
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
-      slice_cb_qp_offset = get_svlc(br);
-      if (slice_cb_qp_offset == UVLC_ERROR) {
+      if (!get_svlc(br, &slice_cb_qp_offset)) {
         return DE265_WARNING_INVALID_SLICE_PARAMETER;
       }
 
-      slice_cr_qp_offset = get_svlc(br);
-      if (slice_cr_qp_offset == UVLC_ERROR) {
+      if (!get_svlc(br, &slice_cr_qp_offset)) {
         return DE265_WARNING_INVALID_SLICE_PARAMETER;
       }
     }
@@ -773,14 +764,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     if (deblocking_filter_override_flag) {
       slice_deblocking_filter_disabled_flag = get_bits(br,1);
       if (!slice_deblocking_filter_disabled_flag) {
-        slice_beta_offset = get_svlc(br);
-        if (slice_beta_offset == UVLC_ERROR) {
+        if (!get_svlc(br, &slice_beta_offset)) {
           return DE265_WARNING_INVALID_SLICE_PARAMETER;
 	}
         slice_beta_offset *= 2;
 
-        slice_tc_offset   = get_svlc(br);
-        if (slice_tc_offset == UVLC_ERROR) {
+        if (!get_svlc(br, &slice_tc_offset)) {
           return DE265_WARNING_INVALID_SLICE_PARAMETER;
 	}
         slice_tc_offset   *= 2;
@@ -802,8 +791,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
-    num_entry_point_offsets = get_uvlc(br);
-    if (num_entry_point_offsets == UVLC_ERROR) {
+    if (!get_uvlc(br, &num_entry_point_offsets)) {
       return DE265_WARNING_INVALID_SLICE_PARAMETER;
     }
 
@@ -826,8 +814,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     entry_point_offset.resize( num_entry_point_offsets );
 
     if (num_entry_point_offsets > 0) {
-      offset_len = get_uvlc(br);
-      if (offset_len == UVLC_ERROR) {
+      if (!get_uvlc(br, &offset_len)) {
         return DE265_WARNING_INVALID_SLICE_PARAMETER;
       }
       offset_len++;
@@ -852,8 +839,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (pps->slice_segment_header_extension_present_flag) {
-    slice_segment_header_extension_length = get_uvlc(br);
-    if (slice_segment_header_extension_length == UVLC_ERROR ||
+    if (!get_uvlc(br, &slice_segment_header_extension_length) ||
 	slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
       return DE265_WARNING_INVALID_SLICE_PARAMETER;
     }

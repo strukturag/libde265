@@ -129,35 +129,41 @@ void prepare_for_CABAC(bitreader* br)
   br->nextbits_cnt = 0;
 }
 
-int  get_uvlc(bitreader* br)
+bool get_uvlc(bitreader* br, int* value)
 {
   int num_zeros=0;
 
   while (get_bits(br,1)==0) {
     num_zeros++;
 
-    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return UVLC_ERROR; }
+    if (num_zeros > MAX_UVLC_LEADING_ZEROS) { return false; }
   }
 
   int offset = 0;
   if (num_zeros != 0) {
     offset = get_bits(br, num_zeros);
-    int value = offset + (1<<num_zeros)-1;
-    assert(value>0);
-    return value;
+    *value = offset + (1<<num_zeros)-1;
+    assert(*value>0);
+    return true;
   } else {
-    return 0;
+    *value = 0;
+    return true;
   }
 }
 
-int  get_svlc(bitreader* br)
+bool get_svlc(bitreader* br, int* value)
 {
-  int v = get_uvlc(br);
-  if (v==0) return v;
-  if (v==UVLC_ERROR) return UVLC_ERROR;
+  int v;
+  if (!get_uvlc(br, &v)) {
+    return false;
+  } else if (v == 0) {
+    *value = v;
+    return true;
+  }
 
   bool negative = ((v&1)==0);
-  return negative ? -v/2 : (v+1)/2;
+  *value = negative ? -v/2 : (v+1)/2;
+  return true;
 }
 
 bool check_rbsp_trailing_bits(bitreader* br)

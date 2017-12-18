@@ -156,15 +156,12 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 
 
   if (inter_ref_pic_set_prediction_flag) {
-    int vlc;
-
     /* Only for the last ref_pic_set (that's the one coded in the slice header),
        we can specify relative to which reference set we code the set. */
 
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
-      delta_idx = vlc = get_uvlc(br);
-      if (delta_idx==UVLC_ERROR) {
+      if (!get_uvlc(br, &delta_idx)) {
         return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
       }
 
@@ -181,8 +178,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     assert(RIdx>=0);
 
     int delta_rps_sign = get_bits(br,1);
-    int abs_delta_rps  = vlc = get_uvlc(br);
-    if (vlc==UVLC_ERROR) {
+    int abs_delta_rps;
+    if (!get_uvlc(br, &abs_delta_rps)) {
       return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
     }
     abs_delta_rps++;
@@ -318,12 +315,12 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 
     // --- first, read the number of past and future frames in this set ---
 
-    int num_negative_pics = get_uvlc(br);
-    int num_positive_pics = get_uvlc(br);
+    int num_negative_pics;
+    int num_positive_pics;
 
     // total number of reference pictures may not exceed buffer capacity
-    if (num_negative_pics < 0 ||
-        num_positive_pics < 0 ||
+    if (!get_uvlc(br, &num_negative_pics) ||
+        !get_uvlc(br, &num_positive_pics) ||
         num_negative_pics + num_positive_pics >
         sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
 
@@ -351,8 +348,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 
     int lastPocS=0;
     for (int i=0;i<num_negative_pics;i++) {
-      int  delta_poc_s0 = get_uvlc(br);
-      if (delta_poc_s0==UVLC_ERROR) {
+      int  delta_poc_s0;
+      if (!get_uvlc(br, &delta_poc_s0)) {
           return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
       }
 
@@ -368,8 +365,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 
     lastPocS=0;
     for (int i=0;i<num_positive_pics;i++) {
-      int  delta_poc_s1 = get_uvlc(br);
-      if (delta_poc_s1==UVLC_ERROR) {
+      int delta_poc_s1;
+      if (!get_uvlc(br, &delta_poc_s1)) {
         return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
       }
 
