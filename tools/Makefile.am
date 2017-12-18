@@ -1,8 +1,6 @@
 
-bin_PROGRAMS =
-if !ENABLE_LIBFUZZER
-bin_PROGRAMS += gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
-else
+bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
+if ENABLE_LIBFUZZER
 bin_PROGRAMS += fuzzer
 endif
 
@@ -49,10 +47,8 @@ bjoentegaard_LDFLAGS =
 bjoentegaard_LDADD = ../libde265/libde265.la -lstdc++
 bjoentegaard_SOURCES = bjoentegaard.cc
 
-if ENABLE_LIBFUZZER
 fuzzer_DEPENDENCIES =
 fuzzer_CXXFLAGS =
-fuzzer_LDFLAGS =
+fuzzer_LDFLAGS = -fsanitize=fuzzer
 fuzzer_LDADD = ../libde265/libde265.la
 fuzzer_SOURCES = fuzzer.cc
-endif
