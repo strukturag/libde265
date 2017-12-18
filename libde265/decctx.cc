@@ -47,7 +47,7 @@
 #include "x86/sse.h"
 #endif
 
-#ifdef HAVE_AARCH64
+#if defined(HAVE_AARCH64) || defined(HAVE_NEON)
 #include "arm/arm.h"
 #endif
 
