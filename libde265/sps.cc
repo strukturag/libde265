@@ -536,6 +536,10 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   de265_error err = compute_all_derived_values();
   if (err != DE265_OK) { return err; }
 
+  if (!check_parameters_for_consistency()) {
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
+  }
+
   sps_read = true;
 
   return DE265_OK;
