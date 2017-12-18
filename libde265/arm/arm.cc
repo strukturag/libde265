@@ -22,12 +22,18 @@
 #include "config.h"
 #endif
 
+#if HAVE_NEON
 #include "arm.h"
 #include "arm-motion.h"
 #include "arm-dct.h"
+#endif
+
+#include "fallback-motion.h"
+
 #include "libde265/de265.h"
 
 #include <stdio.h>
+
 
 // TODO: on linux, use getauxval(AT_HWCAP);
 static bool detect_neon()
@@ -43,7 +49,7 @@ void init_acceleration_functions_neon(struct acceleration_functions* accel)
 #endif
 }
 
-#include "fallback-motion.h"
+
 void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
                                          int inexact_decoding_flags)
 {
@@ -51,6 +57,7 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   //printf("aarch64\n");
 #endif
 
+#if HAVE_NEON
   accel->put_unweighted_pred_8   = put_pred_8_neon;
   accel->put_weighted_pred_avg_8 = put_bipred_8_neon;
 
@@ -102,4 +109,5 @@ void init_acceleration_functions_aarch64(struct acceleration_functions* accel,
   accel->transform_add_8[1] = idct_8x8_add_8_neon;
   accel->transform_add_8[2] = idct_16x16_add_8_neon;
   accel->transform_add_8[3] = idct_32x32_add_8_neon;
+#endif
 }
