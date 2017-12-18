@@ -53,7 +53,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     action = de265_get_action(ctx, true);
     if (action & de265_action_get_image) {
       const struct de265_image* image = de265_get_next_picture(ctx);
-      de265_release_picture(image);
+      // TODO(jojo): There should always be an image ready if the flag
+      // "de265_action_get_image" is set.
+      if (image) {
+        de265_release_picture(image);
+      }
     }
   } while ((action & kFinishedActions) == 0);
   de265_free_decoder(ctx);
