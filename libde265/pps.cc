@@ -416,7 +416,7 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
       }
       beta_offset *= 2;
 
-      if (!!get_svlc(br, &tc_offset)) {
+      if (!get_svlc(br, &tc_offset)) {
 	return DE265_WARNING_INVALID_PPS_PARAMETER;
       }
       tc_offset   *= 2;
