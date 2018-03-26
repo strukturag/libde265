@@ -38,6 +38,10 @@
 
 static int8_t interleaved_to_planar_mask[16] = { 0,4,8,12, 1,5,9,13, 2,6,10,14, 3,7,11,15 };
 
+#ifdef _MSC_VER
+#define __restrict__
+#endif
+
 void pixel_format_interleaved_to_planes_32bit_sse(const uint8_t* __restrict__ input,
                                                   int bytes_per_line,
                                                   uint8_t* __restrict__ plane0, int stride0,
