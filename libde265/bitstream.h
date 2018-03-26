@@ -45,8 +45,8 @@ typedef struct {
 
 void bitreader_init(bitreader*, unsigned char* buffer, int len);
 void bitreader_refill(bitreader*); // refill to at least 56+1 bits
-int  next_bit(bitreader*);
-int  next_bit_norefill(bitreader*);
+//int  next_bit(bitreader*);
+//int  next_bit_norefill(bitreader*);
 int  get_bits(bitreader*, int n);
 int  get_bits_fast(bitreader*, int n);
 int  peek_bits(bitreader*, int n);
