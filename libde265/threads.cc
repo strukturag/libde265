@@ -90,28 +90,15 @@ int  de265_thread_create(de265_thread_primitive* t, LPTHREAD_START_ROUTINE start
 }
 void de265_thread_join(de265_thread_primitive t) { WaitForSingleObject(t, INFINITE); }
 void de265_thread_destroy(de265_thread_primitive* t) { CloseHandle(*t); *t = NULL; }
-void de265_mutex_init(de265_mutex_primitive* m) { *m = CreateMutex(NULL, FALSE, NULL); }
-void de265_mutex_destroy(de265_mutex_primitive* m) { CloseHandle(*m); }
-void de265_mutex_lock(de265_mutex_primitive* m) { WaitForSingleObject(*m, INFINITE); }
-void de265_mutex_unlock(de265_mutex_primitive* m) { ReleaseMutex(*m); }
-void de265_cond_init(de265_cond_primitive* c) { win32_cond_init(c); }
-void de265_cond_destroy(de265_cond_primitive* c) { win32_cond_destroy(c); }
-void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m)
-{
-  // TODO: why do we lock the mutex here? The mutex should already be locked outside...
-  de265_mutex_lock(m);
-  win32_cond_broadcast(c);
-  de265_mutex_unlock(m);
-}
-void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { win32_cond_wait(c,m); }
-#if 0
-bool de265_cond_timedwait(de265_cond_primitive* c,de265_mutex_primitive* m, int msecs) {
-  // TODO: we have no cond_timedwait for windows yet. Fall back to the non-timeout version.
-  win32_cond_wait(c,m);
-  return false;
-}
-#endif
-void de265_cond_signal(de265_cond_primitive* c) { win32_cond_signal(c); }
+void de265_mutex_init(de265_mutex_primitive* m) { InitializeCriticalSection(m); }
+void de265_mutex_destroy(de265_mutex_primitive* m) { DeleteCriticalSection(m); }
+void de265_mutex_lock(de265_mutex_primitive* m) { EnterCriticalSection(m); }
+void de265_mutex_unlock(de265_mutex_primitive* m) { LeaveCriticalSection(m); }
+void de265_cond_init(de265_cond_primitive* c) { InitializeConditionVariable(c); }
+void de265_cond_destroy(de265_cond_primitive* c) { }
+void de265_cond_broadcast(de265_cond_primitive* c,de265_mutex_primitive* m) { WakeAllConditionVariable(c); }
+void de265_cond_wait(de265_cond_primitive* c,de265_mutex_primitive* m) { SleepConditionVariableCS(c,m,INFINITE); }
+void de265_cond_signal(de265_cond_primitive* c) { WakeConditionVariable(c); }
 #endif // _WIN32
 
 

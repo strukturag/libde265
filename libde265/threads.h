@@ -60,8 +60,8 @@ typedef pthread_cond_t   de265_cond_primitive;
 #define THREAD_PARAM        LPVOID
 
 typedef HANDLE              de265_thread_primitive;
-typedef HANDLE              de265_mutex_primitive;
-typedef win32_cond_t        de265_cond_primitive;
+typedef CRITICAL_SECTION    de265_mutex_primitive;
+typedef CONDITION_VARIABLE  de265_cond_primitive;
 #endif  // _WIN32
 
 #ifndef _WIN32
