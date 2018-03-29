@@ -51,7 +51,6 @@ typedef pthread_cond_t   de265_cond_primitive;
 
 #else // _WIN32
 #include <windows.h>
-#include "../extra/win32cond.h"
 #if _MSC_VER > 1310
 #include <intrin.h>
 #endif
