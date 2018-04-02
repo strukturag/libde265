@@ -1580,14 +1580,17 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     }
 
     RefPicSetLtCurr[i] = k; // -1 == "no reference picture"
-    if (k>=0) picInAnyList[k]=true;
+    if (k>=0 && k<picInAnyList.size()) picInAnyList[k]=true;
     else {
       // TODO, CHECK: is it ok that we generate a picture with POC = LSB (PocLtCurr)
       // We do not know the correct MSB
       int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
                                                                     PocLtCurr[i], true);
       RefPicSetLtCurr[i] = k = concealedPicture;
-      picInAnyList[concealedPicture]=true;
+
+      if (concealedPicture < picInAnyList.size()) {
+        picInAnyList[concealedPicture]=true;
+      }
     }
 
     if (dpb.get_image(k)->integrity != INTEGRITY_CORRECT) {
@@ -1606,12 +1609,15 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     }
 
     RefPicSetLtFoll[i] = k; // -1 == "no reference picture"
-    if (k>=0) picInAnyList[k]=true;
+    if (k>=0 && k<picInAnyList.size()) picInAnyList[k]=true;
     else {
       int concealedPicture = k = generate_unavailable_reference_picture(current_sps.get(),
                                                                         PocLtFoll[i], true);
       RefPicSetLtFoll[i] = concealedPicture;
-      picInAnyList[concealedPicture]=true;
+
+      if (concealedPicture < picInAnyList.size()) {
+        picInAnyList[concealedPicture]=true;
+      }
     }
   }
 
@@ -1635,15 +1641,15 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     //printf("st curr before, poc=%d -> idx=%d\n",PocStCurrBefore[i], k);
 
     RefPicSetStCurrBefore[i] = k; // -1 == "no reference picture"
-    if (k>=0) picInAnyList[k]=true;
+    if (k>=0 && k<picInAnyList.size()) picInAnyList[k]=true;
     else {
       int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
                                                                     PocStCurrBefore[i], false);
       RefPicSetStCurrBefore[i] = k = concealedPicture;
 
-	  if (concealedPicture < picInAnyList.size()) {
-		  picInAnyList[concealedPicture] = true;
-	  }
+      if (concealedPicture < picInAnyList.size()) {
+        picInAnyList[concealedPicture] = true;
+      }
 
       //printf("  concealed: %d\n", concealedPicture);
     }
@@ -1659,12 +1665,15 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     //printf("st curr after, poc=%d -> idx=%d\n",PocStCurrAfter[i], k);
 
     RefPicSetStCurrAfter[i] = k; // -1 == "no reference picture"
-    if (k>=0) picInAnyList[k]=true;
+    if (k>=0 && k<picInAnyList.size()) picInAnyList[k]=true;
     else {
       int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
                                                                     PocStCurrAfter[i], false);
       RefPicSetStCurrAfter[i] = k = concealedPicture;
-      picInAnyList[concealedPicture]=true;
+
+      if (concealedPicture < picInAnyList.size()) {
+        picInAnyList[concealedPicture]=true;
+      }
 
       //printf("  concealed: %d\n", concealedPicture);
     }
@@ -1674,12 +1683,12 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
     }
   }
 
-  for (int i=0;i<NumPocStFoll;i++) {
+  for (int i=0;i<NumPocStFoll && i<MAX_NUM_REF_PICS;i++) {
     int k = dpb.DPB_index_of_picture_with_POC(PocStFoll[i], currentID);
     // if (k<0) { assert(false); } // IGNORE
 
     RefPicSetStFoll[i] = k; // -1 == "no reference picture"
-    if (k>=0) picInAnyList[k]=true;
+    if (k>=0 && k<picInAnyList.size()) picInAnyList[k]=true;
   }
 
   // 4. any picture that is not marked for reference is put into the "UnusedForReference" state

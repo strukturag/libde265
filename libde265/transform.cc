@@ -367,6 +367,10 @@ void scale_coefficients_internal(thread_context* tctx,
   default: qP = 0; assert(0); break; // should never happen
   }
 
+  if (qP < 0) {
+    qP = 0;
+  }
+
   logtrace(LogTransform,"qP: %d\n",qP);
 
 
