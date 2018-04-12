@@ -121,6 +121,7 @@ if ENABLE_ARM_OPT
 endif
 
 if MINGW
+  libde265_la_CXXFLAGS += -D_WIN32_WINNT=0x0600
   libde265_la_LDFLAGS += -no-undefined -static-libgcc -static-libstdc++
 endif
 
