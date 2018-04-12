@@ -121,7 +121,6 @@ if ENABLE_ARM_OPT
 endif
 
 if MINGW
-  libde265_la_SOURCES += ../extra/win32cond.c ../extra/win32cond.h
   libde265_la_LDFLAGS += -no-undefined -static-libgcc -static-libstdc++
 endif
 

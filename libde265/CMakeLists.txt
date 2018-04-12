@@ -69,8 +69,6 @@ set (libde265_sources
 if(MSVC)
   set (libde265_sources
     ${libde265_sources}
-    ../extra/win32cond.c
-    ../extra/win32cond.h
   )
 endif()
 

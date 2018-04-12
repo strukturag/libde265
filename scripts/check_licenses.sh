@@ -26,8 +26,6 @@ CHECK_RESULT=`/usr/bin/licensecheck --recursive --ignore 'nacl_sdk' .`
 # Files that are public domain or have other known-good license headers which licensecheck doesn't detect.
 KNOWN_GOOD_FILES=(
     './extra/stdint.h',
-    './extra/win32cond.c',
-    './extra/win32cond.h',
     './libde265/md5.cc',
     './libde265/md5.h',
 )
