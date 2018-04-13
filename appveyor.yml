@@ -7,8 +7,7 @@ os:
 
 environment:
   matrix:
-    - GENERATOR: "Visual Studio 11 2012"
-    - GENERATOR: "Visual Studio 12 2013"
+    - GENERATOR: "Visual Studio 14 2015"
 
 platform:
   - x86
