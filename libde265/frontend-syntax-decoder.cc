@@ -767,6 +767,8 @@ void frontend_syntax_decoder::process_reference_picture_set(slice_segment_header
       // We do not know the correct MSB
       int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
                                                                     PocLtCurr[i], true);
+      picInAnyList.resize(dpb.size(), false); // adjust size of array to hold new picture
+
       RefPicSetLtCurr[i] = k = concealedPicture;
       picInAnyList[concealedPicture]=true;
     }
@@ -791,6 +793,8 @@ void frontend_syntax_decoder::process_reference_picture_set(slice_segment_header
     else {
       int concealedPicture = k = generate_unavailable_reference_picture(current_sps.get(),
                                                                         PocLtFoll[i], true);
+      picInAnyList.resize(dpb.size(), false); // adjust size of array to hold new picture
+
       RefPicSetLtFoll[i] = concealedPicture;
       picInAnyList[concealedPicture]=true;
     }
