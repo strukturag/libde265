@@ -79,8 +79,10 @@ public:
   uint8_t explicit_rdpcm_flag;
   uint8_t explicit_rdpcm_dir;
 
-  ALIGNED_16(int16_t) _coeffBuf[(32*32)+8]; // alignment required for SSE code !
-  int16_t *coeffBuf;
+  // we need 16 bytes of extra memory (8*int16) to shift the base for the
+  // alignment required for SSE code !
+  int16_t _coeffBuf[(32*32)+8];
+  int16_t *coeffBuf; // the base pointer for into _coeffBuf, aligned to 16 bytes
 
   int16_t coeffList[3][32*32];
   int16_t coeffPos[3][32*32];

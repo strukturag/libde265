@@ -124,9 +124,12 @@ thread_context::thread_context()
 
   //memset(this,0,sizeof(thread_context));
 
-  // some compilers/linkers don't align struct members correctly,
-  // adjust if necessary
-  int offset = (uintptr_t)_coeffBuf & 0x0f;
+  // There is a interesting issue here. When aligning _coeffBuf to 16 bytes offset with
+  // __attribute__((align(16))), the following statement is optimized away since the
+  // compiler assumes that the pointer would be 16-byte aligned. However, this is not the
+  // case when the structure has been dynamically allocated. In this case, the base can
+  // also be at 8 byte offsets (at least with MingW,32 bit).
+  int offset = ((uintptr_t)_coeffBuf) & 0xf;
 
   if (offset == 0) {
     coeffBuf = _coeffBuf;  // correctly aligned already

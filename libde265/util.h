@@ -56,6 +56,9 @@
 #define LIBDE265_CHECK_RESULT
 #endif
 
+// Be careful with these alignment instructions. They only specify the alignment within
+// a struct. But they cannot make sure that the base address of the struct has the same alignment
+// when it is dynamically allocated.
 #define ALIGNED_32( var ) LIBDE265_DECLARE_ALIGNED( var, 32 )
 #define ALIGNED_16( var ) LIBDE265_DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
