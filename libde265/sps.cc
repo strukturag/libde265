@@ -359,7 +359,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   if (bit_depth_luma > 16 ||
       bit_depth_chroma > 16) {
     errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
-    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    return DE265_WARNING_INVALID_SPS_PARAMETER;
   }
 
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
