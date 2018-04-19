@@ -34,7 +34,9 @@
 #endif
 
 #ifdef HAVE_SSE4_1
-#define MEMORY_PADDING  8
+// SSE code processes 128bit per iteration and thus might read more data
+// than is later actually used.
+#define MEMORY_PADDING  16
 #else
 #define MEMORY_PADDING  0
 #endif
