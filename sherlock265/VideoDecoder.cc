@@ -237,7 +237,7 @@ void VideoDecoder::convert_frame_swscale(const de265_image* img, QImage & qimg)
     }
     width = img->get_width();
     height = img->get_height();
-    sws = sws_getContext(width, height, PIX_FMT_YUV420P, width, height, PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    sws = sws_getContext(width, height, AV_PIX_FMT_YUV420P, width, height, AV_PIX_FMT_BGRA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
   }
 
   int stride[3];
