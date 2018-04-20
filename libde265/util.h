@@ -25,6 +25,8 @@
 #include "config.h"
 #endif
 
+#include "libde265/de265.h"
+
 #ifndef _MSC_VER
 #include <inttypes.h>
 #endif
@@ -35,8 +37,6 @@
 #include <deque>
 #include <vector>
 #include <assert.h>
-
-#include "libde265/de265.h"
 
 #ifdef __GNUC__
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)

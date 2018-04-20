@@ -19,7 +19,6 @@
  */
 
 #include "util.h"
-#include "de265.h"
 #include "error.h"
 
 #include <stdarg.h>
