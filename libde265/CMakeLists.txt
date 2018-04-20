@@ -73,7 +73,9 @@ if(MSVC)
     ${libde265_sources}
   )
 
-  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /IGNORE:C4018" )
+#  Removed the /IGNORE option again as it had no effect even though it appeared on the command line.
+#  Maybe it has to come after /W3 ?
+#  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /IGNORE:C4018" )
 endif()
 
 # Need __STDC_LIMIT_MACROS for VS2015 to define INTMAX_MAX
