@@ -72,6 +72,8 @@ if(MSVC)
   set (libde265_sources
     ${libde265_sources}
   )
+
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /IGNORE:4018" )
 endif()
 
 # Need __STDC_LIMIT_MACROS for VS2015 to define INTMAX_MAX
