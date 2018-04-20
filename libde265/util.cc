@@ -18,6 +18,8 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "de265.h"
+
 #include "util.h"
 #include "error.h"
 
