@@ -41,6 +41,7 @@ OBJS=\
 	decctx.obj \
 	dpb.obj \
 	en265.obj \
+        error.obj \
 	fallback-dct.obj \
 	fallback-motion.obj \
 	fallback.obj \

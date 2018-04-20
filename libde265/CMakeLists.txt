@@ -9,6 +9,8 @@ set (libde265_sources
   nal-parser.h
   dpb.cc
   dpb.h
+  error.cc
+  error.h
   frame-dropper.h
   frame-dropper.cc
   frontend-syntax-decoder.h
