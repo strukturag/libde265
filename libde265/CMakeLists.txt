@@ -74,7 +74,8 @@ if(MSVC)
   )
 endif()
 
-add_definitions(-DLIBDE265_EXPORTS)
+# Need __STDC_LIMIT_MACROS for VS2015 to define INTMAX_MAX
+add_definitions(-DLIBDE265_EXPORTS -D__STDC_LIMIT_MACROS)
 
 add_subdirectory (encoder)
 
