@@ -63,94 +63,12 @@ LIBDE265_API int de265_get_version_number_maintenance(void)
 }
 
 
-LIBDE265_API const char* de265_get_error_text(de265_error err)
+LIBDE265_API void de265_get_error_text(de265_error err, char* buffer, int size)
 {
-  switch (err) {
-  case DE265_OK: return "no error";
-    //case DE265_ERROR_NO_STARTCODE: return "no startcode found";
-    //case DE265_ERROR_EOF: return "end of file";
-  case DE265_WARNING_SEI_CHECKSUM_MISMATCH: return "SEI image checksum mismatch";
-  case DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA: return "CTB outside of image area";
-  case DE265_ERROR_OUT_OF_MEMORY: return "out of memory";
-    //case DE265_WARNING_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
-  case DE265_ERROR_CANNOT_START_THREADS: return "cannot start decoding threads";
-  case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "library is not initialized";
+  std::string msg = errors.get_recursive_message(err);
 
-  //case DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED:
-  //  return "internal error: maximum number of thread contexts exceeded";
-  //case DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED:
-  //  return "internal error: maximum number of slices exceeded";
-  case DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET:
-    return "unimplemented mandatory decoder feature";
-  case DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET:
-    return "unimplemented optional decoder feature";
-    //case DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED:
-    //return "scaling list not implemented";
-
-  case DE265_ERROR_PARAMETER_PARSING:
-    return "command-line parameter error";
-  case DE265_WARNING_DEPENDENT_SLICE_WITHOUT_INITIAL_SLICE_HEADER:
-    return "initial slice header missing, cannot decode dependent slice";
-  case DE265_WARNING_PREMATURE_END_OF_SLICE:
-    return "premature end of slice data";
-
-  case DE265_WARNING_WARNING_BUFFER_FULL:
-    return "Too many warnings queued";
-  case DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET:
-    return "Incorrect entry-point offsets";
-  case DE265_WARNING_INVALID_SPS_PARAMETER:
-    return "SPS header parameter invalid";
-  case DE265_WARNING_INVALID_PPS_PARAMETER:
-    return "PPS header parameter invalid";
-  case DE265_WARNING_INVALID_VUI_PARAMETER:
-    return "VUI header parameter invalid";
-  case DE265_WARNING_INVALID_VPS_PARAMETER:
-    return "VPS header parameter invalid";
-  case DE265_WARNING_INVALID_SLICE_PARAMETER:
-    return "slice header parameter invalid";
-  case DE265_WARNING_SLICEHEADER_INVALID:
-    return "slice header invalid";
-  case DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING:
-    return "impossible motion vector scaling";
-  case DE265_WARNING_NONEXISTING_PPS_REFERENCED:
-    return "non-existing PPS referenced";
-  case DE265_WARNING_NONEXISTING_SPS_REFERENCED:
-    return "non-existing SPS referenced";
-  case DE265_WARNING_BOTH_PREDFLAGS_ZERO:
-    return "both predFlags[] are zero in MC";
-  case DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED:
-    return "non-existing reference picture accessed";
-  case DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ:
-    return "numMV_P != numMV_Q in deblocking";
-  case DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE:
-    return "number of short-term ref-pic-sets out of range";
-  case DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE:
-    return "short-term ref-pic-set index out of range";
-  case DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE:
-    return "parameter in short-term ref-pic-set is out of range";
-  case DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST:
-    return "faulty reference picture list";
-  case DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET:
-    return "end_of_sub_stream_one_bit not set to 1 when it should be";
-  case DE265_WARNING_INVALID_CHROMA_FORMAT:
-    return "invalid chroma format in SPS header";
-  case DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID:
-    return "slice segment address invalid";
-  case DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO:
-    return "dependent slice with address 0";
-  case DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE:
-    return "invalid long-term reference candidate specified in slice header";
-  case DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY:
-    return "cannot apply SAO because we ran out of memory";
-  case DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING:
-    return "cannot decode SEI because SPS header is missing";
-  case DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA:
-    return "collocated motion-vector is outside image area";
-  case DE265_WARNING_DECODING_ERROR:
-    return "noncritical error occurred during decoding";
-
-  default: return "unknown error";
-  }
+  strncpy(buffer, msg.c_str(), size-1);
+  buffer[size-1]=0;
 }
 
 
@@ -169,7 +87,7 @@ LIBDE265_API de265_error de265_init()
   if (cnt>0) {
     // we are not the first -> already initialized
 
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -182,25 +100,26 @@ LIBDE265_API de265_error de265_init()
   err = alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   if (err) {
     std::atomic_fetch_sub(&de265_init_count,1);
-    return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
+    return err;
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 LIBDE265_API de265_error de265_free()
 {
   int cnt = std::atomic_fetch_sub(&de265_init_count,1);
   if (cnt<=0) {
+    // library is already completely released, do not release again
     std::atomic_fetch_add(&de265_init_count,1);
-    return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
+    return errors.ok;
   }
 
   if (cnt==1) {
     free_significant_coeff_ctxIdx_lookupTable();
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -242,7 +161,7 @@ LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265
     return err;
   }
   else {
-    return DE265_OK;
+    return errors.ok;
   }
 }
 
@@ -331,7 +250,7 @@ LIBDE265_API de265_error de265_push_end_of_stream(de265_decoder_context* de265ct
   ctx->get_NAL_parser().flush_data();
   ctx->get_NAL_parser().mark_end_of_stream();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -471,7 +390,7 @@ LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
 
-  return ctx->get_next_warning().code;
+  return ctx->get_next_warning();
 }
 
 

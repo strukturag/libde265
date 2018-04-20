@@ -197,37 +197,22 @@ void copy_subimage(uint8_t* dst,int dststride,
 
 
 
-class error {
- public:
- error(de265_error c) : code(c) { }
- error(de265_error c, const char* m) : code(c), message(m) { }
-
-  de265_error code;
-
-  // optional, additional message (this is not the textual for of 'code', but a more detailed message)
-  const char* message = nullptr;
-};
-
-
 class error_queue
 {
  public:
   error_queue();
 
-  void add_warning(de265_error warning, bool once=false) {
-    add_warning(warning, de265_get_error_text(warning), once);
-  }
-  void add_warning(de265_error warning, const char* message, bool once=false);
+  void add_warning(de265_error warning, bool once=false);
 
   bool empty() const { return warnings.empty(); }
-  error get_next_warning();
+  de265_error get_next_warning();
 
  private:
   static constexpr int MAX_WARNING_QUEUE_SIZE = 20;
 
-  std::deque<error> warnings;
+  std::deque<de265_error> warnings;
 
-  std::vector<error> warnings_shown; // warnings that have already occurred
+  std::vector<de265_error> warnings_shown; // warnings that have already occurred
 };
 
 

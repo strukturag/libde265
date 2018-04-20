@@ -300,8 +300,9 @@ void apply_sample_adaptive_offset(image* img)
 
   image inputCopy;
   de265_error err = inputCopy.copy_image(img);
-  if (err != DE265_OK) {
-    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+  if (err) {
+    errors.append_message(err,"-> cannot apply SAO");
+    img->decctx->add_warning(err,false);
     return;
   }
 
@@ -345,7 +346,9 @@ void apply_sample_adaptive_offset_sequential(image* img)
 
   uint8_t* inputCopy = new uint8_t[ libde265_max(lumaImageSize, chromaImageSize) ];
   if (inputCopy == NULL) {
-    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+    img->decctx->add_warning(errors.add(DE265_ERROR_OUT_OF_MEMORY,
+                                        "cannot allocate SAO buffer"),
+                             false);
     return;
   }
 
@@ -610,8 +613,10 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
                                                      img->get_supplementary_data(),
                                                      img->user_data,
                                                      nullptr);
-  if (err != DE265_OK) {
-    img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
+  if (err) {
+    img->decctx->add_warning(errors.add(DE265_ERROR_OUT_OF_MEMORY,
+                                        "cannot alloc image memory for SAO"),
+                             false);
     return false;
   }
 

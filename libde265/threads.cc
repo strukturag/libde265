@@ -379,7 +379,7 @@ void thread_pool::worker_thread_main_loop()
 
 de265_error thread_pool::start(int num_threads)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   // limit number of threads to maximum
 
@@ -401,7 +401,7 @@ de265_error thread_pool::start(int num_threads)
                                   this);
     if (ret != 0) {
       // cerr << "pthread_create() failed: " << ret << endl;
-      return DE265_ERROR_CANNOT_START_THREADS;
+      return errors.add(DE265_ERROR_CANNOT_START_THREADS);
     }
 
     m_num_threads++;

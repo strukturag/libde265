@@ -26,6 +26,8 @@
 #include "libde265/image.h"
 #include "libde265/decctx.h"
 
+#include <iomanip>
+
 #include <assert.h>
 
 
@@ -37,7 +39,8 @@ static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message*
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
 
   if (sps==NULL) {
-    return DE265_WARNING_CANNOT_DECODE_SEI_BECAUSE_SPS_IS_MISSING;
+    return errors.add(DE265_ERROR_CORRUPT_STREAM,
+                      "cannot decode SEI because SPS is missing");
   }
 
   int nHashes = sps->chroma_format_idc==0 ? 1 : 3;
@@ -57,7 +60,7 @@ static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message*
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -279,7 +282,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
      This happens, for example in conformance stream RAP_B, where a EOS-NAL
      appears before a CRA (POC=32). */
   if (img->PicOutputFlag == false) {
-    return DE265_OK;
+    return errors.ok;
   }
 
   //write_picture(img);
@@ -311,8 +314,9 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
 
         for (int b=0;b<16;b++) {
           if (md5[b] != seihash->md5[i][b]) {
-            fprintf(stderr,"SEI decoded picture MD5 mismatch (POC=%d)\n", img->PicOrderCntVal);
-            return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
+            std::stringstream sstr;
+            sstr << "SEI decoded picture MD5 mismatch (POC=" << img->PicOrderCntVal << ")";
+            return errors.add(DE265_ERROR_SEI_CHECKSUM_MISMATCH, sstr.str());
           }
         }
       }
@@ -326,9 +330,15 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
                  seihash->crc[i], i, crc);
 
         if (crc != seihash->crc[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
-                  seihash->crc[i], crc, img->PicOrderCntVal);
-          return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
+          std::stringstream sstr;
+          sstr << "SEI decoded picture hash: "
+               << std::setw(4) << std::setfill('0') << std::ios::hex
+               << seihash->crc[i]
+               << ", decoded picture: "
+               << crc
+               << " (POC=" << img->PicOrderCntVal << ")";
+
+          return errors.add(DE265_ERROR_SEI_CHECKSUM_MISMATCH, sstr.str());
         }
       }
       break;
@@ -338,9 +348,15 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
         uint32_t chksum = compute_checksum_8bit(data,w,h,stride, img->get_bit_depth(i));
 
         if (chksum != seihash->checksum[i]) {
-          fprintf(stderr,"SEI decoded picture hash: %04x, decoded picture: %04x (POC=%d)\n",
-                  seihash->checksum[i], chksum, img->PicOrderCntVal);
-          return DE265_WARNING_SEI_CHECKSUM_MISMATCH;
+          std::stringstream sstr;
+          sstr << "SEI decoded picture hash: "
+               << std::setw(4) << std::setfill('0') << std::ios::hex
+               << seihash->checksum[i]
+               << ", decoded picture: "
+               << chksum
+               << " (POC=" << img->PicOrderCntVal << ")";
+
+          return errors.add(DE265_ERROR_SEI_CHECKSUM_MISMATCH, sstr.str());
         }
       }
       break;
@@ -350,7 +366,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, imag
   loginfo(LogSEI,"decoded picture hash checked: OK\n");
   //printf("checked picture %d SEI: OK\n", img->PicOrderCntVal);
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -380,7 +396,7 @@ de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq
 
   // --- sei message dispatch
 
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:
@@ -413,7 +429,7 @@ void dump_sei(const sei_message* sei, const seq_parameter_set* sps)
 
 de265_error process_sei(const sei_message* sei, image_ptr img)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   switch (sei->payload_type) {
   case sei_payload_type_decoded_picture_hash:

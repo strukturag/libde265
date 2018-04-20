@@ -86,21 +86,80 @@ LIBDE265_API int de265_get_version_number_maintenance(void);
 
 /* === error codes === */
 
-typedef enum de265_error {
+// TODO: temporarilly a struct to find all legacy usages
+typedef struct {
+  uint32_t id=0;
+
+  operator bool() const { return id!=0; }
+} de265_error;
+
+
+typedef enum de265_error_code {
   // No error, everything went ok.
   DE265_OK = 0,
+
+  DE265_ERROR_UNKNOWN = 1,
+
+
+  DE265_ERROR_CORRUPT_STREAM = 100,
+  DE265_ERROR_PARAMETER_PARSING = 108,
+
+  // Out of memory, cannot continue decoding.
+  DE265_ERROR_OUT_OF_MEMORY = 112,
+
+  // Cannot start the threads for background decoding.
+  DE265_ERROR_CANNOT_START_THREADS = 114,
+
+
+  // --- sub-errors for CORRUPT_STREAM
+
+  // A parameter in a header is outside its valid range or a combination of parameters
+  // is not allowed.
+  DE265_ERROR_INVALID_VUI_HEADER = 101,
+  DE265_ERROR_INVALID_SPS_HEADER = 102,
+  DE265_ERROR_INVALID_PPS_HEADER = 103,
+  DE265_ERROR_INVALID_VPS_HEADER = 104,
+  DE265_ERROR_INVALID_SLICE_HEADER = 105,
+  DE265_ERROR_INVALID_REF_PIC_SET = 113,
+
+  DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED = 109,
+  DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA = 110,
+
+  // Slice data ended prematurely.
+  DE265_ERROR_PREMATURE_END_OF_SLICE = 111,
+
+  // Decoded image hash does not match the SEI image hash.
+  DE265_ERROR_SEI_CHECKSUM_MISMATCH = 115,
+
+
+
+  // --- sub-errors for INVALID_SPS_HEADER
+
+  // The SPS's 'chroma_format_idc' is not valid.
+  DE265_ERROR_INVALID_CHROMA_FORMAT = 106,
+
+
+  // --- sub-errors for INVALID_PPS_HEADER
+
+  // An SPS was accessed that was not decoded yet.
+  DE265_ERROR_NONEXISTING_SPS_REFERENCED = 107,
+
+
+  // --- sub-errors for INVALID_SLICE_HEADER
+
+  // A PPS was accessed that was not decoded yet.
+  DE265_ERROR_NONEXISTING_PPS_REFERENCED = 116,
+
+
+
+
+  // next error ID: 117
 
 
   // --- Severe decoding errors because of software or system limitations ---
 
   // Cannot decode the stream, because an essential feature is not implemented.
   DE265_ERROR_MANDATORY_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 1000,
-
-  // Out of memory, cannot continue decoding.
-  DE265_ERROR_OUT_OF_MEMORY = 1001,
-
-  // Cannot start the threads for background decoding.
-  DE265_ERROR_CANNOT_START_THREADS = 1002,
 
   // Library has not been initialized with de265_init() yet.
   DE265_ERROR_LIBRARY_NOT_INITIALIZED = 1003,
@@ -113,33 +172,15 @@ typedef enum de265_error {
 
   // A part of the video stream cannot be decoded, because the feature is not yet
   // implemented. However, decoding will continue, since it is an optional feature.
-  DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 1,
+  DE265_WARNING_OPTIONAL_FUNCTIONALITY_NOT_IMPLEMENTED_YET = 10000,
 
-  // A PPS was accessed that was not decoded yet.
-  DE265_WARNING_NONEXISTING_PPS_REFERENCED = 2,
-
-  // An SPS was accessed that was not decoded yet.
-  DE265_WARNING_NONEXISTING_SPS_REFERENCED = 3,
-
-  // A parameter in a header is outside its valid range or a combination of parameters
-  // is not allowed.
-  DE265_WARNING_INVALID_VUI_PARAMETER = 4,
-  DE265_WARNING_INVALID_SPS_PARAMETER = 5,
-  DE265_WARNING_INVALID_PPS_PARAMETER = 6,
-  DE265_WARNING_INVALID_VPS_PARAMETER = 7,
-  DE265_WARNING_INVALID_SLICE_PARAMETER = 8,
 
   // An invalid parameter was used in defining the ref-pic-set.
   DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE = 9,
 
-  // The referenced CTB is outside the image area.
-  DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA = 10,
 
 
   // --- errors in SPS header ---
-
-  // The SPS's 'chroma_format_idc' is not valid.
-  DE265_WARNING_INVALID_CHROMA_FORMAT = 11,
 
   // Header defines short-term ref-pic-sets than allowed.
   DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE = 12,
@@ -174,17 +215,11 @@ typedef enum de265_error {
 
   // --- error in compressed image data ---
 
-  // Slice data ended prematurely.
-  DE265_WARNING_PREMATURE_END_OF_SLICE = 20,
-
   // The mandatory end_of_substream_one_bit was not set at the end of the substream.
   DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET = 21,
 
 
   // --- errors during decompression ---
-
-  // Decoded image hash does not match the SEI image hash.
-  DE265_WARNING_SEI_CHECKSUM_MISMATCH = 22,
 
   // Out of memory when trying to apply SAO. However, this is not fatal and SAO was skipped.
   DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY = 23,
@@ -199,8 +234,6 @@ typedef enum de265_error {
   // ================================================================
 
   // --- encoder errors ---
-
-  DE265_ERROR_PARAMETER_PARSING = 2000,
 
   DE265_WARNING_SPS_HEADER_INVALID = 2001,
 
@@ -227,9 +260,9 @@ typedef enum de265_error {
   // warning with a better one in the future, or a decoder bug).
   DE265_WARNING_DECODING_ERROR = 6000
 
-} de265_error;
+} de265_error_code;
 
-LIBDE265_API const char* de265_get_error_text(de265_error err);
+  LIBDE265_API void de265_get_error_text(de265_error err, char* buffer, int size);
 
 // Returns true if 'err' is DE265_OK or a warning.
 //

@@ -25,6 +25,7 @@
 #include "libde265/pps.h"
 #include "libde265/nal.h"
 #include "libde265/util.h"
+#include "libde265/error.h"
 
 #include <vector>
 #include <queue>
@@ -92,7 +93,7 @@ typedef std::shared_ptr<NAL_unit> NAL_unit_ptr;
 
 class on_NAL_inserted_listener {
  public:
-  virtual de265_error on_NAL_inserted() { return DE265_OK; }
+  virtual de265_error on_NAL_inserted() { return errors.ok; }
   virtual void on_end_of_stream() { }
   virtual void on_end_of_frame() { }
 };

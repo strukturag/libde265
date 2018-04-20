@@ -391,18 +391,18 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   if (!get_uvlc(br, &slice_pic_parameter_set_id) ||
       slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS) {
-    return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
+    return errors.add(DE265_ERROR_NONEXISTING_PPS_REFERENCED);
   }
 
   if (!frontend.has_pps(slice_pic_parameter_set_id)) {
-    return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
+    return errors.add(DE265_ERROR_NONEXISTING_PPS_REFERENCED);
   }
 
   pps = frontend.get_pps_ptr(slice_pic_parameter_set_id);
 
   std::shared_ptr<const seq_parameter_set> sps = pps->sps;
   if (!sps->sps_read) {
-    return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
+    return errors.add(DE265_ERROR_NONEXISTING_PPS_REFERENCED);
   }
 
   if (!first_slice_segment_in_pic_flag) {
@@ -416,20 +416,24 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     if (dependent_slice_segment_flag) {
       if (slice_segment_address == 0) {
-        return DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "dependent slice with slice_segment_address==0");
       }
 
       if (frontend.has_previous_slice_header()) {
 
         if (slice_pic_parameter_set_id !=
             frontend.get_previous_slice_header().slice_pic_parameter_set_id) {
-          return DE265_WARNING_SLICEHEADER_INVALID;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "referenced PPS different in dependent slice");
+
         }
 
         *this = frontend.get_previous_slice_header();
       }
       else {
-        return DE265_WARNING_DEPENDENT_SLICE_WITHOUT_INITIAL_SLICE_HEADER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "dependent slice without initial slice header");
       }
 
       first_slice_segment_in_pic_flag = 0;
@@ -444,7 +448,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   if (slice_segment_address < 0 ||
       slice_segment_address >= sps->PicSizeInCtbsY) {
-    return DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID;
+    return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                      "slice_segment_address not within image area");
   }
 
   //printf("SLICE %d (%d)\n",slice_segment_address, sps->PicSizeInCtbsY);
@@ -458,7 +463,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     if (!get_uvlc(br, &slice_type) ||
         slice_type > 2) {
-      return DE265_WARNING_SLICEHEADER_INVALID;
+      return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                        "invalid slice_type");
     }
 
     if (pps->output_flag_present_flag) {
@@ -502,7 +508,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         else         short_term_ref_pic_set_idx = 0;
 
         if (short_term_ref_pic_set_idx >= sps->num_short_term_ref_pic_sets()) {
-          return DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "short_term_ref_pic_set_idx out of range");
         }
 
         CurrRpsIdx = short_term_ref_pic_set_idx;
@@ -515,7 +522,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
           if (!get_uvlc(br, &num_long_term_sps)) {
-            return DE265_WARNING_INVALID_SLICE_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                              "invalid num_long_term-ref_pics_sps");
           }
         }
         else {
@@ -523,7 +531,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         }
 
         if (!get_uvlc(br, &num_long_term_pics)) {
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "invalid num_long_term_pics");
         }
 
         // check maximum number of reference frames
@@ -534,7 +543,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
             CurrRps.NumPositivePics
             > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
           {
-            return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+            return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                              "number of reference frames exceeds maximum");
           }
 
         for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
@@ -545,7 +555,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
             // check that the referenced lt-reference really exists
 
             if (lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
-              return DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE;
+              return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                                "lt_idx_sps[] exceeds valid range");
             }
 
             // delta_poc_msb_present_flag[i] = 0; // TODO ?
@@ -569,7 +580,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           delta_poc_msb_present_flag[i] = get_bits(br,1);
           if (delta_poc_msb_present_flag[i]) {
             if (!get_uvlc(br, &delta_poc_msb_cycle_lt[i])) {
-              return DE265_WARNING_INVALID_SLICE_PARAMETER;
+              return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                                "invalid delta_poc_msb_cycle_lt[]");
             }
           }
           else {
@@ -629,13 +641,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       num_ref_idx_active_override_flag = get_bits(br,1);
       if (num_ref_idx_active_override_flag) {
         if (!get_uvlc(br, &num_ref_idx_l0_active)) {
-	  return DE265_WARNING_INVALID_SLICE_PARAMETER;
+	  return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "invalid num_ref_idx_l0_active");
 	}
         num_ref_idx_l0_active++;;
 
         if (slice_type == SLICE_TYPE_B) {
           if (!get_uvlc(br, &num_ref_idx_l1_active)) {
-	    return DE265_WARNING_INVALID_SLICE_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                              "invalid num_ref_idx_l1_active");
 	  }
           num_ref_idx_l1_active++;
         }
@@ -645,8 +659,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
 
-      if (num_ref_idx_l0_active > 16) { return DE265_WARNING_INVALID_SLICE_PARAMETER; }
-      if (num_ref_idx_l1_active > 16) { return DE265_WARNING_INVALID_SLICE_PARAMETER; }
+      if (num_ref_idx_l0_active > 16) {
+	  return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "num_ref_idx_l0_active exceeds maximum");
+      }
+
+      if (num_ref_idx_l1_active > 16) {
+	  return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "num_ref_idx_l1_active exceeds maximum");
+      }
 
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
 
@@ -698,7 +719,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         if (( collocated_from_l0_flag && num_ref_idx_l0_active > 1) ||
             (!collocated_from_l0_flag && num_ref_idx_l1_active > 1)) {
           if (!get_uvlc(br, &collocated_ref_idx)) {
-	    return DE265_WARNING_INVALID_SLICE_PARAMETER;
+	    return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                              "invalid collocated_ref_idx");
 	  }
         }
         else {
@@ -709,7 +731,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
         if (( collocated_from_l0_flag && collocated_ref_idx >= num_ref_idx_l0_active) ||
             (!collocated_from_l0_flag && collocated_ref_idx >= num_ref_idx_l1_active)) {
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "collocated_ref_idx out of range");
         }
       }
 
@@ -718,28 +741,33 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           (pps->weighted_bipred_flag && slice_type == SLICE_TYPE_B)) {
 
         if (!read_pred_weight_table(br,this,ctx)) {
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "error reading pred_weight_table");
         }
       }
 
       if (!get_uvlc(br, &five_minus_max_num_merge_cand)) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "invalid five_minux_max_num_merge_cand");
       }
       MaxNumMergeCand = 5-five_minus_max_num_merge_cand;
     }
 
     if (!get_svlc(br, &slice_qp_delta)) {
-      return DE265_WARNING_INVALID_SLICE_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                        "invalid slice_qp_delta");
     }
     //logtrace(LogSlice,"slice_qp_delta: %d\n",shdr->slice_qp_delta);
 
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
       if (!get_svlc(br, &slice_cb_qp_offset)) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "invalid slice_cb_qp_offset");
       }
 
       if (!get_svlc(br, &slice_cr_qp_offset)) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "invalid slice_cr_qp_offset");
       }
     }
     else {
@@ -765,12 +793,14 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       slice_deblocking_filter_disabled_flag = get_bits(br,1);
       if (!slice_deblocking_filter_disabled_flag) {
         if (!get_svlc(br, &slice_beta_offset)) {
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "invalid slice_beta_offset");
 	}
         slice_beta_offset *= 2;
 
         if (!get_svlc(br, &slice_tc_offset)) {
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "invalid slice_tc_offset");
 	}
         slice_tc_offset   *= 2;
       }
@@ -792,7 +822,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
     if (!get_uvlc(br, &num_entry_point_offsets)) {
-      return DE265_WARNING_INVALID_SLICE_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                        "invalid num_entry_point_offsets");
     }
 
     if (pps->entropy_coding_sync_enabled_flag) {
@@ -801,13 +832,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
       int lastCTBRow  = firstCTBRow + num_entry_point_offsets;
       if (lastCTBRow >= sps->PicHeightInCtbsY) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "last CTB row out of image area");
       }
     }
 
     if (pps->tiles_enabled_flag) {
       if (num_entry_point_offsets > pps->num_tile_columns * pps->num_tile_rows) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "number of entry points exceeds number of tiles");
       }
     }
 
@@ -815,12 +848,14 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
     if (num_entry_point_offsets > 0) {
       if (!get_uvlc(br, &offset_len)) {
-        return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "invalid entry point offset length");
       }
       offset_len++;
 
       if (offset_len > 32) {
-	return DE265_WARNING_INVALID_SLICE_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                          "offset length > 32 bits");
       }
 
       for (int i=0; i<num_entry_point_offsets; i++) {
@@ -841,7 +876,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   if (pps->slice_segment_header_extension_present_flag) {
     if (!get_uvlc(br, &slice_segment_header_extension_length) ||
 	slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
-      return DE265_WARNING_INVALID_SLICE_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                        "invalid slice_segment_header_extension_length");
     }
 
     for (int i=0; i<slice_segment_header_extension_length; i++) {
@@ -853,7 +889,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   compute_derived_values(pps.get());
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -870,7 +906,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
 
   if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS) {
     assert(false); // errqueue->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
-    return DE265_OK;
+    return errors.ok;
   }
   out.write_uvlc(slice_pic_parameter_set_id);
 
@@ -884,7 +920,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
     if (dependent_slice_segment_flag) {
       if (slice_segment_address == 0) {
         assert(false); // errqueue->add_warning(DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO, false);
-        return DE265_OK;
+        return errors.ok;
       }
     }
   }
@@ -892,7 +928,8 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
   if (slice_segment_address < 0 ||
       slice_segment_address > sps->PicSizeInCtbsY) {
     assert(false); // errqueue->add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
-    return DE265_WARNING_INVALID_SLICE_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                      "slice_segment_address out of range");
   }
 
 
@@ -905,7 +942,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
 
     if (slice_type > 2) {
       assert(false); // errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-      return DE265_OK;
+      return errors.ok;
     }
     out.write_uvlc(slice_type);
 
@@ -943,7 +980,8 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
 
         if (short_term_ref_pic_set_idx > sps->num_short_term_ref_pic_sets()) {
           assert(false); // errqueue->add_warning(DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE, false);
-          return DE265_WARNING_INVALID_SLICE_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                            "short_term_ref_pic_set_idx out of range");
         }
 
         //CurrRpsIdx = short_term_ref_pic_set_idx;
@@ -973,7 +1011,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
             > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers-1])
           {
             assert(false); //errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-            return DE265_OK;
+            return errors.ok;
           }
 
         for (int i=0; i<num_long_term_sps + num_long_term_pics; i++) {
@@ -985,7 +1023,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
 
             if (lt_idx_sps[i] >= sps->num_long_term_ref_pics_sps) {
               assert(false); //errqueue->add_warning(DE265_WARNING_INVALID_LT_REFERENCE_CANDIDATE, false);
-              return DE265_OK;
+              return errors.ok;
             }
 
             //ctx->PocLsbLt[i] = sps->lt_ref_pic_poc_lsb_sps[ lt_idx_sps[i] ];
@@ -1210,7 +1248,8 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
     out.write_uvlc(slice_segment_header_extension_length);
     if (slice_segment_header_extension_length > 1000) {  // TODO: safety check against too large values
       assert(false); // errqueue->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-      return DE265_WARNING_INVALID_SLICE_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                        "slice_segment_header_extension_length out of range");
     }
 
     for (int i=0; i<slice_segment_header_extension_length; i++) {
@@ -1219,7 +1258,7 @@ de265_error slice_segment_header::write(CABAC_encoder& out,
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 void slice_segment_header::compute_derived_values(const pic_parameter_set* pps)
@@ -1936,7 +1975,8 @@ de265_error alloc_and_init_significant_coeff_ctxIdx_lookupTable()
 
   uint8_t* p = (uint8_t*)malloc(tableSize);
   if (p==NULL) {
-    return DE265_ERROR_OUT_OF_MEMORY;
+    return errors.add(DE265_ERROR_OUT_OF_MEMORY,
+                      "cannot allocate significant_coeff_table");
   }
 
   memset(p,0xFF,tableSize);  // just for debugging
@@ -2081,7 +2121,7 @@ de265_error alloc_and_init_significant_coeff_ctxIdx_lookupTable()
                 }
           }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -3377,7 +3417,7 @@ int residual_coding(thread_context* tctx,
   }
 #endif
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -3619,7 +3659,7 @@ int read_transform_unit(thread_context* tctx,
 
   int err;
   if (cbf_luma) {
-    if ((err=residual_coding(tctx,x0,y0, log2TrafoSize,0)) != DE265_OK) return err;
+    if (err=residual_coding(tctx,x0,y0, log2TrafoSize,0)) return err;
   }
 
   decode_TU(tctx, x0,y0, xCUBase,yCUBase, nT, 0, cuPredMode, cbf_luma);
@@ -3646,7 +3686,7 @@ int read_transform_unit(thread_context* tctx,
 
     {
       if (cbf_cb & 1) {
-        if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) != DE265_OK) return err;
+        if (err=residual_coding(tctx,x0,y0,log2TrafoSizeC,1)) return err;
       }
 
       if (sps.ChromaArrayType != de265_chroma_mono) {
@@ -3661,9 +3701,9 @@ int read_transform_unit(thread_context* tctx,
       const int yOffset = 1<<log2TrafoSizeC;
 
       if (cbf_cb & 2) {
-        if ((err=residual_coding(tctx,
-                                 x0,y0+yOffset*SubHeightC,
-                                 log2TrafoSizeC,1)) != DE265_OK) return err;
+        if (err=residual_coding(tctx,
+                                x0,y0+yOffset*SubHeightC,
+                                log2TrafoSizeC,1)) return err;
       }
 
       decode_TU(tctx,
@@ -3682,7 +3722,7 @@ int read_transform_unit(thread_context* tctx,
 
     {
       if (cbf_cr & 1) {
-        if ((err=residual_coding(tctx,x0,y0,log2TrafoSizeC,2)) != DE265_OK) return err;
+        if (err=residual_coding(tctx,x0,y0,log2TrafoSizeC,2)) return err;
       }
 
       if (sps.ChromaArrayType != de265_chroma_mono) {
@@ -3698,9 +3738,9 @@ int read_transform_unit(thread_context* tctx,
       const int yOffset = 1<<log2TrafoSizeC;
 
       if (cbf_cr & 2) {
-        if ((err=residual_coding(tctx,
-                                 x0,y0+yOffset*SubHeightC,
-                                 log2TrafoSizeC,2)) != DE265_OK) return err;
+        if (err=residual_coding(tctx,
+                                x0,y0+yOffset*SubHeightC,
+                                log2TrafoSizeC,2)) return err;
       }
 
       decode_TU(tctx,
@@ -3711,8 +3751,8 @@ int read_transform_unit(thread_context* tctx,
   }
   else if (blkIdx==3) {
     if (cbf_cb & 1) {
-      if ((err=residual_coding(tctx,xBase,yBase,
-                               log2TrafoSize,1)) != DE265_OK) return err;
+      if (err=residual_coding(tctx,xBase,yBase,
+                              log2TrafoSize,1)) return err;
     }
 
     if (sps.ChromaArrayType != de265_chroma_mono) {
@@ -3723,9 +3763,9 @@ int read_transform_unit(thread_context* tctx,
 
     // 4:2:2
     if (cbf_cb & 2) {
-      if ((err=residual_coding(tctx,
-                               xBase        ,yBase        +(1<<log2TrafoSize),
-                               log2TrafoSize,1)) != DE265_OK) return err;
+      if (err=residual_coding(tctx,
+                              xBase        ,yBase        +(1<<log2TrafoSize),
+                              log2TrafoSize,1)) return err;
     }
 
     if (ChromaArrayType == de265_chroma_422) {
@@ -3735,8 +3775,8 @@ int read_transform_unit(thread_context* tctx,
     }
 
     if (cbf_cr & 1) {
-      if ((err=residual_coding(tctx,xBase,yBase,
-                               log2TrafoSize,2)) != DE265_OK) return err;
+      if (err=residual_coding(tctx,xBase,yBase,
+                              log2TrafoSize,2)) return err;
     }
 
     if (sps.ChromaArrayType != de265_chroma_mono) {
@@ -3747,9 +3787,9 @@ int read_transform_unit(thread_context* tctx,
 
     // 4:2:2
     if (cbf_cr & 2) {
-      if ((err=residual_coding(tctx,
-                               xBase        ,yBase        +(1<<log2TrafoSizeC),
-                               log2TrafoSize,2)) != DE265_OK) return err;
+      if (err=residual_coding(tctx,
+                              xBase        ,yBase        +(1<<log2TrafoSizeC),
+                              log2TrafoSize,2)) return err;
     }
 
     if (ChromaArrayType == de265_chroma_422) {
@@ -3760,7 +3800,7 @@ int read_transform_unit(thread_context* tctx,
   }
 
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -4689,7 +4729,7 @@ struct DecodeResult {
   de265_error error;
 
   DecodeResult() { }
-  DecodeResult(Status s) : status(s), error(DE265_OK) { }
+  DecodeResult(Status s) : status(s), error(errors.ok) { }
   DecodeResult(de265_error err) : status(Error), error(err) { }
 };
 
@@ -4722,7 +4762,7 @@ DecodeResult decode_substream(thread_context* tctx,
       {
         if (sps.PicWidthInCtbsY>1) {
           if (ctby-1 >= tctx->imgunit->ctx_models.size()) {
-            return DecodeResult(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA);
+            return DecodeResult(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA));
           }
 
           //printf("CTX wait on %d/%d\n",1,tctx->CtbY-1);
@@ -4759,12 +4799,12 @@ DecodeResult decode_substream(thread_context* tctx,
 #endif
 
     if (ctbx+ctby*ctbW >= pps.CtbAddrRStoTS.size()) {
-      return DecodeResult(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA);
+      return DecodeResult(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA));
     }
 
     if (ctbx >= sps.PicWidthInCtbsY ||
         ctby >= sps.PicHeightInCtbsY) {
-      return DecodeResult(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA);
+      return DecodeResult(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA));
     }
 
     if (block_wpp && ctby>0 && ctbx < ctbW-1) {
@@ -4782,7 +4822,9 @@ DecodeResult decode_substream(thread_context* tctx,
     // read and decode CTB
 
     if (tctx->ctx_model.empty() == false) {
-      return DecodeResult(DE265_WARNING_DECODING_ERROR); // TODO: can this happen on broken input streams?
+      // TODO: can this happen on broken input streams?
+      return DecodeResult(errors.add(DE265_ERROR_CORRUPT_STREAM));
+      //DE265_WARNING_DECODING_ERROR);
     }
 
     read_coding_tree_unit(tctx);
@@ -4796,7 +4838,7 @@ DecodeResult decode_substream(thread_context* tctx,
       {
         // no storage for context table has been allocated
         if (tctx->imgunit->ctx_models.size() <= ctby) {
-          return DecodeResult(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA);
+          return DecodeResult(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA));
         }
 
         //printf("store ctx model of row %d\n",ctby);
@@ -4843,9 +4885,9 @@ DecodeResult decode_substream(thread_context* tctx,
     if (endOfPicture &&
         end_of_slice_segment_flag == false)
       {
-        tctx->decctx->add_warning(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA, false);
+        tctx->decctx->add_warning(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA), false);
         tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-        return DecodeResult(DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA);
+        return DecodeResult(errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA));
       }
 
 
@@ -4878,9 +4920,12 @@ DecodeResult decode_substream(thread_context* tctx,
       if (end_of_sub_stream) {
         int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
         if (!end_of_sub_stream_one_bit) {
-          tctx->decctx->add_warning(DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET, false);
+          de265_error err = errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                       "end of substream bit not set");
+
+          tctx->decctx->add_warning(err, false);
           tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
-          return DecodeResult(DE265_WARNING_END_OF_SUBSTREAM_BIT_NOT_SET);
+          return DecodeResult(err);
         }
 
         init_CABAC_decoder_2(&tctx->cabac_decoder); // byte alignment
@@ -4905,7 +4950,8 @@ de265_error initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
     int sliceIdx = img->get_SliceHeaderIndex_atIndex(prevCtb);
     if (sliceIdx >= img->slices.size()) {
-      return DE265_WARNING_DECODING_ERROR; // TODO: not sure whether this can happen with bad input data
+      // TODO: not sure whether this can happen with bad input data
+      return errors.add(DE265_ERROR_CORRUPT_STREAM);
     }
     slice_segment_header* prevCtbHdr = img->slices[ sliceIdx ].get();
 
@@ -4923,7 +4969,8 @@ de265_error initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       slice_unit* prevSliceSegment = tctx->imgunit->get_prev_slice_segment(tctx->sliceunit);
       //assert(prevSliceSegment);
       if (prevSliceSegment==NULL) {
-        return DE265_WARNING_DECODING_ERROR; // TODO: not sure whether this can happen with bad input data
+        // TODO: not sure whether this can happen with bad input data
+        return errors.add(DE265_ERROR_CORRUPT_STREAM);
       }
 
       prevSliceSegment->finished_threads.wait_for_progress(prevSliceSegment->nThreads);
@@ -4937,7 +4984,8 @@ de265_error initialize_CABAC_at_slice_segment_start(thread_context* tctx)
       */
 
       if (!prevCtbHdr->ctx_model_storage_defined) {
-        return DE265_WARNING_DECODING_ERROR; // TODO: not sure whether this can happen with bad input data
+        // TODO: not sure whether this can happen with bad input data
+        return errors.add(DE265_ERROR_CORRUPT_STREAM);
       }
 
       tctx->ctx_model = prevCtbHdr->ctx_model_storage;
@@ -4948,7 +4996,7 @@ de265_error initialize_CABAC_at_slice_segment_start(thread_context* tctx)
     initialize_CABAC_models(tctx);
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -5118,7 +5166,9 @@ de265_error read_slice_segment_data(thread_context* tctx)
       if (substream-1 >= tctx->shdr->entry_point_offset.size() ||
           tctx->cabac_decoder.bitstream_curr - tctx->cabac_decoder.bitstream_start -2 /* -2 because of CABAC init */
           != tctx->shdr->entry_point_offset[substream-1]) {
-        tctx->decctx->add_warning(DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET, true);
+        tctx->decctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                             "incorrect entry point offset"),
+                                  true);
       }
     }
 
@@ -5145,7 +5195,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
     }
   } while (true);
 
-  return DE265_OK;
+    return errors.ok;
 }
 
 

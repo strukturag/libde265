@@ -85,7 +85,7 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
 
   std::shared_ptr<video_parameter_set> new_vps = std::make_shared<video_parameter_set>();
   de265_error err = new_vps->read(&reader, m_decctx);
-  if (err != DE265_OK) {
+  if (err) {
     m_decctx->add_warning(err, false);
     return err;
   }
@@ -97,7 +97,7 @@ de265_error frontend_syntax_decoder::read_vps_NAL(bitreader& reader)
 
   vps[ new_vps->video_parameter_set_id ] = new_vps;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -108,7 +108,7 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
   std::shared_ptr<seq_parameter_set> new_sps = std::make_shared<seq_parameter_set>();
   de265_error err;
 
-  if ((err=new_sps->read(&reader, m_decctx)) != DE265_OK) {
+  if (err=new_sps->read(&reader, m_decctx)) {
     m_decctx->add_warning(err, false);
     return err;
   }
@@ -136,7 +136,7 @@ de265_error frontend_syntax_decoder::read_sps_NAL(bitreader& reader)
 
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -171,9 +171,9 @@ de265_error frontend_syntax_decoder::read_sei_NAL(bitreader& reader, bool suffix
 
   sei_message sei;
 
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
-  if ((err=read_sei(&reader,&sei, suffix, current_sps.get())) == DE265_OK) {
+  if (!(err=read_sei(&reader,&sei, suffix, current_sps.get())) ) {
     dump_sei(&sei, current_sps.get());
 
     if (m_curr_image_unit && suffix) {
@@ -191,7 +191,7 @@ de265_error frontend_syntax_decoder::read_sei_NAL(bitreader& reader, bool suffix
 de265_error frontend_syntax_decoder::read_eos_NAL(bitreader& reader)
 {
   FirstAfterEndOfSequenceNAL = true;
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -267,14 +267,15 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
     int bit_depth_c = current_sps->get_bit_depth(1);
     if (bit_depth_y < 8 || bit_depth_y > 16 || bit_depth_c < 8 || bit_depth_c > 16) {
       // TODO: Should we use a dedicated error code here?
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                        "invalid bit depths");
     }
 
     int image_buffer_idx;
     image_buffer_idx = dpb.new_image(current_sps, m_decctx, nal->pts, nal->user_data,
                                      &m_decctx->param_image_allocation_functions);
     if (image_buffer_idx == -1) {
-      return DE265_ERROR_OUT_OF_MEMORY;
+      return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot allocate image memory");
     }
 
     m_curr_img = dpb.get_image(image_buffer_idx);
@@ -356,7 +357,7 @@ de265_error frontend_syntax_decoder::read_slice_NAL(bitreader& reader, NAL_unit_
   //TODO TMP DISABLE bool did_work;
   //TODO TMP DISABLE err = m_decctx->decode_image_unit(&did_work);
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -384,7 +385,7 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit_ptr nal)
 {
   decoder_context* ctx = m_decctx;
 
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   bitreader reader;
   bitreader_init(&reader, nal->data(), nal->size());
@@ -402,7 +403,7 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit_ptr nal)
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
     // These will have to be handeled by an SHVC decoder.
-    return DE265_OK;
+    return errors.ok;
   }
 
   loginfo(LogHighlevel,"NAL: 0x%x 0x%x -  unit type:%s temporal id:%d\n",
@@ -423,7 +424,7 @@ de265_error frontend_syntax_decoder::decode_NAL(NAL_unit_ptr nal)
   //printf("hTid: %d\n", current_HighestTid);
 
   if (nal_hdr.nuh_temporal_id > m_decctx->get_current_TID()) {
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -470,9 +471,9 @@ de265_error frontend_syntax_decoder::on_NAL_inserted()
 {
   loginfo(LogHighlevel,"================== ON-NAL-inserted\n");
 
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
-  while (nal_parser.get_NAL_queue_length() > 0 && err == DE265_OK) {
+  while (nal_parser.get_NAL_queue_length() > 0 && !err) {
     NAL_unit_ptr nal = nal_parser.pop_from_NAL_queue();
     assert(nal);
     err = decode_NAL(nal);
@@ -933,7 +934,8 @@ bool frontend_syntax_decoder::construct_reference_picture_lists(slice_segment_he
 
     // This check is to prevent an endless loop when no images are added above.
     if (rIdx==0) {
-      m_decctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      m_decctx->add_warning( errors.add(DE265_ERROR_CORRUPT_STREAM, "invalid reference picture list"),
+                             false);
       return false;
     }
   }
@@ -988,13 +990,15 @@ bool frontend_syntax_decoder::construct_reference_picture_lists(slice_segment_he
 
       // This check is to prevent an endless loop when no images are added above.
       if (rIdx==0) {
-        m_decctx->add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        m_decctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM, "faulty reference picture list"),
+                              false);
         return false;
       }
     }
 
     if (hdr->num_ref_idx_l0_active > 16) {
-      m_decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+      m_decctx->add_warning(errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED),
+                            false);
       return false;
     }
 
@@ -1048,7 +1052,7 @@ bool frontend_syntax_decoder::process_slice_segment_header(slice_segment_header*
                                                            nal_header* nal_hdr,
                                                            void* user_data)
 {
-  *err = DE265_OK;
+  *err = errors.ok;
 
   flush_reorder_buffer_at_this_frame = false;
 

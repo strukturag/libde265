@@ -350,7 +350,7 @@ de265_error decoder_context::start_thread_pool(int nThreads)
 
   num_worker_threads = nThreads;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -686,7 +686,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
   // --- generate decoding thread tasks for each slice ---
 
 
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   for (slice_unit* sliceunit : imgunit->slice_units) {
 
@@ -735,7 +735,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
     on_image_decoding_finished(); // TODO: we probably should not call this from the main thread
   }
 
-  return (err == DE265_OK);
+  return !err;
   //return true;
 }
 
@@ -743,7 +743,7 @@ bool decoder_context::decode_image_frame_parallel(image_unit_ptr imgunit)
 de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
                                                           slice_unit* sliceunit)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   /*
   printf("create tasks to decode slice POC=%d addr=%d, img=%p\n",
@@ -777,7 +777,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
     tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
-    return DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA;
+    return errors.add(DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA);
   }
 
   tctx->set_CTB_address_RS( tctx->shdr->slice_segment_address );
@@ -786,7 +786,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   if (sliceunit->reader.bytes_remaining <= 0) {
     tctx->mark_covered_CTBs_as_processed(CTB_PROGRESS_PREFILTER);
-    return DE265_WARNING_PREMATURE_END_OF_SLICE;
+    return errors.add(DE265_ERROR_PREMATURE_END_OF_SLICE);
   }
 
   init_CABAC_decoder(&tctx->cabac_decoder,
@@ -823,7 +823,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imgunit,
                                                               slice_unit* sliceunit)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   // TODO: do this when the slice is moved from processing to output queue
   // remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
@@ -865,7 +865,8 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
   else if (use_WPP && use_tiles) {
     // TODO: this is not allowed ... output some warning or error
 
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                      "WPP and tiles may not be enabled both");
   }
   else if (use_WPP) {
     err = decode_slice_unit_WPP(imgunit, sliceunit);
@@ -887,7 +888,7 @@ de265_error decoder_context::decode_slice_unit_frame_parallel(image_unit* imguni
 de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
                                                    slice_unit* sliceunit)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   image_ptr img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
@@ -922,7 +923,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   if (slice_first_CTB_TS >= pps.sps->PicSizeInCtbsY ||
       slice_last_CTB_TS  >= pps.sps->PicSizeInCtbsY) {
-    return DE265_WARNING_SLICEHEADER_INVALID;
+    return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                      "slice CTB range outside of image area");
   }
 
   int slice_first_CTB_RS = pps.CtbAddrTStoRS[slice_first_CTB_TS];
@@ -932,7 +934,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int slice_last_row  = slice_last_CTB_RS  / ctbsWidth;
 
   if (slice_last_row - slice_first_row +1 != nRows) {
-    return DE265_WARNING_SLICEHEADER_INVALID;
+    return errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                      "slide CTB range does not match WPP entry points");
   }
 
 
@@ -946,9 +949,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       // If slice segment consists of several WPP rows, each of them
       // has to start at a row.
 
-      //printf("does not start at start\n");
-
-      err = DE265_WARNING_SLICEHEADER_INVALID;
+      err = errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                       "WPP slices do not start at first CTB in row");
       break;
     }
 
@@ -956,7 +958,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     // check for WPP rows starting out of image
 
     if (ctbAddrRS >= pps.sps->PicSizeInCtbsY) {
-      err = DE265_WARNING_SLICEHEADER_INVALID;
+      err = errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                       "slice starts outside of image area (RS)");
       break;
     }
 
@@ -964,7 +967,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     assert(ctbAddrTS == ctbAddrRS);
 
     if (ctbAddrTS > sliceunit->last_CTB_TS) {
-      err = DE265_WARNING_SLICEHEADER_INVALID;
+      err = errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                       "slice starts outside of image area (TS)");
       break;
     }
 
@@ -996,8 +1000,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
     if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
         dataEnd <= dataStartIndex) {
-      //printf("WPP premature end\n");
-      err = DE265_WARNING_PREMATURE_END_OF_SLICE;
+
+      err = errors.add(DE265_ERROR_PREMATURE_END_OF_SLICE);
       break;
     }
 
@@ -1021,7 +1025,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   }
 
 
-  if (err == DE265_OK) {
+  if (!err) {
     // all tasks could be created successfully, so let's add them to the imageunit
     // and start them
 
@@ -1068,7 +1072,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
                                                      slice_unit* sliceunit)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   image_ptr img = imgunit->img;
   slice_segment_header* shdr = sliceunit->shdr;
@@ -1095,7 +1099,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       tileID++;
 
       if (tileID >= pps.num_tile_columns * pps.num_tile_rows) {
-        err = DE265_WARNING_SLICEHEADER_INVALID;
+        err = errors.add(DE265_ERROR_INVALID_SLICE_HEADER,
+                         "tile ID larger than number of tiles in image");
         break;
       }
 
@@ -1131,7 +1136,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
     if (dataStartIndex<0 || dataEnd>sliceunit->reader.bytes_remaining ||
         dataEnd <= dataStartIndex) {
-      err = DE265_WARNING_PREMATURE_END_OF_SLICE;
+      err = errors.add(DE265_ERROR_PREMATURE_END_OF_SLICE);
       break;
     }
 
@@ -1154,7 +1159,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   }
 
 
-  if (err == DE265_OK) {
+  if (!err) {
     for (int entryPt=0;entryPt<nTiles;entryPt++) {
       auto tctx = sliceunit->get_thread_context(entryPt);
 
@@ -1278,7 +1283,7 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit_ptr outimgu
 {
   image_ptr outimg = outimgunit->img;
 
-  if (!outimg) { return DE265_OK; }
+  if (!outimg) { return errors.ok; }
 
 
   if (!outimgunit->slice_units.empty()) {
@@ -1315,7 +1320,7 @@ de265_error decoder_context::push_picture_to_output_queue(image_unit_ptr outimgu
 
   m_output_queue.log_dpb_queues();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

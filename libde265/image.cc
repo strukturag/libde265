@@ -382,13 +382,13 @@ de265_error image::alloc_image(int w,int h, enum de265_chroma c,
 
     // check for memory shortage
 
-    if (!mem_alloc_success)
-      {
-        return DE265_ERROR_OUT_OF_MEMORY;
-      }
+    if (!mem_alloc_success) {
+      return errors.add(DE265_ERROR_OUT_OF_MEMORY,
+                        "cannot allocate image memory");
+    }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -464,13 +464,12 @@ de265_error image::alloc_metadata(std::shared_ptr<const seq_parameter_set> sps)
 
   // check for memory shortage
 
-  if (!mem_alloc_success)
-    {
-      return DE265_ERROR_OUT_OF_MEMORY;
-    }
+  if (!mem_alloc_success) {
+    return errors.add(DE265_ERROR_OUT_OF_MEMORY,
+                      "cannot allocate image metadata");
+  }
 
-
-  return DE265_OK;
+  return errors.ok;
 }
 
 

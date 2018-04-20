@@ -69,26 +69,26 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
   cross_component_prediction_enabled_flag = get_bits(br,1);
   if (sps->ChromaArrayType != de265_chroma_444 &&
       cross_component_prediction_enabled_flag) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "CCP active, but chroma is not 4:4:4");
   }
 
   chroma_qp_offset_list_enabled_flag = get_bits(br,1);
   if (sps->ChromaArrayType == de265_chroma_mono &&
       chroma_qp_offset_list_enabled_flag) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "chroma qp offset active in mono chroma");
   }
 
   if (chroma_qp_offset_list_enabled_flag) {
     if (!get_uvlc(br, &uvlc) ||
         uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
-      return DE265_WARNING_INVALID_PPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "diff_cu_chroma_qp_offset_depth invalid");
     }
 
     diff_cu_chroma_qp_offset_depth = uvlc;
 
     if (!get_uvlc(br, &uvlc) ||
         uvlc > 5) {
-      return DE265_WARNING_INVALID_PPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid chroma_qp_offset_list_len");
     }
 
     chroma_qp_offset_list_len = uvlc+1;
@@ -97,14 +97,14 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
       int svlc;
       if (!get_svlc(br, &svlc) ||
           svlc < -12 || svlc > 12) {
-        return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid cb_qp_offset_list");
       }
 
       cb_qp_offset_list[i] = svlc;
 
       if (!get_svlc(br, &svlc) ||
           svlc < -12 || svlc > 12) {
-        return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid cr_qp_offset_list");
       }
 
       cr_qp_offset_list[i] = svlc;
@@ -113,19 +113,19 @@ de265_error pps_range_extension::read(bitreader* br, sps_storage* sps_storage, c
 
   if (!get_uvlc(br, &uvlc) ||
       uvlc > libde265_max(0, sps->BitDepth_Y-10)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid log2_sao_offset_scale_luma");
   }
 
   log2_sao_offset_scale_luma = uvlc;
 
   if (!get_uvlc(br, &uvlc) ||
       uvlc > libde265_max(0, sps->BitDepth_C-10)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid log2_sao_offset_scale_chroma");
   }
 
   log2_sao_offset_scale_chroma = uvlc;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -252,27 +252,22 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
 
   int uvlc;
-  if (!get_uvlc(br, &uvlc)) {
-    return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
-  }
 
+  if (!get_uvlc(br, &uvlc) || uvlc >= DE265_MAX_PPS_SETS) {
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid pps id");
+  }
   pic_parameter_set_id = uvlc;
-  if (uvlc >= DE265_MAX_PPS_SETS) {
-    return DE265_WARNING_NONEXISTING_PPS_REFERENCED;
-  }
 
-  if (!get_uvlc(br, &uvlc)) {
-    return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
+
+  if (!get_uvlc(br, &uvlc) || uvlc >= DE265_MAX_SPS_SETS) {
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid seq_parameter_set_id");
   }
   seq_parameter_set_id = uvlc;
-  if (uvlc >= DE265_MAX_SPS_SETS) {
-    return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
-  }
+
 
   if (!sps_storage->has_sps(seq_parameter_set_id)) {
-    return DE265_WARNING_NONEXISTING_SPS_REFERENCED;
+    return errors.add(DE265_ERROR_NONEXISTING_SPS_REFERENCED, "non-existing sps referenced");
   }
-
   sps = sps_storage->get_sps_ptr(seq_parameter_set_id);
 
   dependent_slice_segments_enabled_flag = get_bits(br,1);
@@ -281,20 +276,20 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
   sign_data_hiding_flag = get_bits(br,1);
   cabac_init_present_flag = get_bits(br,1);
   if (!get_uvlc(br, &uvlc)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid num_ref_idx_l0_default_active");
   }
   num_ref_idx_l0_default_active = uvlc;
   num_ref_idx_l0_default_active++;
 
   if (!get_uvlc(br, &uvlc)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid num_ref_idx_l1_default_active");
   }
   num_ref_idx_l1_default_active = uvlc;
   num_ref_idx_l1_default_active++;
 
 
   if (!get_svlc(br, &pic_init_qp)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid pic_init_qp");
   }
   pic_init_qp += 26;
 
@@ -304,18 +299,18 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
   if (cu_qp_delta_enabled_flag) {
     if (!get_uvlc(br, &diff_cu_qp_delta_depth)) {
-      return DE265_WARNING_INVALID_PPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid diff_cu_qp_delta_depth");
     }
   } else {
     diff_cu_qp_delta_depth = 0;
   }
 
   if (!get_svlc(br, &pic_cb_qp_offset)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid pic_cb_qp_offset");
   }
 
   if (!get_svlc(br, &pic_cr_qp_offset)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "invalid pic_cr_qp_offset");
   }
 
   pps_slice_chroma_qp_offsets_present_flag = get_bits(br,1);
@@ -331,13 +326,13 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
   if (tiles_enabled_flag) {
     if (!get_uvlc(br, &num_tile_columns) ||
         num_tile_columns+1 > sps->PicWidthInCtbsY) {
-      return DE265_WARNING_INVALID_PPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "number of tile columns exceeds number of CTBs");
     }
     num_tile_columns++;
 
     if (!get_uvlc(br, &num_tile_rows) ||
         num_tile_rows+1 > sps->PicHeightInCtbsY) {
-      return DE265_WARNING_INVALID_PPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_PPS_HEADER, "number of tile rows exceeds number of CTBs");
     }
     num_tile_rows++;
 
@@ -353,7 +348,8 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
       for (int i=0; i<num_tile_columns-1; i++)
         {
           if (!get_uvlc(br, &colWidth[i])) {
-	    return DE265_WARNING_INVALID_PPS_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                              "invalid tile column width");
 	  }
           colWidth[i]++;
 
@@ -361,7 +357,8 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
         }
 
       if (lastColumnWidth <= 0) {
-        return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                          "invalid tile columns");
       }
 
       colWidth[num_tile_columns-1] = lastColumnWidth;
@@ -369,14 +366,16 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
       for (int i=0; i<num_tile_rows-1; i++)
         {
           if (!get_uvlc(br, &rowHeight[i])) {
-	    return DE265_WARNING_INVALID_PPS_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                              "invalid tile row height");
 	  }
           rowHeight[i]++;
           lastRowHeight -= rowHeight[i];
         }
 
       if (lastRowHeight <= 0) {
-        return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                          "invalid tile rows");
       }
 
 
@@ -412,12 +411,14 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
     pic_disable_deblocking_filter_flag = get_bits(br,1);
     if (!pic_disable_deblocking_filter_flag) {
       if (!get_svlc(br, &beta_offset)) {
-	return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                          "beta_offset parameter");
       }
       beta_offset *= 2;
 
       if (!get_svlc(br, &tc_offset)) {
-	return DE265_WARNING_INVALID_PPS_PARAMETER;
+        return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                          "tc_offset parameter");
       }
       tc_offset   *= 2;
     }
@@ -432,16 +433,17 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
   pic_scaling_list_data_present_flag = get_bits(br,1);
 
-  // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
+  // check consistency: if scaling-lists are not enabled, pic_scaling_list_data_present_flag
   // must be FALSE
   if (sps->scaling_list_enable_flag==0 &&
       pic_scaling_list_data_present_flag != 0) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                      "scaling lists enabled, but pic_scaling_list_data_preset_flag=false");
   }
 
   if (pic_scaling_list_data_present_flag) {
     de265_error err = scaling_list.read(br, sps.get(), true);
-    if (err != DE265_OK) {
+    if (err) {
       return err;
     }
   }
@@ -454,13 +456,15 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
   lists_modification_present_flag = get_bits(br,1);
   if (!get_uvlc(br, &log2_parallel_merge_level)) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                      "log2_parallel_merge_level invalid");
   }
   log2_parallel_merge_level += 2;
 
   if (log2_parallel_merge_level-2 > sps->log2_min_luma_coding_block_size-3 +1 +
       sps->log2_diff_max_min_luma_coding_block_size) {
-    return DE265_WARNING_INVALID_PPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_PPS_HEADER,
+                      "log2_diff_max_min_luma_coding_block_size invalid");
   }
 
   slice_segment_header_extension_present_flag = get_bits(br,1);
@@ -495,7 +499,7 @@ de265_error pic_parameter_set::read(bitreader* br, sps_storage* sps_storage)
 
   pps_read = true;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -792,7 +796,7 @@ bool pic_parameter_set::write(CABAC_encoder& out,
 
   if (pic_scaling_list_data_present_flag) {
     de265_error err = scaling_list.write(out, sps, true);
-    if (err != DE265_OK) {
+    if (err) {
       assert(false); // errqueue->add_warning(err, false);
       return false;
     }

@@ -22,6 +22,7 @@
 #include "util.h"
 #include "scan.h"
 #include "decctx.h"
+#include "error.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -29,7 +30,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if (!get_ ## vlctype(br, &vlc)) {   \
-    return DE265_WARNING_INVALID_SPS_PARAMETER; \
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "invalid VLC code"); \
   } \
   variable = vlc + offset;
 
@@ -293,7 +294,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   video_parameter_set_id = get_bits(br,4);
   sps_max_sub_layers     = get_bits(br,3) +1;
   if (sps_max_sub_layers>7) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "sps_max_sub_layers>7");
   }
 
   sps_temporal_id_nesting_flag = get_bits(br,1);
@@ -302,7 +303,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
   READ_VLC(seq_parameter_set_id, uvlc);
   if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "invalid sps id");
   }
 
 
@@ -320,7 +321,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
-    return DE265_WARNING_INVALID_CHROMA_FORMAT;
+    return errors.add(DE265_ERROR_INVALID_CHROMA_FORMAT, "invalid chroma format");
   }
 
 
@@ -331,12 +332,12 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
   if (pic_width_in_luma_samples  == 0 ||
       pic_height_in_luma_samples == 0) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "zero image width or height");
   }
 
   if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
       pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "max image width or height exceeded");
   }
 
   conformance_window_flag = get_bits(br,1);
@@ -358,8 +359,10 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
   if (bit_depth_luma > 16 ||
       bit_depth_chroma > 16) {
-    errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    de265_error err = errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                                 "bit depth exceeds 16bit");
+    errqueue->add_warning(err, false);
+    return err;
   }
 
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
@@ -379,7 +382,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
     if (!get_uvlc(br, &vlc) ||
         vlc+1 > MAX_NUM_REF_PICS) {
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "number of reference pictures exceeds maximum");
     }
 
     sps_max_dec_pic_buffering[i] = vlc+1;
@@ -418,10 +421,22 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   READ_VLC(max_transform_hierarchy_depth_inter, uvlc);
   READ_VLC(max_transform_hierarchy_depth_intra, uvlc);
 
-  if (log2_min_luma_coding_block_size > 6) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
-  if (log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size > 6) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
-  if (log2_min_transform_block_size > 5) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
-  if (log2_min_transform_block_size + log2_diff_max_min_transform_block_size > 5) { return DE265_WARNING_INVALID_SPS_PARAMETER; }
+  if (log2_min_luma_coding_block_size > 6) {
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "minimum luma coding block size > 64");
+  }
+  if (log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size > 6) {
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "maximum luma coding block size > 64");
+  }
+  if (log2_min_transform_block_size > 5) {
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "minimum transform block size > 32");
+  }
+  if (log2_min_transform_block_size + log2_diff_max_min_transform_block_size > 5) {
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "maximum transform block size > 32");
+  }
 
   scaling_list_enable_flag = get_bits(br,1);
 
@@ -431,7 +446,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
-      if ((err=scaling_list.read(br,this, false)) != DE265_OK) {
+      if (err=scaling_list.read(br,this, false)) {
         return err;
       }
     }
@@ -462,7 +477,8 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
   READ_VLC(num_short_term_ref_pic_sets, uvlc);
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
-    return DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "num_short_term_ref_pic_sets outside valid range");
   }
 
   // --- allocate reference pic set ---
@@ -491,7 +507,8 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
     READ_VLC(num_long_term_ref_pics_sps, uvlc);
     if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                        "num_long_term-ref_pics_sps exceeds maximum");
     }
 
     for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
@@ -527,7 +544,7 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
   if (sps_range_extension_flag) {
     de265_error err = range_extension.read(errqueue, br);
-    if (err != DE265_OK) { return err; }
+    if (err) { return err; }
   }
 
   /*
@@ -539,15 +556,15 @@ de265_error seq_parameter_set::read(bitreader* br, error_queue* errqueue)
 
 
   de265_error err = compute_all_derived_values();
-  if (err != DE265_OK) { return err; }
+  if (err) { return err; }
 
   if (!check_parameters_for_consistency()) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER);
   }
 
   sps_read = true;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -583,7 +600,8 @@ de265_error seq_parameter_set::derive_chroma_parameters()
 {
   if (separate_colour_plane_flag &&
       chroma_format_idc != de265_chroma_444) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "separate_colour_plane_flag active while chroma != 4:4:4");
   }
 
 
@@ -597,7 +615,7 @@ de265_error seq_parameter_set::derive_chroma_parameters()
   SubWidthC  = SubWidthC_tab [ChromaArrayType];
   SubHeightC = SubHeightC_tab[ChromaArrayType];
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -772,7 +790,7 @@ de265_error seq_parameter_set::compute_all_derived_values()
   derive_picture_sizes_in_blocks();
   derive_pcm_block_sizes();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1037,7 +1055,8 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
         int scaling_list_pred_matrix_id_delta;
         if (!get_uvlc(br, &scaling_list_pred_matrix_id_delta) ||
             scaling_list_pred_matrix_id_delta > matrixId) {
-          return DE265_WARNING_INVALID_SPS_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                            "invalid scaling_list_pred_matrix_id_delta");
         }
 
         //printf("scaling_list_pred_matrix_id_delta=%d\n", scaling_list_pred_matrix_id_delta);
@@ -1076,7 +1095,8 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
           if (!get_svlc(br, &scaling_list_dc_coef) ||
               scaling_list_dc_coef < -7 ||
               scaling_list_dc_coef > 247) {
-            return DE265_WARNING_INVALID_SPS_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                              "invalid scaling_list_dc_coef");
           }
 
           scaling_list_dc_coef += 8;
@@ -1093,7 +1113,8 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
           if (!get_svlc(br, &scaling_list_delta_coef) ||
               scaling_list_delta_coef < -128 ||
               scaling_list_delta_coef >  127) {
-            return DE265_WARNING_INVALID_SPS_PARAMETER;
+            return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                              "invalid scaling_list_delta_coef");
           }
 
           nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
@@ -1129,7 +1150,7 @@ de265_error scaling_list_data::read(bitreader* br, const seq_parameter_set* sps,
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1138,7 +1159,7 @@ de265_error scaling_list_data::write(CABAC_encoder& out, const seq_parameter_set
   assert(false);
   // TODO
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1182,7 +1203,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
 {
   out.write_bits(video_parameter_set_id, 4);
   if (sps_max_sub_layers>7) {
-    return DE265_WARNING_INVALID_SPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER, "sps_max_sub_layers>7");
   }
   out.write_bits(sps_max_sub_layers-1, 3);
 
@@ -1199,7 +1220,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
 
   if (chroma_format_idc<0 ||
       chroma_format_idc>3) {
-    return DE265_WARNING_INVALID_CHROMA_FORMAT;
+    return errors.add(DE265_ERROR_INVALID_CHROMA_FORMAT);
   }
 
   if (chroma_format_idc == 3) {
@@ -1240,7 +1261,8 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
     // sps_max_dec_pic_buffering[i]
 
     if (sps_max_dec_pic_buffering[i] > MAX_NUM_REF_PICS) {
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                        "sps_max_dec_pic_buffering[] exceeds maximum number of reference pictures");
     }
 
     out.write_uvlc(sps_max_dec_pic_buffering[i]-1);
@@ -1270,7 +1292,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
-      if ((err=scaling_list.write(out,this, false)) != DE265_OK) {
+      if (err=scaling_list.write(out,this, false)) {
         return err;
       }
     }
@@ -1290,7 +1312,8 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
   int num_short_term_ref_pic_sets = ref_pic_sets.size();
   if (num_short_term_ref_pic_sets < 0 ||
       num_short_term_ref_pic_sets > 64) {
-    return DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE;
+    return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                      "invalid num_short_term_ref_pic_sets");
   }
   out.write_uvlc(num_short_term_ref_pic_sets);
 
@@ -1306,7 +1329,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
                                          false);
 
     if (!success) {
-      return DE265_WARNING_SPS_HEADER_INVALID;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER);
     }
 
     // dump_short_term_ref_pic_set(&(*ref_pic_sets)[i], fh);
@@ -1317,7 +1340,8 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
   if (long_term_ref_pics_present_flag) {
 
     if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
-      return DE265_WARNING_INVALID_SPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_SPS_HEADER,
+                        "num_long_term-ref_pics_sps exceeds maximum number of long-term reference pictures");
     }
     out.write_uvlc(num_long_term_ref_pics_sps);
 
@@ -1397,7 +1421,7 @@ de265_error seq_parameter_set::write(CABAC_encoder& out)
   sps_read = true;
 #endif
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1431,7 +1455,7 @@ de265_error sps_range_extension::read(error_queue* errqueue, bitreader* br)
   persistent_rice_adaptation_enabled_flag = get_bits(br,1);
   cabac_bypass_alignment_enabled_flag     = get_bits(br,1);
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

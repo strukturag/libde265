@@ -127,6 +127,9 @@ void ref_pic_set::compute_derived_values()
 }
 
 
+static const char* kError_MaxNumRefPicsExceeded = "maximum number of reference pictures exceeded";
+
+
 /* A ref-pic-set is coded either
    - as a list of the relative POC deltas themselves, or
    - by shifting an existing ref-pic-set by some number of frames
@@ -162,11 +165,11 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       if (!get_uvlc(br, &delta_idx)) {
-        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET, "delta_idx invalid");
       }
 
       if (delta_idx>=idxRps) {
-        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET, "delta_idx >= idxRps");
       }
 
       delta_idx++;
@@ -180,7 +183,7 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     int delta_rps_sign = get_bits(br,1);
     int abs_delta_rps;
     if (!get_uvlc(br, &abs_delta_rps)) {
-      return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+      return errors.add(DE265_ERROR_INVALID_REF_PIC_SET, "abs_delta_rps invalid");
     }
     abs_delta_rps++;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
@@ -228,7 +231,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
       if (dPoc<0 && use_delta_flag[nNegativeRIdx+j]) {
         if (i>= MAX_NUM_REF_PICS) {
-          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+          return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                            kError_MaxNumRefPicsExceeded);
         }
 
         DeltaPocS0[i] = dPoc;
@@ -240,7 +244,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     // frame 0
     if (DeltaRPS<0 && use_delta_flag[nDeltaPocsRIdx]) {
       if (i>= MAX_NUM_REF_PICS) {
-        return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                          kError_MaxNumRefPicsExceeded);
       }
 
       DeltaPocS0[i] = DeltaRPS;
@@ -253,7 +258,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc<0 && use_delta_flag[j]) {
         if (i>= MAX_NUM_REF_PICS) {
-          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+          return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                            kError_MaxNumRefPicsExceeded);
         }
 
         DeltaPocS0[i] = dPoc;
@@ -275,7 +281,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
       int dPoc = sets[RIdx].DeltaPocS0[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[j]) {
         if (i>= MAX_NUM_REF_PICS) {
-          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+          return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                            kError_MaxNumRefPicsExceeded);
         }
 
         DeltaPocS1[i] = dPoc;
@@ -287,7 +294,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     // frame 0
     if (DeltaRPS>0 && use_delta_flag[nDeltaPocsRIdx]) {
       if (i>= MAX_NUM_REF_PICS) {
-        return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                          kError_MaxNumRefPicsExceeded);
       }
 
       DeltaPocS1[i] = DeltaRPS;
@@ -300,7 +308,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS;
       if (dPoc>0 && use_delta_flag[nNegativeRIdx+j]) {
         if (i>= MAX_NUM_REF_PICS) {
-          return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+          return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                            kError_MaxNumRefPicsExceeded);
         }
 
         DeltaPocS1[i] = dPoc;
@@ -329,14 +338,18 @@ de265_error ref_pic_set::read(error_queue* errqueue,
       NumDeltaPocs = 0;
       NumPocTotalCurr_shortterm_only = 0;
 
-      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-      return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+      de265_error err = errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                                   kError_MaxNumRefPicsExceeded);
+      errqueue->add_warning(err, false);
+      return err;
     }
 
     if (num_negative_pics > MAX_NUM_REF_PICS ||
         num_positive_pics > MAX_NUM_REF_PICS) {
-      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-      return DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED;
+      de265_error err = errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                                   kError_MaxNumRefPicsExceeded);
+      errqueue->add_warning(err, false);
+      return err;
     }
 
     NumNegativePics = num_negative_pics;
@@ -350,7 +363,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     for (int i=0;i<num_negative_pics;i++) {
       int  delta_poc_s0;
       if (!get_uvlc(br, &delta_poc_s0)) {
-          return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                          "delta_poc_s0 invalid");
       }
 
       delta_poc_s0++;
@@ -367,7 +381,8 @@ de265_error ref_pic_set::read(error_queue* errqueue,
     for (int i=0;i<num_positive_pics;i++) {
       int delta_poc_s1;
       if (!get_uvlc(br, &delta_poc_s1)) {
-        return DE265_WARNING_SHORT_TERM_REF_PIC_SET_PARAMETER_OUT_OF_RANGE;
+        return errors.add(DE265_ERROR_INVALID_REF_PIC_SET,
+                          "delta_poc_s1 invalid");
       }
 
       delta_poc_s1++;
@@ -382,7 +397,7 @@ de265_error ref_pic_set::read(error_queue* errqueue,
 
   compute_derived_values();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

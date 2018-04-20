@@ -35,7 +35,7 @@ CABAC_encoder_bitstream writer;
 
 void process_nal(NAL_unit_ptr nal)
 {
-  de265_error err = DE265_OK;
+  de265_error err = errors.ok;
 
   bitreader reader;
   bitreader_init(&reader, nal->data(), nal->size());

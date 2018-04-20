@@ -317,7 +317,8 @@ void derive_boundaryStrength(image* img, bool vertical, int yStart,int yEnd,
               int numMV_Q = mviQ.predFlag[0] + mviQ.predFlag[1];
 
               if (numMV_P!=numMV_Q) {
-                img->decctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
+                img->decctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                                    "numMV_P != numMV_Q"), false);
                 img->integrity = INTEGRITY_DECODING_ERRORS;
               }
 

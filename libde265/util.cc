@@ -20,6 +20,7 @@
 
 #include "util.h"
 #include "de265.h"
+#include "error.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -45,14 +46,13 @@ error_queue::error_queue()
 }
 
 
-void error_queue::add_warning(de265_error code, const char* message, bool once)
+void error_queue::add_warning(de265_error code, bool once)
 {
   // check if warning was already shown
 
   if (once) {
-    for (const error& w : warnings) {
-      if (w.code == code &&
-          w.message == message) {
+    for (de265_error e : warnings) {
+      if (e == code) {
         return;
       }
     }
@@ -62,28 +62,28 @@ void error_queue::add_warning(de265_error code, const char* message, bool once)
   // if this is a one-time warning, remember that it was shown
 
   if (once) {
-    warnings_shown.push_back(error { code, message });
+    warnings_shown.push_back(code);
   }
 
 
   // add warning to output queue
 
   if (warnings.size() == MAX_WARNING_QUEUE_SIZE-1) {
-    warnings.push_back(error { DE265_WARNING_WARNING_BUFFER_FULL });
+    warnings.push_back(errors.add(DE265_ERROR_UNKNOWN, "warning queue full"));
   }
   else {
-    warnings.push_back(error { code, message });
+    warnings.push_back(code);
   }
 }
 
 
-error error_queue::get_next_warning()
+de265_error error_queue::get_next_warning()
 {
   if (warnings.empty()) {
-    return error(DE265_OK);
+    return errors.ok;
   }
 
-  error warn = warnings[0];
+  de265_error warn = warnings[0];
   warnings.pop_front();
 
   return warn;

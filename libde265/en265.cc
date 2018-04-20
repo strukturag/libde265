@@ -39,7 +39,7 @@ struct de265_image {
 /*LIBDE265_API*/ en265_encoder_context* en265_new_encoder()
 {
   de265_error init_err = de265_init();
-  if (init_err != DE265_OK) {
+  if (init_err) {
     return NULL;
   }
 
@@ -127,10 +127,10 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   //if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
   int first_idx=1;
   if (!ectx->params_config.parse_command_line_params(argc,argv, &first_idx, true)) {
-    return DE265_ERROR_PARAMETER_PARSING;
+    return errors.add(DE265_ERROR_PARAMETER_PARSING);
   }
   else {
-    return DE265_OK;
+    return errors.ok;
   }
 }
 
@@ -170,7 +170,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  return ectx->params_config.set_bool(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+  return ectx->params_config.set_bool(param,value) ? errors.ok : errors.add(DE265_ERROR_PARAMETER_PARSING);
 }
 
 
@@ -180,7 +180,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  return ectx->params_config.set_int(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+  return ectx->params_config.set_int(param,value) ? errors.ok : errors.add(DE265_ERROR_PARAMETER_PARSING);
 }
 
 /*LIBDE265_API*/ de265_error en265_set_parameter_string(en265_encoder_context* e,
@@ -189,7 +189,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  return ectx->params_config.set_string(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+  return ectx->params_config.set_string(param,value) ? errors.ok : errors.add(DE265_ERROR_PARAMETER_PARSING);
 }
 
 /*LIBDE265_API*/ de265_error en265_set_parameter_choice(en265_encoder_context* e,
@@ -198,7 +198,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   assert(e);
   encoder_context* ectx = (encoder_context*)e;
 
-  return ectx->params_config.set_choice(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
+  return ectx->params_config.set_choice(param,value) ? errors.ok : errors.add(DE265_ERROR_PARAMETER_PARSING);
 }
 
 
@@ -223,7 +223,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
 
   ectx->start_encoder();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -239,7 +239,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                        pts,
                        image::supplementary_data(),
                        image_userdata,
-                       &ectx->image_allocation_functions) != DE265_OK) {
+                       &ectx->image_allocation_functions)) {
     delete img;
     return NULL;
   }
@@ -284,7 +284,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   ectx->push_picture(img->m_image);
   delete img;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -294,7 +294,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   encoder_context* ectx = (encoder_context*)e;
 
   ectx->push_end_of_input();
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -303,19 +303,19 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                                                            int timeout_ms)
 {
   // TODO
-  return DE265_OK;
+  return errors.ok;
 }
 
 /*LIBDE265_API*/ de265_error en265_trim_input_queue(en265_encoder_context*, int max_pending_images)
 {
   // TODO
-  return DE265_OK;
+  return errors.ok;
 }
 
 /*LIBDE265_API*/ int  en265_current_input_queue_length(en265_encoder_context*)
 {
   // TODO
-  return DE265_OK;
+  return errors.ok;
 }
 
 /*LIBDE265_API*/ de265_error en265_encode(en265_encoder_context* e)
@@ -329,7 +329,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
       if (result != DE265_OK) return result;
     }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 /*LIBDE265_API*/ enum en265_encoder_state en265_get_encoder_state(en265_encoder_context* e)

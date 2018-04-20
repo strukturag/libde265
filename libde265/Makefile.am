@@ -42,6 +42,8 @@ libde265_la_SOURCES = \
   decctx.h \
   en265.h \
   en265.cc \
+  error.h \
+  error.cc \
   fallback.cc \
   fallback.h \
   fallback-dct.h \

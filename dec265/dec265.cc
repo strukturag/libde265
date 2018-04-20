@@ -668,7 +668,8 @@ int main(int argc, char** argv)
 
   de265_set_verbosity(verbosity);
 
-  de265_error err =DE265_OK;
+  de265_error err;
+  err.id = DE265_OK;
 
   de265_decoder_context* ctx = de265_new_decoder();
 
@@ -882,7 +883,9 @@ int main(int argc, char** argv)
             break;
           }
 
-          if (quiet<=1) fprintf(stderr,"WARNING: %s\n", de265_get_error_text(warning));
+          char buffer[200];
+          de265_get_error_text(warning, buffer, 200);
+          if (quiet<=1) fprintf(stderr,"WARNING: %s\n", buffer);
         }
       }
 
@@ -913,7 +916,9 @@ int main(int argc, char** argv)
   gettimeofday(&tv_end, NULL);
 
   if (err != DE265_OK) {
-    if (quiet<=1) fprintf(stderr,"decoding error: %s (code=%d)\n", de265_get_error_text(err), err);
+    char buffer[200];
+    de265_get_error_text(err, buffer, 200);
+    if (quiet<=1) fprintf(stderr,"decoding error: %s (code=%d)\n", buffer, err.id); // TODO: err.id is wrong
   }
 
   double secs = tv_end.tv_sec-tv_start.tv_sec;

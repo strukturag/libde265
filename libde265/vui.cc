@@ -28,7 +28,7 @@
 
 #define READ_VLC_OFFSET(variable, vlctype, offset)   \
   if (!get_ ## vlctype(br, &vlc)) {                  \
-    return DE265_WARNING_INVALID_VUI_PARAMETER;      \
+    return errors.add(DE265_ERROR_INVALID_VUI_HEADER);  \
   } \
   variable = vlc + offset;
 
@@ -298,31 +298,36 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
     READ_VLC(min_spatial_segmentation_idc, uvlc);
     if (min_spatial_segmentation_idc > 4095) {
-      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
+      errqueue->add_warning(errors.add(DE265_ERROR_INVALID_VUI_HEADER,
+                                       "min_spatial_segmentation_idx exceeds range"), false);
       min_spatial_segmentation_idc = 0;
     }
 
     READ_VLC(max_bytes_per_pic_denom, uvlc);
     if (max_bytes_per_pic_denom > 16) {
-      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
+      errqueue->add_warning(errors.add(DE265_ERROR_INVALID_VUI_HEADER,
+                                       "max_bytes_per_pic_denom exceeds range"), false);
       max_bytes_per_pic_denom = 2;
     }
 
     READ_VLC(max_bits_per_min_cu_denom, uvlc);
     if (max_bits_per_min_cu_denom > 16) {
-      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
+      errqueue->add_warning(errors.add(DE265_ERROR_INVALID_VUI_HEADER,
+                                       "max_bits_per_min_cu_denom exceeds range"), false);
       max_bits_per_min_cu_denom = 1;
     }
 
     READ_VLC(log2_max_mv_length_horizontal, uvlc);
     if (log2_max_mv_length_horizontal > 15) {
-      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
+      errqueue->add_warning(errors.add(DE265_ERROR_INVALID_VUI_HEADER,
+                                       "log2_max_mv_length_horizontal > 15"), false);
       log2_max_mv_length_horizontal = 15;
     }
 
     READ_VLC(log2_max_mv_length_vertical, uvlc);
     if (log2_max_mv_length_vertical > 15) {
-      errqueue->add_warning(DE265_WARNING_INVALID_VUI_PARAMETER, false);
+      errqueue->add_warning(errors.add(DE265_ERROR_INVALID_VUI_HEADER,
+                                       "log2_max_mv_length_vertical > 15"), false);
       log2_max_mv_length_vertical = 15;
     }
   }
@@ -340,7 +345,7 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
   //vui_read = true;
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -436,7 +441,7 @@ de265_error read_sub_layer_hrd_parameters(std::vector<sub_layer_hrd_parameters>&
     output.push_back(p);
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -521,5 +526,5 @@ de265_error hrd_parameters::read(error_queue* errqueue, bitreader* br, const seq
     sublayer_parameters.push_back(param);
   }
 
-  return DE265_OK;
+  return errors.ok;
 }

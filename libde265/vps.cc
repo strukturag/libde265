@@ -106,14 +106,22 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
   int vlc;
 
   video_parameter_set_id = vlc = get_bits(reader, 4);
-  if (vlc >= DE265_MAX_VPS_SETS) return DE265_WARNING_INVALID_VPS_PARAMETER;
+  if (vlc >= DE265_MAX_VPS_SETS) {
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER, "vps header id exceeds maximum");
+  }
 
   skip_bits(reader, 2);
   vps_max_layers = vlc = get_bits(reader,6) +1;
-  if (vlc > 63) return DE265_WARNING_INVALID_VPS_PARAMETER; // vps_max_layers_minus1 (range 0...63)
+  if (vlc > 63) {
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER, // vps_max_layers_minus1 (range 0...63)
+                      "vps_max_layers > 63");
+  }
 
   vps_max_sub_layers = vlc = get_bits(reader,3) +1;
-  if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_WARNING_INVALID_VPS_PARAMETER;
+  if (vlc >= MAX_TEMPORAL_SUBLAYERS) {
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                      "vps_max_sub_layers exceeds maximum");
+  }
 
   vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
@@ -134,7 +142,8 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
     if (!get_uvlc(reader, &layer[i].vps_max_dec_pic_buffering) ||
         !get_uvlc(reader, &layer[i].vps_max_num_reorder_pics) ||
         !get_uvlc(reader, &layer[i].vps_max_latency_increase)) {
-      return DE265_WARNING_INVALID_VPS_PARAMETER;
+      return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                        "layer[].vps parameter invalid");
     }
   }
 
@@ -153,7 +162,8 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
   if (!get_uvlc(reader, &vps_num_layer_sets) ||
       vps_num_layer_sets+1<0 ||
       vps_num_layer_sets+1>=1024) {
-    return DE265_WARNING_INVALID_VPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                      "vps_num_layer_sets invalid");
   }
   vps_num_layer_sets += 1;
 
@@ -178,14 +188,14 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
 
     if (vps_poc_proportional_to_timing_flag) {
       int vps_num_ticks_poc_diff;
-      if (!get_uvlc(reader, &vps_num_ticks_poc_diff) ||
-          !get_uvlc(reader, &vps_num_hrd_parameters)) {
-        return DE265_WARNING_INVALID_VPS_PARAMETER;
+      if (!get_uvlc(reader, &vps_num_ticks_poc_diff)) {
+        return errors.add(DE265_ERROR_INVALID_VPS_HEADER, "invalid vps_num_ticks_poc_diff");
       }
-
       vps_num_ticks_poc_diff_one = vps_num_ticks_poc_diff + 1;
-      if (vps_num_hrd_parameters < 0 || vps_num_hrd_parameters >= 1024) {
-        return DE265_WARNING_INVALID_VPS_PARAMETER;
+
+      if (!get_uvlc(reader, &vps_num_hrd_parameters) ||
+          vps_num_hrd_parameters < 0 || vps_num_hrd_parameters >= 1024) {
+        return errors.add(DE265_ERROR_INVALID_VPS_HEADER, "invalid vps_num_hrd_parameters");
       }
 
       hrd_layer_set_idx .resize(vps_num_hrd_parameters);
@@ -194,7 +204,7 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
       for (int i=0; i<vps_num_hrd_parameters; i++) {
         int value;
         if (!get_uvlc(reader, &value)) {
-          return DE265_WARNING_INVALID_VPS_PARAMETER;
+          return errors.add(DE265_ERROR_INVALID_VPS_HEADER, "invalid hrd_layer_set_idx[]");
         }
 
         hrd_layer_set_idx[i] = value;
@@ -204,7 +214,7 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
 
-        return DE265_OK; // TODO: decode hrd_parameters()
+        return errors.ok; // TODO: decode hrd_parameters()
       }
     }
   }
@@ -219,14 +229,15 @@ de265_error video_parameter_set::read(bitreader* reader, error_queue* errqueue)
     */
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
 de265_error video_parameter_set::write(CABAC_encoder& out) const
 {
   if (video_parameter_set_id >= DE265_MAX_VPS_SETS) {
-    return DE265_WARNING_INVALID_VPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                      "vps id exceeds maximum");
   }
 
   out.write_bits(video_parameter_set_id,4);
@@ -235,7 +246,8 @@ de265_error video_parameter_set::write(CABAC_encoder& out) const
   out.write_bits(vps_max_layers-1,6);
 
   if (vps_max_sub_layers >= MAX_TEMPORAL_SUBLAYERS) {
-    return DE265_WARNING_INVALID_VPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                      "vps_max_sub_layers exceeds maximum");
   }
 
   out.write_bits(vps_max_sub_layers-1,3);
@@ -263,7 +275,8 @@ de265_error video_parameter_set::write(CABAC_encoder& out) const
 
   if (vps_num_layer_sets<0 ||
       vps_num_layer_sets>=1024) {
-    return DE265_WARNING_INVALID_VPS_PARAMETER;
+    return errors.add(DE265_ERROR_INVALID_VPS_HEADER,
+                      "vps_num_layer_sets invalid");
   }
 
   out.write_bits(vps_max_layer_id,6);
@@ -295,7 +308,7 @@ de265_error video_parameter_set::write(CABAC_encoder& out) const
 
         //hrd_parameters(cprms_present_flag[i], vps_max_sub_layers_minus1)
 
-        return DE265_OK; // TODO: decode hrd_parameters()
+        return errors.ok; // TODO: decode hrd_parameters()
       }
     }
   }
@@ -310,7 +323,7 @@ de265_error video_parameter_set::write(CABAC_encoder& out) const
     */
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

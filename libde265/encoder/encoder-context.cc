@@ -150,7 +150,7 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t,
 de265_error encoder_context::encode_picture_from_input_buffer()
 {
   if (!picbuf.have_more_frames_to_encode()) {
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -290,7 +290,7 @@ de265_error encoder_context::encode_picture_from_input_buffer()
 
   imgdata->mark_encoding_finished();
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

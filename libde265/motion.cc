@@ -537,7 +537,7 @@ void generate_inter_prediction_samples(base_context* ctx,
 
       if (vi->refIdx[l] >= MAX_NUM_REF_PICS) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        ctx->add_warning(errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED), false);
         return;
       }
 
@@ -567,7 +567,7 @@ void generate_inter_prediction_samples(base_context* ctx,
 
       if (refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        ctx->add_warning(errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED), false);
 
         // TODO: fill predSamplesC with black or grey
       }
@@ -636,7 +636,9 @@ void generate_inter_prediction_samples(base_context* ctx,
                                               nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
       }
       else {
-        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                    "block with both predflags enabled in P slice"),
+                         false);
         img->integrity = INTEGRITY_DECODING_ERRORS;
       }
     }
@@ -686,7 +688,9 @@ void generate_inter_prediction_samples(base_context* ctx,
         }
       }
       else {
-        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+        ctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                    "block with both predflags zero"),
+                         false);
         img->integrity = INTEGRITY_DECODING_ERRORS;
       }
     }
@@ -844,7 +848,9 @@ void generate_inter_prediction_samples(base_context* ctx,
       // TODO: check why it can actually happen that both predFlags[] are false.
       // For now, we ignore this and continue decoding.
 
-      ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+      ctx->add_warning(errors.add(DE265_ERROR_CORRUPT_STREAM,
+                                  "block with both predflags zero"),
+                       false);
       img->integrity = INTEGRITY_DECODING_ERRORS;
     }
   }
@@ -1325,7 +1331,8 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
   if (xColPb >= colImg->get_width() ||
       yColPb >= colImg->get_height()) {
     *out_availableFlagLXCol = 0;
-    return DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA;
+    return errors.add(DE265_ERROR_CORRUPT_STREAM,
+                      "collocated motion vector outside image area");
   }
 
   enum PredMode predMode = colImg->get_pred_mode(xColPb,yColPb);
@@ -1337,7 +1344,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -1353,7 +1360,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -1467,7 +1474,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
     }
     else {
       if (!scale_mv(out_mvLXCol, mvCol, colDist, currDist)) {
-        return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
+        return errors.add(DE265_ERROR_CORRUPT_STREAM, "incorrect motion vector scaling");
         //ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
         //img->integrity = INTEGRITY_DECODING_ERRORS;
       }
@@ -1477,7 +1484,7 @@ static de265_error derive_collocated_motion_vectors(base_context* ctx,
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1500,7 +1507,7 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
     out_mvLXCol->x = 0;
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
-    return DE265_OK;
+    return errors.ok;
   }
 
 
@@ -1532,7 +1539,7 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
     out_mvLXCol->y = 0;
     *out_availableFlagLXCol = 0;
 
-    return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
+    return errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED);
   }
 
 
@@ -1590,7 +1597,7 @@ static de265_error derive_temporal_luma_vector_prediction(base_context* ctx,
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -1915,7 +1922,7 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // the POC we want to reference in this PB
   auto tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
-  if (!tmpimg) { return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED; }
+  if (!tmpimg) { return errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED); }
 
   // NOT NEEDED (only POC accessed) if (LOCK) tmpimg->wait_for_progress(nullptr, 19,11, CTB_PROGRESS_SAO); // LOCK
 
@@ -1999,7 +2006,7 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
     if (out_availableFlagLXN[A]==1) {
       if (refIdxA<0) {
         out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
-        return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
+        return errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED);
       }
 
       assert(refIdxA>=0);
@@ -2030,7 +2037,8 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
           int distX = dataaccess.get_POC() - referenced_POC;
 
           if (!scale_mv(&out_mvLXN[A], out_mvLXN[A], distA, distX)) {
-            return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
+            return errors.add(DE265_ERROR_CORRUPT_STREAM,
+                              "incorrect motion vector scaling");
           }
         }
     }
@@ -2146,7 +2154,7 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
       if (out_availableFlagLXN[B]==1) {
         if (refIdxB<0) {
           out_availableFlagLXN[0] = out_availableFlagLXN[1] = false;
-          return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
+          return errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED);
         }
 
         assert(refPicList>=0);
@@ -2162,7 +2170,7 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
 
         if (refPicB==NULL || refPicX==NULL) {
-          return DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED;
+          return errors.add(DE265_ERROR_NONEXISTING_REFERENCE_PICTURE_ACCESSED);
         }
         else if (refPicB->PicOrderCntVal != refPicX->PicOrderCntVal &&
                  !isLongTermB && !isLongTermX) {
@@ -2172,14 +2180,14 @@ static de265_error derive_spatial_luma_vector_prediction(base_context* ctx,
           logtrace(LogMotion,"scale MVP B: B-POC:%d X-POC:%d\n",refPicB->PicOrderCntVal,refPicX->PicOrderCntVal);
 
           if (!scale_mv(&out_mvLXN[B], out_mvLXN[B], distB, distX)) {
-            return DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING;
+            return errors.add(DE265_ERROR_CORRUPT_STREAM, "incorrect motion vector scaling");
           }
         }
       }
     }
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -2264,7 +2272,7 @@ static de265_error fill_luma_motion_vector_predictors(base_context* ctx,
 
   assert(numMVPCandLX==2);
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 

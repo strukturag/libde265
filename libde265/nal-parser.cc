@@ -218,7 +218,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   if (pending_input_NAL == NULL) {
     pending_input_NAL = NAL_unit::alloc(len+3);
     if (pending_input_NAL == NULL) {
-      return DE265_ERROR_OUT_OF_MEMORY;
+      return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot store NAL");
     }
     pending_input_NAL->pts = pts;
     pending_input_NAL->user_data = user_data;
@@ -229,7 +229,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   // Resize output buffer so that complete input would fit.
   // We add 3, because in the worst case 3 extra bytes are created for an input byte.
   if (!nal->resize(nal->size() + len + 3)) {
-    return DE265_ERROR_OUT_OF_MEMORY;
+    return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot store NAL data");
   }
 
   unsigned char* out = nal->data() + nal->size();
@@ -304,7 +304,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
         pending_input_NAL = NAL_unit::alloc(len+3);
         if (pending_input_NAL == NULL) {
-          return DE265_ERROR_OUT_OF_MEMORY;
+          return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot append NAL data");
         }
         pending_input_NAL->pts = pts;
         pending_input_NAL->user_data = user_data;
@@ -328,7 +328,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   }
 
   nal->set_size(out - nal->data());
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -343,7 +343,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   NAL_unit_ptr nal = NAL_unit::alloc(len);
   if (!nal || !nal->set_data(data, len)) {
-    return DE265_ERROR_OUT_OF_MEMORY;
+    return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot store NAL data");
   }
   nal->pts = pts;
   nal->user_data = user_data;
@@ -352,7 +352,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   push_to_NAL_queue(nal);
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
@@ -366,12 +366,12 @@ de265_error NAL_Parser::flush_data()
 
     if (input_push_state==6) {
       if (!nal->append(null,1)) {
-        return DE265_ERROR_OUT_OF_MEMORY;
+        return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot add NAL data");
       }
     }
     if (input_push_state==7) {
       if (!nal->append(null,2)) {
-        return DE265_ERROR_OUT_OF_MEMORY;
+        return errors.add(DE265_ERROR_OUT_OF_MEMORY, "cannot add NAL data");
       }
     }
 
@@ -386,7 +386,7 @@ de265_error NAL_Parser::flush_data()
     input_push_state = 0;
   }
 
-  return DE265_OK;
+  return errors.ok;
 }
 
 
