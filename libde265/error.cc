@@ -60,7 +60,7 @@ de265_error ErrorBuffer::add(const void* context, de265_error_code code, std::st
   // --- add the new error
 
   struct error_item item;
-  item.id.id = m_next_error_id;
+  item.id = m_next_error_id;
   item.context = context;
   item.code = code;
   item.message = message;
@@ -103,7 +103,7 @@ void ErrorBuffer::set_context(de265_error err, void* context)
   m_mutex.lock();
 
   for (int i=0; i<m_errors.size(); i++) {
-    if (m_errors[i].id.id == err.id) {
+    if (m_errors[i].id == err) {
       if (m_errors[i].context) {
         m_context_usage[ m_errors[i].context ]--;
       }
@@ -127,7 +127,7 @@ void ErrorBuffer::append_message(de265_error err, std::string message)
   m_mutex.lock();
 
   for (int i=0; i<m_errors.size(); i++) {
-    if (m_errors[i].id.id == err.id) {
+    if (m_errors[i].id == err) {
       m_errors[i].message += ' ';
       m_errors[i].message += message;
       break;
@@ -161,7 +161,7 @@ std::string ErrorBuffer::get_message(de265_error err) const
   m_mutex.lock();
 
   for (int i=0; i<m_errors.size(); i++) {
-    if (m_errors[i].id.id == err.id) {
+    if (m_errors[i].id == err) {
       std::string message = m_errors[i].message;
 
       if (message.empty()) {
@@ -184,7 +184,7 @@ std::string ErrorBuffer::get_recursive_message(de265_error err) const
   m_mutex.lock();
 
   for (int i=0; i<m_errors.size(); i++) {
-    if (m_errors[i].id.id == err.id) {
+    if (m_errors[i].id == err) {
       std::string message = m_errors[i].message;
       de265_error_code code = m_errors[i].code;
       m_mutex.unlock();
@@ -216,7 +216,7 @@ de265_error_code ErrorBuffer::get_error_code(de265_error err) const
   m_mutex.lock();
 
   for (int i=0; i<m_errors.size(); i++) {
-    if (m_errors[i].id.id == err.id) {
+    if (m_errors[i].id == err) {
       de265_error_code code = m_errors[i].code;
       m_mutex.unlock();
       return code;

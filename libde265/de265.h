@@ -86,12 +86,7 @@ LIBDE265_API int de265_get_version_number_maintenance(void);
 
 /* === error codes === */
 
-// TODO: temporarilly a struct to find all legacy usages
-typedef struct {
-  uint32_t id=0;
-
-  operator bool() const { return id!=0; }
-} de265_error;
+typedef uint32_t de265_error;
 
 
 typedef enum de265_error_code {
@@ -155,7 +150,7 @@ typedef enum de265_error_code {
 
   // next error ID: 117
 
-
+  /*
   // --- Severe decoding errors because of software or system limitations ---
 
   // Cannot decode the stream, because an essential feature is not implemented.
@@ -259,7 +254,7 @@ typedef enum de265_error_code {
   // This can be caused by an invalid input stream (in which case we should replace this
   // warning with a better one in the future, or a decoder bug).
   DE265_WARNING_DECODING_ERROR = 6000
-
+  */
 } de265_error_code;
 
   LIBDE265_API void de265_get_error_text(de265_error err, char* buffer, int size);
