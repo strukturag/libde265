@@ -511,7 +511,7 @@ int blamain()
     {
       printf("%d: ",level);
 
-      int prefixPart = std::min(TRMax, level);
+      int prefixPart = libde265_min(TRMax, level);
 
       // code TR prefix
 
@@ -543,7 +543,7 @@ static void encode_coeff_abs_level_remaining(encoder_context* ectx,
   logtrace(LogSlice,"# encode_coeff_abs_level_remaining = %d\n",level);
 
   int cTRMax = 4<<cRiceParam;
-  int prefixPart = std::min(level, cTRMax);
+  int prefixPart = libde265_min(level, cTRMax);
 
   // --- code prefix with TR ---
 

@@ -482,8 +482,8 @@ void decoder_context::init_thread_context(thread_context* tctx)
     int x = ((ctbX+1) << sps.Log2CtbSizeY)-1;
     int y = ((ctbY+1) << sps.Log2CtbSizeY)-1;
 
-    x = std::min(x,sps.pic_width_in_luma_samples-1);
-    y = std::min(y,sps.pic_height_in_luma_samples-1);
+    x = libde265_min(x,sps.pic_width_in_luma_samples-1);
+    y = libde265_min(y,sps.pic_height_in_luma_samples-1);
 
     //printf("READ QPY: %d %d -> %d (should %d)\n",x,y,imgunit->img->get_QPY(x,y), tc.currentQPY);
 
@@ -2156,8 +2156,8 @@ int decoder_context::change_framerate(int more)
   assert(more>=-1 && more<=1);
 
   goal_HighestTid += more;
-  goal_HighestTid = std::max(goal_HighestTid, 0);
-  goal_HighestTid = std::min(goal_HighestTid, highestTid);
+  goal_HighestTid = libde265_max(goal_HighestTid, 0);
+  goal_HighestTid = libde265_min(goal_HighestTid, highestTid);
 
   framerate_ratio = framedrop_tid_index[goal_HighestTid];
 
