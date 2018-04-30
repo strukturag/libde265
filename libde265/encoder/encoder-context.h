@@ -59,10 +59,12 @@ class encoder_context : public base_context
   int image_width, image_height;
   bool image_spec_is_defined;  // whether we know the input image size
 
+  /*
   void* param_image_allocation_userdata;
   void (*release_func)(en265_encoder_context*,
                        de265_image*,
                        void* userdata);
+  */
 
   //error_queue errqueue;
   //acceleration_functions accel;

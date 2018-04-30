@@ -67,7 +67,7 @@ de265_image* ImageSource_YUV::read_next_image()
 
   de265_image* img = new de265_image;
   img->alloc_image(width,height,de265_chroma_420, NULL, false,
-                   NULL, NULL, 0, NULL, false);
+                   NULL, /*NULL,*/ 0, NULL, false);
   assert(img); // TODO: error handling
 
   // --- load image ---

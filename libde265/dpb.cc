@@ -259,7 +259,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   default: chroma = de265_chroma_420; assert(0); break; // should never happen
   }
 
-  img->alloc_image(w,h, chroma, sps, true, decctx, NULL, pts, user_data, isOutputImage);
+  img->alloc_image(w,h, chroma, sps, true, decctx, /*NULL,*/ pts, user_data, isOutputImage);
 
   img->integrity = INTEGRITY_CORRECT;
 

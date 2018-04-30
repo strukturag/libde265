@@ -46,6 +46,7 @@ LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 }
 
 
+/*
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                                                    void (*release_func)(en265_encoder_context*,
                                                                         de265_image*,
@@ -58,6 +59,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
   ectx->param_image_allocation_userdata = alloc_userdata;
   ectx->release_func = release_func;
 }
+*/
 
 
 // ========== encoder parameters ==========
@@ -180,7 +182,7 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
 
   de265_image* img = new de265_image;
   if (img->alloc_image(width,height,de265_chroma_420, NULL, false,
-                       NULL,ectx, pts, image_userdata, true) != DE265_OK) {
+                       NULL, /*ectx,*/ pts, image_userdata, true) != DE265_OK) {
     delete img;
     return NULL;
   }
@@ -317,4 +319,3 @@ LIBDE265_API int en265_number_of_queued_packets(en265_encoder_context* e)
 
   return ectx->output_packets.size();
 }
-
