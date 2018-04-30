@@ -21,7 +21,6 @@
 #include "intrapred.h"
 #include "transform.h"
 #include "util.h"
-#include "encoder/encoder-types.h"
 #include <assert.h>
 
 
