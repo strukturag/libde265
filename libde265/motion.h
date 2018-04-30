@@ -119,4 +119,13 @@ public:
 };
 
 
+void get_merge_candidate_list_without_step_9(base_context* ctx,
+                                             const slice_segment_header* shdr,
+                                             const MotionVectorAccess& mvaccess,
+                                             de265_image* img,
+                                             int xC,int yC, int xP,int yP,
+                                             int nCS, int nPbW,int nPbH, int partIdx,
+                                             int max_merge_idx,
+                                             PBMotion* mergeCandList);
+
 #endif

@@ -19,10 +19,11 @@
  */
 
 #include "encoder/encoder-motion.h"
+#include "encoder/encoder-context.h"
 #include "decctx.h"
 #include "util.h"
 #include "dpb.h"
-#include "encoder/encoder-context.h"
+#include "motion.h"
 
 #include <assert.h>
 
