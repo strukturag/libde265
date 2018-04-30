@@ -699,36 +699,34 @@ bool PBMotion::operator==(const PBMotion& b) const
 
 
 // TODO: add specializations for de265_image and encoder_context
-template <class T> class MotionVectorAccess
+class MotionVectorAccess
 {
 public:
-  enum PartMode get_PartMode(int x,int y);
-  const PBMotion& get_mv_info(int x,int y);
+  virtual enum PartMode get_PartMode(int x,int y) const = 0;
+  virtual const PBMotion& get_mv_info(int x,int y) const = 0;
 };
 
 
-template <> class MotionVectorAccess<de265_image>
+class MotionVectorAccess_de265_image : public MotionVectorAccess
 {
 public:
-  MotionVectorAccess(const de265_image* i) : img(i) { }
+  MotionVectorAccess_de265_image(const de265_image* i) : img(i) { }
 
-  enum PartMode get_PartMode(int x,int y) { return img->get_PartMode(x,y); }
-  const PBMotion& get_mv_info(int x,int y) { return img->get_mv_info(x,y); }
+  enum PartMode get_PartMode(int x,int y) const override { return img->get_PartMode(x,y); }
+  const PBMotion& get_mv_info(int x,int y) const override { return img->get_mv_info(x,y); }
 
 private:
   const de265_image* img;
 };
 
 
-template <> class MotionVectorAccess<encoder_context>
+class MotionVectorAccess_encoder_context : public MotionVectorAccess
 {
 public:
-  MotionVectorAccess(const encoder_context* e) : ectx(e) { }
+  MotionVectorAccess_encoder_context(const encoder_context* e) : ectx(e) { }
 
-  enum PartMode get_PartMode(int x,int y) { return ectx->ctbs.getCB(x,y)->PartMode; }
-  const PBMotion& get_mv_info(int x,int y) {
-    return ectx->ctbs.getPB(x,y)->motion;
-  }
+  enum PartMode get_PartMode(int x,int y) const override { return ectx->ctbs.getCB(x,y)->PartMode; }
+  const PBMotion& get_mv_info(int x,int y) const override { return ectx->ctbs.getPB(x,y)->motion; }
 
 private:
   const encoder_context* ectx;
@@ -778,9 +776,8 @@ private:
   second part to the parameters of the first part, since then, we could use 2Nx2N
   right away. -> Exclude this candidate.
 */
-template <class MVAccessType>
 int derive_spatial_merging_candidates(//const de265_image* img,
-                                      MotionVectorAccess<MVAccessType> mvaccess,
+                                      const MotionVectorAccess& mvaccess,
                                       const de265_image* img,
                                       int xC, int yC, int nCS, int xP, int yP,
                                       uint8_t singleMCLFlag,
@@ -1449,10 +1446,9 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
 
 // 8.5.3.1.1
 
-template <class MVAccess>
 void get_merge_candidate_list_without_step_9(base_context* ctx,
                                              const slice_segment_header* shdr,
-                                             MotionVectorAccess<MVAccess> mvaccess,
+                                             const MotionVectorAccess& mvaccess,
                                              de265_image* img,
                                              int xC,int yC, int xP,int yP,
                                              int nCS, int nPbW,int nPbH, int partIdx,
@@ -1562,7 +1558,7 @@ void get_merge_candidate_list(base_context* ctx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          MotionVectorAccess<de265_image>(img), img,
+                                          MotionVectorAccess_de265_image(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1589,7 +1585,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
   int max_merge_idx = 5-shdr->five_minus_max_num_merge_cand -1;
 
   get_merge_candidate_list_without_step_9(ectx, shdr,
-                                          MotionVectorAccess<encoder_context>(ectx), ectx->img,
+                                          MotionVectorAccess_encoder_context(ectx), ectx->img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           max_merge_idx, mergeCandList);
 
@@ -1619,7 +1615,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   PBMotion mergeCandList[5];
 
   get_merge_candidate_list_without_step_9(ctx, shdr,
-                                          MotionVectorAccess<de265_image>(img), img,
+                                          MotionVectorAccess_de265_image(img), img,
                                           xC,yC,xP,yP,nCS,nPbW,nPbH, partIdx,
                                           merge_idx, mergeCandList);
 
