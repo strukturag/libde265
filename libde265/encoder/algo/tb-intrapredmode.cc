@@ -24,6 +24,7 @@
 #include "libde265/encoder/encoder-context.h"
 #include "libde265/encoder/algo/tb-split.h"
 #include "libde265/encoder/algo/coding-options.h"
+#include "libde265/encoder/encoder-intrapred.h"
 #include <assert.h>
 #include <limits>
 #include <math.h>

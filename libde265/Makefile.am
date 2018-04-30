@@ -90,8 +90,11 @@ libde265_la_SOURCES = \
   vui.cc \
   vui.h
 
-SUBDIRS = encoder
-libde265_la_LIBADD = encoder/libde265_encoder.la
+#SUBDIRS = encoder
+#libde265_la_LIBADD = encoder/libde265_encoder.la
+
+SUBDIRS =
+libde265_la_LIBADD =
 
 if ENABLE_SSE_OPT
   SUBDIRS += x86

@@ -69,6 +69,7 @@ OBJS=\
 	encoder\encoder-context.obj \
 	encoder\encoder-params.obj \
 	encoder\encoder-syntax.obj \
+	encoder\encoder-intrapred.obj \
 	encoder\encpicbuf.obj \
 	encoder\sop.obj \
 	encoder\algo\algo.obj \
