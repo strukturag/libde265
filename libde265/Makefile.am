@@ -37,8 +37,6 @@ libde265_la_SOURCES = \
   deblock.h \
   decctx.cc \
   decctx.h \
-  en265.h \
-  en265.cc \
   fallback.cc \
   fallback.h \
   fallback-dct.h \
@@ -90,11 +88,14 @@ libde265_la_SOURCES = \
   vui.cc \
   vui.h
 
-SUBDIRS = encoder
-libde265_la_LIBADD = encoder/libde265_encoder.la
+SUBDIRS =
+libde265_la_LIBADD =
 
-#SUBDIRS =
-#libde265_la_LIBADD =
+if ENABLE_ENCODER
+  libde265_la_SOURCES += en265.h en265.cc
+  SUBDIRS += encoder
+  libde265_la_LIBADD += encoder/libde265_encoder.la
+endif
 
 if ENABLE_SSE_OPT
   SUBDIRS += x86

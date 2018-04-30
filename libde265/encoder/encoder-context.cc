@@ -43,7 +43,7 @@ encoder_context::encoder_context()
   headers_have_been_sent = false;
 
   param_image_allocation_userdata = NULL;
-  release_func = NULL;
+  //release_func = NULL;
 
   use_adaptive_context = true; //false;
 
@@ -60,7 +60,7 @@ encoder_context::encoder_context()
 encoder_context::~encoder_context()
 {
   while (!output_packets.empty()) {
-    en265_free_packet(this, output_packets.front());
+    en265_free_packet((en265_encoder_context*)this, output_packets.front());
     output_packets.pop_front();
   }
 }
@@ -112,7 +112,7 @@ en265_packet* encoder_context::create_packet(en265_packet_content_type t)
   pck->nuh_layer_id = 0;
   pck->nuh_temporal_id = 0;
 
-  pck->encoder_context = this;
+  pck->encoder_context = (en265_encoder_context*)this;
 
   pck->input_image = NULL;
   pck->reconstruction = NULL;
