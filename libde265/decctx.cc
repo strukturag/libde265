@@ -1648,9 +1648,8 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
                                                                     PocStCurrBefore[i], false);
       RefPicSetStCurrBefore[i] = k = concealedPicture;
 
-	  if (concealedPicture < picInAnyList.size()) {
-		  picInAnyList[concealedPicture] = true;
-	  }
+      picInAnyList.resize(dpb.size(), false); // adjust size of array to hold new picture
+      picInAnyList[concealedPicture] = true;
 
       //printf("  concealed: %d\n", concealedPicture);
     }
@@ -1671,6 +1670,9 @@ void decoder_context::process_reference_picture_set(slice_segment_header* hdr)
       int concealedPicture = generate_unavailable_reference_picture(current_sps.get(),
                                                                     PocStCurrAfter[i], false);
       RefPicSetStCurrAfter[i] = k = concealedPicture;
+
+
+      picInAnyList.resize(dpb.size(), false); // adjust size of array to hold new picture
       picInAnyList[concealedPicture]=true;
 
       //printf("  concealed: %d\n", concealedPicture);
