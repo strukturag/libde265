@@ -386,7 +386,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   pps = ctx->get_pps(slice_pic_parameter_set_id);
 
-  const seq_parameter_set* sps = pps->sps;
+  const seq_parameter_set* sps = pps->sps.get();
   if (!sps->sps_read) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     *continueDecoding = false;
