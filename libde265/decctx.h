@@ -302,6 +302,7 @@ class decoder_context : public base_context {
   bool has_pps(int id) const { return (bool)pps[id]; }
 
   std::shared_ptr<const seq_parameter_set> get_shared_sps(int id) { return sps[id]; }
+  std::shared_ptr<const pic_parameter_set> get_shared_pps(int id) { return pps[id]; }
 
   /* */ seq_parameter_set* get_sps(int id)       { return sps[id].get(); }
   const seq_parameter_set* get_sps(int id) const { return sps[id].get(); }

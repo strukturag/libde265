@@ -384,7 +384,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     return DE265_OK;
   }
 
-  pps = ctx->get_pps(slice_pic_parameter_set_id);
+  pps = ctx->get_shared_pps(slice_pic_parameter_set_id);
 
   const seq_parameter_set* sps = pps->sps.get();
   if (!sps->sps_read) {
@@ -872,7 +872,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
 
-  compute_derived_values(pps);
+  compute_derived_values(pps.get());
 
   *continueDecoding = true;
   return DE265_OK;
