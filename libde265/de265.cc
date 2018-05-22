@@ -192,6 +192,7 @@ LIBDE265_API de265_error de265_init()
   init_scan_orders();
 
   if (!alloc_and_init_significant_coeff_ctxIdx_lookupTable()) {
+    de265_init_count--;
     return DE265_ERROR_LIBRARY_INITIALIZATION_FAILED;
   }
 
