@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <mutex>
 
 
 // TODO: should be in some vps.c related header
@@ -161,12 +162,18 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
 
 
 
-static std::atomic<int> de265_init_count;
+static int de265_init_count;
+
+static std::mutex de265_init_mutex;
+
 
 LIBDE265_API de265_error de265_init()
 {
-  int cnt = std::atomic_fetch_add(&de265_init_count,1);
-  if (cnt>0) {
+  std::lock_guard<std::mutex> lock(de265_init_mutex);
+
+  de265_init_count++;
+
+  if (de265_init_count > 1) {
     // we are not the first -> already initialized
 
     return DE265_OK;
@@ -181,7 +188,7 @@ LIBDE265_API de265_error de265_init()
 
   err = alloc_and_init_significant_coeff_ctxIdx_lookupTable();
   if (err) {
-    std::atomic_fetch_sub(&de265_init_count,1);
+    de265_init_count--;
     return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
   }
 
@@ -190,13 +197,15 @@ LIBDE265_API de265_error de265_init()
 
 LIBDE265_API de265_error de265_free()
 {
-  int cnt = std::atomic_fetch_sub(&de265_init_count,1);
-  if (cnt<=0) {
-    std::atomic_fetch_add(&de265_init_count,1);
+  std::lock_guard<std::mutex> lock(de265_init_mutex);
+
+  if (de265_init_count<=0) {
     return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
   }
 
-  if (cnt==1) {
+  de265_init_count--;
+
+  if (de265_init_count==0) {
     free_significant_coeff_ctxIdx_lookupTable();
   }
 
