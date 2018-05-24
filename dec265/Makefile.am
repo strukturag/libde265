@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = dec265 hdrcopy
 
-AM_CPPFLAGS = -I../libde265
+AM_CPPFLAGS = -I$(top_srcdir)/libde265 -I$(top_srcdir)
 
 dec265_DEPENDENCIES = ../libde265/libde265.la
 dec265_CXXFLAGS =

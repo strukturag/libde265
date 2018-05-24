@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
 
-AM_CPPFLAGS = -I../libde265
+AM_CPPFLAGS = -I$(top_srcdir)/libde265 -I$(top_srcdir)
 
 gen_enc_table_DEPENDENCIES = ../libde265/libde265.la
 gen_enc_table_CXXFLAGS =
