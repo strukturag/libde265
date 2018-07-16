@@ -272,6 +272,11 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   }
 
   READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
+  if (log2_max_pic_order_cnt_lsb<4 ||
+      log2_max_pic_order_cnt_lsb>16) {
+    errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
   MaxPicOrderCntLsb = 1<<(log2_max_pic_order_cnt_lsb);
 
 
