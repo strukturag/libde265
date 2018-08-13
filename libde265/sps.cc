@@ -37,8 +37,8 @@
 #define READ_VLC(variable, vlctype)  READ_VLC_OFFSET(variable,vlctype,0)
 
 
-static int SubWidthC_tab[]  = { -1,2,2,1 };
-static int SubHeightC_tab[] = { -1,2,1,1 };
+static int SubWidthC_tab[]  = { 1,2,2,1 };
+static int SubHeightC_tab[] = { 1,2,1,1 };
 
 
 // TODO if (!check_high(ctx, vlc, 15)) return false;
