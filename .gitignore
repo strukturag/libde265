@@ -9,6 +9,8 @@ config.log
 config.h
 config.h.in
 config.status
+config.guess
+config.sub
 stamp-h1
 configure
 *.obj
@@ -21,3 +23,43 @@ de265-config.h
 *.ncb
 *.suo
 *.vcproj*
+
+# Automake generated files
+/m4/libtool.m4
+/m4/ltoptions.m4
+/m4/ltsugar.m4
+/m4/ltversion.m4
+/m4/lt~obsolete.m4
+/aclocal.m4
+/ar-lib
+/autom4te.cache/
+/missing
+/install-sh
+/INSTALL
+/test-driver
+/compile
+/depcomp
+/libtool
+/ltmain.sh
+/stamp-h1
+/test-suite.log
+.deps
+.dirstamp
+
+# ctags
+tags
+
+# other
+acceleration-speed/acceleration_speed
+dec265/dec265
+dec265/hdrcopy
+enc265/enc265
+libde265.pc
+libde265/de265-version.h
+sherlock265/sherlock265
+tools/bjoentegaard
+tools/block-rate-estim
+tools/gen-enc-table
+tools/rd-curves
+tools/tests
+tools/yuv-distortion
