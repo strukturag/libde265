@@ -281,7 +281,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   seq_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_PPS_SETS ||
+  if (uvlc >= DE265_MAX_SPS_SETS ||
       uvlc == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
