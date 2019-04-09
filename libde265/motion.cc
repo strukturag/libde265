@@ -348,7 +348,7 @@ void generate_inter_prediction_samples(base_context* ctx,
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
-      if (refPic->PicState == UnusedForReference) {
+      if (!refPic || refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
 
