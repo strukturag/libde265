@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard
+bin_PROGRAMS = gen-enc-table yuv-distortion rd-curves block-rate-estim tests bjoentegaard qpextract
 
 AM_CPPFLAGS = -I$(top_srcdir)/libde265 -I$(top_srcdir)
 
@@ -43,3 +43,9 @@ bjoentegaard_CXXFLAGS =
 bjoentegaard_LDFLAGS =
 bjoentegaard_LDADD = ../libde265/libde265.la -lstdc++
 bjoentegaard_SOURCES = bjoentegaard.cc
+
+qpextract_DEPENDENCIES = ../libde265/libde265.la
+qpextract_CXXFLAGS =
+qpextract_LDFLAGS =
+qpextract_LDADD = ../libde265/libde265.la -lstdc++
+qpextract_SOURCES = qpextract.cc
