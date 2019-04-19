@@ -412,6 +412,11 @@ class decoder_context : public base_context {
   int  change_framerate(int more_vs_less); // 1: more, -1: less
   void set_framerate_ratio(int percent);
 
+  // --- decode callback ---
+
+  void callback_register(de265_callback_block* cbb);
+  void callback_unregister();
+
  private:
   // input parameters
   int limit_HighestTid;    // never switch to a layer above this one
@@ -428,6 +433,8 @@ class decoder_context : public base_context {
     int8_t ratio;
   } framedrop_tab[100+1];
   int framedrop_tid_index[6+1];
+
+  de265_callback_block* cbb;
 
   void compute_framedrop_table();
   void calc_tid_and_framerate_ratio();

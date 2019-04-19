@@ -301,6 +301,7 @@ decoder_context::decoder_context()
   */
 
 
+  cbb  = NULL;
 
   // --- internal data ---
 
@@ -540,6 +541,10 @@ de265_error decoder_context::read_vps_NAL(bitreader& reader)
     new_vps->dump(param_vps_headers_fd);
   }
 
+  if (cbb != NULL && cbb->get_vps != NULL) {
+    cbb->get_vps(new_vps.get());
+  }
+
   vps[ new_vps->video_parameter_set_id ] = new_vps;
 
   return DE265_OK;
@@ -560,6 +565,10 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
     new_sps->dump(param_sps_headers_fd);
   }
 
+  if (cbb != NULL && cbb->get_sps != NULL) {
+    cbb->get_sps(new_sps.get());
+  }
+
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
 
   return DE265_OK;
@@ -575,6 +584,10 @@ de265_error decoder_context::read_pps_NAL(bitreader& reader)
 
   if (param_pps_headers_fd>=0) {
     new_pps->dump(param_pps_headers_fd);
+  }
+
+  if (cbb != NULL && cbb->get_pps != NULL) {
+    cbb->get_pps(new_pps.get());
   }
 
   if (success) {
@@ -596,6 +609,7 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
 
   if ((err=read_sei(&reader,&sei, suffix, current_sps.get())) == DE265_OK) {
     dump_sei(&sei, current_sps.get());
+    // TODO: add SEI callback here
 
     if (image_units.empty()==false && suffix) {
       image_units.back()->suffix_SEIs.push_back(sei);
@@ -635,6 +649,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     shdr->dump_slice_segment_header(this, param_slice_headers_fd);
   }
 
+  // TODO: add slice_header callback here
 
   if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
@@ -778,6 +793,9 @@ de265_error decoder_context::decode_some(bool* did_work)
         break;
     }
 
+    if (cbb != NULL && cbb->get_image != NULL) {
+      cbb->get_image(imgunit->img);
+    }
 
     push_picture_to_output_queue(imgunit);
 
@@ -2225,6 +2243,18 @@ void decoder_context::calc_tid_and_framerate_ratio()
 
   // TODO: for now, we switch immediately
   current_HighestTid = goal_HighestTid;
+}
+
+
+void decoder_context::callback_register(de265_callback_block* cbb_)
+{
+  cbb = cbb_;
+}
+
+
+void decoder_context::callback_unregister()
+{
+  cbb = NULL;
 }
 
 
