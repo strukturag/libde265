@@ -120,4 +120,5 @@ EXTRA_DIST = Makefile.vc7 \
 
 libde265_la_HEADERS = \
   de265.h \
+  de265-error.h \
   de265-version.h

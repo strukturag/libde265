@@ -22,9 +22,6 @@
 #ifndef DE265_H
 #define DE265_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <libde265/de265-version.h>
 
@@ -66,6 +63,11 @@ extern "C" {
 #define LIBDE265_INLINE inline
 #endif
 
+#include "de265-error.h"
+#include "vps.h"
+#include "pps.h"
+#include "sps.h"
+
 /* === version numbers === */
 
 // version of linked libde265 library
@@ -77,67 +79,7 @@ LIBDE265_API int de265_get_version_number_minor(void);
 LIBDE265_API int de265_get_version_number_maintenance(void);
 
 
-/* === error codes === */
-
-typedef enum {
-  DE265_OK = 0,
-  DE265_ERROR_NO_SUCH_FILE=1,
-  //DE265_ERROR_NO_STARTCODE=2,  obsolet
-  //DE265_ERROR_EOF=3,
-  DE265_ERROR_COEFFICIENT_OUT_OF_IMAGE_BOUNDS=4,
-  DE265_ERROR_CHECKSUM_MISMATCH=5,
-  DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA=6,
-  DE265_ERROR_OUT_OF_MEMORY=7,
-  DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE=8,
-  DE265_ERROR_IMAGE_BUFFER_FULL=9,
-  DE265_ERROR_CANNOT_START_THREADPOOL=10,
-  DE265_ERROR_LIBRARY_INITIALIZATION_FAILED=11,
-  DE265_ERROR_LIBRARY_NOT_INITIALIZED=12,
-  DE265_ERROR_WAITING_FOR_INPUT_DATA=13,
-  DE265_ERROR_CANNOT_PROCESS_SEI=14,
-  DE265_ERROR_PARAMETER_PARSING=15,
-  DE265_ERROR_NO_INITIAL_SLICE_HEADER=16,
-  DE265_ERROR_PREMATURE_END_OF_SLICE=17,
-  DE265_ERROR_UNSPECIFIED_DECODING_ERROR=18,
-
-  // --- errors that should become obsolete in later libde265 versions ---
-
-  //DE265_ERROR_MAX_THREAD_CONTEXTS_EXCEEDED = 500, obsolet
-  //DE265_ERROR_MAX_NUMBER_OF_SLICES_EXCEEDED = 501, obsolet
-  DE265_ERROR_NOT_IMPLEMENTED_YET = 502,
-  //DE265_ERROR_SCALING_LIST_NOT_IMPLEMENTED = 502, obsolet
-
-  // --- warnings ---
-
-  DE265_WARNING_NO_WPP_CANNOT_USE_MULTITHREADING = 1000,
-  DE265_WARNING_WARNING_BUFFER_FULL=1001,
-  DE265_WARNING_PREMATURE_END_OF_SLICE_SEGMENT=1002,
-  DE265_WARNING_INCORRECT_ENTRY_POINT_OFFSET=1003,
-  DE265_WARNING_CTB_OUTSIDE_IMAGE_AREA=1004,
-  DE265_WARNING_SPS_HEADER_INVALID=1005,
-  DE265_WARNING_PPS_HEADER_INVALID=1006,
-  DE265_WARNING_SLICEHEADER_INVALID=1007,
-  DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING=1008,
-  DE265_WARNING_NONEXISTING_PPS_REFERENCED=1009,
-  DE265_WARNING_NONEXISTING_SPS_REFERENCED=1010,
-  DE265_WARNING_BOTH_PREDFLAGS_ZERO=1011,
-  DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED=1012,
-  DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ=1013,
-  DE265_WARNING_NUMBER_OF_SHORT_TERM_REF_PIC_SETS_OUT_OF_RANGE=1014,
-  DE265_WARNING_SHORT_TERM_REF_PIC_SET_OUT_OF_RANGE=1015,
-  DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST=1016,
-  DE265_WARNING_EOSS_BIT_NOT_SET=1017,
-  DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED=1018,
-  DE265_WARNING_INVALID_CHROMA_FORMAT=1019,
-  DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID=1020,
-  DE265_WARNING_DEPENDENT_SLICE_WITH_ADDRESS_ZERO=1021,
-  DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM=1022,
-  DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER=1023,
-  DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY=1024,
-  DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI=1025,
-  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA=1026
-} de265_error;
-
+/* === error code management === */
 LIBDE265_API const char* de265_get_error_text(de265_error err);
 
 /* Returns true, if 'err' is DE265_OK or a warning.
@@ -387,6 +329,20 @@ enum de265_param {
   //DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT=10  // (bool)  disable decoding of IDCT residuals in MC blocks
 };
 
+/* --- callback --- */
+struct de265_callback_block
+{
+  void  (*get_vps)(video_parameter_set* vps);
+  void  (*get_sps)(seq_parameter_set* sps);
+  void  (*get_pps)(pic_parameter_set* pps);
+  void  (*get_image)(de265_image* img);
+};
+LIBDE265_API void de265_callback_register(de265_decoder_context*, de265_callback_block*);
+LIBDE265_API void de265_callback_unregister(de265_decoder_context*);
+
+/* The user data pointer will be given to the get_buffer() and release_buffer() functions
+   in de265_image_allocation. */
+
 // sorted such that a large ID includes all optimizations from lower IDs
 enum de265_acceleration {
   de265_acceleration_SCALAR = 0, // only fallback implementation
@@ -430,8 +386,5 @@ LIBDE265_API de265_error de265_init(void);
 LIBDE265_API de265_error de265_free(void);
 
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif

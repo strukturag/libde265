@@ -25,7 +25,7 @@
 #include "libde265/vui.h"
 #include "libde265/bitstream.h"
 #include "libde265/refpic.h"
-#include "libde265/de265.h"
+#include "libde265/de265-error.h"
 #include "libde265/cabac.h"
 
 #include <vector>
