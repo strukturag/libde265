@@ -138,15 +138,17 @@ if eval "test x$has_std_shared_ptr = xno"; then
 fi
 AC_LANG_POP(C++)
 
-# Check if "std::move" is available
+# Check if "std::move" is available (assume always available with clang)
 AC_MSG_CHECKING([for std::move])
 AC_LANG_PUSH(C++)
 AC_TRY_COMPILE([
 #include <utility>
 ],[
+#if !defined(__clang__)
 class A {};
 A* a = new A();
 A* b = std::move(a);
+#endif
 ],[has_std_move=yes],[has_std_move=no]);
 AC_LANG_POP(C++)
 if eval "test x$has_std_move = xno"; then
