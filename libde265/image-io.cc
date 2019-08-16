@@ -161,17 +161,20 @@ void ImageSink_YUV::send_image(const de265_image* img)
 
   p = img->get_image_plane(0);  stride = img->get_image_stride(0);
   for (int y=0;y<height;y++) {
-    fwrite(p+y*stride,1,width,mFH);
+    size_t n = fwrite(p+y*stride,1,width,mFH);
+    (void)n;
   }
 
   p = img->get_image_plane(1);  stride = img->get_image_stride(1);
   for (int y=0;y<height/2;y++) {
-    fwrite(p+y*stride,1,width/2,mFH);
+    size_t n = fwrite(p+y*stride,1,width/2,mFH);
+    (void)n;
   }
 
   p = img->get_image_plane(2);  stride = img->get_image_stride(2);
   for (int y=0;y<height/2;y++) {
-    fwrite(p+y*stride,1,width/2,mFH);
+    size_t n = fwrite(p+y*stride,1,width/2,mFH);
+    (void)n;
   }
 }
 
@@ -206,7 +209,12 @@ LIBDE265_API void PacketSink_File::send_packet(const uint8_t* data, int n)
   startCode[1] = 0;
   startCode[2] = 1;
 
-  fwrite(startCode,1,3,mFH);
-  fwrite(data,1,n,mFH);
+  size_t dummy;
+  dummy = fwrite(startCode,1,3,mFH);
+  (void)dummy;
+
+  dummy = fwrite(data,1,n,mFH);
+  (void)dummy;
+
   fflush(mFH);
 }
