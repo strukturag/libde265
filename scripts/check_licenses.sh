@@ -21,7 +21,10 @@ set -eu
 #
 
 echo "Checking licenses..."
-CHECK_RESULT=`/usr/bin/licensecheck --recursive --ignore 'nacl_sdk' .`
+CHECK_RESULT=$(/usr/bin/licensecheck \
+	--recursive \
+	--ignore 'nacl_sdk|libde265-data|m4|\.git|Makefile\..*|.*\.txt|ChangeLog|AUTHORS|NEWS|COPYING|INSTALL|README|README\..*|\.travis\.yml|appveyor\.yml|.*\.bat|configure.ac|libde265.pc.in|.*\.png|valgrind.supp|stamp-h1' \
+	 .)
 
 # Files that are public domain or have other known-good license headers which licensecheck doesn't detect.
 KNOWN_GOOD_FILES=(
