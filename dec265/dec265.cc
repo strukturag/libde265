@@ -56,7 +56,6 @@ using namespace videogfx;
 #endif
 
 
-#define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
 int nThreads=0;
@@ -82,6 +81,7 @@ int highestTID = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
+static int buffer_size = 40960;
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
@@ -101,6 +101,7 @@ static struct option long_options[] = {
   {"ssim",        no_argument,       0, 's' },
   {"errmap",      no_argument,       0, 'e' },
   {"highest-TID", required_argument, 0, 'T' },
+  {"buffer-size", required_argument, 0, 'S' },
   {"verbose",    no_argument,       0, 'v' },
   {"disable-deblocking", no_argument, &disable_deblocking, 1 },
   {"disable-sao",        no_argument, &disable_sao, 1 },
@@ -112,7 +113,13 @@ static struct option long_options[] = {
 static void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
+  if (fh==NULL) {
+      if (strcmp(output_filename, "-") == 0) {
+          fh = stdout;
+      } else {
+          fh = fopen(output_filename, "wb");
+      }
+  }
 
 
 
@@ -559,7 +566,7 @@ int main(int argc, char** argv)
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:se"
+    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:seS:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -584,6 +591,7 @@ int main(int argc, char** argv)
     case 's': show_ssim_map=true; break;
     case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
+    case 'S': buffer_size=atoi(optarg); break;
     case 'v': verbosity++; break;
     }
   }
@@ -665,7 +673,12 @@ int main(int argc, char** argv)
   }
 
 
-  FILE* fh = fopen(argv[optind], "rb");
+  FILE* fh;
+  if (strcmp(argv[optind], "-") == 0) {
+      fh = stdin;
+  } else {
+      fh = fopen(argv[optind], "rb");
+  }
   if (fh==NULL) {
     fprintf(stderr,"cannot open file %s!\n", argv[1]);
     exit(10);
@@ -709,8 +722,8 @@ int main(int argc, char** argv)
       }
       else {
         // read a chunk of input data
-        uint8_t buf[BUFFER_SIZE];
-        int n = fread(buf,1,BUFFER_SIZE,fh);
+        uint8_t buf[buffer_size];
+        int n = fread(buf,1,buffer_size,fh);
 
         // decode input data
         if (n) {
