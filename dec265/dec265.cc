@@ -669,9 +669,16 @@ int main(int argc, char** argv)
   }
 
 
-  FILE* fh = fopen(argv[optind], "rb");
+  FILE* fh;
+  if (strcmp(argv[optind],"-")==0) {
+    fh = stdin;
+  }
+  else {
+    fh = fopen(argv[optind], "rb");
+  }
+
   if (fh==NULL) {
-    fprintf(stderr,"cannot open file %s!\n", argv[1]);
+    fprintf(stderr,"cannot open file %s!\n", argv[optind]);
     exit(10);
   }
 
