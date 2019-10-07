@@ -112,9 +112,13 @@ static struct option long_options[] = {
 static void write_picture(const de265_image* img)
 {
   static FILE* fh = NULL;
-  if (fh==NULL) { fh = fopen(output_filename, "wb"); }
-
-
+  if (fh==NULL) {
+    if (strcmp(output_filename, "-") == 0) {
+      fh = stdout;
+    } else {
+      fh = fopen(output_filename, "wb");
+    }
+  }
 
   for (int c=0;c<3;c++) {
     int stride;
