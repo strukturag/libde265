@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.3.2)
 
 project (libde265
     LANGUAGES C CXX
+    VERSION 1.0.0
 )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -11,10 +12,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The version number.
 set (NUMERIC_VERSION 0x01000000)
-set (PACKAGE_VERSION 1.0.0)
+set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
+include(GNUInstallDirs)
+include(CheckCCompilerFlag)
+include(CheckFunctionExists)
+include(CheckIncludeFile)
 
 find_package(SDL)
 find_package(Threads REQUIRED)
