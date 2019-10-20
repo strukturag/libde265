@@ -10,8 +10,9 @@ set (PACKAGE_VERSION 1.0.0)
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
-include (${CMAKE_ROOT}/Modules/FindSDL.cmake)
-include (${CMAKE_ROOT}/Modules/FindThreads.cmake)
+
+find_package(SDL)
+find_package(Threads REQUIRED)
 
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 CHECK_INCLUDE_FILE(stdint.h HAVE_STDINT_H)
