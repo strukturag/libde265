@@ -64,12 +64,6 @@ if(MSVC)
   add_definitions(-DHAVE_STDBOOL_H)
 endif()
 
-if(UNIX)
-  set(LIBDE265_LIBRARY_NAME de265)
-else()
-  set(LIBDE265_LIBRARY_NAME libde265)
-endif()
-
 add_subdirectory (libde265)
 add_subdirectory (dec265)
 add_subdirectory (enc265)
