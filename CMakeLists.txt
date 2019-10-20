@@ -1,5 +1,8 @@
-project (libde265)
-cmake_minimum_required (VERSION 2.8.8)
+cmake_minimum_required (VERSION 3.3.2)
+
+project (libde265
+    LANGUAGES C CXX
+)
 
 # The version number.
 set (NUMERIC_VERSION 0x01000000)
