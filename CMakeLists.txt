@@ -33,13 +33,12 @@ configure_file (
   "${PROJECT_BINARY_DIR}/libde265/de265-version.h"
 )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(GCC 1)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
   add_definitions(-Wall)
-  set(CMAKE_CXX_FLAGS "-std=gnu++0x ${CMAKE_CXX_FLAGS}")
-elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-  add_definitions(-Wall)
-  set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif()
 
 option(DISABLE_SSE "Disable SSE optimizations")
