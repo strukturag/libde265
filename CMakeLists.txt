@@ -38,10 +38,7 @@ if (HAVE_POSIX_MEMALIGN)
   add_definitions(-DHAVE_POSIX_MEMALIGN)
 endif()
 
-configure_file (
-  "${PROJECT_SOURCE_DIR}/libde265/de265-version.h.in"
-  "${PROJECT_BINARY_DIR}/libde265/de265-version.h"
-)
+configure_file (libde265/de265-version.h.in libde265/de265-version.h)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
   add_definitions(-Wall)
