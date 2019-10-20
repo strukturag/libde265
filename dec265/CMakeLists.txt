@@ -30,12 +30,12 @@ endif()
 
 add_executable (dec265 ${dec265_sources})
 
-target_link_libraries (dec265 ${LIBDE265_LIBRARY_NAME} ${SDL_LIBRARY})
+target_link_libraries (dec265 ${PROJECT_NAME} ${SDL_LIBRARY})
 
 
 if(NOT MSVC)
   # hdrcopy uses internal APIs that are not available when compiled for Windows
   add_executable (hdrcopy ${hdrcopy_sources})
 
-  target_link_libraries (hdrcopy ${LIBDE265_LIBRARY_NAME})
+  target_link_libraries (hdrcopy ${PROJECT_NAME})
 endif()

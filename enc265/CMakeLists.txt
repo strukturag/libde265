@@ -13,4 +13,4 @@ endif()
 
 add_executable (enc265 ${enc265_sources})
 
-target_link_libraries (enc265 ${LIBDE265_LIBRARY_NAME})
+target_link_libraries (enc265 ${PROJECT_NAME})
