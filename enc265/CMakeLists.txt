@@ -1,16 +1,13 @@
-set (enc265_sources
+add_executable (enc265 
   enc265.cc
   image-io-png.cc
 )
 
 if(MSVC)
-  set (enc265_sources
-    ${enc265_sources}
+  target_sources(enc265 PRIVATE
     ../extra/getopt.c
     ../extra/getopt_long.c
   )
 endif()
 
-add_executable (enc265 ${enc265_sources})
-
-target_link_libraries (enc265 ${LIBDE265_LIBRARY_NAME})
+target_link_libraries (enc265 PRIVATE ${PROJECT_NAME})
