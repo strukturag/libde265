@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.3.2)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.0
+    VERSION 1.0.4
 )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The version number.
-set (NUMERIC_VERSION 0x01000000)
+set (NUMERIC_VERSION 0x01000400)
 set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
