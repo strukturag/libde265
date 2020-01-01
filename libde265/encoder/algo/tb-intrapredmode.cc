@@ -454,7 +454,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
         //printf("%d -> %f\n",i,distortions[i].second);
       }
 
-    int keepNBest=std::min((int)mParams.keepNBest, (int)distortions.size());
+    int keepNBest=libde265_min((int)mParams.keepNBest, (int)distortions.size());
     distortions.resize(keepNBest);
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[0],0));
     distortions.push_back(std::make_pair((enum IntraPredMode)candidates[1],0));

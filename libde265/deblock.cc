@@ -143,7 +143,7 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
   int cb_y_start = ( ctby    << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
   int cb_y_end   = ((ctby+1) << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
 
-  cb_y_end = std::min(cb_y_end, sps.PicHeightInMinCbsY);
+  cb_y_end = libde265_min(cb_y_end, sps.PicHeightInMinCbsY);
 
   for (int cb_y=cb_y_start;cb_y<cb_y_end;cb_y++)
     for (int cb_x=0;cb_x<img->get_sps().PicWidthInMinCbsY;cb_x++)
@@ -936,7 +936,7 @@ void thread_task_deblock_CTBRow::work()
   if (vertical) {
     // pass 1: vertical
 
-    int CtbRow = std::min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
+    int CtbRow = libde265_min(ctb_y+1 , img->get_sps().PicHeightInCtbsY-1);
     img->wait_for_progress(this, rightCtb,CtbRow, CTB_PROGRESS_PREFILTER);
   }
   else {
