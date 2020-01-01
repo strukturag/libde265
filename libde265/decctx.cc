@@ -2158,7 +2158,7 @@ int decoder_context::change_framerate(int more)
   assert(more>=-1 && more<=1);
 
   goal_HighestTid += more;
-  goal_HighestTid = std::max(goal_HighestTid, 0);
+  goal_HighestTid = libde265_max(goal_HighestTid, 0);
   goal_HighestTid = libde265_min(goal_HighestTid, highestTid);
 
   framerate_ratio = framedrop_tid_index[goal_HighestTid];
