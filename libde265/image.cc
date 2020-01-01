@@ -247,7 +247,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                 will not be freed. */
 
   ID = s_next_image_ID++;
-  removed_at_picture_id = std::numeric_limits<int32_t>::max();
+  removed_at_picture_id = (std::numeric_limits<int32_t>::max)();
 
   decctx = dctx;
   //encctx = ectx;

@@ -304,7 +304,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
     *tb->downPtr = tb;
 
     enum IntraPredMode intraMode;
-    float minDistortion = std::numeric_limits<float>::max();
+    float minDistortion = (std::numeric_limits<float>::max)();
 
     assert(nPredModesEnabled()>=1);
 
@@ -414,7 +414,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
   selectIntraPredMode |= (cb->PredMode==MODE_INTRA && cb->PartMode==PART_NxN   && TrafoDepth==1);
 
   if (selectIntraPredMode) {
-    float minCost = std::numeric_limits<float>::max();
+    float minCost = (std::numeric_limits<float>::max)();
     int   minCostIdx=0;
     float minCandCost;
 

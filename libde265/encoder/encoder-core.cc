@@ -211,7 +211,7 @@ double encode_image(encoder_context* ectx,
 
         enc_cb* cb = algo.getAlgoCTBQScale()->analyze(ectx,ctxModel, x0,y0);
 #else
-        float minCost = std::numeric_limits<float>::max();
+        float minCost = (std::numeric_limits<float>::max)();
         int bestQ = 0;
         int qp = ectx->params.constant_QP;
 
