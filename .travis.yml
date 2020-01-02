@@ -3,6 +3,7 @@
 language: cpp
 compiler:
   - gcc
+dist: trusty
 cache: ccache
 addons:
   apt:
