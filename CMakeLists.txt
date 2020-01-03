@@ -63,7 +63,6 @@ if(MSVC)
   include_directories ("${PROJECT_SOURCE_DIR}/extra")
   add_definitions(-DHAVE_STDINT_H)
   add_definitions(-DHAVE_STDBOOL_H)
-  add_definitions(-DNOMINMAX)
 endif()
 
 add_subdirectory (libde265)
