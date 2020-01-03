@@ -1,5 +1,7 @@
 .deps
 .libs
+.dirstamp
+.gitignore
 *.o
 *.lo
 *~
@@ -15,8 +17,8 @@ stamp-h1
 configure
 *.obj
 *.la
-.gitignore
 de265-config.h
+libde265.pc
 
 # MSVC
 *.sln
@@ -43,8 +45,6 @@ de265-config.h
 /ltmain.sh
 /stamp-h1
 /test-suite.log
-.deps
-.dirstamp
 
 # ctags
 tags
@@ -54,7 +54,6 @@ acceleration-speed/acceleration_speed
 dec265/dec265
 dec265/hdrcopy
 enc265/enc265
-libde265.pc
 libde265/de265-version.h
 sherlock265/sherlock265
 tools/bjoentegaard
