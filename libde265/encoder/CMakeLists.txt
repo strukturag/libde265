@@ -4,6 +4,8 @@ set (encoder_sources
   encoder-params.h encoder-params.cc
   encoder-context.h encoder-context.cc
   encoder-syntax.h encoder-syntax.cc
+  encoder-intrapred.h encoder-intrapred.cc
+  encoder-motion.h encoder-motion.cc
   encpicbuf.h encpicbuf.cc
   sop.h sop.cc
 )

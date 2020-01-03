@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = enc265
 
-AM_CPPFLAGS = -I../libde265
+AM_CPPFLAGS = -I$(top_srcdir)/libde265 -I$(top_srcdir)
 
 enc265_DEPENDENCIES = ../libde265/libde265.la
 enc265_CXXFLAGS =

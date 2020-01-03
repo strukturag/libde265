@@ -281,7 +281,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   seq_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_PPS_SETS ||
+  if (uvlc >= DE265_MAX_SPS_SETS ||
       uvlc == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
@@ -312,7 +312,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     return false;
   }
 
-  sps = ctx->get_sps(seq_parameter_set_id);
+  sps = ctx->get_shared_sps(seq_parameter_set_id);
 
   if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -471,7 +471,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
   if (pic_scaling_list_data_present_flag) {
-    de265_error err = read_scaling_list(br, sps, &scaling_list, true);
+    de265_error err = read_scaling_list(br, sps.get(), &scaling_list, true);
     if (err != DE265_OK) {
       ctx->add_warning(err, false);
       return false;
@@ -525,7 +525,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   }
 
 
-  set_derived_values(sps);
+  set_derived_values(sps.get());
 
   pps_read = true;
 

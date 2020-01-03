@@ -22,6 +22,7 @@
 
 #include "encoder-syntax.h"
 #include "encoder-context.h"
+#include "encoder-intrapred.h"
 #include "slice.h"
 #include "scan.h"
 #include "intrapred.h"

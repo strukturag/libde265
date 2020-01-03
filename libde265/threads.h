@@ -43,6 +43,9 @@ typedef pthread_mutex_t  de265_mutex;
 typedef pthread_cond_t   de265_cond;
 
 #else // _WIN32
+#if !defined(NOMINMAX)
+#define NOMINMAX 1
+#endif
 #include <windows.h>
 #include "../extra/win32cond.h"
 #if _MSC_VER > 1310

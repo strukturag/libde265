@@ -139,7 +139,7 @@ double encode_image(encoder_context* ectx,
   ectx->img->PicOrderCntVal = input->PicOrderCntVal;
 
   ectx->img->alloc_image(w,h, input->get_chroma_format(), ectx->get_shared_sps(), true,
-                         NULL /* no decctx */, ectx, 0,NULL,false);
+                         NULL /* no decctx */, /*ectx,*/ 0,NULL,false);
   //ectx->img->alloc_encoder_data(&ectx->sps);
   ectx->img->clear_metadata();
 

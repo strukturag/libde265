@@ -147,6 +147,9 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
              (52 + sps.QpBdOffset_Y)) - sps.QpBdOffset_Y;
 
   tctx->qPYPrime = QPY + sps.QpBdOffset_Y;
+  if (tctx->qPYPrime<0) {
+    tctx->qPYPrime=0;
+  }
 
   int qPiCb = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cb_qp_offset + shdr->slice_cb_qp_offset + tctx->CuQpOffsetCb);
   int qPiCr = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cr_qp_offset + shdr->slice_cr_qp_offset + tctx->CuQpOffsetCr);
@@ -169,7 +172,14 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   //printf("q: %d %d\n",qPiCb, qPCb);
 
   tctx->qPCbPrime = qPCb + sps.QpBdOffset_C;
+  if (tctx->qPCbPrime<0) {
+    tctx->qPCbPrime = 0;
+  }
+
   tctx->qPCrPrime = qPCr + sps.QpBdOffset_C;
+  if (tctx->qPCrPrime<0) {
+    tctx->qPCrPrime = 0;
+  }
 
   /*
   printf("Q: %d (%d %d %d / %d %d) %d %d %d\n",QPY,

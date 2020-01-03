@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libde265_encoder_algo.la
 
-libde265_encoder_algo_la_CXXFLAGS = -I../..
+libde265_encoder_algo_la_CXXFLAGS = -I$(top_srcdir) -I$(top_builddir)
 libde265_encoder_algo_la_SOURCES = \
   algo.h algo.cc \
   coding-options.h coding-options.cc \

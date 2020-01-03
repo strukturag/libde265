@@ -25,6 +25,7 @@
 #include "libde265/sps.h" // for scaling list only
 
 #include <vector>
+#include <memory>
 
 #define DE265_MAX_TILE_COLUMNS 10
 #define DE265_MAX_TILE_ROWS    10
@@ -72,7 +73,7 @@ public:
   void set_defaults(enum PresetSet = Preset_Default);
 
   bool pps_read; // whether this pps has been read from bitstream
-  const seq_parameter_set* sps;
+  std::shared_ptr<const seq_parameter_set> sps;
 
 
   char pic_parameter_set_id;

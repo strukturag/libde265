@@ -32,7 +32,7 @@ extern "C" {
 
 // ========== encoder context ==========
 
-typedef void en265_encoder_context; // private structure
+struct en265_encoder_context; // private structure
 
 /* Get a new encoder context. Must be freed with en265_free_encoder(). */
 LIBDE265_API en265_encoder_context* en265_new_encoder(void);
@@ -41,11 +41,13 @@ LIBDE265_API en265_encoder_context* en265_new_encoder(void);
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context*);
 
 /* The alloc_userdata pointer will be given to the release_func(). */
+/*
 LIBDE265_API void en265_set_image_release_function(en265_encoder_context*,
                                                    void (*release_func)(en265_encoder_context*,
                                                                         struct de265_image*,
                                                                         void* userdata),
                                                    void* alloc_userdata);
+*/
 
 // ========== encoder parameters ==========
 
