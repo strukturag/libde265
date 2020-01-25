@@ -223,6 +223,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
       }
     }
   }
+  return DE265_OK;
 }
 
 de265_error video_usability_information::read(error_queue* errqueue, bitreader* br,
