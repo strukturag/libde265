@@ -43,6 +43,8 @@ set (libde265_headers
   bitstream.h
   cabac.h
   configparam.h
+  de265.h
+  de265-version.h
   deblock.h
   decctx.h
   dpb.h
@@ -73,7 +75,7 @@ set (libde265_headers
   vui.h
 )
 
-if(MSVC)
+if(MSVC OR MINGW)
   set (libde265_sources
     ${libde265_sources}
     ../extra/win32cond.c
