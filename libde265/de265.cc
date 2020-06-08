@@ -171,12 +171,16 @@ LIBDE265_API int de265_isOK(de265_error err)
 
 static int de265_init_count;
 
-static std::mutex de265_init_mutex;
+static std::mutex& de265_init_mutex()
+{
+  static std::mutex de265_init_mutex;
+  return de265_init_mutex;
+}
 
 
 LIBDE265_API de265_error de265_init()
 {
-  std::lock_guard<std::mutex> lock(de265_init_mutex);
+  std::lock_guard<std::mutex> lock(de265_init_mutex());
 
   de265_init_count++;
 
@@ -201,7 +205,7 @@ LIBDE265_API de265_error de265_init()
 
 LIBDE265_API de265_error de265_free()
 {
-  std::lock_guard<std::mutex> lock(de265_init_mutex);
+  std::lock_guard<std::mutex> lock(de265_init_mutex());
 
   if (de265_init_count<=0) {
     return DE265_ERROR_LIBRARY_NOT_INITIALIZED;
