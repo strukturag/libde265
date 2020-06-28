@@ -37,7 +37,6 @@
 // TODO: should be in some vps.c related header
 de265_error read_vps(decoder_context* ctx, bitreader* reader, video_parameter_set* vps);
 
-extern "C" {
 LIBDE265_API const char *de265_get_version(void)
 {
     return (LIBDE265_VERSION);
@@ -472,6 +471,18 @@ LIBDE265_API int  de265_change_framerate(de265_decoder_context* de265ctx,int mor
   return ctx->change_framerate(more);
 }
 
+LIBDE265_API void  de265_callback_register(de265_decoder_context* de265ctx, de265_callback_block* cbb)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->callback_register(cbb);
+}
+
+LIBDE265_API void  de265_callback_unregister(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->callback_unregister();
+}
+
 
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context* de265ctx)
 {
@@ -711,5 +722,4 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
   if (nal_unit_name)   *nal_unit_name   = get_NAL_name(img->nal_hdr.nal_unit_type);
   if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
-}
 }

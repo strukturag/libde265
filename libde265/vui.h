@@ -21,7 +21,7 @@
 #ifndef DE265_VUI_H
 #define DE265_VUI_H
 
-#include "libde265/de265.h"
+#include "libde265/de265-error.h"
 #include "libde265/bitstream.h"
 
 #include <vector>
