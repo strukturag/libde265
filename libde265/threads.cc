@@ -210,7 +210,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     if (pool->stopped) {
       de265_mutex_unlock(&pool->mutex);
-      return NULL;
+      return 0;
     }
 
 
@@ -238,7 +238,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
   }
   de265_mutex_unlock(&pool->mutex);
 
-  return NULL;
+  return 0;
 }
 
 
