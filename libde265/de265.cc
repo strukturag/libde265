@@ -712,4 +712,25 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image* img,
   if (nuh_layer_id)    *nuh_layer_id    = img->nal_hdr.nuh_layer_id;
   if (nuh_temporal_id) *nuh_temporal_id = img->nal_hdr.nuh_temporal_id;
 }
+
+LIBDE265_API int de265_get_image_full_range_flag(const struct de265_image* img)
+{
+  return img->get_sps().vui.video_full_range_flag;
+}
+
+LIBDE265_API int de265_get_image_colour_primaries(const struct de265_image* img)
+{
+  return img->get_sps().vui.colour_primaries;
+}
+
+LIBDE265_API int de265_get_image_transfer_characteristics(const struct de265_image* img)
+{
+  return img->get_sps().vui.transfer_characteristics;
+}
+
+LIBDE265_API int de265_get_image_matrix_coefficients(const struct de265_image* img)
+{
+  return img->get_sps().vui.matrix_coeffs;
+}
+
 }

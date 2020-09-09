@@ -186,6 +186,11 @@ LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id);
 
+LIBDE265_API int de265_get_image_full_range_flag(const struct de265_image*);
+LIBDE265_API int de265_get_image_colour_primaries(const struct de265_image*);
+LIBDE265_API int de265_get_image_transfer_characteristics(const struct de265_image*);
+LIBDE265_API int de265_get_image_matrix_coefficients(const struct de265_image*);
+
 
 /* === decoder === */
 
