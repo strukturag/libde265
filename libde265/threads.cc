@@ -210,9 +210,13 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     if (pool->stopped) {
       de265_mutex_unlock(&pool->mutex);
-      return 0;
-    }
 
+#ifdef _WIN32
+      return 0UL;
+#else
+      return NULL;
+#endif
+    }
 
     // get a task
 
@@ -224,7 +228,6 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
     //printblks(pool);
 
     de265_mutex_unlock(&pool->mutex);
-
 
     // execute the task
 
@@ -238,7 +241,11 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
   }
   de265_mutex_unlock(&pool->mutex);
 
-  return 0;
+#ifdef _WIN32
+  return 0UL;
+#else
+  return NULL;
+#endif
 }
 
 
