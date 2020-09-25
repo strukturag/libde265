@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.3.2)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.5
+    VERSION 1.0.7
 )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The version number.
-set (NUMERIC_VERSION 0x01000500)
+set (NUMERIC_VERSION 0x01000700)
 set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
@@ -48,6 +48,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
 endif()
 
 option(DISABLE_SSE "Disable SSE optimizations" OFF)
+
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+if(NOT BUILD_SHARED_LIBS)
+  add_definitions(-DLIBDE265_STATIC_BUILD)
+endif()
 
 include_directories ("${PROJECT_SOURCE_DIR}")
 include_directories ("${PROJECT_BINARY_DIR}")

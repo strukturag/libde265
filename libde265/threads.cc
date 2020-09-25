@@ -32,8 +32,9 @@
 #ifndef _WIN32
 // #include <intrin.h>
 
-#define THREAD_RESULT       void*
-#define THREAD_PARAM        void*
+#define THREAD_RESULT_TYPE  void*
+#define THREAD_PARAM_TYPE   void*
+#define THREAD_CALLING_CONVENTION
 
 #include <stdio.h>
 
@@ -51,8 +52,9 @@ void de265_cond_wait(de265_cond* c,de265_mutex* m) { pthread_cond_wait(c,m); }
 void de265_cond_signal(de265_cond* c) { pthread_cond_signal(c); }
 #else  // _WIN32
 
-#define THREAD_RESULT       DWORD WINAPI
-#define THREAD_PARAM        LPVOID
+#define THREAD_RESULT_TYPE    DWORD
+#define THREAD_CALLING_CONVENTION WINAPI
+#define THREAD_PARAM_TYPE        LPVOID
 
 int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
     HANDLE handle = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
@@ -184,7 +186,7 @@ void printblks(const thread_pool* pool)
 #endif
 
 
-static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
+static THREAD_RESULT_TYPE THREAD_CALLING_CONVENTION worker_thread(THREAD_PARAM_TYPE pool_ptr)
 {
   thread_pool* pool = (thread_pool*)pool_ptr;
 
@@ -210,7 +212,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
 
     if (pool->stopped) {
       de265_mutex_unlock(&pool->mutex);
-      return NULL;
+      return (THREAD_RESULT_TYPE)0;
     }
 
 
@@ -238,7 +240,7 @@ static THREAD_RESULT worker_thread(THREAD_PARAM pool_ptr)
   }
   de265_mutex_unlock(&pool->mutex);
 
-  return NULL;
+  return (THREAD_RESULT_TYPE)0;
 }
 
 
