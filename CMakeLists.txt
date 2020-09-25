@@ -56,6 +56,11 @@ if(NOT ${DISABLE_SSE} EQUAL OFF)
   endif()
 endif()
 
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+if(NOT BUILD_SHARED_LIBS)
+  add_definitions(-DLIBDE265_STATIC_BUILD)
+endif()
+
 include_directories ("${PROJECT_SOURCE_DIR}")
 include_directories ("${PROJECT_BINARY_DIR}")
 include_directories ("${PROJECT_SOURCE_DIR}/libde265")
