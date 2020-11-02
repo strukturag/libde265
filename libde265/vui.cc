@@ -301,8 +301,8 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
       }
 
       matrix_coeffs = get_bits(br, 8);
-      if (matrix_coeffs == 0 ||
-        matrix_coeffs >= 11) {
+      
+      if (matrix_coeffs >= 11) {
         matrix_coeffs = 2;
       }
     }
