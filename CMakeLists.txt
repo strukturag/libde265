@@ -20,9 +20,9 @@ include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 include(GNUInstallDirs)
 include(CheckFunctionExists)
 
-option(DISABLE_SDL "Disable SDL" OFF)
+option(ENABLE_SDL "Enable SDL" ON)
 
-if (NOT DISABLE_SDL)
+if (ENABLE_SDL)
 	find_package(SDL)
 endif()
 
