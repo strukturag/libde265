@@ -43,7 +43,6 @@ set (libde265_headers
   bitstream.h
   cabac.h
   configparam.h
-  de265-version.h
   contextmodel.h
   de265.h
   deblock.h
