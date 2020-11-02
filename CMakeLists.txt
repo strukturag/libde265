@@ -20,7 +20,12 @@ include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 include(GNUInstallDirs)
 include(CheckFunctionExists)
 
-find_package(SDL)
+option(ENABLE_SDL "Enable SDL" ON)
+
+if (ENABLE_SDL)
+	find_package(SDL)
+endif()
+
 find_package(Threads REQUIRED)
 
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
