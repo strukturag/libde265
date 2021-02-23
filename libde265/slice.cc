@@ -4174,6 +4174,11 @@ void read_pcm_samples_internal(thread_context* tctx, int x0, int y0, int log2CbS
 
   int shift = bitDepth - nPcmBits;
 
+  // a shift < 0 may result when the SPS sequence header is broken
+  if (shift < 0) {
+    shift=0;
+  }
+
   for (int y=0;y<h;y++)
     for (int x=0;x<w;x++)
       {
