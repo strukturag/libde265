@@ -844,7 +844,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 
 
             for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
+              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2 in eq. (8-356), but the value can also be negative
               logtrace(LogDeblock,"delta=%d\n",delta);
               if (filterP) { ptr[-1+k*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
               if (filterQ) { ptr[ 0+k*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
@@ -860,7 +860,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
             if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
+              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2, but the value can also be negative
               if (filterP) { ptr[ k-1*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
               if (filterQ) { ptr[ k+0*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
             }
