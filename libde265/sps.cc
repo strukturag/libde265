@@ -365,6 +365,16 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     READ_VLC_OFFSET(log2_min_pcm_luma_coding_block_size, uvlc, 3);
     READ_VLC(log2_diff_max_min_pcm_luma_coding_block_size, uvlc);
     pcm_loop_filter_disable_flag = get_bits(br,1);
+
+    if (pcm_sample_bit_depth_luma > bit_depth_luma) {
+      errqueue->add_warning(DE265_WARNING_PCM_BITDEPTH_TOO_LARGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
+    if (pcm_sample_bit_depth_chroma > bit_depth_chroma) {
+      errqueue->add_warning(DE265_WARNING_PCM_BITDEPTH_TOO_LARGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
   }
   else {
     pcm_sample_bit_depth_luma = 0;
