@@ -883,10 +883,10 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
   int dc_coeff[4][6];
 
   for (int sizeId=0;sizeId<4;sizeId++) {
-    int n = ((sizeId==3) ? 2 : 6);
+    //int n = ((sizeId==3) ? 2 : 6);
     uint8_t scaling_list[6][32*32];
 
-    for (int matrixId=0;matrixId<n;matrixId++) {
+    for (int matrixId=0 ; matrixId<6 ; matrixId += (sizeId==3 ? 3 : 1)) {
       uint8_t* curr_scaling_list = scaling_list[matrixId];
       int scaling_list_dc_coef;
 
@@ -992,6 +992,27 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
     }
   }
 
+
+  // --- fill 32x32 matrices for chroma
+
+  const position* scan = get_scan_order(3, 0 /* diag */);
+	
+  for (int matrixId=0;matrixId<6;matrixId++)
+    if (matrixId!=0 && matrixId!=3) {
+      for (int i=0;i<64;i++) {
+	int x = scan[i].x;
+	int y = scan[i].y;
+	int v = sclist->ScalingFactor_Size1[matrixId][y][x];
+
+	for (int dy=0;dy<4;dy++)
+	  for (int dx=0;dx<4;dx++) {
+	    sclist->ScalingFactor_Size3[matrixId][4*y+dy][4*x+dx] = v;
+	  }
+      }
+
+      sclist->ScalingFactor_Size3[matrixId][0][0] = sclist->ScalingFactor_Size1[matrixId][0][0];
+    }
+  
   return DE265_OK;
 }
 

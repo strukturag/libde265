@@ -54,7 +54,7 @@ typedef struct scaling_list_data {
   uint8_t ScalingFactor_Size0[6][4][4];
   uint8_t ScalingFactor_Size1[6][8][8];
   uint8_t ScalingFactor_Size2[6][16][16];
-  uint8_t ScalingFactor_Size3[2][32][32];
+  uint8_t ScalingFactor_Size3[6][32][32];
 } scaling_list_data;
 
 

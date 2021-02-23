@@ -504,10 +504,8 @@ void scale_coefficients_internal(thread_context* tctx,
 
       for (int i=0;i<tctx->nCoeff[cIdx];i++) {
         int pos = tctx->coeffPos[cIdx][i];
-        int x = pos%nT;
-        int y = pos/nT;
 
-        const int m_x_y = sclist[x+y*nT];
+        const int m_x_y = sclist[pos];
         const int fact = m_x_y * levelScale[qP%6] << (qP/6);
 
         int64_t currCoeff  = tctx->coeffList[cIdx][i];
