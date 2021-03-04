@@ -65,7 +65,7 @@
 #define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
 // C++11 specific features
-#if !__clang__ && (defined(_MSC) && _MSC < 1900 || __GNUC__ && GCC_VERSION < 40600)
+#if !__clang__ && (defined(_MSC_VER) && _MSC_VER < 1900 || __GNUC__ && GCC_VERSION < 40600)
 #define FOR_LOOP(type, var, list)   for each (type var in list)
 #undef FOR_LOOP_AUTO_SUPPORT
 #else
