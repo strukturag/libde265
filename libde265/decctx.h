@@ -450,8 +450,8 @@ class decoder_context : public base_context {
   de265_image* img;
 
  public:
-  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
-                                                        dependent slice. */
+  const slice_segment_header* previous_slice_header = nullptr; /* Remember the last slice for a successive
+								  dependent slice. */
 
 
   // --- motion compensation ---
