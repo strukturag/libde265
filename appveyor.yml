@@ -1,43 +1,35 @@
 # stats available at
 # https://ci.appveyor.com/project/strukturag/libde265
-version: 1.0.{build}
-
-os:
-  - Windows Server 2012 R2
+image: Visual Studio 2019
+configuration: Release
 
 environment:
   matrix:
-    - GENERATOR: "Visual Studio 11 2012"
-    - GENERATOR: "Visual Studio 12 2013"
+  - arch: x64
 
-platform:
-  - x86
-  - x64
+install:
+  - git clone --depth 1 https://github.com/strukturag/libde265-data.git
 
-configuration:
-  - Debug
+before_build:
+  - mkdir build
+  - cd build
+  - cmake .. -A %arch%
 
 build:
   verbosity: normal
 
-install:
-  - git clone https://github.com/strukturag/libde265-data.git
-
-build_script:
-  - ps: if($env:PLATFORM -eq "x64") { $env:CMAKE_GEN_SUFFIX=" Win64" }
-  - cmake "-G%GENERATOR%%CMAKE_GEN_SUFFIX%" -H. -Bbuild
-  - cmake --build build --config %CONFIGURATION%
-
 before_test:
-  - copy /y build\dec265\%CONFIGURATION%\dec265.exe build
-  - copy /y build\enc265\%CONFIGURATION%\enc265.exe build
-  - copy /y build\libde265\%CONFIGURATION%\libde265.dll build
+  - copy /y dec265\%CONFIGURATION%\dec265.exe .
+  - copy /y enc265\%CONFIGURATION%\enc265.exe .
+  - copy /y libde265\%CONFIGURATION%\libde265.dll .
 
 test_script:
-  - build\dec265.exe -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin
-  - build\dec265.exe -t 4 -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin
-  - build\dec265.exe -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin
-  - build\dec265.exe -t 4 -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin
+  - dec265.exe -q -c -f 100 ..\libde265-data\IDR-only\paris-352x288-intra.bin
+  - dec265.exe -t 4 -q -c -f 100 ..\libde265-data\IDR-only\paris-352x288-intra.bin
+  - dec265.exe -q -c -f 100 ..\libde265-data\RandomAccess\paris-ra-wpp.bin
+  - dec265.exe -t 4 -q -c -f 100 ..\libde265-data\RandomAccess\paris-ra-wpp.bin
 
 artifacts:
   - path: build
+  - path: build\**\Release\*.exe
+  - path: build\**\Release\*.dll
