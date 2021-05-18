@@ -8,38 +8,6 @@ cache: ccache
 addons:
   apt:
     update: true
-env:
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=--single-threaded
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=
-  - HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=--single-threaded
-
-matrix:
-  allow_failures:
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-sao THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-tiles-nolf THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-weighted THREADING=--single-threaded
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=
-    - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-wpp-nolf THREADING=--single-threaded
 
 before_install:
   - ./scripts/ci-before-install-$TRAVIS_OS_NAME.sh

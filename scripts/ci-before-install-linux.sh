@@ -75,6 +75,7 @@ if [ ! -z "$DECODESTREAMS" ]; then
     UPDATE_APT=1
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         $DECODESTREAMS \
+        python-is-python2 \
         "
 fi
 
