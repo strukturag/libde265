@@ -36,8 +36,8 @@ if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
 fi
 
 if [ "$CURRENT_OS" = "osx" ]; then
-    export PATH="/usr/local/opt/qt/bin:$PATH"
-    export PKG_CONFIG_PATH=/usr/local/opt/qt/lib/pkgconfig
+    export PATH="/usr/local/opt/qt@5/bin:$PATH"
+    export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig"
 fi
 
 if [ "$HOST" != "cmake" ]; then

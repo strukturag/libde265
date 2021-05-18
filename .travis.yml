@@ -33,15 +33,6 @@ matrix:
   include:
     - compiler: clang
       env: HOST= WINE= DECODESTREAMS=
-    - os: osx
-      compiler: clang
-      env: HOST= WINE= DECODESTREAMS=
-    - os: osx
-      compiler: gcc
-      env: HOST= WINE= DECODESTREAMS=
-    - os: osx
-      compiler: gcc
-      env: HOST=cmake WINE= DECODESTREAMS=
   allow_failures:
     - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
     - env: HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded

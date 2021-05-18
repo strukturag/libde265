@@ -1,0 +1,39 @@
+name: osx
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        env:
+          - { CC: "clang", CXX: "clang++" }
+          - { CC: "gcc", CXX: "g++" }
+          - { CC: "gcc", CXX: "g++", HOST: "cmake" }
+    env: ${{ matrix.env }}
+
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Checkout sample streams
+      uses: actions/checkout@v2
+      with:
+        repository: strukturag/libde265-data
+        path: libde265-data
+
+    - name: Install dependencies
+      run: |
+        ./scripts/ci-before-install-osx.sh
+
+    - name: Prepare CI
+      run: |
+        ./scripts/ci-before-script.sh
+
+    - name: Run tests
+      run: |
+        ./scripts/ci-run.sh

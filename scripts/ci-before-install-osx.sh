@@ -27,7 +27,10 @@ while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit
 
 if [ -z "$HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
+        automake \
         ffmpeg \
+        libtool \
+        pkg-config \
         qt5 \
         sdl \
         "
