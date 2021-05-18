@@ -9,8 +9,6 @@ addons:
   apt:
     update: true
 env:
-  - HOST=i686-w64-mingw32 WINE=wine DECODESTREAMS=
-  - HOST=x86_64-w64-mingw32 WINE=wine64 DECODESTREAMS=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-fuzzing THREADING=--single-threaded
   - HOST= WINE= DECODESTREAMS=libde265-teststreams-nolf THREADING=
