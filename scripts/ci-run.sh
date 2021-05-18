@@ -31,10 +31,6 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ] && [ "$CURRENT_OS" != "osx" ]; then
-    ./scripts/check_licenses.sh
-fi
-
 if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
     # Make sure the correct compiler will be used.
     unset CC
