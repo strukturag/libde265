@@ -30,7 +30,7 @@ if [ -z "$HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
         libsdl-dev \
-        libqt4-dev \
+        qt5-default \
         libswscale-dev \
         "
 fi
