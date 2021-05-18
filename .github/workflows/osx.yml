@@ -13,7 +13,7 @@ jobs:
         env:
           - { CC: "clang", CXX: "clang++" }
           - { CC: "gcc", CXX: "g++" }
-          - { CC: "gcc", CXX: "g++", HOST: "cmake" }
+          - { CC: "gcc", CXX: "g++", CMAKE: "cmake" }
     env: ${{ matrix.env }}
 
     runs-on: macos-10.15

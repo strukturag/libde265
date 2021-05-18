@@ -79,7 +79,7 @@ if [ ! -z "$DECODESTREAMS" ]; then
         "
 fi
 
-if [ "$HOST" = "cmake" ]; then
+if [ ! -z "$CMAKE" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         cmake \
         "

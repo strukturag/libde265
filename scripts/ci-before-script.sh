@@ -29,7 +29,7 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
+if [ ! -z "$HOST" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
@@ -40,11 +40,9 @@ if [ "$CURRENT_OS" = "osx" ]; then
     export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig"
 fi
 
-if [ "$HOST" != "cmake" ]; then
+if [ -z "$CMAKE" ]; then
     ./autogen.sh
     ./configure --host=$HOST
-fi
-
-if [ "$HOST" = "cmake" ]; then
+else
     cmake .
 fi

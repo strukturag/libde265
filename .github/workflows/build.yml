@@ -13,7 +13,7 @@ jobs:
         env:
           - { CC: "gcc", CXX: "g++" }
           - { CC: "clang", CXX: "clang++" }
-          - { HOST: "cmake" }
+          - { CMAKE: "cmake" }
     env: ${{ matrix.env }}
     runs-on: ubuntu-latest
     steps:

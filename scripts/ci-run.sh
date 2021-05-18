@@ -31,7 +31,7 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
+if [ ! -z "$HOST" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
@@ -39,7 +39,7 @@ fi
 
 make
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then
+if [ -z "$HOST" ] && [ -z "$CMAKE" ] && [ -z "$DECODESTREAMS" ]; then
     if [ "$CURRENT_OS" != "osx" ]; then
         make dist
 
