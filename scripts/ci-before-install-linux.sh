@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>

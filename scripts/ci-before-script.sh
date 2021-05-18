@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -20,13 +20,22 @@ set -eu
 # along with libde265.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+CURRENT_OS=$TRAVIS_OS_NAME
+if [ -z "$CURRENT_OS" ]; then
+    if [ "$(uname)" != "Darwin" ]; then
+        CURRENT_OS=linux
+    else
+        CURRENT_OS=osx
+    fi
+fi
+
 if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
 fi
 
-if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+if [ "$CURRENT_OS" = "osx" ]; then
     export PATH="/usr/local/opt/qt/bin:$PATH"
     export PKG_CONFIG_PATH=/usr/local/opt/qt/lib/pkgconfig
 fi

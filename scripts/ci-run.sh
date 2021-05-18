@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -19,9 +19,19 @@ set -eu
 # You should have received a copy of the GNU General Public License
 # along with libde265.  If not, see <http://www.gnu.org/licenses/>.
 #
-BUILD_ROOT=$TRAVIS_BUILD_DIR
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ] && [ "$TRAVIS_OS_NAME" != "osx" ]; then
+BUILD_ROOT=$ROOT/..
+CURRENT_OS=$TRAVIS_OS_NAME
+if [ -z "$CURRENT_OS" ]; then
+    if [ "$(uname)" != "Darwin" ]; then
+        CURRENT_OS=linux
+    else
+        CURRENT_OS=osx
+    fi
+fi
+
+if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ] && [ "$CURRENT_OS" != "osx" ]; then
     ./scripts/check_licenses.sh
 fi
 
@@ -34,7 +44,7 @@ fi
 make
 
 if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then
-    if [ "$TRAVIS_OS_NAME" != "osx" ]; then
+    if [ "$CURRENT_OS" != "osx" ]; then
         make dist
 
         mkdir dist-test
