@@ -37,7 +37,13 @@ if [ ! -z "$TARGET_HOST" ]; then
     unset CXX
 fi
 
-make
+if [ "$CURRENT_OS" != "osx" ]; then
+    CONCURRENCY=$(nproc)
+else
+    CONCURRENCY=$(sysctl -n hw.ncpu)
+fi
+
+make -j $CONCURRENCY
 
 if [ -z "$TARGET_HOST" ] && [ -z "$CMAKE" ]  && [ -z "$DECODESTREAMS" ]; then
     if [ "$CURRENT_OS" != "osx" ]; then
