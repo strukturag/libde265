@@ -1,0 +1,36 @@
+name: arm
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        env:
+          - { HOST: "arm-linux-gnueabihf" }
+    env: ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Checkout sample streams
+      uses: actions/checkout@v2
+      with:
+        repository: strukturag/libde265-data
+        path: libde265-data
+
+    - name: Install dependencies
+      run: |
+        ./scripts/ci-before-install-linux.sh
+
+    - name: Prepare CI
+      run: |
+        ./scripts/ci-before-script.sh
+
+    - name: Run tests
+      run: |
+        ./scripts/ci-run.sh
