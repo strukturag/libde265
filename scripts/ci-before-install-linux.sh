@@ -26,7 +26,7 @@ UPDATE_APT=
 # Output something once per minute to avoid being killed for inactivity.
 while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-if [ -z "$HOST" ]; then
+if [ -z "$TARGET_HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
         libsdl-dev \
@@ -35,7 +35,7 @@ if [ -z "$HOST" ]; then
         "
 fi
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then
+if [ -z "$TARGET_HOST" ] && [ -z "$DECODESTREAMS" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         devscripts \
         "
@@ -62,7 +62,7 @@ elif [ "$WINE" = "wine64" ]; then
         "
 fi
 
-if ( echo "$HOST" | grep -q "^arm" ); then
+if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         g++-arm-linux-gnueabihf \
         gcc-arm-linux-gnueabihf \

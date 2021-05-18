@@ -29,7 +29,7 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ ! -z "$HOST" ]; then
+if [ ! -z "$TARGET_HOST" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
@@ -42,7 +42,7 @@ fi
 
 if [ -z "$CMAKE" ]; then
     ./autogen.sh
-    ./configure --host=$HOST
+    ./configure --host=$TARGET_HOST
 else
     cmake .
 fi

@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         env:
-          - { HOST: "arm-linux-gnueabihf" }
+          - { TARGET_HOST: "arm-linux-gnueabihf" }
     env: ${{ matrix.env }}
     runs-on: ubuntu-latest
     steps:

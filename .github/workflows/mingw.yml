@@ -11,8 +11,8 @@ jobs:
     strategy:
       matrix:
         env:
-          - { HOST: "i686-w64-mingw32", WINE: "wine" }
-          - { HOST: "x86_64-w64-mingw32", WINE: "wine64" }
+          - { TARGET_HOST: "i686-w64-mingw32", WINE: "wine" }
+          - { TARGET_HOST: "x86_64-w64-mingw32", WINE: "wine64" }
     env: ${{ matrix.env }}
     runs-on: ubuntu-latest
     steps:

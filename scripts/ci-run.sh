@@ -31,7 +31,7 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ ! -z "$HOST" ]; then
+if [ ! -z "$TARGET_HOST" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
@@ -39,7 +39,7 @@ fi
 
 make
 
-if [ -z "$HOST" ] && [ -z "$CMAKE" ] && [ -z "$DECODESTREAMS" ]; then
+if [ -z "$TARGET_HOST" ] && [ -z "$CMAKE" ]  && [ -z "$DECODESTREAMS" ]; then
     if [ "$CURRENT_OS" != "osx" ]; then
         make dist
 
@@ -66,19 +66,19 @@ fi
 
 if [ ! -z "$WINE" ]; then
     export WINEPREFIX=$BUILD_ROOT/$WINE
-    export WINEPATH="/usr/lib/gcc/$HOST/9.3-posix/;/usr/$HOST/lib"
+    export WINEPATH="/usr/lib/gcc/$TARGET_HOST/9.3-posix/;/usr/$TARGET_HOST/lib"
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
     $WINE ./dec265/dec265.exe -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
 fi
 
-if ( echo "$HOST" | grep -q "^arm" ); then
+if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
     export LD_LIBRARY_PATH=$BUILD_ROOT/libde265/.libs/
-    qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
-    #qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
-    qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
-    #qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
+    qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
+    #qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
+    qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
+    #qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
 fi
 
 if [ ! -z "$DECODESTREAMS" ]; then
