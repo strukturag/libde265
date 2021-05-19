@@ -72,7 +72,7 @@ fi
 
 if [ ! -z "$WINE" ]; then
     export WINEPREFIX=$BUILD_ROOT/$WINE
-    export WINEPATH="/usr/lib/gcc/$TARGET_HOST/9.3-posix/;/usr/$TARGET_HOST/lib"
+    export WINEPATH="/usr/lib/gcc/$TARGET_HOST/7.3-posix/;/usr/$TARGET_HOST/lib"
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
