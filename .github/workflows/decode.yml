@@ -1,0 +1,51 @@
+name: decode
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  streams:
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - { DECODESTREAMS: "libde265-teststreams-fuzzing" }
+          - { DECODESTREAMS: "libde265-teststreams-fuzzing", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-nolf" }
+          - { DECODESTREAMS: "libde265-teststreams-nolf", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-sao" }
+          - { DECODESTREAMS: "libde265-teststreams-sao", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-tiles" }
+          - { DECODESTREAMS: "libde265-teststreams-tiles", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-tiles-nolf" }
+          - { DECODESTREAMS: "libde265-teststreams-tiles-nolf", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-weighted" }
+          - { DECODESTREAMS: "libde265-teststreams-weighted", THREADING: "--single-threaded" }
+          - { DECODESTREAMS: "libde265-teststreams-wpp-nolf" }
+          - { DECODESTREAMS: "libde265-teststreams-wpp-nolf", THREADING: "--single-threaded" }
+    env: ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Checkout sample streams
+      uses: actions/checkout@v2
+      with:
+        repository: strukturag/libde265-data
+        path: libde265-data
+
+    - name: Install dependencies
+      run: |
+        ./scripts/ci-before-install-linux.sh
+
+    - name: Prepare CI
+      run: |
+        ./scripts/ci-before-script.sh
+
+    - name: Run tests
+      run: |
+        ./scripts/ci-run.sh

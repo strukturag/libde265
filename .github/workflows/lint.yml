@@ -1,0 +1,21 @@
+name: lint
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  licensecheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt install -qq licensecheck
+
+    - name: Check licenses
+      run: |
+        ./scripts/check_licenses.sh
