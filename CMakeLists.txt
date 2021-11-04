@@ -1,5 +1,16 @@
 cmake_minimum_required (VERSION 3.3.2)
 
+## Enables CMAKE_MSVC_RUNTIME_LIBRARY option support for CMake >= 3.15
+## if you want to use a MSVC multi-threaded statically-linked runtime library
+## If you enable it, CMake will build fdk-acc.dll without external dependencies.
+##
+## Example usage:
+##
+## cmake .. -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
 project (libde265
     LANGUAGES C CXX
     VERSION 1.0.8
