@@ -134,7 +134,8 @@ void VideoDecoder::decoder_loop()
         img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
-            auto start = system_clock::now();
+            auto start_time = system_clock::now();
+
             mutex.unlock();
             int more=1;
             de265_error err = de265_decode(ctx, &more);
@@ -143,7 +144,7 @@ void VideoDecoder::decoder_loop()
             if (more && err == DE265_OK) {
               // try again to get picture
 
-              duration<double> decode_time = system_clock::now() - start;
+              duration<double> decode_time = system_clock::now() - start_time;
               duration<double> sleep_for_time = milliseconds(33) - decode_time;
 
               std::this_thread::sleep_for(sleep_for_time);
