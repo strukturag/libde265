@@ -43,6 +43,7 @@ using namespace videogfx;
 #include <thread>
 
 using namespace std;
+using namespace std::chrono;
 
 VideoDecoder::VideoDecoder()
   : mFH(NULL),
@@ -133,7 +134,7 @@ void VideoDecoder::decoder_loop()
         img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
-            auto start = std::chrono::system_clock::now();
+            auto start = system_clock::now();
             mutex.unlock();
             int more=1;
             de265_error err = de265_decode(ctx, &more);
@@ -142,8 +143,9 @@ void VideoDecoder::decoder_loop()
             if (more && err == DE265_OK) {
               // try again to get picture
 
-              std::chrono::duration<double> decode_time = std::chrono::system_clock::now() - start;
-              std::chrono::duration<double> sleep_for_time = std::chrono::milliseconds(33) - decode_time;
+              duration<double> decode_time = system_clock::now() - start;
+              duration<double> sleep_for_time = milliseconds(33) - decode_time;
+
               std::this_thread::sleep_for(sleep_for_time);
 
               img = de265_peek_next_picture(ctx);
