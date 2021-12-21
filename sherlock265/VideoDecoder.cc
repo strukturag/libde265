@@ -145,7 +145,10 @@ void VideoDecoder::decoder_loop()
               duration<double> decode_time = system_clock::now() - start_time;
               duration<double> sleep_for_time = milliseconds(1000 / mFramerate) - decode_time;
 
-              QThread::msleep(std::max(sleep_for_time.count() * 1000, (double)0));
+              if (sleep_for_time.count() > 0)
+              {
+                QThread::msleep(sleep_for_time.count() * 1000);
+              }
 
               img = de265_peek_next_picture(ctx);
             }
