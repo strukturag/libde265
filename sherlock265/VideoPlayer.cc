@@ -50,7 +50,7 @@ VideoPlayer::VideoPlayer(const char* filename)
 
   QSpinBox *framerateSpinbox = new QSpinBox();
   framerateSpinbox->setMinimum(1);
-  framerateSpinbox->setMaximum(60);
+  framerateSpinbox->setMaximum(300);
   framerateSpinbox->setValue(30);
   framerateSpinbox->setSuffix(" FPS");
 
