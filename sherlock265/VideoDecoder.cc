@@ -51,6 +51,7 @@ VideoDecoder::VideoDecoder()
     img(NULL),
     mNextBuffer(0),
     mFrameCount(0),
+    mFramerate(30),
     mPlayingVideo(false),
     mVideoEnded(false),
     mSingleStep(false),
@@ -145,7 +146,7 @@ void VideoDecoder::decoder_loop()
               // try again to get picture
 
               duration<double> decode_time = system_clock::now() - start_time;
-              duration<double> sleep_for_time = milliseconds(33) - decode_time;
+              duration<double> sleep_for_time = milliseconds(1000 / mFramerate) - decode_time;
 
               std::this_thread::sleep_for(sleep_for_time);
 
@@ -350,6 +351,10 @@ void VideoDecoder::show_frame(const de265_image* img)
   mFrameCount++;
 }
 
+void VideoDecoder::setFramerate(int framerate)
+{
+  mFramerate = framerate;
+}
 
 void VideoDecoder::showCBPartitioning(bool flag)
 {
