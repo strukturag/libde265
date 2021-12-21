@@ -148,7 +148,7 @@ void VideoDecoder::decoder_loop()
               duration<double> decode_time = system_clock::now() - start_time;
               duration<double> sleep_for_time = milliseconds(1000 / mFramerate) - decode_time;
 
-              QThread::msleep(sleep_for_time.count() * 1000);
+              QThread::msleep(std::max(sleep_for_time.count() * 1000, (double)0));
 
               img = de265_peek_next_picture(ctx);
             }
@@ -353,6 +353,7 @@ void VideoDecoder::show_frame(const de265_image* img)
 
 void VideoDecoder::setFramerate(int framerate)
 {
+  std::cout << "settings framerate " << framerate << std::endl;
   mFramerate = framerate;
 }
 
