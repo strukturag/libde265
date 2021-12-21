@@ -122,7 +122,7 @@ VideoPlayer::VideoPlayer(const char* filename)
   layout->addWidget(showPBPredModeButton,    2,4,1,1);
   layout->addWidget(showQuantPYButton,       2,5,1,1);
   layout->addWidget(showMotionVecButton,     2,6,1,1);
-  layout->addWidget(framerateSpinbox, 1, 3, 1, 1);
+  layout->addWidget(framerateSpinbox,        1,3,1,1);
   setLayout(layout);
 
 
