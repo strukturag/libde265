@@ -147,7 +147,7 @@ void VideoDecoder::decoder_loop()
 
               if (sleep_for_time.count() > 0)
               {
-                QThread::msleep(sleep_for_time.count() * 1000);
+                QThread::usleep(sleep_for_time.count() * 1000000);
               }
 
               img = de265_peek_next_picture(ctx);
