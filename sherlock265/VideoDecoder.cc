@@ -37,10 +37,7 @@ using namespace videogfx;
 //#include "decctx.h"
 #include "visualize.h"
 
-#include <iostream>
-#include <ctime>
 #include <chrono>
-#include <thread>
 
 using namespace std;
 using namespace std::chrono;
@@ -353,7 +350,6 @@ void VideoDecoder::show_frame(const de265_image* img)
 
 void VideoDecoder::setFramerate(int framerate)
 {
-  std::cout << "settings framerate " << framerate << std::endl;
   mFramerate = framerate;
 }
 
