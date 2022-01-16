@@ -44,7 +44,7 @@ typedef pthread_cond_t   de265_cond;
 
 #else // _WIN32
 #if !defined(NOMINMAX)
-#define NOMINMAX 1
+#define NOMINMAX
 #endif
 #include <windows.h>
 #include "../extra/win32cond.h"
