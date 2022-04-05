@@ -435,7 +435,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   vui_parameters_present_flag = get_bits(br,1);
   if (vui_parameters_present_flag) {
-    vui.read(errqueue, br, this);
+    de265_error err = vui.read(errqueue, br, this);
+    if (err) {
+      return err;
+    }
   }
 
 
