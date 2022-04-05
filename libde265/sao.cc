@@ -353,7 +353,10 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
       for (int xCtb=0; xCtb<sps.PicWidthInCtbsY; xCtb++)
         {
           const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
-          if (shdr==NULL) { return; }
+          if (shdr==NULL) {
+	    delete[] inputCopy;
+	    return;
+	  }
 
           if (cIdx==0 && shdr->slice_sao_luma_flag) {
             apply_sao(img, xCtb,yCtb, shdr, 0, 1<<sps.Log2CtbSizeY, 1<<sps.Log2CtbSizeY,
