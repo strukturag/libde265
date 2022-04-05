@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -25,13 +25,14 @@ INSTALL_PACKAGES=
 # Output something once per minute to avoid being killed for inactivity.
 while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-if [ -z "$HOST" ]; then
-    INSTALL_PACKAGES="$INSTALL_PACKAGES \
-        ffmpeg \
-        qt5 \
-        sdl \
-        "
-fi
+INSTALL_PACKAGES="$INSTALL_PACKAGES \
+    automake \
+    ffmpeg \
+    libtool \
+    pkg-config \
+    qt5 \
+    sdl \
+    "
 
 if [ ! -z "$INSTALL_PACKAGES" ]; then
     echo "Remove python@2 ..."

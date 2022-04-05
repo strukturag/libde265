@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -26,32 +26,31 @@ UPDATE_APT=
 # Output something once per minute to avoid being killed for inactivity.
 while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-if [ -z "$HOST" ]; then
+if [ -z "$TARGET_HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
         libsdl-dev \
-        libqt4-dev \
+        qt5-default \
         libswscale-dev \
         "
 fi
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then
+if [ -z "$TARGET_HOST" ] && [ -z "$DECODESTREAMS" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         devscripts \
         "
 fi
 
-if [ ! -z "$WINE" ]; then
-    INSTALL_PACKAGES="$INSTALL_PACKAGES \
-        wine \
-        "
-fi
 if [ "$WINE" = "wine" ]; then
+    sudo dpkg --add-architecture i386
+    UPDATE_APT=1
+
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         gcc-mingw-w64-i686 \
         g++-mingw-w64-i686 \
         binutils-mingw-w64-i686 \
         mingw-w64-i686-dev \
+        wine32 \
         "
 elif [ "$WINE" = "wine64" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
@@ -59,10 +58,11 @@ elif [ "$WINE" = "wine64" ]; then
         g++-mingw-w64-x86-64 \
         binutils-mingw-w64-x86-64 \
         mingw-w64-x86-64-dev \
+        wine64 \
         "
 fi
 
-if ( echo "$HOST" | grep -q "^arm" ); then
+if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         g++-arm-linux-gnueabihf \
         gcc-arm-linux-gnueabihf \
@@ -75,10 +75,11 @@ if [ ! -z "$DECODESTREAMS" ]; then
     UPDATE_APT=1
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         $DECODESTREAMS \
+        python-is-python2 \
         "
 fi
 
-if [ "$HOST" = "cmake" ]; then
+if [ ! -z "$CMAKE" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         cmake \
         "
@@ -92,4 +93,12 @@ fi
 if [ ! -z "$INSTALL_PACKAGES" ]; then
     echo "Installing packages $INSTALL_PACKAGES ..."
     sudo apt-get install -qq $INSTALL_PACKAGES
+fi
+
+if [ "$WINE" = "wine" ]; then
+    sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
+    sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
+elif [ "$WINE" = "wine64" ]; then
+    sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+    sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
 fi
