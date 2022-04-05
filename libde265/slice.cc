@@ -373,7 +373,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   slice_pic_parameter_set_id = get_uvlc(br);
-  if (slice_pic_parameter_set_id > DE265_MAX_PPS_SETS ||
+  if (slice_pic_parameter_set_id >= DE265_MAX_PPS_SETS ||
       slice_pic_parameter_set_id == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return DE265_OK;
