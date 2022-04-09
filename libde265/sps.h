@@ -210,7 +210,7 @@ public:
   int PicHeightInCtbsY;
   int PicSizeInMinCbsY;
   int PicSizeInCtbsY;
-  int PicSizeInSamplesY;
+  uint32_t PicSizeInSamplesY;
 
   int CtbWidthC, CtbHeightC;
 
