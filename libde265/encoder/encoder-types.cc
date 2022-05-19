@@ -23,7 +23,7 @@
 #include "encoder-types.h"
 #include "encoder-context.h"
 #include "slice.h"
-#include "scan.h"
+#include "libde265/scan.h"
 #include "intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
