@@ -901,12 +901,13 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       if (!scaling_list_pred_mode_flag) {
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
 
-	if (sizeId==3) {
-	  // adapt to our changed matrixId for size 3
-	  scaling_list_pred_matrix_id_delta *= 3;
-	}
-	
+        if (sizeId==3) {
+          // adapt to our changed matrixId for size 3
+          scaling_list_pred_matrix_id_delta *= 3;
+        }
+  
         if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
+            scaling_list_pred_matrix_id_delta < 0 ||
             scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
@@ -928,7 +929,10 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           }
         }
         else {
-          if (sizeId==3) { assert(scaling_list_pred_matrix_id_delta==3); }
+          if (sizeId==3) {
+            if (scaling_list_pred_matrix_id_delta != 3)
+              return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
 
           int mID = matrixId - scaling_list_pred_matrix_id_delta;
 
@@ -1002,18 +1006,18 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
   // --- fill 32x32 matrices for chroma
 
   const position* scan = get_scan_order(3, 0 /* diag */);
-	
+
   for (int matrixId=0;matrixId<6;matrixId++)
     if (matrixId!=0 && matrixId!=3) {
       for (int i=0;i<64;i++) {
-	int x = scan[i].x;
-	int y = scan[i].y;
-	int v = sclist->ScalingFactor_Size1[matrixId][y][x];
+        int x = scan[i].x;
+        int y = scan[i].y;
+        int v = sclist->ScalingFactor_Size1[matrixId][y][x];
 
-	for (int dy=0;dy<4;dy++)
-	  for (int dx=0;dx<4;dx++) {
-	    sclist->ScalingFactor_Size3[matrixId][4*y+dy][4*x+dx] = v;
-	  }
+        for (int dy=0;dy<4;dy++)
+          for (int dx=0;dx<4;dx++) {
+            sclist->ScalingFactor_Size3[matrixId][4*y+dy][4*x+dx] = v;
+          }
       }
 
       sclist->ScalingFactor_Size3[matrixId][0][0] = sclist->ScalingFactor_Size1[matrixId][0][0];
