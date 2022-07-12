@@ -1633,6 +1633,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   int refIdxA=-1;
 
   // the POC we want to reference in this PB
+  if (refIdxLX >= MAX_NUM_REF_PICS) {
+    return;
+  }
   const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
   if (tmpimg==NULL) { return; }
   const int referenced_POC = tmpimg->PicOrderCntVal;
