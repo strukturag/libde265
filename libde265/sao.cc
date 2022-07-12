@@ -217,10 +217,14 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
           if (bandShift >= 8) {
             bandIdx = 0;
           } else {
-            bandIdx = bandTable[ in_img[xC+i+(yC+j)*in_stride]>>bandShift ];
+            int bandTableIdx = in_img[xC+i+(yC+j)*in_stride]>>bandShift;
+            if (bandTableIdx >= sizeof(bandTable)/sizeof(bandTable[0]))
+              bandIdx = 0;
+            else
+              bandIdx = bandTable[ bandTableIdx ];
           }
 
-          if (bandIdx>0) {
+          if (bandIdx>0 && bandIdx <= 4) {
             int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
 
             logtrace(LogSAO,"%d %d (%d) offset %d  %x -> %x\n",xC+i,yC+j,bandIdx,
