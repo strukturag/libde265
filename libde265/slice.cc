@@ -3387,7 +3387,7 @@ int residual_coding(thread_context* tctx,
         }
 
         if (pps.sign_data_hiding_flag && signHidden) {
-          sumAbsLevel += baseLevel + coeff_abs_level_remaining;
+          sumAbsLevel += currCoeff;
 
           if (n==nCoefficients-1 && (sumAbsLevel & 1)) {
             currCoeff = -currCoeff;
