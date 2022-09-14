@@ -109,7 +109,7 @@ using cmake on other platforms.
 Building using vcpkg
 ====================
 
-You can build and install libde265 using [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
+You can build and install libde265 using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
 
 ```
 git clone https://github.com/Microsoft/vcpkg.git
