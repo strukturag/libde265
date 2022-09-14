@@ -435,7 +435,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   vui_parameters_present_flag = get_bits(br,1);
   if (vui_parameters_present_flag) {
-    vui.read(errqueue, br, this);
+    de265_error err = vui.read(errqueue, br, this);
+    if (err) {
+      return err;
+    }
   }
 
 
@@ -886,12 +889,10 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
     //int n = ((sizeId==3) ? 2 : 6);
     uint8_t scaling_list[6][32*32];
 
+    // Note: we use a different matrixId for the second matrix of size 3 (we use '3' instead of '1').
     for (int matrixId=0 ; matrixId<6 ; matrixId += (sizeId==3 ? 3 : 1)) {
       uint8_t* curr_scaling_list = scaling_list[matrixId];
       int scaling_list_dc_coef;
-
-      int canonicalMatrixId = matrixId;
-      if (sizeId==3 && matrixId==1) { canonicalMatrixId=3; }
 
 
       //printf("----- matrix %d\n",matrixId);
@@ -899,6 +900,12 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
+
+	if (sizeId==3) {
+	  // adapt to our changed matrixId for size 3
+	  scaling_list_pred_matrix_id_delta *= 3;
+	}
+	
         if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
             scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -914,15 +921,14 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
             memcpy(curr_scaling_list, default_ScalingList_4x4, 16);
           }
           else {
-            if (canonicalMatrixId<3)
+            if (matrixId<3)
               { memcpy(curr_scaling_list, default_ScalingList_8x8_intra,64); }
             else
               { memcpy(curr_scaling_list, default_ScalingList_8x8_inter,64); }
           }
         }
         else {
-          // TODO: CHECK: for sizeID=3 and the second matrix, should we have delta=1 or delta=3 ?
-          if (sizeId==3) { assert(scaling_list_pred_matrix_id_delta==1); }
+          if (sizeId==3) { assert(scaling_list_pred_matrix_id_delta==3); }
 
           int mID = matrixId - scaling_list_pred_matrix_id_delta;
 

@@ -201,6 +201,9 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
     if (!low_delay_hrd_flag[i])
     {
       READ_VLC_OFFSET(cpb_cnt_minus1[i], uvlc, 0);
+      if (cpb_cnt_minus1[i] > 31) {
+	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
     }
 
     for (nalOrVcl = 0; nalOrVcl < 2; nalOrVcl++)
@@ -361,6 +364,9 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
     if (vui_hrd_parameters_present_flag) {
       de265_error err;
       err = hrd_parameters(errqueue, br, sps);
+      if (err) {
+	return err;
+      }
     }
   }
 

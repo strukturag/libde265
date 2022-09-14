@@ -52,7 +52,7 @@ Environment:
 Building
 ========
 
-[![Build Status](https://travis-ci.org/strukturag/libde265.png?branch=master)](https://travis-ci.org/strukturag/libde265) [![Build Status](https://ci.appveyor.com/api/projects/status/github/strukturag/libde265?svg=true)](https://ci.appveyor.com/project/strukturag/libde265)
+[![Build Status](https://github.com/strukturag/libde265/workflows/build/badge.svg)](https://github.com/strukturag/libde265/actions) [![Build Status](https://ci.appveyor.com/api/projects/status/github/strukturag/libde265?svg=true)](https://ci.appveyor.com/project/strukturag/libde265)
 
 If you got libde265 from the git repository, you will first need to run
 the included `autogen.sh` script to generate the `configure` script.
@@ -104,6 +104,22 @@ make
 
 See the [cmake documentation](http://www.cmake.org) for further information on
 using cmake on other platforms.
+
+
+Building using vcpkg
+====================
+
+You can build and install libde265 using [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
+
+```
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+ ./vcpkg install libde265
+```
+
+The libde265 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
 
 Prebuilt binaries

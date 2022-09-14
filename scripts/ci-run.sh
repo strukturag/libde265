@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 #
 # H.265 video codec.
 # Copyright (c) 2018 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -19,22 +19,34 @@ set -eu
 # You should have received a copy of the GNU General Public License
 # along with libde265.  If not, see <http://www.gnu.org/licenses/>.
 #
-BUILD_ROOT=$TRAVIS_BUILD_DIR
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ] && [ "$TRAVIS_OS_NAME" != "osx" ]; then
-    ./scripts/check_licenses.sh
+BUILD_ROOT=$ROOT/..
+CURRENT_OS=$TRAVIS_OS_NAME
+if [ -z "$CURRENT_OS" ]; then
+    if [ "$(uname)" != "Darwin" ]; then
+        CURRENT_OS=linux
+    else
+        CURRENT_OS=osx
+    fi
 fi
 
-if [ ! -z "$HOST" ] && [ "$HOST" != "cmake" ]; then
+if [ ! -z "$TARGET_HOST" ]; then
     # Make sure the correct compiler will be used.
     unset CC
     unset CXX
 fi
 
-make
+if [ "$CURRENT_OS" != "osx" ]; then
+    CONCURRENCY=$(nproc)
+else
+    CONCURRENCY=$(sysctl -n hw.ncpu)
+fi
 
-if [ -z "$HOST" ] && [ -z "$DECODESTREAMS" ]; then
-    if [ "$TRAVIS_OS_NAME" != "osx" ]; then
+make -j $CONCURRENCY
+
+if [ -z "$TARGET_HOST" ] && [ -z "$CMAKE" ]  && [ -z "$DECODESTREAMS" ]; then
+    if [ "$CURRENT_OS" != "osx" ]; then
         make dist
 
         mkdir dist-test
@@ -60,19 +72,19 @@ fi
 
 if [ ! -z "$WINE" ]; then
     export WINEPREFIX=$BUILD_ROOT/$WINE
-    export WINEPATH="/usr/lib/gcc/$HOST/4.8/;/usr/$HOST/lib"
+    export WINEPATH="/usr/lib/gcc/$TARGET_HOST/7.3-posix/;/usr/$TARGET_HOST/lib"
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
     $WINE ./dec265/dec265.exe -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
     $WINE ./dec265/dec265.exe -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
 fi
 
-if ( echo "$HOST" | grep -q "^arm" ); then
+if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
     export LD_LIBRARY_PATH=$BUILD_ROOT/libde265/.libs/
-    qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
-    #qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
-    qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
-    #qemu-arm -L /usr/$HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
+    qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
+    #qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin
+    qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
+    #qemu-arm -L /usr/$TARGET_HOST ./dec265/.libs/dec265 -t 4 -q -c ./libde265-data/RandomAccess/paris-ra-wpp.bin
 fi
 
 if [ ! -z "$DECODESTREAMS" ]; then
