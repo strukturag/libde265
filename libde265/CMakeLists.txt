@@ -108,6 +108,7 @@ if(NOT DISABLE_SSE)
 endif()
 
 add_library(${PROJECT_NAME} ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME de265)
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
 write_basic_package_version_file(${PROJECT_NAME}ConfigVersion.cmake COMPATIBILITY ExactVersion)
