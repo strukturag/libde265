@@ -178,8 +178,8 @@ AC_MSG_RESULT([$has_nullptr])
 
 
 
-AC_ARG_ENABLE([encoder], AS_HELP_STRING([--disable-encoder], [Do not build encoder.]))
-if eval "test x$enable_encoder = x"      ; then enable_encoder=yes ; fi
+AC_ARG_ENABLE([encoder], AS_HELP_STRING([--enable-encoder], [Build the encoder (experimental).]))
+if eval "test x$enable_encoder = x"      ; then enable_encoder=no ; fi
 
 AM_CONDITIONAL([ENABLE_ENCODER], [test x"$enable_encoder" = x"yes"])
 
