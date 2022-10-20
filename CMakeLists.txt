@@ -69,7 +69,7 @@ if(MSVC)
 endif()
 
 option(ENABLE_DECODER "Enable Decoder" ON)
-option(ENABLE_ENCODER "Enable Encoder" ON)
+option(ENABLE_ENCODER "Enable Encoder" OFF)
 
 add_subdirectory (libde265)
 if (ENABLE_DECODER)
