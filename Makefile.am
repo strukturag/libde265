@@ -22,7 +22,10 @@ endif
 EXTRA_DIST = \
   autogen.sh \
   build.bat \
+  m4/ax_compare_version.m4 \
+  m4/ax_cxx_compile_stdcxx_11.m4 \
   m4/m4_ax_check_compile_flag.m4 \
+  m4/visibility.m4 \
   Makefile.vc7 \
   CMakeLists.txt \
   README.md \
