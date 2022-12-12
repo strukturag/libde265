@@ -348,6 +348,16 @@ void generate_inter_prediction_samples(base_context* ctx,
 
       logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
+      if (refPic) {
+          auto nonconst_refPic = const_cast<de265_image*>(refPic); /* shared_ptr.get() chokes on const.*/
+          auto refsps = nonconst_refPic->get_shared_sps().get();
+          auto imgsps = img->get_shared_sps().get();
+          if(refsps != imgsps) {
+              // rejecting reference image created with different sps.
+              refPic = nullptr;
+          }
+      }
+
       if (!refPic || refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
