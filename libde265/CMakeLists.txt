@@ -94,7 +94,7 @@ add_library(de265
         vui.h
         vui.cc
         #        de265-version.h
-        ${X86_OBJECTS})
+        ${X86_OBJECTS} de265-multilayer.h de265-multilayer.cc)
 
 if (MSVC OR MINGW)
     target_sources(de265

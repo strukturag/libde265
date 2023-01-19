@@ -137,7 +137,7 @@ class NAL_Parser
 
   // NAL level
 
-  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
+  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have stuffing bytes removed
   int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
 
   void push_to_NAL_queue(NAL_unit*);

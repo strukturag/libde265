@@ -293,6 +293,9 @@ class decoder_context : public base_context {
   decoder_context();
   ~decoder_context();
 
+  // This has to be called before decoding has started.
+  void set_layer_to_decode(int layer) { m_layer_id = layer; }
+
   de265_error start_thread_pool(int nThreads);
   void        stop_thread_pool();
 
@@ -340,6 +343,8 @@ class decoder_context : public base_context {
 
 
   // --- parameters ---
+
+  int m_layer_id = 0; // the layer to be decoded
 
   bool param_sei_check_hash;
   bool param_conceal_stream_errors;

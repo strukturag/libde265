@@ -53,6 +53,8 @@ using namespace videogfx;
 
 #if HAVE_SDL
 #include "sdl.hh"
+#include "libde265/de265-multilayer.h"
+
 #endif
 
 
@@ -82,9 +84,13 @@ int highestTID = 100;
 int verbosity=0;
 int disable_deblocking=0;
 int disable_sao=0;
+bool show_stream_info=false;
+int decode_layer=0;
+
 
 static struct option long_options[] = {
   {"quiet",      no_argument,       0, 'q' },
+  {"info",       no_argument,       0, 'i' },
   {"threads",    required_argument, 0, 't' },
   {"check-hash", no_argument,       0, 'c' },
   {"profile",    no_argument,       0, 'p' },
@@ -92,6 +98,7 @@ static struct option long_options[] = {
   {"output",     required_argument, 0, 'o' },
   {"dump",       no_argument,       0, 'd' },
   {"nal",        no_argument,       0, 'n' },
+  {"layer",      required_argument, 0, 'l' },
   {"videogfx",   no_argument,       0, 'V' },
   {"no-logging", no_argument,       0, 'L' },
   {"help",       no_argument,       0, 'h' },
@@ -558,12 +565,66 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+void do_show_stream_info(FILE* fh)
+{
+  de265_vps_scanner* scanner = de265_new_vps_scanner();
+
+  for (;;) {
+    // read a chunk of input data
+    uint8_t buf[BUFFER_SIZE];
+    int n = fread(buf, 1, BUFFER_SIZE, fh);
+
+    // decode input data
+    if (n) {
+      de265_error err = de265_vps_scanner_push_data(scanner, buf, n);
+      if (err != DE265_OK) {
+        const char* error = de265_get_error_text(err);
+        fprintf(stderr, "Error: %s\n", error);
+        break;
+      }
+    }
+
+    de265_vps* vps = de265_vps_scanner_get_next_vps(scanner);
+    if (vps) {
+      int layers = de265_vps_get_max_layers(vps);
+      fprintf(stderr, "max number of layers: %d\n", layers);
+      for (int l = 0; l < layers; l++) {
+        std::string content;
+        int auxId = de265_vps_get_layer_aux_id(vps, l);
+        if (auxId == de265_aux_none) {
+          content = "video";
+        }
+        else if (auxId == de265_aux_alpha) {
+          content = "alpha";
+        }
+        else if (auxId == de265_aux_depth) {
+          content = "depth";
+        }
+        else {
+          content = std::to_string(auxId);
+        }
+
+        fprintf(stderr, "  layer[%d] content: %s\n", l, content.c_str());
+      }
+
+      de265_vps_release(vps);
+    }
+
+    if (feof(fh)) {
+      break;
+    }
+  }
+
+  de265_vps_scanner_release(scanner);
+}
+
+
 int main(int argc, char** argv)
 {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "qt:chf:o:dLB:n0vT:m:se"
+    int c = getopt_long(argc, argv, "qt:chif:o:dLB:n0vT:m:sel:"
 #if HAVE_VIDEOGFX && HAVE_SDL
                         "V"
 #endif
@@ -589,6 +650,8 @@ int main(int argc, char** argv)
     case 'e': show_psnr_map=true; break;
     case 'T': highestTID=atoi(optarg); break;
     case 'v': verbosity++; break;
+    case 'i': show_stream_info=true; break;
+    case 'l': decode_layer=atoi(optarg); break;
     }
   }
 
@@ -624,6 +687,31 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
+  }
+
+
+  FILE* fh;
+  if (strcmp(argv[optind],"-")==0) {
+    fh = stdin;
+  }
+  else {
+    fh = fopen(argv[optind], "rb");
+  }
+
+  if (fh==NULL) {
+    fprintf(stderr,"cannot open file %s!\n", argv[optind]);
+    exit(10);
+  }
+
+
+  if (show_stream_info) {
+    if (nal_input) {
+      fprintf(stderr, "Cannot use '--info' with NAL input yet.\n");
+      exit(5);
+    }
+
+    do_show_stream_info(fh);
+    return 0;
   }
 
 
@@ -663,24 +751,13 @@ int main(int argc, char** argv)
 
   de265_set_limit_TID(ctx, highestTID);
 
+  de265_decoder_context_set_layer(ctx, decode_layer);
+
 
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
   }
 
-
-  FILE* fh;
-  if (strcmp(argv[optind],"-")==0) {
-    fh = stdin;
-  }
-  else {
-    fh = fopen(argv[optind], "rb");
-  }
-
-  if (fh==NULL) {
-    fprintf(stderr,"cannot open file %s!\n", argv[optind]);
-    exit(10);
-  }
 
   FILE* bytestream_fh = NULL;
 

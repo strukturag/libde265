@@ -267,6 +267,13 @@ LIBDE265_API de265_error de265_free_decoder(de265_decoder_context* de265ctx)
 }
 
 
+LIBDE265_API void de265_decoder_context_set_layer(de265_decoder_context* de265ctx, int layer)
+{
+  decoder_context* ctx = (decoder_context*)de265ctx;
+  ctx->set_layer_to_decode(layer);
+}
+
+
 LIBDE265_API de265_error de265_start_worker_threads(de265_decoder_context* de265ctx, int number_of_threads)
 {
   decoder_context* ctx = (decoder_context*)de265ctx;
