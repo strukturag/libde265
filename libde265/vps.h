@@ -30,6 +30,7 @@
 #include "libde265/cabac.h"
 
 #include <vector>
+#include <array>
 
 class error_queue;
 
@@ -46,15 +47,15 @@ enum profile_idc {
 
 class profile_data {
 public:
-  void read(bitreader* reader);
-  void write(CABAC_encoder& writer) const;
-  void dump(bool general, FILE* fh) const;
+  void read(bitreader* reader, bool profilePresentFlag, bool levelPresentFlag);
+  void write(CABAC_encoder& writer, bool profilePresentFlag, bool levelPresentFlag) const;
+  void dump(bool general, FILE* fh, bool profilePresentFlag, bool levelPresentFlag) const;
 
   void set_defaults(enum profile_idc, int level_major, int level_minor);
 
   // --- profile ---
 
-  char profile_present_flag;  // always true for general profile
+  //bool profile_present_flag;  // always true for general profile
 
   char profile_space;  // currently always 0
   char tier_flag;      // main tier or low tier (see Table A-66/A-67)
@@ -70,7 +71,7 @@ public:
 
   // --- level ---
 
-  char level_present_flag; // always true for general level
+  //char level_present_flag; // always true for general level
   int  level_idc;          // level * 30
 };
 
@@ -78,14 +79,14 @@ public:
 class profile_tier_level
 {
 public:
-  void read(bitreader* reader, int max_sub_layers);
-  void write(CABAC_encoder& writer, int max_sub_layers) const;
-  void dump(int max_sub_layers, FILE* fh) const;
+  void read(bitreader* reader, bool profilePresentFlag, int max_sub_layers);
+  void write(CABAC_encoder& writer, bool profilePresentFlag, int max_sub_layers) const;
+  void dump(bool profilePresentFlag, int max_sub_layers, FILE* fh) const;
 
   profile_data general;
 
-  //bool sub_layer_profile_present[MAX_TEMPORAL_SUBLAYERS];
-  //bool sub_layer_level_present[MAX_TEMPORAL_SUBLAYERS];
+  std::array<bool, MAX_TEMPORAL_SUBLAYERS> sub_layer_profile_present_flag{};
+  std::array<bool, MAX_TEMPORAL_SUBLAYERS> sub_layer_level_present_flag{};
 
   profile_data sub_layer[MAX_TEMPORAL_SUBLAYERS];
 };
@@ -132,6 +133,8 @@ public:
   void set_defaults(enum profile_idc profile, int level_major, int level_minor);
 
   int video_parameter_set_id;
+  bool vps_base_layer_internal_flag;
+  bool vps_base_layer_available_flag;
   int vps_max_layers;            // [1;?]  currently always 1
   int vps_max_sub_layers;        // [1;7]  number of temporal sub-layers
   int vps_temporal_id_nesting_flag; // indicate temporal up-switching always possible
@@ -163,6 +166,21 @@ public:
   // --- vps extension ---
 
   char vps_extension_flag;
+  profile_tier_level profile_tier_level_0_max_minus_1;
+
+  bool splitting_flag;
+  std::array<bool, 16> scalability_mask_flag{};
+  std::array<uint8_t, 16> dimension_id_len;
+  bool vps_nuh_layer_id_present_flag;
+  std::array<uint8_t, 63> layer_id_in_nuh;
+  std::array<std::array<uint8_t, 16>,63> dimension_id;
+
+  std::array<std::array<uint8_t, 16>,16> ScalabilityId{}; // [ layer ] [ scalabilityDimension ]
+
+  std::array<uint8_t, 64> DepthLayerFlag{};
+  std::array<uint8_t, 64> ViewOrderIdx{};
+  std::array<uint8_t, 64> DependencyId{};
+  std::array<uint8_t, 64> AuxId{};
 };
 
 

@@ -207,7 +207,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   sps_temporal_id_nesting_flag = get_bits(br,1);
 
-  profile_tier_level_.read(br, sps_max_sub_layers);
+  profile_tier_level_.read(br, true, sps_max_sub_layers);
 
   READ_VLC(seq_parameter_set_id, uvlc);
   if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
@@ -649,7 +649,7 @@ void seq_parameter_set::dump(int fd) const
   LOG1("sps_max_sub_layers      : %d\n", sps_max_sub_layers);
   LOG1("sps_temporal_id_nesting_flag : %d\n", sps_temporal_id_nesting_flag);
 
-  profile_tier_level_.dump(sps_max_sub_layers, fh);
+  profile_tier_level_.dump(true, sps_max_sub_layers, fh);
 
   LOG1("seq_parameter_set_id    : %d\n", seq_parameter_set_id);
   LOG2("chroma_format_idc       : %d (%s)\n", chroma_format_idc,
@@ -1082,7 +1082,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   out.write_bit(sps_temporal_id_nesting_flag);
 
-  profile_tier_level_.write(out, sps_max_sub_layers);
+  profile_tier_level_.write(out, true, sps_max_sub_layers);
 
   out.write_uvlc(seq_parameter_set_id);
 

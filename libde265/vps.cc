@@ -27,8 +27,6 @@
 
 void profile_data::set_defaults(enum profile_idc profile, int level_major, int level_minor)
 {
-  profile_present_flag = 1;
-
   profile_space = 0;
   tier_flag = 0;
   profile_idc = profile;
@@ -57,7 +55,6 @@ void profile_data::set_defaults(enum profile_idc profile, int level_major, int l
 
   // --- level ---
 
-  level_present_flag = 1;
   level_idc = level_major*30 + level_minor*3;
 }
 
@@ -106,9 +103,13 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   video_parameter_set_id = vlc = get_bits(reader, 4);
   if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
-  skip_bits(reader, 2);
+  vps_base_layer_internal_flag = get_bits(reader, 1);
+  vps_base_layer_available_flag = get_bits(reader, 1);
+
   vps_max_layers = vlc = get_bits(reader,6) +1;
   if (vlc > 63) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; // vps_max_layers_minus1 (range 0...63)
+
+  int MaxLayers = std::min(62+1, vps_max_layers);
 
   vps_max_sub_layers = vlc = get_bits(reader,3) +1;
   if (vlc >= MAX_TEMPORAL_SUBLAYERS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -116,7 +117,7 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
   vps_temporal_id_nesting_flag = get_bits(reader,1);
   skip_bits(reader, 16);
 
-  profile_tier_level_.read(reader, vps_max_sub_layers);
+  profile_tier_level_.read(reader, true, vps_max_sub_layers);
 
   /*
     read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
@@ -210,11 +211,73 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
   vps_extension_flag = get_bits(reader,1);
 
   if (vps_extension_flag) {
-    /*
-      while( more_rbsp_data() )
-      vps_extension_data_flag u(1)
-      rbsp_trailing_bits()
-    */
+    skip_to_byte_boundary(reader);
+
+    if (vps_max_layers-1 > 0 && vps_base_layer_internal_flag) {
+      profile_tier_level_0_max_minus_1.read(reader, false, vps_max_sub_layers);
+    }
+
+    splitting_flag = get_bits(reader, 1);
+
+    int NumScalabilityTypes = 0;
+    for (int i=0; i<16; i++) {
+      scalability_mask_flag[i] = get_bits(reader, 1);
+      NumScalabilityTypes += scalability_mask_flag[i];
+    }
+
+    for (int j = 0; j < (NumScalabilityTypes - splitting_flag); j++) {
+      dimension_id_len[j] = get_bits(reader, 3) + 1;
+    }
+
+    vps_nuh_layer_id_present_flag = get_bits(reader, 1);
+
+    if (splitting_flag==0) {
+      for (int j=0;j<NumScalabilityTypes;j++) {
+        dimension_id[0][j] = 0;
+      }
+    }
+
+    for (int i=1; i<= MaxLayers-1; i++) {
+      if (vps_nuh_layer_id_present_flag) {
+        layer_id_in_nuh[i] = get_bits(reader, 6);
+      }
+      else {
+        layer_id_in_nuh[i] = i;
+      }
+
+      if (!splitting_flag) {
+        for (int j=0;j<NumScalabilityTypes;j++) {
+          dimension_id[i][j] = get_bits(reader, dimension_id_len[j]);
+        }
+      }
+    }
+
+    int NumViews = 1;
+    for (int i = 0; i < MaxLayers; i++) {
+      int lId = layer_id_in_nuh[i];
+      int j=0;
+      for (int smIdx=0;smIdx<16;smIdx++) {
+        if (scalability_mask_flag[smIdx]) {
+          ScalabilityId[i][smIdx] = dimension_id[i][j++];
+        }
+        else {
+          ScalabilityId[i][smIdx] = 0;
+        }
+      }
+
+      DepthLayerFlag[lId] = ScalabilityId[i][0];
+      ViewOrderIdx[lId] = ScalabilityId[i][1];
+      DependencyId[lId] = ScalabilityId[i][2];
+      AuxId[lId] = ScalabilityId[i][3];
+
+      if (i>0) {
+        bool newViewFlag = true;
+        if (ViewOrderIdx[lId] == ViewOrderIdx[layer_id_in_nuh[j]]) {
+          newViewFlag = false;
+        }
+        NumViews += newViewFlag;
+      }
+    }
   }
 
   return DE265_OK;
@@ -235,7 +298,7 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out
   out.write_bit(vps_temporal_id_nesting_flag);
   out.write_bits(0xFFFF, 16);
 
-  profile_tier_level_.write(out, vps_max_sub_layers);
+  profile_tier_level_.write(out, true, vps_max_sub_layers);
 
   /*
   read_bit_rate_pic_rate_info(reader, &bit_rate_pic_rate_info,
@@ -307,9 +370,9 @@ de265_error video_parameter_set::write(error_queue* errqueue, CABAC_encoder& out
 }
 
 
-void profile_data::read(bitreader* reader)
+void profile_data::read(bitreader* reader, bool profilePresentFlag, bool levelPresentFlag)
 {
-  if (profile_present_flag) {
+  if (profilePresentFlag) {
     profile_space = get_bits(reader,2);
     tier_flag = get_bits(reader,1);
     profile_idc = (enum profile_idc)get_bits(reader,5);
@@ -325,28 +388,27 @@ void profile_data::read(bitreader* reader)
     skip_bits(reader,44);
   }
 
-  if (level_present_flag) {
-    level_idc = get_bits(reader,8);
+  if (levelPresentFlag) {
+    level_idc = get_bits(reader, 8);
   }
 }
 
 
 void profile_tier_level::read(bitreader* reader,
+                              bool profilePresentFlag,
                               int max_sub_layers)
 {
   // --- read the general profile ---
 
-  general.profile_present_flag = true;
-  general.level_present_flag = true;
-  general.read(reader);
+  general.read(reader, profilePresentFlag, true);
 
 
   // --- read the profile/levels of the sub-layers ---
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      sub_layer[i].profile_present_flag = get_bits(reader,1);
-      sub_layer[i].level_present_flag   = get_bits(reader,1);
+      sub_layer_profile_present_flag[i] = get_bits(reader,1);
+      sub_layer_level_present_flag[i]   = get_bits(reader,1);
     }
 
   if (max_sub_layers > 1)
@@ -357,16 +419,17 @@ void profile_tier_level::read(bitreader* reader,
         }
     }
 
-  for (int i=0; i<max_sub_layers-1; i++)
-    {
-      sub_layer[i].read(reader);
-    }
+  for (int i = 0; i < max_sub_layers - 1; i++) {
+    sub_layer[i].read(reader,
+                      sub_layer_profile_present_flag[i],
+                      sub_layer_level_present_flag[i]);
+  }
 }
 
 
-void profile_data::write(CABAC_encoder& out) const
+void profile_data::write(CABAC_encoder& out, bool profilePresentFlag, bool levelPresentFlag) const
 {
-  if (profile_present_flag)
+  if (profilePresentFlag)
     {
       out.write_bits(profile_space,2);
       out.write_bit (tier_flag);
@@ -384,23 +447,23 @@ void profile_data::write(CABAC_encoder& out) const
       out.skip_bits(44);
     }
 
-  if (level_present_flag)
+  if (levelPresentFlag)
     {
       out.write_bits(level_idc,8);
     }
 }
 
-void profile_tier_level::write(CABAC_encoder& out, int max_sub_layers) const
+void profile_tier_level::write(CABAC_encoder& out, bool profilePresentFlag, int max_sub_layers) const
 {
-  assert(general.profile_present_flag==true);
-  assert(general.level_present_flag==true);
+  //assert(general.profile_present_flag==true);
+  //assert(general.level_present_flag==true);
 
-  general.write(out);
+  general.write(out, profilePresentFlag, true);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      out.write_bit(sub_layer[i].profile_present_flag);
-      out.write_bit(sub_layer[i].level_present_flag);
+      out.write_bit(sub_layer_profile_present_flag[i]);
+      out.write_bit(sub_layer_level_present_flag[i]);
     }
 
   if (max_sub_layers > 1)
@@ -413,7 +476,9 @@ void profile_tier_level::write(CABAC_encoder& out, int max_sub_layers) const
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
-      sub_layer[i].write(out);
+      sub_layer[i].write(out,
+                         sub_layer_profile_present_flag[i],
+                         sub_layer_level_present_flag[i]);
     }
 }
 
@@ -458,11 +523,13 @@ void video_parameter_set::dump(int fd) const
 
   LOG0("----------------- VPS -----------------\n");
   LOG1("video_parameter_set_id                : %d\n", video_parameter_set_id);
+  LOG1("vps_base_layer_internal_flag          : %d\n", vps_base_layer_internal_flag);
+  LOG1("vps_base_layer_available_flag         : %d\n", vps_base_layer_available_flag);
   LOG1("vps_max_layers                        : %d\n", vps_max_layers);
   LOG1("vps_max_sub_layers                    : %d\n", vps_max_sub_layers);
   LOG1("vps_temporal_id_nesting_flag          : %d\n", vps_temporal_id_nesting_flag);
 
-  profile_tier_level_.dump(vps_max_sub_layers, fh);
+  profile_tier_level_.dump(true, vps_max_sub_layers, fh);
   //dump_bit_rate_pic_rate_info(&bit_rate_pic_rate_info, 0, vps_max_sub_layers-1);
 
   LOG1("vps_sub_layer_ordering_info_present_flag : %d\n",
@@ -519,6 +586,64 @@ void video_parameter_set::dump(int fd) const
   }
 
   LOG1("vps_extension_flag = %d\n", vps_extension_flag);
+
+  if (vps_extension_flag) {
+    if (vps_max_layers - 1 > 0 && vps_base_layer_internal_flag) {
+      profile_tier_level_0_max_minus_1.dump(false, vps_max_sub_layers, fh);
+    }
+
+    LOG1("splitting_flag = %d\n", splitting_flag);
+
+    int NumScalabilityTypes = 0;
+    LOG0("scalability_mask_flag[] = ");
+    for (int i = 0; i < 16; i++) {
+      log2fh(fh, "*%s%d", i > 0 ? "," : "", scalability_mask_flag[i] ? 1 : 0);
+      NumScalabilityTypes += scalability_mask_flag[i];
+    }
+    log2fh(fh, "*\n");
+
+    LOG1("vps_nuh_layer_id_present_flag = %d\n", vps_nuh_layer_id_present_flag);
+
+    LOG0("dimension_id_len[] = ");
+    for (int j = 0; j < (NumScalabilityTypes - splitting_flag); j++) {
+      log2fh(fh, "*%s%d", j ? "," : "", dimension_id_len[j]);
+    }
+    log2fh(fh,"*\n");
+
+    int MaxLayers = std::min(63, vps_max_layers);
+
+    for (int i = 0; i < MaxLayers; i++) {
+      if (vps_nuh_layer_id_present_flag) {
+        LOG2("layer_id_in_nuh[%d] = %d\n", i, layer_id_in_nuh[i]);
+      }
+      if (!splitting_flag) {
+        LOG1("dimension_id[%d][] = ", i);
+        for (int j = 0; j < NumScalabilityTypes; j++) {
+          log2fh(fh, "*%s%d", j > 0 ? "," : "", dimension_id[i][j]);
+        }
+        log2fh(fh,"*\n");
+      }
+    }
+
+    for (int i=0;i<MaxLayers;i++) {
+      std::string auxName;
+      switch (AuxId[i]) {
+        case 0:
+          auxName = "---";
+          break;
+        case 1:
+          auxName = "AUX_ALPHA";
+          break;
+        case 2:
+          auxName = "AUX_DEPTH";
+          break;
+        default:
+          auxName = std::to_string(AuxId[i]);
+          break;
+      }
+      LOG2("AuxId[%d] = %s\n", i, auxName.c_str());
+    }
+  }
 }
 
 
@@ -535,11 +660,13 @@ static const char* profile_name(profile_idc p)
 }
 
 
-void profile_data::dump(bool general, FILE* fh) const
+void profile_data::dump(bool general, FILE* fh,
+                        bool profilePresentFlag,
+                        bool levelPresentFlag) const
 {
   const char* prefix = (general ? "general" : "sub_layer");
 
-  if (profile_present_flag) {
+  if (profilePresentFlag) {
     LOG2("  %s_profile_space     : %d\n", prefix,profile_space);
     LOG2("  %s_tier_flag         : %d\n", prefix,tier_flag);
     LOG2("  %s_profile_idc       : %s\n", prefix, profile_name(profile_idc));
@@ -556,20 +683,22 @@ void profile_data::dump(bool general, FILE* fh) const
     LOG2("    %s_frame_only_constraint_flag : %d\n",prefix,frame_only_constraint_flag);
   }
 
-  if (level_present_flag) {
+  if (levelPresentFlag) {
     LOG3("  %s_level_idc         : %d (%4.2f)\n", prefix,level_idc, level_idc/30.0f);
   }
 }
 
 
-void profile_tier_level::dump(int max_sub_layers, FILE* fh) const
+void profile_tier_level::dump(bool profilePresentFlag, int max_sub_layers, FILE* fh) const
 {
-  general.dump(true, fh);
+  general.dump(true, fh, profilePresentFlag, true);
 
   for (int i=0; i<max_sub_layers-1; i++)
     {
       LOG1("  Profile/Tier/Level [Layer %d]\n",i);
-      sub_layer[i].dump(false, fh);
+      sub_layer[i].dump(false, fh,
+                        sub_layer_profile_present_flag[i],
+                        sub_layer_level_present_flag[i]);
     }
 }
 
