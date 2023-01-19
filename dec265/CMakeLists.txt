@@ -24,6 +24,8 @@ install (TARGETS dec265 DESTINATION ${CMAKE_INSTALL_BINDIR})
 if(NOT MSVC)
   # hdrcopy uses internal APIs that are not available when compiled for Windows
   add_executable (hdrcopy hdrcopy.cc)
+  target_include_directories (hdrcopy PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories (hdrcopy PRIVATE ${PROJECT_BINARY_DIR})
 
   target_link_libraries (hdrcopy PRIVATE de265)
 
