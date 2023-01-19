@@ -1,14 +1,12 @@
-set (x86_sources 
-  sse.cc sse.h
-)
 
-set (x86_sse_sources 
-  sse-motion.cc sse-motion.h sse-dct.h sse-dct.cc
-)
+add_library(x86 OBJECT sse.cc sse.h)
 
-add_library(x86 OBJECT ${x86_sources})
+add_library(x86_sse OBJECT sse-motion.cc sse-motion.h sse-dct.h sse-dct.cc)
 
-add_library(x86_sse OBJECT ${x86_sse_sources})
+target_include_directories (x86 PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories (x86_sse PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories (x86 PRIVATE ${PROJECT_BINARY_DIR})
+target_include_directories (x86_sse PRIVATE ${PROJECT_BINARY_DIR})
 
 set(sse_flags "")
 

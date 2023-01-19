@@ -1,5 +1,8 @@
 add_executable (dec265 dec265.cc)
 
+target_include_directories (dec265 PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories (dec265 PRIVATE ${PROJECT_BINARY_DIR})
+
 target_link_libraries (dec265 PRIVATE de265)
 
 if(SDL_FOUND)
