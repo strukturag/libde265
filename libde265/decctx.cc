@@ -23,12 +23,18 @@
 #include "sao.h"
 #include "sei.h"
 #include "deblock.h"
+#include "de265.h"
+#include "nal.h"
+#include "pps.h"
+#include "sps.h"
+#include "refpic.h"
 
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <vector>
 
 #include "fallback.h"
 
@@ -38,6 +44,7 @@
 
 #ifdef HAVE_SSE4_1
 #include "x86/sse.h"
+
 #endif
 
 #ifdef HAVE_ARM

@@ -23,9 +23,9 @@
 #include "encoder-syntax.h"
 #include "encoder-context.h"
 #include "encoder-intrapred.h"
-#include "slice.h"
-#include "scan.h"
-#include "intrapred.h"
+#include "libde265/slice.h"
+#include "libde265/scan.h"
+#include "libde265/intrapred.h"
 #include "libde265/transform.h"
 #include "libde265/fallback-dct.h"
 #include <iostream>

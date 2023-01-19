@@ -26,7 +26,7 @@
 
 #define DO_MEMORY_LOGGING 0
 
-#include "de265.h"
+#include "libde265/de265.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

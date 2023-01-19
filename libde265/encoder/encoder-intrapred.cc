@@ -18,11 +18,11 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "intrapred.h"
-#include "encoder/encoder-intrapred.h"
-#include "encoder/encoder-types.h"
-#include "transform.h"
-#include "util.h"
+#include "libde265/intrapred.h"
+#include "libde265/encoder/encoder-intrapred.h"
+#include "libde265/encoder/encoder-types.h"
+#include "libde265/transform.h"
+#include "libde265/util.h"
 #include <assert.h>
 
 

@@ -20,7 +20,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/encoder-context.h"
+#include "libde265/encoder/encoder-context.h"
 #include "libde265/util.h"
 
 #include <math.h>

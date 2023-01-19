@@ -22,9 +22,9 @@
 #include <intrin.h>
 #endif
 
-#include "x86/sse.h"
-#include "x86/sse-motion.h"
-#include "x86/sse-dct.h"
+#include "libde265/x86/sse.h"
+#include "libde265/x86/sse-motion.h"
+#include "libde265/x86/sse-dct.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

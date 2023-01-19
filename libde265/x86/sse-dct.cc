@@ -19,7 +19,7 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "x86/sse-dct.h"
+#include "libde265/x86/sse-dct.h"
 #include "libde265/util.h"
 
 #ifdef HAVE_CONFIG_H

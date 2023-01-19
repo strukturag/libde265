@@ -18,12 +18,12 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/encoder-motion.h"
-#include "encoder/encoder-context.h"
-#include "decctx.h"
-#include "util.h"
-#include "dpb.h"
-#include "motion.h"
+#include "libde265/encoder/encoder-motion.h"
+#include "libde265/encoder/encoder-context.h"
+#include "libde265/decctx.h"
+#include "libde265/util.h"
+#include "libde265/dpb.h"
+#include "libde265/motion.h"
 
 #include <assert.h>
 
