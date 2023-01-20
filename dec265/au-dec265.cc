@@ -215,7 +215,6 @@ int main(int argc, char** argv)
     fprintf(stderr, "The video file must be a raw bitstream.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "options:\n");
-    fprintf(stderr, "  -o, --output      write YUV reconstruction\n");
     fprintf(stderr, "  -h, --help        show help\n");
 
     exit(show_help ? 0 : 5);
