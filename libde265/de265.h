@@ -103,6 +103,7 @@ typedef enum {
   DE265_ERROR_NO_INITIAL_SLICE_HEADER=16,
   DE265_ERROR_PREMATURE_END_OF_SLICE=17,
   DE265_ERROR_UNSPECIFIED_DECODING_ERROR=18,
+  DE265_ERROR_DATA_PAST_END_OF_STREAM=19,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
