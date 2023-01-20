@@ -668,13 +668,16 @@ int main(int argc, char** argv)
     fprintf(stderr,"  -n, --nal         input is a stream with 4-byte length prefixed NAL units\n");
     fprintf(stderr,"  -f, --frames N    set number of frames to process\n");
     fprintf(stderr,"  -o, --output      write YUV reconstruction\n");
+
     fprintf(stderr,"  -d, --dump        dump headers\n");
+    fprintf(stderr,"  -i, --info        show stream information\n");
 #if HAVE_VIDEOGFX && HAVE_SDL
     fprintf(stderr,"  -V, --videogfx    output with videogfx instead of SDL\n");
 #endif
     fprintf(stderr,"  -0, --noaccel     do not use any accelerated code (SSE)\n");
     fprintf(stderr,"  -v, --verbose     increase verbosity level (up to 3 times)\n");
     fprintf(stderr,"  -L, --no-logging  disable logging\n");
+    fprintf(stderr,"  -l, --layer N     decode layer 'N'. See the output of --info to get the ID. Video is always at '0'.\n");
     fprintf(stderr,"  -B, --write-bytestream FILENAME  write raw bytestream (from NAL input)\n");
     fprintf(stderr,"  -m, --measure YUV compute PSNRs relative to reference YUV\n");
 #if HAVE_VIDEOGFX
