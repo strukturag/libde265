@@ -299,6 +299,12 @@ void generate_inter_prediction_samples(base_context* ctx,
     return;
   }
 
+  if (sps->chroma_format_idc != img->get_chroma_format()) {
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    ctx->add_warning(DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS, false);
+    return;
+  }
+
   const int SubWidthC  = sps->SubWidthC;
   const int SubHeightC = sps->SubHeightC;
 
@@ -360,6 +366,17 @@ void generate_inter_prediction_samples(base_context* ctx,
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
 
         // TODO: fill predSamplesC with black or grey
+      }
+      else if (refPic->get_width(0) != sps->pic_width_in_luma_samples ||
+               refPic->get_height(0) != sps->pic_height_in_luma_samples ||
+               img->get_chroma_format() != refPic->get_chroma_format()) {
+        img->integrity = INTEGRITY_DECODING_ERRORS;
+        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS, false);
+      }
+      else if (img->get_bit_depth(0) != refPic->get_bit_depth(0) ||
+               img->get_bit_depth(1) != refPic->get_bit_depth(1)) {
+        img->integrity = INTEGRITY_DECODING_ERRORS;
+        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
       }
       else {
         // 8.5.3.2.2
