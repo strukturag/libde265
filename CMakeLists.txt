@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.3.2)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.9
+    VERSION 1.0.10
 )
 
 set(CMAKE_CXX_STANDARD 11)
