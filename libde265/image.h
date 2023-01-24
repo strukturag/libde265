@@ -712,6 +712,10 @@ public:
   // address of first CTB in slice
   void set_SliceAddrRS(int ctbX, int ctbY, int SliceAddrRS)
   {
+    if (ctbX >= ctb_info.width_in_units || ctbY >= ctb_info.height_in_units) {
+      return;
+    }
+
     int idx = ctbX + ctbY*ctb_info.width_in_units;
     ctb_info[idx].SliceAddrRS = SliceAddrRS;
   }
