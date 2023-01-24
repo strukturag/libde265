@@ -159,6 +159,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "collocated motion-vector is outside image area";
   case DE265_WARNING_PCM_BITDEPTH_TOO_LARGE:
     return "PCM bit-depth too large";
+  case DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS:
+    return "Chroma format of current image does not match chroma in SPS";
 
   default: return "unknown error";
   }
