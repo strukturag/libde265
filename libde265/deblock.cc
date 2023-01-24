@@ -256,8 +256,6 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
   int TUShift = img->get_sps().Log2MinTrafoSize;
   int TUStride= img->get_sps().PicWidthInTbsY;
 
-  printf("bs1\n");
-
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
       int xDi = x<<2;
@@ -291,15 +289,11 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 
             bS = 0;
 
-            printf("bs5\n");
-
             const PBMotion& mviP = img->get_mv_info(xDiOpp,yDiOpp);
             const PBMotion& mviQ = img->get_mv_info(xDi   ,yDi);
 
             slice_segment_header* shdrP = img->get_SliceHeader(xDiOpp,yDiOpp);
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
-
-            printf("bs6\n");
 
 	    if (shdrP && shdrQ) {
 
@@ -316,8 +310,6 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 	      int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
 	      int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;
 	      int refPicQ1 = mviQ.predFlag[1] ? shdrQ->RefPicList[1][ mviQ.refIdx[1] ] : -1;
-
-        printf("bs7\n");
 
 	      bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
 			       (refPicP0==refPicQ1 && refPicP1==refPicQ0));
@@ -389,11 +381,9 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
           }
         }
 
-        printf("bs10\n");
         img->set_deblk_bS(xDi,yDi, bS);
       }
       else {
-        printf("bs11\n");
         img->set_deblk_bS(xDi,yDi, 0);
       }
     }

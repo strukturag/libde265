@@ -1653,8 +1653,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // 3. / 4.
 
-  printf("ds1\n");
-
   bool availableA[2];
   availableA[0] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[0],yA[0]);
   availableA[1] = img->available_pred_blk(xC,yC, nCS, xP,yP, nPbW,nPbH,partIdx, xA[1],yA[1]);
@@ -1669,21 +1667,12 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   int refIdxA=-1;
 
-  printf("ds2\n");
-  printf("shdr: %p X:%d refIdxLx:%d\n", shdr, X, refIdxLX);
-  printf("image idx: %d\n", shdr->RefPicList[X][ refIdxLX ]);
-
   // the POC we want to reference in this PB
   const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
-  printf("ds2.1\n");
-
   if (tmpimg==NULL) { return; }
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
-
-    printf("xA[k],yA[k]=%d %d\n",xA[k], yA[k]);
-    printf("get_pred_mode: %d\n", img->get_pred_mode(xA[k],yA[k]));
 
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 && // no A?-predictor so far
@@ -1691,13 +1680,9 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       int Y=1-X;
 
-      printf("ds2.5\n");
-
       const PBMotion& vi = img->get_mv_info(xA[k],yA[k]);
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(vi);
-
-      printf("ds3\n");
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
@@ -1724,8 +1709,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       }
     }
   }
-
-  printf("ds4\n");
 
   // 7. If there is no predictor referencing the same POC, we take any other reference as
   //    long as it is the same type of reference (long-term / short-term)
@@ -1761,8 +1744,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         refPicList = Y;
       }
     }
-
-    printf("ds5\n");
 
     if (out_availableFlagLXN[A]==1) {
       if (refIdxA<0) {
@@ -1802,8 +1783,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
     }
   }
 
-  printf("ds6\n");
-
   // --- B ---
 
   // 1.
@@ -1838,8 +1817,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
 
-      printf("ds7\n");
-
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       const de265_image* imgY = NULL;
@@ -1864,8 +1841,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // 4.
 
-  printf("ds8\n");
-
   if (isScaledFlagLX==0 &&      // no A predictor,
       out_availableFlagLXN[B])  // but an unscaled B predictor
     {
@@ -1879,8 +1854,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
     }
 
   // 5.
-
-  printf("ds9\n");
 
   // If no A predictor, we output the unscaled B as the A predictor (above)
   // and also add a scaled B predictor here.
@@ -1911,8 +1884,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
           refPicList = Y;
         }
       }
-
-      printf("ds10\n");
 
       if (out_availableFlagLXN[B]==1) {
         if (refIdxB<0) {
@@ -1948,8 +1919,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       }
     }
   }
-
-  printf("ds end\n");
 }
 
 
