@@ -165,6 +165,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Size of reference image does not match current size in SPS";
   case DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS:
     return "Chroma format of current image does not match chroma in SPS";
+  case DE265_WARNING_BIT_DEPTH_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS:
+    return "Bit-depth of current image does not match SPS";
 
   default: return "unknown error";
   }
