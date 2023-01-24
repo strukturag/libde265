@@ -292,6 +292,12 @@ void generate_inter_prediction_samples(base_context* ctx,
   const pic_parameter_set* pps = shdr->pps.get();
   const seq_parameter_set* sps = pps->sps.get();
 
+  if (sps->chroma_format_idc != img->get_chroma_format()) {
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    ctx->add_warning(DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS, false);
+    return;
+  }
+
   const int SubWidthC  = sps->SubWidthC;
   const int SubHeightC = sps->SubHeightC;
 
