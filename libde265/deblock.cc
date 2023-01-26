@@ -296,6 +296,16 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
 
 	    if (shdrP && shdrQ) {
+
+        if (mviP.refIdx[0] > MAX_NUM_REF_PICS ||
+            mviP.refIdx[1] > MAX_NUM_REF_PICS ||
+            mviQ.refIdx[0] > MAX_NUM_REF_PICS ||
+            mviQ.refIdx[1] > MAX_NUM_REF_PICS) {
+          // we cannot return an error from here, so just set a valid boundaryStrength value and continue;
+          img->set_deblk_bS(xDi, yDi, 0);
+          continue;
+        }
+
 	      int refPicP0 = mviP.predFlag[0] ? shdrP->RefPicList[0][ mviP.refIdx[0] ] : -1;
 	      int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
 	      int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;

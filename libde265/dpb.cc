@@ -210,7 +210,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   // --- search for a free slot in the DPB ---
 
-  int free_image_buffer_idx = -1;
+  int free_image_buffer_idx = -DE265_ERROR_IMAGE_BUFFER_FULL;
   for (int i=0;i<dpb.size();i++) {
     if (dpb[i]->can_be_released()) {
       dpb[i]->release(); /* TODO: this is surely not the best place to free the image, but
@@ -259,7 +259,10 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   default: chroma = de265_chroma_420; assert(0); break; // should never happen
   }
 
-  img->alloc_image(w,h, chroma, sps, true, decctx, /*NULL,*/ pts, user_data, isOutputImage);
+  de265_error error = img->alloc_image(w,h, chroma, sps, true, decctx, /*NULL,*/ pts, user_data, isOutputImage);
+  if (error) {
+    return -error;
+  }
 
   img->integrity = INTEGRITY_CORRECT;
 

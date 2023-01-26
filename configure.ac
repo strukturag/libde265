@@ -2,11 +2,11 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [1.0.8], [farin@struktur.de])
+AC_INIT([libde265], [1.0.10], [dirk.farin@gmail.com])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x01000800 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
+NUMERIC_VERSION=0x01001000 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
 AC_SUBST(NUMERIC_VERSION)
 
 # From https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html:
@@ -16,7 +16,7 @@ AC_SUBST(NUMERIC_VERSION)
 # If any interfaces have been removed or changed since the last public release, then set age to 0.
 
 LIBDE265_CURRENT=1
-LIBDE265_REVISION=1
+LIBDE265_REVISION=3
 LIBDE265_AGE=1
 
 # ---------------------------------------------------------------------------
@@ -178,8 +178,8 @@ AC_MSG_RESULT([$has_nullptr])
 
 
 
-AC_ARG_ENABLE([encoder], AS_HELP_STRING([--disable-encoder], [Do not build encoder.]))
-if eval "test x$enable_encoder = x"      ; then enable_encoder=yes ; fi
+AC_ARG_ENABLE([encoder], AS_HELP_STRING([--enable-encoder], [Build the encoder (experimental).]))
+if eval "test x$enable_encoder = x"      ; then enable_encoder=no ; fi
 
 AM_CONDITIONAL([ENABLE_ENCODER], [test x"$enable_encoder" = x"yes"])
 

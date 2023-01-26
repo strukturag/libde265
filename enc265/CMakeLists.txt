@@ -10,6 +10,6 @@ if(MSVC)
   )
 endif()
 
-target_link_libraries (enc265 PRIVATE ${PROJECT_NAME})
+target_link_libraries (enc265 PRIVATE de265)
 
 install (TARGETS enc265 DESTINATION ${CMAKE_INSTALL_BINDIR})

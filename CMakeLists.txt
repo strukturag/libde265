@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.3.2)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.8
+    VERSION 1.0.10
 )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -68,6 +68,13 @@ if(MSVC)
   add_definitions(-DHAVE_STDBOOL_H)
 endif()
 
+option(ENABLE_DECODER "Enable Decoder" ON)
+option(ENABLE_ENCODER "Enable Encoder" OFF)
+
 add_subdirectory (libde265)
-add_subdirectory (dec265)
-add_subdirectory (enc265)
+if (ENABLE_DECODER)
+  add_subdirectory (dec265)
+endif()
+if (ENABLE_ENCODER)
+  add_subdirectory (enc265)
+endif()

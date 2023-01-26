@@ -513,9 +513,14 @@ class decoder_context : public base_context {
                                      int progress);
 
   void process_picture_order_count(slice_segment_header* hdr);
+
+  /*
+  If there is no space for a new image, returns the negative value of an de265_error.
+  I.e. you can check for error by return_value<0, which is error (-return_value);
+   */
   int generate_unavailable_reference_picture(const seq_parameter_set* sps,
                                              int POC, bool longTerm);
-  void process_reference_picture_set(slice_segment_header* hdr);
+  de265_error process_reference_picture_set(slice_segment_header* hdr);
   bool construct_reference_picture_lists(slice_segment_header* hdr);
 
 

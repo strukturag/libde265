@@ -292,6 +292,19 @@ void generate_inter_prediction_samples(base_context* ctx,
   const pic_parameter_set* pps = shdr->pps.get();
   const seq_parameter_set* sps = pps->sps.get();
 
+  if (sps->BitDepth_Y != img->get_bit_depth(0) ||
+      sps->BitDepth_C != img->get_bit_depth(1)) {
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    ctx->add_warning(DE265_WARNING_BIT_DEPTH_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS, false);
+    return;
+  }
+
+  if (sps->chroma_format_idc != img->get_chroma_format()) {
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    ctx->add_warning(DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS, false);
+    return;
+  }
+
   const int SubWidthC  = sps->SubWidthC;
   const int SubHeightC = sps->SubHeightC;
 
@@ -353,6 +366,17 @@ void generate_inter_prediction_samples(base_context* ctx,
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
 
         // TODO: fill predSamplesC with black or grey
+      }
+      else if (refPic->get_width(0) != sps->pic_width_in_luma_samples ||
+               refPic->get_height(0) != sps->pic_height_in_luma_samples ||
+               img->get_chroma_format() != refPic->get_chroma_format()) {
+        img->integrity = INTEGRITY_DECODING_ERRORS;
+        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS, false);
+      }
+      else if (img->get_bit_depth(0) != refPic->get_bit_depth(0) ||
+               img->get_bit_depth(1) != refPic->get_bit_depth(1)) {
+        img->integrity = INTEGRITY_DECODING_ERRORS;
+        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
       }
       else {
         // 8.5.3.2.2
@@ -1591,6 +1615,17 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
                                            uint8_t out_availableFlagLXN[2],
                                            MotionVector out_mvLXN[2])
 {
+  if (refIdxLX >= MAX_NUM_REF_PICS) {
+    ctx->add_warning(DE265_WARNING_INCORRECT_MOTION_VECTOR_SCALING, false);
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+
+    out_availableFlagLXN[0] = false;
+    out_availableFlagLXN[1] = false;
+    out_mvLXN[0] = MotionVector{};
+    out_mvLXN[1] = MotionVector{};
+    return;
+  }
+
   int isScaledFlagLX = 0;
 
   const int A=0;
@@ -1638,6 +1673,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
+
     if (availableA[k] &&
         out_availableFlagLXN[A]==0 && // no A?-predictor so far
         img->get_pred_mode(xA[k],yA[k]) != MODE_INTRA) {
@@ -1747,7 +1783,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
     }
   }
 
-
   // --- B ---
 
   // 1.
@@ -1781,7 +1816,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
-
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);

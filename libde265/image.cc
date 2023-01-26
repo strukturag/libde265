@@ -445,7 +445,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
     // CTB info
 
-    if (ctb_info.data_size != sps->PicSizeInCtbsY)
+    if (ctb_info.width_in_units != sps->PicWidthInCtbsY ||
+        ctb_info.height_in_units != sps->PicHeightInCtbsY)
       {
         delete[] ctb_progress;
 

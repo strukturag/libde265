@@ -1,6 +1,6 @@
 add_executable (dec265 dec265.cc)
 
-target_link_libraries (dec265 PRIVATE ${PROJECT_NAME})
+target_link_libraries (dec265 PRIVATE de265)
 
 if(SDL_FOUND)
   target_sources(dec265 PRIVATE sdl.cc)
@@ -22,7 +22,7 @@ if(NOT MSVC)
   # hdrcopy uses internal APIs that are not available when compiled for Windows
   add_executable (hdrcopy hdrcopy.cc)
 
-  target_link_libraries (hdrcopy PRIVATE ${PROJECT_NAME})
+  target_link_libraries (hdrcopy PRIVATE de265)
 
   install (TARGETS hdrcopy DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
