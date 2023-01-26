@@ -115,6 +115,7 @@ endif()
 
 add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
 target_link_libraries(de265 PRIVATE Threads::Threads)
+target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)
 
@@ -125,8 +126,6 @@ install(TARGETS de265 EXPORT libde265Config
 )
 
 install(FILES ${libde265_public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
-#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/de265-version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
-
 install(EXPORT libde265Config DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libde265")
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libde265ConfigVersion.cmake DESTINATION
