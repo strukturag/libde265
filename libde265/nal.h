@@ -26,9 +26,6 @@
 #endif
 
 #include <stdint.h>
-#ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
-#endif
 
 #include "libde265/bitstream.h"
 #include "libde265/cabac.h"

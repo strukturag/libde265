@@ -30,9 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <memory>
-#ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
-#endif
 
 #include "libde265/de265.h"
 #include "libde265/sps.h"
