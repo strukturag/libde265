@@ -62,7 +62,7 @@ HAVE_VISIBILITY=0
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
+AC_CHECK_HEADERS([stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
 
 AC_LANG_PUSH(C++)
 OLD_CPPFLAGS="$CPPFLAGS"

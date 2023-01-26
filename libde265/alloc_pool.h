@@ -29,12 +29,7 @@
 
 #include <vector>
 #include <cstddef>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#ifdef HAVE_CSTDINT
 #include <cstdint>
-#endif
 
 
 class alloc_pool

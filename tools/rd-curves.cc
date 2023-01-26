@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <assert.h>
-#include <stdint.h>
+#include <cstdint>
 #include <string.h>
 #include <getopt.h>
 

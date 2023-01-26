@@ -114,9 +114,7 @@ if MINGW
 endif
 
 EXTRA_DIST = Makefile.vc7 \
-  CMakeLists.txt \
-  ../extra/stdbool.h \
-  ../extra/stdint.h
+  CMakeLists.txt
 
 libde265_la_HEADERS = \
   de265.h \
