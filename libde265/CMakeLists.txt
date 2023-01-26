@@ -76,6 +76,12 @@ set (libde265_headers
   vui.h
 )
 
+set (libde265_public_headers
+  de265.h
+  en265.h
+  ${CMAKE_CURRENT_BINARY_DIR}/de265-version.h
+)
+
 if(MSVC OR MINGW)
   set (libde265_sources
     ${libde265_sources}
@@ -118,8 +124,8 @@ install(TARGETS de265 EXPORT libde265Config
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES ${libde265_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/de265-version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
+install(FILES ${libde265_public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
+#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/de265-version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
 
 install(EXPORT libde265Config DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libde265")
 
