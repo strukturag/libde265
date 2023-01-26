@@ -38,7 +38,9 @@ public:
   void set_norm_size_of_DPB(int n) { norm_images_in_DPB=n; }
 
   /* Alloc a new image in the DPB and return its index.
-     If there is no space for a new image, return -1. */
+     If there is no space for a new image, returns the negative value of an de265_error.
+     I.e. you can check for error by return_value<0, which is error (-return_value);
+     */
   int new_image(std::shared_ptr<const seq_parameter_set> sps, decoder_context* decctx,
                 de265_PTS pts, void* user_data, bool isOutputImage);
 
