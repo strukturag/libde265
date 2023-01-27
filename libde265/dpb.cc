@@ -237,7 +237,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   // create a new image slot if no empty slot remaining
 
-  if (free_image_buffer_idx == -1) {
+  if (free_image_buffer_idx == -DE265_ERROR_IMAGE_BUFFER_FULL) {
     free_image_buffer_idx = dpb.size();
     dpb.push_back(new de265_image);
   }

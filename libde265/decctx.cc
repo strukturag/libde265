@@ -2088,7 +2088,9 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
       img->PicState = UsedForShortTermReference;
 
       *err = process_reference_picture_set(hdr);
-      return false;
+      if (*err != DE265_OK) {
+        return false;
+      }
     }
 
     img->PicState = UsedForShortTermReference;
