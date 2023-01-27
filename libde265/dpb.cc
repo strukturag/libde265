@@ -245,6 +245,10 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
   // --- allocate new image ---
 
+  if (free_image_buffer_idx<0) {
+    return free_image_buffer_idx;
+  }
+
   de265_image* img = dpb[free_image_buffer_idx];
 
   int w = sps->pic_width_in_luma_samples;
