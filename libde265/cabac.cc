@@ -274,7 +274,8 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder)
 }
 
 
-
+// When we read past the end of the bitstream (which should only happen on faulty bitstreams),
+// we will eventually only return zeros.
 int  decode_CABAC_bypass(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
@@ -287,6 +288,10 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
       if (decoder->bitstream_end > decoder->bitstream_curr) {
         decoder->bits_needed = -8;
         decoder->value |= *decoder->bitstream_curr++;
+      }
+      else {
+        // we read past the end of the bitstream, fill with 0
+        decoder->bits_needed = -8;
       }
     }
 
@@ -371,9 +376,9 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 }
 
 
-int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
+uint32_t  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
 {
-  int value=0;
+  uint32_t value=0;
 
   if (likely(nBits<=8)) {
     if (nBits==0) {

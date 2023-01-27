@@ -44,7 +44,7 @@ int  decode_CABAC_term_bit(CABAC_decoder* decoder);
 
 int  decode_CABAC_bypass(CABAC_decoder* decoder);
 int  decode_CABAC_TU_bypass(CABAC_decoder* decoder, int cMax);
-int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits);
+uint32_t  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits);
 int  decode_CABAC_TR_bypass(CABAC_decoder* decoder, int cRiceParam, int cTRMax);
 int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 
