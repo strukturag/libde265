@@ -588,16 +588,18 @@ void generate_inter_prediction_samples(base_context* ctx,
         int16_t* in10 = predSamplesC[1][0];
         int16_t* in11 = predSamplesC[1][1];
 
-        ctx->acceleration.put_weighted_bipred(pixels[1], stride[1],
-                                              in00,in01, nCS, nPbW/SubWidthC, nPbH/SubHeightC,
-                                              chroma0_w0,chroma0_o0,
-                                              chroma0_w1,chroma0_o1,
-                                              chroma_log2WD, bit_depth_C);
-        ctx->acceleration.put_weighted_bipred(pixels[2], stride[2],
-                                              in10,in11, nCS, nPbW/SubWidthC, nPbH/SubHeightC,
-                                              chroma1_w0,chroma1_o0,
-                                              chroma1_w1,chroma1_o1,
-                                              chroma_log2WD, bit_depth_C);
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_weighted_bipred(pixels[1], stride[1],
+                                                in00, in01, nCS, nPbW / SubWidthC, nPbH / SubHeightC,
+                                                chroma0_w0, chroma0_o0,
+                                                chroma0_w1, chroma0_o1,
+                                                chroma_log2WD, bit_depth_C);
+          ctx->acceleration.put_weighted_bipred(pixels[2], stride[2],
+                                                in10, in11, nCS, nPbW / SubWidthC, nPbH / SubHeightC,
+                                                chroma1_w0, chroma1_o0,
+                                                chroma1_w1, chroma1_o1,
+                                                chroma_log2WD, bit_depth_C);
+        }
       }
     }
     else if (predFlag[0]==1 || predFlag[1]==1) {
