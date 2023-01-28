@@ -378,6 +378,10 @@ void generate_inter_prediction_samples(base_context* ctx,
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
       }
+      else if (img->get_chroma_format() != refPic->get_chroma_format()) {
+        img->integrity = INTEGRITY_DECODING_ERRORS;
+        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH, false);
+      }
       else {
         // 8.5.3.2.2
 
@@ -400,21 +404,23 @@ void generate_inter_prediction_samples(base_context* ctx,
                   refPic->get_luma_stride(), nPbW,nPbH, bit_depth_L);
         }
 
-        if (img->high_bit_depth(1)) {
-          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                    predSamplesC[0][l],nCS, (const uint16_t*)refPic->get_image_plane(1),
-                    refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                    predSamplesC[1][l],nCS, (const uint16_t*)refPic->get_image_plane(2),
-                    refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-        }
-        else {
-          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                    predSamplesC[0][l],nCS, (const uint8_t*)refPic->get_image_plane(1),
-                    refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-          mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                    predSamplesC[1][l],nCS, (const uint8_t*)refPic->get_image_plane(2),
-                    refPic->get_chroma_stride(), nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          if (img->high_bit_depth(1)) {
+            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
+                      predSamplesC[0][l], nCS, (const uint16_t*) refPic->get_image_plane(1),
+                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
+                      predSamplesC[1][l], nCS, (const uint16_t*) refPic->get_image_plane(2),
+                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+          }
+          else {
+            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
+                      predSamplesC[0][l], nCS, (const uint8_t*) refPic->get_image_plane(1),
+                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
+                      predSamplesC[1][l], nCS, (const uint8_t*) refPic->get_image_plane(2),
+                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+          }
         }
       }
     }
@@ -465,12 +471,15 @@ void generate_inter_prediction_samples(base_context* ctx,
       if (predFlag[0]==1 && predFlag[1]==0) {
         ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
                                               predSamplesL[0],nCS, nPbW,nPbH, bit_depth_L);
-        ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
-                                              predSamplesC[0][0],nCS,
-                                              nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-        ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
-                                              predSamplesC[1][0],nCS,
-                                              nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
+
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
+                                                predSamplesC[0][0], nCS,
+                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+          ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
+                                                predSamplesC[1][0], nCS,
+                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+        }
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
