@@ -632,14 +632,17 @@ void generate_inter_prediction_samples(base_context* ctx,
         ctx->acceleration.put_weighted_pred(pixels[0], stride[0],
                                             predSamplesL[l],nCS, nPbW,nPbH,
                                             luma_w, luma_o, luma_log2WD, bit_depth_L);
-        ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
-                                            predSamplesC[0][l],nCS,
-                                            nPbW/SubWidthC,nPbH/SubHeightC,
-                                            chroma0_w, chroma0_o, chroma_log2WD, bit_depth_C);
-        ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
-                                            predSamplesC[1][l],nCS,
-                                            nPbW/SubWidthC,nPbH/SubHeightC,
-                                            chroma1_w, chroma1_o, chroma_log2WD, bit_depth_C);
+
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
+                                              predSamplesC[0][l], nCS,
+                                              nPbW / SubWidthC, nPbH / SubHeightC,
+                                              chroma0_w, chroma0_o, chroma_log2WD, bit_depth_C);
+          ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
+                                              predSamplesC[1][l], nCS,
+                                              nPbW / SubWidthC, nPbH / SubHeightC,
+                                              chroma1_w, chroma1_o, chroma_log2WD, bit_depth_C);
+        }
       }
     }
     else {
