@@ -509,12 +509,14 @@ void generate_inter_prediction_samples(base_context* ctx,
         ctx->acceleration.put_weighted_pred(pixels[0], stride[0],
                                             predSamplesL[0],nCS, nPbW,nPbH,
                                             luma_w0, luma_o0, luma_log2WD, bit_depth_L);
-        ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
-                                            predSamplesC[0][0],nCS, nPbW/SubWidthC,nPbH/SubHeightC,
-                                            chroma0_w0, chroma0_o0, chroma_log2WD, bit_depth_C);
-        ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
-                                            predSamplesC[1][0],nCS, nPbW/SubWidthC,nPbH/SubHeightC,
-                                            chroma1_w0, chroma1_o0, chroma_log2WD, bit_depth_C);
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
+                                              predSamplesC[0][0], nCS, nPbW / SubWidthC, nPbH / SubHeightC,
+                                              chroma0_w0, chroma0_o0, chroma_log2WD, bit_depth_C);
+          ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
+                                              predSamplesC[1][0], nCS, nPbW / SubWidthC, nPbH / SubHeightC,
+                                              chroma1_w0, chroma1_o0, chroma_log2WD, bit_depth_C);
+        }
       }
       else {
         ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
@@ -608,12 +610,15 @@ void generate_inter_prediction_samples(base_context* ctx,
       if (pps->weighted_bipred_flag==0) {
         ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
                                               predSamplesL[l],nCS, nPbW,nPbH, bit_depth_L);
-        ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
-                                              predSamplesC[0][l],nCS,
-                                              nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
-        ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
-                                              predSamplesC[1][l],nCS,
-                                              nPbW/SubWidthC,nPbH/SubHeightC, bit_depth_C);
+
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
+                                                predSamplesC[0][l], nCS,
+                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+          ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
+                                                predSamplesC[1][l], nCS,
+                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+        }
       }
       else {
         int refIdx = vi->refIdx[l];
