@@ -543,12 +543,14 @@ void generate_inter_prediction_samples(base_context* ctx,
         int16_t* in10 = predSamplesC[1][0];
         int16_t* in11 = predSamplesC[1][1];
 
-        ctx->acceleration.put_weighted_pred_avg(pixels[1], stride[1],
-                                                in00,in01, nCS,
-                                                nPbW/SubWidthC, nPbH/SubHeightC, bit_depth_C);
-        ctx->acceleration.put_weighted_pred_avg(pixels[2], stride[2],
-                                                in10,in11, nCS,
-                                                nPbW/SubWidthC, nPbH/SubHeightC, bit_depth_C);
+        if (img->get_chroma_format() != de265_chroma_mono) {
+          ctx->acceleration.put_weighted_pred_avg(pixels[1], stride[1],
+                                                  in00, in01, nCS,
+                                                  nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+          ctx->acceleration.put_weighted_pred_avg(pixels[2], stride[2],
+                                                  in10, in11, nCS,
+                                                  nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
+        }
       }
       else {
         // weighted prediction
