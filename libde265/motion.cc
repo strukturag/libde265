@@ -1890,6 +1890,12 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
         const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
 
+        if (vi.refIdx[X] >= MAX_NUM_REF_PICS) {
+          img->integrity = INTEGRITY_DECODING_ERRORS;
+          ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+          return; // error   // TODO: we actually should make sure that this is never set to an out-of-range value
+        }
+
         if (vi.predFlag[X]==1 &&
             shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
           out_availableFlagLXN[B]=1;
@@ -2099,6 +2105,14 @@ void motion_vectors_and_ref_indices(base_context* ctx,
           (inter_pred_idc == PRED_L1 && l==1)) {
         out_vi->refIdx[l] = motion.refIdx[l];
         out_vi->predFlag[l] = 1;
+
+        if (motion.refIdx[l] >= MAX_NUM_REF_PICS) {
+          out_vi->refIdx[l] = 0;
+
+          img->integrity = INTEGRITY_DECODING_ERRORS;
+          ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+          return;
+        }
       }
       else {
         out_vi->refIdx[l] = -1;
