@@ -8,6 +8,6 @@ Description: H.265/HEVC video decoder.
 URL: https://github.com/strukturag/libde265
 Version: @VERSION@
 Requires: 
-Libs: -lde265 -L@libdir@
+Libs: -lde265 -L${libdir}
 Libs.private: @LIBS@ -lstdc++
-Cflags: -I@includedir@
+Cflags: -I${includedir}
