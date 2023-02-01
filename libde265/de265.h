@@ -70,6 +70,10 @@ extern "C" {
 
 // version of linked libde265 library
 LIBDE265_API const char *de265_get_version(void);
+
+// returns the version number as a BCD number.
+// 0xAABBCCDD is interpreted as version AA.BB.CC.
+// For example: 0x02143000 is version 2.14.30
 LIBDE265_API uint32_t de265_get_version_number(void);
 
 LIBDE265_API int de265_get_version_number_major(void);

@@ -48,19 +48,24 @@ LIBDE265_API uint32_t de265_get_version_number(void)
     return (LIBDE265_NUMERIC_VERSION);
 }
 
+static uint8_t bcd2dec(uint8_t v)
+{
+  return (v>>4) * 10 + (v & 0x0F);
+}
+
 LIBDE265_API int de265_get_version_number_major(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>24) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>24) & 0xFF);
 }
 
 LIBDE265_API int de265_get_version_number_minor(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>16) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>16) & 0xFF);
 }
 
 LIBDE265_API int de265_get_version_number_maintenance(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>8) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>8) & 0xFF);
 }
 
 
