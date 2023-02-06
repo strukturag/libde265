@@ -265,6 +265,7 @@ decoder_context::decoder_context()
   prevPicOrderCntLsb = 0;
   prevPicOrderCntMsb = 0;
   img = NULL;
+  previous_slice_header = nullptr;
 
   /*
   int PocLsbLt[MAX_NUM_REF_PICS];
