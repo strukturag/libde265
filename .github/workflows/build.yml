@@ -15,7 +15,7 @@ jobs:
           - { CC: "clang", CXX: "clang++" }
           - { CMAKE: "cmake" }
     env: ${{ matrix.env }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 
