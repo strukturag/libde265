@@ -25,7 +25,7 @@ install:
 
 build_script:
   - ps: if($env:PLATFORM -eq "x64") { $env:CMAKE_GEN_SUFFIX=" Win64" }
-  - cmake "-G%GENERATOR%%CMAKE_GEN_SUFFIX%" -H. -Bbuild
+  - cmake "-G%GENERATOR%%CMAKE_GEN_SUFFIX%" -H. -Bbuild -DENABLE_ENCODER=ON
   - cmake --build build --config %CONFIGURATION%
 
 before_test:
