@@ -1642,8 +1642,8 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
     out_availableFlagLXN[0] = false;
     out_availableFlagLXN[1] = false;
-    out_mvLXN[0] = MotionVector{};
-    out_mvLXN[1] = MotionVector{};
+    out_mvLXN[0] = MotionVector();
+    out_mvLXN[1] = MotionVector();
     return;
   }
 
