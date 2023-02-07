@@ -85,6 +85,11 @@ if [ ! -z "$CMAKE" ]; then
         "
 fi
 
+# Workaround issues where the "azure.archive.ubuntu.com" mirror is not available
+# See https://github.com/actions/runner-images/issues/675
+sudo sed -i 's/azure\.//' /etc/apt/sources.list
+UPDATE_APT=1
+
 if [ ! -z "$UPDATE_APT" ]; then
     echo "Updating package lists ..."
     sudo apt-get update -qq
