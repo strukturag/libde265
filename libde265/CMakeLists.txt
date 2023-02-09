@@ -113,13 +113,13 @@ if(NOT DISABLE_SSE)
   endif()
 endif()
 
-add_library(libde265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
-target_link_libraries(libde265 PRIVATE Threads::Threads)
-target_include_directories(libde265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+target_link_libraries(de265 PRIVATE Threads::Threads)
+target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)
 
-install(TARGETS libde265 EXPORT libde265Config
+install(TARGETS de265 EXPORT libde265Config
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
