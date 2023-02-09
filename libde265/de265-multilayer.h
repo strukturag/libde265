@@ -27,9 +27,9 @@
 extern "C" {
 #endif
 
-struct de265_vps_scanner; // private structure
+typedef struct _de265_vps_scanner de265_vps_scanner; // private structure
 
-struct de265_vps; // private structure
+typedef struct _de265_vps de265_vps; // private structure
 
 enum de265_aux_id
 {
@@ -48,6 +48,8 @@ LIBDE265_API void de265_vps_scanner_release(de265_vps_scanner*);
 
 LIBDE265_API de265_error de265_vps_scanner_push_data(de265_vps_scanner*, const void* data, int length);
 
+LIBDE265_API de265_error de265_vps_scanner_push_NAL(de265_vps_scanner*, const void* data, int length);
+
 //LIBDE265_API de265_error de265_vps_scanner_flush_nal(de265_vps_scanner*);
 
 LIBDE265_API de265_vps* de265_vps_scanner_get_next_vps(de265_vps_scanner*);
@@ -64,12 +66,16 @@ LIBDE265_API int de265_vps_get_max_layers(const de265_vps*);
 // returns de265_aux_id or any other unspecified ID
 LIBDE265_API uint8_t de265_vps_get_layer_aux_id(const de265_vps*, int layer);
 
+// Checks if there is a layer for the given de265_aux_id.
+// If there is none, return -1.
+LIBDE265_API int de265_vps_get_layer_id_for_aux_id(const de265_vps*, uint8_t aux_id);
+
 
 // --- access unit ---
 
-struct de265_access_unit;
+typedef struct _de265_access_unit de265_access_unit;
 
-LIBDE265_API void de265_access_unit_release(de265_access_unit* access_unit);
+LIBDE265_API void de265_access_unit_release(const de265_access_unit* access_unit);
 
 LIBDE265_API const struct de265_image* de265_access_unit_peek_layer_picture(const de265_access_unit* access_unit, int layer); // may return NULL
 
@@ -79,15 +85,24 @@ LIBDE265_API const de265_vps* de265_access_unit_peek_vps(const de265_access_unit
 
 // --- decoder ---
 
-struct de265_audecoder;
+typedef struct _de265_audecoder de265_audecoder;
 
 /* Get a new decoder context. Must be freed with de265_audecoder_release(). */
 LIBDE265_API de265_audecoder* de265_new_audecoder(void);
 
 LIBDE265_API void de265_audecoder_release(de265_audecoder*);
 
+LIBDE265_API de265_error de265_audecoder_start_worker_threads(de265_audecoder*, int number_of_threads);
+
+LIBDE265_API void de265_audecoder_set_image_allocation_functions(de265_audecoder*,
+                                                                 struct de265_image_allocation*,
+                                                                 void* userdata);
+
 LIBDE265_API de265_error de265_audecoder_push_data(de265_audecoder*, const void* data, int length,
                                                    de265_PTS pts, void* user_data);
+
+LIBDE265_API de265_error de265_audecoder_push_NAL(de265_audecoder*, const void* data, int length,
+                                                  de265_PTS pts, void* user_data);
 
 /* Indicate the end-of-stream. All data pending at the decoder input will be
    pushed into the decoder and the decoded picture queue will be completely emptied.
@@ -97,7 +112,9 @@ LIBDE265_API de265_error de265_audecoder_flush_data(de265_audecoder*);
 // see de265_decode()
 LIBDE265_API de265_error de265_audecoder_decode(de265_audecoder*, int* more);
 
-LIBDE265_API const struct de265_access_unit* de265_audecoder_get_next_picture(de265_audecoder*); // may return NULL
+LIBDE265_API const de265_access_unit* de265_audecoder_get_next_picture(de265_audecoder*); // may return NULL
+
+LIBDE265_API de265_error de265_audecoder_get_warning(de265_audecoder*);
 
 #ifdef __cplusplus
 }

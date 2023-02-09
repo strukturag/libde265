@@ -280,6 +280,7 @@ int main(int argc, char** argv)
         const de265_access_unit* au = de265_audecoder_get_next_picture(decoder);
         if (au) {
           output_access_unit(au);
+          de265_access_unit_release(au);
         }
         else {
           break;

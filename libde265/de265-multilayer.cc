@@ -27,13 +27,13 @@
 #include <map>
 
 
-struct de265_vps_scanner
+struct _de265_vps_scanner
 {
   error_queue m_error_queue;
   NAL_Parser m_nal_parser;
 };
 
-struct de265_vps : public video_parameter_set
+struct _de265_vps : public video_parameter_set
 {
 };
 
@@ -51,6 +51,11 @@ void de265_vps_scanner_release(de265_vps_scanner* scanner)
 de265_error de265_vps_scanner_push_data(de265_vps_scanner* scanner, const void* data, int length)
 {
   return scanner->m_nal_parser.push_data((const uint8_t*) data, length, 0, nullptr);
+}
+
+de265_error de265_vps_scanner_push_NAL(de265_vps_scanner* scanner, const void* data, int length)
+{
+  return scanner->m_nal_parser.push_NAL((const uint8_t*) data, length, 0, nullptr);
 }
 
 /*
@@ -118,12 +123,22 @@ uint8_t de265_vps_get_layer_aux_id(const de265_vps* vps, int layer)
   return vps->AuxId[layer];
 }
 
+int de265_vps_get_layer_id_for_aux_id(const de265_vps* vps, uint8_t aux_id)
+{
+  for (int layer = 0; layer < vps->vps_max_layers; layer++) {
+    if (vps->AuxId[layer] == aux_id)
+      return layer;
+  }
+
+  return -1;
+}
+
 
 // --- access unit ---
 
-struct de265_access_unit
+struct _de265_access_unit
 {
-  ~de265_access_unit();
+  ~_de265_access_unit();
 
   struct layer
   {
@@ -139,7 +154,7 @@ struct de265_access_unit
 };
 
 
-de265_access_unit::~de265_access_unit()
+_de265_access_unit::~_de265_access_unit()
 {
   for (auto& layer : m_layers) {
   }
@@ -169,9 +184,9 @@ const de265_vps* de265_access_unit_peek_vps(const de265_access_unit* access_unit
 
 // --- decoder ---
 
-struct de265_audecoder
+struct _de265_audecoder
 {
-  ~de265_audecoder();
+  ~_de265_audecoder();
 
   struct layer
   {
@@ -196,14 +211,23 @@ struct de265_audecoder
     std::vector<uint8_t> data;
     de265_PTS pts = 0;
     void* user_data = nullptr;
+    bool is_nal = false;
   };
 
   std::vector<input_data> m_pending_input;
 
+  bool m_custom_alloc_functions = false;
+  struct de265_image_allocation m_image_alloc_functions;
+  void* m_image_alloc_userdata = nullptr;
+
+  // TODO: I'm not sure yet how to distribute these over the different decoders.
+  // Currently, each decoder receives this number of threads.
+  int m_num_worker_threads = 0;
+
   std::map<int, layer> m_layers;
 };
 
-de265_audecoder::~de265_audecoder()
+_de265_audecoder::~_de265_audecoder()
 {
   for (auto& layer : m_layers) {
     de265_free_decoder(layer.second.decoder);
@@ -224,8 +248,31 @@ void de265_audecoder_release(de265_audecoder* decoder)
   delete decoder;
 }
 
-de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data, int length,
-                                      de265_PTS pts, void* user_data)
+de265_error de265_audecoder_start_worker_threads(de265_audecoder* decoder, int number_of_threads)
+{
+  decoder->m_num_worker_threads = number_of_threads;
+  return DE265_OK;
+}
+
+void de265_audecoder_set_image_allocation_functions(de265_audecoder* decoder,
+                                                    struct de265_image_allocation* funcs,
+                                                    void* userdata)
+{
+  // set to all decoders that are already instantiated
+  // Note: I'm not sure we have to do this. We should probably set the allocation functions prior to starting the decoder.
+
+  for (auto& layer : decoder->m_layers) {
+    de265_set_image_allocation_functions(layer.second.decoder, funcs, userdata);
+  }
+
+  decoder->m_custom_alloc_functions = true;
+  decoder->m_image_alloc_functions = *funcs;
+  decoder->m_image_alloc_userdata = userdata;
+}
+
+de265_error de265_audecoder_push_data_common(de265_audecoder* decoder, const void* data, int length,
+                                             de265_PTS pts, void* user_data,
+                                             bool is_nal_mode)
 {
   if (decoder->m_state == de265_audecoder::State::Finished) {
     return de265_error::DE265_ERROR_DATA_PAST_END_OF_STREAM;
@@ -240,7 +287,12 @@ de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data
          decoder->m_state == de265_audecoder::State::Decoding);
 
   if (decoder->m_state == de265_audecoder::State::Scanning_VPS) {
-    de265_vps_scanner_push_data(decoder->m_vps_scanner, data, length);
+    if (is_nal_mode) {
+      de265_vps_scanner_push_NAL(decoder->m_vps_scanner, data, length);
+    }
+    else {
+      de265_vps_scanner_push_data(decoder->m_vps_scanner, data, length);
+    }
 
     // remember input data so that we can push it into the decoder(s) later
 
@@ -249,6 +301,7 @@ de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data
                            (uint8_t*) data, ((uint8_t*) data) + length);
     input_data.pts = pts;
     input_data.user_data = user_data;
+    input_data.is_nal = is_nal_mode;
     decoder->m_pending_input.push_back(input_data);
 
     // when we decoded the VPS, initialize the layer decoders
@@ -262,13 +315,34 @@ de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data
         de265_audecoder::layer layer;
         layer.decoder = de265_new_decoder();
         de265_decoder_context_set_layer(layer.decoder, i);
+
+        if (decoder->m_custom_alloc_functions) {
+          de265_set_image_allocation_functions(layer.decoder,
+                                               &decoder->m_image_alloc_functions,
+                                               decoder->m_image_alloc_userdata);
+        }
+
+        if (decoder->m_num_worker_threads != 0) {
+          de265_error err = de265_start_worker_threads(layer.decoder,
+                                                       decoder->m_num_worker_threads);
+          if (err != DE265_OK) {
+            de265_free_decoder(layer.decoder);
+            return err;
+          }
+        }
+
         layer.aux_id = de265_vps_get_layer_aux_id(vps, i);
         decoder->m_layers[i] = layer;
 
         // push pending input data into the decoders
 
         for (auto& input : decoder->m_pending_input) {
-          de265_push_data(layer.decoder, input.data.data(), (int) input.data.size(), input.pts, input.user_data);
+          if (input.is_nal) {
+            de265_push_NAL(layer.decoder, input.data.data(), (int) input.data.size(), input.pts, input.user_data);
+          }
+          else {
+            de265_push_data(layer.decoder, input.data.data(), (int) input.data.size(), input.pts, input.user_data);
+          }
         }
       }
 
@@ -283,7 +357,12 @@ de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data
     // push data into all decoders (each one has an active NAL layer-ID filter)
 
     for (auto& layer : decoder->m_layers) {
-      de265_push_data(layer.second.decoder, data, length, pts, user_data);
+      if (is_nal_mode) {
+        de265_push_NAL(layer.second.decoder, data, length, pts, user_data);
+      }
+      else {
+        de265_push_data(layer.second.decoder, data, length, pts, user_data);
+      }
     }
   }
   else {
@@ -292,6 +371,37 @@ de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data
 
   return de265_error::DE265_OK;
 }
+
+
+de265_error de265_audecoder_push_data(de265_audecoder* decoder, const void* data, int length,
+                                      de265_PTS pts, void* user_data)
+{
+  return de265_audecoder_push_data_common(decoder, data, length, pts, user_data, false);
+}
+
+de265_error de265_audecoder_push_NAL(de265_audecoder* decoder, const void* data, int length,
+                                     de265_PTS pts, void* user_data)
+{
+  de265_set_verbosity(5);
+
+#if 0
+  int i;
+  for (i = 0; i < length; i++) {
+    printf("%02x ", ((uint8_t*) data)[i]);
+    if ((i % 16) == 15) {
+      printf("\n");
+    }
+  }
+  if ((i % 16) != 0) {
+    printf("\n");
+  }
+#endif
+
+  de265_error e = de265_audecoder_push_data_common(decoder, data, length, pts, user_data, true);
+
+  return e;
+}
+
 
 /* Indicate the end-of-stream. All data pending at the decoder input will be
    pushed into the decoder and the decoded picture queue will be completely emptied.
@@ -324,8 +434,12 @@ de265_error de265_audecoder_flush_data(de265_audecoder* decoder)
   }
 }
 
-const struct de265_access_unit* de265_audecoder_get_next_picture(de265_audecoder* decoder)
+const de265_access_unit* de265_audecoder_get_next_picture(de265_audecoder* decoder)
 {
+  if (decoder->m_layers.empty()) {
+    return nullptr;
+  }
+
   for (auto& layer : decoder->m_layers) {
     if (de265_peek_next_picture(layer.second.decoder) == nullptr) {
       return nullptr;
@@ -338,6 +452,8 @@ const struct de265_access_unit* de265_audecoder_get_next_picture(de265_audecoder
   for (auto& layer : decoder->m_layers) {
     au->m_layers[layer.first].image = img = de265_get_next_picture(layer.second.decoder);
   }
+
+  assert(img);
 
   if (img) {
     au->m_pts = img->pts;
@@ -377,4 +493,18 @@ de265_error de265_audecoder_decode(de265_audecoder* decoder, int* more)
 
     return totalError;
   }
+}
+
+de265_error de265_audecoder_get_warning(de265_audecoder* decoder)
+{
+  // collect warnings from all decoders
+
+  for (auto& layer : decoder->m_layers) {
+    de265_error err = de265_get_warning(layer.second.decoder);
+    if (err != DE265_OK) {
+      return err;
+    }
+  }
+
+  return DE265_OK;
 }
