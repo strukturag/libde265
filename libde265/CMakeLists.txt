@@ -119,6 +119,10 @@ target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BIN
 
 write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)
 
+if (WIN32)
+    set_target_properties(de265 PROPERTIES PREFIX "lib")
+endif()
+
 install(TARGETS de265 EXPORT libde265Config
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
