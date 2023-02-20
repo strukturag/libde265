@@ -489,7 +489,7 @@ void video_parameter_set::dump(int fd) const
     for (int j=0; j <= vps_max_layer_id; j++)
       {
         LOG3("layer_id_included_flag[%d][%d] = %d\n",i,j,
-             layer_id_included_flag[i][j]);
+             int(layer_id_included_flag[i][j]));
       }
 
   LOG1("vps_timing_info_present_flag = %d\n",
