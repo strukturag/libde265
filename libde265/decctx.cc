@@ -2004,9 +2004,10 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
   // get PPS and SPS for this slice
 
   int pps_id = hdr->slice_pic_parameter_set_id;
-  if (pps[pps_id]->pps_read==false) {
+  if (pps[pps_id]==nullptr || pps[pps_id]->pps_read==false) {
     logerror(LogHeaders, "PPS %d has not been read\n", pps_id);
-    assert(false); // TODO
+    img->decctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
+    return false;
   }
 
   current_pps = pps[pps_id];
