@@ -1256,6 +1256,16 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
 
 
+  int slice_hdr_idx = colImg->get_SliceHeaderIndex(xColPb,yColPb);
+  if (slice_hdr_idx >= colImg->slices.size()) {
+    ctx->add_warning(DE265_WARNING_INVALID_SLICE_HEADER_INDEX_ACCESS, false);
+
+    *out_availableFlagLXCol = 0;
+    out_mvLXCol->x = 0;
+    out_mvLXCol->y = 0;
+    return;
+  }
+
   const slice_segment_header* colShdr = colImg->slices[ colImg->get_SliceHeaderIndex(xColPb,yColPb) ];
 
   if (shdr->LongTermRefPic[X][refIdxLX] !=

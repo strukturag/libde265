@@ -174,6 +174,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Bit-depth of current image does not match SPS";
   case DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH:
     return "Chroma format of reference image does not match current image";
+  case DE265_WARNING_INVALID_SLICE_HEADER_INDEX_ACCESS:
+    return "Access with invalid slice header index";
 
   default: return "unknown error";
   }
