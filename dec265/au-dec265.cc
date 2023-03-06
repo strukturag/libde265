@@ -35,25 +35,39 @@
 #include "config.h"
 #endif
 
+#if HAVE_LIBPNG
+#include "encoder_png.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits>
+#include <sstream>
 #include <getopt.h>
-
+#include <iomanip>
 
 
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
 bool show_help = false;
+#if HAVE_LIBPNG
+bool output_as_yuv = false;
+#else
+bool output_as_yuv = true;
+#endif
+
 
 static struct option long_options[] = {
     {"help",   no_argument,       0, 'h'},
+#if HAVE_LIBPNG
+    {"yuv",    no_argument,       0, 'y'},
+#endif
     {0, 0,                        0, 0}
 };
 
 
-static void write_picture(const de265_image* img, std::string layerType, bool first)
+static void output_yuv_picture(const de265_image* img, std::string layerType, bool first)
 {
   std::string filename = layerType + ".yuv";
 
@@ -140,7 +154,7 @@ void do_show_stream_info(const de265_access_unit* au)
 
 static uint32_t framecnt = 0;
 
-void output_access_unit(const de265_access_unit* au)
+void output_access_unit_in_yuv_files(const de265_access_unit* au)
 {
   const de265_vps* vps = de265_access_unit_peek_vps(au);
   int num_layers = de265_vps_get_max_layers(vps);
@@ -157,14 +171,6 @@ void output_access_unit(const de265_access_unit* au)
       pimg.auxId = de265_vps_get_layer_aux_id(vps, i);
       images.push_back(pimg);
     }
-  }
-
-  framecnt++;
-
-
-  static bool first = true;
-  if (first) {
-    do_show_stream_info(au);
   }
 
 
@@ -185,25 +191,64 @@ void output_access_unit(const de265_access_unit* au)
         break;
     }
 
-    write_picture(img.img, auxType, first);
+    output_yuv_picture(img.img, auxType, framecnt==1);
+  }
+}
+
+
+void output_access_unit_as_png(const de265_access_unit* au)
+{
+#if HAVE_LIBPNG
+
+  // --- get color and alpha layers (if available)
+
+  const de265_vps* vps = de265_access_unit_peek_vps(au);
+
+  const de265_image* img_color = nullptr;
+  const de265_image* img_alpha = nullptr;
+
+  int color_layer_id = de265_vps_get_layer_id_for_aux_id(vps, de265_aux_none);
+  if (color_layer_id != -1) {
+    img_color = de265_access_unit_peek_layer_picture(au, color_layer_id);
   }
 
-  first = false;
+  int alpha_layer_id = de265_vps_get_layer_id_for_aux_id(vps, de265_aux_alpha);
+  if (alpha_layer_id != -1) {
+    img_alpha = de265_access_unit_peek_layer_picture(au, alpha_layer_id);
+  }
+
+
+  // --- write to PNG file
+
+  std::stringstream sstr;
+  sstr << "output-" << std::setw(4) << std::setfill('0') << framecnt << ".png";
+
+  if (img_color) {
+    write_png(img_color, img_alpha, sstr.str());
+  }
+#endif
 }
 
 
 int main(int argc, char** argv)
 {
-  while (1) {
+  while (true) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "h", long_options, &option_index);
+    int c = getopt_long(argc, argv, "h"
+#if HAVE_LIBPNG
+                        "y"
+#endif
+                        , long_options, &option_index);
     if (c == -1)
       break;
 
     switch (c) {
       case 'h':
         show_help = true;
+        break;
+      case 'y':
+        output_as_yuv = true;
         break;
     }
   }
@@ -216,6 +261,9 @@ int main(int argc, char** argv)
     fprintf(stderr, "\n");
     fprintf(stderr, "options:\n");
     fprintf(stderr, "  -h, --help        show help\n");
+#if HAVE_LIBPNG
+    fprintf(stderr, "  -y, --yuv         output as YUV files\n");
+#endif
 
     exit(show_help ? 0 : 5);
   }
@@ -229,7 +277,7 @@ int main(int argc, char** argv)
     fh = fopen(argv[optind], "rb");
   }
 
-  if (fh == NULL) {
+  if (fh == nullptr) {
     fprintf(stderr, "cannot open file %s!\n", argv[optind]);
     exit(10);
   }
@@ -260,7 +308,7 @@ int main(int argc, char** argv)
     }
 
 
-    // decoding / display loop
+    // --- decoding / display loop
 
     int more = 1;
     while (more) {
@@ -274,12 +322,31 @@ int main(int argc, char** argv)
         break;
       }
 
-      // output all available images
+      // write all images available at the decoder output
 
       for (;;) {
         const de265_access_unit* au = de265_audecoder_get_next_picture(decoder);
         if (au) {
-          output_access_unit(au);
+          framecnt++;
+
+          // --- show some stream info when we decoded the first frame
+
+          static bool first = true;
+          if (first) {
+            do_show_stream_info(au);
+            first = false;
+          }
+
+          printf("write frame %d\r", framecnt);
+          fflush(stdout);
+
+          if (output_as_yuv) {
+            output_access_unit_in_yuv_files(au);
+          }
+          else {
+            output_access_unit_as_png(au);
+          }
+
           de265_access_unit_release(au);
         }
         else {

@@ -21,6 +21,7 @@ include(GNUInstallDirs)
 include(CheckFunctionExists)
 
 option(ENABLE_SDL "Enable SDL" ON)
+option(ENABLE_PNG_OUTPUT "Enable PNG output" ON)
 
 if (ENABLE_SDL)
 	find_package(SDL)

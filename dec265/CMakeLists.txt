@@ -16,7 +16,7 @@ if(SDL_FOUND)
 endif()
 
 if(MSVC)
-  target_sources(dec265 PRIVATE 
+  target_sources(dec265 PRIVATE
     ../extra/getopt.c
     ../extra/getopt_long.c
   )
@@ -39,6 +39,16 @@ if(SDL_FOUND)
   target_include_directories (au-dec265 PRIVATE "${SDL_INCLUDE_DIR}")
   target_link_libraries (au-dec265 PRIVATE ${SDL_LIBRARY})
 endif()
+
+if (ENABLE_PNG_OUTPUT)
+    find_package(PNG)
+    if (PNG_FOUND)
+        add_definitions(-DHAVE_LIBPNG=1)
+        target_link_libraries(au-dec265 PRIVATE ${PNG_LIBRARIES})
+        target_include_directories(au-dec265 PRIVATE ${PNG_INCLUDE_DIR})
+        target_sources(au-dec265 PRIVATE encoder_png.cc encoder_png.h)
+    endif ()
+endif ()
 
 if(MSVC)
   target_sources(au-dec265 PRIVATE
