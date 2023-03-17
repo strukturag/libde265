@@ -416,7 +416,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
 
   for (int i=set->NumNegativePics-1;i>=0;i--) {
     int n = set->DeltaPocS0[i];
-    if (n>=-range) {
+    if (n>=-range && n<=range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
     } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS0[i] ? 'X':'o'); }
@@ -424,7 +424,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
     int n = set->DeltaPocS1[i];
-    if (n<=range) {
+    if (n>=-range && n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
     } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS1[i] ? 'X':'o'); }
