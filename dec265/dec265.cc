@@ -668,6 +668,10 @@ int main(int argc, char** argv)
 
   if (measure_quality) {
     reference_file = fopen(reference_filename, "rb");
+    if (reference_file == nullptr) {
+      fprintf(stderr, "Error: cannot create measurement output file '%s'\n", reference_filename);
+      exit(5);
+    }
   }
 
 
