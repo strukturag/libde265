@@ -59,6 +59,8 @@ using namespace videogfx;
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
 
+const uint32_t kSecurityLimit_MaxNALSize = 100 * 1024 * 1024; // 100 MB
+
 int nThreads=0;
 bool nal_input=false;
 int quiet=0;
@@ -703,20 +705,31 @@ int main(int argc, char** argv)
       if (nal_input) {
         uint8_t len[4];
         int n = fread(len,1,4,fh);
-        int length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
+        uint32_t length = (len[0]<<24) + (len[1]<<16) + (len[2]<<8) + len[3];
 
-        uint8_t* buf = (uint8_t*)malloc(length);
-        n = fread(buf,1,length,fh);
-        err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+	if (length > kSecurityLimit_MaxNALSize) {
+	  fprintf(stderr, "NAL packet with size %" PRIu32 " exceeds security limit %" PRIu32 ", skipping this NAL.\n",
+		  length,
+		  kSecurityLimit_MaxNALSize);
 
-        if (write_bytestream) {
-          uint8_t sc[3] = { 0,0,1 };
-          fwrite(sc ,1,3,bytestream_fh);
-          fwrite(buf,1,n,bytestream_fh);
-        }
+	  fseek(fh, length, SEEK_CUR);
 
-        free(buf);
-        pos+=n;
+	  pos += length;
+	}
+	else {
+	  uint8_t* buf = (uint8_t*)malloc(length);
+	  n = fread(buf,1,length,fh);
+	  err = de265_push_NAL(ctx, buf,n,  pos, (void*)1);
+
+	  if (write_bytestream) {
+	    uint8_t sc[3] = { 0,0,1 };
+	    fwrite(sc ,1,3,bytestream_fh);
+	    fwrite(buf,1,n,bytestream_fh);
+	  }
+
+	  free(buf);
+	  pos+=n;
+	}
       }
       else {
         // read a chunk of input data
