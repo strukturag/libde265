@@ -55,6 +55,9 @@ using namespace videogfx;
 #include "sdl.hh"
 #endif
 
+#ifndef PRIu32
+#define PRIu32 "u"
+#endif
 
 #define BUFFER_SIZE 40960
 #define NUM_THREADS 4
