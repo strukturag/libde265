@@ -29,7 +29,7 @@ while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit
 if [ -z "$TARGET_HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
-        libsdl-dev \
+        libsdl2-dev \
         qt5-default \
         libswscale-dev \
         "
