@@ -44,7 +44,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
   add_definitions(-Wall)
 endif()
 
-option(DISABLE_SSE "Disable SSE optimizations" OFF)
+check_c_source_compiles(
+    "#if !defined(__x86_64) && !defined(__i386__) \\
+    && !defined(_M_IX86) && !defined(_M_AMD64)
+    #error not x86
+    #endif
+    int main(){return 0;}"
+    HAVE_X86)
+set(DISABLE_SSE "Disable SSE optimizations" ${HAVE_X86})
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 if(NOT BUILD_SHARED_LIBS)
