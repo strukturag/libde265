@@ -48,10 +48,13 @@ public:
   bool isOpen() const { return mWindowOpen; }
 
 private:
-  SDL_Surface *mScreen;
-  SDL_Overlay *mYUVOverlay;
+  SDL_Window *mWindow = nullptr;
+  SDL_Renderer *mRenderer = nullptr;
+  SDL_Texture *mTexture = nullptr;
   SDL_Rect     rect;
   bool         mWindowOpen;
+  uint8_t *mPixels = nullptr;
+  int mStride = 0;
 
   SDL_Chroma mChroma;
 

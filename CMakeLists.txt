@@ -23,7 +23,7 @@ include(CheckFunctionExists)
 option(ENABLE_SDL "Enable SDL" ON)
 
 if (ENABLE_SDL)
-	find_package(SDL)
+	find_package(SDL2)
 endif()
 
 find_package(Threads REQUIRED)

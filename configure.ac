@@ -308,8 +308,8 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
 fi
 
 if eval "test x$enable_dec265 = xyes" ; then
-   PKG_CHECK_MODULES([SDL], [sdl],
-                     [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl was found.])
+   PKG_CHECK_MODULES([SDL], [sdl2],
+                     [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl2 was found.])
                       AC_SUBST(SDL_CFLAGS)
                       AC_SUBST(SDL_LIBS)
                       have_sdl="yes"],
@@ -332,7 +332,7 @@ AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" = "xyes"])
 AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" = "xyes"])
 
 if eval "test $enable_dec265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_sdl != yes" ; then
-  AC_MSG_WARN([Did not find libvideogfx or libsdl, video output of dec265 will be disabled.])
+  AC_MSG_WARN([Did not find libvideogfx or libsdl2, video output of dec265 will be disabled.])
 fi
 
 if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_swscale != yes" ; then
