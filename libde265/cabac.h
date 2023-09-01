@@ -66,7 +66,7 @@ public:
   virtual void write_bit(int bit) { write_bits(bit,1); }
   virtual void write_uvlc(int value);
   virtual void write_svlc(int value);
-  virtual void write_startcode() = 0;
+  virtual bool write_startcode() = 0;
   virtual void skip_bits(int nBits) = 0;
 
   virtual void add_trailing_bits();
@@ -113,7 +113,7 @@ public:
   // --- VLC ---
 
   virtual void write_bits(uint32_t bits,int n);
-  virtual void write_startcode();
+  virtual bool write_startcode();
   virtual void skip_bits(int nBits);
 
   virtual int  number_free_bits_in_byte() const;
@@ -155,10 +155,10 @@ private:
   uint16_t num_buffered_bytes;
 
 
-  void check_size_and_resize(int nBytes);
+  bool check_size_and_resize(int nBytes);
   void testAndWriteOut();
   void write_out();
-  void append_byte(int byte);
+  bool append_byte(int byte);
 };
 
 
@@ -178,7 +178,7 @@ public:
 
   virtual void write_bits(uint32_t bits,int n) { mFracBits += n<<15; }
   virtual void write_bit(int bit) { mFracBits+=1<<15; }
-  virtual void write_startcode() { mFracBits += (1<<15)*8*3; }
+  virtual bool write_startcode() { mFracBits += (1<<15)*8*3; return true; }
   virtual void skip_bits(int nBits) { mFracBits += nBits<<15; }
   virtual int  number_free_bits_in_byte() const { return 0; } // TODO, good enough for now
 

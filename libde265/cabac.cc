@@ -492,6 +492,8 @@ void CABAC_encoder_bitstream::write_bits(uint32_t bits,int n)
   vlc_buffer |= bits;
   vlc_buffer_len += n;
 
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
     vlc_buffer_len -= 8;
@@ -524,6 +526,8 @@ void CABAC_encoder::write_svlc(int value)
 
 void CABAC_encoder_bitstream::flush_VLC()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
     vlc_buffer_len -= 8;
@@ -557,7 +561,7 @@ int  CABAC_encoder_bitstream::number_free_bits_in_byte() const
 }
 
 
-void CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
+bool CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
 {
   if (data_size+nBytes > data_capacity) { // 1 extra byte for stuffing
     if (data_capacity==0) {
@@ -566,14 +570,24 @@ void CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
       data_capacity *= 2;
     }
 
-    data_mem = (uint8_t*)realloc(data_mem,data_capacity);
+    uint8_t* new_data_mem = (uint8_t*)realloc(data_mem,data_capacity);
+    if (new_data_mem) {
+      data_mem = new_data_mem;
+    }
+    else {
+      return false;
+    }
   }
+
+  return true;
 }
 
 
-void CABAC_encoder_bitstream::append_byte(int byte)
+bool CABAC_encoder_bitstream::append_byte(int byte)
 {
-  check_size_and_resize(2);
+  if (!check_size_and_resize(2)) {
+    return false;
+  }
 
   // --- emulation prevention ---
 
@@ -603,17 +617,23 @@ void CABAC_encoder_bitstream::append_byte(int byte)
   // write actual data byte
 
   data_mem[ data_size++ ] = byte;
+
+  return true;
 }
 
 
-void CABAC_encoder_bitstream::write_startcode()
+bool CABAC_encoder_bitstream::write_startcode()
 {
-  check_size_and_resize(3);
+  if (!check_size_and_resize(3)) {
+    return false;
+  }
 
   data_mem[ data_size+0 ] = 0;
   data_mem[ data_size+1 ] = 0;
   data_mem[ data_size+2 ] = 1;
   data_size+=3;
+
+  return true;
 }
 
 void CABAC_encoder_bitstream::init_CABAC()
@@ -628,6 +648,8 @@ void CABAC_encoder_bitstream::init_CABAC()
 
 void CABAC_encoder_bitstream::flush_CABAC()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   if (low >> (32 - bits_left))
     {
       append_byte(buffered_byte + 1);
@@ -661,6 +683,8 @@ void CABAC_encoder_bitstream::flush_CABAC()
 
 void CABAC_encoder_bitstream::write_out()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+  
   //logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;
