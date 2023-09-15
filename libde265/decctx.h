@@ -203,7 +203,7 @@ public:
   std::vector<sei_message> suffix_SEIs;
 
   slice_unit* get_next_unprocessed_slice_segment() const {
-    for (int i=0;i<slice_units.size();i++) {
+    for (size_t i=0;i<slice_units.size();i++) {
       if (slice_units[i]->state == slice_unit::Unprocessed) {
         return slice_units[i];
       }
@@ -213,7 +213,7 @@ public:
   }
 
   slice_unit* get_prev_slice_segment(slice_unit* s) const {
-    for (int i=1; i<slice_units.size(); i++) {
+    for (size_t i=1; i<slice_units.size(); i++) {
       if (slice_units[i]==s) {
         return slice_units[i-1];
       }
@@ -223,7 +223,7 @@ public:
   }
 
   slice_unit* get_next_slice_segment(slice_unit* s) const {
-    for (int i=0; i<slice_units.size()-1; i++) {
+    for (size_t i=0; i<slice_units.size()-1; i++) {
       if (slice_units[i]==s) {
         return slice_units[i+1];
       }
@@ -233,8 +233,8 @@ public:
   }
 
   void dump_slices() const {
-    for (int i=0; i<slice_units.size(); i++) {
-      printf("[%d] = %p\n",i,slice_units[i]);
+    for (size_t i=0; i<slice_units.size(); i++) {
+      printf("[%zu] = %p\n",i,slice_units[i]);
     }
   }
 

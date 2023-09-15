@@ -722,7 +722,7 @@ void seq_parameter_set::dump(int fd) const
 
   LOG1("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
 
-  for (int i = 0; i < ref_pic_sets.size(); i++) {
+  for (size_t i = 0; i < ref_pic_sets.size(); i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
     dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16, fh);
   }

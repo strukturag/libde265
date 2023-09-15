@@ -638,7 +638,7 @@ const enc_pb_inter* CTBTreeMatrix::getPB(int x,int y) const
 void CTBTreeMatrix::writeReconstructionToImage(de265_image* img,
                                                const seq_parameter_set* sps) const
 {
-  for (int i=0;i<mCTBs.size();i++) {
+  for (size_t i=0;i<mCTBs.size();i++) {
     const enc_cb* cb = mCTBs[i];
     cb->writeReconstructionToImage(img, sps);
   }

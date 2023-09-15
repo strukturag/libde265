@@ -36,14 +36,14 @@ decoded_picture_buffer::decoded_picture_buffer()
 
 decoded_picture_buffer::~decoded_picture_buffer()
 {
-  for (int i=0;i<dpb.size();i++)
+  for (size_t i=0;i<dpb.size();i++)
     delete dpb[i];
 }
 
 
 void decoded_picture_buffer::log_dpb_content() const
 {
-  for (int i=0;i<dpb.size();i++) {
+  for (size_t i=0;i<dpb.size();i++) {
     loginfo(LogHighlevel, " DPB %d: POC=%d, ID=%d %s %s\n", i,
             dpb[i]->PicOrderCntVal,
             dpb[i]->get_ID(),
@@ -63,7 +63,7 @@ bool decoded_picture_buffer::has_free_dpb_picture(bool high_priority) const
   if (dpb.size() < max_images_in_DPB) return true;
 
   // scan for empty slots
-  for (int i=0;i<dpb.size();i++) {
+  for (size_t i=0;i<dpb.size();i++) {
     if (dpb[i]->PicOutputFlag==false && dpb[i]->PicState == UnusedForReference) {
       return true;
     }
@@ -81,7 +81,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
   //loginfo(LogDPB,"searching for short-term reference POC=%d\n",poc);
 
   if (preferLongTerm) {
-    for (int k=0;k<dpb.size();k++) {
+    for (size_t k=0;k<dpb.size();k++) {
       if (dpb[k]->PicOrderCntVal == poc &&
           dpb[k]->removed_at_picture_id > currentID &&
           dpb[k]->PicState == UsedForLongTermReference) {
@@ -90,7 +90,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_POC(int poc, int currentID
     }
   }
 
-  for (int k=0;k<dpb.size();k++) {
+  for (size_t k=0;k<dpb.size();k++) {
     if (dpb[k]->PicOrderCntVal == poc &&
         dpb[k]->removed_at_picture_id > currentID &&
         dpb[k]->PicState != UnusedForReference) {
@@ -107,7 +107,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
   logdebug(LogHeaders,"get access to picture with LSB %d from DPB\n",lsb);
 
   if (preferLongTerm) {
-    for (int k=0;k<dpb.size();k++) {
+    for (size_t k=0;k<dpb.size();k++) {
       if (dpb[k]->picture_order_cnt_lsb == lsb &&
           dpb[k]->removed_at_picture_id > currentID &&
           dpb[k]->PicState == UsedForLongTermReference) {
@@ -116,7 +116,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_LSB(int lsb, int currentID
     }
   }
 
-  for (int k=0;k<dpb.size();k++) {
+  for (size_t k=0;k<dpb.size();k++) {
     if (dpb[k]->picture_order_cnt_lsb == lsb &&
         dpb[k]->removed_at_picture_id > currentID &&
         dpb[k]->PicState != UnusedForReference) {
@@ -132,7 +132,7 @@ int decoded_picture_buffer::DPB_index_of_picture_with_ID(int id) const
 {
   logdebug(LogHeaders,"get access to picture with ID %d from DPB\n",id);
 
-  for (int k=0;k<dpb.size();k++) {
+  for (size_t k=0;k<dpb.size();k++) {
     if (dpb[k]->get_ID() == id) {
       return k;
     }
@@ -150,7 +150,7 @@ void decoded_picture_buffer::output_next_picture_in_reorder_buffer()
 
   int minPOC = reorder_output_queue[0]->PicOrderCntVal;
   int minIdx = 0;
-  for (int i=1;i<reorder_output_queue.size();i++)
+  for (size_t i=1;i<reorder_output_queue.size();i++)
     {
       if (reorder_output_queue[i]->PicOrderCntVal < minPOC) {
         minPOC = reorder_output_queue[i]->PicOrderCntVal;
@@ -186,7 +186,7 @@ bool decoded_picture_buffer::flush_reorder_buffer()
 
 void decoded_picture_buffer::clear()
 {
-  for (int i=0;i<dpb.size();i++) {
+  for (size_t i=0;i<dpb.size();i++) {
     if (dpb[i]->PicOutputFlag ||
         dpb[i]->PicState != UnusedForReference)
       {
@@ -211,7 +211,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   // --- search for a free slot in the DPB ---
 
   int free_image_buffer_idx = -DE265_ERROR_IMAGE_BUFFER_FULL;
-  for (int i=0;i<dpb.size();i++) {
+  for (size_t i=0;i<dpb.size();i++) {
     if (dpb[i]->can_be_released()) {
       dpb[i]->release(); /* TODO: this is surely not the best place to free the image, but
                             we have to do it here because releasing it in de265_release_image()

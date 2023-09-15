@@ -511,7 +511,7 @@ void de265_image::release()
 
   // free slices
 
-  for (int i=0;i<slices.size();i++) {
+  for (size_t i=0;i<slices.size();i++) {
     delete slices[i];
   }
   slices.clear();
