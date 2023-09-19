@@ -464,7 +464,7 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
     CodingOptions<enc_tb> options(ectx, tb, ctxModel);
     std::vector<CodingOption<enc_tb> >  option;
 
-    for (int i=0;i<distortions.size();i++) {
+    for (size_t i=0;i<distortions.size();i++) {
       enum IntraPredMode intraMode  = (IntraPredMode)distortions[i].first;
       if (!isPredModeEnabled(intraMode)) { continue; }
 

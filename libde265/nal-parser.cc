@@ -181,7 +181,7 @@ NAL_Parser::~NAL_Parser()
 
   // free all NALs in free-list
 
-  for (int i=0;i<NAL_free_list.size();i++) {
+  for (size_t i=0;i<NAL_free_list.size();i++) {
     delete NAL_free_list[i];
   }
 }

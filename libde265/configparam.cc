@@ -236,7 +236,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
 
         bool option_found=false;
 
-        for (int o=0;o<mOptions.size();o++) {
+        for (size_t o=0;o<mOptions.size();o++) {
           if (mOptions[o]->hasLongOption() && strcmp(mOptions[o]->getLongOption().c_str(),
                                                      argv[i]+2)==0) {
             option_found=true;
@@ -271,7 +271,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
 
           bool option_found=false;
 
-          for (int o=0;o<mOptions.size();o++) {
+          for (size_t o=0;o<mOptions.size();o++) {
             if (mOptions[o]->getShortOption() == option) {
               option_found=true;
 
@@ -318,7 +318,7 @@ bool config_parameters::parse_command_line_params(int* argc, char** argv, int* f
 
 void config_parameters::print_params() const
 {
-  for (int i=0;i<mOptions.size();i++) {
+  for (size_t i=0;i<mOptions.size();i++) {
     const option_base* o = mOptions[i];
 
     std::stringstream sstr;

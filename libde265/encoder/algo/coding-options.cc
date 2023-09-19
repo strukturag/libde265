@@ -110,7 +110,7 @@ void CodingOptions<node>::start(enum RateEstimationMethod rateMethod)
 template <class node>
 void CodingOptions<node>::compute_rdo_costs()
 {
-  for (int i=0;i<mOptions.size();i++) {
+  for (size_t i=0;i<mOptions.size();i++) {
     if (mOptions[i].computed) {
       //printf("compute_rdo_costs %d: %f\n",i, mOptions[i].mNode->rate);
       mOptions[i].rdoCost = mOptions[i].mNode->distortion + mECtx->lambda * mOptions[i].mNode->rate;
@@ -129,7 +129,7 @@ int CodingOptions<node>::find_best_rdo_index()
   bool  first=true;
   int   bestRDO=-1;
 
-  for (int i=0;i<mOptions.size();i++) {
+  for (size_t i=0;i<mOptions.size();i++) {
     if (mOptions[i].computed) {
       float cost = mOptions[i].rdoCost;
 
@@ -159,7 +159,7 @@ node* CodingOptions<node>::return_best_rdo_node()
 
   // delete all CBs except the best one
 
-  for (int i=0;i<mOptions.size();i++) {
+  for (size_t i=0;i<mOptions.size();i++) {
     if (i != bestRDO)
       {
         delete mOptions[i].mNode;
