@@ -47,6 +47,7 @@ IGNORE_FILES=(
     'Makefile.vc7',
     'NEWS',
     'README.md',
+    'testdata/girlshy.h265'
 )
 
 FOUND=
