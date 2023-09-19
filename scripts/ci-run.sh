@@ -90,9 +90,11 @@ fi
 if [ ! -z "$DECODESTREAMS" ]; then
     python scripts/decodestreams.py $THREADING /var/lib/libde265-teststreams
 
-    DECODEHASH=`$DEC265 testdata/girlshy.h265 -q -o -|md5sum -`
-    if [ $DECODEHASH != "b81538fa33a67278e5263e231e43ca98" ]; then
+    DECODEHASH=`./dec265/dec265 testdata/girlshy.h265 -q -o - | md5sum - | cut -d " " -f1`
+    if [ "$DECODEHASH" != "b81538fa33a67278e5263e231e43ca98" ]; then
 	echo "Incorrect decoding result on testdata/girlshy.h265"
 	exit 1
+    else
+	echo "testdata/girlshy.h265 decoded correctly"
     fi
 fi
