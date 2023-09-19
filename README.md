@@ -158,4 +158,5 @@ See `COPYING` for more details.
 The short video clip in the 'testdata' directory is from the movie 'Girl Shy', which is in the public domain.
 
 Copyright (c) 2013-2014 Struktur AG
-Contact: Dirk Farin <farin@struktur.de>
+Copyright (c) 2013-2023 Dirk Farin
+Contact: Dirk Farin <dirk.farin@gmail.com>
