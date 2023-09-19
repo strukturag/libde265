@@ -18,10 +18,10 @@ jobs:
 
     runs-on: macos-10.15
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Checkout sample streams
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         repository: strukturag/libde265-data
         path: libde265-data
