@@ -1277,14 +1277,23 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
 #define LOG3(t,d1,d2,d3) log2fh(fh, t,d1,d2,d3)
 #define LOG4(t,d1,d2,d3,d4) log2fh(fh, t,d1,d2,d3,d4)
 
+  LOG0("----------------- SLICE -----------------\n");
+
   const pic_parameter_set* pps = ctx->get_pps(slice_pic_parameter_set_id);
+  if (!pps) {
+    LOG0("invalid PPS referenced\n");
+    return;
+  }
   assert(pps->pps_read); // TODO: error handling
 
   const seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
+  if (!sps) {
+    LOG0("invalid SPS referenced\n");
+    return;
+  }
   assert(sps->sps_read); // TODO: error handling
 
 
-  LOG0("----------------- SLICE -----------------\n");
   LOG1("first_slice_segment_in_pic_flag      : %d\n", first_slice_segment_in_pic_flag);
   if (ctx->get_nal_unit_type() >= NAL_UNIT_BLA_W_LP &&
       ctx->get_nal_unit_type() <= NAL_UNIT_RESERVED_IRAP_VCL23) {
