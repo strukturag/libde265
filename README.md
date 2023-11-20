@@ -146,6 +146,11 @@ Libde265 has been integrated into these applications:
 - libde265.js JavaScript decoder [source](https://github.com/strukturag/libde265.js), [demo](https://strukturag.github.io/libde265.js/).
 
 
+## Packaging status
+
+[![libde265 packaging status](https://repology.org/badge/vertical-allrepos/libde265.svg?exclude_unsupported=1&columns=3&exclude_sources=modules,site&header=libde265%20packaging%20status)](https://repology.org/project/libheif/versions)
+
+
 License
 =======
 
