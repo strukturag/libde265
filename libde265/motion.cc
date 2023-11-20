@@ -1722,7 +1722,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       if (vi.predFlag[Y]) {
         // check for input data validity
         if (vi.refIdx[Y]<0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
-          printf("C1 %d\n", vi.refIdx[Y]);
           return;
         }
 
@@ -1857,15 +1856,16 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
 
-      if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
-        printf("C2 %d\n", vi.refIdx[Y]);
-        return;
-      }
-
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       const de265_image* imgY = NULL;
-      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      if (vi.predFlag[Y]) {
+        if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
+          return;
+        }
+
+        imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      }
 
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
         logtrace(LogMotion,"a) take B%d/L%d as B candidate with same POC\n",k,X);
