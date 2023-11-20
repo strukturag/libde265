@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = dec265 hdrcopy
+bin_PROGRAMS = dec265 # hdrcopy
 
 AM_CPPFLAGS = -I$(top_srcdir)/libde265 -I$(top_srcdir)
 
@@ -9,11 +9,11 @@ dec265_LDFLAGS =
 dec265_LDADD = ../libde265/libde265.la -lstdc++
 dec265_SOURCES = dec265.cc
 
-hdrcopy_DEPENDENCIES = ../libde265/libde265.la
-hdrcopy_CXXFLAGS =
-hdrcopy_LDFLAGS =
-hdrcopy_LDADD = ../libde265/libde265.la -lstdc++
-hdrcopy_SOURCES = hdrcopy.cc
+# hdrcopy_DEPENDENCIES = ../libde265/libde265.la
+# hdrcopy_CXXFLAGS =
+# hdrcopy_LDFLAGS =
+# hdrcopy_LDADD = ../libde265/libde265.la -lstdc++
+# hdrcopy_SOURCES = hdrcopy.cc
 
 if HAVE_VIDEOGFX
   dec265_CXXFLAGS += $(VIDEOGFX_CFLAGS)
