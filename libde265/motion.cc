@@ -1717,8 +1717,15 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
+
       const de265_image* imgY = NULL;
-      if (vi.predFlag[Y]) imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      if (vi.predFlag[Y]) {
+        // check for input data validity
+        if (vi.refIdx[Y]<0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS)
+          return;
+
+        imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
+      }
 
       // check whether the predictor X is available and references the same POC
       if (vi.predFlag[X] && imgX && imgX->PicOrderCntVal == referenced_POC) {
@@ -1847,6 +1854,10 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
+
+      if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
+        return;
+      }
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
