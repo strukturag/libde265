@@ -1721,8 +1721,10 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       const de265_image* imgY = NULL;
       if (vi.predFlag[Y]) {
         // check for input data validity
-        if (vi.refIdx[Y]<0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS)
+        if (vi.refIdx[Y]<0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
+          printf("C1 %d\n", vi.refIdx[Y]);
           return;
+        }
 
         imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
       }
@@ -1856,6 +1858,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logmvcand(vi);
 
       if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
+        printf("C2 %d\n", vi.refIdx[Y]);
         return;
       }
 
