@@ -18,11 +18,11 @@ endif()
 
 install (TARGETS dec265 DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-if(NOT MSVC)
-  # hdrcopy uses internal APIs that are not available when compiled for Windows
-  add_executable (hdrcopy hdrcopy.cc)
-
-  target_link_libraries (hdrcopy PRIVATE de265)
-
-  install (TARGETS hdrcopy DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+#if(NOT MSVC)
+#  # hdrcopy uses internal APIs that are not available when compiled for Windows
+#  add_executable (hdrcopy hdrcopy.cc)
+#
+#  target_link_libraries (hdrcopy PRIVATE de265)
+#
+#  install (TARGETS hdrcopy DESTINATION ${CMAKE_INSTALL_BINDIR})
+#endif()
