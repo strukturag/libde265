@@ -60,7 +60,7 @@ the included `autogen.sh` script to generate the `configure` script.
 libde265 has no dependencies on other libraries, but both optional example programs
 have dependencies on:
 
-- SDL (optional for dec265's YUV overlay output),
+- SDL2 (optional for dec265's YUV overlay output),
 
 - Qt (required for sherlock265),
 
