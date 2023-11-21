@@ -94,7 +94,15 @@ add_definitions(-DLIBDE265_EXPORTS)
 
 add_subdirectory (encoder)
 
-if(NOT DISABLE_SSE)
+check_c_source_compiles(
+  "#if !defined(__x86_64) && !defined(__i386__) \
+  && !defined(_M_IX86) && !defined(_M_AMD64)
+  #error not x86
+  #endif
+  int main(){return 0;}"
+  HAVE_X86)
+
+if(HAVE_X86)
   if (MSVC)
     set(SUPPORTS_SSE2 1)
     set(SUPPORTS_SSSE3 1)
