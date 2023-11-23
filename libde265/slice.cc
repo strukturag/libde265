@@ -2582,6 +2582,11 @@ static int decode_rqt_root_cbf(thread_context* tctx)
 
 static int decode_ref_idx_lX(thread_context* tctx, int numRefIdxLXActive)
 {
+  // prevent endless loop when 'numRefIdxLXActive' is invalid
+  if (numRefIdxLXActive <= 1) {
+    return 0;
+  }
+
   logtrace(LogSlice,"# ref_idx_lX\n");
 
   int cMax = numRefIdxLXActive-1;
