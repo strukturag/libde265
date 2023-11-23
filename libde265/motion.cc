@@ -1864,7 +1864,14 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logmvcand(vi);
 
       const de265_image* imgX = NULL;
-      if (vi.predFlag[X]) imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
+      if (vi.predFlag[X]) {
+        if (vi.refIdx[X] < 0 || vi.refIdx[X] >= MAX_NUM_REF_PICS) {
+          return;
+        }
+
+        imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
+      }
+
       const de265_image* imgY = NULL;
       if (vi.predFlag[Y]) {
         if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
