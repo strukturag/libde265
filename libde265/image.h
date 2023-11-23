@@ -624,7 +624,14 @@ public:
 
   enum IntraPredMode get_IntraPredMode(int x,int y) const
   {
-    return (enum IntraPredMode)intraPredMode.get(x,y);
+    uint8_t ipm = intraPredMode.get(x,y);
+
+    // sanitize values if IPM is uninitialized (because of earlier read error)
+    if (ipm > 34) {
+      ipm = 0;
+    }
+
+    return static_cast<enum IntraPredMode>(ipm);
   }
 
   enum IntraPredMode get_IntraPredMode_atIndex(int idx) const
