@@ -184,26 +184,28 @@ void SDL_YUV_Display::display400(const unsigned char *Y, int stride)
 }
 
 
-void SDL_YUV_Display::display422(const unsigned char *Y,
-                                 const unsigned char *U,
-                                 const unsigned char *V,
+void SDL_YUV_Display::display422(const unsigned char* Y,
+                                 const unsigned char* U,
+                                 const unsigned char* V,
                                  int stride, int chroma_stride)
 {
-  for (int y=0;y<rect.h;y++)
-    {
-      unsigned char* p = mPixels + y*mStride *2;
+  for (int y = 0; y < rect.h; y++) {
+    unsigned char* dstY = mPixels + y * mStride;
+    const unsigned char* Yp = Y + y * stride;
 
-      const unsigned char* Yp = Y + y*stride;
-      const unsigned char* Up = U + y*chroma_stride;
-      const unsigned char* Vp = V + y*chroma_stride;
+    memcpy(dstY, Yp, rect.w);
+  }
 
-      for (int x=0;x<rect.w;x+=2) {
-        *p++ = Yp[x];
-        *p++ = Up[x/2];
-        *p++ = Yp[x+1];
-        *p++ = Vp[x/2];
-      }
-    }
+  for (int y = 0; y < rect.h; y += 2) {
+    unsigned char* dstV = mPixels + (y / 2) * mStride / 2 + rect.w * rect.h;
+    unsigned char* dstU = mPixels + (y / 2) * mStride / 2 + rect.w * rect.h + rect.w * rect.h / 4;
+
+    const unsigned char* Up = U + y * chroma_stride;
+    const unsigned char* Vp = V + y * chroma_stride;
+
+    memcpy(dstU, Up, rect.w / 2);
+    memcpy(dstV, Vp, rect.w / 2);
+  }
 }
 
 
