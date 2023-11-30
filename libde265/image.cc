@@ -334,7 +334,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  if ((top+bottom)*WinUnitX >= height) {
+  if ((top+bottom)*WinUnitY >= height) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
