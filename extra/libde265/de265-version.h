@@ -22,8 +22,8 @@
 #define LIBDE265_VERSION_H
 
 /* Numeric representation of the version */
-#define LIBDE265_NUMERIC_VERSION 0x01001400
+#define LIBDE265_NUMERIC_VERSION 0x01001500
 
-#define LIBDE265_VERSION "1.0.14"
+#define LIBDE265_VERSION "1.0.15"
 
 #endif
