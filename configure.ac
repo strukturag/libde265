@@ -104,6 +104,9 @@ AC_FUNC_ERROR_AT_LINE
 # AC_FUNC_REALLOC
 AC_FUNC_MKTIME
 
+LIBS_PRIVATE="$LIBS -lstdc++"
+AC_SUBST(LIBS_PRIVATE)
+
 AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
 # Check if "__STRICT_ANSI__" is required.
