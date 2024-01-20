@@ -3527,9 +3527,9 @@ void ff_hevc_put_hevc_qpel_h_1_v_1_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -3710,9 +3710,9 @@ void ff_hevc_put_hevc_qpel_h_1_v_2_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -3887,9 +3887,9 @@ void ff_hevc_put_hevc_qpel_h_1_v_3_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4058,9 +4058,9 @@ void ff_hevc_put_hevc_qpel_h_2_v_1_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4241,9 +4241,9 @@ void ff_hevc_put_hevc_qpel_h_2_v_2_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4419,9 +4419,9 @@ void ff_hevc_put_hevc_qpel_h_2_v_3_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4592,9 +4592,9 @@ void ff_hevc_put_hevc_qpel_h_3_v_1_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4778,9 +4778,9 @@ void ff_hevc_put_hevc_qpel_h_3_v_2_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
@@ -4958,9 +4958,9 @@ void ff_hevc_put_hevc_qpel_h_3_v_3_sse(int16_t *dst, ptrdiff_t dststride,
             r0 = _mm_srli_epi32(r0, 6);
 
             r1 = _mm_and_si128(r1,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_and_si128(r0,
-                    _mm_set_epi16(0, 65535, 0, 65535, 0, 65535, 0, 65535));
+                    _mm_set_epi16(-32766, 32767, -32766, 32767, -32766, 32767, -32766, 32767));
             r0 = _mm_hadd_epi16(r0, r1);
             _mm_store_si128((__m128i *) &dst[x], r0);
 
