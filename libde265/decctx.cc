@@ -546,6 +546,263 @@ de265_error decoder_context::read_vps_NAL(bitreader& reader)
   return DE265_OK;
 }
 
+// implemented as freestanding functions to avoid changing API
+
+bool operator==(const profile_data &lhs, const profile_data &rhs) {
+	if(&lhs == &rhs) return true;
+	if(lhs.profile_present_flag != rhs.profile_present_flag ) return false;
+	if(lhs.profile_present_flag) {
+		if(lhs.profile_space != rhs.profile_space ) return false;
+		if(lhs.tier_flag != rhs.tier_flag ) return false;
+		if(lhs.profile_idc != rhs.profile_idc ) return false;
+
+		if(memcmp(lhs.profile_compatibility_flag, rhs.profile_compatibility_flag, sizeof(rhs.profile_compatibility_flag)) ) return false;
+
+		if(lhs.progressive_source_flag != rhs.progressive_source_flag ) return false;
+		if(lhs.interlaced_source_flag != rhs.interlaced_source_flag ) return false;
+		if(lhs.non_packed_constraint_flag != rhs.non_packed_constraint_flag ) return false;
+		if(lhs.frame_only_constraint_flag != rhs.frame_only_constraint_flag ) return false;
+	}
+
+	if(lhs.level_present_flag != rhs.level_present_flag) return false;
+	if(lhs.level_present_flag && lhs.level_idc != rhs.level_idc ) return false;
+
+	return true;
+}
+
+bool operator!=(const profile_data &lhs, const profile_data &rhs) {
+	if(&lhs == &rhs) return false;
+	return (!(lhs==rhs));
+}
+
+// class does not store max_sub_layers, so operator == cannot be done.
+bool isEqual(const profile_tier_level &lhs , const profile_tier_level &rhs,  int sps_max_sub_layers ) {
+	if(&lhs == &rhs) return true;
+
+	if(lhs.general != rhs.general ) return false;
+	for(int i = 0 ; i < sps_max_sub_layers; i++ ) {
+		if(lhs.sub_layer[i] != rhs.sub_layer[i]) return false;
+	}
+	return true;
+}
+
+bool isEqual(const video_usability_information &lhs, const video_usability_information &rhs, const seq_parameter_set &sps) {
+	if(&lhs == &rhs) return true;
+
+	// not seen yet if(lhs.nal_hrd_parameters_present_flag != rhs.nal_hrd_parameters_present_flag ) return false;
+
+	// populated by video_usability_information::read()
+	if(lhs.aspect_ratio_info_present_flag != rhs.aspect_ratio_info_present_flag ) return false;
+	if(lhs.aspect_ratio_info_present_flag) {
+		if(lhs.sar_width != rhs.sar_width ) return false;
+		if(lhs.sar_height != rhs.sar_height ) return false;
+	}
+
+	if(lhs.overscan_info_present_flag != rhs.overscan_info_present_flag ) return false;
+	if(lhs.overscan_info_present_flag) {
+		if(lhs.overscan_appropriate_flag != rhs.overscan_appropriate_flag ) return false;
+	}
+
+	if(lhs.video_signal_type_present_flag != rhs.video_signal_type_present_flag ) return false;
+	if(lhs.video_signal_type_present_flag) {
+		if(lhs.video_format != rhs.video_format ) return false;
+		if(lhs.video_full_range_flag != rhs.video_full_range_flag) return false;
+		if(lhs.colour_description_present_flag != rhs.colour_description_present_flag) return false;
+		if(lhs.colour_primaries != rhs.colour_primaries ) return false;
+		if(lhs.transfer_characteristics != rhs.transfer_characteristics ) return false;
+		if(lhs.matrix_coeffs != rhs.matrix_coeffs ) return false;
+	}
+
+	if(lhs.chroma_loc_info_present_flag != rhs.chroma_loc_info_present_flag ) return false;
+	if(lhs.chroma_loc_info_present_flag) {
+		if(lhs.chroma_sample_loc_type_top_field != rhs.chroma_sample_loc_type_top_field ) return false;
+		if(lhs.chroma_sample_loc_type_bottom_field != rhs.chroma_sample_loc_type_bottom_field ) return false;
+	}
+	if(lhs.neutral_chroma_indication_flag != rhs.neutral_chroma_indication_flag ) return false;
+	if(lhs.field_seq_flag != rhs.field_seq_flag ) return false;
+	if(lhs.frame_field_info_present_flag != rhs.frame_field_info_present_flag ) return false;
+
+	if(lhs.default_display_window_flag != rhs.default_display_window_flag ) return false;
+	if(lhs.default_display_window_flag) {
+		if(lhs.def_disp_win_left_offset != rhs.def_disp_win_left_offset ) return false;
+		if(lhs.def_disp_win_right_offset != rhs.def_disp_win_right_offset ) return false;
+		if(lhs.def_disp_win_top_offset != rhs.def_disp_win_top_offset ) return false;
+		if(lhs.def_disp_win_bottom_offset != rhs.def_disp_win_bottom_offset ) return false;
+	}
+
+	if(lhs.vui_timing_info_present_flag != rhs.vui_timing_info_present_flag ) return false;
+	if(lhs.vui_timing_info_present_flag) {
+		if(lhs.vui_num_units_in_tick != rhs.vui_num_units_in_tick ) return false;
+		if(lhs.vui_time_scale != rhs.vui_time_scale ) return false;
+		if(lhs.vui_timing_info_present_flag != rhs.vui_timing_info_present_flag ) return false;
+		if(lhs.vui_timing_info_present_flag) {
+			if(lhs.vui_num_ticks_poc_diff_one != rhs.vui_num_ticks_poc_diff_one ) return false;
+		}
+	}
+
+	if(lhs.vui_hrd_parameters_present_flag != rhs.vui_hrd_parameters_present_flag ) return false;
+
+
+	if(lhs.vui_hrd_parameters_present_flag) {
+		// check things made by hrd_parametes
+
+		if(lhs.vui_hrd_parameters_present_flag != rhs.vui_hrd_parameters_present_flag ) return false;
+		if(lhs.vcl_hrd_parameters_present_flag != rhs.vcl_hrd_parameters_present_flag ) return false;
+
+		if(lhs.nal_hrd_parameters_present_flag || lhs.vcl_hrd_parameters_present_flag) {
+			if(lhs.sub_pic_hrd_params_present_flag != rhs.sub_pic_hrd_params_present_flag ) return false;
+			if(lhs.sub_pic_hrd_params_present_flag) {
+				if(lhs.tick_divisor_minus2 != rhs.tick_divisor_minus2 ) return false;
+				if(lhs.du_cpb_removal_delay_increment_length_minus1 != rhs.du_cpb_removal_delay_increment_length_minus1 ) return false;
+				if(lhs.sub_pic_cpb_params_in_pic_timing_sei_flag != rhs.sub_pic_cpb_params_in_pic_timing_sei_flag ) return false;
+				if(lhs.dpb_output_delay_du_length_minus1 != rhs.dpb_output_delay_du_length_minus1 ) return false;
+			}
+			if(lhs.bit_rate_scale != rhs.bit_rate_scale ) return false;
+			if(lhs.cpb_size_scale != rhs.cpb_size_scale ) return false;
+			if(lhs.sub_pic_hrd_params_present_flag) {
+				if(lhs.cpb_size_du_scale != rhs.cpb_size_du_scale ) return false;
+			}
+			if(lhs.initial_cpb_removal_delay_length_minus1 != rhs.initial_cpb_removal_delay_length_minus1 ) return false;
+			if(lhs.au_cpb_removal_delay_length_minus1 != rhs.au_cpb_removal_delay_length_minus1 ) return false;
+			if(lhs.dpb_output_delay_length_minus1 != rhs.dpb_output_delay_length_minus1 ) return false;
+		}
+
+		int  i;
+		unsigned int  j, nalOrVcl;
+
+		for (i = 0; i < sps.sps_max_sub_layers; i++) {
+			if(lhs.fixed_pic_rate_general_flag[i] != rhs.fixed_pic_rate_general_flag[i] ) return false;
+			if(lhs.fixed_pic_rate_general_flag[i]) {
+				if(lhs.elemental_duration_in_tc_minus1[i] != rhs.elemental_duration_in_tc_minus1[i] ) return false;
+			}
+			if(lhs.low_delay_hrd_flag[i] != rhs.low_delay_hrd_flag[i] ) return false;
+			if(lhs.cpb_cnt_minus1[i] != rhs.cpb_cnt_minus1[i] ) return false;
+
+			for (nalOrVcl = 0; nalOrVcl < 2; nalOrVcl++) {
+				if (((nalOrVcl == 0) && lhs.nal_hrd_parameters_present_flag) || ((nalOrVcl == 1) && lhs.vcl_hrd_parameters_present_flag)) {
+					for (j = 0; j <= lhs.cpb_cnt_minus1[i]; j++) {
+						if(lhs.bit_rate_value_minus1[i][j][nalOrVcl] != rhs.bit_rate_value_minus1[i][j][nalOrVcl]) return false;
+						if(lhs.cpb_size_value_minus1[i][j][nalOrVcl] != rhs.cpb_size_value_minus1[i][j][nalOrVcl]) return false;
+
+						if (lhs.sub_pic_hrd_params_present_flag) {
+							if(lhs.cpb_size_du_value_minus1[i][j][nalOrVcl] != rhs.cpb_size_du_value_minus1[i][j][nalOrVcl]) return false;
+							if(lhs.bit_rate_du_value_minus1[i][j][nalOrVcl] != rhs.bit_rate_du_value_minus1[i][j][nalOrVcl]) return false;
+						}
+						if( lhs.cbr_flag[i][j][nalOrVcl] != rhs.cbr_flag[i][j][nalOrVcl]) return false;
+					}
+				}
+			}
+		}
+	}
+	return true;
+}
+
+bool operator==(const sps_range_extension &lhs, const sps_range_extension &rhs) {
+	if(&lhs == &rhs) return true;
+    if(lhs.transform_skip_rotation_enabled_flag != rhs.transform_skip_rotation_enabled_flag ) return false;
+    if(lhs.transform_skip_context_enabled_flag != rhs.transform_skip_context_enabled_flag ) return false;
+    if(lhs.implicit_rdpcm_enabled_flag != rhs.implicit_rdpcm_enabled_flag ) return false;
+    if(lhs.explicit_rdpcm_enabled_flag != rhs.explicit_rdpcm_enabled_flag ) return false;
+    if(lhs.extended_precision_processing_flag != rhs.extended_precision_processing_flag ) return false;
+    if(lhs.intra_smoothing_disabled_flag != rhs.intra_smoothing_disabled_flag ) return false;
+    if(lhs.high_precision_offsets_enabled_flag != rhs.high_precision_offsets_enabled_flag ) return false;
+    if(lhs.persistent_rice_adaptation_enabled_flag != rhs.persistent_rice_adaptation_enabled_flag ) return false;
+    if(lhs.cabac_bypass_alignment_enabled_flag != rhs.cabac_bypass_alignment_enabled_flag ) return false;
+	return true;
+}
+
+bool operator!=(const sps_range_extension &lhs, const sps_range_extension &rhs) {
+	if(&lhs == &rhs) return false;
+	return !(lhs==rhs);
+}
+
+
+bool operator==(const seq_parameter_set &lhs, const seq_parameter_set &rhs) {
+
+	if(&lhs== &rhs) return true;
+
+	if(lhs.sps_read != rhs.sps_read) return false;
+
+	if(lhs.video_parameter_set_id != rhs.video_parameter_set_id) return false;
+	if(lhs.sps_max_sub_layers != rhs.sps_max_sub_layers) return false;
+	if(lhs.sps_temporal_id_nesting_flag != rhs.sps_temporal_id_nesting_flag) return false;
+
+	if(!isEqual(lhs.profile_tier_level_, rhs.profile_tier_level_, lhs.sps_max_sub_layers)) return false;
+
+	if(lhs.seq_parameter_set_id != rhs.seq_parameter_set_id) return false;
+	if(lhs.chroma_format_idc != rhs.chroma_format_idc) return false;
+
+	if(lhs.separate_colour_plane_flag != rhs.separate_colour_plane_flag) return false;
+	if(lhs.pic_width_in_luma_samples != rhs.pic_width_in_luma_samples) return false;
+	if(lhs.pic_height_in_luma_samples != rhs.pic_height_in_luma_samples) return false;
+	if(lhs.conformance_window_flag != rhs.conformance_window_flag) return false;
+
+	if(lhs.conformance_window_flag) {
+		if(lhs.conf_win_left_offset != rhs.conf_win_left_offset) return false;
+		if(lhs.conf_win_right_offset != rhs.conf_win_right_offset) return false;
+		if(lhs.conf_win_top_offset != rhs.conf_win_top_offset) return false;
+		if(lhs.conf_win_bottom_offset != rhs.conf_win_bottom_offset) return false;
+	}
+
+	if(lhs.bit_depth_luma != rhs.bit_depth_luma) return false;
+	if(lhs.bit_depth_chroma != rhs.bit_depth_chroma) return false;
+
+	if(lhs.log2_max_pic_order_cnt_lsb != rhs.log2_max_pic_order_cnt_lsb) return false;
+	if(lhs.sps_sub_layer_ordering_info_present_flag != rhs.sps_sub_layer_ordering_info_present_flag) return false;
+
+	if(memcmp(lhs.sps_max_dec_pic_buffering, rhs.sps_max_dec_pic_buffering, sizeof(rhs.sps_max_dec_pic_buffering))) return false;
+	if(memcmp(lhs.sps_max_num_reorder_pics, rhs.sps_max_num_reorder_pics,  sizeof(rhs.sps_max_num_reorder_pics))) return false;
+	if(memcmp(lhs.sps_max_latency_increase_plus1, rhs.sps_max_latency_increase_plus1,  sizeof(rhs.sps_max_latency_increase_plus1))) return false;
+
+	if(lhs.log2_min_luma_coding_block_size != rhs.log2_min_luma_coding_block_size) return false;
+	if(lhs.log2_diff_max_min_luma_coding_block_size != rhs.log2_diff_max_min_luma_coding_block_size) return false;
+	if(lhs.log2_min_transform_block_size != rhs.log2_min_transform_block_size) return false;
+	if(lhs.log2_diff_max_min_transform_block_size != rhs.log2_diff_max_min_transform_block_size) return false;
+	if(lhs.max_transform_hierarchy_depth_inter != rhs.max_transform_hierarchy_depth_inter) return false;
+	if(lhs.max_transform_hierarchy_depth_intra != rhs.max_transform_hierarchy_depth_intra) return false;
+
+	if(lhs.scaling_list_enable_flag != rhs.scaling_list_enable_flag) return false;
+	if(lhs.scaling_list_enable_flag) {
+		if(lhs.sps_scaling_list_data_present_flag != rhs.sps_scaling_list_data_present_flag) return false;
+		if(lhs.sps_scaling_list_data_present_flag) {
+			// compare only needed if present, otherwise it is the default scaling list.
+			if(memcmp(&lhs.scaling_list, &rhs.scaling_list, sizeof(rhs.scaling_list))) return false;
+		}
+	}
+
+	if(lhs.amp_enabled_flag != rhs.amp_enabled_flag) return false;
+	if(lhs.sample_adaptive_offset_enabled_flag != rhs.sample_adaptive_offset_enabled_flag) return false;
+	if(lhs.pcm_enabled_flag != rhs.pcm_enabled_flag) return false;
+
+	if(lhs.pcm_enabled_flag) {
+		if(lhs.pcm_sample_bit_depth_luma != rhs.pcm_sample_bit_depth_luma) return false;
+		if(lhs.pcm_sample_bit_depth_chroma != rhs.pcm_sample_bit_depth_chroma) return false;
+		if(lhs.log2_min_pcm_luma_coding_block_size != rhs.log2_min_pcm_luma_coding_block_size) return false;
+		if(lhs.log2_diff_max_min_pcm_luma_coding_block_size != rhs.log2_diff_max_min_pcm_luma_coding_block_size) return false;
+		if(lhs.pcm_loop_filter_disable_flag != rhs.pcm_loop_filter_disable_flag) return false;
+	}
+
+	// (longterm) reference pics likely to change with a new sps, so ignored here.
+
+	if(lhs.sps_temporal_mvp_enabled_flag != rhs.sps_temporal_mvp_enabled_flag) return false;
+	if(lhs.strong_intra_smoothing_enable_flag != rhs.strong_intra_smoothing_enable_flag) return false;
+
+	if(lhs.vui_parameters_present_flag != rhs.vui_parameters_present_flag) return false;
+	if(lhs.vui_parameters_present_flag) {
+		if(!isEqual(lhs.vui, rhs.vui, lhs )) return false;
+	}
+
+	if(lhs.sps_extension_present_flag != rhs.sps_extension_present_flag ) return false;
+	if(lhs.sps_extension_present_flag) {
+		if(lhs.sps_range_extension_flag != rhs.sps_range_extension_flag ) return false;
+		if(lhs.sps_multilayer_extension_flag != rhs.sps_multilayer_extension_flag ) return false;
+		if(lhs.sps_extension_6bits != rhs.sps_extension_6bits ) return false;
+		if(lhs.range_extension != rhs.range_extension) return false;
+	}
+
+	return true;
+}
+
 de265_error decoder_context::read_sps_NAL(bitreader& reader)
 {
   logdebug(LogHeaders,"----> read SPS\n");
@@ -559,6 +816,22 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
 
   if (param_sps_headers_fd>=0) {
     new_sps->dump(param_sps_headers_fd);
+  }
+
+  if ( sps[ new_sps->seq_parameter_set_id ] ) {
+	  auto old_sps = sps[ new_sps->seq_parameter_set_id ].get();
+	  if ( *old_sps == *new_sps ) {
+		  printf(" **** keeping sps *****\n");
+		  // the new sps is identical to the old one, so no replacing needed.
+		  // however, reference pics and long-term reference pics might need updating.
+		  old_sps->ref_pic_sets = new_sps->ref_pic_sets;
+		  old_sps->long_term_ref_pics_present_flag = new_sps->long_term_ref_pics_present_flag;
+		  memcpy(old_sps->lt_ref_pic_poc_lsb_sps, new_sps->lt_ref_pic_poc_lsb_sps,  sizeof(old_sps->lt_ref_pic_poc_lsb_sps));
+		  memcpy(old_sps->used_by_curr_pic_lt_sps_flag, new_sps->used_by_curr_pic_lt_sps_flag,  sizeof(old_sps->used_by_curr_pic_lt_sps_flag));
+		  return DE265_OK;
+	  }
+	  printf(" **** replacing sps *****\n");
+
   }
 
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
