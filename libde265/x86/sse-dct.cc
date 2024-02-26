@@ -2114,7 +2114,7 @@ void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 
                 r4 = _mm_unpackhi_epi64(m128Tmp0, m128Tmp1);    //1st half 2nd row
-                r6 = _mm_unpackhi_epi64(m128Tmp2, m128Tmp3);    //2nd hald 2nd row
+                r6 = _mm_unpackhi_epi64(m128Tmp2, m128Tmp3);    //2nd half 2nd row
 
                 m128Tmp0 = _mm_unpackhi_epi32(E0l, E1l);
                 m128Tmp1 = _mm_unpackhi_epi32(E2l, E3l);
@@ -4924,7 +4924,7 @@ void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
                 m128iS14= _mm_unpackhi_epi64(m128Tmp4,m128Tmp5); //third quarter
                 m128iS15= _mm_unpackhi_epi64(m128Tmp6,m128Tmp7); //last quarter
 
-                //fith row
+                //fifth row
 
                 m128Tmp0= _mm_unpacklo_epi32(E0h,E1h);
                 m128Tmp1= _mm_unpacklo_epi32(E2h,E3h);

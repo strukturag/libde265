@@ -1209,7 +1209,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
-    // These will have to be handeled by an SHVC decoder.
+    // These will have to be handled by an SHVC decoder.
     nal_parser.free_NAL_unit(nal);
     return DE265_OK;
   }

@@ -79,7 +79,7 @@ void ref_pic_set::compute_derived_values()
    - as a list of the relative POC deltas themselves, or
    - by shifting an existing ref-pic-set by some number of frames
    When shifting an existing set, the frame 0 is also shifted as an additional reference frame.
-   When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
+   When coding the ref-pic-sets in the SPS, prediction is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
 bool read_short_term_ref_pic_set(error_queue* errqueue,
