@@ -92,7 +92,7 @@ void context_model_table::decouple()
 {
   if (D) printf("%p decouple (%p)\n",this,refcnt);
 
-  assert(refcnt); // not necessarily so, but we never use it on an unitialized object
+  assert(refcnt); // not necessarily so, but we never use it on an uninitialized object
 
   if (*refcnt > 1) {
     (*refcnt)--;
@@ -125,7 +125,7 @@ context_model_table& context_model_table::operator=(const context_model_table& s
 {
   if (D) printf("%p assign = %p\n",this,&src);
 
-  // assert(src.refcnt); // not necessarily so, but we never use it on an unitialized object
+  // assert(src.refcnt); // not necessarily so, but we never use it on an uninitialized object
 
   if (!src.refcnt) {
     release();

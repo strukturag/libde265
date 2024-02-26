@@ -389,7 +389,7 @@ void generate_inter_prediction_samples(base_context* ctx,
                  l,vi->mv[l].x,vi->mv[l].y,refPic->PicOrderCntVal);
 
 
-        // TODO: must predSamples stride really be nCS or can it be somthing smaller like nPbW?
+        // TODO: must predSamples stride really be nCS or can it be something smaller like nPbW?
 
         if (img->high_bit_depth(0)) {
           mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
@@ -795,7 +795,7 @@ private:
 
   A maximum of 4 candidates are generated.
 
-  Note 1: For a CB splitted into two PBs, it does not make sense to merge the
+  Note 1: For a CB split into two PBs, it does not make sense to merge the
   second part to the parameters of the first part, since then, we could use 2Nx2N
   right away. -> Exclude this candidate.
 */

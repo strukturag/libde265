@@ -187,8 +187,8 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
       fixed_pic_rate_within_cvs_flag[i] = true;
     }
 
-    low_delay_hrd_flag[i] = 0;// Infered to be 0 when not present
-    cpb_cnt_minus1[i] = 0;    // Infered to be 0 when not present
+    low_delay_hrd_flag[i] = 0;// Inferred to be 0 when not present
+    cpb_cnt_minus1[i] = 0;    // Inferred to be 0 when not present
 
     if (fixed_pic_rate_within_cvs_flag[i])
     {

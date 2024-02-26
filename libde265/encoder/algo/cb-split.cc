@@ -31,7 +31,7 @@
 #include <iostream>
 
 
-// Utility function to encode all four children in a splitted CB.
+// Utility function to encode all four children in a split CB.
 // Children are coded with the specified algo_cb_split.
 enc_cb* Algo_CB_Split::encode_cb_split(encoder_context* ectx,
                                        context_model_table& ctxModel,
