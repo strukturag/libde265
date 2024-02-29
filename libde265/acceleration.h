@@ -24,7 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <assert.h>
-
+#include "slice.h"
 
 struct acceleration_functions
 {
@@ -149,14 +149,16 @@ struct acceleration_functions
   void (*transform_skip_8)(uint8_t *_dst, const int16_t *coeffs, ptrdiff_t _stride); // no transform
   void (*transform_skip_rdpcm_v_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
   void (*transform_skip_rdpcm_h_8)(uint8_t *_dst, const int16_t *coeffs, int nT, ptrdiff_t _stride);
-  void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDST
-  void (*transform_add_8[4])(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride); // iDCT
+  void (*transform_4x4_dst_add_8)(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDST
+  void (*transform_add_8[4])(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit); // iDCT
+  void (*transform_dc_add_8[4])(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit); // iDCT_DC
 
   // 9-16 bit
 
   void (*transform_skip_16)(uint16_t *_dst, const int16_t *coeffs, ptrdiff_t _stride, int bit_depth); // no transform
   void (*transform_4x4_dst_add_16)(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDST
-  void (*transform_add_16[4])(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth); // iDCT
+  void (*transform_add_16[4])(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit); // iDCT
+  void (*transform_dc_add_16[4])(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit); // iDCT_DC
 
 
   void (*rotate_coefficients)(int16_t *coeff, int nT);
@@ -168,14 +170,21 @@ struct acceleration_functions
   void (*transform_idct_32x32)(int32_t *dst,const int16_t *coeffs,int bdShift, int max_coeff_bits);
   void (*add_residual_8)(uint8_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth);
   void (*add_residual_16)(uint16_t *dst,ptrdiff_t stride,const int32_t* r, int nT, int bit_depth);
+  void (*add_residual16_8)(uint8_t *dst, ptrdiff_t stride, const int16_t* r, int nT, int bit_depth);
+  void (*add_residual16_16)(uint16_t *dst,ptrdiff_t stride,const int16_t* r, int nT, int bit_depth);
 
-  template <class pixel_t>
-  void add_residual(pixel_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const;
+
+  template <class pixel_t> void add_residual(pixel_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const;
+  template <class pixel_t> void add_residual16(pixel_t *dst, ptrdiff_t stride, const int16_t* r, int nT, int bit_depth) const;
 
   void (*rdpcm_v)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
   void (*rdpcm_h)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
+  void (*rdpcm_v16)(int16_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
+  void (*rdpcm_h16)(int16_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
 
   void (*transform_skip_residual)(int32_t *residual, const int16_t *coeffs, int nT,
+                                  int tsShift,int bdShift);
+  void (*transform_skip_residual16)(int16_t *residual, const int16_t *coeffs, int nT,
                                   int tsShift,int bdShift);
 
 
@@ -183,8 +192,8 @@ struct acceleration_functions
   template <class pixel_t> void transform_skip_rdpcm_v(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_skip_rdpcm_h(pixel_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const;
   template <class pixel_t> void transform_4x4_dst_add(pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
-  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const;
-
+  template <class pixel_t> void transform_add(int sizeIdx, pixel_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const;
+  template <class pixel_t> void transform_dc_add(int sizeIdx, pixel_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const;
 
 
   // --- forward transforms ---
@@ -198,6 +207,29 @@ struct acceleration_functions
   // forward Hadamard transform (without scaling factor)
   // (4x4,8x8,16x16,32x32) indexed with (log2TbSize-2)
   void (*hadamard_transform_8[4])     (int16_t *coeffs, const int16_t *src, ptrdiff_t stride);
+
+
+  // ---- intra prediction ---- 
+
+  void (*intra_pred_dc_8[4])(uint8_t *dst, int dstStride, int nT, int cIdx, uint8_t *border);
+  void (*intra_pred_dc_16[4])(uint16_t *dst, int dstStride, int nT, int cIdx, uint16_t *border); 
+  template <class pixel_t> void intra_pred_dc(pixel_t *dst, int dstStride, int nT, int log2TrafoSize, int cIdx, pixel_t *border) const ;
+
+  void (*intra_prediction_angular_8[4])(uint8_t *dst, int dstStride, int bit_depth, bool disableIntraBoundaryFilter, int xB0,int yB0, \
+                                        enum IntraPredMode intraPredMode, int nT,int cIdx, uint8_t * border);
+  void (*intra_prediction_angular_16[4])(uint16_t *dst, int dstStride, int bit_depth, bool disableIntraBoundaryFilter, int xB0,int yB0,  \
+                                         enum IntraPredMode intraPredMode, int nT,int cIdx, uint16_t * border);
+  template <class pixel_t> void intra_prediction_angular(int AngIdx, pixel_t *dst, int dstStride, int bit_depth, bool disableIntraBoundaryFilter, int xB0,int yB0, \
+                                                         enum IntraPredMode intraPredMode, int nT,int cIdx, pixel_t *border) const  ;
+
+  void (*intra_prediction_sample_filtering_8 )(const seq_parameter_set& sps, uint8_t  * p, int nT, int cIdx, enum IntraPredMode intraPredMode) ;
+  void (*intra_prediction_sample_filtering_16)(const seq_parameter_set& sps, uint16_t * p, int nT, int cIdx, enum IntraPredMode intraPredMode) ;
+  template <class pixel_t> void intra_prediction_sample_filtering(const seq_parameter_set& sps, pixel_t* p, int nT, int cIdx, enum IntraPredMode intraPredMode) const ;
+
+  void (*intra_prediction_planar_8)(uint8_t  *dst, int dstStride, int nT,int cIdx, uint8_t  *border);
+  void (*intra_prediction_planar_16)(uint16_t *dst, int dstStride, int nT,int cIdx, uint16_t *border);
+  template <class pixel_t> void intra_prediction_planar(pixel_t *dst, int dstStride, int nT, int log2TrafoSize, int cIdx, pixel_t *border) const ;
+
 };
 
 
@@ -347,13 +379,32 @@ template <> inline void acceleration_functions::transform_skip_rdpcm_v<uint16_t>
 template <> inline void acceleration_functions::transform_skip_rdpcm_h<uint16_t>(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth) const { assert(false); /*transform_skip_rdpcm_h_8(dst,coeffs,nT,stride);*/ }
 
 
-template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_8(dst,coeffs,stride); }
+template <> inline void acceleration_functions::transform_4x4_dst_add<uint8_t>(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_8(dst,coeffs,stride, bit_depth); }
 template <> inline void acceleration_functions::transform_4x4_dst_add<uint16_t>(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride,int bit_depth) const { transform_4x4_dst_add_16(dst,coeffs,stride,bit_depth); }
 
-template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_8[sizeIdx](dst,coeffs,stride); }
-template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth) const { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth); }
+template <> inline void acceleration_functions::transform_add<uint8_t>(int sizeIdx, uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const { transform_add_8[sizeIdx](dst,coeffs,stride, col_limit); }
+template <> inline void acceleration_functions::transform_add<uint16_t>(int sizeIdx, uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const { transform_add_16[sizeIdx](dst,coeffs,stride,bit_depth, col_limit); }
+
+template <> inline void acceleration_functions::transform_dc_add<uint8_t>(int sizeIdx, uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const { transform_dc_add_8[sizeIdx](dst,coeffs,stride, col_limit); }
+template <> inline void acceleration_functions::transform_dc_add<uint16_t>(int sizeIdx, uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit) const { transform_dc_add_16[sizeIdx](dst,coeffs,stride,bit_depth, col_limit); }
 
 template <> inline void acceleration_functions::add_residual(uint8_t *dst,  ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const { add_residual_8(dst,stride,r,nT,bit_depth); }
 template <> inline void acceleration_functions::add_residual(uint16_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const { add_residual_16(dst,stride,r,nT,bit_depth); }
 
+template <> inline void acceleration_functions::add_residual16(uint8_t *dst,  ptrdiff_t stride, const int16_t* r, int nT, int bit_depth) const { add_residual16_8(dst,stride,r,nT,bit_depth); }
+template <> inline void acceleration_functions::add_residual16(uint16_t *dst, ptrdiff_t stride, const int16_t* r, int nT, int bit_depth) const { add_residual16_16(dst,stride,r,nT,bit_depth); }
+
+template <> inline void acceleration_functions::intra_pred_dc<uint8_t>(uint8_t* dst, int dstStride, int nT, int log2TrafoSize, int cIdx, uint8_t* border) const { intra_pred_dc_8[log2TrafoSize-2](dst, dstStride, nT,cIdx, border); } 
+template <> inline void acceleration_functions::intra_pred_dc<uint16_t>(uint16_t* dst, int dstStride, int nT, int log2TrafoSize, int cIdx, uint16_t* border) const { intra_pred_dc_16[log2TrafoSize-2](dst, dstStride, nT,cIdx, border); }
+
+template <> inline void acceleration_functions::intra_prediction_angular<uint8_t>(int AngIdx, uint8_t *dst, int dstStride, int bit_depth, bool disableIntraBoundaryFilter, int xB0,int yB0, enum IntraPredMode intraPredMode, int nT,int cIdx, uint8_t * border) const { 
+                                                intra_prediction_angular_8[AngIdx](dst, dstStride, bit_depth, disableIntraBoundaryFilter, xB0,yB0, intraPredMode, nT,cIdx, border); }
+template <> inline void acceleration_functions::intra_prediction_angular<uint16_t>(int AngIdx, uint16_t *dst, int dstStride, int bit_depth, bool disableIntraBoundaryFilter, int xB0,int yB0, enum IntraPredMode intraPredMode, int nT,int cIdx, uint16_t * border) const { 
+                                                intra_prediction_angular_16[AngIdx](dst, dstStride, bit_depth, disableIntraBoundaryFilter, xB0,yB0, intraPredMode, nT,cIdx, border); }
+
+template <> inline void acceleration_functions::intra_prediction_sample_filtering<uint8_t>(const seq_parameter_set& sps, uint8_t * p, int nT, int cIdx, enum IntraPredMode intraPredMode) const {intra_prediction_sample_filtering_8(sps, p, nT, cIdx, intraPredMode); }
+template <> inline void acceleration_functions::intra_prediction_sample_filtering<uint16_t>(const seq_parameter_set& sps, uint16_t * p, int nT, int cIdx, enum IntraPredMode intraPredMode) const {intra_prediction_sample_filtering_16(sps, p, nT, cIdx, intraPredMode); }
+
+template <> inline void acceleration_functions::intra_prediction_planar<uint8_t>(uint8_t *dst, int dstStride, int nT, int log2TrafoSize, int cIdx, uint8_t *border) const {intra_prediction_planar_8(dst, dstStride, nT, cIdx, border);}
+template <> inline void acceleration_functions::intra_prediction_planar<uint16_t>(uint16_t *dst, int dstStride, int nT, int log2TrafoSize, int cIdx, uint16_t *border) const {intra_prediction_planar_16(dst, dstStride, nT, cIdx, border);}
 #endif

@@ -840,7 +840,8 @@ void ff_hevc_transform_4x4_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_8x8_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-        ptrdiff_t _stride) {
+        ptrdiff_t _stride, int16_t col_limit) {
+    (void)col_limit;
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
 
@@ -1490,7 +1491,8 @@ void ff_hevc_transform_8x8_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_16x16_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-        ptrdiff_t _stride) {
+        ptrdiff_t _stride, int16_t col_limit) {
+    (void)col_limit;
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
     int i;
@@ -2910,7 +2912,8 @@ void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 #if HAVE_SSE4_1
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
-        ptrdiff_t _stride) {
+        ptrdiff_t _stride, int16_t col_limit) {
+    (void)col_limit;
     uint8_t shift_2nd = 12; // 20 - Bit depth
     uint16_t add_2nd = 1 << 11; //(1 << (shift_2nd - 1))
     int i, j;

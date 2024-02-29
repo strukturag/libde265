@@ -100,7 +100,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,4*4);
-    transform_4x4_add_8_fallback(out, xy2coeff(x,y), 4);
+    transform_4x4_add_8_fallback(out, xy2coeff(x,y), 4, 32);
   }
 };
 
@@ -113,7 +113,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,8*8);
-    transform_8x8_add_8_fallback(out, xy2coeff(x,y), 8);
+    transform_8x8_add_8_fallback(out, xy2coeff(x,y), 8, 32);
   }
 };
 
@@ -126,7 +126,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,16*16);
-    transform_16x16_add_8_fallback(out, xy2coeff(x,y), 16);
+    transform_16x16_add_8_fallback(out, xy2coeff(x,y), 16, 32);
   }
 };
 
@@ -139,7 +139,7 @@ public:
 
   virtual void runOnBlock(int x,int y) {
     memset(out,0,32*32);
-    transform_32x32_add_8_fallback(out, xy2coeff(x,y), 32);
+    transform_32x32_add_8_fallback(out, xy2coeff(x,y), 32, 32);
   }
 };
 

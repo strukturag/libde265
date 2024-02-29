@@ -40,6 +40,8 @@ libde265_la_SOURCES = \
   decctx.h \
   fallback.cc \
   fallback.h \
+  fallback-intrapred.cc\
+  fallback-intrapred.h\
   fallback-dct.h \
   fallback-dct.cc \
   fallback-motion.cc \

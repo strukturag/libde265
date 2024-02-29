@@ -12,6 +12,7 @@ set (libde265_sources
   dpb.cc
   en265.cc
   fallback-dct.cc
+  fallback-intrapred.cc
   fallback-motion.cc 
   fallback.cc
   image-io.cc
@@ -51,6 +52,7 @@ set (libde265_headers
   dpb.h
   en265.h
   fallback-dct.h
+  fallback-intrapred.h
   fallback-motion.h
   fallback.h
   image-io.h
@@ -121,7 +123,22 @@ if(HAVE_X86)
   endif()
 endif()
 
-add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+
+check_c_source_compiles(
+  "#if !defined(__ARM_ARCH_ISA_A64) && !defined(__ARM_ARCH_ISA_ARM)
+  #error not arm
+  #endif
+  int main(){return 0;}"
+  HAVE_ARM)
+
+if(HAVE_ARM)
+  add_definitions(-DHAVE_ARM)
+  # add_definitions(-DHAVE_NEON)
+  add_subdirectory(arm)
+endif()
+
+
+add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS} ${ARM_OBJECTS})
 target_link_libraries(de265 PRIVATE Threads::Threads)
 target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 

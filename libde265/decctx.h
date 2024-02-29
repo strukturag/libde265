@@ -87,9 +87,11 @@ public:
   int16_t coeffList[3][32*32];
   int16_t coeffPos[3][32*32];
   int16_t nCoeff[3];
+  int16_t DConly[3];
+  int16_t col_limit[3];
 
   int32_t residual_luma[32*32]; // only used when cross-comp-prediction is enabled
-
+  int16_t residual_luma16[32*32];
 
   // quantization
 

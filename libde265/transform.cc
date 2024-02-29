@@ -214,7 +214,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
 template <class pixel_t>
 void transform_coefficients(acceleration_functions* acceleration,
                             int16_t* coeff, int coeffStride, int nT, int trType,
-                            pixel_t* dst, int dstStride, int bit_depth)
+                            pixel_t* dst, int dstStride, int bit_depth, int16_t DConly, int16_t col_limit)
 {
   logtrace(LogTransform,"transform --- trType: %d nT: %d\n",trType,nT);
 
@@ -223,12 +223,18 @@ void transform_coefficients(acceleration_functions* acceleration,
 
     acceleration->transform_4x4_dst_add<pixel_t>(dst, coeff, dstStride, bit_depth);
 
+  } else if(DConly){
+    /**/ if (nT==4)  { acceleration->transform_dc_add<pixel_t>(0,dst,coeff,dstStride, bit_depth, col_limit); }
+    else if (nT==8)  { acceleration->transform_dc_add<pixel_t>(1,dst,coeff,dstStride, bit_depth, col_limit); }
+    else if (nT==16) { acceleration->transform_dc_add<pixel_t>(2,dst,coeff,dstStride, bit_depth, col_limit); }
+    else             { acceleration->transform_dc_add<pixel_t>(3,dst,coeff,dstStride, bit_depth, col_limit); }
+
   } else {
 
-    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth); }
-    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth); }
-    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth); }
-    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth); }
+    /**/ if (nT==4)  { acceleration->transform_add<pixel_t>(0,dst,coeff,dstStride, bit_depth, col_limit); }
+    else if (nT==8)  { acceleration->transform_add<pixel_t>(1,dst,coeff,dstStride, bit_depth, col_limit); }
+    else if (nT==16) { acceleration->transform_add<pixel_t>(2,dst,coeff,dstStride, bit_depth, col_limit); }
+    else             { acceleration->transform_add<pixel_t>(3,dst,coeff,dstStride, bit_depth, col_limit); }
   }
 
 #if 0
@@ -243,6 +249,24 @@ void transform_coefficients(acceleration_functions* acceleration,
 
 // TODO: make this an accelerated function
 void cross_comp_pred(const thread_context* tctx, int32_t* residual, int nT)
+{
+  const int BitDepthC = tctx->img->get_sps().BitDepth_C;
+  const int BitDepthY = tctx->img->get_sps().BitDepth_Y;
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      /* TODO: the most usual case is definitely BitDepthY == BitDepthC, in which case
+         we could just omit two shifts. The second most common case is probably
+         BitDepthY>BitDepthC, for which we could also eliminate one shift. The remaining
+         case is also one shift only.
+      */
+
+      residual[y*nT+x] += (tctx->ResScaleVal *
+                           ((tctx->residual_luma[y*nT+x] << BitDepthC ) >> BitDepthY ) ) >> 3;
+    }
+}
+
+void cross_comp_pred16(const thread_context* tctx, int16_t* residual, int nT)
 {
   const int BitDepthC = tctx->img->get_sps().BitDepth_C;
   const int BitDepthY = tctx->img->get_sps().BitDepth_Y;
@@ -319,10 +343,10 @@ void inv_transform(acceleration_functions* acceleration,
   if (trType==1) {
     assert(log2TbSize==2);
 
-    acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride);
+    acceleration->transform_4x4_dst_add_8(dst, coeff, dstStride, 8);
 
   } else {
-    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride);
+    acceleration->transform_add_8[log2TbSize-2](dst,coeff,dstStride, 32);
   }
 
 
@@ -386,9 +410,7 @@ void scale_coefficients_internal(thread_context* tctx,
   coeff = tctx->coeffBuf;
   coeffStride = nT;
 
-
-
-
+  memset(tctx->coeffBuf, 0, (nT * nT) * sizeof(int16_t));
 
   pixel_t* pred;
   int      stride;
@@ -547,39 +569,74 @@ void scale_coefficients_internal(thread_context* tctx,
       if (rotateCoeffs) {
         tctx->decctx->acceleration.rotate_coefficients(coeff, nT);
       }
+      if(bit_depth==8 && nT==4){
+        int16_t residual_buffer[32*32];
 
-      int32_t residual_buffer[32*32];
+        int16_t* residual;
+        if (cIdx==0) residual = tctx->residual_luma16;
+        else         residual = residual_buffer;
 
-      int32_t* residual;
-      if (cIdx==0) residual = tctx->residual_luma;
-      else         residual = residual_buffer;
+        if (rdpcmMode) {
+          /*
+          if (rdpcmMode==2)
+            tctx->decctx->acceleration.transform_skip_rdpcm_v(pred,coeff, Log2(nT), stride, bit_depth);
+          else
+            tctx->decctx->acceleration.transform_skip_rdpcm_h(pred,coeff, Log2(nT), stride, bit_depth);
+          */
 
-      if (rdpcmMode) {
-        /*
-        if (rdpcmMode==2)
-          tctx->decctx->acceleration.transform_skip_rdpcm_v(pred,coeff, Log2(nT), stride, bit_depth);
-        else
-          tctx->decctx->acceleration.transform_skip_rdpcm_h(pred,coeff, Log2(nT), stride, bit_depth);
-        */
-
-        if (rdpcmMode==2)
-          tctx->decctx->acceleration.rdpcm_v(residual, coeff,nT, tsShift,bdShift);
-        else
-          tctx->decctx->acceleration.rdpcm_h(residual, coeff,nT, tsShift,bdShift);
-      }
-      else {
-        //tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
-
-        tctx->decctx->acceleration.transform_skip_residual(residual, coeff, nT, tsShift, bdShift);
-      }
-
-      if (cIdx != 0) {
-        if (tctx->ResScaleVal != 0) {
-          cross_comp_pred(tctx, residual, nT);
+          if (rdpcmMode==2)
+            tctx->decctx->acceleration.rdpcm_v16(residual, coeff,nT, tsShift,bdShift);
+          else
+            tctx->decctx->acceleration.rdpcm_h16(residual, coeff,nT, tsShift,bdShift);
         }
-      }
+        else {
+          //tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
 
-      tctx->decctx->acceleration.add_residual(pred,stride, residual,nT, bit_depth);
+          tctx->decctx->acceleration.transform_skip_residual16(residual, coeff, nT, tsShift, bdShift);
+        }
+
+        if (cIdx != 0) {
+          if (tctx->ResScaleVal != 0) {
+            cross_comp_pred16(tctx, residual, nT);
+          }
+        }
+
+        tctx->decctx->acceleration.add_residual16(pred,stride, residual,nT, bit_depth);
+      }
+      else{
+        int32_t residual_buffer[32*32];
+
+        int32_t* residual;
+        if (cIdx==0) residual = tctx->residual_luma;
+        else         residual = residual_buffer;
+
+        if (rdpcmMode) {
+          /*
+          if (rdpcmMode==2)
+            tctx->decctx->acceleration.transform_skip_rdpcm_v(pred,coeff, Log2(nT), stride, bit_depth);
+          else
+            tctx->decctx->acceleration.transform_skip_rdpcm_h(pred,coeff, Log2(nT), stride, bit_depth);
+          */
+
+          if (rdpcmMode==2)
+            tctx->decctx->acceleration.rdpcm_v(residual, coeff,nT, tsShift,bdShift);
+          else
+            tctx->decctx->acceleration.rdpcm_h(residual, coeff,nT, tsShift,bdShift);
+        }
+        else {
+          //tctx->decctx->acceleration.transform_skip(pred, coeff, stride, bit_depth);
+
+          tctx->decctx->acceleration.transform_skip_residual(residual, coeff, nT, tsShift, bdShift);
+        }
+
+        if (cIdx != 0) {
+          if (tctx->ResScaleVal != 0) {
+            cross_comp_pred(tctx, residual, nT);
+          }
+        }
+
+        tctx->decctx->acceleration.add_residual(pred,stride, residual,nT, bit_depth);
+      }
 
       if (rotateCoeffs) {
         memset(coeff, 0, nT*nT*sizeof(int16_t)); // delete all, because we moved the coeffs around
@@ -607,7 +664,7 @@ void scale_coefficients_internal(thread_context* tctx,
       }
       else {
         transform_coefficients(&tctx->decctx->acceleration, coeff, coeffStride, nT, trType,
-                               pred, stride, bit_depth);
+                               pred, stride, bit_depth, tctx->DConly[cIdx], tctx->col_limit[cIdx]);     
       }
     }
   }
@@ -627,9 +684,9 @@ void scale_coefficients_internal(thread_context* tctx,
 
   // zero out scrap coefficient buffer again
 
-  for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-    tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = 0;
-  }
+  //for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+  //  tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = 0;
+  //}
 }
 
 

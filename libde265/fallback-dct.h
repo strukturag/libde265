@@ -37,21 +37,21 @@ void transform_skip_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs, int 
 void transform_bypass_rdpcm_v_fallback(int32_t *r, const int16_t *coeffs,int nT);
 void transform_bypass_rdpcm_h_fallback(int32_t *r, const int16_t *coeffs,int nT);
 
-void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
-void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
-void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
-void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
-void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
+void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_4x4_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit);
+void transform_8x8_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit);
+void transform_16x16_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit);
+void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit);
 
 
 void transform_skip_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
 void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth);
 
 void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth);
+void transform_4x4_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit);
+void transform_8x8_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit);
+void transform_16x16_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit);
+void transform_32x32_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit);
 
 void rotate_coefficients_fallback(int16_t *coeff, int nT);
 
@@ -72,11 +72,24 @@ void add_residual_fallback(pixel_t *dst, ptrdiff_t stride,
     }
 }
 
+template <class pixel_t>
+void add_residual16_fallback(pixel_t *dst, ptrdiff_t stride,
+                           const int16_t* r, int nT, int bit_depth)
+{
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      dst[y*stride+x] = Clip_BitDepth(dst[y*stride+x] + r[y*nT+x], bit_depth);
+    }
+}
 
 void rdpcm_v_fallback(int32_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);
 void rdpcm_h_fallback(int32_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);
+void rdpcm_v16_fallback(int16_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);
+void rdpcm_h16_fallback(int16_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);
 
 void transform_skip_residual_fallback(int32_t *residual, const int16_t *coeffs, int nT,
+                                      int tsShift,int bdShift);
+void transform_skip_residual16_fallback(int16_t *residual, const int16_t *coeffs, int nT,
                                       int tsShift,int bdShift);
 
 

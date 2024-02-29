@@ -89,6 +89,19 @@ void transform_skip_residual_fallback(int32_t *residual, const int16_t *coeffs, 
     }
 }
 
+void transform_skip_residual16_fallback(int16_t *residual, const int16_t *coeffs, int nT,
+                                      int tsShift,int bdShift)
+{
+  const int rnd = 1<<(bdShift-1);
+
+  for (int y=0;y<nT;y++)
+    for (int x=0;x<nT;x++) {
+      int32_t c = coeffs[x+y*nT] << tsShift;
+      residual[x+y*nT] = (c + rnd) >> bdShift;
+    }
+}
+
+
 
 void transform_skip_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs, int log2nT, ptrdiff_t stride)
 {
@@ -212,6 +225,34 @@ void rdpcm_h_fallback(int32_t* residual, const int16_t* coeffs, int nT,int tsShi
   }
 }
 
+void rdpcm_v16_fallback(int16_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift)
+{
+  int rnd = (1<<(bdShift-1));
+
+  for (int x=0;x<nT;x++) {
+    int sum=0;
+    for (int y=0;y<nT;y++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+rnd)>>bdShift;
+      residual[y*nT+x] = sum;
+    }
+  }
+}
+
+
+void rdpcm_h16_fallback(int16_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift)
+{
+  int rnd = (1<<(bdShift-1));
+
+  for (int y=0;y<nT;y++) {
+    int sum=0;
+    for (int x=0;x<nT;x++) {
+      int c = coeffs[x+y*nT] << tsShift;
+      sum += (c+rnd)>>bdShift;
+      residual[y*nT+x] = sum;
+    }
+  }
+}
 
 void transform_bypass_fallback(int32_t *dst, const int16_t *coeffs, int nT)
 {
@@ -267,8 +308,9 @@ static int8_t mat_8_357[4][4] = {
 
 
 
-void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
 {
+  (void)bit_depth;
   int16_t g[4][4];
 
   int postShift = 20-8; // 8 bit
@@ -862,43 +904,43 @@ void transform_idct_32x32_fallback(int32_t *dst, const int16_t *coeffs,
 
 
 
-void transform_4x4_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_4x4_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit)
 {
   transform_idct_add<uint8_t>(dst,stride,  4, coeffs, 8);
 }
 
-void transform_8x8_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_8x8_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit)
 {
   transform_idct_add<uint8_t>(dst,stride,  8, coeffs, 8);
 }
 
-void transform_16x16_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_16x16_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit)
 {
   transform_idct_add<uint8_t>(dst,stride,  16, coeffs, 8);
 }
 
-void transform_32x32_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
+void transform_32x32_add_8_fallback(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride, int16_t col_limit)
 {
   transform_idct_add<uint8_t>(dst,stride,  32, coeffs, 8);
 }
 
 
-void transform_4x4_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_4x4_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit)
 {
   transform_idct_add<uint16_t>(dst,stride,  4, coeffs, bit_depth);
 }
 
-void transform_8x8_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_8x8_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit)
 {
   transform_idct_add<uint16_t>(dst,stride,  8, coeffs, bit_depth);
 }
 
-void transform_16x16_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_16x16_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit)
 {
   transform_idct_add<uint16_t>(dst,stride,  16, coeffs, bit_depth);
 }
 
-void transform_32x32_add_16_fallback(uint16_t *dst, const int16_t *coeffs, ptrdiff_t stride, int bit_depth)
+void transform_32x32_add_16_fallback(uint16_t *dst, int16_t *coeffs, ptrdiff_t stride, int bit_depth, int16_t col_limit)
 {
   transform_idct_add<uint16_t>(dst,stride,  32, coeffs, bit_depth);
 }

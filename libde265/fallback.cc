@@ -21,6 +21,7 @@
 #include "fallback.h"
 #include "fallback-motion.h"
 #include "fallback-dct.h"
+#include "fallback-intrapred.h"
 
 
 void init_acceleration_functions_fallback(struct acceleration_functions* accel)
@@ -93,6 +94,10 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->transform_add_8[1] = transform_8x8_add_8_fallback;
   accel->transform_add_8[2] = transform_16x16_add_8_fallback;
   accel->transform_add_8[3] = transform_32x32_add_8_fallback;
+  accel->transform_dc_add_8[0] = transform_4x4_add_8_fallback;
+  accel->transform_dc_add_8[1] = transform_8x8_add_8_fallback;
+  accel->transform_dc_add_8[2] = transform_16x16_add_8_fallback;
+  accel->transform_dc_add_8[3] = transform_32x32_add_8_fallback;
 
   accel->transform_skip_16 = transform_skip_16_fallback;
   accel->transform_4x4_dst_add_16 = transform_4x4_luma_add_16_fallback;
@@ -100,13 +105,22 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->transform_add_16[1] = transform_8x8_add_16_fallback;
   accel->transform_add_16[2] = transform_16x16_add_16_fallback;
   accel->transform_add_16[3] = transform_32x32_add_16_fallback;
+  accel->transform_dc_add_16[0] = transform_4x4_add_16_fallback;
+  accel->transform_dc_add_16[1] = transform_8x8_add_16_fallback;
+  accel->transform_dc_add_16[2] = transform_16x16_add_16_fallback;
+  accel->transform_dc_add_16[3] = transform_32x32_add_16_fallback;
 
   accel->rotate_coefficients = rotate_coefficients_fallback;
   accel->add_residual_8  = add_residual_fallback<uint8_t>;
   accel->add_residual_16 = add_residual_fallback<uint16_t>;
+  accel->add_residual16_8  = add_residual16_fallback<uint8_t>;
+  accel->add_residual16_16 = add_residual16_fallback<uint16_t>;
   accel->rdpcm_h = rdpcm_h_fallback;
   accel->rdpcm_v = rdpcm_v_fallback;
+  accel->rdpcm_h16 = rdpcm_h16_fallback;
+  accel->rdpcm_v16 = rdpcm_v16_fallback;
   accel->transform_skip_residual = transform_skip_residual_fallback;
+  accel->transform_skip_residual16 = transform_skip_residual16_fallback;
 
   accel->transform_idst_4x4   = transform_idst_4x4_fallback;
   accel->transform_idct_4x4   = transform_idct_4x4_fallback;
@@ -124,4 +138,30 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->hadamard_transform_8[1] = hadamard_8x8_8_fallback;
   accel->hadamard_transform_8[2] = hadamard_16x16_8_fallback;
   accel->hadamard_transform_8[3] = hadamard_32x32_8_fallback;
+
+  accel->intra_pred_dc_8[0]  = intra_pred_8_fallback ;
+  accel->intra_pred_dc_8[1]  = intra_pred_8_fallback ;
+  accel->intra_pred_dc_8[2]  = intra_pred_8_fallback ;
+  accel->intra_pred_dc_8[3]  = intra_pred_8_fallback ;
+
+  accel->intra_pred_dc_16[0] = intra_pred_16_fallback;
+  accel->intra_pred_dc_16[1] = intra_pred_16_fallback;
+  accel->intra_pred_dc_16[2] = intra_pred_16_fallback;
+  accel->intra_pred_dc_16[3] = intra_pred_16_fallback;
+
+  accel->intra_prediction_angular_8[0]  = intra_prediction_angular_8_fallback ;
+  accel->intra_prediction_angular_8[1]  = intra_prediction_angular_8_fallback ;
+  accel->intra_prediction_angular_8[2]  = intra_prediction_angular_8_fallback ;
+  accel->intra_prediction_angular_8[3]  = intra_prediction_angular_8_fallback ;
+  accel->intra_prediction_angular_16[0] = intra_prediction_angular_16_fallback;
+  accel->intra_prediction_angular_16[1] = intra_prediction_angular_16_fallback;
+  accel->intra_prediction_angular_16[2] = intra_prediction_angular_16_fallback;
+  accel->intra_prediction_angular_16[3] = intra_prediction_angular_16_fallback;
+
+  accel->intra_prediction_sample_filtering_8  = intra_prediction_sample_filtering_8_fallback ;
+  accel->intra_prediction_sample_filtering_16 = intra_prediction_sample_filtering_16_fallback;
+
+  accel->intra_prediction_planar_8  = intra_prediction_planar_8_fallback ;
+  accel->intra_prediction_planar_16 = intra_prediction_planar_16_fallback;
+
 }

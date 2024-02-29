@@ -2915,6 +2915,28 @@ int check_CTB_available(const de265_image* img,
   return 1;
 }
 
+#if HAVE_ARM
+LIBDE265_INLINE int16_t get32_col_limit(int64_t CGMAP){
+  if (CGMAP>>56) return 8;
+  if (CGMAP>>48) return 7;
+  if (CGMAP>>40) return 6;
+  if (CGMAP>>32) return 5;
+  if (CGMAP>>24) return 4;
+  if (CGMAP>>16) return 3;
+  if (CGMAP>> 8) return 2;
+  return 1;
+}
+LIBDE265_INLINE int16_t get16_col_limit(int64_t CGMAP){
+  if (CGMAP>>12) return 4;
+  if (CGMAP>>8) return 3;
+  if (CGMAP>>4) return 2;
+  return 1;
+}
+LIBDE265_INLINE int16_t get8_col_limit(int64_t CGMAP){
+  if (CGMAP>>2) return 2;
+  return 1;
+}
+#endif
 
 int residual_coding(thread_context* tctx,
                     int x0, int y0,  // position of TU in frame
@@ -2930,6 +2952,9 @@ int residual_coding(thread_context* tctx,
   const pic_parameter_set& pps = img->get_pps();
 
   enum PredMode PredMode = img->get_pred_mode(x0,y0);
+
+  //init DConly 
+  tctx->DConly[cIdx] = 0;
 
   if (cIdx==0) {
     img->set_nonzero_coefficient(x0,y0,log2TrafoSize);
@@ -3090,6 +3115,10 @@ int residual_coding(thread_context* tctx,
 
   // i - subblock index
   // n - coefficient index in subblock
+#if HAVE_ARM
+  int64_t SGMAP = 0;
+  int SGSHIFT = log2TrafoSize-2;
+#endif
 
   for (int i=lastSubBlock;i>=0;i--) {
     position S = ScanOrderSub[i];
@@ -3118,6 +3147,9 @@ int residual_coding(thread_context* tctx,
     if (sub_block_is_coded) {
       if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
+#if HAVE_ARM
+      SGMAP |= (1ULL << ((S.x<<SGSHIFT)+S.y));
+#endif
     }
 
 
@@ -3431,6 +3463,29 @@ int residual_coding(thread_context* tctx,
     }  // if nonZero
   }  // next sub-block
 
+  tctx->DConly[cIdx] = !(LastSignificantCoeffX || LastSignificantCoeffY);
+
+#if HAVE_ARM
+  switch (log2TrafoSize) {
+    case 5: 
+      tctx->col_limit[cIdx] = get32_col_limit(SGMAP); 
+      assert(tctx->col_limit[cIdx]<=8);
+      break;
+    case 4: 
+      tctx->col_limit[cIdx] = get16_col_limit(SGMAP); 
+      assert(tctx->col_limit[cIdx]<=4);
+      break;
+    case 3: 
+      tctx->col_limit[cIdx] = get8_col_limit(SGMAP); 
+      assert(tctx->col_limit[cIdx]<=2);
+      break;
+    case 2: 
+      tctx->col_limit[cIdx] = 1; 
+      break;
+    default: 
+     assert(false);
+    }
+#endif
   return DE265_OK;
 }
 
@@ -3438,9 +3493,10 @@ int residual_coding(thread_context* tctx,
 static void decode_TU(thread_context* tctx,
                       int x0,int y0,
                       int xCUBase,int yCUBase,
-                      int nT, int cIdx, enum PredMode cuPredMode, bool cbf)
+                      int nT, int log2TrafoSize, int cIdx, enum PredMode cuPredMode, bool cbf)
 {
   de265_image* img = tctx->img;
+  acceleration_functions* acceleration = &tctx->decctx->acceleration ;
   const seq_parameter_set& sps = img->get_sps();
 
   int residualDpcm = 0;
@@ -3464,7 +3520,7 @@ static void decode_TU(thread_context* tctx,
         intraPredMode = INTRA_DC;
       }
 
-      decode_intra_prediction(img, x0,y0, intraPredMode, nT, cIdx);
+      decode_intra_prediction(img, acceleration, x0,y0, intraPredMode, nT, log2TrafoSize, cIdx);
 
 
       residualDpcm = sps.range_extension.implicit_rdpcm_enabled_flag &&
@@ -3676,7 +3732,7 @@ int read_transform_unit(thread_context* tctx,
     if ((err=residual_coding(tctx,x0,y0, log2TrafoSize,0)) != DE265_OK) return err;
   }
 
-  decode_TU(tctx, x0,y0, xCUBase,yCUBase, nT, 0, cuPredMode, cbf_luma);
+  decode_TU(tctx, x0,y0, xCUBase,yCUBase, nT, log2TrafoSize, 0, cuPredMode, cbf_luma);
 
 
   // --- chroma ---
@@ -3706,7 +3762,7 @@ int read_transform_unit(thread_context* tctx,
       if (sps.ChromaArrayType != CHROMA_MONO) {
         decode_TU(tctx,
                   x0/SubWidthC,y0/SubHeightC,
-                  xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, 1, cuPredMode, cbf_cb & 1);
+                  xCUBase/SubWidthC,yCUBase/SubHeightC, nTC, log2TrafoSizeC, 1, cuPredMode, cbf_cb & 1);
       }
     }
 
@@ -3723,7 +3779,7 @@ int read_transform_unit(thread_context* tctx,
       decode_TU(tctx,
                 x0/SubWidthC,y0/SubHeightC + yOffset,
                 xCUBase/SubWidthC,yCUBase/SubHeightC +yOffset,
-                nTC, 1, cuPredMode, cbf_cb & 2);
+                nTC, log2TrafoSizeC, 1, cuPredMode, cbf_cb & 2);
     }
 
 
@@ -3743,7 +3799,7 @@ int read_transform_unit(thread_context* tctx,
         decode_TU(tctx,
                   x0/SubWidthC,y0/SubHeightC,
                   xCUBase/SubWidthC,yCUBase/SubHeightC,
-                  nTC, 2, cuPredMode, cbf_cr & 1);
+                  nTC, log2TrafoSizeC, 2, cuPredMode, cbf_cr & 1);
       }
     }
 
@@ -3760,7 +3816,7 @@ int read_transform_unit(thread_context* tctx,
       decode_TU(tctx,
                 x0/SubWidthC,y0/SubHeightC+yOffset,
                 xCUBase/SubWidthC,yCUBase/SubHeightC+yOffset,
-                nTC, 2, cuPredMode, cbf_cr & 2);
+                nTC, log2TrafoSizeC, 2, cuPredMode, cbf_cr & 2);
     }
   }
   else if (blkIdx==3) {
@@ -3772,7 +3828,7 @@ int read_transform_unit(thread_context* tctx,
     if (sps.ChromaArrayType != CHROMA_MONO) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC,
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 1);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, log2TrafoSize, 1, cuPredMode, cbf_cb & 1);
     }
 
     // 4:2:2
@@ -3785,7 +3841,7 @@ int read_transform_unit(thread_context* tctx,
     if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 1, cuPredMode, cbf_cb & 2);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, log2TrafoSize, 1, cuPredMode, cbf_cb & 2);
     }
 
     if (cbf_cr & 1) {
@@ -3796,7 +3852,7 @@ int read_transform_unit(thread_context* tctx,
     if (sps.ChromaArrayType != CHROMA_MONO) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC,
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 1);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, log2TrafoSize, 2, cuPredMode, cbf_cr & 1);
     }
 
     // 4:2:2
@@ -3809,7 +3865,7 @@ int read_transform_unit(thread_context* tctx,
     if (ChromaArrayType == CHROMA_422) {
       decode_TU(tctx,
                 xBase/SubWidthC,  yBase/SubHeightC + (1<<log2TrafoSize),
-                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, 2, cuPredMode, cbf_cr & 2);
+                xCUBase/SubWidthC,yCUBase/SubHeightC, nT, log2TrafoSize, 2, cuPredMode, cbf_cr & 2);
     }
   }
 

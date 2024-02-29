@@ -87,15 +87,17 @@ void decode_intra_block(decoder_context* ctx,
 //                         int nT, int cIdx, uint8_t* out_border);
 
 void decode_intra_prediction(de265_image* img,
+                             acceleration_functions* acceleration,  
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
-                             int nT, int cIdx);
+                             int nT, int log2TrafoSize, int cIdx);
 
 // TODO: remove this
 template <class pixel_t> void decode_intra_prediction(de265_image* img,
+                                                      acceleration_functions* acceleration,  
                                                       int xB0,int yB0,
                                                       enum IntraPredMode intraPredMode,
-                                                      pixel_t* dst, int nT, int cIdx);
+                                                      pixel_t* dst, int nT, int log2TrafoSize, int cIdx);
 
 
 

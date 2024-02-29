@@ -270,13 +270,19 @@ const int invAngle_table[25-10] =
   { -4096,-1638,-910,-630,-482,-390,-315,-256,
     -315,-390,-482,-630,-910,-1638,-4096 };
 
+const int intraPredAng_table[1+34] = 
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    1, 1, 1, 1, 1, 1, 1, 1,
+    2, 2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3   };
 
 template <class pixel_t>
 void decode_intra_prediction_internal(de265_image* img,
+                                      acceleration_functions* acceleration,  
                                       int xB0,int yB0,
                                       enum IntraPredMode intraPredMode,
                                       pixel_t* dst, int dstStride,
-                                      int nT, int cIdx)
+                                      int nT, int log2TrafoSize, int cIdx)
 {
   pixel_t  border_pixels_mem[4*MAX_INTRA_PRED_BLOCK_SIZE+1];
   pixel_t* border_pixels = &border_pixels_mem[2*MAX_INTRA_PRED_BLOCK_SIZE];
@@ -286,16 +292,16 @@ void decode_intra_prediction_internal(de265_image* img,
   if (img->get_sps().range_extension.intra_smoothing_disabled_flag == 0 &&
       (cIdx==0 || img->get_sps().ChromaArrayType==CHROMA_444))
     {
-      intra_prediction_sample_filtering(img->get_sps(), border_pixels, nT, cIdx, intraPredMode);
+      acceleration->intra_prediction_sample_filtering(img->get_sps(), border_pixels, nT, cIdx, intraPredMode);
     }
 
 
   switch (intraPredMode) {
   case INTRA_PLANAR:
-    intra_prediction_planar(dst,dstStride, nT,cIdx, border_pixels);
+    acceleration->intra_prediction_planar<pixel_t>(dst,dstStride, nT, log2TrafoSize, cIdx, border_pixels);
     break;
   case INTRA_DC:
-    intra_prediction_DC(dst,dstStride, nT,cIdx, border_pixels);
+    acceleration->intra_pred_dc<pixel_t>(dst, dstStride, nT, log2TrafoSize, cIdx, border_pixels);
     break;
   default:
     {
@@ -303,9 +309,9 @@ void decode_intra_prediction_internal(de265_image* img,
       bool disableIntraBoundaryFilter =
         (img->get_sps().range_extension.implicit_rdpcm_enabled_flag &&
          img->get_cu_transquant_bypass(xB0,yB0));
-
-      intra_prediction_angular(dst,dstStride, bit_depth,disableIntraBoundaryFilter,
-                               xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
+      int ang_idx = intraPredAng_table[intraPredMode];
+      acceleration->intra_prediction_angular<pixel_t>(ang_idx,dst,dstStride, bit_depth,disableIntraBoundaryFilter,
+                                                      xB0,yB0,intraPredMode,nT,cIdx, border_pixels);
     }
     break;
   }
@@ -314,9 +320,10 @@ void decode_intra_prediction_internal(de265_image* img,
 
 // (8.4.4.2.1)
 void decode_intra_prediction(de265_image* img,
+                             acceleration_functions* acceleration,  
                              int xB0,int yB0,
                              enum IntraPredMode intraPredMode,
-                             int nT, int cIdx)
+                             int nT, int log2TrafoSize, int cIdx)
 {
   logtrace(LogIntraPred,"decode_intra_prediction xy0:%d/%d mode=%d nT=%d, cIdx=%d\n",
            xB0,yB0, intraPredMode, nT,cIdx);
@@ -326,39 +333,41 @@ void decode_intra_prediction(de265_image* img,
   */
 
   if (img->high_bit_depth(cIdx)) {
-    decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
+    decode_intra_prediction_internal<uint16_t>(img,acceleration,xB0,yB0, intraPredMode,
                                                img->get_image_plane_at_pos_NEW<uint16_t>(cIdx,xB0,yB0),
                                                img->get_image_stride(cIdx),
-                                               nT,cIdx);
+                                               nT, log2TrafoSize, cIdx);
   }
   else {
-    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
+    decode_intra_prediction_internal<uint8_t>(img,acceleration,xB0,yB0, intraPredMode,
                                               img->get_image_plane_at_pos_NEW<uint8_t>(cIdx,xB0,yB0),
                                               img->get_image_stride(cIdx),
-                                              nT,cIdx);
+                                              nT, log2TrafoSize, cIdx);
   }
 }
 
 
 // TODO: remove this
 template <> void decode_intra_prediction<uint8_t>(de265_image* img,
+                                                  acceleration_functions* acceleration,  
                                                   int xB0,int yB0,
                                                   enum IntraPredMode intraPredMode,
-                                                  uint8_t* dst, int nT, int cIdx)
+                                                  uint8_t* dst, int nT, int log2TrafoSize, int cIdx)
 {
-    decode_intra_prediction_internal<uint8_t>(img,xB0,yB0, intraPredMode,
+    decode_intra_prediction_internal<uint8_t>(img,acceleration,xB0,yB0, intraPredMode,
                                               dst,nT,
-                                              nT,cIdx);
+                                              nT,log2TrafoSize, cIdx);
 }
 
 
 // TODO: remove this
 template <> void decode_intra_prediction<uint16_t>(de265_image* img,
+                                                   acceleration_functions* acceleration,  
                                                    int xB0,int yB0,
                                                    enum IntraPredMode intraPredMode,
-                                                   uint16_t* dst, int nT, int cIdx)
+                                                   uint16_t* dst, int nT, int log2TrafoSize, int cIdx)
 {
-  decode_intra_prediction_internal<uint16_t>(img,xB0,yB0, intraPredMode,
+  decode_intra_prediction_internal<uint16_t>(img,acceleration,xB0,yB0, intraPredMode,
                                              dst,nT,
-                                             nT,cIdx);
+                                             nT, log2TrafoSize, cIdx);
 }

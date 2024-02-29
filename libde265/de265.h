@@ -60,10 +60,20 @@ extern "C" {
 #define LIBDE265_DEPRECATED
 #endif
 
-#if defined(_MSC_VER)
+#if defined(__GNUC__)
+#define LIBDE265_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
 #define LIBDE265_INLINE __inline
 #else
 #define LIBDE265_INLINE inline
+#endif
+
+#ifdef __GNUC__
+#define LIBDE265_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict
+#else
+#define LIBDE265_RESTRICT
 #endif
 
 /* === version numbers === */
