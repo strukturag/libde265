@@ -438,7 +438,7 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
         n++;
       }
 
-      if (n == k+MAX_PREFIX) {
+      if (n == MAX_PREFIX) {
         return 0; // TODO: error
       }
     }
