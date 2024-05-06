@@ -7,7 +7,7 @@ CB - Show Coding Block quadtree structure. Prediction modes are
      PBs for prediction and TBs for residual transforms.
 
 PB - Show Prediction Block structure. CB blocks may be further
-     subdivided, possibly using asymetric partitionings. This is
+     subdivided, possibly using asymmetric partitionings. This is
      the level on which motion-compensation and intra-prediction is
      performed.
 
