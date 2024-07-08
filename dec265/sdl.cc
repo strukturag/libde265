@@ -94,6 +94,58 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma ch
   return true;
 }
 
+bool SDL_YUV_Display::resize(int frame_width, int frame_height, enum SDL_Chroma chroma)
+{
+  // reduce image size to a multiple of 8 (apparently required by YUV overlay)
+
+  frame_width  &= ~7;
+  frame_height &= ~7;
+
+  if (frame_width == rect.w && frame_height == rect.h && mChroma == chroma) {
+    return true;
+  }
+
+  SDL_SetWindowSize(mWindow, frame_width, frame_height);
+  SDL_DestroyTexture(mTexture);
+  SDL_DestroyRenderer(mRenderer);
+
+  Uint32 flags = 0;  // Empty flags prioritize SDL_RENDERER_ACCELERATED.
+  mRenderer = SDL_CreateRenderer(mWindow, -1, flags);
+  if (!mRenderer) {
+    printf("SDL: Couldn't create renderer: %s\n", SDL_GetError());
+    SDL_Quit();
+    return false;
+  }
+
+  Uint32 pixelFormat = 0;
+  switch (mChroma) {
+  case SDL_CHROMA_MONO: pixelFormat = SDL_PIXELFORMAT_YV12; break;
+  case SDL_CHROMA_420:  pixelFormat = SDL_PIXELFORMAT_YV12; break;
+  case SDL_CHROMA_422:  pixelFormat = SDL_PIXELFORMAT_YV12; break;
+  case SDL_CHROMA_444:  pixelFormat = SDL_PIXELFORMAT_YV12; break;
+  //case SDL_CHROMA_444:  pixelFormat = SDL_PIXELFORMAT_YV12; break;
+  default:
+    printf("Unsupported chroma: %d\n", mChroma);
+    SDL_Quit();
+    return false;
+  }
+
+  mTexture = SDL_CreateTexture(mRenderer, pixelFormat,
+    SDL_TEXTUREACCESS_STREAMING, frame_width, frame_height);
+  if (!mTexture ) {
+    printf("SDL: Couldn't create SDL texture: %s\n", SDL_GetError());
+    SDL_Quit();
+    return false;
+  }
+
+  mChroma = chroma;
+
+  rect.w = frame_width;
+  rect.h = frame_height;
+
+  return true;
+}
+
 void SDL_YUV_Display::display(const unsigned char *Y,
                               const unsigned char *U,
                               const unsigned char *V,
