@@ -55,6 +55,7 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
     if (posix_memalign(&mem, alignment, size) != 0) {
         return NULL;
     }
+    memset(mem, 0, size);
     return mem;
 };
 #define FREE_ALIGNED(mem)                      free((mem))
