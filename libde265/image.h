@@ -244,6 +244,7 @@ struct de265_image {
   }
 
   void fill_image(int y,int u,int v);
+  void fill_plane(int channel, int value);
   de265_error copy_image(const de265_image* src);
   void copy_lines_from(const de265_image* src, int first, int end);
   void exchange_pixel_data_with(de265_image&);

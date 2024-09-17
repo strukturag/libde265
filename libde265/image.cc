@@ -55,7 +55,6 @@ static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
     if (posix_memalign(&mem, alignment, size) != 0) {
         return NULL;
     }
-    memset(mem, 0, size);
     return mem;
 };
 #define FREE_ALIGNED(mem)                      free((mem))
@@ -154,6 +153,8 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   img->set_image_plane(0, p[0], luma_stride, NULL);
   img->set_image_plane(1, p[1], chroma_stride, NULL);
   img->set_image_plane(2, p[2], chroma_stride, NULL);
+
+  img->fill_image(0,0,0);
 
   return 1;
 }
@@ -527,18 +528,72 @@ void de265_image::release()
 }
 
 
+void de265_image::fill_plane(int channel, int value)
+{
+  int bytes_per_pixel = get_bytes_per_pixel(channel);
+  assert(value >= 0); // needed for the shift operation in the check below
+
+  if (bytes_per_pixel == 1) {
+    if (channel==0) {
+      memset(pixels[channel], value, stride * height);
+    }
+    else {
+      memset(pixels[channel], value, chroma_stride * chroma_height);
+    }
+  }
+  else if ((value >> 8) == (value & 0xFF)) {
+    assert(bytes_per_pixel == 2);
+
+    // if we fill the same byte value to all bytes, we can still use memset()
+    if (channel==0) {
+      memset(pixels[channel], 0, stride * height * bytes_per_pixel);
+    }
+    else {
+      memset(pixels[channel], 0, chroma_stride * chroma_height * bytes_per_pixel);
+    }
+  }
+  else {
+    assert(bytes_per_pixel == 2);
+    uint16_t v = value;
+
+    if (channel==0) {
+      // copy value into first row
+      for (int x = 0; x < width; x++) {
+        *(uint16_t*) (&pixels[channel][2 * x]) = v;
+      }
+
+      // copy first row into remaining rows
+      for (int y = 1; y < height; y++) {
+        memcpy(pixels[channel] + y * stride * 2, pixels[channel], chroma_width * 2);
+      }
+    }
+    else {
+      // copy value into first row
+      for (int x = 0; x < chroma_width; x++) {
+        *(uint16_t*) (&pixels[channel][2 * x]) = v;
+      }
+
+      // copy first row into remaining rows
+      for (int y = 1; y < chroma_height; y++) {
+        memcpy(pixels[channel] + y * chroma_stride * 2, pixels[channel], chroma_width * 2);
+      }
+    }
+  }
+}
+
+
 void de265_image::fill_image(int y,int cb,int cr)
 {
-  if (y>=0) {
-    memset(pixels[0], y, stride * height);
+  if (pixels[0]) {
+    fill_plane(0, y);
   }
 
-  if (cb>=0) {
-    memset(pixels[1], cb, chroma_stride * chroma_height);
+  if (pixels[1]) {
+    fill_plane(1, cb);
   }
 
-  if (cr>=0) {
-    memset(pixels[2], cr, chroma_stride * chroma_height);
+  if (pixels[2]) {
+    fill_plane(2, cr);
   }
 }
 
