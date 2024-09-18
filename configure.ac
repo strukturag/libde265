@@ -112,9 +112,9 @@ AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 # Check if "__STRICT_ANSI__" is required.
 AC_MSG_CHECKING([if __STRICT_ANSI__ is required])
 AC_LANG_PUSH(C++)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 #include <vector>
-],[],[need_strict_ansi=no],[need_strict_ansi=yes]);
+],[])],[need_strict_ansi=no],[need_strict_ansi=yes]);
 AC_LANG_POP(C++)
 if eval "test x$need_strict_ansi = xyes"; then
   CFLAGS="$CFLAGS -D__STRICT_ANSI__"
@@ -125,21 +125,21 @@ AC_MSG_RESULT([$need_strict_ansi])
 # Check if "std::shared_ptr" is "std::tr1::shared_ptr"
 AC_MSG_CHECKING([for std::shared_ptr])
 AC_LANG_PUSH(C++)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 #include <memory>
 ],[
 class A {};
 std::shared_ptr<A> a;
-],[has_std_shared_ptr=yes],[has_std_shared_ptr=no]);
+])],[has_std_shared_ptr=yes],[has_std_shared_ptr=no]);
 AC_MSG_RESULT([$has_std_shared_ptr])
 if eval "test x$has_std_shared_ptr = xno"; then
   AC_MSG_CHECKING([for std::tr1::shared_ptr])
-  AC_TRY_COMPILE([
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
   #include <tr1/memory>
   ],[
   class A {};
   std::tr1::shared_ptr<A> a;
-  ],[has_std_tr1_shared_ptr=yes],[has_std_tr1_shared_ptr=no]);
+  ])],[has_std_tr1_shared_ptr=yes],[has_std_tr1_shared_ptr=no]);
   AC_MSG_RESULT([$has_std_tr1_shared_ptr])
   if eval "test x$has_std_tr1_shared_ptr = xyes"; then
     AC_DEFINE(USE_STD_TR1_NAMESPACE,1,[Define to 1 if the std::tr1 namespace should be included in the std namespace.])
@@ -150,7 +150,7 @@ AC_LANG_POP(C++)
 # Check if "std::move" is available (assume always available with clang)
 AC_MSG_CHECKING([for std::move])
 AC_LANG_PUSH(C++)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 #include <utility>
 ],[
 #if !defined(__clang__)
@@ -158,7 +158,7 @@ class A {};
 A* a = new A();
 A* b = std::move(a);
 #endif
-],[has_std_move=yes],[has_std_move=no]);
+])],[has_std_move=yes],[has_std_move=no]);
 AC_LANG_POP(C++)
 if eval "test x$has_std_move = xno"; then
   AC_DEFINE(NEED_STD_MOVE_FALLBACK,1,[Define to 1 if a fallback for "std::move" is required.])
@@ -168,11 +168,11 @@ AC_MSG_RESULT([$has_std_move])
 # Check if "nullptr" is available
 AC_MSG_CHECKING([for nullptr])
 AC_LANG_PUSH(C++)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 ],[
 class A {};
 A* a = nullptr;
-],[has_nullptr=yes],[has_nullptr=no]);
+])],[has_nullptr=yes],[has_nullptr=no]);
 AC_LANG_POP(C++)
 if eval "test x$has_nullptr = xno"; then
   AC_DEFINE(NEED_NULLPTR_FALLBACK,1,[Define to 1 if a fallback for "nullptr" is required.])
