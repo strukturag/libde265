@@ -36,7 +36,7 @@ extern "C" {
 #endif
 #include <stdint.h>
 
-#if defined(_MSC_VER) && !defined(LIBDE265_STATIC_BUILD)
+#if defined(_WIN32) && !defined(LIBDE265_STATIC_BUILD)
   #ifdef LIBDE265_EXPORTS
   #define LIBDE265_API __declspec(dllexport)
   #else
