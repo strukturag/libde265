@@ -30,6 +30,9 @@ ImageSource::ImageSource()
 }
 
 
+ImageSource::~ImageSource() { }
+
+
 ImageSource_YUV::ImageSource_YUV()
   : mFH(NULL)
 {
@@ -131,6 +134,23 @@ void ImageSource_YUV::skip_frames(int n)
 }
 
 
+int ImageSource_YUV::get_width() const
+{
+  return width;
+}
+
+
+int ImageSource_YUV::get_height() const
+{
+  return height;
+}
+
+
+
+
+ImageSink::~ImageSink() { }
+
+ImageSink_YUV::ImageSink_YUV() : mFH(NULL) { }
 
 
 ImageSink_YUV::~ImageSink_YUV()
@@ -179,6 +199,8 @@ void ImageSink_YUV::send_image(const de265_image* img)
 }
 
 
+
+PacketSink::~PacketSink() { }
 
 PacketSink_File::PacketSink_File()
   : mFH(NULL)

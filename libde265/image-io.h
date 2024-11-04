@@ -31,7 +31,7 @@ class ImageSource
 {
  public:
   LIBDE265_API ImageSource();
-  virtual LIBDE265_API ~ImageSource() { }
+  virtual LIBDE265_API ~ImageSource();
 
   //enum ImageStatus { Available, Waiting, EndOfVideo };
 
@@ -57,8 +57,8 @@ class ImageSource_YUV : public ImageSource
   virtual LIBDE265_API de265_image* get_image(bool block=true);
   virtual LIBDE265_API void skip_frames(int n);
 
-  virtual LIBDE265_API int get_width() const { return width; }
-  virtual LIBDE265_API int get_height() const { return height; }
+  virtual LIBDE265_API int get_width() const;
+  virtual LIBDE265_API int get_height() const;
 
  private:
   FILE* mFH;
@@ -74,7 +74,7 @@ class ImageSource_YUV : public ImageSource
 class ImageSink
 {
  public:
-  virtual LIBDE265_API ~ImageSink() { }
+  virtual LIBDE265_API ~ImageSink();
 
   virtual LIBDE265_API void send_image(const de265_image* img) = 0;
 };
@@ -82,7 +82,7 @@ class ImageSink
 class ImageSink_YUV : public ImageSink
 {
  public:
- LIBDE265_API ImageSink_YUV() : mFH(NULL) { }
+  LIBDE265_API ImageSink_YUV();
   LIBDE265_API ~ImageSink_YUV();
 
   bool LIBDE265_API set_filename(const char* filename);
@@ -98,7 +98,7 @@ class ImageSink_YUV : public ImageSink
 class PacketSink
 {
  public:
-  virtual LIBDE265_API ~PacketSink() { }
+  virtual LIBDE265_API ~PacketSink();
 
   virtual LIBDE265_API void send_packet(const uint8_t* data, int n) = 0;
 };
