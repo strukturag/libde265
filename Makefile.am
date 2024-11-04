@@ -13,7 +13,10 @@ SUBDIRS+=enc265
 endif
 
 SUBDIRS+=tools
-SUBDIRS+=acceleration-speed
+
+# Remove acceleration-speed test program, because it needs many internal functions (that have to be dllexported).
+# On the other hand, that tool was only used for development.
+# SUBDIRS+=acceleration-speed
 
 if ENABLE_SHERLOCK265
 SUBDIRS+=sherlock265
