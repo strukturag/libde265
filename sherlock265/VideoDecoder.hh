@@ -64,6 +64,7 @@ public slots:
   void stopDecoder();
   void singleStepDecoder();
 
+  void setFramerate(int framerate);
   void showCBPartitioning(bool flag);
   void showTBPartitioning(bool flag);
   void showPBPartitioning(bool flag);
@@ -92,6 +93,7 @@ private:
   QImage mImgBuffers[2];
   int    mNextBuffer;
   int    mFrameCount;
+  int    mFramerate;
 
   bool   mPlayingVideo;
   bool   mVideoEnded;
