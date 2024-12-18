@@ -266,17 +266,19 @@ bool display_sdl(const struct de265_image* img)
 
   de265_chroma chroma = de265_get_chroma_format(img);
 
+  enum SDL_YUV_Display::SDL_Chroma sdlChroma;
+  switch (chroma) {
+  case de265_chroma_420:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_420;  break;
+  case de265_chroma_422:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_422;  break;
+  case de265_chroma_444:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_444;  break;
+  case de265_chroma_mono: sdlChroma = SDL_YUV_Display::SDL_CHROMA_MONO; break;
+  }
+
   if (!sdl_active) {
     sdl_active=true;
-    enum SDL_YUV_Display::SDL_Chroma sdlChroma;
-    switch (chroma) {
-    case de265_chroma_420:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_420;  break;
-    case de265_chroma_422:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_422;  break;
-    case de265_chroma_444:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_444;  break;
-    case de265_chroma_mono: sdlChroma = SDL_YUV_Display::SDL_CHROMA_MONO; break;
-    }
-
     sdlWin.init(width,height, sdlChroma);
+  } else {
+    sdlWin.resize(width,height, sdlChroma);
   }
 
   int stride,chroma_stride;
