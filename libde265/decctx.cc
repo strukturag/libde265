@@ -694,6 +694,9 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
     image_units.back()->slice_units.push_back(sliceunit);
   }
+  else {
+    nal_parser.free_NAL_unit(nal);
+  }
 
   bool did_work;
   err = decode_some(&did_work);
