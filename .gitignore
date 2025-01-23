@@ -19,6 +19,7 @@ configure
 *.la
 de265-config.h
 libde265.pc
+*.DS_Store
 
 # MSVC
 *.sln
@@ -45,6 +46,8 @@ libde265.pc
 /ltmain.sh
 /stamp-h1
 /test-suite.log
+/build
+/_build
 
 # ctags
 tags
