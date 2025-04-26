@@ -25,7 +25,7 @@
 */
 
 #include "sdl.hh"
-#include <assert.h>
+#include <cstring>
 
 
 bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma chroma)
