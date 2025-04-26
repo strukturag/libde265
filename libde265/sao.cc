@@ -212,20 +212,15 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
           }
 
           // Shifts are a strange thing. On x86, >>x actually computes >>(x%64).
-          // So we have to take care of large bandShifts.
-          int bandIdx;
-          if (bandShift >= 8) {
-            bandIdx = 0;
-          } else {
-            int pixel = in_img[xC+i+(yC+j)*in_stride];
+          // But this should never happen, because the maximum bit-depth is 16.
+          int pixel = in_img[xC + i + (yC + j) * in_stride];
 
-            // Note: the input pixel value should never exceed the valid range, but it seems that it still does,
-            // maybe when there was a decoding error and the pixels have not been filled in correctly.
-            // Thus, we have to limit the pixel range to ensure that we have no illegal table access.
-            pixel = Clip3(0,maxPixelValue, pixel);
+          // Note: the input pixel value should never exceed the valid range, but it seems that it still does,
+          // maybe when there was a decoding error and the pixels have not been filled in correctly.
+          // Thus, we have to limit the pixel range to ensure that we have no illegal table access.
+          pixel = Clip3(0, maxPixelValue, pixel);
 
-            bandIdx = bandTable[ pixel>>bandShift ];
-          }
+          int bandIdx = bandTable[pixel >> bandShift];
 
           if (bandIdx>0) {
             int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
@@ -247,20 +242,14 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
         for (int j=0;j<ctbH;j++)
           for (int i=0;i<ctbW;i++) {
 
-            // see above
-            int bandIdx;
-            if (bandShift >= 8) {
-              bandIdx = 0;
-            } else {
-              int pixel = in_img[xC+i+(yC+j)*in_stride];
+            int pixel = in_img[xC + i + (yC + j) * in_stride];
 
-              // Note: the input pixel value should never exceed the valid range, but it seems that it still does,
-              // maybe when there was a decoding error and the pixels have not been filled in correctly.
-              // Thus, we have to limit the pixel range to ensure that we have no illegal table access.
-              pixel = Clip3(0,maxPixelValue, pixel);
+            // Note: the input pixel value should never exceed the valid range, but it seems that it still does,
+            // maybe when there was a decoding error and the pixels have not been filled in correctly.
+            // Thus, we have to limit the pixel range to ensure that we have no illegal table access.
+            pixel = Clip3(0, maxPixelValue, pixel);
 
-              bandIdx = bandTable[ pixel>>bandShift ];
-            }
+            int bandIdx = bandTable[pixel >> bandShift];
 
             if (bandIdx>0) {
               int offset = saoinfo->saoOffsetVal[cIdx][bandIdx-1];
