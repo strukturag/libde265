@@ -27,7 +27,7 @@ jobs:
           - { DECODESTREAMS: "libde265-teststreams-wpp-nolf" }
           - { DECODESTREAMS: "libde265-teststreams-wpp-nolf", THREADING: "--single-threaded" }
     env: ${{ matrix.env }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     continue-on-error: true
     steps:
     - uses: actions/checkout@v4
