@@ -30,7 +30,7 @@ if [ -z "$TARGET_HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
         libsdl2-dev \
-        qt5-default \
+        qtbase5-dev \
         libswscale-dev \
         "
 fi
