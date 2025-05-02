@@ -290,7 +290,7 @@ void generate_inter_prediction_samples(base_context* ctx,
   int    stride[3];
 
   const pic_parameter_set* pps = shdr->pps.get();
-  const seq_parameter_set* sps = pps->sps.get();
+  const seq_parameter_set* sps = img->get_shared_sps().get();
 
   if (sps->BitDepth_Y != img->get_bit_depth(0) ||
       sps->BitDepth_C != img->get_bit_depth(1)) {
