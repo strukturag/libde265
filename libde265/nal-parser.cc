@@ -105,7 +105,8 @@ void NAL_unit::insert_skipped_byte(int pos)
 int NAL_unit::num_skipped_bytes_before(int byte_position, int headerLength) const
 {
   for (int k=skipped_bytes.size()-1;k>=0;k--)
-    if (skipped_bytes[k]-headerLength <= byte_position) {
+    if (skipped_bytes[k] >= headerLength &&
+        skipped_bytes[k]-headerLength <= byte_position) {
       return k+1;
     }
 
