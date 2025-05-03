@@ -2,11 +2,11 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [1.0.15], [dirk.farin@gmail.com])
+AC_INIT([libde265], [1.0.16], [dirk.farin@gmail.com])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x01001500 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
+NUMERIC_VERSION=0x01001600 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
 AC_SUBST(NUMERIC_VERSION)
 
 # From https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html:
@@ -16,7 +16,7 @@ AC_SUBST(NUMERIC_VERSION)
 # If any interfaces have been removed or changed since the last public release, then set age to 0.
 
 LIBDE265_CURRENT=1
-LIBDE265_REVISION=8
+LIBDE265_REVISION=9
 LIBDE265_AGE=1
 
 # ---------------------------------------------------------------------------
