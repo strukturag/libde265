@@ -127,6 +127,27 @@ target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BIN
 
 write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)
 
+# --- debug output
+
+set(LOG_LEVELS error info debug trace)
+set(DE265_LOG_LEVEL "error" CACHE STRING "Log level (${LOG_LEVELS})")
+
+set_property(CACHE DE265_LOG_LEVEL PROPERTY STRINGS ${LOG_LEVELS})
+if (NOT DE265_LOG_LEVEL IN_LIST LOG_LEVELS)
+    message(FATAL_ERROR "DE265_LOG_LEVEL has to be one of: ${LOG_LEVELS}")
+endif ()
+
+if (DE265_LOG_LEVEL MATCHES "error")
+    target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR)
+elseif (DE265_LOG_LEVEL MATCHES "info")
+    target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR DE265_LOG_INFO)
+elseif (DE265_LOG_LEVEL MATCHES "debug")
+    target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR DE265_LOG_INFO DE265_LOG_DEBUG)
+elseif (DE265_LOG_LEVEL MATCHES "trace")
+    target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR DE265_LOG_INFO DE265_LOG_DEBUG DE265_LOG_TRACE)
+endif()
+
+
 if (WIN32)
     set_target_properties(de265 PROPERTIES PREFIX "lib")
 endif()
