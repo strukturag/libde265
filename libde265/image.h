@@ -344,7 +344,6 @@ struct de265_image {
 
 private:
   uint32_t ID;
-  static uint32_t s_next_image_ID;
 
   uint8_t* pixels[3];
   uint8_t  bpp_shift[3];  // 0 for 8 bit, 1 for 16 bit
