@@ -22,7 +22,7 @@
 #include "decctx.h"
 #include "en265.h"
 
-#inclue <atomic>
+#include <atomic>
 
 #include <stdlib.h>
 #include <string.h>
