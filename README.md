@@ -133,6 +133,8 @@ Software using libde265
 
 Libde265 has been integrated into these applications:
 
+- libheif [source](https://github.com/strukturag/libheif)
+
 - gstreamer plugin, [source](https://github.com/strukturag/gstreamer-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
 
 - VLC plugin [source](https://github.com/strukturag/vlc-libde265), [binary packages](https://launchpad.net/~strukturag/+archive/libde265).
@@ -163,5 +165,5 @@ See `COPYING` for more details.
 The short video clip in the 'testdata' directory is from the movie 'Girl Shy', which is in the public domain.
 
 Copyright (c) 2013-2014 Struktur AG<br>
-Copyright (c) 2013-2024 Dirk Farin<br>
+Copyright (c) 2013-2025 Dirk Farin<br>
 Contact: Dirk Farin <dirk.farin@gmail.com>
