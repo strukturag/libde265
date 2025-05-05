@@ -22,6 +22,8 @@
 #include "decctx.h"
 #include "en265.h"
 
+#inclue <atomic>
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -187,8 +189,6 @@ void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *user
 }
 
 
-uint32_t de265_image::s_next_image_ID = 0;
-
 de265_image::de265_image()
 {
   ID = -1;
@@ -249,6 +249,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                 allocated to the requested size. Without the release, the old image-data
                 will not be freed. */
 
+  static std::atomic<uint32_t> s_next_image_ID(0);
   ID = s_next_image_ID++;
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
