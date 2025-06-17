@@ -30,7 +30,7 @@
 #include "config.h"
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
 #include <cpuid.h>
 #endif
 
@@ -46,11 +46,21 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
 
   ecx = regs[2];
   edx = regs[3];
-#else
+#elif !defined(__EMSCRIPTEN__)
   uint32_t eax,ebx;
   __get_cpuid(1, &eax,&ebx,&ecx,&edx);
 #endif
-  
+
+#ifdef __EMSCRIPTEN__
+  int have_SSE    = 0;
+  int have_SSE4_1 = 0;
+#ifdef __SSE__
+  have_SSE = 1;
+#endif
+#ifdef __SSE4_1__
+  have_SSE4_1 = 1;
+#endif
+#else
   // printf("CPUID EAX=1 -> ECX=%x EDX=%x\n", regs[2], regs[3]);
 
   //int have_MMX    = !!(edx & (1<<23));
@@ -61,6 +71,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
 
   if (have_SSE) {
   }
+#endif
 
 #if HAVE_SSE4_1
   if (have_SSE4_1) {
