@@ -1,4 +1,5 @@
 set (encoder_sources
+  configparam.h configparam.cc
   encoder-core.cc encoder-core.h
   encoder-types.h encoder-types.cc
   encoder-params.h encoder-params.cc

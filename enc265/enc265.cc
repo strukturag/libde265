@@ -29,7 +29,7 @@
 #include "config.h"
 #endif
 
-#include "libde265/configparam.h"
+#include "libde265/encoder/configparam.h"
 #include "libde265/image-io.h"
 #include "libde265/encoder/encoder-core.h"
 #include "libde265/util.h"

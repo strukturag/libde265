@@ -23,7 +23,7 @@
 
 #include "libde265/image.h"
 #include "libde265/sps.h"
-#include "libde265/configparam.h"
+#include "libde265/encoder/configparam.h"
 //#include "libde265/encoder/encoder-context.h"
 #include "libde265/encoder/encpicbuf.h"
 

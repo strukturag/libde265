@@ -34,7 +34,7 @@
 #include "libde265/fallback-dct.h"
 #include "libde265/quality.h"
 #include "libde265/fallback.h"
-#include "libde265/configparam.h"
+#include "libde265/encoder/configparam.h"
 
 
 // ========== TB intra prediction mode ==========
