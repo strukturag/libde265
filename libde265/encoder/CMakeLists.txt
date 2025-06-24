@@ -9,6 +9,8 @@ set (encoder_sources
   encoder-motion.h encoder-motion.cc
   encpicbuf.h encpicbuf.cc
   sop.h sop.cc
+  configparam.cc
+  configparam.h
 )
 
 add_subdirectory (algo)

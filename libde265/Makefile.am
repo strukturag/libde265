@@ -29,8 +29,6 @@ libde265_la_SOURCES = \
   bitstream.h \
   cabac.cc \
   cabac.h \
-  configparam.cc \
-  configparam.h \
   contextmodel.cc \
   contextmodel.h \
   de265.cc \
