@@ -49,8 +49,8 @@ typedef pthread_cond_t   de265_cond;
 #endif
 
 typedef HANDLE              de265_thread;
-typedef HANDLE              de265_mutex;
-typedef win32_cond_t        de265_cond;
+typedef CRITICAL_SECTION    de265_mutex;
+typedef CONDITION_VARIABLE  de265_cond;
 #endif  // _WIN32
 
 #ifndef _WIN32
