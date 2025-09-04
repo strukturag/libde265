@@ -734,7 +734,7 @@ void de265_image::thread_finishes(const thread_task* task)
   assert(nThreadsRunning >= 0);
 
   if (nThreadsFinished==nThreadsTotal) {
-    de265_cond_broadcast(&finished_cond, &mutex);
+    de265_cond_broadcast(&finished_cond);
   }
 
   de265_mutex_unlock(&mutex);
