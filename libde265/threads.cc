@@ -196,7 +196,6 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
   // start worker threads
 
   for (int i=0; i<num_threads; i++) {
-    printf("start thread %d\n", i);
     pool->thread[i] = std::thread(worker_thread, pool);
     pool->num_threads++;
   }

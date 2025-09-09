@@ -90,7 +90,6 @@ AC_CHECK_FUNCS([malloc memmove memset __malloc_hook memalign posix_memalign __mi
 
 AC_SEARCH_LIBS([pow], [m])
 AC_SEARCH_LIBS([sqrt], [m])
-AC_SEARCH_LIBS([pthread_create], [pthread])
 
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([pow sqrt])
