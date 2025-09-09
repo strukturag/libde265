@@ -27,6 +27,10 @@
 #define DO_MEMORY_LOGGING 0
 
 #include "de265.h"
+#include <stdexcept>
+#include <iostream>
+#include <optional>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -563,6 +567,40 @@ void (*volatile __malloc_initialize_hook)(void) = init_my_hooks;
 #endif
 
 
+int parse_param(const char* arg, std::optional<int> lower_bound, std::optional<int> upper_bound, const char* arg_name)
+{
+  int value;
+
+  try {
+    size_t len;
+    value = std::stoi(optarg, &len);
+    if (arg[len] != 0) {
+      std::cerr << "invalid argument to " << arg_name << "\n";
+      exit(5);
+    }
+  } catch (std::invalid_argument const& ex) {
+    std::cerr << "invalid argument to " << arg_name << "\n";
+    exit(5);
+  }
+  catch (std::out_of_range const& ex) {
+    std::cerr << "argument to -T is out of range\n";
+    exit(5);
+  }
+
+  if (lower_bound && value < *lower_bound) {
+    std::cerr << "argument to " << arg_name << " may not be smaller than " << *lower_bound << "\n";
+    exit(5);
+  }
+
+  if (upper_bound && value > *upper_bound) {
+    std::cerr << "argument to " << arg_name << " may not be larger than " << *upper_bound << "\n";
+    exit(5);
+  }
+
+  return value;
+}
+
+
 int main(int argc, char** argv)
 {
   while (1) {
@@ -578,9 +616,9 @@ int main(int argc, char** argv)
 
     switch (c) {
     case 'q': quiet++; break;
-    case 't': nThreads=atoi(optarg); break;
+    case 't': nThreads=parse_param(optarg, 0, std::nullopt, "-t"); break;
     case 'c': check_hash=true; break;
-    case 'f': max_frames=atoi(optarg); break;
+    case 'f': max_frames=parse_param(optarg, 1, std::nullopt, "-f"); break;
     case 'o': write_yuv=true; output_filename=optarg; break;
     case 'h': show_help=true; break;
     case 'd': dump_headers=true; break;
@@ -592,7 +630,7 @@ int main(int argc, char** argv)
     case 'm': measure_quality=true; reference_filename=optarg; break;
     case 's': show_ssim_map=true; break;
     case 'e': show_psnr_map=true; break;
-    case 'T': highestTID=atoi(optarg); break;
+    case 'T': highestTID = parse_param(optarg, 0, std::nullopt, "-T"); break;
     case 'v': verbosity++; break;
     }
   }
