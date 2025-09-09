@@ -227,9 +227,6 @@ de265_image::de265_image()
   nThreadsBlocked  = 0;
   nThreadsFinished = 0;
   nThreadsTotal    = 0;
-
-  de265_mutex_init(&mutex);
-  de265_cond_init(&finished_cond);
 }
 
 
@@ -489,9 +486,6 @@ de265_image::~de265_image()
   if (ctb_progress) {
     delete[] ctb_progress;
   }
-
-  de265_cond_destroy(&finished_cond);
-  de265_mutex_destroy(&mutex);
 }
 
 
@@ -685,7 +679,7 @@ void de265_image::exchange_pixel_data_with(de265_image& b)
 
 void de265_image::thread_start(int nThreads)
 {
-  de265_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
 
   //printf("nThreads before: %d %d\n",nThreadsQueued, nThreadsTotal);
 
@@ -693,51 +687,47 @@ void de265_image::thread_start(int nThreads)
   nThreadsTotal += nThreads;
 
   //printf("nThreads after: %d %d\n",nThreadsQueued, nThreadsTotal);
-
-  de265_mutex_unlock(&mutex);
 }
 
 void de265_image::thread_run(const thread_task* task)
 {
+  std::unique_lock<std::mutex> lock(mutex);
+
   //printf("run thread %s\n", task->name().c_str());
 
-  de265_mutex_lock(&mutex);
   nThreadsQueued--;
   nThreadsRunning++;
-  de265_mutex_unlock(&mutex);
 }
 
 void de265_image::thread_blocks()
 {
-  de265_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
+
   nThreadsRunning--;
   nThreadsBlocked++;
-  de265_mutex_unlock(&mutex);
 }
 
 void de265_image::thread_unblocks()
 {
-  de265_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
+
   nThreadsBlocked--;
   nThreadsRunning++;
-  de265_mutex_unlock(&mutex);
 }
 
 void de265_image::thread_finishes(const thread_task* task)
 {
   //printf("finish thread %s\n", task->name().c_str());
 
-  de265_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
 
   nThreadsRunning--;
   nThreadsFinished++;
   assert(nThreadsRunning >= 0);
 
   if (nThreadsFinished==nThreadsTotal) {
-    de265_cond_broadcast(&finished_cond, &mutex);
+    finished_cond.notify_all();
   }
-
-  de265_mutex_unlock(&mutex);
 }
 
 void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int progress)
@@ -772,11 +762,11 @@ void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progre
 
 void de265_image::wait_for_completion()
 {
-  de265_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
+
   while (nThreadsFinished!=nThreadsTotal) {
-    de265_cond_wait(&finished_cond, &mutex);
+    finished_cond.wait(lock);
   }
-  de265_mutex_unlock(&mutex);
 }
 
 bool de265_image::debug_is_completed() const
