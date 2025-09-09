@@ -29,37 +29,6 @@
 #endif
 
 
-#ifndef _WIN32
-// #include <intrin.h>
-
-#define THREAD_RESULT_TYPE  void*
-#define THREAD_PARAM_TYPE   void*
-#define THREAD_CALLING_CONVENTION
-
-#include <stdio.h>
-
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg) { return pthread_create(t,NULL,start_routine,arg); }
-void de265_thread_join(de265_thread t) { pthread_join(t,NULL); }
-void de265_thread_destroy(de265_thread* t) { }
-#else  // _WIN32
-
-#define THREAD_RESULT_TYPE    DWORD
-#define THREAD_CALLING_CONVENTION WINAPI
-#define THREAD_PARAM_TYPE        LPVOID
-
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg) {
-    HANDLE handle = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
-    if (handle == NULL) {
-        return -1;
-    }
-    *t = handle;
-    return 0;
-}
-void de265_thread_join(de265_thread t) { WaitForSingleObject(t, INFINITE); }
-void de265_thread_destroy(de265_thread* t) { CloseHandle(*t); *t = NULL; }
-#endif // _WIN32
-
-
 de265_progress_lock::de265_progress_lock()
 {
   mProgress = 0;
@@ -151,11 +120,8 @@ void printblks(const thread_pool* pool)
 #endif
 
 
-static THREAD_RESULT_TYPE THREAD_CALLING_CONVENTION worker_thread(THREAD_PARAM_TYPE pool_ptr)
+static void worker_thread(thread_pool* pool)
 {
-  thread_pool* pool = (thread_pool*)pool_ptr;
-
-
   while(true) {
 
     thread_task* task = nullptr;
@@ -179,7 +145,7 @@ static THREAD_RESULT_TYPE THREAD_CALLING_CONVENTION worker_thread(THREAD_PARAM_T
       // if the pool was shut down, end the execution
 
       if (pool->stopped) {
-        return (THREAD_RESULT_TYPE)0;
+        return;
       }
 
 
@@ -204,8 +170,6 @@ static THREAD_RESULT_TYPE THREAD_CALLING_CONVENTION worker_thread(THREAD_PARAM_T
 
     pool->num_threads_working--;
   }
-
-  return (THREAD_RESULT_TYPE)0;
 }
 
 
@@ -232,12 +196,8 @@ de265_error start_thread_pool(thread_pool* pool, int num_threads)
   // start worker threads
 
   for (int i=0; i<num_threads; i++) {
-    int ret = de265_thread_create(&pool->thread[i], worker_thread, pool);
-    if (ret != 0) {
-      // cerr << "pthread_create() failed: " << ret << endl;
-      return DE265_ERROR_CANNOT_START_THREADPOOL;
-    }
-
+    printf("start thread %d\n", i);
+    pool->thread[i] = std::thread(worker_thread, pool);
     pool->num_threads++;
   }
 
@@ -255,8 +215,7 @@ void stop_thread_pool(thread_pool* pool)
   pool->cond_var.notify_all();
 
   for (int i=0;i<pool->num_threads;i++) {
-    de265_thread_join(pool->thread[i]);
-    de265_thread_destroy(&pool->thread[i]);
+    pool->thread[i].join();
   }
 }
 

@@ -31,12 +31,7 @@
 #include <string>
 #include <atomic>
 
-#ifndef _WIN32
-#include <pthread.h>
-
-typedef pthread_t        de265_thread;
-
-#else // _WIN32
+#ifdef _WIN32
 #if !defined(NOMINMAX)
 #define NOMINMAX 1
 #endif
@@ -45,23 +40,11 @@ typedef pthread_t        de265_thread;
 #if _MSC_VER > 1310
 #include <intrin.h>
 #endif
-
-typedef HANDLE              de265_thread;
 #endif  // _WIN32
 
 #include <mutex>
 #include <condition_variable>
-//#include <thread>
-
-//typedef pthread_t        de265_thread;
-
-#ifndef _WIN32
-int  de265_thread_create(de265_thread* t, void *(*start_routine) (void *), void *arg);
-#else
-int  de265_thread_create(de265_thread* t, LPTHREAD_START_ROUTINE start_routine, void *arg);
-#endif
-void de265_thread_join(de265_thread t);
-void de265_thread_destroy(de265_thread* t);
+#include <thread>
 
 class de265_progress_lock
 {
@@ -115,7 +98,7 @@ class thread_pool
 
   std::deque<thread_task*> tasks;  // we are not the owner
 
-  de265_thread thread[MAX_THREADS];
+  std::thread thread[MAX_THREADS];
   int num_threads;
 
   int num_threads_working;
