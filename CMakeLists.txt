@@ -26,8 +26,6 @@ if (ENABLE_SDL)
 	find_package(SDL2)
 endif()
 
-find_package(Threads REQUIRED)
-
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 CHECK_FUNCTION_EXISTS(posix_memalign HAVE_POSIX_MEMALIGN)
 
