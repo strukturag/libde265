@@ -26,10 +26,10 @@ if ENABLE_ARM_THUMB
 endif
 
 libde265_arm_neon_la_SOURCES = \
-	asm.S \
 	cpudetect.S \
-	hevcdsp_qpel_neon.S \
-	neon.S
+	hevcdsp_qpel_neon.S
+
+EXTRA_DIST = asm.S neon.S
 
 if HAVE_VISIBILITY
 	libde265_arm_neon_la_CXXFLAGS += -DHAVE_VISIBILITY
