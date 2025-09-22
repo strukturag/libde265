@@ -287,6 +287,11 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   int firstLayer = (sps_sub_layer_ordering_info_present_flag ?
                     0 : sps_max_sub_layers-1 );
 
+  // zero out so that comparing is easier.
+  memset(sps_max_dec_pic_buffering, 0 , sizeof(sps_max_dec_pic_buffering));
+  memset(sps_max_num_reorder_pics, 0 , sizeof(sps_max_num_reorder_pics));
+  memset(sps_max_latency_increase_plus1, 0 , sizeof(sps_max_latency_increase_plus1));
+
   for (int i=firstLayer ; i <= sps_max_sub_layers-1; i++ ) {
 
     // sps_max_dec_pic_buffering[i]
@@ -347,6 +352,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     if (sps_scaling_list_data_present_flag) {
 
       de265_error err;
+      memset(&scaling_list, 0 , sizeof(scaling_list));  // zero out, so that memcmp will do it to check for equality.
       if ((err=read_scaling_list(br,this, &scaling_list, false)) != DE265_OK) {
         return err;
       }
