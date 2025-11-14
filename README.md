@@ -54,8 +54,14 @@ Building
 
 [![Build Status](https://github.com/strukturag/libde265/workflows/build/badge.svg)](https://github.com/strukturag/libde265/actions) [![Build Status](https://ci.appveyor.com/api/projects/status/github/strukturag/libde265?svg=true)](https://ci.appveyor.com/project/strukturag/libde265)
 
-If you got libde265 from the git repository, you will first need to run
-the included `autogen.sh` script to generate the `configure` script.
+libde265 uses the CMake build system. Please do not use to deprecated autotools scripts.
+To compile libde265, run
+````
+mkdir build
+cd build
+cmake ..
+make
+````
 
 libde265 has no dependencies on other libraries, but both optional example programs
 have dependencies on:
