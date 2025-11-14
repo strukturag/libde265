@@ -43,8 +43,8 @@ AC_PROG_GREP
 AM_INIT_AUTOMAKE
 
 CFLAGS="$CFLAGS -std=c99"
-CXXFLAGS="$CXXFLAGS -Werror=return-type -Werror=unused-result -Werror=reorder"
-AX_CXX_COMPILE_STDCXX_11()
+CXXFLAGS="$CXXFLAGS -Werror=return-type -Werror=unused-result -Werror=reorder -std=c++17"
+AX_CXX_COMPILE_STDCXX_17()
 
 dnl Use -Wall if we have gcc.
 changequote(,)dnl
