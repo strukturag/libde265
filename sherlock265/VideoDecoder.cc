@@ -37,6 +37,10 @@ using namespace videogfx;
 //#include "decctx.h"
 #include "visualize.h"
 
+#include <chrono>
+
+using namespace std;
+using namespace std::chrono;
 
 VideoDecoder::VideoDecoder()
   : mFH(NULL),
@@ -44,6 +48,7 @@ VideoDecoder::VideoDecoder()
     img(NULL),
     mNextBuffer(0),
     mFrameCount(0),
+    mFramerate(30),
     mPlayingVideo(false),
     mVideoEnded(false),
     mSingleStep(false),
@@ -127,6 +132,8 @@ void VideoDecoder::decoder_loop()
         img = de265_peek_next_picture(ctx);
         while (img==NULL)
           {
+            auto decode_start_time = system_clock::now();
+
             mutex.unlock();
             int more=1;
             de265_error err = de265_decode(ctx, &more);
@@ -134,6 +141,14 @@ void VideoDecoder::decoder_loop()
 
             if (more && err == DE265_OK) {
               // try again to get picture
+
+              duration<double> decode_time = system_clock::now() - decode_start_time;
+              duration<double> sleep_for_time = milliseconds(1000 / mFramerate) - decode_time;
+
+              if (sleep_for_time.count() > 0)
+              {
+                QThread::usleep(sleep_for_time.count() * 1000000);
+              }
 
               img = de265_peek_next_picture(ctx);
             }
@@ -336,6 +351,10 @@ void VideoDecoder::show_frame(const de265_image* img)
   mFrameCount++;
 }
 
+void VideoDecoder::setFramerate(int framerate)
+{
+  mFramerate = framerate;
+}
 
 void VideoDecoder::showCBPartitioning(bool flag)
 {
