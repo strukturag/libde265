@@ -94,7 +94,8 @@ add_subdirectory (encoder)
 
 check_c_source_compiles(
   "#if !defined(__x86_64) && !defined(__i386__) \
-  && !defined(_M_IX86) && !defined(_M_AMD64)
+  && !defined(_M_IX86) && !defined(_M_AMD64) \
+  || defined(_M_ARM64EC) || defined(_ARM64EC_)
   #error not x86
   #endif
   int main(){return 0;}"
