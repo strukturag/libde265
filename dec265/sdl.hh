@@ -39,6 +39,7 @@ public:
   };
 
   bool init(int frame_width, int frame_height, enum SDL_Chroma chroma = SDL_CHROMA_420);
+  bool resize(int frame_width, int frame_height, enum SDL_Chroma chroma = SDL_CHROMA_420);
   void display(const unsigned char *Y, const unsigned char *U, const unsigned char *V,
                int stride, int chroma_stride);
   void close();
