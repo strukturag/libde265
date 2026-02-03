@@ -2453,41 +2453,37 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 }
 
 
-#define MAX_PREFIX 64
+#define MAX_PREFIX (15+3)
 
-static int decode_coeff_abs_level_remaining(thread_context* tctx,
-                                            int cRiceParam)
+static int16_t decode_coeff_abs_level_remaining(thread_context* tctx,
+                                                int cRiceParam)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
 
-  int prefix=-1;
-  int codeword=0;
-  do {
+  uint16_t prefix=0;
+  while (decode_CABAC_bypass(&tctx->cabac_decoder)) {
     prefix++;
-    codeword = decode_CABAC_bypass(&tctx->cabac_decoder);
-
     if (prefix>MAX_PREFIX) {
       return 0; // TODO: error
     }
   }
-  while (codeword);
 
   // prefix = nb. 1 bits
 
-  int value;
+  int16_t value;
 
   if (prefix <= 3) {
     // when code only TR part (level < TRMax)
 
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
+    int codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
     value = (prefix<<cRiceParam) + codeword;
   }
   else {
     // Suffix coded with EGk. Note that the unary part of EGk is already
     // included in the 'prefix' counter above.
 
-    codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
-    value = (((1<<(prefix-3))+3-1)<<cRiceParam)+codeword;
+    int codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix-3+cRiceParam);
+    value = (((UINT16_C(1)<<(prefix-3))+3-1)<<cRiceParam)+codeword;
   }
 
   logtrace(LogSymbols,"$1 coeff_abs_level_remaining=%d\n",value);
@@ -3352,9 +3348,9 @@ int residual_coding(thread_context* tctx,
       bool firstCoeffWithAbsLevelRemaining = true;
 
       for (int n=0;n<nCoefficients;n++) {
-        int baseLevel = coeff_value[n];
+        int16_t baseLevel = coeff_value[n];
 
-        int coeff_abs_level_remaining;
+        int16_t coeff_abs_level_remaining;
 
         // printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
 
