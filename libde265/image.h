@@ -636,7 +636,9 @@ public:
 
   enum IntraPredMode get_IntraPredMode_atIndex(int idx) const
   {
-    return (enum IntraPredMode)intraPredMode[idx];
+    uint8_t ipm = intraPredMode[idx];
+    if (ipm > 34) { ipm = 0; }
+    return static_cast<enum IntraPredMode>(ipm);
   }
 
   void set_IntraPredMode(int PUidx,int log2blkSize, enum IntraPredMode mode)

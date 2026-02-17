@@ -782,6 +782,7 @@ void de265_image::clear_metadata()
   // during decoding (especially log2CbSize), but it is unlikely to be faster than the memset.
 
   cb_info.clear();
+  intraPredMode.clear();
   //tu_info.clear();  // done on the fly
   ctb_info.clear();
   deblk_info.clear();
