@@ -470,8 +470,7 @@ void scale_coefficients_internal(thread_context* tctx,
 
       for (int i=0;i<tctx->nCoeff[cIdx];i++) {
 
-        // usually, this needs to be 64bit, but because we modify the shift above, we can use 16 bit
-        int32_t currCoeff  = tctx->coeffList[cIdx][i];
+        int64_t currCoeff  = tctx->coeffList[cIdx][i];
 
         //logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],
         //tctx->coeffList[cIdx][i]);
