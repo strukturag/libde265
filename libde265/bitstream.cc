@@ -56,6 +56,8 @@ void bitreader_refill(bitreader* br)
 
 int  get_bits(bitreader* br, int n)
 {
+  if (n == 0) return 0;
+
   if (br->nextbits_cnt < n) {
     bitreader_refill(br);
   }
@@ -71,6 +73,8 @@ int  get_bits(bitreader* br, int n)
 
 int  get_bits_fast(bitreader* br, int n)
 {
+  if (n == 0) return 0;
+
   assert(br->nextbits_cnt >= n);
 
   uint64_t val = br->nextbits;
@@ -84,6 +88,8 @@ int  get_bits_fast(bitreader* br, int n)
 
 int  peek_bits(bitreader* br, int n)
 {
+  if (n == 0) return 0;
+
   if (br->nextbits_cnt < n) {
     bitreader_refill(br);
   }
