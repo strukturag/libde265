@@ -84,7 +84,7 @@ void transform_skip_residual_fallback(int32_t *residual, const int16_t *coeffs, 
 
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
-      int32_t c = coeffs[x+y*nT] << tsShift;
+      int32_t c = (int32_t)((uint32_t)coeffs[x+y*nT] << tsShift); // C++ up to C++17 treats left-shift of signed values as UB
       residual[x+y*nT] = (c + rnd) >> bdShift;
     }
 }
