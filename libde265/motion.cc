@@ -347,6 +347,24 @@ void generate_inter_prediction_samples(base_context* ctx,
   }
 
 
+  // Fill prediction samples with mid-grey in intermediate precision.
+  // Used on error paths where the reference picture is unavailable or mismatched.
+  auto fill_pred_samples = [&](int l) {
+    const int16_t fill = 1 << 13; // mid-grey: (1 << (bd-1)) << (14-bd) for any bd
+    for (int y = 0; y < nPbH; y++)
+      for (int x = 0; x < nPbW; x++)
+        predSamplesL[l][y * nCS + x] = fill;
+    if (img->get_chroma_format() != de265_chroma_mono) {
+      int cW = nPbW / SubWidthC;
+      int cH = nPbH / SubHeightC;
+      for (int y = 0; y < cH; y++)
+        for (int x = 0; x < cW; x++) {
+          predSamplesC[0][l][y * nCS + x] = fill;
+          predSamplesC[1][l][y * nCS + x] = fill;
+        }
+    }
+  };
+
   for (int l=0;l<2;l++) {
     if (predFlag[l]) {
       // 8.5.3.2.1
@@ -354,7 +372,8 @@ void generate_inter_prediction_samples(base_context* ctx,
       if (vi->refIdx[l] >= MAX_NUM_REF_PICS) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-        return;
+        fill_pred_samples(l);
+        continue;
       }
 
       const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
@@ -364,23 +383,25 @@ void generate_inter_prediction_samples(base_context* ctx,
       if (!refPic || refPic->PicState == UnusedForReference) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-
-        // TODO: fill predSamplesC with black or grey
+        fill_pred_samples(l);
       }
       else if (refPic->get_width(0) != sps->pic_width_in_luma_samples ||
                refPic->get_height(0) != sps->pic_height_in_luma_samples ||
                img->get_chroma_format() != refPic->get_chroma_format()) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS, false);
+        fill_pred_samples(l);
       }
       else if (img->get_bit_depth(0) != refPic->get_bit_depth(0) ||
                img->get_bit_depth(1) != refPic->get_bit_depth(1)) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
+        fill_pred_samples(l);
       }
       else if (img->get_chroma_format() != refPic->get_chroma_format()) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH, false);
+        fill_pred_samples(l);
       }
       else {
         // 8.5.3.2.2
