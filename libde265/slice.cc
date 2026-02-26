@@ -3879,6 +3879,15 @@ void read_transform_tree(thread_context* tctx,
                               interSplitFlag==1) ? 1:0;
     }
 
+  if (split_transform_flag && log2TrafoSize <= sps.Log2MinTrafoSize) {
+    // TODO: it would be nice to have a flag "ignore_subsequent_errors" since the stream cannot be successfully decoded
+    //       after a bitstream error like this. But that would require that the error_queue is independent for each decoding thread
+    //       and that the flag is reset at a CABAC synchronization point. An alternative would be to simply stop the decoding this slice
+    //       after such an error.
+    img->decctx->add_warning(DE265_WARNING_INVALID_TU_BLOCK_SPLIT, true);
+    split_transform_flag = 0;
+  }
+
   if (split_transform_flag) {
     logtrace(LogSlice,"set_split_transform_flag(%d,%d, %d)\n",x0,y0,trafoDepth);
     img->set_split_transform_flag(x0,y0,trafoDepth);
