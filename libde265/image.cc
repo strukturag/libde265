@@ -248,7 +248,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   static std::atomic<uint32_t> s_next_image_ID(0);
   ID = s_next_image_ID++;
-  removed_at_picture_id = std::numeric_limits<int32_t>::max();
+  removed_at_picture_id = std::numeric_limits<uint32_t>::max();
 
   decctx = dctx;
   //encctx = ectx;
@@ -267,15 +267,16 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   de265_image_spec spec;
 
-  int WinUnitX, WinUnitY;
+  uint8_t WinUnitX, WinUnitY;
 
   switch (chroma_format) {
-  case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
-  case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
-  case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
-  case de265_chroma_444:  WinUnitX=1; WinUnitY=1; break;
-  default:
-    assert(0);
+    case de265_chroma_mono: WinUnitX=1; WinUnitY=1; break;
+    case de265_chroma_420:  WinUnitX=2; WinUnitY=2; break;
+    case de265_chroma_422:  WinUnitX=2; WinUnitY=1; break;
+    case de265_chroma_444:  WinUnitX=1; WinUnitY=1; break;
+    default:
+      assert(0);
+      WinUnitX = WinUnitY = 0;
   }
 
   switch (chroma_format) {

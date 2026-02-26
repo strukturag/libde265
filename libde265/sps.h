@@ -200,16 +200,16 @@ public:
 
   int MaxPicOrderCntLsb;
 
-  int Log2MinCbSizeY;
-  int Log2CtbSizeY;
-  int MinCbSizeY;
-  int CtbSizeY;
-  int PicWidthInMinCbsY;
-  int PicWidthInCtbsY;
-  int PicHeightInMinCbsY;
-  int PicHeightInCtbsY;
-  int PicSizeInMinCbsY;
-  int PicSizeInCtbsY;
+  uint8_t Log2MinCbSizeY;
+  uint8_t Log2CtbSizeY;
+  uint8_t MinCbSizeY;
+  uint8_t CtbSizeY;
+  uint16_t PicWidthInMinCbsY;
+  uint16_t PicWidthInCtbsY;
+  uint16_t PicHeightInMinCbsY;
+  uint16_t PicHeightInCtbsY;
+  uint32_t PicSizeInMinCbsY;
+  uint32_t PicSizeInCtbsY;
   uint32_t PicSizeInSamplesY;
 
   int CtbWidthC, CtbHeightC;

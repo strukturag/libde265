@@ -879,7 +879,7 @@ void decoder_context::mark_whole_slice_as_processed(image_unit* imgunit,
            nextSegment->shdr->slice_segment_address);
     */
 
-    for (int ctb=sliceunit->shdr->slice_segment_address;
+    for (uint32_t ctb=sliceunit->shdr->slice_segment_address;
          ctb < nextSegment->shdr->slice_segment_address;
          ctb++)
       {
@@ -1101,7 +1101,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     delete imgunit->tasks[i];
   imgunit->tasks.clear();
 
-  return DE265_OK;
+  return err;
 }
 
 de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
@@ -1460,7 +1460,7 @@ de265_error decoder_context::process_reference_picture_set(slice_segment_header*
 {
   std::vector<int> removeReferencesList;
 
-  const int currentID = img->get_ID();
+  const uint32_t currentID = img->get_ID();
 
 
   if (isIRAP(nal_unit_type) && NoRaslOutputFlag) {
@@ -1720,7 +1720,7 @@ de265_error decoder_context::process_reference_picture_set(slice_segment_header*
 
   // 4. any picture that is not marked for reference is put into the "UnusedForReference" state
 
-  for (int i=0;i<dpb.size();i++)
+  for (size_t i=0;i<dpb.size();i++)
     if (i>=picInAnyList.size() || !picInAnyList[i])        // no reference
       {
         de265_image* dpbimg = dpb.get_image(i);

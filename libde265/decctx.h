@@ -55,10 +55,10 @@ class thread_context
 public:
   thread_context();
 
-  int CtbAddrInRS;
-  int CtbAddrInTS;
+  uint32_t CtbAddrInRS;
+  uint32_t CtbAddrInTS;
 
-  int CtbX, CtbY;
+  uint16_t CtbX, CtbY;
 
 
   // motion vectors

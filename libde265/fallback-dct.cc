@@ -30,6 +30,7 @@
 #include <algorithm>
 
 
+#if 0
 static void printMatrix(const char* name, const int16_t* v, int n)
 {
   printf("--- %s ---\n",name);
@@ -40,7 +41,7 @@ static void printMatrix(const char* name, const int16_t* v, int n)
     printf("\n");
   }
 }
-
+#endif
 
 
 void transform_skip_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride)
@@ -237,8 +238,6 @@ void transform_bypass_8_fallback(uint8_t *dst, const int16_t *coeffs, int nT, pt
 
 void transform_bypass_16_fallback(uint16_t *dst, const int16_t *coeffs, int nT, ptrdiff_t stride, int bit_depth)
 {
-  int bdShift2 = 20-bit_depth;
-
   for (int y=0;y<nT;y++)
     for (int x=0;x<nT;x++) {
       int32_t c = coeffs[x+y*nT];

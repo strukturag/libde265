@@ -153,7 +153,7 @@ public:
   char no_output_of_prior_pics_flag;
   int  slice_pic_parameter_set_id;
   char dependent_slice_segment_flag;
-  int  slice_segment_address;
+  uint32_t slice_segment_address;
 
   int  slice_type;
   char pic_output_flag;
@@ -237,7 +237,7 @@ public:
 
   // --- data for external modules ---
 
-  int SliceAddrRS;  // slice_segment_address of last independent slice
+  uint32_t SliceAddrRS;  // slice_segment_address of last independent slice
 
   int MaxNumMergeCand;  // directly derived from 'five_minus_max_num_merge_cand'
   int CurrRpsIdx;

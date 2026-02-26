@@ -111,7 +111,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
     int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps.Log2MinTrafoSize;
     int minTbAddrA = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
-    int ctbAddrA = minTbAddrA >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
+    uint32_t ctbAddrA = minTbAddrA >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
       qPYA = tctx->img->get_QPY(xQG-1,yQG);
     }
@@ -126,8 +126,8 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   if (tctx->img->available_zscan(xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps.Log2MinTrafoSize;
-    int minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
-    int ctbAddrB = minTbAddrB >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
+    uint32_t minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
+    uint32_t ctbAddrB = minTbAddrB >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrB == tctx->CtbAddrInTS) {
       qPYB = tctx->img->get_QPY(xQG,yQG-1);
     }
@@ -503,7 +503,7 @@ void scale_coefficients_internal(thread_context* tctx,
       case  8: sclist = &pps.scaling_list.ScalingFactor_Size1[matrixID][0][0]; break;
       case 16: sclist = &pps.scaling_list.ScalingFactor_Size2[matrixID][0][0]; break;
       case 32: sclist = &pps.scaling_list.ScalingFactor_Size3[matrixID][0][0]; break;
-      default: assert(0);
+      default: assert(0); sclist = nullptr;
       }
 
       for (int i=0;i<tctx->nCoeff[cIdx];i++) {
@@ -533,7 +533,9 @@ void scale_coefficients_internal(thread_context* tctx,
       logtrace(LogTransform,"*\n");
     }
 
+#ifdef DE265_LOG_TRACE
     int bdShift2 = (cIdx==0) ? 20-sps.BitDepth_Y : 20-sps.BitDepth_C;
+#endif
 
     logtrace(LogTransform,"bdShift2=%d\n",bdShift2);
 
@@ -721,7 +723,7 @@ void dequant_coefficients(int16_t* out_coeff,
   const int offset = (1<<(bdShift-1));
   const int fact = m_x_y * levelScale[qP%6] << (qP/6);
 
-  int blkSize = (1<<log2TrSize);
+  //int blkSize = (1<<log2TrSize);
   int nCoeff  = (1<<(log2TrSize<<1));
 
   for (int i=0;i<nCoeff;i++) {

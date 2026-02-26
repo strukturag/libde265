@@ -591,7 +591,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
   // raster scan (RS) <-> tile scan (TS) conversion
 
-  for (int ctbAddrRS=0 ; ctbAddrRS < sps->PicSizeInCtbsY ; ctbAddrRS++)
+  for (uint32_t ctbAddrRS=0 ; ctbAddrRS < sps->PicSizeInCtbsY ; ctbAddrRS++)
     {
       int tbX = ctbAddrRS % sps->PicWidthInCtbsY;
       int tbY = ctbAddrRS / sps->PicWidthInCtbsY;

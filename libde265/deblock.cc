@@ -127,7 +127,7 @@ void markPredictionBlockBoundary(de265_image* img, int x0,int y0,
 }
 
 
-bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
+bool derive_edgeFlags_CTBRow(de265_image* img, uint16_t ctby)
 {
   const seq_parameter_set& sps = img->get_sps();
   const pic_parameter_set& pps = img->get_pps();
@@ -140,8 +140,8 @@ bool derive_edgeFlags_CTBRow(de265_image* img, int ctby)
   int ctbshift = sps.Log2CtbSizeY;
 
 
-  int cb_y_start = ( ctby    << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
-  int cb_y_end   = ((ctby+1) << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
+  uint16_t cb_y_start = ( ctby    << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
+  uint16_t cb_y_end   = ((ctby+1) << sps.Log2CtbSizeY) >> sps.Log2MinCbSizeY;
 
   cb_y_end = std::min(cb_y_end, sps.PicHeightInMinCbsY);
 
@@ -253,8 +253,8 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
   xEnd = libde265_min(xEnd,img->get_deblk_width());
   yEnd = libde265_min(yEnd,img->get_deblk_height());
 
-  int TUShift = img->get_sps().Log2MinTrafoSize;
-  int TUStride= img->get_sps().PicWidthInTbsY;
+  //int TUShift = img->get_sps().Log2MinTrafoSize;
+  //int TUStride= img->get_sps().PicWidthInTbsY;
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -1034,7 +1034,7 @@ void add_deblocking_tasks(image_unit* imgunit)
 
 void apply_deblocking_filter(de265_image* img) // decoder_context* ctx)
 {
-  decoder_context* ctx = img->decctx;
+  //decoder_context* ctx = img->decctx;
 
   char enabled_deblocking = derive_edgeFlags(img);
 

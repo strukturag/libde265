@@ -173,7 +173,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
     au_cpb_removal_delay_length_minus1 = get_bits(br, 5);
     dpb_output_delay_length_minus1 = get_bits(br, 5);
   }
-  int  i, j, nalOrVcl;
+  int  i, nalOrVcl;
 
   for (i = 0; i < sps->sps_max_sub_layers; i++)
   {
@@ -211,7 +211,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
       if (((nalOrVcl == 0) && nal_hrd_parameters_present_flag) ||
         ((nalOrVcl == 1) && vcl_hrd_parameters_present_flag))
       {
-        for (j = 0; j <= cpb_cnt_minus1[i]; j++)
+        for (uint32_t j = 0; j <= cpb_cnt_minus1[i]; j++)
         {
           READ_VLC_OFFSET(bit_rate_value_minus1[i][j][nalOrVcl], uvlc, 0);
           READ_VLC_OFFSET(cpb_size_value_minus1[i][j][nalOrVcl], uvlc, 0);

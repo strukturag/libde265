@@ -1,6 +1,6 @@
 include(CMakePackageConfigHelpers)
 
-set (libde265_sources 
+set (libde265_sources
   alloc_pool.cc
   bitstream.cc
   cabac.cc
@@ -9,7 +9,6 @@ set (libde265_sources
   deblock.cc
   decctx.cc
   dpb.cc
-  en265.cc
   fallback-dct.cc
   fallback-motion.cc 
   fallback.cc
@@ -47,7 +46,6 @@ set (libde265_headers
   deblock.h
   decctx.h
   dpb.h
-  en265.h
   fallback-dct.h
   fallback-motion.h
   fallback.h
@@ -76,7 +74,6 @@ set (libde265_headers
 
 set (libde265_public_headers
   de265.h
-  en265.h
   ${CMAKE_CURRENT_BINARY_DIR}/de265-version.h
 )
 
@@ -90,7 +87,12 @@ endif()
 
 add_definitions(-DLIBDE265_EXPORTS)
 
-add_subdirectory (encoder)
+if (ENABLE_ENCODER)
+  add_subdirectory (encoder)
+  list(APPEND libde265_sources en265.cc)
+  list(APPEND libde265_headers en265.h)
+  list(APPEND libde265_public_headers en265.h)
+endif()
 
 check_c_source_compiles(
   "#if !defined(__x86_64) && !defined(__i386__) \

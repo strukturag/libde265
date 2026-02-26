@@ -158,6 +158,7 @@ int find_intra_pred_mode(enum IntraPredMode mode,
 }
 
 
+#if 0
 void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
                                  enum IntraPredMode luma_mode)
 {
@@ -178,6 +179,7 @@ void list_chroma_pred_candidates(enum IntraPredMode chroma_mode[5],
     break;
   }
 }
+#endif
 
 
 int get_intra_scan_idx(int log2TrafoSize, enum IntraPredMode intraPredMode, int cIdx,

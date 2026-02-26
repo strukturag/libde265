@@ -378,7 +378,7 @@ public:
   enum PictureState PicState;
   bool PicOutputFlag;
 
-  int32_t removed_at_picture_id;
+  uint32_t removed_at_picture_id;
 
   const video_parameter_set& get_vps() const { return *vps; }
   const seq_parameter_set& get_sps() const { return *sps; }
@@ -396,7 +396,7 @@ public:
   decoder_context*    decctx;
   //class encoder_context*    encctx;
 
-  int number_of_ctbs() const { return ctb_info.size(); }
+  [[nodiscard]] uint32_t number_of_ctbs() const { return static_cast<uint32_t>(ctb_info.size()); }
 
 private:
   // The image also keeps a reference to VPS/SPS/PPS, because when decoding is delayed,

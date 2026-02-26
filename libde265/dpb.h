@@ -34,8 +34,8 @@ public:
   decoded_picture_buffer();
   ~decoded_picture_buffer();
 
-  void set_max_size_of_DPB(int n)  { max_images_in_DPB=n; }
-  void set_norm_size_of_DPB(int n) { norm_images_in_DPB=n; }
+  void set_max_size_of_DPB(uint8_t n)  { max_images_in_DPB=n; }
+  void set_norm_size_of_DPB(uint8_t n) { norm_images_in_DPB=n; }
 
   /* Alloc a new image in the DPB and return its index.
      If there is no space for a new image, returns the negative value of an de265_error.
@@ -52,7 +52,7 @@ public:
   /* Remove all pictures from DPB and queues. Decoding should be stopped while calling this. */
   void clear();
 
-  int size() const { return dpb.size(); }
+  size_t size() const { return dpb.size(); }
 
   /* Raw access to the images. */
 
@@ -67,9 +67,9 @@ public:
   }
 
   /* Search DPB for the slot index of a specific picture. */
-  int DPB_index_of_picture_with_POC(int poc, int currentID, bool preferLongTerm=false) const;
-  int DPB_index_of_picture_with_LSB(int lsb, int currentID, bool preferLongTerm=false) const;
-  int DPB_index_of_picture_with_ID (int id) const;
+  int DPB_index_of_picture_with_POC(int poc, uint32_t currentID, bool preferLongTerm=false) const;
+  int DPB_index_of_picture_with_LSB(int lsb, uint32_t currentID, bool preferLongTerm=false) const;
+  int DPB_index_of_picture_with_ID (uint32_t id) const;
 
 
   // --- reorder buffer ---
@@ -104,8 +104,8 @@ public:
   void log_dpb_queues() const;
 
 private:
-  int max_images_in_DPB;
-  int norm_images_in_DPB;
+  uint8_t max_images_in_DPB;
+  uint8_t norm_images_in_DPB;
 
   std::vector<struct de265_image*> dpb; // decoded picture buffer
 

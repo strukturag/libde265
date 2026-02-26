@@ -279,6 +279,7 @@ bool display_sdl(const struct de265_image* img)
     case de265_chroma_422:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_422;  break;
     case de265_chroma_444:  sdlChroma = SDL_YUV_Display::SDL_CHROMA_444;  break;
     case de265_chroma_mono: sdlChroma = SDL_YUV_Display::SDL_CHROMA_MONO; break;
+      default: assert(false); sdlChroma = SDL_YUV_Display::SDL_CHROMA_MONO;
     }
 
     sdlWin.init(width,height, sdlChroma);

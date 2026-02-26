@@ -204,14 +204,15 @@ int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model)
 
       decoder->value = (decoder->value - scaled_range);
 
-      int num_bits = renorm_table[ LPS >> 3 ];
+      uint8_t num_bits = renorm_table[ LPS >> 3 ];
       decoder->value <<= num_bits;
       decoder->range   = LPS << num_bits;  /* this is always >= 0x100 except for state 63,
                                               but state 63 is never used */
 
+#ifndef NDEBUG
       int num_bitsTab = renorm_table[ LPS >> 3 ];
-
       assert(num_bits == num_bitsTab);
+#endif
 
       decoded_bit      = 1 - model->MPSbit;
 

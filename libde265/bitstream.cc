@@ -170,6 +170,7 @@ bool check_rbsp_trailing_bits(bitreader* br)
 {
   int stop_bit = get_bits(br,1);
   assert(stop_bit==1);
+  (void)stop_bit;
 
   while (br->nextbits_cnt>0 || br->bytes_remaining>0) {
     int filler = get_bits(br,1);

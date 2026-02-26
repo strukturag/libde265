@@ -73,7 +73,9 @@ void disable_logging(enum LogModule module)
 }
 #endif
 
+#ifdef DE265_LOG_TRACE
 static long logcnt[10];
+#endif
 
 #ifdef DE265_LOG_ERROR
 void logerror(enum LogModule module, const char* string, ...)

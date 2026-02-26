@@ -64,7 +64,7 @@ class ImageSource_YUV : public ImageSource
   FILE* mFH;
   bool mReachedEndOfFile;
 
-  int width,height;
+  uint32_t width,height;
 
   de265_image* read_next_image();
 };

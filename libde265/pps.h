@@ -151,11 +151,11 @@ public:
   int colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
   int rowBd    [ DE265_MAX_TILE_ROWS+1 ];
 
-  std::vector<int> CtbAddrRStoTS; // #CTBs
-  std::vector<int> CtbAddrTStoRS; // #CTBs
-  std::vector<int> TileId;        // #CTBs  // index in tile-scan order
-  std::vector<int> TileIdRS;      // #CTBs  // index in raster-scan order
-  std::vector<int> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
+  std::vector<uint32_t> CtbAddrRStoTS; // #CTBs
+  std::vector<uint32_t> CtbAddrTStoRS; // #CTBs
+  std::vector<uint32_t> TileId;        // #CTBs  // index in tile-scan order
+  std::vector<uint32_t> TileIdRS;      // #CTBs  // index in raster-scan order
+  std::vector<uint32_t> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
 
   void set_derived_values(const seq_parameter_set* sps);
 };

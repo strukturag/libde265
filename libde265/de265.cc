@@ -327,6 +327,7 @@ LIBDE265_API de265_error de265_decode_data(de265_decoder_context* de265ctx,
 }
 #endif
 
+#if 0
 static void dumpdata(const void* data, int len)
 {
   for (int i=0;i<len;i++) {
@@ -334,6 +335,7 @@ static void dumpdata(const void* data, int len)
   }
   printf("\n");
 }
+#endif
 
 
 LIBDE265_API de265_error de265_push_data(de265_decoder_context* de265ctx,

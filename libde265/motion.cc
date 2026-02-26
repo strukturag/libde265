@@ -1277,7 +1277,7 @@ void derive_collocated_motion_vectors(base_context* ctx,
 
 
 
-  int slice_hdr_idx = colImg->get_SliceHeaderIndex(xColPb,yColPb);
+  uint16_t slice_hdr_idx = colImg->get_SliceHeaderIndex(xColPb,yColPb);
   if (slice_hdr_idx >= colImg->slices.size()) {
     ctx->add_warning(DE265_WARNING_INVALID_SLICE_HEADER_INDEX_ACCESS, false);
 
@@ -1512,8 +1512,8 @@ void get_merge_candidate_list_without_step_9(base_context* ctx,
 
   //int xOrigP = xP;
   //int yOrigP = yP;
-  int nOrigPbW = nPbW;
-  int nOrigPbH = nPbH;
+  //int nOrigPbW = nPbW;
+  //int nOrigPbH = nPbH;
 
   int singleMCLFlag; // single merge-candidate-list (MCL) flag
 
@@ -1822,7 +1822,10 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       assert(refPicList>=0);
 
       const de265_image* refPicA = ctx->get_image(shdr->RefPicList[refPicList][refIdxA ]);
-      const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X         ][refIdxLX]);
+
+#ifdef DE265_LOG_TRACE
+      const de265_image* refPicX = ctx->get_image(shdr->RefPicList[X][refIdxLX]);
+#endif
 
       //int picStateA = shdr->RefPicList_PicState[refPicList][refIdxA ];
       //int picStateX = shdr->RefPicList_PicState[X         ][refIdxLX];
