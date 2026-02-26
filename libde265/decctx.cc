@@ -2263,6 +2263,8 @@ void decoder_context::calc_tid_and_framerate_ratio()
 
 void error_queue::add_warning(de265_error warning, bool once)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
   // check if warning was already shown
   bool add=true;
   if (once) {
@@ -2306,6 +2308,8 @@ error_queue::error_queue()
 
 de265_error error_queue::get_warning()
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
   if (nWarnings==0) {
     return DE265_OK;
   }

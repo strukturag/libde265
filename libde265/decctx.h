@@ -133,6 +133,7 @@ class error_queue
   de265_error get_warning();
 
  private:
+  std::mutex m_mutex;
   de265_error warnings[MAX_WARNINGS];
   int nWarnings;
   de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
