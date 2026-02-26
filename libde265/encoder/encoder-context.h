@@ -41,11 +41,11 @@ class encoder_context : public base_context
   encoder_context();
   ~encoder_context();
 
-  virtual const de265_image* get_image(int frame_id) const {
+  virtual const de265_image* get_image(uint16_t frame_id) const {
     return picbuf.get_picture(frame_id)->reconstruction;
   }
 
-  virtual bool has_image(int frame_id) const {
+  virtual bool has_image(uint16_t frame_id) const {
     return picbuf.has_picture(frame_id);
   }
 

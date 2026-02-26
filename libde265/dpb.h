@@ -56,12 +56,12 @@ public:
 
   /* Raw access to the images. */
 
-  /* */ de265_image* get_image(int index)       {
+  /* */ de265_image* get_image(uint16_t index)       {
     if (index>=dpb.size()) return NULL;
     return dpb[index];
   }
 
-  const de265_image* get_image(int index) const {
+  const de265_image* get_image(uint16_t index) const {
     if (index>=dpb.size()) return NULL;
     return dpb[index];
   }

@@ -283,9 +283,9 @@ class base_context : public error_queue
 
   struct acceleration_functions acceleration; // CPU optimized functions
 
-  //virtual /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  virtual const de265_image* get_image(int frame_id) const = 0;
-  virtual bool has_image(int frame_id) const = 0;
+  //virtual /* */ de265_image* get_image(uint16_t dpb_index)       { return dpb.get_image(dpb_index); }
+  virtual const de265_image* get_image(uint16_t frame_id) const = 0;
+  virtual bool has_image(uint16_t frame_id) const = 0;
 };
 
 
@@ -369,10 +369,10 @@ class decoder_context : public base_context {
 
   int get_num_worker_threads() const { return num_worker_threads; }
 
-  /* */ de265_image* get_image(int dpb_index)       { return dpb.get_image(dpb_index); }
-  const de265_image* get_image(int dpb_index) const { return dpb.get_image(dpb_index); }
+  /* */ de265_image* get_image(uint16_t dpb_index)       { return dpb.get_image(dpb_index); }
+  const de265_image* get_image(uint16_t dpb_index) const override { return dpb.get_image(dpb_index); }
 
-  bool has_image(int dpb_index) const { return dpb_index>=0 && dpb_index<dpb.size(); }
+  bool has_image(uint16_t dpb_index) const override { return dpb_index<dpb.size(); }
 
   de265_image* get_next_picture_in_output_queue() { return dpb.get_next_picture_in_output_queue(); }
   int          num_pictures_in_output_queue() const { return dpb.num_pictures_in_output_queue(); }

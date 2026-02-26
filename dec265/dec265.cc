@@ -240,6 +240,9 @@ void display_image(const struct de265_image* img)
 }
 #endif
 
+
+#if HAVE_SDL
+
 static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height,
                                 int pixelsPerLine, int bit_depth)
 {
@@ -255,8 +258,6 @@ static uint8_t* convert_to_8bit(const uint8_t* data, int width, int height,
   return out;
 }
 
-
-#if HAVE_SDL
 SDL_YUV_Display sdlWin;
 bool sdl_active=false;
 
