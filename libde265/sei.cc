@@ -360,12 +360,19 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 }
 
 
+#define MAX_SEI_SIZE UINT32_C(0xFFFFFFFF)
+
 de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq_parameter_set* sps)
 {
   uint16_t payload_type = 0;
   for (;;)
     {
       uint8_t byte = static_cast<uint8_t>(get_bits(reader,8));
+
+      if (std::numeric_limits<uint16_t>::max() - byte < payload_type) {
+        return DE265_ERROR_CANNOT_PROCESS_SEI;
+      }
+
       payload_type += byte;
       if (byte != 0xFF) { break; }
     }
@@ -376,6 +383,11 @@ de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq
   for (;;)
     {
       uint32_t byte = get_bits(reader,8);
+
+      if (MAX_SEI_SIZE - byte < payload_type) {
+        return DE265_ERROR_CANNOT_PROCESS_SEI;
+      }
+
       payload_size += byte;
       if (byte != 0xFF) { break; }
     }
