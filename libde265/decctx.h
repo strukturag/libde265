@@ -342,24 +342,24 @@ class decoder_context : public base_context {
 
   // --- parameters ---
 
-  bool param_sei_check_hash;
-  bool param_conceal_stream_errors;
-  bool param_suppress_faulty_pictures;
+  bool param_sei_check_hash = false;
+  bool param_conceal_stream_errors = true;
+  bool param_suppress_faulty_pictures = false;
 
-  int  param_sps_headers_fd;
-  int  param_vps_headers_fd;
-  int  param_pps_headers_fd;
-  int  param_slice_headers_fd;
+  int  param_sps_headers_fd = -1;
+  int  param_vps_headers_fd = -1;
+  int  param_pps_headers_fd = -1;
+  int  param_slice_headers_fd = -1;
 
-  bool param_disable_deblocking;
-  bool param_disable_sao;
+  bool param_disable_deblocking = false;
+  bool param_disable_sao = false;
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
   void set_image_allocation_functions(de265_image_allocation* allocfunc, void* userdata);
 
-  de265_image_allocation param_image_allocation_functions;
-  void*                  param_image_allocation_userdata;
+  de265_image_allocation param_image_allocation_functions; // initialized in constructor
+  void*                  param_image_allocation_userdata = nullptr;
 
 
   // --- input stream data ---
@@ -401,7 +401,7 @@ class decoder_context : public base_context {
   thread_pool thread_pool_;
 
  private:
-  int num_worker_threads;
+  int num_worker_threads = 0;
 
 
  public:
@@ -415,14 +415,14 @@ class decoder_context : public base_context {
 
  private:
   // input parameters
-  int limit_HighestTid;    // never switch to a layer above this one
-  int framerate_ratio;
+  int limit_HighestTid = 6;    // never switch to a layer above this one
+  int framerate_ratio = 100;
 
   // current control parameters
-  int goal_HighestTid;     // this is the layer we want to decode at
-  int layer_framerate_ratio; // ratio of frames to keep in the current layer
+  int goal_HighestTid = 6;     // this is the layer we want to decode at
+  int layer_framerate_ratio = 100; // ratio of frames to keep in the current layer
 
-  int current_HighestTid;  // the layer which we are currently decoding
+  int current_HighestTid = 6;  // the layer which we are currently decoding
 
   struct {
     int8_t tid;
@@ -438,20 +438,20 @@ class decoder_context : public base_context {
 
   decoded_picture_buffer dpb;
 
-  int current_image_poc_lsb;
-  bool first_decoded_picture;
-  bool NoRaslOutputFlag;
-  bool HandleCraAsBlaFlag;
-  bool FirstAfterEndOfSequenceNAL;
+  int current_image_poc_lsb = -1;
+  bool first_decoded_picture = true;
+  bool NoRaslOutputFlag = false;
+  bool HandleCraAsBlaFlag = false;
+  bool FirstAfterEndOfSequenceNAL = false;
 
-  int  PicOrderCntMsb;
-  int prevPicOrderCntLsb;  // at precTid0Pic
-  int prevPicOrderCntMsb;  // at precTid0Pic
+  int  PicOrderCntMsb = 0;
+  int prevPicOrderCntLsb = 0;  // at precTid0Pic
+  int prevPicOrderCntMsb = 0;  // at precTid0Pic
 
-  de265_image* img;
+  de265_image* img = nullptr;
 
  public:
-  const slice_segment_header* previous_slice_header; /* Remember the last slice for a successive
+  const slice_segment_header* previous_slice_header = nullptr; /* Remember the last slice for a successive
 								  dependent slice. */
 
 
@@ -501,7 +501,7 @@ class decoder_context : public base_context {
 
   std::vector<image_unit*> image_units;
 
-  bool flush_reorder_buffer_at_this_frame;
+  bool flush_reorder_buffer_at_this_frame = false;
 
  private:
   void init_thread_context(thread_context* tctx);
