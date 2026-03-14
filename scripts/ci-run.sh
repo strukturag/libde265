@@ -75,6 +75,7 @@ if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
 fi
 
 if [ ! -z "$DECODESTREAMS" ]; then
+    export LD_LIBRARY_PATH=$BUILD_ROOT/build/libde265/
     python3 scripts/decodestreams.py $THREADING /var/lib/libde265-teststreams
 
     DECODEHASH=$(./build/dec265/dec265 testdata/girlshy.h265 -q -o - | md5sum - | cut -d " " -f1)
