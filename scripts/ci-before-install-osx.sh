@@ -30,14 +30,11 @@ INSTALL_PACKAGES="$INSTALL_PACKAGES \
     ffmpeg \
     libtool \
     pkg-config \
-    qt5 \
-    sdl \
+    qt@5 \
+    sdl2 \
     "
 
 if [ ! -z "$INSTALL_PACKAGES" ]; then
-    echo "Remove python@2 ..."
-    brew unlink python@2 || true
-
     echo "Installing packages $INSTALL_PACKAGES ..."
     for package in $INSTALL_PACKAGES; do
         brew list $package &>/dev/null || brew install $package

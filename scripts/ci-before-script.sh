@@ -36,8 +36,9 @@ if [ ! -z "$TARGET_HOST" ]; then
 fi
 
 if [ "$CURRENT_OS" = "osx" ]; then
-    export PATH="/usr/local/opt/qt@5/bin:$PATH"
-    export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig"
+    HOMEBREW_PREFIX="$(brew --prefix)"
+    export PATH="$HOMEBREW_PREFIX/opt/qt@5/bin:$PATH"
+    export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/opt/qt@5/lib/pkgconfig"
 fi
 
 # Valgrind on Ubuntu 22.04 cannot handle DWARF5 debug info produced by clang.
