@@ -12,9 +12,9 @@ sherlock265_SOURCES = \
   VideoPlayer.cc \
   VideoDecoder.cc \
   VideoWidget.cc \
-  VideoPlayer.hh \
-  VideoDecoder.hh \
-  VideoWidget.hh
+  VideoPlayer.h \
+  VideoDecoder.h \
+  VideoWidget.h
 
 nodist_sherlock265_SOURCES = \
   moc_VideoPlayer.cpp \
@@ -36,14 +36,14 @@ if HAVE_SWSCALE
   sherlock265_LDFLAGS += $(SWSCALE_LIBS)
 endif
 
-moc_VideoWidget.cpp: VideoWidget.hh
-	$(QTMOC) $(DEFINES) $(INCPATH) VideoWidget.hh -o moc_VideoWidget.cpp
+moc_VideoWidget.cpp: VideoWidget.h
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoWidget.h -o moc_VideoWidget.cpp
 
-moc_VideoPlayer.cpp: VideoPlayer.hh
-	$(QTMOC) $(DEFINES) $(INCPATH) VideoPlayer.hh -o moc_VideoPlayer.cpp
+moc_VideoPlayer.cpp: VideoPlayer.h
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoPlayer.h -o moc_VideoPlayer.cpp
 
-moc_VideoDecoder.cpp: VideoDecoder.hh
-	$(QTMOC) $(DEFINES) $(INCPATH) VideoDecoder.hh -o moc_VideoDecoder.cpp
+moc_VideoDecoder.cpp: VideoDecoder.h
+	$(QTMOC) $(DEFINES) $(INCPATH) VideoDecoder.h -o moc_VideoDecoder.cpp
 
 EXTRA_DIST = \
   README

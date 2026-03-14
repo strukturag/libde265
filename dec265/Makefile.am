@@ -23,7 +23,7 @@ endif
 if HAVE_SDL
   dec265_CXXFLAGS += $(SDL_CFLAGS)
   dec265_LDFLAGS += $(SDL_LIBS)
-  dec265_SOURCES += sdl.cc sdl.hh
+  dec265_SOURCES += sdl-display.cc sdl-display.h
 endif
 
 if MINGW

@@ -24,7 +24,7 @@
   SOFTWARE.
 */
 
-#include "VideoDecoder.hh"
+#include "VideoDecoder.h"
 #ifdef HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 #endif

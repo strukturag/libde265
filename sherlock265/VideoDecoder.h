@@ -42,7 +42,7 @@ extern "C" {
 #endif
 #endif
 
-#include "VideoWidget.hh"
+#include "VideoWidget.h"
 #include "de265.h"
 
 

@@ -24,7 +24,7 @@
   SOFTWARE.
 */
 
-#include "VideoPlayer.hh"
+#include "VideoPlayer.h"
 
 
 int main(int argc, char **argv)

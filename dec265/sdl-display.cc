@@ -24,7 +24,7 @@
   SOFTWARE.
 */
 
-#include "sdl.hh"
+#include "sdl-display.h"
 #include <cstring>
 
 

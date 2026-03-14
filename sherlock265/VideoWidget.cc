@@ -24,7 +24,7 @@
   SOFTWARE.
 */
 
-#include "VideoWidget.hh"
+#include "VideoWidget.h"
 #include <QtGui>
 
 

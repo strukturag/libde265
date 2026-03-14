@@ -24,7 +24,7 @@
   SOFTWARE.
 */
 
-#include "VideoPlayer.hh"
+#include "VideoPlayer.h"
 
 
 VideoPlayer::VideoPlayer(const char* filename)

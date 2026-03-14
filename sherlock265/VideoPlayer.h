@@ -29,8 +29,8 @@
 
 #include <QtGui>
 
-#include "VideoWidget.hh"
-#include "VideoDecoder.hh"
+#include "VideoWidget.h"
+#include "VideoDecoder.h"
 
 
 class VideoPlayer : public QWidget

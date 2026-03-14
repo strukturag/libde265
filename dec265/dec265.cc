@@ -56,7 +56,7 @@ using namespace videogfx;
 #endif
 
 #if HAVE_SDL
-#include "sdl.hh"
+#include "sdl-display.h"
 #endif
 
 #ifndef PRIu32
