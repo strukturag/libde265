@@ -29,14 +29,34 @@ endif()
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 CHECK_FUNCTION_EXISTS(posix_memalign HAVE_POSIX_MEMALIGN)
 
-if (HAVE_MALLOC_H)
-  add_definitions(-DHAVE_MALLOC_H)
-endif()
-if (HAVE_POSIX_MEMALIGN)
-  add_definitions(-DHAVE_POSIX_MEMALIGN)
+include(CheckCSourceCompiles)
+check_c_source_compiles(
+  "#if !defined(__x86_64) && !defined(__i386__) \
+  && !defined(_M_IX86) && !defined(_M_AMD64) \
+  || defined(_M_ARM64EC) || defined(_ARM64EC_)
+  #error not x86
+  #endif
+  int main(){return 0;}"
+  HAVE_X86)
+
+if(HAVE_X86)
+  if (MSVC)
+    set(SUPPORTS_SSE2 1)
+    set(SUPPORTS_SSSE3 1)
+    set(SUPPORTS_SSE4_1 1)
+  else()
+    check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
+    check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
+    check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
+  endif()
+  if(SUPPORTS_SSE4_1)
+    set(HAVE_SSE4_1 TRUE)
+  endif()
 endif()
 
 configure_file (libde265/de265-version.h.in libde265/de265-version.h)
+configure_file (cmake/config.h.in config.h)
+add_definitions(-DHAVE_CONFIG_H)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
   add_definitions(-Wall)
@@ -59,8 +79,8 @@ if(APPLE)
   option(BUILD_FRAMEWORK "Build as Apple Frameworks" OFF)
 endif()
 
-include_directories ("${PROJECT_SOURCE_DIR}")
 include_directories ("${PROJECT_BINARY_DIR}")
+include_directories ("${PROJECT_SOURCE_DIR}")
 include_directories ("${PROJECT_SOURCE_DIR}/libde265")
 if(MSVC)
   include_directories ("${PROJECT_SOURCE_DIR}/extra")

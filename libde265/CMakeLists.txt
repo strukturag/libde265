@@ -94,29 +94,7 @@ if (ENABLE_ENCODER)
   list(APPEND libde265_public_headers en265.h)
 endif()
 
-check_c_source_compiles(
-  "#if !defined(__x86_64) && !defined(__i386__) \
-  && !defined(_M_IX86) && !defined(_M_AMD64) \
-  || defined(_M_ARM64EC) || defined(_ARM64EC_)
-  #error not x86
-  #endif
-  int main(){return 0;}"
-  HAVE_X86)
-
 if(HAVE_X86)
-  if (MSVC)
-    set(SUPPORTS_SSE2 1)
-    set(SUPPORTS_SSSE3 1)
-    set(SUPPORTS_SSE4_1 1)
-  else (MSVC)
-    check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
-    check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
-    check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
-  endif (MSVC)
-
-  if(SUPPORTS_SSE4_1)
-    add_definitions(-DHAVE_SSE4_1)
-  endif()
   if(SUPPORTS_SSE4_1 OR (SUPPORTS_SSE2 AND SUPPORTS_SSSE3))
     add_subdirectory (x86)
   endif()
