@@ -100,7 +100,11 @@ if(HAVE_X86)
   endif()
 endif()
 
-add_library(de265 ${libde265_sources} ${libde265_public_headers} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+if(HAVE_ARM)
+  add_subdirectory (arm)
+endif()
+
+add_library(de265 ${libde265_sources} ${libde265_public_headers} ${ENCODER_OBJECTS} ${X86_OBJECTS} ${ARM_OBJECTS})
 target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)

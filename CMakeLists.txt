@@ -82,6 +82,19 @@ if(HAVE_X86)
   endif()
 endif()
 
+check_c_source_compiles(
+  "#if !defined(__arm__) && !defined(__aarch64__) \
+  && !defined(_M_ARM) && !defined(_M_ARM64)
+  #error not ARM
+  #endif
+  int main(){return 0;}"
+  HAVE_ARM)
+
+if(HAVE_ARM)
+  enable_language(ASM)
+  check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+endif()
+
 configure_file (libde265/de265-version.h.in libde265/de265-version.h)
 configure_file (cmake/config.h.in config.h)
 add_definitions(-DHAVE_CONFIG_H)
