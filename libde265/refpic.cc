@@ -125,8 +125,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       delta_idx = 1;
     }
 
-    int RIdx = idxRps - delta_idx; // this is our source set, which we will modify
-    assert(RIdx>=0);
+    assert(idxRps >= delta_idx);
+    int RIdx = idxRps - delta_idx; // this is our source set, which we will modify (TODO: change type to uint8_t)
 
     int delta_rps_sign = get_bits(br,1);
     int abs_delta_rps  = vlc = get_uvlc(br);
@@ -171,7 +171,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // positive list
     for (int j=nPositiveRIdx-1;j>=0;j--) {
-      assert(RIdx >= 0 && RIdx < sets.size());
+      assert(RIdx >= 0 && (size_t)RIdx < sets.size());
       assert(j>=0 && j < MAX_NUM_REF_PICS);
 
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
