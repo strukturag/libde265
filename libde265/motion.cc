@@ -139,8 +139,13 @@ void mc_luma(const base_context* ctx,
       src_stride = ref_stride;
     }
     else {
+      // Extend fill width to a multiple of 16 so that SIMD over-reads
+      // in qpel interpolation hit valid (edge-clamped) data.
+      int fill_width = ((extra_left + nPbW + extra_right + 15) & ~15);
+      if (fill_width > MAX_CU_SIZE+16) fill_width = MAX_CU_SIZE+16;
+
       for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
-        for (int x=-extra_left;x<nPbW+extra_right;x++) {
+        for (int x=-extra_left;x<fill_width - extra_left;x++) {
 
           int xA = Clip3(0,w-1,x + xIntOffsL);
           int yA = Clip3(0,h-1,y + yIntOffsL);
@@ -235,8 +240,13 @@ void mc_chroma(const base_context* ctx,
       src_stride = ref_stride;
     }
     else {
+      // Extend fill width to a multiple of 16 so that SIMD over-reads
+      // in epel interpolation hit valid (edge-clamped) data.
+      int fill_width = ((extra_left + nPbWC + extra_right + 15) & ~15);
+      if (fill_width > MAX_CU_SIZE+16) fill_width = MAX_CU_SIZE+16;
+
       for (int y=-extra_top;y<nPbHC+extra_bottom;y++) {
-        for (int x=-extra_left;x<nPbWC+extra_right;x++) {
+        for (int x=-extra_left;x<fill_width - extra_left;x++) {
 
           int xA = Clip3(0,wC-1,x + xIntOffsC);
           int yA = Clip3(0,hC-1,y + yIntOffsC);
