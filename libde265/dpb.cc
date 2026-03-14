@@ -24,16 +24,6 @@
 #include <assert.h>
 
 
-#define DPB_DEFAULT_MAX_IMAGES  30
-
-
-decoded_picture_buffer::decoded_picture_buffer()
-{
-  max_images_in_DPB  = DPB_DEFAULT_MAX_IMAGES;
-  norm_images_in_DPB = DPB_DEFAULT_MAX_IMAGES;
-}
-
-
 decoded_picture_buffer::~decoded_picture_buffer()
 {
   for (size_t i=0;i<dpb.size();i++)

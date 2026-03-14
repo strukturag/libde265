@@ -459,13 +459,6 @@ void CABAC_encoder::add_trailing_bits()
 
 CABAC_encoder_bitstream::CABAC_encoder_bitstream()
 {
-  data_mem = NULL;
-  data_capacity = 0;
-  data_size = 0;
-  state = 0;
-
-  vlc_buffer_len = 0;
-
   init_CABAC();
 }
 

@@ -33,12 +33,6 @@
 NAL_unit::NAL_unit()
   : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
 {
-  pts=0;
-  user_data = NULL;
-
-  nal_data = NULL;
-  data_size = 0;
-  capacity = 0;
 }
 
 NAL_unit::~NAL_unit()
@@ -153,14 +147,7 @@ void NAL_unit::remove_stuffing_bytes()
 
 
 
-NAL_Parser::NAL_Parser()
-{
-  end_of_stream = false;
-  end_of_frame = false;
-  input_push_state = 0;
-  pending_input_NAL = NULL;
-  nBytes_in_NAL_queue = 0;
-}
+NAL_Parser::NAL_Parser() = default;
 
 
 NAL_Parser::~NAL_Parser()

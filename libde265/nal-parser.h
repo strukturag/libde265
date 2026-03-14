@@ -40,8 +40,8 @@ class NAL_unit {
 
   nal_header header;
 
-  de265_PTS  pts;
-  void*      user_data;
+  de265_PTS  pts = 0;
+  void*      user_data = nullptr;
 
 
   void clear();
@@ -76,9 +76,9 @@ class NAL_unit {
   void remove_stuffing_bytes();
 
  private:
-  unsigned char* nal_data;
-  int data_size;
-  int capacity;
+  unsigned char* nal_data = nullptr;
+  int data_size = 0;
+  int capacity = 0;
 
   std::vector<int> skipped_bytes; // up to position[x], there were 'x' skipped bytes
 };
@@ -128,17 +128,17 @@ class NAL_Parser
  private:
   // byte-stream level
 
-  bool end_of_stream; // data in pending_input_data is end of stream
-  bool end_of_frame;  // data in pending_input_data is end of frame
-  int  input_push_state;
+  bool end_of_stream = false; // data in pending_input_data is end of stream
+  bool end_of_frame = false;  // data in pending_input_data is end of frame
+  int  input_push_state = 0;
 
-  NAL_unit* pending_input_NAL;
+  NAL_unit* pending_input_NAL = nullptr;
 
 
   // NAL level
 
   std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
-  int nBytes_in_NAL_queue; // data bytes currently in NAL_queue
+  int nBytes_in_NAL_queue = 0; // data bytes currently in NAL_queue
 
   void push_to_NAL_queue(NAL_unit*);
 

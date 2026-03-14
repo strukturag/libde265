@@ -68,15 +68,15 @@ class sps_range_extension
  public:
   sps_range_extension();
 
-  uint8_t transform_skip_rotation_enabled_flag;
-  uint8_t transform_skip_context_enabled_flag;
-  uint8_t implicit_rdpcm_enabled_flag;
-  uint8_t explicit_rdpcm_enabled_flag;
-  uint8_t extended_precision_processing_flag;
-  uint8_t intra_smoothing_disabled_flag;
-  uint8_t high_precision_offsets_enabled_flag;
-  uint8_t persistent_rice_adaptation_enabled_flag;
-  uint8_t cabac_bypass_alignment_enabled_flag;
+  uint8_t transform_skip_rotation_enabled_flag = 0;
+  uint8_t transform_skip_context_enabled_flag = 0;
+  uint8_t implicit_rdpcm_enabled_flag = 0;
+  uint8_t explicit_rdpcm_enabled_flag = 0;
+  uint8_t extended_precision_processing_flag = 0;
+  uint8_t intra_smoothing_disabled_flag = 0;
+  uint8_t high_precision_offsets_enabled_flag = 0;
+  uint8_t persistent_rice_adaptation_enabled_flag = 0;
+  uint8_t cabac_bypass_alignment_enabled_flag = 0;
 
   de265_error read(error_queue*, bitreader*);
   void dump(int fd) const;
@@ -98,7 +98,7 @@ public:
   void set_TB_log2size_range(int mini,int maxi);
   void set_resolution(int w,int h);
 
-  bool sps_read; // whether the sps has been read from the bitstream
+  bool sps_read = false; // whether the sps has been read from the bitstream
 
 
   char video_parameter_set_id;

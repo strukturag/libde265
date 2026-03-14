@@ -73,75 +73,7 @@ const char* get_video_format_name(enum VideoFormat format)
 }
 
 
-video_usability_information::video_usability_information()
-{
-  aspect_ratio_info_present_flag = false;
-  sar_width  = 0;
-  sar_height = 0;
-
-
-  // --- overscan ---
-
-  overscan_info_present_flag = false;
-  overscan_appropriate_flag  = false;
-
-
-  // --- video signal type ---
-
-  video_signal_type_present_flag = false;
-  video_format = VideoFormat_Unspecified;
-  video_full_range_flag = false;
-  colour_description_present_flag = false;
-  colour_primaries = 2;
-  transfer_characteristics = 2;
-  matrix_coeffs = 2;
-
-  // --- chroma / interlaced ---
-
-  chroma_loc_info_present_flag = false;
-  chroma_sample_loc_type_top_field    = 0;
-  chroma_sample_loc_type_bottom_field = 0;
-
-  neutral_chroma_indication_flag = false;
-  field_seq_flag = false;
-  frame_field_info_present_flag = false;
-
-  // --- default display window ---
-
-  default_display_window_flag = false;
-  def_disp_win_left_offset   = 0;
-  def_disp_win_right_offset  = 0;
-  def_disp_win_top_offset    = 0;
-  def_disp_win_bottom_offset = 0;
-
-
-  // --- timing ---
-
-  vui_timing_info_present_flag = false;
-  vui_num_units_in_tick = 0;
-  vui_time_scale = 0;
-
-  vui_poc_proportional_to_timing_flag = false;
-  vui_num_ticks_poc_diff_one = 1;
-
-
-  // --- hrd parameters ---
-
-  vui_hrd_parameters_present_flag = false;
- 
-
-  // --- bitstream restriction ---
-
-  bitstream_restriction_flag = false;
-  tiles_fixed_structure_flag = false;
-  motion_vectors_over_pic_boundaries_flag = true;
-  restricted_ref_pic_lists_flag = false;
-  min_spatial_segmentation_idc = 0;
-  max_bytes_per_pic_denom   = 2;
-  max_bits_per_min_cu_denom = 1;
-  log2_max_mv_length_horizontal = 15;
-  log2_max_mv_length_vertical   = 15;
-}
+video_usability_information::video_usability_information() = default;
 
 
 de265_error video_usability_information::hrd_parameters(error_queue* errqueue, bitreader* br, const seq_parameter_set* sps)

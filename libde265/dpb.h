@@ -31,7 +31,7 @@ class decoder_context;
 
 class decoded_picture_buffer {
 public:
-  decoded_picture_buffer();
+  decoded_picture_buffer() = default;
   ~decoded_picture_buffer();
 
   void set_max_size_of_DPB(uint8_t n)  { max_images_in_DPB=n; }
@@ -104,8 +104,10 @@ public:
   void log_dpb_queues() const;
 
 private:
-  uint8_t max_images_in_DPB;
-  uint8_t norm_images_in_DPB;
+  static const int DPB_DEFAULT_MAX_IMAGES = 30;
+
+  uint8_t max_images_in_DPB = DPB_DEFAULT_MAX_IMAGES;
+  uint8_t norm_images_in_DPB = DPB_DEFAULT_MAX_IMAGES;
 
   std::vector<struct de265_image*> dpb; // decoded picture buffer
 

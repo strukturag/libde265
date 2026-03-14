@@ -93,10 +93,10 @@ public:
 
   // quantization
 
-  int IsCuQpDeltaCoded;
-  int CuQpDelta;
-  int IsCuChromaQpOffsetCoded;
-  int CuQpOffsetCb, CuQpOffsetCr;
+  int IsCuQpDeltaCoded = 0;
+  int CuQpDelta = 0;
+  int IsCuChromaQpOffsetCoded = 0;
+  int CuQpOffsetCb = 0, CuQpOffsetCr = 0;
 
   int currentQPY;
   int currentQG_x, currentQG_y;
@@ -109,12 +109,12 @@ public:
   context_model_table ctx_model;
   uint8_t StatCoeff[4];
 
-  decoder_context* decctx;
-  struct de265_image *img;
-  slice_segment_header* shdr;
+  decoder_context* decctx = nullptr;
+  struct de265_image *img = nullptr;
+  slice_segment_header* shdr = nullptr;
 
-  image_unit* imgunit;
-  slice_unit* sliceunit;
+  image_unit* imgunit = nullptr;
+  slice_unit* sliceunit = nullptr;
   thread_task* task; // executing thread_task or NULL if not multi-threaded
 
 private:
@@ -135,9 +135,9 @@ class error_queue
  private:
   std::mutex m_mutex;
   de265_error warnings[MAX_WARNINGS];
-  int nWarnings;
+  int nWarnings = 0;
   de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
-  int nWarningsShown;
+  int nWarningsShown = 0;
 };
 
 
@@ -197,7 +197,7 @@ public:
   image_unit();
   ~image_unit();
 
-  de265_image* img;
+  de265_image* img = nullptr;
   de265_image  sao_output; // if SAO is used, this is allocated and used as SAO output buffer
 
   std::vector<slice_unit*> slice_units;
@@ -254,13 +254,13 @@ public:
          Unknown, // SPS/PPS available
          Reference, // will be used as reference
          Leaf       // not a reference picture
-  } role;
+  } role = Invalid;
 
   enum { Unprocessed,
          InProgress,
          Decoded,
          Dropped         // will not be decoded
-  } state;
+  } state = Unprocessed;
 
   std::vector<thread_task*> tasks; // we are the owner
 

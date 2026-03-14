@@ -135,15 +135,15 @@ public:
 private:
   // data buffer
 
-  uint8_t* data_mem;
-  uint32_t data_capacity;
-  uint32_t data_size;
-  char     state; // for inserting emulation-prevention bytes
+  uint8_t* data_mem = nullptr;
+  uint32_t data_capacity = 0;
+  uint32_t data_size = 0;
+  char     state = 0; // for inserting emulation-prevention bytes
 
   // VLC
 
   uint32_t vlc_buffer;
-  uint32_t vlc_buffer_len;
+  uint32_t vlc_buffer_len = 0;
 
 
   // CABAC

@@ -54,59 +54,59 @@ class video_usability_information
 
   // --- sample aspect ratio (SAR) ---
 
-  bool     aspect_ratio_info_present_flag;
-  uint16_t sar_width;  // sar_width and sar_height are zero if unspecified
-  uint16_t sar_height;
+  bool     aspect_ratio_info_present_flag = false;
+  uint16_t sar_width = 0;  // sar_width and sar_height are zero if unspecified
+  uint16_t sar_height = 0;
 
 
   // --- overscan ---
 
-  bool     overscan_info_present_flag;
-  bool     overscan_appropriate_flag;
+  bool     overscan_info_present_flag = false;
+  bool     overscan_appropriate_flag = false;
 
 
   // --- video signal type ---
 
-  bool     video_signal_type_present_flag;
-  enum VideoFormat  video_format;
-  bool     video_full_range_flag;
-  bool     colour_description_present_flag;
-  uint8_t  colour_primaries;
-  uint8_t  transfer_characteristics;
-  uint8_t  matrix_coeffs;
+  bool     video_signal_type_present_flag = false;
+  enum VideoFormat  video_format = VideoFormat_Unspecified;
+  bool     video_full_range_flag = false;
+  bool     colour_description_present_flag = false;
+  uint8_t  colour_primaries = 2;
+  uint8_t  transfer_characteristics = 2;
+  uint8_t  matrix_coeffs = 2;
 
   // --- chroma / interlaced ---
 
-  bool     chroma_loc_info_present_flag;
-  uint8_t  chroma_sample_loc_type_top_field;
-  uint8_t  chroma_sample_loc_type_bottom_field;
+  bool     chroma_loc_info_present_flag = false;
+  uint8_t  chroma_sample_loc_type_top_field = 0;
+  uint8_t  chroma_sample_loc_type_bottom_field = 0;
 
-  bool     neutral_chroma_indication_flag;
-  bool     field_seq_flag;
-  bool     frame_field_info_present_flag;
+  bool     neutral_chroma_indication_flag = false;
+  bool     field_seq_flag = false;
+  bool     frame_field_info_present_flag = false;
 
   // --- default display window ---
 
-  bool     default_display_window_flag;
-  uint32_t def_disp_win_left_offset;
-  uint32_t def_disp_win_right_offset;
-  uint32_t def_disp_win_top_offset;
-  uint32_t def_disp_win_bottom_offset;
+  bool     default_display_window_flag = false;
+  uint32_t def_disp_win_left_offset = 0;
+  uint32_t def_disp_win_right_offset = 0;
+  uint32_t def_disp_win_top_offset = 0;
+  uint32_t def_disp_win_bottom_offset = 0;
 
 
   // --- timing ---
 
-  bool     vui_timing_info_present_flag;
-  uint32_t vui_num_units_in_tick;
-  uint32_t vui_time_scale;
+  bool     vui_timing_info_present_flag = false;
+  uint32_t vui_num_units_in_tick = 0;
+  uint32_t vui_time_scale = 0;
 
-  bool     vui_poc_proportional_to_timing_flag;
-  uint32_t vui_num_ticks_poc_diff_one;
+  bool     vui_poc_proportional_to_timing_flag = false;
+  uint32_t vui_num_ticks_poc_diff_one = 1;
 
 
   // --- hrd parameters ---
 
-  bool     vui_hrd_parameters_present_flag;
+  bool     vui_hrd_parameters_present_flag = false;
   bool     nal_hrd_parameters_present_flag;
   bool     vcl_hrd_parameters_present_flag;
   bool     sub_pic_hrd_params_present_flag;
@@ -133,15 +133,15 @@ class video_usability_information
   
   // --- bitstream restriction ---
 
-  bool bitstream_restriction_flag;
-  bool tiles_fixed_structure_flag;
-  bool motion_vectors_over_pic_boundaries_flag;
-  bool restricted_ref_pic_lists_flag;
-  uint16_t min_spatial_segmentation_idc;
-  uint8_t  max_bytes_per_pic_denom;
-  uint8_t  max_bits_per_min_cu_denom;
-  uint8_t  log2_max_mv_length_horizontal;
-  uint8_t  log2_max_mv_length_vertical;
+  bool bitstream_restriction_flag = false;
+  bool tiles_fixed_structure_flag = false;
+  bool motion_vectors_over_pic_boundaries_flag = true;
+  bool restricted_ref_pic_lists_flag = false;
+  uint16_t min_spatial_segmentation_idc = 0;
+  uint8_t  max_bytes_per_pic_denom = 2;
+  uint8_t  max_bits_per_min_cu_denom = 1;
+  uint8_t  log2_max_mv_length_horizontal = 15;
+  uint8_t  log2_max_mv_length_vertical = 15;
 };
 
 
