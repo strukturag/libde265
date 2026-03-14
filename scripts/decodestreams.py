@@ -46,6 +46,7 @@ CANCEL_TIMEOUT = 120
 DEFAULT_ROOT = '/var/lib/libde265-teststreams'
 
 def decode_file(filename, threads=None):
+    print('Starting: %s' % os.path.basename(filename), flush=True)
     cmd = ['./build/dec265/dec265', '-q', '-c']
     if threads and threads > 0:
         cmd.append('-t')
@@ -53,24 +54,28 @@ def decode_file(filename, threads=None):
     cmd.append(filename)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
-        (stdoutdata, stderrdata) = p.communicate()
+        (stdoutdata, stderrdata) = p.communicate(timeout=300)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        print('\rTIMEOUT: %s (killed after 300s)' % filename, flush=True)
+        return (False, filename)
     except KeyboardInterrupt:
         return (True, filename)
 
     if p.returncode < 0:
-        print('\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata))
+        print('\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata), flush=True)
         return (False, filename)
     elif p.returncode > 0:
         basename = os.path.basename(filename)
         if basename[:3] == 'id:':
             # fuzzing files may be invalid
-            print('\rWARNING: %s failed with returncode %d' % (filename, p.returncode))
+            print('\rWARNING: %s failed with returncode %d' % (filename, p.returncode), flush=True)
             return (True, filename)
         else:
-            print('\rERROR: %s failed with returncode %d (%r)' % (filename, p.returncode, stdoutdata))
+            print('\rERROR: %s failed with returncode %d (%r)' % (filename, p.returncode, stdoutdata), flush=True)
             return (False, filename)
     else:
-        print('OK: %s' % (filename))
+        print('OK: %s' % (filename), flush=True)
         return (True, filename)
 
 class BaseProcessor(object):
@@ -195,11 +200,11 @@ def main():
         root = DEFAULT_ROOT
 
     filenames = glob.glob(os.path.join(root, '*.bin'))
-    print('Processing %d streams in %s' % (len(filenames), root))
+    print('Processing %d streams in %s' % (len(filenames), root), flush=True)
     if threads:
-        print('Using %d processes with %s threads each' % (PROCESS_COUNT, threads))
+        print('Using %d processes with %s threads each' % (PROCESS_COUNT, threads), flush=True)
     else:
-        print('Using %d processes' % (PROCESS_COUNT))
+        print('Using %d processes' % (PROCESS_COUNT), flush=True)
 
     processor = ProcessorClass(filenames, threads)
     try:
