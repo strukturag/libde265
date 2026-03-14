@@ -103,7 +103,7 @@ void transform_skip_rdpcm_v_8_fallback(uint8_t *dst, const int16_t *coeffs, int 
     int32_t sum = 0;
 
     for (int y=0;y<nT;y++) {
-      int c = coeffs[x+y*nT] << tsShift;
+      int32_t c = (int32_t)((uint32_t)coeffs[x+y*nT] << tsShift);
       sum += (c+offset)>>bdShift2;
 
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
@@ -123,7 +123,7 @@ void transform_skip_rdpcm_h_8_fallback(uint8_t *dst, const int16_t *coeffs, int 
     int32_t sum = 0;
 
     for (int x=0;x<nT;x++) {
-      int c = coeffs[x+y*nT] << tsShift;
+      int32_t c = (int32_t)((uint32_t)coeffs[x+y*nT] << tsShift);
       sum += (c+offset)>>bdShift2;
 
       dst[y*stride+x] = Clip1_8bit(dst[y*stride+x] + sum);
@@ -191,7 +191,7 @@ void rdpcm_v_fallback(int32_t* residual, const int16_t* coeffs, int nT,int tsShi
   for (int x=0;x<nT;x++) {
     int sum=0;
     for (int y=0;y<nT;y++) {
-      int c = coeffs[x+y*nT] << tsShift;
+      int32_t c = (int32_t)((uint32_t)coeffs[x+y*nT] << tsShift);
       sum += (c+rnd)>>bdShift;
       residual[y*nT+x] = sum;
     }
@@ -206,7 +206,7 @@ void rdpcm_h_fallback(int32_t* residual, const int16_t* coeffs, int nT,int tsShi
   for (int y=0;y<nT;y++) {
     int sum=0;
     for (int x=0;x<nT;x++) {
-      int c = coeffs[x+y*nT] << tsShift;
+      int32_t c = (int32_t)((uint32_t)coeffs[x+y*nT] << tsShift);
       sum += (c+rnd)>>bdShift;
       residual[y*nT+x] = sum;
     }
