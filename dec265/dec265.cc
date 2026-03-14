@@ -34,14 +34,14 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits>
+#include <cstdio>
+#include <cstdlib>
+#include <cinttypes>
 #include <getopt.h>
+#include <cstring>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
-#include <signal.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>

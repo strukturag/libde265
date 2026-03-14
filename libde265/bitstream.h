@@ -21,12 +21,7 @@
 #ifndef DE265_BITSTREAM_H
 #define DE265_BITSTREAM_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdint>
 
 
 // HEVC (ITU-T H.265, E.3.3) allows ue(v) values up to 2^32-2 (e.g. bit_rate_value_minus1),

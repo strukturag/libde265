@@ -629,7 +629,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   }
 
 
-  struct thread_context tctx;
+  thread_context tctx;
 
   tctx.shdr = sliceunit->shdr;
   tctx.img  = imgunit->img;
@@ -637,7 +637,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.imgunit = imgunit;
   tctx.sliceunit= sliceunit;
   tctx.CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx.shdr->slice_segment_address];
-  tctx.task = NULL;
+  tctx.task = nullptr;
 
   init_thread_context(&tctx);
 
