@@ -1011,7 +1011,11 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   bitreader_init(&reader, nal->data(), nal->size());
 
   nal_header nal_hdr;
-  nal_hdr.read(&reader);
+  err = nal_hdr.read(&reader);
+  if (err != DE265_OK) {
+    nal_parser.free_NAL_unit(nal);
+    return err;
+  }
   ctx->process_nal_hdr(&nal_hdr);
 
   if (nal_hdr.nuh_layer_id > 0) {

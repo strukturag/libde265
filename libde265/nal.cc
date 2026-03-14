@@ -23,12 +23,17 @@
 #include <assert.h>
 
 
-void nal_header::read(bitreader* reader)
+de265_error nal_header::read(bitreader* reader)
 {
   skip_bits(reader,1);
   nal_unit_type = get_bits(reader,6);
   nuh_layer_id  = get_bits(reader,6);
-  nuh_temporal_id = get_bits(reader,3) -1;
+  uint32_t nuh_temporal_id_plus1 = get_bits(reader,3);
+  if (nuh_temporal_id_plus1 == 0) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  nuh_temporal_id = nuh_temporal_id_plus1 - 1;
+  return DE265_OK;
 }
 
 
