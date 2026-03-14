@@ -40,6 +40,17 @@ if [ "$CURRENT_OS" = "osx" ]; then
     export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig"
 fi
 
+# Valgrind on Ubuntu 22.04 cannot handle DWARF5 debug info produced by clang.
+# Force DWARF4 so valgrind can read the debug info.
+if [ "$CURRENT_OS" = "linux" ] && [ "$CC" = "clang" ]; then
+    # We need to replicate the autotools defaults (-g -O2) because exporting
+    # CFLAGS/CXXFLAGS causes configure to use them verbatim instead of its
+    # own defaults. This can be simplified to just appending -gdwarf-4 once
+    # we migrate the CI build to cmake.
+    export CFLAGS="${CFLAGS:--g -O2} -gdwarf-4"
+    export CXXFLAGS="${CXXFLAGS:--g -O2} -gdwarf-4"
+fi
+
 if [ -z "$CMAKE" ]; then
     ./autogen.sh
     ./configure --host=$TARGET_HOST
