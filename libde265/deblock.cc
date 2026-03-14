@@ -297,10 +297,10 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 
 	    if (shdrP && shdrQ) {
 
-        if (mviP.refIdx[0] > MAX_NUM_REF_PICS ||
-            mviP.refIdx[1] > MAX_NUM_REF_PICS ||
-            mviQ.refIdx[0] > MAX_NUM_REF_PICS ||
-            mviQ.refIdx[1] > MAX_NUM_REF_PICS) {
+        if ((mviP.predFlag[0] && (mviP.refIdx[0] < 0 || mviP.refIdx[0] >= MAX_NUM_REF_PICS)) ||
+            (mviP.predFlag[1] && (mviP.refIdx[1] < 0 || mviP.refIdx[1] >= MAX_NUM_REF_PICS)) ||
+            (mviQ.predFlag[0] && (mviQ.refIdx[0] < 0 || mviQ.refIdx[0] >= MAX_NUM_REF_PICS)) ||
+            (mviQ.predFlag[1] && (mviQ.refIdx[1] < 0 || mviQ.refIdx[1] >= MAX_NUM_REF_PICS))) {
           // we cannot return an error from here, so just set a valid boundaryStrength value and continue;
           img->set_deblk_bS(xDi, yDi, 0);
           continue;

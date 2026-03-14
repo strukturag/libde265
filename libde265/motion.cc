@@ -347,7 +347,9 @@ void generate_inter_prediction_samples(base_context* ctx,
   // do this only without weighted prediction, because the weights/offsets may be different
   if (pps->weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
-      if (vi->mv[0].x == vi->mv[1].x &&
+      if (vi->refIdx[0] >= 0 && vi->refIdx[0] < MAX_NUM_REF_PICS &&
+          vi->refIdx[1] >= 0 && vi->refIdx[1] < MAX_NUM_REF_PICS &&
+          vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
           shdr->RefPicList[0][vi->refIdx[0]] ==
           shdr->RefPicList[1][vi->refIdx[1]]) {
@@ -379,7 +381,7 @@ void generate_inter_prediction_samples(base_context* ctx,
     if (predFlag[l]) {
       // 8.5.3.2.1
 
-      if (vi->refIdx[l] >= MAX_NUM_REF_PICS) {
+      if (vi->refIdx[l] < 0 || vi->refIdx[l] >= MAX_NUM_REF_PICS) {
         img->integrity = INTEGRITY_DECODING_ERRORS;
         ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
         fill_pred_samples(l);
@@ -1801,6 +1803,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       const PBMotion& vi = img->get_mv_info(xA[k],yA[k]);
       if (vi.predFlag[X]==1 &&
+          vi.refIdx[X] >= 0 && vi.refIdx[X] < MAX_NUM_REF_PICS &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
 
         logtrace(LogMotion,"take A%D/L%d as A candidate with different POCs\n",k,X);
@@ -1811,6 +1814,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         refPicList = X;
       }
       else if (vi.predFlag[Y]==1 &&
+               vi.refIdx[Y] >= 0 && vi.refIdx[Y] < MAX_NUM_REF_PICS &&
                shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[Y][ vi.refIdx[Y] ]) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with different POCs\n",k,Y);
@@ -1962,7 +1966,8 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
         const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
 
-        if (vi.refIdx[X] >= MAX_NUM_REF_PICS) {
+        if ((vi.predFlag[X] && (vi.refIdx[X] < 0 || vi.refIdx[X] >= MAX_NUM_REF_PICS)) ||
+            (vi.predFlag[Y] && (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS))) {
           img->integrity = INTEGRITY_DECODING_ERRORS;
           ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
           return; // error   // TODO: we actually should make sure that this is never set to an out-of-range value
@@ -2178,7 +2183,7 @@ void motion_vectors_and_ref_indices(base_context* ctx,
         out_vi->refIdx[l] = motion.refIdx[l];
         out_vi->predFlag[l] = 1;
 
-        if (motion.refIdx[l] >= MAX_NUM_REF_PICS) {
+        if (motion.refIdx[l] < 0 || motion.refIdx[l] >= MAX_NUM_REF_PICS) {
           out_vi->refIdx[l] = 0;
 
           img->integrity = INTEGRITY_DECODING_ERRORS;

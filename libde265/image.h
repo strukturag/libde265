@@ -91,7 +91,7 @@ template <class DataUnit> class MetaDataArray
 
     if (size != data_size) {
       free(data);
-      data = (DataUnit*)malloc(size * sizeof(DataUnit));
+      data = (DataUnit*)calloc(size, sizeof(DataUnit));
       if (data == NULL) {
         data_size = 0;
         return false;
