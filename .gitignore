@@ -9,7 +9,6 @@ Makefile
 Makefile.in
 config.log
 config.h
-config.h.in
 config.status
 config.guess
 config.sub
