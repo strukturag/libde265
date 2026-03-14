@@ -53,8 +53,8 @@ IGNORE_FILES=(
 
 FOUND=
 while read -r line; do
-    if ( echo $line | grep -qE "/\.git/|/\.github/" ); then
-        # Skip files in ".git" / ".github" folders
+    if ( echo $line | grep -qE "/\.git/|/\.github/|/cmake/" ); then
+        # Skip files in ".git" / ".github" / "cmake" folders
         continue
     fi
 
