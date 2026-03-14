@@ -100,7 +100,7 @@ configure_file (cmake/config.h.in config.h)
 add_definitions(-DHAVE_CONFIG_H)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
-  add_definitions(-Wall)
+  add_definitions(-Wall -Werror=return-type -Werror=unused-result -Werror=reorder)
 endif()
 
 include(CheckCXXSymbolExists)
